@@ -79,4 +79,8 @@
       <Filter>includes\acl\math</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" />
+    <None Include="README.md" />
+  </ItemGroup>
 </Project>

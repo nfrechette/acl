@@ -39,6 +39,10 @@
     <ClInclude Include="includes\acl\math\vector4_64.h" />
     <ClInclude Include="includes\acl\algorithm_globals.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" />
+    <None Include="README.md" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{14B38BAE-BC9B-4C39-8F0E-F6728BA2FCAC}</ProjectGuid>
     <RootNamespace>AnimationCompressionLibrary</RootNamespace>
