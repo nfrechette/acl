@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="includes">
+      <UniqueIdentifier>{585e3318-2136-4b92-b02e-b5bcab2e0223}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl">
+      <UniqueIdentifier>{94e9a87e-6dfd-4e94-8299-5446a0d3f1eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl\math">
+      <UniqueIdentifier>{d3adb443-79c5-4711-99dd-c97d33009dc8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl\compression">
+      <UniqueIdentifier>{d1e0a08e-359a-493e-8de4-32285fed7e92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl\decompression">
+      <UniqueIdentifier>{ec61c599-853f-46cc-92f8-4e9926ec99bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl\algorithm">
+      <UniqueIdentifier>{1a57ab3b-e48f-453c-aaf8-7a2ad19ed10e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="includes\acl\math\quat_64.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\vector4_64.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\skeleton.h">
+      <Filter>includes\acl\compression</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\animation_clip.h">
+      <Filter>includes\acl\compression</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\animation_track.h">
+      <Filter>includes\acl\compression</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\assert.h">
+      <Filter>includes\acl</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\quat_32.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\vector4_32.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm_globals.h">
+      <Filter>includes\acl</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\math.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compressed_clip.h">
+      <Filter>includes\acl</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\compressed_clip_impl.h">
+      <Filter>includes\acl\compression</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\decompression\output_writer.h">
+      <Filter>includes\acl\decompression</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\animation_track_range.h">
+      <Filter>includes\acl\compression</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\scalar_32.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\full_precision_decoder.h">
+      <Filter>includes\acl\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\full_precision_encoder.h">
+      <Filter>includes\acl\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\memory.h">
+      <Filter>includes\acl</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\math_types.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
