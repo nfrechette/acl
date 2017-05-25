@@ -78,6 +78,15 @@
     <ClInclude Include="includes\acl\math\math_types.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\full_precision_common.h">
+      <Filter>includes\acl\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\scalar_64.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\bitset.h">
+      <Filter>includes\acl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

@@ -30,11 +30,11 @@
 
 struct OutputWriterImpl : public acl::OutputWriter
 {
-	void WriteBoneRotation(uint32_t bone_index, const acl::Quat_32& rotation)
+	void write_bone_rotation(uint32_t bone_index, const acl::Quat_32& rotation)
 	{
 	}
 
-	void WriteBoneTranslation(uint32_t bone_index, const acl::Vector4_32& translation)
+	void write_bone_translation(uint32_t bone_index, const acl::Vector4_32& translation)
 	{
 	}
 };

@@ -46,6 +46,21 @@ namespace acl
 #endif
 	}
 
+	inline Vector4_32 vector_unaligned_load(const float* input)
+	{
+		return vector_set(input[0], input[1], input[2], input[3]);
+	}
+
+	inline Vector4_32 vector_unaligned_load3(const float* input)
+	{
+		return vector_set(input[0], input[1], input[2], 0.0f);
+	}
+
+	inline Vector4_32 vector_32_zero()
+	{
+		return vector_set(0.0f, 0.0f, 0.0f, 0.0f);
+	}
+
 	inline float vector_get_x(const Vector4_32& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -107,6 +122,11 @@ namespace acl
 #else
 		return vector_set(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w);
 #endif
+	}
+
+	inline Vector4_32 vector_mul(const Vector4_32& lhs, float rhs)
+	{
+		return vector_mul(lhs, vector_set(rhs));
 	}
 
 	inline Vector4_32 vector_lerp(const Vector4_32& start, const Vector4_32& end, float alpha)

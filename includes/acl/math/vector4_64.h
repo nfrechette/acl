@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/math/math.h"
+#include "acl/math/scalar_64.h"
 
 #if defined(ACL_NO_INTRINSICS)
 #include <algorithm>
@@ -41,6 +42,15 @@ namespace acl
 #endif
 	}
 
+	inline Vector4_64 vector_set(double x, double y, double z)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return Vector4_64{ _mm_set_pd(x, y), _mm_set_pd(z, 0.0) };
+#else
+		return Vector4_64{ x, y, z, 0.0 };
+#endif
+	}
+
 	inline Vector4_64 vector_set(double xyzw)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -48,6 +58,30 @@ namespace acl
 		return Vector4_64{ xyzw_pd, xyzw_pd };
 #else
 		return Vector4_64{ xyzw, xyzw, xyzw, xyzw };
+#endif
+	}
+
+	inline Vector4_64 vector_unaligned_load(const double* input)
+	{
+		return vector_set(input[0], input[1], input[2], input[3]);
+	}
+
+	inline Vector4_64 vector_unaligned_load3(const double* input)
+	{
+		return vector_set(input[0], input[1], input[2], 0.0f);
+	}
+
+	inline Vector4_64 vector_64_zero()
+	{
+		return vector_set(0.0, 0.0, 0.0, 0.0);
+	}
+
+	inline Vector4_64 vector_cast(const Quat_64& input)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return Vector4_64{ input.xy, input.zw };
+#else
+		return Vector4_64{ input.x, input.y, input.z, input.w };
 #endif
 	}
 
@@ -114,6 +148,11 @@ namespace acl
 #endif
 	}
 
+	inline Vector4_64 vector_mul(const Vector4_64& lhs, double rhs)
+	{
+		return vector_mul(lhs, vector_set(rhs));
+	}
+
 	inline Vector4_64 vector_max(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -140,6 +179,47 @@ namespace acl
 #else
 		return vector_set(std::abs(input.x), std::abs(input.y), std::abs(input.z), std::abs(input.w));
 #endif
+	}
+
+	inline double vector_length_squared(const Vector4_64& input)
+	{
+		// TODO: Use dot instruction
+		return (vector_get_x(input) * vector_get_x(input)) + (vector_get_y(input) + vector_get_y(input)) + (vector_get_z(input) + vector_get_z(input)) + (vector_get_w(input) + vector_get_w(input));
+	}
+
+	inline double vector_length_squared3(const Vector4_64& input)
+	{
+		// TODO: Use dot instruction
+		return (vector_get_x(input) * vector_get_x(input)) + (vector_get_y(input) + vector_get_y(input)) + (vector_get_z(input) + vector_get_z(input));
+	}
+
+	inline double vector_length(const Vector4_64& input)
+	{
+		// TODO: Use intrinsics to avoid scalar coercion
+		return sqrt(vector_length_squared(input));
+	}
+
+	inline double vector_length3(const Vector4_64& input)
+	{
+		// TODO: Use intrinsics to avoid scalar coercion
+		return sqrt(vector_length_squared3(input));
+	}
+
+	inline double vector_length_reciprocal(const Vector4_64& input)
+	{
+		// TODO: Use recip instruction
+		return 1.0 / vector_length(input);
+	}
+
+	inline double vector_length_reciprocal3(const Vector4_64& input)
+	{
+		// TODO: Use recip instruction
+		return 1.0 / vector_length3(input);
+	}
+
+	inline double vector_distance3(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+		return vector_length3(vector_sub(rhs, lhs));
 	}
 
 	inline bool vector_all_less_than(const Vector4_64& lhs, const Vector4_64& rhs)

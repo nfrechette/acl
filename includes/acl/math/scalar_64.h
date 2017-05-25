@@ -24,26 +24,38 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/math/quat_32.h"
-#include "acl/math/vector4_32.h"
+#include "acl/math/math.h"
 
-#include <stdint.h>
+#include <algorithm>
 
 namespace acl
 {
-	// We use a struct like this to allow an arbitrary format on the end user side.
-	// Since our decode function is templated on this type implemented by the user,
-	// the callbacks can trivially be inlined.
-	struct OutputWriter
+	// TODO: Get a higher precision number
+	static constexpr double ACL_PI_64 = 3.141592654;
+
+	inline double floor(double input)
 	{
-		// TODO: use constexpr flags to control if we extract rotation only, translation only, etc.
+		return std::floor(input);
+	}
 
-		void write_bone_rotation(uint32_t bone_index, const Quat_32& rotation)
-		{
-		}
+	inline double clamp(double input, double min, double max)
+	{
+		return std::min(std::max(input, min), max);
+	}
 
-		void write_bone_translation(uint32_t bone_index, const Vector4_32& translation)
-		{
-		}
-	};
+	inline double sqrt(double input)
+	{
+		return std::sqrt(input);
+	}
+
+	inline double sqrt_reciprocal(double input)
+	{
+		// TODO: Use recip instruction
+		return 1.0 / sqrt(input);
+	}
+
+	inline double atan2(double left, double right)
+	{
+		return std::atan2(left, right);
+	}
 }

@@ -26,6 +26,7 @@
 
 #include "acl/math/math.h"
 #include "acl/math/scalar_32.h"
+#include "acl/math/vector4_32.h"
 
 namespace acl
 {
@@ -36,6 +37,16 @@ namespace acl
 #else
 		return Quat_32{ x, y, z, w };
 #endif
+	}
+
+	inline Quat_32 quat_unaligned_load(const float* input)
+	{
+		return quat_set(input[0], input[1], input[2], input[3]);
+	}
+
+	inline Quat_32 quat_32_identity()
+	{
+		return quat_set(0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
 	inline float quat_get_x(const Quat_32& input)
@@ -89,7 +100,7 @@ namespace acl
 	inline float quat_length_reciprocal(const Quat_32& input)
 	{
 		// TODO: Use recip instruction
-		return 1.0f / sqrt(quat_length_squared(input));
+		return 1.0f / quat_length(input);
 	}
 
 	inline Quat_32 quat_normalize(const Quat_32& input)
@@ -97,5 +108,14 @@ namespace acl
 		// TODO: Use vector mul instruction
 		float length_recip = quat_length_reciprocal(input);
 		return quat_set(quat_get_x(input) * length_recip, quat_get_y(input) * length_recip, quat_get_z(input) * length_recip, quat_get_w(input) * length_recip);
+	}
+
+	inline Quat_32 quat_lerp(const Quat_32& start, const Quat_32& end, float alpha)
+	{
+		// TODO: Implement coercion operators?
+		Vector4_32 start_vector = vector_set(quat_get_x(start), quat_get_y(start), quat_get_z(start), quat_get_w(start));
+		Vector4_32 end_vector = vector_set(quat_get_x(end), quat_get_y(end), quat_get_z(end), quat_get_w(end));
+		Vector4_32 value = vector_add(start_vector, vector_mul(vector_sub(end_vector, start_vector), alpha));
+		return quat_normalize(quat_set(vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value)));
 	}
 }

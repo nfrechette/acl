@@ -28,24 +28,54 @@
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/scalar_32.h"
+#include "acl/algorithm/full_precision_common.h"
 #include "acl/decompression/output_writer.h"
 
 #include <stdint.h>
 #include <algorithm>
 
+//////////////////////////////////////////////////////////////////////////
 // See encoder for details
+//////////////////////////////////////////////////////////////////////////
 
 namespace acl
 {
-	inline Quat_32 quat_lerp(const Quat_32& start, const Quat_32& end, float alpha)
+	inline void calculate_interpolation_keys(const FullPrecisionHeader& header, float sample_time, uint32_t& out_key_frame0, uint32_t& out_key_frame1, float& out_interpolation_alpha)
 	{
-		// TODO: Implement coercion operators?
-		// TODO: Move this function in quat_32.h
-		Vector4_32 start_vector = vector_set(quat_get_x(start), quat_get_y(start), quat_get_z(start), quat_get_w(start));
-		Vector4_32 end_vector = vector_set(quat_get_x(end), quat_get_y(end), quat_get_z(end), quat_get_w(end));
-		Vector4_32 value = vector_add(start_vector, vector_mul(vector_sub(end_vector, start_vector), vector_set(alpha)));
-		return quat_normalize(quat_set(vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value)));
+		// Samples are evenly spaced, trivially calculate the indices that we need
+		float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
+		float normalized_sample_time = (sample_time / clip_duration);
+		ensure(sample_time >= 0.0f && sample_time <= clip_duration);
+		ensure(normalized_sample_time >= 0.0f && normalized_sample_time <= 1.0f);
+
+		float sample_key = normalized_sample_time * float(header.num_samples - 1);
+		uint32_t key_frame0 = uint32_t(floor(sample_key));
+		uint32_t key_frame1 = std::max(key_frame0 + 1, header.num_samples - 1);
+		float interpolation_alpha = sample_key - float(key_frame0);
+		ensure(key_frame0 >= 0 && key_frame0 <= key_frame1 && key_frame1 < header.num_samples);
+		ensure(interpolation_alpha >= 0.0f && interpolation_alpha <= 1.0f);
+
+		out_key_frame0 = key_frame0;
+		out_key_frame1 = key_frame1;
+		out_interpolation_alpha = interpolation_alpha;
 	}
+
+	// 2 ways to encore a track as default: a bitset or omit the track
+	// the second method requires a track id to be present to distinguish the
+	// remaining tracks.
+	// For a character, about 50-90 tracks are animated.
+	// We ideally want to support more than 255 tracks or bones.
+	// 50 * 16 bits = 100 bytes
+	// 90 * 16 bits = 180 bytes
+	// On the other hand, a character has about 140-180 bones, or 280-360 tracks (rotation/translation only)
+	// 280 * 1 bit = 35 bytes
+	// 360 * 1 bit = 45 bytes
+	// It is obvious that storing a bitset is much more compact
+	// A bitset also allows us to process and write track values in the order defined when compressed
+	// unlike the track id method which makes it impossible to know which values are default until
+	// everything has been decompressed (at which point everything else is default).
+	// For the track id method to be more compact, an unreasonable small number of tracks would need to be
+	// animated or constant compared to the total possible number of tracks. Those are likely to be rare.
 
 	template<class OutputWriterType>
 	inline void full_precision_decoder(const CompressedClip& clip, float sample_time, OutputWriterType& writer)
@@ -53,45 +83,61 @@ namespace acl
 		ensure(clip.get_algorithm_type() == AlgorithmType::FullPrecision);
 		ensure(clip.is_valid(false));
 
-		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&clip);
-		const FullPrecisionHeader* header = reinterpret_cast<const FullPrecisionHeader*>(buffer + sizeof(CompressedClip));
-		const float* track_data = reinterpret_cast<const float*>(buffer + sizeof(CompressedClip) + sizeof(FullPrecisionHeader));
+		const FullPrecisionHeader& header = get_full_precision_header(clip);
 
-		// Samples are evenly spaced, trivially calculate the indices that we need
-		float clip_duration = float(header->num_samples - 1) / float(header->sample_rate);
-		float normalized_sample_time = (sample_time / clip_duration);
-		ensure(sample_time >= 0.0f && sample_time <= clip_duration);
-		ensure(normalized_sample_time >= 0.0f && normalized_sample_time <= 1.0f);
+		uint32_t key_frame0;
+		uint32_t key_frame1;
+		float interpolation_alpha;
+		calculate_interpolation_keys(header, sample_time, key_frame0, key_frame1, interpolation_alpha);
 
-		float sample_key = normalized_sample_time * float(header->num_samples - 1);
-		uint32_t key_frame0 = uint32_t(floor(sample_key));
-		uint32_t key_frame1 = std::max(key_frame0 + 1, header->num_samples - 1);
-		float interpolation_alpha = sample_key - float(key_frame0);
-		ensure(key_frame0 >= 0 && key_frame0 <= key_frame1 && key_frame1 < header->num_samples);
-		ensure(interpolation_alpha >= 0.0f && interpolation_alpha <= 1.0f);
+		const uint32_t* default_tracks_bitset = header.get_default_tracks_bitset();
+		uint32_t default_track_offset = 0;
+		uint32_t bitset_size = ((header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE) + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
 
-		uint32_t num_floats_per_key_frame = (header->num_animated_rotation_tracks * 4) + (header->num_animated_translation_tracks * 3);
+		// TODO: No need to store this, unpack from bitset in context and simplify branching logic below?
+		uint32_t num_floats_per_key_frame = (header.num_animated_rotation_tracks * 4) + (header.num_animated_translation_tracks * 3);
+
+		const float* track_data = header.get_track_data();
 		const float* key_frame_data0 = track_data + (key_frame0 * num_floats_per_key_frame);
 		const float* key_frame_data1 = track_data + (key_frame1 * num_floats_per_key_frame);
 
-		// TODO: For now, we always compress both tracks of each bone, this is wrong, some could be dropped
-		uint32_t num_bones = header->num_animated_rotation_tracks;
-		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 		{
-			Quat_32 rotation0 = quat_set(key_frame_data0[0], key_frame_data0[1], key_frame_data0[2], key_frame_data0[3]);
-			Vector4_32 translation0 = vector_set(key_frame_data0[4], key_frame_data0[5], key_frame_data0[6], 0.0f);
+			Quat_32 rotation;
+			bool is_rotation_default = bitset_test(default_tracks_bitset, 0, default_track_offset++);
+			if (is_rotation_default)
+			{
+				rotation = quat_32_identity();
+			}
+			else
+			{
+				Quat_32 rotation0 = quat_unaligned_load(key_frame_data0);
+				Quat_32 rotation1 = quat_unaligned_load(key_frame_data1);
+				rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
 
-			Quat_32 rotation1 = quat_set(key_frame_data1[0], key_frame_data1[1], key_frame_data1[2], key_frame_data1[3]);
-			Vector4_32 translation1 = vector_set(key_frame_data1[4], key_frame_data1[5], key_frame_data1[6], 0.0f);
+				key_frame_data0 += 4;
+				key_frame_data1 += 4;
+			}
 
-			key_frame_data0 += num_floats_per_key_frame;
-			key_frame_data1 += num_floats_per_key_frame;
+			writer.write_bone_rotation(bone_index, rotation);
 
-			Quat_32 rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
-			writer.WriteBoneRotation(bone_index, rotation);
+			Vector4_32 translation;
+			bool is_translation_default = bitset_test(default_tracks_bitset, 0, default_track_offset++);
+			if (is_translation_default)
+			{
+				translation = vector_32_zero();
+			}
+			else
+			{
+				Vector4_32 translation0 = vector_unaligned_load3(key_frame_data0);
+				Vector4_32 translation1 = vector_unaligned_load3(key_frame_data1);
+				translation = vector_lerp(translation0, translation1, interpolation_alpha);
 
-			Vector4_32 translation = vector_lerp(translation0, translation1, interpolation_alpha);
-			writer.WriteBoneTranslation(bone_index, translation);
+				key_frame_data0 += 3;
+				key_frame_data1 += 3;
+			}
+
+			writer.write_bone_translation(bone_index, translation);
 		}
 	}
 }

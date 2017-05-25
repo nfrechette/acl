@@ -28,6 +28,9 @@
 
 namespace acl
 {
+	// For a rotation track, the extent only tells us if the track is constant or not
+	// since the min/max we maintain aren't valid rotations.
+	// Similarly, the center isn't a valid rotation and is meaningless.
 	class AnimationTrackRange
 	{
 	public:
@@ -44,8 +47,8 @@ namespace acl
 		Vector4_64 get_min() const { return m_min; }
 		Vector4_64 get_max() const { return m_max; }
 
-		Vector4_64 get_center() const { return vector_mul(vector_add(m_max, m_min), vector_set(0.5)); }
-		Vector4_64 get_extent() const { return vector_mul(vector_sub(m_max, m_min), vector_set(0.5)); }
+		Vector4_64 get_center() const { return vector_mul(vector_add(m_max, m_min), 0.5); }
+		Vector4_64 get_extent() const { return vector_mul(vector_sub(m_max, m_min), 0.5); }
 
 		bool is_constant(double threshold) const { return vector_all_less_than(vector_abs(vector_sub(m_max, m_min)), vector_set(threshold)); }
 

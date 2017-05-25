@@ -32,7 +32,7 @@ namespace acl
 {
 	inline float floor(float input)
 	{
-		return float(uint32_t(input));
+		return std::floor(input);
 	}
 
 	inline float clamp(float input, float min, float max)

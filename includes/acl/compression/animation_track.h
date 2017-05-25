@@ -35,6 +35,8 @@
 
 namespace acl
 {
+	static constexpr double		TRACK_CONSTANT_THRESHOLD			= 0.00001;
+
 	class AnimationTrack
 	{
 	public:
@@ -52,6 +54,8 @@ namespace acl
 
 			return m_range;
 		}
+
+		bool is_constant(double threshold = TRACK_CONSTANT_THRESHOLD) const { return get_range().is_constant(threshold); }
 
 	protected:
 		enum class AnimationTrackType : uint8_t
@@ -202,6 +206,21 @@ namespace acl
 			return *this;
 		}
 
+		bool is_default(double threshold = TRACK_CONSTANT_THRESHOLD) const
+		{
+			AnimationTrackRange range = get_range();
+			if (!range.is_constant(threshold))
+				return false;
+
+			// For a rotation track, the extent only tells us if the track is constant or not
+			// since the min/max we maintain aren't valid rotations.
+			// Similarly, the center isn't a valid rotation and is meaningless.
+			Quat_64 sample0 = get_sample(0);
+			double angle = quat_get_angle(sample0);
+
+			return abs(angle) < threshold;
+		}
+
 		void set_sample(uint32_t sample_index, const Quat_64& rotation, double sample_time)
 		{
 			ensure(is_initialized());
@@ -227,7 +246,7 @@ namespace acl
 			size_t sample_size = get_animation_track_sample_size(m_type);
 
 			const double* sample = &m_sample_data[sample_index * sample_size];
-			return quat_set(sample[0], sample[1], sample[2], sample[3]);
+			return quat_unaligned_load(sample);
 		}
 
 		AnimationRotationTrack(const AnimationRotationTrack&) = delete;
@@ -255,6 +274,17 @@ namespace acl
 			return *this;
 		}
 
+		bool is_default(double threshold = TRACK_CONSTANT_THRESHOLD) const
+		{
+			AnimationTrackRange range = get_range();
+			if (!range.is_constant(threshold))
+				return false;
+
+			double distance = vector_length3(range.get_center());
+
+			return distance < threshold;
+		}
+
 		void set_sample(uint32_t sample_index, const Vector4_64& translation, double sample_time)
 		{
 			ensure(is_initialized());
@@ -279,7 +309,7 @@ namespace acl
 			size_t sample_size = get_animation_track_sample_size(m_type);
 
 			const double* sample = &m_sample_data[sample_index * sample_size];
-			return vector_set(sample[0], sample[1], sample[2], 0.0);
+			return vector_unaligned_load3(sample);
 		}
 
 		AnimationTranslationTrack(const AnimationTranslationTrack&) = delete;
