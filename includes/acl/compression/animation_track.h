@@ -37,6 +37,8 @@ namespace acl
 {
 	static constexpr double		TRACK_CONSTANT_THRESHOLD			= 0.00001;
 
+	// TODO: Bake tracks before we start compressing. Calculate the range, if it is constant, default, etc.
+
 	class AnimationTrack
 	{
 	public:

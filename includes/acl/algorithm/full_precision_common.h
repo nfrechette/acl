@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/compressed_clip.h"
+#include "acl/memory.h"
 
 #include <stdint.h>
 
@@ -40,29 +41,37 @@ namespace acl
 	{
 		uint32_t	num_bones;
 		uint32_t	num_samples;
-		uint32_t	sample_rate;		// TODO: Store duration as float instead
-		uint32_t	num_animated_rotation_tracks;
-		uint32_t	num_animated_translation_tracks;
+		uint32_t	sample_rate;								// TODO: Store duration as float instead
+		uint32_t	num_animated_rotation_tracks;				// TODO: Calculate from bitsets?
+		uint32_t	num_animated_translation_tracks;			// TODO: Calculate from bitsets?
 
-		uint16_t	default_tracks_bitset_offset;
-		uint16_t	track_data_offset;
+		PtrOffset16<uint32_t>	default_tracks_bitset_offset;
+		PtrOffset16<uint32_t>	constant_tracks_bitset_offset;
+		PtrOffset16<float>		constant_track_data_offset;
+		PtrOffset16<float>		track_data_offset;
 
 		//////////////////////////////////////////////////////////////////////////
 
-		uint32_t*		get_default_tracks_bitset()			{ return reinterpret_cast<uint32_t*>(reinterpret_cast<uint8_t*>(this) + default_tracks_bitset_offset); }
-		const uint32_t*	get_default_tracks_bitset() const	{ return reinterpret_cast<const uint32_t*>(reinterpret_cast<const uint8_t*>(this) + default_tracks_bitset_offset); }
+		uint32_t*		get_default_tracks_bitset()			{ return default_tracks_bitset_offset.get(this); }
+		const uint32_t*	get_default_tracks_bitset() const	{ return default_tracks_bitset_offset.get(this); }
 
-		float*			get_track_data()					{ return reinterpret_cast<float*>(reinterpret_cast<uint8_t*>(this) + track_data_offset); }
-		const float*	get_track_data() const				{ return reinterpret_cast<const float*>(reinterpret_cast<const uint8_t*>(this) + track_data_offset); }
+		uint32_t*		get_constant_tracks_bitset()		{ return constant_tracks_bitset_offset.get(this); }
+		const uint32_t*	get_constant_tracks_bitset() const	{ return constant_tracks_bitset_offset.get(this); }
+
+		float*			get_constant_track_data()			{ return constant_track_data_offset.get(this); }
+		const float*	get_constant_track_data() const		{ return constant_track_data_offset.get(this); }
+
+		float*			get_track_data()					{ return track_data_offset.get(this); }
+		const float*	get_track_data() const				{ return track_data_offset.get(this); }
 	};
 
 	inline FullPrecisionHeader& get_full_precision_header(CompressedClip& clip)
 	{
-		return *reinterpret_cast<FullPrecisionHeader*>(reinterpret_cast<uint8_t*>(&clip) + sizeof(CompressedClip));
+		return *add_offset_to_ptr<FullPrecisionHeader*>(&clip, sizeof(CompressedClip));
 	}
 
 	inline const FullPrecisionHeader& get_full_precision_header(const CompressedClip& clip)
 	{
-		return *reinterpret_cast<const FullPrecisionHeader*>(reinterpret_cast<const uint8_t*>(&clip) + sizeof(CompressedClip));
+		return *add_offset_to_ptr<const FullPrecisionHeader*>(&clip, sizeof(CompressedClip));
 	}
 }

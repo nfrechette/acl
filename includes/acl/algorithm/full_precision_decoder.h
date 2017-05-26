@@ -90,52 +90,82 @@ namespace acl
 		float interpolation_alpha;
 		calculate_interpolation_keys(header, sample_time, key_frame0, key_frame1, interpolation_alpha);
 
-		const uint32_t* default_tracks_bitset = header.get_default_tracks_bitset();
-		uint32_t default_track_offset = 0;
 		uint32_t bitset_size = ((header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE) + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
 
-		// TODO: No need to store this, unpack from bitset in context and simplify branching logic below?
-		uint32_t num_floats_per_key_frame = (header.num_animated_rotation_tracks * 4) + (header.num_animated_translation_tracks * 3);
+		const uint32_t* default_tracks_bitset = header.get_default_tracks_bitset();
+		uint32_t default_track_offset = 0;
 
-		const float* track_data = header.get_track_data();
-		const float* key_frame_data0 = track_data + (key_frame0 * num_floats_per_key_frame);
-		const float* key_frame_data1 = track_data + (key_frame1 * num_floats_per_key_frame);
+		const uint32_t* constant_tracks_bitset = header.get_constant_tracks_bitset();
+		uint32_t constant_track_offset = 0;
+
+		const float* constant_track_data = header.get_constant_track_data();
+
+		// TODO: No need to store this, unpack from bitset in context and simplify branching logic below?
+		uint32_t num_animated_floats_per_key_frame = (header.num_animated_rotation_tracks * 4) + (header.num_animated_translation_tracks * 3);
+
+		const float* animated_track_data = header.get_track_data();
+		const float* key_frame_data0 = animated_track_data + (key_frame0 * num_animated_floats_per_key_frame);
+		const float* key_frame_data1 = animated_track_data + (key_frame1 * num_animated_floats_per_key_frame);
 
 		for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 		{
 			Quat_32 rotation;
-			bool is_rotation_default = bitset_test(default_tracks_bitset, 0, default_track_offset++);
+			bool is_rotation_default = bitset_test(default_tracks_bitset, bitset_size, default_track_offset);
 			if (is_rotation_default)
 			{
 				rotation = quat_32_identity();
 			}
 			else
 			{
-				Quat_32 rotation0 = quat_unaligned_load(key_frame_data0);
-				Quat_32 rotation1 = quat_unaligned_load(key_frame_data1);
-				rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
+				bool is_rotation_constant = bitset_test(constant_tracks_bitset, bitset_size, constant_track_offset);
+				if (is_rotation_constant)
+				{
+					rotation = quat_unaligned_load(constant_track_data);
+					constant_track_data += 4;
+				}
+				else
+				{
+					Quat_32 rotation0 = quat_unaligned_load(key_frame_data0);
+					Quat_32 rotation1 = quat_unaligned_load(key_frame_data1);
+					rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
 
-				key_frame_data0 += 4;
-				key_frame_data1 += 4;
+					key_frame_data0 += 4;
+					key_frame_data1 += 4;
+				}
 			}
+
+			default_track_offset++;
+			constant_track_offset++;
 
 			writer.write_bone_rotation(bone_index, rotation);
 
 			Vector4_32 translation;
-			bool is_translation_default = bitset_test(default_tracks_bitset, 0, default_track_offset++);
+			bool is_translation_default = bitset_test(default_tracks_bitset, bitset_size, default_track_offset);
 			if (is_translation_default)
 			{
 				translation = vector_32_zero();
 			}
 			else
 			{
-				Vector4_32 translation0 = vector_unaligned_load3(key_frame_data0);
-				Vector4_32 translation1 = vector_unaligned_load3(key_frame_data1);
-				translation = vector_lerp(translation0, translation1, interpolation_alpha);
+				bool is_translation_constant = bitset_test(constant_tracks_bitset, bitset_size, constant_track_offset);
+				if (is_translation_constant)
+				{
+					translation = vector_unaligned_load3(constant_track_data);
+					constant_track_data += 3;
+				}
+				else
+				{
+					Vector4_32 translation0 = vector_unaligned_load3(key_frame_data0);
+					Vector4_32 translation1 = vector_unaligned_load3(key_frame_data1);
+					translation = vector_lerp(translation0, translation1, interpolation_alpha);
 
-				key_frame_data0 += 3;
-				key_frame_data1 += 3;
+					key_frame_data0 += 3;
+					key_frame_data1 += 3;
+				}
 			}
+
+			default_track_offset++;
+			constant_track_offset++;
 
 			writer.write_bone_translation(bone_index, translation);
 		}

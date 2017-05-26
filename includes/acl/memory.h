@@ -27,6 +27,7 @@
 #include "acl/assert.h"
 
 #include <malloc.h>
+#include <stdint.h>
 
 namespace acl
 {
@@ -76,9 +77,48 @@ namespace acl
 		return reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignment));
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+
 	template<typename PtrType>
 	constexpr bool is_aligned_to(PtrType* value, size_t alignment)
 	{
 		return (reinterpret_cast<uintptr_t>(value) & (alignment - 1)) == 0;
 	}
+
+	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>
+	constexpr OutputPtrType add_offset_to_ptr(InputPtrType ptr, OffsetType offset)
+	{
+		return reinterpret_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+
+	template<typename DataType, typename OffsetType>
+	class PtrOffset
+	{
+	public:
+		PtrOffset() : m_value(0) {}
+		PtrOffset(size_t value)
+			: m_value(static_cast<OffsetType>(value))
+		{
+			ensure(value == m_value);
+		}
+
+		template<typename BaseType>
+		DataType* get(BaseType ptr) { return add_offset_to_ptr<DataType*>(ptr, m_value); }
+
+		template<typename BaseType>
+		const DataType* get(const BaseType ptr) const { return add_offset_to_ptr<const DataType*>(ptr, m_value); }
+
+		operator OffsetType() const { return m_value; }
+
+	private:
+		OffsetType m_value;
+	};
+
+	template<typename DataType>
+	using PtrOffset16 = PtrOffset<DataType, uint16_t>;
+
+	template<typename DataType>
+	using PtrOffset32 = PtrOffset<DataType, uint32_t>;
 }
