@@ -87,6 +87,9 @@
     <ClInclude Include="includes\acl\bitset.h">
       <Filter>includes\acl</Filter>
     </ClInclude>
+    <ClInclude Include="includes\acl\sjson\sjson_parser.h" />
+    <ClInclude Include="includes\acl\sjson\variant.h" />
+    <ClInclude Include="includes\acl\sjson\animation_sjson_parser.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

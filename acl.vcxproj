@@ -41,6 +41,9 @@
     <ClInclude Include="includes\acl\math\vector4_32.h" />
     <ClInclude Include="includes\acl\math\vector4_64.h" />
     <ClInclude Include="includes\acl\algorithm_globals.h" />
+    <ClInclude Include="includes\acl\sjson\animation_sjson_parser.h" />
+    <ClInclude Include="includes\acl\sjson\sjson_parser.h" />
+    <ClInclude Include="includes\acl\sjson\variant.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />
