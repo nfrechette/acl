@@ -105,10 +105,10 @@ namespace acl
 		}
 
 		template<typename BaseType>
-		DataType* get(BaseType ptr) { return add_offset_to_ptr<DataType*>(ptr, m_value); }
+		DataType* add_to(BaseType ptr) { return add_offset_to_ptr<DataType*>(ptr, m_value); }
 
 		template<typename BaseType>
-		const DataType* get(const BaseType ptr) const { return add_offset_to_ptr<const DataType*>(ptr, m_value); }
+		const DataType* add_to(const BaseType ptr) const { return add_offset_to_ptr<const DataType*>(ptr, m_value); }
 
 		operator OffsetType() const { return m_value; }
 

@@ -52,17 +52,17 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 
-		uint32_t*		get_default_tracks_bitset()			{ return default_tracks_bitset_offset.get(this); }
-		const uint32_t*	get_default_tracks_bitset() const	{ return default_tracks_bitset_offset.get(this); }
+		uint32_t*		get_default_tracks_bitset()			{ return default_tracks_bitset_offset.add_to(this); }
+		const uint32_t*	get_default_tracks_bitset() const	{ return default_tracks_bitset_offset.add_to(this); }
 
-		uint32_t*		get_constant_tracks_bitset()		{ return constant_tracks_bitset_offset.get(this); }
-		const uint32_t*	get_constant_tracks_bitset() const	{ return constant_tracks_bitset_offset.get(this); }
+		uint32_t*		get_constant_tracks_bitset()		{ return constant_tracks_bitset_offset.add_to(this); }
+		const uint32_t*	get_constant_tracks_bitset() const	{ return constant_tracks_bitset_offset.add_to(this); }
 
-		float*			get_constant_track_data()			{ return constant_track_data_offset.get(this); }
-		const float*	get_constant_track_data() const		{ return constant_track_data_offset.get(this); }
+		float*			get_constant_track_data()			{ return constant_track_data_offset.add_to(this); }
+		const float*	get_constant_track_data() const		{ return constant_track_data_offset.add_to(this); }
 
-		float*			get_track_data()					{ return track_data_offset.get(this); }
-		const float*	get_track_data() const				{ return track_data_offset.get(this); }
+		float*			get_track_data()					{ return track_data_offset.add_to(this); }
+		const float*	get_track_data() const				{ return track_data_offset.add_to(this); }
 	};
 
 	inline FullPrecisionHeader& get_full_precision_header(CompressedClip& clip)
