@@ -76,12 +76,21 @@ namespace acl
 		return vector_set(0.0, 0.0, 0.0, 0.0);
 	}
 
-	inline Vector4_64 vector_cast(const Quat_64& input)
+	inline Vector4_64 quat_to_vector(const Quat_64& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return Vector4_64{ input.xy, input.zw };
 #else
 		return Vector4_64{ input.x, input.y, input.z, input.w };
+#endif
+	}
+
+	inline Vector4_64 vector_cast(const Vector4_32& input)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return Vector4_64{ _mm_cvtps_pd(input), _mm_cvtps_pd(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 4, 3, 4))) };
+#else
+		return Vector4_64{ (double)input.x, (double)input.y, (double)input.z, (double)input.w };
 #endif
 	}
 
@@ -181,6 +190,11 @@ namespace acl
 #endif
 	}
 
+	inline Vector4_64 vector_neg(const Vector4_64& input)
+	{
+		return vector_mul(input, -1.0);
+	}
+
 	inline double vector_length_squared(const Vector4_64& input)
 	{
 		// TODO: Use dot instruction
@@ -220,6 +234,11 @@ namespace acl
 	inline double vector_distance3(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 		return vector_length3(vector_sub(rhs, lhs));
+	}
+
+	inline Vector4_64 vector_lerp(const Vector4_64& start, const Vector4_64& end, double alpha)
+	{
+		return vector_add(start, vector_mul(vector_sub(end, start), vector_set(alpha)));
 	}
 
 	inline bool vector_all_less_than(const Vector4_64& lhs, const Vector4_64& rhs)

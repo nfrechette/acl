@@ -44,23 +44,24 @@ namespace acl
 			: m_allocator(allocator)
 			, m_skeleton(skeleton)
 			, m_bones()
+			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
 		{
 			const uint16_t num_bones = skeleton.get_num_bones();
 
 			m_bones = allocate_type_array<AnimatedBone>(allocator, num_bones);
 
-			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				m_bones[bone_index].rotation_track = AnimationRotationTrack(allocator, num_samples);
-				m_bones[bone_index].translation_track = AnimationTranslationTrack(allocator, num_samples);
+				m_bones[bone_index].rotation_track = AnimationRotationTrack(allocator, num_samples, sample_rate);
+				m_bones[bone_index].translation_track = AnimationTranslationTrack(allocator, num_samples, sample_rate);
 			}
 		}
 
 		~AnimationClip()
 		{
 			const uint16_t num_bones = m_skeleton.get_num_bones();
-			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				m_bones[bone_index].rotation_track.~AnimationRotationTrack();
 				m_bones[bone_index].translation_track.~AnimationTranslationTrack();
@@ -78,8 +79,38 @@ namespace acl
 		const AnimatedBone& get_animated_bone(uint16_t bone_index) const { ensure(bone_index < get_num_bones()); return m_bones[bone_index]; }
 
 		uint16_t get_num_bones() const { return m_skeleton.get_num_bones(); }
-		uint32_t get_num_samples() const { return m_skeleton.get_num_bones() != 0 ? m_bones[0].rotation_track.get_num_samples() : 0; }
+		uint32_t get_num_samples() const { return m_num_samples; }
 		uint32_t get_sample_rate() const { return m_sample_rate; }
+		double get_duration() const { ensure(m_sample_rate > 0); return (m_sample_rate - 1) * (1.0 / m_sample_rate); }
+
+		template<class OutputWriterType>
+		void sample_pose(double sample_time, OutputWriterType& writer) const
+		{
+			uint16_t num_bones = get_num_bones();
+			ensure(num_bones > 0);
+
+			double clip_duration = get_duration();
+
+			uint32_t sample_frame0;
+			uint32_t sample_frame1;
+			double interpolation_alpha;
+			calculate_interpolation_keys(m_num_samples, clip_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
+
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			{
+				const AnimatedBone& bone = m_bones[bone_index];
+
+				Quat_64 rotation0 = bone.rotation_track.get_sample(sample_frame0);
+				Quat_64 rotation1 = bone.rotation_track.get_sample(sample_frame1);
+				Quat_64 rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
+				writer.write_bone_rotation(bone_index, rotation);
+
+				Vector4_64 translation0 = bone.translation_track.get_sample(sample_frame0);
+				Vector4_64 translation1 = bone.translation_track.get_sample(sample_frame1);
+				Vector4_64 translation = vector_lerp(translation0, translation1, interpolation_alpha);
+				writer.write_bone_translation(bone_index, translation);
+			}
+		}
 
 	private:
 		Allocator&			m_allocator;
@@ -87,6 +118,7 @@ namespace acl
 
 		AnimatedBone*		m_bones;
 
+		uint32_t			m_num_samples;
 		uint32_t			m_sample_rate;
 	};
 }

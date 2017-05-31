@@ -24,19 +24,69 @@
 
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/compression/skeleton_error_metric.h"
 
 #include "acl/algorithm/full_precision_encoder.h"
 #include "acl/algorithm/full_precision_decoder.h"
 
 struct OutputWriterImpl : public acl::OutputWriter
 {
+	OutputWriterImpl(acl::Allocator& allocator, uint16_t num_bones)
+		: m_allocator(allocator)
+		, m_transforms(acl::allocate_type_array<acl::Transform_64>(allocator, num_bones))
+		, m_num_bones(num_bones)
+	{}
+
+	~OutputWriterImpl()
+	{
+		m_allocator.deallocate(m_transforms);
+	}
+
 	void write_bone_rotation(uint32_t bone_index, const acl::Quat_32& rotation)
 	{
+		acl::ensure(bone_index <= m_num_bones);
+		m_transforms[bone_index].rotation = acl::quat_cast(rotation);
 	}
 
 	void write_bone_translation(uint32_t bone_index, const acl::Vector4_32& translation)
 	{
+		acl::ensure(bone_index <= m_num_bones);
+		m_transforms[bone_index].translation = acl::vector_cast(translation);
 	}
+
+	acl::Allocator& m_allocator;
+	acl::Transform_64* m_transforms;
+	uint16_t m_num_bones;
+};
+
+struct RawOutputWriterImpl : public acl::OutputWriter
+{
+	RawOutputWriterImpl(acl::Allocator& allocator, uint16_t num_bones)
+		: m_allocator(allocator)
+		, m_transforms(acl::allocate_type_array<acl::Transform_64>(allocator, num_bones))
+		, m_num_bones(num_bones)
+	{}
+
+	~RawOutputWriterImpl()
+	{
+		m_allocator.deallocate(m_transforms);
+	}
+
+	void write_bone_rotation(uint32_t bone_index, const acl::Quat_64& rotation)
+	{
+		acl::ensure(bone_index <= m_num_bones);
+		m_transforms[bone_index].rotation = rotation;
+	}
+
+	void write_bone_translation(uint32_t bone_index, const acl::Vector4_64& translation)
+	{
+		acl::ensure(bone_index <= m_num_bones);
+		m_transforms[bone_index].translation = translation;
+	}
+
+	acl::Allocator& m_allocator;
+	acl::Transform_64* m_transforms;
+	uint16_t m_num_bones;
 };
 
 int main()
@@ -78,8 +128,36 @@ int main()
 	{
 		CompressedClip* compressed_clip = full_precision_encoder(allocator, clip, skeleton);
 
-		OutputWriterImpl output_writer;
-		full_precision_decoder(*compressed_clip, 0.0, output_writer);
+		RawOutputWriterImpl raw_output_writer(allocator, clip.get_num_bones());
+		OutputWriterImpl lossy_output_writer(allocator, clip.get_num_bones());
+
+		double max_error = -1.0;
+		double sample_time = 0.0;
+		double clip_duration = clip.get_duration();
+		double sample_increment = 1.0 / clip.get_sample_rate();
+		while (sample_time < clip_duration)
+		{
+			// TODO: Implement a generic version that calls a function that performs a switch/branch on the encoder type
+			full_precision_decoder(*compressed_clip, (float)sample_time, lossy_output_writer);
+
+			clip.sample_pose(sample_time, raw_output_writer);
+
+			double error = calculate_skeleton_error(allocator, skeleton, raw_output_writer.m_transforms, lossy_output_writer.m_transforms);
+			max_error = max(max_error, error);
+
+			sample_time += sample_increment;
+		}
+
+		{
+			full_precision_decoder(*compressed_clip, (float)clip_duration, lossy_output_writer);
+
+			clip.sample_pose(clip_duration, raw_output_writer);
+
+			double error = calculate_skeleton_error(allocator, skeleton, raw_output_writer.m_transforms, lossy_output_writer.m_transforms);
+			max_error = max(max_error, error);
+		}
+
+		printf("Clip error: %f\n", max_error);
 
 		allocator.deallocate(compressed_clip);
 	}

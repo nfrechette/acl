@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/math/math.h"
+#include "acl/math/scalar_64.h"
 #include "acl/math/vector4_64.h"
 
 namespace acl
@@ -48,12 +49,21 @@ namespace acl
 		return quat_set(0.0, 0.0, 0.0, 1.0);
 	}
 
-	inline Quat_64 quat_cast(const Vector4_64& input)
+	inline Quat_64 vector_to_quat(const Vector4_64& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return Quat_64{ input.xy, input.zw };
 #else
 		return Quat_64{ input.x, input.y, input.z, input.w };
+#endif
+	}
+
+	inline Quat_64 quat_cast(const Quat_32& input)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return Quat_64{ _mm_cvtps_pd(input), _mm_cvtps_pd(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 4, 3, 4))) };
+#else
+		return Quat_64{ (double)input.x, (double)input.y, (double)input.z, (double)input.w };
 #endif
 	}
 
@@ -118,12 +128,18 @@ namespace acl
 		return quat_set(x, y, z, w);
 	}
 
+	inline Vector4_64 quat_rotate(const Quat_64& lhs, const Vector4_64& rhs)
+	{
+		Quat_64 rhs_quat = vector_to_quat(vector_mul(rhs, vector_set(1.0, 1.0, 1.0, 0.0)));
+		return quat_to_vector(quat_mul(quat_mul(quat_conjugate(lhs), rhs_quat), lhs));
+	}
+
 	inline void quat_to_axis_angle(const Quat_64& input, Vector4_64& out_axis, double& out_angle)
 	{
 		constexpr double EPSILON = 1.0e-8;
 		constexpr double EPSILON_SQUARED = EPSILON * EPSILON;
 
-		double real_length_squared = vector_length_squared3(vector_cast(input));
+		double real_length_squared = vector_length_squared3(quat_to_vector(input));
 
 		if (real_length_squared < EPSILON_SQUARED)
 		{
@@ -143,7 +159,7 @@ namespace acl
 		constexpr double EPSILON = 1.0e-8;
 		constexpr double EPSILON_SQUARED = EPSILON * EPSILON;
 
-		double real_length_squared = vector_length_squared3(vector_cast(input));
+		double real_length_squared = vector_length_squared3(quat_to_vector(input));
 
 		if (real_length_squared < EPSILON_SQUARED)
 		{
@@ -161,7 +177,7 @@ namespace acl
 		constexpr double EPSILON = 1.0e-8;
 		constexpr double EPSILON_SQUARED = EPSILON * EPSILON;
 
-		double real_length_squared = vector_length_squared3(vector_cast(input));
+		double real_length_squared = vector_length_squared3(quat_to_vector(input));
 
 		if (real_length_squared < EPSILON_SQUARED)
 		{
@@ -172,5 +188,38 @@ namespace acl
 			double real_length = sqrt_reciprocal(real_length_squared);
 			return abs(quat_get_w(input)) < EPSILON ? ACL_PI_64 : atan2(real_length_squared * real_length, quat_get_w(input)) * 2.0;
 		}
+	}
+
+	inline double quat_length_squared(const Quat_64& input)
+	{
+		// TODO: Use dot instruction
+		return (quat_get_x(input) * quat_get_x(input)) + (quat_get_y(input) + quat_get_y(input)) + (quat_get_z(input) + quat_get_z(input)) + (quat_get_w(input) + quat_get_w(input));
+	}
+
+	inline double quat_length(const Quat_64& input)
+	{
+		// TODO: Use intrinsics to avoid scalar coercion
+		return sqrt(quat_length_squared(input));
+	}
+
+	inline double quat_length_reciprocal(const Quat_64& input)
+	{
+		// TODO: Use recip instruction
+		return 1.0 / quat_length(input);
+	}
+
+	inline Quat_64 quat_normalize(const Quat_64& input)
+	{
+		double length_recip = quat_length_reciprocal(input);
+		Vector4_64 input_vector = quat_to_vector(input);
+		return vector_to_quat(vector_mul(input_vector, length_recip));
+	}
+
+	inline Quat_64 quat_lerp(const Quat_64& start, const Quat_64& end, double alpha)
+	{
+		Vector4_64 start_vector = quat_to_vector(start);
+		Vector4_64 end_vector = quat_to_vector(end);
+		Vector4_64 value = vector_add(start_vector, vector_mul(vector_sub(end_vector, start_vector), alpha));
+		return quat_normalize(vector_to_quat(value));
 	}
 }

@@ -24,62 +24,32 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/math/math.h"
+#include "acl/assert.h"
+#include "acl/math/scalar_32.h"
+#include "acl/math/scalar_64.h"
+
+#include <stdint.h>
+#include <algorithm>
 
 namespace acl
 {
-#if defined(ACL_SSE2_INTRINSICS)
-	typedef __m128 Quat_32;
-	typedef __m128 Vector4_32;
+	template<typename FloatType>
+	inline void calculate_interpolation_keys(uint32_t num_samples, FloatType clip_duration, FloatType sample_time, uint32_t& out_key_frame0, uint32_t& out_key_frame1, FloatType& out_interpolation_alpha)
+	{
+		// Samples are evenly spaced, trivially calculate the indices that we need
+		FloatType normalized_sample_time = (sample_time / clip_duration);
+		ensure(sample_time >= 0.0f && sample_time <= clip_duration);
+		ensure(normalized_sample_time >= FloatType(0.0) && normalized_sample_time <= FloatType(1.0));
 
-	struct Quat_64
-	{
-		__m128d xy;
-		__m128d zw;
-	};
+		FloatType sample_key = normalized_sample_time * FloatType(num_samples - 1);
+		uint32_t key_frame0 = uint32_t(floor(sample_key));
+		uint32_t key_frame1 = std::max(key_frame0 + 1, num_samples - 1);
+		FloatType interpolation_alpha = sample_key - FloatType(key_frame0);
+		ensure(key_frame0 >= 0 && key_frame0 <= key_frame1 && key_frame1 < num_samples);
+		ensure(interpolation_alpha >= FloatType(0.0) && interpolation_alpha <= FloatType(1.0));
 
-	struct Vector4_64
-	{
-		__m128d xy;
-		__m128d zw;
-	};
-#else
-	struct Quat_32
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
-
-	struct Vector4_32
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
-
-	struct Quat_64
-	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-
-	struct Vector4_64
-	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-#endif
-
-	struct Transform_64
-	{
-		Quat_64		rotation;
-		Vector4_64	translation;
-	};
+		out_key_frame0 = key_frame0;
+		out_key_frame1 = key_frame1;
+		out_interpolation_alpha = interpolation_alpha;
+	}
 }

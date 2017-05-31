@@ -23,8 +23,11 @@
     <ClInclude Include="includes\acl\algorithm\full_precision_decoder.h" />
     <ClInclude Include="includes\acl\algorithm\full_precision_encoder.h" />
     <ClInclude Include="includes\acl\bitset.h" />
+    <ClInclude Include="includes\acl\compression\skeleton_error_metric.h" />
+    <ClInclude Include="includes\acl\core\utils.h" />
     <ClInclude Include="includes\acl\math\math_types.h" />
     <ClInclude Include="includes\acl\math\scalar_64.h" />
+    <ClInclude Include="includes\acl\math\transform_64.h" />
     <ClInclude Include="includes\acl\memory.h" />
     <ClInclude Include="includes\acl\assert.h" />
     <ClInclude Include="includes\acl\compressed_clip.h" />

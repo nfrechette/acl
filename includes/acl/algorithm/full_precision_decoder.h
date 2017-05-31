@@ -25,14 +25,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/compressed_clip.h"
+#include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
-#include "acl/math/scalar_32.h"
 #include "acl/algorithm/full_precision_common.h"
 #include "acl/decompression/output_writer.h"
 
 #include <stdint.h>
-#include <algorithm>
 
 //////////////////////////////////////////////////////////////////////////
 // See encoder for details
@@ -40,26 +39,6 @@
 
 namespace acl
 {
-	inline void calculate_interpolation_keys(const FullPrecisionHeader& header, float sample_time, uint32_t& out_key_frame0, uint32_t& out_key_frame1, float& out_interpolation_alpha)
-	{
-		// Samples are evenly spaced, trivially calculate the indices that we need
-		float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
-		float normalized_sample_time = (sample_time / clip_duration);
-		ensure(sample_time >= 0.0f && sample_time <= clip_duration);
-		ensure(normalized_sample_time >= 0.0f && normalized_sample_time <= 1.0f);
-
-		float sample_key = normalized_sample_time * float(header.num_samples - 1);
-		uint32_t key_frame0 = uint32_t(floor(sample_key));
-		uint32_t key_frame1 = std::max(key_frame0 + 1, header.num_samples - 1);
-		float interpolation_alpha = sample_key - float(key_frame0);
-		ensure(key_frame0 >= 0 && key_frame0 <= key_frame1 && key_frame1 < header.num_samples);
-		ensure(interpolation_alpha >= 0.0f && interpolation_alpha <= 1.0f);
-
-		out_key_frame0 = key_frame0;
-		out_key_frame1 = key_frame1;
-		out_interpolation_alpha = interpolation_alpha;
-	}
-
 	// 2 ways to encore a track as default: a bitset or omit the track
 	// the second method requires a track id to be present to distinguish the
 	// remaining tracks.
@@ -85,10 +64,12 @@ namespace acl
 
 		const FullPrecisionHeader& header = get_full_precision_header(clip);
 
+		float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
+
 		uint32_t key_frame0;
 		uint32_t key_frame1;
 		float interpolation_alpha;
-		calculate_interpolation_keys(header, sample_time, key_frame0, key_frame1, interpolation_alpha);
+		calculate_interpolation_keys(header.num_samples, clip_duration, sample_time, key_frame0, key_frame1, interpolation_alpha);
 
 		uint32_t bitset_size = ((header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE) + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
 

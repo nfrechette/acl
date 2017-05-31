@@ -58,4 +58,14 @@ namespace acl
 	{
 		return std::atan2(left, right);
 	}
+
+	inline double min(double left, double right)
+	{
+		return std::min(left, right);
+	}
+
+	inline double max(double left, double right)
+	{
+		return std::max(left, right);
+	}
 }

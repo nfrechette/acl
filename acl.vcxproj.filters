@@ -19,6 +19,9 @@
     <Filter Include="includes\acl\algorithm">
       <UniqueIdentifier>{1a57ab3b-e48f-453c-aaf8-7a2ad19ed10e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="includes\acl\core">
+      <UniqueIdentifier>{7c3d7b96-4684-4837-8749-293af8876e21}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\acl\math\quat_64.h">
@@ -86,6 +89,15 @@
     </ClInclude>
     <ClInclude Include="includes\acl\bitset.h">
       <Filter>includes\acl</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\skeleton_error_metric.h">
+      <Filter>includes\acl\compression</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\transform_64.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\utils.h">
+      <Filter>includes\acl\core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

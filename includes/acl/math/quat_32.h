@@ -49,6 +49,24 @@ namespace acl
 		return quat_set(0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
+	inline Quat_32 vector_to_quat(const Vector4_32& input)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return input;
+#else
+		return Quat_32{ input.x, input.y, input.z, input.w };
+#endif
+	}
+
+	inline Quat_32 quat_cast(const Quat_64& input)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_shuffle_ps(_mm_cvtpd_ps(input.xy), _mm_cvtpd_ps(input.zw), _MM_SHUFFLE(0, 1, 0, 1));
+#else
+		return Quat_32{ (double)input.x, (double)input.y, (double)input.z, (double)input.w };
+#endif
+	}
+
 	inline float quat_get_x(const Quat_32& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -105,17 +123,16 @@ namespace acl
 
 	inline Quat_32 quat_normalize(const Quat_32& input)
 	{
-		// TODO: Use vector mul instruction
 		float length_recip = quat_length_reciprocal(input);
-		return quat_set(quat_get_x(input) * length_recip, quat_get_y(input) * length_recip, quat_get_z(input) * length_recip, quat_get_w(input) * length_recip);
+		Vector4_32 input_vector = quat_to_vector(input);
+		return vector_to_quat(vector_mul(input_vector, length_recip));
 	}
 
 	inline Quat_32 quat_lerp(const Quat_32& start, const Quat_32& end, float alpha)
 	{
-		// TODO: Implement coercion operators?
-		Vector4_32 start_vector = vector_set(quat_get_x(start), quat_get_y(start), quat_get_z(start), quat_get_w(start));
-		Vector4_32 end_vector = vector_set(quat_get_x(end), quat_get_y(end), quat_get_z(end), quat_get_w(end));
+		Vector4_32 start_vector = quat_to_vector(start);
+		Vector4_32 end_vector = quat_to_vector(end);
 		Vector4_32 value = vector_add(start_vector, vector_mul(vector_sub(end_vector, start_vector), alpha));
-		return quat_normalize(quat_set(vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value)));
+		return quat_normalize(vector_to_quat(value));
 	}
 }

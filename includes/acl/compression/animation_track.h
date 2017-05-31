@@ -26,6 +26,7 @@
 
 #include "acl/memory.h"
 #include "acl/assert.h"
+#include "acl/core/utils.h"
 #include "acl/math/quat_64.h"
 #include "acl/math/vector4_64.h"
 #include "acl/compression/animation_track_range.h"
@@ -72,6 +73,7 @@ namespace acl
 			, m_sample_data(nullptr)
 			, m_time_data(nullptr)
 			, m_num_samples(0)
+			, m_sample_rate(0)
 			, m_type(AnimationTrackType::Rotation)
 		{}
 
@@ -80,16 +82,18 @@ namespace acl
 			, m_sample_data(track.m_sample_data)
 			, m_time_data(track.m_time_data)
 			, m_num_samples(track.m_num_samples)
+			, m_sample_rate(track.m_sample_rate)
 			, m_is_range_dirty(track.m_is_range_dirty)
 			, m_type(track.m_type)
 			, m_range(track.m_range)
 		{}
 
-		AnimationTrack(Allocator& allocator, uint32_t num_samples, AnimationTrackType type)
+		AnimationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate, AnimationTrackType type)
 			: m_allocator(&allocator)
 			, m_sample_data(allocate_type_array<double>(allocator, num_samples * get_animation_track_sample_size(type)))
 			, m_time_data(allocate_type_array<double>(allocator, num_samples))
 			, m_num_samples(num_samples)
+			, m_sample_rate(sample_rate)
 			, m_is_range_dirty(true)
 			, m_type(type)
 			, m_range(AnimationTrackRange())
@@ -110,6 +114,7 @@ namespace acl
 			std::swap(m_sample_data, track.m_sample_data);
 			std::swap(m_time_data, track.m_time_data);
 			std::swap(m_num_samples, track.m_num_samples);
+			std::swap(m_sample_rate, track.m_sample_rate);
 			std::swap(m_is_range_dirty, track.m_is_range_dirty);
 			std::swap(m_type, track.m_type);
 			std::swap(m_range, track.m_range);
@@ -178,6 +183,7 @@ namespace acl
 		double*							m_time_data;
 
 		uint32_t						m_num_samples;
+		uint32_t						m_sample_rate;
 		mutable bool					m_is_range_dirty;		// TODO: Do we really need to cache this? nasty with mutable...
 
 		AnimationTrackType				m_type;
@@ -194,8 +200,8 @@ namespace acl
 			: AnimationTrack()
 		{}
 
-		AnimationRotationTrack(Allocator& allocator, uint32_t num_samples)
-			: AnimationTrack(allocator, num_samples, AnimationTrackType::Rotation)
+		AnimationRotationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate)
+			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType::Rotation)
 		{}
 
 		AnimationRotationTrack(AnimationRotationTrack&& track)
@@ -251,6 +257,20 @@ namespace acl
 			return quat_unaligned_load(sample);
 		}
 
+		Quat_64 sample_track(double sample_time) const
+		{
+			double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
+
+			uint32_t sample_frame0;
+			uint32_t sample_frame1;
+			double interpolation_alpha;
+			calculate_interpolation_keys(m_num_samples, track_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
+
+			Quat_64 sample0 = get_sample(sample_frame0);
+			Quat_64 sample1 = get_sample(sample_frame1);
+			return quat_lerp(sample0, sample1, interpolation_alpha);
+		}
+
 		AnimationRotationTrack(const AnimationRotationTrack&) = delete;
 		AnimationRotationTrack& operator=(const AnimationRotationTrack&) = delete;
 	};
@@ -262,8 +282,8 @@ namespace acl
 			: AnimationTrack()
 		{}
 
-		AnimationTranslationTrack(Allocator& allocator, uint32_t num_samples)
-			: AnimationTrack(allocator, num_samples, AnimationTrackType::Translation)
+		AnimationTranslationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate)
+			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType::Translation)
 		{}
 
 		AnimationTranslationTrack(AnimationTranslationTrack&& track)
@@ -312,6 +332,20 @@ namespace acl
 
 			const double* sample = &m_sample_data[sample_index * sample_size];
 			return vector_unaligned_load3(sample);
+		}
+
+		Vector4_64 sample_track(double sample_time) const
+		{
+			double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
+
+			uint32_t sample_frame0;
+			uint32_t sample_frame1;
+			double interpolation_alpha;
+			calculate_interpolation_keys(m_num_samples, track_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
+
+			Vector4_64 sample0 = get_sample(sample_frame0);
+			Vector4_64 sample1 = get_sample(sample_frame1);
+			return vector_lerp(sample0, sample1, interpolation_alpha);
 		}
 
 		AnimationTranslationTrack(const AnimationTranslationTrack&) = delete;

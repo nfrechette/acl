@@ -61,6 +61,24 @@ namespace acl
 		return vector_set(0.0f, 0.0f, 0.0f, 0.0f);
 	}
 
+	inline Vector4_32 quat_to_vector(const Quat_32& input)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return input;
+#else
+		return Vector4_32{ input.x, input.y, input.z, input.w };
+#endif
+	}
+
+	inline Vector4_32 vector_cast(const Vector4_64& input)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_shuffle_ps(_mm_cvtpd_ps(input.xy), _mm_cvtpd_ps(input.zw), _MM_SHUFFLE(0, 1, 0, 1));
+#else
+		return Vector4_32{ (double)input.x, (double)input.y, (double)input.z, (double)input.w };
+#endif
+	}
+
 	inline float vector_get_x(const Vector4_32& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
