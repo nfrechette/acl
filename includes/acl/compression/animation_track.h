@@ -24,8 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/memory.h"
-#include "acl/assert.h"
+#include "acl/core/memory.h"
+#include "acl/core/assert.h"
 #include "acl/core/utils.h"
 #include "acl/math/quat_64.h"
 #include "acl/math/vector4_64.h"

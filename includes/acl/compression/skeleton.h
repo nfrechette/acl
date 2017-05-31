@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/memory.h"
+#include "acl/core/memory.h"
 #include "acl/math/quat_64.h"		// todo remove
 #include "acl/math/vector4_64.h"	// todo remove
 #include "acl/math/transform_64.h"

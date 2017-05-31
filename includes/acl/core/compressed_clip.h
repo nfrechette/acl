@@ -24,8 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/algorithm_globals.h"
-#include "acl/memory.h"
+#include "acl/core/algorithm_globals.h"
+#include "acl/core/memory.h"
 
 #include <stdint.h>
 

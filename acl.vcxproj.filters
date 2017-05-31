@@ -39,23 +39,14 @@
     <ClInclude Include="includes\acl\compression\animation_track.h">
       <Filter>includes\acl\compression</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\assert.h">
-      <Filter>includes\acl</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\math\quat_32.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\math\vector4_32.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\algorithm_globals.h">
-      <Filter>includes\acl</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\math\math.h">
       <Filter>includes\acl\math</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\acl\compressed_clip.h">
-      <Filter>includes\acl</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\compression\compressed_clip_impl.h">
       <Filter>includes\acl\compression</Filter>
@@ -75,9 +66,6 @@
     <ClInclude Include="includes\acl\algorithm\full_precision_encoder.h">
       <Filter>includes\acl\algorithm</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\memory.h">
-      <Filter>includes\acl</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\math\math_types.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
@@ -87,9 +75,6 @@
     <ClInclude Include="includes\acl\math\scalar_64.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\bitset.h">
-      <Filter>includes\acl</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\compression\skeleton_error_metric.h">
       <Filter>includes\acl\compression</Filter>
     </ClInclude>
@@ -97,6 +82,21 @@
       <Filter>includes\acl\math</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\core\utils.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\assert.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\bitset.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\compressed_clip.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\memory.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\algorithm_globals.h">
       <Filter>includes\acl\core</Filter>
     </ClInclude>
   </ItemGroup>

@@ -24,8 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/compressed_clip.h"
-#include "acl/memory.h"
+#include "acl/core/compressed_clip.h"
+#include "acl/core/memory.h"
 
 #include <stdint.h>
 

@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/compressed_clip.h"
+#include "acl/core/compressed_clip.h"
 #include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
