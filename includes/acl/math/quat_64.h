@@ -63,7 +63,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 		return Quat_64{ _mm_cvtps_pd(input), _mm_cvtps_pd(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 4, 3, 4))) };
 #else
-		return Quat_64{ (double)input.x, (double)input.y, (double)input.z, (double)input.w };
+		return Quat_64{ double(input.x), double(input.y), double(input.z), double(input.w) };
 #endif
 	}
 
