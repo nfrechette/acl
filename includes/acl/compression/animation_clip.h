@@ -81,7 +81,7 @@ namespace acl
 		uint16_t get_num_bones() const { return m_skeleton.get_num_bones(); }
 		uint32_t get_num_samples() const { return m_num_samples; }
 		uint32_t get_sample_rate() const { return m_sample_rate; }
-		double get_duration() const { ensure(m_sample_rate > 0); return (m_sample_rate - 1) * (1.0 / m_sample_rate); }
+		double get_duration() const { ensure(m_sample_rate > 0); return (m_num_samples - 1) * (1.0 / m_sample_rate); }
 
 		template<class OutputWriterType>
 		void sample_pose(double sample_time, OutputWriterType& writer) const
@@ -110,6 +110,25 @@ namespace acl
 				Vector4_64 translation = vector_lerp(translation0, translation1, interpolation_alpha);
 				writer.write_bone_translation(bone_index, translation);
 			}
+		}
+
+		uint32_t get_raw_size() const
+		{
+			uint32_t bone_sample_size = (sizeof(float) * 4) + (sizeof(float) * 3);
+			return m_skeleton.get_num_bones() * bone_sample_size * m_num_samples;
+		}
+
+		uint32_t get_num_animated_tracks() const
+		{
+			uint32_t num_animated_tracks = 0;
+
+			for (uint16_t bone_index = 0; bone_index < m_skeleton.get_num_bones(); ++bone_index)
+			{
+				num_animated_tracks += m_bones[bone_index].rotation_track.is_animated() ? 1 : 0;
+				num_animated_tracks += m_bones[bone_index].translation_track.is_animated() ? 1 : 0;
+			}
+
+			return num_animated_tracks;
 		}
 
 	private:

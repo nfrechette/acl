@@ -32,4 +32,11 @@ namespace acl
 	{
 		return new(buffer) CompressedClip(size, type);
 	}
+
+	inline void finalize_compressed_clip(CompressedClip& compressed_clip)
+	{
+		// For now we just run the constructor in place again, it'll update the CRC, etc.
+		// TODO: Fix this to be more efficient in make_compressed_clip above
+		new(&compressed_clip) CompressedClip(compressed_clip.get_size(), compressed_clip.get_algorithm_type());
+	}
 }

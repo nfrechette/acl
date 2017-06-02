@@ -28,6 +28,7 @@
 
 #include <malloc.h>
 #include <stdint.h>
+#include <type_traits>
 
 namespace acl
 {
@@ -61,20 +62,33 @@ namespace acl
 	template<typename AllocatedType>
 	AllocatedType* allocate_type(Allocator& allocator)
 	{
-		return reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignof(AllocatedType)));
+		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignof(AllocatedType)));
+		if (std::is_trivially_default_constructible<AllocatedType>::value)
+			return ptr;
+		return new(ptr) AllocatedType();
 	}
 
 	template<typename AllocatedType>
 	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements)
 	{
-		return reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignof(AllocatedType)));
+		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignof(AllocatedType)));
+		if (std::is_trivially_default_constructible<AllocatedType>::value)
+			return ptr;
+		for (size_t element_index = 0; element_index < num_elements; ++element_index)
+			new(&ptr[element_index]) AllocatedType();
+		return ptr;
 	}
 
 	template<typename AllocatedType>
 	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements, size_t alignment)
 	{
 		ensure(alignment >= alignof(AllocatedType));
-		return reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignment));
+		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignment));
+		if (std::is_trivially_default_constructible<AllocatedType>::value)
+			return ptr;
+		for (size_t element_index = 0; element_index < num_elements; ++element_index)
+			new(&ptr[element_index]) AllocatedType();
+		return ptr;
 	}
 
 	//////////////////////////////////////////////////////////////////////////

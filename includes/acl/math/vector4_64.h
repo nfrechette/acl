@@ -36,7 +36,7 @@ namespace acl
 	inline Vector4_64 vector_set(double x, double y, double z, double w)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Vector4_64{ _mm_set_pd(x, y), _mm_set_pd(z, w) };
+		return Vector4_64{ _mm_set_pd(y, x), _mm_set_pd(w, z) };
 #else
 		return Vector4_64{ x, y, z, w };
 #endif
@@ -45,7 +45,7 @@ namespace acl
 	inline Vector4_64 vector_set(double x, double y, double z)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Vector4_64{ _mm_set_pd(x, y), _mm_set_pd(z, 0.0) };
+		return Vector4_64{ _mm_set_pd(y, x), _mm_set_pd(0.0, z) };
 #else
 		return Vector4_64{ x, y, z, 0.0 };
 #endif
@@ -88,7 +88,7 @@ namespace acl
 	inline Vector4_64 vector_cast(const Vector4_32& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Vector4_64{ _mm_cvtps_pd(input), _mm_cvtps_pd(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 4, 3, 4))) };
+		return Vector4_64{ _mm_cvtps_pd(input), _mm_cvtps_pd(_mm_shuffle_ps(input, input, _MM_SHUFFLE(2, 3, 2, 3))) };
 #else
 		return Vector4_64{ double(input.x), double(input.y), double(input.z), double(input.w) };
 #endif

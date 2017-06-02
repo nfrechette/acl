@@ -33,7 +33,7 @@ namespace acl
 	inline Quat_32 quat_set(float x, float y, float z, float w)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Quat_32(_mm_set_ps(x, y, z, w));
+		return Quat_32(_mm_set_ps(w, z, y, x));
 #else
 		return Quat_32{ x, y, z, w };
 #endif

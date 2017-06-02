@@ -112,6 +112,8 @@ namespace acl
 		uint32_t* default_tracks_bitset = header.get_default_tracks_bitset();
 		uint32_t default_track_offset = 0;
 
+		bitset_reset(default_tracks_bitset, bitset_size, false);
+
 		for (uint16_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 		{
 			const AnimatedBone& bone = clip.get_animated_bone(bone_index);
@@ -128,6 +130,8 @@ namespace acl
 	{
 		uint32_t* constant_tracks_bitset = header.get_constant_tracks_bitset();
 		uint32_t constant_track_offset = 0;
+
+		bitset_reset(constant_tracks_bitset, bitset_size, false);
 
 		for (uint16_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 		{
@@ -151,16 +155,13 @@ namespace acl
 		{
 			const AnimatedBone& bone = clip.get_animated_bone(bone_index);
 
-			bool is_rotation_constant = bone.rotation_track.is_constant();
-			bool is_translation_constant = bone.translation_track.is_constant();
-
-			if (is_rotation_constant)
+			if (!bone.rotation_track.is_default() && bone.rotation_track.is_constant())
 			{
 				Quat_64 rotation = bone.rotation_track.get_sample(0);
 				internal::write(rotation, constant_data, constant_data_offset);
 			}
 
-			if (is_translation_constant)
+			if (!bone.translation_track.is_default() && bone.translation_track.is_constant())
 			{
 				Vector4_64 translation = bone.translation_track.get_sample(0);
 				internal::write(translation, constant_data, constant_data_offset);
@@ -186,13 +187,13 @@ namespace acl
 			{
 				const AnimatedBone& bone = clip.get_animated_bone(bone_index);
 
-				if (!bone.rotation_track.is_default() && !bone.rotation_track.is_constant())
+				if (bone.rotation_track.is_animated())
 				{
 					Quat_64 rotation = bone.rotation_track.get_sample(sample_index);
 					internal::write(rotation, animated_track_data, animated_track_data_offset);
 				}
 
-				if (!bone.translation_track.is_default() && !bone.translation_track.is_constant())
+				if (bone.translation_track.is_animated())
 				{
 					Vector4_64 translation = bone.translation_track.get_sample(sample_index);
 					internal::write(translation, animated_track_data, animated_track_data_offset);
@@ -210,8 +211,8 @@ namespace acl
 		uint16_t num_bones = clip.get_num_bones();
 		uint32_t num_samples = clip.get_num_samples();
 
-		uint32_t num_constant_rotation_tracks = 0;
-		uint32_t num_constant_translation_tracks = 0;
+		uint32_t num_constant_rotation_tracks;
+		uint32_t num_constant_translation_tracks;
 		uint32_t num_animated_rotation_tracks;
 		uint32_t num_animated_translation_tracks;
 		get_num_animated_tracks(clip, num_constant_rotation_tracks, num_constant_translation_tracks, num_animated_rotation_tracks, num_animated_translation_tracks);
@@ -248,6 +249,8 @@ namespace acl
 		write_constant_track_bitset(header, clip, bitset_size);
 		write_constant_track_data(header, clip, num_constant_floats);
 		write_animated_track_data(header, clip, num_animated_floats);
+
+		finalize_compressed_clip(*compressed_clip);
 
 		return compressed_clip;
 	}

@@ -31,7 +31,7 @@ namespace acl
 	inline Vector4_32 vector_set(float x, float y, float z, float w)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Vector4_32(_mm_set_ps(x, y, z, w));
+		return Vector4_32(_mm_set_ps(w, z, y, x));
 #else
 		return Vector4_32{ x, y, z, w };
 #endif

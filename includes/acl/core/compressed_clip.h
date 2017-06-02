@@ -35,6 +35,7 @@ namespace acl
 	{
 	public:
 		AlgorithmType get_algorithm_type() const { return m_type; }
+		uint32_t get_size() const { return m_size; }
 
 		bool is_valid(bool check_crc) const
 		{
@@ -74,6 +75,7 @@ namespace acl
 		uint16_t		m_version;
 
 		friend CompressedClip* make_compressed_clip(void* buffer, uint32_t size, AlgorithmType type);
+		friend void finalize_compressed_clip(CompressedClip& compressed_clip);
 	};
 
 	static_assert(alignof(CompressedClip) == 16, "Invalid alignment for CompressedClip");

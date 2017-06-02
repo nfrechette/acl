@@ -229,6 +229,11 @@ namespace acl
 			return abs(angle) < threshold;
 		}
 
+		bool is_animated(double threshold = TRACK_CONSTANT_THRESHOLD) const
+		{
+			return !is_constant(threshold) && !is_default(threshold);
+		}
+
 		void set_sample(uint32_t sample_index, const Quat_64& rotation, double sample_time)
 		{
 			ensure(is_initialized());
@@ -305,6 +310,11 @@ namespace acl
 			double distance = vector_length3(range.get_center());
 
 			return distance < threshold;
+		}
+
+		bool is_animated(double threshold = TRACK_CONSTANT_THRESHOLD) const
+		{
+			return !is_constant(threshold) && !is_default(threshold);
 		}
 
 		void set_sample(uint32_t sample_index, const Vector4_64& translation, double sample_time)

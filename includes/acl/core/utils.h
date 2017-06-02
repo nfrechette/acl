@@ -43,7 +43,7 @@ namespace acl
 
 		FloatType sample_key = normalized_sample_time * FloatType(num_samples - 1);
 		uint32_t key_frame0 = uint32_t(floor(sample_key));
-		uint32_t key_frame1 = std::max(key_frame0 + 1, num_samples - 1);
+		uint32_t key_frame1 = std::min(key_frame0 + 1, num_samples - 1);
 		FloatType interpolation_alpha = sample_key - FloatType(key_frame0);
 		ensure(key_frame0 >= 0 && key_frame0 <= key_frame1 && key_frame1 < num_samples);
 		ensure(interpolation_alpha >= FloatType(0.0) && interpolation_alpha <= FloatType(1.0));
