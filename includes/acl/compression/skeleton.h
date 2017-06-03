@@ -51,11 +51,32 @@ namespace acl
 	class RigidSkeleton
 	{
 	public:
-		RigidSkeleton(Allocator& allocator, uint16_t num_bones)
+		RigidSkeleton(Allocator& allocator, const RigidBone* bones, uint16_t num_bones)
 			: m_allocator(allocator)
 			, m_bones(allocate_type_array<RigidBone>(allocator, num_bones))
 			, m_num_bones(num_bones)
-		{}
+		{
+			// Copy and validate the input data
+			bool found_root = false;
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			{
+				const RigidBone& bone = bones[bone_index];
+
+				bool is_root = bone.parent_index == 0xFFFF;
+
+				ensure(is_root || bone.parent_index < bone_index);
+				ensure((is_root && !found_root) || !is_root);
+				ensure(quat_is_valid(bone.bind_rotation));
+				ensure(quat_is_normalized(bone.bind_rotation));
+				ensure(vector_is_valid(bone.bind_translation));
+
+				found_root |= is_root;
+
+				m_bones[bone_index] = bone;
+			}
+
+			ensure(found_root);
+		}
 
 		~RigidSkeleton()
 		{
@@ -65,7 +86,6 @@ namespace acl
 		RigidSkeleton(const RigidSkeleton&) = delete;
 		RigidSkeleton& operator=(const RigidSkeleton&) = delete;
 
-		RigidBone* get_bones() { return m_bones; }
 		const RigidBone* get_bones() const { return m_bones; }
 		uint16_t get_num_bones() const { return m_num_bones; }
 

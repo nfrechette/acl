@@ -27,9 +27,7 @@
 #include "acl/math/math.h"
 #include "acl/math/scalar_64.h"
 
-#if defined(ACL_NO_INTRINSICS)
-#include <algorithm>
-#endif
+#include <cmath>
 
 namespace acl
 {
@@ -167,7 +165,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 		return Vector4_64{ _mm_max_pd(lhs.xy, rhs.xy), _mm_max_pd(lhs.zw, rhs.zw) };
 #else
-		return vector_set(std::max(lhs.x, rhs.x), std::max(lhs.y, rhs.y), std::max(lhs.z, rhs.z), std::max(lhs.w, rhs.w));
+		return vector_set(max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z), max(lhs.w, rhs.w));
 #endif
 	}
 
@@ -176,7 +174,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 		return Vector4_64{ _mm_min_pd(lhs.xy, rhs.xy), _mm_min_pd(lhs.zw, rhs.zw) };
 #else
-		return vector_set(std::min(lhs.x, rhs.x), std::min(lhs.y, rhs.y), std::min(lhs.z, rhs.z), std::min(lhs.w, rhs.w));
+		return vector_set(min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z), min(lhs.w, rhs.w));
 #endif
 	}
 
@@ -186,7 +184,7 @@ namespace acl
 		Vector4_64 zero{ _mm_setzero_pd(), _mm_setzero_pd() };
 		return vector_max(vector_sub(zero, input), input);
 #else
-		return vector_set(std::abs(input.x), std::abs(input.y), std::abs(input.z), std::abs(input.w));
+		return vector_set(abs(input.x), abs(input.y), abs(input.z), abs(input.w));
 #endif
 	}
 
@@ -198,13 +196,13 @@ namespace acl
 	inline double vector_length_squared(const Vector4_64& input)
 	{
 		// TODO: Use dot instruction
-		return (vector_get_x(input) * vector_get_x(input)) + (vector_get_y(input) + vector_get_y(input)) + (vector_get_z(input) + vector_get_z(input)) + (vector_get_w(input) + vector_get_w(input));
+		return (vector_get_x(input) * vector_get_x(input)) + (vector_get_y(input) * vector_get_y(input)) + (vector_get_z(input) * vector_get_z(input)) + (vector_get_w(input) * vector_get_w(input));
 	}
 
 	inline double vector_length_squared3(const Vector4_64& input)
 	{
 		// TODO: Use dot instruction
-		return (vector_get_x(input) * vector_get_x(input)) + (vector_get_y(input) + vector_get_y(input)) + (vector_get_z(input) + vector_get_z(input));
+		return (vector_get_x(input) * vector_get_x(input)) + (vector_get_y(input) * vector_get_y(input)) + (vector_get_z(input) * vector_get_z(input));
 	}
 
 	inline double vector_length(const Vector4_64& input)
@@ -261,5 +259,10 @@ namespace acl
 #else
 		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z || lhs.w < rhs.w;
 #endif
+	}
+
+	inline bool vector_is_valid(const Vector4_64& input)
+	{
+		return std::isfinite(vector_get_x(input)) && std::isfinite(vector_get_y(input)) && std::isfinite(vector_get_z(input)) && std::isfinite(vector_get_w(input));
 	}
 }

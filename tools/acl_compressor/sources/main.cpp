@@ -130,8 +130,7 @@ int main(int argc, char** argv)
 	Allocator allocator;
 
 	// Initialize our skeleton
-	RigidSkeleton skeleton(allocator, 2);
-	RigidBone* bones = skeleton.get_bones();
+	RigidBone bones[2];
 
 	bones[0].name = "root";
 	bones[0].parent_index = 0xFFFF;
@@ -144,6 +143,8 @@ int main(int argc, char** argv)
 	bones[1].bind_rotation = quat_set(1.0, 0.0, 0.0, 0.0);
 	bones[1].bind_translation = vector_set(1.0, 0.0, 0.0, 0.0);
 	bones[1].vertex_distance = 0.01;
+
+	RigidSkeleton skeleton(allocator, &bones[0], 2);
 
 	// Populate our clip with our raw samples
 	AnimationClip clip(allocator, skeleton, 2, 30);

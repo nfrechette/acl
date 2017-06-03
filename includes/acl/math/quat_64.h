@@ -28,6 +28,8 @@
 #include "acl/math/scalar_64.h"
 #include "acl/math/vector4_64.h"
 
+#include <cmath>
+
 namespace acl
 {
 	inline Quat_64 quat_set(double x, double y, double z, double w)
@@ -193,7 +195,7 @@ namespace acl
 	inline double quat_length_squared(const Quat_64& input)
 	{
 		// TODO: Use dot instruction
-		return (quat_get_x(input) * quat_get_x(input)) + (quat_get_y(input) + quat_get_y(input)) + (quat_get_z(input) + quat_get_z(input)) + (quat_get_w(input) + quat_get_w(input));
+		return (quat_get_x(input) * quat_get_x(input)) + (quat_get_y(input) * quat_get_y(input)) + (quat_get_z(input) * quat_get_z(input)) + (quat_get_w(input) * quat_get_w(input));
 	}
 
 	inline double quat_length(const Quat_64& input)
@@ -221,5 +223,16 @@ namespace acl
 		Vector4_64 end_vector = quat_to_vector(end);
 		Vector4_64 value = vector_add(start_vector, vector_mul(vector_sub(end_vector, start_vector), alpha));
 		return quat_normalize(vector_to_quat(value));
+	}
+
+	inline bool quat_is_valid(const Quat_64& input)
+	{
+		return std::isfinite(quat_get_x(input)) && std::isfinite(quat_get_y(input)) && std::isfinite(quat_get_z(input)) && std::isfinite(quat_get_w(input));
+	}
+
+	inline bool quat_is_normalized(const Quat_64& input, double threshold = 0.00001)
+	{
+		double length_squared = quat_length_squared(input);
+		return abs(length_squared - 1.0) < threshold;
 	}
 }
