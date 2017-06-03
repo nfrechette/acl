@@ -30,6 +30,8 @@
 #include "acl/algorithm/full_precision_decoder.h"
 
 #include <Windows.h>
+#include <cstring>
+#include <cstdio>
 
 struct OutputWriterImpl : public acl::OutputWriter
 {
@@ -91,9 +93,39 @@ struct RawOutputWriterImpl : public acl::OutputWriter
 	uint16_t m_num_bones;
 };
 
-int main()
+struct Options
+{
+	bool			output_stats;
+	const char*		output_stats_filename;
+
+	Options()
+		: output_stats(false)
+		, output_stats_filename(nullptr)
+	{}
+};
+
+static Options parse_options(int argc, char** argv)
+{
+	Options options;
+
+	for (int arg_index = 0; arg_index < argc; ++arg_index)
+	{
+		char* argument = argv[arg_index];
+		if (std::strncmp(argument, "-stats", 6) == 0)
+		{
+			options.output_stats = true;
+			options.output_stats_filename = argument[6] == '=' ? (argument + 7) : nullptr;
+		}
+	}
+
+	return options;
+}
+
+int main(int argc, char** argv)
 {
 	using namespace acl;
+
+	const Options options = parse_options(argc, argv);
 
 	Allocator allocator;
 
@@ -167,22 +199,34 @@ int main()
 			max_error = max(max_error, error);
 		}
 
-		uint32_t raw_size = clip.get_raw_size();
-		uint32_t compressed_size = compressed_clip->get_size();
-		double compression_ratio = double(raw_size) / double(compressed_size);
+		if (options.output_stats)
+		{
+			uint32_t raw_size = clip.get_raw_size();
+			uint32_t compressed_size = compressed_clip->get_size();
+			double compression_ratio = double(raw_size) / double(compressed_size);
 
-		LARGE_INTEGER frequency_cycles_per_sec;
-		QueryPerformanceFrequency(&frequency_cycles_per_sec);
-		double elapsed_time_sec = double(end_time_cycles.QuadPart - start_time_cycles.QuadPart) / double(frequency_cycles_per_sec.QuadPart);
+			LARGE_INTEGER frequency_cycles_per_sec;
+			QueryPerformanceFrequency(&frequency_cycles_per_sec);
+			double elapsed_time_sec = double(end_time_cycles.QuadPart - start_time_cycles.QuadPart) / double(frequency_cycles_per_sec.QuadPart);
 
-		printf("Clip raw size (bytes): %u\n", raw_size);
-		printf("Clip compressed size (bytes): %u\n", compressed_size);
-		printf("Clip compression ratio: %.2f : 1\n", compression_ratio);
-		printf("Clip max error: %.5f\n", max_error);
-		printf("Clip compression time (s): %.6f\n", elapsed_time_sec);
-		printf("Clip duration (s): %.3f\n", clip.get_duration());
-		printf("Clip num animated tracks: %u\n", clip.get_num_animated_tracks());
-		//printf("Clip num segments: %u\n", 0);		// TODO
+			std::FILE* file = nullptr;
+			if (options.output_stats_filename != nullptr)
+				fopen_s(&file, options.output_stats_filename, "w");
+			file = file != nullptr ? file : stdout;
+
+			fprintf(file, "Clip raw size (bytes): %u\n", raw_size);
+			fprintf(file, "Clip compressed size (bytes): %u\n", compressed_size);
+			fprintf(file, "Clip compression ratio: %.2f : 1\n", compression_ratio);
+			fprintf(file, "Clip max error: %.5f\n", max_error);
+			fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
+			fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
+			fprintf(file, "Clip num animated tracks: %u\n", clip.get_num_animated_tracks());
+			//fprintf(file, "Clip num segments: %u\n", 0);		// TODO
+
+			if (file != stdout)
+				std::fclose(file);
+			file = nullptr;
+		}
 
 		allocator.deallocate(compressed_clip);
 	}
