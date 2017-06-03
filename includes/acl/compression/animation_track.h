@@ -71,7 +71,6 @@ namespace acl
 		AnimationTrack()
 			: m_allocator(nullptr)
 			, m_sample_data(nullptr)
-			, m_time_data(nullptr)
 			, m_num_samples(0)
 			, m_sample_rate(0)
 			, m_type(AnimationTrackType::Rotation)
@@ -80,7 +79,6 @@ namespace acl
 		AnimationTrack(AnimationTrack&& track)
 			: m_allocator(track.m_allocator)
 			, m_sample_data(track.m_sample_data)
-			, m_time_data(track.m_time_data)
 			, m_num_samples(track.m_num_samples)
 			, m_sample_rate(track.m_sample_rate)
 			, m_is_range_dirty(track.m_is_range_dirty)
@@ -91,7 +89,6 @@ namespace acl
 		AnimationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate, AnimationTrackType type)
 			: m_allocator(&allocator)
 			, m_sample_data(allocate_type_array<double>(allocator, num_samples * get_animation_track_sample_size(type)))
-			, m_time_data(allocate_type_array<double>(allocator, num_samples))
 			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
 			, m_is_range_dirty(true)
@@ -104,7 +101,6 @@ namespace acl
 			if (is_initialized())
 			{
 				m_allocator->deallocate(m_sample_data);
-				m_allocator->deallocate(m_time_data);
 			}
 		}
 
@@ -112,7 +108,6 @@ namespace acl
 		{
 			std::swap(m_allocator, track.m_allocator);
 			std::swap(m_sample_data, track.m_sample_data);
-			std::swap(m_time_data, track.m_time_data);
 			std::swap(m_num_samples, track.m_num_samples);
 			std::swap(m_sample_rate, track.m_sample_rate);
 			std::swap(m_is_range_dirty, track.m_is_range_dirty);
@@ -180,7 +175,6 @@ namespace acl
 
 		Allocator*						m_allocator;
 		double*							m_sample_data;
-		double*							m_time_data;
 
 		uint32_t						m_num_samples;
 		uint32_t						m_sample_rate;
@@ -234,9 +228,10 @@ namespace acl
 			return !is_constant(threshold) && !is_default(threshold);
 		}
 
-		void set_sample(uint32_t sample_index, const Quat_64& rotation, double sample_time)
+		void set_sample(uint32_t sample_index, const Quat_64& rotation)
 		{
 			ensure(is_initialized());
+			ensure(sample_index < m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
 			ensure(sample_size == 4);
@@ -247,7 +242,6 @@ namespace acl
 			sample[2] = quat_get_z(rotation);
 			sample[3] = quat_get_w(rotation);
 
-			m_time_data[sample_index] = sample_time;
 			m_is_range_dirty = true;
 		}
 
@@ -255,6 +249,7 @@ namespace acl
 		{
 			ensure(is_initialized());
 			ensure(m_type == AnimationTrackType::Rotation);
+			ensure(sample_index < m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
 
@@ -317,9 +312,10 @@ namespace acl
 			return !is_constant(threshold) && !is_default(threshold);
 		}
 
-		void set_sample(uint32_t sample_index, const Vector4_64& translation, double sample_time)
+		void set_sample(uint32_t sample_index, const Vector4_64& translation)
 		{
 			ensure(is_initialized());
+			ensure(sample_index < m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
 			ensure(sample_size == 3);
@@ -329,7 +325,6 @@ namespace acl
 			sample[1] = vector_get_y(translation);
 			sample[2] = vector_get_z(translation);
 
-			m_time_data[sample_index] = sample_time;
 			m_is_range_dirty = true;
 		}
 
@@ -337,6 +332,7 @@ namespace acl
 		{
 			ensure(is_initialized());
 			ensure(m_type == AnimationTrackType::Translation);
+			ensure(sample_index < m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
 

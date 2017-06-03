@@ -69,7 +69,7 @@ namespace acl
 		return vector_set(input[0], input[1], input[2], 0.0f);
 	}
 
-	inline Vector4_64 vector_64_zero()
+	inline Vector4_64 vector_zero_64()
 	{
 		return vector_set(0.0, 0.0, 0.0, 0.0);
 	}

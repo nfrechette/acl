@@ -56,7 +56,7 @@ namespace acl
 		return vector_set(input[0], input[1], input[2], 0.0f);
 	}
 
-	inline Vector4_32 vector_32_zero()
+	inline Vector4_32 vector_zero_32()
 	{
 		return vector_set(0.0f, 0.0f, 0.0f, 0.0f);
 	}

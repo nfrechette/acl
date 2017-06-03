@@ -159,81 +159,133 @@ def parse_tracks(scene, clip, bones, nodes):
 
 	return tracks
 
-def print_clip(file, clip):
-	print('clip =', file = file)
+def print_clip_header(clip_name, clip):
+	file = open('clip_{}.h'.format(clip_name), 'w')
+	print('#pragma once', file = file)
+	print('#include "acl/compression/skeleton.h"', file = file)
+	print('#include "acl/math/quat_64.h"', file = file)
+	print('#include "acl/math/vector4_64.h"', file = file)
+	print('', file = file)
+	print('namespace clip_{}'.format(clip_name), file = file)
 	print('{', file = file)
-	print('\tname = "{}"'.format(clip.name), file = file)
-	print('\tnum_samples = {}'.format(clip.num_samples), file = file)
-	print('\tsample_rate = {}'.format(clip.sample_rate), file = file)
-	print('\terror_threshold = {}'.format(clip.error_threshold), file = file)
+	print('\textern acl::RigidBone bones[];', file = file)
+	print('\textern uint16_t num_bones;', file = file)
+	print('\tstatic constexpr uint16_t num_samples = {};'.format(clip.num_samples), file = file)
+	print('\tstatic constexpr uint16_t sample_rate = {};'.format(clip.sample_rate), file = file)
+	print('', file = file)
+	print('\textern uint16_t rotation_track_bone_index[];', file = file)
+	print('\textern uint32_t num_rotation_tracks;', file = file)
+	print('\textern acl::Quat_64 rotation_tracks[][{}];'.format(clip.num_samples), file = file)
+	print('', file = file)
+	print('\textern uint16_t translation_track_bone_index[];', file = file)
+	print('\textern uint32_t num_translation_tracks;', file = file)
+	print('\textern acl::Vector4_64 translation_tracks[][{}];'.format(clip.num_samples), file = file)
 	print('}', file = file)
 	print('', file = file)
+	file.close
 
-def print_bones(file, bones):
-	default_rotation = [ 0.0, 0.0, 0.0, 1.0 ]
-	default_translation = [ 0.0, 0.0, 0.0 ]
-	default_scale = [ 1.0, 1.0, 1.0 ]
+def quaternion_array_to_cpp_string(quat):
+	return 'acl::quat_set({}, {}, {}, {})'.format(quat[0], quat[1], quat[2], quat[3])
 
-	print('bones =', file = file)
-	print('[', file = file)
-	for bone in bones:
-		print('\t{', file = file)
-		print('\t\tname = "{}"'.format(bone.name), file = file)
-		print('\t\tparent = "{}"'.format(bone.parent), file = file)
-		print('\t\tvertex_distance = {}'.format(bone.vtx_distance), file = file)
+def vector3_array_to_cpp_string(vec):
+	return 'acl::vector_set({}, {}, {})'.format(vec[0], vec[1], vec[2])
 
-		if not is_key_default(bone.bind_rotation, default_rotation):
-			print('\t\tbind_rotation = [ {}, {}, {}, {} ]'.format(bone.bind_rotation[0], bone.bind_rotation[1], bone.bind_rotation[2], bone.bind_rotation[3]), file = file)
-
-		if not is_key_default(bone.bind_translation, default_translation):
-			print('\t\tbind_translation = [ {}, {}, {} ]'.format(bone.bind_translation[0], bone.bind_translation[1], bone.bind_translation[2]), file = file)
-
-		if not is_key_default(bone.bind_scale, default_scale):
-			print('\t\tbind_scale = [ {}, {}, {} ]'.format(bone.bind_scale[0], bone.bind_scale[1], bone.bind_scale[2]), file = file)
-
-		print('\t}', file = file)
-	print(']', file = file)
+def print_clip_skeleton(clip_name, bones):
+	file = open('clip_{}_skeleton.cpp'.format(clip_name), 'w')
+	print('#include "acl/compression/skeleton.h"', file = file)
+	print('#include "acl/math/quat_64.h"', file = file)
+	print('#include "acl/math/vector4_64.h"', file = file)
 	print('', file = file)
+	print('namespace clip_{}'.format(clip_name), file = file)
+	print('{', file = file)
+	print('\tacl::RigidBone bones[] =', file = file)
+	print('\t{', file = file)
+	for bone in bones:
+		bone_index = bones.index(bone)
+		bone_name = bone.name
+		parent_bone_index = "0xFFFF"
+		if bone_index != 0:
+			parent_bone_index = bones.index(next(x for x in bones if x.name == bone.parent))
+		rotation = quaternion_array_to_cpp_string(bone.bind_rotation)
+		translation = vector3_array_to_cpp_string(bone.bind_translation)
+		vtx_distance = bone.vtx_distance
+		print('\t\t/* {} */\t{{ "{}", {}, {}, {}, {} }},'.format(bone_index, bone_name, parent_bone_index, rotation, translation, vtx_distance), file = file)
+	print('\t};', file = file)
+	print('', file = file)
+	print('\tuint16_t num_bones = sizeof(bones) / sizeof(acl::RigidBone);', file = file)
+	print('}', file = file)
+	print('', file = file)
+	file.close()
 
-def print_tracks(file, tracks):
-	print('tracks =', file = file)
-	print('[', file = file)
+def print_clip_rotations(clip_name, clip, bones, tracks):
+	file = open('clip_{}_rotations.cpp'.format(clip_name), 'w')
+	print('#include "acl/math/quat_64.h"', file = file)
+	print('#include "acl/math/vector4_64.h"', file = file)
+	print('', file = file)
+	print('namespace clip_{}'.format(clip_name), file = file)
+	print('{', file = file)
+	print('\tuint16_t rotation_track_bone_index[] =', file = file)
+	print('\t{', file = file)
 	for track in tracks:
-		if len(track.rotations) + len(track.translations) + len(track.scales) == 0:
+		if len(track.rotations) == 0:
 			continue
 
-		print('\t{', file = file)
-		print('\t\tname = "{}"'.format(track.name), file = file)
-		if len(track.rotations) != 0:
-			print('\t\trotations =', file = file)
-			print('\t\t[', file = file)
-			for rotation in track.rotations:
-				print('\t\t\t[ {}, {}, {}, {} ]'.format(rotation[0], rotation[1], rotation[2], rotation[3]), file = file)
-			print('\t\t]', file = file)
-
-		if len(track.translations) != 0:
-			print('\t\ttranslations =', file = file)
-			print('\t\t[', file = file)
-			for translation in track.translations:
-				print('\t\t\t[ {}, {}, {} ]'.format(translation[0], translation[1], translation[2]), file = file)
-			print('\t\t]', file = file)
-
-		if len(track.scales) != 0:
-			print('\t\tscales =', file = file)
-			print('\t\t[', file = file)
-			for scale in track.scales:
-				print('\t\t\t[ {}, {}, {} ]'.format(scale[0], scale[1], scale[2]), file = file)
-			print('\t\t]', file = file)
-
-		print('\t}', file = file)
-	print(']', file = file)
+		track_bone_index = bones.index(next(x for x in bones if x.name == track.name))
+		print('\t\t{},\t\t// "{}"'.format(track_bone_index, track.name), file = file)
+	print('\t};', file = file)
 	print('', file = file)
+	print('\tuint32_t num_rotation_tracks = sizeof(rotation_track_bone_index) / sizeof(uint16_t);', file = file)
+	print('', file = file)
+	print('\tacl::Quat_64 rotation_tracks[][{}] ='.format(clip.num_samples), file = file)
+	print('\t{', file = file)
+	for track in tracks:
+		if len(track.rotations) == 0:
+			continue
+		print('\t\t{', file = file)
+		for rotation in track.rotations:
+			print('\t\t\t{},'.format(quaternion_array_to_cpp_string(rotation)), file = file)
+		print('\t\t},', file = file)
+	print('\t};', file = file)
+	print('}', file = file)
+	print('', file = file)
+	file.close()
+
+def print_clip_translations(clip_name, clip, bones, tracks):
+	file = open('clip_{}_translations.cpp'.format(clip_name), 'w')
+	print('#include "acl/math/quat_64.h"', file = file)
+	print('#include "acl/math/vector4_64.h"', file = file)
+	print('', file = file)
+	print('namespace clip_{}'.format(clip_name), file = file)
+	print('{', file = file)
+	print('\tuint16_t translation_track_bone_index[] =', file = file)
+	print('\t{', file = file)
+	for track in tracks:
+		if len(track.translations) == 0:
+			continue
+
+		track_bone_index = bones.index(next(x for x in bones if x.name == track.name))
+		print('\t\t{},\t\t// "{}"'.format(track_bone_index, track.name), file = file)
+	print('\t};', file = file)
+	print('', file = file)
+	print('\tuint32_t num_translation_tracks = sizeof(translation_track_bone_index) / sizeof(uint16_t);', file = file)
+	print('', file = file)
+	print('\tacl::Vector4_64 translation_tracks[][{}] ='.format(clip.num_samples), file = file)
+	print('\t{', file = file)
+	for track in tracks:
+		if len(track.translations) == 0:
+			continue
+		print('\t\t{', file = file)
+		for translation in track.translations:
+			print('\t\t\t{},'.format(vector3_array_to_cpp_string(translation)), file = file)
+		print('\t\t},', file = file)
+	print('\t};', file = file)
+	print('}', file = file)
+	print('', file = file)
+	file.close()
 
 def parse_argv():
 	options = {}
 	options['fbx'] = ""
-	options['acl'] = ""
-	options['zip'] = False
 
 	for i in range(1, len(sys.argv)):
 		value = sys.argv[i]
@@ -242,15 +294,9 @@ def parse_argv():
 		if value.startswith('-fbx='):
 			options['fbx'] = value[5:].replace('"', '')
 
-		if value.startswith('-acl='):
-			options['acl'] = value[5:].replace('"', '')
-
-		if value == '-zip':
-			options['zip'] = True
-
 	return options
 
-def convert_file(fbx_filename, acl_filename, zip):
+def convert_file(fbx_filename):
 	# Prepare the FBX SDK.
 	sdk_manager, scene = InitializeSdkObjects()
 
@@ -269,35 +315,13 @@ def convert_file(fbx_filename, acl_filename, zip):
 		bones = parse_bind_pose(scene, nodes)
 		tracks = parse_tracks(scene, clip, bones, nodes)
 
-		# If we don't provide an ACL filename, we'll write to STDOUT
-		# If we provide an ACL filename but not '-zip', we'll output the raw file
-		# If we provide both, we'll only output a zip file with the same name
-		if len(acl_filename) != 0:
-			if zip:
-				zip_filename = acl_filename.replace('.js', '.zip')
-				print('Writing {}...'.format(zip_filename))
-				file = io.StringIO()
-			else:
-				print('Writing {}...'.format(acl_filename))
-				file = open(acl_filename, 'w')
-		else:
-			file = sys.stdout
-
-		print_clip(file, clip)
-		print_bones(file, bones)
-		print_tracks(file, tracks)
-
-		if len(acl_filename) != 0:
-			if zip:
-				# LZMA is generally smaller, use ZIP_DEFLATED if it is unsupported on your platform
-				# TODO: Detect this automatically somehow?
-				#zip_file = zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED)
-				zip_file = zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_LZMA)
-				#zip_file.write(acl_filename)
-				zip_file.writestr(acl_filename, file.getvalue())
-				zip_file.close()
-
-			file.close()
+		# Output to cpp files
+		clip_name = os.path.basename(fbx_filename).replace('.fbx', '')
+		print('Writing cpp files...')
+		print_clip_header(clip_name, clip)
+		print_clip_skeleton(clip_name, bones)
+		print_clip_rotations(clip_name, clip, bones, tracks)
+		print_clip_translations(clip_name, clip, bones, tracks)
 
 	# Destroy all objects created by the FBX SDK.
 	sdk_manager.Destroy()
@@ -324,49 +348,15 @@ if __name__ == "__main__":
 
 	fbx_filename = options['fbx']
 	if len(fbx_filename) == 0:
-		print('Usage: fbx2acl -fbx=<FBX file name> [-acl=<ACL file name>] [-zip]')
+		print('Usage: fbx2cpp -fbx=<FBX file name>')
 		sys.exit(1)
-
-	acl_filename = options['acl']
-	zip = options['zip']
 
 	if not os.path.exists(fbx_filename):
 		print('FBX input not found: {}'.format(fbx_filename))
 		sys.exit(1)
 
-	if os.path.isdir(fbx_filename):
-		# Our FBX input is a directory, recursively go down and mirror the structure with the output ACL directory
-		if not os.path.exists(acl_filename):
-			# Create our output directory
-			os.makedirs(acl_filename)
-
-		if not os.path.isdir(acl_filename):
-			print('An input FBX directory requires an output ACL directory')
-			sys.exit(1)
-
-		fbx_dir = fbx_filename
-		acl_dir = acl_filename
-		for (dirpath, dirnames, filenames) in os.walk(fbx_dir):
-			acl_dirname = dirpath.replace(fbx_dir, acl_dir)
-
-			for filename in filenames:
-				if not filename.endswith('.fbx'):
-					continue
-
-				fbx_filename = os.path.join(dirpath, filename)
-				acl_filename = os.path.join(acl_dirname, filename.replace('.fbx', '.js'))
-
-				if not os.path.exists(acl_dirname):
-					os.makedirs(acl_dirname)
-
-				result = convert_file(fbx_filename, acl_filename, zip)
-				if not result:
-					sys.exit(1)
-
-		sys.exit(0)
-
 	# Convert a single file
-	result = convert_file(fbx_filename, acl_filename, zip)
+	result = convert_file(fbx_filename)
 
 	if result:
 		sys.exit(0)

@@ -94,7 +94,7 @@ namespace acl
 			bool is_rotation_default = bitset_test(default_tracks_bitset, bitset_size, default_track_offset);
 			if (is_rotation_default)
 			{
-				rotation = quat_32_identity();
+				rotation = quat_identity_32();
 			}
 			else
 			{
@@ -124,7 +124,7 @@ namespace acl
 			bool is_translation_default = bitset_test(default_tracks_bitset, bitset_size, default_track_offset);
 			if (is_translation_default)
 			{
-				translation = vector_32_zero();
+				translation = vector_zero_32();
 			}
 			else
 			{

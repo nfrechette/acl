@@ -46,7 +46,7 @@ namespace acl
 		return quat_set(input[0], input[1], input[2], input[3]);
 	}
 
-	inline Quat_64 quat_64_identity()
+	inline Quat_64 quat_identity_64()
 	{
 		return quat_set(0.0, 0.0, 0.0, 1.0);
 	}

@@ -27,7 +27,6 @@
 #include "acl/compression/animation_track.h"
 
 #include <stdint.h>
-#include <string.h>
 
 namespace acl
 {

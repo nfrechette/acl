@@ -29,6 +29,8 @@
 #include "acl/algorithm/full_precision_encoder.h"
 #include "acl/algorithm/full_precision_decoder.h"
 
+#include "clip_01_01.h"
+
 #include <Windows.h>
 #include <cstring>
 #include <cstdio>
@@ -171,7 +173,7 @@ static void run_unit_tests()
 
 	{
 		const Quat_64 test_rotations[] = {
-			quat_64_identity(),
+			quat_identity_64(),
 			quat_from_euler(deg2rad(30.0), deg2rad(-45.0), deg2rad(90.0)),
 			quat_from_euler(deg2rad(45.0), deg2rad(60.0), deg2rad(120.0)),
 			quat_from_euler(deg2rad(0.0), deg2rad(180.0), deg2rad(45.0)),
@@ -180,7 +182,7 @@ static void run_unit_tests()
 		};
 
 		const Vector4_64 test_vectors[] = {
-			vector_64_zero(),
+			vector_zero_64(),
 			vector_set(1.0, 0.0, 0.0),
 			vector_set(0.0, 1.0, 0.0),
 			vector_set(0.0, 0.0, 1.0),
@@ -231,34 +233,43 @@ int main(int argc, char** argv)
 	Allocator allocator;
 
 	// Initialize our skeleton
-	RigidBone bones[2];
-
-	bones[0].name = "root";
-	bones[0].parent_index = 0xFFFF;
-	bones[0].bind_rotation = quat_64_identity();
-	bones[0].bind_translation = vector_64_zero();
-	bones[0].vertex_distance = 0.01;
-
-	bones[1].name = "bone1";
-	bones[1].parent_index = 0;
-	bones[1].bind_rotation = quat_set(1.0, 0.0, 0.0, 0.0);
-	bones[1].bind_translation = vector_set(1.0, 0.0, 0.0, 0.0);
-	bones[1].vertex_distance = 0.01;
-
-	RigidSkeleton skeleton(allocator, &bones[0], 2);
+	RigidSkeleton skeleton(allocator, &clip_01_01::bones[0], clip_01_01::num_bones);
 
 	// Populate our clip with our raw samples
-	AnimationClip clip(allocator, skeleton, 2, 30);
+	AnimationClip clip(allocator, skeleton, clip_01_01::num_samples, clip_01_01::sample_rate);
 	AnimatedBone* clip_bones = clip.get_bones();
 
-	clip_bones[0].rotation_track.set_sample(0, quat_64_identity(), 0.0);
-	clip_bones[0].rotation_track.set_sample(1, quat_64_identity(), 1.0);
-	clip_bones[0].translation_track.set_sample(0, vector_64_zero(), 0.0);
-	clip_bones[0].translation_track.set_sample(1, vector_64_zero(), 1.0);
-	clip_bones[1].rotation_track.set_sample(0, quat_64_identity(), 0.0);
-	clip_bones[1].rotation_track.set_sample(1, quat_64_identity(), 1.0);
-	clip_bones[1].translation_track.set_sample(0, vector_64_zero(), 0.0);
-	clip_bones[1].translation_track.set_sample(1, vector_64_zero(), 1.0);
+	for (uint16_t bone_index = 0; bone_index < clip_01_01::num_bones; ++bone_index)
+	{
+		uint32_t rotation_track_index = ~0u;
+		for (uint32_t track_bone_index = 0; track_bone_index < clip_01_01::num_rotation_tracks; ++track_bone_index)
+		{
+			if (clip_01_01::rotation_track_bone_index[track_bone_index] == bone_index)
+			{
+				rotation_track_index = track_bone_index;
+				break;
+			}
+		}
+
+		uint32_t translation_track_index = ~0u;
+		for (uint32_t track_bone_index = 0; track_bone_index < clip_01_01::num_translation_tracks; ++track_bone_index)
+		{
+			if (clip_01_01::translation_track_bone_index[track_bone_index] == bone_index)
+			{
+				translation_track_index = track_bone_index;
+				break;
+			}
+		}
+
+		for (uint32_t sample_index = 0; sample_index < clip_01_01::num_samples; ++sample_index)
+		{
+			Quat_64 rotation = rotation_track_index != ~0u ? clip_01_01::rotation_tracks[rotation_track_index][sample_index] : quat_identity_64();
+			clip_bones[bone_index].rotation_track.set_sample(sample_index, rotation);
+
+			Vector4_64 translation = translation_track_index != ~0u ? clip_01_01::translation_tracks[translation_track_index][sample_index] : vector_zero_64();
+			clip_bones[bone_index].translation_track.set_sample(sample_index, translation);
+		}
+	}
 
 	// Compress & Decompress
 	{

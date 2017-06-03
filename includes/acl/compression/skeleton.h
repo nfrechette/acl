@@ -108,7 +108,9 @@ namespace acl
 		for (uint16_t bone_index = 1; bone_index < num_bones; ++bone_index)
 		{
 			uint16_t parent_bone_index = bones[bone_index].parent_index;
-			out_object_pose[bone_index] = transform_mul(out_object_pose[parent_bone_index], local_pose[bone_index]);
+			ensure(parent_bone_index < num_bones);
+
+			out_object_pose[bone_index] = transform_mul(local_pose[bone_index], out_object_pose[parent_bone_index]);
 		}
 	}
 
@@ -124,6 +126,8 @@ namespace acl
 		for (uint16_t bone_index = 1; bone_index < num_bones; ++bone_index)
 		{
 			uint16_t parent_bone_index = bones[bone_index].parent_index;
+			ensure(parent_bone_index < num_bones);
+
 			Transform_64 inv_parent_transform = transform_inverse(object_pose[parent_bone_index]);
 			out_local_pose[bone_index] = transform_mul(inv_parent_transform, object_pose[bone_index]);
 		}

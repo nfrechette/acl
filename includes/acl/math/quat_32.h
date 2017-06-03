@@ -44,7 +44,7 @@ namespace acl
 		return quat_set(input[0], input[1], input[2], input[3]);
 	}
 
-	inline Quat_32 quat_32_identity()
+	inline Quat_32 quat_identity_32()
 	{
 		return quat_set(0.0f, 0.0f, 0.0f, 1.0f);
 	}
@@ -106,7 +106,7 @@ namespace acl
 	inline float quat_length_squared(const Quat_32& input)
 	{
 		// TODO: Use dot instruction
-		return (quat_get_x(input) * quat_get_x(input)) + (quat_get_y(input) + quat_get_y(input)) + (quat_get_z(input) + quat_get_z(input)) + (quat_get_w(input) + quat_get_w(input));
+		return (quat_get_x(input) * quat_get_x(input)) + (quat_get_y(input) * quat_get_y(input)) + (quat_get_z(input) * quat_get_z(input)) + (quat_get_w(input) * quat_get_w(input));
 	}
 
 	inline float quat_length(const Quat_32& input)

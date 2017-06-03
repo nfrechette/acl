@@ -218,7 +218,7 @@ namespace acl
 		get_num_animated_tracks(clip, num_constant_rotation_tracks, num_constant_translation_tracks, num_animated_rotation_tracks, num_animated_translation_tracks);
 
 		uint32_t num_constant_floats = (num_constant_rotation_tracks * 4) + (num_constant_translation_tracks * 3);
-		uint32_t num_animated_floats = (num_animated_rotation_tracks * 4) + (num_animated_translation_tracks * 3);
+		uint32_t num_animated_floats = ((num_animated_rotation_tracks * 4) + (num_animated_translation_tracks * 3)) * num_samples;
 
 		uint32_t bitset_size = ((num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE) + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
 
