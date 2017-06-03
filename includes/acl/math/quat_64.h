@@ -110,6 +110,7 @@ namespace acl
 		return quat_set(-quat_get_x(input), -quat_get_y(input), -quat_get_z(input), quat_get_w(input));
 	}
 
+	// Multiplication order is as follow: local_to_world = quat_mul(local_to_object, object_to_world)
 	inline Quat_64 quat_mul(const Quat_64& lhs, const Quat_64& rhs)
 	{
 		double lhs_x = quat_get_x(lhs);
@@ -130,10 +131,11 @@ namespace acl
 		return quat_set(x, y, z, w);
 	}
 
-	inline Vector4_64 quat_rotate(const Quat_64& lhs, const Vector4_64& rhs)
+	inline Vector4_64 quat_rotate(const Quat_64& rotation, const Vector4_64& vector)
 	{
-		Quat_64 rhs_quat = vector_to_quat(vector_mul(rhs, vector_set(1.0, 1.0, 1.0, 0.0)));
-		return quat_to_vector(quat_mul(quat_mul(quat_conjugate(lhs), rhs_quat), lhs));
+		Quat_64 vector_quat = vector_to_quat(vector_mul(vector, vector_set(1.0, 1.0, 1.0, 0.0)));
+		Quat_64 inv_rotation = quat_conjugate(rotation);
+		return quat_to_vector(quat_mul(quat_mul(inv_rotation, vector_quat), rotation));
 	}
 
 	inline void quat_to_axis_angle(const Quat_64& input, Vector4_64& out_axis, double& out_angle)
@@ -192,6 +194,29 @@ namespace acl
 		}
 	}
 
+	inline Quat_64 quat_from_axis_angle(const Vector4_64& axis, double angle)
+	{
+		double s, c;
+		sincos(0.5 * angle, s, c);
+
+		return quat_set(s * vector_get_x(axis), s * vector_get_y(axis), s * vector_get_z(axis), c);
+	}
+
+	inline Quat_64 quat_from_euler(double pitch, double yaw, double roll)
+	{
+		double sp, sy, sr;
+		double cp, cy, cr;
+
+		sincos(pitch * 0.5, sp, cp);
+		sincos(yaw * 0.5, sy, cy);
+		sincos(roll * 0.5, sr, cr);
+
+		return quat_set(cr * sp * sy - sr * cp * cy,
+						-cr * sp * cy - sr * cp * sy,
+						cr * cp * sy - sr * sp * cy,
+						cr * cp * cy + sr * sp * sy);
+	}
+
 	inline double quat_length_squared(const Quat_64& input)
 	{
 		// TODO: Use dot instruction
@@ -234,5 +259,10 @@ namespace acl
 	{
 		double length_squared = quat_length_squared(input);
 		return abs(length_squared - 1.0) < threshold;
+	}
+
+	inline bool quat_near_equal(const Quat_64& lhs, const Quat_64& rhs, double threshold)
+	{
+		return vector_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
 	}
 }

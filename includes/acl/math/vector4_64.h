@@ -193,16 +193,33 @@ namespace acl
 		return vector_mul(input, -1.0);
 	}
 
-	inline double vector_length_squared(const Vector4_64& input)
+	inline Vector4_64 vector_cross3(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+		return vector_set(vector_get_y(lhs) * vector_get_z(rhs) - vector_get_z(lhs) * vector_get_y(rhs),
+						  vector_get_z(lhs) * vector_get_x(rhs) - vector_get_x(lhs) * vector_get_z(rhs),
+						  vector_get_x(lhs) * vector_get_y(rhs) - vector_get_y(lhs) * vector_get_x(rhs));
+	}
+
+	inline double vector_dot(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 		// TODO: Use dot instruction
-		return (vector_get_x(input) * vector_get_x(input)) + (vector_get_y(input) * vector_get_y(input)) + (vector_get_z(input) * vector_get_z(input)) + (vector_get_w(input) * vector_get_w(input));
+		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs)) + (vector_get_w(lhs) * vector_get_w(rhs));
+	}
+
+	inline double vector_dot3(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+		// TODO: Use dot instruction
+		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs));
+	}
+
+	inline double vector_length_squared(const Vector4_64& input)
+	{
+		return vector_dot(input, input);
 	}
 
 	inline double vector_length_squared3(const Vector4_64& input)
 	{
-		// TODO: Use dot instruction
-		return (vector_get_x(input) * vector_get_x(input)) + (vector_get_y(input) * vector_get_y(input)) + (vector_get_z(input) * vector_get_z(input));
+		return vector_dot3(input, input);
 	}
 
 	inline double vector_length(const Vector4_64& input)
@@ -259,6 +276,11 @@ namespace acl
 #else
 		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z || lhs.w < rhs.w;
 #endif
+	}
+
+	inline bool vector_near_equal(const Vector4_64& lhs, const Vector4_64& rhs, double threshold)
+	{
+		return vector_all_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
 	inline bool vector_is_valid(const Vector4_64& input)

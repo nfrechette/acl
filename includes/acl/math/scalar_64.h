@@ -54,6 +54,22 @@ namespace acl
 		return 1.0 / sqrt(input);
 	}
 
+	inline double sin(double angle)
+	{
+		return std::sin(angle);
+	}
+
+	inline double cos(double angle)
+	{
+		return std::cos(angle);
+	}
+
+	inline void sincos(double angle, double& out_sin, double& out_cos)
+	{
+		out_sin = sin(angle);
+		out_cos = cos(angle);
+	}
+
 	inline double atan2(double left, double right)
 	{
 		return std::atan2(left, right);
@@ -67,5 +83,15 @@ namespace acl
 	inline double max(double left, double right)
 	{
 		return std::max(left, right);
+	}
+
+	inline constexpr double deg2rad(double deg)
+	{
+		return (deg / 360.0) * ACL_PI_64;
+	}
+
+	inline bool scalar_near_equal(double lhs, double rhs, double threshold)
+	{
+		return abs(lhs - rhs) < threshold;
 	}
 }

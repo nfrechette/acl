@@ -35,6 +35,7 @@ namespace acl
 		return Transform_64{ rotation, translation };
 	}
 
+	// Multiplication order is as follow: local_to_world = quat_mul(local_to_object, object_to_world)
 	inline Transform_64 transform_mul(const Transform_64& lhs, const Transform_64& rhs)
 	{
 		Quat_64 rotation = quat_mul(rhs.rotation, lhs.rotation);
