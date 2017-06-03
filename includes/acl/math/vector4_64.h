@@ -86,7 +86,7 @@ namespace acl
 	inline Vector4_64 vector_cast(const Vector4_32& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Vector4_64{ _mm_cvtps_pd(input), _mm_cvtps_pd(_mm_shuffle_ps(input, input, _MM_SHUFFLE(2, 3, 2, 3))) };
+		return Vector4_64{ _mm_cvtps_pd(input), _mm_cvtps_pd(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 2, 3, 2))) };
 #else
 		return Vector4_64{ double(input.x), double(input.y), double(input.z), double(input.w) };
 #endif
