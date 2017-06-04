@@ -31,7 +31,7 @@ We aim to support compression and decompression on as many platforms as possible
 
 *  [Uniformly sampled keys](http://nfrechette.github.io/2016/11/15/anim_compression_quantization/) (full precision, **fixed quantization, variable quantization**)
 *  **[Linear key reduction](http://nfrechette.github.io/2016/12/07/anim_compression_key_reduction/) (full precision, fixed quantization, variable quantization)**
-*  **[Curve fitting](http://nfrechette.github.io/2016/12/10/anim_compression_curve_fitting/) (full precision, fixed quantization, variable quantization)**
+*  **[Spline key reduction](http://nfrechette.github.io/2016/12/10/anim_compression_curve_fitting/) (full precision, fixed quantization, variable quantization)**
 *  **[Wavelets](http://nfrechette.github.io/2016/12/19/anim_compression_signal_processing/)**
 
 **Algorithms in bold are not yet supported**
