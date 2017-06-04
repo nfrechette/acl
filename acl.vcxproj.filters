@@ -117,6 +117,27 @@
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_encoder.h">
       <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
     </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\fixed_quantization_encoder.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\fixed_quantization_decoder.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\fixed_quantization_common.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\ialgorithm.h">
+      <Filter>includes\acl\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_algorithm.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\fixed_quantization_algorithm.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\transform_32.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

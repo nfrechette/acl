@@ -33,7 +33,7 @@ namespace acl
 	// TODO: Add separate types for local/object space poses, avoid any possible usage error
 	// TODO: Add a context object to avoid malloc/free of the buffers with every call of the function
 	//       or manage the pose buffers externally?
-	inline double calculate_skeleton_error(Allocator& allocator, const RigidSkeleton& skeleton, const Transform_64* raw_local_pose, const Transform_64* lossy_local_pose)
+	inline double calculate_skeleton_error(Allocator& allocator, const RigidSkeleton& skeleton, const Transform_64* raw_local_pose, const Transform_32* lossy_local_pose)
 	{
 		uint16_t num_bones = skeleton.get_num_bones();
 		const RigidBone* bones = skeleton.get_bones();
@@ -41,9 +41,13 @@ namespace acl
 
 		Transform_64* raw_object_pose = allocate_type_array<Transform_64>(allocator, num_bones);
 		Transform_64* lossy_object_pose = allocate_type_array<Transform_64>(allocator, num_bones);
+		Transform_64* lossy_local_pose_64 = allocate_type_array<Transform_64>(allocator, num_bones);
+
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			lossy_local_pose_64[bone_index] = transform_cast(lossy_local_pose[bone_index]);
 
 		local_to_object_space(skeleton, raw_local_pose, raw_object_pose);
-		local_to_object_space(skeleton, lossy_local_pose, lossy_object_pose);
+		local_to_object_space(skeleton, lossy_local_pose_64, lossy_object_pose);
 
 		Vector4_64 x_axis = vector_set(1.0, 0.0, 0.0);
 		Vector4_64 y_axis = vector_set(0.0, 1.0, 0.0);
@@ -72,6 +76,7 @@ namespace acl
 
 		allocator.deallocate(raw_object_pose);
 		allocator.deallocate(lossy_object_pose);
+		allocator.deallocate(lossy_local_pose_64);
 
 		return error;
 	}

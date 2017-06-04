@@ -111,6 +111,39 @@ namespace acl
 		output[3] = quat_get_w(input);
 	}
 
+	inline Quat_32 quat_conjugate(const Quat_32& input)
+	{
+		return quat_set(-quat_get_x(input), -quat_get_y(input), -quat_get_z(input), quat_get_w(input));
+	}
+
+	// Multiplication order is as follow: local_to_world = quat_mul(local_to_object, object_to_world)
+	inline Quat_32 quat_mul(const Quat_32& lhs, const Quat_32& rhs)
+	{
+		float lhs_x = quat_get_x(lhs);
+		float lhs_y = quat_get_y(lhs);
+		float lhs_z = quat_get_z(lhs);
+		float lhs_w = quat_get_w(lhs);
+
+		float rhs_x = quat_get_x(rhs);
+		float rhs_y = quat_get_y(rhs);
+		float rhs_z = quat_get_z(rhs);
+		float rhs_w = quat_get_w(rhs);
+
+		float x = (rhs_w * lhs_x) + (rhs_x * lhs_w) + (rhs_y * lhs_z) - (rhs_z * lhs_y);
+		float y = (rhs_w * lhs_y) - (rhs_x * lhs_z) + (rhs_y * lhs_w) + (rhs_z * lhs_x);
+		float z = (rhs_w * lhs_z) + (rhs_x * lhs_y) - (rhs_y * lhs_x) + (rhs_z * lhs_w);
+		float w = (rhs_w * lhs_w) - (rhs_x * lhs_x) - (rhs_y * lhs_y) - (rhs_z * lhs_z);
+
+		return quat_set(x, y, z, w);
+	}
+
+	inline Vector4_32 quat_rotate(const Quat_32& rotation, const Vector4_32& vector)
+	{
+		Quat_32 vector_quat = vector_to_quat(vector_mul(vector, vector_set(1.0f, 1.0f, 1.0f, 0.0f)));
+		Quat_32 inv_rotation = quat_conjugate(rotation);
+		return quat_to_vector(quat_mul(quat_mul(inv_rotation, vector_quat), rotation));
+	}
+
 	inline float quat_length_squared(const Quat_32& input)
 	{
 		// TODO: Use dot instruction

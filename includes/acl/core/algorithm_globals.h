@@ -28,15 +28,14 @@
 
 namespace acl
 {
-	// Misc globals
-	static constexpr uint32_t COMPRESSED_CLIP_TAG					= 0xac10ac10;
-
 	// Algorithm version numbers
-	static constexpr uint16_t FULL_PRECISION_ALGORITHM_VERSION		= 0;
+	static constexpr uint16_t UNIFORMLY_SAMPLED_FULL_PRECISION_ALGORITHM_VERSION		= 0;
+	static constexpr uint16_t UNIFORMLY_SAMPLED_FIXED_QUANTIZATION_ALGORITHM_VERSION	= 0;
 
 	enum class AlgorithmType : uint16_t
 	{
-		FullPrecision			= 0,
+		UniformlySampledFullPrecision			= 0,
+		UniformlySampledFixedQuantization		= 1,
 	};
 
 	enum class RotationFormat : uint8_t
@@ -53,8 +52,9 @@ namespace acl
 	{
 		switch (type)
 		{
-			case AlgorithmType::FullPrecision:	return FULL_PRECISION_ALGORITHM_VERSION;
-			default:							return 0xFFFF;
+			case AlgorithmType::UniformlySampledFullPrecision:		return UNIFORMLY_SAMPLED_FULL_PRECISION_ALGORITHM_VERSION;
+			case AlgorithmType::UniformlySampledFixedQuantization:	return UNIFORMLY_SAMPLED_FIXED_QUANTIZATION_ALGORITHM_VERSION;
+			default:												return 0xFFFF;
 		}
 	}
 
@@ -63,8 +63,11 @@ namespace acl
 	{
 		switch (type)
 		{
-			case AlgorithmType::FullPrecision:	return true;
-			default:							return false;
+			case AlgorithmType::UniformlySampledFullPrecision:
+			case AlgorithmType::UniformlySampledFixedQuantization:
+				return true;
+			default:
+				return false;
 		}
 	}
 
@@ -73,8 +76,20 @@ namespace acl
 	{
 		switch (type)
 		{
-			case AlgorithmType::FullPrecision:	return "Full Precision";
-			default:							return "<Unknown>";
+			case AlgorithmType::UniformlySampledFullPrecision:		return "Uniformly Sampled Full Precision";
+			case AlgorithmType::UniformlySampledFixedQuantization:	return "Uniformly Sampled Fixed Quantization";
+			default:												return "<Unknown>";
+		}
+	}
+
+	// TODO: constexpr
+	inline const char* get_rotation_format_name(RotationFormat format)
+	{
+		switch (format)
+		{
+			case RotationFormat::Quat:		return "Quat";
+			case RotationFormat::QuatXYZ:	return "Quat Dropped W";
+			default:						return "<Unknown>";
 		}
 	}
 }

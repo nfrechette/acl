@@ -24,68 +24,32 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/math/math.h"
+#include "acl/algorithm/ialgorithm.h"
+#include "acl/algorithm/uniformly_sampled/fixed_quantization_encoder.h"
+#include "acl/algorithm/uniformly_sampled/fixed_quantization_decoder.h"
 
 namespace acl
 {
-#if defined(ACL_SSE2_INTRINSICS)
-	typedef __m128 Quat_32;
-	typedef __m128 Vector4_32;
+	namespace uniformly_sampled
+	{
+		class FixedQuantizationAlgorithm final : public IAlgorithm
+		{
+		public:
+			virtual CompressedClip* encode(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat rotation_format) override
+			{
+				return fixed_quantization_encoder(allocator, clip, skeleton, rotation_format);
+			}
 
-	struct Quat_64
-	{
-		__m128d xy;
-		__m128d zw;
-	};
+			virtual void decode_pose(const CompressedClip& clip, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) override
+			{
+				AlgorithmOutputWriterImpl writer(out_transforms, num_transforms);
+				fixed_quantization_decoder(clip, sample_time, writer);
+			}
 
-	struct Vector4_64
-	{
-		__m128d xy;
-		__m128d zw;
-	};
-#else
-	struct Quat_32
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
-
-	struct Vector4_32
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
-
-	struct Quat_64
-	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-
-	struct Vector4_64
-	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-#endif
-
-	struct Transform_32
-	{
-		Quat_32		rotation;
-		Vector4_32	translation;
-	};
-
-	struct Transform_64
-	{
-		Quat_64		rotation;
-		Vector4_64	translation;
-	};
+			virtual void decode_bone(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) override
+			{
+				fixed_quantization_decoder(clip, sample_time, sample_bone_index, out_rotation, out_translation);
+			}
+		};
+	}
 }

@@ -25,67 +25,38 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/math/math.h"
+#include "acl/math/quat_32.h"
+#include "acl/math/vector4_32.h"
 
 namespace acl
 {
-#if defined(ACL_SSE2_INTRINSICS)
-	typedef __m128 Quat_32;
-	typedef __m128 Vector4_32;
+	inline Transform_32 transform_set(const Quat_32& rotation, const Vector4_32& translation)
+	{
+		return Transform_32{ rotation, translation };
+	}
 
-	struct Quat_64
+	inline Transform_32 transform_cast(const Transform_64& input)
 	{
-		__m128d xy;
-		__m128d zw;
-	};
+		return Transform_32{ quat_cast(input.rotation), vector_cast(input.translation) };
+	}
 
-	struct Vector4_64
+	// Multiplication order is as follow: local_to_world = quat_mul(local_to_object, object_to_world)
+	inline Transform_32 transform_mul(const Transform_32& lhs, const Transform_32& rhs)
 	{
-		__m128d xy;
-		__m128d zw;
-	};
-#else
-	struct Quat_32
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
+		Quat_32 rotation = quat_mul(rhs.rotation, lhs.rotation);
+		Vector4_32 translation = vector_add(quat_rotate(rhs.rotation, lhs.translation), rhs.translation);
+		return transform_set(rotation, translation);
+	}
 
-	struct Vector4_32
+	inline Vector4_32 transform_position(const Transform_32& lhs, const Vector4_32& rhs)
 	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
+		return vector_add(quat_rotate(lhs.rotation, rhs), lhs.translation);
+	}
 
-	struct Quat_64
+	inline Transform_32 transform_inverse(const Transform_32& input)
 	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-
-	struct Vector4_64
-	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-#endif
-
-	struct Transform_32
-	{
-		Quat_32		rotation;
-		Vector4_32	translation;
-	};
-
-	struct Transform_64
-	{
-		Quat_64		rotation;
-		Vector4_64	translation;
-	};
+		Quat_32 rotation = quat_conjugate(input.rotation);
+		Vector4_32 translation = quat_rotate(rotation, vector_neg(input.translation));
+		return transform_set(rotation, translation);
+	}
 }

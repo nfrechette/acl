@@ -19,6 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="includes\acl\algorithm\ialgorithm.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\fixed_quantization_algorithm.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\fixed_quantization_common.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\fixed_quantization_decoder.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\fixed_quantization_encoder.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_algorithm.h" />
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_common.h" />
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_decoder.h" />
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_encoder.h" />
@@ -32,6 +38,7 @@
     <ClInclude Include="includes\acl\core\utils.h" />
     <ClInclude Include="includes\acl\math\math_types.h" />
     <ClInclude Include="includes\acl\math\scalar_64.h" />
+    <ClInclude Include="includes\acl\math\transform_32.h" />
     <ClInclude Include="includes\acl\math\transform_64.h" />
     <ClInclude Include="includes\acl\compression\animation_clip.h" />
     <ClInclude Include="includes\acl\compression\animation_track.h" />

@@ -26,8 +26,8 @@
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/skeleton_error_metric.h"
 
-#include "acl/algorithm/uniformly_sampled/full_precision_encoder.h"
-#include "acl/algorithm/uniformly_sampled/full_precision_decoder.h"
+#include "acl/algorithm/uniformly_sampled/full_precision_algorithm.h"
+#include "acl/algorithm/uniformly_sampled/fixed_quantization_algorithm.h"
 
 #include "clip_01_01.h"
 
@@ -222,24 +222,44 @@ static void run_unit_tests()
 }
 #endif
 
-int main(int argc, char** argv)
+static void print_stats(const Options& options, const acl::AnimationClip& clip, const acl::CompressedClip& compressed_clip, acl::RotationFormat rotation_format, uint64_t elapsed_cycles, double max_error)
 {
-	using namespace acl;
+	if (!options.output_stats)
+		return;
 
-#ifdef ACL_RUN_UNIT_TESTS
-	run_unit_tests();
-#endif
+	uint32_t raw_size = clip.get_raw_size();
+	uint32_t compressed_size = compressed_clip.get_size();
+	double compression_ratio = double(raw_size) / double(compressed_size);
 
-	const Options options = parse_options(argc, argv);
+	LARGE_INTEGER frequency_cycles_per_sec;
+	QueryPerformanceFrequency(&frequency_cycles_per_sec);
+	double elapsed_time_sec = double(elapsed_cycles) / double(frequency_cycles_per_sec.QuadPart);
 
-	Allocator allocator;
+	std::FILE* file = nullptr;
+	if (options.output_stats_filename != nullptr)
+		fopen_s(&file, options.output_stats_filename, "w");
+	file = file != nullptr ? file : stdout;
 
-	// Initialize our skeleton
-	RigidSkeleton skeleton(allocator, &clip_01_01::bones[0], clip_01_01::num_bones);
+	fprintf(file, "Clip algorithm: %s\n", get_algorithm_name(compressed_clip.get_algorithm_type()));
+	fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(rotation_format));
+	fprintf(file, "Clip raw size (bytes): %u\n", raw_size);
+	fprintf(file, "Clip compressed size (bytes): %u\n", compressed_size);
+	fprintf(file, "Clip compression ratio: %.2f : 1\n", compression_ratio);
+	fprintf(file, "Clip max error: %.5f\n", max_error);
+	fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
+	fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
+	fprintf(file, "Clip num animated tracks: %u\n", clip.get_num_animated_tracks());
+	//fprintf(file, "Clip num segments: %u\n", 0);		// TODO
+	fprintf(file, "\n");
 
-	// Populate our clip with our raw samples
-	AnimationClip clip(allocator, skeleton, clip_01_01::num_samples, clip_01_01::sample_rate);
-	AnimatedBone* clip_bones = clip.get_bones();
+	if (file != stdout)
+		std::fclose(file);
+	file = nullptr;
+}
+
+static void add_clip_track_data(acl::AnimationClip& clip)
+{
+	acl::AnimatedBone* clip_bones = clip.get_bones();
 
 	for (uint16_t bone_index = 0; bone_index < clip_01_01::num_bones; ++bone_index)
 	{
@@ -265,95 +285,113 @@ int main(int argc, char** argv)
 
 		for (uint32_t sample_index = 0; sample_index < clip_01_01::num_samples; ++sample_index)
 		{
-			Quat_64 rotation = rotation_track_index != ~0u ? clip_01_01::rotation_tracks[rotation_track_index][sample_index] : quat_identity_64();
+			acl::Quat_64 rotation = rotation_track_index != ~0u ? clip_01_01::rotation_tracks[rotation_track_index][sample_index] : acl::quat_identity_64();
 			clip_bones[bone_index].rotation_track.set_sample(sample_index, rotation);
 
-			Vector4_64 translation = translation_track_index != ~0u ? clip_01_01::translation_tracks[translation_track_index][sample_index] : vector_zero_64();
+			acl::Vector4_64 translation = translation_track_index != ~0u ? clip_01_01::translation_tracks[translation_track_index][sample_index] : acl::vector_zero_64();
 			clip_bones[bone_index].translation_track.set_sample(sample_index, translation);
 		}
 	}
+}
 
-	// Compress & Decompress
+static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, const acl::CompressedClip& compressed_clip, acl::IAlgorithm& algorithm)
+{
+	using namespace acl;
+
+	RawOutputWriterImpl raw_output_writer(allocator, clip.get_num_bones());
+	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, clip.get_num_bones());
+
+	double max_error = -1.0;
+	double sample_time = 0.0;
+	double clip_duration = clip.get_duration();
+	double sample_increment = 1.0 / clip.get_sample_rate();
+	while (sample_time < clip_duration)
 	{
-		LARGE_INTEGER start_time_cycles;
-		QueryPerformanceCounter(&start_time_cycles);
+		algorithm.decode_pose(compressed_clip, (float)sample_time, lossy_pose_transforms, clip.get_num_bones());
 
-		CompressedClip* compressed_clip = full_precision_encoder(allocator, clip, skeleton, acl::RotationFormat::QuatXYZ);
+		clip.sample_pose(sample_time, raw_output_writer);
 
-		LARGE_INTEGER end_time_cycles;
-		QueryPerformanceCounter(&end_time_cycles);
+		double error = calculate_skeleton_error(allocator, skeleton, raw_output_writer.m_transforms, lossy_pose_transforms);
+		max_error = max(max_error, error);
 
-		ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
+		sample_time += sample_increment;
+	}
 
-		RawOutputWriterImpl raw_output_writer(allocator, clip.get_num_bones());
-		OutputWriterImpl lossy_output_writer(allocator, clip.get_num_bones());
+	// Make sure we test the last sample time possible as well
+	{
+		algorithm.decode_pose(compressed_clip, (float)clip_duration, lossy_pose_transforms, clip.get_num_bones());
 
-		double max_error = -1.0;
-		double sample_time = 0.0;
-		double clip_duration = clip.get_duration();
-		double sample_increment = 1.0 / clip.get_sample_rate();
-		while (sample_time < clip_duration)
-		{
-			// TODO: Implement a generic version that calls a function that performs a switch/branch on the encoder type
-			full_precision_decoder(*compressed_clip, (float)sample_time, lossy_output_writer);
+		clip.sample_pose(clip_duration, raw_output_writer);
 
-			clip.sample_pose(sample_time, raw_output_writer);
+		double error = calculate_skeleton_error(allocator, skeleton, raw_output_writer.m_transforms, lossy_pose_transforms);
+		max_error = max(max_error, error);
+	}
 
-			double error = calculate_skeleton_error(allocator, skeleton, raw_output_writer.m_transforms, lossy_output_writer.m_transforms);
-			max_error = max(max_error, error);
-
-			sample_time += sample_increment;
-		}
-
-		// Make sure we test the last sample time possible as well
-		{
-			full_precision_decoder(*compressed_clip, (float)clip_duration, lossy_output_writer);
-
-			clip.sample_pose(clip_duration, raw_output_writer);
-
-			double error = calculate_skeleton_error(allocator, skeleton, raw_output_writer.m_transforms, lossy_output_writer.m_transforms);
-			max_error = max(max_error, error);
-		}
-
+	// Unit test
+	{
 		// Validate that the decoder can decode a single bone at a particular time
 		// Use the last bone and last sample time to ensure we can seek properly
 		uint16_t sample_bone_index = clip.get_num_bones() - 1;
 		Quat_32 test_rotation;
 		Vector4_32 test_translation;
-		full_precision_decoder(*compressed_clip, (float)clip_duration, sample_bone_index, &test_rotation, &test_translation);
-		ACL_ENSURE(quat_near_equal(test_rotation, quat_cast(lossy_output_writer.m_transforms[sample_bone_index].rotation)), "Failed to sample bone index: %u", sample_bone_index);
-		ACL_ENSURE(vector_near_equal(test_translation, vector_cast(lossy_output_writer.m_transforms[sample_bone_index].translation)), "Failed to sample bone index: %u", sample_bone_index);
+		algorithm.decode_bone(compressed_clip, (float)clip_duration, sample_bone_index, &test_rotation, &test_translation);
+		ACL_ENSURE(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
+		ACL_ENSURE(vector_near_equal(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
+	}
 
-		if (options.output_stats)
-		{
-			uint32_t raw_size = clip.get_raw_size();
-			uint32_t compressed_size = compressed_clip->get_size();
-			double compression_ratio = double(raw_size) / double(compressed_size);
+	allocator.deallocate(lossy_pose_transforms);
 
-			LARGE_INTEGER frequency_cycles_per_sec;
-			QueryPerformanceFrequency(&frequency_cycles_per_sec);
-			double elapsed_time_sec = double(end_time_cycles.QuadPart - start_time_cycles.QuadPart) / double(frequency_cycles_per_sec.QuadPart);
+	return max_error;
+}
 
-			std::FILE* file = nullptr;
-			if (options.output_stats_filename != nullptr)
-				fopen_s(&file, options.output_stats_filename, "w");
-			file = file != nullptr ? file : stdout;
+template<typename AlgorithmType>
+static void try_algorithm(const Options& options, acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, acl::RotationFormat rotation_format)
+{
+	using namespace acl;
 
-			fprintf(file, "Clip raw size (bytes): %u\n", raw_size);
-			fprintf(file, "Clip compressed size (bytes): %u\n", compressed_size);
-			fprintf(file, "Clip compression ratio: %.2f : 1\n", compression_ratio);
-			fprintf(file, "Clip max error: %.5f\n", max_error);
-			fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
-			fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
-			fprintf(file, "Clip num animated tracks: %u\n", clip.get_num_animated_tracks());
-			//fprintf(file, "Clip num segments: %u\n", 0);		// TODO
+	LARGE_INTEGER start_time_cycles;
+	QueryPerformanceCounter(&start_time_cycles);
 
-			if (file != stdout)
-				std::fclose(file);
-			file = nullptr;
-		}
+	AlgorithmType algorithm;
+	CompressedClip* compressed_clip = algorithm.encode(allocator, clip, skeleton, rotation_format);
 
-		allocator.deallocate(compressed_clip);
+	LARGE_INTEGER end_time_cycles;
+	QueryPerformanceCounter(&end_time_cycles);
+
+	ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
+
+	double max_error = find_max_error(allocator, clip, skeleton, *compressed_clip, algorithm);
+
+	print_stats(options, clip, *compressed_clip, rotation_format, end_time_cycles.QuadPart - start_time_cycles.QuadPart, max_error);
+
+	allocator.deallocate(compressed_clip);
+}
+
+int main(int argc, char** argv)
+{
+	using namespace acl;
+
+#ifdef ACL_RUN_UNIT_TESTS
+	run_unit_tests();
+#endif
+
+	const Options options = parse_options(argc, argv);
+
+	Allocator allocator;
+
+	// Initialize our skeleton
+	RigidSkeleton skeleton(allocator, &clip_01_01::bones[0], clip_01_01::num_bones);
+
+	// Populate our clip with our raw samples
+	AnimationClip clip(allocator, skeleton, clip_01_01::num_samples, clip_01_01::sample_rate);
+	add_clip_track_data(clip);
+
+	// Compress & Decompress
+	{
+		try_algorithm<uniformly_sampled::FullPrecisionAlgorithm>(options, allocator, clip, skeleton, RotationFormat::Quat);
+		try_algorithm<uniformly_sampled::FullPrecisionAlgorithm>(options, allocator, clip, skeleton, RotationFormat::QuatXYZ);
+		//try_algorithm<uniformly_sampled::FixedQuantizationAlgorithm>(options, allocator, clip, skeleton, RotationFormat::Quat);
+		//try_algorithm<uniformly_sampled::FixedQuantizationAlgorithm>(options, allocator, clip, skeleton, RotationFormat::QuatXYZ);
 	}
 
 	if (IsDebuggerPresent())

@@ -57,6 +57,8 @@ namespace acl
 		}
 
 	private:
+		static constexpr uint32_t COMPRESSED_CLIP_TAG = 0xac10ac10;
+
 		CompressedClip(uint32_t size, AlgorithmType type)
 			: m_size(size)
 			, m_crc32(0)		// TODO: Implement

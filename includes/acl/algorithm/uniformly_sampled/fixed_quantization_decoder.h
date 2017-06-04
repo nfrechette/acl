@@ -24,68 +24,26 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/math/math.h"
+#include "acl/core/compressed_clip.h"
+#include "acl/core/utils.h"
+#include "acl/math/quat_32.h"
+#include "acl/math/vector4_32.h"
+#include "acl/algorithm/uniformly_sampled/fixed_quantization_common.h"
+#include "acl/decompression/output_writer.h"
+
+#include <stdint.h>
 
 namespace acl
 {
-#if defined(ACL_SSE2_INTRINSICS)
-	typedef __m128 Quat_32;
-	typedef __m128 Vector4_32;
+	namespace uniformly_sampled
+	{
+		template<class OutputWriterType>
+		inline void fixed_quantization_decoder(const CompressedClip& clip, float sample_time, OutputWriterType& writer)
+		{
+		}
 
-	struct Quat_64
-	{
-		__m128d xy;
-		__m128d zw;
-	};
-
-	struct Vector4_64
-	{
-		__m128d xy;
-		__m128d zw;
-	};
-#else
-	struct Quat_32
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
-
-	struct Vector4_32
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
-
-	struct Quat_64
-	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-
-	struct Vector4_64
-	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-#endif
-
-	struct Transform_32
-	{
-		Quat_32		rotation;
-		Vector4_32	translation;
-	};
-
-	struct Transform_64
-	{
-		Quat_64		rotation;
-		Vector4_64	translation;
-	};
+		inline void fixed_quantization_decoder(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
+		{
+		}
+	}
 }

@@ -24,68 +24,26 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/math/math.h"
+#include "acl/core/memory.h"
+#include "acl/core/error.h"
+#include "acl/core/bitset.h"
+#include "acl/core/algorithm_globals.h"
+#include "acl/algorithm/uniformly_sampled/fixed_quantization_common.h"
+#include "acl/compression/compressed_clip_impl.h"
+#include "acl/compression/skeleton.h"
+#include "acl/compression/animation_clip.h"
+#include "acl/math/quat_32.h"
+#include "acl/math/vector4_32.h"
+
+#include <stdint.h>
 
 namespace acl
 {
-#if defined(ACL_SSE2_INTRINSICS)
-	typedef __m128 Quat_32;
-	typedef __m128 Vector4_32;
-
-	struct Quat_64
+	namespace uniformly_sampled
 	{
-		__m128d xy;
-		__m128d zw;
-	};
-
-	struct Vector4_64
-	{
-		__m128d xy;
-		__m128d zw;
-	};
-#else
-	struct Quat_32
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
-
-	struct Vector4_32
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
-
-	struct Quat_64
-	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-
-	struct Vector4_64
-	{
-		double x;
-		double y;
-		double z;
-		double w;
-	};
-#endif
-
-	struct Transform_32
-	{
-		Quat_32		rotation;
-		Vector4_32	translation;
-	};
-
-	struct Transform_64
-	{
-		Quat_64		rotation;
-		Vector4_64	translation;
-	};
+		inline CompressedClip* fixed_quantization_encoder(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat rotation_format)
+		{
+			return nullptr;
+		}
+	}
 }

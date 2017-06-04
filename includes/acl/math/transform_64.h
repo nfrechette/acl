@@ -35,6 +35,11 @@ namespace acl
 		return Transform_64{ rotation, translation };
 	}
 
+	inline Transform_64 transform_cast(const Transform_32& input)
+	{
+		return Transform_64{ quat_cast(input.rotation), vector_cast(input.translation) };
+	}
+
 	// Multiplication order is as follow: local_to_world = quat_mul(local_to_object, object_to_world)
 	inline Transform_64 transform_mul(const Transform_64& lhs, const Transform_64& rhs)
 	{
