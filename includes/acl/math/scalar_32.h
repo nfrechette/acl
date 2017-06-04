@@ -46,6 +46,16 @@ namespace acl
 		return std::sqrt(input);
 	}
 
+	inline float min(float left, float right)
+	{
+		return std::min(left, right);
+	}
+
+	inline float max(float left, float right)
+	{
+		return std::max(left, right);
+	}
+
 	inline float is_finite(float input)
 	{
 		return std::isfinite(input);
