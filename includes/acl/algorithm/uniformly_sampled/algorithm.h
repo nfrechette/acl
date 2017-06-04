@@ -25,8 +25,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/algorithm/ialgorithm.h"
-#include "acl/algorithm/uniformly_sampled/full_precision_encoder.h"
-#include "acl/algorithm/uniformly_sampled/full_precision_decoder.h"
+#include "acl/algorithm/uniformly_sampled/encoder.h"
+#include "acl/algorithm/uniformly_sampled/decoder.h"
 
 namespace acl
 {

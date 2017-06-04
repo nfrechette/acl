@@ -28,7 +28,7 @@
 #include "acl/core/error.h"
 #include "acl/core/bitset.h"
 #include "acl/core/algorithm_globals.h"
-#include "acl/algorithm/uniformly_sampled/full_precision_common.h"
+#include "acl/algorithm/uniformly_sampled/common.h"
 #include "acl/compression/compressed_clip_impl.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
@@ -213,6 +213,7 @@ namespace acl
 			ACL_ENSURE(animated_track_data_offset == animated_track_data_max_offset, "Invalid animated track data offset. Wrote too little data. %u != %u", animated_track_data_offset, animated_track_data_max_offset);
 		}
 
+		// Encoder entry point
 		inline CompressedClip* full_precision_encoder(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format)
 		{
 			uint16_t num_bones = clip.get_num_bones();

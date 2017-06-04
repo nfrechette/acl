@@ -26,8 +26,7 @@
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/skeleton_error_metric.h"
 
-#include "acl/algorithm/uniformly_sampled/full_precision_algorithm.h"
-#include "acl/algorithm/uniformly_sampled/fixed_quantization_algorithm.h"
+#include "acl/algorithm/uniformly_sampled/algorithm.h"
 
 #include "clip_01_01.h"
 
