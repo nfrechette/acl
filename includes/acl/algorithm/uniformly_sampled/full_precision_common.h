@@ -50,12 +50,12 @@ namespace acl
 
 	struct FullPrecisionHeader
 	{
-		uint16_t			num_bones;
-		FullPrecisionFlags	flags;
-		uint32_t	num_samples;
-		uint32_t	sample_rate;								// TODO: Store duration as float instead
-		uint32_t	num_animated_rotation_tracks;				// TODO: Calculate from bitsets?
-		uint32_t	num_animated_translation_tracks;			// TODO: Calculate from bitsets?
+		uint16_t				num_bones;
+		FullPrecisionFlags		flags;
+		uint32_t				num_samples;
+		uint32_t				sample_rate;								// TODO: Store duration as float instead
+		uint32_t				num_animated_rotation_tracks;				// TODO: Calculate from bitsets?
+		uint32_t				num_animated_translation_tracks;			// TODO: Calculate from bitsets?
 
 		PtrOffset16<uint32_t>	default_tracks_bitset_offset;
 		PtrOffset16<uint32_t>	constant_tracks_bitset_offset;

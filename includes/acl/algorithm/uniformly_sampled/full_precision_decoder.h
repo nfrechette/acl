@@ -28,7 +28,7 @@
 #include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
-#include "acl/algorithm/full_precision_common.h"
+#include "acl/algorithm/uniformly_sampled/full_precision_common.h"
 #include "acl/decompression/output_writer.h"
 
 #include <stdint.h>

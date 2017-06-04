@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="includes\acl\algorithm\full_precision_common.h" />
-    <ClInclude Include="includes\acl\algorithm\full_precision_decoder.h" />
-    <ClInclude Include="includes\acl\algorithm\full_precision_encoder.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_common.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_decoder.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_encoder.h" />
     <ClInclude Include="includes\acl\compression\skeleton_error_metric.h" />
     <ClInclude Include="includes\acl\core\algorithm_globals.h" />
     <ClInclude Include="includes\acl\core\enum_utils.h" />

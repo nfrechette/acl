@@ -28,6 +28,9 @@
     <Filter Include="tools\vs_visualizers">
       <UniqueIdentifier>{102b0a93-eb53-4f14-9e94-ba5a4a08a5f0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="includes\acl\algorithm\uniformy_sampled">
+      <UniqueIdentifier>{6be52b60-afdf-481f-bc25-2098a6c9804a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\acl\math\quat_64.h">
@@ -66,17 +69,8 @@
     <ClInclude Include="includes\acl\math\scalar_32.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\algorithm\full_precision_decoder.h">
-      <Filter>includes\acl\algorithm</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\acl\algorithm\full_precision_encoder.h">
-      <Filter>includes\acl\algorithm</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\math\math_types.h">
       <Filter>includes\acl\math</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\acl\algorithm\full_precision_common.h">
-      <Filter>includes\acl\algorithm</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\math\scalar_64.h">
       <Filter>includes\acl\math</Filter>
@@ -107,6 +101,15 @@
     </ClInclude>
     <ClInclude Include="includes\acl\core\enum_utils.h">
       <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_common.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_decoder.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\full_precision_encoder.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

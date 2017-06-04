@@ -28,7 +28,7 @@
 #include "acl/core/error.h"
 #include "acl/core/bitset.h"
 #include "acl/core/algorithm_globals.h"
-#include "acl/algorithm/full_precision_common.h"
+#include "acl/algorithm/uniformly_sampled/full_precision_common.h"
 #include "acl/compression/compressed_clip_impl.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
