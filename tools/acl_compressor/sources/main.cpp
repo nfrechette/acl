@@ -305,6 +305,7 @@ int main(int argc, char** argv)
 			sample_time += sample_increment;
 		}
 
+		// Make sure we test the last sample time possible as well
 		{
 			full_precision_decoder(*compressed_clip, (float)clip_duration, lossy_output_writer);
 
@@ -313,6 +314,15 @@ int main(int argc, char** argv)
 			double error = calculate_skeleton_error(allocator, skeleton, raw_output_writer.m_transforms, lossy_output_writer.m_transforms);
 			max_error = max(max_error, error);
 		}
+
+		// Validate that the decoder can decode a single bone at a particular time
+		// Use the last bone and last sample time to ensure we can seek properly
+		uint16_t sample_bone_index = clip.get_num_bones() - 1;
+		Quat_32 test_rotation;
+		Vector4_32 test_translation;
+		full_precision_decoder(*compressed_clip, (float)clip_duration, sample_bone_index, &test_rotation, &test_translation);
+		ACL_ENSURE(quat_near_equal(test_rotation, quat_cast(lossy_output_writer.m_transforms[sample_bone_index].rotation)), "Failed to sample bone index: %u", sample_bone_index);
+		ACL_ENSURE(vector_near_equal(test_translation, vector_cast(lossy_output_writer.m_transforms[sample_bone_index].translation)), "Failed to sample bone index: %u", sample_bone_index);
 
 		if (options.output_stats)
 		{

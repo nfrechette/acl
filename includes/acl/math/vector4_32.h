@@ -162,6 +162,33 @@ namespace acl
 		return vector_mul(lhs, vector_set(rhs));
 	}
 
+	inline Vector4_32 vector_max(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_max_ps(lhs, rhs);
+#else
+		return vector_set(max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z), max(lhs.w, rhs.w));
+#endif
+	}
+
+	inline Vector4_32 vector_min(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_min_ps(lhs, rhs);
+#else
+		return vector_set(min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z), min(lhs.w, rhs.w));
+#endif
+	}
+
+	inline Vector4_32 vector_abs(const Vector4_32& input)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return vector_max(vector_sub(_mm_setzero_ps(), input), input);
+#else
+		return vector_set(abs(input.x), abs(input.y), abs(input.z), abs(input.w));
+#endif
+	}
+
 	inline Vector4_32 vector_neg(const Vector4_32& input)
 	{
 		return vector_mul(input, -1.0f);
@@ -221,5 +248,28 @@ namespace acl
 	inline Vector4_32 vector_lerp(const Vector4_32& start, const Vector4_32& end, float alpha)
 	{
 		return vector_add(start, vector_mul(vector_sub(end, start), vector_set(alpha)));
+	}
+
+	inline bool vector_all_less_than(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) == 15;
+#else
+		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z && lhs.w < rhs.w;
+#endif
+	}
+
+	inline bool vector_any_less_than(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) != 0;
+#else
+		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z || lhs.w < rhs.w;
+#endif
+	}
+
+	inline bool vector_near_equal(const Vector4_32& lhs, const Vector4_32& rhs, float threshold = 0.00001f)
+	{
+		return vector_all_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 }

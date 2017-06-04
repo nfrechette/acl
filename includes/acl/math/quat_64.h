@@ -259,7 +259,7 @@ namespace acl
 		return abs(length_squared - 1.0) < threshold;
 	}
 
-	inline bool quat_near_equal(const Quat_64& lhs, const Quat_64& rhs, double threshold)
+	inline bool quat_near_equal(const Quat_64& lhs, const Quat_64& rhs, double threshold = 0.00001)
 	{
 		return vector_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
 	}

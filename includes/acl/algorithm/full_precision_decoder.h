@@ -84,13 +84,16 @@ namespace acl
 		// TODO: No need to store this, unpack from bitset in context and simplify branching logic below?
 		// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
 		uint32_t num_animated_floats_per_key_frame = header.num_animated_translation_tracks * 3;
+		uint32_t num_rotation_floats = 0;
 		if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
 		{
 			num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 4;
+			num_rotation_floats = 4;
 		}
 		else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
 		{
 			num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 3;
+			num_rotation_floats = 3;
 		}
 
 		const float* animated_track_data = header.get_track_data();
@@ -114,14 +117,14 @@ namespace acl
 					if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
 					{
 						rotation = quat_unaligned_load(constant_track_data);
-						constant_track_data += 4;
 					}
 					else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
 					{
 						Vector4_32 rotation_xyz = vector_unaligned_load3(constant_track_data);
 						rotation = quat_from_positive_w(rotation_xyz);
-						constant_track_data += 3;
 					}
+
+					constant_track_data += num_rotation_floats;
 				}
 				else
 				{
@@ -131,9 +134,6 @@ namespace acl
 						Quat_32 rotation0 = quat_unaligned_load(key_frame_data0);
 						Quat_32 rotation1 = quat_unaligned_load(key_frame_data1);
 						rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
-
-						key_frame_data0 += 4;
-						key_frame_data1 += 4;
 					}
 					else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
 					{
@@ -142,10 +142,10 @@ namespace acl
 						Quat_32 rotation0 = quat_from_positive_w(rotation0_xyz);
 						Quat_32 rotation1 = quat_from_positive_w(rotation1_xyz);
 						rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
-
-						key_frame_data0 += 3;
-						key_frame_data1 += 3;
 					}
+
+					key_frame_data0 += num_rotation_floats;
+					key_frame_data1 += num_rotation_floats;
 				}
 			}
 
@@ -184,5 +184,177 @@ namespace acl
 
 			writer.write_bone_translation(bone_index, translation);
 		}
+	}
+
+	inline void full_precision_decoder(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
+	{
+		ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType::FullPrecision, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType::FullPrecision));
+		ACL_ENSURE(clip.is_valid(false), "Clip is invalid");
+
+		const FullPrecisionHeader& header = get_full_precision_header(clip);
+
+		float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
+
+		uint32_t key_frame0;
+		uint32_t key_frame1;
+		float interpolation_alpha;
+		calculate_interpolation_keys(header.num_samples, clip_duration, sample_time, key_frame0, key_frame1, interpolation_alpha);
+
+		uint32_t bitset_size = ((header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE) + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
+
+		const uint32_t* default_tracks_bitset = header.get_default_tracks_bitset();
+		uint32_t default_track_offset = 0;
+
+		const uint32_t* constant_tracks_bitset = header.get_constant_tracks_bitset();
+		uint32_t constant_track_offset = 0;
+
+		const float* constant_track_data = header.get_constant_track_data();
+
+		// TODO: No need to store this, unpack from bitset in context and simplify branching logic below?
+		// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
+		uint32_t num_animated_floats_per_key_frame = header.num_animated_translation_tracks * 3;
+		uint32_t num_rotation_floats = 0;
+		if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+		{
+			num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 4;
+			num_rotation_floats = 4;
+		}
+		else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+		{
+			num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 3;
+			num_rotation_floats = 3;
+		}
+
+		const float* animated_track_data = header.get_track_data();
+		const float* key_frame_data0 = animated_track_data + (key_frame0 * num_animated_floats_per_key_frame);
+		const float* key_frame_data1 = animated_track_data + (key_frame1 * num_animated_floats_per_key_frame);
+
+		// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
+		// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
+		for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
+		{
+			if (bone_index == sample_bone_index)
+				break;
+
+			bool is_rotation_default = bitset_test(default_tracks_bitset, bitset_size, default_track_offset);
+			if (!is_rotation_default)
+			{
+				bool is_rotation_constant = bitset_test(constant_tracks_bitset, bitset_size, constant_track_offset);
+				if (is_rotation_constant)
+				{
+					constant_track_data += num_rotation_floats;
+				}
+				else
+				{
+					key_frame_data0 += num_rotation_floats;
+					key_frame_data1 += num_rotation_floats;
+				}
+			}
+
+			default_track_offset++;
+			constant_track_offset++;
+
+			bool is_translation_default = bitset_test(default_tracks_bitset, bitset_size, default_track_offset);
+			if (!is_translation_default)
+			{
+				bool is_translation_constant = bitset_test(constant_tracks_bitset, bitset_size, constant_track_offset);
+				if (is_translation_constant)
+				{
+					constant_track_data += 3;
+				}
+				else
+				{
+					key_frame_data0 += 3;
+					key_frame_data1 += 3;
+				}
+			}
+
+			default_track_offset++;
+			constant_track_offset++;
+		}
+
+		Quat_32 rotation;
+		bool is_rotation_default = bitset_test(default_tracks_bitset, bitset_size, default_track_offset);
+		if (is_rotation_default)
+		{
+			rotation = quat_identity_32();
+		}
+		else
+		{
+			bool is_rotation_constant = bitset_test(constant_tracks_bitset, bitset_size, constant_track_offset);
+			if (is_rotation_constant)
+			{
+				// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
+				if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+				{
+					rotation = quat_unaligned_load(constant_track_data);
+				}
+				else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+				{
+					Vector4_32 rotation_xyz = vector_unaligned_load3(constant_track_data);
+					rotation = quat_from_positive_w(rotation_xyz);
+				}
+
+				constant_track_data += num_rotation_floats;
+			}
+			else
+			{
+				// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
+				if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+				{
+					Quat_32 rotation0 = quat_unaligned_load(key_frame_data0);
+					Quat_32 rotation1 = quat_unaligned_load(key_frame_data1);
+					rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
+				}
+				else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+				{
+					Vector4_32 rotation0_xyz = vector_unaligned_load3(key_frame_data0);
+					Vector4_32 rotation1_xyz = vector_unaligned_load3(key_frame_data1);
+					Quat_32 rotation0 = quat_from_positive_w(rotation0_xyz);
+					Quat_32 rotation1 = quat_from_positive_w(rotation1_xyz);
+					rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
+				}
+
+				key_frame_data0 += num_rotation_floats;
+				key_frame_data1 += num_rotation_floats;
+			}
+		}
+
+		default_track_offset++;
+		constant_track_offset++;
+
+		if (out_rotation != nullptr)
+			*out_rotation = rotation;
+
+		Vector4_32 translation;
+		bool is_translation_default = bitset_test(default_tracks_bitset, bitset_size, default_track_offset);
+		if (is_translation_default)
+		{
+			translation = vector_zero_32();
+		}
+		else
+		{
+			bool is_translation_constant = bitset_test(constant_tracks_bitset, bitset_size, constant_track_offset);
+			if (is_translation_constant)
+			{
+				translation = vector_unaligned_load3(constant_track_data);
+				//constant_track_data += 3;
+			}
+			else
+			{
+				Vector4_32 translation0 = vector_unaligned_load3(key_frame_data0);
+				Vector4_32 translation1 = vector_unaligned_load3(key_frame_data1);
+				translation = vector_lerp(translation0, translation1, interpolation_alpha);
+
+				//key_frame_data0 += 3;
+				//key_frame_data1 += 3;
+			}
+		}
+
+		//default_track_offset++;
+		//constant_track_offset++;
+
+		if (out_translation != nullptr)
+			*out_translation = translation;
 	}
 }
