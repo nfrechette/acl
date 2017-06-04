@@ -34,7 +34,7 @@ namespace acl
 	class alignas(16) CompressedClip
 	{
 	public:
-		AlgorithmType get_algorithm_type() const { return m_type; }
+		AlgorithmType8 get_algorithm_type() const { return m_type; }
 		uint32_t get_size() const { return m_size; }
 
 		bool is_valid(bool check_crc) const
@@ -59,12 +59,13 @@ namespace acl
 	private:
 		static constexpr uint32_t COMPRESSED_CLIP_TAG = 0xac10ac10;
 
-		CompressedClip(uint32_t size, AlgorithmType type)
+		CompressedClip(uint32_t size, AlgorithmType8 type)
 			: m_size(size)
 			, m_crc32(0)		// TODO: Implement
 			, m_tag(COMPRESSED_CLIP_TAG)
-			, m_type(type)
 			, m_version(get_algorithm_version(type))
+			, m_type(type)
+			, m_padding(0)
 		{}
 
 		// 16 byte header, the rest of the data follows in memory
@@ -73,12 +74,14 @@ namespace acl
 
 		// Everything starting here is included in the CRC32
 		uint32_t		m_tag;
-		AlgorithmType	m_type;
 		uint16_t		m_version;
+		AlgorithmType8	m_type;
+		uint8_t			m_padding;
 
-		friend CompressedClip* make_compressed_clip(void* buffer, uint32_t size, AlgorithmType type);
+		friend CompressedClip* make_compressed_clip(void* buffer, uint32_t size, AlgorithmType8 type);
 		friend void finalize_compressed_clip(CompressedClip& compressed_clip);
 	};
 
 	static_assert(alignof(CompressedClip) == 16, "Invalid alignment for CompressedClip");
+	static_assert(sizeof(CompressedClip) == 16, "Invalid size for CompressedClip");
 }

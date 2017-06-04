@@ -61,7 +61,7 @@ namespace acl
 		template<class OutputWriterType>
 		inline void full_precision_decoder(const CompressedClip& clip, float sample_time, OutputWriterType& writer)
 		{
-			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType::UniformlySampledFullPrecision, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType::UniformlySampledFullPrecision));
+			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
 			ACL_ENSURE(clip.is_valid(false), "Clip is invalid");
 
 			const FullPrecisionHeader& header = get_full_precision_header(clip);
@@ -87,12 +87,12 @@ namespace acl
 			// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
 			uint32_t num_animated_floats_per_key_frame = header.num_animated_translation_tracks * 3;
 			uint32_t num_rotation_floats = 0;
-			if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+			if (header.rotation_format == RotationFormat8::Quat_128)
 			{
 				num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 4;
 				num_rotation_floats = 4;
 			}
-			else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+			else if (header.rotation_format == RotationFormat8::Quat_96)
 			{
 				num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 3;
 				num_rotation_floats = 3;
@@ -116,11 +116,11 @@ namespace acl
 					if (is_rotation_constant)
 					{
 						// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
-						if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+						if (header.rotation_format == RotationFormat8::Quat_128)
 						{
 							rotation = quat_unaligned_load(constant_track_data);
 						}
-						else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+						else if (header.rotation_format == RotationFormat8::Quat_96)
 						{
 							Vector4_32 rotation_xyz = vector_unaligned_load3(constant_track_data);
 							rotation = quat_from_positive_w(rotation_xyz);
@@ -131,13 +131,13 @@ namespace acl
 					else
 					{
 						// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
-						if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+						if (header.rotation_format == RotationFormat8::Quat_128)
 						{
 							Quat_32 rotation0 = quat_unaligned_load(key_frame_data0);
 							Quat_32 rotation1 = quat_unaligned_load(key_frame_data1);
 							rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
 						}
-						else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+						else if (header.rotation_format == RotationFormat8::Quat_96)
 						{
 							Vector4_32 rotation0_xyz = vector_unaligned_load3(key_frame_data0);
 							Vector4_32 rotation1_xyz = vector_unaligned_load3(key_frame_data1);
@@ -190,7 +190,7 @@ namespace acl
 
 		inline void full_precision_decoder(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
 		{
-			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType::UniformlySampledFullPrecision, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType::UniformlySampledFullPrecision));
+			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
 			ACL_ENSURE(clip.is_valid(false), "Clip is invalid");
 
 			const FullPrecisionHeader& header = get_full_precision_header(clip);
@@ -216,12 +216,12 @@ namespace acl
 			// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
 			uint32_t num_animated_floats_per_key_frame = header.num_animated_translation_tracks * 3;
 			uint32_t num_rotation_floats = 0;
-			if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+			if (header.rotation_format == RotationFormat8::Quat_128)
 			{
 				num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 4;
 				num_rotation_floats = 4;
 			}
-			else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+			else if (header.rotation_format == RotationFormat8::Quat_96)
 			{
 				num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 3;
 				num_rotation_floats = 3;
@@ -287,11 +287,11 @@ namespace acl
 				if (is_rotation_constant)
 				{
 					// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
-					if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+					if (header.rotation_format == RotationFormat8::Quat_128)
 					{
 						rotation = quat_unaligned_load(constant_track_data);
 					}
-					else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+					else if (header.rotation_format == RotationFormat8::Quat_96)
 					{
 						Vector4_32 rotation_xyz = vector_unaligned_load3(constant_track_data);
 						rotation = quat_from_positive_w(rotation_xyz);
@@ -302,13 +302,13 @@ namespace acl
 				else
 				{
 					// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
-					if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+					if (header.rotation_format == RotationFormat8::Quat_128)
 					{
 						Quat_32 rotation0 = quat_unaligned_load(key_frame_data0);
 						Quat_32 rotation1 = quat_unaligned_load(key_frame_data1);
 						rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
 					}
-					else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+					else if (header.rotation_format == RotationFormat8::Quat_96)
 					{
 						Vector4_32 rotation0_xyz = vector_unaligned_load3(key_frame_data0);
 						Vector4_32 rotation1_xyz = vector_unaligned_load3(key_frame_data1);

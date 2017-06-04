@@ -41,7 +41,7 @@ namespace acl
 {
 	namespace uniformly_sampled
 	{
-		inline CompressedClip* fixed_quantization_encoder(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat rotation_format)
+		inline CompressedClip* fixed_quantization_encoder(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format)
 		{
 			return nullptr;
 		}

@@ -28,7 +28,7 @@
 
 namespace acl
 {
-	inline CompressedClip* make_compressed_clip(void* buffer, uint32_t size, AlgorithmType type)
+	inline CompressedClip* make_compressed_clip(void* buffer, uint32_t size, AlgorithmType8 type)
 	{
 		return new(buffer) CompressedClip(size, type);
 	}

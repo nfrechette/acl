@@ -29,42 +29,71 @@
 namespace acl
 {
 	// Algorithm version numbers
-	static constexpr uint16_t UNIFORMLY_SAMPLED_FULL_PRECISION_ALGORITHM_VERSION		= 0;
-	static constexpr uint16_t UNIFORMLY_SAMPLED_FIXED_QUANTIZATION_ALGORITHM_VERSION	= 0;
+	static constexpr uint16_t ALGORITHM_VERSION_UNIFORMLY_SAMPLED		= 0;
+	//static constexpr uint16_t ALGORITHM_VERSION_LINEAR_KEY_REDUCTION	= 0;
+	//static constexpr uint16_t ALGORITHM_VERSION_SPLINE_KEY_REDUCTION	= 0;
 
-	enum class AlgorithmType : uint16_t
+	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
+	// The algorithm type is serialized in the compressed data, if you change a value
+	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
+	enum class AlgorithmType8 : uint8_t
 	{
-		UniformlySampledFullPrecision			= 0,
-		UniformlySampledFixedQuantization		= 1,
+		UniformlySampled			= 0,
+		//LinearKeyReduction			= 1,
+		//SplineKeyReduction			= 2,
 	};
 
-	enum class RotationFormat : uint8_t
+	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
+	// The rotation format is serialized in the compressed data, if you change a value
+	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
+	enum class RotationFormat8 : uint8_t
 	{
-		Quat,					// Full quaternion with x,y,z,w
-		QuatXYZ,				// Quaternion with dropped 'w'
-		//QuatLog,
+		Quat_128				= 0,	// Full precision quaternion, [x,y,z,w] stored with float32
+		Quat_96					= 1,	// Full precision quaternion, [x,y,z] stored with float32 (w is dropped)
+		// TODO: Implement these
+		//Quat48,				// Quantized quaternion, [x,y,z] stored with [16,16,16] bits (w is dropped)
+		//Quat32,				// Quantized quaternion, [x,y,z] stored with [11,11,10] bits (w is dropped)
+		//QuatVariable,			// Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
+		//QuatLog96,			// Full precision quaternion logarithm, [x,y,z] stored with float 32
+		//QuatLog48,			// Quantized quaternion logarithm, [x,y,z] stored with [16,16,16] bits
+		//QuatLog32,			// Quantized quaternion logarithm, [x,y,z] stored with [11,11,10] bits
+		//QuatLogVariable,		// Quantized quaternion logarithm, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
+	};
+
+	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
+	// The vector format is serialized in the compressed data, if you change a value
+	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
+	enum class VectorFormat8 : uint8_t
+	{
+		Vector3_96				= 0,	// Full precision vector3, [x,y,z] stored with float32
+		// TODO: Implement these
+		//Vector3_48,			// Quantized vector3, [x,y,z] stored with [16,16,16] bits
+		//Vector3_32,			// Quantized vector3, [x,y,z] stored with [11,11,10] bits
+		//Vector3_Variable,		// Quantized vector3, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
 	};
 
 	//////////////////////////////////////////////////////////////////////////
 
 	// TODO: constexpr
-	inline uint16_t get_algorithm_version(AlgorithmType type)
+	inline uint16_t get_algorithm_version(AlgorithmType8 type)
 	{
 		switch (type)
 		{
-			case AlgorithmType::UniformlySampledFullPrecision:		return UNIFORMLY_SAMPLED_FULL_PRECISION_ALGORITHM_VERSION;
-			case AlgorithmType::UniformlySampledFixedQuantization:	return UNIFORMLY_SAMPLED_FIXED_QUANTIZATION_ALGORITHM_VERSION;
-			default:												return 0xFFFF;
+			case AlgorithmType8::UniformlySampled:		return ALGORITHM_VERSION_UNIFORMLY_SAMPLED;
+			//case AlgorithmType8::LinearKeyReduction:	return ALGORITHM_VERSION_LINEAR_KEY_REDUCTION;
+			//case AlgorithmType8::SplineKeyReduction:	return ALGORITHM_VERSION_SPLINE_KEY_REDUCTION;
+			default:									return 0xFFFF;
 		}
 	}
 
 	// TODO: constexpr
-	inline bool is_valid_algorithm_type(AlgorithmType type)
+	inline bool is_valid_algorithm_type(AlgorithmType8 type)
 	{
 		switch (type)
 		{
-			case AlgorithmType::UniformlySampledFullPrecision:
-			case AlgorithmType::UniformlySampledFixedQuantization:
+			case AlgorithmType8::UniformlySampled:
+			//case AlgorithmType8::LinearKeyReduction:
+			//case AlgorithmType8::SplineKeyReduction:
 				return true;
 			default:
 				return false;
@@ -72,24 +101,25 @@ namespace acl
 	}
 
 	// TODO: constexpr
-	inline const char* get_algorithm_name(AlgorithmType type)
+	inline const char* get_algorithm_name(AlgorithmType8 type)
 	{
 		switch (type)
 		{
-			case AlgorithmType::UniformlySampledFullPrecision:		return "Uniformly Sampled Full Precision";
-			case AlgorithmType::UniformlySampledFixedQuantization:	return "Uniformly Sampled Fixed Quantization";
-			default:												return "<Unknown>";
+			case AlgorithmType8::UniformlySampled:		return "Uniformly Sampled";
+			//case AlgorithmType8::LinearKeyReduction:	return "Linear Key Reduction";
+			//case AlgorithmType8::SplineKeyReduction:	return "Spline Key Reduction";
+			default:									return "<Unknown>";
 		}
 	}
 
 	// TODO: constexpr
-	inline const char* get_rotation_format_name(RotationFormat format)
+	inline const char* get_rotation_format_name(RotationFormat8 format)
 	{
 		switch (format)
 		{
-			case RotationFormat::Quat:		return "Quat";
-			case RotationFormat::QuatXYZ:	return "Quat Dropped W";
-			default:						return "<Unknown>";
+			case RotationFormat8::Quat_128:		return "Quat 128";
+			case RotationFormat8::Quat_96:		return "Quat 96";
+			default:							return "<Unknown>";
 		}
 	}
 }

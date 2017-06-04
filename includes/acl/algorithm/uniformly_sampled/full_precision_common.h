@@ -26,7 +26,6 @@
 
 #include "acl/core/compressed_clip.h"
 #include "acl/core/memory.h"
-#include "acl/core/enum_utils.h"
 
 #include <stdint.h>
 
@@ -40,20 +39,10 @@ namespace acl
 			static constexpr uint32_t BITSET_WIDTH = 32;
 		};
 
-		enum class FullPrecisionFlags : uint16_t
-		{
-			None				= 0x0,
-			Rotation_Quat		= 0x1,
-			Rotation_QuatXYZ	= 0x2,
-			//Rotation_QuatLog	= 0x4,
-		};
-
-		ACL_IMPL_ENUM_FLAGS_OPERATORS(FullPrecisionFlags);
-
 		struct FullPrecisionHeader
 		{
 			uint16_t				num_bones;
-			FullPrecisionFlags		flags;
+			RotationFormat8			rotation_format;
 			uint32_t				num_samples;
 			uint32_t				sample_rate;								// TODO: Store duration as float instead
 			uint32_t				num_animated_rotation_tracks;				// TODO: Calculate from bitsets?

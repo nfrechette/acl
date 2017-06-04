@@ -143,12 +143,12 @@ namespace acl
 				if (!bone.rotation_track.is_default() && bone.rotation_track.is_constant())
 				{
 					Quat_32 rotation = quat_cast(bone.rotation_track.get_sample(0));
-					if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+					if (header.rotation_format == RotationFormat8::Quat_128)
 					{
 						quat_unaligned_write(rotation, &constant_data[constant_data_offset]);
 						constant_data_offset += 4;
 					}
-					else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+					else if (header.rotation_format == RotationFormat8::Quat_96)
 					{
 						Vector4_32 rotation_xyz = quat_to_vector(quat_ensure_positive_w(rotation));
 						vector_unaligned_write3(rotation_xyz, &constant_data[constant_data_offset]);
@@ -186,12 +186,12 @@ namespace acl
 					if (bone.rotation_track.is_animated())
 					{
 						Quat_32 rotation = quat_cast(bone.rotation_track.get_sample(sample_index));
-						if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+						if (header.rotation_format == RotationFormat8::Quat_128)
 						{
 							quat_unaligned_write(rotation, &animated_track_data[animated_track_data_offset]);
 							animated_track_data_offset += 4;
 						}
-						else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+						else if (header.rotation_format == RotationFormat8::Quat_96)
 						{
 							Vector4_32 rotation_xyz = quat_to_vector(quat_ensure_positive_w(rotation));
 							vector_unaligned_write3(rotation_xyz, &animated_track_data[animated_track_data_offset]);
@@ -213,7 +213,7 @@ namespace acl
 			ACL_ENSURE(animated_track_data_offset == animated_track_data_max_offset, "Invalid animated track data offset. Wrote too little data. %u != %u", animated_track_data_offset, animated_track_data_max_offset);
 		}
 
-		inline CompressedClip* full_precision_encoder(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat rotation_format)
+		inline CompressedClip* full_precision_encoder(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format)
 		{
 			uint16_t num_bones = clip.get_num_bones();
 			uint32_t num_samples = clip.get_num_samples();
@@ -227,22 +227,18 @@ namespace acl
 			uint32_t num_constant_floats = num_constant_translation_tracks * 3;
 			uint32_t num_animated_floats = (num_animated_translation_tracks * 3) * num_samples;
 
-			FullPrecisionFlags flags = FullPrecisionFlags::None;
-
 			switch (rotation_format)
 			{
-			case RotationFormat::Quat:
-				flags |= FullPrecisionFlags::Rotation_Quat;
+			case RotationFormat8::Quat_128:
 				num_constant_floats += num_constant_rotation_tracks * 4;
 				num_animated_floats += (num_animated_rotation_tracks * 4) * num_samples;
 				break;
-			case RotationFormat::QuatXYZ:
-				flags |= FullPrecisionFlags::Rotation_QuatXYZ;
+			case RotationFormat8::Quat_96:
 				num_constant_floats += num_constant_rotation_tracks * 3;
 				num_animated_floats += (num_animated_rotation_tracks * 3) * num_samples;
 				break;
 			default:
-				ACL_ENSURE(false, "Invalid rotation format: %u", (uint16_t)rotation_format);
+				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
 				break;
 			}
 
@@ -258,11 +254,11 @@ namespace acl
 
 			uint8_t* buffer = allocate_type_array<uint8_t>(allocator, buffer_size, 16);
 
-			CompressedClip* compressed_clip = make_compressed_clip(buffer, buffer_size, AlgorithmType::UniformlySampledFullPrecision);
+			CompressedClip* compressed_clip = make_compressed_clip(buffer, buffer_size, AlgorithmType8::UniformlySampled);
 
 			FullPrecisionHeader& header = get_full_precision_header(*compressed_clip);
 			header.num_bones = num_bones;
-			header.flags = flags;
+			header.rotation_format = rotation_format;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.num_animated_rotation_tracks = num_animated_rotation_tracks;

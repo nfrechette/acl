@@ -222,7 +222,7 @@ static void run_unit_tests()
 }
 #endif
 
-static void print_stats(const Options& options, const acl::AnimationClip& clip, const acl::CompressedClip& compressed_clip, acl::RotationFormat rotation_format, uint64_t elapsed_cycles, double max_error)
+static void print_stats(const Options& options, const acl::AnimationClip& clip, const acl::CompressedClip& compressed_clip, acl::RotationFormat8 rotation_format, uint64_t elapsed_cycles, double max_error)
 {
 	if (!options.output_stats)
 		return;
@@ -344,15 +344,15 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 	return max_error;
 }
 
-template<typename AlgorithmType>
-static void try_algorithm(const Options& options, acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, acl::RotationFormat rotation_format)
+template<typename AlgorithmType8>
+static void try_algorithm(const Options& options, acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, acl::RotationFormat8 rotation_format)
 {
 	using namespace acl;
 
 	LARGE_INTEGER start_time_cycles;
 	QueryPerformanceCounter(&start_time_cycles);
 
-	AlgorithmType algorithm;
+	AlgorithmType8 algorithm;
 	CompressedClip* compressed_clip = algorithm.encode(allocator, clip, skeleton, rotation_format);
 
 	LARGE_INTEGER end_time_cycles;
@@ -388,10 +388,10 @@ int main(int argc, char** argv)
 
 	// Compress & Decompress
 	{
-		try_algorithm<uniformly_sampled::FullPrecisionAlgorithm>(options, allocator, clip, skeleton, RotationFormat::Quat);
-		try_algorithm<uniformly_sampled::FullPrecisionAlgorithm>(options, allocator, clip, skeleton, RotationFormat::QuatXYZ);
-		//try_algorithm<uniformly_sampled::FixedQuantizationAlgorithm>(options, allocator, clip, skeleton, RotationFormat::Quat);
-		//try_algorithm<uniformly_sampled::FixedQuantizationAlgorithm>(options, allocator, clip, skeleton, RotationFormat::QuatXYZ);
+		try_algorithm<uniformly_sampled::FullPrecisionAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_128);
+		try_algorithm<uniformly_sampled::FullPrecisionAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_96);
+		//try_algorithm<uniformly_sampled::FixedQuantizationAlgorithm>(options, allocator, clip, skeleton, RotationFormat::Quat128);
+		//try_algorithm<uniformly_sampled::FixedQuantizationAlgorithm>(options, allocator, clip, skeleton, RotationFormat::Quat96);
 	}
 
 	if (IsDebuggerPresent())

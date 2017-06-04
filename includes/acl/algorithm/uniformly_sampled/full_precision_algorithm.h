@@ -35,7 +35,7 @@ namespace acl
 		class FullPrecisionAlgorithm final : public IAlgorithm
 		{
 		public:
-			virtual CompressedClip* encode(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat rotation_format) override
+			virtual CompressedClip* encode(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format) override
 			{
 				return full_precision_encoder(allocator, clip, skeleton, rotation_format);
 			}
