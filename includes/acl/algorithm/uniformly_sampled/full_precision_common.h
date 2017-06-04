@@ -77,13 +77,13 @@ namespace acl
 		const float*	get_track_data() const				{ return track_data_offset.add_to(this); }
 	};
 
-	inline FullPrecisionHeader& get_full_precision_header(CompressedClip& clip)
+	constexpr FullPrecisionHeader& get_full_precision_header(CompressedClip& clip)
 	{
-		return *add_offset_to_ptr<FullPrecisionHeader*>(&clip, sizeof(CompressedClip));
+		return *add_offset_to_ptr<FullPrecisionHeader>(&clip, sizeof(CompressedClip));
 	}
 
-	inline const FullPrecisionHeader& get_full_precision_header(const CompressedClip& clip)
+	constexpr const FullPrecisionHeader& get_full_precision_header(const CompressedClip& clip)
 	{
-		return *add_offset_to_ptr<const FullPrecisionHeader*>(&clip, sizeof(CompressedClip));
+		return *add_offset_to_ptr<const FullPrecisionHeader>(&clip, sizeof(CompressedClip));
 	}
 }

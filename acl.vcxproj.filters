@@ -31,6 +31,12 @@
     <Filter Include="includes\acl\algorithm\uniformy_sampled">
       <UniqueIdentifier>{6be52b60-afdf-481f-bc25-2098a6c9804a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="includes\acl\algorithm\linear_key_reduction">
+      <UniqueIdentifier>{043c5333-0606-4b1d-bd93-f5c99883b62c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl\algorithm\spline_key_reduction">
+      <UniqueIdentifier>{af279707-3bf7-4e7d-a479-80dbc338f900}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\acl\math\quat_64.h">

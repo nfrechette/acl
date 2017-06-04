@@ -32,12 +32,15 @@
 
 namespace acl
 {
-	// TODO: constexpr
-	template<typename Type>
-	inline bool is_alignment_valid(size_t alignment)
+	constexpr bool is_power_of_two(size_t input)
 	{
-		bool is_power_of_two = alignment != 0 && (alignment & (alignment - 1)) == 0;
-		return is_power_of_two && alignment >= alignof(Type);
+		return input != 0 && (input & (input - 1)) == 0;
+	}
+
+	template<typename Type>
+	constexpr bool is_alignment_valid(size_t alignment)
+	{
+		return is_power_of_two(alignment) && alignment >= alignof(Type);
 	}
 
 	class Allocator
@@ -118,9 +121,9 @@ namespace acl
 	}
 
 	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>
-	constexpr OutputPtrType add_offset_to_ptr(InputPtrType ptr, OffsetType offset)
+	constexpr OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, OffsetType offset)
 	{
-		return reinterpret_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
+		return reinterpret_cast<OutputPtrType*>(reinterpret_cast<uintptr_t>(ptr) + offset);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -129,20 +132,20 @@ namespace acl
 	class PtrOffset
 	{
 	public:
-		PtrOffset() : m_value(0) {}
-		PtrOffset(size_t value)
+		constexpr PtrOffset() : m_value(0) {}
+		constexpr PtrOffset(size_t value)
 			: m_value(static_cast<OffsetType>(value))
 		{
 			ACL_ENSURE(value == m_value, "Value %u is being truncated to %u", value, m_value);
 		}
 
 		template<typename BaseType>
-		DataType* add_to(BaseType ptr) { return add_offset_to_ptr<DataType*>(ptr, m_value); }
+		constexpr DataType* add_to(BaseType* ptr) const { return add_offset_to_ptr<DataType>(ptr, m_value); }
 
 		template<typename BaseType>
-		const DataType* add_to(const BaseType ptr) const { return add_offset_to_ptr<const DataType*>(ptr, m_value); }
+		constexpr const DataType* add_to(const BaseType* ptr) const { return add_offset_to_ptr<const DataType>(ptr, m_value); }
 
-		operator OffsetType() const { return m_value; }
+		constexpr operator OffsetType() const { return m_value; }
 
 	private:
 		OffsetType m_value;
