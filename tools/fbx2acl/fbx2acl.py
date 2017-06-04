@@ -293,8 +293,7 @@ def convert_file(fbx_filename, acl_filename, zip):
 				# TODO: Detect this automatically somehow?
 				#zip_file = zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED)
 				zip_file = zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_LZMA)
-				#zip_file.write(acl_filename)
-				zip_file.writestr(acl_filename, file.getvalue())
+				zip_file.writestr(os.path.basename(acl_filename), file.getvalue())
 				zip_file.close()
 
 			file.close()
@@ -354,7 +353,7 @@ if __name__ == "__main__":
 					continue
 
 				fbx_filename = os.path.join(dirpath, filename)
-				acl_filename = os.path.join(acl_dirname, filename.replace('.fbx', '.js'))
+				acl_filename = os.path.join(acl_dirname, filename.replace('.fbx', '.acl.js'))
 
 				if not os.path.exists(acl_dirname):
 					os.makedirs(acl_dirname)
@@ -366,6 +365,10 @@ if __name__ == "__main__":
 		sys.exit(0)
 
 	# Convert a single file
+	if not acl_filename.endswith('.acl.js'):
+		print('Invalid ACL filename, it should be of the form *.acl.js')
+		sys.exit(1)
+
 	result = convert_file(fbx_filename, acl_filename, zip)
 
 	if result:
