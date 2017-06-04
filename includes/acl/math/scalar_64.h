@@ -27,6 +27,7 @@
 #include "acl/math/math.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace acl
 {
@@ -85,7 +86,7 @@ namespace acl
 		return std::max(left, right);
 	}
 
-	inline constexpr double deg2rad(double deg)
+	constexpr double deg2rad(double deg)
 	{
 		return (deg / 360.0) * ACL_PI_64;
 	}
@@ -93,5 +94,10 @@ namespace acl
 	inline bool scalar_near_equal(double lhs, double rhs, double threshold)
 	{
 		return abs(lhs - rhs) < threshold;
+	}
+
+	inline double is_finite(double input)
+	{
+		return std::isfinite(input);
 	}
 }

@@ -27,8 +27,6 @@
 #include "acl/math/math.h"
 #include "acl/math/scalar_64.h"
 
-#include <cmath>
-
 namespace acl
 {
 	inline Vector4_64 vector_set(double x, double y, double z, double w)
@@ -285,11 +283,11 @@ namespace acl
 
 	inline bool vector_is_valid(const Vector4_64& input)
 	{
-		return std::isfinite(vector_get_x(input)) && std::isfinite(vector_get_y(input)) && std::isfinite(vector_get_z(input)) && std::isfinite(vector_get_w(input));
+		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input)) && is_finite(vector_get_w(input));
 	}
 
 	inline bool vector_is_valid3(const Vector4_64& input)
 	{
-		return std::isfinite(vector_get_x(input)) && std::isfinite(vector_get_y(input)) && std::isfinite(vector_get_z(input));
+		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input));
 	}
 }

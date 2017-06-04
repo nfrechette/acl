@@ -105,6 +105,9 @@
     <ClInclude Include="includes\acl\core\error.h">
       <Filter>includes\acl\core</Filter>
     </ClInclude>
+    <ClInclude Include="includes\acl\core\enum_utils.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

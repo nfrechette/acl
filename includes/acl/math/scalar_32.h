@@ -27,6 +27,7 @@
 #include "acl/math/math.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace acl
 {
@@ -43,5 +44,10 @@ namespace acl
 	inline float sqrt(float input)
 	{
 		return std::sqrt(input);
+	}
+
+	inline float is_finite(float input)
+	{
+		return std::isfinite(input);
 	}
 }

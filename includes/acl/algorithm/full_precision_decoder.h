@@ -82,7 +82,16 @@ namespace acl
 		const float* constant_track_data = header.get_constant_track_data();
 
 		// TODO: No need to store this, unpack from bitset in context and simplify branching logic below?
-		uint32_t num_animated_floats_per_key_frame = (header.num_animated_rotation_tracks * 4) + (header.num_animated_translation_tracks * 3);
+		// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
+		uint32_t num_animated_floats_per_key_frame = header.num_animated_translation_tracks * 3;
+		if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+		{
+			num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 4;
+		}
+		else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+		{
+			num_animated_floats_per_key_frame += header.num_animated_rotation_tracks * 3;
+		}
 
 		const float* animated_track_data = header.get_track_data();
 		const float* key_frame_data0 = animated_track_data + (key_frame0 * num_animated_floats_per_key_frame);
@@ -101,17 +110,42 @@ namespace acl
 				bool is_rotation_constant = bitset_test(constant_tracks_bitset, bitset_size, constant_track_offset);
 				if (is_rotation_constant)
 				{
-					rotation = quat_unaligned_load(constant_track_data);
-					constant_track_data += 4;
+					// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
+					if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+					{
+						rotation = quat_unaligned_load(constant_track_data);
+						constant_track_data += 4;
+					}
+					else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+					{
+						Vector4_32 rotation_xyz = vector_unaligned_load3(constant_track_data);
+						rotation = quat_from_positive_w(rotation_xyz);
+						constant_track_data += 3;
+					}
 				}
 				else
 				{
-					Quat_32 rotation0 = quat_unaligned_load(key_frame_data0);
-					Quat_32 rotation1 = quat_unaligned_load(key_frame_data1);
-					rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
+					// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
+					if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_Quat))
+					{
+						Quat_32 rotation0 = quat_unaligned_load(key_frame_data0);
+						Quat_32 rotation1 = quat_unaligned_load(key_frame_data1);
+						rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
 
-					key_frame_data0 += 4;
-					key_frame_data1 += 4;
+						key_frame_data0 += 4;
+						key_frame_data1 += 4;
+					}
+					else if (is_enum_flag_set(header.flags, FullPrecisionFlags::Rotation_QuatXYZ))
+					{
+						Vector4_32 rotation0_xyz = vector_unaligned_load3(key_frame_data0);
+						Vector4_32 rotation1_xyz = vector_unaligned_load3(key_frame_data1);
+						Quat_32 rotation0 = quat_from_positive_w(rotation0_xyz);
+						Quat_32 rotation1 = quat_from_positive_w(rotation1_xyz);
+						rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
+
+						key_frame_data0 += 3;
+						key_frame_data1 += 3;
+					}
 				}
 			}
 

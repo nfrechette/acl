@@ -115,6 +115,21 @@ namespace acl
 #endif
 	}
 
+	inline void vector_unaligned_write(const Vector4_32& input, float* output)
+	{
+		output[0] = vector_get_x(input);
+		output[1] = vector_get_y(input);
+		output[2] = vector_get_z(input);
+		output[3] = vector_get_w(input);
+	}
+
+	inline void vector_unaligned_write3(const Vector4_32& input, float* output)
+	{
+		output[0] = vector_get_x(input);
+		output[1] = vector_get_y(input);
+		output[2] = vector_get_z(input);
+	}
+
 	inline Vector4_32 vector_add(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -145,6 +160,62 @@ namespace acl
 	inline Vector4_32 vector_mul(const Vector4_32& lhs, float rhs)
 	{
 		return vector_mul(lhs, vector_set(rhs));
+	}
+
+	inline Vector4_32 vector_neg(const Vector4_32& input)
+	{
+		return vector_mul(input, -1.0f);
+	}
+
+	inline float vector_dot(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+		// TODO: Use dot instruction
+		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs)) + (vector_get_w(lhs) * vector_get_w(rhs));
+	}
+
+	inline float vector_dot3(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+		// TODO: Use dot instruction
+		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs));
+	}
+
+	inline float vector_length_squared(const Vector4_32& input)
+	{
+		return vector_dot(input, input);
+	}
+
+	inline float vector_length_squared3(const Vector4_32& input)
+	{
+		return vector_dot3(input, input);
+	}
+
+	inline float vector_length(const Vector4_32& input)
+	{
+		// TODO: Use intrinsics to avoid scalar coercion
+		return sqrt(vector_length_squared(input));
+	}
+
+	inline float vector_length3(const Vector4_32& input)
+	{
+		// TODO: Use intrinsics to avoid scalar coercion
+		return sqrt(vector_length_squared3(input));
+	}
+
+	inline float vector_length_reciprocal(const Vector4_32& input)
+	{
+		// TODO: Use recip instruction
+		return 1.0f / vector_length(input);
+	}
+
+	inline float vector_length_reciprocal3(const Vector4_32& input)
+	{
+		// TODO: Use recip instruction
+		return 1.0f / vector_length3(input);
+	}
+
+	inline float vector_distance3(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+		return vector_length3(vector_sub(rhs, lhs));
 	}
 
 	inline Vector4_32 vector_lerp(const Vector4_32& start, const Vector4_32& end, float alpha)

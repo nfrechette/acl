@@ -103,6 +103,14 @@ namespace acl
 #endif
 	}
 
+	inline void quat_unaligned_write(const Quat_32& input, float* output)
+	{
+		output[0] = quat_get_x(input);
+		output[1] = quat_get_y(input);
+		output[2] = quat_get_z(input);
+		output[3] = quat_get_w(input);
+	}
+
 	inline float quat_length_squared(const Quat_32& input)
 	{
 		// TODO: Use dot instruction
@@ -134,5 +142,33 @@ namespace acl
 		Vector4_32 end_vector = quat_to_vector(end);
 		Vector4_32 value = vector_add(start_vector, vector_mul(vector_sub(end_vector, start_vector), alpha));
 		return quat_normalize(vector_to_quat(value));
+	}
+
+	inline Quat_32 quat_neg(const Quat_32& input)
+	{
+		return vector_to_quat(vector_mul(quat_to_vector(input), -1.0f));
+	}
+
+	inline Quat_32 quat_ensure_positive_w(const Quat_32& input)
+	{
+		return quat_get_w(input) >= 0.f ? input : quat_neg(input);
+	}
+
+	inline Quat_32 quat_from_positive_w(const Vector4_32& input)
+	{
+		float w_squared = 1.0f - vector_length_squared3(input);
+		float w = w_squared > 0.0f ? sqrt(w_squared) : 0.0f;
+		return quat_set(vector_get_x(input), vector_get_y(input), vector_get_z(input), w);
+	}
+
+	inline bool quat_is_valid(const Quat_32& input)
+	{
+		return is_finite(quat_get_x(input)) && is_finite(quat_get_y(input)) && is_finite(quat_get_z(input)) && is_finite(quat_get_w(input));
+	}
+
+	inline bool quat_is_normalized(const Quat_32& input, float threshold = 0.00001f)
+	{
+		float length_squared = quat_length_squared(input);
+		return abs(length_squared - 1.0) < threshold;
 	}
 }

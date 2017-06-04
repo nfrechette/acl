@@ -24,6 +24,7 @@
     <ClInclude Include="includes\acl\algorithm\full_precision_encoder.h" />
     <ClInclude Include="includes\acl\compression\skeleton_error_metric.h" />
     <ClInclude Include="includes\acl\core\algorithm_globals.h" />
+    <ClInclude Include="includes\acl\core\enum_utils.h" />
     <ClInclude Include="includes\acl\core\error.h" />
     <ClInclude Include="includes\acl\core\bitset.h" />
     <ClInclude Include="includes\acl\core\compressed_clip.h" />

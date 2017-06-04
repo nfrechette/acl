@@ -232,6 +232,8 @@ namespace acl
 		{
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ENSURE(quat_is_valid(rotation), "Invalid rotation: [%f, %f, %f, %f]", quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation), quat_get_w(rotation));
+			ACL_ENSURE(quat_is_normalized(rotation), "Rotation not normalized: [%f, %f, %f, %f]", quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation), quat_get_w(rotation));
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ENSURE(sample_size == 4, "Invalid sample size. %u != 4", sample_size);
@@ -316,6 +318,7 @@ namespace acl
 		{
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ENSURE(vector_is_valid3(translation), "Invalid translation: [%f, %f, %f, %f]", vector_get_x(translation), vector_get_y(translation), vector_get_z(translation));
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ENSURE(sample_size == 3, "Invalid sample size. %u != 3", sample_size);

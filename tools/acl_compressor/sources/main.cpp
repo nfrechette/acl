@@ -32,6 +32,8 @@
 #include "clip_01_01.h"
 
 #include <Windows.h>
+#include <conio.h>
+
 #include <cstring>
 #include <cstdio>
 
@@ -276,7 +278,7 @@ int main(int argc, char** argv)
 		LARGE_INTEGER start_time_cycles;
 		QueryPerformanceCounter(&start_time_cycles);
 
-		CompressedClip* compressed_clip = full_precision_encoder(allocator, clip, skeleton);
+		CompressedClip* compressed_clip = full_precision_encoder(allocator, clip, skeleton, acl::RotationFormat::QuatXYZ);
 
 		LARGE_INTEGER end_time_cycles;
 		QueryPerformanceCounter(&end_time_cycles);
@@ -342,6 +344,12 @@ int main(int argc, char** argv)
 		}
 
 		allocator.deallocate(compressed_clip);
+	}
+
+	if (IsDebuggerPresent())
+	{
+		printf("Press any key to continue...\n");
+		while (_kbhit() == 0);
 	}
 
 	return 0;

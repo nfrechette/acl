@@ -39,6 +39,13 @@ namespace acl
 		FullPrecision			= 0,
 	};
 
+	enum class RotationFormat : uint8_t
+	{
+		Quat,					// Full quaternion with x,y,z,w
+		QuatXYZ,				// Quaternion with dropped 'w'
+		//QuatLog,
+	};
+
 	//////////////////////////////////////////////////////////////////////////
 
 	// TODO: constexpr
