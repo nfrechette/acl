@@ -49,6 +49,9 @@
     <None Include="LICENSE" />
     <None Include="README.md" />
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="tools\vs_visualizers\acl.natvis" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{14B38BAE-BC9B-4C39-8F0E-F6728BA2FCAC}</ProjectGuid>
     <RootNamespace>AnimationCompressionLibrary</RootNamespace>

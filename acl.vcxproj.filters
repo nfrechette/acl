@@ -22,6 +22,12 @@
     <Filter Include="includes\acl\core">
       <UniqueIdentifier>{7c3d7b96-4684-4837-8749-293af8876e21}</UniqueIdentifier>
     </Filter>
+    <Filter Include="tools">
+      <UniqueIdentifier>{6c258046-4b9d-4f1d-9a65-49709959e7f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tools\vs_visualizers">
+      <UniqueIdentifier>{102b0a93-eb53-4f14-9e94-ba5a4a08a5f0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\acl\math\quat_64.h">
@@ -103,5 +109,10 @@
   <ItemGroup>
     <None Include="LICENSE" />
     <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="tools\vs_visualizers\acl.natvis">
+      <Filter>tools\vs_visualizers</Filter>
+    </Natvis>
   </ItemGroup>
 </Project>
