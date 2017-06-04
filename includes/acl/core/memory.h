@@ -69,6 +69,15 @@ namespace acl
 	}
 
 	template<typename AllocatedType>
+	AllocatedType* allocate_type(Allocator& allocator, size_t alignment)
+	{
+		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignment));
+		if (std::is_trivially_default_constructible<AllocatedType>::value)
+			return ptr;
+		return new(ptr) AllocatedType();
+	}
+
+	template<typename AllocatedType>
 	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements)
 	{
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignof(AllocatedType)));

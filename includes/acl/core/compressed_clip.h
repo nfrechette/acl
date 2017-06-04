@@ -31,7 +31,7 @@
 
 namespace acl
 {
-	__declspec(align(16)) class CompressedClip
+	class alignas(16) CompressedClip
 	{
 	public:
 		AlgorithmType get_algorithm_type() const { return m_type; }
