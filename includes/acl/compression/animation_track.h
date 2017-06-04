@@ -121,7 +121,7 @@ namespace acl
 
 		AnimationTrackRange calculate_range() const
 		{
-			ensure(is_initialized());
+			ACL_ENSURE(is_initialized(), "Track is not initialized");
 
 			if (m_num_samples == 0)
 				return AnimationTrackRange();
@@ -230,11 +230,11 @@ namespace acl
 
 		void set_sample(uint32_t sample_index, const Quat_64& rotation)
 		{
-			ensure(is_initialized());
-			ensure(sample_index < m_num_samples);
+			ACL_ENSURE(is_initialized(), "Track is not initialized");
+			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
-			ensure(sample_size == 4);
+			ACL_ENSURE(sample_size == 4, "Invalid sample size. %u != 4", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
 			sample[0] = quat_get_x(rotation);
@@ -247,9 +247,9 @@ namespace acl
 
 		Quat_64 get_sample(uint32_t sample_index) const
 		{
-			ensure(is_initialized());
-			ensure(m_type == AnimationTrackType::Rotation);
-			ensure(sample_index < m_num_samples);
+			ACL_ENSURE(is_initialized(), "Track is not initialized");
+			ACL_ENSURE(m_type == AnimationTrackType::Rotation, "Invalid track type. %u != %u", m_type, AnimationTrackType::Rotation);
+			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
 
@@ -314,11 +314,11 @@ namespace acl
 
 		void set_sample(uint32_t sample_index, const Vector4_64& translation)
 		{
-			ensure(is_initialized());
-			ensure(sample_index < m_num_samples);
+			ACL_ENSURE(is_initialized(), "Track is not initialized");
+			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
-			ensure(sample_size == 3);
+			ACL_ENSURE(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
 			sample[0] = vector_get_x(translation);
@@ -330,9 +330,9 @@ namespace acl
 
 		Vector4_64 get_sample(uint32_t sample_index) const
 		{
-			ensure(is_initialized());
-			ensure(m_type == AnimationTrackType::Translation);
-			ensure(sample_index < m_num_samples);
+			ACL_ENSURE(is_initialized(), "Track is not initialized");
+			ACL_ENSURE(m_type == AnimationTrackType::Translation, "Invalid track type. %u != %u", m_type, AnimationTrackType::Translation);
+			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
 

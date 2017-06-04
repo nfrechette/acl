@@ -32,6 +32,14 @@
 
 namespace acl
 {
+	// TODO: constexpr
+	template<typename Type>
+	inline bool is_alignment_valid(size_t alignment)
+	{
+		bool is_power_of_two = alignment != 0 && (alignment & (alignment - 1)) == 0;
+		return is_power_of_two && alignment >= alignof(Type);
+	}
+
 	class Allocator
 	{
 	public:
@@ -71,6 +79,7 @@ namespace acl
 	template<typename AllocatedType>
 	AllocatedType* allocate_type(Allocator& allocator, size_t alignment)
 	{
+		ACL_ENSURE(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignment));
 		if (std::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
@@ -91,7 +100,7 @@ namespace acl
 	template<typename AllocatedType>
 	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements, size_t alignment)
 	{
-		ensure(alignment >= alignof(AllocatedType));
+		ACL_ENSURE(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignment));
 		if (std::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
@@ -124,7 +133,7 @@ namespace acl
 		PtrOffset(size_t value)
 			: m_value(static_cast<OffsetType>(value))
 		{
-			ensure(value == m_value);
+			ACL_ENSURE(value == m_value, "Value %u is being truncated to %u", value, m_value);
 		}
 
 		template<typename BaseType>

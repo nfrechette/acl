@@ -167,10 +167,10 @@ namespace acl
 				internal::write(translation, constant_data, constant_data_offset);
 			}
 
-			ensure(constant_data_offset <= constant_data_max_offset);
+			ACL_ENSURE(constant_data_offset <= constant_data_max_offset, "Invalid constant data offset. Wrote too much data. %u > %u", constant_data_offset, constant_data_max_offset);
 		}
 
-		ensure(constant_data_offset == constant_data_max_offset);
+		ACL_ENSURE(constant_data_offset == constant_data_max_offset, "Invalid constant data offset. Wrote too little data. %u != %u", constant_data_offset, constant_data_max_offset);
 	}
 
 	inline void write_animated_track_data(FullPrecisionHeader& header, const AnimationClip& clip, uint32_t num_animated_floats)
@@ -199,11 +199,11 @@ namespace acl
 					internal::write(translation, animated_track_data, animated_track_data_offset);
 				}
 
-				ensure(animated_track_data_offset <= animated_track_data_max_offset);
+				ACL_ENSURE(animated_track_data_offset <= animated_track_data_max_offset, "Invalid animated track data offset. Wrote too much data. %u > %u", animated_track_data_offset, animated_track_data_max_offset);
 			}
 		}
 
-		ensure(animated_track_data_offset == animated_track_data_max_offset);
+		ACL_ENSURE(animated_track_data_offset == animated_track_data_max_offset, "Invalid animated track data offset. Wrote too little data. %u != %u", animated_track_data_offset, animated_track_data_max_offset);
 	}
 
 	inline CompressedClip* full_precision_encoder(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton)

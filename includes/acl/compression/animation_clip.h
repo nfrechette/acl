@@ -75,18 +75,26 @@ namespace acl
 		AnimatedBone* get_bones() { return m_bones; }
 		const AnimatedBone* get_bones() const { return m_bones; }
 
-		const AnimatedBone& get_animated_bone(uint16_t bone_index) const { ensure(bone_index < get_num_bones()); return m_bones[bone_index]; }
+		const AnimatedBone& get_animated_bone(uint16_t bone_index) const
+		{
+			ACL_ENSURE(bone_index < get_num_bones(), "Invalid bone index: %u >= %u", bone_index, get_num_bones());
+			return m_bones[bone_index];
+		}
 
 		uint16_t get_num_bones() const { return m_skeleton.get_num_bones(); }
 		uint32_t get_num_samples() const { return m_num_samples; }
 		uint32_t get_sample_rate() const { return m_sample_rate; }
-		double get_duration() const { ensure(m_sample_rate > 0); return (m_num_samples - 1) * (1.0 / m_sample_rate); }
+		double get_duration() const
+		{
+			ACL_ENSURE(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
+			return (m_num_samples - 1) * (1.0 / m_sample_rate);
+		}
 
 		template<class OutputWriterType>
 		void sample_pose(double sample_time, OutputWriterType& writer) const
 		{
 			uint16_t num_bones = get_num_bones();
-			ensure(num_bones > 0);
+			ACL_ENSURE(num_bones > 0, "Invalid number of bones: %u", num_bones);
 
 			double clip_duration = get_duration();
 

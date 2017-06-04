@@ -24,13 +24,19 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <assert.h>
+// To override these macros, simply define them before including headers from the library.
 
-namespace acl
-{
-	// TODO: Make this a macro, that way the game code can trivially override it
-	inline void ensure(bool expression)
-	{
-		assert(expression);
-	}
-}
+#if !defined(ACL_ASSERT) || !defined(ACL_ENSURE)
+#include <assert.h>
+#endif
+
+// Asserts are properly handled by the library and can be optionally skipped by the user.
+// The code found something unexpected but recovered.
+#if !defined(ACL_ASSERT)
+#define ACL_ASSERT(expression, format, ...) assert(expression)
+#endif
+
+// Ensure is fatal, the library does not handle skipping this safely.
+#if !defined(ACL_ENSURE)
+#define ACL_ENSURE(expression, format, ...) assert(expression)
+#endif

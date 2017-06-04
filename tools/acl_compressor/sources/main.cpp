@@ -52,13 +52,13 @@ struct OutputWriterImpl : public acl::OutputWriter
 
 	void write_bone_rotation(uint32_t bone_index, const acl::Quat_32& rotation)
 	{
-		acl::ensure(bone_index <= m_num_bones);
+		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
 		m_transforms[bone_index].rotation = acl::quat_cast(rotation);
 	}
 
 	void write_bone_translation(uint32_t bone_index, const acl::Vector4_32& translation)
 	{
-		acl::ensure(bone_index <= m_num_bones);
+		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
 		m_transforms[bone_index].translation = acl::vector_cast(translation);
 	}
 
@@ -82,13 +82,13 @@ struct RawOutputWriterImpl : public acl::OutputWriter
 
 	void write_bone_rotation(uint32_t bone_index, const acl::Quat_64& rotation)
 	{
-		acl::ensure(bone_index <= m_num_bones);
+		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
 		m_transforms[bone_index].rotation = rotation;
 	}
 
 	void write_bone_translation(uint32_t bone_index, const acl::Vector4_64& translation)
 	{
-		acl::ensure(bone_index <= m_num_bones);
+		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
 		m_transforms[bone_index].translation = translation;
 	}
 
@@ -162,13 +162,13 @@ static void run_unit_tests()
 		Quat_64 quat1 = quat_from_euler(deg2rad(45.0), deg2rad(60.0), deg2rad(120.0));
 		Quat_64 result = quat_mul(quat0, quat1);
 		Quat_64 result_ref = quat_mul_scalar(quat0, quat1);
-		ensure(quat_near_equal(result, result_ref, threshold));
+		ACL_ENSURE(quat_near_equal(result, result_ref, threshold), "quat_mul unit test failure");
 
 		quat0 = quat_set(0.39564531008956383, 0.044254239301713752, 0.22768840967675355, 0.88863059760894492);
 		quat1 = quat_set(1.0, 0.0, 0.0, 0.0);
 		result = quat_mul(quat0, quat1);
 		result_ref = quat_mul_scalar(quat0, quat1);
-		ensure(quat_near_equal(result, result_ref, threshold));
+		ACL_ENSURE(quat_near_equal(result, result_ref, threshold), "quat_mul unit test failure");
 	}
 
 	{
@@ -200,7 +200,7 @@ static void run_unit_tests()
 				const Vector4_64& vector = test_vectors[vector_index];
 				Vector4_64 result = quat_rotate(rotation, vector);
 				Vector4_64 result_ref = quat_rotate_scalar(rotation, vector);
-				ensure(vector_near_equal(result, result_ref, threshold));
+				ACL_ENSURE(vector_near_equal(result, result_ref, threshold), "quat_rotate unit test failure");
 			}
 		}
 	}
@@ -214,8 +214,8 @@ static void run_unit_tests()
 		Vector4_64 axis;
 		double angle;
 		quat_to_axis_angle(result, axis, angle);
-		ensure(vector_near_equal(axis, axis_ref, threshold));
-		ensure(scalar_near_equal(angle, angle_ref, threshold));
+		ACL_ENSURE(vector_near_equal(axis, axis_ref, threshold), "quat_to_axis_angle unit test failure");
+		ACL_ENSURE(scalar_near_equal(angle, angle_ref, threshold), "quat_to_axis_angle unit test failure");
 	}
 }
 #endif
@@ -281,7 +281,7 @@ int main(int argc, char** argv)
 		LARGE_INTEGER end_time_cycles;
 		QueryPerformanceCounter(&end_time_cycles);
 
-		ensure(compressed_clip->is_valid(true));
+		ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
 
 		RawOutputWriterImpl raw_output_writer(allocator, clip.get_num_bones());
 		OutputWriterImpl lossy_output_writer(allocator, clip.get_num_bones());

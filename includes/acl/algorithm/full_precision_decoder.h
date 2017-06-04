@@ -59,8 +59,8 @@ namespace acl
 	template<class OutputWriterType>
 	inline void full_precision_decoder(const CompressedClip& clip, float sample_time, OutputWriterType& writer)
 	{
-		ensure(clip.get_algorithm_type() == AlgorithmType::FullPrecision);
-		ensure(clip.is_valid(false));
+		ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType::FullPrecision, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType::FullPrecision));
+		ACL_ENSURE(clip.is_valid(false), "Clip is invalid");
 
 		const FullPrecisionHeader& header = get_full_precision_header(clip);
 

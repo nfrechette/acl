@@ -60,4 +60,14 @@ namespace acl
 			default:							return false;
 		}
 	}
+
+	// TODO: constexpr
+	inline const char* get_algorithm_name(AlgorithmType type)
+	{
+		switch (type)
+		{
+			case AlgorithmType::FullPrecision:	return "Full Precision";
+			default:							return "<Unknown>";
+		}
+	}
 }

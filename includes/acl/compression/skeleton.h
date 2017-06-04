@@ -64,18 +64,18 @@ namespace acl
 
 				bool is_root = bone.parent_index == 0xFFFF;
 
-				ensure(is_root || bone.parent_index < bone_index);
-				ensure((is_root && !found_root) || !is_root);
-				ensure(quat_is_valid(bone.bind_rotation));
-				ensure(quat_is_normalized(bone.bind_rotation));
-				ensure(vector_is_valid(bone.bind_translation));
+				ACL_ENSURE(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
+				ACL_ENSURE((is_root && !found_root) || !is_root, "Multiple root bones found");
+				ACL_ENSURE(quat_is_valid(bone.bind_rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_rotation), quat_get_y(bone.bind_rotation), quat_get_z(bone.bind_rotation), quat_get_w(bone.bind_rotation));
+				ACL_ENSURE(quat_is_normalized(bone.bind_rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", quat_get_x(bone.bind_rotation), quat_get_y(bone.bind_rotation), quat_get_z(bone.bind_rotation), quat_get_w(bone.bind_rotation));
+				ACL_ENSURE(vector_is_valid3(bone.bind_translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_translation), vector_get_y(bone.bind_translation), vector_get_z(bone.bind_translation));
 
 				found_root |= is_root;
 
 				m_bones[bone_index] = bone;
 			}
 
-			ensure(found_root);
+			ACL_ENSURE(found_root, "No root bone found. The root bone must have a parent index = 0xFFFF");
 		}
 
 		~RigidSkeleton()
@@ -101,14 +101,14 @@ namespace acl
 	{
 		uint16_t num_bones = skeleton.get_num_bones();
 		const RigidBone* bones = skeleton.get_bones();
-		ensure(num_bones != 0);
+		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
 
 		out_object_pose[0] = local_pose[0];
 
 		for (uint16_t bone_index = 1; bone_index < num_bones; ++bone_index)
 		{
 			uint16_t parent_bone_index = bones[bone_index].parent_index;
-			ensure(parent_bone_index < num_bones);
+			ACL_ENSURE(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
 
 			out_object_pose[bone_index] = transform_mul(local_pose[bone_index], out_object_pose[parent_bone_index]);
 		}
@@ -119,14 +119,14 @@ namespace acl
 	{
 		uint16_t num_bones = skeleton.get_num_bones();
 		const RigidBone* bones = skeleton.get_bones();
-		ensure(num_bones != 0);
+		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
 
 		out_local_pose[0] = object_pose[0];
 
 		for (uint16_t bone_index = 1; bone_index < num_bones; ++bone_index)
 		{
 			uint16_t parent_bone_index = bones[bone_index].parent_index;
-			ensure(parent_bone_index < num_bones);
+			ACL_ENSURE(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
 
 			Transform_64 inv_parent_transform = transform_inverse(object_pose[parent_bone_index]);
 			out_local_pose[bone_index] = transform_mul(inv_parent_transform, object_pose[bone_index]);

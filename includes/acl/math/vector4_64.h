@@ -287,4 +287,9 @@ namespace acl
 	{
 		return std::isfinite(vector_get_x(input)) && std::isfinite(vector_get_y(input)) && std::isfinite(vector_get_z(input)) && std::isfinite(vector_get_w(input));
 	}
+
+	inline bool vector_is_valid3(const Vector4_64& input)
+	{
+		return std::isfinite(vector_get_x(input)) && std::isfinite(vector_get_y(input)) && std::isfinite(vector_get_z(input));
+	}
 }

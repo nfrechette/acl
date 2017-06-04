@@ -38,15 +38,15 @@ namespace acl
 	{
 		// Samples are evenly spaced, trivially calculate the indices that we need
 		FloatType normalized_sample_time = (sample_time / clip_duration);
-		ensure(sample_time >= 0.0f && sample_time <= clip_duration);
-		ensure(normalized_sample_time >= FloatType(0.0) && normalized_sample_time <= FloatType(1.0));
+		ACL_ENSURE(sample_time >= FloatType(0.0) && sample_time <= clip_duration, "Invalid sample time. 0.0 <= %f <= %f", sample_time, clip_duration);
+		ACL_ENSURE(normalized_sample_time >= FloatType(0.0) && normalized_sample_time <= FloatType(1.0), "Failed to normalize sample time: %f", normalized_sample_time);
 
 		FloatType sample_key = normalized_sample_time * FloatType(num_samples - 1);
 		uint32_t key_frame0 = uint32_t(floor(sample_key));
 		uint32_t key_frame1 = std::min(key_frame0 + 1, num_samples - 1);
 		FloatType interpolation_alpha = sample_key - FloatType(key_frame0);
-		ensure(key_frame0 >= 0 && key_frame0 <= key_frame1 && key_frame1 < num_samples);
-		ensure(interpolation_alpha >= FloatType(0.0) && interpolation_alpha <= FloatType(1.0));
+		ACL_ENSURE(key_frame0 >= 0 && key_frame0 <= key_frame1 && key_frame1 < num_samples, "Invalid key frames: 0 <= %u <= %u < %u", key_frame0, key_frame1, num_samples);
+		ACL_ENSURE(interpolation_alpha >= FloatType(0.0) && interpolation_alpha <= FloatType(1.0), "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
 
 		out_key_frame0 = key_frame0;
 		out_key_frame1 = key_frame1;

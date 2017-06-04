@@ -37,7 +37,7 @@ namespace acl
 	{
 		uint16_t num_bones = skeleton.get_num_bones();
 		const RigidBone* bones = skeleton.get_bones();
-		ensure(num_bones != 0);
+		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
 
 		Transform_64* raw_object_pose = allocate_type_array<Transform_64>(allocator, num_bones);
 		Transform_64* lossy_object_pose = allocate_type_array<Transform_64>(allocator, num_bones);
@@ -68,7 +68,7 @@ namespace acl
 			error = max(error, vtx1_error);
 		}
 
-		ensure(error >= 0.0);
+		ACL_ENSURE(error >= 0.0, "Invalid error: %f", error);
 
 		allocator.deallocate(raw_object_pose);
 		allocator.deallocate(lossy_object_pose);
