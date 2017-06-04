@@ -9,8 +9,10 @@ from collections import namedtuple
 
 FBXNode = namedtuple('FBXNode', 'name parent node')
 ACLClip = namedtuple('ACLClip', 'name num_samples sample_rate error_threshold duration')
-ACLBone = namedtuple('ACLBone', 'name parent vtx_distance bind_rotation bind_translation bind_scale')
+ACLBone = namedtuple('ACLBone', 'name parent vtx_distance obj_space_mtx bind_rotation bind_translation bind_scale')
 ACLTrack = namedtuple('ACLTrack', 'name rotations translations scales')
+
+ACL_FILE_FORMAT_VERSION = 1
 
 def parse_clip(scene):
 	anim_stack = scene.GetSrcObject(FbxAnimStack.ClassId, 0)
@@ -66,21 +68,27 @@ def parse_bind_pose(scene, nodes):
 			bone_name = pose.GetNodeName(bone_idx).GetCurrentName()
 
 			matrix = pose.GetMatrix(bone_idx)
-			matrix.GetElements(translation, rotation, shear, scale)
+
+			if bone_idx == 0:
+				parent_name = ""
+				local_space_mtx = matrix
+			else:
+				bone_node = next(x for x in nodes if x.name == bone_name)
+				parent_name = bone_node.parent
+				parent_bone = next(x for x in bones if x.name == parent_name)
+				local_space_mtx = matrix * parent_bone.obj_space_mtx.Inverse();
 
 			# Convert from FBX types to float arrays
+			local_space_mtx.GetElements(translation, rotation, shear, scale)
 			rotation_array = quaternion_to_array(rotation)
 			translation_array = vector3_to_array(translation)
 			scale_array = vector3_to_array(scale)
 
-			if bone_idx == 0:
-				parent_name = ""
-			else:
-				bone_node = next(x for x in nodes if x.name == bone_name)
-				parent_name = bone_node.parent
-
-			bone = ACLBone(bone_name, parent_name, vtx_distance, rotation_array, translation_array, scale_array)
+			bone = ACLBone(bone_name, parent_name, vtx_distance, matrix, rotation_array, translation_array, scale_array)
 			bones.append(bone)
+
+		# Stop after we parsed the bind pose
+		break
 
 	return bones
 
@@ -283,6 +291,8 @@ def convert_file(fbx_filename, acl_filename, zip):
 		else:
 			file = sys.stdout
 
+		print('version = {}'.format(ACL_FILE_FORMAT_VERSION), file = file)
+		print('', file = file)
 		print_clip(file, clip)
 		print_bones(file, bones)
 		print_tracks(file, tracks)

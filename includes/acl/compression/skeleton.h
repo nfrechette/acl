@@ -40,6 +40,7 @@ namespace acl
 		// TODO: Introduce a type for bone indices
 		uint16_t	parent_index;		// 0xFFFF == Invalid index
 
+		// Bind transform is in parent bone local space
 		// TODO: convert to transform
 		Quat_64		bind_rotation;
 		Vector4_64	bind_translation;

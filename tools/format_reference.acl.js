@@ -6,6 +6,9 @@
 
 // Each clip file contains the information of a single clip.
 
+// The ACL file format version
+version = 123
+
 // Clip general information
 // Must come first, before bones and tracks
 clip =
@@ -26,9 +29,6 @@ clip =
 
 	// Error threshold in object space
 	error_threshold = 0.01
-
-	// Reference frame used by transforms: "object" space or parent bone "local" space
-	reference_frame = "object"
 }
 
 // Reference skeleton, list of bones (any order)
@@ -41,14 +41,16 @@ bones =
 		// Bone name
 		name = "root"
 
-		// Parent bone. An empty string denotes the root bone, there can be only one root bone.
-		// There must be a root bone.
+		// Parent bone. An empty string denotes the root bone, there can be only one root bone
+		// There must be a root bone
+		// Parent bones must be listed before their children
 		parent = ""
 
 		// Virtual vertex distance used by hierarchical error function
 		vertex_distance = 1.0
 
-		// Bind pose transform information. All three are optional.
+		// Bind pose transform information. All three are optional
+		// The bind pose should be in parent bone local space
 		bind_rotation = [ 0.0, 0.0, 0.0, 1.0 ]
 		bind_translation = [ 0.0, 0.0, 0.0 ]
 		bind_scale = [ 1.0, 1.0, 1.0 ]
@@ -70,6 +72,7 @@ tracks =
 		name = "root"
 
 		// Rotation track, optional
+		// The rotations should be in parent bone local space
 		rotations =
 		[
 			[ 0.0, 0.0, 0.0, 1.0 ]
@@ -78,6 +81,7 @@ tracks =
 		]
 
 		// Translation track, optional
+		// The translations should be in parent bone local space
 		translations =
 		[
 			[ 0.0, 0.0, 0.0 ]
@@ -86,6 +90,7 @@ tracks =
 		]
 
 		// Scale track, optional
+		// The scales should be in parent bone local space
 		scales =
 		[
 			[ 1.0, 1.0, 1.0 ]
