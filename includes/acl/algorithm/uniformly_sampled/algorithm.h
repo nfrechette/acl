@@ -30,26 +30,23 @@
 
 namespace acl
 {
-	namespace uniformly_sampled
+	class UniformlySampledAlgorithm final : public IAlgorithm
 	{
-		class FullPrecisionAlgorithm final : public IAlgorithm
+	public:
+		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format) override
 		{
-		public:
-			virtual CompressedClip* encode(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format) override
-			{
-				return full_precision_encoder(allocator, clip, skeleton, rotation_format);
-			}
+			return uniformly_sampled::compress_clip(allocator, clip, skeleton, rotation_format);
+		}
 
-			virtual void decode_pose(const CompressedClip& clip, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) override
-			{
-				AlgorithmOutputWriterImpl writer(out_transforms, num_transforms);
-				full_precision_decoder(clip, sample_time, writer);
-			}
+		virtual void decompress_pose(const CompressedClip& clip, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) override
+		{
+			AlgorithmOutputWriterImpl writer(out_transforms, num_transforms);
+			uniformly_sampled::decompress_pose(clip, sample_time, writer);
+		}
 
-			virtual void decode_bone(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) override
-			{
-				full_precision_decoder(clip, sample_time, sample_bone_index, out_rotation, out_translation);
-			}
-		};
-	}
+		virtual void decompress_bone(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) override
+		{
+			uniformly_sampled::decompress_bone(clip, sample_time, sample_bone_index, out_rotation, out_translation);
+		}
+	};
 }

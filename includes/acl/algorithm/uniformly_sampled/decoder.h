@@ -59,7 +59,7 @@ namespace acl
 		// animated or constant compared to the total possible number of tracks. Those are likely to be rare.
 
 		template<class OutputWriterType>
-		inline void full_precision_decoder(const CompressedClip& clip, float sample_time, OutputWriterType& writer)
+		inline void decompress_pose(const CompressedClip& clip, float sample_time, OutputWriterType& writer)
 		{
 			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
 			ACL_ENSURE(clip.is_valid(false), "Clip is invalid");
@@ -188,7 +188,7 @@ namespace acl
 			}
 		}
 
-		inline void full_precision_decoder(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
+		inline void decompress_bone(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
 		{
 			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
 			ACL_ENSURE(clip.is_valid(false), "Clip is invalid");

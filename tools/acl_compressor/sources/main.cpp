@@ -306,7 +306,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 	double sample_increment = 1.0 / clip.get_sample_rate();
 	while (sample_time < clip_duration)
 	{
-		algorithm.decode_pose(compressed_clip, (float)sample_time, lossy_pose_transforms, clip.get_num_bones());
+		algorithm.decompress_pose(compressed_clip, (float)sample_time, lossy_pose_transforms, clip.get_num_bones());
 
 		clip.sample_pose(sample_time, raw_output_writer);
 
@@ -318,7 +318,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 
 	// Make sure we test the last sample time possible as well
 	{
-		algorithm.decode_pose(compressed_clip, (float)clip_duration, lossy_pose_transforms, clip.get_num_bones());
+		algorithm.decompress_pose(compressed_clip, (float)clip_duration, lossy_pose_transforms, clip.get_num_bones());
 
 		clip.sample_pose(clip_duration, raw_output_writer);
 
@@ -333,7 +333,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 		uint16_t sample_bone_index = clip.get_num_bones() - 1;
 		Quat_32 test_rotation;
 		Vector4_32 test_translation;
-		algorithm.decode_bone(compressed_clip, (float)clip_duration, sample_bone_index, &test_rotation, &test_translation);
+		algorithm.decompress_bone(compressed_clip, (float)clip_duration, sample_bone_index, &test_rotation, &test_translation);
 		ACL_ENSURE(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
 		ACL_ENSURE(vector_near_equal(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
 	}
@@ -352,7 +352,7 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 	QueryPerformanceCounter(&start_time_cycles);
 
 	AlgorithmType8 algorithm;
-	CompressedClip* compressed_clip = algorithm.encode(allocator, clip, skeleton, rotation_format);
+	CompressedClip* compressed_clip = algorithm.compress_clip(allocator, clip, skeleton, rotation_format);
 
 	LARGE_INTEGER end_time_cycles;
 	QueryPerformanceCounter(&end_time_cycles);
@@ -387,10 +387,9 @@ int main(int argc, char** argv)
 
 	// Compress & Decompress
 	{
-		try_algorithm<uniformly_sampled::FullPrecisionAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_128);
-		try_algorithm<uniformly_sampled::FullPrecisionAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_96);
-		//try_algorithm<uniformly_sampled::FixedQuantizationAlgorithm>(options, allocator, clip, skeleton, RotationFormat::Quat128);
-		//try_algorithm<uniformly_sampled::FixedQuantizationAlgorithm>(options, allocator, clip, skeleton, RotationFormat::Quat96);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_128);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_96);
+		//try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_48);
 	}
 
 	if (IsDebuggerPresent())
