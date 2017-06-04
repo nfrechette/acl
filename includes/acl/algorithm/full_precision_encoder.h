@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/memory.h"
-#include "acl/core/assert.h"
+#include "acl/core/error.h"
 #include "acl/core/bitset.h"
 #include "acl/core/algorithm_globals.h"
 #include "acl/algorithm/full_precision_common.h"

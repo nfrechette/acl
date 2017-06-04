@@ -84,9 +84,6 @@
     <ClInclude Include="includes\acl\core\utils.h">
       <Filter>includes\acl\core</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\core\assert.h">
-      <Filter>includes\acl\core</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\core\bitset.h">
       <Filter>includes\acl\core</Filter>
     </ClInclude>
@@ -97,6 +94,9 @@
       <Filter>includes\acl\core</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\core\algorithm_globals.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\error.h">
       <Filter>includes\acl\core</Filter>
     </ClInclude>
   </ItemGroup>

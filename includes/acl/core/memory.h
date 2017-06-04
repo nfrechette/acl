@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/assert.h"
+#include "acl/core/error.h"
 
 #include <malloc.h>
 #include <stdint.h>
