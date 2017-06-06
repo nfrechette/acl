@@ -78,6 +78,8 @@ namespace acl
 				m_allocator.deallocate(m_skeleton);
 				m_skeleton = nullptr;
 			}
+
+			return false;
 		}
 
 		AnimationClip* get_clip()
