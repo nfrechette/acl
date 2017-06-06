@@ -49,13 +49,35 @@ namespace acl
 
 		bool read()
 		{
-			// TODO: deallocate upon failure
+			if (m_read_already)
+			{
+				return false;
+			}
 
-			return read_version() &&
+			m_read_already = true;
+
+			if (read_version() &&
 				read_clip_header() &&
 				read_and_allocate_bones() &&
 				create_clip() &&
-				read_tracks();
+				read_tracks())
+			{
+				return true;
+			}
+
+			if (m_clip != nullptr)
+			{
+				m_clip->~AnimationClip();
+				m_allocator.deallocate(m_clip);
+				m_clip = nullptr;
+			}
+
+			if (m_skeleton != nullptr)
+			{
+				m_skeleton->~RigidSkeleton();
+				m_allocator.deallocate(m_skeleton);
+				m_skeleton = nullptr;
+			}
 		}
 
 		AnimationClip* get_clip()
@@ -75,6 +97,7 @@ namespace acl
 
 	private:
 		Allocator& m_allocator;
+		bool m_read_already{};
 		RigidSkeleton* m_skeleton{};
 		AnimationClip* m_clip{};
 
