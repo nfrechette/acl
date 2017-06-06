@@ -60,4 +60,9 @@ namespace acl
 	{
 		return std::isfinite(input);
 	}
+
+	inline float symmetric_round(float input)
+	{
+		return floor(input >= 0.0f ? (input + 0.5f) : (input - 0.5f));
+	}
 }

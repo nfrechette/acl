@@ -50,8 +50,8 @@ namespace acl
 
 			PtrOffset16<uint32_t>	default_tracks_bitset_offset;
 			PtrOffset16<uint32_t>	constant_tracks_bitset_offset;
-			PtrOffset16<float>		constant_track_data_offset;
-			PtrOffset16<float>		track_data_offset;
+			PtrOffset16<uint8_t>	constant_track_data_offset;
+			PtrOffset16<uint8_t>	track_data_offset;
 
 			//////////////////////////////////////////////////////////////////////////
 
@@ -61,11 +61,11 @@ namespace acl
 			uint32_t*		get_constant_tracks_bitset()		{ return constant_tracks_bitset_offset.add_to(this); }
 			const uint32_t*	get_constant_tracks_bitset() const	{ return constant_tracks_bitset_offset.add_to(this); }
 
-			float*			get_constant_track_data()			{ return constant_track_data_offset.add_to(this); }
-			const float*	get_constant_track_data() const		{ return constant_track_data_offset.add_to(this); }
+			uint8_t*		get_constant_track_data()			{ return constant_track_data_offset.add_to(this); }
+			const uint8_t*	get_constant_track_data() const		{ return constant_track_data_offset.add_to(this); }
 
-			float*			get_track_data()					{ return track_data_offset.add_to(this); }
-			const float*	get_track_data() const				{ return track_data_offset.add_to(this); }
+			uint8_t*		get_track_data()					{ return track_data_offset.add_to(this); }
+			const uint8_t*	get_track_data() const				{ return track_data_offset.add_to(this); }
 		};
 
 		constexpr FullPrecisionHeader& get_full_precision_header(CompressedClip& clip)

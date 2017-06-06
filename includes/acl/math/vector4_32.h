@@ -24,6 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
+#include "acl/core/memory.h"
 #include "acl/math/math.h"
 
 namespace acl
@@ -34,6 +36,15 @@ namespace acl
 		return Vector4_32(_mm_set_ps(w, z, y, x));
 #else
 		return Vector4_32{ x, y, z, w };
+#endif
+	}
+
+	inline Vector4_32 vector_set(float x, float y, float z)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return Vector4_32(_mm_set_ps(0.0f, z, y, x));
+#else
+		return Vector4_32{ x, y, z, 0.0f };
 #endif
 	}
 
@@ -48,11 +59,13 @@ namespace acl
 
 	inline Vector4_32 vector_unaligned_load(const float* input)
 	{
+		ACL_ENSURE(is_aligned(input), "Invalid alignment");
 		return vector_set(input[0], input[1], input[2], input[3]);
 	}
 
 	inline Vector4_32 vector_unaligned_load3(const float* input)
 	{
+		ACL_ENSURE(is_aligned(input), "Invalid alignment");
 		return vector_set(input[0], input[1], input[2], 0.0f);
 	}
 
@@ -115,8 +128,19 @@ namespace acl
 #endif
 	}
 
+	inline float* vector_as_float_ptr(Vector4_32& input)
+	{
+		return reinterpret_cast<float*>(&input);
+	}
+
+	inline const float* vector_as_float_ptr(const Vector4_32& input)
+	{
+		return reinterpret_cast<const float*>(&input);
+	}
+
 	inline void vector_unaligned_write(const Vector4_32& input, float* output)
 	{
+		ACL_ENSURE(is_aligned(output), "Invalid alignment");
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
@@ -125,6 +149,7 @@ namespace acl
 
 	inline void vector_unaligned_write3(const Vector4_32& input, float* output)
 	{
+		ACL_ENSURE(is_aligned(output), "Invalid alignment");
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);

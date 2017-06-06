@@ -50,14 +50,14 @@ namespace acl
 	{
 		Quat_128				= 0,	// Full precision quaternion, [x,y,z,w] stored with float32
 		Quat_96					= 1,	// Full precision quaternion, [x,y,z] stored with float32 (w is dropped)
+		Quat_48					= 2,	// Quantized quaternion, [x,y,z] stored with [16,16,16] bits (w is dropped)
 		// TODO: Implement these
-		//Quat48,				// Quantized quaternion, [x,y,z] stored with [16,16,16] bits (w is dropped)
-		//Quat32,				// Quantized quaternion, [x,y,z] stored with [11,11,10] bits (w is dropped)
-		//QuatVariable,			// Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
-		//QuatLog96,			// Full precision quaternion logarithm, [x,y,z] stored with float 32
-		//QuatLog48,			// Quantized quaternion logarithm, [x,y,z] stored with [16,16,16] bits
-		//QuatLog32,			// Quantized quaternion logarithm, [x,y,z] stored with [11,11,10] bits
-		//QuatLogVariable,		// Quantized quaternion logarithm, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
+		//Quat_32,				// Quantized quaternion, [x,y,z] stored with [11,11,10] bits (w is dropped)
+		//Quat_Variable,		// Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
+		//QuatLog_96,			// Full precision quaternion logarithm, [x,y,z] stored with float 32
+		//QuatLog_48,			// Quantized quaternion logarithm, [x,y,z] stored with [16,16,16] bits
+		//QuatLog_32,			// Quantized quaternion logarithm, [x,y,z] stored with [11,11,10] bits
+		//QuatLog_Variable,		// Quantized quaternion logarithm, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
 	};
 
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
@@ -119,6 +119,7 @@ namespace acl
 		{
 			case RotationFormat8::Quat_128:		return "Quat 128";
 			case RotationFormat8::Quat_96:		return "Quat 96";
+			case RotationFormat8::Quat_48:		return "Quat 48";
 			default:							return "<Unknown>";
 		}
 	}

@@ -389,7 +389,7 @@ int main(int argc, char** argv)
 	{
 		try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_128);
 		try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_96);
-		//try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_48);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_48);
 	}
 
 	if (IsDebuggerPresent())

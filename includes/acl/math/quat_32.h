@@ -24,6 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
+#include "acl/core/memory.h"
 #include "acl/math/math.h"
 #include "acl/math/scalar_32.h"
 #include "acl/math/vector4_32.h"
@@ -41,6 +43,7 @@ namespace acl
 
 	inline Quat_32 quat_unaligned_load(const float* input)
 	{
+		ACL_ENSURE(is_aligned(input), "Invalid alignment");
 		return quat_set(input[0], input[1], input[2], input[3]);
 	}
 
@@ -105,6 +108,7 @@ namespace acl
 
 	inline void quat_unaligned_write(const Quat_32& input, float* output)
 	{
+		ACL_ENSURE(is_aligned(output), "Invalid alignment");
 		output[0] = quat_get_x(input);
 		output[1] = quat_get_y(input);
 		output[2] = quat_get_z(input);

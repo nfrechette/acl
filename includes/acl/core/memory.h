@@ -29,6 +29,7 @@
 #include <malloc.h>
 #include <stdint.h>
 #include <type_traits>
+#include <limits>
 
 namespace acl
 {
@@ -42,6 +43,8 @@ namespace acl
 	{
 		return is_power_of_two(alignment) && alignment >= alignof(Type);
 	}
+
+	//////////////////////////////////////////////////////////////////////////
 
 	class Allocator
 	{
@@ -120,10 +123,55 @@ namespace acl
 		return (reinterpret_cast<uintptr_t>(value) & (alignment - 1)) == 0;
 	}
 
+	template<typename IntegralType>
+	constexpr bool is_aligned_to(IntegralType value, size_t alignment)
+	{
+		return (static_cast<size_t>(value) & (alignment - 1)) == 0;
+	}
+
+	template<typename PtrType>
+	constexpr bool is_aligned(PtrType* value)
+	{
+		return is_aligned_to(value, alignof(PtrType));
+	}
+
+	template<typename PtrType>
+	constexpr PtrType* align_to(PtrType* value, size_t alignment)
+	{
+		return reinterpret_cast<PtrType*>((reinterpret_cast<uintptr_t>(value) + (alignment - 1)) & ~(alignment - 1));
+	}
+
+	template<typename IntegralType>
+	constexpr IntegralType align_to(IntegralType value, size_t alignment)
+	{
+		return static_cast<IntegralType>((static_cast<size_t>(value) + (alignment - 1)) & ~(alignment - 1));
+	}
+
+	template<typename DestPtrType, typename SrcPtrType>
+	inline DestPtrType* safe_ptr_cast(SrcPtrType* input)
+	{
+		ACL_ENSURE(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
+		return reinterpret_cast<DestPtrType*>(input);
+	}
+
+	template<typename DestPtrType, typename SrcIntegralType>
+	inline DestPtrType* safe_ptr_cast(SrcIntegralType input)
+	{
+		ACL_ENSURE(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
+		return reinterpret_cast<DestPtrType*>(input);
+	}
+
+	template<typename DestIntegralType, typename SrcIntegralType>
+	inline DestIntegralType safe_static_cast(SrcIntegralType input)
+	{
+		ACL_ENSURE(input >= std::numeric_limits<DestIntegralType>::min() && input <= std::numeric_limits<DestIntegralType>::max(), "static_cast would result in truncation");
+		return static_cast<DestIntegralType>(input);
+	}
+
 	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>
 	constexpr OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, OffsetType offset)
 	{
-		return reinterpret_cast<OutputPtrType*>(reinterpret_cast<uintptr_t>(ptr) + offset);
+		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -134,9 +182,8 @@ namespace acl
 	public:
 		constexpr PtrOffset() : m_value(0) {}
 		constexpr PtrOffset(size_t value)
-			: m_value(static_cast<OffsetType>(value))
+			: m_value(safe_static_cast<OffsetType>(value))
 		{
-			ACL_ENSURE(value == m_value, "Value %u is being truncated to %u", value, m_value);
 		}
 
 		template<typename BaseType>
