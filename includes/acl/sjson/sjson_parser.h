@@ -1,630 +1,642 @@
 #pragma once
 
-//TODO #include "acl/memory.h"
-//#include "acl/sjson/variant.h"
+#include "sjson_parser_error.h"
 
-#include "memory.h"
-#include "variant.h"
-
-#include <stack>
 #include <cctype>
-#include <iterator>
-#include <string>
-#include <vector>
+#include <cmath>
+#include <cstring>
 
 namespace acl
 {
 	class SJSONParser
 	{
 	public:
-		SJSONParser(Allocator& allocator, std::istreambuf_iterator<char> input)
-			: m_allocator(&allocator)
-			, m_input(input)
+		SJSONParser(const char* const input, int input_length)
+			: m_input(input),
+			  m_input_length(input_length)
 		{
+			init_state();
 		}
 
-	protected:
-		virtual void onKey(std::string key) = 0;
-		virtual void onValue(std::string key, Variant* v) = 0;
-		virtual void onValue(std::string key, std::vector<Variant*> a) = 0;
-		virtual void onBeginObject() = 0;
-		virtual void onEndObject() = 0;
-
-	private:
-		enum Symbol
+		bool object_begins()
 		{
-			WHITESPACE,
-			OPENING_BRACE,
-			CLOSING_BRACE,
-			QUOTATION_MARK,
-			EQUALS,
-			COLON,
-			COMMA,
-			OPENING_BRACKET,
-			CLOSING_BRACKET,
-			BACKSLASH,
-			SLASH,
-			ASTERISK,
-			END_OF_LINE,
-			A,
-			E,
-			F,
-			L,
-			N,
-			R,
-			S,
-			T,
-			U,
-			LETTER,
-			MINUS,
-			DECIMAL_DIGIT,
-			CONTROL
-		};
-
-		void begin()
-		{
-			while (!m_eof && !m_failed)
-			{
-				if (found(SLASH))
-				{
-					comment();
-				}
-				else if (found(OPENING_BRACE))
-				{
-					explicitObject();
-				}
-				else
-				{
-					implicitObject();
-				}
-			}
+			return read_opening_brace();
 		}
 
-		void comment()
+		bool object_begins(const char* const having_name)
 		{
-			if (m_eof)
-			{
-				fail("This is starting to look like a comment, but then the file ends");
-			}
-			else if (found(SLASH))
-			{
-				singleLineComment();
-			}
-			else if (found(ASTERISK))
-			{
-				multiLineComment();
-			}
-			else
-			{
-				fail("A comment must begin with either // or /*");
-			}
+			return read_key(having_name) && read_equal_sign() && object_begins();
 		}
 
-		void singleLineComment()
+		bool object_ends()
 		{
-			while (!found(END_OF_LINE) && !m_eof)
-			{
-			}
+			return read_closing_brace();
 		}
 
-		void multiLineComment()
+		bool array_begins(const char* const having_name)
 		{
-			bool wasAsterisk = false;
-
-			while (!m_failed)
-			{
-				if (m_eof)
-				{
-					fail("The file ends before the comment does");
-				}
-				else if (found(ASTERISK))
-				{
-					wasAsterisk = true;
-				}
-				else if (wasAsterisk && found(SLASH))
-				{
-					break;
-				}
-				else
-				{
-					wasAsterisk = false;
-				}
-			}
+			return read_key(having_name) && read_equal_sign() && read_opening_bracket();
 		}
 
-		void explicitObject()
+		bool array_begins()
 		{
-			bool readValue = false;
-
-			while (!m_failed)
-			{
-				if (m_eof)
-				{
-					fail("The file ends before the object does; a closing brace is required");
-				}
-				else if (found(CLOSING_BRACE))
-				{
-					break;
-				}
-				else
-				{
-					commonObject(readValue);
-				}
-			}
+			return read_opening_bracket();
 		}
 
-		void implicitObject()
+		bool peek_if_array_ends() 
 		{
-			bool readValue = false;
-
-			while (!m_eof && !m_failed)
-			{
-				if (found(CLOSING_BRACE))
-				{
-					fail("A closing brace is not allowed, because the object doesn't start with one");
-				}
-				else
-				{
-					commonObject(readValue);
-				}
-			}
-		}
-
-		void commonObject(bool &readValue)
-		{
-			if (found(OPENING_BRACE))
-			{
-				fail("An object cannot be defined without a name");
-			}
-			else if (found(QUOTATION_MARK))
-			{
-				quotedKeyValue();
-				readValue = true;
-			}
-			else if (found(EQUALS) || found(COLON))
-			{
-				fail("A value cannot be defined without a name");
-			}
-			else if (found(COMMA))
-			{
-				if (!readValue)
-				{
-					fail("A comma in an object must follow a key-value pair");
-				}
-				else
-				{
-					readValue = false;
-				}
-			}
-			else if (found(WHITESPACE))
-			{
-			}
-			else if (found(SLASH))
-			{
-				comment();
-			}
-			else
-			{
-				unquotedKeyValue();
-				readValue = true;
-			}
-		}
-
-		void quotedKeyValue()
-		{
-			m_key = string();
-
-			value(false);
-
-			m_key.clear();
-		}
-
-		void unquotedKeyValue()
-		{
-			bool readDelimiter;
-
-			m_key = unquotedKey(readDelimiter);
-
-			value(readDelimiter);
-
-			m_key.clear();
-		}
-
-		std::string unquotedKey(bool &readDelimiter)
-		{
-			std::string result;
-			readDelimiter = false;
-
-			while (!m_failed)
-			{
-				if (m_eof)
-				{
-					break;
-				}
-				else if (found(QUOTATION_MARK))
-				{
-					fail("This quotation mark must be escaped");
-				}
-				else if (found(CONTROL))
-				{
-					fail("Control characters are not allowed in strings; use backslash escapes instead");
-				}
-				else if (found(BACKSLASH))
-				{
-					result += quotedCharacter();
-				}
-				else if (found(WHITESPACE))
-				{
-					break;
-				}
-				else if (found(EQUALS) || found(COLON))
-				{
-					readDelimiter = true;
-					break;
-				}
-				else
-				{
-					result += *m_input;
-				}
-			}
-
+			State s = save_state();
+			m_state.peeking = true;
+			bool result = array_ends();
+			restore_state(s);
 			return result;
 		}
 
-		Variant* value(bool readDelimiter)
+		bool array_ends()
+		{
+			return read_closing_bracket();
+		}
+
+		bool read(const char* const key, const char*& value, int& length)
+		{
+			return read_key(key) && read_equal_sign() && read_string(value, length);
+		}
+
+		bool read(const char* const key, bool& value)
+		{
+			return read_key(key) && read_equal_sign() && read_bool(value);
+		}
+
+		bool read(const char* const key, double& value)
+		{
+			return read_key(key) && read_equal_sign() && read_double(value);
+		}
+
+		bool read(const char* const key, int& value)
+		{
+			return read_key(key) && read_equal_sign() && read_int(value);
+		}
+
+		bool read(const char* const key, double* const values, int num_elements)
+		{
+			return read_key(key) && read_equal_sign() && read_opening_bracket() && read(values, num_elements) && read_closing_bracket();
+		}
+
+		bool read(double* const values, int num_elements)
+		{
+			for (int i = 0; i < num_elements; ++i)
+			{
+				if (!read_double(values[i]) || i < num_elements - 1 && !read_comma())
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool remainder_is_comments_and_whitespace()
+		{
+			if (!skip_comments_and_whitespace())
+			{
+				return false;
+			}
+
+			if (!eof())
+			{
+				set_error(SJSONParserError::UnexpectedContentAtEnd);
+				return false;
+			}
+
+			return true;
+		}
+
+		bool skip_comments_and_whitespace()
 		{
 			while (true)
 			{
-				if (m_eof)
+				if (eof())
 				{
-					fail("The file ends before the value does");
-					return nullptr;
+					return true;
 				}
-				else if (found(WHITESPACE))
+
+				if (std::isspace(m_state.symbol))
 				{
+					advance();
+					continue;
 				}
-				else if (found(EQUALS) || found(COLON))
+
+				if (m_state.symbol == '/')
 				{
-					if (readDelimiter)
+					advance();
+
+					if (!read_comment())
 					{
-						fail("There must be only one equal sign or colon between the key and value");
-						return nullptr;
+						return false;
+					}
+				}
+
+				return true;
+			}
+		}
+
+		void get_position(int& line, int& column)
+		{
+			line = m_state.line;
+			column = m_state.column;
+		}
+
+		bool eof()
+		{
+			return m_state.offset >= m_input_length;
+		}
+
+		SJSONParserError get_error()
+		{
+			return m_state.error;
+		}
+
+		struct State
+		{
+			int offset{};
+			int line{ 1 };
+			int column{ 1 };
+			char symbol;
+			bool peeking{};
+
+			SJSONParserError error{};
+		};
+
+		State save_state()
+		{
+			return m_state;
+		}
+
+		void restore_state(State& s)
+		{
+			m_state = s;
+
+			// If large file support is added, seek to the old position in the input file.
+		}
+
+		bool strings_equal(const char* const nul_terminated, const char* const unterminated, const int unterminated_length)
+		{
+			return std::strlen(nul_terminated) == unterminated_length &&
+				std::memcmp(nul_terminated, unterminated, unterminated_length) == 0;
+		}
+
+	private:
+		static int constexpr MAX_NUMBER_LENGTH = 64;
+
+		void set_error(int error)
+		{
+			m_state.error.error = error;
+			m_state.error.line = m_state.line;
+			m_state.error.column = m_state.column;
+		}
+
+		bool read_equal_sign()
+		{
+			return read_symbol('=', SJSONParserError::EqualSignExpected);
+		}
+
+		bool read_opening_brace()
+		{
+			return read_symbol('{', SJSONParserError::OpeningBraceExpected);
+		}
+
+		bool read_closing_brace()
+		{
+			return read_symbol('}', SJSONParserError::ClosingBraceExpected);
+		}
+
+		bool read_opening_bracket()
+		{
+			return read_symbol('[', SJSONParserError::OpeningBracketExpected);
+		}
+
+		bool read_closing_bracket()
+		{
+			return read_symbol(']', SJSONParserError::ClosingBracketExpected);
+		}
+
+		bool read_comma()
+		{
+			return read_symbol(',', SJSONParserError::CommaExpected);
+		}
+
+		bool read_symbol(char expected, int reason_if_other_found)
+		{
+			if (!skip_comments_and_whitespace_fail_if_eof())
+			{
+				return false;
+			}
+
+			if (m_state.symbol == expected)
+			{
+				advance();
+				return true;
+			}
+
+			set_error(reason_if_other_found);
+			return false;
+		}
+
+		bool read_comment()
+		{
+			if (eof())
+			{
+				set_error(SJSONParserError::InputTruncated);
+				return false;
+			}
+
+			if (m_state.symbol == '/')
+			{
+				while (!eof() && m_state.symbol != '\n')
+				{
+					advance();
+				}
+
+				return true;
+			}
+			else if (m_state.symbol == '*')
+			{
+				advance();
+
+				bool wasAsterisk = false;
+
+				while (true)
+				{
+					if (eof())
+					{
+						set_error(SJSONParserError::InputTruncated);
+						return false;
+					}
+					else if (m_state.symbol == '*')
+					{
+						advance();
+						wasAsterisk = true;
+					}
+					else if (wasAsterisk && m_state.symbol == '/')
+					{
+						advance();
+						return true;
 					}
 					else
 					{
-						readDelimiter = true;
+						wasAsterisk = false;
 					}
 				}
-				else if (found(QUOTATION_MARK))
-				{
-					return Variant.New(string());
-				}
-				else if (found(MINUS, false) || found(DECIMAL_DIGIT, false))
-				{
-					return number();
-				}
-				else if (found(OPENING_BRACE))
-				{
-					explicitObject();
-					return nullptr;
-				}
-				else if (found(OPENING_BRACKET))
-				{
-					array();
-					return nullptr;
-				}
-				else
-				{
-					return nonNumericLiteral();
-				}
-			}
-		}
-
-		void array()
-		{
-			m_array.clear();
-
-			while (!m_failed)
-			{
-				if (m_eof)
-				{
-					fail("The file ends before the array does");
-				}
-				else if (found(COMMA) && m_array.empty())
-				{
-					fail("A comma in an array must follow a value");
-				}
-				else if (found(CLOSING_BRACKET))
-				{
-					break;
-				}
-				else
-				{
-					m_array.push_back(value(true));
-				}
-			}
-		}
-
-		Variant* nonNumericLiteral()
-		{
-			if (found(T))
-			{
-				if (m_eof || !found(R)) goto error;
-				if (m_eof || !found(U)) goto error;
-				if (m_eof || !found(E)) goto error;
-
-				return Variant.New(true);
-			}
-			
-			if (found(F))
-			{
-				if (m_eof || !found(A)) goto error;
-				if (m_eof || !found(L)) goto error;
-				if (m_eof || !found(S)) goto error;
-				if (m_eof || !found(E)) goto error;
-
-				return Variant.New(false);
-			}
-			
-			if (found(N))
-			{
-				if (m_eof || !found(U)) goto error;
-				if (m_eof || !found(L)) goto error;
-				if (m_eof || !found(L)) goto error;
-
-				return Variant.New();
-			}
-
-error:
-			fail("The only non-numeric literals allowed are true, false, and null.");
-			return nullptr;
-		}
-
-		std::string string()
-		{
-			std::string result;
-
-			while (!m_failed)
-			{
-				if (m_eof)
-				{
-					fail("The file ends before the string does");
-				}
-				else if (found(QUOTATION_MARK))
-				{
-					break;
-				}
-				else if (found(CONTROL))
-				{
-					fail("Control characters are not allowed in strings; use backslash escapes instead");
-				}
-				else if (found(BACKSLASH))
-				{
-					result += quotedCharacter();
-				}
-				else
-				{
-					result += *m_input;
-				}
-			}
-
-			return result;
-		}
-
-		std::string quotedCharacter()
-		{
-			std::string result;
-
-			if (m_eof)
-			{
-				fail("The file ends before the escaped character does");
-			}
-			else if (found(QUOTATION_MARK))
-			{
-				result = "\"";
-			}
-			else if (found(BACKSLASH))
-			{
-				result = "\\";
-			}
-			else if (found(SLASH))
-			{
-				result = "/";
-			}
-			else if (found(N))
-			{
-				result = "\n";
-			}
-			else if (found(R))
-			{
-				result = "\r";
-			}
-			else if (found(T))
-			{
-				result = "\t";
 			}
 			else
 			{
-				fail("Unrecognized or unsupported escape sequence");
+				set_error(SJSONParserError::CommentBeginsIncorrectly);
+				return false;
 			}
-
-			return result;
 		}
 
-		Variant* number()
+		bool read_key(const char* const having_name)
 		{
-			std::string text;
-
-			// Cheat and lean on the standard library, rather than following the JSON specification.
-			while (!m_eof &&
-				!found(WHITESPACE) &&
-				!found(COMMA) &&
-				!found(CLOSING_BRACE, false) &&
-				!found(CLOSING_BRACKET, false))
+			if (!skip_comments_and_whitespace_fail_if_eof())
 			{
-				text += *m_input;
+				return false;
 			}
 
-			try
+			State start_of_key = save_state();
+
+			const char* actual;
+			int length;
+
+			if (m_state.symbol == '"')
 			{
-				if (text.find(".") != std::string::npos)
+				if (!read_string(actual, length))
 				{
-					// TODO - parse with std::stod
+					return false;
 				}
-				else
-				{
-					// TODO - parse with std::stoi
-				}
-			}
-			catch()
-			{
-				fail("Incorrectly formatted number");
-				return nullptr;
-			}
-		}
-
-		std::istreambuf_iterator<unsigned char> m_input;
-		std::istreambuf_iterator<unsigned char> m_sentinel;
-
-		int m_line{};
-		int m_column{};
-
-		bool m_eof{};
-
-		bool found(Symbol s, bool advanceIfFound = true)
-		{
-			bool matches = false;
-
-			switch (s)
-			{
-			case WHITESPACE:
-				matches = std::isspace(*m_input);
-				break;
-			case OPENING_BRACE:
-				matches = *m_input == '{';
-				break;
-			case CLOSING_BRACE:
-				matches = *m_input == '}';
-				break;
-			case QUOTATION_MARK:
-				matches = *m_input == '"';
-				break;
-			case EQUALS:
-				matches = *m_input == '=';
-				break;
-			case COLON:
-				matches = *m_input == ':';
-				break;
-			case COMMA:
-				matches = *m_input == ',';
-				break;
-			case END_OF_LINE:
-				matches = *m_input == '\n';
-				break;
-			case OPENING_BRACKET:
-				matches = *m_input == '[';
-				break;
-			case CLOSING_BRACKET:
-				matches = *m_input == ']';
-				break;
-			case BACKSLASH:
-				matches = *m_input == '\\';
-				break;
-			case SLASH:
-				matches = *m_input == '/';
-				break;
-			case ASTERISK:
-				matches = *m_input == '*';
-				break;
-			case A:
-				matches = *m_input == 'a';
-				break;
-			case E:
-				matches = *m_input == 'e';
-				break;
-			case F:
-				matches = *m_input == 'f';
-				break;
-			case L:
-				matches = *m_input == 'l';
-				break;
-			case N:
-				matches = *m_input == 'n';
-				break;
-			case R:
-				matches = *m_input == 'r';
-				break;
-			case S:
-				matches = *m_input == 's';
-				break;
-			case T:
-				matches = *m_input == 't';
-				break;
-			case U:
-				matches = *m_input == 'u';
-				break;
-			case LETTER:
-				matches = std::isalpha(*m_input);
-				break;
-			case MINUS:
-				matches = *m_input == '-';
-				break;
-			case DECIMAL_DIGIT:
-				matches = std::isdigit(*m_input);
-				break;
-			case CONTROL:
-				matches = std::iscntrl(*m_input);
-				break;
-			}
-
-			if (matches && advanceIfFound)
-			{
-				readNext();
-			}
-			
-			return matches;
-		}
-
-		void readNext()
-		{
-			++m_input;
-
-			if (m_input == m_sentinel)
-			{
-				m_eof = true;
-				return;
-			}
-
-			if (*m_input == '\n')
-			{
-				++m_line;
-				m_column = 0;
 			}
 			else
 			{
-				m_column++;
+				if (!read_unquoted_key(actual, length))
+				{
+					return false;
+				}
 			}
-		}
 
-		Allocator* m_allocator;
-			
-		bool m_failed{};
-		std::string m_failure_reason{};
-		int m_failed_at_line{};
-		int m_failed_at_column{};
-
-		void fail(std::string reason)
-		{
-			if (!m_failed)
+			if (!strings_equal(having_name, actual, length))
 			{
-				m_failed = true;
-				m_failure_reason = reason;
-				m_failed_at_line = m_line;
-				m_failed_at_column = m_column;
+				restore_state(start_of_key);
+				set_error(SJSONParserError::IncorrectKey);
+				return false;
 			}
+
+			return true;
 		}
 
-		std::string m_key{};
-		std::vector<Variant*> m_array;
+		bool read_string(const char*& value, int& length)
+		{
+			if (!skip_comments_and_whitespace_fail_if_eof())
+			{
+				return false;
+			}
+
+			if (m_state.symbol != '"')
+			{
+				set_error(SJSONParserError::QuotationMarkExpected);
+				return false;
+			}
+
+			advance();
+
+			int start_offset = m_state.offset;
+			int end_offset;
+
+			while (true)
+			{
+				if (eof())
+				{
+					set_error(SJSONParserError::InputTruncated);
+					return false;
+				}
+
+				if (m_state.symbol == '"')
+				{
+					end_offset = m_state.offset - 1;
+					advance();
+					break;
+				}
+
+				if (m_state.symbol == '\\')
+				{
+					// Strings are returned as slices of the input, so escape sequences cannot be un-escaped.
+					// Assume the escape sequence is valid and skip over it.
+					advance();
+				}
+
+				advance();
+			}
+
+			value = m_input + start_offset;
+			length = end_offset - start_offset + 1;
+			return true;
+		}
+
+		bool read_unquoted_key(const char*& value, int& length)
+		{
+			if (eof())
+			{
+				set_error(SJSONParserError::InputTruncated);
+				return false;
+			}
+
+			int start_offset = m_state.offset;
+			int end_offset;
+
+			while (true)
+			{
+				if (eof())
+				{
+					end_offset = m_state.offset - 1;
+					break;
+				}
+
+				if (m_state.symbol == '"')
+				{
+					set_error(SJSONParserError::CannotUseQuotationMarkInUnquotedString);
+					return false;
+				}
+
+				if (m_state.symbol == '=')
+				{
+					if (m_state.offset == start_offset)
+					{
+						set_error(SJSONParserError::KeyExpected);
+						return false;
+					}
+
+					end_offset = m_state.offset - 1;
+					break;
+				}
+
+				if (std::isspace(m_state.symbol))
+				{
+					end_offset = m_state.offset - 1;
+					advance();
+					break;
+				}
+
+				advance();
+			}
+
+			value = m_input + start_offset;
+			length = end_offset - start_offset + 1;
+			return true;
+		}
+
+		// TODO: document that the literal null is not supported
+		bool read_bool(bool& value)
+		{
+			if (!skip_comments_and_whitespace_fail_if_eof())
+			{
+				return false;
+			}
+
+			State start_of_literal = save_state();
+
+			if (m_state.symbol == 't')
+			{
+				advance();
+
+				if (m_state.symbol == 'r' && advance() &&
+					m_state.symbol == 'u' && advance() &&
+					m_state.symbol == 'e' && advance())
+				{
+					value = true;
+					return true;
+				}
+			}
+			else if (m_state.symbol == 'f')
+			{
+				advance();
+
+				if (m_state.symbol == 'a' && advance() &&
+					m_state.symbol == 'l' && advance() &&
+					m_state.symbol == 's' && advance() &&
+					m_state.symbol == 'e' && advance())
+				{
+					value = false;
+					return true;
+				}
+			}
+			
+			restore_state(start_of_literal);
+			set_error(SJSONParserError::TrueOrFalseExpected);
+			return false;
+		}
+
+		bool read_double(double& value)
+		{
+			if (!skip_comments_and_whitespace_fail_if_eof())
+			{
+				return false;
+			}
+
+			int start_offset = m_state.offset;
+			int end_offset;
+
+			if (m_state.symbol == '-')
+			{
+				advance();
+			}
+
+			if (m_state.symbol == '0')
+			{
+				advance();
+			}
+			else if (std::isdigit(m_state.symbol))
+			{
+				while (std::isdigit(m_state.symbol))
+				{
+					advance();
+				}
+			}
+			else
+			{
+				set_error(SJSONParserError::NumberExpected);
+				return false;
+			}
+
+			if (m_state.symbol == '.')
+			{
+				advance();
+
+				while (std::isdigit(m_state.symbol))
+				{
+					advance();
+				}
+			}
+
+			if (m_state.symbol == 'e' || m_state.symbol == 'E')
+			{
+				advance();
+
+				if (m_state.symbol == '+' || m_state.symbol == '-')
+				{
+					advance();
+				}
+				else if (!std::isdigit(m_state.symbol))
+				{
+					set_error(SJSONParserError::InvalidNumber);
+					return false;
+				}
+
+				while (std::isdigit(m_state.symbol))
+				{
+					advance();
+				}
+			}
+			
+			end_offset = m_state.offset - 1;
+			int length = end_offset - start_offset + 1;
+
+			char slice[MAX_NUMBER_LENGTH + 1];
+			if (length >= MAX_NUMBER_LENGTH)
+			{
+				set_error(SJSONParserError::NumberIsTooLong);
+				return false;
+			}
+
+			std::memcpy(slice, m_input + start_offset, length);
+			slice[length] = '\0';
+
+			char* last_used_symbol = nullptr;
+			value = std::strtod(slice, &last_used_symbol);
+
+			if (last_used_symbol != slice + length)
+			{
+				set_error(SJSONParserError::NumberCouldNotBeConverted);
+				return false;
+			}
+
+			return true;
+		}
+
+		bool read_int(int& value)
+		{
+			double d;
+
+			if (!read_double(d))
+			{
+				return false;
+			}
+
+			double integer_portion;
+
+			if (std::modf(d, &integer_portion) != 0.0)
+			{
+				set_error(SJSONParserError::IntegerExpected);
+				return false;
+			}
+
+			value = static_cast<int>(integer_portion);
+			return true;
+		}
+
+		bool skip_comments_and_whitespace_fail_if_eof()
+		{
+			if (!skip_comments_and_whitespace())
+			{
+				return false;
+			}
+
+			if (eof())
+			{
+				set_error(SJSONParserError::InputTruncated);
+				return false;
+			}
+
+			return true;
+		}
+
+		bool advance()
+		{
+			if (eof())
+			{
+				return false;
+			}
+
+			m_state.offset++;
+
+			if (eof())
+			{
+				m_state.symbol = '\0';
+			}
+			else
+			{
+				m_state.symbol = m_input[m_state.offset];
+
+				if (m_state.symbol == '\n')
+				{
+					++m_state.line;
+					m_state.column = 1;
+				}
+				else
+				{
+					m_state.column++;
+				}
+			}
+
+			return true;
+		}
+
+		void init_state()
+		{
+			m_state.symbol = m_input_length > 0 ? m_input[0] : '\0';
+		}
+
+		const char* const m_input;
+		const int m_input_length;
+
+		State m_state;
+		State m_saved_state;
 	};
 }

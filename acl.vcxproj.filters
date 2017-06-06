@@ -88,8 +88,9 @@
       <Filter>includes\acl</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\sjson\sjson_parser.h" />
-    <ClInclude Include="includes\acl\sjson\variant.h" />
-    <ClInclude Include="includes\acl\sjson\animation_sjson_parser.h" />
+    <ClInclude Include="includes\acl\sjson\sjson_parser_error.h" />
+    <ClInclude Include="includes\acl\clip_reader\clip_reader.h" />
+    <ClInclude Include="includes\acl\clip_reader\clip_reader_error.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

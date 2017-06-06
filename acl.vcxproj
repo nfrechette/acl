@@ -41,9 +41,10 @@
     <ClInclude Include="includes\acl\math\vector4_32.h" />
     <ClInclude Include="includes\acl\math\vector4_64.h" />
     <ClInclude Include="includes\acl\algorithm_globals.h" />
-    <ClInclude Include="includes\acl\sjson\animation_sjson_parser.h" />
+    <ClInclude Include="includes\acl\clip_reader\clip_reader.h" />
+    <ClInclude Include="includes\acl\clip_reader\clip_reader_error.h" />
     <ClInclude Include="includes\acl\sjson\sjson_parser.h" />
-    <ClInclude Include="includes\acl\sjson\variant.h" />
+    <ClInclude Include="includes\acl\sjson\sjson_parser_error.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />
