@@ -99,18 +99,44 @@ namespace acl
 		}
 
 	private:
+		// Temporary storage for input that must be translated to compressor data structures.
+		struct Header
+		{
+			const char* clip_name;
+			int clip_name_length;
+			int num_samples;
+			int sample_rate;
+			double error_threshold;
+			const char* reference_frame;
+			int reference_frame_length;
+		};
+
+		struct Bone
+		{
+			int index;
+			const char* name;
+			int name_length;
+			const char* parent;
+			int parent_length;
+			double vertex_distance;
+			double bind_rotation[4];
+			double bind_translation[3];
+			double bind_scale[3];
+		};
+
 		Allocator& m_allocator;
 		bool m_read_already{};
-		RigidSkeleton* m_skeleton{};
-		AnimationClip* m_clip{};
-
-		int m_num_bones{};
-		char* m_bone_names{};
-
 		SJSONParser m_parser;
 		ClipReaderError m_error;
 
+		RigidSkeleton* m_skeleton{};
+		AnimationClip* m_clip{};
+
 		double m_version{};
+		Header m_header{};
+
+		int m_num_bones{};
+		char* m_bone_names{};
 
 		void set_error(int reason)
 		{
@@ -134,19 +160,6 @@ namespace acl
 
 			return true;
 		}
-
-		struct Header
-		{
-			const char* clip_name;
-			int clip_name_length;
-			int num_samples;
-			int sample_rate;
-			double error_threshold;
-			const char* reference_frame;
-			int reference_frame_length;
-		};
-
-		Header m_header{};
 
 		bool read_clip_header()
 		{
@@ -246,14 +259,12 @@ namespace acl
 			}
 			
 			m_skeleton = allocate_type<RigidSkeleton>(m_allocator, std::ref(m_allocator), bones, m_num_bones);
-
 			m_allocator.deallocate(bones);
 
 			return true;
 
 		error:
 			m_allocator.deallocate(bones);
-
 			return false;
 		}
 
@@ -274,25 +285,11 @@ namespace acl
 			return -1;
 		}
 
-		struct Bone
-		{
-			int index;
-			const char* name;
-			int name_length;
-			const char* parent;
-			int parent_length;
-			double vertex_distance;
-			double bind_rotation[4];
-			double bind_translation[3];
-			double bind_scale[3];
-		};
-
 		bool for_each_bone(std::function<bool(Bone)> process)
 		{
 			if (!m_parser.array_begins("bones"))
 			{
-				m_error = m_parser.get_error();
-				return false;
+				goto error;
 			}
 
 			int index = 0;
@@ -306,8 +303,7 @@ namespace acl
 					!m_parser.read("parent", b.parent, b.parent_length) ||
 					!m_parser.read("vertex_distance", b.vertex_distance))
 				{
-					m_error = m_parser.get_error();
-					return false;
+					goto error;
 				}
 
 				m_parser.try_read("bind_rotation", b.bind_rotation, 4);
@@ -316,8 +312,7 @@ namespace acl
 				
 				if (!m_parser.object_ends())
 				{
-					m_error = m_parser.get_error();
-					return false;
+					goto error;
 				}
 
 				b.index = index;
@@ -330,6 +325,10 @@ namespace acl
 			}
 
 			return true;
+
+		error:
+			m_error = m_parser.get_error();
+			return false;
 		}
 
 		bool create_clip()
@@ -370,22 +369,10 @@ namespace acl
 
 				AnimatedBone* bone = m_clip->get_bones() + bone_index;
 
-				if (m_parser.try_array_begins("rotations") && !read_track_rotations(bone))
-				{
-					goto error;
-				}
-
-				if (m_parser.try_array_begins("translations") && !read_track_translations(bone))
-				{
-					goto error;
-				}
-				
-				if (m_parser.array_begins("scales") && !read_track_scales(bone))
-				{
-					goto error;
-				}
-
-				if (!m_parser.object_ends())
+				if (m_parser.try_array_begins("rotations") && !read_track_rotations(bone) ||
+					m_parser.try_array_begins("translations") && !read_track_translations(bone) ||
+					m_parser.try_array_begins("scales") && !read_track_scales(bone) ||
+					!m_parser.object_ends())
 				{
 					goto error;
 				}
@@ -396,17 +383,6 @@ namespace acl
 		error:
 			m_error = m_parser.get_error();
 			return false;
-		}
-
-		bool nothing_follows()
-		{
-			if (!m_parser.remainder_is_comments_and_whitespace())
-			{
-				m_error = m_parser.get_error();
-				return false;
-			}
-
-			return true;
 		}
 
 		bool read_track_rotations(AnimatedBone* bone)
@@ -458,6 +434,17 @@ namespace acl
 			}
 
 			return m_parser.array_ends();
+		}
+
+		bool nothing_follows()
+		{
+			if (!m_parser.remainder_is_comments_and_whitespace())
+			{
+				m_error = m_parser.get_error();
+				return false;
+			}
+
+			return true;
 		}
 	};
 }
