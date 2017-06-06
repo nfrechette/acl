@@ -65,4 +65,12 @@ namespace acl
 	{
 		return floor(input >= 0.0f ? (input + 0.5f) : (input - 0.5f));
 	}
+
+	template<typename SrcIntegralType>
+	inline float safe_to_float(SrcIntegralType input)
+	{
+		float input_f = float(input);
+		ACL_ENSURE(SrcIntegralType(input_f) == input, "Convertion to float would result in truncation");
+		return input_f;
+	}
 }

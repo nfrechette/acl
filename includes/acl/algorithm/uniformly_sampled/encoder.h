@@ -137,7 +137,7 @@ namespace acl
 			{
 				ACL_ENSURE(input >= 0.0f && input <= 1.0f, "Invalue input value: 0.0 <= %f <= 1.0", input);
 				size_t max_value = (1 << num_bits) - 1;
-				return static_cast<size_t>(symmetric_round(input * float(max_value)));
+				return static_cast<size_t>(symmetric_round(input * safe_to_float(max_value)));
 			}
 
 			inline size_t quantize_signed_normalized(float input, size_t num_bits)

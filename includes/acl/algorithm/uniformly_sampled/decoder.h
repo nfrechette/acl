@@ -174,7 +174,7 @@ namespace acl
 			{
 				size_t max_value = (1 << num_bits) - 1;
 				ACL_ENSURE(input <= max_value, "Invalue input value: %ull <= 1.0", input);
-				return float(input) / float(max_value);
+				return safe_to_float(input) / safe_to_float(max_value);
 			}
 
 			inline float dequantize_signed_normalized(size_t input, size_t num_bits)
