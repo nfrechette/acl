@@ -1,5 +1,29 @@
 #pragma once
 
+////////////////////////////////////////////////////////////////////////////////
+// The MIT License (MIT)
+//
+// Copyright (c) 2017 Nicholas Frechette & Animation Compression Library contributors
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+////////////////////////////////////////////////////////////////////////////////
+
 #include "sjson_parser_error.h"
 
 #include <cctype>
@@ -38,6 +62,19 @@ namespace acl
 			return read_key(having_name) && read_equal_sign() && read_opening_bracket();
 		}
 
+		bool try_array_begins(const char* const having_name)
+		{
+			State s = save_state();
+
+			if (!array_begins(having_name))
+			{
+				restore_state(s);
+				return false;
+			}
+
+			return true;
+		}
+
 		bool array_begins()
 		{
 			return read_opening_bracket();
@@ -62,6 +99,23 @@ namespace acl
 			return read_key(key) && read_equal_sign() && read_string(value, length);
 		}
 
+		bool try_read(const char* const key, const char*& value, int& length)
+		{
+			State s = save_state();
+			
+			if (!read(key, value, length))
+			{
+				restore_state(s);
+
+				value = nullptr;
+				length = 0;
+
+				return false;
+			}
+
+			return true;
+		}
+
 		bool read(const char* const key, bool& value)
 		{
 			return read_key(key) && read_equal_sign() && read_bool(value);
@@ -80,6 +134,25 @@ namespace acl
 		bool read(const char* const key, double* const values, int num_elements)
 		{
 			return read_key(key) && read_equal_sign() && read_opening_bracket() && read(values, num_elements) && read_closing_bracket();
+		}
+
+		bool try_read(const char* const key, double* const values, int num_elements)
+		{
+			State s = save_state();
+			
+			if (!read(key, values, num_elements))
+			{
+				restore_state(s);
+
+				for (int i = 0; i < num_elements; ++i)
+				{
+					values[i] = 0.0;
+				}
+
+				return false;
+			}
+
+			return true;
 		}
 
 		bool read(double* const values, int num_elements)

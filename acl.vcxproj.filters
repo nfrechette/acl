@@ -19,6 +19,24 @@
     <Filter Include="includes\acl\algorithm">
       <UniqueIdentifier>{1a57ab3b-e48f-453c-aaf8-7a2ad19ed10e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="includes\acl\core">
+      <UniqueIdentifier>{7c3d7b96-4684-4837-8749-293af8876e21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tools">
+      <UniqueIdentifier>{6c258046-4b9d-4f1d-9a65-49709959e7f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tools\vs_visualizers">
+      <UniqueIdentifier>{102b0a93-eb53-4f14-9e94-ba5a4a08a5f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl\algorithm\uniformy_sampled">
+      <UniqueIdentifier>{6be52b60-afdf-481f-bc25-2098a6c9804a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl\algorithm\linear_key_reduction">
+      <UniqueIdentifier>{043c5333-0606-4b1d-bd93-f5c99883b62c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl\algorithm\spline_key_reduction">
+      <UniqueIdentifier>{af279707-3bf7-4e7d-a479-80dbc338f900}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\acl\math\quat_64.h">
@@ -36,23 +54,14 @@
     <ClInclude Include="includes\acl\compression\animation_track.h">
       <Filter>includes\acl\compression</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\assert.h">
-      <Filter>includes\acl</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\math\quat_32.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\math\vector4_32.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\algorithm_globals.h">
-      <Filter>includes\acl</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\math\math.h">
       <Filter>includes\acl\math</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\acl\compressed_clip.h">
-      <Filter>includes\acl</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\compression\compressed_clip_impl.h">
       <Filter>includes\acl\compression</Filter>
@@ -66,26 +75,56 @@
     <ClInclude Include="includes\acl\math\scalar_32.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\algorithm\full_precision_decoder.h">
-      <Filter>includes\acl\algorithm</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\acl\algorithm\full_precision_encoder.h">
-      <Filter>includes\acl\algorithm</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\acl\memory.h">
-      <Filter>includes\acl</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\math\math_types.h">
       <Filter>includes\acl\math</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\acl\algorithm\full_precision_common.h">
-      <Filter>includes\acl\algorithm</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\math\scalar_64.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\bitset.h">
-      <Filter>includes\acl</Filter>
+    <ClInclude Include="includes\acl\compression\skeleton_error_metric.h">
+      <Filter>includes\acl\compression</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\transform_64.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\utils.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\bitset.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\compressed_clip.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\memory.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\algorithm_globals.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\error.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\enum_utils.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\ialgorithm.h">
+      <Filter>includes\acl\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\transform_32.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\encoder.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\decoder.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\common.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\algorithm.h">
+      <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\sjson\sjson_parser.h" />
     <ClInclude Include="includes\acl\sjson\sjson_parser_error.h" />
@@ -95,5 +134,10 @@
   <ItemGroup>
     <None Include="LICENSE" />
     <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="tools\vs_visualizers\acl.natvis">
+      <Filter>tools\vs_visualizers</Filter>
+    </Natvis>
   </ItemGroup>
 </Project>

@@ -5,3 +5,4 @@ tools/Compressor/x64/
 *.suo
 tools/acl_compressor/x64/
 tools/acl_compressor/Win32/
+*.user

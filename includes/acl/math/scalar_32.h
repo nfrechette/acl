@@ -27,6 +27,7 @@
 #include "acl/math/math.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace acl
 {
@@ -43,5 +44,33 @@ namespace acl
 	inline float sqrt(float input)
 	{
 		return std::sqrt(input);
+	}
+
+	inline float min(float left, float right)
+	{
+		return std::min(left, right);
+	}
+
+	inline float max(float left, float right)
+	{
+		return std::max(left, right);
+	}
+
+	inline float is_finite(float input)
+	{
+		return std::isfinite(input);
+	}
+
+	inline float symmetric_round(float input)
+	{
+		return floor(input >= 0.0f ? (input + 0.5f) : (input - 0.5f));
+	}
+
+	template<typename SrcIntegralType>
+	inline float safe_to_float(SrcIntegralType input)
+	{
+		float input_f = float(input);
+		ACL_ENSURE(SrcIntegralType(input_f) == input, "Convertion to float would result in truncation");
+		return input_f;
 	}
 }

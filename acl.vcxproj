@@ -19,15 +19,23 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="includes\acl\algorithm\full_precision_common.h" />
-    <ClInclude Include="includes\acl\algorithm\full_precision_decoder.h" />
-    <ClInclude Include="includes\acl\algorithm\full_precision_encoder.h" />
-    <ClInclude Include="includes\acl\bitset.h" />
+    <ClInclude Include="includes\acl\algorithm\ialgorithm.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\algorithm.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\common.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\decoder.h" />
+    <ClInclude Include="includes\acl\algorithm\uniformly_sampled\encoder.h" />
+    <ClInclude Include="includes\acl\compression\skeleton_error_metric.h" />
+    <ClInclude Include="includes\acl\core\algorithm_globals.h" />
+    <ClInclude Include="includes\acl\core\enum_utils.h" />
+    <ClInclude Include="includes\acl\core\error.h" />
+    <ClInclude Include="includes\acl\core\bitset.h" />
+    <ClInclude Include="includes\acl\core\compressed_clip.h" />
+    <ClInclude Include="includes\acl\core\memory.h" />
+    <ClInclude Include="includes\acl\core\utils.h" />
     <ClInclude Include="includes\acl\math\math_types.h" />
     <ClInclude Include="includes\acl\math\scalar_64.h" />
-    <ClInclude Include="includes\acl\memory.h" />
-    <ClInclude Include="includes\acl\assert.h" />
-    <ClInclude Include="includes\acl\compressed_clip.h" />
+    <ClInclude Include="includes\acl\math\transform_32.h" />
+    <ClInclude Include="includes\acl\math\transform_64.h" />
     <ClInclude Include="includes\acl\compression\animation_clip.h" />
     <ClInclude Include="includes\acl\compression\animation_track.h" />
     <ClInclude Include="includes\acl\compression\animation_track_range.h" />
@@ -40,7 +48,6 @@
     <ClInclude Include="includes\acl\math\scalar_32.h" />
     <ClInclude Include="includes\acl\math\vector4_32.h" />
     <ClInclude Include="includes\acl\math\vector4_64.h" />
-    <ClInclude Include="includes\acl\algorithm_globals.h" />
     <ClInclude Include="includes\acl\clip_reader\clip_reader.h" />
     <ClInclude Include="includes\acl\clip_reader\clip_reader_error.h" />
     <ClInclude Include="includes\acl\sjson\sjson_parser.h" />
@@ -49,6 +56,9 @@
   <ItemGroup>
     <None Include="LICENSE" />
     <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="tools\vs_visualizers\acl.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{14B38BAE-BC9B-4C39-8F0E-F6728BA2FCAC}</ProjectGuid>

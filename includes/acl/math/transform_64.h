@@ -24,61 +24,39 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/assert.h"
-
-#include <malloc.h>
+#include "acl/math/math.h"
+#include "acl/math/quat_64.h"
+#include "acl/math/vector4_64.h"
 
 namespace acl
 {
-	class Allocator
+	inline Transform_64 transform_set(const Quat_64& rotation, const Vector4_64& translation)
 	{
-	public:
-		static constexpr size_t DEFAULT_ALIGNMENT = 16;
-
-		Allocator() {}
-		virtual ~Allocator() {}
-
-		Allocator(const Allocator&) = delete;
-		Allocator& operator=(const Allocator&) = delete;
-
-		virtual void* allocate(size_t size, size_t alignment = DEFAULT_ALIGNMENT)
-		{
-			return _aligned_malloc(size, alignment);
-		}
-
-		virtual void deallocate(void* ptr)
-		{
-			if (ptr == nullptr)
-			{
-				return;
-			}
-
-			_aligned_free(ptr);
-		}
-	};
-
-	template<typename AllocatedType>
-	AllocatedType* allocate_type(Allocator& allocator)
-	{
-		return reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignof(AllocatedType)));
+		return Transform_64{ rotation, translation };
 	}
 
-	template<typename AllocatedType>
-	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements)
+	inline Transform_64 transform_cast(const Transform_32& input)
 	{
-		return reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignof(AllocatedType)));
+		return Transform_64{ quat_cast(input.rotation), vector_cast(input.translation) };
 	}
 
-	template<typename AllocatedType>
-	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements, size_t alignment)
+	// Multiplication order is as follow: local_to_world = quat_mul(local_to_object, object_to_world)
+	inline Transform_64 transform_mul(const Transform_64& lhs, const Transform_64& rhs)
 	{
-		ensure(alignment >= alignof(AllocatedType));
-		return reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignment));
+		Quat_64 rotation = quat_mul(rhs.rotation, lhs.rotation);
+		Vector4_64 translation = vector_add(quat_rotate(rhs.rotation, lhs.translation), rhs.translation);
+		return transform_set(rotation, translation);
 	}
 
-	template<typename PtrType>
-	constexpr bool is_aligned_to(PtrType* value, size_t alignment)
+	inline Vector4_64 transform_position(const Transform_64& lhs, const Vector4_64& rhs)
 	{
-		return (reinterpret_cast<uintptr_t>(value) & (alignment - 1)) == 0;
+		return vector_add(quat_rotate(lhs.rotation, rhs), lhs.translation);
+	}
+
+	inline Transform_64 transform_inverse(const Transform_64& input)
+	{
+		Quat_64 rotation = quat_conjugate(input.rotation);
+		Vector4_64 translation = quat_rotate(rotation, vector_neg(input.translation));
+		return transform_set(rotation, translation);
 	}
 }

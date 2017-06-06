@@ -76,4 +76,16 @@ namespace acl
 		double w;
 	};
 #endif
+
+	struct Transform_32
+	{
+		Quat_32		rotation;
+		Vector4_32	translation;
+	};
+
+	struct Transform_64
+	{
+		Quat_64		rotation;
+		Vector4_64	translation;
+	};
 }

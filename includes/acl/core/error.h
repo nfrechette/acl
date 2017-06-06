@@ -24,40 +24,19 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <stdint.h>
+// To override these macros, simply define them before including headers from the library.
 
-namespace acl
-{
-	// Misc globals
-	static constexpr uint32_t COMPRESSED_CLIP_TAG					= 0xac10ac10;
+#if !defined(ACL_ASSERT) || !defined(ACL_ENSURE)
+#include <assert.h>
+#endif
 
-	// Algorithm version numbers
-	static constexpr uint16_t FULL_PRECISION_ALGORITHM_VERSION		= 0;
+// Asserts are properly handled by the library and can be optionally skipped by the user.
+// The code found something unexpected but recovered.
+#if !defined(ACL_ASSERT)
+#define ACL_ASSERT(expression, format, ...) assert(expression)
+#endif
 
-	enum class AlgorithmType : uint16_t
-	{
-		FullPrecision			= 0,
-	};
-
-	//////////////////////////////////////////////////////////////////////////
-
-	// TODO: constexpr
-	inline uint16_t get_algorithm_version(AlgorithmType type)
-	{
-		switch (type)
-		{
-			case AlgorithmType::FullPrecision:	return FULL_PRECISION_ALGORITHM_VERSION;
-			default:							return 0xFFFF;
-		}
-	}
-
-	// TODO: constexpr
-	inline bool is_valid_algorithm_type(AlgorithmType type)
-	{
-		switch (type)
-		{
-			case AlgorithmType::FullPrecision:	return true;
-			default:							return false;
-		}
-	}
-}
+// Ensure is fatal, the library does not handle skipping this safely.
+#if !defined(ACL_ENSURE)
+#define ACL_ENSURE(expression, format, ...) assert(expression)
+#endif

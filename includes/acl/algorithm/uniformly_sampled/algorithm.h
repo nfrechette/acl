@@ -24,57 +24,29 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/algorithm_globals.h"
-#include "acl/memory.h"
-
-#include <stdint.h>
+#include "acl/algorithm/ialgorithm.h"
+#include "acl/algorithm/uniformly_sampled/encoder.h"
+#include "acl/algorithm/uniformly_sampled/decoder.h"
 
 namespace acl
 {
-	__declspec(align(16)) class CompressedClip
+	class UniformlySampledAlgorithm final : public IAlgorithm
 	{
 	public:
-		AlgorithmType get_algorithm_type() const { return m_type; }
-
-		bool is_valid(bool check_crc) const
+		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format) override
 		{
-			if (!is_aligned_to(this, alignof(CompressedClip)))
-				return false;
-
-			if (m_tag != COMPRESSED_CLIP_TAG)
-				return false;
-
-			if (!is_valid_algorithm_type(m_type))
-				return false;
-
-			if (m_version != get_algorithm_version(m_type))
-				return false;
-
-			if (check_crc)
-				return true;	// TODO: Implement
-			return true;
+			return uniformly_sampled::compress_clip(allocator, clip, skeleton, rotation_format);
 		}
 
-	private:
-		CompressedClip(uint32_t size, AlgorithmType type)
-			: m_size(size)
-			, m_crc32(0)		// TODO: Implement
-			, m_tag(COMPRESSED_CLIP_TAG)
-			, m_type(type)
-			, m_version(get_algorithm_version(type))
-		{}
+		virtual void decompress_pose(const CompressedClip& clip, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) override
+		{
+			AlgorithmOutputWriterImpl writer(out_transforms, num_transforms);
+			uniformly_sampled::decompress_pose(clip, sample_time, writer);
+		}
 
-		// 16 byte header, the rest of the data follows in memory
-		uint32_t		m_size;
-		uint32_t		m_crc32;
-
-		// Everything starting here is included in the CRC32
-		uint32_t		m_tag;
-		AlgorithmType	m_type;
-		uint16_t		m_version;
-
-		friend CompressedClip* make_compressed_clip(void* buffer, uint32_t size, AlgorithmType type);
+		virtual void decompress_bone(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) override
+		{
+			uniformly_sampled::decompress_bone(clip, sample_time, sample_bone_index, out_rotation, out_translation);
+		}
 	};
-
-	static_assert(alignof(CompressedClip) == 16, "Invalid alignment for CompressedClip");
 }
