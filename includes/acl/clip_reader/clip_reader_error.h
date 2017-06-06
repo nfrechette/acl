@@ -33,7 +33,6 @@ namespace acl
 		enum
 		{
 			UnsupportedVersion = SJSONParserError::Last,
-			InputDidNotEnd,
 			NoParentWithThatName,
 			NoBoneWithThatName,
 		};
@@ -50,6 +49,21 @@ namespace acl
 			error = e.error;
 			line = e.line;
 			column = e.column;
+		}
+
+		virtual const char* const get_description()
+		{
+			switch (error)
+			{
+			case UnsupportedVersion:
+				return "This library does not support this version of animation file";
+			case NoParentWithThatName:
+				return "There is no parent bone with this name";
+			case NoBoneWithThatName:
+				return "The skeleton does not define a bone with this name";
+			default:
+				return SJSONParserError::get_description();
+			}
 		}
 	};
 }

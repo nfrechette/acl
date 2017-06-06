@@ -411,11 +411,17 @@ int main(int argc, char** argv)
 	std::string str((std::istreambuf_iterator<char>(t)),
 		std::istreambuf_iterator<char>());
 
+	printf("Reading input... ");
+
 	ClipReader reader = ClipReader(allocator, str.c_str(), str.length());
 	if (!reader.read())
 	{
+		ClipReaderError err = reader.get_error();
+		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
 		return -1;
 	}
+
+	printf("Done.\n\n");
 
 	AnimationClip* clip = reader.get_clip();
 	RigidSkeleton* skeleton = reader.get_skeleton();
