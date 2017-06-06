@@ -80,12 +80,17 @@ namespace acl
 			return read_opening_bracket();
 		}
 
-		bool peek_if_array_ends() 
+		bool try_array_ends() 
 		{
 			State s = save_state();
-			bool result = array_ends();
-			restore_state(s);
-			return result;
+
+			if (!array_ends())
+			{
+				restore_state(s);
+				return false;
+			}
+
+			return true;
 		}
 
 		bool array_ends()

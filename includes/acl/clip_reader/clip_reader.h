@@ -60,7 +60,8 @@ namespace acl
 				read_clip_header() &&
 				read_and_allocate_bones() &&
 				create_clip() &&
-				read_tracks())
+				read_tracks() &&
+				nothing_follows())
 			{
 				return true;
 			}
@@ -296,13 +297,8 @@ namespace acl
 
 			int index = 0;
 
-			while (true)
+			while (!m_parser.try_array_ends())
 			{
-				if (m_parser.peek_if_array_ends())
-				{
-					break;
-				}
-
 				Bone b;
 
 				if (!m_parser.object_begins() ||
@@ -333,12 +329,6 @@ namespace acl
 				}
 			}
 
-			if (!m_parser.array_ends())
-			{
-				m_error = m_parser.get_error();
-				return false;
-			}
-
 			return true;
 		}
 
@@ -356,13 +346,8 @@ namespace acl
 				goto error;
 			}
 
-			while (true)
+			while (!m_parser.try_array_ends())
 			{
-				if (m_parser.peek_if_array_ends())
-				{
-					break;
-				}
-
 				if (!m_parser.object_begins())
 				{
 					goto error;
@@ -385,89 +370,25 @@ namespace acl
 
 				AnimatedBone* bone = m_clip->get_bones() + bone_index;
 
-				if (!m_parser.try_array_begins("rotations"))
-				{
-					goto translations;
-				}
-
-				for (int i = 0; i < m_header.num_samples; ++i)
-				{
-					double quaternion[4];
-
-					if (!m_parser.array_begins() || !m_parser.read(quaternion, 4) || !m_parser.array_ends())
-					{
-						goto error;
-					}
-
-					bone->rotation_track.set_sample(i, quat_unaligned_load(quaternion));
-				}
-
-				if (!m_parser.array_ends())
+				if (m_parser.try_array_begins("rotations") && !read_track_rotations(bone))
 				{
 					goto error;
 				}
 
-			translations:
-				if (!m_parser.try_array_begins("translations"))
-				{
-					goto scales;
-				}
-
-				for (int i = 0; i < m_header.num_samples; ++i)
-				{
-					double translation[3];
-
-					if (!m_parser.array_begins() || !m_parser.read(translation, 3) || !m_parser.array_ends())
-					{
-						goto error;
-					}
-
-					bone->translation_track.set_sample(i, vector_unaligned_load3(translation));
-				}
-
-				if (!m_parser.array_ends())
+				if (m_parser.try_array_begins("translations") && !read_track_translations(bone))
 				{
 					goto error;
 				}
 				
-			scales:
-				if (!m_parser.array_begins("scales"))
-				{
-					goto end_of_object;
-				}
-
-				for (int i = 0; i < m_header.num_samples; ++i)
-				{
-					double scale[3];
-
-					if (!m_parser.array_begins() || !m_parser.read(scale, 3) || !m_parser.array_ends())
-					{
-						goto error;
-					}
-
-					// TODO: do something with the scale.
-				}
-
-				if (!m_parser.array_ends())
+				if (m_parser.array_begins("scales") && !read_track_scales(bone))
 				{
 					goto error;
 				}
 
-			end_of_object:
 				if (!m_parser.object_ends())
 				{
 					goto error;
 				}
-			}
-
-			if (!m_parser.array_ends())
-			{
-				goto error;
-			}
-
-			if (!m_parser.remainder_is_comments_and_whitespace())
-			{
-				goto error;
 			}
 
 			return true;
@@ -475,6 +396,68 @@ namespace acl
 		error:
 			m_error = m_parser.get_error();
 			return false;
+		}
+
+		bool nothing_follows()
+		{
+			if (!m_parser.remainder_is_comments_and_whitespace())
+			{
+				m_error = m_parser.get_error();
+				return false;
+			}
+
+			return true;
+		}
+
+		bool read_track_rotations(AnimatedBone* bone)
+		{
+			for (int i = 0; i < m_header.num_samples; ++i)
+			{
+				double quaternion[4];
+
+				if (!m_parser.array_begins() || !m_parser.read(quaternion, 4) || !m_parser.array_ends())
+				{
+					return false;
+				}
+
+				bone->rotation_track.set_sample(i, quat_unaligned_load(quaternion));
+			}
+
+			return m_parser.array_ends();
+		}
+
+		bool read_track_translations(AnimatedBone* bone)
+		{
+			for (int i = 0; i < m_header.num_samples; ++i)
+			{
+				double translation[3];
+
+				if (!m_parser.array_begins() || !m_parser.read(translation, 3) || !m_parser.array_ends())
+				{
+					return false;
+				}
+
+				bone->translation_track.set_sample(i, vector_unaligned_load3(translation));
+			}
+
+			return m_parser.array_ends();
+		}
+
+		bool read_track_scales(AnimatedBone* bone)
+		{
+			for (int i = 0; i < m_header.num_samples; ++i)
+			{
+				double scale[3];
+
+				if (!m_parser.array_begins() || !m_parser.read(scale, 3) || !m_parser.array_ends())
+				{
+					return false;
+				}
+
+				// TODO: do something with the scale.
+			}
+
+			return m_parser.array_ends();
 		}
 	};
 }
