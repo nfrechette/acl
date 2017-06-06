@@ -169,7 +169,7 @@ namespace acl
 
 			return true;
 
-error:
+		error:
 			m_error = m_parser.get_error();
 			return false;
 		}
@@ -228,7 +228,7 @@ error:
 					return true;
 				}
 
-				int parent_index = index_of_bone_name(src.parent, src.parent_length);
+				int parent_index = index_of_bone(src.parent, src.parent_length);
 				if (parent_index < 0)
 				{
 					set_error(ClipReaderError::NoParentWithThatName);
@@ -254,7 +254,7 @@ error:
 			return false;
 		}
 
-		int index_of_bone_name(const char* const name, const int name_length)
+		int index_of_bone(const char* const name, const int name_length)
 		{
 			const char* bone_name = m_bone_names;
 
@@ -374,7 +374,7 @@ error:
 					goto error;
 				}
 
-				int bone_index = index_of_bone_name(name, name_length);
+				int bone_index = index_of_bone(name, name_length);
 				if (bone_index < 0)
 				{
 					set_error(ClipReaderError::NoBoneWithThatName);

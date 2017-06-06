@@ -83,7 +83,6 @@ namespace acl
 		bool peek_if_array_ends() 
 		{
 			State s = save_state();
-			m_state.peeking = true;
 			bool result = array_ends();
 			restore_state(s);
 			return result;
@@ -235,7 +234,6 @@ namespace acl
 			int line{ 1 };
 			int column{ 1 };
 			char symbol;
-			bool peeking{};
 
 			SJSONParserError error{};
 		};
@@ -357,6 +355,7 @@ namespace acl
 					}
 					else
 					{
+						advance();
 						wasAsterisk = false;
 					}
 				}
