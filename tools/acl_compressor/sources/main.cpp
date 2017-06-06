@@ -272,45 +272,6 @@ static void print_stats(const Options& options, const acl::AnimationClip& clip, 
 	file = nullptr;
 }
 
-#if false
-static void add_clip_track_data(acl::AnimationClip& clip)
-{
-	acl::AnimatedBone* clip_bones = clip.get_bones();
-
-	for (uint16_t bone_index = 0; bone_index < clip_01_01::num_bones; ++bone_index)
-	{
-		uint32_t rotation_track_index = ~0u;
-		for (uint32_t track_bone_index = 0; track_bone_index < clip_01_01::num_rotation_tracks; ++track_bone_index)
-		{
-			if (clip_01_01::rotation_track_bone_index[track_bone_index] == bone_index)
-			{
-				rotation_track_index = track_bone_index;
-				break;
-			}
-		}
-
-		uint32_t translation_track_index = ~0u;
-		for (uint32_t track_bone_index = 0; track_bone_index < clip_01_01::num_translation_tracks; ++track_bone_index)
-		{
-			if (clip_01_01::translation_track_bone_index[track_bone_index] == bone_index)
-			{
-				translation_track_index = track_bone_index;
-				break;
-			}
-		}
-
-		for (uint32_t sample_index = 0; sample_index < clip_01_01::num_samples; ++sample_index)
-		{
-			acl::Quat_64 rotation = rotation_track_index != ~0u ? clip_01_01::rotation_tracks[rotation_track_index][sample_index] : acl::quat_identity_64();
-			clip_bones[bone_index].rotation_track.set_sample(sample_index, rotation);
-
-			acl::Vector4_64 translation = translation_track_index != ~0u ? clip_01_01::translation_tracks[translation_track_index][sample_index] : acl::vector_zero_64();
-			clip_bones[bone_index].translation_track.set_sample(sample_index, translation);
-		}
-	}
-}
-#endif
-
 static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, const acl::CompressedClip& compressed_clip, acl::IAlgorithm& algorithm)
 {
 	using namespace acl;
