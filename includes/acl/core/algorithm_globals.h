@@ -53,6 +53,7 @@ namespace acl
 		Quat_48					= 2,	// Quantized quaternion, [x,y,z] stored with [16,16,16] bits (w is dropped)
 		Quat_32					= 3,	// Quantized quaternion, [x,y,z] stored with [11,11,10] bits (w is dropped)
 		// TODO: Implement these
+		//Quat_32_Largest,		// Quantized quaternion, [?,?,?] stored with [10,10,10] bits (largest component is dropped, component index stored on 2 bits)
 		//Quat_Variable,		// Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
 		//QuatLog_96,			// Full precision quaternion logarithm, [x,y,z] stored with float 32
 		//QuatLog_48,			// Quantized quaternion logarithm, [x,y,z] stored with [16,16,16] bits
@@ -66,8 +67,9 @@ namespace acl
 	enum class VectorFormat8 : uint8_t
 	{
 		Vector3_96				= 0,	// Full precision vector3, [x,y,z] stored with float32
+		Vector3_48				= 1,	// Quantized vector3, [x,y,z] stored with [16,16,16] bits
 		// TODO: Implement these
-		//Vector3_48,			// Quantized vector3, [x,y,z] stored with [16,16,16] bits
+		
 		//Vector3_32,			// Quantized vector3, [x,y,z] stored with [11,11,10] bits
 		//Vector3_Variable,		// Quantized vector3, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
 	};
@@ -131,6 +133,7 @@ namespace acl
 		switch (format)
 		{
 		case VectorFormat8::Vector3_96:		return "Vector3 96";
+		case VectorFormat8::Vector3_48:		return "Vector3 48";
 		default:							return "<Unknown>";
 		}
 	}

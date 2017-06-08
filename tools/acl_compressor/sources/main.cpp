@@ -333,7 +333,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 }
 
 template<typename AlgorithmType8>
-static void try_algorithm(const Options& options, acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, acl::RotationFormat8 rotation_format)
+static void try_algorithm(const Options& options, acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, acl::RotationFormat8 rotation_format, acl::VectorFormat8 translation_format)
 {
 	using namespace acl;
 
@@ -341,7 +341,7 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 	QueryPerformanceCounter(&start_time_cycles);
 
 	AlgorithmType8 algorithm;
-	CompressedClip* compressed_clip = algorithm.compress_clip(allocator, clip, skeleton, rotation_format);
+	CompressedClip* compressed_clip = algorithm.compress_clip(allocator, clip, skeleton, rotation_format, translation_format);
 
 	LARGE_INTEGER end_time_cycles;
 	QueryPerformanceCounter(&end_time_cycles);
@@ -402,10 +402,10 @@ int main(int argc, char** argv)
 
 	// Compress & Decompress
 	{
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_128);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_96);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_48);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_32);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_128, acl::VectorFormat8::Vector3_96);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_96, acl::VectorFormat8::Vector3_96);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_48, acl::VectorFormat8::Vector3_96);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_32, acl::VectorFormat8::Vector3_96);
 	}
 
 	if (IsDebuggerPresent())

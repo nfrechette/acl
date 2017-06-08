@@ -45,6 +45,7 @@ namespace acl
 			{
 				uint16_t				num_bones;
 				RotationFormat8			rotation_format;
+				VectorFormat8			translation_format;
 				uint32_t				num_samples;
 				uint32_t				sample_rate;								// TODO: Store duration as float instead
 				uint32_t				num_animated_rotation_tracks;				// TODO: Calculate from bitsets?
@@ -100,7 +101,8 @@ namespace acl
 			{
 				switch (translation_format)
 				{
-				case VectorFormat8::Vector3_96:	return sizeof(float) * 3;
+				case VectorFormat8::Vector3_96:		return sizeof(float) * 3;
+				case VectorFormat8::Vector3_48:		return sizeof(uint16_t) * 3;
 				default:
 					ACL_ENSURE(false, "Invalid or unsupported translation format: %s", get_vector_format_name(translation_format));
 					return 0;

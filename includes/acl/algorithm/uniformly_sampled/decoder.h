@@ -73,6 +73,7 @@ namespace acl
 
 				uint32_t bitset_size;
 				uint32_t rotation_size;
+				uint32_t translation_size;
 
 				// Read-write data
 				uint32_t default_track_offset;
@@ -82,7 +83,7 @@ namespace acl
 			inline void initialize_context(const FullPrecisionHeader& header, uint32_t key_frame0, uint32_t key_frame1, DecompressionContext& context)
 			{
 				uint32_t rotation_size = get_rotation_size(header.rotation_format);
-				uint32_t translation_size = get_translation_size(VectorFormat8::Vector3_96);
+				uint32_t translation_size = get_translation_size(header.translation_format);
 
 				// TODO: No need to store this, unpack from bitset in context and simplify branching logic below?
 				uint32_t animated_pose_size = (rotation_size * header.num_animated_rotation_tracks) + (translation_size * header.num_animated_translation_tracks);
@@ -98,6 +99,7 @@ namespace acl
 
 				context.bitset_size = ((header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE) + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
 				context.rotation_size = rotation_size;
+				context.translation_size = translation_size;
 
 				context.constant_track_offset = 0;
 				context.default_track_offset = 0;
@@ -132,12 +134,12 @@ namespace acl
 					bool is_translation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
 					if (is_translation_constant)
 					{
-						context.constant_track_data += sizeof(float) * 3;
+						context.constant_track_data += context.translation_size;
 					}
 					else
 					{
-						context.key_frame_data0 += sizeof(float) * 3;
-						context.key_frame_data1 += sizeof(float) * 3;
+						context.key_frame_data0 += context.translation_size;
+						context.key_frame_data1 += context.translation_size;
 					}
 				}
 
@@ -147,12 +149,12 @@ namespace acl
 
 			inline Quat_32 decompress_rotation_quat_128(const uint8_t* data_ptr)
 			{
-				return quat_unaligned_load(safe_ptr_cast<const float>(data_ptr));
+				return quat_unaligned_load(data_ptr);
 			}
 
 			inline Quat_32 decompress_rotation_quat_96(const uint8_t* data_ptr)
 			{
-				Vector4_32 rotation_xyz = vector_unaligned_load3(safe_ptr_cast<const float>(data_ptr));
+				Vector4_32 rotation_xyz = vector_unaligned_load3(data_ptr);
 				return quat_from_positive_w(rotation_xyz);
 			}
 
@@ -180,11 +182,12 @@ namespace acl
 
 			inline Quat_32 decompress_rotation_quat_32(const uint8_t* data_ptr)
 			{
-				// TODO: Always aligned for now because translations are always 12 bytes
-				const uint32_t* data_ptr_u32 = safe_ptr_cast<const uint32_t>(data_ptr);
-				size_t x = *data_ptr_u32 >> 21;
-				size_t y = (*data_ptr_u32 >> 10) & ((1 << 11) - 1);
-				size_t z = *data_ptr_u32 & ((1 << 10) - 1);
+				// Read 2 bytes at a time to ensure safe alignment
+				const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(data_ptr);
+				uint32_t rotation_u32 = (safe_static_cast<uint32_t>(data_ptr_u16[0]) << 16) | safe_static_cast<uint32_t>(data_ptr_u16[1]);
+				size_t x = rotation_u32 >> 21;
+				size_t y = (rotation_u32 >> 10) & ((1 << 11) - 1);
+				size_t z = rotation_u32 & ((1 << 10) - 1);
 				Vector4_32 rotation_xyz = vector_set(dequantize_signed_normalized(x, 11), dequantize_signed_normalized(y, 11), dequantize_signed_normalized(z, 10));
 				return quat_from_positive_w(rotation_xyz);
 			}
@@ -194,7 +197,9 @@ namespace acl
 				Quat_32 rotation;
 				bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
 				if (is_rotation_default)
+				{
 					rotation = quat_identity_32();
+				}
 				else
 				{
 					bool is_rotation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
@@ -256,54 +261,27 @@ namespace acl
 				Vector4_32 translation;
 				bool is_translation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
 				if (is_translation_default)
+				{
 					translation = vector_zero_32();
+				}
 				else
 				{
 					bool are_translations_always_aligned = rotation_format != RotationFormat8::Quat_48;
 					bool is_translation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
 					if (is_translation_constant)
 					{
-						if (are_translations_always_aligned)
-							translation = vector_unaligned_load3(safe_ptr_cast<const float>(context.constant_track_data));
-						else
-						{
-							float* translation_xyz = vector_as_float_ptr(translation);
-							scalar_unaligned_load(context.constant_track_data + (0 * sizeof(float)), translation_xyz[0]);
-							scalar_unaligned_load(context.constant_track_data + (1 * sizeof(float)), translation_xyz[1]);
-							scalar_unaligned_load(context.constant_track_data + (2 * sizeof(float)), translation_xyz[2]);
-							translation_xyz[3] = 0.0f;
-						}
-
-						context.constant_track_data += sizeof(float) * 3;
+						translation = vector_unaligned_load3(context.constant_track_data);
+						context.constant_track_data += context.translation_size;
 					}
 					else
 					{
-						Vector4_32 translation0;
-						Vector4_32 translation1;
-						if (are_translations_always_aligned)
-						{
-							translation0 = vector_unaligned_load3(safe_ptr_cast<const float>(context.key_frame_data0));
-							translation1 = vector_unaligned_load3(safe_ptr_cast<const float>(context.key_frame_data1));
-						}
-						else
-						{
-							float* translation0_xyz = vector_as_float_ptr(translation0);
-							scalar_unaligned_load(context.key_frame_data0 + (0 * sizeof(float)), translation0_xyz[0]);
-							scalar_unaligned_load(context.key_frame_data0 + (1 * sizeof(float)), translation0_xyz[1]);
-							scalar_unaligned_load(context.key_frame_data0 + (2 * sizeof(float)), translation0_xyz[2]);
-							translation0_xyz[3] = 0.0f;
-
-							float* translation1_xyz = vector_as_float_ptr(translation1);
-							scalar_unaligned_load(context.key_frame_data1 + (0 * sizeof(float)), translation1_xyz[0]);
-							scalar_unaligned_load(context.key_frame_data1 + (1 * sizeof(float)), translation1_xyz[1]);
-							scalar_unaligned_load(context.key_frame_data1 + (2 * sizeof(float)), translation1_xyz[2]);
-							translation1_xyz[3] = 0.0f;
-						}
+						Vector4_32 translation0 = vector_unaligned_load3(context.key_frame_data0);
+						Vector4_32 translation1 = vector_unaligned_load3(context.key_frame_data1);
 
 						translation = vector_lerp(translation0, translation1, interpolation_alpha);
 
-						context.key_frame_data0 += sizeof(float) * 3;
-						context.key_frame_data1 += sizeof(float) * 3;
+						context.key_frame_data0 += context.translation_size;
+						context.key_frame_data1 += context.translation_size;
 					}
 				}
 
