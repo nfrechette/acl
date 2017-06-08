@@ -28,11 +28,6 @@
 
 namespace acl
 {
-	// Algorithm version numbers
-	static constexpr uint16_t ALGORITHM_VERSION_UNIFORMLY_SAMPLED		= 0;
-	//static constexpr uint16_t ALGORITHM_VERSION_LINEAR_KEY_REDUCTION	= 0;
-	//static constexpr uint16_t ALGORITHM_VERSION_SPLINE_KEY_REDUCTION	= 0;
-
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
 	// The algorithm type is serialized in the compressed data, if you change a value
 	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
@@ -75,18 +70,6 @@ namespace acl
 	};
 
 	//////////////////////////////////////////////////////////////////////////
-
-	// TODO: constexpr
-	inline uint16_t get_algorithm_version(AlgorithmType8 type)
-	{
-		switch (type)
-		{
-			case AlgorithmType8::UniformlySampled:		return ALGORITHM_VERSION_UNIFORMLY_SAMPLED;
-			//case AlgorithmType8::LinearKeyReduction:	return ALGORITHM_VERSION_LINEAR_KEY_REDUCTION;
-			//case AlgorithmType8::SplineKeyReduction:	return ALGORITHM_VERSION_SPLINE_KEY_REDUCTION;
-			default:									return 0xFFFF;
-		}
-	}
 
 	// TODO: constexpr
 	inline bool is_valid_algorithm_type(AlgorithmType8 type)

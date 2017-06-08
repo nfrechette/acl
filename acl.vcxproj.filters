@@ -99,13 +99,7 @@
     <ClInclude Include="includes\acl\core\bitset.h">
       <Filter>includes\acl\core</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\core\compressed_clip.h">
-      <Filter>includes\acl\core</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\core\memory.h">
-      <Filter>includes\acl\core</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\acl\core\algorithm_globals.h">
       <Filter>includes\acl\core</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\core\error.h">
@@ -113,9 +107,6 @@
     </ClInclude>
     <ClInclude Include="includes\acl\core\enum_utils.h">
       <Filter>includes\acl\core</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\acl\algorithm\ialgorithm.h">
-      <Filter>includes\acl\algorithm</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\math\transform_32.h">
       <Filter>includes\acl\math</Filter>
@@ -148,6 +139,18 @@
       <Filter>includes\acl\core</Filter>
     </ClInclude>
     <ClInclude Include="includes\acl\core\string.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\compressed_clip.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\algorithm_types.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\algorithm_versions.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\ialgorithm.h">
       <Filter>includes\acl\core</Filter>
     </ClInclude>
   </ItemGroup>

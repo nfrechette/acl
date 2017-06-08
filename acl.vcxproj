@@ -19,17 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="includes\acl\algorithm\ialgorithm.h" />
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\algorithm.h" />
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\common.h" />
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\decoder.h" />
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\encoder.h" />
     <ClInclude Include="includes\acl\compression\skeleton_error_metric.h" />
-    <ClInclude Include="includes\acl\core\algorithm_globals.h" />
+    <ClInclude Include="includes\acl\core\algorithm_types.h" />
+    <ClInclude Include="includes\acl\core\algorithm_versions.h" />
+    <ClInclude Include="includes\acl\core\compressed_clip.h" />
     <ClInclude Include="includes\acl\core\enum_utils.h" />
     <ClInclude Include="includes\acl\core\error.h" />
     <ClInclude Include="includes\acl\core\bitset.h" />
-    <ClInclude Include="includes\acl\core\compressed_clip.h" />
+    <ClInclude Include="includes\acl\core\ialgorithm.h" />
     <ClInclude Include="includes\acl\core\memory.h" />
     <ClInclude Include="includes\acl\core\string.h" />
     <ClInclude Include="includes\acl\core\string_view.h" />
