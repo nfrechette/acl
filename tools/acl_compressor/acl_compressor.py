@@ -1,5 +1,8 @@
 import os
 import sys
+from collections import namedtuple
+
+Stats = namedtuple('Stats', 'file name rotation_format raw_size compressed_size ratio max_error compression_time duration num_animated_tracks')
 
 def parse_argv():
 	options = {}
@@ -20,6 +23,10 @@ def parse_argv():
 
 def print_usage():
 	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stat=<path to output directory for stats>')
+
+def print_stat(stat):
+	print('Algorithm: {}, Format: {}, Ratio: {:.2f}, Error: {}'.format(stat.name, stat.rotation_format, stat.ratio, stat.max_error))
+	print('')
 
 if __name__ == "__main__":
 	options = parse_argv()
@@ -51,6 +58,8 @@ if __name__ == "__main__":
 		print_usage()
 		sys.exit(1)
 
+	stat_files = []
+
 	for (dirpath, dirnames, filenames) in os.walk(acl_dir):
 		stat_dirname = dirpath.replace(acl_dir, stat_dir)
 
@@ -69,3 +78,62 @@ if __name__ == "__main__":
 
 			print('Compressing {}...'.format(acl_filename))
 			os.system(cmd)
+
+			stat_files.append(stat_filename)
+
+	if len(stat_files) == 0:
+		sys.exit(0)
+
+	print('Aggregating results...')
+	print('')
+
+	stats = []
+	for stat_filename in stat_files:
+		with open(stat_filename, 'r') as file:
+			line = file.readline()
+			while line != '':
+				if len(line.strip()) == 0:
+					line = file.readline()
+					continue
+
+				name = line.split(': ')[1].strip()
+				rotation_format = file.readline().split(': ')[1].strip()
+				raw_size = float(file.readline().split(': ')[1].strip())
+				compressed_size = float(file.readline().split(': ')[1].strip())
+				ratio = file.readline().strip()
+				ratio = raw_size / compressed_size
+				max_error = float(file.readline().split(': ')[1].strip())
+				compression_time = float(file.readline().split(': ')[1].strip())
+				duration = float(file.readline().split(': ')[1].strip())
+				num_animated_tracks = int(file.readline().split(': ')[1].strip())
+
+				stats.append(Stats(stat_filename, name, rotation_format, raw_size, compressed_size, ratio, max_error, compression_time, duration, num_animated_tracks))
+				line = file.readline()
+
+	smallest_error = 100000000.0
+	smallest_error_entry = None
+	best_ratio = 0.0
+	best_ratio_entry = None
+	worst_ratio = 100000000.0
+	worst_ratio_entry = None
+	for stat in stats:
+		if stat.max_error < smallest_error:
+			smallest_error = stat.max_error
+			smallest_error_entry = stat
+
+		if stat.ratio > best_ratio:
+			best_ratio = stat.ratio
+			best_ratio_entry = stat
+
+		if stat.ratio < worst_ratio:
+			worst_ratio = stat.ratio
+			worst_ratio_entry = stat
+
+	print('Most accurate: {}'.format(smallest_error_entry.file))
+	print_stat(smallest_error_entry)
+
+	print('Best ratio: {}'.format(best_ratio_entry.file))
+	print_stat(best_ratio_entry)
+
+	print('Worst ratio: {}'.format(worst_ratio_entry.file))
+	print_stat(worst_ratio_entry)
