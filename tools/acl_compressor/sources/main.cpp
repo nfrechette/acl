@@ -108,11 +108,48 @@ struct Options
 	bool			output_stats;
 	const char*		output_stats_filename;
 
+	//////////////////////////////////////////////////////////////////////////
+
+	std::FILE*		output_stats_file;
+
 	Options()
 		: input_filename(nullptr),
 		  output_stats(false)
 		, output_stats_filename(nullptr)
+		, output_stats_file(nullptr)
 	{}
+
+	Options(Options&& other)
+		: output_stats(other.output_stats)
+		, output_stats_filename(other.output_stats_filename)
+		, output_stats_file(other.output_stats_file)
+	{
+		new (&other) Options();
+	}
+
+	~Options()
+	{
+		if (output_stats_file != nullptr && output_stats_file != stdout)
+			std::fclose(output_stats_file);
+	}
+
+	Options& operator=(Options&& rhs)
+	{
+		std::swap(output_stats, rhs.output_stats);
+		std::swap(output_stats_filename, rhs.output_stats_filename);
+		std::swap(output_stats_file, rhs.output_stats_file);
+	}
+
+	Options(const Options&) = delete;
+	Options& operator=(const Options&) = delete;
+
+	void open_output_stats_file()
+	{
+		std::FILE* file = nullptr;
+		if (output_stats_filename != nullptr)
+			fopen_s(&file, output_stats_filename, "w");
+		output_stats_file = file != nullptr ? file : stdout;
+	}
 };
 
 constexpr char* FILE_OPTION = "-file=";
@@ -136,6 +173,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 		{
 			options.output_stats = true;
 			options.output_stats_filename = argument[option_length] == '=' ? argument + option_length + 1 : nullptr;
+			options.open_output_stats_file();
 			continue;
 		}
 
@@ -260,10 +298,7 @@ static void print_stats(const Options& options, const acl::AnimationClip& clip, 
 	QueryPerformanceFrequency(&frequency_cycles_per_sec);
 	double elapsed_time_sec = double(elapsed_cycles) / double(frequency_cycles_per_sec.QuadPart);
 
-	std::FILE* file = nullptr;
-	if (options.output_stats_filename != nullptr)
-		fopen_s(&file, options.output_stats_filename, "w");
-	file = file != nullptr ? file : stdout;
+	std::FILE* file = options.output_stats_file;
 
 	fprintf(file, "Clip algorithm: %s\n", get_algorithm_name(compressed_clip.get_algorithm_type()));
 	fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(rotation_format));
@@ -276,10 +311,6 @@ static void print_stats(const Options& options, const acl::AnimationClip& clip, 
 	fprintf(file, "Clip num animated tracks: %u\n", clip.get_num_animated_tracks());
 	//fprintf(file, "Clip num segments: %u\n", 0);		// TODO
 	fprintf(file, "\n");
-
-	if (file != stdout)
-		std::fclose(file);
-	file = nullptr;
 }
 
 static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, const acl::CompressedClip& compressed_clip, acl::IAlgorithm& algorithm)
