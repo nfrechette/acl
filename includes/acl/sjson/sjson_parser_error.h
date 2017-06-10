@@ -28,7 +28,14 @@ namespace acl
 {
 	struct SJSONParserError
 	{
-		enum
+		SJSONParserError()
+			: error(SJSONParserError::None)
+			, line()
+			, column()
+		{
+		}
+
+		enum : uint32_t
 		{
 			None,
 			InputTruncated,
@@ -48,17 +55,16 @@ namespace acl
 			NumberIsTooLong,
 			InvalidNumber,
 			NumberCouldNotBeConverted,
-			IntegerExpected,
 			UnexpectedContentAtEnd,
 
 			Last
 		};
 
-		int error;
-		int line;
-		int column;
+		uint32_t error;
+		uint32_t line;
+		uint32_t column;
 
-		virtual const char* const get_description()
+		virtual const char* const get_description() const
 		{
 			switch (error)
 			{
@@ -98,8 +104,6 @@ namespace acl
 				return "This number has an invalid format";
 			case NumberCouldNotBeConverted:
 				return "This number could not be converted";
-			case IntegerExpected:
-				return "An integer is expected here";
 			case UnexpectedContentAtEnd:
 				return "There should not be any more content in this file";
 			default:

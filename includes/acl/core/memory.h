@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <type_traits>
 #include <limits>
+#include <memory>
 
 namespace acl
 {
@@ -73,55 +74,145 @@ namespace acl
 		}
 	};
 
-	template<typename AllocatedType>
-	AllocatedType* allocate_type(Allocator& allocator)
+	template<typename AllocatedType, typename... Args>
+	AllocatedType* allocate_type(Allocator& allocator, Args&&... args)
 	{
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignof(AllocatedType)));
 		if (std::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
-		return new(ptr) AllocatedType();
+		return new(ptr) AllocatedType(std::forward<Args>(args)...);
 	}
 
 	template<typename AllocatedType, typename... Args>
-	AllocatedType* allocate_type(Allocator& allocator, Args... args)
-	{
-		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignof(AllocatedType)));
-		if (std::is_trivially_default_constructible<AllocatedType>::value)
-			return ptr;
-		return new(ptr) AllocatedType(args...);
-	}
-
-	template<typename AllocatedType>
-	AllocatedType* allocate_type(Allocator& allocator, size_t alignment)
+	AllocatedType* allocate_type(Allocator& allocator, size_t alignment, Args&&... args)
 	{
 		ACL_ENSURE(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignment));
 		if (std::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
-		return new(ptr) AllocatedType();
+		return new(ptr) AllocatedType(std::forward<Args>(args)...);
 	}
 
-	template<typename AllocatedType>
-	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements)
+	template<typename AllocatedType, typename... Args>
+	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements, Args&&... args)
 	{
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignof(AllocatedType)));
 		if (std::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
 		for (size_t element_index = 0; element_index < num_elements; ++element_index)
-			new(&ptr[element_index]) AllocatedType();
+			new(&ptr[element_index]) AllocatedType(std::forward<Args>(args)...);
 		return ptr;
 	}
 
-	template<typename AllocatedType>
-	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements, size_t alignment)
+	template<typename AllocatedType, typename... Args>
+	AllocatedType* allocate_type_array(Allocator& allocator, size_t num_elements, size_t alignment, Args&&... args)
 	{
 		ACL_ENSURE(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignment));
 		if (std::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
 		for (size_t element_index = 0; element_index < num_elements; ++element_index)
-			new(&ptr[element_index]) AllocatedType();
+			new(&ptr[element_index]) AllocatedType(std::forward<Args>(args)...);
 		return ptr;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+
+	template<typename AllocatedType>
+	class Deleter
+	{
+	public:
+		Deleter()
+			: m_allocator(nullptr)
+		{
+		}
+
+		Deleter(Allocator& allocator)
+			: m_allocator(&allocator)
+		{
+		}
+
+		Deleter(const Deleter& deleter)
+			: m_allocator(deleter.m_allocator)
+		{
+		}
+
+		void operator()(AllocatedType* ptr)
+		{
+			if (!(std::is_trivially_destructible<AllocatedType>::value))
+			{
+				ptr->~AllocatedType();
+			}
+
+			m_allocator->deallocate(ptr);
+		}
+
+	private:
+		Allocator* m_allocator;
+	};
+
+	template<typename AllocatedType, typename... Args>
+	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> allocate_unique_type(Allocator& allocator, Args&&... args)
+	{
+		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
+			allocate_type<AllocatedType>(allocator, std::forward<Args>(args)...),
+			Deleter<AllocatedType>(allocator));
+	}
+
+	template<typename AllocatedType, typename... Args>
+	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> allocate_unique_type(Allocator& allocator, size_t alignment, Args&&... args)
+	{
+		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
+			allocate_type<AllocatedType>(allocator, alignment, std::forward<Args>(args)...),
+			Deleter<AllocatedType>(allocator));
+	}
+
+	template<typename AllocatedType, typename... Args>
+	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> allocate_unique_type_array(Allocator& allocator, size_t num_elements, Args&&... args)
+	{
+		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
+			allocate_type_array<AllocatedType>(allocator, num_elements, std::forward<Args>(args)...),
+			Deleter<AllocatedType>(allocator));
+	}
+
+	template<typename AllocatedType, typename... Args>
+	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> allocate_unique_type_array(Allocator& allocator, size_t num_elements, size_t alignment, Args&&... args)
+	{
+		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
+			allocate_type_array<AllocatedType>(allocator, num_elements, alignment, std::forward<Args>(args)...),
+			Deleter<AllocatedType>(allocator));
+	}
+
+	template<typename AllocatedType, typename... Args>
+	std::shared_ptr<AllocatedType> allocate_shared_type(Allocator& allocator, Args&&... args)
+	{
+		return std::shared_ptr<AllocatedType>(
+			allocate_type<AllocatedType>(allocator, std::forward<Args>(args)...),
+			Deleter<AllocatedType>(allocator));
+	}
+
+	template<typename AllocatedType, typename... Args>
+	std::shared_ptr<AllocatedType> allocate_shared_type(Allocator& allocator, size_t alignment, Args&&... args)
+	{
+		return std::shared_ptr<AllocatedType>(
+			allocate_type<AllocatedType>(allocator, alignment, std::forward<Args>(args)...),
+			Deleter<AllocatedType>(allocator));
+	}
+
+	template<typename AllocatedType, typename... Args>
+	std::shared_ptr<AllocatedType> allocate_shared_type_array(Allocator& allocator, size_t num_elements, Args&&... args)
+	{
+		return std::shared_ptr<AllocatedType>(
+			allocate_type_array<AllocatedType>(allocator, num_elements, std::forward<Args>(args)...),
+			Deleter<AllocatedType>(allocator));
+	}
+
+	template<typename AllocatedType, typename... Args>
+	std::shared_ptr<AllocatedType> allocate_shared_type_array(Allocator& allocator, size_t num_elements, size_t alignment, Args&&... args)
+	{
+		return std::shared_ptr<AllocatedType>(
+			allocate_type_array<AllocatedType>(allocator, num_elements, alignment, std::forward<Args>(args)...),
+			Deleter<AllocatedType>(allocator));
 	}
 
 	//////////////////////////////////////////////////////////////////////////

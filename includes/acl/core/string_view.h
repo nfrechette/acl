@@ -24,46 +24,54 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/sjson/sjson_parser_error.h"
+#include <cstring>
+#include <memory>
 
 namespace acl
 {
-	struct ClipReaderError : SJSONParserError
+	class StringView
 	{
-		enum : uint32_t
+	public:
+		StringView()
+			: m_chars(nullptr)
+			, m_length(0)
 		{
-			UnsupportedVersion = SJSONParserError::Last,
-			NoParentBoneWithThatName,
-			NoBoneWithThatName,
-			UnsignedIntegerExpected,
-		};
-
-		ClipReaderError()
+		}
+		
+		StringView(const char* chars, size_t length)
+			: m_chars(chars)
+			, m_length(length)
 		{
 		}
 
-		ClipReaderError(const SJSONParserError& e)
+		StringView& operator=(const char* chars)
 		{
-			error = e.error;
-			line = e.line;
-			column = e.column;
+			this->m_chars = chars;
+			this->m_length = chars == nullptr ? 0 : std::strlen(chars);
+			return *this;
+		}	
+
+		const char* get_chars() const { return m_chars; }
+		size_t get_length() const { return m_length; }
+
+		bool operator==(const char* c_str) const
+		{
+			return m_chars != nullptr && c_str != nullptr &&
+				std::strlen(c_str) == m_length && std::memcmp(c_str, m_chars, m_length) == 0;
 		}
 
-		virtual const char* const get_description() const override
+		bool operator !=(const char* c_str) const { return !(*this == c_str); }
+
+		bool operator==(const StringView& view) const
 		{
-			switch (error)
-			{
-			case UnsupportedVersion:
-				return "This library does not support this version of animation file";
-			case NoParentBoneWithThatName:
-				return "There is no parent bone with this name";
-			case NoBoneWithThatName:
-				return "The skeleton does not define a bone with this name";
-			case UnsignedIntegerExpected:
-				return "An unsigned integer is expected here";
-			default:
-				return SJSONParserError::get_description();
-			}
+			return m_chars != nullptr && view.m_chars != nullptr &&
+				m_length == view.m_length && std::memcmp(view.m_chars, m_chars, m_length) == 0;
 		}
+
+		bool operator !=(const StringView& view) const { return !(*this == view); }
+
+	private:
+		const char* m_chars;
+		size_t m_length;
 	};
 }

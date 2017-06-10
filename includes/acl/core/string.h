@@ -24,46 +24,49 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/sjson/sjson_parser_error.h"
+#include "acl/core/memory.h"
+#include "acl/core/string_view.h"
+
+#include <memory>
 
 namespace acl
 {
-	struct ClipReaderError : SJSONParserError
+	class String
 	{
-		enum : uint32_t
-		{
-			UnsupportedVersion = SJSONParserError::Last,
-			NoParentBoneWithThatName,
-			NoBoneWithThatName,
-			UnsignedIntegerExpected,
-		};
-
-		ClipReaderError()
+	public:
+		String()
+			: m_chars()
 		{
 		}
 
-		ClipReaderError(const SJSONParserError& e)
+		String(String&& string)
+			: m_chars(std::move(string.m_chars))
 		{
-			error = e.error;
-			line = e.line;
-			column = e.column;
 		}
 
-		virtual const char* const get_description() const override
+		String& operator=(String&& string)
 		{
-			switch (error)
-			{
-			case UnsupportedVersion:
-				return "This library does not support this version of animation file";
-			case NoParentBoneWithThatName:
-				return "There is no parent bone with this name";
-			case NoBoneWithThatName:
-				return "The skeleton does not define a bone with this name";
-			case UnsignedIntegerExpected:
-				return "An unsigned integer is expected here";
-			default:
-				return SJSONParserError::get_description();
-			}
+			std::swap(m_chars, string.m_chars);
+			return *this;
 		}
+
+		String(Allocator& allocator, const char* c_string)
+			: m_chars(allocate_unique_type_array<char>(allocator, std::strlen(c_string) + 1))
+		{
+			std::memcpy(m_chars.get(), c_string, std::strlen(c_string) + 1);
+		}
+
+		String(Allocator& allocator, StringView& view)
+			: m_chars(allocate_unique_type_array<char>(allocator, view.get_length() + 1))
+		{
+			char* own = m_chars.get();
+			std::memcpy(own, view.get_chars(), view.get_length());
+			own[view.get_length()] = '\0';
+		}
+
+		bool operator==(StringView& view) const { return view == m_chars.get(); }
+
+	private:
+		std::unique_ptr<char, Deleter<char>> m_chars;
 	};
 }

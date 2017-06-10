@@ -39,14 +39,14 @@ namespace acl
 	class AnimationClip
 	{
 	public:
-		AnimationClip(Allocator& allocator, RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate)
+		AnimationClip(Allocator& allocator, std::shared_ptr<RigidSkeleton> skeleton, uint32_t num_samples, uint32_t sample_rate)
 			: m_allocator(allocator)
 			, m_skeleton(skeleton)
 			, m_bones()
 			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
 		{
-			const uint16_t num_bones = skeleton.get_num_bones();
+			const uint16_t num_bones = skeleton->get_num_bones();
 
 			m_bones = allocate_type_array<AnimatedBone>(allocator, num_bones);
 
@@ -59,7 +59,7 @@ namespace acl
 
 		~AnimationClip()
 		{
-			const uint16_t num_bones = m_skeleton.get_num_bones();
+			const uint16_t num_bones = m_skeleton->get_num_bones();
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				m_bones[bone_index].rotation_track.~AnimationRotationTrack();
@@ -81,7 +81,7 @@ namespace acl
 			return m_bones[bone_index];
 		}
 
-		uint16_t get_num_bones() const { return m_skeleton.get_num_bones(); }
+		uint16_t get_num_bones() const { return m_skeleton->get_num_bones(); }
 		uint32_t get_num_samples() const { return m_num_samples; }
 		uint32_t get_sample_rate() const { return m_sample_rate; }
 		double get_duration() const
@@ -122,14 +122,14 @@ namespace acl
 		uint32_t get_raw_size() const
 		{
 			uint32_t bone_sample_size = (sizeof(float) * 4) + (sizeof(float) * 3);
-			return m_skeleton.get_num_bones() * bone_sample_size * m_num_samples;
+			return m_skeleton->get_num_bones() * bone_sample_size * m_num_samples;
 		}
 
 		uint32_t get_num_animated_tracks() const
 		{
 			uint32_t num_animated_tracks = 0;
 
-			for (uint16_t bone_index = 0; bone_index < m_skeleton.get_num_bones(); ++bone_index)
+			for (uint16_t bone_index = 0; bone_index < m_skeleton->get_num_bones(); ++bone_index)
 			{
 				num_animated_tracks += m_bones[bone_index].rotation_track.is_animated() ? 1 : 0;
 				num_animated_tracks += m_bones[bone_index].translation_track.is_animated() ? 1 : 0;
@@ -139,12 +139,12 @@ namespace acl
 		}
 
 	private:
-		Allocator&			m_allocator;
-		RigidSkeleton&		m_skeleton;
+		Allocator&						m_allocator;
+		std::shared_ptr<RigidSkeleton>	m_skeleton;
 
-		AnimatedBone*		m_bones;
+		AnimatedBone*					m_bones;
 
-		uint32_t			m_num_samples;
-		uint32_t			m_sample_rate;
+		uint32_t						m_num_samples;
+		uint32_t						m_sample_rate;
 	};
 }

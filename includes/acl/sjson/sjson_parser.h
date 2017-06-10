@@ -24,45 +24,43 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "sjson_parser_error.h"
+#include "acl/core/string_view.h"
+#include "acl/sjson/sjson_parser_error.h"
 
 #include <cctype>
 #include <cmath>
-#include <cstring>
+#include <stdint.h>
 
 namespace acl
 {
+	/* SJSON is a simplified form of JSON created by Autodesk.  It is documented here:
+	   http://help.autodesk.com/view/Stingray/ENU/?guid=__stingray_help_managing_content_sjson_html
+
+	   This parser is intended to accept only pure SJSON, and it will fail if given a JSON file,
+	   unlike the Autodesk Stingray parser. 
+
+	   The following are not yet supported:
+	     - null literals
+    */
 	class SJSONParser
 	{
 	public:
-		SJSONParser(const char* const input, int input_length)
-			: m_input(input),
-			  m_input_length(input_length)
+		SJSONParser(const char* input, size_t input_length)
+			: m_input(input)
+			, m_input_length(input_length)
+			, m_state(input, input_length)
 		{
-			init_state();
 		}
 
-		bool object_begins()
-		{
-			return read_opening_brace();
-		}
+		bool object_begins() { return read_opening_brace(); }
+		bool object_begins(const char* having_name) { return read_key(having_name) && read_equal_sign() && object_begins(); }
+		bool object_ends() { return read_closing_brace(); }
 
-		bool object_begins(const char* const having_name)
-		{
-			return read_key(having_name) && read_equal_sign() && object_begins();
-		}
+		bool array_begins() { return read_opening_bracket(); }
+		bool array_begins(const char* having_name) { return read_key(having_name) && read_equal_sign() && read_opening_bracket(); }
+		bool array_ends() { return read_closing_bracket(); }
 
-		bool object_ends()
-		{
-			return read_closing_brace();
-		}
-
-		bool array_begins(const char* const having_name)
-		{
-			return read_key(having_name) && read_equal_sign() && read_opening_bracket();
-		}
-
-		bool try_array_begins(const char* const having_name)
+		bool try_array_begins(const char* having_name)
 		{
 			State s = save_state();
 
@@ -73,11 +71,6 @@ namespace acl
 			}
 
 			return true;
-		}
-
-		bool array_begins()
-		{
-			return read_opening_bracket();
 		}
 
 		bool try_array_ends() 
@@ -93,54 +86,48 @@ namespace acl
 			return true;
 		}
 
-		bool array_ends()
+		bool read(const char* key, StringView& value) { return read_key(key) && read_equal_sign() && read_string(value); }
+		bool read(const char* key, bool& value) { return read_key(key) && read_equal_sign() && read_bool(value); }
+		bool read(const char* key, double& value) { return read_key(key) && read_equal_sign() && read_double(value); }
+
+		bool read(const char* key, double* values, uint32_t num_elements)
 		{
-			return read_closing_bracket();
+			return read_key(key) && read_equal_sign() && read_opening_bracket() && read(values, num_elements) && read_closing_bracket();
 		}
 
-		bool read(const char* const key, const char*& value, int& length)
+		bool read(double* values, uint32_t num_elements)
 		{
-			return read_key(key) && read_equal_sign() && read_string(value, length);
+			if (num_elements == 0)
+			{
+				return true;
+			}
+
+			for (uint32_t i = 0; i < num_elements; ++i)
+			{
+				if (!read_double(values[i]) || i < num_elements - 1 && !read_comma())
+				{
+					return false;
+				}
+			}
+
+			return true;
 		}
 
-		bool try_read(const char* const key, const char*& value, int& length)
+		bool try_read(const char* key, StringView& value)
 		{
 			State s = save_state();
-			
-			if (!read(key, value, length))
+
+			if (!read(key, value))
 			{
 				restore_state(s);
-
 				value = nullptr;
-				length = 0;
-
 				return false;
 			}
 
 			return true;
 		}
 
-		bool read(const char* const key, bool& value)
-		{
-			return read_key(key) && read_equal_sign() && read_bool(value);
-		}
-
-		bool read(const char* const key, double& value)
-		{
-			return read_key(key) && read_equal_sign() && read_double(value);
-		}
-
-		bool read(const char* const key, int& value)
-		{
-			return read_key(key) && read_equal_sign() && read_int(value);
-		}
-
-		bool read(const char* const key, double* const values, int num_elements)
-		{
-			return read_key(key) && read_equal_sign() && read_opening_bracket() && read(values, num_elements) && read_closing_bracket();
-		}
-
-		bool try_read(const char* const key, double* const values, int num_elements)
+		bool try_read(const char* key, double* values, uint32_t num_elements)
 		{
 			State s = save_state();
 			
@@ -148,25 +135,12 @@ namespace acl
 			{
 				restore_state(s);
 
-				for (int i = 0; i < num_elements; ++i)
+				for (uint32_t i = 0; i < num_elements; ++i)
 				{
 					values[i] = 0.0;
 				}
 
 				return false;
-			}
-
-			return true;
-		}
-
-		bool read(double* const values, int num_elements)
-		{
-			for (int i = 0; i < num_elements; ++i)
-			{
-				if (!read_double(values[i]) || i < num_elements - 1 && !read_comma())
-				{
-					return false;
-				}
 			}
 
 			return true;
@@ -217,91 +191,53 @@ namespace acl
 			}
 		}
 
-		void get_position(int& line, int& column)
+		void get_position(uint32_t& line, uint32_t& column)
 		{
 			line = m_state.line;
 			column = m_state.column;
 		}
 
-		bool eof()
-		{
-			return m_state.offset >= m_input_length;
-		}
+		bool eof() { return m_state.offset >= m_input_length; }
 
-		SJSONParserError get_error()
-		{
-			return m_state.error;
-		}
+		SJSONParserError get_error() { return m_state.error; }
 
 		struct State
 		{
-			int offset{};
-			int line{ 1 };
-			int column{ 1 };
+			State(const char* input, size_t input_length)
+				: offset()
+				, line(1)
+				, column(1)
+				, symbol(input_length > 0 ? input[0] : '\0')
+				, error()
+			{
+			}
+
+			size_t offset;
+			uint32_t line;
+			uint32_t column;
 			char symbol;
 
-			SJSONParserError error{};
+			SJSONParserError error;
 		};
 
-		State save_state()
-		{
-			return m_state;
-		}
-
-		void restore_state(State& s)
-		{
-			m_state = s;
-
-			// If large file support is added, seek to the old position in the input file.
-		}
-
-		bool strings_equal(const char* const nul_terminated, const char* const unterminated, const int unterminated_length)
-		{
-			return std::strlen(nul_terminated) == unterminated_length &&
-				std::memcmp(nul_terminated, unterminated, unterminated_length) == 0;
-		}
+		State save_state() const { return m_state; }
+		void restore_state(const State& s) { m_state = s; }
 
 	private:
-		static int constexpr MAX_NUMBER_LENGTH = 64;
+		static size_t constexpr MAX_NUMBER_LENGTH = 64;
 
-		void set_error(int error)
-		{
-			m_state.error.error = error;
-			m_state.error.line = m_state.line;
-			m_state.error.column = m_state.column;
-		}
+		const char* m_input;
+		const size_t m_input_length;
+		State m_state;
 
-		bool read_equal_sign()
-		{
-			return read_symbol('=', SJSONParserError::EqualSignExpected);
-		}
+		bool read_equal_sign()      { return read_symbol('=', SJSONParserError::EqualSignExpected); }
+		bool read_opening_brace()   { return read_symbol('{', SJSONParserError::OpeningBraceExpected); }
+		bool read_closing_brace()   { return read_symbol('}', SJSONParserError::ClosingBraceExpected); }
+		bool read_opening_bracket() { return read_symbol('[', SJSONParserError::OpeningBracketExpected); }
+		bool read_closing_bracket() { return read_symbol(']', SJSONParserError::ClosingBracketExpected); }
+		bool read_comma()		    { return read_symbol(',', SJSONParserError::CommaExpected); }
 
-		bool read_opening_brace()
-		{
-			return read_symbol('{', SJSONParserError::OpeningBraceExpected);
-		}
-
-		bool read_closing_brace()
-		{
-			return read_symbol('}', SJSONParserError::ClosingBraceExpected);
-		}
-
-		bool read_opening_bracket()
-		{
-			return read_symbol('[', SJSONParserError::OpeningBracketExpected);
-		}
-
-		bool read_closing_bracket()
-		{
-			return read_symbol(']', SJSONParserError::ClosingBracketExpected);
-		}
-
-		bool read_comma()
-		{
-			return read_symbol(',', SJSONParserError::CommaExpected);
-		}
-
-		bool read_symbol(char expected, int reason_if_other_found)
+		bool read_symbol(char expected, int32_t reason_if_other_found)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
 			{
@@ -372,7 +308,7 @@ namespace acl
 			}
 		}
 
-		bool read_key(const char* const having_name)
+		bool read_key(const char* having_name)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
 			{
@@ -380,26 +316,24 @@ namespace acl
 			}
 
 			State start_of_key = save_state();
-
-			const char* actual;
-			int length;
+			StringView actual;
 
 			if (m_state.symbol == '"')
 			{
-				if (!read_string(actual, length))
+				if (!read_string(actual))
 				{
 					return false;
 				}
 			}
 			else
 			{
-				if (!read_unquoted_key(actual, length))
+				if (!read_unquoted_key(actual))
 				{
 					return false;
 				}
 			}
 
-			if (!strings_equal(having_name, actual, length))
+			if (actual != having_name)
 			{
 				restore_state(start_of_key);
 				set_error(SJSONParserError::IncorrectKey);
@@ -409,7 +343,7 @@ namespace acl
 			return true;
 		}
 
-		bool read_string(const char*& value, int& length)
+		bool read_string(StringView& value)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
 			{
@@ -424,8 +358,8 @@ namespace acl
 
 			advance();
 
-			int start_offset = m_state.offset;
-			int end_offset;
+			size_t start_offset = m_state.offset;
+			size_t end_offset;
 
 			while (true)
 			{
@@ -452,12 +386,11 @@ namespace acl
 				advance();
 			}
 
-			value = m_input + start_offset;
-			length = end_offset - start_offset + 1;
+			value = StringView(m_input + start_offset, end_offset - start_offset + 1);
 			return true;
 		}
 
-		bool read_unquoted_key(const char*& value, int& length)
+		bool read_unquoted_key(StringView& value)
 		{
 			if (eof())
 			{
@@ -465,8 +398,8 @@ namespace acl
 				return false;
 			}
 
-			int start_offset = m_state.offset;
-			int end_offset;
+			size_t start_offset = m_state.offset;
+			size_t end_offset;
 
 			while (true)
 			{
@@ -504,12 +437,10 @@ namespace acl
 				advance();
 			}
 
-			value = m_input + start_offset;
-			length = end_offset - start_offset + 1;
+			value = StringView(m_input + start_offset, end_offset - start_offset + 1);
 			return true;
 		}
 
-		// TODO: document that the literal null is not supported
 		bool read_bool(bool& value)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
@@ -557,8 +488,8 @@ namespace acl
 				return false;
 			}
 
-			int start_offset = m_state.offset;
-			int end_offset;
+			size_t start_offset = m_state.offset;
+			size_t end_offset;
 
 			if (m_state.symbol == '-')
 			{
@@ -613,7 +544,7 @@ namespace acl
 			}
 			
 			end_offset = m_state.offset - 1;
-			int length = end_offset - start_offset + 1;
+			size_t length = end_offset - start_offset + 1;
 
 			char slice[MAX_NUMBER_LENGTH + 1];
 			if (length >= MAX_NUMBER_LENGTH)
@@ -634,27 +565,6 @@ namespace acl
 				return false;
 			}
 
-			return true;
-		}
-
-		bool read_int(int& value)
-		{
-			double d;
-
-			if (!read_double(d))
-			{
-				return false;
-			}
-
-			double integer_portion;
-
-			if (std::modf(d, &integer_portion) != 0.0)
-			{
-				set_error(SJSONParserError::IntegerExpected);
-				return false;
-			}
-
-			value = static_cast<int>(integer_portion);
 			return true;
 		}
 
@@ -705,15 +615,11 @@ namespace acl
 			return true;
 		}
 
-		void init_state()
+		void set_error(int32_t error)
 		{
-			m_state.symbol = m_input_length > 0 ? m_input[0] : '\0';
+			m_state.error.error = error;
+			m_state.error.line = m_state.line;
+			m_state.error.column = m_state.column;
 		}
-
-		const char* const m_input;
-		const int m_input_length;
-
-		State m_state;
-		State m_saved_state;
 	};
 }

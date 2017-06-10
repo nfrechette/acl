@@ -22,6 +22,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/memory.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/clip_reader/clip_reader.h"
@@ -37,6 +38,7 @@
 #include <fstream>
 #include <streambuf>
 #include <string>
+#include <memory>
 
 //#define ACL_RUN_UNIT_TESTS
 
@@ -113,30 +115,38 @@ struct Options
 	{}
 };
 
+constexpr char* FILE_OPTION = "-file=";
+constexpr char* STATS_OPTION = "-stats";
+
 static bool parse_options(int argc, char** argv, Options& options)
 {
-	for (int arg_index = 0; arg_index < argc; ++arg_index)
+	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
 		char* argument = argv[arg_index];
 		
-		if (std::strcmp(argument, "-file") == 0)
+		size_t option_length = std::strlen(FILE_OPTION);
+		if (std::strncmp(argument, FILE_OPTION, option_length) == 0)
 		{
-			++arg_index;
-			if (arg_index >= argc)
-			{
-				printf("-file must be followed by a filename\n");
-				return false;
-			}
-
-			options.input_filename = argv[arg_index];
+			options.input_filename = argument + option_length;
+			continue;
+		}
+		
+		option_length = std::strlen(STATS_OPTION);
+		if (std::strncmp(argument, STATS_OPTION, option_length) == 0)
+		{
+			options.output_stats = true;
+			options.output_stats_filename = argument[option_length] == '=' ? argument + option_length + 1 : nullptr;
 			continue;
 		}
 
-		if (std::strncmp(argument, "-stats", 6) == 0)
-		{
-			options.output_stats = true;
-			options.output_stats_filename = argument[6] == '=' ? (argument + 7) : nullptr;
-		}
+		printf("Unrecognized option %s\n", argument);
+		return false;
+	}
+
+	if (options.input_filename == nullptr || std::strlen(options.input_filename) == 0)
+	{
+		printf("An input file is required.\n");
+		return false;
 	}
 
 	return true;
@@ -345,6 +355,27 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 	allocator.deallocate(compressed_clip);
 }
 
+bool read_clip(acl::Allocator& allocator, const char* filename, std::unique_ptr<acl::AnimationClip, acl::Deleter<acl::AnimationClip>>& clip, std::shared_ptr<acl::RigidSkeleton>& skeleton)
+{
+	std::ifstream t(filename);
+	std::string str((std::istreambuf_iterator<char>(t)),
+		std::istreambuf_iterator<char>());
+
+	printf("Reading input... ");
+
+	acl::ClipReader reader(allocator, str.c_str(), str.length());
+
+	if (!reader.read(clip, skeleton))
+	{
+		acl::ClipReaderError err = reader.get_error();
+		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
+		return false;
+	}
+
+	printf("Done.\n\n");
+	return true;
+}
+
 int main(int argc, char** argv)
 {
 	using namespace acl;
@@ -360,45 +391,21 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	if (options.input_filename == nullptr)
-	{
-		printf("An input file is required.\n");
-		return -1;
-	}
-
 	Allocator allocator;
+	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
+	std::shared_ptr<RigidSkeleton> skeleton;
 
-	std::ifstream t(options.input_filename);
-	std::string str((std::istreambuf_iterator<char>(t)),
-		std::istreambuf_iterator<char>());
-
-	printf("Reading input... ");
-
-	ClipReader reader = ClipReader(allocator, str.c_str(), str.length());
-	if (!reader.read())
+	if (!read_clip(allocator, options.input_filename, clip, skeleton))
 	{
-		ClipReaderError err = reader.get_error();
-		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
 		return -1;
 	}
-
-	printf("Done.\n\n");
-
-	AnimationClip* clip = reader.get_clip();
-	RigidSkeleton* skeleton = reader.get_skeleton();
 
 	// Compress & Decompress
 	{
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip, *skeleton, RotationFormat8::Quat_128);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip, *skeleton, RotationFormat8::Quat_96);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip, *skeleton, RotationFormat8::Quat_48);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_128);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_96);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_48);
 	}
-
-	clip->~AnimationClip();
-	allocator.deallocate(clip);
-
-	skeleton->~RigidSkeleton();
-	allocator.deallocate(skeleton);
 
 	if (IsDebuggerPresent())
 	{

@@ -24,30 +24,36 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
 #include "acl/clip_reader/clip_reader_error.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/compression/skeleton.h"
+#include "acl/core/memory.h"
+#include "acl/core/string.h"
+#include "acl/core/string_view.h"
 #include "acl/sjson/sjson_parser.h"
-#include <functional>
+
+#include <ctype.h>
 
 namespace acl
 {
 	class ClipReader
 	{
 	public:
-		ClipReader(Allocator& allocator, const char* const sjson_input, int input_length)
-			: m_allocator(allocator),
-			  m_parser(sjson_input, input_length),
-			  m_error()
+		ClipReader(Allocator& allocator, const char* sjson_input, size_t input_length)
+			: m_allocator(allocator)
+			, m_read_already()
+			, m_parser(sjson_input, input_length)
+			, m_error()
+			, m_skeleton()
+			, m_clip()
+			, m_version()
+			, m_num_bones()
+			, m_num_samples()
+			, m_sample_rate()
 		{
 		}
 
-		~ClipReader()
-		{
-			m_allocator.deallocate(m_bone_names);
-		}
-
-		bool read()
+		bool read(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, std::shared_ptr<RigidSkeleton>& skeleton)
 		{
 			if (m_read_already)
 			{
@@ -56,93 +62,31 @@ namespace acl
 
 			m_read_already = true;
 
-			if (read_version() &&
-				read_clip_header() &&
-				read_and_allocate_bones() &&
-				create_clip() &&
-				read_tracks() &&
-				nothing_follows())
+			if (read_version() && read_clip_header() && read_skeleton() && create_clip() && read_tracks() && nothing_follows())
 			{
+				std::swap(clip, m_clip);
+				std::swap(skeleton, m_skeleton);
 				return true;
-			}
-
-			if (m_clip != nullptr)
-			{
-				m_clip->~AnimationClip();
-				m_allocator.deallocate(m_clip);
-				m_clip = nullptr;
-			}
-
-			if (m_skeleton != nullptr)
-			{
-				m_skeleton->~RigidSkeleton();
-				m_allocator.deallocate(m_skeleton);
-				m_skeleton = nullptr;
 			}
 
 			return false;
 		}
 
-		AnimationClip* get_clip()
-		{
-			return m_clip;
-		}
-
-		RigidSkeleton* get_skeleton()
-		{
-			return m_skeleton;
-		}
-
-		ClipReaderError get_error()
-		{
-			return m_error;
-		}
+		ClipReaderError get_error() { return m_error; }
 
 	private:
-		// Temporary storage for input that must be translated to compressor data structures.
-		struct Header
-		{
-			const char* clip_name;
-			int clip_name_length;
-			int num_samples;
-			int sample_rate;
-			double error_threshold;
-			const char* reference_frame;
-			int reference_frame_length;
-		};
-
-		struct Bone
-		{
-			int index;
-			const char* name;
-			int name_length;
-			const char* parent;
-			int parent_length;
-			double vertex_distance;
-			double bind_rotation[4];
-			double bind_translation[3];
-			double bind_scale[3];
-		};
-
 		Allocator& m_allocator;
-		bool m_read_already{};
+		bool m_read_already;
 		SJSONParser m_parser;
 		ClipReaderError m_error;
 
-		RigidSkeleton* m_skeleton{};
-		AnimationClip* m_clip{};
+		std::shared_ptr<RigidSkeleton> m_skeleton;
+		std::unique_ptr<AnimationClip, Deleter<AnimationClip>> m_clip;
 
-		double m_version{};
-		Header m_header{};
-
-		int m_num_bones{};
-		char* m_bone_names{};
-
-		void set_error(int reason)
-		{
-			m_parser.get_position(m_error.line, m_error.column);
-			m_error.error = reason;
-		}
+		double m_version;
+		uint16_t m_num_bones;
+		uint32_t m_num_samples;
+		uint32_t m_sample_rate;
 
 		bool read_version()
 		{
@@ -163,20 +107,50 @@ namespace acl
 
 		bool read_clip_header()
 		{
+			StringView clip_name;
+
 			if (!m_parser.object_begins("clip"))
 			{
 				goto error;
 			}
-
-			if (!m_parser.read("name", m_header.clip_name, m_header.clip_name_length) ||
-				!m_parser.read("num_samples", m_header.num_samples) ||
-				!m_parser.read("sample_rate", m_header.sample_rate) ||
-				!m_parser.read("error_threshold", m_header.error_threshold))
+			
+			if (!m_parser.read("name", clip_name))
 			{
 				goto error;
 			}
 
-			m_parser.try_read("reference_frame", m_header.reference_frame, m_header.reference_frame_length);
+			double num_samples;
+			if (!m_parser.read("num_samples", num_samples))
+			{
+				goto error;
+			}
+
+			m_num_samples = static_cast<uint32_t>(num_samples);
+			if (static_cast<double>(m_num_samples) != num_samples)
+			{
+				set_error(ClipReaderError::UnsignedIntegerExpected);
+				return false;
+			}
+
+			double sample_rate;
+			if (!m_parser.read("sample_rate", sample_rate))
+			{
+				goto error;
+			}
+
+			m_sample_rate = static_cast<uint32_t>(sample_rate);
+			if (static_cast<double>(m_sample_rate) != sample_rate)
+			{
+				set_error(ClipReaderError::UnsignedIntegerExpected);
+				return false;
+			}
+
+			double error_threshold;
+			if (!m_parser.read("error_threshold", error_threshold))
+			{
+				goto error;
+			}
+			// TODO: do something with error_threshold.
 
 			if (!m_parser.object_ends())
 			{
@@ -190,138 +164,113 @@ namespace acl
 			return false;
 		}
 
-		bool read_and_allocate_bones()
+		bool read_skeleton()
 		{
-			int name_buffer_length = 0;
-			RigidBone* bones = nullptr;
-
 			SJSONParser::State before_bones = m_parser.save_state();
 
-			if (!for_each_bone([this, &name_buffer_length](Bone input)
+			uint16_t num_bones;
+			if (!process_each_bone(nullptr, num_bones))
 			{
-				++m_num_bones;
-				name_buffer_length += input.name_length + 1;
-				return true;
-			}))
-			{
-				goto error;
-			}
-
-			bones = allocate_type_array<RigidBone>(m_allocator, m_num_bones);
-
-			m_bone_names = allocate_type_array<char>(m_allocator, name_buffer_length);
-			char* current_name = m_bone_names;
-
-			m_parser.restore_state(before_bones);
-
-			if (!for_each_bone([bones, &current_name](Bone src)
-			{
-				RigidBone* dst = bones + src.index;
-
-				std::memcpy(current_name, src.name, src.name_length);
-				current_name[src.name_length] = '\0';
-				current_name += src.name_length + 1;
-
-				dst->name = nullptr;
-				dst->vertex_distance = src.vertex_distance;
-				dst->bind_rotation = quat_unaligned_load(src.bind_rotation);
-				dst->bind_translation = vector_unaligned_load3(src.bind_translation);
-				// TODO: bind_scale
-
-				return true;
-			}))
-			{
-				goto error;
+				return false;
 			}
 
 			m_parser.restore_state(before_bones);
 
-			if (!for_each_bone([this, bones](Bone src)
+			std::unique_ptr<RigidBone, Deleter<RigidBone>> bones = allocate_unique_type_array<RigidBone>(m_allocator, num_bones);
+			if (!process_each_bone(bones.get(), num_bones))
 			{
-				if (src.parent_length == 0)
-				{
-					bones[src.index].parent_index = no_parent_bone;
-					return true;
-				}
-
-				int parent_index = index_of_bone(src.parent, src.parent_length);
-				if (parent_index < 0)
-				{
-					set_error(ClipReaderError::NoParentWithThatName);
-					return false;
-				}
-				
-				bones[src.index].parent_index = parent_index;
-				return true;
-			}))
-			{
-				goto error;
+				return false;
 			}
-			
-			m_skeleton = allocate_type<RigidSkeleton>(m_allocator, std::ref(m_allocator), bones, m_num_bones);
-			m_allocator.deallocate(bones);
+
+			m_skeleton = allocate_shared_type<RigidSkeleton>(m_allocator, m_allocator, bones.get(), num_bones);
 
 			return true;
-
-		error:
-			m_allocator.deallocate(bones);
-			return false;
 		}
 
-		int index_of_bone(const char* const name, const int name_length)
+		bool process_each_bone(RigidBone* bones, uint16_t& num_bones)
 		{
-			const char* bone_name = m_bone_names;
+			bool counting = bones == nullptr;
+			num_bones = 0;
 
-			for (int i = 0; i < m_num_bones; ++i)
-			{
-				if (m_parser.strings_equal(bone_name, name, name_length))
-				{
-					return i;
-				}
-
-				bone_name += std::strlen(bone_name) + 1;
-			}
-
-			return -1;
-		}
-
-		bool for_each_bone(std::function<bool(Bone)> process)
-		{
 			if (!m_parser.array_begins("bones"))
 			{
 				goto error;
 			}
 
-			int index = 0;
-
-			while (!m_parser.try_array_ends())
+			for (uint16_t i = 0; !m_parser.try_array_ends(); ++i)
 			{
-				Bone b;
+				RigidBone dummy;
+				RigidBone& bone = counting ? dummy : bones[i];
 
-				if (!m_parser.object_begins() ||
-					!m_parser.read("name", b.name, b.name_length) ||
-					!m_parser.read("parent", b.parent, b.parent_length) ||
-					!m_parser.read("vertex_distance", b.vertex_distance))
+				if (!m_parser.object_begins())
 				{
 					goto error;
 				}
 
-				m_parser.try_read("bind_rotation", b.bind_rotation, 4);
-				m_parser.try_read("bind_translation", b.bind_translation, 3);
-				m_parser.try_read("bind_scale", b.bind_scale, 3);
+				StringView name;
+				if (!m_parser.read("name", name))
+				{
+					goto error;
+				}
+
+				if (!counting)
+				{
+					bone.name = String(m_allocator, name);
+				}
+
+				StringView parent;
+				if (!m_parser.read("parent", parent))
+				{
+					goto error;
+				}
 				
+				if (!counting)
+				{
+					if (parent.get_length() == 0)
+					{
+						// This is the root bone.
+						bone.parent_index = INVALID_BONE_INDEX;
+					}
+					else
+					{
+						bone.parent_index = find_bone(bones, num_bones, parent);
+						if (bone.parent_index == INVALID_BONE_INDEX)
+						{
+							set_error(ClipReaderError::NoParentBoneWithThatName);
+							return false;
+						}
+					}
+				}
+
+				if (!m_parser.read("vertex_distance", bone.vertex_distance))
+				{
+					goto error;
+				}
+
+				double rotation[4];
+				if (m_parser.try_read("bind_rotation", rotation, 4) && !counting)
+				{
+					bone.bind_rotation = quat_unaligned_load(rotation);
+				}
+
+				double translation[3];
+				if (m_parser.try_read("bind_translation", translation, 3) && !counting)
+				{
+					bone.bind_translation = vector_unaligned_load3(translation);
+				}
+
+				double scale[3];
+				if (m_parser.try_read("bind_scale", scale, 3) && !counting)
+				{
+					// TODO: do something with bind_scale.
+				}
+
 				if (!m_parser.object_ends())
 				{
 					goto error;
 				}
 
-				b.index = index;
-				++index;
-
-				if (!process(b))
-				{
-					return false;
-				}
+				++num_bones;
 			}
 
 			return true;
@@ -331,10 +280,22 @@ namespace acl
 			return false;
 		}
 
+		uint16_t find_bone(const RigidBone* bones, uint16_t num_bones, StringView name) const
+		{
+			for (uint16_t i = 0; i < num_bones; ++i)
+			{
+				if (bones[i].name == name)
+				{
+					return i;
+				}
+			}
+
+			return INVALID_BONE_INDEX;
+		}
+
 		bool create_clip()
 		{
-			m_clip = allocate_type<AnimationClip>(m_allocator, std::ref(m_allocator), std::ref(*m_skeleton), m_header.num_samples, m_header.sample_rate);
-
+			m_clip = allocate_unique_type<AnimationClip>(m_allocator, m_allocator, m_skeleton, m_num_samples, m_sample_rate);
 			return true;
 		}
 
@@ -352,22 +313,20 @@ namespace acl
 					goto error;
 				}
 
-				const char* name;
-				int name_length;
-
-				if (!m_parser.read("name", name, name_length))
+				StringView name;
+				if (!m_parser.read("name", name))
 				{
 					goto error;
 				}
 
-				int bone_index = index_of_bone(name, name_length);
-				if (bone_index < 0)
+				uint16_t bone_index = find_bone(m_skeleton->get_bones(), m_skeleton->get_num_bones(), name);
+				if (bone_index == INVALID_BONE_INDEX)
 				{
 					set_error(ClipReaderError::NoBoneWithThatName);
 					return false;
 				}
 
-				AnimatedBone* bone = m_clip->get_bones() + bone_index;
+				AnimatedBone& bone = m_clip->get_bones()[bone_index];
 
 				if (m_parser.try_array_begins("rotations") && !read_track_rotations(bone) ||
 					m_parser.try_array_begins("translations") && !read_track_translations(bone) ||
@@ -385,9 +344,9 @@ namespace acl
 			return false;
 		}
 
-		bool read_track_rotations(AnimatedBone* bone)
+		bool read_track_rotations(AnimatedBone& bone)
 		{
-			for (int i = 0; i < m_header.num_samples; ++i)
+			for (uint32_t i = 0; i < m_num_samples; ++i)
 			{
 				double quaternion[4];
 
@@ -396,15 +355,15 @@ namespace acl
 					return false;
 				}
 
-				bone->rotation_track.set_sample(i, quat_unaligned_load(quaternion));
+				bone.rotation_track.set_sample(i, quat_unaligned_load(quaternion));
 			}
 
 			return m_parser.array_ends();
 		}
 
-		bool read_track_translations(AnimatedBone* bone)
+		bool read_track_translations(AnimatedBone& bone)
 		{
-			for (int i = 0; i < m_header.num_samples; ++i)
+			for (uint32_t i = 0; i < m_num_samples; ++i)
 			{
 				double translation[3];
 
@@ -413,15 +372,15 @@ namespace acl
 					return false;
 				}
 
-				bone->translation_track.set_sample(i, vector_unaligned_load3(translation));
+				bone.translation_track.set_sample(i, vector_unaligned_load3(translation));
 			}
 
 			return m_parser.array_ends();
 		}
 
-		bool read_track_scales(AnimatedBone* bone)
+		bool read_track_scales(AnimatedBone& bone)
 		{
-			for (int i = 0; i < m_header.num_samples; ++i)
+			for (uint32_t i = 0; i < m_num_samples; ++i)
 			{
 				double scale[3];
 
@@ -430,7 +389,7 @@ namespace acl
 					return false;
 				}
 
-				// TODO: do something with the scale.
+				// TODO: do something with scale.
 			}
 
 			return m_parser.array_ends();
@@ -445,6 +404,12 @@ namespace acl
 			}
 
 			return true;
+		}
+
+		void set_error(uint32_t reason)
+		{
+			m_parser.get_position(m_error.line, m_error.column);
+			m_error.error = reason;
 		}
 	};
 }
