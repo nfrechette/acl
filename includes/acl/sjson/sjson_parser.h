@@ -41,6 +41,9 @@ namespace acl
 
 	   The following are not yet supported:
 	     - null literals
+
+	     - unescaping characters within strings; the returned string view will be
+		   exactly as the string appears in the JSON.
     */
 	class SJSONParser
 	{
