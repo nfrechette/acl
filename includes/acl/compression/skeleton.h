@@ -41,9 +41,9 @@ namespace acl
 		RigidBone()
 			: name()
 			, parent_index(INVALID_BONE_INDEX)
-			, bind_rotation()
-			, bind_translation()
-			, vertex_distance()
+			, bind_rotation(quat_identity_64())
+			, bind_translation(vector_zero_64())
+			, vertex_distance(1.0)
 		{
 		}
 
