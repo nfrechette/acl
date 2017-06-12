@@ -24,29 +24,28 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/ialgorithm.h"
-#include "acl/algorithm/uniformly_sampled/encoder.h"
-#include "acl/algorithm/uniformly_sampled/decoder.h"
+#include "acl/core/algorithm_types.h"
+
+#include <stdint.h>
 
 namespace acl
 {
-	class UniformlySampledAlgorithm final : public IAlgorithm
+	// Algorithm version numbers
+	static constexpr uint16_t ALGORITHM_VERSION_UNIFORMLY_SAMPLED		= 0;
+	//static constexpr uint16_t ALGORITHM_VERSION_LINEAR_KEY_REDUCTION	= 0;
+	//static constexpr uint16_t ALGORITHM_VERSION_SPLINE_KEY_REDUCTION	= 0;
+
+	//////////////////////////////////////////////////////////////////////////
+
+	// TODO: constexpr
+	inline uint16_t get_algorithm_version(AlgorithmType8 type)
 	{
-	public:
-		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format, VectorFormat8 translation_format) override
+		switch (type)
 		{
-			return uniformly_sampled::compress_clip(allocator, clip, skeleton, rotation_format, translation_format);
+			case AlgorithmType8::UniformlySampled:		return ALGORITHM_VERSION_UNIFORMLY_SAMPLED;
+			//case AlgorithmType8::LinearKeyReduction:	return ALGORITHM_VERSION_LINEAR_KEY_REDUCTION;
+			//case AlgorithmType8::SplineKeyReduction:	return ALGORITHM_VERSION_SPLINE_KEY_REDUCTION;
+			default:									return 0xFFFF;
 		}
-
-		virtual void decompress_pose(const CompressedClip& clip, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) override
-		{
-			AlgorithmOutputWriterImpl writer(out_transforms, num_transforms);
-			uniformly_sampled::decompress_pose(clip, sample_time, writer);
-		}
-
-		virtual void decompress_bone(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) override
-		{
-			uniformly_sampled::decompress_bone(clip, sample_time, sample_bone_index, out_rotation, out_translation);
-		}
-	};
+	}
 }
