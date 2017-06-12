@@ -146,30 +146,19 @@ namespace acl
 				return quantize_unsigned_normalized((input * 0.5f) + 0.5f, num_bits);
 			}
 
-			template<typename SrcPtrType>
-			inline void unaligned_write(const SrcPtrType* src, uint8_t* dest, size_t size)
-			{
-				const uint8_t* src_u8 = reinterpret_cast<const uint8_t*>(src);
-				for (size_t byte_index = 0; byte_index < size; ++byte_index)
-					dest[byte_index] = src_u8[byte_index];
-			}
-
 			inline void write_rotation(const FullPrecisionHeader& header, const Quat_32& rotation, uint8_t*& out_rotation_data)
 			{
 				if (header.rotation_format == RotationFormat8::Quat_128)
 				{
-					quat_unaligned_write(rotation, safe_ptr_cast<float>(out_rotation_data));
-					out_rotation_data += sizeof(float) * 4;
+					quat_unaligned_write(rotation, out_rotation_data);
 				}
 				else if (header.rotation_format == RotationFormat8::Quat_96)
 				{
 					Vector4_32 rotation_xyz = quat_to_vector(quat_ensure_positive_w(rotation));
-					vector_unaligned_write3(rotation_xyz, safe_ptr_cast<float>(out_rotation_data));
-					out_rotation_data += sizeof(float) * 3;
+					vector_unaligned_write3(rotation_xyz, out_rotation_data);
 				}
 				else if (header.rotation_format == RotationFormat8::Quat_48)
 				{
-					// TODO: Normalize values before quantization, the remaining xyz range isn't [-1.0 .. 1.0]!
 					Vector4_32 rotation_xyz = quat_to_vector(quat_ensure_positive_w(rotation));
 
 					size_t rotation_x = quantize_signed_normalized(vector_get_x(rotation_xyz), 16);
@@ -180,27 +169,45 @@ namespace acl
 					data[0] = safe_static_cast<uint16_t>(rotation_x);
 					data[1] = safe_static_cast<uint16_t>(rotation_y);
 					data[2] = safe_static_cast<uint16_t>(rotation_z);
-
-					out_rotation_data += sizeof(uint16_t) * 3;
 				}
+				else if (header.rotation_format == RotationFormat8::Quat_32)
+				{
+					Vector4_32 rotation_xyz = quat_to_vector(quat_ensure_positive_w(rotation));
+
+					size_t rotation_x = quantize_signed_normalized(vector_get_x(rotation_xyz), 11);
+					size_t rotation_y = quantize_signed_normalized(vector_get_y(rotation_xyz), 11);
+					size_t rotation_z = quantize_signed_normalized(vector_get_z(rotation_xyz), 10);
+
+					uint32_t rotation_u32 = safe_static_cast<uint32_t>((rotation_x << 21) | (rotation_y << 10) | rotation_z);
+					
+					// Written 2 bytes at a time to ensure safe alignment
+					uint16_t* data = safe_ptr_cast<uint16_t>(out_rotation_data);
+					data[0] = safe_static_cast<uint16_t>(rotation_u32 >> 16);
+					data[1] = safe_static_cast<uint16_t>(rotation_u32 & 0xFFFF);
+				}
+
+				out_rotation_data += get_rotation_size(header.rotation_format);
 			}
 
 			inline void write_translation(const FullPrecisionHeader& header, const Vector4_32& translation, uint8_t*& out_translation_data)
 			{
-				bool are_translations_always_aligned = header.rotation_format != RotationFormat8::Quat_48;
-				if (are_translations_always_aligned)
+				if (header.translation_format == VectorFormat8::Vector3_96)
 				{
-					vector_unaligned_write3(translation, safe_ptr_cast<float>(out_translation_data));
+					vector_unaligned_write3(translation, out_translation_data);
 				}
-				else
+				else if (header.translation_format == VectorFormat8::Vector3_48)
 				{
-					const float* translation_xyz = vector_as_float_ptr(translation);
-					unaligned_write(translation_xyz + 0, out_translation_data + (0 * sizeof(float)), sizeof(float));
-					unaligned_write(translation_xyz + 1, out_translation_data + (1 * sizeof(float)), sizeof(float));
-					unaligned_write(translation_xyz + 2, out_translation_data + (2 * sizeof(float)), sizeof(float));
+					size_t translation_x = quantize_signed_normalized(vector_get_x(translation), 16);
+					size_t translation_y = quantize_signed_normalized(vector_get_y(translation), 16);
+					size_t translation_z = quantize_signed_normalized(vector_get_z(translation), 16);
+
+					uint16_t* data = safe_ptr_cast<uint16_t>(out_translation_data);
+					data[0] = safe_static_cast<uint16_t>(translation_x);
+					data[1] = safe_static_cast<uint16_t>(translation_y);
+					data[2] = safe_static_cast<uint16_t>(translation_z);
 				}
 
-				out_translation_data += sizeof(float) * 3;
+				out_translation_data += get_translation_size(header.translation_format);
 			}
 
 			inline void write_constant_track_data(FullPrecisionHeader& header, const AnimationClip& clip, uint32_t constant_data_size)
@@ -266,8 +273,10 @@ namespace acl
 		}
 
 		// Encoder entry point
-		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format)
+		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format, VectorFormat8 translation_format)
 		{
+			using namespace impl;
+
 			uint16_t num_bones = clip.get_num_bones();
 			uint32_t num_samples = clip.get_num_samples();
 
@@ -275,29 +284,13 @@ namespace acl
 			uint32_t num_constant_translation_tracks;
 			uint32_t num_animated_rotation_tracks;
 			uint32_t num_animated_translation_tracks;
-			impl::get_num_animated_tracks(clip, num_constant_rotation_tracks, num_constant_translation_tracks, num_animated_rotation_tracks, num_animated_translation_tracks);
+			get_num_animated_tracks(clip, num_constant_rotation_tracks, num_constant_translation_tracks, num_animated_rotation_tracks, num_animated_translation_tracks);
 
-			uint32_t constant_data_size = sizeof(float) * (num_constant_translation_tracks * 3);
-			uint32_t animated_data_size = sizeof(float) * (num_animated_translation_tracks * 3);
+			uint32_t rotation_size = get_rotation_size(rotation_format);
+			uint32_t translation_size = get_translation_size(translation_format);
 
-			switch (rotation_format)
-			{
-			case RotationFormat8::Quat_128:
-				constant_data_size += sizeof(float) * (num_constant_rotation_tracks * 4);
-				animated_data_size += sizeof(float) * (num_animated_rotation_tracks * 4);
-				break;
-			case RotationFormat8::Quat_96:
-				constant_data_size += sizeof(float) * (num_constant_rotation_tracks * 3);
-				animated_data_size += sizeof(float) * (num_animated_rotation_tracks * 3);
-				break;
-			case RotationFormat8::Quat_48:
-				constant_data_size += sizeof(uint16_t) * (num_constant_rotation_tracks * 3);
-				animated_data_size += sizeof(uint16_t) * (num_animated_rotation_tracks * 3);
-				break;
-			default:
-				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
-				break;
-			}
+			uint32_t constant_data_size = (rotation_size * num_constant_rotation_tracks) + (translation_size * num_constant_translation_tracks);
+			uint32_t animated_data_size = (rotation_size * num_animated_rotation_tracks) + (translation_size * num_animated_translation_tracks);
 
 			animated_data_size *= num_samples;
 
@@ -319,6 +312,7 @@ namespace acl
 			FullPrecisionHeader& header = get_full_precision_header(*compressed_clip);
 			header.num_bones = num_bones;
 			header.rotation_format = rotation_format;
+			header.translation_format = translation_format;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.num_animated_rotation_tracks = num_animated_rotation_tracks;
@@ -328,10 +322,10 @@ namespace acl
 			header.constant_track_data_offset = header.constant_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size);	// Aligned to 4 bytes
 			header.track_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);					// Aligned to 4 bytes
 
-			impl::write_default_track_bitset(header, clip, bitset_size);
-			impl::write_constant_track_bitset(header, clip, bitset_size);
-			impl::write_constant_track_data(header, clip, constant_data_size);
-			impl::write_animated_track_data(header, clip, animated_data_size);
+			write_default_track_bitset(header, clip, bitset_size);
+			write_constant_track_bitset(header, clip, bitset_size);
+			write_constant_track_data(header, clip, constant_data_size);
+			write_animated_track_data(header, clip, animated_data_size);
 
 			finalize_compressed_clip(*compressed_clip);
 

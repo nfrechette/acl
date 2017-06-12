@@ -33,9 +33,9 @@ namespace acl
 	class UniformlySampledAlgorithm final : public IAlgorithm
 	{
 	public:
-		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format) override
+		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format, VectorFormat8 translation_format) override
 		{
-			return uniformly_sampled::compress_clip(allocator, clip, skeleton, rotation_format);
+			return uniformly_sampled::compress_clip(allocator, clip, skeleton, rotation_format, translation_format);
 		}
 
 		virtual void decompress_pose(const CompressedClip& clip, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) override
