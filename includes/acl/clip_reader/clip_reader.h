@@ -32,7 +32,7 @@
 #include "acl/core/string_view.h"
 #include "acl/sjson/sjson_parser.h"
 
-#include <ctype.h>
+#include <stdint.h>
 
 namespace acl
 {
@@ -328,10 +328,41 @@ namespace acl
 
 				AnimatedBone& bone = m_clip->get_bones()[bone_index];
 
-				if (m_parser.try_array_begins("rotations") && !read_track_rotations(bone) ||
-					m_parser.try_array_begins("translations") && !read_track_translations(bone) ||
-					m_parser.try_array_begins("scales") && !read_track_scales(bone) ||
-					!m_parser.object_ends())
+				if (m_parser.try_array_begins("rotations"))
+				{
+					if (!read_track_rotations(bone))
+						goto error;
+				}
+				else
+				{
+					uint32_t num_samples = bone.rotation_track.get_num_samples();
+					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+						bone.rotation_track.set_sample(sample_index, quat_identity_64());
+				}
+
+				if (m_parser.try_array_begins("translations"))
+				{
+					if (!read_track_translations(bone))
+						goto error;
+				}
+				else
+				{
+					uint32_t num_samples = bone.translation_track.get_num_samples();
+					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+						bone.translation_track.set_sample(sample_index, vector_zero_64());
+				}
+
+				if (m_parser.try_array_begins("scales"))
+				{
+					if (!read_track_scales(bone))
+						goto error;
+				}
+				else
+				{
+					// TODO: Set default scale
+				}
+
+				if (!m_parser.object_ends())
 				{
 					goto error;
 				}
