@@ -22,19 +22,23 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/memory.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/clip_reader/clip_reader.h"
 #include "acl/compression/skeleton_error_metric.h"
 
 #include "acl/algorithm/uniformly_sampled/algorithm.h"
-
-#include "clip_01_01.h"
 
 #include <Windows.h>
 #include <conio.h>
 
 #include <cstring>
 #include <cstdio>
+#include <fstream>
+#include <streambuf>
+#include <string>
+#include <memory>
 
 //#define ACL_RUN_UNIT_TESTS
 
@@ -100,30 +104,52 @@ struct RawOutputWriterImpl : public acl::OutputWriter
 
 struct Options
 {
+	const char*		input_filename;
 	bool			output_stats;
 	const char*		output_stats_filename;
 
 	Options()
-		: output_stats(false)
+		: input_filename(nullptr),
+		  output_stats(false)
 		, output_stats_filename(nullptr)
 	{}
 };
 
-static Options parse_options(int argc, char** argv)
-{
-	Options options;
+constexpr char* FILE_OPTION = "-file=";
+constexpr char* STATS_OPTION = "-stats";
 
-	for (int arg_index = 0; arg_index < argc; ++arg_index)
+static bool parse_options(int argc, char** argv, Options& options)
+{
+	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
 		char* argument = argv[arg_index];
-		if (std::strncmp(argument, "-stats", 6) == 0)
+		
+		size_t option_length = std::strlen(FILE_OPTION);
+		if (std::strncmp(argument, FILE_OPTION, option_length) == 0)
+		{
+			options.input_filename = argument + option_length;
+			continue;
+		}
+		
+		option_length = std::strlen(STATS_OPTION);
+		if (std::strncmp(argument, STATS_OPTION, option_length) == 0)
 		{
 			options.output_stats = true;
-			options.output_stats_filename = argument[6] == '=' ? (argument + 7) : nullptr;
+			options.output_stats_filename = argument[option_length] == '=' ? argument + option_length + 1 : nullptr;
+			continue;
 		}
+
+		printf("Unrecognized option %s\n", argument);
+		return false;
 	}
 
-	return options;
+	if (options.input_filename == nullptr || std::strlen(options.input_filename) == 0)
+	{
+		printf("An input file is required.\n");
+		return false;
+	}
+
+	return true;
 }
 
 #ifdef ACL_RUN_UNIT_TESTS
@@ -256,43 +282,6 @@ static void print_stats(const Options& options, const acl::AnimationClip& clip, 
 	file = nullptr;
 }
 
-static void add_clip_track_data(acl::AnimationClip& clip)
-{
-	acl::AnimatedBone* clip_bones = clip.get_bones();
-
-	for (uint16_t bone_index = 0; bone_index < clip_01_01::num_bones; ++bone_index)
-	{
-		uint32_t rotation_track_index = ~0u;
-		for (uint32_t track_bone_index = 0; track_bone_index < clip_01_01::num_rotation_tracks; ++track_bone_index)
-		{
-			if (clip_01_01::rotation_track_bone_index[track_bone_index] == bone_index)
-			{
-				rotation_track_index = track_bone_index;
-				break;
-			}
-		}
-
-		uint32_t translation_track_index = ~0u;
-		for (uint32_t track_bone_index = 0; track_bone_index < clip_01_01::num_translation_tracks; ++track_bone_index)
-		{
-			if (clip_01_01::translation_track_bone_index[track_bone_index] == bone_index)
-			{
-				translation_track_index = track_bone_index;
-				break;
-			}
-		}
-
-		for (uint32_t sample_index = 0; sample_index < clip_01_01::num_samples; ++sample_index)
-		{
-			acl::Quat_64 rotation = rotation_track_index != ~0u ? clip_01_01::rotation_tracks[rotation_track_index][sample_index] : acl::quat_identity_64();
-			clip_bones[bone_index].rotation_track.set_sample(sample_index, rotation);
-
-			acl::Vector4_64 translation = translation_track_index != ~0u ? clip_01_01::translation_tracks[translation_track_index][sample_index] : acl::vector_zero_64();
-			clip_bones[bone_index].translation_track.set_sample(sample_index, translation);
-		}
-	}
-}
-
 static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, const acl::CompressedClip& compressed_clip, acl::IAlgorithm& algorithm)
 {
 	using namespace acl;
@@ -366,6 +355,27 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 	allocator.deallocate(compressed_clip);
 }
 
+bool read_clip(acl::Allocator& allocator, const char* filename, std::unique_ptr<acl::AnimationClip, acl::Deleter<acl::AnimationClip>>& clip, std::shared_ptr<acl::RigidSkeleton>& skeleton)
+{
+	std::ifstream t(filename);
+	std::string str((std::istreambuf_iterator<char>(t)),
+		std::istreambuf_iterator<char>());
+
+	printf("Reading input... ");
+
+	acl::ClipReader reader(allocator, str.c_str(), str.length());
+
+	if (!reader.read(clip, skeleton))
+	{
+		acl::ClipReaderError err = reader.get_error();
+		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
+		return false;
+	}
+
+	printf("Done.\n\n");
+	return true;
+}
+
 int main(int argc, char** argv)
 {
 	using namespace acl;
@@ -374,22 +384,27 @@ int main(int argc, char** argv)
 	run_unit_tests();
 #endif
 
-	const Options options = parse_options(argc, argv);
+	Options options;
+
+	if (!parse_options(argc, argv, options))
+	{
+		return -1;
+	}
 
 	Allocator allocator;
+	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
+	std::shared_ptr<RigidSkeleton> skeleton;
 
-	// Initialize our skeleton
-	RigidSkeleton skeleton(allocator, &clip_01_01::bones[0], clip_01_01::num_bones);
-
-	// Populate our clip with our raw samples
-	AnimationClip clip(allocator, skeleton, clip_01_01::num_samples, clip_01_01::sample_rate);
-	add_clip_track_data(clip);
+	if (!read_clip(allocator, options.input_filename, clip, skeleton))
+	{
+		return -1;
+	}
 
 	// Compress & Decompress
 	{
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_128);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_96);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, clip, skeleton, RotationFormat8::Quat_48);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_128);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_96);
+		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_48);
 	}
 
 	if (IsDebuggerPresent())

@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/memory.h"
+#include "acl/core/string.h"
 #include "acl/math/quat_64.h"		// todo remove
 #include "acl/math/vector4_64.h"	// todo remove
 #include "acl/math/transform_64.h"
@@ -33,12 +34,43 @@
 
 namespace acl
 {
+	static constexpr uint16_t INVALID_BONE_INDEX = 0xFFFF;
+
 	struct RigidBone
 	{
-		const char*	name;
+		RigidBone()
+			: name()
+			, parent_index(INVALID_BONE_INDEX)
+			, bind_rotation()
+			, bind_translation()
+			, vertex_distance()
+		{
+		}
+
+		RigidBone(RigidBone&& bone)
+			: name(std::move(bone.name))
+			, parent_index(bone.parent_index)
+			, bind_rotation(bone.bind_rotation)
+			, bind_translation(bone.bind_translation)
+			, vertex_distance(bone.vertex_distance)
+		{
+		}
+
+		RigidBone& operator=(RigidBone&& bone)
+		{
+			std::swap(name, bone.name);
+			std::swap(parent_index, bone.parent_index);
+			std::swap(bind_rotation, bone.bind_rotation);
+			std::swap(bind_translation, bone.bind_translation);
+			std::swap(vertex_distance, bone.vertex_distance);
+
+			return *this;
+		}
+
+		String		name;
 
 		// TODO: Introduce a type for bone indices
-		uint16_t	parent_index;		// 0xFFFF == Invalid index
+		uint16_t	parent_index;
 
 		// Bind transform is in parent bone local space
 		// TODO: convert to transform
@@ -52,7 +84,7 @@ namespace acl
 	class RigidSkeleton
 	{
 	public:
-		RigidSkeleton(Allocator& allocator, const RigidBone* bones, uint16_t num_bones)
+		RigidSkeleton(Allocator& allocator, RigidBone* bones, uint16_t num_bones)
 			: m_allocator(allocator)
 			, m_bones(allocate_type_array<RigidBone>(allocator, num_bones))
 			, m_num_bones(num_bones)
@@ -61,9 +93,9 @@ namespace acl
 			bool found_root = false;
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				const RigidBone& bone = bones[bone_index];
+				RigidBone& bone = bones[bone_index];
 
-				bool is_root = bone.parent_index == 0xFFFF;
+				bool is_root = bone.parent_index == INVALID_BONE_INDEX;
 
 				ACL_ENSURE(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
 				ACL_ENSURE((is_root && !found_root) || !is_root, "Multiple root bones found");
@@ -73,7 +105,7 @@ namespace acl
 
 				found_root |= is_root;
 
-				m_bones[bone_index] = bone;
+				std::swap(m_bones[bone_index], bone);
 			}
 
 			ACL_ENSURE(found_root, "No root bone found. The root bone must have a parent index = 0xFFFF");

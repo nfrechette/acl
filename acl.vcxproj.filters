@@ -37,6 +37,12 @@
     <Filter Include="includes\acl\algorithm\spline_key_reduction">
       <UniqueIdentifier>{af279707-3bf7-4e7d-a479-80dbc338f900}</UniqueIdentifier>
     </Filter>
+    <Filter Include="includes\acl\clip_reader">
+      <UniqueIdentifier>{31d1382d-c921-42d9-b381-236040c92bbe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="includes\acl\sjson">
+      <UniqueIdentifier>{8b8d2e62-7c4b-43ec-a679-c3230acd7452}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\acl\math\quat_64.h">
@@ -125,6 +131,24 @@
     </ClInclude>
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\algorithm.h">
       <Filter>includes\acl\algorithm\uniformy_sampled</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\clip_reader\clip_reader.h">
+      <Filter>includes\acl\clip_reader</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\clip_reader\clip_reader_error.h">
+      <Filter>includes\acl\clip_reader</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\sjson\sjson_parser.h">
+      <Filter>includes\acl\sjson</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\sjson\sjson_parser_error.h">
+      <Filter>includes\acl\sjson</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\string_view.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\core\string.h">
+      <Filter>includes\acl\core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

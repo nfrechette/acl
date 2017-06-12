@@ -12,19 +12,5 @@
     <ClCompile Include="sources\main.cpp">
       <Filter>sources</Filter>
     </ClCompile>
-    <ClCompile Include="sources\clip_01_01_skeleton.cpp">
-      <Filter>sources</Filter>
-    </ClCompile>
-    <ClCompile Include="sources\clip_01_01_rotations.cpp">
-      <Filter>sources</Filter>
-    </ClCompile>
-    <ClCompile Include="sources\clip_01_01_translations.cpp">
-      <Filter>sources</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="includes\clip_01_01.h">
-      <Filter>includes</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
