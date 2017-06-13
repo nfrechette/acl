@@ -37,6 +37,7 @@
 #include <cstdio>
 #include <fstream>
 #include <streambuf>
+#include <sstream>
 #include <string>
 #include <memory>
 
@@ -386,13 +387,29 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 	allocator.deallocate(compressed_clip);
 }
 
-bool read_clip(acl::Allocator& allocator, const char* filename, std::unique_ptr<acl::AnimationClip, acl::Deleter<acl::AnimationClip>>& clip, std::shared_ptr<acl::RigidSkeleton>& skeleton)
+static bool read_clip(acl::Allocator& allocator, const char* filename, std::unique_ptr<acl::AnimationClip, acl::Deleter<acl::AnimationClip>>& clip, std::shared_ptr<acl::RigidSkeleton>& skeleton)
 {
-	std::ifstream t(filename);
-	std::string str((std::istreambuf_iterator<char>(t)),
-		std::istreambuf_iterator<char>());
+	printf("Reading ACL input clip...");
 
-	printf("Reading input... ");
+	LARGE_INTEGER read_start_time_cycles;
+	QueryPerformanceCounter(&read_start_time_cycles);
+
+	std::ifstream t(filename);
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+	std::string str = buffer.str();
+
+	LARGE_INTEGER read_end_time_cycles;
+	QueryPerformanceCounter(&read_end_time_cycles);
+
+	uint64_t elapsed_cycles = read_end_time_cycles.QuadPart - read_start_time_cycles.QuadPart;
+	LARGE_INTEGER frequency_cycles_per_sec;
+	QueryPerformanceFrequency(&frequency_cycles_per_sec);
+	double elapsed_time_sec = double(elapsed_cycles) / double(frequency_cycles_per_sec.QuadPart);
+	double elapsed_time_ms = elapsed_time_sec * 1000.0;
+
+	printf(" Done in %.1f ms!\n", elapsed_time_ms);
+	printf("Parsing ACL input clip...");
 
 	acl::ClipReader reader(allocator, str.c_str(), str.length());
 
@@ -403,7 +420,14 @@ bool read_clip(acl::Allocator& allocator, const char* filename, std::unique_ptr<
 		return false;
 	}
 
-	printf("Done.\n\n");
+	LARGE_INTEGER parse_end_time_cycles;
+	QueryPerformanceCounter(&parse_end_time_cycles);
+
+	elapsed_cycles = parse_end_time_cycles.QuadPart - read_end_time_cycles.QuadPart;
+	elapsed_time_sec = double(elapsed_cycles) / double(frequency_cycles_per_sec.QuadPart);
+	elapsed_time_ms = elapsed_time_sec * 1000.0;
+
+	printf(" Done in %.1f ms!\n", elapsed_time_ms);
 	return true;
 }
 
