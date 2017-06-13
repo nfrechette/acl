@@ -75,15 +75,33 @@ namespace acl
 				uint32_t rotation_size;
 				uint32_t translation_size;
 
+				float interpolation_alpha;
+
 				// Read-write data
 				uint32_t default_track_offset;
 				uint32_t constant_track_offset;
 			};
 
-			inline void initialize_context(const FullPrecisionHeader& header, uint32_t key_frame0, uint32_t key_frame1, DecompressionContext& context)
+			template<class SettingsType>
+			inline void initialize_context(const SettingsType& settings, const FullPrecisionHeader& header, float sample_time, DecompressionContext& context)
 			{
-				uint32_t rotation_size = get_rotation_size(header.rotation_format);
-				uint32_t translation_size = get_translation_size(header.translation_format);
+				const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
+				const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
+
+				ACL_ENSURE(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
+				ACL_ENSURE(settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
+				ACL_ENSURE(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));
+				ACL_ENSURE(settings.is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
+
+				const uint32_t rotation_size = get_rotation_size(rotation_format);
+				const uint32_t translation_size = get_translation_size(translation_format);
+
+				float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
+
+				uint32_t key_frame0;
+				uint32_t key_frame1;
+				float interpolation_alpha;
+				calculate_interpolation_keys(header.num_samples, clip_duration, sample_time, key_frame0, key_frame1, interpolation_alpha);
 
 				// TODO: No need to store this, unpack from bitset in context and simplify branching logic below?
 				uint32_t animated_pose_size = (rotation_size * header.num_animated_rotation_tracks) + (translation_size * header.num_animated_translation_tracks);
@@ -101,11 +119,13 @@ namespace acl
 				context.rotation_size = rotation_size;
 				context.translation_size = translation_size;
 
+				context.interpolation_alpha = interpolation_alpha;
+
 				context.constant_track_offset = 0;
 				context.default_track_offset = 0;
 			}
 
-			inline void skip_rotation(DecompressionContext& context, RotationFormat8 rotation_format)
+			inline void skip_rotation(DecompressionContext& context)
 			{
 				bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
 				if (!is_rotation_default)
@@ -192,7 +212,8 @@ namespace acl
 				return quat_from_positive_w(rotation_xyz);
 			}
 
-			inline Quat_32 decompress_rotation(DecompressionContext& context, RotationFormat8 rotation_format, float interpolation_alpha)
+			template<class SettingsType>
+			inline Quat_32 decompress_rotation(const SettingsType& settings, const FullPrecisionHeader& header, DecompressionContext& context)
 			{
 				Quat_32 rotation;
 				bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
@@ -202,17 +223,18 @@ namespace acl
 				}
 				else
 				{
+					const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 					bool is_rotation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
 					if (is_rotation_constant)
 					{
 						// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
-						if (rotation_format == RotationFormat8::Quat_128)
+						if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 							rotation = decompress_rotation_quat_128(context.constant_track_data);
-						else if (rotation_format == RotationFormat8::Quat_96)
+						else if (rotation_format == RotationFormat8::Quat_96 && settings.is_rotation_format_supported(RotationFormat8::Quat_96))
 							rotation = decompress_rotation_quat_96(context.constant_track_data);
-						else if (rotation_format == RotationFormat8::Quat_48)
+						else if (rotation_format == RotationFormat8::Quat_48 && settings.is_rotation_format_supported(RotationFormat8::Quat_48))
 							rotation = decompress_rotation_quat_48(context.constant_track_data);
-						else if (rotation_format == RotationFormat8::Quat_32)
+						else if (rotation_format == RotationFormat8::Quat_32 && settings.is_rotation_format_supported(RotationFormat8::Quat_32))
 							rotation = decompress_rotation_quat_32(context.constant_track_data);
 
 						context.constant_track_data += context.rotation_size;
@@ -223,28 +245,28 @@ namespace acl
 						Quat_32 rotation1;
 
 						// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
-						if (rotation_format == RotationFormat8::Quat_128)
+						if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 						{
 							rotation0 = decompress_rotation_quat_128(context.key_frame_data0);
 							rotation1 = decompress_rotation_quat_128(context.key_frame_data1);
 						}
-						else if (rotation_format == RotationFormat8::Quat_96)
+						else if (rotation_format == RotationFormat8::Quat_96 && settings.is_rotation_format_supported(RotationFormat8::Quat_96))
 						{
 							rotation0 = decompress_rotation_quat_96(context.key_frame_data0);
 							rotation1 = decompress_rotation_quat_96(context.key_frame_data1);
 						}
-						else if (rotation_format == RotationFormat8::Quat_48)
+						else if (rotation_format == RotationFormat8::Quat_48 && settings.is_rotation_format_supported(RotationFormat8::Quat_48))
 						{
 							rotation0 = decompress_rotation_quat_48(context.key_frame_data0);
 							rotation1 = decompress_rotation_quat_48(context.key_frame_data1);
 						}
-						else if (rotation_format == RotationFormat8::Quat_32)
+						else if (rotation_format == RotationFormat8::Quat_32 && settings.is_rotation_format_supported(RotationFormat8::Quat_32))
 						{
 							rotation0 = decompress_rotation_quat_32(context.key_frame_data0);
 							rotation1 = decompress_rotation_quat_32(context.key_frame_data1);
 						}
 
-						rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
+						rotation = quat_lerp(rotation0, rotation1, context.interpolation_alpha);
 
 						context.key_frame_data0 += context.rotation_size;
 						context.key_frame_data1 += context.rotation_size;
@@ -256,7 +278,8 @@ namespace acl
 				return rotation;
 			}
 
-			inline Vector4_32 decompress_translation(DecompressionContext& context, RotationFormat8 rotation_format, float interpolation_alpha)
+			template<class SettingsType>
+			inline Vector4_32 decompress_translation(const SettingsType& settings, const FullPrecisionHeader& header, DecompressionContext& context)
 			{
 				Vector4_32 translation;
 				bool is_translation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
@@ -266,7 +289,7 @@ namespace acl
 				}
 				else
 				{
-					bool are_translations_always_aligned = rotation_format != RotationFormat8::Quat_48;
+					//const VectorFormat8 translation_format = settings.get_rotation_format(header.translation_format);
 					bool is_translation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
 					if (is_translation_constant)
 					{
@@ -278,7 +301,7 @@ namespace acl
 						Vector4_32 translation0 = vector_unaligned_load3(context.key_frame_data0);
 						Vector4_32 translation1 = vector_unaligned_load3(context.key_frame_data1);
 
-						translation = vector_lerp(translation0, translation1, interpolation_alpha);
+						translation = vector_lerp(translation0, translation1, context.interpolation_alpha);
 
 						context.key_frame_data0 += context.translation_size;
 						context.key_frame_data1 += context.translation_size;
@@ -291,9 +314,30 @@ namespace acl
 			}
 		}
 
-		template<class OutputWriterType>
-		inline void decompress_pose(const CompressedClip& clip, float sample_time, OutputWriterType& writer)
+		//////////////////////////////////////////////////////////////////////////
+		// Deriving from this struct and overriding these constexpr functions
+		// allow you to control which code is stripped for maximum performance.
+		// With these, you can:
+		//    - Support only a subset of the formats and statically strip the rest
+		//    - Force a single format and statically strip the rest
+		//    - Decide all of this at runtime by not making the overrides constexpr
+		//
+		// By default, all formats are supported.
+		//////////////////////////////////////////////////////////////////////////
+		struct DecompressionSettings
 		{
+			constexpr bool is_rotation_format_supported(RotationFormat8 format) const { return true; }
+			constexpr bool is_translation_format_supported(VectorFormat8 format) const { return true; }
+			constexpr RotationFormat8 get_rotation_format(RotationFormat8 format) const { return format; }
+			constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return format; }
+		};
+
+		template<class SettingsType, class OutputWriterType>
+		inline void decompress_pose(const SettingsType& settings, const CompressedClip& clip, float sample_time, OutputWriterType& writer)
+		{
+			static_assert(std::is_base_of<DecompressionSettings, SettingsType>::value, "SettingsType must derive from DecompressionSettings!");
+			static_assert(std::is_base_of<OutputWriter, OutputWriterType>::value, "OutputWriterType must derive from OutputWriter!");
+
 			using namespace impl;
 
 			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
@@ -301,28 +345,24 @@ namespace acl
 
 			const FullPrecisionHeader& header = get_full_precision_header(clip);
 
-			float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
-
-			uint32_t key_frame0;
-			uint32_t key_frame1;
-			float interpolation_alpha;
-			calculate_interpolation_keys(header.num_samples, clip_duration, sample_time, key_frame0, key_frame1, interpolation_alpha);
-
 			DecompressionContext context;
-			initialize_context(header, key_frame0, key_frame1, context);
+			initialize_context(settings, header, sample_time, context);
 
 			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 			{
-				Quat_32 rotation = decompress_rotation(context, header.rotation_format, interpolation_alpha);
+				Quat_32 rotation = decompress_rotation(settings, header, context);
 				writer.write_bone_rotation(bone_index, rotation);
 
-				Vector4_32 translation = decompress_translation(context, header.rotation_format, interpolation_alpha);
+				Vector4_32 translation = decompress_translation(settings, header, context);
 				writer.write_bone_translation(bone_index, translation);
 			}
 		}
 
-		inline void decompress_bone(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
+		template<class SettingsType>
+		inline void decompress_bone(const SettingsType& settings, const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
 		{
+			static_assert(std::is_base_of<DecompressionSettings, SettingsType>::value, "SettingsType must derive from DecompressionSettings!");
+
 			using namespace impl;
 
 			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
@@ -330,15 +370,8 @@ namespace acl
 
 			const FullPrecisionHeader& header = get_full_precision_header(clip);
 
-			float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
-
-			uint32_t key_frame0;
-			uint32_t key_frame1;
-			float interpolation_alpha;
-			calculate_interpolation_keys(header.num_samples, clip_duration, sample_time, key_frame0, key_frame1, interpolation_alpha);
-
 			DecompressionContext context;
-			initialize_context(header, key_frame0, key_frame1, context);
+			initialize_context(settings, header, sample_time, context);
 
 			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
 			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
@@ -347,15 +380,15 @@ namespace acl
 				if (bone_index == sample_bone_index)
 					break;
 
-				skip_rotation(context, header.rotation_format);
+				skip_rotation(context);
 				skip_translation(context);
 			}
 
-			Quat_32 rotation = decompress_rotation(context, header.rotation_format, interpolation_alpha);
+			Quat_32 rotation = decompress_rotation(settings, header, context);
 			if (out_rotation != nullptr)
 				*out_rotation = rotation;
 
-			Vector4_32 translation = decompress_translation(context, header.rotation_format, interpolation_alpha);
+			Vector4_32 translation = decompress_translation(settings, header, context);
 			if (out_translation != nullptr)
 				*out_translation = translation;
 		}
