@@ -74,9 +74,9 @@ namespace acl
 
 		ACL_ENSURE(error >= 0.0, "Invalid error: %f", error);
 
-		allocator.deallocate(raw_object_pose);
-		allocator.deallocate(lossy_object_pose);
-		allocator.deallocate(lossy_local_pose_64);
+		deallocate_type_array(allocator, raw_object_pose, num_bones);
+		deallocate_type_array(allocator, lossy_object_pose, num_bones);
+		deallocate_type_array(allocator, lossy_local_pose_64, num_bones);
 
 		return error;
 	}

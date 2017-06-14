@@ -59,14 +59,7 @@ namespace acl
 
 		~AnimationClip()
 		{
-			const uint16_t num_bones = m_skeleton->get_num_bones();
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-			{
-				m_bones[bone_index].rotation_track.~AnimationRotationTrack();
-				m_bones[bone_index].translation_track.~AnimationTranslationTrack();
-			}
-
-			m_allocator.deallocate(m_bones);
+			deallocate_type_array(m_allocator, m_bones, m_skeleton->get_num_bones());
 		}
 
 		AnimationClip(const AnimationClip&) = delete;

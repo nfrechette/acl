@@ -53,7 +53,7 @@ struct OutputWriterImpl : public acl::OutputWriter
 
 	~OutputWriterImpl()
 	{
-		m_allocator.deallocate(m_transforms);
+		deallocate_type_array(m_allocator, m_transforms, m_num_bones);
 	}
 
 	void write_bone_rotation(uint32_t bone_index, const acl::Quat_32& rotation)
@@ -83,7 +83,7 @@ struct RawOutputWriterImpl : public acl::OutputWriter
 
 	~RawOutputWriterImpl()
 	{
-		m_allocator.deallocate(m_transforms);
+		deallocate_type_array(m_allocator, m_transforms, m_num_bones);
 	}
 
 	void write_bone_rotation(uint32_t bone_index, const acl::Quat_64& rotation)
@@ -318,8 +318,9 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 {
 	using namespace acl;
 
-	RawOutputWriterImpl raw_output_writer(allocator, clip.get_num_bones());
-	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, clip.get_num_bones());
+	uint16_t num_bones = clip.get_num_bones();
+	RawOutputWriterImpl raw_output_writer(allocator, num_bones);
+	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
 	double max_error = -1.0;
 	double sample_time = 0.0;
@@ -327,7 +328,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 	double sample_increment = 1.0 / clip.get_sample_rate();
 	while (sample_time < clip_duration)
 	{
-		algorithm.decompress_pose(compressed_clip, (float)sample_time, lossy_pose_transforms, clip.get_num_bones());
+		algorithm.decompress_pose(compressed_clip, (float)sample_time, lossy_pose_transforms, num_bones);
 
 		clip.sample_pose(sample_time, raw_output_writer);
 
@@ -339,7 +340,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 
 	// Make sure we test the last sample time possible as well
 	{
-		algorithm.decompress_pose(compressed_clip, (float)clip_duration, lossy_pose_transforms, clip.get_num_bones());
+		algorithm.decompress_pose(compressed_clip, (float)clip_duration, lossy_pose_transforms, num_bones);
 
 		clip.sample_pose(clip_duration, raw_output_writer);
 
@@ -351,7 +352,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 	{
 		// Validate that the decoder can decode a single bone at a particular time
 		// Use the last bone and last sample time to ensure we can seek properly
-		uint16_t sample_bone_index = clip.get_num_bones() - 1;
+		uint16_t sample_bone_index = num_bones - 1;
 		Quat_32 test_rotation;
 		Vector4_32 test_translation;
 		algorithm.decompress_bone(compressed_clip, (float)clip_duration, sample_bone_index, &test_rotation, &test_translation);
@@ -359,7 +360,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 		ACL_ENSURE(vector_near_equal(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
 	}
 
-	allocator.deallocate(lossy_pose_transforms);
+	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 
 	return max_error;
 }
@@ -384,7 +385,7 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 
 	print_stats(options, clip, *compressed_clip, rotation_format, end_time_cycles.QuadPart - start_time_cycles.QuadPart, max_error);
 
-	allocator.deallocate(compressed_clip);
+	allocator.deallocate(compressed_clip, compressed_clip->get_size());
 }
 
 static bool read_clip(acl::Allocator& allocator, const char* filename, std::unique_ptr<acl::AnimationClip, acl::Deleter<acl::AnimationClip>>& clip, std::shared_ptr<acl::RigidSkeleton>& skeleton)

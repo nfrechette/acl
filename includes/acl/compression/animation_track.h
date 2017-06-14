@@ -100,7 +100,7 @@ namespace acl
 		{
 			if (is_initialized())
 			{
-				m_allocator->deallocate(m_sample_data);
+				deallocate_type_array(*m_allocator, m_sample_data, m_num_samples * get_animation_track_sample_size(m_type));
 			}
 		}
 

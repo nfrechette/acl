@@ -113,7 +113,7 @@ namespace acl
 
 		~RigidSkeleton()
 		{
-			m_allocator.deallocate(m_bones);
+			deallocate_type_array(m_allocator, m_bones, m_num_bones);
 		}
 
 		RigidSkeleton(const RigidSkeleton&) = delete;

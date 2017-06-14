@@ -63,12 +63,10 @@ namespace acl
 			return _aligned_malloc(size, alignment);
 		}
 
-		virtual void deallocate(void* ptr)
+		virtual void deallocate(void* ptr, size_t size)
 		{
 			if (ptr == nullptr)
-			{
 				return;
-			}
 
 			_aligned_free(ptr);
 		}
@@ -91,6 +89,18 @@ namespace acl
 		if (std::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
 		return new(ptr) AllocatedType(std::forward<Args>(args)...);
+	}
+
+	template<typename AllocatedType>
+	void deallocate_type(Allocator& allocator, AllocatedType* ptr)
+	{
+		if (ptr == nullptr)
+			return;
+
+		if (!std::is_trivially_destructible<AllocatedType>::value)
+			ptr->~AllocatedType();
+
+		allocator.deallocate(ptr, sizeof(AllocatedType));
 	}
 
 	template<typename AllocatedType, typename... Args>
@@ -116,35 +126,40 @@ namespace acl
 		return ptr;
 	}
 
+	template<typename AllocatedType>
+	void deallocate_type_array(Allocator& allocator, AllocatedType* elements, size_t num_elements)
+	{
+		if (elements == nullptr)
+			return;
+
+		if (!std::is_trivially_destructible<AllocatedType>::value)
+		{
+			for (size_t element_index = 0; element_index < num_elements; ++element_index)
+				elements[element_index].~AllocatedType();
+		}
+
+		allocator.deallocate(elements, sizeof(AllocatedType) * num_elements);
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 
 	template<typename AllocatedType>
 	class Deleter
 	{
 	public:
-		Deleter()
-			: m_allocator(nullptr)
-		{
-		}
-
-		Deleter(Allocator& allocator)
-			: m_allocator(&allocator)
-		{
-		}
-
-		Deleter(const Deleter& deleter)
-			: m_allocator(deleter.m_allocator)
-		{
-		}
+		Deleter() : m_allocator(nullptr) {}
+		Deleter(Allocator& allocator) : m_allocator(&allocator) {}
+		Deleter(const Deleter& deleter) : m_allocator(deleter.m_allocator) {}
 
 		void operator()(AllocatedType* ptr)
 		{
-			if (!(std::is_trivially_destructible<AllocatedType>::value))
-			{
-				ptr->~AllocatedType();
-			}
+			if (ptr == nullptr)
+				return;
 
-			m_allocator->deallocate(ptr);
+			if (!std::is_trivially_destructible<AllocatedType>::value)
+				ptr->~AllocatedType();
+
+			m_allocator->deallocate(ptr, sizeof(AllocatedType));
 		}
 
 	private:
@@ -281,10 +296,7 @@ namespace acl
 	{
 	public:
 		constexpr PtrOffset() : m_value(0) {}
-		constexpr PtrOffset(size_t value)
-			: m_value(safe_static_cast<OffsetType>(value))
-		{
-		}
+		constexpr PtrOffset(size_t value) : m_value(safe_static_cast<OffsetType>(value)) {}
 
 		template<typename BaseType>
 		constexpr DataType* add_to(BaseType* ptr) const { return add_offset_to_ptr<DataType>(ptr, m_value); }
