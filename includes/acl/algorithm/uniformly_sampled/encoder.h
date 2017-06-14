@@ -272,8 +272,19 @@ namespace acl
 			}
 		}
 
+		struct CompressionSettings
+		{
+			RotationFormat8 rotation_format;
+			VectorFormat8 translation_format;
+
+			CompressionSettings()
+				: rotation_format(RotationFormat8::Quat_128)
+				, translation_format(VectorFormat8::Vector3_96)
+			{}
+		};
+
 		// Encoder entry point
-		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, RotationFormat8 rotation_format, VectorFormat8 translation_format)
+		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressionSettings& settings)
 		{
 			using namespace impl;
 
@@ -286,8 +297,8 @@ namespace acl
 			uint32_t num_animated_translation_tracks;
 			get_num_animated_tracks(clip, num_constant_rotation_tracks, num_constant_translation_tracks, num_animated_rotation_tracks, num_animated_translation_tracks);
 
-			uint32_t rotation_size = get_rotation_size(rotation_format);
-			uint32_t translation_size = get_translation_size(translation_format);
+			uint32_t rotation_size = get_rotation_size(settings.rotation_format);
+			uint32_t translation_size = get_translation_size(settings.translation_format);
 
 			uint32_t constant_data_size = (rotation_size * num_constant_rotation_tracks) + (translation_size * num_constant_translation_tracks);
 			uint32_t animated_data_size = (rotation_size * num_animated_rotation_tracks) + (translation_size * num_animated_translation_tracks);
@@ -311,8 +322,8 @@ namespace acl
 
 			FullPrecisionHeader& header = get_full_precision_header(*compressed_clip);
 			header.num_bones = num_bones;
-			header.rotation_format = rotation_format;
-			header.translation_format = translation_format;
+			header.rotation_format = settings.rotation_format;
+			header.translation_format = settings.translation_format;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.num_animated_rotation_tracks = num_animated_rotation_tracks;

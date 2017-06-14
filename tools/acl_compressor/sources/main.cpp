@@ -286,7 +286,7 @@ static void run_unit_tests()
 }
 #endif
 
-static void print_stats(const Options& options, const acl::AnimationClip& clip, const acl::CompressedClip& compressed_clip, acl::RotationFormat8 rotation_format, uint64_t elapsed_cycles, double max_error)
+static void print_stats(const Options& options, const acl::AnimationClip& clip, const acl::CompressedClip& compressed_clip, uint64_t elapsed_cycles, double max_error)
 {
 	if (!options.output_stats)
 		return;
@@ -302,7 +302,7 @@ static void print_stats(const Options& options, const acl::AnimationClip& clip, 
 	std::FILE* file = options.output_stats_file;
 
 	fprintf(file, "Clip algorithm: %s\n", get_algorithm_name(compressed_clip.get_algorithm_type()));
-	fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(rotation_format));
+	//fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(rotation_format));
 	fprintf(file, "Clip raw size (bytes): %u\n", raw_size);
 	fprintf(file, "Clip compressed size (bytes): %u\n", compressed_size);
 	fprintf(file, "Clip compression ratio: %.2f : 1\n", compression_ratio);
@@ -365,16 +365,14 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 	return max_error;
 }
 
-template<typename AlgorithmType8>
-static void try_algorithm(const Options& options, acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, acl::RotationFormat8 rotation_format, acl::VectorFormat8 translation_format)
+static void try_algorithm(const Options& options, acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, acl::IAlgorithm &algorithm)
 {
 	using namespace acl;
 
 	LARGE_INTEGER start_time_cycles;
 	QueryPerformanceCounter(&start_time_cycles);
 
-	AlgorithmType8 algorithm;
-	CompressedClip* compressed_clip = algorithm.compress_clip(allocator, clip, skeleton, rotation_format, translation_format);
+	CompressedClip* compressed_clip = algorithm.compress_clip(allocator, clip, skeleton);
 
 	LARGE_INTEGER end_time_cycles;
 	QueryPerformanceCounter(&end_time_cycles);
@@ -383,7 +381,7 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 
 	double max_error = find_max_error(allocator, clip, skeleton, *compressed_clip, algorithm);
 
-	print_stats(options, clip, *compressed_clip, rotation_format, end_time_cycles.QuadPart - start_time_cycles.QuadPart, max_error);
+	print_stats(options, clip, *compressed_clip, end_time_cycles.QuadPart - start_time_cycles.QuadPart, max_error);
 
 	allocator.deallocate(compressed_clip, compressed_clip->get_size());
 }
@@ -458,10 +456,10 @@ int main(int argc, char** argv)
 
 	// Compress & Decompress
 	{
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_128, acl::VectorFormat8::Vector3_96);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_96, acl::VectorFormat8::Vector3_96);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_48, acl::VectorFormat8::Vector3_96);
-		try_algorithm<UniformlySampledAlgorithm>(options, allocator, *clip.get(), *skeleton.get(), RotationFormat8::Quat_32, acl::VectorFormat8::Vector3_96);
+		try_algorithm(options, allocator, *clip.get(), *skeleton.get(), UniformlySampledAlgorithm(RotationFormat8::Quat_128, acl::VectorFormat8::Vector3_96));
+		try_algorithm(options, allocator, *clip.get(), *skeleton.get(), UniformlySampledAlgorithm(RotationFormat8::Quat_96, acl::VectorFormat8::Vector3_96));
+		try_algorithm(options, allocator, *clip.get(), *skeleton.get(), UniformlySampledAlgorithm(RotationFormat8::Quat_48, acl::VectorFormat8::Vector3_96));
+		try_algorithm(options, allocator, *clip.get(), *skeleton.get(), UniformlySampledAlgorithm(RotationFormat8::Quat_32, acl::VectorFormat8::Vector3_96));
 	}
 
 	if (IsDebuggerPresent())
