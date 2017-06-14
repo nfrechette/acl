@@ -460,10 +460,22 @@ int main(int argc, char** argv)
 	{
 		UniformlySampledAlgorithm uniform_tests[] =
 		{
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
 		};
 
 		for (UniformlySampledAlgorithm& algorithm : uniform_tests)

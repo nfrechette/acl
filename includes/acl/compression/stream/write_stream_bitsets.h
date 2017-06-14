@@ -33,7 +33,7 @@
 
 namespace acl
 {
-	inline void write_default_track_bitset(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t bitset_size, uint32_t* default_tracks_bitset)
+	inline void write_default_track_bitset(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t* default_tracks_bitset, uint32_t bitset_size)
 	{
 		ACL_ENSURE(bone_streams != nullptr, "'bone_streams' cannot be null!");
 		ACL_ENSURE(default_tracks_bitset != nullptr, "'default_tracks_bitset' cannot be null!");
@@ -51,7 +51,7 @@ namespace acl
 		}
 	}
 
-	inline void write_constant_track_bitset(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t bitset_size, uint32_t* constant_tracks_bitset)
+	inline void write_constant_track_bitset(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t* constant_tracks_bitset, uint32_t bitset_size)
 	{
 		uint32_t constant_track_offset = 0;
 

@@ -33,37 +33,37 @@
 	{ \
 		typedef std::underlying_type<EnumType>::type IntegralType; \
 		typedef std::make_unsigned<IntegralType>::type RawType; \
-		return static_cast<FullPrecisionFlags>(static_cast<RawType>(lhs) | static_cast<RawType>(rhs)); \
+		return static_cast<EnumType>(static_cast<RawType>(lhs) | static_cast<RawType>(rhs)); \
 	} \
 	inline void operator|=(EnumType& lhs, EnumType rhs) \
 	{ \
 		typedef std::underlying_type<EnumType>::type IntegralType; \
 		typedef std::make_unsigned<IntegralType>::type RawType; \
-		lhs = static_cast<FullPrecisionFlags>(static_cast<RawType>(lhs) | static_cast<RawType>(rhs)); \
+		lhs = static_cast<EnumType>(static_cast<RawType>(lhs) | static_cast<RawType>(rhs)); \
 	} \
 	constexpr EnumType operator&(EnumType lhs, EnumType rhs) \
 	{ \
 		typedef std::underlying_type<EnumType>::type IntegralType; \
 		typedef std::make_unsigned<IntegralType>::type RawType; \
-		return static_cast<FullPrecisionFlags>(static_cast<RawType>(lhs) & static_cast<RawType>(rhs)); \
+		return static_cast<EnumType>(static_cast<RawType>(lhs) & static_cast<RawType>(rhs)); \
 	} \
 	inline void operator&=(EnumType& lhs, EnumType rhs) \
 	{ \
 		typedef std::underlying_type<EnumType>::type IntegralType; \
 		typedef std::make_unsigned<IntegralType>::type RawType; \
-		lhs = static_cast<FullPrecisionFlags>(static_cast<RawType>(lhs) & static_cast<RawType>(rhs)); \
+		lhs = static_cast<EnumType>(static_cast<RawType>(lhs) & static_cast<RawType>(rhs)); \
 	} \
 	constexpr EnumType operator^(EnumType lhs, EnumType rhs) \
 	{ \
 		typedef std::underlying_type<EnumType>::type IntegralType; \
 		typedef std::make_unsigned<IntegralType>::type RawType; \
-		return static_cast<FullPrecisionFlags>(static_cast<RawType>(lhs) ^ static_cast<RawType>(rhs)); \
+		return static_cast<EnumType>(static_cast<RawType>(lhs) ^ static_cast<RawType>(rhs)); \
 	} \
 	inline void operator^=(EnumType& lhs, EnumType rhs) \
 	{ \
 		typedef std::underlying_type<EnumType>::type IntegralType; \
 		typedef std::make_unsigned<IntegralType>::type RawType; \
-		lhs = static_cast<FullPrecisionFlags>(static_cast<RawType>(lhs) ^ static_cast<RawType>(rhs)); \
+		lhs = static_cast<EnumType>(static_cast<RawType>(lhs) ^ static_cast<RawType>(rhs)); \
 	} \
 	constexpr EnumType operator~(EnumType rhs) \
 	{ \

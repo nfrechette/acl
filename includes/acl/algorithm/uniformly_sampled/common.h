@@ -45,6 +45,7 @@ namespace acl
 				uint16_t				num_bones;
 				RotationFormat8			rotation_format;
 				VectorFormat8			translation_format;
+				RangeReductionFlags8	range_reduction;
 				uint32_t				num_samples;
 				uint32_t				sample_rate;								// TODO: Store duration as float instead
 				uint32_t				num_animated_rotation_tracks;				// TODO: Calculate from bitsets?
@@ -53,6 +54,7 @@ namespace acl
 				PtrOffset16<uint32_t>	default_tracks_bitset_offset;
 				PtrOffset16<uint32_t>	constant_tracks_bitset_offset;
 				PtrOffset16<uint8_t>	constant_track_data_offset;
+				PtrOffset16<uint8_t>	clip_range_data_offset;
 				PtrOffset16<uint8_t>	track_data_offset;
 
 				//////////////////////////////////////////////////////////////////////////
@@ -65,6 +67,9 @@ namespace acl
 
 				uint8_t*		get_constant_track_data()			{ return constant_track_data_offset.add_to(this); }
 				const uint8_t*	get_constant_track_data() const		{ return constant_track_data_offset.add_to(this); }
+
+				uint8_t*		get_clip_range_data()				{ return clip_range_data_offset.safe_add_to(this); }
+				const uint8_t*	get_clip_range_data() const			{ return clip_range_data_offset.safe_add_to(this); }
 
 				uint8_t*		get_track_data()					{ return track_data_offset.add_to(this); }
 				const uint8_t*	get_track_data() const				{ return track_data_offset.add_to(this); }

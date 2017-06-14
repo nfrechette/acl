@@ -65,9 +65,10 @@ namespace acl
 			{
 				// Read-only data
 				const uint32_t* default_tracks_bitset;
-
 				const uint32_t* constant_tracks_bitset;
 				const uint8_t* constant_track_data;
+
+				const uint8_t* range_data;
 
 				const uint8_t* key_frame_data0;
 				const uint8_t* key_frame_data1;
@@ -75,6 +76,8 @@ namespace acl
 				uint32_t bitset_size;
 				uint32_t rotation_size;
 				uint32_t translation_size;
+				uint32_t range_rotation_size;
+				uint32_t range_translation_size;
 
 				float interpolation_alpha;
 
@@ -96,6 +99,9 @@ namespace acl
 
 				const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
 				const uint32_t translation_size = get_packed_vector_size(translation_format);
+				const uint32_t range_rotation_size = get_range_reduction_rotation_size(rotation_format);
+				const uint32_t range_translation_size = get_range_reduction_vector_size(translation_format);
+				const bool has_clip_range_reduction = is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip);
 
 				float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
 
@@ -112,6 +118,8 @@ namespace acl
 				context.constant_tracks_bitset = header.get_constant_tracks_bitset();
 				context.constant_track_data = header.get_constant_track_data();
 
+				context.range_data = header.get_clip_range_data();
+
 				const uint8_t* animated_track_data = header.get_track_data();
 				context.key_frame_data0 = animated_track_data + (key_frame0 * animated_pose_size);
 				context.key_frame_data1 = animated_track_data + (key_frame1 * animated_pose_size);
@@ -119,6 +127,8 @@ namespace acl
 				context.bitset_size = get_bitset_size(header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
 				context.rotation_size = rotation_size;
 				context.translation_size = translation_size;
+				context.range_rotation_size = has_clip_range_reduction && is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations) ? range_rotation_size : 0;
+				context.range_translation_size = has_clip_range_reduction && is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Translations) ? range_translation_size : 0;
 
 				context.interpolation_alpha = interpolation_alpha;
 
@@ -140,6 +150,7 @@ namespace acl
 					{
 						context.key_frame_data0 += context.rotation_size;
 						context.key_frame_data1 += context.rotation_size;
+						context.range_data += context.range_rotation_size;
 					}
 				}
 
@@ -161,6 +172,7 @@ namespace acl
 					{
 						context.key_frame_data0 += context.translation_size;
 						context.key_frame_data1 += context.translation_size;
+						context.range_data += context.range_translation_size;
 					}
 				}
 
@@ -183,7 +195,6 @@ namespace acl
 					bool is_rotation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
 					if (is_rotation_constant)
 					{
-						// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
 						if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 							rotation = unpack_quat_128(context.constant_track_data);
 						else if (rotation_format == RotationFormat8::Quat_96 && settings.is_rotation_format_supported(RotationFormat8::Quat_96))
@@ -193,6 +204,9 @@ namespace acl
 						else if (rotation_format == RotationFormat8::Quat_32 && settings.is_rotation_format_supported(RotationFormat8::Quat_32))
 							rotation = unpack_quat_32(context.constant_track_data);
 
+						ACL_ENSURE(quat_is_valid(rotation), "Rotation is not valid!");
+						ACL_ENSURE(quat_is_normalized(rotation), "Rotation is not normalized!");
+
 						context.constant_track_data += context.rotation_size;
 					}
 					else
@@ -200,29 +214,99 @@ namespace acl
 						Quat_32 rotation0;
 						Quat_32 rotation1;
 
-						// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
 						if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 						{
-							rotation0 = unpack_quat_128(context.key_frame_data0);
-							rotation1 = unpack_quat_128(context.key_frame_data1);
+							Vector4_32 rotation0_xyzw = unpack_vector4_128(context.key_frame_data0);
+							Vector4_32 rotation1_xyzw = unpack_vector4_128(context.key_frame_data1);
+
+							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations))
+							{
+								if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+								{
+									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
+
+									rotation0_xyzw = vector_mul_add(rotation0_xyzw, clip_range_extent, clip_range_min);
+									rotation1_xyzw = vector_mul_add(rotation1_xyzw, clip_range_extent, clip_range_min);
+
+									context.range_data += context.range_rotation_size;
+								}
+							}
+
+							rotation0 = vector_to_quat(rotation0_xyzw);
+							rotation1 = vector_to_quat(rotation1_xyzw);
 						}
 						else if (rotation_format == RotationFormat8::Quat_96 && settings.is_rotation_format_supported(RotationFormat8::Quat_96))
 						{
-							rotation0 = unpack_quat_96(context.key_frame_data0);
-							rotation1 = unpack_quat_96(context.key_frame_data1);
+							Vector4_32 rotation0_xyz = unpack_vector3_96(context.key_frame_data0);
+							Vector4_32 rotation1_xyz = unpack_vector3_96(context.key_frame_data1);
+
+							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations))
+							{
+								if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+								{
+									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
+
+									rotation0_xyz = vector_mul_add(rotation0_xyz, clip_range_extent, clip_range_min);
+									rotation1_xyz = vector_mul_add(rotation1_xyz, clip_range_extent, clip_range_min);
+
+									context.range_data += context.range_rotation_size;
+								}
+							}
+
+							rotation0 = quat_from_positive_w(rotation0_xyz);
+							rotation1 = quat_from_positive_w(rotation1_xyz);
 						}
 						else if (rotation_format == RotationFormat8::Quat_48 && settings.is_rotation_format_supported(RotationFormat8::Quat_48))
 						{
-							rotation0 = unpack_quat_48(context.key_frame_data0);
-							rotation1 = unpack_quat_48(context.key_frame_data1);
+							Vector4_32 rotation0_xyz = unpack_vector3_48(context.key_frame_data0);
+							Vector4_32 rotation1_xyz = unpack_vector3_48(context.key_frame_data1);
+
+							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations))
+							{
+								if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+								{
+									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
+
+									rotation0_xyz = vector_mul_add(rotation0_xyz, clip_range_extent, clip_range_min);
+									rotation1_xyz = vector_mul_add(rotation1_xyz, clip_range_extent, clip_range_min);
+
+									context.range_data += context.range_rotation_size;
+								}
+							}
+
+							rotation0 = quat_from_positive_w(rotation0_xyz);
+							rotation1 = quat_from_positive_w(rotation1_xyz);
 						}
 						else if (rotation_format == RotationFormat8::Quat_32 && settings.is_rotation_format_supported(RotationFormat8::Quat_32))
 						{
-							rotation0 = unpack_quat_32(context.key_frame_data0);
-							rotation1 = unpack_quat_32(context.key_frame_data1);
+							Vector4_32 rotation0_xyz = unpack_vector3_32<11, 11, 10>(context.key_frame_data0);
+							Vector4_32 rotation1_xyz = unpack_vector3_32<11, 11, 10>(context.key_frame_data1);
+
+							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations))
+							{
+								if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+								{
+									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
+
+									rotation0_xyz = vector_mul_add(rotation0_xyz, clip_range_extent, clip_range_min);
+									rotation1_xyz = vector_mul_add(rotation1_xyz, clip_range_extent, clip_range_min);
+
+									context.range_data += context.range_rotation_size;
+								}
+							}
+
+							rotation0 = quat_from_positive_w(rotation0_xyz);
+							rotation1 = quat_from_positive_w(rotation1_xyz);
 						}
 
 						rotation = quat_lerp(rotation0, rotation1, context.interpolation_alpha);
+
+						ACL_ENSURE(quat_is_valid(rotation), "Rotation is not valid!");
+						ACL_ENSURE(quat_is_normalized(rotation), "Rotation is not normalized!");
 
 						context.key_frame_data0 += context.rotation_size;
 						context.key_frame_data1 += context.rotation_size;
@@ -245,7 +329,6 @@ namespace acl
 				}
 				else
 				{
-					//const VectorFormat8 translation_format = settings.get_rotation_format(header.translation_format);
 					bool is_translation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
 					if (is_translation_constant)
 					{
@@ -254,8 +337,22 @@ namespace acl
 					}
 					else
 					{
-						Vector4_32 translation0 = vector_unaligned_load3(context.key_frame_data0);
-						Vector4_32 translation1 = vector_unaligned_load3(context.key_frame_data1);
+						Vector4_32 translation0 = unpack_vector3_96(context.key_frame_data0);
+						Vector4_32 translation1 = unpack_vector3_96(context.key_frame_data1);
+
+						if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Translations))
+						{
+							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+							{
+								Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+								Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_translation_size / 2));
+
+								translation0 = vector_mul_add(translation0, clip_range_extent, clip_range_min);
+								translation1 = vector_mul_add(translation1, clip_range_extent, clip_range_min);
+
+								context.range_data += context.range_translation_size;
+							}
+						}
 
 						translation = vector_lerp(translation0, translation1, context.interpolation_alpha);
 

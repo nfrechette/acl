@@ -26,17 +26,30 @@
 
 // To override these macros, simply define them before including headers from the library.
 
-#if !defined(ACL_ASSERT) || !defined(ACL_ENSURE)
-#include <assert.h>
+#if !defined(ACL_NO_ERROR_CHECKS)
+	// Always enabled by default
+	#define ACL_USE_ERROR_CHECKS
+#endif
+
+#if (!defined(ACL_ASSERT) || !defined(ACL_ENSURE)) && defined(ACL_USE_ERROR_CHECKS)
+	#include <assert.h>
 #endif
 
 // Asserts are properly handled by the library and can be optionally skipped by the user.
 // The code found something unexpected but recovered.
 #if !defined(ACL_ASSERT)
-#define ACL_ASSERT(expression, format, ...) assert(expression)
+	#if defined(ACL_USE_ERROR_CHECKS)
+		#define ACL_ASSERT(expression, format, ...) assert(expression)
+	#else
+		#define ACL_ASSERT(expression, format, ...) ((void)0)
+	#endif
 #endif
 
 // Ensure is fatal, the library does not handle skipping this safely.
 #if !defined(ACL_ENSURE)
-#define ACL_ENSURE(expression, format, ...) assert(expression)
+	#if defined(ACL_USE_ERROR_CHECKS)
+		#define ACL_ENSURE(expression, format, ...) assert(expression)
+	#else
+		#define ACL_ENSURE(expression, format, ...) ((void)0)
+	#endif
 #endif

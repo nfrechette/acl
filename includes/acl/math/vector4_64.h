@@ -126,6 +126,16 @@ namespace acl
 #endif
 	}
 
+	inline double* vector_as_double_ptr(Vector4_64& input)
+	{
+		return reinterpret_cast<double*>(&input);
+	}
+
+	inline const double* vector_as_double_ptr(const Vector4_64& input)
+	{
+		return reinterpret_cast<const double*>(&input);
+	}
+
 	inline Vector4_64 vector_add(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -156,6 +166,15 @@ namespace acl
 	inline Vector4_64 vector_mul(const Vector4_64& lhs, double rhs)
 	{
 		return vector_mul(lhs, vector_set(rhs));
+	}
+
+	inline Vector4_64 vector_div(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return Vector4_64{ _mm_div_pd(lhs.xy, rhs.xy), _mm_div_pd(lhs.zw, rhs.zw) };
+#else
+		return vector_set(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z, lhs.w / rhs.w);
+#endif
 	}
 
 	inline Vector4_64 vector_max(const Vector4_64& lhs, const Vector4_64& rhs)
@@ -265,6 +284,17 @@ namespace acl
 #endif
 	}
 
+	inline bool vector_all_less_than3(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmplt_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmplt_pd(lhs.zw, rhs.zw);
+		return _mm_movemask_pd(xy_lt_pd) == 3 && _mm_movemask_pd(zw_lt_pd) == 1;
+#else
+		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z;
+#endif
+	}
+
 	inline bool vector_any_less_than(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -273,6 +303,105 @@ namespace acl
 		return (_mm_movemask_pd(xy_lt_pd) | _mm_movemask_pd(zw_lt_pd)) != 0;
 #else
 		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z || lhs.w < rhs.w;
+#endif
+	}
+
+	inline bool vector_any_less_than3(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmplt_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmplt_pd(lhs.zw, rhs.zw);
+		return _mm_movemask_pd(xy_lt_pd) != 0 || _mm_movemask_pd(zw_lt_pd) != 2;
+#else
+		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z;
+#endif
+	}
+
+	inline bool vector_all_less_equal(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmple_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmple_pd(lhs.zw, rhs.zw);
+		return (_mm_movemask_pd(xy_lt_pd) & _mm_movemask_pd(zw_lt_pd)) == 3;
+#else
+		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z && lhs.w < rhs.w;
+#endif
+	}
+
+	inline bool vector_all_less_equal3(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmple_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmple_pd(lhs.zw, rhs.zw);
+		return _mm_movemask_pd(xy_lt_pd) == 3 && (_mm_movemask_pd(zw_lt_pd) & 1) != 0;
+#else
+		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z;
+#endif
+	}
+
+	inline bool vector_any_less_equal(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmple_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmple_pd(lhs.zw, rhs.zw);
+		return (_mm_movemask_pd(xy_lt_pd) | _mm_movemask_pd(zw_lt_pd)) != 0;
+#else
+		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z || lhs.w < rhs.w;
+#endif
+	}
+
+	inline bool vector_any_less_equal3(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmple_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmple_pd(lhs.zw, rhs.zw);
+		return _mm_movemask_pd(xy_lt_pd) != 0 || _mm_movemask_pd(zw_lt_pd) != 2;
+#else
+		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z;
+#endif
+	}
+
+	inline bool vector_all_greater_equal(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmpge_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmpge_pd(lhs.zw, rhs.zw);
+		return (_mm_movemask_pd(xy_lt_pd) & _mm_movemask_pd(zw_lt_pd)) == 3;
+#else
+		return lhs.x >= rhs.x && lhs.y >= rhs.y && lhs.z >= rhs.z && lhs.w >= rhs.w;
+#endif
+	}
+
+	inline bool vector_all_greater_equal3(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmpge_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmpge_pd(lhs.zw, rhs.zw);
+		return _mm_movemask_pd(xy_lt_pd) == 3 && (_mm_movemask_pd(zw_lt_pd) & 1) != 0;
+#else
+		return lhs.x >= rhs.x && lhs.y >= rhs.y && lhs.z >= rhs.z;
+#endif
+	}
+
+	inline bool vector_any_greater_equal(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmpge_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmpge_pd(lhs.zw, rhs.zw);
+		return (_mm_movemask_pd(xy_lt_pd) & _mm_movemask_pd(zw_lt_pd)) != 0;
+#else
+		return lhs.x >= rhs.x || lhs.y >= rhs.y || lhs.z >= rhs.z || lhs.w >= rhs.w;
+#endif
+	}
+
+	inline bool vector_any_greater_equal3(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmpge_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmpge_pd(lhs.zw, rhs.zw);
+		return _mm_movemask_pd(xy_lt_pd) != 0 || _mm_movemask_pd(zw_lt_pd) != 2;
+#else
+		return lhs.x >= rhs.x || lhs.y >= rhs.y || lhs.z >= rhs.z;
 #endif
 	}
 

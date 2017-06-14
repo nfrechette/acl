@@ -127,7 +127,7 @@ namespace acl
 		Vector4_64 get_max() const { return m_max; }
 
 		Vector4_64 get_center() const { return vector_mul(vector_add(m_max, m_min), 0.5); }
-		Vector4_64 get_extent() const { return vector_mul(vector_sub(m_max, m_min), 0.5); }
+		Vector4_64 get_extent() const { return vector_sub(m_max, m_min); }
 
 		bool is_constant(double threshold) const { return vector_all_less_than(vector_abs(vector_sub(m_max, m_min)), vector_set(threshold)); }
 
@@ -148,6 +148,11 @@ namespace acl
 		bool is_rotation_default;
 		bool is_translation_constant;
 		bool is_translation_default;
+		bool are_rotations_normalized;
+		bool are_translations_normalized;
+
+		bool is_rotation_animated() const { return !is_rotation_constant && !is_rotation_default; }
+		bool is_translation_animated() const { return !is_translation_constant && !is_translation_default; }
 	};
 
 }

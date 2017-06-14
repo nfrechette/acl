@@ -35,7 +35,7 @@
 
 namespace acl
 {
-	inline void write_constant_track_data(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t constant_data_size, uint8_t* constant_data)
+	inline void write_constant_track_data(const BoneStreams* bone_streams, uint16_t num_bones, uint8_t* constant_data, uint32_t constant_data_size)
 	{
 		const uint8_t* constant_data_end = add_offset_to_ptr<uint8_t>(constant_data, constant_data_size);
 
@@ -65,7 +65,7 @@ namespace acl
 		ACL_ENSURE(constant_data == constant_data_end, "Invalid constant data offset. Wrote too little data.");
 	}
 
-	inline void write_animated_track_data(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t animated_data_size, uint8_t* animated_track_data)
+	inline void write_animated_track_data(const BoneStreams* bone_streams, uint16_t num_bones, uint8_t* animated_track_data, uint32_t animated_data_size)
 	{
 		const uint8_t* animated_track_data_end = add_offset_to_ptr<uint8_t>(animated_track_data, animated_data_size);
 
@@ -90,7 +90,7 @@ namespace acl
 			{
 				const BoneStreams& bone_stream = bone_streams[bone_index];
 
-				if (!bone_stream.is_rotation_constant && !bone_stream.is_rotation_default)
+				if (bone_stream.is_rotation_animated())
 				{
 					const uint8_t* rotation_ptr = bone_stream.rotations.get_sample_ptr(sample_index);
 					uint32_t sample_size = bone_stream.rotations.get_sample_size();
@@ -98,7 +98,7 @@ namespace acl
 					animated_track_data += sample_size;
 				}
 
-				if (!bone_stream.is_translation_constant && !bone_stream.is_translation_default)
+				if (bone_stream.is_translation_animated())
 				{
 					const uint8_t* translation_ptr = bone_stream.translations.get_sample_ptr(sample_index);
 					uint32_t sample_size = bone_stream.translations.get_sample_size();

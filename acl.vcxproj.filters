@@ -186,6 +186,12 @@
     <ClInclude Include="includes\acl\compression\stream\quantize_streams.h">
       <Filter>includes\acl\compression\stream</Filter>
     </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\normalize_streams.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\write_range_data.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

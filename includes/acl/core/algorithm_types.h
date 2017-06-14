@@ -24,6 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/enum_utils.h"
+
 #include <stdint.h>
 
 namespace acl
@@ -68,6 +70,26 @@ namespace acl
 		//Vector3_32,			// Quantized vector3, [x,y,z] stored with [11,11,10] bits
 		//Vector3_Variable,		// Quantized vector3, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
 	};
+
+	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
+	// The range reduction strategy is serialized in the compressed data, if you change a value
+	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
+	enum class RangeReductionFlags8 : uint8_t
+	{
+		None					= 0x00,
+
+		// Flags to determine which tracks have range reduction applied
+		Rotations				= 0x01,
+		Translations			= 0x02,
+		//Scales					= 0x04,		// TODO: Implement this
+		//Properties				= 0x08,		// TODO: Implement this
+
+		// Flags to determine how range reduction behaves
+		PerClip					= 0x10,
+		//PerSegment				= 0x20,		// TODO: Implement this
+	};
+
+	ACL_IMPL_ENUM_FLAGS_OPERATORS(RangeReductionFlags8)
 
 	//////////////////////////////////////////////////////////////////////////
 

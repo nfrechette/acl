@@ -33,11 +33,12 @@ namespace acl
 	class UniformlySampledAlgorithm final : public IAlgorithm
 	{
 	public:
-		UniformlySampledAlgorithm(RotationFormat8 rotation_format, VectorFormat8 translation_format)
+		UniformlySampledAlgorithm(RotationFormat8 rotation_format, VectorFormat8 translation_format, RangeReductionFlags8 range_reduction)
 			: m_compression_settings()
 		{
 			m_compression_settings.rotation_format = rotation_format;
 			m_compression_settings.translation_format = translation_format;
+			m_compression_settings.range_reduction = range_reduction;
 		}
 
 		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton) override

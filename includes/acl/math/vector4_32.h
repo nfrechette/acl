@@ -63,6 +63,13 @@ namespace acl
 		return vector_set(input[0], input[1], input[2], input[3]);
 	}
 
+	inline Vector4_32 vector_unaligned_load(const uint8_t* input)
+	{
+		// TODO: Cross platform unaligned read needs to be safe
+		const float* input_f = reinterpret_cast<const float*>(input);
+		return vector_set(input_f[0], input_f[1], input_f[2], input_f[3]);
+	}
+
 	inline Vector4_32 vector_unaligned_load3(const float* input)
 	{
 		ACL_ENSURE(is_aligned(input), "Invalid alignment");
@@ -152,6 +159,16 @@ namespace acl
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
 		output[3] = vector_get_w(input);
+	}
+
+	inline void vector_unaligned_write(const Vector4_32& input, uint8_t* output)
+	{
+		// TODO: Cross platform unaligned write needs to be safe
+		float* output_f = reinterpret_cast<float*>(output);
+		output_f[0] = vector_get_x(input);
+		output_f[1] = vector_get_y(input);
+		output_f[2] = vector_get_z(input);
+		output_f[3] = vector_get_w(input);
 	}
 
 	inline void vector_unaligned_write3(const Vector4_32& input, float* output)
@@ -312,5 +329,11 @@ namespace acl
 	inline bool vector_near_equal(const Vector4_32& lhs, const Vector4_32& rhs, float threshold = 0.00001f)
 	{
 		return vector_all_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+	}
+
+	// output = (input * scale) + offset
+	inline Vector4_32 vector_mul_add(const Vector4_32& input, const Vector4_32& scale, const Vector4_32& offset)
+	{
+		return vector_add(vector_mul(input, scale), offset);
 	}
 }

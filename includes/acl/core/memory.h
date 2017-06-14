@@ -259,20 +259,45 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 
+	struct InvalidPtrOffset {};
+
 	template<typename DataType, typename OffsetType>
 	class PtrOffset
 	{
 	public:
 		constexpr PtrOffset() : m_value(0) {}
 		constexpr PtrOffset(size_t value) : m_value(safe_static_cast<OffsetType>(value)) {}
+		constexpr PtrOffset(InvalidPtrOffset) : m_value(std::numeric_limits<OffsetType>::max()) {}
 
 		template<typename BaseType>
-		constexpr DataType* add_to(BaseType* ptr) const { return add_offset_to_ptr<DataType>(ptr, m_value); }
+		constexpr DataType* add_to(BaseType* ptr) const
+		{
+			ACL_ENSURE(is_valid(), "Invalid PtrOffset!");
+			return add_offset_to_ptr<DataType>(ptr, m_value);
+		}
 
 		template<typename BaseType>
-		constexpr const DataType* add_to(const BaseType* ptr) const { return add_offset_to_ptr<const DataType>(ptr, m_value); }
+		constexpr const DataType* add_to(const BaseType* ptr) const
+		{
+			ACL_ENSURE(is_valid(), "Invalid PtrOffset!");
+			return add_offset_to_ptr<const DataType>(ptr, m_value);
+		}
+
+		template<typename BaseType>
+		constexpr DataType* safe_add_to(BaseType* ptr) const
+		{
+			return is_valid() ? add_offset_to_ptr<DataType>(ptr, m_value) : nullptr;
+		}
+
+		template<typename BaseType>
+		constexpr const DataType* safe_add_to(const BaseType* ptr) const
+		{
+			return is_valid() ? add_offset_to_ptr<DataType>(ptr, m_value) : nullptr;
+		}
 
 		constexpr operator OffsetType() const { return m_value; }
+
+		constexpr bool is_valid() const { return m_value != std::numeric_limits<OffsetType>::max(); }
 
 	private:
 		OffsetType m_value;
