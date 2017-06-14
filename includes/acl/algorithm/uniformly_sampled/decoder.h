@@ -115,7 +115,7 @@ namespace acl
 				context.key_frame_data0 = animated_track_data + (key_frame0 * animated_pose_size);
 				context.key_frame_data1 = animated_track_data + (key_frame1 * animated_pose_size);
 
-				context.bitset_size = ((header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE) + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
+				context.bitset_size = get_bitset_size(header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
 				context.rotation_size = rotation_size;
 				context.translation_size = translation_size;
 

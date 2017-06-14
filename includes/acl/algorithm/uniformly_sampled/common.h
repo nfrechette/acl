@@ -108,6 +108,11 @@ namespace acl
 					return 0;
 				}
 			}
+
+			constexpr uint32_t get_bitset_size(uint32_t num_bits)
+			{
+				return (num_bits + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
+			}
 		}
 	}
 }

@@ -294,7 +294,7 @@ namespace acl
 
 			animated_data_size *= num_samples;
 
-			uint32_t bitset_size = ((num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE) + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
+			uint32_t bitset_size = get_bitset_size(num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
 
 			uint32_t buffer_size = 0;
 			buffer_size += sizeof(CompressedClip);
