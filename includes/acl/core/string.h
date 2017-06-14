@@ -50,14 +50,8 @@ namespace acl
 			return *this;
 		}
 
-		String(Allocator& allocator, const char* c_string)
-			: m_chars(allocate_unique_type_array<char>(allocator, std::strlen(c_string) + 1))
-		{
-			std::memcpy(m_chars.get(), c_string, std::strlen(c_string) + 1);
-		}
-
 		String(Allocator& allocator, StringView& view)
-			: m_chars(allocate_unique_type_array<char>(allocator, view.get_length() + 1))
+			: m_chars(make_unique_array<char>(allocator, view.get_length() + 1))
 		{
 			char* own = m_chars.get();
 			std::memcpy(own, view.get_chars(), view.get_length());

@@ -167,7 +167,7 @@ namespace acl
 	};
 
 	template<typename AllocatedType, typename... Args>
-	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> allocate_unique_type(Allocator& allocator, Args&&... args)
+	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> make_unique(Allocator& allocator, Args&&... args)
 	{
 		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
 			allocate_type<AllocatedType>(allocator, std::forward<Args>(args)...),
@@ -175,7 +175,7 @@ namespace acl
 	}
 
 	template<typename AllocatedType, typename... Args>
-	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> allocate_unique_type(Allocator& allocator, size_t alignment, Args&&... args)
+	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> make_unique(Allocator& allocator, size_t alignment, Args&&... args)
 	{
 		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
 			allocate_type<AllocatedType>(allocator, alignment, std::forward<Args>(args)...),
@@ -183,7 +183,7 @@ namespace acl
 	}
 
 	template<typename AllocatedType, typename... Args>
-	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> allocate_unique_type_array(Allocator& allocator, size_t num_elements, Args&&... args)
+	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> make_unique_array(Allocator& allocator, size_t num_elements, Args&&... args)
 	{
 		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
 			allocate_type_array<AllocatedType>(allocator, num_elements, std::forward<Args>(args)...),
@@ -191,41 +191,9 @@ namespace acl
 	}
 
 	template<typename AllocatedType, typename... Args>
-	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> allocate_unique_type_array(Allocator& allocator, size_t num_elements, size_t alignment, Args&&... args)
+	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> make_unique_array(Allocator& allocator, size_t num_elements, size_t alignment, Args&&... args)
 	{
 		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
-			allocate_type_array<AllocatedType>(allocator, num_elements, alignment, std::forward<Args>(args)...),
-			Deleter<AllocatedType>(allocator));
-	}
-
-	template<typename AllocatedType, typename... Args>
-	std::shared_ptr<AllocatedType> allocate_shared_type(Allocator& allocator, Args&&... args)
-	{
-		return std::shared_ptr<AllocatedType>(
-			allocate_type<AllocatedType>(allocator, std::forward<Args>(args)...),
-			Deleter<AllocatedType>(allocator));
-	}
-
-	template<typename AllocatedType, typename... Args>
-	std::shared_ptr<AllocatedType> allocate_shared_type(Allocator& allocator, size_t alignment, Args&&... args)
-	{
-		return std::shared_ptr<AllocatedType>(
-			allocate_type<AllocatedType>(allocator, alignment, std::forward<Args>(args)...),
-			Deleter<AllocatedType>(allocator));
-	}
-
-	template<typename AllocatedType, typename... Args>
-	std::shared_ptr<AllocatedType> allocate_shared_type_array(Allocator& allocator, size_t num_elements, Args&&... args)
-	{
-		return std::shared_ptr<AllocatedType>(
-			allocate_type_array<AllocatedType>(allocator, num_elements, std::forward<Args>(args)...),
-			Deleter<AllocatedType>(allocator));
-	}
-
-	template<typename AllocatedType, typename... Args>
-	std::shared_ptr<AllocatedType> allocate_shared_type_array(Allocator& allocator, size_t num_elements, size_t alignment, Args&&... args)
-	{
-		return std::shared_ptr<AllocatedType>(
 			allocate_type_array<AllocatedType>(allocator, num_elements, alignment, std::forward<Args>(args)...),
 			Deleter<AllocatedType>(allocator));
 	}

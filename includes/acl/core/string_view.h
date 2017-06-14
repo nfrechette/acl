@@ -44,6 +44,12 @@ namespace acl
 		{
 		}
 
+		StringView(const char* chars)
+			: m_chars(chars)
+			, m_length(chars == nullptr ? 0 : std::strlen(chars))
+		{
+		}
+
 		StringView& operator=(const char* chars)
 		{
 			this->m_chars = chars;
