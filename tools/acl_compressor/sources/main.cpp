@@ -291,7 +291,7 @@ static void print_stats(const Options& options, const acl::AnimationClip& clip, 
 	if (!options.output_stats)
 		return;
 
-	uint32_t raw_size = clip.get_raw_size();
+	uint32_t raw_size = clip.get_total_size();
 	uint32_t compressed_size = compressed_clip.get_size();
 	double compression_ratio = double(raw_size) / double(compressed_size);
 
@@ -456,10 +456,16 @@ int main(int argc, char** argv)
 
 	// Compress & Decompress
 	{
-		try_algorithm(options, allocator, *clip.get(), *skeleton.get(), UniformlySampledAlgorithm(RotationFormat8::Quat_128, acl::VectorFormat8::Vector3_96));
-		try_algorithm(options, allocator, *clip.get(), *skeleton.get(), UniformlySampledAlgorithm(RotationFormat8::Quat_96, acl::VectorFormat8::Vector3_96));
-		try_algorithm(options, allocator, *clip.get(), *skeleton.get(), UniformlySampledAlgorithm(RotationFormat8::Quat_48, acl::VectorFormat8::Vector3_96));
-		try_algorithm(options, allocator, *clip.get(), *skeleton.get(), UniformlySampledAlgorithm(RotationFormat8::Quat_32, acl::VectorFormat8::Vector3_96));
+		UniformlySampledAlgorithm uniform_tests[] =
+		{
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96),
+		};
+
+		for (UniformlySampledAlgorithm& algorithm : uniform_tests)
+			try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm);
 	}
 
 	if (IsDebuggerPresent())
