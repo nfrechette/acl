@@ -101,16 +101,12 @@ namespace acl
 		bool read(double* values, uint32_t num_elements)
 		{
 			if (num_elements == 0)
-			{
 				return true;
-			}
 
 			for (uint32_t i = 0; i < num_elements; ++i)
 			{
 				if (!read_double(values[i]) || i < num_elements - 1 && !read_comma())
-				{
 					return false;
-				}
 			}
 
 			return true;
@@ -139,9 +135,7 @@ namespace acl
 				restore_state(s);
 
 				for (uint32_t i = 0; i < num_elements; ++i)
-				{
 					values[i] = 0.0;
-				}
 
 				return false;
 			}
@@ -152,9 +146,7 @@ namespace acl
 		bool remainder_is_comments_and_whitespace()
 		{
 			if (!skip_comments_and_whitespace())
-			{
 				return false;
-			}
 
 			if (!eof())
 			{
@@ -170,9 +162,7 @@ namespace acl
 			while (true)
 			{
 				if (eof())
-				{
 					return true;
-				}
 
 				if (std::isspace(m_state.symbol))
 				{
@@ -185,9 +175,7 @@ namespace acl
 					advance();
 
 					if (!read_comment())
-					{
 						return false;
-					}
 				}
 
 				return true;
@@ -225,6 +213,7 @@ namespace acl
 
 		State save_state() const { return m_state; }
 		void restore_state(const State& s) { m_state = s; }
+		void reset_state() { m_state = State(m_input, m_input_length); }
 
 	private:
 		static size_t constexpr MAX_NUMBER_LENGTH = 64;
@@ -243,9 +232,7 @@ namespace acl
 		bool read_symbol(char expected, int32_t reason_if_other_found)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
-			{
 				return false;
-			}
 
 			if (m_state.symbol == expected)
 			{
@@ -268,9 +255,7 @@ namespace acl
 			if (m_state.symbol == '/')
 			{
 				while (!eof() && m_state.symbol != '\n')
-				{
 					advance();
-				}
 
 				return true;
 			}
@@ -314,9 +299,7 @@ namespace acl
 		bool read_key(const char* having_name)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
-			{
 				return false;
-			}
 
 			State start_of_key = save_state();
 			StringView actual;
@@ -324,16 +307,12 @@ namespace acl
 			if (m_state.symbol == '"')
 			{
 				if (!read_string(actual))
-				{
 					return false;
-				}
 			}
 			else
 			{
 				if (!read_unquoted_key(actual))
-				{
 					return false;
-				}
 			}
 
 			if (actual != having_name)
@@ -349,9 +328,7 @@ namespace acl
 		bool read_string(StringView& value)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
-			{
 				return false;
-			}
 
 			if (m_state.symbol != '"')
 			{
@@ -447,9 +424,7 @@ namespace acl
 		bool read_bool(bool& value)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
-			{
 				return false;
-			}
 
 			State start_of_literal = save_state();
 
@@ -487,17 +462,13 @@ namespace acl
 		bool read_double(double& value)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
-			{
 				return false;
-			}
 
 			size_t start_offset = m_state.offset;
 			size_t end_offset;
 
 			if (m_state.symbol == '-')
-			{
 				advance();
-			}
 
 			if (m_state.symbol == '0')
 			{
@@ -506,9 +477,7 @@ namespace acl
 			else if (std::isdigit(m_state.symbol))
 			{
 				while (std::isdigit(m_state.symbol))
-				{
 					advance();
-				}
 			}
 			else
 			{
@@ -521,9 +490,7 @@ namespace acl
 				advance();
 
 				while (std::isdigit(m_state.symbol))
-				{
 					advance();
-				}
 			}
 
 			if (m_state.symbol == 'e' || m_state.symbol == 'E')
@@ -541,9 +508,7 @@ namespace acl
 				}
 
 				while (std::isdigit(m_state.symbol))
-				{
 					advance();
-				}
 			}
 			
 			end_offset = m_state.offset - 1;
@@ -574,9 +539,7 @@ namespace acl
 		bool skip_comments_and_whitespace_fail_if_eof()
 		{
 			if (!skip_comments_and_whitespace())
-			{
 				return false;
-			}
 
 			if (eof())
 			{
@@ -590,9 +553,7 @@ namespace acl
 		bool advance()
 		{
 			if (eof())
-			{
 				return false;
-			}
 
 			m_state.offset++;
 

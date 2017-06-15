@@ -386,7 +386,9 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 	allocator.deallocate(compressed_clip, compressed_clip->get_size());
 }
 
-static bool read_clip(acl::Allocator& allocator, const char* filename, std::unique_ptr<acl::AnimationClip, acl::Deleter<acl::AnimationClip>>& clip, std::shared_ptr<acl::RigidSkeleton>& skeleton)
+static bool read_clip(acl::Allocator& allocator, const char* filename,
+					  std::unique_ptr<acl::AnimationClip, acl::Deleter<acl::AnimationClip>>& clip,
+					  std::unique_ptr<acl::RigidSkeleton, acl::Deleter<acl::RigidSkeleton>>& skeleton)
 {
 	printf("Reading ACL input clip...");
 
@@ -412,7 +414,7 @@ static bool read_clip(acl::Allocator& allocator, const char* filename, std::uniq
 
 	acl::ClipReader reader(allocator, str.c_str(), str.length());
 
-	if (!reader.read(clip, skeleton))
+	if (!reader.read(skeleton) || !reader.read(clip, *skeleton))
 	{
 		acl::ClipReaderError err = reader.get_error();
 		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
@@ -447,7 +449,7 @@ int main(int argc, char** argv)
 
 	Allocator allocator;
 	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
-	std::shared_ptr<RigidSkeleton> skeleton;
+	std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
 
 	if (!read_clip(allocator, options.input_filename, clip, skeleton))
 	{

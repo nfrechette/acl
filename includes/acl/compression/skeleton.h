@@ -105,7 +105,7 @@ namespace acl
 
 				found_root |= is_root;
 
-				std::swap(m_bones[bone_index], bone);
+				m_bones[bone_index] = std::move(bone);
 			}
 
 			ACL_ENSURE(found_root, "No root bone found. The root bone must have a parent index = 0xFFFF");
