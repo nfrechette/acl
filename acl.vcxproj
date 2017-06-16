@@ -24,6 +24,14 @@
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\decoder.h" />
     <ClInclude Include="includes\acl\algorithm\uniformly_sampled\encoder.h" />
     <ClInclude Include="includes\acl\compression\skeleton_error_metric.h" />
+    <ClInclude Include="includes\acl\compression\stream\compact_constant_streams.h" />
+    <ClInclude Include="includes\acl\compression\stream\convert_clip_to_streams.h" />
+    <ClInclude Include="includes\acl\compression\stream\convert_rotation_streams.h" />
+    <ClInclude Include="includes\acl\compression\stream\get_num_animated_streams.h" />
+    <ClInclude Include="includes\acl\compression\stream\quantize_streams.h" />
+    <ClInclude Include="includes\acl\compression\stream\track_stream.h" />
+    <ClInclude Include="includes\acl\compression\stream\write_stream_bitsets.h" />
+    <ClInclude Include="includes\acl\compression\stream\write_stream_data.h" />
     <ClInclude Include="includes\acl\core\algorithm_types.h" />
     <ClInclude Include="includes\acl\core\algorithm_versions.h" />
     <ClInclude Include="includes\acl\core\compressed_clip.h" />
@@ -36,7 +44,9 @@
     <ClInclude Include="includes\acl\core\string_view.h" />
     <ClInclude Include="includes\acl\core\utils.h" />
     <ClInclude Include="includes\acl\math\math_types.h" />
+    <ClInclude Include="includes\acl\math\quat_packing.h" />
     <ClInclude Include="includes\acl\math\scalar_64.h" />
+    <ClInclude Include="includes\acl\math\scalar_packing.h" />
     <ClInclude Include="includes\acl\math\transform_32.h" />
     <ClInclude Include="includes\acl\math\transform_64.h" />
     <ClInclude Include="includes\acl\compression\animation_clip.h" />
@@ -53,6 +63,7 @@
     <ClInclude Include="includes\acl\math\vector4_64.h" />
     <ClInclude Include="includes\acl\clip_reader\clip_reader.h" />
     <ClInclude Include="includes\acl\clip_reader\clip_reader_error.h" />
+    <ClInclude Include="includes\acl\math\vector4_packing.h" />
     <ClInclude Include="includes\acl\sjson\sjson_parser.h" />
     <ClInclude Include="includes\acl\sjson\sjson_parser_error.h" />
   </ItemGroup>

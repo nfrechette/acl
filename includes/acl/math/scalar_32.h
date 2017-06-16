@@ -31,6 +31,9 @@
 
 namespace acl
 {
+	// TODO: Get a higher precision number
+	static constexpr float ACL_PI_32 = 3.141592654f;
+
 	inline float floor(float input)
 	{
 		return std::floor(input);
@@ -44,6 +47,33 @@ namespace acl
 	inline float sqrt(float input)
 	{
 		return std::sqrt(input);
+	}
+
+	inline float sqrt_reciprocal(float input)
+	{
+		// TODO: Use recip instruction
+		return 1.0f / sqrt(input);
+	}
+
+	inline float sin(float angle)
+	{
+		return std::sin(angle);
+	}
+
+	inline float cos(float angle)
+	{
+		return std::cos(angle);
+	}
+
+	inline void sincos(float angle, float& out_sin, float& out_cos)
+	{
+		out_sin = sin(angle);
+		out_cos = cos(angle);
+	}
+
+	inline float atan2(float left, float right)
+	{
+		return std::atan2(left, right);
 	}
 
 	inline float min(float left, float right)

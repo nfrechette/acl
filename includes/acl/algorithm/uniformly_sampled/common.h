@@ -38,7 +38,6 @@ namespace acl
 			struct FullPrecisionConstants
 			{
 				static constexpr uint32_t NUM_TRACKS_PER_BONE = 2;
-				static constexpr uint32_t BITSET_WIDTH = 32;
 			};
 
 			struct FullPrecisionHeader
@@ -79,39 +78,6 @@ namespace acl
 			constexpr const FullPrecisionHeader& get_full_precision_header(const CompressedClip& clip)
 			{
 				return *add_offset_to_ptr<const FullPrecisionHeader>(&clip, sizeof(CompressedClip));
-			}
-
-			// TODO: constexpr
-			inline uint32_t get_rotation_size(RotationFormat8 rotation_format)
-			{
-				switch (rotation_format)
-				{
-					case RotationFormat8::Quat_128:	return sizeof(float) * 4;
-					case RotationFormat8::Quat_96:	return sizeof(float) * 3;
-					case RotationFormat8::Quat_48:	return sizeof(uint16_t) * 3;
-					case RotationFormat8::Quat_32:	return sizeof(uint32_t);
-					default:
-						ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
-						return 0;
-				}
-			}
-
-			// TODO: constexpr
-			inline uint32_t get_translation_size(VectorFormat8 translation_format)
-			{
-				switch (translation_format)
-				{
-				case VectorFormat8::Vector3_96:		return sizeof(float) * 3;
-				case VectorFormat8::Vector3_48:		return sizeof(uint16_t) * 3;
-				default:
-					ACL_ENSURE(false, "Invalid or unsupported translation format: %s", get_vector_format_name(translation_format));
-					return 0;
-				}
-			}
-
-			constexpr uint32_t get_bitset_size(uint32_t num_bits)
-			{
-				return (num_bits + FullPrecisionConstants::BITSET_WIDTH - 1) / FullPrecisionConstants::BITSET_WIDTH;
 			}
 		}
 	}

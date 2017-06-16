@@ -248,6 +248,16 @@ namespace acl
 		return quat_normalize(vector_to_quat(value));
 	}
 
+	inline Quat_64 quat_neg(const Quat_64& input)
+	{
+		return vector_to_quat(vector_mul(quat_to_vector(input), -1.0));
+	}
+
+	inline Quat_64 quat_ensure_positive_w(const Quat_64& input)
+	{
+		return quat_get_w(input) >= 0.0 ? input : quat_neg(input);
+	}
+
 	inline bool quat_is_valid(const Quat_64& input)
 	{
 		return is_finite(quat_get_x(input)) && is_finite(quat_get_y(input)) && is_finite(quat_get_z(input)) && is_finite(quat_get_w(input));

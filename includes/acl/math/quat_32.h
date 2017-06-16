@@ -165,6 +165,70 @@ namespace acl
 		return quat_to_vector(quat_mul(quat_mul(inv_rotation, vector_quat), rotation));
 	}
 
+	inline void quat_to_axis_angle(const Quat_32& input, Vector4_32& out_axis, float& out_angle)
+	{
+		constexpr float EPSILON = 1.0e-8f;
+		constexpr float EPSILON_SQUARED = EPSILON * EPSILON;
+
+		float real_length_squared = vector_length_squared3(quat_to_vector(input));
+
+		if (real_length_squared < EPSILON_SQUARED)
+		{
+			out_axis = vector_set(1.0f, 0.0f, 0.0f);
+			out_angle = 0.0f;
+		}
+		else
+		{
+			float real_length = sqrt_reciprocal(real_length_squared);
+			out_axis = vector_mul(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), real_length);
+			out_angle = abs(quat_get_w(input)) < EPSILON ? ACL_PI_32 : atan2(real_length_squared * real_length, quat_get_w(input)) * 2.0f;
+		}
+	}
+
+	inline Vector4_32 quat_get_axis(const Quat_32& input)
+	{
+		constexpr float EPSILON = 1.0e-8f;
+		constexpr float EPSILON_SQUARED = EPSILON * EPSILON;
+
+		float real_length_squared = vector_length_squared3(quat_to_vector(input));
+
+		if (real_length_squared < EPSILON_SQUARED)
+		{
+			return vector_set(1.0f, 0.0f, 0.0f);
+		}
+		else
+		{
+			float real_length = sqrt_reciprocal(real_length_squared);
+			return vector_mul(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), real_length);
+		}
+	}
+
+	inline float quat_get_angle(const Quat_32& input)
+	{
+		constexpr float EPSILON = 1.0e-8f;
+		constexpr float EPSILON_SQUARED = EPSILON * EPSILON;
+
+		float real_length_squared = vector_length_squared3(quat_to_vector(input));
+
+		if (real_length_squared < EPSILON_SQUARED)
+		{
+			return 0.0f;
+		}
+		else
+		{
+			float real_length = sqrt_reciprocal(real_length_squared);
+			return abs(quat_get_w(input)) < EPSILON ? ACL_PI_32 : atan2(real_length_squared * real_length, quat_get_w(input)) * 2.0f;
+		}
+	}
+
+	inline Quat_32 quat_from_axis_angle(const Vector4_32& axis, float angle)
+	{
+		float s, c;
+		sincos(0.5f * angle, s, c);
+
+		return quat_set(s * vector_get_x(axis), s * vector_get_y(axis), s * vector_get_z(axis), c);
+	}
+
 	inline float quat_length_squared(const Quat_32& input)
 	{
 		// TODO: Use dot instruction
@@ -229,5 +293,11 @@ namespace acl
 	inline bool quat_near_equal(const Quat_32& lhs, const Quat_32& rhs, float threshold = 0.00001f)
 	{
 		return vector_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
+	}
+
+	inline bool quat_near_identity(const Quat_32& input, float threshold = 0.00001f)
+	{
+		float angle = quat_get_angle(input);
+		return abs(angle) < threshold;
 	}
 }

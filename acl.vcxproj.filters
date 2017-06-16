@@ -43,6 +43,9 @@
     <Filter Include="includes\acl\sjson">
       <UniqueIdentifier>{8b8d2e62-7c4b-43ec-a679-c3230acd7452}</UniqueIdentifier>
     </Filter>
+    <Filter Include="includes\acl\compression\stream">
+      <UniqueIdentifier>{13a75baa-a8be-484f-a183-7ef79491f066}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\acl\math\quat_64.h">
@@ -152,6 +155,39 @@
     </ClInclude>
     <ClInclude Include="includes\acl\core\ialgorithm.h">
       <Filter>includes\acl\core</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\scalar_packing.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\quat_packing.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\math\vector4_packing.h">
+      <Filter>includes\acl\math</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\track_stream.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\convert_clip_to_streams.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\convert_rotation_streams.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\compact_constant_streams.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\get_num_animated_streams.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\write_stream_bitsets.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\write_stream_data.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\quantize_streams.h">
+      <Filter>includes\acl\compression\stream</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

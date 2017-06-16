@@ -28,6 +28,7 @@
 #include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
+#include "acl/math/quat_packing.h"
 #include "acl/algorithm/uniformly_sampled/common.h"
 #include "acl/decompression/output_writer.h"
 
@@ -93,8 +94,8 @@ namespace acl
 				ACL_ENSURE(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));
 				ACL_ENSURE(settings.is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
 
-				const uint32_t rotation_size = get_rotation_size(rotation_format);
-				const uint32_t translation_size = get_translation_size(translation_format);
+				const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
+				const uint32_t translation_size = get_packed_vector_size(translation_format);
 
 				float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
 
@@ -167,51 +168,6 @@ namespace acl
 				context.constant_track_offset++;
 			}
 
-			inline Quat_32 decompress_rotation_quat_128(const uint8_t* data_ptr)
-			{
-				return quat_unaligned_load(data_ptr);
-			}
-
-			inline Quat_32 decompress_rotation_quat_96(const uint8_t* data_ptr)
-			{
-				Vector4_32 rotation_xyz = vector_unaligned_load3(data_ptr);
-				return quat_from_positive_w(rotation_xyz);
-			}
-
-			inline float dequantize_unsigned_normalized(size_t input, size_t num_bits)
-			{
-				size_t max_value = (1 << num_bits) - 1;
-				ACL_ENSURE(input <= max_value, "Invalue input value: %ull <= 1.0", input);
-				return safe_to_float(input) / safe_to_float(max_value);
-			}
-
-			inline float dequantize_signed_normalized(size_t input, size_t num_bits)
-			{
-				return (dequantize_unsigned_normalized(input, num_bits) * 2.0f) - 1.0f;
-			}
-
-			inline Quat_32 decompress_rotation_quat_48(const uint8_t* data_ptr)
-			{
-				const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(data_ptr);
-				size_t x = data_ptr_u16[0];
-				size_t y = data_ptr_u16[1];
-				size_t z = data_ptr_u16[2];
-				Vector4_32 rotation_xyz = vector_set(dequantize_signed_normalized(x, 16), dequantize_signed_normalized(y, 16), dequantize_signed_normalized(z, 16));
-				return quat_from_positive_w(rotation_xyz);
-			}
-
-			inline Quat_32 decompress_rotation_quat_32(const uint8_t* data_ptr)
-			{
-				// Read 2 bytes at a time to ensure safe alignment
-				const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(data_ptr);
-				uint32_t rotation_u32 = (safe_static_cast<uint32_t>(data_ptr_u16[0]) << 16) | safe_static_cast<uint32_t>(data_ptr_u16[1]);
-				size_t x = rotation_u32 >> 21;
-				size_t y = (rotation_u32 >> 10) & ((1 << 11) - 1);
-				size_t z = rotation_u32 & ((1 << 10) - 1);
-				Vector4_32 rotation_xyz = vector_set(dequantize_signed_normalized(x, 11), dequantize_signed_normalized(y, 11), dequantize_signed_normalized(z, 10));
-				return quat_from_positive_w(rotation_xyz);
-			}
-
 			template<class SettingsType>
 			inline Quat_32 decompress_rotation(const SettingsType& settings, const FullPrecisionHeader& header, DecompressionContext& context)
 			{
@@ -229,13 +185,13 @@ namespace acl
 					{
 						// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
 						if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
-							rotation = decompress_rotation_quat_128(context.constant_track_data);
+							rotation = unpack_quat_128(context.constant_track_data);
 						else if (rotation_format == RotationFormat8::Quat_96 && settings.is_rotation_format_supported(RotationFormat8::Quat_96))
-							rotation = decompress_rotation_quat_96(context.constant_track_data);
+							rotation = unpack_quat_96(context.constant_track_data);
 						else if (rotation_format == RotationFormat8::Quat_48 && settings.is_rotation_format_supported(RotationFormat8::Quat_48))
-							rotation = decompress_rotation_quat_48(context.constant_track_data);
+							rotation = unpack_quat_48(context.constant_track_data);
 						else if (rotation_format == RotationFormat8::Quat_32 && settings.is_rotation_format_supported(RotationFormat8::Quat_32))
-							rotation = decompress_rotation_quat_32(context.constant_track_data);
+							rotation = unpack_quat_32(context.constant_track_data);
 
 						context.constant_track_data += context.rotation_size;
 					}
@@ -247,23 +203,23 @@ namespace acl
 						// TODO: Use a compile time flag to determine the rotation format and avoid a runtime branch
 						if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 						{
-							rotation0 = decompress_rotation_quat_128(context.key_frame_data0);
-							rotation1 = decompress_rotation_quat_128(context.key_frame_data1);
+							rotation0 = unpack_quat_128(context.key_frame_data0);
+							rotation1 = unpack_quat_128(context.key_frame_data1);
 						}
 						else if (rotation_format == RotationFormat8::Quat_96 && settings.is_rotation_format_supported(RotationFormat8::Quat_96))
 						{
-							rotation0 = decompress_rotation_quat_96(context.key_frame_data0);
-							rotation1 = decompress_rotation_quat_96(context.key_frame_data1);
+							rotation0 = unpack_quat_96(context.key_frame_data0);
+							rotation1 = unpack_quat_96(context.key_frame_data1);
 						}
 						else if (rotation_format == RotationFormat8::Quat_48 && settings.is_rotation_format_supported(RotationFormat8::Quat_48))
 						{
-							rotation0 = decompress_rotation_quat_48(context.key_frame_data0);
-							rotation1 = decompress_rotation_quat_48(context.key_frame_data1);
+							rotation0 = unpack_quat_48(context.key_frame_data0);
+							rotation1 = unpack_quat_48(context.key_frame_data1);
 						}
 						else if (rotation_format == RotationFormat8::Quat_32 && settings.is_rotation_format_supported(RotationFormat8::Quat_32))
 						{
-							rotation0 = decompress_rotation_quat_32(context.key_frame_data0);
-							rotation1 = decompress_rotation_quat_32(context.key_frame_data1);
+							rotation0 = unpack_quat_32(context.key_frame_data0);
+							rotation1 = unpack_quat_32(context.key_frame_data1);
 						}
 
 						rotation = quat_lerp(rotation0, rotation1, context.interpolation_alpha);

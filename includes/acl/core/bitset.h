@@ -4,6 +4,11 @@
 
 namespace acl
 {
+	constexpr uint32_t get_bitset_size(uint32_t num_bits)
+	{
+		return (num_bits + 32 - 1) / 32;
+	}
+
 	inline void bitset_reset(uint32_t* bitset, uint32_t size, bool value)
 	{
 		uint32_t mask = value ? 0xFFFFFFFF : 0x00000000;
