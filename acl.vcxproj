@@ -51,7 +51,6 @@
     <ClInclude Include="includes\acl\math\transform_64.h" />
     <ClInclude Include="includes\acl\compression\animation_clip.h" />
     <ClInclude Include="includes\acl\compression\animation_track.h" />
-    <ClInclude Include="includes\acl\compression\animation_track_range.h" />
     <ClInclude Include="includes\acl\compression\compressed_clip_impl.h" />
     <ClInclude Include="includes\acl\compression\skeleton.h" />
     <ClInclude Include="includes\acl\decompression\output_writer.h" />

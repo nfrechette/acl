@@ -309,7 +309,7 @@ static void print_stats(const Options& options, const acl::AnimationClip& clip, 
 	fprintf(file, "Clip max error: %.5f\n", max_error);
 	fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
 	fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
-	fprintf(file, "Clip num animated tracks: %u\n", clip.get_num_animated_tracks());
+	//fprintf(file, "Clip num animated tracks: %u\n", clip.get_num_animated_tracks());
 	//fprintf(file, "Clip num segments: %u\n", 0);		// TODO
 	fprintf(file, "\n");
 }

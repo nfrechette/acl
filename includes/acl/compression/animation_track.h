@@ -29,17 +29,12 @@
 #include "acl/core/utils.h"
 #include "acl/math/quat_64.h"
 #include "acl/math/vector4_64.h"
-#include "acl/compression/animation_track_range.h"
 
 #include <stdint.h>
 #include <utility>
 
 namespace acl
 {
-	static constexpr double		TRACK_CONSTANT_THRESHOLD			= 0.00001;
-
-	// TODO: Bake tracks before we start compressing. Calculate the range, if it is constant, default, etc.
-
 	class AnimationTrack
 	{
 	public:
@@ -47,21 +42,8 @@ namespace acl
 
 		uint32_t get_num_samples() const { return m_num_samples; }
 
-		AnimationTrackRange get_range() const
-		{
-			if (m_is_range_dirty)
-			{
-				m_range = calculate_range();
-				m_is_range_dirty = false;
-			}
-
-			return m_range;
-		}
-
-		bool is_constant(double threshold = TRACK_CONSTANT_THRESHOLD) const { return get_range().is_constant(threshold); }
-
 	protected:
-		enum class AnimationTrackType : uint8_t
+		enum class AnimationTrackType8 : uint8_t
 		{
 			Rotation = 0,
 			Translation = 1,
@@ -73,7 +55,7 @@ namespace acl
 			, m_sample_data(nullptr)
 			, m_num_samples(0)
 			, m_sample_rate(0)
-			, m_type(AnimationTrackType::Rotation)
+			, m_type(AnimationTrackType8::Rotation)
 		{}
 
 		AnimationTrack(AnimationTrack&& track)
@@ -81,19 +63,15 @@ namespace acl
 			, m_sample_data(track.m_sample_data)
 			, m_num_samples(track.m_num_samples)
 			, m_sample_rate(track.m_sample_rate)
-			, m_is_range_dirty(track.m_is_range_dirty)
 			, m_type(track.m_type)
-			, m_range(track.m_range)
 		{}
 
-		AnimationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate, AnimationTrackType type)
+		AnimationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate, AnimationTrackType8 type)
 			: m_allocator(&allocator)
 			, m_sample_data(allocate_type_array<double>(allocator, num_samples * get_animation_track_sample_size(type)))
 			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
-			, m_is_range_dirty(true)
 			, m_type(type)
-			, m_range(AnimationTrackRange())
 		{}
 
 		~AnimationTrack()
@@ -110,66 +88,22 @@ namespace acl
 			std::swap(m_sample_data, track.m_sample_data);
 			std::swap(m_num_samples, track.m_num_samples);
 			std::swap(m_sample_rate, track.m_sample_rate);
-			std::swap(m_is_range_dirty, track.m_is_range_dirty);
 			std::swap(m_type, track.m_type);
-			std::swap(m_range, track.m_range);
 			return *this;
 		}
 
 		AnimationTrack(const AnimationTrack&) = delete;
 		AnimationTrack& operator=(const AnimationTrack&) = delete;
 
-		AnimationTrackRange calculate_range() const
-		{
-			ACL_ENSURE(is_initialized(), "Track is not initialized");
-
-			if (m_num_samples == 0)
-				return AnimationTrackRange();
-
-			size_t sample_size = get_animation_track_sample_size(m_type);
-
-			uint32_t sample_index = 0;
-			const double* sample = &m_sample_data[sample_index * sample_size];
-
-			double x = sample[0];
-			double y = sample[1];
-			double z = sample[2];
-			// TODO: Add padding and avoid the branch altogether
-			double w = sample_size == 4 ? sample[3] : z;	// Constant branch, trivially predicted
-
-			Vector4_64 value = vector_set(x, y, z, w);
-
-			Vector4_64 min = value;
-			Vector4_64 max = value;
-
-			for (sample_index = 1; sample_index < m_num_samples; ++sample_index)
-			{
-				sample = &m_sample_data[sample_index * sample_size];
-
-				x = sample[0];
-				y = sample[1];
-				z = sample[2];
-				// TODO: Add padding and avoid the branch altogether
-				w = sample_size == 4 ? sample[3] : z;	// Constant branch, trivially predicted
-
-				value = vector_set(x, y, z, w);
-
-				min = vector_min(min, value);
-				max = vector_max(max, value);
-			}
-
-			return AnimationTrackRange(min, max);
-		}
-
 		// TODO: constexpr
 		// Returns the number of values per sample
-		static inline size_t get_animation_track_sample_size(AnimationTrackType type)
+		static inline size_t get_animation_track_sample_size(AnimationTrackType8 type)
 		{
 			switch (type)
 			{
 			default:
-			case AnimationTrackType::Rotation:		return 4;
-			case AnimationTrackType::Translation:	return 3;
+			case AnimationTrackType8::Rotation:		return 4;
+			case AnimationTrackType8::Translation:	return 3;
 			}
 		}
 
@@ -178,11 +112,8 @@ namespace acl
 
 		uint32_t						m_num_samples;
 		uint32_t						m_sample_rate;
-		mutable bool					m_is_range_dirty;		// TODO: Do we really need to cache this? nasty with mutable...
 
-		AnimationTrackType				m_type;
-
-		mutable AnimationTrackRange		m_range;
+		AnimationTrackType8				m_type;
 
 		// TODO: Support different sampling methods: linear, cubic
 	};
@@ -195,7 +126,7 @@ namespace acl
 		{}
 
 		AnimationRotationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate)
-			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType::Rotation)
+			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Rotation)
 		{}
 
 		AnimationRotationTrack(AnimationRotationTrack&& track)
@@ -206,26 +137,6 @@ namespace acl
 		{
 			AnimationTrack::operator=(std::forward<AnimationTrack>(track));
 			return *this;
-		}
-
-		bool is_default(double threshold = TRACK_CONSTANT_THRESHOLD) const
-		{
-			AnimationTrackRange range = get_range();
-			if (!range.is_constant(threshold))
-				return false;
-
-			// For a rotation track, the extent only tells us if the track is constant or not
-			// since the min/max we maintain aren't valid rotations.
-			// Similarly, the center isn't a valid rotation and is meaningless.
-			Quat_64 sample0 = get_sample(0);
-			double angle = quat_get_angle(sample0);
-
-			return abs(angle) < threshold;
-		}
-
-		bool is_animated(double threshold = TRACK_CONSTANT_THRESHOLD) const
-		{
-			return !is_constant(threshold) && !is_default(threshold);
 		}
 
 		void set_sample(uint32_t sample_index, const Quat_64& rotation)
@@ -243,14 +154,12 @@ namespace acl
 			sample[1] = quat_get_y(rotation);
 			sample[2] = quat_get_z(rotation);
 			sample[3] = quat_get_w(rotation);
-
-			m_is_range_dirty = true;
 		}
 
 		Quat_64 get_sample(uint32_t sample_index) const
 		{
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(m_type == AnimationTrackType::Rotation, "Invalid track type. %u != %u", m_type, AnimationTrackType::Rotation);
+			ACL_ENSURE(m_type == AnimationTrackType8::Rotation, "Invalid track type. %u != %u", m_type, AnimationTrackType8::Rotation);
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
@@ -285,7 +194,7 @@ namespace acl
 		{}
 
 		AnimationTranslationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate)
-			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType::Translation)
+			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Translation)
 		{}
 
 		AnimationTranslationTrack(AnimationTranslationTrack&& track)
@@ -296,22 +205,6 @@ namespace acl
 		{
 			AnimationTrack::operator=(std::forward<AnimationTrack>(track));
 			return *this;
-		}
-
-		bool is_default(double threshold = TRACK_CONSTANT_THRESHOLD) const
-		{
-			AnimationTrackRange range = get_range();
-			if (!range.is_constant(threshold))
-				return false;
-
-			double distance = vector_length3(range.get_center());
-
-			return distance < threshold;
-		}
-
-		bool is_animated(double threshold = TRACK_CONSTANT_THRESHOLD) const
-		{
-			return !is_constant(threshold) && !is_default(threshold);
 		}
 
 		void set_sample(uint32_t sample_index, const Vector4_64& translation)
@@ -327,14 +220,12 @@ namespace acl
 			sample[0] = vector_get_x(translation);
 			sample[1] = vector_get_y(translation);
 			sample[2] = vector_get_z(translation);
-
-			m_is_range_dirty = true;
 		}
 
 		Vector4_64 get_sample(uint32_t sample_index) const
 		{
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(m_type == AnimationTrackType::Translation, "Invalid track type. %u != %u", m_type, AnimationTrackType::Translation);
+			ACL_ENSURE(m_type == AnimationTrackType8::Translation, "Invalid track type. %u != %u", m_type, AnimationTrackType8::Translation);
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);

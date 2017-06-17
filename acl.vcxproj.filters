@@ -78,9 +78,6 @@
     <ClInclude Include="includes\acl\decompression\output_writer.h">
       <Filter>includes\acl\decompression</Filter>
     </ClInclude>
-    <ClInclude Include="includes\acl\compression\animation_track_range.h">
-      <Filter>includes\acl\compression</Filter>
-    </ClInclude>
     <ClInclude Include="includes\acl\math\scalar_32.h">
       <Filter>includes\acl\math</Filter>
     </ClInclude>

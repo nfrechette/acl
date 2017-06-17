@@ -117,25 +117,12 @@ namespace acl
 			return m_num_bones * bone_sample_size * m_num_samples;
 		}
 
-		uint32_t get_num_animated_tracks() const
-		{
-			uint32_t num_animated_tracks = 0;
-
-			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
-			{
-				num_animated_tracks += m_bones[bone_index].rotation_track.is_animated() ? 1 : 0;
-				num_animated_tracks += m_bones[bone_index].translation_track.is_animated() ? 1 : 0;
-			}
-
-			return num_animated_tracks;
-		}
-
 	private:
 		Allocator&				m_allocator;
 
 		AnimatedBone*			m_bones;
 
-		uint32_t				m_num_bones;
+		uint16_t				m_num_bones;
 		uint32_t				m_num_samples;
 		uint32_t				m_sample_rate;
 	};
