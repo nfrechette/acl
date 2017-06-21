@@ -354,6 +354,11 @@ namespace acl
 							translation0 = unpack_vector3_48(context.key_frame_data0);
 							translation1 = unpack_vector3_48(context.key_frame_data1);
 						}
+						else if (translation_format == VectorFormat8::Vector3_32 && settings.is_translation_format_supported(VectorFormat8::Vector3_32))
+						{
+							translation0 = unpack_vector3_32<11, 11, 10>(context.key_frame_data0);
+							translation1 = unpack_vector3_32<11, 11, 10>(context.key_frame_data1);
+						}
 
 						if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations))
 						{

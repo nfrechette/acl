@@ -65,9 +65,8 @@ namespace acl
 	{
 		Vector3_96				= 0,	// Full precision vector3, [x,y,z] stored with float32
 		Vector3_48				= 1,	// Quantized vector3, [x,y,z] stored with [16,16,16] bits
+		Vector3_32				= 2,	// Quantized vector3, [x,y,z] stored with [11,11,10] bits
 		// TODO: Implement these
-		
-		//Vector3_32,			// Quantized vector3, [x,y,z] stored with [11,11,10] bits
 		//Vector3_Variable,		// Quantized vector3, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
 	};
 
@@ -139,6 +138,7 @@ namespace acl
 		{
 		case VectorFormat8::Vector3_96:		return "Vector3 96";
 		case VectorFormat8::Vector3_48:		return "Vector3 48";
+		case VectorFormat8::Vector3_32:		return "Vector3 32";
 		default:							return "<Unknown>";
 		}
 	}

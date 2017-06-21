@@ -123,6 +123,10 @@ namespace acl
 					pack_vector3_48(vector_cast(translation), quantized_ptr);
 					translation = vector_cast(unpack_vector3_48(quantized_ptr));
 					break;
+				case VectorFormat8::Vector3_32:
+					pack_vector3_32<11, 11, 10>(vector_cast(translation), quantized_ptr);
+					translation = vector_cast(unpack_vector3_32<11, 11, 10>(quantized_ptr));
+					break;
 				default:
 					ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
 					break;
