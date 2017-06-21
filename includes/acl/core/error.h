@@ -39,10 +39,15 @@
 // The code found something unexpected but recovered.
 #if !defined(ACL_ASSERT)
 	#if defined(ACL_USE_ERROR_CHECKS)
+		// Note: STD assert(..) is fatal, it calls abort
 		#define ACL_ASSERT(expression, format, ...) assert(expression)
 	#else
 		#define ACL_ASSERT(expression, format, ...) ((void)0)
 	#endif
+
+	// Handy macro to handle asserts in it statement, usage:
+	// if (ACL_TRY_ASSERT(foo != bar, "omg so bad!")) return error;
+	#define ACL_TRY_ASSERT(expression, format, ...) ACL_ASSERT(expression, format, __VAR_ARGS__), !(expression)
 #endif
 
 // Ensure is fatal, the library does not handle skipping this safely.

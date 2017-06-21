@@ -331,6 +331,16 @@ namespace acl
 		return vector_all_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
+	inline bool vector_is_valid(const Vector4_32& input)
+	{
+		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input)) && is_finite(vector_get_w(input));
+	}
+
+	inline bool vector_is_valid3(const Vector4_32& input)
+	{
+		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input));
+	}
+
 	// output = (input * scale) + offset
 	inline Vector4_32 vector_mul_add(const Vector4_32& input, const Vector4_32& scale, const Vector4_32& offset)
 	{

@@ -86,8 +86,16 @@ namespace acl
 			uint16_t num_bones = clip.get_num_bones();
 			uint32_t num_samples = clip.get_num_samples();
 
-			ACL_ENSURE(num_bones > 0, "Clip has no bones!");
-			ACL_ENSURE(num_samples > 0, "Clip has no samples!");
+			if (ACL_TRY_ASSERT(num_bones > 0, "Clip has no bones!"))
+				return nullptr;
+			if (ACL_TRY_ASSERT(num_samples > 0, "Clip has no samples!"))
+				return nullptr;
+
+			if (settings.translation_format != VectorFormat8::Vector3_96)
+			{
+				if (ACL_TRY_ASSERT(are_enum_flags_set(settings.range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations), "Translation quantization requires range reduction to be enabled!"))
+					return nullptr;
+			}
 
 			BoneStreams* bone_streams = convert_clip_to_streams(allocator, clip);
 			convert_rotation_streams(allocator, bone_streams, num_bones, settings.rotation_format);
@@ -113,7 +121,9 @@ namespace acl
 			uint32_t rotation_size = get_packed_rotation_size(settings.rotation_format);
 			uint32_t translation_size = get_packed_vector_size(settings.translation_format);
 
-			uint32_t constant_data_size = (rotation_size * num_constant_rotation_tracks) + (translation_size * num_constant_translation_tracks);
+			// Constant translation tracks store the remaining sample with full precision
+			const uint32_t constant_translation_size = get_packed_vector_size(VectorFormat8::Vector3_96);
+			uint32_t constant_data_size = (rotation_size * num_constant_rotation_tracks) + (constant_translation_size * num_constant_translation_tracks);
 			uint32_t animated_data_size = (rotation_size * num_animated_rotation_tracks) + (translation_size * num_animated_translation_tracks);
 
 			animated_data_size *= num_samples;

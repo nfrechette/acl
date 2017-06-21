@@ -169,7 +169,8 @@ namespace acl
 					bool is_translation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
 					if (is_translation_constant)
 					{
-						context.constant_track_data += context.translation_size;
+						// Constant translation tracks store the remaining sample with full precision
+						context.constant_track_data += get_packed_vector_size(VectorFormat8::Vector3_96);
 					}
 					else
 					{
@@ -226,18 +227,15 @@ namespace acl
 							Vector4_32 rotation0_xyzw = unpack_vector4_128(context.key_frame_data0);
 							Vector4_32 rotation1_xyzw = unpack_vector4_128(context.key_frame_data1);
 
-							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
+							if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
 							{
-								if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
-								{
-									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
-									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
+								Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+								Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
 
-									rotation0_xyzw = vector_mul_add(rotation0_xyzw, clip_range_extent, clip_range_min);
-									rotation1_xyzw = vector_mul_add(rotation1_xyzw, clip_range_extent, clip_range_min);
+								rotation0_xyzw = vector_mul_add(rotation0_xyzw, clip_range_extent, clip_range_min);
+								rotation1_xyzw = vector_mul_add(rotation1_xyzw, clip_range_extent, clip_range_min);
 
-									context.range_data += context.range_rotation_size;
-								}
+								context.range_data += context.range_rotation_size;
 							}
 
 							rotation0 = vector_to_quat(rotation0_xyzw);
@@ -248,18 +246,15 @@ namespace acl
 							Vector4_32 rotation0_xyz = unpack_vector3_96(context.key_frame_data0);
 							Vector4_32 rotation1_xyz = unpack_vector3_96(context.key_frame_data1);
 
-							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
+							if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
 							{
-								if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
-								{
-									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
-									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
+								Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+								Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
 
-									rotation0_xyz = vector_mul_add(rotation0_xyz, clip_range_extent, clip_range_min);
-									rotation1_xyz = vector_mul_add(rotation1_xyz, clip_range_extent, clip_range_min);
+								rotation0_xyz = vector_mul_add(rotation0_xyz, clip_range_extent, clip_range_min);
+								rotation1_xyz = vector_mul_add(rotation1_xyz, clip_range_extent, clip_range_min);
 
-									context.range_data += context.range_rotation_size;
-								}
+								context.range_data += context.range_rotation_size;
 							}
 
 							rotation0 = quat_from_positive_w(rotation0_xyz);
@@ -270,18 +265,15 @@ namespace acl
 							Vector4_32 rotation0_xyz = unpack_vector3_48(context.key_frame_data0);
 							Vector4_32 rotation1_xyz = unpack_vector3_48(context.key_frame_data1);
 
-							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
+							if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
 							{
-								if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
-								{
-									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
-									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
+								Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+								Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
 
-									rotation0_xyz = vector_mul_add(rotation0_xyz, clip_range_extent, clip_range_min);
-									rotation1_xyz = vector_mul_add(rotation1_xyz, clip_range_extent, clip_range_min);
+								rotation0_xyz = vector_mul_add(rotation0_xyz, clip_range_extent, clip_range_min);
+								rotation1_xyz = vector_mul_add(rotation1_xyz, clip_range_extent, clip_range_min);
 
-									context.range_data += context.range_rotation_size;
-								}
+								context.range_data += context.range_rotation_size;
 							}
 
 							rotation0 = quat_from_positive_w(rotation0_xyz);
@@ -292,18 +284,15 @@ namespace acl
 							Vector4_32 rotation0_xyz = unpack_vector3_32<11, 11, 10>(context.key_frame_data0);
 							Vector4_32 rotation1_xyz = unpack_vector3_32<11, 11, 10>(context.key_frame_data1);
 
-							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
+							if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
 							{
-								if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
-								{
-									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
-									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
+								Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+								Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
 
-									rotation0_xyz = vector_mul_add(rotation0_xyz, clip_range_extent, clip_range_min);
-									rotation1_xyz = vector_mul_add(rotation1_xyz, clip_range_extent, clip_range_min);
+								rotation0_xyz = vector_mul_add(rotation0_xyz, clip_range_extent, clip_range_min);
+								rotation1_xyz = vector_mul_add(rotation1_xyz, clip_range_extent, clip_range_min);
 
-									context.range_data += context.range_rotation_size;
-								}
+								context.range_data += context.range_rotation_size;
 							}
 
 							rotation0 = quat_from_positive_w(rotation0_xyz);
@@ -340,31 +329,46 @@ namespace acl
 					bool is_translation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
 					if (is_translation_constant)
 					{
-						translation = vector_unaligned_load3(context.constant_track_data);
-						context.constant_track_data += context.translation_size;
+						// Constant translation tracks store the remaining sample with full precision
+						translation = unpack_vector3_96(context.constant_track_data);
+
+						ACL_ENSURE(vector_is_valid3(translation), "Translation is not valid!");
+
+						context.constant_track_data += get_packed_vector_size(VectorFormat8::Vector3_96);
 					}
 					else
 					{
+						const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
 						const RangeReductionFlags8 range_reduction = settings.get_range_reduction(header.range_reduction);
 
-						Vector4_32 translation0 = unpack_vector3_96(context.key_frame_data0);
-						Vector4_32 translation1 = unpack_vector3_96(context.key_frame_data1);
+						Vector4_32 translation0;
+						Vector4_32 translation1;
 
-						if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations))
+						if (translation_format == VectorFormat8::Vector3_96 && settings.is_translation_format_supported(VectorFormat8::Vector3_96))
 						{
-							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
-							{
-								Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
-								Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_translation_size / 2));
+							translation0 = unpack_vector3_96(context.key_frame_data0);
+							translation1 = unpack_vector3_96(context.key_frame_data1);
+						}
+						else if (translation_format == VectorFormat8::Vector3_48 && settings.is_translation_format_supported(VectorFormat8::Vector3_48))
+						{
+							translation0 = unpack_vector3_48(context.key_frame_data0);
+							translation1 = unpack_vector3_48(context.key_frame_data1);
+						}
 
-								translation0 = vector_mul_add(translation0, clip_range_extent, clip_range_min);
-								translation1 = vector_mul_add(translation1, clip_range_extent, clip_range_min);
+						if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations))
+						{
+							Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
+							Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_translation_size / 2));
 
-								context.range_data += context.range_translation_size;
-							}
+							translation0 = vector_mul_add(translation0, clip_range_extent, clip_range_min);
+							translation1 = vector_mul_add(translation1, clip_range_extent, clip_range_min);
+
+							context.range_data += context.range_translation_size;
 						}
 
 						translation = vector_lerp(translation0, translation1, context.interpolation_alpha);
+
+						ACL_ENSURE(vector_is_valid3(translation), "Translation is not valid!");
 
 						context.key_frame_data0 += context.translation_size;
 						context.key_frame_data1 += context.translation_size;

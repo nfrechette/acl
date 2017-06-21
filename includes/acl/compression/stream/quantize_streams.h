@@ -99,8 +99,11 @@ namespace acl
 			// We expect all our samples to have the same width of sizeof(Vector4_64)
 			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_64), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_64));
 
+			// Constant translation tracks store the remaining sample with full precision
+			VectorFormat8 format = bone_stream.is_translation_animated() ? translation_format : VectorFormat8::Vector3_96;
+
 			uint32_t num_samples = bone_stream.translations.get_num_samples();
-			TrackStream quantized_stream(allocator, num_samples, get_packed_vector_size(translation_format));
+			TrackStream quantized_stream(allocator, num_samples, get_packed_vector_size(format));
 
 			Vector4_64 translation_min = vector_set(1e10);
 			Vector4_64 translation_max = vector_set(-1e10);
@@ -110,7 +113,7 @@ namespace acl
 				Vector4_64 translation = bone_stream.translations.get_sample<Vector4_64>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_sample_ptr(sample_index);
 
-				switch (translation_format)
+				switch (format)
 				{
 				case VectorFormat8::Vector3_96:
 					pack_vector3_96(vector_cast(translation), quantized_ptr);
@@ -121,7 +124,7 @@ namespace acl
 					translation = vector_cast(unpack_vector3_48(quantized_ptr));
 					break;
 				default:
-					ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(translation_format));
+					ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
 					break;
 				}
 

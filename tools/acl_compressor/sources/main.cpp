@@ -328,9 +328,8 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 	double sample_increment = 1.0 / clip.get_sample_rate();
 	while (sample_time < clip_duration)
 	{
-		algorithm.decompress_pose(compressed_clip, (float)sample_time, lossy_pose_transforms, num_bones);
-
 		clip.sample_pose(sample_time, raw_output_writer);
+		algorithm.decompress_pose(compressed_clip, (float)sample_time, lossy_pose_transforms, num_bones);
 
 		double error = calculate_skeleton_error(allocator, skeleton, raw_output_writer.m_transforms, lossy_pose_transforms);
 		max_error = max(max_error, error);
@@ -340,9 +339,8 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 
 	// Make sure we test the last sample time possible as well
 	{
-		algorithm.decompress_pose(compressed_clip, (float)clip_duration, lossy_pose_transforms, num_bones);
-
 		clip.sample_pose(clip_duration, raw_output_writer);
+		algorithm.decompress_pose(compressed_clip, (float)clip_duration, lossy_pose_transforms, num_bones);
 
 		double error = calculate_skeleton_error(allocator, skeleton, raw_output_writer.m_transforms, lossy_pose_transforms);
 		max_error = max(max_error, error);
@@ -464,18 +462,26 @@ int main(int argc, char** argv)
 			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
 		};
 
 		for (UniformlySampledAlgorithm& algorithm : uniform_tests)

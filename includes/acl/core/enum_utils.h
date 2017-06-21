@@ -75,9 +75,16 @@
 namespace acl
 {
 	template<typename EnumType>
-	constexpr bool is_enum_flag_set(EnumType flags, EnumType flag)
+	constexpr bool is_enum_flag_set(EnumType flags, EnumType flag_to_test)
 	{
 		typedef std::underlying_type<EnumType>::type IntegralType;
-		return static_cast<IntegralType>(flags & flag) != 0;
+		return static_cast<IntegralType>(flags & flag_to_test) != 0;
+	}
+
+	template<typename EnumType>
+	constexpr bool are_enum_flags_set(EnumType flags, EnumType flags_to_test)
+	{
+		typedef std::underlying_type<EnumType>::type IntegralType;
+		return static_cast<IntegralType>(flags & flags_to_test) == static_cast<IntegralType>(flags_to_test);
 	}
 }
