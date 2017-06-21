@@ -91,17 +91,20 @@ namespace acl
 			{
 				const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 				const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
+				const RangeReductionFlags8 range_reduction = settings.get_range_reduction(header.range_reduction);
 
 				ACL_ENSURE(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
 				ACL_ENSURE(settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
 				ACL_ENSURE(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));
 				ACL_ENSURE(settings.is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
+				ACL_ENSURE(range_reduction == header.range_reduction, "Statically compiled range reduction settings (%u) differ from the compressed settings (%u)!", range_reduction, header.range_reduction);
+				ACL_ENSURE(settings.are_range_reduction_flags_supported(range_reduction), "Range reduction settings (%u) aren't statically supported!", range_reduction);
 
 				const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
 				const uint32_t translation_size = get_packed_vector_size(translation_format);
 				const uint32_t range_rotation_size = get_range_reduction_rotation_size(rotation_format);
 				const uint32_t range_translation_size = get_range_reduction_vector_size(translation_format);
-				const bool has_clip_range_reduction = is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip);
+				const bool has_clip_range_reduction = is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip);
 
 				float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
 
@@ -127,8 +130,8 @@ namespace acl
 				context.bitset_size = get_bitset_size(header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
 				context.rotation_size = rotation_size;
 				context.translation_size = translation_size;
-				context.range_rotation_size = has_clip_range_reduction && is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations) ? range_rotation_size : 0;
-				context.range_translation_size = has_clip_range_reduction && is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Translations) ? range_translation_size : 0;
+				context.range_rotation_size = has_clip_range_reduction && is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) ? range_rotation_size : 0;
+				context.range_translation_size = has_clip_range_reduction && is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) ? range_translation_size : 0;
 
 				context.interpolation_alpha = interpolation_alpha;
 
@@ -184,6 +187,7 @@ namespace acl
 			inline Quat_32 decompress_rotation(const SettingsType& settings, const FullPrecisionHeader& header, DecompressionContext& context)
 			{
 				Quat_32 rotation;
+
 				bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
 				if (is_rotation_default)
 				{
@@ -192,6 +196,7 @@ namespace acl
 				else
 				{
 					const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
+
 					bool is_rotation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
 					if (is_rotation_constant)
 					{
@@ -211,6 +216,8 @@ namespace acl
 					}
 					else
 					{
+						const RangeReductionFlags8 range_reduction = settings.get_range_reduction(header.range_reduction);
+
 						Quat_32 rotation0;
 						Quat_32 rotation1;
 
@@ -219,9 +226,9 @@ namespace acl
 							Vector4_32 rotation0_xyzw = unpack_vector4_128(context.key_frame_data0);
 							Vector4_32 rotation1_xyzw = unpack_vector4_128(context.key_frame_data1);
 
-							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations))
+							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
 							{
-								if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+								if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
 								{
 									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
 									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
@@ -241,9 +248,9 @@ namespace acl
 							Vector4_32 rotation0_xyz = unpack_vector3_96(context.key_frame_data0);
 							Vector4_32 rotation1_xyz = unpack_vector3_96(context.key_frame_data1);
 
-							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations))
+							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
 							{
-								if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+								if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
 								{
 									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
 									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
@@ -263,9 +270,9 @@ namespace acl
 							Vector4_32 rotation0_xyz = unpack_vector3_48(context.key_frame_data0);
 							Vector4_32 rotation1_xyz = unpack_vector3_48(context.key_frame_data1);
 
-							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations))
+							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
 							{
-								if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+								if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
 								{
 									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
 									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
@@ -285,9 +292,9 @@ namespace acl
 							Vector4_32 rotation0_xyz = unpack_vector3_32<11, 11, 10>(context.key_frame_data0);
 							Vector4_32 rotation1_xyz = unpack_vector3_32<11, 11, 10>(context.key_frame_data1);
 
-							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Rotations))
+							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
 							{
-								if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+								if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
 								{
 									Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
 									Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_rotation_size / 2));
@@ -322,6 +329,7 @@ namespace acl
 			inline Vector4_32 decompress_translation(const SettingsType& settings, const FullPrecisionHeader& header, DecompressionContext& context)
 			{
 				Vector4_32 translation;
+
 				bool is_translation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
 				if (is_translation_default)
 				{
@@ -337,12 +345,14 @@ namespace acl
 					}
 					else
 					{
+						const RangeReductionFlags8 range_reduction = settings.get_range_reduction(header.range_reduction);
+
 						Vector4_32 translation0 = unpack_vector3_96(context.key_frame_data0);
 						Vector4_32 translation1 = unpack_vector3_96(context.key_frame_data1);
 
-						if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::Translations))
+						if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations))
 						{
-							if (is_enum_flag_set(header.range_reduction, RangeReductionFlags8::PerClip))
+							if (is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip))
 							{
 								Vector4_32 clip_range_min = vector_unaligned_load(context.range_data);
 								Vector4_32 clip_range_extent = vector_unaligned_load(context.range_data + (context.range_translation_size / 2));
@@ -383,6 +393,9 @@ namespace acl
 			constexpr bool is_translation_format_supported(VectorFormat8 format) const { return true; }
 			constexpr RotationFormat8 get_rotation_format(RotationFormat8 format) const { return format; }
 			constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return format; }
+
+			constexpr bool are_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
+			constexpr RangeReductionFlags8 get_range_reduction(RangeReductionFlags8 flags) const { return flags; }
 		};
 
 		template<class SettingsType, class OutputWriterType>
