@@ -37,7 +37,7 @@ namespace acl
 	inline void calculate_interpolation_keys(uint32_t num_samples, FloatType clip_duration, FloatType sample_time, uint32_t& out_key_frame0, uint32_t& out_key_frame1, FloatType& out_interpolation_alpha)
 	{
 		// Samples are evenly spaced, trivially calculate the indices that we need
-		FloatType normalized_sample_time = (sample_time / clip_duration);
+		FloatType normalized_sample_time = clip_duration == FloatType(0.0) ? FloatType(0.0) : (sample_time / clip_duration);
 		ACL_ENSURE(sample_time >= FloatType(0.0) && sample_time <= clip_duration, "Invalid sample time. 0.0 <= %f <= %f", sample_time, clip_duration);
 		ACL_ENSURE(normalized_sample_time >= FloatType(0.0) && normalized_sample_time <= FloatType(1.0), "Failed to normalize sample time: %f", normalized_sample_time);
 

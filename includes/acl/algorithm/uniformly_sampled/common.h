@@ -65,14 +65,14 @@ namespace acl
 				uint32_t*		get_constant_tracks_bitset()		{ return constant_tracks_bitset_offset.add_to(this); }
 				const uint32_t*	get_constant_tracks_bitset() const	{ return constant_tracks_bitset_offset.add_to(this); }
 
-				uint8_t*		get_constant_track_data()			{ return constant_track_data_offset.add_to(this); }
-				const uint8_t*	get_constant_track_data() const		{ return constant_track_data_offset.add_to(this); }
+				uint8_t*		get_constant_track_data()			{ return constant_track_data_offset.safe_add_to(this); }
+				const uint8_t*	get_constant_track_data() const		{ return constant_track_data_offset.safe_add_to(this); }
 
 				uint8_t*		get_clip_range_data()				{ return clip_range_data_offset.safe_add_to(this); }
 				const uint8_t*	get_clip_range_data() const			{ return clip_range_data_offset.safe_add_to(this); }
 
-				uint8_t*		get_track_data()					{ return track_data_offset.add_to(this); }
-				const uint8_t*	get_track_data() const				{ return track_data_offset.add_to(this); }
+				uint8_t*		get_track_data()					{ return track_data_offset.safe_add_to(this); }
+				const uint8_t*	get_track_data() const				{ return track_data_offset.safe_add_to(this); }
 			};
 
 			constexpr FullPrecisionHeader& get_full_precision_header(CompressedClip& clip)

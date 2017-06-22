@@ -163,17 +163,21 @@ namespace acl
 
 			write_default_track_bitset(bone_streams, num_bones, header.get_default_tracks_bitset(), bitset_size);
 			write_constant_track_bitset(bone_streams, num_bones, header.get_constant_tracks_bitset(), bitset_size);
-			write_constant_track_data(bone_streams, num_bones, header.get_constant_track_data(), constant_data_size);
-			write_animated_track_data(bone_streams, num_bones, header.get_track_data(), animated_data_size);
+
+			if (constant_data_size > 0)
+				write_constant_track_data(bone_streams, num_bones, header.get_constant_track_data(), constant_data_size);
+			else
+				header.constant_track_data_offset = InvalidPtrOffset();
+
+			if (animated_data_size > 0)
+				write_animated_track_data(bone_streams, num_bones, header.get_track_data(), animated_data_size);
+			else
+				header.track_data_offset = InvalidPtrOffset();
 
 			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
-			{
 				write_range_track_data(bone_streams, num_bones, settings.range_reduction, settings.rotation_format, settings.translation_format, header.get_clip_range_data(), clip_range_data_size);
-			}
 			else
-			{
 				header.clip_range_data_offset = InvalidPtrOffset();
-			}
 
 			finalize_compressed_clip(*compressed_clip);
 

@@ -153,8 +153,8 @@ struct Options
 	}
 };
 
-constexpr char* FILE_OPTION = "-file=";
-constexpr char* STATS_OPTION = "-stats";
+constexpr char* ACL_INPUT_FILE_OPTION = "-acl=";
+constexpr char* STATS_OUTPUT_OPTION = "-stats";
 
 static bool parse_options(int argc, char** argv, Options& options)
 {
@@ -162,15 +162,15 @@ static bool parse_options(int argc, char** argv, Options& options)
 	{
 		char* argument = argv[arg_index];
 		
-		size_t option_length = std::strlen(FILE_OPTION);
-		if (std::strncmp(argument, FILE_OPTION, option_length) == 0)
+		size_t option_length = std::strlen(ACL_INPUT_FILE_OPTION);
+		if (std::strncmp(argument, ACL_INPUT_FILE_OPTION, option_length) == 0)
 		{
 			options.input_filename = argument + option_length;
 			continue;
 		}
 		
-		option_length = std::strlen(STATS_OPTION);
-		if (std::strncmp(argument, STATS_OPTION, option_length) == 0)
+		option_length = std::strlen(STATS_OUTPUT_OPTION);
+		if (std::strncmp(argument, STATS_OUTPUT_OPTION, option_length) == 0)
 		{
 			options.output_stats = true;
 			options.output_stats_filename = argument[option_length] == '=' ? argument + option_length + 1 : nullptr;
