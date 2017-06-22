@@ -286,7 +286,7 @@ static void run_unit_tests()
 }
 #endif
 
-static void print_stats(const Options& options, const acl::AnimationClip& clip, const acl::CompressedClip& compressed_clip, uint64_t elapsed_cycles, double max_error)
+static void print_stats(const Options& options, const acl::AnimationClip& clip, const acl::CompressedClip& compressed_clip, uint64_t elapsed_cycles, double max_error, acl::IAlgorithm& algorithm)
 {
 	if (!options.output_stats)
 		return;
@@ -302,15 +302,14 @@ static void print_stats(const Options& options, const acl::AnimationClip& clip, 
 	std::FILE* file = options.output_stats_file;
 
 	fprintf(file, "Clip algorithm: %s\n", get_algorithm_name(compressed_clip.get_algorithm_type()));
-	//fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(rotation_format));
 	fprintf(file, "Clip raw size (bytes): %u\n", raw_size);
 	fprintf(file, "Clip compressed size (bytes): %u\n", compressed_size);
 	fprintf(file, "Clip compression ratio: %.2f : 1\n", compression_ratio);
 	fprintf(file, "Clip max error: %.5f\n", max_error);
 	fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
 	fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
-	//fprintf(file, "Clip num animated tracks: %u\n", clip.get_num_animated_tracks());
 	//fprintf(file, "Clip num segments: %u\n", 0);		// TODO
+	algorithm.print_stats(compressed_clip, file);
 	fprintf(file, "\n");
 }
 
@@ -379,7 +378,7 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 
 	double max_error = find_max_error(allocator, clip, skeleton, *compressed_clip, algorithm);
 
-	print_stats(options, clip, *compressed_clip, end_time_cycles.QuadPart - start_time_cycles.QuadPart, max_error);
+	print_stats(options, clip, *compressed_clip, end_time_cycles.QuadPart - start_time_cycles.QuadPart, max_error, algorithm);
 
 	allocator.deallocate(compressed_clip, compressed_clip->get_size());
 }

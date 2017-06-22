@@ -45,6 +45,7 @@
 #include "acl/compression/stream/write_range_data.h"
 
 #include <stdint.h>
+#include <cstdio>
 
 //////////////////////////////////////////////////////////////////////////
 // Full Precision Encoder
@@ -179,6 +180,20 @@ namespace acl
 			deallocate_type_array(allocator, bone_streams, num_bones);
 
 			return compressed_clip;
+		}
+
+		inline void print_stats(const CompressedClip& clip, std::FILE* file)
+		{
+			using namespace impl;
+
+			const FullPrecisionHeader& header = get_full_precision_header(clip);
+
+			uint32_t num_animated_tracks = header.num_animated_rotation_tracks + header.num_animated_translation_tracks;
+
+			fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(header.rotation_format));
+			fprintf(file, "Clip translation format: %s\n", get_vector_format_name(header.translation_format));
+			fprintf(file, "Clip range reduction: %s\n", get_range_reduction_name(header.range_reduction));
+			fprintf(file, "Clip num animated tracks: %u\n", num_animated_tracks);
 		}
 	}
 }

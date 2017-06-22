@@ -59,6 +59,11 @@ namespace acl
 			uniformly_sampled::decompress_bone(settings, clip, sample_time, sample_bone_index, out_rotation, out_translation);
 		}
 
+		virtual void print_stats(const CompressedClip& clip, std::FILE* file) override
+		{
+			uniformly_sampled::print_stats(clip, file);
+		}
+
 	private:
 		uniformly_sampled::CompressionSettings m_compression_settings;
 	};

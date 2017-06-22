@@ -32,6 +32,8 @@
 #include "acl/decompression/output_writer.h"
 #include "acl/math/transform_32.h"
 
+#include <cstdio>
+
 namespace acl
 {
 	// This interface serves to make unit testing and manipulating algorithms easier
@@ -44,6 +46,8 @@ namespace acl
 
 		virtual void decompress_pose(const CompressedClip& clip, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) = 0;
 		virtual void decompress_bone(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) = 0;
+
+		virtual void print_stats(const CompressedClip& clip, std::FILE* file) {}
 
 	protected:
 		struct AlgorithmOutputWriterImpl : public OutputWriter

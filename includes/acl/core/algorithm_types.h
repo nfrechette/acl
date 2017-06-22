@@ -114,7 +114,7 @@ namespace acl
 			case AlgorithmType8::UniformlySampled:		return "Uniformly Sampled";
 			//case AlgorithmType8::LinearKeyReduction:	return "Linear Key Reduction";
 			//case AlgorithmType8::SplineKeyReduction:	return "Spline Key Reduction";
-			default:									return "<Unknown>";
+			default:									return "<Invalid>";
 		}
 	}
 
@@ -127,7 +127,7 @@ namespace acl
 			case RotationFormat8::Quat_96:		return "Quat 96";
 			case RotationFormat8::Quat_48:		return "Quat 48";
 			case RotationFormat8::Quat_32:		return "Quat 32";
-			default:							return "<Unknown>";
+			default:							return "<Invalid>";
 		}
 	}
 
@@ -139,7 +139,25 @@ namespace acl
 		case VectorFormat8::Vector3_96:		return "Vector3 96";
 		case VectorFormat8::Vector3_48:		return "Vector3 48";
 		case VectorFormat8::Vector3_32:		return "Vector3 32";
-		default:							return "<Unknown>";
+		default:							return "<Invalid>";
+		}
+	}
+
+	// TODO: constexpr
+	inline const char* get_range_reduction_name(RangeReductionFlags8 flags)
+	{
+		switch (flags)
+		{
+		case RangeReductionFlags8::None:
+			return "None";
+		case RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations:
+			return "Per Clip Rotations";
+		case RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations:
+			return "Per Clip Translations";
+		case RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations:
+			return "Per Clip Rotations, Translations";
+		default:
+			return "<Invalid>";
 		}
 	}
 }
