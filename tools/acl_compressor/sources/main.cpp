@@ -354,7 +354,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 		Vector4_32 test_translation;
 		algorithm.decompress_bone(compressed_clip, (float)clip_duration, sample_bone_index, &test_rotation, &test_translation);
 		ACL_ENSURE(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
-		ACL_ENSURE(vector_near_equal(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
+		ACL_ENSURE(vector_near_equal3(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
 	}
 
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);

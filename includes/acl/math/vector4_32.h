@@ -311,9 +311,18 @@ namespace acl
 	inline bool vector_all_less_than(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return _mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) == 15;
+		return _mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) == 0xF;
 #else
 		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z && lhs.w < rhs.w;
+#endif
+	}
+
+	inline bool vector_all_less_than3(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return (_mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) & 0x7) == 0x7;
+#else
+		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z;
 #endif
 	}
 
@@ -326,9 +335,23 @@ namespace acl
 #endif
 	}
 
+	inline bool vector_any_less_than3(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return (_mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) & 0x7) != 0;
+#else
+		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z;
+#endif
+	}
+
 	inline bool vector_near_equal(const Vector4_32& lhs, const Vector4_32& rhs, float threshold = 0.00001f)
 	{
 		return vector_all_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+	}
+
+	inline bool vector_near_equal3(const Vector4_32& lhs, const Vector4_32& rhs, float threshold = 0.00001f)
+	{
+		return vector_all_less_than3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
 	inline bool vector_is_valid(const Vector4_32& input)
