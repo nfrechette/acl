@@ -196,6 +196,7 @@
   <ItemGroup>
     <None Include="LICENSE" />
     <None Include="README.md" />
+    <None Include="CHANGELOG.md" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="tools\vs_visualizers\acl.natvis">

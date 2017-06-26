@@ -69,6 +69,7 @@
     <ClInclude Include="includes\acl\sjson\sjson_parser_error.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="CHANGELOG.md" />
     <None Include="LICENSE" />
     <None Include="README.md" />
   </ItemGroup>
