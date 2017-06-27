@@ -192,6 +192,9 @@
     <ClInclude Include="includes\acl\io\clip_reader_error.h">
       <Filter>includes\acl\io</Filter>
     </ClInclude>
+    <ClInclude Include="includes\acl\io\clip_writer.h">
+      <Filter>includes\acl\io</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

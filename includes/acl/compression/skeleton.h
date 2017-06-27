@@ -54,6 +54,7 @@ namespace acl
 			, bind_translation(bone.bind_translation)
 			, vertex_distance(bone.vertex_distance)
 		{
+			new(this) RigidBone();
 		}
 
 		RigidBone& operator=(RigidBone&& bone)
@@ -66,6 +67,8 @@ namespace acl
 
 			return *this;
 		}
+
+		bool is_root() const { return parent_index == INVALID_BONE_INDEX; }
 
 		String		name;
 
@@ -120,6 +123,11 @@ namespace acl
 		RigidSkeleton& operator=(const RigidSkeleton&) = delete;
 
 		const RigidBone* get_bones() const { return m_bones; }
+		const RigidBone& get_bone(uint16_t bone_index) const
+		{
+			ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
+			return m_bones[bone_index];
+		}
 		uint16_t get_num_bones() const { return m_num_bones; }
 
 	private:

@@ -34,33 +34,64 @@ namespace acl
 	class String
 	{
 	public:
-		String()
-			: m_chars()
+		String() : m_allocator(nullptr) , m_chars(nullptr) {}
+
+		String(Allocator& allocator, const char* str, size_t len)
+			: m_allocator(&allocator)
 		{
+			if (len > 0)
+			{
+				m_chars = allocate_type_array<char>(allocator, len + 1);
+				std::memcpy(m_chars, str, len);
+				m_chars[len] = '\0';
+			}
+			else
+			{
+				m_chars = nullptr;
+			}
 		}
 
-		String(String&& string)
-			: m_chars(std::move(string.m_chars))
+		String(Allocator& allocator, const char* str)
+			: String(allocator, str, str != nullptr ? std::strlen(str) : 0)
+		{}
+
+		String(Allocator& allocator, const StringView& view)
+			: String(allocator, view.get_chars(), view.get_length())
+		{}
+
+		String(Allocator& allocator, const String& str)
+			: String(allocator, str.c_str(), str.size())
+		{}
+
+		~String()
 		{
+			if (m_allocator != nullptr)
+				deallocate_type_array(*m_allocator, m_chars, std::strlen(m_chars) + 1);
 		}
 
-		String& operator=(String&& string)
+		String(String&& other)
+			: m_allocator(other.m_allocator)
+			, m_chars(other.m_chars)
 		{
-			std::swap(m_chars, string.m_chars);
+			other.m_allocator = nullptr;
+			other.m_chars = nullptr;
+		}
+
+		String& operator=(String&& other)
+		{
+			std::swap(m_allocator, other.m_allocator);
+			std::swap(m_chars, other.m_chars);
 			return *this;
 		}
 
-		String(Allocator& allocator, StringView& view)
-			: m_chars(make_unique_array<char>(allocator, view.get_length() + 1))
-		{
-			char* own = m_chars.get();
-			std::memcpy(own, view.get_chars(), view.get_length());
-			own[view.get_length()] = '\0';
-		}
+		bool operator==(const StringView& view) const { return view == m_chars; }
 
-		bool operator==(StringView& view) const { return view == m_chars.get(); }
+		const char* c_str() const { return m_chars != nullptr ? m_chars : ""; }
+		size_t size() const { return m_chars != nullptr ? std::strlen(m_chars) : 0; }
+		bool empty() const { return m_chars != nullptr ? (std::strlen(m_chars) == 1) : true; }
 
 	private:
-		std::unique_ptr<char, Deleter<char>> m_chars;
+		Allocator* m_allocator;
+		char* m_chars;
 	};
 }

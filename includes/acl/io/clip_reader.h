@@ -73,6 +73,8 @@ namespace acl
 		double m_version;
 		uint32_t m_num_samples;
 		uint32_t m_sample_rate;
+		StringView m_clip_name;
+		double m_error_threshold;
 
 		void reset_state()
 		{
@@ -99,12 +101,10 @@ namespace acl
 
 		bool read_clip_header()
 		{
-			StringView clip_name;
-
 			if (!m_parser.object_begins("clip"))
 				goto error;
 			
-			if (!m_parser.read("name", clip_name))
+			if (!m_parser.read("name", m_clip_name))
 				goto error;
 
 			double num_samples;
@@ -129,11 +129,8 @@ namespace acl
 				return false;
 			}
 
-			double error_threshold;
-			if (!m_parser.read("error_threshold", error_threshold))
+			if (!m_parser.read("error_threshold", m_error_threshold))
 				goto error;
-
-			// TODO: do something with error_threshold.
 
 			if (!m_parser.object_ends())
 				goto error;
@@ -258,7 +255,7 @@ namespace acl
 
 		bool create_clip(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
 		{
-			clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_num_samples, m_sample_rate);
+			clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_num_samples, m_sample_rate, String(m_allocator, m_clip_name), m_error_threshold);
 			return true;
 		}
 

@@ -47,6 +47,7 @@
     <ClInclude Include="includes\acl\core\utils.h" />
     <ClInclude Include="includes\acl\io\clip_reader.h" />
     <ClInclude Include="includes\acl\io\clip_reader_error.h" />
+    <ClInclude Include="includes\acl\io\clip_writer.h" />
     <ClInclude Include="includes\acl\math\math_types.h" />
     <ClInclude Include="includes\acl\math\quat_packing.h" />
     <ClInclude Include="includes\acl\math\scalar_64.h" />

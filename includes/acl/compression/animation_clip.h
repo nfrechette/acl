@@ -26,6 +26,7 @@
 
 #include "acl/compression/animation_track.h"
 #include "acl/compression/skeleton.h"
+#include "acl/core/string.h"
 
 #include <stdint.h>
 
@@ -40,12 +41,14 @@ namespace acl
 	class AnimationClip
 	{
 	public:
-		AnimationClip(Allocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate)
+		AnimationClip(Allocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate, const String &name, double error_threshold)
 			: m_allocator(allocator)
 			, m_bones()
-			, m_num_bones(skeleton.get_num_bones())
+			, m_error_threshold(error_threshold)
 			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
+			, m_num_bones(skeleton.get_num_bones())
+			, m_name(allocator, name)
 		{
 			m_bones = allocate_type_array<AnimatedBone>(allocator, m_num_bones);
 
@@ -69,7 +72,7 @@ namespace acl
 
 		const AnimatedBone& get_animated_bone(uint16_t bone_index) const
 		{
-			ACL_ENSURE(bone_index < get_num_bones(), "Invalid bone index: %u >= %u", bone_index, get_num_bones());
+			ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
 			return m_bones[bone_index];
 		}
 
@@ -81,6 +84,8 @@ namespace acl
 			ACL_ENSURE(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
 			return (m_num_samples - 1) * (1.0 / m_sample_rate);
 		}
+		const String& get_name() const { return m_name; }
+		double get_error_threshold() const { return m_error_threshold; }
 
 		template<class OutputWriterType>
 		void sample_pose(double sample_time, OutputWriterType& writer) const
@@ -122,8 +127,11 @@ namespace acl
 
 		AnimatedBone*			m_bones;
 
-		uint16_t				m_num_bones;
+		double					m_error_threshold;
 		uint32_t				m_num_samples;
 		uint32_t				m_sample_rate;
+		uint16_t				m_num_bones;
+
+		String					m_name;
 	};
 }
