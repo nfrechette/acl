@@ -25,7 +25,7 @@
 #include "acl/core/memory.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
-#include "acl/clip_reader/clip_reader.h"
+#include "acl/io/clip_reader.h"
 #include "acl/compression/skeleton_error_metric.h"
 
 #include "acl/algorithm/uniformly_sampled/algorithm.h"
@@ -160,15 +160,15 @@ static bool parse_options(int argc, char** argv, Options& options)
 {
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
-		char* argument = argv[arg_index];
-		
+		const char* argument = argv[arg_index];
+
 		size_t option_length = std::strlen(ACL_INPUT_FILE_OPTION);
 		if (std::strncmp(argument, ACL_INPUT_FILE_OPTION, option_length) == 0)
 		{
 			options.input_filename = argument + option_length;
 			continue;
 		}
-		
+
 		option_length = std::strlen(STATS_OUTPUT_OPTION);
 		if (std::strncmp(argument, STATS_OUTPUT_OPTION, option_length) == 0)
 		{

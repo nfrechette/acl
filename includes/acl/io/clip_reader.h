@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/clip_reader/clip_reader_error.h"
+#include "acl/io/clip_reader_error.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/skeleton.h"
 #include "acl/core/memory.h"

@@ -45,6 +45,8 @@
     <ClInclude Include="includes\acl\core\string.h" />
     <ClInclude Include="includes\acl\core\string_view.h" />
     <ClInclude Include="includes\acl\core\utils.h" />
+    <ClInclude Include="includes\acl\io\clip_reader.h" />
+    <ClInclude Include="includes\acl\io\clip_reader_error.h" />
     <ClInclude Include="includes\acl\math\math_types.h" />
     <ClInclude Include="includes\acl\math\quat_packing.h" />
     <ClInclude Include="includes\acl\math\scalar_64.h" />
@@ -62,8 +64,6 @@
     <ClInclude Include="includes\acl\math\scalar_32.h" />
     <ClInclude Include="includes\acl\math\vector4_32.h" />
     <ClInclude Include="includes\acl\math\vector4_64.h" />
-    <ClInclude Include="includes\acl\clip_reader\clip_reader.h" />
-    <ClInclude Include="includes\acl\clip_reader\clip_reader_error.h" />
     <ClInclude Include="includes\acl\math\vector4_packing.h" />
     <ClInclude Include="includes\acl\sjson\sjson_parser.h" />
     <ClInclude Include="includes\acl\sjson\sjson_parser_error.h" />
