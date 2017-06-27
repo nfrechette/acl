@@ -63,15 +63,15 @@ namespace acl
 					pack_vector4_128(quat_to_vector(quat_cast(rotation)), quantized_ptr);
 					rotation = quat_cast(vector_to_quat(unpack_vector4_128(quantized_ptr)));
 					break;
-				case RotationFormat8::Quat_96:
+				case RotationFormat8::QuatDropW_96:
 					pack_vector3_96(quat_to_vector(quat_cast(rotation)), quantized_ptr);
 					rotation = quat_cast(vector_to_quat(unpack_vector3_96(quantized_ptr)));
 					break;
-				case RotationFormat8::Quat_48:
+				case RotationFormat8::QuatDropW_48:
 					pack_vector3_48(quat_to_vector(quat_cast(rotation)), quantized_ptr);
 					rotation = quat_cast(vector_to_quat(unpack_vector3_48(quantized_ptr)));
 					break;
-				case RotationFormat8::Quat_32:
+				case RotationFormat8::QuatDropW_32:
 					pack_vector3_32<11, 11, 10>(quat_to_vector(quat_cast(rotation)), quantized_ptr);
 					rotation = quat_cast(vector_to_quat(unpack_vector3_32<11, 11, 10>(quantized_ptr)));
 					break;

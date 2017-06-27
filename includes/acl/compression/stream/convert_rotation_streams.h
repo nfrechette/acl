@@ -63,9 +63,9 @@ namespace acl
 				case RotationFormat8::Quat_128:
 					// Original format, nothing to do
 					break;
-				case RotationFormat8::Quat_96:
-				case RotationFormat8::Quat_48:
-				case RotationFormat8::Quat_32:
+				case RotationFormat8::QuatDropW_96:
+				case RotationFormat8::QuatDropW_48:
+				case RotationFormat8::QuatDropW_32:
 					// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 					rotation = quat_ensure_positive_w(rotation);
 					bone_stream.rotations.set_sample(sample_index, rotation);

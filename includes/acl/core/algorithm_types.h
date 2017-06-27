@@ -46,12 +46,12 @@ namespace acl
 	enum class RotationFormat8 : uint8_t
 	{
 		Quat_128				= 0,	// Full precision quaternion, [x,y,z,w] stored with float32
-		Quat_96					= 1,	// Full precision quaternion, [x,y,z] stored with float32 (w is dropped)
-		Quat_48					= 2,	// Quantized quaternion, [x,y,z] stored with [16,16,16] bits (w is dropped)
-		Quat_32					= 3,	// Quantized quaternion, [x,y,z] stored with [11,11,10] bits (w is dropped)
+		QuatDropW_96			= 1,	// Full precision quaternion, [x,y,z] stored with float32 (w is dropped)
+		QuatDropW_48			= 2,	// Quantized quaternion, [x,y,z] stored with [16,16,16] bits (w is dropped)
+		QuatDropW_32			= 3,	// Quantized quaternion, [x,y,z] stored with [11,11,10] bits (w is dropped)
+		//Quat_Variable			= 4,	// Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
 		// TODO: Implement these
 		//Quat_32_Largest,		// Quantized quaternion, [?,?,?] stored with [10,10,10] bits (largest component is dropped, component index stored on 2 bits)
-		//Quat_Variable,		// Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
 		//QuatLog_96,			// Full precision quaternion logarithm, [x,y,z] stored with float 32
 		//QuatLog_48,			// Quantized quaternion logarithm, [x,y,z] stored with [16,16,16] bits
 		//QuatLog_32,			// Quantized quaternion logarithm, [x,y,z] stored with [11,11,10] bits
@@ -123,11 +123,11 @@ namespace acl
 	{
 		switch (format)
 		{
-			case RotationFormat8::Quat_128:		return "Quat 128";
-			case RotationFormat8::Quat_96:		return "Quat 96";
-			case RotationFormat8::Quat_48:		return "Quat 48";
-			case RotationFormat8::Quat_32:		return "Quat 32";
-			default:							return "<Invalid>";
+			case RotationFormat8::Quat_128:			return "Quat 128";
+			case RotationFormat8::QuatDropW_96:		return "Quat Drop W 96";
+			case RotationFormat8::QuatDropW_48:		return "Quat Drop W 48";
+			case RotationFormat8::QuatDropW_32:		return "Quat Drop W 32";
+			default:								return "<Invalid>";
 		}
 	}
 

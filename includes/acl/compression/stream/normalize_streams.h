@@ -72,9 +72,9 @@ namespace acl
 				case RotationFormat8::Quat_128:
 					ACL_ENSURE(vector_all_greater_equal(normalized_rotation, vector_zero_64()) && vector_all_less_equal(normalized_rotation, vector_set(1.0)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation), vector_get_w(normalized_rotation));
 					break;
-				case RotationFormat8::Quat_96:
-				case RotationFormat8::Quat_48:
-				case RotationFormat8::Quat_32:
+				case RotationFormat8::QuatDropW_96:
+				case RotationFormat8::QuatDropW_48:
+				case RotationFormat8::QuatDropW_32:
 					ACL_ENSURE(vector_all_greater_equal3(normalized_rotation, vector_zero_64()) && vector_all_less_equal3(normalized_rotation, vector_set(1.0)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation));
 					break;
 				}

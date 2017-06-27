@@ -203,11 +203,11 @@ namespace acl
 					{
 						if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 							rotation = unpack_quat_128(context.constant_track_data);
-						else if (rotation_format == RotationFormat8::Quat_96 && settings.is_rotation_format_supported(RotationFormat8::Quat_96))
+						else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
 							rotation = unpack_quat_96(context.constant_track_data);
-						else if (rotation_format == RotationFormat8::Quat_48 && settings.is_rotation_format_supported(RotationFormat8::Quat_48))
+						else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
 							rotation = unpack_quat_48(context.constant_track_data);
-						else if (rotation_format == RotationFormat8::Quat_32 && settings.is_rotation_format_supported(RotationFormat8::Quat_32))
+						else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
 							rotation = unpack_quat_32(context.constant_track_data);
 
 						ACL_ENSURE(quat_is_valid(rotation), "Rotation is not valid!");
@@ -241,7 +241,7 @@ namespace acl
 							rotation0 = vector_to_quat(rotation0_xyzw);
 							rotation1 = vector_to_quat(rotation1_xyzw);
 						}
-						else if (rotation_format == RotationFormat8::Quat_96 && settings.is_rotation_format_supported(RotationFormat8::Quat_96))
+						else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
 						{
 							Vector4_32 rotation0_xyz = unpack_vector3_96(context.key_frame_data0);
 							Vector4_32 rotation1_xyz = unpack_vector3_96(context.key_frame_data1);
@@ -260,7 +260,7 @@ namespace acl
 							rotation0 = quat_from_positive_w(rotation0_xyz);
 							rotation1 = quat_from_positive_w(rotation1_xyz);
 						}
-						else if (rotation_format == RotationFormat8::Quat_48 && settings.is_rotation_format_supported(RotationFormat8::Quat_48))
+						else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
 						{
 							Vector4_32 rotation0_xyz = unpack_vector3_48(context.key_frame_data0);
 							Vector4_32 rotation1_xyz = unpack_vector3_48(context.key_frame_data1);
@@ -279,7 +279,7 @@ namespace acl
 							rotation0 = quat_from_positive_w(rotation0_xyz);
 							rotation1 = quat_from_positive_w(rotation1_xyz);
 						}
-						else if (rotation_format == RotationFormat8::Quat_32 && settings.is_rotation_format_supported(RotationFormat8::Quat_32))
+						else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
 						{
 							Vector4_32 rotation0_xyz = unpack_vector3_32<11, 11, 10>(context.key_frame_data0);
 							Vector4_32 rotation1_xyz = unpack_vector3_32<11, 11, 10>(context.key_frame_data1);
