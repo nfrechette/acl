@@ -5,7 +5,7 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unit_tests", "unit_tests.vcxproj", "{773A039B-0038-4B68-971E-CA978BCC64A0}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "acl", "..\..\acl.vcxproj", "{14B38BAE-BC9B-4C39-8F0E-F6728BA2FCAC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "acl", "..\acl.vcxproj", "{14B38BAE-BC9B-4C39-8F0E-F6728BA2FCAC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
