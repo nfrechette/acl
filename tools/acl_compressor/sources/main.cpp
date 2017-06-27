@@ -41,13 +41,13 @@
 #include <string>
 #include <memory>
 
-//#define ACL_RUN_UNIT_TESTS
+using namespace acl;
 
-struct OutputWriterImpl : public acl::OutputWriter
+struct OutputWriterImpl : public OutputWriter
 {
-	OutputWriterImpl(acl::Allocator& allocator, uint16_t num_bones)
+	OutputWriterImpl(Allocator& allocator, uint16_t num_bones)
 		: m_allocator(allocator)
-		, m_transforms(acl::allocate_type_array<acl::Transform_64>(allocator, num_bones))
+		, m_transforms(allocate_type_array<Transform_64>(allocator, num_bones))
 		, m_num_bones(num_bones)
 	{}
 
@@ -56,28 +56,28 @@ struct OutputWriterImpl : public acl::OutputWriter
 		deallocate_type_array(m_allocator, m_transforms, m_num_bones);
 	}
 
-	void write_bone_rotation(uint32_t bone_index, const acl::Quat_32& rotation)
+	void write_bone_rotation(uint32_t bone_index, const Quat_32& rotation)
 	{
 		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
-		m_transforms[bone_index].rotation = acl::quat_cast(rotation);
+		m_transforms[bone_index].rotation = quat_cast(rotation);
 	}
 
-	void write_bone_translation(uint32_t bone_index, const acl::Vector4_32& translation)
+	void write_bone_translation(uint32_t bone_index, const Vector4_32& translation)
 	{
 		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
-		m_transforms[bone_index].translation = acl::vector_cast(translation);
+		m_transforms[bone_index].translation = vector_cast(translation);
 	}
 
-	acl::Allocator& m_allocator;
-	acl::Transform_64* m_transforms;
+	Allocator& m_allocator;
+	Transform_64* m_transforms;
 	uint16_t m_num_bones;
 };
 
-struct RawOutputWriterImpl : public acl::OutputWriter
+struct RawOutputWriterImpl : public OutputWriter
 {
-	RawOutputWriterImpl(acl::Allocator& allocator, uint16_t num_bones)
+	RawOutputWriterImpl(Allocator& allocator, uint16_t num_bones)
 		: m_allocator(allocator)
-		, m_transforms(acl::allocate_type_array<acl::Transform_64>(allocator, num_bones))
+		, m_transforms(allocate_type_array<Transform_64>(allocator, num_bones))
 		, m_num_bones(num_bones)
 	{}
 
@@ -86,20 +86,20 @@ struct RawOutputWriterImpl : public acl::OutputWriter
 		deallocate_type_array(m_allocator, m_transforms, m_num_bones);
 	}
 
-	void write_bone_rotation(uint32_t bone_index, const acl::Quat_64& rotation)
+	void write_bone_rotation(uint32_t bone_index, const Quat_64& rotation)
 	{
 		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
 		m_transforms[bone_index].rotation = rotation;
 	}
 
-	void write_bone_translation(uint32_t bone_index, const acl::Vector4_64& translation)
+	void write_bone_translation(uint32_t bone_index, const Vector4_64& translation)
 	{
 		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
 		m_transforms[bone_index].translation = translation;
 	}
 
-	acl::Allocator& m_allocator;
-	acl::Transform_64* m_transforms;
+	Allocator& m_allocator;
+	Transform_64* m_transforms;
 	uint16_t m_num_bones;
 };
 
@@ -191,102 +191,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
-#ifdef ACL_RUN_UNIT_TESTS
-static acl::Vector4_64 quat_rotate_scalar(const acl::Quat_64& rotation, const acl::Vector4_64& vector)
-{
-	using namespace acl;
-	// (q.W*q.W-qv.qv)v + 2(qv.v)qv + 2 q.W (qv x v)
-	Vector4_64 qv = vector_set(quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation));
-	Vector4_64 vOut = vector_mul(vector_cross3(qv, vector), 2.0 * quat_get_w(rotation));
-	vOut = vector_add(vOut, vector_mul(vector, (quat_get_w(rotation) * quat_get_w(rotation)) - vector_dot(qv, qv)));
-	vOut = vector_add(vOut, vector_mul(qv, 2.0 * vector_dot(qv, vector)));
-	return vOut;
-}
-
-static acl::Quat_64 quat_mul_scalar(const acl::Quat_64& lhs, const acl::Quat_64& rhs)
-{
-	using namespace acl;
-	double lhs_raw[4] = { quat_get_x(lhs), quat_get_y(lhs), quat_get_z(lhs), quat_get_w(lhs) };
-	double rhs_raw[4] = { quat_get_x(rhs), quat_get_y(rhs), quat_get_z(rhs), quat_get_w(rhs) };
-
-	double x = (rhs_raw[3] * lhs_raw[0]) + (rhs_raw[0] * lhs_raw[3]) + (rhs_raw[1] * lhs_raw[2]) - (rhs_raw[2] * lhs_raw[1]);
-	double y = (rhs_raw[3] * lhs_raw[1]) - (rhs_raw[0] * lhs_raw[2]) + (rhs_raw[1] * lhs_raw[3]) + (rhs_raw[2] * lhs_raw[0]);
-	double z = (rhs_raw[3] * lhs_raw[2]) + (rhs_raw[0] * lhs_raw[1]) - (rhs_raw[1] * lhs_raw[0]) + (rhs_raw[2] * lhs_raw[3]);
-	double w = (rhs_raw[3] * lhs_raw[3]) - (rhs_raw[0] * lhs_raw[0]) - (rhs_raw[1] * lhs_raw[1]) - (rhs_raw[2] * lhs_raw[2]);
-
-	return quat_set(x, y, z, w);
-}
-
-static void run_unit_tests()
-{
-	using namespace acl;
-
-	constexpr double threshold = 1e-6;
-
-	{
-		Quat_64 quat0 = quat_from_euler(deg2rad(30.0), deg2rad(-45.0), deg2rad(90.0));
-		Quat_64 quat1 = quat_from_euler(deg2rad(45.0), deg2rad(60.0), deg2rad(120.0));
-		Quat_64 result = quat_mul(quat0, quat1);
-		Quat_64 result_ref = quat_mul_scalar(quat0, quat1);
-		ACL_ENSURE(quat_near_equal(result, result_ref, threshold), "quat_mul unit test failure");
-
-		quat0 = quat_set(0.39564531008956383, 0.044254239301713752, 0.22768840967675355, 0.88863059760894492);
-		quat1 = quat_set(1.0, 0.0, 0.0, 0.0);
-		result = quat_mul(quat0, quat1);
-		result_ref = quat_mul_scalar(quat0, quat1);
-		ACL_ENSURE(quat_near_equal(result, result_ref, threshold), "quat_mul unit test failure");
-	}
-
-	{
-		const Quat_64 test_rotations[] = {
-			quat_identity_64(),
-			quat_from_euler(deg2rad(30.0), deg2rad(-45.0), deg2rad(90.0)),
-			quat_from_euler(deg2rad(45.0), deg2rad(60.0), deg2rad(120.0)),
-			quat_from_euler(deg2rad(0.0), deg2rad(180.0), deg2rad(45.0)),
-			quat_from_euler(deg2rad(-120.0), deg2rad(-90.0), deg2rad(0.0)),
-			quat_from_euler(deg2rad(-0.01), deg2rad(0.02), deg2rad(-0.03)),
-		};
-
-		const Vector4_64 test_vectors[] = {
-			vector_zero_64(),
-			vector_set(1.0, 0.0, 0.0),
-			vector_set(0.0, 1.0, 0.0),
-			vector_set(0.0, 0.0, 1.0),
-			vector_set(45.0, -60.0, 120.0),
-			vector_set(-45.0, 60.0, -120.0),
-			vector_set(0.57735026918962576451, 0.57735026918962576451, 0.57735026918962576451),
-			vector_set(-1.0, 0.0, 0.0),
-		};
-
-		for (size_t quat_index = 0; quat_index < (sizeof(test_rotations) / sizeof(Quat_64)); ++quat_index)
-		{
-			const Quat_64& rotation = test_rotations[quat_index];
-			for (size_t vector_index = 0; vector_index < (sizeof(test_vectors) / sizeof(Vector4_64)); ++vector_index)
-			{
-				const Vector4_64& vector = test_vectors[vector_index];
-				Vector4_64 result = quat_rotate(rotation, vector);
-				Vector4_64 result_ref = quat_rotate_scalar(rotation, vector);
-				ACL_ENSURE(vector_near_equal(result, result_ref, threshold), "quat_rotate unit test failure");
-			}
-		}
-	}
-
-	{
-		Quat_64 rotation = quat_set(0.39564531008956383, 0.044254239301713752, 0.22768840967675355, 0.88863059760894492);
-		Vector4_64 axis_ref = vector_set(1.0, 0.0, 0.0);
-		axis_ref = quat_rotate(rotation, axis_ref);
-		double angle_ref = deg2rad(57.0);
-		Quat_64 result = quat_from_axis_angle(axis_ref, angle_ref);
-		Vector4_64 axis;
-		double angle;
-		quat_to_axis_angle(result, axis, angle);
-		ACL_ENSURE(vector_near_equal(axis, axis_ref, threshold), "quat_to_axis_angle unit test failure");
-		ACL_ENSURE(scalar_near_equal(angle, angle_ref, threshold), "quat_to_axis_angle unit test failure");
-	}
-}
-#endif
-
-static void print_stats(const Options& options, const acl::AnimationClip& clip, const acl::CompressedClip& compressed_clip, uint64_t elapsed_cycles, double max_error, acl::IAlgorithm& algorithm)
+static void print_stats(const Options& options, const AnimationClip& clip, const CompressedClip& compressed_clip, uint64_t elapsed_cycles, double max_error, IAlgorithm& algorithm)
 {
 	if (!options.output_stats)
 		return;
@@ -313,7 +218,7 @@ static void print_stats(const Options& options, const acl::AnimationClip& clip, 
 	fprintf(file, "\n");
 }
 
-static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, const acl::CompressedClip& compressed_clip, acl::IAlgorithm& algorithm)
+static double find_max_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
 {
 	using namespace acl;
 
@@ -362,7 +267,7 @@ static double find_max_error(acl::Allocator& allocator, const acl::AnimationClip
 	return max_error;
 }
 
-static void try_algorithm(const Options& options, acl::Allocator& allocator, const acl::AnimationClip& clip, const acl::RigidSkeleton& skeleton, acl::IAlgorithm &algorithm)
+static void try_algorithm(const Options& options, Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm)
 {
 	using namespace acl;
 
@@ -383,9 +288,9 @@ static void try_algorithm(const Options& options, acl::Allocator& allocator, con
 	allocator.deallocate(compressed_clip, compressed_clip->get_size());
 }
 
-static bool read_clip(acl::Allocator& allocator, const char* filename,
-					  std::unique_ptr<acl::AnimationClip, acl::Deleter<acl::AnimationClip>>& clip,
-					  std::unique_ptr<acl::RigidSkeleton, acl::Deleter<acl::RigidSkeleton>>& skeleton)
+static bool read_clip(Allocator& allocator, const char* filename,
+					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip,
+					  std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
 {
 	printf("Reading ACL input clip...");
 
@@ -409,11 +314,11 @@ static bool read_clip(acl::Allocator& allocator, const char* filename,
 	printf(" Done in %.1f ms!\n", elapsed_time_ms);
 	printf("Parsing ACL input clip...");
 
-	acl::ClipReader reader(allocator, str.c_str(), str.length());
+	ClipReader reader(allocator, str.c_str(), str.length());
 
 	if (!reader.read(skeleton) || !reader.read(clip, *skeleton))
 	{
-		acl::ClipReaderError err = reader.get_error();
+		ClipReaderError err = reader.get_error();
 		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
 		return false;
 	}
@@ -431,12 +336,6 @@ static bool read_clip(acl::Allocator& allocator, const char* filename,
 
 int main(int argc, char** argv)
 {
-	using namespace acl;
-
-#ifdef ACL_RUN_UNIT_TESTS
-	run_unit_tests();
-#endif
-
 	Options options;
 
 	if (!parse_options(argc, argv, options))
@@ -458,37 +357,37 @@ int main(int argc, char** argv)
 		UniformlySampledAlgorithm uniform_tests[] =
 		{
 			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_96, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_48, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
 			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | acl::RangeReductionFlags8::Rotations | acl::RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm(RotationFormat8::Quat_32, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
 		};
 
 		for (UniformlySampledAlgorithm& algorithm : uniform_tests)
