@@ -273,6 +273,17 @@ namespace acl
 		return vector_add(start, vector_mul(vector_sub(end, start), vector_set(alpha)));
 	}
 
+	inline Vector4_64 vector_less_than(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmplt_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmplt_pd(lhs.zw, rhs.zw);
+		return Vector4_64{xy_lt_pd, zw_lt_pd};
+#else
+		return Vector4_64{math_impl::get_mask_value(lhs.x < rhs.x), math_impl::get_mask_value(lhs.y < rhs.y), math_impl::get_mask_value(lhs.z < rhs.z), math_impl::get_mask_value(lhs.w < rhs.w)};
+#endif
+	}
+
 	inline bool vector_all_less_than(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -289,7 +300,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 		__m128d xy_lt_pd = _mm_cmplt_pd(lhs.xy, rhs.xy);
 		__m128d zw_lt_pd = _mm_cmplt_pd(lhs.zw, rhs.zw);
-		return _mm_movemask_pd(xy_lt_pd) == 3 && _mm_movemask_pd(zw_lt_pd) == 1;
+		return _mm_movemask_pd(xy_lt_pd) == 3 && (_mm_movemask_pd(zw_lt_pd) & 1) == 1;
 #else
 		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z;
 #endif
@@ -324,7 +335,7 @@ namespace acl
 		__m128d zw_lt_pd = _mm_cmple_pd(lhs.zw, rhs.zw);
 		return (_mm_movemask_pd(xy_lt_pd) & _mm_movemask_pd(zw_lt_pd)) == 3;
 #else
-		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z && lhs.w < rhs.w;
+		return lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z && lhs.w <= rhs.w;
 #endif
 	}
 
@@ -335,7 +346,7 @@ namespace acl
 		__m128d zw_lt_pd = _mm_cmple_pd(lhs.zw, rhs.zw);
 		return _mm_movemask_pd(xy_lt_pd) == 3 && (_mm_movemask_pd(zw_lt_pd) & 1) != 0;
 #else
-		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z;
+		return lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z;
 #endif
 	}
 
@@ -346,7 +357,7 @@ namespace acl
 		__m128d zw_lt_pd = _mm_cmple_pd(lhs.zw, rhs.zw);
 		return (_mm_movemask_pd(xy_lt_pd) | _mm_movemask_pd(zw_lt_pd)) != 0;
 #else
-		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z || lhs.w < rhs.w;
+		return lhs.x <= rhs.x || lhs.y <= rhs.y || lhs.z <= rhs.z || lhs.w <= rhs.w;
 #endif
 	}
 
@@ -357,7 +368,7 @@ namespace acl
 		__m128d zw_lt_pd = _mm_cmple_pd(lhs.zw, rhs.zw);
 		return _mm_movemask_pd(xy_lt_pd) != 0 || _mm_movemask_pd(zw_lt_pd) != 2;
 #else
-		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z;
+		return lhs.x <= rhs.x || lhs.y <= rhs.y || lhs.z <= rhs.z;
 #endif
 	}
 
@@ -410,6 +421,11 @@ namespace acl
 		return vector_all_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
+	inline bool vector_near_equal3(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
+	{
+		return vector_all_less_than3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+	}
+
 	inline bool vector_is_valid(const Vector4_64& input)
 	{
 		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input)) && is_finite(vector_get_w(input));
@@ -418,5 +434,16 @@ namespace acl
 	inline bool vector_is_valid3(const Vector4_64& input)
 	{
 		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input));
+	}
+
+	inline Vector4_64 vector_blend(const Vector4_64& mask, const Vector4_64& if_true, const Vector4_64& if_false)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy = _mm_or_pd(_mm_andnot_pd(mask.xy, if_false.xy), _mm_and_pd(if_true.xy, mask.xy));
+		__m128d zw = _mm_or_pd(_mm_andnot_pd(mask.zw, if_false.zw), _mm_and_pd(if_true.zw, mask.zw));
+		return Vector4_64{xy, zw};
+#else
+		return Vector4_64{math_impl::select(mask.x, if_true.x, if_false.x), math_impl::select(mask.y, if_true.y, if_false.y), math_impl::select(mask.z, if_true.z, if_false.z), math_impl::select(mask.w, if_true.w, if_false.w)};
+#endif
 	}
 }

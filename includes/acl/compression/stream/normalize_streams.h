@@ -63,6 +63,8 @@ namespace acl
 				// normalized value = (value - range min) / range extent
 				Vector4_64 rotation = bone_stream.rotations.get_sample<Vector4_64>(sample_index);
 				Vector4_64 normalized_rotation = vector_div(vector_sub(rotation, range_min), range_extent);
+				Vector4_64 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001));
+				normalized_rotation = vector_blend(is_range_zero_mask, vector_zero_64(), normalized_rotation);
 
 #if defined(ACL_USE_ERROR_CHECKS)
 				switch (rotation_format)
@@ -112,6 +114,8 @@ namespace acl
 				// normalized value = (value - range min) / range extent
 				Vector4_64 translation = bone_stream.translations.get_sample<Vector4_64>(sample_index);
 				Vector4_64 normalized_translation = vector_div(vector_sub(translation, range_min), range_extent);
+				Vector4_64 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001));
+				normalized_translation = vector_blend(is_range_zero_mask, vector_zero_64(), normalized_translation);
 
 				ACL_ENSURE(vector_all_greater_equal3(normalized_translation, vector_zero_64()) && vector_all_less_equal3(normalized_translation, vector_set(1.0)), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_translation), vector_get_y(normalized_translation), vector_get_z(normalized_translation));
 

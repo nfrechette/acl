@@ -44,6 +44,28 @@ namespace acl
 		__m128d zw;
 	};
 #else
+	namespace math_impl
+	{
+		union Converter
+		{
+			double dbl;
+			uint64_t u64;
+
+			constexpr Converter(uint64_t value) : u64(value) {}
+			constexpr Converter(double value) : dbl(value) {}
+		};
+
+		constexpr double get_mask_value(bool is_true)
+		{
+			return is_true ? Converter(0xFFFFFFFFFFFFFFFFull).dbl : 0.0;
+		}
+
+		constexpr double select(double mask, double if_true, double if_false)
+		{
+			return Converter(mask).u64 == 0 ? if_false : if_true;
+		}
+	}
+
 	struct Quat_32
 	{
 		float x;
