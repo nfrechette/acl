@@ -39,6 +39,7 @@ namespace acl
 	{
 		uint16_t num_bones = clip.get_num_bones();
 		uint32_t num_samples = clip.get_num_samples();
+		uint32_t sample_rate = clip.get_sample_rate();
 		const AnimatedBone* bones = clip.get_bones();
 
 		ACL_ENSURE(num_bones > 0, "Clip has no bones!");
@@ -51,8 +52,8 @@ namespace acl
 			const AnimatedBone& bone = bones[bone_index];
 			BoneStreams& bone_stream = bone_streams[bone_index];
 
-			bone_stream.rotations = TrackStream(allocator, num_samples, sizeof(Quat_64));
-			bone_stream.translations = TrackStream(allocator, num_samples, sizeof(Vector4_64));
+			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_64), sample_rate, RotationFormat8::Quat_128);
+			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_64), sample_rate, VectorFormat8::Vector3_96);
 
 			Vector4_64 rotation_min = vector_set(1e10);
 			Vector4_64 rotation_max = vector_set(-1e10);
@@ -62,10 +63,10 @@ namespace acl
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				Quat_64 rotation = bone.rotation_track.get_sample(sample_index);
-				bone_stream.rotations.set_sample(sample_index, rotation);
+				bone_stream.rotations.set_raw_sample(sample_index, rotation);
 
 				Vector4_64 translation = bone.translation_track.get_sample(sample_index);
-				bone_stream.translations.set_sample(sample_index, translation);
+				bone_stream.translations.set_raw_sample(sample_index, translation);
 
 				rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
 				rotation_max = vector_max(rotation_max, quat_to_vector(rotation));

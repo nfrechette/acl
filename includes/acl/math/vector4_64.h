@@ -446,4 +446,10 @@ namespace acl
 		return Vector4_64{math_impl::select(mask.x, if_true.x, if_false.x), math_impl::select(mask.y, if_true.y, if_false.y), math_impl::select(mask.z, if_true.z, if_false.z), math_impl::select(mask.w, if_true.w, if_false.w)};
 #endif
 	}
+
+	// output = (input * scale) + offset
+	inline Vector4_64 vector_mul_add(const Vector4_64& input, const Vector4_64& scale, const Vector4_64& offset)
+	{
+		return vector_add(vector_mul(input, scale), offset);
+	}
 }

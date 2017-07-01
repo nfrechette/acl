@@ -35,9 +35,6 @@ namespace acl
 {
 	inline void compact_constant_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, double threshold)
 	{
-		if (num_bones == 0)
-			return;
-
 		// When a stream is constant, we only keep the first sample
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -50,9 +47,9 @@ namespace acl
 
 			if (bone_stream.rotation_range.is_constant(threshold))
 			{
-				TrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size());
-				Vector4_64 rotation = bone_stream.rotations.get_sample<Vector4_64>(0);
-				constant_stream.set_sample(0, rotation);
+				RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
+				Vector4_64 rotation = bone_stream.rotations.get_raw_sample<Vector4_64>(0);
+				constant_stream.set_raw_sample(0, rotation);
 
 				bone_stream.rotations = std::move(constant_stream);
 				bone_stream.rotation_range = TrackStreamRange(rotation, rotation);
@@ -62,9 +59,9 @@ namespace acl
 
 			if (bone_stream.translation_range.is_constant(threshold))
 			{
-				TrackStream constant_stream(allocator, 1, bone_stream.translations.get_sample_size());
-				Vector4_64 translation = bone_stream.translations.get_sample<Vector4_64>(0);
-				constant_stream.set_sample(0, translation);
+				TranslationTrackStream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
+				Vector4_64 translation = bone_stream.translations.get_raw_sample<Vector4_64>(0);
+				constant_stream.set_raw_sample(0, translation);
 
 				bone_stream.translations = std::move(constant_stream);
 				bone_stream.translation_range = TrackStreamRange(translation, translation);

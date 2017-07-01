@@ -27,6 +27,7 @@
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
 #include "acl/core/utils.h"
+#include "acl/core/algorithm_types.h"
 #include "acl/math/quat_64.h"
 #include "acl/math/vector4_64.h"
 
@@ -43,13 +44,6 @@ namespace acl
 		uint32_t get_num_samples() const { return m_num_samples; }
 
 	protected:
-		enum class AnimationTrackType8 : uint8_t
-		{
-			Rotation = 0,
-			Translation = 1,
-			// TODO: Scale
-		};
-
 		AnimationTrack()
 			: m_allocator(nullptr)
 			, m_sample_data(nullptr)

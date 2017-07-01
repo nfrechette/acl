@@ -115,6 +115,7 @@ namespace acl
 		case VectorFormat8::Vector3_96:		return sizeof(float) * 3;
 		case VectorFormat8::Vector3_48:		return sizeof(uint16_t) * 3;
 		case VectorFormat8::Vector3_32:		return sizeof(uint32_t);
+		case VectorFormat8::Vector3_Variable:
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
 			return 0;

@@ -195,6 +195,9 @@
     <ClInclude Include="includes\acl\io\clip_writer.h">
       <Filter>includes\acl\io</Filter>
     </ClInclude>
+    <ClInclude Include="includes\acl\compression\stream\sample_streams.h">
+      <Filter>includes\acl\compression\stream</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

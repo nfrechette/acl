@@ -36,9 +36,6 @@ namespace acl
 {
 	inline void convert_rotation_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format)
 	{
-		if (num_bones == 0)
-			return;
-
 		if (rotation_format == RotationFormat8::Quat_128)
 			return;	// Original format, nothing to do
 
@@ -56,7 +53,7 @@ namespace acl
 			uint32_t num_samples = bone_stream.rotations.get_num_samples();
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_64 rotation = bone_stream.rotations.get_sample<Quat_64>(sample_index);
+				Quat_64 rotation = bone_stream.rotations.get_raw_sample<Quat_64>(sample_index);
 
 				switch (rotation_format)
 				{
@@ -66,9 +63,10 @@ namespace acl
 				case RotationFormat8::QuatDropW_96:
 				case RotationFormat8::QuatDropW_48:
 				case RotationFormat8::QuatDropW_32:
+				case RotationFormat8::QuatDropW_Variable:
 					// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 					rotation = quat_ensure_positive_w(rotation);
-					bone_stream.rotations.set_sample(sample_index, rotation);
+					bone_stream.rotations.set_raw_sample(sample_index, rotation);
 					break;
 				default:
 					ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));

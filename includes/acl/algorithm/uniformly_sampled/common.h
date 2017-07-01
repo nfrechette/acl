@@ -48,13 +48,13 @@ namespace acl
 				RangeReductionFlags8	range_reduction;
 				uint32_t				num_samples;
 				uint32_t				sample_rate;								// TODO: Store duration as float instead
-				uint32_t				num_animated_rotation_tracks;				// TODO: Calculate from bitsets?
-				uint32_t				num_animated_translation_tracks;			// TODO: Calculate from bitsets?
+				uint32_t				animated_pose_size;							// TODO: Calculate from bitsets and formats?
 
 				PtrOffset16<uint32_t>	default_tracks_bitset_offset;
 				PtrOffset16<uint32_t>	constant_tracks_bitset_offset;
 				PtrOffset16<uint8_t>	constant_track_data_offset;
-				PtrOffset16<uint8_t>	clip_range_data_offset;
+				PtrOffset16<uint8_t>	format_per_track_data_offset;				// TODO: Make this offset optional? Only present if not variable
+				PtrOffset16<uint8_t>	clip_range_data_offset;						// TODO: Make this offset optional? Only present if normalized
 				PtrOffset16<uint8_t>	track_data_offset;
 
 				//////////////////////////////////////////////////////////////////////////
@@ -67,6 +67,9 @@ namespace acl
 
 				uint8_t*		get_constant_track_data()			{ return constant_track_data_offset.safe_add_to(this); }
 				const uint8_t*	get_constant_track_data() const		{ return constant_track_data_offset.safe_add_to(this); }
+
+				uint8_t*		get_format_per_track_data()			{ return format_per_track_data_offset.safe_add_to(this); }
+				const uint8_t*	get_format_per_track_data() const	{ return format_per_track_data_offset.safe_add_to(this); }
 
 				uint8_t*		get_clip_range_data()				{ return clip_range_data_offset.safe_add_to(this); }
 				const uint8_t*	get_clip_range_data() const			{ return clip_range_data_offset.safe_add_to(this); }

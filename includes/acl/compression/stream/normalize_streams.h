@@ -48,6 +48,7 @@ namespace acl
 			// We expect all our samples to have the same width of sizeof(Vector4_64)
 			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_64), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_64));
 
+			// Constant or default tracks are not normalized
 			if (!bone_stream.is_rotation_animated())
 				continue;
 
@@ -61,7 +62,7 @@ namespace acl
 				// normalized value is between [0.0 .. 1.0]
 				// value = (normalized value * range extent) + range min
 				// normalized value = (value - range min) / range extent
-				Vector4_64 rotation = bone_stream.rotations.get_sample<Vector4_64>(sample_index);
+				Vector4_64 rotation = bone_stream.rotations.get_raw_sample<Vector4_64>(sample_index);
 				Vector4_64 normalized_rotation = vector_div(vector_sub(rotation, range_min), range_extent);
 				Vector4_64 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001));
 				normalized_rotation = vector_blend(is_range_zero_mask, vector_zero_64(), normalized_rotation);
@@ -75,12 +76,13 @@ namespace acl
 				case RotationFormat8::QuatDropW_96:
 				case RotationFormat8::QuatDropW_48:
 				case RotationFormat8::QuatDropW_32:
+				case RotationFormat8::QuatDropW_Variable:
 					ACL_ENSURE(vector_all_greater_equal3(normalized_rotation, vector_zero_64()) && vector_all_less_equal3(normalized_rotation, vector_set(1.0)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation));
 					break;
 				}
 #endif
 
-				bone_stream.rotations.set_sample(sample_index, normalized_rotation);
+				bone_stream.rotations.set_raw_sample(sample_index, normalized_rotation);
 			}
 
 			bone_stream.are_rotations_normalized = true;
@@ -99,6 +101,7 @@ namespace acl
 			// We expect all our samples to have the same width of sizeof(Vector4_64)
 			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_64), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_64));
 
+			// Constant or default tracks are not normalized
 			if (!bone_stream.is_translation_animated())
 				continue;
 
@@ -112,14 +115,14 @@ namespace acl
 				// normalized value is between [0.0 .. 1.0]
 				// value = (normalized value * range extent) + range min
 				// normalized value = (value - range min) / range extent
-				Vector4_64 translation = bone_stream.translations.get_sample<Vector4_64>(sample_index);
+				Vector4_64 translation = bone_stream.translations.get_raw_sample<Vector4_64>(sample_index);
 				Vector4_64 normalized_translation = vector_div(vector_sub(translation, range_min), range_extent);
 				Vector4_64 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001));
 				normalized_translation = vector_blend(is_range_zero_mask, vector_zero_64(), normalized_translation);
 
 				ACL_ENSURE(vector_all_greater_equal3(normalized_translation, vector_zero_64()) && vector_all_less_equal3(normalized_translation, vector_set(1.0)), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_translation), vector_get_y(normalized_translation), vector_get_z(normalized_translation));
 
-				bone_stream.translations.set_sample(sample_index, normalized_translation);
+				bone_stream.translations.set_raw_sample(sample_index, normalized_translation);
 			}
 
 			bone_stream.are_translations_normalized = true;

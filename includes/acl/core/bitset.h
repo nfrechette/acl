@@ -39,4 +39,19 @@ namespace acl
 
 		return (bitset[offset] & mask) != 0;
 	}
+
+	inline uint32_t bitset_count_set_bits(const uint32_t* bitset, uint32_t size)
+	{
+		// TODO: Use popcount instruction if available
+		uint32_t num_set_bits = 0;
+		for (uint32_t offset = 0; offset < size; ++offset)
+		{
+			uint32_t value = bitset[offset];
+			value = value - ((value >> 1) & 0x55555555);
+			value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
+			num_set_bits += (((value + (value >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+		}
+
+		return num_set_bits;
+	}
 }

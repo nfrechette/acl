@@ -244,11 +244,37 @@ namespace acl
 		return reinterpret_cast<DestPtrType*>(input);
 	}
 
-	template<typename DestIntegralType, typename SrcIntegralType>
-	inline DestIntegralType safe_static_cast(SrcIntegralType input)
+	namespace memory_impl
 	{
-		ACL_ENSURE(input >= std::numeric_limits<DestIntegralType>::min() && input <= std::numeric_limits<DestIntegralType>::max(), "static_cast would result in truncation");
-		return static_cast<DestIntegralType>(input);
+		template<bool is_enum = true>
+		struct safe_static_cast_impl
+		{
+			template<typename DestIntegralType, typename SrcEnumType>
+			static inline DestIntegralType cast(SrcEnumType input)
+			{
+				typedef std::underlying_type<SrcEnumType>::type SrcIntegralType;
+				SrcIntegralType integral_input = static_cast<SrcIntegralType>(input);
+				ACL_ENSURE(integral_input >= std::numeric_limits<DestIntegralType>::min() && integral_input <= std::numeric_limits<DestIntegralType>::max(), "static_cast would result in truncation");
+				return static_cast<DestIntegralType>(input);
+			}
+		};
+
+		template<>
+		struct safe_static_cast_impl<false>
+		{
+			template<typename DestNumericType, typename SrcNumericType>
+			static inline DestNumericType cast(SrcNumericType input)
+			{
+				ACL_ENSURE(input >= std::numeric_limits<DestNumericType>::min() && input <= std::numeric_limits<DestNumericType>::max(), "static_cast would result in truncation");
+				return static_cast<DestNumericType>(input);
+			}
+		};
+	}
+
+	template<typename DestIntegralType, typename SrcType>
+	inline DestIntegralType safe_static_cast(SrcType input)
+	{
+		return memory_impl::safe_static_cast_impl<std::is_enum<SrcType>::value>::cast<DestIntegralType, SrcType>(input);
 	}
 
 	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>

@@ -110,24 +110,19 @@ namespace acl
 				clip_range_data_size = get_stream_range_data_size(bone_streams, num_bones, settings.range_reduction, settings.rotation_format, settings.translation_format);
 			}
 
-			quantize_rotation_streams(allocator, bone_streams, num_bones, settings.rotation_format);
-			quantize_translation_streams(allocator, bone_streams, num_bones, settings.translation_format);
+			quantize_streams(allocator, bone_streams, num_bones, settings.rotation_format, settings.translation_format, clip, skeleton);
 
+			// TODO: Remove this?
 			uint32_t num_constant_rotation_tracks;
 			uint32_t num_constant_translation_tracks;
 			uint32_t num_animated_rotation_tracks;
 			uint32_t num_animated_translation_tracks;
 			get_num_animated_streams(bone_streams, num_bones, num_constant_rotation_tracks, num_constant_translation_tracks, num_animated_rotation_tracks, num_animated_translation_tracks);
 
-			uint32_t rotation_size = get_packed_rotation_size(settings.rotation_format);
-			uint32_t translation_size = get_packed_vector_size(settings.translation_format);
-
-			// Constant translation tracks store the remaining sample with full precision
-			const uint32_t constant_translation_size = get_packed_vector_size(VectorFormat8::Vector3_96);
-			uint32_t constant_data_size = (rotation_size * num_constant_rotation_tracks) + (constant_translation_size * num_constant_translation_tracks);
-			uint32_t animated_data_size = (rotation_size * num_animated_rotation_tracks) + (translation_size * num_animated_translation_tracks);
-
-			animated_data_size *= num_samples;
+			uint32_t constant_data_size = get_constant_data_size(bone_streams, num_bones);
+			uint32_t animated_pose_size;
+			uint32_t animated_data_size = get_animated_data_size(bone_streams, num_bones, animated_pose_size);
+			uint32_t format_per_track_data_size = (is_rotation_format_variable(settings.rotation_format) ? num_animated_rotation_tracks : 0) + (is_vector_format_variable(settings.translation_format) ? num_animated_translation_tracks : 0);
 
 			uint32_t bitset_size = get_bitset_size(num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
 
@@ -136,9 +131,11 @@ namespace acl
 			buffer_size += sizeof(FullPrecisionHeader);
 			buffer_size += sizeof(uint32_t) * bitset_size;		// Default tracks bitset
 			buffer_size += sizeof(uint32_t) * bitset_size;		// Constant tracks bitset
+			buffer_size = align_to(buffer_size, 4);				// Align constant track data
 			buffer_size += constant_data_size;					// Constant track data
+			buffer_size += format_per_track_data_size;			// Format per track data
 			buffer_size = align_to(buffer_size, 4);				// Align range data
-			buffer_size += clip_range_data_size;						// Range data
+			buffer_size += clip_range_data_size;				// Range data
 			buffer_size = align_to(buffer_size, 4);				// Align animated data
 			buffer_size += animated_data_size;					// Animated track data
 
@@ -153,12 +150,12 @@ namespace acl
 			header.range_reduction = settings.range_reduction;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
-			header.num_animated_rotation_tracks = num_animated_rotation_tracks;
-			header.num_animated_translation_tracks = num_animated_translation_tracks;
+			header.animated_pose_size = animated_pose_size;
 			header.default_tracks_bitset_offset = sizeof(FullPrecisionHeader);
 			header.constant_tracks_bitset_offset = header.default_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size);
-			header.constant_track_data_offset = header.constant_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size);	// Aligned to 4 bytes
-			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);					// Aligned to 4 bytes
+			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size), 4);	// Aligned to 4 bytes
+			header.format_per_track_data_offset = header.constant_track_data_offset + constant_data_size;
+			header.clip_range_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 4);				// Aligned to 4 bytes
 			header.track_data_offset = align_to(header.clip_range_data_offset + clip_range_data_size, 4);								// Aligned to 4 bytes
 
 			write_default_track_bitset(bone_streams, num_bones, header.get_default_tracks_bitset(), bitset_size);
@@ -169,15 +166,20 @@ namespace acl
 			else
 				header.constant_track_data_offset = InvalidPtrOffset();
 
-			if (animated_data_size > 0)
-				write_animated_track_data(bone_streams, num_bones, header.get_track_data(), animated_data_size);
+			if (format_per_track_data_size > 0)
+				write_format_per_track_data(bone_streams, num_bones, settings.rotation_format, settings.translation_format, header.get_format_per_track_data(), format_per_track_data_size);
 			else
-				header.track_data_offset = InvalidPtrOffset();
+				header.format_per_track_data_offset = InvalidPtrOffset();
 
 			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
 				write_range_track_data(bone_streams, num_bones, settings.range_reduction, settings.rotation_format, settings.translation_format, header.get_clip_range_data(), clip_range_data_size);
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();
+
+			if (animated_data_size > 0)
+				write_animated_track_data(bone_streams, num_bones, header.get_track_data(), animated_data_size);
+			else
+				header.track_data_offset = InvalidPtrOffset();
 
 			finalize_compressed_clip(*compressed_clip);
 
@@ -192,7 +194,11 @@ namespace acl
 
 			const FullPrecisionHeader& header = get_full_precision_header(clip);
 
-			uint32_t num_animated_tracks = header.num_animated_rotation_tracks + header.num_animated_translation_tracks;
+			uint32_t num_tracks = header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE;
+			uint32_t bitset_size = get_bitset_size(num_tracks);
+			uint32_t num_constant_tracks = bitset_count_set_bits(header.get_constant_tracks_bitset(), bitset_size);
+
+			uint32_t num_animated_tracks = num_tracks - num_constant_tracks;
 
 			fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(header.rotation_format));
 			fprintf(file, "Clip translation format: %s\n", get_vector_format_name(header.translation_format));
