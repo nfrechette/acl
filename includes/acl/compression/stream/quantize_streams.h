@@ -197,6 +197,7 @@ namespace acl
 			const RotationFormat8 highest_bit_rate = get_highest_variant_precision(rotation_variant);
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
+			const bool scan_whole_clip_for_bad_bone = false;
 
 			// Quantize everything to the lowest bit rate of the same variant
 			if (is_rotation_variable)
@@ -212,6 +213,7 @@ namespace acl
 			uint32_t num_samples = get_animated_num_samples(bone_streams, num_bones);
 			double sample_rate = double(bone_streams[0].rotations.get_sample_rate());
 			double error_threshold = clip.get_error_threshold();
+			double clip_duration = clip.get_duration();
 			double error = std::numeric_limits<double>::max();
 
 			Transform_64* raw_local_pose = allocate_type_array<Transform_64>(allocator, num_bones);
@@ -219,44 +221,57 @@ namespace acl
 			double* error_per_bone = allocate_type_array<double>(allocator, num_bones);
 			BoneTrackError* error_per_stream = allocate_type_array<BoneTrackError>(allocator, num_bones);
 
+			uint32_t bitset_size = get_bitset_size(num_bones);
+			uint32_t* low_resolution_bones = allocate_type_array<uint32_t>(allocator, bitset_size);
+
+			bitset_reset(low_resolution_bones, bitset_size, false);
+
 			// While we are above our precision threshold, iterate
 			while (error > error_threshold)
 			{
-				// Sample our streams and calculate the error
+				error = 0.0;
+
+				// Scan the whole clip, and find the bone with the worst error across the whole clip
+				uint16_t bad_bone_index = INVALID_BONE_INDEX;
+				double worst_clip_error = error_threshold;
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					double sample_time = double(sample_index) / sample_rate;
+					// Sample our streams and calculate the error
+					double sample_time = min(double(sample_index) / sample_rate, clip_duration);
 
 					clip.sample_pose(sample_time, raw_local_pose, num_bones);
 					sample_streams(quantized_streams, num_bones, sample_index, lossy_local_pose);
 
-					error = calculate_skeleton_error(allocator, skeleton, raw_local_pose, lossy_local_pose, error_per_bone);
-					if (error > error_threshold)
-						break;
-				}
+					calculate_skeleton_error(allocator, skeleton, raw_local_pose, lossy_local_pose, error_per_bone);
 
-				if (error <= error_threshold)
-					break;
-
-				// Find first bone in the hierarchy that is above our threshold (root first)
-				uint16_t bad_bone_index = INVALID_BONE_INDEX;
-				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-				{
-					if (error_per_bone[bone_index] > error_threshold)
+					// Find first bone in the hierarchy that is above our threshold (root first)
+					for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 					{
-						bad_bone_index = bone_index;
-						break;
+						if (error_per_bone[bone_index] > worst_clip_error && !bitset_test(low_resolution_bones, bitset_size, bone_index))
+						{
+							worst_clip_error = error_per_bone[bone_index];
+							error = error_per_bone[bone_index];
+							bad_bone_index = bone_index;
+							break;
+						}
 					}
+
+					if (!scan_whole_clip_for_bad_bone && bad_bone_index != INVALID_BONE_INDEX)
+						break;
 				}
 
-				ACL_ENSURE(bad_bone_index != INVALID_BONE_INDEX, "Failed to find a bone with an error above our threshold!");
+				if (bad_bone_index == INVALID_BONE_INDEX)
+				{
+					// We probably have some low resolution bones for some reason, stop nows
+					break;
+				}
 
 				// Find which bone in the chain contributes the most error that isn't at the highest precision
 				calculate_skeleton_error_contribution(skeleton, raw_local_pose, lossy_local_pose, bad_bone_index, error_per_stream);
 
 				uint16_t target_bone_index = INVALID_BONE_INDEX;
 				AnimationTrackType8 target_track_type = AnimationTrackType8::Rotation;
-				double worst_error = 0.0;
+				double worst_track_error = 0.0;
 
 				// We search starting at the root bone, by increasing the precision of a bone higher up, we retain more children
 				// with lower precision, and keep the memory footprint lower as a result
@@ -266,19 +281,19 @@ namespace acl
 					// Only select the stream if we can still increase its precision
 					RotationFormat8 quantized_rotation_format = quantized_streams[current_bone_index].rotations.get_rotation_format();
 					bool can_increase_rotation_precision = is_rotation_variable && quantized_rotation_format != highest_bit_rate;
-					if (can_increase_rotation_precision && error_per_stream[current_bone_index].rotation > worst_error)
+					if (can_increase_rotation_precision && error_per_stream[current_bone_index].rotation > worst_track_error)
 					{
 						target_bone_index = current_bone_index;
-						worst_error = error_per_stream[current_bone_index].rotation;
+						worst_track_error = error_per_stream[current_bone_index].rotation;
 						target_track_type = AnimationTrackType8::Rotation;
 					}
 
 					VectorFormat8 quantized_translation_format = quantized_streams[current_bone_index].translations.get_vector_format();
 					bool can_increase_translation_precision = is_translation_variable && quantized_translation_format != VectorFormat8::Vector3_96;
-					if (can_increase_translation_precision && error_per_stream[current_bone_index].translation > worst_error)
+					if (can_increase_translation_precision && error_per_stream[current_bone_index].translation > worst_track_error)
 					{
 						target_bone_index = current_bone_index;
-						worst_error = error_per_stream[current_bone_index].translation;
+						worst_track_error = error_per_stream[current_bone_index].translation;
 						target_track_type = AnimationTrackType8::Translation;
 					}
 
@@ -298,8 +313,8 @@ namespace acl
 					// They will attempt to keep as much precision as possible but ultimately fail.
 					// Variable precision works best if all tracks are variable.
 
-					// TODO: Use a bitset to track bones we can't improve anymore, set the bit here and continue
-					break;
+					bitset_set(low_resolution_bones, bitset_size, bad_bone_index, true);
+					continue;
 				}
 
 				// Increase its bit rate a bit
@@ -337,6 +352,7 @@ namespace acl
 			deallocate_type_array(allocator, lossy_local_pose, num_bones);
 			deallocate_type_array(allocator, error_per_bone, num_bones);
 			deallocate_type_array(allocator, error_per_stream, num_bones);
+			deallocate_type_array(allocator, low_resolution_bones, bitset_size);
 		}
 	}
 
