@@ -161,7 +161,14 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
-static void print_stats(const Options& options, const AnimationClip& clip, const CompressedClip& compressed_clip, uint64_t elapsed_cycles, double max_error, IAlgorithm& algorithm)
+struct BoneError
+{
+	uint16_t index;
+	double error;
+	double sample_time;
+};
+
+static void print_stats(const Options& options, const AnimationClip& clip, const CompressedClip& compressed_clip, uint64_t elapsed_cycles, BoneError error, IAlgorithm& algorithm)
 {
 	if (!options.output_stats)
 		return;
@@ -180,15 +187,18 @@ static void print_stats(const Options& options, const AnimationClip& clip, const
 	fprintf(file, "Clip raw size (bytes): %u\n", raw_size);
 	fprintf(file, "Clip compressed size (bytes): %u\n", compressed_size);
 	fprintf(file, "Clip compression ratio: %.2f : 1\n", compression_ratio);
-	fprintf(file, "Clip max error: %.5f\n", max_error);
+	fprintf(file, "Clip max error: %.5f\n", error.error);
+	fprintf(file, "Clip worst bone: %u\n", error.index);
+	fprintf(file, "Clip worst time: %.5f\n", error.sample_time);
 	fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
 	fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
+	fprintf(file, "Clip num samples: %u\n", clip.get_num_samples());
 	//fprintf(file, "Clip num segments: %u\n", 0);		// TODO
 	algorithm.print_stats(compressed_clip, file);
 	fprintf(file, "\n");
 }
 
-static double find_max_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
+static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
 {
 	using namespace acl;
 
@@ -196,8 +206,11 @@ static double find_max_error(Allocator& allocator, const AnimationClip& clip, co
 	Transform_64* raw_pose_transforms = allocate_type_array<Transform_64>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_64* lossy_pose_transforms_64 = allocate_type_array<Transform_64>(allocator, num_bones);
+	double* error_per_bone = allocate_type_array<double>(allocator, num_bones);
 
+	uint16_t worst_bone = INVALID_BONE_INDEX;
 	double max_error = -1.0;
+	double worst_sample_time = 0.0;
 	double sample_time = 0.0;
 	double clip_duration = clip.get_duration();
 	double sample_increment = 1.0 / clip.get_sample_rate();
@@ -209,8 +222,17 @@ static double find_max_error(Allocator& allocator, const AnimationClip& clip, co
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			lossy_pose_transforms_64[bone_index] = transform_cast(lossy_pose_transforms[bone_index]);
 
-		double error = calculate_skeleton_error(allocator, skeleton, raw_pose_transforms, lossy_pose_transforms_64);
-		max_error = max(max_error, error);
+		calculate_skeleton_error(allocator, skeleton, raw_pose_transforms, lossy_pose_transforms_64, error_per_bone);
+
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			if (error_per_bone[bone_index] > max_error)
+			{
+				max_error = error_per_bone[bone_index];
+				worst_bone = bone_index;
+				worst_sample_time = sample_time;
+			}
+		}
 
 		sample_time += sample_increment;
 	}
@@ -223,8 +245,17 @@ static double find_max_error(Allocator& allocator, const AnimationClip& clip, co
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			lossy_pose_transforms_64[bone_index] = transform_cast(lossy_pose_transforms[bone_index]);
 
-		double error = calculate_skeleton_error(allocator, skeleton, raw_pose_transforms, lossy_pose_transforms_64);
-		max_error = max(max_error, error);
+		calculate_skeleton_error(allocator, skeleton, raw_pose_transforms, lossy_pose_transforms_64, error_per_bone);
+
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			if (error_per_bone[bone_index] > max_error)
+			{
+				max_error = error_per_bone[bone_index];
+				worst_bone = bone_index;
+				worst_sample_time = clip_duration;
+			}
+		}
 	}
 
 	// Unit test
@@ -242,8 +273,9 @@ static double find_max_error(Allocator& allocator, const AnimationClip& clip, co
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms_64, num_bones);
+	deallocate_type_array(allocator, error_per_bone, num_bones);
 
-	return max_error;
+	return BoneError{worst_bone, max_error, worst_sample_time};
 }
 
 static void try_algorithm(const Options& options, Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm)
@@ -260,9 +292,9 @@ static void try_algorithm(const Options& options, Allocator& allocator, const An
 
 	ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
 
-	double max_error = find_max_error(allocator, clip, skeleton, *compressed_clip, algorithm);
+	BoneError error = find_max_error(allocator, clip, skeleton, *compressed_clip, algorithm);
 
-	print_stats(options, clip, *compressed_clip, end_time_cycles.QuadPart - start_time_cycles.QuadPart, max_error, algorithm);
+	print_stats(options, clip, *compressed_clip, end_time_cycles.QuadPart - start_time_cycles.QuadPart, error, algorithm);
 
 	allocator.deallocate(compressed_clip, compressed_clip->get_size());
 }

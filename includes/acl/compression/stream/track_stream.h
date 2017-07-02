@@ -286,13 +286,22 @@ namespace acl
 					packed_rotation = vector_to_quat(unpack_vector4_128(quantized_ptr));
 				break;
 			case RotationFormat8::QuatDropW_96:
-				packed_rotation = vector_to_quat(unpack_vector3_96(quantized_ptr));
+				if (is_raw_precision)
+					packed_raw_rotation = vector_unaligned_load(safe_ptr_cast<const double>(quantized_ptr));
+				else
+					packed_rotation = vector_to_quat(unpack_vector3_96(quantized_ptr));
 				break;
 			case RotationFormat8::QuatDropW_48:
-				packed_rotation = vector_to_quat(unpack_vector3_48(quantized_ptr));
+				if (is_raw_precision)
+					packed_raw_rotation = vector_unaligned_load(safe_ptr_cast<const double>(quantized_ptr));
+				else
+					packed_rotation = vector_to_quat(unpack_vector3_48(quantized_ptr));
 				break;
 			case RotationFormat8::QuatDropW_32:
-				packed_rotation = vector_to_quat(unpack_vector3_32<11, 11, 10>(quantized_ptr));
+				if (is_raw_precision)
+					packed_raw_rotation = vector_unaligned_load(safe_ptr_cast<const double>(quantized_ptr));
+				else
+					packed_rotation = vector_to_quat(unpack_vector3_32<11, 11, 10>(quantized_ptr));
 				break;
 			case RotationFormat8::QuatDropW_Variable:
 			default:
@@ -319,7 +328,7 @@ namespace acl
 			case RotationFormat8::QuatDropW_96:
 			case RotationFormat8::QuatDropW_48:
 			case RotationFormat8::QuatDropW_32:
-				return quat_cast(quat_from_positive_w(packed_rotation));
+				return is_raw_precision ? quat_from_positive_w(packed_raw_rotation) : quat_cast(quat_from_positive_w(packed_rotation));
 			case RotationFormat8::QuatDropW_Variable:
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));

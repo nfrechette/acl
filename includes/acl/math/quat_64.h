@@ -258,6 +258,13 @@ namespace acl
 		return quat_get_w(input) >= 0.0 ? input : quat_neg(input);
 	}
 
+	inline Quat_64 quat_from_positive_w(const Vector4_64& input)
+	{
+		double w_squared = 1.0 - vector_length_squared3(input);
+		double w = w_squared > 0.0 ? sqrt(w_squared) : 0.0;
+		return quat_set(vector_get_x(input), vector_get_y(input), vector_get_z(input), w);
+	}
+
 	inline bool quat_is_valid(const Quat_64& input)
 	{
 		return is_finite(quat_get_x(input)) && is_finite(quat_get_y(input)) && is_finite(quat_get_z(input)) && is_finite(quat_get_w(input));

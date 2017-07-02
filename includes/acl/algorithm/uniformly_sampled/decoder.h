@@ -110,8 +110,6 @@ namespace acl
 				}
 #endif
 
-				// TODO: Validate that if we are variable, our highest variant bit rate is supported (constant tracks)
-
 				const uint32_t range_rotation_size = get_range_reduction_rotation_size(rotation_format);
 				const uint32_t range_translation_size = get_range_reduction_vector_size(translation_format);
 				const bool has_clip_range_reduction = is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip);

@@ -152,6 +152,7 @@ namespace acl
 			ACL_ENSURE(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
 
 			out_object_pose[bone_index] = transform_mul(local_pose[bone_index], out_object_pose[parent_bone_index]);
+			out_object_pose[bone_index].rotation = quat_normalize(out_object_pose[bone_index].rotation);
 		}
 	}
 
@@ -171,6 +172,7 @@ namespace acl
 
 			Transform_64 inv_parent_transform = transform_inverse(object_pose[parent_bone_index]);
 			out_local_pose[bone_index] = transform_mul(inv_parent_transform, object_pose[bone_index]);
+			out_local_pose[bone_index].rotation = quat_normalize(out_local_pose[bone_index].rotation);
 		}
 	}
 }
