@@ -27,7 +27,7 @@
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
 #include "acl/core/utils.h"
-#include "acl/core/algorithm_types.h"
+#include "acl/core/track_types.h"
 #include "acl/math/quat_64.h"
 #include "acl/math/vector4_64.h"
 

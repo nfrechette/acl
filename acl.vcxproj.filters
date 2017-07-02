@@ -198,6 +198,9 @@
     <ClInclude Include="includes\acl\compression\stream\sample_streams.h">
       <Filter>includes\acl\compression\stream</Filter>
     </ClInclude>
+    <ClInclude Include="includes\acl\core\track_types.h">
+      <Filter>includes\acl\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

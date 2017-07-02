@@ -45,6 +45,7 @@
     <ClInclude Include="includes\acl\core\memory.h" />
     <ClInclude Include="includes\acl\core\string.h" />
     <ClInclude Include="includes\acl\core\string_view.h" />
+    <ClInclude Include="includes\acl\core\track_types.h" />
     <ClInclude Include="includes\acl\core\utils.h" />
     <ClInclude Include="includes\acl\io\clip_reader.h" />
     <ClInclude Include="includes\acl\io\clip_reader_error.h" />
