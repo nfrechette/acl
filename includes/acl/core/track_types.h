@@ -136,19 +136,17 @@ namespace acl
 	// TODO: constexpr
 	inline const char* get_range_reduction_name(RangeReductionFlags8 flags)
 	{
-		switch (flags)
-		{
-		case RangeReductionFlags8::None:
+		// Some compilers have trouble with constexpr operator| with enums in a case switch statement
+		if (flags == RangeReductionFlags8::None)
 			return "None";
-		case RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations:
+		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
 			return "Per Clip Rotations";
-		case RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations:
+		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations))
 			return "Per Clip Translations";
-		case RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations:
+		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
 			return "Per Clip Rotations, Translations";
-		default:
+		else
 			return "<Invalid>";
-		}
 	}
 
 	// TODO: constexpr
