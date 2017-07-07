@@ -18,11 +18,12 @@ def parse_clip(scene):
 	anim_stack = scene.GetSrcObject(FbxAnimStack.ClassId, 0)
 
 	clip_name = anim_stack.GetName()
-	sample_rate = 30
 	timespan = anim_stack.GetLocalTimeSpan()
+	sample_rate = int(FbxTime.GetFrameRate(scene.GetGlobalSettings().GetTimeMode()))
 	duration = timespan.GetDuration().GetFramedTime(False).GetSecondDouble()
 	num_samples = int(duration * sample_rate) + 1
 	error_threshold = 0.01
+
 	return ACLClip(clip_name, num_samples, sample_rate, error_threshold, duration)
 
 def parse_hierarchy(scene):
