@@ -45,10 +45,10 @@ def output_csv(stat_dir):
 	print('Generating CSV file {}...'.format(csv_filename))
 	print()
 	file = open(csv_filename, 'w')
-	print('Algorithm Name, Rotation Format, Translation Format, Raw Size, Compressed Size, Compression Ratio, Clip Duration', file = file)
+	print('Algorithm Name, Rotation Format, Translation Format, Raw Size, Compressed Size, Compression Ratio, Clip Duration, Max Error', file = file)
 	for stat in stats:
 		clean_name = sanitize_csv_entry(stat.name)
-		print('{}, {}, {}, {}, {}, {}, {}'.format(clean_name, stat.rotation_format, stat.translation_format, stat.raw_size, stat.compressed_size, stat.ratio, stat.duration), file = file)
+		print('{}, {}, {}, {}, {}, {}, {}, {}'.format(clean_name, stat.rotation_format, stat.translation_format, stat.raw_size, stat.compressed_size, stat.ratio, stat.duration, stat.max_error), file = file)
 	file.close()
 
 if __name__ == "__main__":

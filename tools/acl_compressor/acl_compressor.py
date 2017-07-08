@@ -69,12 +69,12 @@ def output_csv(stat_dir):
 	print('Generating CSV file {}...'.format(csv_filename))
 	print()
 	file = open(csv_filename, 'w')
-	print('Algorithm Name, Rotation Format, Translation Format, Range Reduction, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks', file = file)
+	print('Algorithm Name, Rotation Format, Translation Format, Range Reduction, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks, Max Error', file = file)
 	for stat in stats:
 		rotation_format = sanitize_csv_entry(stat.rotation_format)
 		translation_format = sanitize_csv_entry(stat.translation_format)
 		range_reduction = sanitize_csv_entry(stat.range_reduction)
-		print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(stat.name, rotation_format, translation_format, range_reduction, stat.raw_size, stat.compressed_size, stat.ratio, stat.compression_time, stat.duration, stat.num_animated_tracks), file = file)
+		print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(stat.name, rotation_format, translation_format, range_reduction, stat.raw_size, stat.compressed_size, stat.ratio, stat.compression_time, stat.duration, stat.num_animated_tracks, stat.max_error), file = file)
 	file.close()
 
 def run_acl_compressor(cmd_queue):
