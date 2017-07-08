@@ -35,16 +35,26 @@ In the future, SSE, AVX, and Neon will be fully supported as well.
 ## Algorithms supported
 
 *  [Uniformly sampled](https://github.com/nfrechette/acl/wiki/Algorithm:-uniformly-sampled)
-*  **Linear key reduction**
-*  **Spline key reduction**
-*  **Wavelets**
+*  Linear key reduction (TODO)
+*  Spline key reduction (TODO)
+*  Wavelets (TODO)
 
-**Algorithms in bold are not yet supported**
+## Getting up and running
+
+### Windows
+
+1. Install Visual Studio 2015
+2. Install CMake 3.9 or higher
+3. Install Python 3.3 (version 3.3 is required for the FBX SDK by some scripts)
+4. Generate the IDE solution with: `python make.py`
+   The solution is generated under `./build`
+   Note that if you do not have CMake in your `PATH`, you should define the `ACL_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
+5. Build the IDE solution with: `python make.py -build`
 
 ## Reference material
 
 In order to test the algorithm implementations with real world data, we took the Carnegie-Mellon database. It contains over 2500 animation clips.
-This is the data all graphs and charts shown will be based on.
+This is the data all graphs and charts shown will be based on. Data available upon request, it is far too large for GitHub.
 
 ## MIT License
 
