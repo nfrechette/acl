@@ -1,7 +1,2 @@
-*.db
-*.opendb
-*.suo
-*.user
-Debug/
-Release/
 build/
+*.suo

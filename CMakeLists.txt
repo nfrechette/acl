@@ -18,3 +18,4 @@ endforeach()
 
 # Add other projects
 add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
+add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
