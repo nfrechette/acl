@@ -37,6 +37,20 @@ def print_stat(stat):
 def bytes_to_mb(size_in_bytes):
 	return size_in_bytes / (1024.0 * 1024.0)
 
+def sanitize_csv_entry(entry):
+	return entry.replace(', ', ' ').replace(',', '_')
+
+def output_csv(stat_dir):
+	csv_filename = os.path.join(stat_dir, 'stats.csv')
+	print('Generating CSV file {}...'.format(csv_filename))
+	print()
+	file = open(csv_filename, 'w')
+	print('Algorithm Name, Rotation Format, Translation Format, Raw Size, Compressed Size, Compression Ratio, Clip Duration', file = file)
+	for stat in stats:
+		clean_name = sanitize_csv_entry(stat.name)
+		print('{}, {}, {}, {}, {}, {}, {}'.format(clean_name, stat.rotation_format, stat.translation_format, stat.raw_size, stat.compressed_size, stat.ratio, stat.duration), file = file)
+	file.close()
+
 if __name__ == "__main__":
 	options = parse_argv()
 
@@ -92,14 +106,7 @@ if __name__ == "__main__":
 	print()
 
 	if options['csv']:
-		csv_filename = os.path.join(stat_dir, 'stats.csv')
-		print('Generating CSV file {}...'.format(csv_filename))
-		print()
-		file = open(csv_filename, 'w')
-		print('Algorithm Name, Rotation Format, Translation Format, Raw Size (bytes), Compressed Size (bytes), Compression Ratio, Clip Duration (s)', file = file)
-		for stat in stats:
-			print('{}, {}, {}, {}, {}, {}, {}'.format(stat.name, stat.rotation_format, stat.translation_format, stat.raw_size, stat.compressed_size, stat.ratio, stat.duration), file = file)
-		file.close()
+		output_csv(stat_dir)
 
 	# Aggregate per run type
 	print('Stats per run type:')

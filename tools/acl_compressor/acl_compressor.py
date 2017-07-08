@@ -47,11 +47,24 @@ def print_stat(stat):
 	print('Algorithm: {}, Format: [{}, {}, {}], Ratio: {:.2f}, Error: {}'.format(stat.name, stat.rotation_format, stat.translation_format, stat.range_reduction, stat.ratio, stat.max_error))
 	print('')
 
-def generate_hash(stat):
-	return stat.rotation_format + stat.translation_format + stat.range_reduction
-
 def bytes_to_mb(size_in_bytes):
 	return size_in_bytes / (1024.0 * 1024.0)
+
+def sanitize_csv_entry(entry):
+	return entry.replace(', ', ' ').replace(',', '_')
+
+def output_csv(stat_dir):
+	csv_filename = os.path.join(stat_dir, 'stats.csv')
+	print('Generating CSV file {}...'.format(csv_filename))
+	print()
+	file = open(csv_filename, 'w')
+	print('Algorithm Name, Rotation Format, Translation Format, Range Reduction, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks', file = file)
+	for stat in stats:
+		rotation_format = sanitize_csv_entry(stat.rotation_format)
+		translation_format = sanitize_csv_entry(stat.translation_format)
+		range_reduction = sanitize_csv_entry(stat.range_reduction)
+		print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(stat.name, rotation_format, translation_format, range_reduction, stat.raw_size, stat.compressed_size, stat.ratio, stat.compression_time, stat.duration, stat.num_animated_tracks), file = file)
+	file.close()
 
 if __name__ == "__main__":
 	options = parse_argv()
@@ -148,20 +161,13 @@ if __name__ == "__main__":
 	print()
 
 	if options['csv']:
-		csv_filename = os.path.join(stat_dir, 'stats.csv')
-		print('Generating CSV file {}...'.format(csv_filename))
-		print()
-		file = open(csv_filename, 'w')
-		print('Algorithm Name, Rotation Format, Translation Format, Range Reduction, Raw Size (bytes), Compressed Size (bytes), Compression Ratio, Compression Time (s), Clip Duration (s), Num Animated Tracks', file = file)
-		for stat in stats:
-			print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(stat.name, stat.rotation_format, stat.translation_format, stat.range_reduction, stat.raw_size, stat.compressed_size, stat.ratio, stat.compression_time, stat.duration, stat.num_animated_tracks), file = file)
-		file.close()
+		output_csv(stat_dir)
 
 	# Aggregate per run type
 	print('Stats per run type:')
 	run_types = {}
 	for stat in stats:
-		key = generate_hash(stat)
+		key = stat.rotation_format + stat.translation_format + stat.range_reduction
 		if not key in run_types:
 			run_types[key] = RunStats('{}, {}, {}'.format(stat.rotation_format, stat.translation_format, stat.range_reduction), 0, 0, 0.0, 0)
 		run_stats = run_types[key]
