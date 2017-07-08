@@ -189,7 +189,7 @@ static void print_stats(const Options& options, const AnimationClip& clip, const
 	fprintf(file, "Clip compression ratio: %.2f : 1\n", compression_ratio);
 	fprintf(file, "Clip max error: %.5f\n", error.error);
 	fprintf(file, "Clip worst bone: %u\n", error.index);
-	fprintf(file, "Clip worst time: %.5f\n", error.sample_time);
+	fprintf(file, "Clip worst time (s): %.5f\n", error.sample_time);
 	fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
 	fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
 	fprintf(file, "Clip num samples: %u\n", clip.get_num_samples());
