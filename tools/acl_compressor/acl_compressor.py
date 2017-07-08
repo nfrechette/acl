@@ -69,16 +69,7 @@ def output_csv(stat_dir):
 if __name__ == "__main__":
 	options = parse_argv()
 
-	debug_exe_path = './x64/Debug/acl_compressor.exe'
-	release_exe_path = './x64/Release/acl_compressor.exe'
-
-	debug_exe_timestamp = os.path.getmtime(debug_exe_path)
-	release_exe_timestamp = os.path.getmtime(release_exe_path)
-
-	if release_exe_timestamp >= debug_exe_timestamp:
-		latest_exe_path = release_exe_path
-	else:
-		latest_exe_path = debug_exe_path
+	compressor_exe_path = '../../build/bin/acl_compressor.exe'
 
 	acl_dir = options['acl']
 	stat_dir = options['stats']
@@ -117,7 +108,7 @@ if __name__ == "__main__":
 			if not os.path.exists(stat_dirname):
 				os.makedirs(stat_dirname)
 
-			cmd = '{} -acl="{}" -stats="{}"'.format(latest_exe_path, acl_filename, stat_filename)
+			cmd = '{} -acl="{}" -stats="{}"'.format(compressor_exe_path, acl_filename, stat_filename)
 			cmd = cmd.replace('/', '\\')
 
 			print('Compressing {}...'.format(acl_filename))
