@@ -46,8 +46,8 @@ In the future, SSE, AVX, and Neon will be fully supported as well.
 1. Install Visual Studio 2015
 2. Install CMake 3.9 or higher
 3. Install Python 3.3 (version 3.3 is required for the FBX SDK by some scripts)
-4. Generate the IDE solution with: `python make.py`
-   The solution is generated under `./build`
+4. Generate the IDE solution with: `python make.py`  
+   The solution is generated under `./build`  
    Note that if you do not have CMake in your `PATH`, you should define the `ACL_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
 5. Build the IDE solution with: `python make.py -build`
 
