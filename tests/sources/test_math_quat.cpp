@@ -31,7 +31,7 @@ static acl::Quat_64 quat_mul_scalar(const acl::Quat_64& lhs, const acl::Quat_64&
 }
 
 
-TEST_CASE("allocate and free from given buffer", "[LinearAllocator]")
+TEST_CASE("quat misc math", "[math][quat]")
 {
 	constexpr double threshold = 1e-6;
 
