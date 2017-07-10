@@ -33,7 +33,6 @@
 #include "acl/math/vector4_64.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/stream/track_stream.h"
-#include "acl/compression/stream/get_num_animated_streams.h"
 
 #include <stdint.h>
 
@@ -43,14 +42,24 @@ namespace acl
 	{
 		uint32_t rotation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
 		uint32_t translation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) ? get_range_reduction_vector_size(translation_format) : 0;
+		uint32_t range_data_size = 0;
 
-		uint32_t num_constant_rotation_tracks;
-		uint32_t num_constant_translation_tracks;
-		uint32_t num_animated_rotation_tracks;
-		uint32_t num_animated_translation_tracks;
-		get_num_animated_streams(bone_streams, num_bones, num_constant_rotation_tracks, num_constant_translation_tracks, num_animated_rotation_tracks, num_animated_translation_tracks);
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			const BoneStreams& bone_stream = bone_streams[bone_index];
 
-		return (rotation_size * num_animated_rotation_tracks) + (translation_size * num_animated_translation_tracks);
+			if (bone_stream.is_rotation_animated())
+			{
+				range_data_size += rotation_size;
+			}
+
+			if (bone_stream.is_translation_animated())
+			{
+				range_data_size += translation_size;
+			}
+		}
+
+		return range_data_size;
 	}
 
 	inline void write_range_track_data(const BoneStreams* bone_streams, uint16_t num_bones,

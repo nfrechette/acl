@@ -40,7 +40,6 @@
 #include "acl/compression/stream/compact_constant_streams.h"
 #include "acl/compression/stream/normalize_streams.h"
 #include "acl/compression/stream/quantize_streams.h"
-#include "acl/compression/stream/get_num_animated_streams.h"
 #include "acl/compression/stream/write_stream_bitsets.h"
 #include "acl/compression/stream/write_stream_data.h"
 #include "acl/compression/stream/write_range_data.h"
@@ -113,17 +112,10 @@ namespace acl
 
 			quantize_streams(allocator, bone_streams, num_bones, settings.rotation_format, settings.translation_format, clip, skeleton);
 
-			// TODO: Remove this?
-			uint32_t num_constant_rotation_tracks;
-			uint32_t num_constant_translation_tracks;
-			uint32_t num_animated_rotation_tracks;
-			uint32_t num_animated_translation_tracks;
-			get_num_animated_streams(bone_streams, num_bones, num_constant_rotation_tracks, num_constant_translation_tracks, num_animated_rotation_tracks, num_animated_translation_tracks);
-
 			uint32_t constant_data_size = get_constant_data_size(bone_streams, num_bones);
 			uint32_t animated_pose_size;
 			uint32_t animated_data_size = get_animated_data_size(bone_streams, num_bones, animated_pose_size);
-			uint32_t format_per_track_data_size = (is_rotation_format_variable(settings.rotation_format) ? num_animated_rotation_tracks : 0) + (is_vector_format_variable(settings.translation_format) ? num_animated_translation_tracks : 0);
+			uint32_t format_per_track_data_size = get_format_per_track_data_size(bone_streams, num_bones, settings.rotation_format, settings.translation_format);
 
 			uint32_t bitset_size = get_bitset_size(num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
 

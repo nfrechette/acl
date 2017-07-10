@@ -92,6 +92,31 @@ namespace acl
 		return animated_data_size;
 	}
 
+	inline uint32_t get_format_per_track_data_size(const BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format, VectorFormat8 translation_format)
+	{
+		uint32_t format_per_track_data_size = 0;
+
+		bool is_rotation_variable = is_rotation_format_variable(rotation_format);
+		bool is_translation_variable = is_vector_format_variable(translation_format);
+
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			const BoneStreams& bone_stream = bone_streams[bone_index];
+
+			if (is_rotation_variable && bone_stream.is_rotation_animated())
+			{
+				format_per_track_data_size++;
+			}
+
+			if (is_translation_variable && bone_stream.is_translation_animated())
+			{
+				format_per_track_data_size++;
+			}
+		}
+
+		return format_per_track_data_size;
+	}
+
 	inline void write_constant_track_data(const BoneStreams* bone_streams, uint16_t num_bones, uint8_t* constant_data, uint32_t constant_data_size)
 	{
 		const uint8_t* constant_data_end = add_offset_to_ptr<uint8_t>(constant_data, constant_data_size);
