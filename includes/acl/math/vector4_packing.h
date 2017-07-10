@@ -91,6 +91,19 @@ namespace acl
 		data[1] = safe_static_cast<uint16_t>(vector_u32 & 0xFFFF);
 	}
 
+	inline void pack_vector3_n(const Vector4_32& vector, size_t XBits, size_t YBits, size_t ZBits, uint8_t* out_vector_data)
+	{
+		size_t vector_x = pack_scalar_signed(vector_get_x(vector), XBits);
+		size_t vector_y = pack_scalar_signed(vector_get_y(vector), YBits);
+		size_t vector_z = pack_scalar_signed(vector_get_z(vector), ZBits);
+
+		uint64_t vector_u64 = safe_static_cast<uint64_t>((vector_x << (YBits + ZBits)) | (vector_y << ZBits) | vector_z);
+
+		// Written 2 bytes at a time to ensure safe alignment
+		uint64_t* data = safe_ptr_cast<uint64_t>(out_vector_data);
+		*data = vector_u64;
+	}
+
 	template<size_t XBits, size_t YBits, size_t ZBits>
 	inline Vector4_32 unpack_vector3_32(const uint8_t* vector_data)
 	{
