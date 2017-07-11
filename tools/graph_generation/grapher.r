@@ -1,8 +1,21 @@
-install.packages("ggplot2")
+args = commandArgs(trailingOnly=TRUE)
+
+if (length(args)!=1) {
+	stop("this script requires only one mandatory argument: the working directory", call.=FALSE)
+}
+
+setwd(args[1])
+
+list.of.packages <- c("ggplot2", "plyr")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+
+if(length(new.packages)) {
+	install.packages(new.packages)
+}
+
 library("ggplot2")
 library("plyr")
 
-setwd("C:\\Users\\tirpi\\Downloads")
 ue4_stats <- read.csv("ue4_stats.csv", row.names = NULL)
 acl_stats <- read.csv("acl_stats.csv", row.names = NULL)
 
