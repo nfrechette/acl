@@ -18,7 +18,7 @@ The code supports storing each component `[X, Y, Z]` on an arbitrary number of b
 
 ### Vector3 Variable
 
-The compression algorithm will use any of the other supported Vector3 formats. An algorithm will select which format to use for each track while keeping the memory footprint and error as low as possible.
+The compression algorithm will search for the optimal bit rate among 16 possible values. An algorithm will select which bit rate to use for each track while keeping the memory footprint and error as low as possible.
 
 # Rotation formats
 
@@ -46,4 +46,4 @@ Same as Vector3 32 above to store `[X, Y, Z]`.
 
 ### Quat Variable
 
-The compression algorithm will use any of the other supported Quat formats that drop the W component. An algorithm will select which format to use for each track while keeping the memory footprint and error as low as possible.
+See [Vector3 Variable](https://github.com/nfrechette/acl/blob/develop/docs/rotation_and_vector_formats.md#vector3-variable)
