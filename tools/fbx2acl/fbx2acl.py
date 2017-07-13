@@ -52,7 +52,7 @@ def quaternion_to_array(vec):
 def parse_bind_pose(scene, nodes):
 	bones = []
 
-	vtx_distance = 0.1
+	vtx_distance = 3.0
 
 	translation = FbxVector4()
 	rotation = FbxQuaternion()
