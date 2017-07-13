@@ -121,8 +121,9 @@ namespace acl
 		Vector4_64 y_axis = vector_set(0.0, 1.0, 0.0);
 
 		const RigidBone& target_bone = skeleton.get_bone(target_bone_index);
-		Vector4_64 vtx0 = vector_mul(x_axis, target_bone.vertex_distance);
-		Vector4_64 vtx1 = vector_mul(y_axis, target_bone.vertex_distance);
+		double target_vtx_distance = target_bone.vertex_distance;
+		Vector4_64 vtx0 = vector_mul(x_axis, target_vtx_distance);
+		Vector4_64 vtx1 = vector_mul(y_axis, target_vtx_distance);
 
 		Vector4_64 raw_vtx0 = vtx0;
 		Vector4_64 lossy_vtx0 = vtx0;

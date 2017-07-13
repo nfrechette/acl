@@ -40,30 +40,6 @@ namespace acl
 {
 	namespace impl
 	{
-		inline RotationFormat8 get_increased_precision(RotationFormat8 format)
-		{
-			switch (format)
-			{
-			case RotationFormat8::QuatDropW_48:		return RotationFormat8::QuatDropW_96;
-			case RotationFormat8::QuatDropW_32:		return RotationFormat8::QuatDropW_48;
-			default:
-				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
-				return RotationFormat8::Quat_128;
-			}
-		}
-
-		inline VectorFormat8 get_increased_precision(VectorFormat8 format)
-		{
-			switch (format)
-			{
-			case VectorFormat8::Vector3_48:		return VectorFormat8::Vector3_96;
-			case VectorFormat8::Vector3_32:		return VectorFormat8::Vector3_48;
-			default:
-				ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
-				return VectorFormat8::Vector3_96;
-			}
-		}
-
 		inline void quantize_fixed_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_64)
@@ -126,26 +102,68 @@ namespace acl
 			}
 		}
 
-		inline void quantize_fixed_translation_stream(Allocator& allocator, const BoneStreams& raw_bone_stream, VectorFormat8 translation_format, TranslationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, uint8_t bit_rate, RotationTrackStream& out_quantized_stream)
 		{
-			const TranslationTrackStream& raw_stream = raw_bone_stream.translations;
+			// We expect all our samples to have the same width of sizeof(Vector4_64)
+			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_64), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_64));
+			ACL_ENSURE(raw_stream.get_rotation_format() == RotationFormat8::Quat_128, "Expected a Quat_128 rotation format, found: %s", get_rotation_format_name(raw_stream.get_rotation_format()));
 
+			uint32_t num_samples = raw_stream.get_num_samples();
+			uint32_t sample_size = sizeof(uint64_t);
+			uint32_t sample_rate = raw_stream.get_sample_rate();
+			RotationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, RotationFormat8::QuatDropW_Variable, bit_rate);
+
+			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				Quat_64 rotation = raw_stream.get_raw_sample<Quat_64>(sample_index);
+				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
+
+				pack_vector3_n(quat_to_vector(quat_cast(rotation)), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+			}
+
+			out_quantized_stream = std::move(quantized_stream);
+		}
+
+		inline void quantize_fixed_rotation_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, uint8_t bit_rate)
+		{
+			const RotationFormat8 highest_bit_rate = get_highest_variant_precision(RotationVariant8::QuatDropW);
+
+			// By the time we get here, values have been converted to their final format, and normalized if selected
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			{
+				BoneStreams& bone_stream = bone_streams[bone_index];
+
+				// Default tracks aren't quantized
+				if (bone_stream.is_rotation_default)
+					continue;
+
+				// If our format is variable, we keep them fixed at the highest bit rate in the variant
+				if (bone_stream.is_rotation_constant)
+					quantize_fixed_rotation_stream(allocator, bone_stream.rotations, highest_bit_rate, bone_stream.rotations);
+				else
+					quantize_fixed_rotation_stream(allocator, bone_stream.rotations, bit_rate, bone_stream.rotations);
+			}
+		}
+
+		inline void quantize_fixed_translation_stream(Allocator& allocator, const TranslationTrackStream& raw_stream, VectorFormat8 translation_format, TranslationTrackStream& out_quantized_stream)
+		{
 			// We expect all our samples to have the same width of sizeof(Vector4_64)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_64), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_64));
 			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
-			// Constant tracks store the remaining sample with full precision
-			VectorFormat8 format = !raw_bone_stream.is_translation_constant ? translation_format : VectorFormat8::Vector3_96;
-
 			uint32_t num_samples = raw_stream.get_num_samples();
-			TranslationTrackStream quantized_stream(allocator, num_samples, get_packed_vector_size(format), raw_stream.get_sample_rate(), format);
+			uint32_t sample_size = get_packed_vector_size(translation_format);
+			uint32_t sample_rate = raw_stream.get_sample_rate();
+			TranslationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, translation_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				Vector4_64 translation = raw_stream.get_raw_sample<Vector4_64>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
-				switch (format)
+				switch (translation_format)
 				{
 				case VectorFormat8::Vector3_96:
 					pack_vector3_96(vector_cast(translation), quantized_ptr);
@@ -158,7 +176,7 @@ namespace acl
 					break;
 				case VectorFormat8::Vector3_Variable:
 				default:
-					ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+					ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(translation_format));
 					break;
 				}
 			}
@@ -166,7 +184,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_translation_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, VectorFormat8 translation_format, bool is_variable_variant)
+		inline void quantize_fixed_translation_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, VectorFormat8 translation_format)
 		{
 			// By the time we get here, values have been converted to their final format, and normalized if selected
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -177,11 +195,53 @@ namespace acl
 				if (bone_stream.is_translation_default)
 					continue;
 
-				// If our format isn't variable, we allow constant tracks to be quantized to any format
-				// If our format is variable, we keep them fixed at the highest bit rate in the variant
-				VectorFormat8 format = is_variable_variant && bone_stream.is_translation_constant ? VectorFormat8::Vector3_96 : translation_format;
+				// Constant translation tracks store the remaining sample with full precision
+				VectorFormat8 format = bone_stream.is_translation_constant ? VectorFormat8::Vector3_96 : translation_format;
 
-				quantize_fixed_translation_stream(allocator, bone_stream, format, bone_stream.translations);
+				quantize_fixed_translation_stream(allocator, bone_stream.translations, format, bone_stream.translations);
+			}
+		}
+
+		inline void quantize_fixed_translation_stream(Allocator& allocator, const TranslationTrackStream& raw_stream, uint8_t bit_rate, TranslationTrackStream& out_quantized_stream)
+		{
+			// We expect all our samples to have the same width of sizeof(Vector4_64)
+			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_64), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_64));
+			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
+
+			uint32_t num_samples = raw_stream.get_num_samples();
+			uint32_t sample_size = sizeof(uint64_t);
+			uint32_t sample_rate = raw_stream.get_sample_rate();
+			TranslationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
+
+			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				Vector4_64 translation = raw_stream.get_raw_sample<Vector4_64>(sample_index);
+				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
+
+				pack_vector3_n(vector_cast(translation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+			}
+
+			out_quantized_stream = std::move(quantized_stream);
+		}
+
+		inline void quantize_fixed_translation_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, uint8_t bit_rate)
+		{
+			// By the time we get here, values have been converted to their final format, and normalized if selected
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			{
+				BoneStreams& bone_stream = bone_streams[bone_index];
+
+				// Default tracks aren't quantized
+				if (bone_stream.is_translation_default)
+					continue;
+
+				// Constant translation tracks store the remaining sample with full precision
+				if (bone_stream.is_translation_constant)
+					quantize_fixed_translation_stream(allocator, bone_stream.translations, VectorFormat8::Vector3_96, bone_stream.translations);
+				else
+					quantize_fixed_translation_stream(allocator, bone_stream.translations, bit_rate, bone_stream.translations);
 			}
 		}
 
@@ -192,23 +252,20 @@ namespace acl
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 				quantized_streams[bone_index] = bone_streams[bone_index].duplicate();
 
-			const RotationVariant8 rotation_variant = get_rotation_variant(rotation_format);
-			const RotationFormat8 lowest_bit_rate = get_lowest_variant_precision(rotation_variant);
-			const RotationFormat8 highest_bit_rate = get_highest_variant_precision(rotation_variant);
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
 			const bool scan_whole_clip_for_bad_bone = false;
 
 			// Quantize everything to the lowest bit rate of the same variant
 			if (is_rotation_variable)
-				quantize_fixed_rotation_streams(allocator, quantized_streams, num_bones, lowest_bit_rate, true);
+				quantize_fixed_rotation_streams(allocator, quantized_streams, num_bones, LOWEST_BIT_RATE);
 			else
 				quantize_fixed_rotation_streams(allocator, quantized_streams, num_bones, rotation_format, false);
 
 			if (is_translation_variable)
-				quantize_fixed_translation_streams(allocator, quantized_streams, num_bones, VectorFormat8::Vector3_32, true);
+				quantize_fixed_translation_streams(allocator, quantized_streams, num_bones, LOWEST_BIT_RATE);
 			else
-				quantize_fixed_translation_streams(allocator, quantized_streams, num_bones, translation_format, false);
+				quantize_fixed_translation_streams(allocator, quantized_streams, num_bones, translation_format);
 
 			uint32_t num_samples = get_animated_num_samples(bone_streams, num_bones);
 			double sample_rate = double(bone_streams[0].rotations.get_sample_rate());
@@ -279,8 +336,8 @@ namespace acl
 				while (current_bone_index != INVALID_BONE_INDEX)
 				{
 					// Only select the stream if we can still increase its precision
-					RotationFormat8 quantized_rotation_format = quantized_streams[current_bone_index].rotations.get_rotation_format();
-					bool can_increase_rotation_precision = is_rotation_variable && quantized_rotation_format != highest_bit_rate;
+					uint8_t rotation_bit_rate = quantized_streams[current_bone_index].rotations.get_bit_rate();
+					bool can_increase_rotation_precision = is_rotation_variable && rotation_bit_rate < HIGHEST_BIT_RATE;
 					if (can_increase_rotation_precision && error_per_stream[current_bone_index].rotation > worst_track_error)
 					{
 						target_bone_index = current_bone_index;
@@ -288,8 +345,8 @@ namespace acl
 						target_track_type = AnimationTrackType8::Rotation;
 					}
 
-					VectorFormat8 quantized_translation_format = quantized_streams[current_bone_index].translations.get_vector_format();
-					bool can_increase_translation_precision = is_translation_variable && quantized_translation_format != VectorFormat8::Vector3_96;
+					uint8_t translation_bit_rate = quantized_streams[current_bone_index].translations.get_bit_rate();
+					bool can_increase_translation_precision = is_translation_variable && translation_bit_rate < HIGHEST_BIT_RATE;
 					if (can_increase_translation_precision && error_per_stream[current_bone_index].translation > worst_track_error)
 					{
 						target_bone_index = current_bone_index;
@@ -320,13 +377,13 @@ namespace acl
 				// Increase its bit rate a bit
 				if (target_track_type == AnimationTrackType8::Rotation)
 				{
-					RotationFormat8 new_format = get_increased_precision(quantized_streams[target_bone_index].rotations.get_rotation_format());
-					quantize_fixed_rotation_stream(allocator, bone_streams[target_bone_index].rotations, new_format, quantized_streams[target_bone_index].rotations);
+					uint8_t new_bit_rate = quantized_streams[target_bone_index].rotations.get_bit_rate() + 1;
+					quantize_fixed_rotation_stream(allocator, bone_streams[target_bone_index].rotations, new_bit_rate, quantized_streams[target_bone_index].rotations);
 				}
 				else
 				{
-					VectorFormat8 new_format = get_increased_precision(quantized_streams[target_bone_index].translations.get_vector_format());
-					quantize_fixed_translation_stream(allocator, bone_streams[target_bone_index], new_format, quantized_streams[target_bone_index].translations);
+					uint8_t new_bit_rate = quantized_streams[target_bone_index].translations.get_bit_rate() + 1;
+					quantize_fixed_translation_stream(allocator, bone_streams[target_bone_index].translations, new_bit_rate, quantized_streams[target_bone_index].translations);
 				}
 			}
 
@@ -334,10 +391,8 @@ namespace acl
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				const BoneStreams& bone_stream = quantized_streams[bone_index];
-				RotationFormat8 rotation_format = bone_stream.rotations.get_rotation_format();
-				VectorFormat8 translation_format = bone_stream.translations.get_vector_format();
-				printf("DUMPED FORMAT: %s (animated: %s, default: %s)\n", get_rotation_format_name(rotation_format), bone_stream.is_rotation_animated() ? "t" : "f", bone_stream.is_rotation_default ? "t" : "f");
-				printf("DUMPED FORMAT: %s (animated: %s, default: %s)\n", get_vector_format_name(translation_format), bone_stream.is_translation_animated() ? "t" : "f", bone_stream.is_translation_default ? "t" : "f");
+				printf("DUMPED RATE: %u (animated: %s, default: %s)\n", bone_stream.rotations.get_bit_rate(), bone_stream.is_rotation_animated() ? "t" : "f", bone_stream.is_rotation_default ? "t" : "f");
+				printf("DUMPED RATE: %u (animated: %s, default: %s)\n", bone_stream.translations.get_bit_rate(), bone_stream.is_translation_animated() ? "t" : "f", bone_stream.is_translation_default ? "t" : "f");
 			}
 #endif
 
@@ -371,7 +426,7 @@ namespace acl
 				impl::quantize_fixed_rotation_streams(allocator, bone_streams, num_bones, rotation_format, false);
 
 			if (!is_translation_variable)
-				impl::quantize_fixed_translation_streams(allocator, bone_streams, num_bones, translation_format, false);
+				impl::quantize_fixed_translation_streams(allocator, bone_streams, num_bones, translation_format);
 		}
 	}
 }

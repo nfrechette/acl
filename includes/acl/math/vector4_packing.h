@@ -91,19 +91,6 @@ namespace acl
 		data[1] = safe_static_cast<uint16_t>(vector_u32 & 0xFFFF);
 	}
 
-	inline void pack_vector3_n(const Vector4_32& vector, size_t XBits, size_t YBits, size_t ZBits, uint8_t* out_vector_data)
-	{
-		size_t vector_x = pack_scalar_signed(vector_get_x(vector), XBits);
-		size_t vector_y = pack_scalar_signed(vector_get_y(vector), YBits);
-		size_t vector_z = pack_scalar_signed(vector_get_z(vector), ZBits);
-
-		uint64_t vector_u64 = safe_static_cast<uint64_t>((vector_x << (YBits + ZBits)) | (vector_y << ZBits) | vector_z);
-
-		// Written 2 bytes at a time to ensure safe alignment
-		uint64_t* data = safe_ptr_cast<uint64_t>(out_vector_data);
-		*data = vector_u64;
-	}
-
 	template<size_t XBits, size_t YBits, size_t ZBits>
 	inline Vector4_32 unpack_vector3_32(const uint8_t* vector_data)
 	{
@@ -115,6 +102,44 @@ namespace acl
 		size_t x = vector_u32 >> (YBits + ZBits);
 		size_t y = (vector_u32 >> ZBits) & ((1 << YBits) - 1);
 		size_t z = vector_u32 & ((1 << ZBits) - 1);
+		return vector_set(unpack_scalar_signed(x, XBits), unpack_scalar_signed(y, YBits), unpack_scalar_signed(z, ZBits));
+	}
+
+	inline void pack_vector3_n(const Vector4_32& vector, uint8_t XBits, uint8_t YBits, uint8_t ZBits, uint8_t* out_vector_data)
+	{
+		size_t vector_x = pack_scalar_signed(vector_get_x(vector), XBits);
+		size_t vector_y = pack_scalar_signed(vector_get_y(vector), YBits);
+		size_t vector_z = pack_scalar_signed(vector_get_z(vector), ZBits);
+
+		uint64_t vector_u64 = safe_static_cast<uint64_t>((vector_x << (YBits + ZBits)) | (vector_y << ZBits) | vector_z);
+
+		uint64_t* data = safe_ptr_cast<uint64_t>(out_vector_data);
+		*data = vector_u64;
+	}
+
+	inline Vector4_32 unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, const uint8_t* vector_data)
+	{
+		uint64_t vector_u64 = *safe_ptr_cast<const uint64_t>(vector_data);
+		uint64_t x = vector_u64 >> (YBits + ZBits);
+		uint64_t y = (vector_u64 >> ZBits) & ((1 << YBits) - 1);
+		uint64_t z = vector_u64 & ((1 << ZBits) - 1);
+		return vector_set(unpack_scalar_signed(x, XBits), unpack_scalar_signed(y, YBits), unpack_scalar_signed(z, ZBits));
+	}
+
+	// Assumes the 'vector_data' is in big-endian order
+	inline Vector4_32 unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, const uint8_t* vector_data, uint64_t bit_offset)
+	{
+		uint8_t num_bits_to_read = XBits + YBits + ZBits;
+
+		uint64_t byte_offset = bit_offset / 8;
+		uint64_t vector_u64 = *(reinterpret_cast<const uint64_t*>(vector_data + byte_offset));
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= bit_offset % 8;
+		vector_u64 >>= 64 - num_bits_to_read;
+
+		uint64_t x = vector_u64 >> (YBits + ZBits);
+		uint64_t y = (vector_u64 >> ZBits) & ((1 << YBits) - 1);
+		uint64_t z = vector_u64 & ((1 << ZBits) - 1);
 		return vector_set(unpack_scalar_signed(x, XBits), unpack_scalar_signed(y, YBits), unpack_scalar_signed(z, ZBits));
 	}
 

@@ -113,9 +113,9 @@ namespace acl
 			quantize_streams(allocator, bone_streams, num_bones, settings.rotation_format, settings.translation_format, clip, skeleton);
 
 			uint32_t constant_data_size = get_constant_data_size(bone_streams, num_bones);
-			uint32_t animated_pose_size;
-			uint32_t animated_data_size = get_animated_data_size(bone_streams, num_bones, animated_pose_size);
-			uint32_t format_per_track_data_size = get_format_per_track_data_size(bone_streams, num_bones, settings.rotation_format, settings.translation_format);
+			uint32_t animated_pose_bit_size;
+			uint32_t animated_data_size = get_animated_data_size(bone_streams, num_bones, settings.rotation_format, settings.translation_format, animated_pose_bit_size);
+			uint32_t format_per_track_data_size = get_format_per_track_data_size(bone_streams, num_bones);
 
 			uint32_t bitset_size = get_bitset_size(num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
 
@@ -132,7 +132,7 @@ namespace acl
 			buffer_size = align_to(buffer_size, 4);				// Align animated data
 			buffer_size += animated_data_size;					// Animated track data
 
-			uint8_t* buffer = allocate_type_array<uint8_t>(allocator, buffer_size, 16);
+			uint8_t* buffer = allocate_type_array_aligned<uint8_t>(allocator, buffer_size, 16);
 
 			CompressedClip* compressed_clip = make_compressed_clip(buffer, buffer_size, AlgorithmType8::UniformlySampled);
 
@@ -143,7 +143,7 @@ namespace acl
 			header.range_reduction = settings.range_reduction;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
-			header.animated_pose_size = animated_pose_size;
+			header.animated_pose_bit_size = animated_pose_bit_size;
 			header.default_tracks_bitset_offset = sizeof(FullPrecisionHeader);
 			header.constant_tracks_bitset_offset = header.default_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size);
 			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size), 4);	// Aligned to 4 bytes
@@ -160,7 +160,7 @@ namespace acl
 				header.constant_track_data_offset = InvalidPtrOffset();
 
 			if (format_per_track_data_size > 0)
-				write_format_per_track_data(bone_streams, num_bones, settings.rotation_format, settings.translation_format, header.get_format_per_track_data(), format_per_track_data_size);
+				write_format_per_track_data(bone_streams, num_bones, header.get_format_per_track_data(), format_per_track_data_size);
 			else
 				header.format_per_track_data_offset = InvalidPtrOffset();
 
@@ -170,7 +170,7 @@ namespace acl
 				header.clip_range_data_offset = InvalidPtrOffset();
 
 			if (animated_data_size > 0)
-				write_animated_track_data(bone_streams, num_bones, header.get_track_data(), animated_data_size);
+				write_animated_track_data(bone_streams, num_bones, settings.rotation_format, settings.translation_format, header.get_track_data(), animated_data_size);
 			else
 				header.track_data_offset = InvalidPtrOffset();
 

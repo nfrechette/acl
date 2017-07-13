@@ -72,6 +72,8 @@ namespace acl
 		uint32_t get_sample_size() const { return m_sample_size; }
 		uint32_t get_sample_rate() const { return m_sample_rate; }
 		AnimationTrackType8 get_track_type() const { return m_type; }
+		uint8_t get_bit_rate() const { return m_bit_rate; }
+		bool is_bit_rate_variable() const { return m_bit_rate != INVALID_BIT_RATE; }
 		double get_duration() const
 		{
 			ACL_ENSURE(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
@@ -79,8 +81,8 @@ namespace acl
 		}
 
 	protected:
-		TrackStream(AnimationTrackType8 type, TrackFormat8 format) : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_type(type), m_format(format) {}
-		TrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, AnimationTrackType8 type, TrackFormat8 format)
+		TrackStream(AnimationTrackType8 type, TrackFormat8 format) : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_type(type), m_format(format), m_bit_rate(0) {}
+		TrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, AnimationTrackType8 type, TrackFormat8 format, uint8_t bit_rate)
 			: m_allocator(&allocator)
 			, m_samples(reinterpret_cast<uint8_t*>(allocator.allocate(sample_size * num_samples, 16)))
 			, m_num_samples(num_samples)
@@ -88,6 +90,7 @@ namespace acl
 			, m_sample_rate(sample_rate)
 			, m_type(type)
 			, m_format(format)
+			, m_bit_rate(bit_rate)
 		{}
 		TrackStream(const TrackStream&) = delete;
 		TrackStream(TrackStream&& other)
@@ -98,6 +101,7 @@ namespace acl
 			, m_sample_rate(other.m_sample_rate)
 			, m_type(other.m_type)
 			, m_format(other.m_format)
+			, m_bit_rate(other.m_bit_rate)
 		{
 			new(&other) TrackStream(other.m_type, other.m_format);
 		}
@@ -118,6 +122,7 @@ namespace acl
 			std::swap(m_sample_rate, rhs.m_sample_rate);
 			std::swap(m_type, rhs.m_type);
 			std::swap(m_format, rhs.m_format);
+			std::swap(m_bit_rate, rhs.m_bit_rate);
 			return *this;
 		}
 
@@ -132,6 +137,7 @@ namespace acl
 				copy.m_sample_size = m_sample_size;
 				copy.m_sample_rate = m_sample_rate;
 				copy.m_format = m_format;
+				copy.m_bit_rate = m_bit_rate;
 
 				std::memcpy(copy.m_samples, m_samples, m_sample_size * m_num_samples);
 			}
@@ -145,14 +151,15 @@ namespace acl
 
 		AnimationTrackType8		m_type;
 		TrackFormat8			m_format;
+		uint8_t					m_bit_rate;
 	};
 
 	class RotationTrackStream : public TrackStream
 	{
 	public:
 		RotationTrackStream() : TrackStream(AnimationTrackType8::Rotation, TrackFormat8(RotationFormat8::Quat_128)) {}
-		RotationTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, RotationFormat8 format)
-			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Rotation, TrackFormat8(format))
+		RotationTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, RotationFormat8 format, uint8_t bit_rate = INVALID_BIT_RATE)
+			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Rotation, TrackFormat8(format), bit_rate)
 		{}
 		RotationTrackStream(const RotationTrackStream&) = delete;
 		RotationTrackStream(RotationTrackStream&& other)
@@ -180,8 +187,8 @@ namespace acl
 	{
 	public:
 		TranslationTrackStream() : TrackStream(AnimationTrackType8::Translation, TrackFormat8(VectorFormat8::Vector3_96)) {}
-		TranslationTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, VectorFormat8 format)
-			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Translation, TrackFormat8(format))
+		TranslationTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, VectorFormat8 format, uint8_t bit_rate = INVALID_BIT_RATE)
+			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Translation, TrackFormat8(format), bit_rate)
 		{}
 		TranslationTrackStream(const TranslationTrackStream&) = delete;
 		TranslationTrackStream(TranslationTrackStream&& other)
@@ -304,6 +311,13 @@ namespace acl
 					packed_rotation = vector_to_quat(unpack_vector3_32<11, 11, 10>(quantized_ptr));
 				break;
 			case RotationFormat8::QuatDropW_Variable:
+				{
+					ACL_ENSURE(!is_raw_precision, "Raw precision not supported");
+					uint8_t bit_rate = rotations.get_bit_rate();
+					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+					packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+				}
+				break;
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 				packed_rotation = vector_zero_32();
@@ -328,8 +342,8 @@ namespace acl
 			case RotationFormat8::QuatDropW_96:
 			case RotationFormat8::QuatDropW_48:
 			case RotationFormat8::QuatDropW_32:
-				return is_raw_precision ? quat_from_positive_w(packed_raw_rotation) : quat_cast(quat_from_positive_w(packed_rotation));
 			case RotationFormat8::QuatDropW_Variable:
+				return is_raw_precision ? quat_from_positive_w(packed_raw_rotation) : quat_cast(quat_from_positive_w(packed_rotation));
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 				return quat_identity_64();
@@ -360,6 +374,13 @@ namespace acl
 				packed_translation = unpack_vector3_32<11, 11, 10>(quantized_ptr);
 				break;
 			case VectorFormat8::Vector3_Variable:
+				{
+					ACL_ENSURE(!is_raw_precision, "Raw precision not supported");
+					uint8_t bit_rate = translations.get_bit_rate();
+					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+					packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+				}
+				break;
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
 				packed_translation = vector_zero_32();

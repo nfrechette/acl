@@ -49,14 +49,10 @@ namespace acl
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 
 			if (bone_stream.is_rotation_animated())
-			{
 				range_data_size += rotation_size;
-			}
 
 			if (bone_stream.is_translation_animated())
-			{
 				range_data_size += translation_size;
-			}
 		}
 
 		return range_data_size;
@@ -71,6 +67,7 @@ namespace acl
 		uint32_t rotation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
 		uint32_t translation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) ? get_range_reduction_vector_size(translation_format) : 0;
 
+		// Our min/extent have the same size, divide it in half
 		rotation_size /= 2;
 		translation_size /= 2;
 
