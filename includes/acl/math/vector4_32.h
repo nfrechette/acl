@@ -220,6 +220,15 @@ namespace acl
 		return vector_mul(lhs, vector_set(rhs));
 	}
 
+	inline Vector4_32 vector_div(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_div_ps(lhs, rhs);
+#else
+		return vector_set(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z, lhs.w / rhs.w);
+#endif
+	}
+
 	inline Vector4_32 vector_max(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -308,6 +317,15 @@ namespace acl
 		return vector_add(start, vector_mul(vector_sub(end, start), vector_set(alpha)));
 	}
 
+	inline Vector4_32 vector_less_than(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_cmplt_ps(lhs, rhs);
+#else
+		return Vector4_32{ math_impl::get_mask_value(lhs.x < rhs.x), math_impl::get_mask_value(lhs.y < rhs.y), math_impl::get_mask_value(lhs.z < rhs.z), math_impl::get_mask_value(lhs.w < rhs.w) };
+#endif
+	}
+
 	inline bool vector_all_less_than(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -344,6 +362,78 @@ namespace acl
 #endif
 	}
 
+	inline bool vector_all_less_equal(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_movemask_ps(_mm_cmple_ps(lhs, rhs)) == 0xF;
+#else
+		return lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z && lhs.w <= rhs.w;
+#endif
+	}
+
+	inline bool vector_all_less_equal3(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return (_mm_movemask_ps(_mm_cmple_ps(lhs, rhs)) & 0x7) == 0x7;
+#else
+		return lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z;
+#endif
+	}
+
+	inline bool vector_any_less_equal(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_movemask_ps(_mm_cmple_ps(lhs, rhs)) != 0;
+#else
+		return lhs.x <= rhs.x || lhs.y <= rhs.y || lhs.z <= rhs.z || lhs.w <= rhs.w;
+#endif
+	}
+
+	inline bool vector_any_less_equal3(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return (_mm_movemask_ps(_mm_cmple_ps(lhs, rhs)) & 0x7) != 0;
+#else
+		return lhs.x <= rhs.x || lhs.y <= rhs.y || lhs.z <= rhs.z;
+#endif
+	}
+
+	inline bool vector_all_greater_equal(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_movemask_ps(_mm_cmpge_ps(lhs, rhs)) == 0xF;
+#else
+		return lhs.x >= rhs.x && lhs.y >= rhs.y && lhs.z >= rhs.z && lhs.w >= rhs.w;
+#endif
+	}
+
+	inline bool vector_all_greater_equal3(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return (_mm_movemask_ps(_mm_cmpge_ps(lhs, rhs)) & 0x7) == 0x7;
+#else
+		return lhs.x >= rhs.x && lhs.y >= rhs.y && lhs.z >= rhs.z;
+#endif
+	}
+
+	inline bool vector_any_greater_equal(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_movemask_ps(_mm_cmpge_ps(lhs, rhs)) != 0;
+#else
+		return lhs.x >= rhs.x || lhs.y >= rhs.y || lhs.z >= rhs.z || lhs.w >= rhs.w;
+#endif
+	}
+
+	inline bool vector_any_greater_equal3(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return (_mm_movemask_ps(_mm_cmpge_ps(lhs, rhs)) & 0x7) != 0;
+#else
+		return lhs.x >= rhs.x || lhs.y >= rhs.y || lhs.z >= rhs.z;
+#endif
+	}
+
 	inline bool vector_near_equal(const Vector4_32& lhs, const Vector4_32& rhs, float threshold = 0.00001f)
 	{
 		return vector_all_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
@@ -362,6 +452,15 @@ namespace acl
 	inline bool vector_is_valid3(const Vector4_32& input)
 	{
 		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input));
+	}
+
+	inline Vector4_32 vector_blend(const Vector4_32& mask, const Vector4_32& if_true, const Vector4_32& if_false)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_or_ps(_mm_andnot_ps(mask, if_false), _mm_and_ps(if_true, mask));
+#else
+		return Vector4_32{ math_impl::select(mask.x, if_true.x, if_false.x), math_impl::select(mask.y, if_true.y, if_false.y), math_impl::select(mask.z, if_true.z, if_false.z), math_impl::select(mask.w, if_true.w, if_false.w) };
+#endif
 	}
 
 	// output = (input * scale) + offset
