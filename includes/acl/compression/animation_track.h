@@ -143,11 +143,15 @@ namespace acl
 			size_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ENSURE(sample_size == 4, "Invalid sample size. %u != 4", sample_size);
 
+			// Always ensure our quaternions have a positive W component, this ensures they all reside
+			// on the same hyper-sphere hemisphere and regular lerp will do something sensible
+			Quat_64 pos_rotation = quat_ensure_positive_w(rotation);
+
 			double* sample = &m_sample_data[sample_index * sample_size];
-			sample[0] = quat_get_x(rotation);
-			sample[1] = quat_get_y(rotation);
-			sample[2] = quat_get_z(rotation);
-			sample[3] = quat_get_w(rotation);
+			sample[0] = quat_get_x(pos_rotation);
+			sample[1] = quat_get_y(pos_rotation);
+			sample[2] = quat_get_z(pos_rotation);
+			sample[3] = quat_get_w(pos_rotation);
 		}
 
 		Quat_64 get_sample(uint32_t sample_index) const
