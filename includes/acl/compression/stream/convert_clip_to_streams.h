@@ -26,7 +26,9 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
+#include "acl/math/quat_32.h"
 #include "acl/math/quat_64.h"
+#include "acl/math/vector4_32.h"
 #include "acl/math/vector4_64.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/stream/track_stream.h"
@@ -52,20 +54,20 @@ namespace acl
 			const AnimatedBone& bone = bones[bone_index];
 			BoneStreams& bone_stream = bone_streams[bone_index];
 
-			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_64), sample_rate, RotationFormat8::Quat_128);
-			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_64), sample_rate, VectorFormat8::Vector3_96);
+			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_32), sample_rate, RotationFormat8::Quat_128);
+			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
 
-			Vector4_64 rotation_min = vector_set(1e10);
-			Vector4_64 rotation_max = vector_set(-1e10);
-			Vector4_64 translation_min = vector_set(1e10);
-			Vector4_64 translation_max = vector_set(-1e10);
+			Vector4_32 rotation_min = vector_set(1e10f);
+			Vector4_32 rotation_max = vector_set(-1e10f);
+			Vector4_32 translation_min = vector_set(1e10f);
+			Vector4_32 translation_max = vector_set(-1e10f);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_64 rotation = bone.rotation_track.get_sample(sample_index);
+				Quat_32 rotation = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index)));
 				bone_stream.rotations.set_raw_sample(sample_index, rotation);
 
-				Vector4_64 translation = bone.translation_track.get_sample(sample_index);
+				Vector4_32 translation = vector_cast(bone.translation_track.get_sample(sample_index));
 				bone_stream.translations.set_raw_sample(sample_index, translation);
 
 				rotation_min = vector_min(rotation_min, quat_to_vector(rotation));

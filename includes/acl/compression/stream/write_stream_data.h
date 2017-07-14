@@ -26,9 +26,9 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
-#include "acl/math/quat_64.h"
+#include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
-#include "acl/math/vector4_64.h"
+#include "acl/math/vector4_32.h"
 #include "acl/compression/stream/track_stream.h"
 
 #include <stdint.h>

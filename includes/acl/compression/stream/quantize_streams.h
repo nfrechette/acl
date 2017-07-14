@@ -26,9 +26,9 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
-#include "acl/math/quat_64.h"
+#include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
-#include "acl/math/vector4_64.h"
+#include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/stream/track_stream.h"
 #include "acl/compression/stream/sample_streams.h"
@@ -42,8 +42,8 @@ namespace acl
 	{
 		inline void quantize_fixed_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, RotationTrackStream& out_quantized_stream)
 		{
-			// We expect all our samples to have the same width of sizeof(Vector4_64)
-			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_64), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_64));
+			// We expect all our samples to have the same width of sizeof(Vector4_32)
+			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(raw_stream.get_rotation_format() == RotationFormat8::Quat_128, "Expected a Quat_128 rotation format, found: %s", get_rotation_format_name(raw_stream.get_rotation_format()));
 
 			uint32_t num_samples = raw_stream.get_num_samples();
@@ -53,22 +53,22 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_64 rotation = raw_stream.get_raw_sample<Quat_64>(sample_index);
+				Quat_32 rotation = raw_stream.get_raw_sample<Quat_32>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
 				switch (rotation_format)
 				{
 				case RotationFormat8::Quat_128:
-					pack_vector4_128(quat_to_vector(quat_cast(rotation)), quantized_ptr);
+					pack_vector4_128(quat_to_vector(rotation), quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_96:
-					pack_vector3_96(quat_to_vector(quat_cast(rotation)), quantized_ptr);
+					pack_vector3_96(quat_to_vector(rotation), quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_48:
-					pack_vector3_48(quat_to_vector(quat_cast(rotation)), quantized_ptr);
+					pack_vector3_48(quat_to_vector(rotation), quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_32:
-					pack_vector3_32<11, 11, 10>(quat_to_vector(quat_cast(rotation)), quantized_ptr);
+					pack_vector3_32<11, 11, 10>(quat_to_vector(rotation), quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_Variable:
 				default:
@@ -104,8 +104,8 @@ namespace acl
 
 		inline void quantize_fixed_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, uint8_t bit_rate, RotationTrackStream& out_quantized_stream)
 		{
-			// We expect all our samples to have the same width of sizeof(Vector4_64)
-			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_64), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_64));
+			// We expect all our samples to have the same width of sizeof(Vector4_32)
+			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(raw_stream.get_rotation_format() == RotationFormat8::Quat_128, "Expected a Quat_128 rotation format, found: %s", get_rotation_format_name(raw_stream.get_rotation_format()));
 
 			uint32_t num_samples = raw_stream.get_num_samples();
@@ -117,10 +117,10 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_64 rotation = raw_stream.get_raw_sample<Quat_64>(sample_index);
+				Quat_32 rotation = raw_stream.get_raw_sample<Quat_32>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
-				pack_vector3_n(quat_to_vector(quat_cast(rotation)), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+				pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
 			}
 
 			out_quantized_stream = std::move(quantized_stream);
@@ -149,8 +149,8 @@ namespace acl
 
 		inline void quantize_fixed_translation_stream(Allocator& allocator, const TranslationTrackStream& raw_stream, VectorFormat8 translation_format, TranslationTrackStream& out_quantized_stream)
 		{
-			// We expect all our samples to have the same width of sizeof(Vector4_64)
-			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_64), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_64));
+			// We expect all our samples to have the same width of sizeof(Vector4_32)
+			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			uint32_t num_samples = raw_stream.get_num_samples();
@@ -160,19 +160,19 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Vector4_64 translation = raw_stream.get_raw_sample<Vector4_64>(sample_index);
+				Vector4_32 translation = raw_stream.get_raw_sample<Vector4_32>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
 				switch (translation_format)
 				{
 				case VectorFormat8::Vector3_96:
-					pack_vector3_96(vector_cast(translation), quantized_ptr);
+					pack_vector3_96(translation, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_48:
-					pack_vector3_48(vector_cast(translation), quantized_ptr);
+					pack_vector3_48(translation, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_32:
-					pack_vector3_32<11, 11, 10>(vector_cast(translation), quantized_ptr);
+					pack_vector3_32<11, 11, 10>(translation, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_Variable:
 				default:
@@ -204,8 +204,8 @@ namespace acl
 
 		inline void quantize_fixed_translation_stream(Allocator& allocator, const TranslationTrackStream& raw_stream, uint8_t bit_rate, TranslationTrackStream& out_quantized_stream)
 		{
-			// We expect all our samples to have the same width of sizeof(Vector4_64)
-			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_64), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_64));
+			// We expect all our samples to have the same width of sizeof(Vector4_32)
+			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			uint32_t num_samples = raw_stream.get_num_samples();
@@ -217,10 +217,10 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Vector4_64 translation = raw_stream.get_raw_sample<Vector4_64>(sample_index);
+				Vector4_32 translation = raw_stream.get_raw_sample<Vector4_32>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
-				pack_vector3_n(vector_cast(translation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+				pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
 			}
 
 			out_quantized_stream = std::move(quantized_stream);
@@ -268,14 +268,14 @@ namespace acl
 				quantize_fixed_translation_streams(allocator, quantized_streams, num_bones, translation_format);
 
 			uint32_t num_samples = get_animated_num_samples(bone_streams, num_bones);
-			double sample_rate = double(bone_streams[0].rotations.get_sample_rate());
-			double error_threshold = clip.get_error_threshold();
-			double clip_duration = clip.get_duration();
-			double error = std::numeric_limits<double>::max();
+			float sample_rate = float(bone_streams[0].rotations.get_sample_rate());
+			float error_threshold = clip.get_error_threshold();
+			float clip_duration = clip.get_duration();
+			float error = std::numeric_limits<float>::max();
 
-			Transform_64* raw_local_pose = allocate_type_array<Transform_64>(allocator, num_bones);
-			Transform_64* lossy_local_pose = allocate_type_array<Transform_64>(allocator, num_bones);
-			double* error_per_bone = allocate_type_array<double>(allocator, num_bones);
+			Transform_32* raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
+			Transform_32* lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
+			float* error_per_bone = allocate_type_array<float>(allocator, num_bones);
 			BoneTrackError* error_per_stream = allocate_type_array<BoneTrackError>(allocator, num_bones);
 
 			uint32_t bitset_size = get_bitset_size(num_bones);
@@ -286,15 +286,15 @@ namespace acl
 			// While we are above our precision threshold, iterate
 			while (error > error_threshold)
 			{
-				error = 0.0;
+				error = 0.0f;
 
 				// Scan the whole clip, and find the bone with the worst error across the whole clip
 				uint16_t bad_bone_index = INVALID_BONE_INDEX;
-				double worst_clip_error = error_threshold;
+				float worst_clip_error = error_threshold;
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
 					// Sample our streams and calculate the error
-					double sample_time = min(double(sample_index) / sample_rate, clip_duration);
+					float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
 					clip.sample_pose(sample_time, raw_local_pose, num_bones);
 					sample_streams(quantized_streams, num_bones, sample_index, lossy_local_pose);
@@ -328,7 +328,7 @@ namespace acl
 
 				uint16_t target_bone_index = INVALID_BONE_INDEX;
 				AnimationTrackType8 target_track_type = AnimationTrackType8::Rotation;
-				double worst_track_error = 0.0;
+				float worst_track_error = 0.0f;
 
 				// We search starting at the root bone, by increasing the precision of a bone higher up, we retain more children
 				// with lower precision, and keep the memory footprint lower as a result

@@ -27,36 +27,36 @@
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
 #include "acl/core/utils.h"
-#include "acl/math/quat_64.h"
+#include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
-#include "acl/math/vector4_64.h"
+#include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
-#include "acl/math/transform_64.h"
+#include "acl/math/transform_32.h"
 #include "acl/compression/stream/track_stream.h"
 
 #include <stdint.h>
 
 namespace acl
 {
-	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, double sample_time, Transform_64* out_local_pose)
+	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, Transform_32* out_local_pose)
 	{
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 
-			Quat_64 rotation;
+			Quat_32 rotation;
 			if (bone_stream.is_rotation_animated())
 			{
 				uint32_t num_samples = bone_stream.rotations.get_num_samples();
-				double duration = bone_stream.rotations.get_duration();
+				float duration = bone_stream.rotations.get_duration();
 
 				uint32_t key0;
 				uint32_t key1;
-				double interpolation_alpha;
+				float interpolation_alpha;
 				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
 
-				Quat_64 sample0 = bone_stream.get_rotation_sample(key0);
-				Quat_64 sample1 = bone_stream.get_rotation_sample(key1);
+				Quat_32 sample0 = bone_stream.get_rotation_sample(key0);
+				Quat_32 sample1 = bone_stream.get_rotation_sample(key1);
 				rotation = quat_lerp(sample0, sample1, interpolation_alpha);
 			}
 			else
@@ -64,19 +64,19 @@ namespace acl
 				rotation = bone_stream.get_rotation_sample(0);
 			}
 
-			Vector4_64 translation;
+			Vector4_32 translation;
 			if (bone_stream.is_translation_animated())
 			{
 				uint32_t num_samples = bone_stream.translations.get_num_samples();
-				double duration = bone_stream.translations.get_duration();
+				float duration = bone_stream.translations.get_duration();
 
 				uint32_t key0;
 				uint32_t key1;
-				double interpolation_alpha;
+				float interpolation_alpha;
 				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
 
-				Vector4_64 sample0 = bone_stream.get_translation_sample(key0);
-				Vector4_64 sample1 = bone_stream.get_translation_sample(key1);
+				Vector4_32 sample0 = bone_stream.get_translation_sample(key0);
+				Vector4_32 sample1 = bone_stream.get_translation_sample(key1);
 				translation = vector_lerp(sample0, sample1, interpolation_alpha);
 			}
 			else
@@ -88,17 +88,17 @@ namespace acl
 		}
 	}
 
-	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t sample_index, Transform_64* out_local_pose)
+	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t sample_index, Transform_32* out_local_pose)
 	{
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 
 			uint32_t rotation_sample_index = bone_stream.is_rotation_animated() ? sample_index : 0;
-			Quat_64 rotation = bone_stream.get_rotation_sample(rotation_sample_index);
+			Quat_32 rotation = bone_stream.get_rotation_sample(rotation_sample_index);
 
 			uint32_t translation_sample_index = bone_stream.is_translation_animated() ? sample_index : 0;
-			Vector4_64 translation = bone_stream.get_translation_sample(translation_sample_index);
+			Vector4_32 translation = bone_stream.get_translation_sample(translation_sample_index);
 
 			out_local_pose[bone_index] = transform_set(rotation, translation);
 		}

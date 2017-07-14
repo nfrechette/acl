@@ -27,9 +27,9 @@
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
 #include "acl/core/track_types.h"
-#include "acl/math/quat_64.h"
+#include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
-#include "acl/math/vector4_64.h"
+#include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
 
 #include <stdint.h>
@@ -74,10 +74,10 @@ namespace acl
 		AnimationTrackType8 get_track_type() const { return m_type; }
 		uint8_t get_bit_rate() const { return m_bit_rate; }
 		bool is_bit_rate_variable() const { return m_bit_rate != INVALID_BIT_RATE; }
-		double get_duration() const
+		float get_duration() const
 		{
 			ACL_ENSURE(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
-			return (m_num_samples - 1) * (1.0 / m_sample_rate);
+			return float(m_num_samples - 1) / float(m_sample_rate);
 		}
 
 	protected:
@@ -219,26 +219,26 @@ namespace acl
 	{
 	public:
 		TrackStreamRange()
-			: m_min(vector_set(0.0))
-			, m_max(vector_set(0.0))
+			: m_min(vector_set(0.0f))
+			, m_max(vector_set(0.0f))
 		{}
 
-		TrackStreamRange(const Vector4_64& min, const Vector4_64& max)
+		TrackStreamRange(const Vector4_32& min, const Vector4_32& max)
 			: m_min(min)
 			, m_max(max)
 		{}
 
-		Vector4_64 get_min() const { return m_min; }
-		Vector4_64 get_max() const { return m_max; }
+		Vector4_32 get_min() const { return m_min; }
+		Vector4_32 get_max() const { return m_max; }
 
-		Vector4_64 get_center() const { return vector_mul(vector_add(m_max, m_min), 0.5); }
-		Vector4_64 get_extent() const { return vector_sub(m_max, m_min); }
+		Vector4_32 get_center() const { return vector_mul(vector_add(m_max, m_min), 0.5f); }
+		Vector4_32 get_extent() const { return vector_sub(m_max, m_min); }
 
-		bool is_constant(double threshold) const { return vector_all_less_than(vector_abs(vector_sub(m_max, m_min)), vector_set(threshold)); }
+		bool is_constant(float threshold) const { return vector_all_less_than(vector_abs(vector_sub(m_max, m_min)), vector_set(threshold)); }
 
 	private:
-		Vector4_64	m_min;
-		Vector4_64	m_max;
+		Vector4_32	m_min;
+		Vector4_32	m_max;
 	};
 
 	struct BoneStreams
@@ -275,44 +275,29 @@ namespace acl
 			return copy;
 		}
 
-		Quat_64 get_rotation_sample(uint32_t sample_index) const
+		Quat_32 get_rotation_sample(uint32_t sample_index) const
 		{
 			const uint8_t* quantized_ptr = rotations.get_raw_sample_ptr(sample_index);
-			bool is_raw_precision = rotations.get_sample_size() == sizeof(Quat_64);
 
 			Vector4_32 packed_rotation;
-			Vector4_64 packed_raw_rotation;
 
 			RotationFormat8 format = rotations.get_rotation_format();
 			switch (format)
 			{
 			case RotationFormat8::Quat_128:
-				if (is_raw_precision)
-					packed_raw_rotation = vector_unaligned_load(safe_ptr_cast<const double>(quantized_ptr));
-				else
-					packed_rotation = vector_to_quat(unpack_vector4_128(quantized_ptr));
+				packed_rotation = vector_to_quat(unpack_vector4_128(quantized_ptr));
 				break;
 			case RotationFormat8::QuatDropW_96:
-				if (is_raw_precision)
-					packed_raw_rotation = vector_unaligned_load(safe_ptr_cast<const double>(quantized_ptr));
-				else
-					packed_rotation = vector_to_quat(unpack_vector3_96(quantized_ptr));
+				packed_rotation = vector_to_quat(unpack_vector3_96(quantized_ptr));
 				break;
 			case RotationFormat8::QuatDropW_48:
-				if (is_raw_precision)
-					packed_raw_rotation = vector_unaligned_load(safe_ptr_cast<const double>(quantized_ptr));
-				else
-					packed_rotation = vector_to_quat(unpack_vector3_48(quantized_ptr));
+				packed_rotation = vector_to_quat(unpack_vector3_48(quantized_ptr));
 				break;
 			case RotationFormat8::QuatDropW_32:
-				if (is_raw_precision)
-					packed_raw_rotation = vector_unaligned_load(safe_ptr_cast<const double>(quantized_ptr));
-				else
-					packed_rotation = vector_to_quat(unpack_vector3_32<11, 11, 10>(quantized_ptr));
+				packed_rotation = vector_to_quat(unpack_vector3_32<11, 11, 10>(quantized_ptr));
 				break;
 			case RotationFormat8::QuatDropW_Variable:
 				{
-					ACL_ENSURE(!is_raw_precision, "Raw precision not supported");
 					uint8_t bit_rate = rotations.get_bit_rate();
 					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 					packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
@@ -326,46 +311,38 @@ namespace acl
 
 			if (are_rotations_normalized)
 			{
-				Vector4_64 clip_range_min = rotation_range.get_min();
-				Vector4_64 clip_range_extent = rotation_range.get_extent();
+				Vector4_32 clip_range_min = rotation_range.get_min();
+				Vector4_32 clip_range_extent = rotation_range.get_extent();
 
-				if (is_raw_precision)
-					packed_raw_rotation = vector_mul_add(packed_raw_rotation, clip_range_extent, clip_range_min);
-				else
-					packed_rotation = vector_mul_add(packed_rotation, vector_cast(clip_range_extent), vector_cast(clip_range_min));
+				packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 			}
 
 			switch (format)
 			{
 			case RotationFormat8::Quat_128:
-				return is_raw_precision ? vector_to_quat(packed_raw_rotation) : quat_cast(vector_to_quat(packed_rotation));
+				return vector_to_quat(packed_rotation);
 			case RotationFormat8::QuatDropW_96:
 			case RotationFormat8::QuatDropW_48:
 			case RotationFormat8::QuatDropW_32:
 			case RotationFormat8::QuatDropW_Variable:
-				return is_raw_precision ? quat_from_positive_w(packed_raw_rotation) : quat_cast(quat_from_positive_w(packed_rotation));
+				return quat_from_positive_w(packed_rotation);
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
-				return quat_identity_64();
+				return quat_identity_32();
 			}
 		}
 
-		Vector4_64 get_translation_sample(uint32_t sample_index) const
+		Vector4_32 get_translation_sample(uint32_t sample_index) const
 		{
 			const uint8_t* quantized_ptr = translations.get_raw_sample_ptr(sample_index);
-			bool is_raw_precision = translations.get_sample_size() == sizeof(Vector4_64);
 
 			Vector4_32 packed_translation;
-			Vector4_64 packed_raw_translation;
 
 			VectorFormat8 format = translations.get_vector_format();
 			switch (format)
 			{
 			case VectorFormat8::Vector3_96:
-				if (is_raw_precision)
-					packed_raw_translation = vector_unaligned_load(safe_ptr_cast<const double>(quantized_ptr));
-				else
-					packed_translation = unpack_vector3_96(quantized_ptr);
+				packed_translation = unpack_vector3_96(quantized_ptr);
 				break;
 			case VectorFormat8::Vector3_48:
 				packed_translation = unpack_vector3_48(quantized_ptr);
@@ -375,7 +352,6 @@ namespace acl
 				break;
 			case VectorFormat8::Vector3_Variable:
 				{
-					ACL_ENSURE(!is_raw_precision, "Raw precision not supported");
 					uint8_t bit_rate = translations.get_bit_rate();
 					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 					packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
@@ -389,16 +365,13 @@ namespace acl
 
 			if (are_translations_normalized)
 			{
-				Vector4_64 clip_range_min = translation_range.get_min();
-				Vector4_64 clip_range_extent = translation_range.get_extent();
+				Vector4_32 clip_range_min = translation_range.get_min();
+				Vector4_32 clip_range_extent = translation_range.get_extent();
 
-				if (is_raw_precision)
-					packed_raw_translation = vector_mul_add(packed_raw_translation, clip_range_extent, clip_range_min);
-				else
-					packed_translation = vector_mul_add(packed_translation, vector_cast(clip_range_extent), vector_cast(clip_range_min));
+				packed_translation = vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
 			}
 
-			return is_raw_precision ? packed_raw_translation : vector_cast(packed_translation);
+			return packed_translation;
 		}
 	};
 

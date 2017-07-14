@@ -100,7 +100,7 @@ namespace acl
 
 			BoneStreams* bone_streams = convert_clip_to_streams(allocator, clip);
 			convert_rotation_streams(allocator, bone_streams, num_bones, settings.rotation_format);
-			compact_constant_streams(allocator, bone_streams, num_bones, 0.00001);
+			compact_constant_streams(allocator, bone_streams, num_bones, 0.00001f);
 
 			uint32_t clip_range_data_size = 0;
 			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))

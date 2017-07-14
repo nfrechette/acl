@@ -26,8 +26,8 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
-#include "acl/math/quat_64.h"
-#include "acl/math/vector4_64.h"
+#include "acl/math/quat_32.h"
+#include "acl/math/vector4_32.h"
 #include "acl/compression/stream/track_stream.h"
 
 #include <stdint.h>
@@ -43,17 +43,17 @@ namespace acl
 		{
 			BoneStreams& bone_stream = bone_streams[bone_index];
 
-			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored at Quat_64
-			// For all other formats, we keep the same sample size and either keep Quat_64 or use Vector4_64
-			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Quat_64), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_64));
+			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored at Quat_32
+			// For all other formats, we keep the same sample size and either keep Quat_32 or use Vector4_32
+			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
 
-			Vector4_64 rotation_min = vector_set(1e10);
-			Vector4_64 rotation_max = vector_set(-1e10);
+			Vector4_32 rotation_min = vector_set(1e10f);
+			Vector4_32 rotation_max = vector_set(-1e10f);
 
 			uint32_t num_samples = bone_stream.rotations.get_num_samples();
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_64 rotation = bone_stream.rotations.get_raw_sample<Quat_64>(sample_index);
+				Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
 
 				switch (rotation_format)
 				{

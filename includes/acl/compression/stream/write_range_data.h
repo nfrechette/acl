@@ -28,9 +28,9 @@
 #include "acl/core/error.h"
 #include "acl/core/enum_utils.h"
 #include "acl/core/track_types.h"
-#include "acl/math/quat_64.h"
+#include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
-#include "acl/math/vector4_64.h"
+#include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/stream/track_stream.h"
 
@@ -81,8 +81,8 @@ namespace acl
 
 			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
 			{
-				Vector4_32 range_min = vector_cast(bone_stream.rotation_range.get_min());
-				Vector4_32 range_extent = vector_cast(bone_stream.rotation_range.get_extent());
+				Vector4_32 range_min = bone_stream.rotation_range.get_min();
+				Vector4_32 range_extent = bone_stream.rotation_range.get_extent();
 
 				memcpy(range_data, vector_as_float_ptr(range_min), rotation_size);
 				range_data += rotation_size;
@@ -92,8 +92,8 @@ namespace acl
 
 			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
 			{
-				Vector4_32 range_min = vector_cast(bone_stream.translation_range.get_min());
-				Vector4_32 range_extent = vector_cast(bone_stream.translation_range.get_extent());
+				Vector4_32 range_min = bone_stream.translation_range.get_min();
+				Vector4_32 range_extent = bone_stream.translation_range.get_extent();
 
 				memcpy(range_data, vector_as_float_ptr(range_min), translation_size);
 				range_data += translation_size;

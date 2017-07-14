@@ -47,7 +47,7 @@ struct OutputWriterImpl : public OutputWriter
 {
 	OutputWriterImpl(Allocator& allocator, uint16_t num_bones)
 		: m_allocator(allocator)
-		, m_transforms(allocate_type_array<Transform_64>(allocator, num_bones))
+		, m_transforms(allocate_type_array<Transform_32>(allocator, num_bones))
 		, m_num_bones(num_bones)
 	{}
 
@@ -59,17 +59,17 @@ struct OutputWriterImpl : public OutputWriter
 	void write_bone_rotation(uint32_t bone_index, const Quat_32& rotation)
 	{
 		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
-		m_transforms[bone_index].rotation = quat_cast(rotation);
+		m_transforms[bone_index].rotation = rotation;
 	}
 
 	void write_bone_translation(uint32_t bone_index, const Vector4_32& translation)
 	{
 		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
-		m_transforms[bone_index].translation = vector_cast(translation);
+		m_transforms[bone_index].translation = translation;
 	}
 
 	Allocator& m_allocator;
-	Transform_64* m_transforms;
+	Transform_32* m_transforms;
 	uint16_t m_num_bones;
 };
 
@@ -203,26 +203,22 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 	using namespace acl;
 
 	uint16_t num_bones = clip.get_num_bones();
-	Transform_64* raw_pose_transforms = allocate_type_array<Transform_64>(allocator, num_bones);
+	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-	Transform_64* lossy_pose_transforms_64 = allocate_type_array<Transform_64>(allocator, num_bones);
-	double* error_per_bone = allocate_type_array<double>(allocator, num_bones);
+	float* error_per_bone = allocate_type_array<float>(allocator, num_bones);
 
 	uint16_t worst_bone = INVALID_BONE_INDEX;
-	double max_error = -1.0;
-	double worst_sample_time = 0.0;
-	double sample_time = 0.0;
-	double clip_duration = clip.get_duration();
-	double sample_increment = 1.0 / clip.get_sample_rate();
+	float max_error = -1.0f;
+	float worst_sample_time = 0.0f;
+	float sample_time = 0.0f;
+	float clip_duration = clip.get_duration();
+	float sample_increment = 1.0f / clip.get_sample_rate();
 	while (sample_time < clip_duration)
 	{
 		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
-		algorithm.decompress_pose(compressed_clip, (float)sample_time, lossy_pose_transforms, num_bones);
+		algorithm.decompress_pose(compressed_clip, sample_time, lossy_pose_transforms, num_bones);
 
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-			lossy_pose_transforms_64[bone_index] = transform_cast(lossy_pose_transforms[bone_index]);
-
-		calculate_skeleton_error(allocator, skeleton, raw_pose_transforms, lossy_pose_transforms_64, error_per_bone);
+		calculate_skeleton_error(allocator, skeleton, raw_pose_transforms, lossy_pose_transforms, error_per_bone);
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
@@ -240,12 +236,9 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 	// Make sure we test the last sample time possible as well
 	{
 		clip.sample_pose(clip_duration, raw_pose_transforms, num_bones);
-		algorithm.decompress_pose(compressed_clip, (float)clip_duration, lossy_pose_transforms, num_bones);
+		algorithm.decompress_pose(compressed_clip, clip_duration, lossy_pose_transforms, num_bones);
 
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-			lossy_pose_transforms_64[bone_index] = transform_cast(lossy_pose_transforms[bone_index]);
-
-		calculate_skeleton_error(allocator, skeleton, raw_pose_transforms, lossy_pose_transforms_64, error_per_bone);
+		calculate_skeleton_error(allocator, skeleton, raw_pose_transforms, lossy_pose_transforms, error_per_bone);
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
@@ -265,14 +258,13 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 		uint16_t sample_bone_index = num_bones - 1;
 		Quat_32 test_rotation;
 		Vector4_32 test_translation;
-		algorithm.decompress_bone(compressed_clip, (float)clip_duration, sample_bone_index, &test_rotation, &test_translation);
+		algorithm.decompress_bone(compressed_clip, clip_duration, sample_bone_index, &test_rotation, &test_translation);
 		ACL_ENSURE(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
 		ACL_ENSURE(vector_near_equal3(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
 	}
 
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-	deallocate_type_array(allocator, lossy_pose_transforms_64, num_bones);
 	deallocate_type_array(allocator, error_per_bone, num_bones);
 
 	return BoneError{worst_bone, max_error, worst_sample_time};

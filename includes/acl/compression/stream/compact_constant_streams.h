@@ -26,14 +26,14 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
-#include "acl/math/vector4_64.h"
+#include "acl/math/vector4_32.h"
 #include "acl/compression/stream/track_stream.h"
 
 #include <stdint.h>
 
 namespace acl
 {
-	inline void compact_constant_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, double threshold)
+	inline void compact_constant_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, float threshold)
 	{
 		// When a stream is constant, we only keep the first sample
 
@@ -41,32 +41,32 @@ namespace acl
 		{
 			BoneStreams& bone_stream = bone_streams[bone_index];
 
-			// We expect all our samples to have the same width of sizeof(Vector4_64)
-			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_64), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_64));
-			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_64), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_64));
+			// We expect all our samples to have the same width of sizeof(Vector4_32)
+			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
+			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
 
 			if (bone_stream.rotation_range.is_constant(threshold))
 			{
 				RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
-				Vector4_64 rotation = bone_stream.rotations.get_raw_sample<Vector4_64>(0);
+				Vector4_32 rotation = bone_stream.rotations.get_raw_sample<Vector4_32>(0);
 				constant_stream.set_raw_sample(0, rotation);
 
 				bone_stream.rotations = std::move(constant_stream);
 				bone_stream.rotation_range = TrackStreamRange(rotation, rotation);
 				bone_stream.is_rotation_constant = true;
-				bone_stream.is_rotation_default = quat_near_identity(quat_cast(vector_to_quat(rotation)));
+				bone_stream.is_rotation_default = quat_near_identity(vector_to_quat(rotation));
 			}
 
 			if (bone_stream.translation_range.is_constant(threshold))
 			{
 				TranslationTrackStream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
-				Vector4_64 translation = bone_stream.translations.get_raw_sample<Vector4_64>(0);
+				Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(0);
 				constant_stream.set_raw_sample(0, translation);
 
 				bone_stream.translations = std::move(constant_stream);
 				bone_stream.translation_range = TrackStreamRange(translation, translation);
 				bone_stream.is_translation_constant = true;
-				bone_stream.is_translation_default = vector_near_equal(vector_cast(translation), vector_zero_32());
+				bone_stream.is_translation_default = vector_near_equal(translation, vector_zero_32());
 			}
 		}
 	}

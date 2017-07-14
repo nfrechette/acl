@@ -28,7 +28,7 @@
 #include "acl/core/string.h"
 #include "acl/math/quat_64.h"		// todo remove
 #include "acl/math/vector4_64.h"	// todo remove
-#include "acl/math/transform_64.h"
+#include "acl/math/transform_32.h"
 
 #include <stdint.h>
 
@@ -138,7 +138,7 @@ namespace acl
 	};
 
 	// Note: It is safe for both pose buffers to alias since the data is sorted parent first
-	inline void local_to_object_space(const RigidSkeleton& skeleton, const Transform_64* local_pose, Transform_64* out_object_pose)
+	inline void local_to_object_space(const RigidSkeleton& skeleton, const Transform_32* local_pose, Transform_32* out_object_pose)
 	{
 		uint16_t num_bones = skeleton.get_num_bones();
 		const RigidBone* bones = skeleton.get_bones();
@@ -157,7 +157,7 @@ namespace acl
 	}
 
 	// Note: It is safe for both pose buffers to alias since the data is sorted parent first
-	inline void object_to_local_space(const RigidSkeleton& skeleton, const Transform_64* object_pose, Transform_64* out_local_pose)
+	inline void object_to_local_space(const RigidSkeleton& skeleton, const Transform_32* object_pose, Transform_32* out_local_pose)
 	{
 		uint16_t num_bones = skeleton.get_num_bones();
 		const RigidBone* bones = skeleton.get_bones();
@@ -170,7 +170,7 @@ namespace acl
 			uint16_t parent_bone_index = bones[bone_index].parent_index;
 			ACL_ENSURE(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
 
-			Transform_64 inv_parent_transform = transform_inverse(object_pose[parent_bone_index]);
+			Transform_32 inv_parent_transform = transform_inverse(object_pose[parent_bone_index]);
 			out_local_pose[bone_index] = transform_mul(inv_parent_transform, object_pose[bone_index]);
 			out_local_pose[bone_index].rotation = quat_normalize(out_local_pose[bone_index].rotation);
 		}
