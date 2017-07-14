@@ -20,9 +20,6 @@ to compare them fairly.
 Much thought was put into designing the library for it to be as flexible and powerful as possible. To this end, the following decisions were made:
 
 *  The library consists of 100% C++ header files and is thus easy to integrate in any game engine
-*  We implement our own math types and functions in order to support 32 and 64 bit floating point math
-*  Compression is primarily performed with 64 bit floating point math for maximum precision
-*  Decompression is entirely performed with 32 bit floating point math for maximum speed
 *  [An intermediary clip format](https://github.com/nfrechette/acl/wiki/The-ACL-file-format) is supported in order to facilitate debugging and bug reporting
 *  All allocations use a [game provided allocator](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/memory.h)
 *  All asserts use a [game provided macro](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/error.h)
