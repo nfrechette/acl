@@ -36,9 +36,6 @@ namespace acl
 {
 	inline void convert_rotation_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format)
 	{
-		if (rotation_format == RotationFormat8::Quat_128)
-			return;	// Original format, nothing to do
-
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			BoneStreams& bone_stream = bone_streams[bone_index];
@@ -47,37 +44,41 @@ namespace acl
 			// For all other formats, we keep the same sample size and either keep Quat_32 or use Vector4_32
 			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
 
+			RotationFormat8 high_precision_format = get_rotation_variant(rotation_format) == RotationVariant8::Quat ? RotationFormat8::Quat_128 : RotationFormat8::QuatDropW_96;
+
+			uint32_t num_samples = bone_stream.rotations.get_num_samples();
+			uint32_t sample_rate = bone_stream.rotations.get_sample_rate();
+			RotationTrackStream converted_stream(allocator, num_samples, sizeof(Vector4_32), sample_rate, high_precision_format);
+
 			Vector4_32 rotation_min = vector_set(1e10f);
 			Vector4_32 rotation_max = vector_set(-1e10f);
 
-			uint32_t num_samples = bone_stream.rotations.get_num_samples();
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
 
-				switch (rotation_format)
+				switch (high_precision_format)
 				{
 				case RotationFormat8::Quat_128:
 					// Original format, nothing to do
 					break;
 				case RotationFormat8::QuatDropW_96:
-				case RotationFormat8::QuatDropW_48:
-				case RotationFormat8::QuatDropW_32:
-				case RotationFormat8::QuatDropW_Variable:
 					// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 					rotation = quat_ensure_positive_w(rotation);
-					bone_stream.rotations.set_raw_sample(sample_index, rotation);
 					break;
 				default:
-					ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
+					ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(high_precision_format));
 					break;
 				}
+
+				converted_stream.set_raw_sample(sample_index, rotation);
 
 				rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
 				rotation_max = vector_max(rotation_max, quat_to_vector(rotation));
 			}
 
 			bone_stream.rotation_range = TrackStreamRange(rotation_min, rotation_max);
+			bone_stream.rotations = std::move(converted_stream);
 		}
 	}
 }

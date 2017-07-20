@@ -44,7 +44,6 @@ namespace acl
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
-			ACL_ENSURE(raw_stream.get_rotation_format() == RotationFormat8::Quat_128, "Expected a Quat_128 rotation format, found: %s", get_rotation_format_name(raw_stream.get_rotation_format()));
 
 			uint32_t num_samples = raw_stream.get_num_samples();
 			uint32_t rotation_sample_size = get_packed_rotation_size(rotation_format);
@@ -106,7 +105,6 @@ namespace acl
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
-			ACL_ENSURE(raw_stream.get_rotation_format() == RotationFormat8::Quat_128, "Expected a Quat_128 rotation format, found: %s", get_rotation_format_name(raw_stream.get_rotation_format()));
 
 			uint32_t num_samples = raw_stream.get_num_samples();
 			uint32_t sample_size = sizeof(uint64_t);
@@ -273,6 +271,13 @@ namespace acl
 			float clip_duration = clip.get_duration();
 			float error = std::numeric_limits<float>::max();
 
+			// TODO: Use the original un-quantized bone streams?
+			// It seems to yield a smaller memory footprint but it could be dangerous since our data diverges from
+			// the 64bit original clip and we might also be normalized, adding further loss
+			// Basically by using the bone streams, the error we measure is compared to the possibly normalized,
+			// converted rotations, etc.
+			constexpr bool use_clip_as_ref = true;
+
 			Transform_32* raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 			Transform_32* lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 			float* error_per_bone = allocate_type_array<float>(allocator, num_bones);
@@ -296,8 +301,12 @@ namespace acl
 					// Sample our streams and calculate the error
 					float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
-					clip.sample_pose(sample_time, raw_local_pose, num_bones);
-					sample_streams(quantized_streams, num_bones, sample_index, lossy_local_pose);
+					if (use_clip_as_ref)
+						clip.sample_pose(sample_time, raw_local_pose, num_bones);
+					else
+						sample_streams(bone_streams, num_bones, sample_time, raw_local_pose);
+
+					sample_streams(quantized_streams, num_bones, sample_time, lossy_local_pose);
 
 					calculate_skeleton_error(allocator, skeleton, raw_local_pose, lossy_local_pose, error_per_bone);
 
@@ -388,11 +397,17 @@ namespace acl
 			}
 
 #if 0
+			error = 0.0f;
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+				error = max(error, error_per_bone[bone_index]);
+			printf("DUMPED ERROR: %f\n", error);
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				const BoneStreams& bone_stream = quantized_streams[bone_index];
-				printf("DUMPED RATE: %u (animated: %s, default: %s)\n", bone_stream.rotations.get_bit_rate(), bone_stream.is_rotation_animated() ? "t" : "f", bone_stream.is_rotation_default ? "t" : "f");
-				printf("DUMPED RATE: %u (animated: %s, default: %s)\n", bone_stream.translations.get_bit_rate(), bone_stream.is_translation_animated() ? "t" : "f", bone_stream.is_translation_default ? "t" : "f");
+				if (bone_stream.is_rotation_animated())
+					printf("DUMPED R RATE: %u\n", bone_stream.rotations.get_bit_rate());
+				if (bone_stream.is_translation_animated())
+					printf("DUMPED T RATE: %u\n", bone_stream.translations.get_bit_rate());
 			}
 #endif
 

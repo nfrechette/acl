@@ -46,7 +46,11 @@ namespace acl
 
 	inline float sqrt(float input)
 	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ps1(input)));
+#else
 		return std::sqrt(input);
+#endif
 	}
 
 	inline float sqrt_reciprocal(float input)
@@ -84,6 +88,16 @@ namespace acl
 	inline float max(float left, float right)
 	{
 		return std::max(left, right);
+	}
+
+	constexpr float deg2rad(float deg)
+	{
+		return (deg / 360.0f) * ACL_PI_32;
+	}
+
+	inline bool scalar_near_equal(float lhs, float rhs, float threshold)
+	{
+		return abs(lhs - rhs) < threshold;
 	}
 
 	inline float is_finite(float input)

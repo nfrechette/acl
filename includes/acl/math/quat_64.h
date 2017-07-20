@@ -235,16 +235,24 @@ namespace acl
 
 	inline Quat_64 quat_normalize(const Quat_64& input)
 	{
-		double length_recip = quat_length_reciprocal(input);
+		// TODO: Use high precision recip sqrt function and vector_mul
+		double length = quat_length(input);
+		//float length_recip = quat_length_reciprocal(input);
 		Vector4_64 input_vector = quat_to_vector(input);
-		return vector_to_quat(vector_mul(input_vector, length_recip));
+		//return vector_to_quat(vector_mul(input_vector, length_recip));
+		return vector_to_quat(vector_div(input_vector, vector_set(length)));
 	}
 
 	inline Quat_64 quat_lerp(const Quat_64& start, const Quat_64& end, double alpha)
 	{
+		// To ensure we take the shortest path, we apply a bias if the dot product is negative
 		Vector4_64 start_vector = quat_to_vector(start);
 		Vector4_64 end_vector = quat_to_vector(end);
-		Vector4_64 value = vector_add(start_vector, vector_mul(vector_sub(end_vector, start_vector), alpha));
+		double dot = vector_dot(start_vector, end_vector);
+		double bias = dot >= 0.0 ? 1.0 : -1.0;
+		// TODO: Test with this instead: Rotation = (B * Alpha) + (A * (Bias * (1.f - Alpha)));
+		Vector4_64 value = vector_add(start_vector, vector_mul(vector_sub(vector_mul(end_vector, bias), start_vector), alpha));
+		//Vector4_64 value = vector_add(vector_mul(end_vector, alpha), vector_mul(start_vector, bias * (1.0 - alpha)));
 		return quat_normalize(vector_to_quat(value));
 	}
 

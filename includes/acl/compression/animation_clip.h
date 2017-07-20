@@ -107,9 +107,9 @@ namespace acl
 			{
 				const AnimatedBone& bone = m_bones[bone_index];
 
-				Quat_32 rotation0 = quat_cast(bone.rotation_track.get_sample(sample_frame0));
-				Quat_32 rotation1 = quat_cast(bone.rotation_track.get_sample(sample_frame1));
-				Quat_32 rotation = quat_normalize(quat_lerp(rotation0, rotation1, interpolation_alpha));
+				Quat_32 rotation0 = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_frame0)));
+				Quat_32 rotation1 = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_frame1)));
+				Quat_32 rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
 
 				Vector4_32 translation0 = vector_cast(bone.translation_track.get_sample(sample_frame0));
 				Vector4_32 translation1 = vector_cast(bone.translation_track.get_sample(sample_frame1));

@@ -140,6 +140,66 @@ namespace acl
 	// Multiplication order is as follow: local_to_world = quat_mul(local_to_object, object_to_world)
 	inline Quat_32 quat_mul(const Quat_32& lhs, const Quat_32& rhs)
 	{
+#if defined(ACL_SSE4_INTRINSICS) && 0
+		// TODO: Profile this, the accuracy is the same as with SSE2, should be binary exact
+		constexpr __m128 signs_x = { 1.0f,  1.0f,  1.0f, -1.0f };
+		constexpr __m128 signs_y = { 1.0f, -1.0f,  1.0f,  1.0f };
+		constexpr __m128 signs_z = { 1.0f,  1.0f, -1.0f,  1.0f };
+		constexpr __m128 signs_w = { 1.0f, -1.0f, -1.0f, -1.0f };
+		// x = dot(rhs.wxyz, lhs.xwzy * signs_x)
+		// y = dot(rhs.wxyz, lhs.yzwx * signs_y)
+		// z = dot(rhs.wxyz, lhs.zyxw * signs_z)
+		// w = dot(rhs.wxyz, lhs.wxyz * signs_w)
+		__m128 rhs_wxyz = _mm_shuffle_ps(rhs, rhs, _MM_SHUFFLE(2, 1, 0, 3));
+		__m128 lhs_xwzy = _mm_shuffle_ps(lhs, lhs, _MM_SHUFFLE(1, 2, 3, 0));
+		__m128 lhs_yzwx = _mm_shuffle_ps(lhs, lhs, _MM_SHUFFLE(0, 3, 2, 1));
+		__m128 lhs_zyxw = _mm_shuffle_ps(lhs, lhs, _MM_SHUFFLE(3, 0, 1, 2));
+		__m128 lhs_wxyz = _mm_shuffle_ps(lhs, lhs, _MM_SHUFFLE(2, 1, 0, 3));
+		__m128 x = _mm_dp_ps(rhs_wxyz, _mm_mul_ps(lhs_xwzy, signs_x), 0xFF);
+		__m128 y = _mm_dp_ps(rhs_wxyz, _mm_mul_ps(lhs_yzwx, signs_y), 0xFF);
+		__m128 z = _mm_dp_ps(rhs_wxyz, _mm_mul_ps(lhs_zyxw, signs_z), 0xFF);
+		__m128 w = _mm_dp_ps(rhs_wxyz, _mm_mul_ps(lhs_wxyz, signs_w), 0xFF);
+		__m128 xxyy = _mm_shuffle_ps(x, y, _MM_SHUFFLE(0, 0, 0, 0));
+		__m128 zzww = _mm_shuffle_ps(z, w, _MM_SHUFFLE(0, 0, 0, 0));
+		return _mm_shuffle_ps(xxyy, zzww, _MM_SHUFFLE(2, 0, 2, 0));
+#elif defined(ACL_SSE2_INTRINSICS)
+		constexpr __m128 ControlWZYX = { 1.0f,-1.0f, 1.0f,-1.0f };
+		constexpr __m128 ControlZWXY = { 1.0f, 1.0f,-1.0f,-1.0f };
+		constexpr __m128 ControlYXWZ = { -1.0f, 1.0f, 1.0f,-1.0f };
+		// Copy to SSE registers and use as few as possible for x86
+		__m128 Q2X = rhs;
+		__m128 Q2Y = rhs;
+		__m128 Q2Z = rhs;
+		__m128 vResult = rhs;
+		// Splat with one instruction
+		vResult = _mm_shuffle_ps(vResult, vResult, _MM_SHUFFLE(3, 3, 3, 3));
+		Q2X = _mm_shuffle_ps(Q2X, Q2X,_MM_SHUFFLE(0, 0, 0, 0));
+		Q2Y = _mm_shuffle_ps(Q2Y, Q2Y,_MM_SHUFFLE(1, 1, 1, 1));
+		Q2Z = _mm_shuffle_ps(Q2Z, Q2Z,_MM_SHUFFLE(2, 2, 2, 2));
+		// Retire Q1 and perform Q1*Q2W
+		vResult = _mm_mul_ps(vResult, lhs);
+		__m128 Q1Shuffle = lhs;
+		// Shuffle the copies of Q1
+		Q1Shuffle = _mm_shuffle_ps(Q1Shuffle, Q1Shuffle,_MM_SHUFFLE(0, 1, 2, 3));
+		// Mul by Q1WZYX
+		Q2X = _mm_mul_ps(Q2X, Q1Shuffle);
+		Q1Shuffle = _mm_shuffle_ps(Q1Shuffle, Q1Shuffle,_MM_SHUFFLE(2, 3, 0, 1));
+		// Flip the signs on y and z
+		Q2X = _mm_mul_ps(Q2X, ControlWZYX);
+		// Mul by Q1ZWXY
+		Q2Y = _mm_mul_ps(Q2Y, Q1Shuffle);
+		Q1Shuffle = _mm_shuffle_ps(Q1Shuffle, Q1Shuffle,_MM_SHUFFLE(0, 1, 2, 3));
+		// Flip the signs on z and w
+		Q2Y = _mm_mul_ps(Q2Y, ControlZWXY);
+		// Mul by Q1YXWZ
+		Q2Z = _mm_mul_ps(Q2Z, Q1Shuffle);
+		vResult = _mm_add_ps(vResult, Q2X);
+		// Flip the signs on x and w
+		Q2Z = _mm_mul_ps(Q2Z, ControlYXWZ);
+		Q2Y = _mm_add_ps(Q2Y, Q2Z);
+		vResult = _mm_add_ps(vResult, Q2Y);
+		return vResult;
+#else
 		float lhs_x = quat_get_x(lhs);
 		float lhs_y = quat_get_y(lhs);
 		float lhs_z = quat_get_z(lhs);
@@ -156,6 +216,7 @@ namespace acl
 		float w = (rhs_w * lhs_w) - (rhs_x * lhs_x) - (rhs_y * lhs_y) - (rhs_z * lhs_z);
 
 		return quat_set(x, y, z, w);
+#endif
 	}
 
 	inline Vector4_32 quat_rotate(const Quat_32& rotation, const Vector4_32& vector)
@@ -229,10 +290,28 @@ namespace acl
 		return quat_set(s * vector_get_x(axis), s * vector_get_y(axis), s * vector_get_z(axis), c);
 	}
 
+	inline Quat_32 quat_from_euler(float pitch, float yaw, float roll)
+	{
+		float sp, sy, sr;
+		float cp, cy, cr;
+
+		sincos(pitch * 0.5f, sp, cp);
+		sincos(yaw * 0.5f, sy, cy);
+		sincos(roll * 0.5f, sr, cr);
+
+		return quat_set(cr * sp * sy - sr * cp * cy,
+						-cr * sp * cy - sr * cp * sy,
+						cr * cp * sy - sr * sp * cy,
+						cr * cp * cy + sr * sp * sy);
+	}
+
 	inline float quat_length_squared(const Quat_32& input)
 	{
-		// TODO: Use dot instruction
+#if defined(ACL_SSE4_INTRINSICS)
+		return _mm_cvtss_f32(_mm_dp_ps(input, input, 0xFF));
+#else
 		return (quat_get_x(input) * quat_get_x(input)) + (quat_get_y(input) * quat_get_y(input)) + (quat_get_z(input) * quat_get_z(input)) + (quat_get_w(input) * quat_get_w(input));
+#endif
 	}
 
 	inline float quat_length(const Quat_32& input)
@@ -244,21 +323,36 @@ namespace acl
 	inline float quat_length_reciprocal(const Quat_32& input)
 	{
 		// TODO: Use recip instruction
-		return 1.0f / quat_length(input);
+		return sqrt_reciprocal(quat_length_squared(input));
 	}
 
 	inline Quat_32 quat_normalize(const Quat_32& input)
 	{
-		float length_recip = quat_length_reciprocal(input);
+#if 0
+		// TODO: Use high precision recip sqrt function and vector_mul
+		__m128 three = _mm_set1_ps(3.0f), half = _mm_set1_ps(0.5f);
+		__m128 lensq = _mm_dp_ps(input, input, 0xFF);
+		__m128 res = _mm_rsqrt_ss(lensq);
+		__m128 muls = _mm_mul_ss(_mm_mul_ss(lensq, res), res);
+		__m128 invlensq = _mm_mul_ss(_mm_mul_ss(half, res), _mm_sub_ss(three, muls));
+		return _mm_mul_ps(input, _mm_shuffle_ps(invlensq, invlensq, _MM_SHUFFLE(0, 0, 0, 0)));
+#else
+		float length = quat_length(input);
 		Vector4_32 input_vector = quat_to_vector(input);
-		return vector_to_quat(vector_mul(input_vector, length_recip));
+		return vector_to_quat(vector_div(input_vector, vector_set(length)));
+#endif
 	}
 
 	inline Quat_32 quat_lerp(const Quat_32& start, const Quat_32& end, float alpha)
 	{
+		// To ensure we take the shortest path, we apply a bias if the dot product is negative
 		Vector4_32 start_vector = quat_to_vector(start);
 		Vector4_32 end_vector = quat_to_vector(end);
-		Vector4_32 value = vector_add(start_vector, vector_mul(vector_sub(end_vector, start_vector), alpha));
+		float dot = vector_dot(start_vector, end_vector);
+		float bias = dot >= 0.0f ? 1.0f : -1.0f;
+		// TODO: Test with this instead: Rotation = (B * Alpha) + (A * (Bias * (1.f - Alpha)));
+		Vector4_32 value = vector_add(start_vector, vector_mul(vector_sub(vector_mul(end_vector, bias), start_vector), alpha));
+		//Vector4_32 value = vector_add(vector_mul(end_vector, alpha), vector_mul(start_vector, bias * (1.0f - alpha)));
 		return quat_normalize(vector_to_quat(value));
 	}
 

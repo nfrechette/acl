@@ -285,16 +285,16 @@ namespace acl
 			switch (format)
 			{
 			case RotationFormat8::Quat_128:
-				packed_rotation = vector_to_quat(unpack_vector4_128(quantized_ptr));
+				packed_rotation = unpack_vector4_128(quantized_ptr);
 				break;
 			case RotationFormat8::QuatDropW_96:
-				packed_rotation = vector_to_quat(unpack_vector3_96(quantized_ptr));
+				packed_rotation = unpack_vector3_96(quantized_ptr);
 				break;
 			case RotationFormat8::QuatDropW_48:
-				packed_rotation = vector_to_quat(unpack_vector3_48(quantized_ptr));
+				packed_rotation = unpack_vector3_48(quantized_ptr);
 				break;
 			case RotationFormat8::QuatDropW_32:
-				packed_rotation = vector_to_quat(unpack_vector3_32<11, 11, 10>(quantized_ptr));
+				packed_rotation = unpack_vector3_32<11, 11, 10>(quantized_ptr);
 				break;
 			case RotationFormat8::QuatDropW_Variable:
 				{

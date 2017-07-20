@@ -210,11 +210,13 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 	uint16_t worst_bone = INVALID_BONE_INDEX;
 	float max_error = -1.0f;
 	float worst_sample_time = 0.0f;
-	float sample_time = 0.0f;
 	float clip_duration = clip.get_duration();
-	float sample_increment = 1.0f / clip.get_sample_rate();
-	while (sample_time < clip_duration)
+	uint32_t sample_rate = clip.get_sample_rate();
+	uint32_t num_samples = calculate_num_samples(clip_duration, sample_rate);
+	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
+		float sample_time = min(float(sample_index) / float(sample_rate), clip_duration);
+
 		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
 		algorithm.decompress_pose(compressed_clip, sample_time, lossy_pose_transforms, num_bones);
 
@@ -227,26 +229,6 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 				max_error = error_per_bone[bone_index];
 				worst_bone = bone_index;
 				worst_sample_time = sample_time;
-			}
-		}
-
-		sample_time += sample_increment;
-	}
-
-	// Make sure we test the last sample time possible as well
-	{
-		clip.sample_pose(clip_duration, raw_pose_transforms, num_bones);
-		algorithm.decompress_pose(compressed_clip, clip_duration, lossy_pose_transforms, num_bones);
-
-		calculate_skeleton_error(allocator, skeleton, raw_pose_transforms, lossy_pose_transforms, error_per_bone);
-
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			if (error_per_bone[bone_index] > max_error)
-			{
-				max_error = error_per_bone[bone_index];
-				worst_bone = bone_index;
-				worst_sample_time = clip_duration;
 			}
 		}
 	}

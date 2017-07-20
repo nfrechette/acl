@@ -5,9 +5,8 @@
 
 using namespace acl;
 
-static acl::Vector4_64 quat_rotate_scalar(const acl::Quat_64& rotation, const acl::Vector4_64& vector)
+static Vector4_64 quat_rotate_scalar(const Quat_64& rotation, const Vector4_64& vector)
 {
-	using namespace acl;
 	// (q.W*q.W-qv.qv)v + 2(qv.v)qv + 2 q.W (qv x v)
 	Vector4_64 qv = vector_set(quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation));
 	Vector4_64 vOut = vector_mul(vector_cross3(qv, vector), 2.0 * quat_get_w(rotation));
@@ -16,9 +15,8 @@ static acl::Vector4_64 quat_rotate_scalar(const acl::Quat_64& rotation, const ac
 	return vOut;
 }
 
-static acl::Quat_64 quat_mul_scalar(const acl::Quat_64& lhs, const acl::Quat_64& rhs)
+static Quat_64 quat_mul_scalar(const Quat_64& lhs, const Quat_64& rhs)
 {
-	using namespace acl;
 	double lhs_raw[4] = { quat_get_x(lhs), quat_get_y(lhs), quat_get_z(lhs), quat_get_w(lhs) };
 	double rhs_raw[4] = { quat_get_x(rhs), quat_get_y(rhs), quat_get_z(rhs), quat_get_w(rhs) };
 
@@ -31,7 +29,7 @@ static acl::Quat_64 quat_mul_scalar(const acl::Quat_64& lhs, const acl::Quat_64&
 }
 
 
-TEST_CASE("quat misc math", "[math][quat]")
+TEST_CASE("quat misc math 64", "[math][quat64]")
 {
 	constexpr double threshold = 1e-6;
 

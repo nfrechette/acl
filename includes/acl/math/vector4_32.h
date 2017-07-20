@@ -261,16 +261,29 @@ namespace acl
 		return vector_mul(input, -1.0f);
 	}
 
+	inline Vector4_32 vector_cross3(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+		return vector_set(vector_get_y(lhs) * vector_get_z(rhs) - vector_get_z(lhs) * vector_get_y(rhs),
+						  vector_get_z(lhs) * vector_get_x(rhs) - vector_get_x(lhs) * vector_get_z(rhs),
+						  vector_get_x(lhs) * vector_get_y(rhs) - vector_get_y(lhs) * vector_get_x(rhs));
+	}
+
 	inline float vector_dot(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
-		// TODO: Use dot instruction
+#if defined(ACL_SSE4_INTRINSICS)
+		return _mm_cvtss_f32(_mm_dp_ps(lhs, rhs, 0x7F));
+#else
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs)) + (vector_get_w(lhs) * vector_get_w(rhs));
+#endif
 	}
 
 	inline float vector_dot3(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
-		// TODO: Use dot instruction
+#if defined(ACL_SSE4_INTRINSICS)
+		return _mm_cvtss_f32(_mm_dp_ps(lhs, rhs, 0x7F));
+#else
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs));
+#endif
 	}
 
 	inline float vector_length_squared(const Vector4_32& input)
