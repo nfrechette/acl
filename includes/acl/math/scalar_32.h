@@ -75,6 +75,11 @@ namespace acl
 		out_cos = cos(angle);
 	}
 
+	inline float acos(float value)
+	{
+		return std::acos(value);
+	}
+
 	inline float atan2(float left, float right)
 	{
 		return std::atan2(left, right);
@@ -92,7 +97,7 @@ namespace acl
 
 	constexpr float deg2rad(float deg)
 	{
-		return (deg / 360.0f) * ACL_PI_32;
+		return (deg / 180.0f) * ACL_PI_32;
 	}
 
 	inline bool scalar_near_equal(float lhs, float rhs, float threshold)

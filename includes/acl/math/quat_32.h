@@ -231,19 +231,10 @@ namespace acl
 		constexpr float EPSILON = 1.0e-8f;
 		constexpr float EPSILON_SQUARED = EPSILON * EPSILON;
 
-		float real_length_squared = vector_length_squared3(quat_to_vector(input));
+		out_angle = acos(quat_get_w(input)) * 2.0f;
 
-		if (real_length_squared < EPSILON_SQUARED)
-		{
-			out_axis = vector_set(1.0f, 0.0f, 0.0f);
-			out_angle = 0.0f;
-		}
-		else
-		{
-			float real_length = sqrt_reciprocal(real_length_squared);
-			out_axis = vector_mul(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), real_length);
-			out_angle = abs(quat_get_w(input)) < EPSILON ? ACL_PI_32 : atan2(real_length_squared * real_length, quat_get_w(input)) * 2.0f;
-		}
+		float scale_sq = max(1.0f - quat_get_w(input) * quat_get_w(input), 0.0f);
+		out_axis = scale_sq >= EPSILON_SQUARED ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0f, 0.0f, 0.0f);
 	}
 
 	inline Vector4_32 quat_get_axis(const Quat_32& input)
@@ -251,35 +242,13 @@ namespace acl
 		constexpr float EPSILON = 1.0e-8f;
 		constexpr float EPSILON_SQUARED = EPSILON * EPSILON;
 
-		float real_length_squared = vector_length_squared3(quat_to_vector(input));
-
-		if (real_length_squared < EPSILON_SQUARED)
-		{
-			return vector_set(1.0f, 0.0f, 0.0f);
-		}
-		else
-		{
-			float real_length = sqrt_reciprocal(real_length_squared);
-			return vector_mul(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), real_length);
-		}
+		float scale_sq = max(1.0f - quat_get_w(input) * quat_get_w(input), 0.0f);
+		return scale_sq >= EPSILON_SQUARED ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0f, 0.0f, 0.0f);
 	}
 
 	inline float quat_get_angle(const Quat_32& input)
 	{
-		constexpr float EPSILON = 1.0e-8f;
-		constexpr float EPSILON_SQUARED = EPSILON * EPSILON;
-
-		float real_length_squared = vector_length_squared3(quat_to_vector(input));
-
-		if (real_length_squared < EPSILON_SQUARED)
-		{
-			return 0.0f;
-		}
-		else
-		{
-			float real_length = sqrt_reciprocal(real_length_squared);
-			return abs(quat_get_w(input)) < EPSILON ? ACL_PI_32 : atan2(real_length_squared * real_length, quat_get_w(input)) * 2.0f;
-		}
+		return acos(quat_get_w(input)) * 2.0f;
 	}
 
 	inline Quat_32 quat_from_axis_angle(const Vector4_32& axis, float angle)
@@ -290,6 +259,9 @@ namespace acl
 		return quat_set(s * vector_get_x(axis), s * vector_get_y(axis), s * vector_get_z(axis), c);
 	}
 
+	// Pitch is around the Y axis (right)
+	// Yaw is around the Z axis (up)
+	// Roll is around the X axis (forward)
 	inline Quat_32 quat_from_euler(float pitch, float yaw, float roll)
 	{
 		float sp, sy, sr;

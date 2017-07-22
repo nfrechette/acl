@@ -71,6 +71,11 @@ namespace acl
 		out_cos = cos(angle);
 	}
 
+	inline double acos(double value)
+	{
+		return std::acos(value);
+	}
+
 	inline double atan2(double left, double right)
 	{
 		return std::atan2(left, right);
@@ -88,7 +93,7 @@ namespace acl
 
 	constexpr double deg2rad(double deg)
 	{
-		return (deg / 360.0) * ACL_PI_64;
+		return (deg / 180.0) * ACL_PI_64;
 	}
 
 	inline bool scalar_near_equal(double lhs, double rhs, double threshold)

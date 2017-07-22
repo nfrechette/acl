@@ -35,6 +35,11 @@ namespace acl
 		return Transform_64{ rotation, translation };
 	}
 
+	inline Transform_64 transform_identity_64()
+	{
+		return transform_set(quat_identity_64(), vector_zero_64());
+	}
+
 	inline Transform_64 transform_cast(const Transform_32& input)
 	{
 		return Transform_64{ quat_cast(input.rotation), vector_cast(input.translation) };

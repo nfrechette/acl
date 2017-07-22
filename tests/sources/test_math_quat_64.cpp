@@ -29,7 +29,7 @@ static Quat_64 quat_mul_scalar(const Quat_64& lhs, const Quat_64& rhs)
 }
 
 
-TEST_CASE("quat misc math 64", "[math][quat64]")
+TEST_CASE("quat math 64", "[math][quat64]")
 {
 	constexpr double threshold = 1e-6;
 
@@ -45,6 +45,34 @@ TEST_CASE("quat misc math 64", "[math][quat64]")
 		result = quat_mul(quat0, quat1);
 		result_ref = quat_mul_scalar(quat0, quat1);
 		REQUIRE(quat_near_equal(result, result_ref, threshold));
+	}
+
+	{
+		Vector4_64 x_axis = vector_set(1.0, 0.0, 0.0);
+		Vector4_64 y_axis = vector_set(0.0, 1.0, 0.0);
+
+		Quat_64 rotation_around_z = quat_from_euler(deg2rad(0.0), deg2rad(90.0), deg2rad(0.0));
+		Vector4_64 result = quat_rotate(rotation_around_z, x_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0, 1.0, 0.0), threshold));
+		result = quat_rotate(rotation_around_z, y_axis);
+		REQUIRE(vector_near_equal(result, vector_set(-1.0, 0.0, 0.0), threshold));
+
+		Quat_64 rotation_around_x = quat_from_euler(deg2rad(0.0), deg2rad(0.0), deg2rad(90.0));
+		result = quat_rotate(rotation_around_x, x_axis);
+		REQUIRE(vector_near_equal(result, vector_set(1.0, 0.0, 0.0), threshold));
+		result = quat_rotate(rotation_around_x, y_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0, 0.0, -1.0), threshold));
+
+		Quat_64 rotation_xz = quat_mul(rotation_around_x, rotation_around_z);
+		Quat_64 rotation_zx = quat_mul(rotation_around_z, rotation_around_x);
+		result = quat_rotate(rotation_xz, x_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0, 1.0, 0.0), threshold));
+		result = quat_rotate(rotation_xz, y_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0, 0.0, -1.0), threshold));
+		result = quat_rotate(rotation_zx, x_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0, 0.0, -1.0), threshold));
+		result = quat_rotate(rotation_zx, y_axis);
+		REQUIRE(vector_near_equal(result, vector_set(-1.0, 0.0, 0.0), threshold));
 	}
 
 	{
@@ -79,6 +107,25 @@ TEST_CASE("quat misc math 64", "[math][quat64]")
 				REQUIRE(vector_near_equal(result, result_ref, threshold));
 			}
 		}
+	}
+
+	{
+		Quat_64 rotation = quat_from_euler(deg2rad(0.0), deg2rad(90.0), deg2rad(0.0));
+		Vector4_64 axis;
+		double angle;
+		quat_to_axis_angle(rotation, axis, angle);
+		REQUIRE(vector_near_equal(axis, vector_set(0.0, 0.0, 1.0), threshold));
+		REQUIRE(vector_near_equal(quat_get_axis(rotation), vector_set(0.0, 0.0, 1.0), threshold));
+		REQUIRE(scalar_near_equal(quat_get_angle(rotation), deg2rad(90.0), threshold));
+	}
+
+	{
+		Quat_64 rotation = quat_from_euler(deg2rad(0.0), deg2rad(90.0), deg2rad(0.0));
+		Vector4_64 axis;
+		double angle;
+		quat_to_axis_angle(rotation, axis, angle);
+		Quat_64 rotation_new = quat_from_axis_angle(axis, angle);
+		REQUIRE(quat_near_equal(rotation, rotation_new, threshold));
 	}
 
 	{

@@ -29,9 +29,9 @@ static Quat_32 quat_mul_scalar(const Quat_32& lhs, const Quat_32& rhs)
 }
 
 
-TEST_CASE("quat misc math 32", "[math][quat32]")
+TEST_CASE("quat math 32", "[math][quat32]")
 {
-	constexpr float threshold = 1e-5f;
+	constexpr float threshold = 1e-4f;
 
 	{
 		Quat_32 quat0 = quat_from_euler(deg2rad(30.0f), deg2rad(-45.0f), deg2rad(90.0f));
@@ -45,6 +45,34 @@ TEST_CASE("quat misc math 32", "[math][quat32]")
 		result = quat_mul(quat0, quat1);
 		result_ref = quat_mul_scalar(quat0, quat1);
 		REQUIRE(quat_near_equal(result, result_ref, threshold));
+	}
+
+	{
+		Vector4_32 x_axis = vector_set(1.0f, 0.0f, 0.0f);
+		Vector4_32 y_axis = vector_set(0.0f, 1.0f, 0.0f);
+
+		Quat_32 rotation_around_z = quat_from_euler(deg2rad(0.0f), deg2rad(90.0f), deg2rad(0.0f));
+		Vector4_32 result = quat_rotate(rotation_around_z, x_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0f, 1.0f, 0.0f), threshold));
+		result = quat_rotate(rotation_around_z, y_axis);
+		REQUIRE(vector_near_equal(result, vector_set(-1.0f, 0.0f, 0.0f), threshold));
+
+		Quat_32 rotation_around_x = quat_from_euler(deg2rad(0.0f), deg2rad(0.0f), deg2rad(90.0f));
+		result = quat_rotate(rotation_around_x, x_axis);
+		REQUIRE(vector_near_equal(result, vector_set(1.0f, 0.0f, 0.0f), threshold));
+		result = quat_rotate(rotation_around_x, y_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0f, 0.0f, -1.0f), threshold));
+
+		Quat_32 rotation_xz = quat_mul(rotation_around_x, rotation_around_z);
+		Quat_32 rotation_zx = quat_mul(rotation_around_z, rotation_around_x);
+		result = quat_rotate(rotation_xz, x_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0f, 1.0f, 0.0f), threshold));
+		result = quat_rotate(rotation_xz, y_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0f, 0.0f, -1.0f), threshold));
+		result = quat_rotate(rotation_zx, x_axis);
+		REQUIRE(vector_near_equal(result, vector_set(0.0f, 0.0f, -1.0f), threshold));
+		result = quat_rotate(rotation_zx, y_axis);
+		REQUIRE(vector_near_equal(result, vector_set(-1.0f, 0.0f, 0.0f), threshold));
 	}
 
 	{
@@ -76,11 +104,28 @@ TEST_CASE("quat misc math 32", "[math][quat32]")
 				const Vector4_32& vector = test_vectors[vector_index];
 				Vector4_32 result = quat_rotate(rotation, vector);
 				Vector4_32 result_ref = quat_rotate_scalar(rotation, vector);
-				if (!vector_near_equal(result, result_ref, threshold))
-					printf("");
-				//REQUIRE(vector_near_equal(result, result_ref, threshold));
+				REQUIRE(vector_near_equal(result, result_ref, threshold));
 			}
 		}
+	}
+
+	{
+		Quat_32 rotation = quat_from_euler(deg2rad(0.0f), deg2rad(90.0f), deg2rad(0.0f));
+		Vector4_32 axis;
+		float angle;
+		quat_to_axis_angle(rotation, axis, angle);
+		REQUIRE(vector_near_equal(axis, vector_set(0.0f, 0.0f, 1.0f), threshold));
+		REQUIRE(vector_near_equal(quat_get_axis(rotation), vector_set(0.0f, 0.0f, 1.0f), threshold));
+		REQUIRE(scalar_near_equal(quat_get_angle(rotation), deg2rad(90.0f), threshold));
+	}
+
+	{
+		Quat_32 rotation = quat_from_euler(deg2rad(0.0f), deg2rad(90.0f), deg2rad(0.0f));
+		Vector4_32 axis;
+		float angle;
+		quat_to_axis_angle(rotation, axis, angle);
+		Quat_32 rotation_new = quat_from_axis_angle(axis, angle);
+		REQUIRE(quat_near_equal(rotation, rotation_new, threshold));
 	}
 
 	{

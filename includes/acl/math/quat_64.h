@@ -141,19 +141,10 @@ namespace acl
 		constexpr double EPSILON = 1.0e-8;
 		constexpr double EPSILON_SQUARED = EPSILON * EPSILON;
 
-		double real_length_squared = vector_length_squared3(quat_to_vector(input));
+		out_angle = acos(quat_get_w(input)) * 2.0;
 
-		if (real_length_squared < EPSILON_SQUARED)
-		{
-			out_axis = vector_set(1.0, 0.0, 0.0);
-			out_angle = 0.0;
-		}
-		else
-		{
-			double real_length = sqrt_reciprocal(real_length_squared);
-			out_axis = vector_mul(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), real_length);
-			out_angle = abs(quat_get_w(input)) < EPSILON ? ACL_PI_64 : atan2(real_length_squared * real_length, quat_get_w(input)) * 2.0;
-		}
+		double scale_sq = max(1.0 - quat_get_w(input) * quat_get_w(input), 0.0);
+		out_axis = scale_sq >= EPSILON_SQUARED ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0, 0.0, 0.0);
 	}
 
 	inline Vector4_64 quat_get_axis(const Quat_64& input)
@@ -161,35 +152,13 @@ namespace acl
 		constexpr double EPSILON = 1.0e-8;
 		constexpr double EPSILON_SQUARED = EPSILON * EPSILON;
 
-		double real_length_squared = vector_length_squared3(quat_to_vector(input));
-
-		if (real_length_squared < EPSILON_SQUARED)
-		{
-			return vector_set(1.0, 0.0, 0.0);
-		}
-		else
-		{
-			double real_length = sqrt_reciprocal(real_length_squared);
-			return vector_mul(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), real_length);
-		}
+		double scale_sq = max(1.0 - quat_get_w(input) * quat_get_w(input), 0.0);
+		return scale_sq >= EPSILON_SQUARED ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0, 0.0, 0.0);
 	}
 
 	inline double quat_get_angle(const Quat_64& input)
 	{
-		constexpr double EPSILON = 1.0e-8;
-		constexpr double EPSILON_SQUARED = EPSILON * EPSILON;
-
-		double real_length_squared = vector_length_squared3(quat_to_vector(input));
-
-		if (real_length_squared < EPSILON_SQUARED)
-		{
-			return 0.0;
-		}
-		else
-		{
-			double real_length = sqrt_reciprocal(real_length_squared);
-			return abs(quat_get_w(input)) < EPSILON ? ACL_PI_64 : atan2(real_length_squared * real_length, quat_get_w(input)) * 2.0;
-		}
+		return acos(quat_get_w(input)) * 2.0;
 	}
 
 	inline Quat_64 quat_from_axis_angle(const Vector4_64& axis, double angle)
@@ -200,6 +169,9 @@ namespace acl
 		return quat_set(s * vector_get_x(axis), s * vector_get_y(axis), s * vector_get_z(axis), c);
 	}
 
+	// Pitch is around the Y axis (right)
+	// Yaw is around the Z axis (up)
+	// Roll is around the X axis (forward)
 	inline Quat_64 quat_from_euler(double pitch, double yaw, double roll)
 	{
 		double sp, sy, sr;
