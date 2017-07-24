@@ -99,8 +99,17 @@ namespace acl
 			}
 
 			BoneStreams* bone_streams = convert_clip_to_streams(allocator, clip);
+
+			BoneStreams* raw_bone_streams = allocate_type_array<BoneStreams>(allocator, num_bones);
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+				raw_bone_streams[bone_index] = bone_streams[bone_index].duplicate();
+
 			convert_rotation_streams(allocator, bone_streams, num_bones, settings.rotation_format);
-			compact_constant_streams(allocator, bone_streams, num_bones, 0.00001f);
+
+			// TODO: Expose this, especially the translation threshold depends on the unit scale.
+			// Centimeters VS meters, a different threshold should be used. Perhaps we should pass an
+			// argument to the compression algorithm that states the units used or we should force centimeters
+			compact_constant_streams(allocator, bone_streams, num_bones, 0.00001f, 0.001f);
 
 			uint32_t clip_range_data_size = 0;
 			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
@@ -110,7 +119,7 @@ namespace acl
 				clip_range_data_size = get_stream_range_data_size(bone_streams, num_bones, settings.range_reduction, settings.rotation_format, settings.translation_format);
 			}
 
-			quantize_streams(allocator, bone_streams, num_bones, settings.rotation_format, settings.translation_format, clip, skeleton);
+			quantize_streams(allocator, bone_streams, num_bones, settings.rotation_format, settings.translation_format, clip, skeleton, raw_bone_streams);
 
 			uint32_t constant_data_size = get_constant_data_size(bone_streams, num_bones);
 			uint32_t animated_pose_bit_size;
@@ -177,6 +186,7 @@ namespace acl
 			finalize_compressed_clip(*compressed_clip);
 
 			deallocate_type_array(allocator, bone_streams, num_bones);
+			deallocate_type_array(allocator, raw_bone_streams, num_bones);
 
 			return compressed_clip;
 		}

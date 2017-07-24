@@ -88,6 +88,86 @@ namespace acl
 		}
 	}
 
+	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, Transform_32* out_local_pose)
+	{
+		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
+		const bool is_translation_variable = is_vector_format_variable(translation_format);
+
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			const BoneStreams& bone_stream = bone_streams[bone_index];
+
+			Quat_32 rotation;
+			if (bone_stream.is_rotation_animated())
+			{
+				uint32_t num_samples = bone_stream.rotations.get_num_samples();
+				float duration = bone_stream.rotations.get_duration();
+				uint8_t bit_rate = bit_rates[bone_index].rotation;
+
+				uint32_t key0;
+				uint32_t key1;
+				float interpolation_alpha;
+				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+
+				Quat_32 sample0;
+				Quat_32 sample1;
+				if (is_rotation_variable)
+				{
+					sample0 = bone_stream.get_rotation_sample(key0, bit_rate);
+					sample1 = bone_stream.get_rotation_sample(key1, bit_rate);
+				}
+				else
+				{
+					sample0 = bone_stream.get_rotation_sample(key0, rotation_format);
+					sample1 = bone_stream.get_rotation_sample(key1, rotation_format);
+				}
+
+				rotation = quat_lerp(sample0, sample1, interpolation_alpha);
+			}
+			else
+			{
+				if (is_rotation_variable)
+					rotation = bone_stream.get_rotation_sample(0);
+				else
+					rotation = bone_stream.get_rotation_sample(0, rotation_format);
+			}
+
+			Vector4_32 translation;
+			if (bone_stream.is_translation_animated())
+			{
+				uint32_t num_samples = bone_stream.translations.get_num_samples();
+				float duration = bone_stream.translations.get_duration();
+				uint8_t bit_rate = bit_rates[bone_index].translation;
+
+				uint32_t key0;
+				uint32_t key1;
+				float interpolation_alpha;
+				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+
+				Vector4_32 sample0;
+				Vector4_32 sample1;
+				if (is_translation_variable)
+				{
+					sample0 = bone_stream.get_translation_sample(key0, bit_rate);
+					sample1 = bone_stream.get_translation_sample(key1, bit_rate);
+				}
+				else
+				{
+					sample0 = bone_stream.get_translation_sample(key0, translation_format);
+					sample1 = bone_stream.get_translation_sample(key1, translation_format);
+				}
+
+				translation = vector_lerp(sample0, sample1, interpolation_alpha);
+			}
+			else
+			{
+				translation = bone_stream.get_translation_sample(0, VectorFormat8::Vector3_96);
+			}
+
+			out_local_pose[bone_index] = transform_set(rotation, translation);
+		}
+	}
+
 	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t sample_index, Transform_32* out_local_pose)
 	{
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)

@@ -29,6 +29,9 @@
 #include "acl/compression/skeleton.h"
 
 #include <algorithm>
+#include <functional>
+
+#include "acl/math/transform_64.h"
 
 namespace acl
 {
@@ -83,6 +86,65 @@ namespace acl
 		return error;
 	}
 
+	inline float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
+	{
+		uint16_t num_bones = skeleton.get_num_bones();
+		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
+		ACL_ENSURE(bone_index < num_bones, "Invalid bone index: %u", bone_index);
+
+		const RigidBone& bone = skeleton.get_bone(bone_index);
+		float vtx_distance = float(bone.vertex_distance);
+
+		Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
+		Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
+
+		Vector4_32 raw_vtx0 = transform_position(raw_local_pose[bone_index], vtx0);
+		Vector4_32 lossy_vtx0 = transform_position(lossy_local_pose[bone_index], vtx0);
+		float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+
+		Vector4_32 raw_vtx1 = transform_position(raw_local_pose[bone_index], vtx1);
+		Vector4_32 lossy_vtx1 = transform_position(lossy_local_pose[bone_index], vtx1);
+		float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+
+		return max(vtx0_error, vtx1_error);
+	}
+
+	inline float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
+	{
+		uint16_t num_bones = skeleton.get_num_bones();
+		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
+		ACL_ENSURE(bone_index < num_bones, "Invalid bone index: %u", bone_index);
+
+		const RigidBone& target_bone = skeleton.get_bone(bone_index);
+		float vtx_distance = float(target_bone.vertex_distance);
+
+		std::function<Transform_32(const Transform_32*, uint16_t)> apply_fun;
+		apply_fun = [&](const Transform_32* local_pose, uint16_t bone_index) -> Transform_32
+		{
+			if (bone_index == 0)
+				return local_pose[0];
+			const RigidBone& bone = skeleton.get_bone(bone_index);
+			Transform_32 parent_transform = apply_fun(local_pose, bone.parent_index);
+			return transform_mul(local_pose[bone_index], parent_transform);
+		};
+
+		Transform_32 raw_obj_transform = apply_fun(raw_local_pose, bone_index);
+		Transform_32 lossy_obj_transform = apply_fun(lossy_local_pose, bone_index);
+
+		Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
+		Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
+
+		Vector4_32 raw_vtx0 = transform_position(raw_obj_transform, vtx0);
+		Vector4_32 raw_vtx1 = transform_position(raw_obj_transform, vtx1);
+		Vector4_32 lossy_vtx0 = transform_position(lossy_obj_transform, vtx0);
+		Vector4_32 lossy_vtx1 = transform_position(lossy_obj_transform, vtx1);
+
+		float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+		float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+
+		return max(vtx0_error, vtx1_error);
+	}
+
 	struct BoneTrackError
 	{
 		float rotation;
@@ -115,7 +177,7 @@ namespace acl
 		ACL_ENSURE(target_bone_index < num_bones, "Invalid target bone index: %u >= %u", target_bone_index, num_bones);
 
 		// Clear everything
-		std::fill(&error_per_track[0], &error_per_track[num_bones], BoneTrackError{0.0f, 0.0f});
+		std::fill(&error_per_track[0], &error_per_track[num_bones], BoneTrackError{-1.0f, -1.0f});
 
 		Vector4_32 x_axis = vector_set(1.0f, 0.0f, 0.0f);
 		Vector4_32 y_axis = vector_set(0.0f, 1.0f, 0.0f);
@@ -126,12 +188,7 @@ namespace acl
 		Vector4_32 vtx1 = vector_mul(y_axis, target_vtx_distance);
 
 		Vector4_32 raw_vtx0 = vtx0;
-		Vector4_32 lossy_vtx0 = vtx0;
 		Vector4_32 raw_vtx1 = vtx1;
-		Vector4_32 lossy_vtx1 = vtx1;
-
-		float child_bone_error_vtx0 = 0.0f;
-		float child_bone_error_vtx1 = 0.0f;
 
 		// Initial child bone index is our target bone index, everything is initialized to 0.0,
 		// we'll end up subtracting 0.0 from our current error, no invalid ptr access, no branching
@@ -140,30 +197,32 @@ namespace acl
 		while (current_bone_index != INVALID_BONE_INDEX)
 		{
 			// transformed vtx = (((vtx * rotation) * translation) * scale)
+			// Reset our lossy vtx to match the raw vtx in order to measure only the error contribution of this track
+			Vector4_32 lossy_vtx0 = raw_vtx0;
+			Vector4_32 lossy_vtx1 = raw_vtx1;
+
 			raw_vtx0 = quat_rotate(raw_local_pose[current_bone_index].rotation, raw_vtx0);
 			lossy_vtx0 = quat_rotate(lossy_local_pose[current_bone_index].rotation, lossy_vtx0);
-			float vtx0_compound_rotation_error = vector_distance3(raw_vtx0, lossy_vtx0);
 
 			raw_vtx1 = quat_rotate(raw_local_pose[current_bone_index].rotation, raw_vtx1);
 			lossy_vtx1 = quat_rotate(lossy_local_pose[current_bone_index].rotation, lossy_vtx1);
-			float vtx1_compound_rotation_error = vector_distance3(raw_vtx1, lossy_vtx1);
 
-			raw_vtx0 = vector_add(raw_vtx0, raw_local_pose[current_bone_index].translation);
-			lossy_vtx0 = vector_add(lossy_vtx0, lossy_local_pose[current_bone_index].translation);
-			float vt0_compound_error = vector_distance3(raw_vtx0, lossy_vtx0);
-
-			raw_vtx1 = vector_add(raw_vtx1, raw_local_pose[current_bone_index].translation);
-			lossy_vtx1 = vector_add(lossy_vtx1, lossy_local_pose[current_bone_index].translation);
-			float vt1_compound_error = vector_distance3(raw_vtx1, lossy_vtx1);
-
-			// Remove any error from the previous child we processed, we only want to track the error
-			// introduced by this very bone and its tracks, not the compound error
-			float vtx0_rotation_error = abs(vtx0_compound_rotation_error - child_bone_error_vtx0);
-			float vtx1_rotation_error = abs(vtx1_compound_rotation_error - child_bone_error_vtx1);
-			float vtx0_translation_error = abs(vt0_compound_error - vtx0_rotation_error);
-			float vtx1_translation_error = abs(vt1_compound_error - vtx1_rotation_error);
-
+			float vtx0_rotation_error = vector_distance3(raw_vtx0, lossy_vtx0);
+			float vtx1_rotation_error = vector_distance3(raw_vtx1, lossy_vtx1);
 			float rotation_error = max(vtx0_rotation_error, vtx1_rotation_error);
+
+			// Reset our lossy vtx to match the raw vtx in order to measure only the error contribution of this track
+			lossy_vtx0 = raw_vtx0;
+			lossy_vtx1 = raw_vtx1;
+
+			raw_vtx0 = vector_add(raw_local_pose[current_bone_index].translation, raw_vtx0);
+			lossy_vtx0 = vector_add(lossy_local_pose[current_bone_index].translation, lossy_vtx0);
+
+			raw_vtx1 = vector_add(raw_local_pose[current_bone_index].translation, raw_vtx1);
+			lossy_vtx1 = vector_add(lossy_local_pose[current_bone_index].translation, lossy_vtx1);
+
+			float vtx0_translation_error = vector_distance3(raw_vtx0, lossy_vtx0);
+			float vtx1_translation_error = vector_distance3(raw_vtx1, lossy_vtx1);
 			float translation_error = max(vtx0_translation_error, vtx1_translation_error);
 
 			error_per_track[current_bone_index] = BoneTrackError{rotation_error, translation_error};
@@ -171,9 +230,6 @@ namespace acl
 			// virtual object vertex = (((virtual local vertex * bone 2 local transform) * bone 1 local transform) * bone 0 local transform)
 			const RigidBone& bone = skeleton.get_bone(current_bone_index);
 			current_bone_index = bone.parent_index;
-
-			child_bone_error_vtx0 = vt0_compound_error;
-			child_bone_error_vtx1 = vt1_compound_error;
 		}
 	}
 }

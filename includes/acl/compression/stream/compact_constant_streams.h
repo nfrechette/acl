@@ -33,7 +33,7 @@
 
 namespace acl
 {
-	inline void compact_constant_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, float threshold)
+	inline void compact_constant_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, float rotation_threshold, float translation_threshold)
 	{
 		// When a stream is constant, we only keep the first sample
 
@@ -45,7 +45,7 @@ namespace acl
 			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
 
-			if (bone_stream.rotation_range.is_constant(threshold))
+			if (bone_stream.rotation_range.is_constant(rotation_threshold))
 			{
 				RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
 				Vector4_32 rotation = bone_stream.rotations.get_raw_sample<Vector4_32>(0);
@@ -57,7 +57,7 @@ namespace acl
 				bone_stream.is_rotation_default = quat_near_identity(vector_to_quat(rotation));
 			}
 
-			if (bone_stream.translation_range.is_constant(threshold))
+			if (bone_stream.translation_range.is_constant(translation_threshold))
 			{
 				TranslationTrackStream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
 				Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(0);

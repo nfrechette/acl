@@ -107,12 +107,14 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 
 	// Bit rate 0 is reserved for tracks that are constant in a segment
-	constexpr uint8_t BIT_RATE_NUM_BITS[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19 };
-	static_assert(sizeof(BIT_RATE_NUM_BITS) == 16, "Expecting 16 bit rates");
+	constexpr uint8_t BIT_RATE_NUM_BITS[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21 };
 
 	constexpr uint8_t INVALID_BIT_RATE = 0xFF;
 	constexpr uint8_t LOWEST_BIT_RATE = 1;
 	constexpr uint8_t HIGHEST_BIT_RATE = sizeof(BIT_RATE_NUM_BITS) - 1;
+	constexpr uint8_t NUM_BIT_RATES = sizeof(BIT_RATE_NUM_BITS);
+
+	static_assert(NUM_BIT_RATES == 20, "Expecting 18 bit rates");
 
 	// If all tracks are variable, no need for any extra padding except at the very end of the data
 	// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
@@ -123,6 +125,8 @@ namespace acl
 		ACL_ENSURE(bit_rate <= HIGHEST_BIT_RATE, "Invalid bit rate: %u", bit_rate);
 		return BIT_RATE_NUM_BITS[bit_rate];
 	}
+
+	struct BoneBitRate { uint8_t rotation; uint8_t translation; };
 
 	//////////////////////////////////////////////////////////////////////////
 

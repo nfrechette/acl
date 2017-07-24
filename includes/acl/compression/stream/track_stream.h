@@ -300,11 +300,139 @@ namespace acl
 				{
 					uint8_t bit_rate = rotations.get_bit_rate();
 					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-					packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+					if (are_rotations_normalized)
+						packed_rotation = unpack_vector3_n_unsigned(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+					else
+						packed_rotation = unpack_vector3_n_signed(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
 				}
 				break;
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
+				packed_rotation = vector_zero_32();
+				break;
+			}
+
+			if (are_rotations_normalized)
+			{
+				Vector4_32 clip_range_min = rotation_range.get_min();
+				Vector4_32 clip_range_extent = rotation_range.get_extent();
+
+				packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
+			}
+
+			switch (format)
+			{
+			case RotationFormat8::Quat_128:
+				return vector_to_quat(packed_rotation);
+			case RotationFormat8::QuatDropW_96:
+			case RotationFormat8::QuatDropW_48:
+			case RotationFormat8::QuatDropW_32:
+			case RotationFormat8::QuatDropW_Variable:
+				return quat_from_positive_w(packed_rotation);
+			default:
+				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
+				return quat_identity_32();
+			}
+		}
+
+		Quat_32 get_rotation_sample(uint32_t sample_index, uint8_t bit_rate) const
+		{
+			const uint8_t* quantized_ptr = rotations.get_raw_sample_ptr(sample_index);
+
+			Vector4_32 rotation;
+
+			RotationFormat8 format = rotations.get_rotation_format();
+			switch (format)
+			{
+			case RotationFormat8::Quat_128:
+				rotation = unpack_vector4_128(quantized_ptr);
+				break;
+			case RotationFormat8::QuatDropW_96:
+				rotation = unpack_vector3_96(quantized_ptr);
+				break;
+			default:
+				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
+				rotation = vector_zero_32();
+				break;
+			}
+
+			// Pack and unpack at our desired bit rate
+			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+			uint8_t raw_data[8] = {0};
+			Vector4_32 packed_rotation;
+
+			if (are_rotations_normalized)
+			{
+				pack_vector3_n_unsigned(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
+				packed_rotation = unpack_vector3_n_unsigned(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
+
+				Vector4_32 clip_range_min = rotation_range.get_min();
+				Vector4_32 clip_range_extent = rotation_range.get_extent();
+
+				packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
+			}
+			else
+			{
+				pack_vector3_n_signed(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
+				packed_rotation = unpack_vector3_n_signed(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
+			}
+
+			switch (format)
+			{
+			case RotationFormat8::Quat_128:
+				return vector_to_quat(packed_rotation);
+			case RotationFormat8::QuatDropW_96:
+			case RotationFormat8::QuatDropW_48:
+			case RotationFormat8::QuatDropW_32:
+			case RotationFormat8::QuatDropW_Variable:
+				return quat_from_positive_w(packed_rotation);
+			default:
+				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
+				return quat_identity_32();
+			}
+		}
+
+		Quat_32 get_rotation_sample(uint32_t sample_index, RotationFormat8 desired_format) const
+		{
+			const uint8_t* quantized_ptr = rotations.get_raw_sample_ptr(sample_index);
+
+			Vector4_32 rotation;
+
+			RotationFormat8 format = rotations.get_rotation_format();
+			switch (format)
+			{
+			case RotationFormat8::Quat_128:
+				rotation = unpack_vector4_128(quantized_ptr);
+				break;
+			case RotationFormat8::QuatDropW_96:
+				rotation = unpack_vector3_96(quantized_ptr);
+				break;
+			default:
+				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
+				rotation = vector_zero_32();
+				break;
+			}
+
+			// Pack and unpack in our desired format
+			uint8_t raw_data[8] = { 0 };
+			Vector4_32 packed_rotation;
+
+			switch (desired_format)
+			{
+			case RotationFormat8::Quat_128:
+				break;
+			case RotationFormat8::QuatDropW_96:
+				break;
+			case RotationFormat8::QuatDropW_48:
+				pack_vector3_48(rotation, &raw_data[0]);
+				packed_rotation = unpack_vector3_48(&raw_data[0]);
+				break;
+			case RotationFormat8::QuatDropW_32:
+				pack_vector3_32<11, 11, 10>(rotation, &raw_data[0]);
+				packed_rotation = unpack_vector3_32<11, 11, 10>(&raw_data[0]);
+				break;
+			default:
+				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(desired_format));
 				packed_rotation = vector_zero_32();
 				break;
 			}
@@ -352,13 +480,98 @@ namespace acl
 				break;
 			case VectorFormat8::Vector3_Variable:
 				{
+					ACL_ENSURE(are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 					uint8_t bit_rate = translations.get_bit_rate();
 					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-					packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+					packed_translation = unpack_vector3_n_unsigned(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
 				}
 				break;
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+				packed_translation = vector_zero_32();
+				break;
+			}
+
+			if (are_translations_normalized)
+			{
+				Vector4_32 clip_range_min = translation_range.get_min();
+				Vector4_32 clip_range_extent = translation_range.get_extent();
+
+				packed_translation = vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
+			}
+
+			return packed_translation;
+		}
+
+		Vector4_32 get_translation_sample(uint32_t sample_index, uint8_t bit_rate) const
+		{
+			const uint8_t* quantized_ptr = translations.get_raw_sample_ptr(sample_index);
+
+			Vector4_32 translation;
+
+			VectorFormat8 format = translations.get_vector_format();
+			switch (format)
+			{
+			case VectorFormat8::Vector3_96:
+				translation = unpack_vector3_96(quantized_ptr);
+				break;
+			default:
+				ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+				translation = vector_zero_32();
+				break;
+			}
+
+			ACL_ENSURE(are_translations_normalized, "Translations must be normalized to support variable bit rates.");
+
+			// Pack and unpack at our desired bit rate
+			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+			uint8_t raw_data[8] = {0};
+
+			pack_vector3_n_unsigned(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
+			Vector4_32 packed_translation = unpack_vector3_n_unsigned(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
+
+			Vector4_32 clip_range_min = translation_range.get_min();
+			Vector4_32 clip_range_extent = translation_range.get_extent();
+
+			return vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
+		}
+
+		Vector4_32 get_translation_sample(uint32_t sample_index, VectorFormat8 desired_format) const
+		{
+			const uint8_t* quantized_ptr = translations.get_raw_sample_ptr(sample_index);
+
+			Vector4_32 translation;
+
+			VectorFormat8 format = translations.get_vector_format();
+			switch (format)
+			{
+			case VectorFormat8::Vector3_96:
+				translation = unpack_vector3_96(quantized_ptr);
+				break;
+			default:
+				ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+				translation = vector_zero_32();
+				break;
+			}
+
+			// Pack and unpack in our desired format
+			uint8_t raw_data[8] = { 0 };
+			Vector4_32 packed_translation;
+
+			switch (desired_format)
+			{
+			case VectorFormat8::Vector3_96:
+				break;
+			case VectorFormat8::Vector3_48:
+				pack_vector3_48(translation, &raw_data[0]);
+				packed_translation = unpack_vector3_48(&raw_data[0]);
+				break;
+			case VectorFormat8::Vector3_32:
+				pack_vector3_32<11, 11, 10>(translation, &raw_data[0]);
+				packed_translation = unpack_vector3_32<11, 11, 10>(&raw_data[0]);
+				break;
+			default:
+				ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
 				packed_translation = vector_zero_32();
 				break;
 			}

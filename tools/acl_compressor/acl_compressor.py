@@ -5,7 +5,7 @@ import threading
 from collections import namedtuple
 
 Stats = namedtuple('Stats', 'filename name rotation_format translation_format range_reduction raw_size compressed_size ratio max_error compression_time duration num_animated_tracks')
-RunStats = namedtuple('RunStats', 'name total_raw_size total_compressed_size max_error num_runs')
+RunStats = namedtuple('RunStats', 'name total_raw_size total_compressed_size total_compression_time max_error num_runs')
 
 def parse_argv():
 	options = {}
@@ -60,6 +60,11 @@ def print_stat(stat):
 
 def bytes_to_mb(size_in_bytes):
 	return size_in_bytes / (1024.0 * 1024.0)
+
+def format_elapsed_time(elapsed_time):
+	hours, rem = divmod(elapsed_time, 3600)
+	minutes, seconds = divmod(rem, 60)
+	return '{:0>2}h {:0>2}m {:05.2f}s'.format(int(hours), int(minutes), seconds)
 
 def sanitize_csv_entry(entry):
 	return entry.replace(', ', ' ').replace(',', '_')
@@ -207,20 +212,21 @@ if __name__ == "__main__":
 	for stat in stats:
 		key = stat.rotation_format + stat.translation_format + stat.range_reduction
 		if not key in run_types:
-			run_types[key] = RunStats('{}, {}, {}'.format(stat.rotation_format, stat.translation_format, stat.range_reduction), 0, 0, 0.0, 0)
+			run_types[key] = RunStats('{}, {}, {}'.format(stat.rotation_format, stat.translation_format, stat.range_reduction), 0, 0, 0.0, 0.0, 0)
 		run_stats = run_types[key]
 		raw_size = stat.raw_size + run_stats.total_raw_size
 		compressed_size = stat.compressed_size + run_stats.total_compressed_size
+		compression_time = stat.compression_time + run_stats.total_compression_time
 		max_error = max(stat.max_error, run_stats.max_error)
-		run_types[key] = RunStats(run_stats.name, raw_size, compressed_size, max_error, run_stats.num_runs + 1)
+		run_types[key] = RunStats(run_stats.name, raw_size, compressed_size, compression_time, max_error, run_stats.num_runs + 1)
 
 	run_types_by_size = sorted(run_types.values(), key = lambda entry: entry.total_compressed_size)
 	for run_stats in run_types_by_size:
 		ratio = float(run_stats.total_raw_size) / float(run_stats.total_compressed_size)
-		print('Raw {:.2f} MB, Compressed {:.2f} MB, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats.total_raw_size), bytes_to_mb(run_stats.total_compressed_size), ratio, run_stats.max_error, run_stats.name))
+		print('Raw {:.2f} MB, Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats.total_raw_size), bytes_to_mb(run_stats.total_compressed_size), format_elapsed_time(run_stats.total_compression_time), ratio, run_stats.max_error, run_stats.name))
 	print()
 
-	# Find outliers
+	# Find outliers and other stats
 	best_error = 100000000.0
 	best_error_entry = None
 	worst_error = -100000000.0
@@ -231,6 +237,9 @@ if __name__ == "__main__":
 	best_ratio_entry = None
 	worst_ratio = 100000000.0
 	worst_ratio_entry = None
+	total_compression_time = 0.0
+	total_duration = 0.0
+
 	for stat in stats:
 		if stat.max_error < best_error:
 			best_error = stat.max_error
@@ -240,7 +249,7 @@ if __name__ == "__main__":
 			worst_error = stat.max_error
 			worst_error_entry = stat
 
-		if stat.max_error > worst_variable_error and stat.rotation_format.endswith('Variable') and stat.translation_format.endswith('Variable'):
+		if stat.max_error > worst_variable_error and stat.rotation_format == 'Quat Drop W Variable' and stat.translation_format == 'Vector3 Variable' and stat.range_reduction == 'Per Clip Rotations, Translations':
 			worst_variable_error = stat.max_error
 			worst_variable_error_entry = stat
 
@@ -251,6 +260,13 @@ if __name__ == "__main__":
 		if stat.ratio < worst_ratio:
 			worst_ratio = stat.ratio
 			worst_ratio_entry = stat
+
+		total_compression_time += stat.compression_time
+		total_duration += stat.duration
+
+	print('Sum of clip durations: {}'.format(format_elapsed_time(total_duration)))
+	print('Total compression time: {}'.format(format_elapsed_time(total_compression_time)))
+	print()
 
 	print('Most accurate: {}'.format(best_error_entry.filename))
 	print_stat(best_error_entry)
