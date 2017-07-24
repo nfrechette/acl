@@ -7,6 +7,10 @@ include_directories("${PROJECT_SOURCE_DIR}/external/catch-1.9.6")
 # Grab all of our source files
 file(GLOB_RECURSE ACL_UNIT_TEST_SOURCE_FILES ${PROJECT_SOURCE_DIR}/sources/*.cpp)
 
+if(USE_AVX_INSTRUCTIONS)
+	add_definitions(/arch:AVX)
+endif()
+
 add_executable(acl_unit_tests ${ACL_UNIT_TEST_SOURCE_FILES})
 
 install(TARGETS acl_unit_tests RUNTIME DESTINATION bin)

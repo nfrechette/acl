@@ -8,6 +8,10 @@ file(GLOB_RECURSE ACL_COMPRESSOR_SOURCE_FILES
 	${PROJECT_SOURCE_DIR}/sources/*.cpp
 	${PROJECT_SOURCE_DIR}/*.py)
 
+if(USE_AVX_INSTRUCTIONS)
+	add_definitions(/arch:AVX)
+endif()
+
 add_executable(acl_compressor ${ACL_COMPRESSOR_SOURCE_FILES})
 
 install(TARGETS acl_compressor RUNTIME DESTINATION bin)

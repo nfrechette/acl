@@ -5,12 +5,16 @@ import sys
 def parse_argv():
 	options = {}
 	options['build'] = False
+	options['use_avx'] = False
 
 	for i in range(1, len(sys.argv)):
 		value = sys.argv[i]
 
 		if value == '-build':
 			options['build'] = True
+
+		if value == '-avx':
+			options['use_avx'] = True
 
 	return options
 
@@ -32,8 +36,12 @@ if __name__ == "__main__":
 
 	os.chdir(build_dir)
 
+	extra_switches = []
+	if options['use_avx']:
+		extra_switches.append("-DUSE_AVX_INSTRUCTIONS:BOOL=true")
+
 	# Generate IDE solution
-	cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" -G "Visual Studio 14 Win64"'.format(cmake_exe, build_dir)
+	cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" {} -G "Visual Studio 14 Win64"'.format(cmake_exe, build_dir, '.'.join(extra_switches))
 	subprocess.call(cmake_cmd, shell=True)
 
 	if options['build']:

@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.9)
 project(acl)
 
+set(USE_AVX_INSTRUCTIONS false CACHE BOOL "Use AVX instructions")
+
 # Grab all of our include files
 file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false ${PROJECT_SOURCE_DIR}/includes/*.h)
 
