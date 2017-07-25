@@ -43,7 +43,7 @@ namespace acl
 {
 	namespace impl
 	{
-		inline void quantize_fixed_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, RotationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
@@ -67,10 +67,10 @@ namespace acl
 					pack_vector3_96(quat_to_vector(rotation), quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_48:
-					pack_vector3_48(quat_to_vector(rotation), quantized_ptr);
+					pack_vector3_48(quat_to_vector(rotation), are_rotations_normalized, quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_32:
-					pack_vector3_32<11, 11, 10>(quat_to_vector(rotation), quantized_ptr);
+					pack_vector3_32(quat_to_vector(rotation), 11, 11, 10, are_rotations_normalized, quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_Variable:
 				default:
@@ -100,7 +100,7 @@ namespace acl
 				// If our format is variable, we keep them fixed at the highest bit rate in the variant
 				RotationFormat8 format = is_variable_variant && bone_stream.is_rotation_constant ? highest_bit_rate : rotation_format;
 
-				quantize_fixed_rotation_stream(allocator, bone_stream.rotations, format, bone_stream.rotations);
+				quantize_fixed_rotation_stream(allocator, bone_stream.rotations, format, bone_stream.are_rotations_normalized, bone_stream.rotations);
 			}
 		}
 
@@ -120,11 +120,7 @@ namespace acl
 			{
 				Quat_32 rotation = raw_stream.get_raw_sample<Quat_32>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
-
-				if (are_rotations_normalized)
-					pack_vector3_n_unsigned(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
-				else
-					pack_vector3_n_signed(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+				pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
 			}
 
 			out_quantized_stream = std::move(quantized_stream);
@@ -145,7 +141,7 @@ namespace acl
 
 				// If our format is variable, we keep them fixed at the highest bit rate in the variant
 				if (bone_stream.is_rotation_constant)
-					quantize_fixed_rotation_stream(allocator, bone_stream.rotations, highest_bit_rate, bone_stream.rotations);
+					quantize_fixed_rotation_stream(allocator, bone_stream.rotations, highest_bit_rate, bone_stream.are_rotations_normalized, bone_stream.rotations);
 				else
 					quantize_fixed_rotation_stream(allocator, bone_stream.rotations, bit_rate, bone_stream.are_rotations_normalized, bone_stream.rotations);
 			}
@@ -173,10 +169,10 @@ namespace acl
 					pack_vector3_96(translation, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_48:
-					pack_vector3_48(translation, quantized_ptr);
+					pack_vector3_48(translation, true, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_32:
-					pack_vector3_32<11, 11, 10>(translation, quantized_ptr);
+					pack_vector3_32(translation, 11, 11, 10, true, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_Variable:
 				default:
@@ -223,8 +219,7 @@ namespace acl
 			{
 				Vector4_32 translation = raw_stream.get_raw_sample<Vector4_32>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
-
-				pack_vector3_n_unsigned(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+				pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
 			}
 
 			out_quantized_stream = std::move(quantized_stream);

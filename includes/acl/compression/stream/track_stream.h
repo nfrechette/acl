@@ -291,19 +291,16 @@ namespace acl
 				packed_rotation = unpack_vector3_96(quantized_ptr);
 				break;
 			case RotationFormat8::QuatDropW_48:
-				packed_rotation = unpack_vector3_48(quantized_ptr);
+				packed_rotation = unpack_vector3_48(quantized_ptr, are_rotations_normalized);
 				break;
 			case RotationFormat8::QuatDropW_32:
-				packed_rotation = unpack_vector3_32<11, 11, 10>(quantized_ptr);
+				packed_rotation = unpack_vector3_32(11, 11, 10, are_rotations_normalized, quantized_ptr);
 				break;
 			case RotationFormat8::QuatDropW_Variable:
 				{
 					uint8_t bit_rate = rotations.get_bit_rate();
 					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-					if (are_rotations_normalized)
-						packed_rotation = unpack_vector3_n_unsigned(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
-					else
-						packed_rotation = unpack_vector3_n_signed(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+					packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
 				}
 				break;
 			default:
@@ -359,22 +356,16 @@ namespace acl
 			// Pack and unpack at our desired bit rate
 			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 			uint8_t raw_data[8] = {0};
-			Vector4_32 packed_rotation;
+
+			pack_vector3_n(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
+			Vector4_32 packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
 
 			if (are_rotations_normalized)
 			{
-				pack_vector3_n_unsigned(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
-				packed_rotation = unpack_vector3_n_unsigned(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
-
 				Vector4_32 clip_range_min = rotation_range.get_min();
 				Vector4_32 clip_range_extent = rotation_range.get_extent();
 
 				packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
-			}
-			else
-			{
-				pack_vector3_n_signed(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
-				packed_rotation = unpack_vector3_n_signed(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
 			}
 
 			switch (format)
@@ -424,12 +415,12 @@ namespace acl
 			case RotationFormat8::QuatDropW_96:
 				break;
 			case RotationFormat8::QuatDropW_48:
-				pack_vector3_48(rotation, &raw_data[0]);
-				packed_rotation = unpack_vector3_48(&raw_data[0]);
+				pack_vector3_48(rotation, are_rotations_normalized, &raw_data[0]);
+				packed_rotation = unpack_vector3_48(&raw_data[0], are_rotations_normalized);
 				break;
 			case RotationFormat8::QuatDropW_32:
-				pack_vector3_32<11, 11, 10>(rotation, &raw_data[0]);
-				packed_rotation = unpack_vector3_32<11, 11, 10>(&raw_data[0]);
+				pack_vector3_32(rotation, 11, 11, 10, are_rotations_normalized, &raw_data[0]);
+				packed_rotation = unpack_vector3_32(11, 11, 10, are_rotations_normalized, &raw_data[0]);
 				break;
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(desired_format));
@@ -473,17 +464,17 @@ namespace acl
 				packed_translation = unpack_vector3_96(quantized_ptr);
 				break;
 			case VectorFormat8::Vector3_48:
-				packed_translation = unpack_vector3_48(quantized_ptr);
+				packed_translation = unpack_vector3_48(quantized_ptr, are_translations_normalized);
 				break;
 			case VectorFormat8::Vector3_32:
-				packed_translation = unpack_vector3_32<11, 11, 10>(quantized_ptr);
+				packed_translation = unpack_vector3_32(11, 11, 10, are_translations_normalized, quantized_ptr);
 				break;
 			case VectorFormat8::Vector3_Variable:
 				{
 					ACL_ENSURE(are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 					uint8_t bit_rate = translations.get_bit_rate();
 					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-					packed_translation = unpack_vector3_n_unsigned(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, quantized_ptr);
+					packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
 				}
 				break;
 			default:
@@ -527,8 +518,8 @@ namespace acl
 			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 			uint8_t raw_data[8] = {0};
 
-			pack_vector3_n_unsigned(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
-			Vector4_32 packed_translation = unpack_vector3_n_unsigned(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, &raw_data[0]);
+			pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
+			Vector4_32 packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
 
 			Vector4_32 clip_range_min = translation_range.get_min();
 			Vector4_32 clip_range_extent = translation_range.get_extent();
@@ -563,12 +554,12 @@ namespace acl
 			case VectorFormat8::Vector3_96:
 				break;
 			case VectorFormat8::Vector3_48:
-				pack_vector3_48(translation, &raw_data[0]);
-				packed_translation = unpack_vector3_48(&raw_data[0]);
+				pack_vector3_48(translation, are_translations_normalized, &raw_data[0]);
+				packed_translation = unpack_vector3_48(&raw_data[0], are_translations_normalized);
 				break;
 			case VectorFormat8::Vector3_32:
-				pack_vector3_32<11, 11, 10>(translation, &raw_data[0]);
-				packed_translation = unpack_vector3_32<11, 11, 10>(&raw_data[0]);
+				pack_vector3_32(translation, 11, 11, 10, are_translations_normalized, &raw_data[0]);
+				packed_translation = unpack_vector3_32(11, 11, 10, are_translations_normalized, &raw_data[0]);
 				break;
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
