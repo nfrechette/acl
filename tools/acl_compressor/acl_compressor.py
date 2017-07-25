@@ -5,7 +5,7 @@ import threading
 from collections import namedtuple
 
 Stats = namedtuple('Stats', 'filename name rotation_format translation_format range_reduction raw_size compressed_size ratio max_error compression_time duration num_animated_tracks')
-RunStats = namedtuple('RunStats', 'name total_raw_size total_compressed_size total_compression_time max_error num_runs')
+RunStats = namedtuple('RunStats', 'name total_raw_size total_compressed_size total_compression_time total_duration max_error num_runs')
 
 def parse_argv():
 	options = {}
@@ -212,13 +212,14 @@ if __name__ == "__main__":
 	for stat in stats:
 		key = stat.rotation_format + stat.translation_format + stat.range_reduction
 		if not key in run_types:
-			run_types[key] = RunStats('{}, {}, {}'.format(stat.rotation_format, stat.translation_format, stat.range_reduction), 0, 0, 0.0, 0.0, 0)
+			run_types[key] = RunStats('{}, {}, {}'.format(stat.rotation_format, stat.translation_format, stat.range_reduction), 0, 0, 0.0, 0.0, 0.0, 0)
 		run_stats = run_types[key]
 		raw_size = stat.raw_size + run_stats.total_raw_size
 		compressed_size = stat.compressed_size + run_stats.total_compressed_size
 		compression_time = stat.compression_time + run_stats.total_compression_time
+		duration = stat.duration + run_stats.total_duration
 		max_error = max(stat.max_error, run_stats.max_error)
-		run_types[key] = RunStats(run_stats.name, raw_size, compressed_size, compression_time, max_error, run_stats.num_runs + 1)
+		run_types[key] = RunStats(run_stats.name, raw_size, compressed_size, compression_time, duration, max_error, run_stats.num_runs + 1)
 
 	run_types_by_size = sorted(run_types.values(), key = lambda entry: entry.total_compressed_size)
 	for run_stats in run_types_by_size:
@@ -238,7 +239,7 @@ if __name__ == "__main__":
 	worst_ratio = 100000000.0
 	worst_ratio_entry = None
 	total_compression_time = 0.0
-	total_duration = 0.0
+	total_duration = run_types_by_size[0].total_duration
 
 	for stat in stats:
 		if stat.max_error < best_error:
@@ -262,7 +263,6 @@ if __name__ == "__main__":
 			worst_ratio_entry = stat
 
 		total_compression_time += stat.compression_time
-		total_duration += stat.duration
 
 	print('Sum of clip durations: {}'.format(format_elapsed_time(total_duration)))
 	print('Total compression time: {}'.format(format_elapsed_time(total_compression_time)))
@@ -274,8 +274,9 @@ if __name__ == "__main__":
 	print('Least accurate: {}'.format(worst_error_entry.filename))
 	print_stat(worst_error_entry)
 
-	print('Least accurate variable: {}'.format(worst_variable_error_entry.filename))
-	print_stat(worst_variable_error_entry)
+	if worst_variable_error_entry != None:
+		print('Least accurate variable: {}'.format(worst_variable_error_entry.filename))
+		print_stat(worst_variable_error_entry)
 
 	print('Best ratio: {}'.format(best_ratio_entry.filename))
 	print_stat(best_ratio_entry)

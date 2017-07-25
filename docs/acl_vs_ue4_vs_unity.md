@@ -6,7 +6,7 @@ To compile the statistics, the animation database from Carnegie-Mellon Universit
 
 *  Number of clips: 2534
 *  Sample rate: 24 FPS
-*  Total duration: 490h 15m 44.40s
+*  Total duration: 09h 48m 18.89s
 
 **TODO: Show stats and graphs**
 
