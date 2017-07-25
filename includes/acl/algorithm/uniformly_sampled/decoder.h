@@ -61,13 +61,14 @@ namespace acl
 
 		namespace impl
 		{
-			// TODO: Ensure RO data is aligned to 64 bytes and RW data is aligned to 64 bytes as well
-			struct DecompressionContext
+			static constexpr size_t CONTEXT_ALIGN_AS = 64;
+
+			struct alignas(CONTEXT_ALIGN_AS) DecompressionContext
 			{
 				// Read-only data
-				const uint32_t* default_tracks_bitset;
 				const uint32_t* constant_tracks_bitset;
 				const uint8_t* constant_track_data;
+				const uint32_t* default_tracks_bitset;
 
 				const uint8_t* format_per_track_data;
 				const uint8_t* range_data;
@@ -78,24 +79,25 @@ namespace acl
 				uint32_t range_rotation_size;
 				uint32_t range_translation_size;
 
-				float interpolation_alpha;
+				float clip_duration;
 
 				bool has_mixed_packing;
 
 				// Read-write data
-				uint32_t default_track_offset;
-				uint32_t constant_track_offset;
+				alignas(CONTEXT_ALIGN_AS) uint32_t constant_track_offset;
 				uint32_t constant_track_data_offset;
+				uint32_t default_track_offset;
 				uint32_t format_per_track_data_offset;
 				uint32_t range_data_offset;
 				uint32_t key_frame_byte_offset0;
 				uint32_t key_frame_byte_offset1;
 				uint32_t key_frame_bit_offset0;
 				uint32_t key_frame_bit_offset1;
+				float interpolation_alpha;
 			};
 
 			template<class SettingsType>
-			inline void initialize_context(const SettingsType& settings, const FullPrecisionHeader& header, float sample_time, DecompressionContext& context)
+			inline void initialize_context(const SettingsType& settings, const FullPrecisionHeader& header, DecompressionContext& context)
 			{
 				const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 				const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
@@ -123,12 +125,7 @@ namespace acl
 				const uint32_t range_translation_size = get_range_reduction_vector_size(translation_format);
 				const bool has_clip_range_reduction = is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip);
 
-				float clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
-
-				uint32_t key_frame0;
-				uint32_t key_frame1;
-				float interpolation_alpha;
-				calculate_interpolation_keys(header.num_samples, clip_duration, sample_time, key_frame0, key_frame1, interpolation_alpha);
+				context.clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
 
 				context.default_tracks_bitset = header.get_default_tracks_bitset();
 
@@ -144,17 +141,25 @@ namespace acl
 				context.range_rotation_size = has_clip_range_reduction && is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) ? range_rotation_size : 0;
 				context.range_translation_size = has_clip_range_reduction && is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) ? range_translation_size : 0;
 
-				context.interpolation_alpha = interpolation_alpha;
-
 				// If all tracks are variable, no need for any extra padding except at the very end of the data
 				// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
 				context.has_mixed_packing = is_rotation_format_variable(rotation_format) != is_vector_format_variable(translation_format);
+			}
 
+			template<class SettingsType>
+			inline void seek(const SettingsType& settings, const FullPrecisionHeader& header, float sample_time, DecompressionContext& context)
+			{
 				context.constant_track_offset = 0;
-				context.default_track_offset = 0;
 				context.constant_track_data_offset = 0;
+				context.default_track_offset = 0;
 				context.format_per_track_data_offset = 0;
 				context.range_data_offset = 0;
+
+				uint32_t key_frame0;
+				uint32_t key_frame1;
+				
+				calculate_interpolation_keys(header.num_samples, context.clip_duration, sample_time, key_frame0, key_frame1, context.interpolation_alpha);
+
 				context.key_frame_byte_offset0 = (key_frame0 * header.animated_pose_bit_size) / 8;
 				context.key_frame_byte_offset1 = (key_frame1 * header.animated_pose_bit_size) / 8;
 				context.key_frame_bit_offset0 = key_frame0 * header.animated_pose_bit_size;
@@ -618,8 +623,31 @@ namespace acl
 			constexpr bool supports_mixed_packing() const { return true; }
 		};
 
+		template<class SettingsType>
+		inline void* allocate_decompression_context(Allocator& allocator, const SettingsType& settings, const CompressedClip& clip)
+		{
+			using namespace impl;
+
+			DecompressionContext* context = allocate_type<DecompressionContext>(allocator);
+
+			ACL_ASSERT(is_aligned_to(&context->constant_tracks_bitset, CONTEXT_ALIGN_AS), "Read-only decompression context is misaligned");
+			ACL_ASSERT(is_aligned_to(&context->constant_track_offset, CONTEXT_ALIGN_AS), "Read-write decompression context is misaligned");
+
+			initialize_context(settings, get_full_precision_header(clip), *context);
+
+			return context;
+		}
+
+		inline void deallocate_decompression_context(Allocator& allocator, void* opaque_context)
+		{
+			using namespace impl;
+
+			DecompressionContext* context = safe_ptr_cast<DecompressionContext>(opaque_context);
+			deallocate_type<DecompressionContext>(allocator, context);
+		}
+
 		template<class SettingsType, class OutputWriterType>
-		inline void decompress_pose(const SettingsType& settings, const CompressedClip& clip, float sample_time, OutputWriterType& writer)
+		inline void decompress_pose(const SettingsType& settings, const CompressedClip& clip, void* opaque_context, float sample_time, OutputWriterType& writer)
 		{
 			static_assert(std::is_base_of<DecompressionSettings, SettingsType>::value, "SettingsType must derive from DecompressionSettings!");
 			static_assert(std::is_base_of<OutputWriter, OutputWriterType>::value, "OutputWriterType must derive from OutputWriter!");
@@ -631,8 +659,9 @@ namespace acl
 
 			const FullPrecisionHeader& header = get_full_precision_header(clip);
 
-			DecompressionContext context;
-			initialize_context(settings, header, sample_time, context);
+			DecompressionContext& context = *safe_ptr_cast<DecompressionContext>(opaque_context);
+
+			seek(settings, header, sample_time, context);
 
 			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 			{
@@ -645,7 +674,7 @@ namespace acl
 		}
 
 		template<class SettingsType>
-		inline void decompress_bone(const SettingsType& settings, const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
+		inline void decompress_bone(const SettingsType& settings, const CompressedClip& clip, void* opaque_context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
 		{
 			static_assert(std::is_base_of<DecompressionSettings, SettingsType>::value, "SettingsType must derive from DecompressionSettings!");
 
@@ -656,8 +685,9 @@ namespace acl
 
 			const FullPrecisionHeader& header = get_full_precision_header(clip);
 
-			DecompressionContext context;
-			initialize_context(settings, header, sample_time, context);
+			DecompressionContext& context = *safe_ptr_cast<DecompressionContext>(opaque_context);
+
+			seek(settings, header, sample_time, context);
 
 			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
 			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
