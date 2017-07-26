@@ -46,17 +46,28 @@ namespace acl
 			return uniformly_sampled::compress_clip(allocator, clip, skeleton, m_compression_settings);
 		}
 
-		virtual void decompress_pose(const CompressedClip& clip, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) override
+		virtual void* allocate_decompression_context(Allocator& allocator, const CompressedClip& clip) override
+		{
+			uniformly_sampled::DecompressionSettings settings;
+			return uniformly_sampled::allocate_decompression_context(allocator, settings, clip);
+		}
+
+		virtual void deallocate_decompression_context(Allocator& allocator, void* context) override
+		{
+			return uniformly_sampled::deallocate_decompression_context(allocator, context);
+		}
+
+		virtual void decompress_pose(const CompressedClip& clip, void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) override
 		{
 			uniformly_sampled::DecompressionSettings settings;
 			AlgorithmOutputWriterImpl writer(out_transforms, num_transforms);
-			uniformly_sampled::decompress_pose(settings, clip, sample_time, writer);
+			uniformly_sampled::decompress_pose(settings, clip, context, sample_time, writer);
 		}
 
-		virtual void decompress_bone(const CompressedClip& clip, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) override
+		virtual void decompress_bone(const CompressedClip& clip, void* context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) override
 		{
 			uniformly_sampled::DecompressionSettings settings;
-			uniformly_sampled::decompress_bone(settings, clip, sample_time, sample_bone_index, out_rotation, out_translation);
+			uniformly_sampled::decompress_bone(settings, clip, context, sample_time, sample_bone_index, out_rotation, out_translation);
 		}
 
 		virtual void print_stats(const CompressedClip& clip, std::FILE* file) override

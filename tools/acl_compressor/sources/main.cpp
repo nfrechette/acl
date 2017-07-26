@@ -200,7 +200,7 @@ static void print_stats(const Options& options, const AnimationClip& clip, const
 	fprintf(file, "\n");
 }
 
-static float calculate_bone_max_error(const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm, uint16_t bone_index, Transform_32* raw_pose_transforms, Transform_32* lossy_pose_transforms, float& out_worst_sample_time)
+static float calculate_bone_max_error(const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm, void* context, uint16_t bone_index, Transform_32* raw_pose_transforms, Transform_32* lossy_pose_transforms, float& out_worst_sample_time)
 {
 	uint16_t num_bones = clip.get_num_bones();
 	float clip_duration = clip.get_duration();
@@ -216,7 +216,7 @@ static float calculate_bone_max_error(const AnimationClip& clip, const RigidSkel
 		float sample_time = min(float(sample_index) / float(sample_rate), clip_duration);
 
 		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
-		algorithm.decompress_pose(compressed_clip, sample_time, lossy_pose_transforms, num_bones);
+		algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
 
 		float error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
 		if (error > max_error)
@@ -230,7 +230,7 @@ static float calculate_bone_max_error(const AnimationClip& clip, const RigidSkel
 	return max_error;
 }
 
-static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
+static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, void* context, IAlgorithm& algorithm)
 {
 	using namespace acl;
 
@@ -246,7 +246,7 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 	for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 	{
 		float bone_worst_sample_time;
-		float error = calculate_bone_max_error(clip, skeleton, compressed_clip, algorithm, bone_index, raw_pose_transforms, lossy_pose_transforms, bone_worst_sample_time);
+		float error = calculate_bone_max_error(clip, skeleton, compressed_clip, algorithm, context, bone_index, raw_pose_transforms, lossy_pose_transforms, bone_worst_sample_time);
 
 #if defined(ACL_DEBUG_MAIN_ERROR)
 		printf("%u: final error: %f\n", bone_index, error);
@@ -268,7 +268,7 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 		float sample_time = clip.get_duration();
 		Quat_32 test_rotation;
 		Vector4_32 test_translation;
-		algorithm.decompress_bone(compressed_clip, sample_time, sample_bone_index, &test_rotation, &test_translation);
+		algorithm.decompress_bone(compressed_clip, context, sample_time, sample_bone_index, &test_rotation, &test_translation);
 		ACL_ENSURE(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
 		ACL_ENSURE(vector_near_equal3(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
 	}
@@ -294,11 +294,14 @@ static void try_algorithm(const Options& options, Allocator& allocator, const An
 
 	ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
 
-	BoneError error = find_max_error(allocator, clip, skeleton, *compressed_clip, algorithm);
+	void* context = algorithm.allocate_decompression_context(allocator, *compressed_clip);
+
+	BoneError error = find_max_error(allocator, clip, skeleton, *compressed_clip, context, algorithm);
 
 	print_stats(options, clip, *compressed_clip, end_time_cycles.QuadPart - start_time_cycles.QuadPart, error, algorithm);
 
 	allocator.deallocate(compressed_clip, compressed_clip->get_size());
+	algorithm.deallocate_decompression_context(allocator, context);
 }
 
 static bool read_clip(Allocator& allocator, const char* filename,
