@@ -2,8 +2,8 @@ import os
 import sys
 from collections import namedtuple
 
-Stats = namedtuple('Stats', 'filename name rotation_format translation_format raw_size compressed_size ratio max_error duration')
-RunStats = namedtuple('RunStats', 'name total_raw_size total_compressed_size max_error num_runs')
+Stats = namedtuple('Stats', 'filename name rotation_format translation_format raw_size compressed_size compression_time ratio max_error duration')
+RunStats = namedtuple('RunStats', 'name total_raw_size total_compressed_size total_compression_time max_error num_runs')
 
 def parse_argv():
 	options = {}
@@ -36,6 +36,11 @@ def print_stat(stat):
 
 def bytes_to_mb(size_in_bytes):
 	return size_in_bytes / (1024.0 * 1024.0)
+
+def format_elapsed_time(elapsed_time):
+	hours, rem = divmod(elapsed_time, 3600)
+	minutes, seconds = divmod(rem, 60)
+	return '{:0>2}h {:0>2}m {:05.2f}s'.format(int(hours), int(minutes), seconds)
 
 def sanitize_csv_entry(entry):
 	return entry.replace(', ', ' ').replace(',', '_')
@@ -89,6 +94,8 @@ if __name__ == "__main__":
 				parsed_stats = []
 				while len(line.strip()) != 0:
 					parsed_stats.append(line.strip().split(': '))
+					if line.startswith('Clip compression time (s):'):	# A bug in the 0.3.0 stats, we have a \n at the end of this line that is extra, skip it
+						line = file.readline()
 					line = file.readline()
 
 				name = next(x[1] for x in parsed_stats if x[0] == 'Clip algorithm')
@@ -96,11 +103,12 @@ if __name__ == "__main__":
 				translation_format = next(x[1] for x in parsed_stats if x[0] == 'Clip translation format')
 				raw_size = int(next(x[1] for x in parsed_stats if x[0] == 'Clip raw size (bytes)'))
 				compressed_size = int(next(x[1] for x in parsed_stats if x[0] == 'Clip compressed size (bytes)'))
+				compression_time = float(next(x[1] for x in parsed_stats if x[0] == 'Clip compression time (s)'))
 				ratio = float(raw_size) / float(compressed_size)
 				max_error = float(next(x[1] for x in parsed_stats if x[0] == 'Clip max error'))
 				duration = float(next(x[1] for x in parsed_stats if x[0] == 'Clip duration (s)'))
 
-				stats.append(Stats(stat_filename, name, rotation_format, translation_format, raw_size, compressed_size, ratio, max_error, duration))
+				stats.append(Stats(stat_filename, name, rotation_format, translation_format, raw_size, compressed_size, compression_time, ratio, max_error, duration))
 
 	print('Found {} runs'.format(len(stats)))
 	print()
@@ -114,17 +122,18 @@ if __name__ == "__main__":
 	for stat in stats:
 		key = stat.name + stat.rotation_format + stat.translation_format
 		if not key in run_types:
-			run_types[key] = RunStats('{}, {}, {}'.format(stat.name, stat.rotation_format, stat.translation_format), 0, 0, 0.0, 0)
+			run_types[key] = RunStats('{}, {}, {}'.format(stat.name, stat.rotation_format, stat.translation_format), 0, 0, 0.0, 0.0, 0)
 		run_stats = run_types[key]
 		raw_size = stat.raw_size + run_stats.total_raw_size
 		compressed_size = stat.compressed_size + run_stats.total_compressed_size
+		compression_time = stat.compression_time + run_stats.total_compression_time
 		max_error = max(stat.max_error, run_stats.max_error)
-		run_types[key] = RunStats(run_stats.name, raw_size, compressed_size, max_error, run_stats.num_runs + 1)
+		run_types[key] = RunStats(run_stats.name, raw_size, compressed_size, compression_time, max_error, run_stats.num_runs + 1)
 
 	run_types_by_size = sorted(run_types.values(), key = lambda entry: entry.total_compressed_size)
 	for run_stats in run_types_by_size:
 		ratio = float(run_stats.total_raw_size) / float(run_stats.total_compressed_size)
-		print('Raw {:.2f} MB, Compressed {:.2f} MB, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats.total_raw_size), bytes_to_mb(run_stats.total_compressed_size), ratio, run_stats.max_error, run_stats.name))
+		print('Raw {:.2f} MB, Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats.total_raw_size), bytes_to_mb(run_stats.total_compressed_size), format_elapsed_time(run_stats.total_compression_time), ratio, run_stats.max_error, run_stats.name))
 	print()
 
 	# Find outliers

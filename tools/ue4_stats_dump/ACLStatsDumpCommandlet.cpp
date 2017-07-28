@@ -4,6 +4,7 @@
 #include "ACLStatsDumpCommandlet.h"
 
 #include "Runtime/Core/Public/HAL/FileManagerGeneric.h"
+#include "Runtime/Core/Public/HAL/PlatformTime.h"
 #include "Runtime/Engine/Classes/Animation/AnimCompress_Automatic.h"
 #include "Runtime/Engine/Classes/Animation/Skeleton.h"
 
@@ -11,7 +12,7 @@
 #include <acl/compression/skeleton_error_metric.h>
 #include <acl/io/clip_reader.h>
 #include <acl/math/quat_32.h>
-#include <acl/math/transform_64.h>
+#include <acl/math/transform_32.h>
 
 // Commandlet example inspired by: https://github.com/ue4plugins/CommandletPlugin
 // To run the commandlet, add to the commandline: "$(SolutionDir)$(ProjectName).uproject" -run=/Script/ACLData.ACLStatsDump
@@ -124,7 +125,7 @@ static void convert_clip(const acl::AnimationClip& acl_clip, const acl::RigidSke
 	ue4_clip->UpdateCompressedTrackMapFromRaw();
 }
 
-static void sample_ue4_clip(const acl::RigidSkeleton& acl_skeleton, USkeleton* ue4_skeleton, UAnimSequence* ue4_clip, float sample_time, acl::Transform_64* lossy_pose_transforms)
+static void sample_ue4_clip(const acl::RigidSkeleton& acl_skeleton, USkeleton* ue4_skeleton, UAnimSequence* ue4_clip, float sample_time, acl::Transform_32* lossy_pose_transforms)
 {
 	const FReferenceSkeleton& ref_skeleton = ue4_skeleton->GetReferenceSkeleton();
 
@@ -141,65 +142,66 @@ static void sample_ue4_clip(const acl::RigidSkeleton& acl_skeleton, USkeleton* u
 
 		acl::Quat_32 rotation = acl::quat_set(BoneAtom.GetRotation().X, BoneAtom.GetRotation().Y, BoneAtom.GetRotation().Z, BoneAtom.GetRotation().W);
 		acl::Vector4_32 translation = acl::vector_set(BoneAtom.GetTranslation().X, BoneAtom.GetTranslation().Y, BoneAtom.GetTranslation().Z);
-		lossy_pose_transforms[bone_index] = acl::transform_set(acl::quat_cast(rotation), acl::vector_cast(translation));
+		lossy_pose_transforms[bone_index] = acl::transform_set(rotation, translation);
 	}
 }
 
-static void calculate_clip_error(acl::Allocator& allocator, const acl::AnimationClip& acl_clip, const acl::RigidSkeleton& acl_skeleton, UAnimSequence* ue4_clip, USkeleton* ue4_skeleton, uint16_t& out_worst_bone, double& out_max_error, float& out_worst_sample_time)
+static float calculate_bone_max_error(const acl::AnimationClip& acl_clip, const acl::RigidSkeleton& acl_skeleton, UAnimSequence* ue4_clip, USkeleton* ue4_skeleton, uint16_t bone_index, acl::Transform_32* raw_pose_transforms, acl::Transform_32* lossy_pose_transforms, float& out_worst_sample_time)
+{
+	uint16_t num_bones = acl_clip.get_num_bones();
+	float clip_duration = acl_clip.get_duration();
+	uint32_t sample_rate = acl_clip.get_sample_rate();
+	uint32_t num_samples = acl::calculate_num_samples(clip_duration, sample_rate);
+
+	float max_error = 0.0f;
+	float worst_sample_time = 0.0f;
+
+	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+	{
+		// Sample our streams and calculate the error
+		float sample_time = std::min<float>(float(sample_index) / float(sample_rate), clip_duration);
+
+		acl_clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
+		sample_ue4_clip(acl_skeleton, ue4_skeleton, ue4_clip, sample_time, lossy_pose_transforms);
+
+		float error = calculate_object_bone_error(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+		if (error > max_error)
+		{
+			max_error = error;
+			worst_sample_time = sample_time;
+		}
+	}
+
+	out_worst_sample_time = worst_sample_time;
+	return max_error;
+}
+
+static void calculate_clip_error(acl::Allocator& allocator, const acl::AnimationClip& acl_clip, const acl::RigidSkeleton& acl_skeleton, UAnimSequence* ue4_clip, USkeleton* ue4_skeleton, uint16_t& out_worst_bone, float& out_max_error, float& out_worst_sample_time)
 {
 	uint16_t num_bones = acl_clip.get_num_bones();
 
-	acl::Transform_64* raw_pose_transforms = acl::allocate_type_array<acl::Transform_64>(allocator, num_bones);
-	acl::Transform_64* lossy_pose_transforms = acl::allocate_type_array<acl::Transform_64>(allocator, num_bones);
-	double* error_per_bone = acl::allocate_type_array<double>(allocator, num_bones);
+	acl::Transform_32* raw_pose_transforms = acl::allocate_type_array<acl::Transform_32>(allocator, num_bones);
+	acl::Transform_32* lossy_pose_transforms = acl::allocate_type_array<acl::Transform_32>(allocator, num_bones);
 
 	uint16_t worst_bone = acl::INVALID_BONE_INDEX;
-	double max_error = -1.0;
+	float max_error = 0.0f;
 	float worst_sample_time = 0.0f;
 
-	float sample_time = 0.0f;
-	float clip_duration = (float)acl_clip.get_duration();
-	float sample_increment = 1.0f / acl_clip.get_sample_rate();
-	while (sample_time < clip_duration)
+	for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 	{
-		acl_clip.sample_pose((double)sample_time, raw_pose_transforms, num_bones);
-		sample_ue4_clip(acl_skeleton, ue4_skeleton, ue4_clip, sample_time, lossy_pose_transforms);
+		float bone_worst_sample_time;
+		float error = calculate_bone_max_error(acl_clip, acl_skeleton, ue4_clip, ue4_skeleton, bone_index, raw_pose_transforms, lossy_pose_transforms, bone_worst_sample_time);
 
-		acl::calculate_skeleton_error(allocator, acl_skeleton, raw_pose_transforms, lossy_pose_transforms, error_per_bone);
-
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		if (error > max_error)
 		{
-			if (error_per_bone[bone_index] > max_error)
-			{
-				max_error = error_per_bone[bone_index];
-				worst_bone = bone_index;
-				worst_sample_time = sample_time;
-			}
-		}
-
-		sample_time += sample_increment;
-	}
-
-	{
-		acl_clip.sample_pose((double)clip_duration, raw_pose_transforms, num_bones);
-		sample_ue4_clip(acl_skeleton, ue4_skeleton, ue4_clip, clip_duration, lossy_pose_transforms);
-
-		acl::calculate_skeleton_error(allocator, acl_skeleton, raw_pose_transforms, lossy_pose_transforms, error_per_bone);
-
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			if (error_per_bone[bone_index] > max_error)
-			{
-				max_error = error_per_bone[bone_index];
-				worst_bone = bone_index;
-				worst_sample_time = sample_time;
-			}
+			max_error = error;
+			worst_bone = bone_index;
+			worst_sample_time = bone_worst_sample_time;
 		}
 	}
 
 	acl::deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 	acl::deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-	acl::deallocate_type_array(allocator, error_per_bone, num_bones);
 
 	out_worst_bone = worst_bone;
 	out_max_error = max_error;
@@ -365,11 +367,19 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 			UAnimSequence* ue4_clip = NewObject<UAnimSequence>(this, UAnimSequence::StaticClass());
 			convert_clip(*acl_clip, *acl_skeleton, ue4_clip, ue4_skeleton);
 
+			uint64_t read_start_time_cycles = FPlatformTime::Cycles64();
+
 			bool success = auto_compressor->Reduce(ue4_clip, false);
+
+			uint64_t read_end_time_cycles = FPlatformTime::Cycles64();
+
+			uint64_t elapsed_cycles = read_end_time_cycles - read_start_time_cycles;
+			double elapsed_time_sec = FPlatformTime::ToSeconds64(elapsed_cycles);
+
 			if (success)
 			{
 				uint16_t worst_bone;
-				double max_error;
+				float max_error;
 				float worst_sample_time;
 				calculate_clip_error(allocator, *acl_clip, *acl_skeleton, ue4_clip, ue4_skeleton, worst_bone, max_error, worst_sample_time);
 
@@ -386,6 +396,7 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 				stat_writer->Logf(TEXT("Clip compressed size (bytes): %u"), compressed_size);
 				stat_writer->Logf(TEXT("Clip compression ratio: %.2f : 1"), compression_ratio);
 				stat_writer->Logf(TEXT("Clip ACL compression ratio: %.2f : 1"), acl_compression_ratio);
+				stat_writer->Logf(TEXT("Clip compression time (s): %.6f"), elapsed_time_sec);
 				stat_writer->Logf(TEXT("Clip duration (s): %.5f"), ue4_clip->SequenceLength);
 				stat_writer->Logf(TEXT("Clip num samples: %u"), ue4_clip->NumFrames);
 				stat_writer->Logf(TEXT("Clip max error: %.5f"), max_error);
