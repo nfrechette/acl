@@ -18,7 +18,7 @@ The code supports storing each component `[X, Y, Z]` on an arbitrary number of b
 
 ### Vector3 Variable
 
-The compression algorithm will search for the optimal bit rate among 16 possible values. An algorithm will select which bit rate to use for each track while keeping the memory footprint and error as low as possible.
+The compression algorithm will search for the optimal bit rate among 19 possible values. An algorithm will select which bit rate to use for each track while keeping the memory footprint and error as low as possible.
 
 # Rotation formats
 
