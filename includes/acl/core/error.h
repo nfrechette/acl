@@ -33,6 +33,7 @@
 
 #if (!defined(ACL_ASSERT) || !defined(ACL_ENSURE)) && defined(ACL_USE_ERROR_CHECKS)
 	#include <assert.h>
+	#include <cstdlib>
 #endif
 
 // Asserts are properly handled by the library and can be optionally skipped by the user.
@@ -40,7 +41,23 @@
 #if !defined(ACL_ASSERT)
 	#if defined(ACL_USE_ERROR_CHECKS)
 		// Note: STD assert(..) is fatal, it calls abort
-		#define ACL_ASSERT(expression, format, ...) assert(expression)
+		//#define ACL_ASSERT(expression, format, ...) assert(expression)
+		namespace acl
+		{
+			namespace error_impl
+			{
+				inline void assert_impl(bool expression)
+				{
+				#if !defined(NDEBUG)
+					assert(expression);
+				#endif
+
+					if (!expression) std::abort();
+				}
+			}
+		}
+
+		#define ACL_ASSERT(expression, format, ...) acl::error_impl::assert_impl(expression)
 	#else
 		#define ACL_ASSERT(expression, format, ...) ((void)0)
 	#endif
@@ -53,7 +70,7 @@
 // Ensure is fatal, the library does not handle skipping this safely.
 #if !defined(ACL_ENSURE)
 	#if defined(ACL_USE_ERROR_CHECKS)
-		#define ACL_ENSURE(expression, format, ...) assert(expression)
+		#define ACL_ENSURE(expression, format, ...) acl::error_impl::assert_impl(expression)
 	#else
 		#define ACL_ENSURE(expression, format, ...) ((void)0)
 	#endif
