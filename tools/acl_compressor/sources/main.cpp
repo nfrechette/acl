@@ -30,6 +30,7 @@
 
 #include "acl/algorithm/uniformly_sampled/algorithm.h"
 
+#define NOMINMAX
 #include <Windows.h>
 #include <conio.h>
 
@@ -237,7 +238,6 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 	uint16_t num_bones = clip.get_num_bones();
 	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-	float* error_per_bone = allocate_type_array<float>(allocator, num_bones);
 
 	uint16_t worst_bone = INVALID_BONE_INDEX;
 	float max_error = 0.0f;
@@ -275,7 +275,6 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-	deallocate_type_array(allocator, error_per_bone, num_bones);
 
 	return BoneError{worst_bone, max_error, worst_sample_time};
 }
