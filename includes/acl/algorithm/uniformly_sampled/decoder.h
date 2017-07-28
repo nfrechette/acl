@@ -436,8 +436,24 @@ namespace acl
 							uint8_t bit_rate = context.format_per_track_data[context.format_per_track_data_offset++];
 							uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
-							Vector4_32 rotation0_xyz = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset0);
-							Vector4_32 rotation1_xyz = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset1);
+							Vector4_32 rotation0_xyz;
+							Vector4_32 rotation1_xyz;
+
+							if (is_pack_72_bit_rate(bit_rate))
+							{
+								rotation0_xyz = unpack_vector3_72(are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset0);
+								rotation1_xyz = unpack_vector3_72(are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset1);
+							}
+							else if (is_pack_96_bit_rate(bit_rate))
+							{
+								rotation0_xyz = unpack_vector3_96(context.animated_track_data, context.key_frame_bit_offset0);
+								rotation1_xyz = unpack_vector3_96(context.animated_track_data, context.key_frame_bit_offset1);
+							}
+							else
+							{
+								rotation0_xyz = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset0);
+								rotation1_xyz = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset1);
+							}
 
 							if (are_rotations_normalized)
 							{
@@ -559,8 +575,21 @@ namespace acl
 							uint8_t bit_rate = context.format_per_track_data[context.format_per_track_data_offset++];
 							uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
-							translation0 = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, context.animated_track_data, context.key_frame_bit_offset0);
-							translation1 = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, context.animated_track_data, context.key_frame_bit_offset1);
+							if (is_pack_72_bit_rate(bit_rate))
+							{
+								translation0 = unpack_vector3_72(true, context.animated_track_data, context.key_frame_bit_offset0);
+								translation1 = unpack_vector3_72(true, context.animated_track_data, context.key_frame_bit_offset1);
+							}
+							else if (is_pack_96_bit_rate(bit_rate))
+							{
+								translation0 = unpack_vector3_96(context.animated_track_data, context.key_frame_bit_offset0);
+								translation1 = unpack_vector3_96(context.animated_track_data, context.key_frame_bit_offset1);
+							}
+							else
+							{
+								translation0 = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, context.animated_track_data, context.key_frame_bit_offset0);
+								translation1 = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, context.animated_track_data, context.key_frame_bit_offset1);
+							}
 
 							uint8_t num_bits_read = num_bits_at_bit_rate * 3;
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)

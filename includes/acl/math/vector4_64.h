@@ -273,6 +273,11 @@ namespace acl
 		return vector_add(start, vector_mul(vector_sub(end, start), vector_set(alpha)));
 	}
 
+	inline Vector4_64 vector_fraction(const Vector4_64& input)
+	{
+		return vector_set(fraction(vector_get_x(input)), fraction(vector_get_y(input)), fraction(vector_get_z(input)), fraction(vector_get_w(input)));
+	}
+
 	inline Vector4_64 vector_less_than(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)

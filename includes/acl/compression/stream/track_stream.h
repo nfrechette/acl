@@ -300,7 +300,12 @@ namespace acl
 				{
 					uint8_t bit_rate = rotations.get_bit_rate();
 					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-					packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
+					if (is_pack_72_bit_rate(bit_rate))
+						packed_rotation = unpack_vector3_72(are_rotations_normalized, quantized_ptr);
+					else if (is_pack_96_bit_rate(bit_rate))
+						packed_rotation = unpack_vector3_96(quantized_ptr);
+					else
+						packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
 				}
 				break;
 			default:
@@ -355,10 +360,24 @@ namespace acl
 
 			// Pack and unpack at our desired bit rate
 			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			uint8_t raw_data[8] = {0};
+			uint8_t raw_data[16] = {0};
+			Vector4_32 packed_rotation;
 
-			pack_vector3_n(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
-			Vector4_32 packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
+			if (is_pack_72_bit_rate(bit_rate))
+			{
+				pack_vector3_72(rotation, are_rotations_normalized, &raw_data[0]);
+				packed_rotation = unpack_vector3_72(are_rotations_normalized, &raw_data[0]);
+			}
+			else if (is_pack_96_bit_rate(bit_rate))
+			{
+				pack_vector3_96(rotation, &raw_data[0]);
+				packed_rotation = unpack_vector3_96(&raw_data[0]);
+			}
+			else
+			{
+				pack_vector3_n(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
+				packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
+			}
 
 			if (are_rotations_normalized)
 			{
@@ -405,14 +424,14 @@ namespace acl
 			}
 
 			// Pack and unpack in our desired format
-			uint8_t raw_data[8] = { 0 };
+			uint8_t raw_data[16] = { 0 };
 			Vector4_32 packed_rotation;
 
 			switch (desired_format)
 			{
 			case RotationFormat8::Quat_128:
-				break;
 			case RotationFormat8::QuatDropW_96:
+				packed_rotation = rotation;
 				break;
 			case RotationFormat8::QuatDropW_48:
 				pack_vector3_48(rotation, are_rotations_normalized, &raw_data[0]);
@@ -474,7 +493,12 @@ namespace acl
 					ACL_ENSURE(are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 					uint8_t bit_rate = translations.get_bit_rate();
 					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-					packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+					if (is_pack_72_bit_rate(bit_rate))
+						packed_translation = unpack_vector3_72(true, quantized_ptr);
+					else if (is_pack_96_bit_rate(bit_rate))
+						packed_translation = unpack_vector3_96(quantized_ptr);
+					else
+						packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
 				}
 				break;
 			default:
@@ -516,10 +540,24 @@ namespace acl
 
 			// Pack and unpack at our desired bit rate
 			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			uint8_t raw_data[8] = {0};
+			uint8_t raw_data[16] = {0};
+			Vector4_32 packed_translation;
 
-			pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
-			Vector4_32 packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
+			if (is_pack_72_bit_rate(bit_rate))
+			{
+				pack_vector3_72(translation, true, &raw_data[0]);
+				packed_translation = unpack_vector3_72(true, &raw_data[0]);
+			}
+			else if (is_pack_96_bit_rate(bit_rate))
+			{
+				pack_vector3_96(translation, &raw_data[0]);
+				packed_translation = unpack_vector3_96(&raw_data[0]);
+			}
+			else
+			{
+				pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
+				packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
+			}
 
 			Vector4_32 clip_range_min = translation_range.get_min();
 			Vector4_32 clip_range_extent = translation_range.get_extent();
@@ -546,12 +584,13 @@ namespace acl
 			}
 
 			// Pack and unpack in our desired format
-			uint8_t raw_data[8] = { 0 };
+			uint8_t raw_data[16] = { 0 };
 			Vector4_32 packed_translation;
 
 			switch (desired_format)
 			{
 			case VectorFormat8::Vector3_96:
+				packed_translation = translation;
 				break;
 			case VectorFormat8::Vector3_48:
 				pack_vector3_48(translation, are_translations_normalized, &raw_data[0]);

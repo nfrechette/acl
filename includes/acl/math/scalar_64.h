@@ -105,4 +105,14 @@ namespace acl
 	{
 		return std::isfinite(input);
 	}
+
+	inline double symmetric_round(double input)
+	{
+		return floor(input >= 0.0 ? (input + 0.5) : (input - 0.5));
+	}
+
+	inline double fraction(double value)
+	{
+		return value - floor(value);
+	}
 }

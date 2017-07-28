@@ -110,7 +110,7 @@ namespace acl
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 
 			uint32_t num_samples = raw_stream.get_num_samples();
-			uint32_t sample_size = sizeof(uint64_t);
+			uint32_t sample_size = sizeof(uint64_t) * 2;
 			uint32_t sample_rate = raw_stream.get_sample_rate();
 			RotationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, RotationFormat8::QuatDropW_Variable, bit_rate);
 
@@ -120,7 +120,12 @@ namespace acl
 			{
 				Quat_32 rotation = raw_stream.get_raw_sample<Quat_32>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
-				pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
+				if (is_pack_72_bit_rate(bit_rate))
+					pack_vector3_72(quat_to_vector(rotation), are_rotations_normalized, quantized_ptr);
+				else if (is_pack_96_bit_rate(bit_rate))
+					pack_vector3_96(quat_to_vector(rotation), quantized_ptr);
+				else
+					pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
 			}
 
 			out_quantized_stream = std::move(quantized_stream);
@@ -209,7 +214,7 @@ namespace acl
 			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			uint32_t num_samples = raw_stream.get_num_samples();
-			uint32_t sample_size = sizeof(uint64_t);
+			uint32_t sample_size = sizeof(uint64_t) * 2;
 			uint32_t sample_rate = raw_stream.get_sample_rate();
 			TranslationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
 
@@ -219,7 +224,12 @@ namespace acl
 			{
 				Vector4_32 translation = raw_stream.get_raw_sample<Vector4_32>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
-				pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+				if (is_pack_72_bit_rate(bit_rate))
+					pack_vector3_72(translation, true, quantized_ptr);
+				else if (is_pack_96_bit_rate(bit_rate))
+					pack_vector3_96(translation, quantized_ptr);
+				else
+					pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
 			}
 
 			out_quantized_stream = std::move(quantized_stream);
@@ -468,11 +478,11 @@ namespace acl
 			BoneBitRate best_bit_rates = bone_bit_rates;
 			float best_error = old_error;
 
-			for (uint8_t rotation_increment = 1; rotation_increment <= num_increments; ++rotation_increment)
+			for (uint8_t rotation_increment = 0; rotation_increment <= num_increments; ++rotation_increment)
 			{
 				uint8_t rotation_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.rotation, rotation_increment);
 
-				for (uint8_t translation_increment = 1; translation_increment <= num_increments; ++translation_increment)
+				for (uint8_t translation_increment = 0; translation_increment <= num_increments; ++translation_increment)
 				{
 					uint8_t translation_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.translation, translation_increment);
 
@@ -516,6 +526,7 @@ namespace acl
 				// Copy our current bit rates to the permutation rates
 				memcpy(permutation_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * context.num_bones);
 
+				bool is_permutation_valid = false;
 				for (uint16_t chain_link_index = 0; chain_link_index < num_bones_in_chain; ++chain_link_index)
 				{
 					if (bone_chain_permutation[chain_link_index] != 0)
@@ -524,9 +535,14 @@ namespace acl
 						uint16_t bone_index = chain_bone_indices[chain_link_index];
 						BoneBitRate best_bit_rates;
 						increase_bone_bit_rate(context, bone_index, bone_chain_permutation[chain_link_index], old_error, best_bit_rates);
+						is_permutation_valid |= best_bit_rates.rotation != permutation_bit_rates[bone_index].rotation;
+						is_permutation_valid |= best_bit_rates.translation != permutation_bit_rates[bone_index].translation;
 						permutation_bit_rates[bone_index] = best_bit_rates;
 					}
 				}
+
+				if (!is_permutation_valid)
+					continue;
 
 				// Measure error
 				std::swap(context.bit_rate_per_bone, permutation_bit_rates);
@@ -758,7 +774,7 @@ namespace acl
 						break;	// No progress made
 
 					error = best_error;
-					if (error < initial_error)
+					if (error < original_error)
 					{
 #if ACL_DEBUG_VARIABLE_QUANTIZATION
 						std::swap(context.bit_rate_per_bone, best_bit_rates);
@@ -795,6 +811,45 @@ namespace acl
 #endif
 
 					memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+				}
+
+				// Last ditch effort if our error remains too high, this should be rare
+				error = calculate_max_error_at_bit_rate(context, bone_index, false);
+				while (error >= context.error_threshold)
+				{
+					// From child to parent, increase the bit rate indiscriminately
+					uint16_t num_maxed_out = 0;
+					for (int16_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)
+					{
+						uint16_t chain_bone_index = chain_bone_indices[chain_link_index];
+						while (error >= context.error_threshold)
+						{
+							if (context.bit_rate_per_bone[chain_bone_index].rotation >= HIGHEST_BIT_RATE && context.bit_rate_per_bone[chain_bone_index].translation >= HIGHEST_BIT_RATE)
+							{
+								num_maxed_out++;
+								break;
+							}
+
+							if (context.bit_rate_per_bone[chain_bone_index].rotation < context.bit_rate_per_bone[chain_bone_index].translation)
+								context.bit_rate_per_bone[chain_bone_index].rotation++;
+							else
+								context.bit_rate_per_bone[chain_bone_index].translation++;
+
+							error = calculate_max_error_at_bit_rate(context, bone_index, false);
+
+#if ACL_DEBUG_VARIABLE_QUANTIZATION
+							printf("%u: => %u  %u (%f)\n", chain_bone_index, context.bit_rate_per_bone[chain_bone_index].rotation, context.bit_rate_per_bone[chain_bone_index].translation, error);
+#endif
+						}
+
+						if (error < context.error_threshold)
+							break;
+					}
+
+					if (num_maxed_out == num_bones_in_chain)
+						break;
+
+					// TODO: Try to lower the bit rate again in the reverse direction?
 				}
 			}
 
@@ -980,29 +1035,28 @@ namespace acl
 				if (target_track_type == AnimationTrackType8::Rotation)
 				{
 					uint8_t new_bit_rate = quantized_streams[target_bone_index].rotations.get_bit_rate() + 1;
-					if (new_bit_rate >= 13)
-						target_track_type = AnimationTrackType8::Translation;
+
+#if ACL_DEBUG_VARIABLE_QUANTIZATION
 					printf("SELECTED R %u: %u -> %u\n", target_bone_index, quantized_streams[target_bone_index].rotations.get_bit_rate(), new_bit_rate);
+#endif
+
 					quantize_fixed_rotation_stream(allocator, bone_streams[target_bone_index].rotations, new_bit_rate, bone_streams[target_bone_index].are_rotations_normalized, quantized_streams[target_bone_index].rotations);
 					bit_rate_per_bone[target_bone_index].rotation = new_bit_rate;
 				}
 				else
 				{
 					uint8_t new_bit_rate = quantized_streams[target_bone_index].translations.get_bit_rate() + 1;
-					if (new_bit_rate >= 13)
-						target_track_type = AnimationTrackType8::Rotation;
+
+#if ACL_DEBUG_VARIABLE_QUANTIZATION
 					printf("SELECTED T %u: %u -> %u\n", target_bone_index, quantized_streams[target_bone_index].translations.get_bit_rate(), new_bit_rate);
+#endif
+
 					quantize_fixed_translation_stream(allocator, bone_streams[target_bone_index].translations, new_bit_rate, quantized_streams[target_bone_index].translations);
 					bit_rate_per_bone[target_bone_index].translation = new_bit_rate;
 				}
-
-				sample_streams(quantized_streams, num_bones, worst_sample_time, lossy_local_pose);
-				calculate_skeleton_error(allocator, skeleton, raw_local_pose, lossy_local_pose, error_per_bone2);
-				calculate_skeleton_error_contribution(skeleton, raw_local_pose, lossy_local_pose, bad_bone_index, error_per_stream2);
-				printf("");
 			}
 
-#if 1
+#if ACL_DEBUG_VARIABLE_QUANTIZATION
 			error = 0.0f;
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 				error = max(error, error_per_bone[bone_index]);

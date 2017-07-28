@@ -115,6 +115,11 @@ namespace acl
 		return floor(input >= 0.0f ? (input + 0.5f) : (input - 0.5f));
 	}
 
+	inline float fraction(float value)
+	{
+		return value - floor(value);
+	}
+
 	template<typename SrcIntegralType>
 	inline float safe_to_float(SrcIntegralType input)
 	{
