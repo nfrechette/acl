@@ -729,6 +729,7 @@ namespace acl
 				skip_translation(settings, header, context);
 			}
 
+			// TODO: Skip if not interested in return value
 			Quat_32 rotation = decompress_rotation(settings, header, context);
 			if (out_rotation != nullptr)
 				*out_rotation = rotation;
