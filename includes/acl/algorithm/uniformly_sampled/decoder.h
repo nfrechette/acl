@@ -61,6 +61,7 @@ namespace acl
 
 		namespace impl
 		{
+			// TODO: Add a platform define or constant for the cache line size
 			static constexpr size_t CONTEXT_ALIGN_AS = 64;
 
 			struct alignas(CONTEXT_ALIGN_AS) DecompressionContext
