@@ -94,8 +94,6 @@ if __name__ == "__main__":
 				parsed_stats = []
 				while len(line.strip()) != 0:
 					parsed_stats.append(line.strip().split(': '))
-					if line.startswith('Clip compression time (s):'):	# A bug in the 0.3.0 stats, we have a \n at the end of this line that is extra, skip it
-						line = file.readline()
 					line = file.readline()
 
 				name = next(x[1] for x in parsed_stats if x[0] == 'Clip algorithm')
