@@ -102,9 +102,9 @@ namespace acl
 
 				ACL_ENSURE(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
 				ACL_ENSURE((is_root && !found_root) || !is_root, "Multiple root bones found");
-				ACL_ENSURE(quat_is_valid(bone.bind_rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_rotation), quat_get_y(bone.bind_rotation), quat_get_z(bone.bind_rotation), quat_get_w(bone.bind_rotation));
+				ACL_ENSURE(quat_is_finite(bone.bind_rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_rotation), quat_get_y(bone.bind_rotation), quat_get_z(bone.bind_rotation), quat_get_w(bone.bind_rotation));
 				ACL_ENSURE(quat_is_normalized(bone.bind_rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", quat_get_x(bone.bind_rotation), quat_get_y(bone.bind_rotation), quat_get_z(bone.bind_rotation), quat_get_w(bone.bind_rotation));
-				ACL_ENSURE(vector_is_valid3(bone.bind_translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_translation), vector_get_y(bone.bind_translation), vector_get_z(bone.bind_translation));
+				ACL_ENSURE(vector_is_finite3(bone.bind_translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_translation), vector_get_y(bone.bind_translation), vector_get_z(bone.bind_translation));
 
 				found_root |= is_root;
 

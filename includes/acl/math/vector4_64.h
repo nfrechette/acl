@@ -431,12 +431,12 @@ namespace acl
 		return vector_all_less_than3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
-	inline bool vector_is_valid(const Vector4_64& input)
+	inline bool vector_is_finite(const Vector4_64& input)
 	{
 		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input)) && is_finite(vector_get_w(input));
 	}
 
-	inline bool vector_is_valid3(const Vector4_64& input)
+	inline bool vector_is_finite3(const Vector4_64& input)
 	{
 		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input));
 	}

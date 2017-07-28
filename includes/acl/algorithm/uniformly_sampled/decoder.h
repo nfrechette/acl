@@ -302,7 +302,7 @@ namespace acl
 						else if (packed_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
 							rotation = unpack_quat_32(context.constant_track_data + context.constant_track_data_offset);
 
-						ACL_ENSURE(quat_is_valid(rotation), "Rotation is not valid!");
+						ACL_ENSURE(quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ENSURE(quat_is_normalized(rotation), "Rotation is not normalized!");
 
 						context.constant_track_data_offset += get_packed_rotation_size(packed_format);
@@ -485,7 +485,7 @@ namespace acl
 
 						rotation = quat_lerp(rotation0, rotation1, context.interpolation_alpha);
 
-						ACL_ENSURE(quat_is_valid(rotation), "Rotation is not valid!");
+						ACL_ENSURE(quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ENSURE(quat_is_normalized(rotation), "Rotation is not normalized!");
 					}
 				}
@@ -513,7 +513,7 @@ namespace acl
 						// Constant translation tracks store the remaining sample with full precision
 						translation = unpack_vector3_96(context.constant_track_data + context.constant_track_data_offset);
 
-						ACL_ENSURE(vector_is_valid3(translation), "Translation is not valid!");
+						ACL_ENSURE(vector_is_finite3(translation), "Translation is not valid!");
 
 						context.constant_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
 					}
@@ -618,7 +618,7 @@ namespace acl
 
 						translation = vector_lerp(translation0, translation1, context.interpolation_alpha);
 
-						ACL_ENSURE(vector_is_valid3(translation), "Translation is not valid!");
+						ACL_ENSURE(vector_is_finite3(translation), "Translation is not valid!");
 					}
 				}
 

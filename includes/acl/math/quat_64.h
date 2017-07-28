@@ -245,7 +245,7 @@ namespace acl
 		return quat_set(vector_get_x(input), vector_get_y(input), vector_get_z(input), w);
 	}
 
-	inline bool quat_is_valid(const Quat_64& input)
+	inline bool quat_is_finite(const Quat_64& input)
 	{
 		return is_finite(quat_get_x(input)) && is_finite(quat_get_y(input)) && is_finite(quat_get_z(input)) && is_finite(quat_get_w(input));
 	}
