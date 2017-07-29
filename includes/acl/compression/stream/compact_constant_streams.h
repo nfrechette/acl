@@ -27,7 +27,7 @@
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
 #include "acl/math/vector4_32.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/compression/stream/clip_context.h"
 
 #include <stdint.h>
 
@@ -69,5 +69,12 @@ namespace acl
 				bone_stream.is_translation_default = vector_near_equal(translation, vector_zero_32());
 			}
 		}
+	}
+
+	inline void compact_constant_streams(Allocator& allocator, ClipContext& clip_context, float rotation_threshold, float translation_threshold)
+	{
+		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
+		SegmentContext& segment = clip_context.segments[0];
+		compact_constant_streams(allocator, segment.bone_streams, segment.num_bones, rotation_threshold, translation_threshold);
 	}
 }

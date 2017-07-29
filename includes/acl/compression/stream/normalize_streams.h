@@ -30,7 +30,7 @@
 #include "acl/core/track_types.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/compression/stream/clip_context.h"
 
 #include <stdint.h>
 
@@ -126,6 +126,15 @@ namespace acl
 			}
 
 			bone_stream.are_translations_normalized = true;
+		}
+	}
+
+	inline void normalize_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format)
+	{
+		for (SegmentContext& segment : clip_context.segment_iterator())
+		{
+			normalize_rotation_streams(segment.bone_streams, segment.num_bones, range_reduction, rotation_format);
+			normalize_translation_streams(segment.bone_streams, segment.num_bones, range_reduction);
 		}
 	}
 }

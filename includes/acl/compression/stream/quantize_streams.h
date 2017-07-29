@@ -30,7 +30,7 @@
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/compression/stream/clip_context.h"
 #include "acl/compression/stream/sample_streams.h"
 #include "acl/compression/skeleton_error_metric.h"
 
@@ -261,7 +261,6 @@ namespace acl
 			uint16_t num_bones;
 			RotationFormat8 rotation_format;
 			VectorFormat8 translation_format;
-			const AnimationClip& clip;
 			const RigidSkeleton& skeleton;
 
 			uint32_t num_samples;
@@ -281,7 +280,6 @@ namespace acl
 				, num_bones(num_bones_)
 				, rotation_format(rotation_format_)
 				, translation_format(translation_format_)
-				, clip(clip_)
 				, skeleton(skeleton_)
 			{
 				num_samples = calculate_num_samples(clip_.get_duration(), bone_streams_[0].rotations.get_sample_rate());
@@ -1104,6 +1102,33 @@ namespace acl
 
 			if (!is_translation_variable)
 				impl::quantize_fixed_translation_streams(allocator, bone_streams, num_bones, translation_format);
+		}
+	}
+
+	inline void quantize_streams(Allocator& allocator, ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format, const AnimationClip& clip, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context)
+	{
+		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
+		const bool is_translation_variable = is_vector_format_variable(translation_format);
+		constexpr bool use_new_variable_quantization = true;
+		const BoneStreams* raw_bone_streams = raw_clip_context.segments[0].bone_streams;
+
+		for (SegmentContext& segment : clip_context.segment_iterator())
+		{
+			if (is_rotation_variable || is_translation_variable)
+			{
+				if (use_new_variable_quantization)
+					impl::quantize_variable_streams_new(allocator, segment.bone_streams, segment.num_bones, rotation_format, translation_format, clip, skeleton, raw_bone_streams);
+				else
+					impl::quantize_variable_streams(allocator, segment.bone_streams, segment.num_bones, rotation_format, translation_format, clip, skeleton);
+			}
+			else
+			{
+				if (!is_rotation_variable)
+					impl::quantize_fixed_rotation_streams(allocator, segment.bone_streams, segment.num_bones, rotation_format, false);
+
+				if (!is_translation_variable)
+					impl::quantize_fixed_translation_streams(allocator, segment.bone_streams, segment.num_bones, translation_format);
+			}
 		}
 	}
 }

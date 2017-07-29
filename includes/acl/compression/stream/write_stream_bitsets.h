@@ -27,7 +27,7 @@
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
 #include "acl/core/bitset.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/compression/stream/clip_context.h"
 
 #include <stdint.h>
 
@@ -51,6 +51,13 @@ namespace acl
 		}
 	}
 
+	inline void write_default_track_bitset(const ClipContext& clip_context, uint32_t* default_tracks_bitset, uint32_t bitset_size)
+	{
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+		write_default_track_bitset(segment.bone_streams, segment.num_bones, default_tracks_bitset, bitset_size);
+	}
+
 	inline void write_constant_track_bitset(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t* constant_tracks_bitset, uint32_t bitset_size)
 	{
 		uint32_t constant_track_offset = 0;
@@ -64,5 +71,12 @@ namespace acl
 			bitset_set(constant_tracks_bitset, bitset_size, constant_track_offset++, bone_stream.is_rotation_constant);
 			bitset_set(constant_tracks_bitset, bitset_size, constant_track_offset++, bone_stream.is_translation_constant);
 		}
+	}
+
+	inline void write_constant_track_bitset(const ClipContext& clip_context, uint32_t* constant_tracks_bitset, uint32_t bitset_size)
+	{
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+		write_constant_track_bitset(segment.bone_streams, segment.num_bones, constant_tracks_bitset, bitset_size);
 	}
 }

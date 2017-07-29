@@ -34,6 +34,7 @@
 #include "acl/compression/compressed_clip_impl.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/compression/stream/clip_context.h"
 #include "acl/compression/stream/track_stream.h"
 #include "acl/compression/stream/convert_clip_to_streams.h"
 #include "acl/compression/stream/convert_rotation_streams.h"
@@ -98,33 +99,36 @@ namespace acl
 					return nullptr;
 			}
 
-			BoneStreams* bone_streams = convert_clip_to_streams(allocator, clip);
+			ClipContext raw_clip_context;
+			initialize_clip_context(allocator, clip, raw_clip_context);
 
-			BoneStreams* raw_bone_streams = allocate_type_array<BoneStreams>(allocator, num_bones);
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-				raw_bone_streams[bone_index] = bone_streams[bone_index].duplicate();
+			ClipContext clip_context;
+			initialize_clip_context(allocator, clip, clip_context);
 
-			convert_rotation_streams(allocator, bone_streams, num_bones, settings.rotation_format);
+			convert_rotation_streams(allocator, clip_context, settings.rotation_format);
 
 			// TODO: Expose this, especially the translation threshold depends on the unit scale.
 			// Centimeters VS meters, a different threshold should be used. Perhaps we should pass an
 			// argument to the compression algorithm that states the units used or we should force centimeters
-			compact_constant_streams(allocator, bone_streams, num_bones, 0.00001f, 0.001f);
+			compact_constant_streams(allocator, clip_context, 0.00001f, 0.001f);
 
 			uint32_t clip_range_data_size = 0;
 			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
 			{
-				normalize_rotation_streams(bone_streams, num_bones, settings.range_reduction, settings.rotation_format);
-				normalize_translation_streams(bone_streams, num_bones, settings.range_reduction);
-				clip_range_data_size = get_stream_range_data_size(bone_streams, num_bones, settings.range_reduction, settings.rotation_format, settings.translation_format);
+				normalize_streams(clip_context, settings.range_reduction, settings.rotation_format);
+				clip_range_data_size = get_stream_range_data_size(clip_context, settings.range_reduction, settings.rotation_format, settings.translation_format);
 			}
 
-			quantize_streams(allocator, bone_streams, num_bones, settings.rotation_format, settings.translation_format, clip, skeleton, raw_bone_streams);
+			// TODO: If we are segmented, split our streams
 
-			uint32_t constant_data_size = get_constant_data_size(bone_streams, num_bones);
+			quantize_streams(allocator, clip_context, settings.rotation_format, settings.translation_format, clip, skeleton, raw_clip_context);
+
+			const SegmentContext& clip_segment = clip_context.segments[0];
+
+			uint32_t constant_data_size = get_constant_data_size(clip_context);
 			uint32_t animated_pose_bit_size;
-			uint32_t animated_data_size = get_animated_data_size(bone_streams, num_bones, settings.rotation_format, settings.translation_format, animated_pose_bit_size);
-			uint32_t format_per_track_data_size = get_format_per_track_data_size(bone_streams, num_bones);
+			uint32_t animated_data_size = get_animated_data_size(clip_segment, settings.rotation_format, settings.translation_format, animated_pose_bit_size);
+			uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format);
 
 			uint32_t bitset_size = get_bitset_size(num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
 
@@ -160,33 +164,33 @@ namespace acl
 			header.clip_range_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 4);				// Aligned to 4 bytes
 			header.track_data_offset = align_to(header.clip_range_data_offset + clip_range_data_size, 4);								// Aligned to 4 bytes
 
-			write_default_track_bitset(bone_streams, num_bones, header.get_default_tracks_bitset(), bitset_size);
-			write_constant_track_bitset(bone_streams, num_bones, header.get_constant_tracks_bitset(), bitset_size);
+			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_size);
+			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_size);
 
 			if (constant_data_size > 0)
-				write_constant_track_data(bone_streams, num_bones, header.get_constant_track_data(), constant_data_size);
+				write_constant_track_data(clip_context, header.get_constant_track_data(), constant_data_size);
 			else
 				header.constant_track_data_offset = InvalidPtrOffset();
 
 			if (format_per_track_data_size > 0)
-				write_format_per_track_data(bone_streams, num_bones, header.get_format_per_track_data(), format_per_track_data_size);
+				write_format_per_track_data(clip_context, header.get_format_per_track_data(), format_per_track_data_size);
 			else
 				header.format_per_track_data_offset = InvalidPtrOffset();
 
 			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
-				write_range_track_data(bone_streams, num_bones, settings.range_reduction, settings.rotation_format, settings.translation_format, header.get_clip_range_data(), clip_range_data_size);
+				write_range_track_data(clip_segment, settings.range_reduction, settings.rotation_format, settings.translation_format, header.get_clip_range_data(), clip_range_data_size);
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();
 
 			if (animated_data_size > 0)
-				write_animated_track_data(bone_streams, num_bones, settings.rotation_format, settings.translation_format, header.get_track_data(), animated_data_size);
+				write_animated_track_data(clip_segment, settings.rotation_format, settings.translation_format, header.get_track_data(), animated_data_size);
 			else
 				header.track_data_offset = InvalidPtrOffset();
 
 			finalize_compressed_clip(*compressed_clip);
 
-			deallocate_type_array(allocator, bone_streams, num_bones);
-			deallocate_type_array(allocator, raw_bone_streams, num_bones);
+			destroy_clip_context(allocator, clip_context);
+			destroy_clip_context(allocator, raw_clip_context);
 
 			return compressed_clip;
 		}

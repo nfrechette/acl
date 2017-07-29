@@ -29,7 +29,7 @@
 #include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_32.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/compression/stream/clip_context.h"
 
 #include <stdint.h>
 
@@ -38,6 +38,7 @@ namespace acl
 	inline uint32_t get_constant_data_size(const BoneStreams* bone_streams, uint16_t num_bones)
 	{
 		uint32_t constant_data_size = 0;
+
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const BoneStreams& bone_stream = bone_streams[bone_index];
@@ -58,6 +59,13 @@ namespace acl
 		}
 
 		return constant_data_size;
+	}
+
+	inline uint32_t get_constant_data_size(const ClipContext& clip_context)
+	{
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+		return get_constant_data_size(segment.bone_streams, segment.num_bones);
 	}
 
 	inline uint32_t get_animated_data_size(const BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format, VectorFormat8 translation_format, uint32_t& out_animated_pose_bit_size)
@@ -124,6 +132,11 @@ namespace acl
 		return animated_data_size;
 	}
 
+	inline uint32_t get_animated_data_size(const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, uint32_t& out_animated_pose_bit_size)
+	{
+		return get_animated_data_size(segment.bone_streams, segment.num_bones, rotation_format, translation_format, out_animated_pose_bit_size);
+	}
+
 	inline uint32_t get_format_per_track_data_size(const BoneStreams* bone_streams, uint16_t num_bones)
 	{
 		uint32_t format_per_track_data_size = 0;
@@ -136,6 +149,28 @@ namespace acl
 				format_per_track_data_size++;
 
 			if (bone_stream.is_translation_animated() && bone_stream.translations.is_bit_rate_variable())
+				format_per_track_data_size++;
+		}
+
+		return format_per_track_data_size;
+	}
+
+	inline uint32_t get_format_per_track_data_size(const ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format)
+	{
+		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
+		const bool is_translation_variable = is_vector_format_variable(translation_format);
+		
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+
+		uint32_t format_per_track_data_size = 0;
+
+		for (const BoneStreams& bone_stream : segment.bone_iterator())
+		{
+			if (bone_stream.is_rotation_animated() && is_rotation_variable)
+				format_per_track_data_size++;
+
+			if (bone_stream.is_translation_animated() && is_translation_variable)
 				format_per_track_data_size++;
 		}
 
@@ -170,6 +205,13 @@ namespace acl
 		}
 
 		ACL_ENSURE(constant_data == constant_data_end, "Invalid constant data offset. Wrote too little data.");
+	}
+
+	inline void write_constant_track_data(const ClipContext& clip_context, uint8_t* constant_data, uint32_t constant_data_size)
+	{
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+		write_constant_track_data(segment.bone_streams, segment.num_bones, constant_data, constant_data_size);
 	}
 
 	inline void write_animated_track_data(const BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format, VectorFormat8 translation_format, uint8_t* animated_track_data, uint32_t animated_data_size)
@@ -301,6 +343,11 @@ namespace acl
 		ACL_ENSURE(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
 	}
 
+	inline void write_animated_track_data(const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, uint8_t* animated_track_data, uint32_t animated_data_size)
+	{
+		write_animated_track_data(segment.bone_streams, segment.num_bones, rotation_format, translation_format, animated_track_data, animated_data_size);
+	}
+
 	inline void write_format_per_track_data(const BoneStreams* bone_streams, uint16_t num_bones, uint8_t* format_per_track_data, uint32_t format_per_track_data_size)
 	{
 		const uint8_t* format_per_track_data_end = add_offset_to_ptr<uint8_t>(format_per_track_data, format_per_track_data_size);
@@ -327,5 +374,12 @@ namespace acl
 		}
 
 		ACL_ENSURE(format_per_track_data == format_per_track_data_end, "Invalid format per track data offset. Wrote too little data.");
+	}
+
+	inline void write_format_per_track_data(const ClipContext& clip_context, uint8_t* format_per_track_data, uint32_t format_per_track_data_size)
+	{
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+		write_format_per_track_data(segment.bone_streams, segment.num_bones, format_per_track_data, format_per_track_data_size);
 	}
 }

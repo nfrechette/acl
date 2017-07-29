@@ -32,7 +32,7 @@
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/compression/stream/clip_context.h"
 
 #include <stdint.h>
 
@@ -56,6 +56,13 @@ namespace acl
 		}
 
 		return range_data_size;
+	}
+
+	inline uint32_t get_stream_range_data_size(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format, VectorFormat8 translation_format)
+	{
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+		return get_stream_range_data_size(segment.bone_streams, segment.num_bones, range_reduction, rotation_format, translation_format);
 	}
 
 	inline void write_range_track_data(const BoneStreams* bone_streams, uint16_t num_bones,
@@ -105,5 +112,10 @@ namespace acl
 		}
 
 		ACL_ENSURE(range_data == range_data_end, "Invalid range data offset. Wrote too little data.");
+	}
+
+	inline void write_range_track_data(const SegmentContext& segment, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format, VectorFormat8 translation_format, uint8_t* range_data, uint32_t range_data_size)
+	{
+		write_range_track_data(segment.bone_streams, segment.num_bones, range_reduction, rotation_format, translation_format, range_data, range_data_size);
 	}
 }

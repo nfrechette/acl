@@ -28,7 +28,7 @@
 #include "acl/core/error.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/compression/stream/clip_context.h"
 
 #include <stdint.h>
 
@@ -80,5 +80,11 @@ namespace acl
 			bone_stream.rotation_range = TrackStreamRange(rotation_min, rotation_max);
 			bone_stream.rotations = std::move(converted_stream);
 		}
+	}
+
+	inline void convert_rotation_streams(Allocator& allocator, ClipContext& clip_context, RotationFormat8 rotation_format)
+	{
+		for (SegmentContext& segment : clip_context.segment_iterator())
+			convert_rotation_streams(allocator, segment.bone_streams, segment.num_bones, rotation_format);
 	}
 }
