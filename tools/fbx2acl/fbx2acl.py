@@ -14,9 +14,39 @@ ACLTrack = namedtuple('ACLTrack', 'name rotations translations scales')
 
 ACL_FILE_FORMAT_VERSION = 1
 
-def parse_clip(scene):
-	anim_stack = scene.GetSrcObject(FbxAnimStack.ClassId, 0)
+def print_animation_stacks(scene):
+	for i in range(scene.GetSrcObjectCount(FbxAnimStack.ClassId)):
+		print('  "' + scene.GetSrcObject(FbxAnimStack.ClassId, i).GetName() + '"')
 
+def get_animation_stack(scene, anim_stack_name):
+	num_stacks = scene.GetSrcObjectCount(FbxAnimStack.ClassId)
+	if num_stacks == 1:
+		anim_stack = scene.GetSrcObject(FbxAnimStack.ClassId, 0)
+		if len(anim_stack_name) > 0 and anim_stack_name != anim_stack.GetName():
+			print('There is one animation stack, but it\'s called "' + anim_stack.GetName() + '".  Consider omitting the -stack option.')
+			sys.exit(1)
+	else:
+		if len(anim_stack_name) == 0:
+			print('You must provide the -stack="<animation stack name>" option for one of these:')
+			print_animation_stacks(scene)
+			sys.exit(1)
+		
+		found = False
+		for i in range(scene.GetSrcObjectCount(FbxAnimStack.ClassId)):
+			anim_stack = scene.GetSrcObject(FbxAnimStack.ClassId, i)
+			if anim_stack.GetName() == anim_stack_name:
+				found = True
+				break
+	
+		if not found:
+			print('Could not find the animation stack named "' + anim_stack_name + '"')
+			print('Choose one of the following instead:')
+			print_animation_stacks(scene)
+			sys.exit(1)
+	
+	return anim_stack
+
+def parse_clip(scene, anim_stack):
 	clip_name = anim_stack.GetName()
 	timespan = anim_stack.GetLocalTimeSpan()
 	sample_rate = int(FbxTime.GetFrameRate(scene.GetGlobalSettings().GetTimeMode()))
@@ -38,6 +68,11 @@ def parse_hierarchy(scene):
 	return nodes
 
 def parse_hierarchy_node(parent_node, node, nodes):
+	type = (node.GetNodeAttribute().GetAttributeType())
+	if type != FbxNodeAttribute.eSkeleton:
+		print('Ignoring node ' + node.GetName())
+		return
+	
 	nodes.append(FBXNode(node.GetName(), parent_node.GetName(), node))
 
 	for i in range(node.GetChildCount()):
@@ -67,17 +102,21 @@ def parse_bind_pose(scene, nodes):
 
 		for bone_idx in range(pose.GetCount()):
 			bone_name = pose.GetNodeName(bone_idx).GetCurrentName()
-
+			
+			try:
+				bone_node = next(x for x in nodes if x.name == bone_name)
+			except StopIteration:
+				continue
+			
 			matrix = pose.GetMatrix(bone_idx)
-
-			if bone_idx == 0:
+						
+			if bone_node.parent == nodes[0].name:
 				parent_name = ""
 				local_space_mtx = matrix
 			else:
-				bone_node = next(x for x in nodes if x.name == bone_name)
 				parent_name = bone_node.parent
 				parent_bone = next(x for x in bones if x.name == parent_name)
-				local_space_mtx = matrix * parent_bone.obj_space_mtx.Inverse();
+				local_space_mtx = matrix * parent_bone.obj_space_mtx.Inverse()
 
 			# Convert from FBX types to float arrays
 			local_space_mtx.GetElements(translation, rotation, shear, scale)
@@ -241,6 +280,7 @@ def print_tracks(file, tracks):
 def parse_argv():
 	options = {}
 	options['fbx'] = ""
+	options['stack'] = ""
 	options['acl'] = ""
 	options['zip'] = False
 
@@ -251,6 +291,9 @@ def parse_argv():
 		if value.startswith('-fbx='):
 			options['fbx'] = value[5:].replace('"', '')
 
+		if value.startswith('-stack='):
+			options['stack'] = value[7:].replace('"', '')
+		
 		if value.startswith('-acl='):
 			options['acl'] = value[5:].replace('"', '')
 
@@ -259,7 +302,7 @@ def parse_argv():
 
 	return options
 
-def convert_file(fbx_filename, acl_filename, zip):
+def convert_file(fbx_filename, anim_stack_name, acl_filename, zip):
 	# Prepare the FBX SDK.
 	sdk_manager, scene = InitializeSdkObjects()
 
@@ -271,9 +314,9 @@ def convert_file(fbx_filename, acl_filename, zip):
 		return False
 	else:
 		print('Parsing FBX...')
-		# TODO: Ensure we only have 1 anim stack
 		# TODO: Ensure we only have 1 anim layer
-		clip = parse_clip(scene)
+		anim_stack = get_animation_stack(scene, anim_stack_name)
+		clip = parse_clip(scene, anim_stack)
 		nodes = parse_hierarchy(scene)
 		bones = parse_bind_pose(scene, nodes)
 		tracks = parse_tracks(scene, clip, bones, nodes)
@@ -319,14 +362,7 @@ if __name__ == "__main__":
 		from FbxCommon import *
 	except ImportError:
 		import platform
-		msg = 'You need to copy the content in compatible subfolder under /lib/python<version> into your python install folder such as '
-		if platform.system() == 'Windows' or platform.system() == 'Microsoft':
-			msg += '"Python26/Lib/site-packages"'
-		elif platform.system() == 'Linux':
-			msg += '"/usr/local/lib/python2.6/site-packages"'
-		elif platform.system() == 'Darwin':
-			msg += '"/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages"'        
-		msg += ' folder.'
+		msg = 'ERROR: could not import the FBX libraries.  They must be copied into Python\'s site-packages directory, and can only be\nused with Python versions 2.7 and 3.3.  For details, see:\n\n  http://docs.autodesk.com/FBX/2014/ENU/FBX-SDK-Documentation/files/GUID-2F3A42FA-4C19-42F2-BC4F-B9EC64EA16AA.htm'
 		print(msg) 
 		sys.exit(1)
 
@@ -334,9 +370,10 @@ if __name__ == "__main__":
 
 	fbx_filename = options['fbx']
 	if len(fbx_filename) == 0:
-		print('Usage: fbx2acl -fbx=<FBX file name> [-acl=<ACL file name>] [-zip]')
+		print('Usage: fbx2acl -fbx=<FBX file name> [-stack=<animation stack name>] [-acl=<ACL file name>] [-zip]')
 		sys.exit(1)
 
+	anim_stack_name = options['stack']
 	acl_filename = options['acl']
 	zip = options['zip']
 
@@ -369,7 +406,7 @@ if __name__ == "__main__":
 				if not os.path.exists(acl_dirname):
 					os.makedirs(acl_dirname)
 
-				result = convert_file(fbx_filename, acl_filename, zip)
+				result = convert_file(fbx_filename, anim_stack_name, acl_filename, zip)
 				if not result:
 					sys.exit(1)
 
@@ -380,7 +417,7 @@ if __name__ == "__main__":
 		print('Invalid ACL filename, it should be of the form *.acl.js')
 		sys.exit(1)
 
-	result = convert_file(fbx_filename, acl_filename, zip)
+	result = convert_file(fbx_filename, anim_stack_name, acl_filename, zip)
 
 	if result:
 		sys.exit(0)
