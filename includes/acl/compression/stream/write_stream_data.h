@@ -68,6 +68,16 @@ namespace acl
 		return get_constant_data_size(segment.bone_streams, segment.num_bones);
 	}
 
+	inline void get_animated_variable_bit_rate_data_size(const TrackStream& track_stream, bool has_mixed_packing, uint32_t num_samples, uint64_t& out_num_animated_data_bits, uint64_t& out_num_animated_pose_bits)
+	{
+		uint8_t bit_rate = track_stream.get_bit_rate();
+		uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+		if (has_mixed_packing)
+			num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+		out_num_animated_data_bits += num_bits_at_bit_rate * num_samples;
+		out_num_animated_pose_bits += num_bits_at_bit_rate;
+	}
+
 	inline uint32_t get_animated_data_size(const BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format, VectorFormat8 translation_format, uint32_t& out_animated_pose_bit_size)
 	{
 		// If all tracks are variable, no need for any extra padding except at the very end of the data
@@ -87,12 +97,7 @@ namespace acl
 
 				if (bone_stream.rotations.is_bit_rate_variable())
 				{
-					uint8_t bit_rate = bone_stream.rotations.get_bit_rate();
-					uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
-					if (has_mixed_packing)
-						num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
-					num_animated_data_bits += num_bits_at_bit_rate * num_samples;
-					num_animated_pose_bits += num_bits_at_bit_rate;
+					get_animated_variable_bit_rate_data_size(bone_stream.rotations, has_mixed_packing, num_samples, num_animated_data_bits, num_animated_pose_bits);
 				}
 				else
 				{
@@ -109,12 +114,7 @@ namespace acl
 
 				if (bone_stream.translations.is_bit_rate_variable())
 				{
-					uint8_t bit_rate = bone_stream.translations.get_bit_rate();
-					uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
-					if (has_mixed_packing)
-						num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
-					num_animated_data_bits += num_bits_at_bit_rate * num_samples;
-					num_animated_pose_bits += num_bits_at_bit_rate;
+					get_animated_variable_bit_rate_data_size(bone_stream.translations, has_mixed_packing, num_samples, num_animated_data_bits, num_animated_pose_bits);
 				}
 				else
 				{
@@ -214,6 +214,55 @@ namespace acl
 		write_constant_track_data(segment.bone_streams, segment.num_bones, constant_data, constant_data_size);
 	}
 
+	inline void write_animated_track_data(const TrackStream& track_stream, uint32_t sample_index, bool has_mixed_packing, uint8_t* animated_track_data_begin, uint8_t*& out_animated_track_data, uint64_t& out_bit_offset)
+	{
+		const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
+
+		if (track_stream.is_bit_rate_variable())
+		{
+			uint8_t bit_rate = track_stream.get_bit_rate();
+			uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+
+			if (is_pack_72_bit_rate(bit_rate))
+			{
+				uint64_t raw_sample_u64 = byte_swap(safe_ptr_cast<const uint64_t>(raw_sample_ptr)[0]);
+				memcpy_bits(animated_track_data_begin, out_bit_offset, &raw_sample_u64, 0, 64);
+				raw_sample_u64 = byte_swap(safe_ptr_cast<const uint64_t>(raw_sample_ptr)[1]);
+				uint64_t offset = 64 - 8;
+				memcpy_bits(animated_track_data_begin, out_bit_offset + 64, &raw_sample_u64, offset, 8);
+			}
+			else if (is_pack_96_bit_rate(bit_rate))
+			{
+				const uint32_t* raw_sample_u32 = safe_ptr_cast<const uint32_t>(raw_sample_ptr);
+				uint32_t x = byte_swap(raw_sample_u32[0]);
+				memcpy_bits(animated_track_data_begin, out_bit_offset + 0, &x, 0, 32);
+				uint32_t y = byte_swap(raw_sample_u32[1]);
+				memcpy_bits(animated_track_data_begin, out_bit_offset + 32, &y, 0, 32);
+				uint32_t z = byte_swap(raw_sample_u32[2]);
+				memcpy_bits(animated_track_data_begin, out_bit_offset + 64, &z, 0, 32);
+			}
+			else
+			{
+				uint64_t raw_sample_u64 = byte_swap(*safe_ptr_cast<const uint64_t>(raw_sample_ptr));
+				uint64_t offset = 64 - num_bits_at_bit_rate;
+				memcpy_bits(animated_track_data_begin, out_bit_offset, &raw_sample_u64, offset, num_bits_at_bit_rate);
+			}
+
+			if (has_mixed_packing)
+				num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+
+			out_bit_offset += num_bits_at_bit_rate;
+			out_animated_track_data = animated_track_data_begin + (out_bit_offset / 8);
+		}
+		else
+		{
+			uint32_t sample_size = track_stream.get_sample_size();
+			memcpy(out_animated_track_data, raw_sample_ptr, sample_size);
+			out_animated_track_data += sample_size;
+			out_bit_offset = (out_animated_track_data - animated_track_data_begin) * 8;
+		}
+	}
+
 	inline void write_animated_track_data(const BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format, VectorFormat8 translation_format, uint8_t* animated_track_data, uint32_t animated_data_size)
 	{
 		uint8_t* animated_track_data_begin = animated_track_data;
@@ -237,101 +286,10 @@ namespace acl
 				const BoneStreams& bone_stream = bone_streams[bone_index];
 
 				if (bone_stream.is_rotation_animated())
-				{
-					const uint8_t* rotation_ptr = bone_stream.rotations.get_raw_sample_ptr(sample_index);
-
-					if (bone_stream.rotations.is_bit_rate_variable())
-					{
-						uint8_t bit_rate = bone_stream.rotations.get_bit_rate();
-						uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
-
-						if (is_pack_72_bit_rate(bit_rate))
-						{
-							uint64_t rotation_u64 = byte_swap(safe_ptr_cast<const uint64_t>(rotation_ptr)[0]);
-							memcpy_bits(animated_track_data_begin, bit_offset, &rotation_u64, 0, 64);
-							rotation_u64 = byte_swap(safe_ptr_cast<const uint64_t>(rotation_ptr)[1]);
-							memcpy_bits(animated_track_data_begin, bit_offset + 64, &rotation_u64, 56, 8);
-						}
-						else if (is_pack_96_bit_rate(bit_rate))
-						{
-							const uint32_t* rotation_u32 = safe_ptr_cast<const uint32_t>(rotation_ptr);
-							uint32_t rotation_x = byte_swap(rotation_u32[0]);
-							memcpy_bits(animated_track_data_begin, bit_offset +  0, &rotation_x, 0, 32);
-							uint32_t rotation_y = byte_swap(rotation_u32[1]);
-							memcpy_bits(animated_track_data_begin, bit_offset + 32, &rotation_y, 0, 32);
-							uint32_t rotation_z = byte_swap(rotation_u32[2]);
-							memcpy_bits(animated_track_data_begin, bit_offset + 64, &rotation_z, 0, 32);
-						}
-						else
-						{
-							uint64_t rotation_u64 = byte_swap(*safe_ptr_cast<const uint64_t>(rotation_ptr));
-							uint64_t rotation_offset = 64 - num_bits_at_bit_rate;
-							memcpy_bits(animated_track_data_begin, bit_offset, &rotation_u64, rotation_offset, num_bits_at_bit_rate);
-						}
-
-						if (has_mixed_packing)
-							num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
-
-						bit_offset += num_bits_at_bit_rate;
-						animated_track_data = animated_track_data_begin + (bit_offset / 8);
-					}
-					else
-					{
-						uint32_t sample_size = bone_stream.rotations.get_sample_size();
-						memcpy(animated_track_data, rotation_ptr, sample_size);
-						animated_track_data += sample_size;
-						bit_offset = (animated_track_data - animated_track_data_begin) * 8;
-					}
-				}
+					write_animated_track_data(bone_stream.rotations, sample_index, has_mixed_packing, animated_track_data_begin, animated_track_data, bit_offset);
 
 				if (bone_stream.is_translation_animated())
-				{
-					const uint8_t* translation_ptr = bone_stream.translations.get_raw_sample_ptr(sample_index);
-
-					if (bone_stream.translations.is_bit_rate_variable())
-					{
-						uint8_t bit_rate = bone_stream.translations.get_bit_rate();
-						uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
-
-						if (is_pack_72_bit_rate(bit_rate))
-						{
-							uint64_t translation_u64 = byte_swap(safe_ptr_cast<const uint64_t>(translation_ptr)[0]);
-							memcpy_bits(animated_track_data_begin, bit_offset, &translation_u64, 0, 64);
-							translation_u64 = byte_swap(safe_ptr_cast<const uint64_t>(translation_ptr)[1]);
-							uint64_t translation_offset = 64 - 8;
-							memcpy_bits(animated_track_data_begin, bit_offset + 64, &translation_u64, translation_offset, 8);
-						}
-						else if (is_pack_96_bit_rate(bit_rate))
-						{
-							const uint32_t* translation_u32 = safe_ptr_cast<const uint32_t>(translation_ptr);
-							uint32_t translation_x = byte_swap(translation_u32[0]);
-							memcpy_bits(animated_track_data_begin, bit_offset +  0, &translation_x, 0, 32);
-							uint32_t translation_y = byte_swap(translation_u32[1]);
-							memcpy_bits(animated_track_data_begin, bit_offset + 32, &translation_y, 0, 32);
-							uint32_t translation_z = byte_swap(translation_u32[2]);
-							memcpy_bits(animated_track_data_begin, bit_offset + 64, &translation_z, 0, 32);
-						}
-						else
-						{
-							uint64_t translation_u64 = byte_swap(*safe_ptr_cast<const uint64_t>(translation_ptr));
-							uint64_t translation_offset = 64 - num_bits_at_bit_rate;
-							memcpy_bits(animated_track_data_begin, bit_offset, &translation_u64, translation_offset, num_bits_at_bit_rate);
-						}
-
-						if (has_mixed_packing)
-							num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
-
-						bit_offset += num_bits_at_bit_rate;
-						animated_track_data = animated_track_data_begin + (bit_offset / 8);
-					}
-					else
-					{
-						uint32_t sample_size = bone_stream.translations.get_sample_size();
-						memcpy(animated_track_data, translation_ptr, sample_size);
-						animated_track_data += sample_size;
-						bit_offset = (animated_track_data - animated_track_data_begin) * 8;
-					}
-				}
+					write_animated_track_data(bone_stream.translations, sample_index, has_mixed_packing, animated_track_data_begin, animated_track_data, bit_offset);
 
 				ACL_ENSURE(animated_track_data <= animated_track_data_end, "Invalid animated track data offset. Wrote too much data.");
 			}
