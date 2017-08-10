@@ -105,7 +105,7 @@ namespace acl
 				}
 			}
 
-			inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, FullPrecisionHeader& header)
+			inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, Header& header)
 			{
 				SegmentHeader* segment_headers = header.get_segment_headers();
 				uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format);
@@ -183,12 +183,12 @@ namespace acl
 
 			uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format);
 
-			uint32_t bitset_size = get_bitset_size(num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
+			uint32_t bitset_size = get_bitset_size(num_bones * Constants::NUM_TRACKS_PER_BONE);
 
 			uint32_t buffer_size = 0;
 			// Per clip data
 			buffer_size += sizeof(CompressedClip);
-			buffer_size += sizeof(FullPrecisionHeader);
+			buffer_size += sizeof(Header);
 			buffer_size += sizeof(SegmentHeader) * clip_context.num_segments;	// Segment headers
 			buffer_size += sizeof(uint32_t) * bitset_size;		// Default tracks bitset
 			buffer_size += sizeof(uint32_t) * bitset_size;		// Constant tracks bitset
@@ -208,7 +208,7 @@ namespace acl
 
 			CompressedClip* compressed_clip = make_compressed_clip(buffer, buffer_size, AlgorithmType8::UniformlySampled);
 
-			FullPrecisionHeader& header = get_full_precision_header(*compressed_clip);
+			Header& header = get_header(*compressed_clip);
 			header.num_bones = num_bones;
 			header.num_segments = clip_context.num_segments;
 			header.rotation_format = settings.rotation_format;
@@ -216,7 +216,7 @@ namespace acl
 			header.range_reduction = settings.range_reduction;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
-			header.segment_headers_offset = sizeof(FullPrecisionHeader);
+			header.segment_headers_offset = sizeof(Header);
 			header.default_tracks_bitset_offset = header.segment_headers_offset + (sizeof(SegmentHeader) * clip_context.num_segments);
 			header.constant_tracks_bitset_offset = header.default_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size);
 			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size), 4);	// Aligned to 4 bytes
@@ -251,17 +251,20 @@ namespace acl
 		{
 			using namespace impl;
 
-			const FullPrecisionHeader& header = get_full_precision_header(clip);
+			const Header& header = get_header(clip);
 
-			uint32_t num_tracks = header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE;
+			uint32_t num_tracks = header.num_bones * Constants::NUM_TRACKS_PER_BONE;
 			uint32_t bitset_size = get_bitset_size(num_tracks);
-			uint32_t num_constant_tracks = bitset_count_set_bits(header.get_constant_tracks_bitset(), bitset_size);
 
-			uint32_t num_animated_tracks = num_tracks - num_constant_tracks;
+			uint32_t num_default_tracks = bitset_count_set_bits(header.get_default_tracks_bitset(), bitset_size);
+			uint32_t num_constant_tracks = bitset_count_set_bits(header.get_constant_tracks_bitset(), bitset_size);
+			uint32_t num_animated_tracks = num_tracks - num_default_tracks - num_constant_tracks;
 
 			fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(header.rotation_format));
 			fprintf(file, "Clip translation format: %s\n", get_vector_format_name(header.translation_format));
 			fprintf(file, "Clip range reduction: %s\n", get_range_reduction_name(header.range_reduction));
+			fprintf(file, "Clip num default tracks: %u\n", num_default_tracks);
+			fprintf(file, "Clip num constant tracks: %u\n", num_constant_tracks);
 			fprintf(file, "Clip num animated tracks: %u\n", num_animated_tracks);
 			fprintf(file, "Clip num segments: %u\n", header.num_segments);
 

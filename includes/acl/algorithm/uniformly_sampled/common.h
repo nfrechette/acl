@@ -35,7 +35,7 @@ namespace acl
 	{
 		namespace impl
 		{
-			struct FullPrecisionConstants
+			struct Constants
 			{
 				static constexpr uint32_t NUM_TRACKS_PER_BONE = 2;
 			};
@@ -49,7 +49,7 @@ namespace acl
 				PtrOffset32<uint8_t>	track_data_offset;
 			};
 
-			struct FullPrecisionHeader
+			struct Header
 			{
 				uint16_t				num_bones;
 				uint16_t				num_segments;
@@ -89,14 +89,14 @@ namespace acl
 				const uint8_t*	get_track_data(const SegmentHeader& header) const	{ return header.track_data_offset.safe_add_to(this); }
 			};
 
-			constexpr FullPrecisionHeader& get_full_precision_header(CompressedClip& clip)
+			constexpr Header& get_header(CompressedClip& clip)
 			{
-				return *add_offset_to_ptr<FullPrecisionHeader>(&clip, sizeof(CompressedClip));
+				return *add_offset_to_ptr<Header>(&clip, sizeof(CompressedClip));
 			}
 
-			constexpr const FullPrecisionHeader& get_full_precision_header(const CompressedClip& clip)
+			constexpr const Header& get_header(const CompressedClip& clip)
 			{
-				return *add_offset_to_ptr<const FullPrecisionHeader>(&clip, sizeof(CompressedClip));
+				return *add_offset_to_ptr<const Header>(&clip, sizeof(CompressedClip));
 			}
 		}
 	}
