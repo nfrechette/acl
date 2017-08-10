@@ -67,14 +67,18 @@ namespace acl
 			struct alignas(CONTEXT_ALIGN_AS) DecompressionContext
 			{
 				// Read-only data
+				const SegmentHeader* segment_headers;
+
 				const uint32_t* constant_tracks_bitset;
 				const uint8_t* constant_track_data;
 				const uint32_t* default_tracks_bitset;
 
-				const uint8_t* format_per_track_data;
+				const uint8_t* format_per_track_data0;
+				const uint8_t* format_per_track_data1;
 				const uint8_t* range_data;
 
-				const uint8_t* animated_track_data;
+				const uint8_t* animated_track_data0;
+				const uint8_t* animated_track_data1;
 
 				uint32_t bitset_size;
 				uint32_t range_rotation_size;
@@ -127,16 +131,18 @@ namespace acl
 				const bool has_clip_range_reduction = is_enum_flag_set(range_reduction, RangeReductionFlags8::PerClip);
 
 				context.clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
-
+				context.segment_headers = header.get_segment_headers();
 				context.default_tracks_bitset = header.get_default_tracks_bitset();
 
 				context.constant_tracks_bitset = header.get_constant_tracks_bitset();
 				context.constant_track_data = header.get_constant_track_data();
 
-				context.format_per_track_data = header.get_format_per_track_data();
+				context.format_per_track_data0 = nullptr;
+				context.format_per_track_data1 = nullptr;
 				context.range_data = header.get_clip_range_data();
 
-				context.animated_track_data = header.get_track_data();
+				context.animated_track_data0 = nullptr;
+				context.animated_track_data1 = nullptr;
 
 				context.bitset_size = get_bitset_size(header.num_bones * FullPrecisionConstants::NUM_TRACKS_PER_BONE);
 				context.range_rotation_size = has_clip_range_reduction && is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) ? range_rotation_size : 0;
@@ -158,13 +164,53 @@ namespace acl
 
 				uint32_t key_frame0;
 				uint32_t key_frame1;
-				
 				calculate_interpolation_keys(header.num_samples, context.clip_duration, sample_time, key_frame0, key_frame1, context.interpolation_alpha);
 
-				context.key_frame_byte_offset0 = (key_frame0 * header.animated_pose_bit_size) / 8;
-				context.key_frame_byte_offset1 = (key_frame1 * header.animated_pose_bit_size) / 8;
-				context.key_frame_bit_offset0 = key_frame0 * header.animated_pose_bit_size;
-				context.key_frame_bit_offset1 = key_frame1 * header.animated_pose_bit_size;
+				uint32_t segment_key_frame0;
+				uint32_t segment_key_frame1;
+
+				// Find segments
+				// TODO: Use binary search?
+				uint32_t segment_key_frame = 0;
+				const SegmentHeader* segment_header0;
+				const SegmentHeader* segment_header1;
+				for (uint16_t segment_index = 0; segment_index < header.num_segments; ++segment_index)
+				{
+					const SegmentHeader& segment_header = context.segment_headers[segment_index];
+
+					if (key_frame0 >= segment_key_frame && key_frame0 < segment_key_frame + segment_header.num_samples)
+					{
+						segment_header0 = &segment_header;
+						segment_key_frame0 = key_frame0 - segment_key_frame;
+
+						if (key_frame1 >= segment_key_frame && key_frame1 < segment_key_frame + segment_header.num_samples)
+						{
+							segment_header1 = &segment_header;
+							segment_key_frame1 = key_frame1 - segment_key_frame;
+						}
+						else
+						{
+							ACL_ENSURE(segment_index + 1 < header.num_segments, "Invalid segment index: %u", segment_index + 1);
+							const SegmentHeader& next_segment_header = context.segment_headers[segment_index + 1];
+							segment_header1 = &next_segment_header;
+							segment_key_frame1 = key_frame1 - (segment_key_frame + segment_header.num_samples);
+						}
+
+						break;
+					}
+
+					segment_key_frame += segment_header.num_samples;
+				}
+
+				context.format_per_track_data0 = header.get_format_per_track_data(*segment_header0);
+				context.format_per_track_data1 = header.get_format_per_track_data(*segment_header1);
+				context.animated_track_data0 = header.get_track_data(*segment_header0);
+				context.animated_track_data1 = header.get_track_data(*segment_header1);
+
+				context.key_frame_byte_offset0 = (segment_key_frame0 * segment_header0->animated_pose_bit_size) / 8;
+				context.key_frame_byte_offset1 = (segment_key_frame1 * segment_header1->animated_pose_bit_size) / 8;
+				context.key_frame_bit_offset0 = segment_key_frame0 * segment_header0->animated_pose_bit_size;
+				context.key_frame_bit_offset1 = segment_key_frame1 * segment_header1->animated_pose_bit_size;
 			}
 
 			template<class SettingsType>
@@ -185,14 +231,19 @@ namespace acl
 					{
 						if (is_rotation_format_variable(rotation_format))
 						{
-							uint8_t bit_rate = context.format_per_track_data[context.format_per_track_data_offset++];
-							uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+							uint8_t bit_rate0 = context.format_per_track_data0[context.format_per_track_data_offset];
+							uint8_t bit_rate1 = context.format_per_track_data1[context.format_per_track_data_offset++];
+							uint8_t num_bits_at_bit_rate0 = get_num_bits_at_bit_rate(bit_rate0) * 3;	// 3 components
+							uint8_t num_bits_at_bit_rate1 = get_num_bits_at_bit_rate(bit_rate1) * 3;	// 3 components
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
-								num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							{
+								num_bits_at_bit_rate0 = align_to(num_bits_at_bit_rate0, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+								num_bits_at_bit_rate1 = align_to(num_bits_at_bit_rate1, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							}
 
-							context.key_frame_bit_offset0 += num_bits_at_bit_rate;
-							context.key_frame_bit_offset1 += num_bits_at_bit_rate;
+							context.key_frame_bit_offset0 += num_bits_at_bit_rate0;
+							context.key_frame_bit_offset1 += num_bits_at_bit_rate1;
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							{
@@ -239,14 +290,19 @@ namespace acl
 
 						if (is_vector_format_variable(translation_format))
 						{
-							uint8_t bit_rate = context.format_per_track_data[context.format_per_track_data_offset++];
-							uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+							uint8_t bit_rate0 = context.format_per_track_data0[context.format_per_track_data_offset];
+							uint8_t bit_rate1 = context.format_per_track_data1[context.format_per_track_data_offset++];
+							uint8_t num_bits_at_bit_rate0 = get_num_bits_at_bit_rate(bit_rate0) * 3;	// 3 components
+							uint8_t num_bits_at_bit_rate1 = get_num_bits_at_bit_rate(bit_rate1) * 3;	// 3 components
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
-								num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							{
+								num_bits_at_bit_rate0 = align_to(num_bits_at_bit_rate0, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+								num_bits_at_bit_rate1 = align_to(num_bits_at_bit_rate1, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							}
 
-							context.key_frame_bit_offset0 += num_bits_at_bit_rate;
-							context.key_frame_bit_offset1 += num_bits_at_bit_rate;
+							context.key_frame_bit_offset0 += num_bits_at_bit_rate0;
+							context.key_frame_bit_offset1 += num_bits_at_bit_rate1;
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							{
@@ -318,8 +374,8 @@ namespace acl
 
 						if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 						{
-							Vector4_32 rotation0_xyzw = unpack_vector4_128(context.animated_track_data + context.key_frame_byte_offset0);
-							Vector4_32 rotation1_xyzw = unpack_vector4_128(context.animated_track_data + context.key_frame_byte_offset1);
+							Vector4_32 rotation0_xyzw = unpack_vector4_128(context.animated_track_data0 + context.key_frame_byte_offset0);
+							Vector4_32 rotation1_xyzw = unpack_vector4_128(context.animated_track_data1 + context.key_frame_byte_offset1);
 
 							if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
 							{
@@ -347,8 +403,8 @@ namespace acl
 						}
 						else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
 						{
-							Vector4_32 rotation0_xyz = unpack_vector3_96(context.animated_track_data + context.key_frame_byte_offset0);
-							Vector4_32 rotation1_xyz = unpack_vector3_96(context.animated_track_data + context.key_frame_byte_offset1);
+							Vector4_32 rotation0_xyz = unpack_vector3_96(context.animated_track_data0 + context.key_frame_byte_offset0);
+							Vector4_32 rotation1_xyz = unpack_vector3_96(context.animated_track_data1 + context.key_frame_byte_offset1);
 
 							if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
 							{
@@ -376,8 +432,8 @@ namespace acl
 						}
 						else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
 						{
-							Vector4_32 rotation0_xyz = unpack_vector3_48(context.animated_track_data + context.key_frame_byte_offset0, are_rotations_normalized);
-							Vector4_32 rotation1_xyz = unpack_vector3_48(context.animated_track_data + context.key_frame_byte_offset1, are_rotations_normalized);
+							Vector4_32 rotation0_xyz = unpack_vector3_48(context.animated_track_data0 + context.key_frame_byte_offset0, are_rotations_normalized);
+							Vector4_32 rotation1_xyz = unpack_vector3_48(context.animated_track_data1 + context.key_frame_byte_offset1, are_rotations_normalized);
 
 							if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
 							{
@@ -405,8 +461,8 @@ namespace acl
 						}
 						else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
 						{
-							Vector4_32 rotation0_xyz = unpack_vector3_32(11, 11, 10, are_rotations_normalized, context.animated_track_data + context.key_frame_byte_offset0);
-							Vector4_32 rotation1_xyz = unpack_vector3_32(11, 11, 10, are_rotations_normalized, context.animated_track_data + context.key_frame_byte_offset1);
+							Vector4_32 rotation0_xyz = unpack_vector3_32(11, 11, 10, are_rotations_normalized, context.animated_track_data0 + context.key_frame_byte_offset0);
+							Vector4_32 rotation1_xyz = unpack_vector3_32(11, 11, 10, are_rotations_normalized, context.animated_track_data1 + context.key_frame_byte_offset1);
 
 							if (are_rotations_normalized)
 							{
@@ -434,27 +490,27 @@ namespace acl
 						}
 						else if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
 						{
-							uint8_t bit_rate = context.format_per_track_data[context.format_per_track_data_offset++];
-							uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+							uint8_t bit_rate0 = context.format_per_track_data0[context.format_per_track_data_offset];
+							uint8_t bit_rate1 = context.format_per_track_data1[context.format_per_track_data_offset++];
+							uint8_t num_bits_at_bit_rate0 = get_num_bits_at_bit_rate(bit_rate0);
+							uint8_t num_bits_at_bit_rate1 = get_num_bits_at_bit_rate(bit_rate1);
 
 							Vector4_32 rotation0_xyz;
 							Vector4_32 rotation1_xyz;
 
-							if (is_pack_72_bit_rate(bit_rate))
-							{
-								rotation0_xyz = unpack_vector3_72(are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset0);
-								rotation1_xyz = unpack_vector3_72(are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset1);
-							}
-							else if (is_pack_96_bit_rate(bit_rate))
-							{
-								rotation0_xyz = unpack_vector3_96(context.animated_track_data, context.key_frame_bit_offset0);
-								rotation1_xyz = unpack_vector3_96(context.animated_track_data, context.key_frame_bit_offset1);
-							}
+							if (is_pack_72_bit_rate(bit_rate0))
+								rotation0_xyz = unpack_vector3_72(are_rotations_normalized, context.animated_track_data0, context.key_frame_bit_offset0);
+							else if (is_pack_96_bit_rate(bit_rate0))
+								rotation0_xyz = unpack_vector3_96(context.animated_track_data0, context.key_frame_bit_offset0);
 							else
-							{
-								rotation0_xyz = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset0);
-								rotation1_xyz = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, context.animated_track_data, context.key_frame_bit_offset1);
-							}
+								rotation0_xyz = unpack_vector3_n(num_bits_at_bit_rate0, num_bits_at_bit_rate0, num_bits_at_bit_rate0, are_rotations_normalized, context.animated_track_data0, context.key_frame_bit_offset0);
+
+							if (is_pack_72_bit_rate(bit_rate1))
+								rotation1_xyz = unpack_vector3_72(are_rotations_normalized, context.animated_track_data1, context.key_frame_bit_offset1);
+							else if (is_pack_96_bit_rate(bit_rate1))
+								rotation1_xyz = unpack_vector3_96(context.animated_track_data1, context.key_frame_bit_offset1);
+							else
+								rotation1_xyz = unpack_vector3_n(num_bits_at_bit_rate1, num_bits_at_bit_rate1, num_bits_at_bit_rate1, are_rotations_normalized, context.animated_track_data1, context.key_frame_bit_offset1);
 
 							if (are_rotations_normalized)
 							{
@@ -470,12 +526,16 @@ namespace acl
 							rotation0 = quat_from_positive_w(rotation0_xyz);
 							rotation1 = quat_from_positive_w(rotation1_xyz);
 
-							uint8_t num_bits_read = num_bits_at_bit_rate * 3;
+							uint8_t num_bits_read0 = num_bits_at_bit_rate0 * 3;
+							uint8_t num_bits_read1 = num_bits_at_bit_rate1 * 3;
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
-								num_bits_read = align_to(num_bits_read, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							{
+								num_bits_read0 = align_to(num_bits_read0, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+								num_bits_read1 = align_to(num_bits_read1, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							}
 
-							context.key_frame_bit_offset0 += num_bits_read;
-							context.key_frame_bit_offset1 += num_bits_read;
+							context.key_frame_bit_offset0 += num_bits_read0;
+							context.key_frame_bit_offset1 += num_bits_read1;
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							{
@@ -528,8 +588,8 @@ namespace acl
 
 						if (translation_format == VectorFormat8::Vector3_96 && settings.is_translation_format_supported(VectorFormat8::Vector3_96))
 						{
-							translation0 = unpack_vector3_96(context.animated_track_data + context.key_frame_byte_offset0);
-							translation1 = unpack_vector3_96(context.animated_track_data + context.key_frame_byte_offset1);
+							translation0 = unpack_vector3_96(context.animated_track_data0 + context.key_frame_byte_offset0);
+							translation1 = unpack_vector3_96(context.animated_track_data1 + context.key_frame_byte_offset1);
 
 							const uint32_t translation_size = get_packed_vector_size(translation_format);
 							context.key_frame_byte_offset0 += translation_size;
@@ -543,8 +603,8 @@ namespace acl
 						}
 						else if (translation_format == VectorFormat8::Vector3_48 && settings.is_translation_format_supported(VectorFormat8::Vector3_48))
 						{
-							translation0 = unpack_vector3_48(context.animated_track_data + context.key_frame_byte_offset0, true);
-							translation1 = unpack_vector3_48(context.animated_track_data + context.key_frame_byte_offset1, true);
+							translation0 = unpack_vector3_48(context.animated_track_data0 + context.key_frame_byte_offset0, true);
+							translation1 = unpack_vector3_48(context.animated_track_data1 + context.key_frame_byte_offset1, true);
 
 							const uint32_t translation_size = get_packed_vector_size(translation_format);
 							context.key_frame_byte_offset0 += translation_size;
@@ -558,8 +618,8 @@ namespace acl
 						}
 						else if (translation_format == VectorFormat8::Vector3_32 && settings.is_translation_format_supported(VectorFormat8::Vector3_32))
 						{
-							translation0 = unpack_vector3_32(11, 11, 10, true, context.animated_track_data + context.key_frame_byte_offset0);
-							translation1 = unpack_vector3_32(11, 11, 10, true, context.animated_track_data + context.key_frame_byte_offset1);
+							translation0 = unpack_vector3_32(11, 11, 10, true, context.animated_track_data0 + context.key_frame_byte_offset0);
+							translation1 = unpack_vector3_32(11, 11, 10, true, context.animated_track_data1 + context.key_frame_byte_offset1);
 
 							const uint32_t translation_size = get_packed_vector_size(translation_format);
 							context.key_frame_byte_offset0 += translation_size;
@@ -573,31 +633,35 @@ namespace acl
 						}
 						else if (translation_format == VectorFormat8::Vector3_Variable && settings.is_translation_format_supported(VectorFormat8::Vector3_Variable))
 						{
-							uint8_t bit_rate = context.format_per_track_data[context.format_per_track_data_offset++];
-							uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+							uint8_t bit_rate0 = context.format_per_track_data0[context.format_per_track_data_offset];
+							uint8_t bit_rate1 = context.format_per_track_data1[context.format_per_track_data_offset++];
+							uint8_t num_bits_at_bit_rate0 = get_num_bits_at_bit_rate(bit_rate0);
+							uint8_t num_bits_at_bit_rate1 = get_num_bits_at_bit_rate(bit_rate1);
 
-							if (is_pack_72_bit_rate(bit_rate))
-							{
-								translation0 = unpack_vector3_72(true, context.animated_track_data, context.key_frame_bit_offset0);
-								translation1 = unpack_vector3_72(true, context.animated_track_data, context.key_frame_bit_offset1);
-							}
-							else if (is_pack_96_bit_rate(bit_rate))
-							{
-								translation0 = unpack_vector3_96(context.animated_track_data, context.key_frame_bit_offset0);
-								translation1 = unpack_vector3_96(context.animated_track_data, context.key_frame_bit_offset1);
-							}
+							if (is_pack_72_bit_rate(bit_rate0))
+								translation0 = unpack_vector3_72(true, context.animated_track_data0, context.key_frame_bit_offset0);
+							else if (is_pack_96_bit_rate(bit_rate0))
+								translation0 = unpack_vector3_96(context.animated_track_data0, context.key_frame_bit_offset0);
 							else
+								translation0 = unpack_vector3_n(num_bits_at_bit_rate0, num_bits_at_bit_rate0, num_bits_at_bit_rate0, true, context.animated_track_data0, context.key_frame_bit_offset0);
+
+							if (is_pack_72_bit_rate(bit_rate1))
+								translation1 = unpack_vector3_72(true, context.animated_track_data1, context.key_frame_bit_offset1);
+							else if (is_pack_96_bit_rate(bit_rate1))
+								translation1 = unpack_vector3_96(context.animated_track_data1, context.key_frame_bit_offset1);
+							else
+								translation1 = unpack_vector3_n(num_bits_at_bit_rate1, num_bits_at_bit_rate1, num_bits_at_bit_rate1, true, context.animated_track_data1, context.key_frame_bit_offset1);
+
+							uint8_t num_bits_read0 = num_bits_at_bit_rate0 * 3;
+							uint8_t num_bits_read1 = num_bits_at_bit_rate1 * 3;
+							if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							{
-								translation0 = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, context.animated_track_data, context.key_frame_bit_offset0);
-								translation1 = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, context.animated_track_data, context.key_frame_bit_offset1);
+								num_bits_read0 = align_to(num_bits_read0, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+								num_bits_read1 = align_to(num_bits_read1, MIXED_PACKING_ALIGNMENT_NUM_BITS);
 							}
 
-							uint8_t num_bits_read = num_bits_at_bit_rate * 3;
-							if (settings.supports_mixed_packing() && context.has_mixed_packing)
-								num_bits_read = align_to(num_bits_read, MIXED_PACKING_ALIGNMENT_NUM_BITS);
-
-							context.key_frame_bit_offset0 += num_bits_read;
-							context.key_frame_bit_offset1 += num_bits_read;
+							context.key_frame_bit_offset0 += num_bits_read0;
+							context.key_frame_bit_offset1 += num_bits_read1;
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							{
@@ -660,7 +724,7 @@ namespace acl
 
 			DecompressionContext* context = allocate_type<DecompressionContext>(allocator);
 
-			ACL_ASSERT(is_aligned_to(&context->constant_tracks_bitset, CONTEXT_ALIGN_AS), "Read-only decompression context is misaligned");
+			ACL_ASSERT(is_aligned_to(&context->segment_headers, CONTEXT_ALIGN_AS), "Read-only decompression context is misaligned");
 			ACL_ASSERT(is_aligned_to(&context->constant_track_offset, CONTEXT_ALIGN_AS), "Read-write decompression context is misaligned");
 
 			initialize_context(settings, get_full_precision_header(clip), *context);

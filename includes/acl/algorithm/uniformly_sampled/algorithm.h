@@ -33,12 +33,13 @@ namespace acl
 	class UniformlySampledAlgorithm final : public IAlgorithm
 	{
 	public:
-		UniformlySampledAlgorithm(RotationFormat8 rotation_format, VectorFormat8 translation_format, RangeReductionFlags8 range_reduction)
+		UniformlySampledAlgorithm(RotationFormat8 rotation_format, VectorFormat8 translation_format, RangeReductionFlags8 range_reduction, bool use_segmenting)
 			: m_compression_settings()
 		{
 			m_compression_settings.rotation_format = rotation_format;
 			m_compression_settings.translation_format = translation_format;
 			m_compression_settings.range_reduction = range_reduction;
+			m_compression_settings.segmenting.enabled = use_segmenting;
 		}
 
 		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton) override
@@ -72,7 +73,7 @@ namespace acl
 
 		virtual void print_stats(const CompressedClip& clip, std::FILE* file) override
 		{
-			uniformly_sampled::print_stats(clip, file);
+			uniformly_sampled::print_stats(clip, file, m_compression_settings);
 		}
 
 	private:

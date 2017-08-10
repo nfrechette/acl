@@ -34,13 +34,33 @@
 namespace acl
 {
 	struct ClipContext;
+
+	struct SegmentingSettings
+	{
+		bool enabled;
+
+		uint16_t ideal_num_samples;
+		uint16_t max_num_samples;
+
+		SegmentingSettings()
+			: enabled(false)
+			, ideal_num_samples(16)
+			, max_num_samples(31)
+		{}
+	};
+
 	struct SegmentContext
 	{
 		ClipContext* clip;
 		BoneStreams* bone_streams;
 
-		uint16_t num_clip_samples;
+		uint16_t num_samples;
 		uint16_t num_bones;
+
+		uint32_t clip_sample_offset;
+
+		uint32_t animated_pose_bit_size;
+		uint32_t animated_data_size;
 
 		//////////////////////////////////////////////////////////////////////////
 

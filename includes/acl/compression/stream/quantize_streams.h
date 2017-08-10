@@ -264,9 +264,11 @@ namespace acl
 			const RigidSkeleton& skeleton;
 
 			uint32_t num_samples;
+			uint32_t segment_sample_start_index;
 			float sample_rate;
 			float error_threshold;
 			float clip_duration;
+			float segment_duration;
 
 			const BoneStreams* raw_bone_streams;
 
@@ -274,18 +276,20 @@ namespace acl
 			Transform_32* lossy_local_pose;
 			BoneBitRate* bit_rate_per_bone;
 
-			QuantizationContext(Allocator& allocator_, BoneStreams* bone_streams_, uint16_t num_bones_, RotationFormat8 rotation_format_, VectorFormat8 translation_format_, const AnimationClip& clip_, const RigidSkeleton& skeleton_)
+			QuantizationContext(Allocator& allocator_, SegmentContext& segment, RotationFormat8 rotation_format_, VectorFormat8 translation_format_, const AnimationClip& clip_, const RigidSkeleton& skeleton_)
 				: allocator(allocator_)
-				, bone_streams(bone_streams_)
-				, num_bones(num_bones_)
+				, bone_streams(segment.bone_streams)
+				, num_bones(segment.num_bones)
 				, rotation_format(rotation_format_)
 				, translation_format(translation_format_)
 				, skeleton(skeleton_)
 			{
-				num_samples = calculate_num_samples(clip_.get_duration(), bone_streams_[0].rotations.get_sample_rate());
-				sample_rate = float(bone_streams_[0].rotations.get_sample_rate());
+				num_samples = segment.num_samples;
+				segment_sample_start_index = segment.clip_sample_offset;
+				sample_rate = float(segment.bone_streams[0].rotations.get_sample_rate());
 				error_threshold = clip_.get_error_threshold();
 				clip_duration = clip_.get_duration();
+				segment_duration = float(num_samples - 1) / sample_rate;
 
 				raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
@@ -304,14 +308,16 @@ namespace acl
 		{
 			float max_error = 0.0f;
 			constexpr bool use_raw_streams = true;
+			float ref_duration = use_raw_streams ? float(get_animated_num_samples(context.raw_bone_streams, context.num_bones) - 1) / context.sample_rate : context.clip_duration;
 
 			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
 				// Sample our streams and calculate the error
-				float sample_time = min(float(sample_index) / context.sample_rate, context.clip_duration);
+				float sample_time = min(float(sample_index) / context.sample_rate, context.segment_duration);
+				float ref_sample_time = use_raw_streams ? min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration) : sample_time;
 
 				const BoneStreams* ref_bone_streams = use_raw_streams ? context.raw_bone_streams : context.bone_streams;
-				sample_streams(ref_bone_streams, context.num_bones, sample_time, context.raw_local_pose);
+				sample_streams(ref_bone_streams, context.num_bones, ref_sample_time, context.raw_local_pose);
 				sample_streams(context.bone_streams, context.num_bones, sample_time, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.lossy_local_pose);
 
 				// Constant branch
@@ -560,31 +566,31 @@ namespace acl
 			return best_error;
 		}
 
-		inline void quantize_variable_streams_new(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format, VectorFormat8 translation_format, const AnimationClip& clip, const RigidSkeleton& skeleton, const BoneStreams* raw_bone_streams)
+		inline void quantize_variable_streams_new(Allocator& allocator, SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, const AnimationClip& clip, const RigidSkeleton& skeleton, const BoneStreams* raw_bone_streams)
 		{
 			// Duplicate our streams
-			BoneStreams* quantized_streams = allocate_type_array<BoneStreams>(allocator, num_bones);
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-				quantized_streams[bone_index] = bone_streams[bone_index].duplicate();
+			BoneStreams* quantized_streams = allocate_type_array<BoneStreams>(allocator, segment.num_bones);
+			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+				quantized_streams[bone_index] = segment.bone_streams[bone_index].duplicate();
 
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
 
 			// Quantize everything to the lowest bit rate of the same variant
 			if (is_rotation_variable)
-				quantize_fixed_rotation_streams(allocator, quantized_streams, num_bones, LOWEST_BIT_RATE);
+				quantize_fixed_rotation_streams(allocator, quantized_streams, segment.num_bones, LOWEST_BIT_RATE);
 			else
-				quantize_fixed_rotation_streams(allocator, quantized_streams, num_bones, rotation_format, false);
+				quantize_fixed_rotation_streams(allocator, quantized_streams, segment.num_bones, rotation_format, false);
 
 			if (is_translation_variable)
-				quantize_fixed_translation_streams(allocator, quantized_streams, num_bones, LOWEST_BIT_RATE);
+				quantize_fixed_translation_streams(allocator, quantized_streams, segment.num_bones, LOWEST_BIT_RATE);
 			else
-				quantize_fixed_translation_streams(allocator, quantized_streams, num_bones, translation_format);
+				quantize_fixed_translation_streams(allocator, quantized_streams, segment.num_bones, translation_format);
 
-			QuantizationContext context(allocator, bone_streams, num_bones, rotation_format, translation_format, clip, skeleton);
+			QuantizationContext context(allocator, segment, rotation_format, translation_format, clip, skeleton);
 			context.raw_bone_streams = raw_bone_streams;
 
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				context.bit_rate_per_bone[bone_index] = BoneBitRate{ quantized_streams[bone_index].rotations.get_bit_rate(), quantized_streams[bone_index].translations.get_bit_rate() };
 
 			// First iterate over all bones and find the optimal bit rate for each track using the local space error.
@@ -634,14 +640,14 @@ namespace acl
 			//		[bone 0] + 0 [bone 1] + 1 [bone 2] + 2 (9)
 			//		[bone 0] + 0 [bone 1] + 0 [bone 2] + 3 (9)
 
-			uint8_t* bone_chain_permutation = allocate_type_array<uint8_t>(allocator, num_bones);
-			uint16_t* chain_bone_indices = allocate_type_array<uint16_t>(allocator, num_bones);
-			BoneBitRate* permutation_bit_rates = allocate_type_array<BoneBitRate>(allocator, num_bones);
-			BoneBitRate* best_permutation_bit_rates = allocate_type_array<BoneBitRate>(allocator, num_bones);
-			BoneBitRate* best_bit_rates = allocate_type_array<BoneBitRate>(allocator, num_bones);
-			memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * num_bones);
+			uint8_t* bone_chain_permutation = allocate_type_array<uint8_t>(allocator, segment.num_bones);
+			uint16_t* chain_bone_indices = allocate_type_array<uint16_t>(allocator, segment.num_bones);
+			BoneBitRate* permutation_bit_rates = allocate_type_array<BoneBitRate>(allocator, segment.num_bones);
+			BoneBitRate* best_permutation_bit_rates = allocate_type_array<BoneBitRate>(allocator, segment.num_bones);
+			BoneBitRate* best_bit_rates = allocate_type_array<BoneBitRate>(allocator, segment.num_bones);
+			memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * segment.num_bones);
 
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 			{
 				float error = calculate_max_error_at_bit_rate(context, bone_index, false);
 				if (error < context.error_threshold)
@@ -681,7 +687,7 @@ namespace acl
 					float best_error = error;
 
 					// The first permutation increases the bit rate of a single track/bone
-					std::fill(bone_chain_permutation, bone_chain_permutation + num_bones, 0);
+					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
 					bone_chain_permutation[num_bones_in_chain - 1] = 1;
 					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
@@ -694,7 +700,7 @@ namespace acl
 					}
 
 					// The second permutation increases the bit rate of 2 track/bones
-					std::fill(bone_chain_permutation, bone_chain_permutation + num_bones, 0);
+					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
 					bone_chain_permutation[num_bones_in_chain - 1] = 2;
 					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
@@ -708,7 +714,7 @@ namespace acl
 
 					if (num_bones_in_chain > 1)
 					{
-						std::fill(bone_chain_permutation, bone_chain_permutation + num_bones, 0);
+						std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
 						bone_chain_permutation[num_bones_in_chain - 2] = 1;
 						bone_chain_permutation[num_bones_in_chain - 1] = 1;
 						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
@@ -723,7 +729,7 @@ namespace acl
 					}
 
 					// The third permutation increases the bit rate of 3 track/bones
-					std::fill(bone_chain_permutation, bone_chain_permutation + num_bones, 0);
+					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
 					bone_chain_permutation[num_bones_in_chain - 1] = 3;
 					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
@@ -737,7 +743,7 @@ namespace acl
 
 					if (num_bones_in_chain > 1)
 					{
-						std::fill(bone_chain_permutation, bone_chain_permutation + num_bones, 0);
+						std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
 						bone_chain_permutation[num_bones_in_chain - 2] = 2;
 						bone_chain_permutation[num_bones_in_chain - 1] = 1;
 						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
@@ -752,7 +758,7 @@ namespace acl
 
 						if (num_bones_in_chain > 2)
 						{
-							std::fill(bone_chain_permutation, bone_chain_permutation + num_bones, 0);
+							std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
 							bone_chain_permutation[num_bones_in_chain - 3] = 1;
 							bone_chain_permutation[num_bones_in_chain - 2] = 1;
 							bone_chain_permutation[num_bones_in_chain - 1] = 1;
@@ -861,22 +867,22 @@ namespace acl
 #endif
 
 			// Quantize and swap our streams
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 			{
 				if (context.bit_rate_per_bone[bone_index].rotation != INVALID_BIT_RATE)
-					quantize_fixed_rotation_stream(allocator, bone_streams[bone_index].rotations, context.bit_rate_per_bone[bone_index].rotation, bone_streams[bone_index].are_rotations_normalized, quantized_streams[bone_index].rotations);
+					quantize_fixed_rotation_stream(allocator, segment.bone_streams[bone_index].rotations, context.bit_rate_per_bone[bone_index].rotation, segment.bone_streams[bone_index].are_rotations_normalized, quantized_streams[bone_index].rotations);
 
 				if (context.bit_rate_per_bone[bone_index].translation != INVALID_BIT_RATE)
-					quantize_fixed_translation_stream(allocator, bone_streams[bone_index].translations, context.bit_rate_per_bone[bone_index].translation, quantized_streams[bone_index].translations);
+					quantize_fixed_translation_stream(allocator, segment.bone_streams[bone_index].translations, context.bit_rate_per_bone[bone_index].translation, quantized_streams[bone_index].translations);
 
-				std::swap(bone_streams[bone_index], quantized_streams[bone_index]);
+				std::swap(segment.bone_streams[bone_index], quantized_streams[bone_index]);
 			}
 
-			deallocate_type_array(allocator, bone_chain_permutation, num_bones);
-			deallocate_type_array(allocator, chain_bone_indices, num_bones);
-			deallocate_type_array(allocator, permutation_bit_rates, num_bones);
-			deallocate_type_array(allocator, best_permutation_bit_rates, num_bones);
-			deallocate_type_array(allocator, best_bit_rates, num_bones);
+			deallocate_type_array(allocator, bone_chain_permutation, segment.num_bones);
+			deallocate_type_array(allocator, chain_bone_indices, segment.num_bones);
+			deallocate_type_array(allocator, permutation_bit_rates, segment.num_bones);
+			deallocate_type_array(allocator, best_permutation_bit_rates, segment.num_bones);
+			deallocate_type_array(allocator, best_bit_rates, segment.num_bones);
 		}
 
 		inline void quantize_variable_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format, VectorFormat8 translation_format, const AnimationClip& clip, const RigidSkeleton& skeleton)
@@ -1090,8 +1096,13 @@ namespace acl
 
 		if (is_rotation_variable || is_translation_variable)
 		{
+			SegmentContext segment;
+			segment.bone_streams = bone_streams;
+			segment.num_bones = num_bones;
+			segment.num_samples = clip.get_num_samples();
+
 			if (use_new_variable_quantization)
-				impl::quantize_variable_streams_new(allocator, bone_streams, num_bones, rotation_format, translation_format, clip, skeleton, raw_bone_streams);
+				impl::quantize_variable_streams_new(allocator, segment, rotation_format, translation_format, clip, skeleton, raw_bone_streams);
 			else
 				impl::quantize_variable_streams(allocator, bone_streams, num_bones, rotation_format, translation_format, clip, skeleton);
 		}
@@ -1117,7 +1128,7 @@ namespace acl
 			if (is_rotation_variable || is_translation_variable)
 			{
 				if (use_new_variable_quantization)
-					impl::quantize_variable_streams_new(allocator, segment.bone_streams, segment.num_bones, rotation_format, translation_format, clip, skeleton, raw_bone_streams);
+					impl::quantize_variable_streams_new(allocator, segment, rotation_format, translation_format, clip, skeleton, raw_bone_streams);
 				else
 					impl::quantize_variable_streams(allocator, segment.bone_streams, segment.num_bones, rotation_format, translation_format, clip, skeleton);
 			}

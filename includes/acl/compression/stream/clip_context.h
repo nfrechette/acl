@@ -121,8 +121,9 @@ namespace acl
 
 			segment.bone_streams = bone_streams;
 			segment.clip = &out_clip_context;
-			segment.num_clip_samples = num_samples;
+			segment.num_samples = num_samples;
 			segment.num_bones = num_bones;
+			segment.clip_sample_offset = 0;
 		}
 	}
 

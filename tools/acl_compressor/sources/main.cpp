@@ -196,7 +196,6 @@ static void print_stats(const Options& options, const AnimationClip& clip, const
 	fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
 	fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
 	fprintf(file, "Clip num samples: %u\n", clip.get_num_samples());
-	//fprintf(file, "Clip num segments: %u\n", 0);		// TODO
 	algorithm.print_stats(compressed_clip, file);
 	fprintf(file, "\n");
 }
@@ -369,66 +368,73 @@ int main(int argc, char** argv)
 
 	// Compress & Decompress
 	{
-		UniformlySampledAlgorithm uniform_tests[] =
+		bool use_segmenting_options[] = { false, true };
+
+		for (size_t segmenting_option_index = 0; segmenting_option_index < sizeof(use_segmenting_options) / sizeof(use_segmenting_options[0]); ++segmenting_option_index)
 		{
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			bool use_segmenting = use_segmenting_options[segmenting_option_index];
 
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+			UniformlySampledAlgorithm uniform_tests[] =
+			{
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_48, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::None),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations),
-			UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-		};
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_32, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-		for (UniformlySampledAlgorithm& algorithm : uniform_tests)
-			try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm);
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_48, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_32, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+			};
+
+			for (UniformlySampledAlgorithm& algorithm : uniform_tests)
+				try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm);
+		}
 	}
 
 	if (IsDebuggerPresent())
