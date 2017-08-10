@@ -62,7 +62,7 @@ namespace acl
 
 		AnimationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate, AnimationTrackType8 type)
 			: m_allocator(&allocator)
-			, m_sample_data(allocate_type_array<double>(allocator, num_samples * get_animation_track_sample_size(type)))
+			, m_sample_data(allocate_type_array_aligned<double>(allocator, num_samples * get_animation_track_sample_size(type), alignof(Vector4_64)))
 			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
 			, m_type(type)
@@ -71,9 +71,7 @@ namespace acl
 		~AnimationTrack()
 		{
 			if (is_initialized())
-			{
 				deallocate_type_array(*m_allocator, m_sample_data, m_num_samples * get_animation_track_sample_size(m_type));
-			}
 		}
 
 		AnimationTrack& operator=(AnimationTrack&& track)
@@ -121,7 +119,10 @@ namespace acl
 
 		AnimationRotationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate)
 			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Rotation)
-		{}
+		{
+			Quat_64* samples = safe_ptr_cast<Quat_64>(&m_sample_data[0]);
+			std::fill(samples, samples + num_samples, quat_identity_64());
+		}
 
 		AnimationRotationTrack(AnimationRotationTrack&& track)
 			: AnimationTrack(std::forward<AnimationTrack>(track))
@@ -189,7 +190,9 @@ namespace acl
 
 		AnimationTranslationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate)
 			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Translation)
-		{}
+		{
+			std::fill(m_sample_data, m_sample_data + (num_samples * 3), 0.0);
+		}
 
 		AnimationTranslationTrack(AnimationTranslationTrack&& track)
 			: AnimationTrack(std::forward<AnimationTrack>(track))
