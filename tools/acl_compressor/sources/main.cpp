@@ -46,36 +46,6 @@
 
 using namespace acl;
 
-struct OutputWriterImpl : public OutputWriter
-{
-	OutputWriterImpl(Allocator& allocator, uint16_t num_bones)
-		: m_allocator(allocator)
-		, m_transforms(allocate_type_array<Transform_32>(allocator, num_bones))
-		, m_num_bones(num_bones)
-	{}
-
-	~OutputWriterImpl()
-	{
-		deallocate_type_array(m_allocator, m_transforms, m_num_bones);
-	}
-
-	void write_bone_rotation(uint32_t bone_index, const Quat_32& rotation)
-	{
-		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
-		m_transforms[bone_index].rotation = rotation;
-	}
-
-	void write_bone_translation(uint32_t bone_index, const Vector4_32& translation)
-	{
-		ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index. %u >= %u", bone_index, m_num_bones);
-		m_transforms[bone_index].translation = translation;
-	}
-
-	Allocator& m_allocator;
-	Transform_32* m_transforms;
-	uint16_t m_num_bones;
-};
-
 struct Options
 {
 	const char*		input_filename;
