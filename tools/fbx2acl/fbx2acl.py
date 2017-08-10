@@ -49,9 +49,9 @@ def get_animation_stack(scene, anim_stack_name):
 def parse_clip(scene, anim_stack):
 	clip_name = anim_stack.GetName()
 	timespan = anim_stack.GetLocalTimeSpan()
-	sample_rate = int(FbxTime.GetFrameRate(scene.GetGlobalSettings().GetTimeMode()))
+	sample_rate = int(FbxTime.GetFrameRate(scene.GetGlobalSettings().GetTimeMode()) + 0.5)
 	duration = timespan.GetDuration().GetFramedTime(False).GetSecondDouble()
-	num_samples = int(duration * sample_rate) + 1
+	num_samples = int((duration * sample_rate) + 0.5) + 1
 	error_threshold = 0.01
 
 	return ACLClip(clip_name, num_samples, sample_rate, error_threshold, duration)
