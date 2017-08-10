@@ -53,6 +53,10 @@ In the future, SSE, AVX, and Neon will be fully supported as well.
 In order to test the algorithm implementations with real world data, we took the Carnegie-Mellon database. It contains over 2500 animation clips.
 This is the data all graphs and charts shown will be based on. Data available upon request, it is far too large for GitHub.
 
+## Performance metrics
+
+*  [ACL vs Unreal 4 vs Unity 5](https://github.com/nfrechette/acl/blob/develop/docs/acl_vs_ue4_vs_unity.md)
+
 ## MIT License
 
 Copyright (c) 2017 Nicholas Frechette & Animation Compression Library contributors
