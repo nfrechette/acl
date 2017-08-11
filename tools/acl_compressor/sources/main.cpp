@@ -166,6 +166,7 @@ static void print_stats(const Options& options, const AnimationClip& clip, const
 	fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
 	fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
 	fprintf(file, "Clip num samples: %u\n", clip.get_num_samples());
+	fprintf(file, "Clip num bones: %u\n", clip.get_num_bones());
 	algorithm.print_stats(compressed_clip, file);
 	fprintf(file, "\n");
 }
