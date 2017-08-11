@@ -102,7 +102,7 @@ namespace acl
 			};
 
 			template<class SettingsType>
-			inline void initialize_context(const SettingsType& settings, const Header& header, DecompressionContext& context)
+			inline void initialize_context(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
 			{
 				const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 				const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
@@ -154,7 +154,7 @@ namespace acl
 			}
 
 			template<class SettingsType>
-			inline void seek(const SettingsType& settings, const Header& header, float sample_time, DecompressionContext& context)
+			inline void seek(const SettingsType& settings, const ClipHeader& header, float sample_time, DecompressionContext& context)
 			{
 				context.constant_track_offset = 0;
 				context.constant_track_data_offset = 0;
@@ -214,7 +214,7 @@ namespace acl
 			}
 
 			template<class SettingsType>
-			inline void skip_rotation(const SettingsType& settings, const Header& header, DecompressionContext& context)
+			inline void skip_rotation(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
 			{
 				bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
 				if (!is_rotation_default)
@@ -273,7 +273,7 @@ namespace acl
 			}
 
 			template<class SettingsType>
-			inline void skip_translation(const SettingsType& settings, const Header& header, DecompressionContext& context)
+			inline void skip_translation(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
 			{
 				bool is_translation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
 				if (!is_translation_default)
@@ -332,7 +332,7 @@ namespace acl
 			}
 
 			template<class SettingsType>
-			inline Quat_32 decompress_rotation(const SettingsType& settings, const Header& header, DecompressionContext& context)
+			inline Quat_32 decompress_rotation(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
 			{
 				Quat_32 rotation;
 
@@ -557,7 +557,7 @@ namespace acl
 			}
 
 			template<class SettingsType>
-			inline Vector4_32 decompress_translation(const SettingsType& settings, const Header& header, DecompressionContext& context)
+			inline Vector4_32 decompress_translation(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
 			{
 				Vector4_32 translation;
 
@@ -727,7 +727,7 @@ namespace acl
 			ACL_ASSERT(is_aligned_to(&context->segment_headers, CONTEXT_ALIGN_AS), "Read-only decompression context is misaligned");
 			ACL_ASSERT(is_aligned_to(&context->constant_track_offset, CONTEXT_ALIGN_AS), "Read-write decompression context is misaligned");
 
-			initialize_context(settings, get_header(clip), *context);
+			initialize_context(settings, get_clip_header(clip), *context);
 
 			return context;
 		}
@@ -751,7 +751,7 @@ namespace acl
 			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
 			ACL_ENSURE(clip.is_valid(false), "Clip is invalid");
 
-			const Header& header = get_header(clip);
+			const ClipHeader& header = get_clip_header(clip);
 
 			DecompressionContext& context = *safe_ptr_cast<DecompressionContext>(opaque_context);
 
@@ -777,7 +777,7 @@ namespace acl
 			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
 			ACL_ENSURE(clip.is_valid(false), "Clip is invalid");
 
-			const Header& header = get_header(clip);
+			const ClipHeader& header = get_clip_header(clip);
 
 			DecompressionContext& context = *safe_ptr_cast<DecompressionContext>(opaque_context);
 

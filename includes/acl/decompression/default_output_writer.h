@@ -24,14 +24,10 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
-#include "acl/core/compressed_clip.h"
-#include "acl/compression/skeleton.h"
-#include "acl/compression/animation_clip.h"
 #include "acl/decompression/output_writer.h"
-#include "acl/math/transform_32.h"
+#include "acl/math/math_types.h"
 
-#include <cstdio>
+#include <stdint.h>
 
 namespace acl
 {
