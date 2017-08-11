@@ -96,11 +96,14 @@ namespace acl
 				if (bone_stream.is_rotation_default)
 					continue;
 
+				const ClipContext* clip_context = bone_stream.segment->clip;
+				bool are_rotations_normalized = clip_context->are_rotations_normalized;
+
 				// If our format isn't variable, we allow constant tracks to be quantized to any format
 				// If our format is variable, we keep them fixed at the highest bit rate in the variant
 				RotationFormat8 format = is_variable_variant && bone_stream.is_rotation_constant ? highest_bit_rate : rotation_format;
 
-				quantize_fixed_rotation_stream(allocator, bone_stream.rotations, format, bone_stream.are_rotations_normalized, bone_stream.rotations);
+				quantize_fixed_rotation_stream(allocator, bone_stream.rotations, format, are_rotations_normalized, bone_stream.rotations);
 			}
 		}
 
@@ -144,11 +147,14 @@ namespace acl
 				if (bone_stream.is_rotation_default)
 					continue;
 
+				const ClipContext* clip_context = bone_stream.segment->clip;
+				bool are_rotations_normalized = clip_context->are_rotations_normalized;
+
 				// If our format is variable, we keep them fixed at the highest bit rate in the variant
 				if (bone_stream.is_rotation_constant)
-					quantize_fixed_rotation_stream(allocator, bone_stream.rotations, highest_bit_rate, bone_stream.are_rotations_normalized, bone_stream.rotations);
+					quantize_fixed_rotation_stream(allocator, bone_stream.rotations, highest_bit_rate, are_rotations_normalized, bone_stream.rotations);
 				else
-					quantize_fixed_rotation_stream(allocator, bone_stream.rotations, bit_rate, bone_stream.are_rotations_normalized, bone_stream.rotations);
+					quantize_fixed_rotation_stream(allocator, bone_stream.rotations, bit_rate, are_rotations_normalized, bone_stream.rotations);
 			}
 		}
 
@@ -866,11 +872,14 @@ namespace acl
 			}
 #endif
 
+			const ClipContext* clip_context = segment.clip;
+			bool are_rotations_normalized = clip_context->are_rotations_normalized;
+
 			// Quantize and swap our streams
 			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 			{
 				if (context.bit_rate_per_bone[bone_index].rotation != INVALID_BIT_RATE)
-					quantize_fixed_rotation_stream(allocator, segment.bone_streams[bone_index].rotations, context.bit_rate_per_bone[bone_index].rotation, segment.bone_streams[bone_index].are_rotations_normalized, quantized_streams[bone_index].rotations);
+					quantize_fixed_rotation_stream(allocator, segment.bone_streams[bone_index].rotations, context.bit_rate_per_bone[bone_index].rotation, are_rotations_normalized, quantized_streams[bone_index].rotations);
 
 				if (context.bit_rate_per_bone[bone_index].translation != INVALID_BIT_RATE)
 					quantize_fixed_translation_stream(allocator, segment.bone_streams[bone_index].translations, context.bit_rate_per_bone[bone_index].translation, quantized_streams[bone_index].translations);
@@ -1044,7 +1053,10 @@ namespace acl
 					printf("SELECTED R %u: %u -> %u\n", target_bone_index, quantized_streams[target_bone_index].rotations.get_bit_rate(), new_bit_rate);
 #endif
 
-					quantize_fixed_rotation_stream(allocator, bone_streams[target_bone_index].rotations, new_bit_rate, bone_streams[target_bone_index].are_rotations_normalized, quantized_streams[target_bone_index].rotations);
+					const ClipContext* clip_context = bone_streams[target_bone_index].segment->clip;
+					bool are_rotations_normalized = clip_context->are_rotations_normalized;
+
+					quantize_fixed_rotation_stream(allocator, bone_streams[target_bone_index].rotations, new_bit_rate, are_rotations_normalized, quantized_streams[target_bone_index].rotations);
 					bit_rate_per_bone[target_bone_index].rotation = new_bit_rate;
 				}
 				else

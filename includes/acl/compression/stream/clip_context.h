@@ -36,6 +36,7 @@ namespace acl
 	struct ClipContext
 	{
 		SegmentContext* segments;
+		BoneRanges* ranges;
 
 		uint16_t num_segments;
 		uint16_t num_bones;
@@ -43,6 +44,9 @@ namespace acl
 		uint32_t sample_rate;
 
 		float error_threshold;
+
+		bool are_rotations_normalized;
+		bool are_translations_normalized;
 
 		//////////////////////////////////////////////////////////////////////////
 
@@ -72,11 +76,14 @@ namespace acl
 
 		// Create a single segment with the whole clip
 		out_clip_context.segments = allocate_type_array<SegmentContext>(allocator, 1);
+		out_clip_context.ranges = nullptr;
 		out_clip_context.num_segments = 1;
 		out_clip_context.num_bones = num_bones;
 		out_clip_context.num_samples = num_samples;
 		out_clip_context.sample_rate = sample_rate;
 		out_clip_context.error_threshold = clip.get_error_threshold();
+		out_clip_context.are_rotations_normalized = false;
+		out_clip_context.are_translations_normalized = false;
 
 		for (SegmentContext& segment : out_clip_context.segment_iterator())
 		{
@@ -87,13 +94,11 @@ namespace acl
 				const AnimatedBone& bone = bones[bone_index];
 				BoneStreams& bone_stream = bone_streams[bone_index];
 
+				bone_stream.segment = &segment;
+				bone_stream.bone_index = bone_index;
+
 				bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_32), sample_rate, RotationFormat8::Quat_128);
 				bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
-
-				Vector4_32 rotation_min = vector_set(1e10f);
-				Vector4_32 rotation_max = vector_set(-1e10f);
-				Vector4_32 translation_min = vector_set(1e10f);
-				Vector4_32 translation_max = vector_set(-1e10f);
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
@@ -102,21 +107,12 @@ namespace acl
 
 					Vector4_32 translation = vector_cast(bone.translation_track.get_sample(sample_index));
 					bone_stream.translations.set_raw_sample(sample_index, translation);
-
-					rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
-					rotation_max = vector_max(rotation_max, quat_to_vector(rotation));
-					translation_min = vector_min(translation_min, translation);
-					translation_max = vector_max(translation_max, translation);
 				}
 
-				bone_stream.rotation_range = TrackStreamRange(rotation_min, rotation_max);
-				bone_stream.translation_range = TrackStreamRange(translation_min, translation_max);
 				bone_stream.is_rotation_constant = num_samples == 1;
 				bone_stream.is_rotation_default = bone_stream.is_rotation_constant && quat_near_identity(quat_cast(bone.rotation_track.get_sample(0)));
 				bone_stream.is_translation_constant = num_samples == 1;
 				bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_near_equal(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32());
-				bone_stream.are_rotations_normalized = false;
-				bone_stream.are_translations_normalized = false;
 			}
 
 			segment.bone_streams = bone_streams;

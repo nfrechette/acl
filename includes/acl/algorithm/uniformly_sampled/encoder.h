@@ -36,7 +36,6 @@
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/stream/track_stream.h"
-#include "acl/compression/stream/convert_clip_to_streams.h"
 #include "acl/compression/stream/convert_rotation_streams.h"
 #include "acl/compression/stream/compact_constant_streams.h"
 #include "acl/compression/stream/normalize_streams.h"
@@ -155,6 +154,9 @@ namespace acl
 
 			convert_rotation_streams(allocator, clip_context, settings.rotation_format);
 
+			// Extract our clip ranges now, we need it for compacting the constant streams
+			extract_clip_bone_ranges(allocator, clip_context);
+
 			// TODO: Expose this, especially the translation threshold depends on the unit scale.
 			// Centimeters VS meters, a different threshold should be used. Perhaps we should pass an
 			// argument to the compression algorithm that states the units used or we should force centimeters
@@ -163,7 +165,7 @@ namespace acl
 			uint32_t clip_range_data_size = 0;
 			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
 			{
-				normalize_streams(clip_context, settings.range_reduction, settings.rotation_format);
+				normalize_clip_streams(clip_context, settings.range_reduction);
 				clip_range_data_size = get_stream_range_data_size(clip_context, settings.range_reduction, settings.rotation_format, settings.translation_format);
 			}
 
@@ -233,7 +235,7 @@ namespace acl
 				header.constant_track_data_offset = InvalidPtrOffset();
 
 			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
-				write_range_track_data(clip_segment, settings.range_reduction, settings.rotation_format, settings.translation_format, header.get_clip_range_data(), clip_range_data_size);
+				write_clip_range_track_data(clip_segment, settings.range_reduction, settings.rotation_format, settings.translation_format, header.get_clip_range_data(), clip_range_data_size);
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();
 

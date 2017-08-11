@@ -36,14 +36,50 @@
 
 namespace acl
 {
-	inline void normalize_rotation_streams(BoneStreams* bone_streams, uint16_t num_bones, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format)
+	inline void extract_clip_bone_ranges(Allocator& allocator, ClipContext& clip_context)
 	{
-		if (!is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
-			return;
+		clip_context.ranges = allocate_type_array<BoneRanges>(allocator, clip_context.num_bones);
 
+		for (SegmentContext& segment : clip_context.segment_iterator())
+		{
+			for (uint16_t bone_index = 0; bone_index < clip_context.num_bones; ++bone_index)
+			{
+				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
+				Vector4_32 rotation_min = vector_set(1e10f);
+				Vector4_32 rotation_max = vector_set(-1e10f);
+				Vector4_32 translation_min = vector_set(1e10f);
+				Vector4_32 translation_max = vector_set(-1e10f);
+
+				for (uint32_t sample_index = 0; sample_index < bone_stream.rotations.get_num_samples(); ++sample_index)
+				{
+					Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
+
+					rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
+					rotation_max = vector_max(rotation_max, quat_to_vector(rotation));
+				}
+
+				for (uint32_t sample_index = 0; sample_index < bone_stream.translations.get_num_samples(); ++sample_index)
+				{
+					Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
+
+					translation_min = vector_min(translation_min, translation);
+					translation_max = vector_max(translation_max, translation);
+				}
+
+				BoneRanges& bone_ranges = clip_context.ranges[bone_index];
+				bone_ranges.rotation = TrackStreamRange(rotation_min, rotation_max);
+				bone_ranges.translation = TrackStreamRange(translation_min, translation_max);
+			}
+		}
+	}
+
+	inline void normalize_rotation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
+	{
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			BoneStreams& bone_stream = bone_streams[bone_index];
+			const BoneRanges& bone_range = bone_ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
@@ -53,9 +89,10 @@ namespace acl
 				continue;
 
 			uint32_t num_samples = bone_stream.rotations.get_num_samples();
+			RotationFormat8 rotation_format = bone_stream.rotations.get_rotation_format();
 
-			Vector4_32 range_min = bone_stream.rotation_range.get_min();
-			Vector4_32 range_extent = bone_stream.rotation_range.get_extent();
+			Vector4_32 range_min = bone_range.rotation.get_min();
+			Vector4_32 range_extent = bone_range.rotation.get_extent();
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -84,19 +121,15 @@ namespace acl
 
 				bone_stream.rotations.set_raw_sample(sample_index, normalized_rotation);
 			}
-
-			bone_stream.are_rotations_normalized = true;
 		}
 	}
 
-	inline void normalize_translation_streams(BoneStreams* bone_streams, uint16_t num_bones, RangeReductionFlags8 range_reduction)
+	inline void normalize_translation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 	{
-		if (!is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations))
-			return;
-
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			BoneStreams& bone_stream = bone_streams[bone_index];
+			const BoneRanges& bone_range = bone_ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
@@ -107,8 +140,8 @@ namespace acl
 
 			uint32_t num_samples = bone_stream.translations.get_num_samples();
 
-			Vector4_32 range_min = bone_stream.translation_range.get_min();
-			Vector4_32 range_extent = bone_stream.translation_range.get_extent();
+			Vector4_32 range_min = bone_range.translation.get_min();
+			Vector4_32 range_extent = bone_range.translation.get_extent();
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -124,17 +157,24 @@ namespace acl
 
 				bone_stream.translations.set_raw_sample(sample_index, normalized_translation);
 			}
-
-			bone_stream.are_translations_normalized = true;
 		}
 	}
 
-	inline void normalize_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format)
+	inline void normalize_clip_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction)
 	{
 		for (SegmentContext& segment : clip_context.segment_iterator())
 		{
-			normalize_rotation_streams(segment.bone_streams, segment.num_bones, range_reduction, rotation_format);
-			normalize_translation_streams(segment.bone_streams, segment.num_bones, range_reduction);
+			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
+			{
+				normalize_rotation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
+				clip_context.are_rotations_normalized = true;
+			}
+
+			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations))
+			{
+				normalize_translation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
+				clip_context.are_translations_normalized = true;
+			}
 		}
 	}
 }

@@ -93,6 +93,9 @@ namespace acl
 				const BoneStreams& clip_bone_stream = clip_segment->bone_streams[bone_index];
 				BoneStreams& segment_bone_stream = segment.bone_streams[bone_index];
 
+				segment_bone_stream.segment = &segment;
+				segment_bone_stream.bone_index = bone_index;
+
 				if (!clip_bone_stream.is_rotation_animated())
 				{
 					segment_bone_stream.rotations = clip_bone_stream.rotations.duplicate();
@@ -119,41 +122,10 @@ namespace acl
 					segment_bone_stream.translations = std::move(translations);
 				}
 
-#if 0
-				Vector4_32 rotation_min = vector_set(1e10f);
-				Vector4_32 rotation_max = vector_set(-1e10f);
-				Vector4_32 translation_min = vector_set(1e10f);
-				Vector4_32 translation_max = vector_set(-1e10f);
-
-				for (uint32_t sample_index = 0; sample_index < segment_bone_stream.rotations.get_num_samples(); ++sample_index)
-				{
-					Quat_32 rotation = segment_bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
-
-					rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
-					rotation_max = vector_max(rotation_max, quat_to_vector(rotation));
-				}
-
-				for (uint32_t sample_index = 0; sample_index < segment_bone_stream.translations.get_num_samples(); ++sample_index)
-				{
-					Vector4_32 translation = segment_bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
-
-					translation_min = vector_min(translation_min, translation);
-					translation_max = vector_max(translation_max, translation);
-				}
-
-				segment_bone_stream.rotation_range = TrackStreamRange(rotation_min, rotation_max);
-				segment_bone_stream.translation_range = TrackStreamRange(translation_min, translation_max);
-#endif
-
-				segment_bone_stream.rotation_range = clip_bone_stream.rotation_range;
-				segment_bone_stream.translation_range = clip_bone_stream.translation_range;
-
 				segment_bone_stream.is_rotation_constant = clip_bone_stream.is_rotation_constant;
 				segment_bone_stream.is_rotation_default = clip_bone_stream.is_rotation_default;
 				segment_bone_stream.is_translation_constant = clip_bone_stream.is_translation_constant;
 				segment_bone_stream.is_translation_default = clip_bone_stream.is_translation_default;
-				segment_bone_stream.are_rotations_normalized = clip_bone_stream.are_rotations_normalized;
-				segment_bone_stream.are_translations_normalized = clip_bone_stream.are_translations_normalized;
 			}
 
 			clip_sample_index += num_samples_in_segment;

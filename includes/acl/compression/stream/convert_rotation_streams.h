@@ -50,9 +50,6 @@ namespace acl
 			uint32_t sample_rate = bone_stream.rotations.get_sample_rate();
 			RotationTrackStream converted_stream(allocator, num_samples, sizeof(Vector4_32), sample_rate, high_precision_format);
 
-			Vector4_32 rotation_min = vector_set(1e10f);
-			Vector4_32 rotation_max = vector_set(-1e10f);
-
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
@@ -72,12 +69,8 @@ namespace acl
 				}
 
 				converted_stream.set_raw_sample(sample_index, rotation);
-
-				rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
-				rotation_max = vector_max(rotation_max, quat_to_vector(rotation));
 			}
 
-			bone_stream.rotation_range = TrackStreamRange(rotation_min, rotation_max);
 			bone_stream.rotations = std::move(converted_stream);
 		}
 	}
