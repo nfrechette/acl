@@ -24,9 +24,10 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/ialgorithm.h"
 #include "acl/algorithm/uniformly_sampled/encoder.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
+#include "acl/core/ialgorithm.h"
+#include "acl/decompression/default_output_writer.h"
 
 namespace acl
 {
@@ -55,13 +56,13 @@ namespace acl
 
 		virtual void deallocate_decompression_context(Allocator& allocator, void* context) override
 		{
-			return uniformly_sampled::deallocate_decompression_context(allocator, context);
+			uniformly_sampled::deallocate_decompression_context(allocator, context);
 		}
 
 		virtual void decompress_pose(const CompressedClip& clip, void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) override
 		{
 			uniformly_sampled::DecompressionSettings settings;
-			AlgorithmOutputWriterImpl writer(out_transforms, num_transforms);
+			DefaultOutputWriter writer(out_transforms, num_transforms);
 			uniformly_sampled::decompress_pose(settings, clip, context, sample_time, writer);
 		}
 

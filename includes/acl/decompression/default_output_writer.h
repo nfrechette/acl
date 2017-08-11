@@ -24,31 +24,36 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
-#include "acl/core/compressed_clip.h"
-#include "acl/compression/skeleton.h"
-#include "acl/compression/animation_clip.h"
 #include "acl/decompression/output_writer.h"
-#include "acl/math/transform_32.h"
+#include "acl/math/math_types.h"
 
-#include <cstdio>
+#include <stdint.h>
 
 namespace acl
 {
-	// This interface serves to make unit testing and manipulating algorithms easier
-	class IAlgorithm
+	struct DefaultOutputWriter : public OutputWriter
 	{
-	public:
-		virtual ~IAlgorithm() {}
+		DefaultOutputWriter(Transform_32* transforms, uint16_t num_transforms)
+			: m_transforms(transforms)
+			, m_num_transforms(num_transforms)
+		{
+			ACL_ENSURE(transforms != nullptr, "Transforms array cannot be null");
+			ACL_ENSURE(num_transforms != 0, "Transforms array cannot be empty");
+		}
 
-		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton) = 0;
+		void write_bone_rotation(uint32_t bone_index, const acl::Quat_32& rotation)
+		{
+			ACL_ENSURE(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
+			m_transforms[bone_index].rotation = rotation;
+		}
 
-		virtual void* allocate_decompression_context(Allocator& allocator, const CompressedClip& clip) = 0;
-		virtual void deallocate_decompression_context(Allocator& allocator, void* context) = 0;
+		void write_bone_translation(uint32_t bone_index, const acl::Vector4_32& translation)
+		{
+			ACL_ENSURE(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
+			m_transforms[bone_index].translation = translation;
+		}
 
-		virtual void decompress_pose(const CompressedClip& clip, void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) = 0;
-		virtual void decompress_bone(const CompressedClip& clip, void* context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) = 0;
-
-		virtual void print_stats(const CompressedClip& clip, std::FILE* file) {}
+		Transform_32* m_transforms;
+		uint16_t m_num_transforms;
 	};
 }
