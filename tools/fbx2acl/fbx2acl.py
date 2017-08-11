@@ -50,7 +50,7 @@ def parse_clip(scene, anim_stack):
 	clip_name = anim_stack.GetName()
 	timespan = anim_stack.GetLocalTimeSpan()
 	sample_rate = int(FbxTime.GetFrameRate(scene.GetGlobalSettings().GetTimeMode()) + 0.5)
-	duration = timespan.GetDuration().GetFramedTime(False).GetSecondDouble()
+	duration = timespan.GetDuration().GetSecondDouble()
 	num_samples = int((duration * sample_rate) + 0.5) + 1
 	error_threshold = 0.01
 
@@ -72,7 +72,7 @@ def parse_hierarchy_node(parent_node, node, nodes):
 	if type != FbxNodeAttribute.eSkeleton:
 		print('Ignoring node ' + node.GetName())
 		return
-	
+
 	nodes.append(FBXNode(node.GetName(), parent_node.GetName(), node))
 
 	for i in range(node.GetChildCount()):
@@ -102,15 +102,15 @@ def parse_bind_pose(scene, nodes):
 
 		for bone_idx in range(pose.GetCount()):
 			bone_name = pose.GetNodeName(bone_idx).GetCurrentName()
-			
+
 			try:
 				bone_node = next(x for x in nodes if x.name == bone_name)
 			except StopIteration:
 				continue
-			
+
 			matrix = pose.GetMatrix(bone_idx)
-						
-			if bone_node.parent == nodes[0].name:
+
+			if bone_node.parent == "" or bone_node.parent == nodes[0].name:
 				parent_name = ""
 				local_space_mtx = matrix
 			else:
