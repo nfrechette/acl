@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ACLData.h"
 #include "ACLStatsDumpCommandlet.h"
 
 #include "Runtime/Core/Public/HAL/FileManagerGeneric.h"
@@ -15,7 +14,7 @@
 #include <acl/math/transform_32.h>
 
 // Commandlet example inspired by: https://github.com/ue4plugins/CommandletPlugin
-// To run the commandlet, add to the commandline: "$(SolutionDir)$(ProjectName).uproject" -run=/Script/ACLData.ACLStatsDump
+// To run the commandlet, add to the commandline: "$(SolutionDir)$(ProjectName).uproject" -run=/Script/$(ProjectName).ACLStatsDump
 
 UACLStatsDumpCommandlet::UACLStatsDumpCommandlet(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
