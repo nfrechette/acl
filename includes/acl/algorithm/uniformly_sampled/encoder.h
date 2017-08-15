@@ -30,6 +30,7 @@
 #include "acl/core/enum_utils.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/track_types.h"
+#include "acl/core/range_reduction_types.h"
 #include "acl/algorithm/uniformly_sampled/common.h"
 #include "acl/compression/compressed_clip_impl.h"
 #include "acl/compression/skeleton.h"

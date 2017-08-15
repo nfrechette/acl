@@ -27,6 +27,7 @@
 #include "acl/algorithm/uniformly_sampled/encoder.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/core/ialgorithm.h"
+#include "acl/core/range_reduction_types.h"
 #include "acl/decompression/default_output_writer.h"
 
 namespace acl

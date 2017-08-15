@@ -26,6 +26,7 @@
 
 #include "acl/core/compressed_clip.h"
 #include "acl/core/utils.h"
+#include "acl/core/range_reduction_types.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/quat_packing.h"

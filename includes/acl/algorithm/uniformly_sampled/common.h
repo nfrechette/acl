@@ -26,6 +26,7 @@
 
 #include "acl/core/compressed_clip.h"
 #include "acl/core/memory.h"
+#include "acl/core/range_reduction_types.h"
 
 #include <stdint.h>
 

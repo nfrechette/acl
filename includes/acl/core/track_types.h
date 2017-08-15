@@ -24,13 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/enum_utils.h"
-
 #include <stdint.h>
-
-#define ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE	8
-//#define ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE	16
-#define ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE (ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE / 8)
 
 namespace acl
 {
@@ -72,26 +66,6 @@ namespace acl
 		TrackFormat8(RotationFormat8 format) : rotation(format) {}
 		TrackFormat8(VectorFormat8 format) : vector(format) {}
 	};
-
-	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
-	// The range reduction strategy is serialized in the compressed data, if you change a value
-	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
-	enum class RangeReductionFlags8 : uint8_t
-	{
-		None						= 0x00,
-
-		// Flags to determine which tracks have range reduction applied
-		Rotations					= 0x01,
-		Translations				= 0x02,
-		//Scales					= 0x04,		// TODO: Implement this
-		//Properties				= 0x08,		// TODO: Implement this
-
-		// Flags to determine how range reduction behaves
-		PerClip						= 0x10,
-		PerSegment					= 0x20,
-	};
-
-	ACL_IMPL_ENUM_FLAGS_OPERATORS(RangeReductionFlags8)
 
 	enum class AnimationTrackType8 : uint8_t
 	{
@@ -166,28 +140,6 @@ namespace acl
 		case VectorFormat8::Vector3_Variable:	return "Vector3 Variable";
 		default:								return "<Invalid>";
 		}
-	}
-
-	// TODO: constexpr
-	inline const char* get_range_reduction_name(RangeReductionFlags8 flags)
-	{
-		// Some compilers have trouble with constexpr operator| with enums in a case switch statement
-		if (flags == RangeReductionFlags8::None)
-			return "None";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
-			return "Per Clip Rotations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations))
-			return "Per Clip Translations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
-			return "Per Clip Rotations, Translations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations))
-			return "Per Clip Segment Rotations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations))
-			return "Per Clip Segment Translations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
-			return "Per Clip Segment Rotations, Translations";
-		else
-			return "<Invalid>";
 	}
 
 	// TODO: constexpr

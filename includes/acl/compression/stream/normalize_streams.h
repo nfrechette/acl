@@ -28,6 +28,7 @@
 #include "acl/core/error.h"
 #include "acl/core/enum_utils.h"
 #include "acl/core/track_types.h"
+#include "acl/core/range_reduction_types.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/compression/stream/clip_context.h"

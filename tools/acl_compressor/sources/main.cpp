@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/memory.h"
+#include "acl/core/range_reduction_types.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/io/clip_reader.h"
