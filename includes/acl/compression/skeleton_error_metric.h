@@ -31,8 +31,6 @@
 #include <algorithm>
 #include <functional>
 
-#include "acl/math/transform_64.h"
-
 namespace acl
 {
 	// TODO: Add separate types for local/object space poses, avoid any possible usage error
