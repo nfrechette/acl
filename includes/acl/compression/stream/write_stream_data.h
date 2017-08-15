@@ -216,12 +216,14 @@ namespace acl
 
 	inline void write_animated_track_data(const TrackStream& track_stream, uint32_t sample_index, bool has_mixed_packing, uint8_t* animated_track_data_begin, uint8_t*& out_animated_track_data, uint64_t& out_bit_offset)
 	{
-		const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
-
 		if (track_stream.is_bit_rate_variable())
 		{
 			uint8_t bit_rate = track_stream.get_bit_rate();
 			uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+
+			// Track is constant, our constant sample is stored in the range information
+			ACL_ENSURE(!is_pack_0_bit_rate(bit_rate), "Cannot write constant variable track data");
+			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 
 			if (is_pack_72_bit_rate(bit_rate))
 			{
@@ -256,6 +258,7 @@ namespace acl
 		}
 		else
 		{
+			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 			uint32_t sample_size = track_stream.get_sample_size();
 			memcpy(out_animated_track_data, raw_sample_ptr, sample_size);
 			out_animated_track_data += sample_size;
@@ -285,10 +288,10 @@ namespace acl
 			{
 				const BoneStreams& bone_stream = bone_streams[bone_index];
 
-				if (bone_stream.is_rotation_animated())
+				if (bone_stream.is_rotation_animated() && !is_pack_0_bit_rate(bone_stream.rotations.get_bit_rate()))
 					write_animated_track_data(bone_stream.rotations, sample_index, has_mixed_packing, animated_track_data_begin, animated_track_data, bit_offset);
 
-				if (bone_stream.is_translation_animated())
+				if (bone_stream.is_translation_animated() && !is_pack_0_bit_rate(bone_stream.translations.get_bit_rate()))
 					write_animated_track_data(bone_stream.translations, sample_index, has_mixed_packing, animated_track_data_begin, animated_track_data, bit_offset);
 
 				ACL_ENSURE(animated_track_data <= animated_track_data_end, "Invalid animated track data offset. Wrote too much data.");

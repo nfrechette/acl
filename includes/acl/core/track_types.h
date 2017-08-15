@@ -28,6 +28,10 @@
 
 #include <stdint.h>
 
+#define ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE	8
+//#define ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE	16
+#define ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE (ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE / 8)
+
 namespace acl
 {
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
@@ -84,7 +88,7 @@ namespace acl
 
 		// Flags to determine how range reduction behaves
 		PerClip						= 0x10,
-		//PerSegment				= 0x20,		// TODO: Implement this
+		PerSegment					= 0x20,
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(RangeReductionFlags8)
@@ -126,6 +130,8 @@ namespace acl
 		return BIT_RATE_NUM_BITS[bit_rate];
 	}
 
+	// Track is constant, our constant sample is stored in the range information
+	constexpr bool is_pack_0_bit_rate(uint8_t bit_rate) { return bit_rate == 0; }
 	// Pack 72 really isn't great, it barely improves the error of most clips with high error
 	// Disabled for now but code left in to test
 	constexpr bool is_pack_72_bit_rate(uint8_t bit_rate) { return false; }
@@ -174,6 +180,12 @@ namespace acl
 			return "Per Clip Translations";
 		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
 			return "Per Clip Rotations, Translations";
+		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations))
+			return "Per Clip Segment Rotations";
+		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations))
+			return "Per Clip Segment Translations";
+		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
+			return "Per Clip Segment Rotations, Translations";
 		else
 			return "<Invalid>";
 	}

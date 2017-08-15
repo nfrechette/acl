@@ -40,13 +40,20 @@ namespace acl
 {
 	inline Quat_32 get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 	{
-		const ClipContext* clip_context = bone_steams.segment->clip;
+		const SegmentContext* segment = bone_steams.segment;
+		const ClipContext* clip_context = segment->clip;
 		bool are_rotations_normalized = clip_context->are_rotations_normalized;
+
+		RotationFormat8 format = bone_steams.rotations.get_rotation_format();
+		uint8_t bit_rate = bone_steams.rotations.get_bit_rate();
+
+		if (format == RotationFormat8::QuatDropW_Variable && is_pack_0_bit_rate(bit_rate))
+			sample_index = 0;
+
 		const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 
 		Vector4_32 packed_rotation;
 
-		RotationFormat8 format = bone_steams.rotations.get_rotation_format();
 		switch (format)
 		{
 		case RotationFormat8::Quat_128:
@@ -63,14 +70,25 @@ namespace acl
 			break;
 		case RotationFormat8::QuatDropW_Variable:
 		{
-			uint8_t bit_rate = bone_steams.rotations.get_bit_rate();
-			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			if (is_pack_72_bit_rate(bit_rate))
+			if (is_pack_0_bit_rate(bit_rate))
+			{
+				ACL_ENSURE(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
+
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+				packed_rotation = unpack_vector3_48(quantized_ptr, true);
+#else
+				packed_rotation = unpack_vector3_96(quantized_ptr);
+#endif
+			}
+			else if (is_pack_72_bit_rate(bit_rate))
 				packed_rotation = unpack_vector3_72(are_rotations_normalized, quantized_ptr);
 			else if (is_pack_96_bit_rate(bit_rate))
 				packed_rotation = unpack_vector3_96(quantized_ptr);
 			else
+			{
+				uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 				packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
+			}
 		}
 		break;
 		default:
@@ -79,12 +97,22 @@ namespace acl
 			break;
 		}
 
+		if (segment->are_rotations_normalized)
+		{
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+
+			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
+		}
+
 		if (are_rotations_normalized)
 		{
-			const BoneRanges& bone_range = clip_context->ranges[bone_steams.bone_index];
+			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = bone_range.rotation.get_min();
-			Vector4_32 clip_range_extent = bone_range.rotation.get_extent();
+			Vector4_32 clip_range_min = clip_bone_range.rotation.get_min();
+			Vector4_32 clip_range_extent = clip_bone_range.rotation.get_extent();
 
 			packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 		}
@@ -106,8 +134,13 @@ namespace acl
 
 	inline Quat_32 get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index, uint8_t bit_rate)
 	{
-		const ClipContext* clip_context = bone_steams.segment->clip;
+		const SegmentContext* segment = bone_steams.segment;
+		const ClipContext* clip_context = segment->clip;
 		bool are_rotations_normalized = clip_context->are_rotations_normalized;
+
+		if (is_pack_0_bit_rate(bit_rate))
+			sample_index = 0;
+
 		const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 
 		Vector4_32 rotation;
@@ -132,7 +165,27 @@ namespace acl
 		uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_rotation;
 
-		if (is_pack_72_bit_rate(bit_rate))
+		if (is_pack_0_bit_rate(bit_rate))
+		{
+			ACL_ENSURE(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
+			ACL_ENSURE(segment->are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
+
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+
+			rotation = vector_mul_add(rotation, segment_range_extent, segment_range_min);
+
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+			pack_vector3_48(rotation, true, &raw_data[0]);
+			packed_rotation = unpack_vector3_48(&raw_data[0], true);
+#else
+			pack_vector3_96(rotation, &raw_data[0]);
+			packed_rotation = unpack_vector3_96(&raw_data[0]);
+#endif
+		}
+		else if (is_pack_72_bit_rate(bit_rate))
 		{
 			pack_vector3_72(rotation, are_rotations_normalized, &raw_data[0]);
 			packed_rotation = unpack_vector3_72(are_rotations_normalized, &raw_data[0]);
@@ -148,12 +201,22 @@ namespace acl
 			packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
 		}
 
+		if (segment->are_rotations_normalized && !is_pack_0_bit_rate(bit_rate))
+		{
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+
+			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
+		}
+
 		if (are_rotations_normalized)
 		{
-			const BoneRanges& bone_range = clip_context->ranges[bone_steams.bone_index];
+			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = bone_range.rotation.get_min();
-			Vector4_32 clip_range_extent = bone_range.rotation.get_extent();
+			Vector4_32 clip_range_min = clip_bone_range.rotation.get_min();
+			Vector4_32 clip_range_extent = clip_bone_range.rotation.get_extent();
 
 			packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 		}
@@ -175,7 +238,8 @@ namespace acl
 
 	inline Quat_32 get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index, RotationFormat8 desired_format)
 	{
-		const ClipContext* clip_context = bone_steams.segment->clip;
+		const SegmentContext* segment = bone_steams.segment;
+		const ClipContext* clip_context = segment->clip;
 		bool are_rotations_normalized = clip_context->are_rotations_normalized;
 		const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 
@@ -220,12 +284,22 @@ namespace acl
 			break;
 		}
 
+		if (segment->are_rotations_normalized)
+		{
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+
+			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
+		}
+
 		if (are_rotations_normalized)
 		{
-			const BoneRanges& bone_range = clip_context->ranges[bone_steams.bone_index];
+			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = bone_range.rotation.get_min();
-			Vector4_32 clip_range_extent = bone_range.rotation.get_extent();
+			Vector4_32 clip_range_min = clip_bone_range.rotation.get_min();
+			Vector4_32 clip_range_extent = clip_bone_range.rotation.get_extent();
 
 			packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 		}
@@ -247,13 +321,20 @@ namespace acl
 
 	inline Vector4_32 get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 	{
-		const ClipContext* clip_context = bone_steams.segment->clip;
+		const SegmentContext* segment = bone_steams.segment;
+		const ClipContext* clip_context = segment->clip;
 		bool are_translations_normalized = clip_context->are_translations_normalized;
+
+		VectorFormat8 format = bone_steams.translations.get_vector_format();
+		uint8_t bit_rate = bone_steams.translations.get_bit_rate();
+
+		if (format == VectorFormat8::Vector3_Variable && is_pack_0_bit_rate(bit_rate))
+			sample_index = 0;
+
 		const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 
 		Vector4_32 packed_translation;
 
-		VectorFormat8 format = bone_steams.translations.get_vector_format();
 		switch (format)
 		{
 		case VectorFormat8::Vector3_96:
@@ -268,14 +349,24 @@ namespace acl
 		case VectorFormat8::Vector3_Variable:
 		{
 			ACL_ENSURE(are_translations_normalized, "Translations must be normalized to support variable bit rates.");
-			uint8_t bit_rate = bone_steams.translations.get_bit_rate();
-			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			if (is_pack_72_bit_rate(bit_rate))
+
+			if (is_pack_0_bit_rate(bit_rate))
+			{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+				packed_translation = unpack_vector3_48(quantized_ptr, true);
+#else
+				packed_translation = unpack_vector3_96(quantized_ptr);
+#endif
+			}
+			else if (is_pack_72_bit_rate(bit_rate))
 				packed_translation = unpack_vector3_72(true, quantized_ptr);
 			else if (is_pack_96_bit_rate(bit_rate))
 				packed_translation = unpack_vector3_96(quantized_ptr);
 			else
+			{
+				uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 				packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+			}
 		}
 		break;
 		default:
@@ -284,12 +375,22 @@ namespace acl
 			break;
 		}
 
+		if (segment->are_translations_normalized && !is_pack_0_bit_rate(bit_rate))
+		{
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+
+			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
+		}
+
 		if (are_translations_normalized)
 		{
-			const BoneRanges& bone_range = clip_context->ranges[bone_steams.bone_index];
+			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = bone_range.translation.get_min();
-			Vector4_32 clip_range_extent = bone_range.translation.get_extent();
+			Vector4_32 clip_range_min = clip_bone_range.translation.get_min();
+			Vector4_32 clip_range_extent = clip_bone_range.translation.get_extent();
 
 			packed_translation = vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
 		}
@@ -299,8 +400,13 @@ namespace acl
 
 	inline Vector4_32 get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, uint8_t bit_rate)
 	{
-		const ClipContext* clip_context = bone_steams.segment->clip;
+		const SegmentContext* segment = bone_steams.segment;
+		const ClipContext* clip_context = segment->clip;
 		bool are_translations_normalized = clip_context->are_translations_normalized;
+
+		if (is_pack_0_bit_rate(bit_rate))
+			sample_index = 0;
+
 		const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 
 		Vector4_32 translation;
@@ -320,11 +426,29 @@ namespace acl
 		ACL_ENSURE(are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
-		uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 		uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_translation;
 
-		if (is_pack_72_bit_rate(bit_rate))
+		if (is_pack_0_bit_rate(bit_rate))
+		{
+			ACL_ENSURE(segment->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
+
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+
+			translation = vector_mul_add(translation, segment_range_extent, segment_range_min);
+
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+			pack_vector3_48(translation, true, &raw_data[0]);
+			packed_translation = unpack_vector3_48(&raw_data[0], true);
+#else
+			pack_vector3_96(translation, &raw_data[0]);
+			packed_translation = unpack_vector3_96(&raw_data[0]);
+#endif
+		}
+		else if (is_pack_72_bit_rate(bit_rate))
 		{
 			pack_vector3_72(translation, true, &raw_data[0]);
 			packed_translation = unpack_vector3_72(true, &raw_data[0]);
@@ -336,21 +460,33 @@ namespace acl
 		}
 		else
 		{
+			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 			pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
 			packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
 		}
 
-		const BoneRanges& bone_range = clip_context->ranges[bone_steams.bone_index];
+		if (segment->are_translations_normalized && !is_pack_0_bit_rate(bit_rate))
+		{
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-		Vector4_32 clip_range_min = bone_range.translation.get_min();
-		Vector4_32 clip_range_extent = bone_range.translation.get_extent();
+			Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+
+			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
+		}
+
+		const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
+
+		Vector4_32 clip_range_min = clip_bone_range.translation.get_min();
+		Vector4_32 clip_range_extent = clip_bone_range.translation.get_extent();
 
 		return vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
 	}
 
 	inline Vector4_32 get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
 	{
-		const ClipContext* clip_context = bone_steams.segment->clip;
+		const SegmentContext* segment = bone_steams.segment;
+		const ClipContext* clip_context = segment->clip;
 		bool are_translations_normalized = clip_context->are_translations_normalized;
 		const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 
@@ -391,12 +527,22 @@ namespace acl
 			break;
 		}
 
+		if (segment->are_translations_normalized)
+		{
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+
+			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
+		}
+
 		if (are_translations_normalized)
 		{
-			const BoneRanges& bone_range = clip_context->ranges[bone_steams.bone_index];
+			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = bone_range.translation.get_min();
-			Vector4_32 clip_range_extent = bone_range.translation.get_extent();
+			Vector4_32 clip_range_min = clip_bone_range.translation.get_min();
+			Vector4_32 clip_range_extent = clip_bone_range.translation.get_extent();
 
 			packed_translation = vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
 		}
@@ -468,7 +614,6 @@ namespace acl
 			{
 				uint32_t num_samples = bone_stream.rotations.get_num_samples();
 				float duration = bone_stream.rotations.get_duration();
-				uint8_t bit_rate = bit_rates[bone_index].rotation;
 
 				uint32_t key0;
 				uint32_t key1;
@@ -479,6 +624,8 @@ namespace acl
 				Quat_32 sample1;
 				if (is_rotation_variable)
 				{
+					uint8_t bit_rate = bit_rates[bone_index].rotation;
+
 					sample0 = get_rotation_sample(bone_stream, key0, bit_rate);
 					sample1 = get_rotation_sample(bone_stream, key1, bit_rate);
 				}
@@ -503,7 +650,6 @@ namespace acl
 			{
 				uint32_t num_samples = bone_stream.translations.get_num_samples();
 				float duration = bone_stream.translations.get_duration();
-				uint8_t bit_rate = bit_rates[bone_index].translation;
 
 				uint32_t key0;
 				uint32_t key1;
@@ -514,6 +660,8 @@ namespace acl
 				Vector4_32 sample1;
 				if (is_translation_variable)
 				{
+					uint8_t bit_rate = bit_rates[bone_index].translation;
+
 					sample0 = get_translation_sample(bone_stream, key0, bit_rate);
 					sample1 = get_translation_sample(bone_stream, key1, bit_rate);
 				}

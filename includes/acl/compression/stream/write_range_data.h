@@ -66,17 +66,10 @@ namespace acl
 	}
 
 	inline void write_range_track_data(const BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones,
-		RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format, VectorFormat8 translation_format,
+		RangeReductionFlags8 range_reduction, bool is_clip_range_data,
 		uint8_t* range_data, uint32_t range_data_size)
 	{
 		const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
-
-		uint32_t rotation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
-		uint32_t translation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) ? get_range_reduction_vector_size(translation_format) : 0;
-
-		// Our min/extent have the same size, divide it in half
-		rotation_size /= 2;
-		translation_size /= 2;
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
@@ -92,10 +85,67 @@ namespace acl
 				Vector4_32 range_min = bone_range.rotation.get_min();
 				Vector4_32 range_extent = bone_range.rotation.get_extent();
 
-				memcpy(range_data, vector_as_float_ptr(range_min), rotation_size);
-				range_data += rotation_size;
-				memcpy(range_data, vector_as_float_ptr(range_extent), rotation_size);
-				range_data += rotation_size;
+				if (is_clip_range_data)
+				{
+					uint32_t range_member_size = bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128 ? (sizeof(float) * 4) : (sizeof(float) * 3);
+
+					memcpy(range_data, vector_as_float_ptr(range_min), range_member_size);
+					range_data += range_member_size;
+					memcpy(range_data, vector_as_float_ptr(range_extent), range_member_size);
+					range_data += range_member_size;
+				}
+				else
+				{
+					uint16_t* data = safe_ptr_cast<uint16_t>(range_data);
+					uint8_t offset = 0;
+
+					if (bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128)
+					{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+						pack_vector4_32(range_min, true, range_data);
+						range_data += sizeof(uint8_t) * 4;
+						pack_vector4_32(range_extent, true, range_data);
+						range_data += sizeof(uint8_t) * 4;
+#else
+						pack_vector4_64(range_min, true, range_data);
+						range_data += sizeof(uint16_t) * 4;
+						pack_vector4_64(range_extent, true, range_data);
+						range_data += sizeof(uint16_t) * 4;
+#endif
+					}
+					else
+					{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+						if (is_pack_0_bit_rate(bone_stream.rotations.get_bit_rate()))
+						{
+							const uint8_t* rotation = bone_stream.rotations.get_raw_sample_ptr(0);
+							memcpy(range_data, rotation, sizeof(uint16_t) * 3);
+							range_data += sizeof(uint16_t) * 3;
+						}
+						else
+						{
+							pack_vector3_24(range_min, true, range_data);
+							range_data += sizeof(uint8_t) * 3;
+							pack_vector3_24(range_extent, true, range_data);
+							range_data += sizeof(uint8_t) * 3;
+						}
+#else
+						if (is_pack_0_bit_rate(bone_stream.rotations.get_bit_rate()))
+						{
+							const uint8_t* rotation = bone_stream.rotations.get_raw_sample_ptr(0);
+							memcpy(range_data, rotation, sizeof(uint32_t) * 3);
+							range_data += sizeof(uint32_t) * 3;
+						}
+						else
+						{
+							pack_vector3_48(range_min, true, range_data);
+							range_data += sizeof(uint16_t) * 3;
+							pack_vector3_48(range_extent, true, range_data);
+							range_data += sizeof(uint16_t) * 3;
+						}
+#endif
+					}
+				}
 			}
 
 			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
@@ -103,10 +153,47 @@ namespace acl
 				Vector4_32 range_min = bone_range.translation.get_min();
 				Vector4_32 range_extent = bone_range.translation.get_extent();
 
-				memcpy(range_data, vector_as_float_ptr(range_min), translation_size);
-				range_data += translation_size;
-				memcpy(range_data, vector_as_float_ptr(range_extent), translation_size);
-				range_data += translation_size;
+				if (is_clip_range_data)
+				{
+					uint32_t range_member_size = sizeof(float) * 3;
+
+					memcpy(range_data, vector_as_float_ptr(range_min), range_member_size);
+					range_data += range_member_size;
+					memcpy(range_data, vector_as_float_ptr(range_extent), range_member_size);
+					range_data += range_member_size;
+				}
+				else
+				{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+					if (is_pack_0_bit_rate(bone_stream.translations.get_bit_rate()))
+					{
+						const uint8_t* translation = bone_stream.translations.get_raw_sample_ptr(0);
+						memcpy(range_data, translation, sizeof(uint16_t) * 3);
+						range_data += sizeof(uint16_t) * 3;
+					}
+					else
+					{
+						pack_vector3_24(range_min, true, range_data);
+						range_data += sizeof(uint8_t) * 3;
+						pack_vector3_24(range_extent, true, range_data);
+						range_data += sizeof(uint8_t) * 3;
+					}
+#else
+					if (is_pack_0_bit_rate(bone_stream.translations.get_bit_rate()))
+					{
+						const uint8_t* translation = bone_stream.translations.get_raw_sample_ptr(0);
+						memcpy(range_data, translation, sizeof(uint32_t) * 3);
+						range_data += sizeof(uint32_t) * 3;
+					}
+					else
+					{
+						pack_vector3_48(range_min, true, range_data);
+						range_data += sizeof(uint16_t) * 3;
+						pack_vector3_48(range_extent, true, range_data);
+						range_data += sizeof(uint16_t) * 3;
+					}
+#endif
+				}
 			}
 
 			ACL_ENSURE(range_data <= range_data_end, "Invalid range data offset. Wrote too much data.");
@@ -115,8 +202,13 @@ namespace acl
 		ACL_ENSURE(range_data == range_data_end, "Invalid range data offset. Wrote too little data.");
 	}
 
-	inline void write_clip_range_track_data(const SegmentContext& segment, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format, VectorFormat8 translation_format, uint8_t* range_data, uint32_t range_data_size)
+	inline void write_clip_range_data(const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size)
 	{
-		write_range_track_data(segment.bone_streams, segment.clip->ranges, segment.num_bones, range_reduction, rotation_format, translation_format, range_data, range_data_size);
+		write_range_track_data(segment.bone_streams, segment.clip->ranges, segment.num_bones, range_reduction, true, range_data, range_data_size);
+	}
+
+	inline void write_segment_range_data(const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size)
+	{
+		write_range_track_data(segment.bone_streams, segment.ranges, segment.num_bones, range_reduction, false, range_data, range_data_size);
 	}
 }

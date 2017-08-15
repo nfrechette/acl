@@ -85,42 +85,48 @@ namespace acl
 		out_clip_context.are_rotations_normalized = false;
 		out_clip_context.are_translations_normalized = false;
 
-		for (SegmentContext& segment : out_clip_context.segment_iterator())
+		SegmentContext& segment = out_clip_context.segments[0];
+
+		BoneStreams* bone_streams = allocate_type_array<BoneStreams>(allocator, num_bones);
+
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			BoneStreams* bone_streams = allocate_type_array<BoneStreams>(allocator, num_bones);
+			const AnimatedBone& bone = bones[bone_index];
+			BoneStreams& bone_stream = bone_streams[bone_index];
 
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			bone_stream.segment = &segment;
+			bone_stream.bone_index = bone_index;
+
+			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_32), sample_rate, RotationFormat8::Quat_128);
+			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				const AnimatedBone& bone = bones[bone_index];
-				BoneStreams& bone_stream = bone_streams[bone_index];
+				Quat_32 rotation = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index)));
+				bone_stream.rotations.set_raw_sample(sample_index, rotation);
 
-				bone_stream.segment = &segment;
-				bone_stream.bone_index = bone_index;
-
-				bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_32), sample_rate, RotationFormat8::Quat_128);
-				bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
-
-				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-				{
-					Quat_32 rotation = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index)));
-					bone_stream.rotations.set_raw_sample(sample_index, rotation);
-
-					Vector4_32 translation = vector_cast(bone.translation_track.get_sample(sample_index));
-					bone_stream.translations.set_raw_sample(sample_index, translation);
-				}
-
-				bone_stream.is_rotation_constant = num_samples == 1;
-				bone_stream.is_rotation_default = bone_stream.is_rotation_constant && quat_near_identity(quat_cast(bone.rotation_track.get_sample(0)));
-				bone_stream.is_translation_constant = num_samples == 1;
-				bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_near_equal(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32());
+				Vector4_32 translation = vector_cast(bone.translation_track.get_sample(sample_index));
+				bone_stream.translations.set_raw_sample(sample_index, translation);
 			}
 
-			segment.bone_streams = bone_streams;
-			segment.clip = &out_clip_context;
-			segment.num_samples = num_samples;
-			segment.num_bones = num_bones;
-			segment.clip_sample_offset = 0;
+			bone_stream.is_rotation_constant = num_samples == 1;
+			bone_stream.is_rotation_default = bone_stream.is_rotation_constant && quat_near_identity(quat_cast(bone.rotation_track.get_sample(0)));
+			bone_stream.is_translation_constant = num_samples == 1;
+			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_near_equal(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32());
 		}
+
+		segment.bone_streams = bone_streams;
+		segment.clip = &out_clip_context;
+		segment.ranges = nullptr;
+		segment.num_samples = num_samples;
+		segment.num_bones = num_bones;
+		segment.clip_sample_offset = 0;
+		segment.animated_pose_bit_size = 0;
+		segment.animated_data_size = 0;
+		segment.range_data_size = 0;
+		segment.segment_index = 0;
+		segment.are_rotations_normalized = false;
+		segment.are_translations_normalized = false;
 	}
 
 	inline void destroy_clip_context(Allocator& allocator, ClipContext& clip_context)

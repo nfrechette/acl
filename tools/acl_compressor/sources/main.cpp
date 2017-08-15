@@ -360,6 +360,24 @@ int main(int argc, char** argv)
 			for (UniformlySampledAlgorithm& algorithm : uniform_tests)
 				try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm);
 		}
+
+		{
+			UniformlySampledAlgorithm uniform_tests[] =
+			{
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations, true),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations, true),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true),
+
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations, true),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations, true),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations, true),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true),
+			};
+
+			for (UniformlySampledAlgorithm& algorithm : uniform_tests)
+				try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm);
+		}
 	}
 
 	if (IsDebuggerPresent())

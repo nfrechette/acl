@@ -98,7 +98,8 @@ namespace acl
 					header.num_samples = segment.num_samples;
 					header.animated_pose_bit_size = segment.animated_pose_bit_size;
 					header.format_per_track_data_offset = data_offset;
-					header.track_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 4);		// Aligned to 4 bytes
+					header.range_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
+					header.track_data_offset = align_to(header.range_data_offset + segment.range_data_size, 4);						// Aligned to 4 bytes
 
 					data_offset = header.track_data_offset + segment.animated_data_size;
 				}
@@ -118,6 +119,11 @@ namespace acl
 						write_format_per_track_data(segment.bone_streams, segment.num_bones, header.get_format_per_track_data(segment_header), format_per_track_data_size);
 					else
 						segment_header.format_per_track_data_offset = InvalidPtrOffset();
+
+					if (segment.range_data_size > 0)
+						write_segment_range_data(segment, settings.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size);
+					else
+						segment_header.range_data_offset = InvalidPtrOffset();
 
 					if (segment.animated_data_size > 0)
 						write_animated_track_data(segment, settings.rotation_format, settings.translation_format, header.get_track_data(segment_header), segment.animated_data_size);
@@ -143,6 +149,15 @@ namespace acl
 			if (settings.translation_format != VectorFormat8::Vector3_96)
 			{
 				if (ACL_TRY_ASSERT(are_enum_flags_set(settings.range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations), "Translation quantization requires range reduction to be enabled!"))
+					return nullptr;
+			}
+
+			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerSegment))
+			{
+				if (ACL_TRY_ASSERT(is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip), "Per segment range reduction requires per clip range reduction to be enabled!"))
+					return nullptr;
+
+				if (ACL_TRY_ASSERT(settings.segmenting.enabled, "Per segment range reduction requires segmenting to be enabled!"))
 					return nullptr;
 			}
 
@@ -172,6 +187,12 @@ namespace acl
 			if (settings.segmenting.enabled)
 			{
 				segment_streams(allocator, clip_context, settings.segmenting);
+
+				if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerSegment))
+				{
+					extract_segment_bone_ranges(allocator, clip_context);
+					normalize_segment_streams(clip_context, settings.range_reduction);
+				}
 			}
 
 			quantize_streams(allocator, clip_context, settings.rotation_format, settings.translation_format, clip, skeleton, raw_clip_context);
@@ -202,6 +223,8 @@ namespace acl
 			for (const SegmentContext& segment : clip_context.segment_iterator())
 			{
 				buffer_size += format_per_track_data_size;			// Format per track data
+				buffer_size = align_to(buffer_size, 2);				// Align range data
+				buffer_size += segment.range_data_size;				// Range data
 				buffer_size = align_to(buffer_size, 4);				// Align animated data
 				buffer_size += segment.animated_data_size;			// Animated track data
 			}
@@ -235,7 +258,7 @@ namespace acl
 				header.constant_track_data_offset = InvalidPtrOffset();
 
 			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
-				write_clip_range_track_data(clip_segment, settings.range_reduction, settings.rotation_format, settings.translation_format, header.get_clip_range_data(), clip_range_data_size);
+				write_clip_range_data(clip_segment, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size);
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();
 

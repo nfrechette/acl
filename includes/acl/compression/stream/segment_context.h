@@ -53,6 +53,7 @@ namespace acl
 	{
 		ClipContext* clip;
 		BoneStreams* bone_streams;
+		BoneRanges* ranges;
 
 		uint16_t num_samples;
 		uint16_t num_bones;
@@ -61,6 +62,11 @@ namespace acl
 
 		uint32_t animated_pose_bit_size;
 		uint32_t animated_data_size;
+		uint32_t range_data_size;
+		uint32_t segment_index;
+
+		bool are_rotations_normalized;
+		bool are_translations_normalized;
 
 		//////////////////////////////////////////////////////////////////////////
 

@@ -36,40 +36,106 @@
 
 namespace acl
 {
+	inline void extract_bone_ranges_impl(SegmentContext& segment, BoneRanges* bone_ranges)
+	{
+		for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+		{
+			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
+			Vector4_32 rotation_min = vector_set(1e10f);
+			Vector4_32 rotation_max = vector_set(-1e10f);
+			Vector4_32 translation_min = vector_set(1e10f);
+			Vector4_32 translation_max = vector_set(-1e10f);
+
+			for (uint32_t sample_index = 0; sample_index < bone_stream.rotations.get_num_samples(); ++sample_index)
+			{
+				Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
+
+				rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
+				rotation_max = vector_max(rotation_max, quat_to_vector(rotation));
+			}
+
+			for (uint32_t sample_index = 0; sample_index < bone_stream.translations.get_num_samples(); ++sample_index)
+			{
+				Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
+
+				translation_min = vector_min(translation_min, translation);
+				translation_max = vector_max(translation_max, translation);
+			}
+
+			BoneRanges& bone_range = bone_ranges[bone_index];
+			bone_range.rotation = TrackStreamRange(rotation_min, rotation_max);
+			bone_range.translation = TrackStreamRange(translation_min, translation_max);
+		}
+	}
+
 	inline void extract_clip_bone_ranges(Allocator& allocator, ClipContext& clip_context)
 	{
 		clip_context.ranges = allocate_type_array<BoneRanges>(allocator, clip_context.num_bones);
 
+		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
+		SegmentContext& segment = clip_context.segments[0];
+
+		extract_bone_ranges_impl(segment, clip_context.ranges);
+	}
+
+	inline void extract_segment_bone_ranges(Allocator& allocator, ClipContext& clip_context)
+	{
+		uint8_t buffer[8] = {0};
+		Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE));
+		Vector4_32 one = vector_set(1.0f);
+		Vector4_32 zero = vector_zero_32();
+
 		for (SegmentContext& segment : clip_context.segment_iterator())
 		{
-			for (uint16_t bone_index = 0; bone_index < clip_context.num_bones; ++bone_index)
+			segment.ranges = allocate_type_array<BoneRanges>(allocator, segment.num_bones);
+
+			extract_bone_ranges_impl(segment, segment.ranges);
+
+			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 			{
 				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				BoneRanges& bone_range = segment.ranges[bone_index];
 
-				Vector4_32 rotation_min = vector_set(1e10f);
-				Vector4_32 rotation_max = vector_set(-1e10f);
-				Vector4_32 translation_min = vector_set(1e10f);
-				Vector4_32 translation_max = vector_set(-1e10f);
-
-				for (uint32_t sample_index = 0; sample_index < bone_stream.rotations.get_num_samples(); ++sample_index)
+				if (bone_stream.is_rotation_animated() && clip_context.are_rotations_normalized)
 				{
-					Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
+					Vector4_32 rotation_range_min = vector_max(vector_sub(bone_range.rotation.get_min(), padding), zero);
+					Vector4_32 rotation_range_max = vector_min(vector_add(bone_range.rotation.get_max(), padding), one);
 
-					rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
-					rotation_max = vector_max(rotation_max, quat_to_vector(rotation));
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+					pack_vector4_32(rotation_range_min, true, &buffer[0]);
+					rotation_range_min = unpack_vector4_32(&buffer[0], true);
+					pack_vector4_32(rotation_range_max, true, &buffer[0]);
+					rotation_range_max = unpack_vector4_32(&buffer[0], true);
+#else
+					pack_vector4_64(rotation_range_min, true, &buffer[0]);
+					rotation_range_min = unpack_vector4_64(&buffer[0], true);
+					pack_vector4_64(rotation_range_max, true, &buffer[0]);
+					rotation_range_max = unpack_vector4_64(&buffer[0], true);
+#endif
+
+					bone_range.rotation = TrackStreamRange(rotation_range_min, rotation_range_max);
 				}
 
-				for (uint32_t sample_index = 0; sample_index < bone_stream.translations.get_num_samples(); ++sample_index)
+				if (bone_stream.is_translation_animated() && clip_context.are_translations_normalized)
 				{
-					Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
+					Vector4_32 translation_range_min = vector_max(vector_sub(bone_range.translation.get_min(), padding), zero);
+					Vector4_32 translation_range_max = vector_min(vector_add(bone_range.translation.get_max(), padding), one);
 
-					translation_min = vector_min(translation_min, translation);
-					translation_max = vector_max(translation_max, translation);
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+					pack_vector3_24(translation_range_min, true, &buffer[0]);
+					translation_range_min = unpack_vector3_24(&buffer[0], true);
+					pack_vector3_24(translation_range_max, true, &buffer[0]);
+					translation_range_max = unpack_vector3_24(&buffer[0], true);
+#else
+					pack_vector3_48(translation_range_min, true, &buffer[0]);
+					translation_range_min = unpack_vector3_48(&buffer[0], true);
+					pack_vector3_48(translation_range_max, true, &buffer[0]);
+					translation_range_max = unpack_vector3_48(&buffer[0], true);
+#endif
+
+					bone_range.translation = TrackStreamRange(translation_range_min, translation_range_max);
 				}
-
-				BoneRanges& bone_ranges = clip_context.ranges[bone_index];
-				bone_ranges.rotation = TrackStreamRange(rotation_min, rotation_max);
-				bone_ranges.translation = TrackStreamRange(translation_min, translation_max);
 			}
 		}
 	}
@@ -162,19 +228,57 @@ namespace acl
 
 	inline void normalize_clip_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction)
 	{
+		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
+		SegmentContext& segment = clip_context.segments[0];
+
+		if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
+		{
+			normalize_rotation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
+			clip_context.are_rotations_normalized = true;
+		}
+
+		if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations))
+		{
+			normalize_translation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
+			clip_context.are_translations_normalized = true;
+		}
+	}
+
+	inline void normalize_segment_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction)
+	{
 		for (SegmentContext& segment : clip_context.segment_iterator())
 		{
 			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
 			{
-				normalize_rotation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
-				clip_context.are_rotations_normalized = true;
+				normalize_rotation_streams(segment.bone_streams, segment.ranges, segment.num_bones);
+				segment.are_rotations_normalized = true;
 			}
 
 			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations))
 			{
-				normalize_translation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
-				clip_context.are_translations_normalized = true;
+				normalize_translation_streams(segment.bone_streams, segment.ranges, segment.num_bones);
+				segment.are_translations_normalized = true;
 			}
+
+			uint32_t range_data_size = 0;
+
+			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+			{
+				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
+				if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
+				{
+					if (bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128)
+						range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 8;
+					else
+						range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
+				}
+
+				if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
+					range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
+			}
+
+			segment.range_data_size = range_data_size;
 		}
 	}
 }

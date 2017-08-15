@@ -45,7 +45,9 @@ namespace acl
 				uint32_t				num_samples;
 				uint32_t				animated_pose_bit_size;						// TODO: Calculate from bitsets and formats?
 
-				PtrOffset32<uint8_t>	format_per_track_data_offset;				// TODO: Make this offset optional? Only present if not variable
+				// TODO: Only need one offset, calculate the others from the information we have?
+				PtrOffset32<uint8_t>	format_per_track_data_offset;				// TODO: Make this offset optional? Only present if variable
+				PtrOffset32<uint8_t>	range_data_offset;							// TODO: Make this offset optional? Only present if normalized
 				PtrOffset32<uint8_t>	track_data_offset;
 			};
 
@@ -87,6 +89,9 @@ namespace acl
 
 				uint8_t*		get_track_data(const SegmentHeader& header)			{ return header.track_data_offset.safe_add_to(this); }
 				const uint8_t*	get_track_data(const SegmentHeader& header) const	{ return header.track_data_offset.safe_add_to(this); }
+
+				uint8_t*		get_segment_range_data(const SegmentHeader& header)			{ return header.range_data_offset.safe_add_to(this); }
+				const uint8_t*	get_segment_range_data(const SegmentHeader& header) const	{ return header.range_data_offset.safe_add_to(this); }
 			};
 
 			constexpr ClipHeader& get_clip_header(CompressedClip& clip)
