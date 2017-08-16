@@ -58,7 +58,8 @@ namespace acl
 				uint16_t				num_segments;
 				RotationFormat8			rotation_format;
 				VectorFormat8			translation_format;
-				RangeReductionFlags8	range_reduction;
+				RangeReductionFlags8	clip_range_reduction;
+				RangeReductionFlags8	segment_range_reduction;
 				uint32_t				num_samples;
 				uint32_t				sample_rate;								// TODO: Store duration as float instead
 

@@ -42,10 +42,13 @@ namespace acl
 		uint16_t ideal_num_samples;
 		uint16_t max_num_samples;
 
+		RangeReductionFlags8 range_reduction;
+
 		SegmentingSettings()
 			: enabled(false)
 			, ideal_num_samples(16)
 			, max_num_samples(31)
+			, range_reduction(RangeReductionFlags8::None)
 		{}
 	};
 

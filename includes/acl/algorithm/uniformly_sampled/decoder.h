@@ -114,15 +114,18 @@ namespace acl
 			{
 				const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 				const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
-				const RangeReductionFlags8 range_reduction = settings.get_range_reduction(header.range_reduction);
+				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
+				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 
 #if defined(ACL_USE_ERROR_CHECKS)
 				ACL_ENSURE(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
 				ACL_ENSURE(settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
 				ACL_ENSURE(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));
 				ACL_ENSURE(settings.is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
-				ACL_ENSURE(range_reduction == header.range_reduction, "Statically compiled range reduction settings (%u) differ from the compressed settings (%u)!", range_reduction, header.range_reduction);
-				ACL_ENSURE(settings.are_range_reduction_flags_supported(range_reduction), "Range reduction settings (%u) aren't statically supported!", range_reduction);
+				ACL_ENSURE(clip_range_reduction == header.clip_range_reduction, "Statically compiled clip range reduction settings (%u) differs from the compressed settings (%u)!", clip_range_reduction, header.clip_range_reduction);
+				ACL_ENSURE(settings.are_clip_range_reduction_flags_supported(clip_range_reduction), "Clip range reduction settings (%u) aren't statically supported!", clip_range_reduction);
+				ACL_ENSURE(segment_range_reduction == header.segment_range_reduction, "Statically compiled segment range reduction settings (%u) differs from the compressed settings (%u)!", segment_range_reduction, header.segment_range_reduction);
+				ACL_ENSURE(settings.are_segment_range_reduction_flags_supported(segment_range_reduction), "Segment range reduction settings (%u) aren't statically supported!", segment_range_reduction);
 				if (is_rotation_format_variable(rotation_format))
 				{
 					RotationFormat8 highest_bit_rate_format = get_highest_variant_precision(get_rotation_variant(rotation_format));
@@ -280,11 +283,12 @@ namespace acl
 							}
 						}
 
-						const RangeReductionFlags8 range_reduction = settings.get_range_reduction(header.range_reduction);
-						if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
+						const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
+						const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
+						if (is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Rotations))
 							context.clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2;
 
-						if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations))
+						if (is_enum_flag_set(segment_range_reduction, RangeReductionFlags8::Rotations))
 							context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
 					}
 				}
@@ -344,11 +348,12 @@ namespace acl
 							}
 						}
 
-						const RangeReductionFlags8 range_reduction = settings.get_range_reduction(header.range_reduction);
-						if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations))
+						const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
+						const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
+						if (is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Translations))
 							context.clip_range_data_offset += 3 * sizeof(float) * 2;
 
-						if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations))
+						if (is_enum_flag_set(segment_range_reduction, RangeReductionFlags8::Translations))
 							context.segment_range_data_offset += 3 * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
 					}
 				}
@@ -392,9 +397,10 @@ namespace acl
 					}
 					else
 					{
-						const RangeReductionFlags8 range_reduction = settings.get_range_reduction(header.range_reduction);
-						const bool are_clip_rotations_normalized = are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations);
-						const bool are_segment_rotations_normalized = are_enum_flags_set(range_reduction, RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations);
+						const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
+						const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
+						const bool are_clip_rotations_normalized = is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Rotations);
+						const bool are_segment_rotations_normalized = is_enum_flag_set(segment_range_reduction, RangeReductionFlags8::Rotations);
 
 						Quat_32 rotation0;
 						Quat_32 rotation1;
@@ -739,7 +745,8 @@ namespace acl
 					else
 					{
 						const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
-						const RangeReductionFlags8 range_reduction = settings.get_range_reduction(header.range_reduction);
+						const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
+						const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 
 						Vector4_32 translation0;
 						Vector4_32 translation1;
@@ -835,7 +842,7 @@ namespace acl
 							}
 						}
 
-						if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations))
+						if (is_enum_flag_set(segment_range_reduction, RangeReductionFlags8::Translations))
 						{
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 							if (translation_format == VectorFormat8::Vector3_Variable && settings.is_translation_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate0))
@@ -882,7 +889,7 @@ namespace acl
 							context.segment_range_data_offset += 3 * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
 						}
 
-						if (are_enum_flags_set(range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations))
+						if (is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Translations))
 						{
 							Vector4_32 clip_range_min = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset);
 							Vector4_32 clip_range_extent = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset + (3 * sizeof(float)));
@@ -922,8 +929,10 @@ namespace acl
 			constexpr RotationFormat8 get_rotation_format(RotationFormat8 format) const { return format; }
 			constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return format; }
 
-			constexpr bool are_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
-			constexpr RangeReductionFlags8 get_range_reduction(RangeReductionFlags8 flags) const { return flags; }
+			constexpr bool are_clip_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
+			constexpr bool are_segment_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
+			constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return flags; }
+			constexpr RangeReductionFlags8 get_segment_range_reduction(RangeReductionFlags8 flags) const { return flags; }
 
 			// Whether tracks must all be variable or all fixed width, or if they can be mixed and require padding
 			constexpr bool supports_mixed_packing() const { return true; }

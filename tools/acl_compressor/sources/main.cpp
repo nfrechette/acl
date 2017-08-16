@@ -345,17 +345,17 @@ int main(int argc, char** argv)
 			UniformlySampledAlgorithm uniform_tests[] =
 			{
 				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
 				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Translations, use_segmenting),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 			};
 
 			for (UniformlySampledAlgorithm& algorithm : uniform_tests)
@@ -365,15 +365,15 @@ int main(int argc, char** argv)
 		{
 			UniformlySampledAlgorithm uniform_tests[] =
 			{
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations, true),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations, true),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
 
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations, true),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations, true),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations, true),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
 			};
 
 			for (UniformlySampledAlgorithm& algorithm : uniform_tests)

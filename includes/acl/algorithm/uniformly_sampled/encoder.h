@@ -149,16 +149,15 @@ namespace acl
 
 			if (settings.translation_format != VectorFormat8::Vector3_96)
 			{
-				if (ACL_TRY_ASSERT(are_enum_flags_set(settings.range_reduction, RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations), "Translation quantization requires range reduction to be enabled!"))
+				bool has_clip_range_reduction = is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::Translations);
+				bool has_segment_range_reduction = settings.segmenting.enabled && is_enum_flag_set(settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
+				if (ACL_TRY_ASSERT(has_clip_range_reduction | has_segment_range_reduction, "%s quantization requires range reduction to be enabled at the clip or segment level!", get_vector_format_name(settings.translation_format)))
 					return nullptr;
 			}
 
-			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerSegment))
+			if (settings.segmenting.enabled && settings.segmenting.range_reduction != RangeReductionFlags8::None)
 			{
-				if (ACL_TRY_ASSERT(is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip), "Per segment range reduction requires per clip range reduction to be enabled!"))
-					return nullptr;
-
-				if (ACL_TRY_ASSERT(settings.segmenting.enabled, "Per segment range reduction requires segmenting to be enabled!"))
+				if (ACL_TRY_ASSERT(settings.range_reduction != RangeReductionFlags8::None, "Per segment range reduction requires per clip range reduction to be enabled!"))
 					return nullptr;
 			}
 
@@ -179,7 +178,7 @@ namespace acl
 			compact_constant_streams(allocator, clip_context, 0.00001f, 0.001f);
 
 			uint32_t clip_range_data_size = 0;
-			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
+			if (settings.range_reduction != RangeReductionFlags8::None)
 			{
 				normalize_clip_streams(clip_context, settings.range_reduction);
 				clip_range_data_size = get_stream_range_data_size(clip_context, settings.range_reduction, settings.rotation_format, settings.translation_format);
@@ -189,7 +188,7 @@ namespace acl
 			{
 				segment_streams(allocator, clip_context, settings.segmenting);
 
-				if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerSegment))
+				if (settings.segmenting.range_reduction != RangeReductionFlags8::None)
 				{
 					extract_segment_bone_ranges(allocator, clip_context);
 					normalize_segment_streams(clip_context, settings.range_reduction);
@@ -239,7 +238,8 @@ namespace acl
 			header.num_segments = clip_context.num_segments;
 			header.rotation_format = settings.rotation_format;
 			header.translation_format = settings.translation_format;
-			header.range_reduction = settings.range_reduction;
+			header.clip_range_reduction = settings.range_reduction;
+			header.segment_range_reduction = settings.segmenting.range_reduction;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.segment_headers_offset = sizeof(ClipHeader);
@@ -258,7 +258,7 @@ namespace acl
 			else
 				header.constant_track_data_offset = InvalidPtrOffset();
 
-			if (is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::PerClip))
+			if (settings.range_reduction != RangeReductionFlags8::None)
 				write_clip_range_data(clip_segment, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size);
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();
@@ -288,7 +288,8 @@ namespace acl
 
 			fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(header.rotation_format));
 			fprintf(file, "Clip translation format: %s\n", get_vector_format_name(header.translation_format));
-			fprintf(file, "Clip range reduction: %s\n", get_range_reduction_name(header.range_reduction));
+			fprintf(file, "Clip clip range reduction: %s\n", get_range_reduction_name(header.clip_range_reduction));
+			fprintf(file, "Clip segment range reduction: %s\n", get_range_reduction_name(header.segment_range_reduction));
 			fprintf(file, "Clip num default tracks: %u\n", num_default_tracks);
 			fprintf(file, "Clip num constant tracks: %u\n", num_constant_tracks);
 			fprintf(file, "Clip num animated tracks: %u\n", num_animated_tracks);

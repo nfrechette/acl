@@ -39,17 +39,13 @@ namespace acl
 	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
 	enum class RangeReductionFlags8 : uint8_t
 	{
-		None = 0x00,
+		None				= 0x00,
 
 		// Flags to determine which tracks have range reduction applied
-		Rotations = 0x01,
-		Translations = 0x02,
-		//Scales					= 0x04,		// TODO: Implement this
-		//Properties				= 0x08,		// TODO: Implement this
-
-		// Flags to determine how range reduction behaves
-		PerClip = 0x10,
-		PerSegment = 0x20,
+		Rotations			= 0x01,
+		Translations		= 0x02,
+		//Scales			= 0x04,		// TODO: Implement this
+		//Properties		= 0x08,		// TODO: Implement this
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(RangeReductionFlags8)
@@ -61,19 +57,13 @@ namespace acl
 	{
 		// Some compilers have trouble with constexpr operator| with enums in a case switch statement
 		if (flags == RangeReductionFlags8::None)
-			return "None";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations))
-			return "Per Clip Rotations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Translations))
-			return "Per Clip Translations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
-			return "Per Clip Rotations, Translations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations))
-			return "Per Clip Segment Rotations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Translations))
-			return "Per Clip Segment Translations";
-		else if (flags == (RangeReductionFlags8::PerClip | RangeReductionFlags8::PerSegment | RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
-			return "Per Clip Segment Rotations, Translations";
+			return "RangeReduction::None";
+		else if (flags == RangeReductionFlags8::Rotations)
+			return "RangeReduction::Rotations";
+		else if (flags == RangeReductionFlags8::Translations)
+			return "RangeReduction::Translations";
+		else if (flags == (RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
+			return "RangeReduction::Rotations | RangeReduction::Translations";
 		else
 			return "<Invalid>";
 	}

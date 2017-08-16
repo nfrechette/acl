@@ -35,13 +35,14 @@ namespace acl
 	class UniformlySampledAlgorithm final : public IAlgorithm
 	{
 	public:
-		UniformlySampledAlgorithm(RotationFormat8 rotation_format, VectorFormat8 translation_format, RangeReductionFlags8 range_reduction, bool use_segmenting)
+		UniformlySampledAlgorithm(RotationFormat8 rotation_format, VectorFormat8 translation_format, RangeReductionFlags8 clip_range_reduction, bool use_segmenting = false, RangeReductionFlags8 segment_range_reduction = RangeReductionFlags8::None)
 			: m_compression_settings()
 		{
 			m_compression_settings.rotation_format = rotation_format;
 			m_compression_settings.translation_format = translation_format;
-			m_compression_settings.range_reduction = range_reduction;
+			m_compression_settings.range_reduction = clip_range_reduction;
 			m_compression_settings.segmenting.enabled = use_segmenting;
+			m_compression_settings.segmenting.range_reduction = segment_range_reduction;
 		}
 
 		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton) override
