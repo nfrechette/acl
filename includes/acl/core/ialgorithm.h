@@ -50,5 +50,7 @@ namespace acl
 		virtual void decompress_bone(const CompressedClip& clip, void* context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) = 0;
 
 		virtual void print_stats(const CompressedClip& clip, std::FILE* file) {}
+
+		virtual uint32_t get_uid() const = 0;
 	};
 }

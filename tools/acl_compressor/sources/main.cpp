@@ -158,6 +158,7 @@ static void print_stats(const Options& options, const AnimationClip& clip, const
 	std::FILE* file = options.output_stats_file;
 
 	fprintf(file, "Clip algorithm: %s\n", get_algorithm_name(compressed_clip.get_algorithm_type()));
+	fprintf(file, "Clip algorithm UID: 0x%X\n", algorithm.get_uid());
 	fprintf(file, "Clip raw size (bytes): %u\n", raw_size);
 	fprintf(file, "Clip compressed size (bytes): %u\n", compressed_size);
 	fprintf(file, "Clip compression ratio: %.2f : 1\n", compression_ratio);

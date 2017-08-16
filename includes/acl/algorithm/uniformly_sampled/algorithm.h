@@ -27,6 +27,7 @@
 #include "acl/algorithm/uniformly_sampled/encoder.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/core/ialgorithm.h"
+#include "acl/core/hash.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/decompression/default_output_writer.h"
 
@@ -77,6 +78,11 @@ namespace acl
 		virtual void print_stats(const CompressedClip& clip, std::FILE* file) override
 		{
 			uniformly_sampled::print_stats(clip, file, m_compression_settings);
+		}
+
+		virtual uint32_t get_uid() const override
+		{
+			return hash32(&m_compression_settings, sizeof(m_compression_settings));
 		}
 
 	private:
