@@ -43,8 +43,6 @@
 #include <string>
 #include <memory>
 
-//#define ACL_DEBUG_MAIN_ERROR
-
 using namespace acl;
 
 struct Options
@@ -173,41 +171,15 @@ static void print_stats(const Options& options, const AnimationClip& clip, const
 	fprintf(file, "\n");
 }
 
-static float calculate_bone_max_error(const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm, void* context, uint16_t bone_index, Transform_32* raw_pose_transforms, Transform_32* lossy_pose_transforms, float& out_worst_sample_time)
-{
-	uint16_t num_bones = clip.get_num_bones();
-	float clip_duration = clip.get_duration();
-	uint32_t sample_rate = clip.get_sample_rate();
-	uint32_t num_samples = calculate_num_samples(clip_duration, sample_rate);
-
-	float max_error = 0.0f;
-	float worst_sample_time = 0.0f;
-
-	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-	{
-		// Sample our streams and calculate the error
-		float sample_time = min(float(sample_index) / float(sample_rate), clip_duration);
-
-		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
-		algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
-
-		float error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
-		if (error > max_error)
-		{
-			max_error = error;
-			worst_sample_time = sample_time;
-		}
-	}
-
-	out_worst_sample_time = worst_sample_time;
-	return max_error;
-}
-
 static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, void* context, IAlgorithm& algorithm)
 {
 	using namespace acl;
 
 	uint16_t num_bones = clip.get_num_bones();
+	float clip_duration = clip.get_duration();
+	float sample_rate = float(clip.get_sample_rate());
+	uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
+
 	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
@@ -215,20 +187,24 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 	float max_error = 0.0f;
 	float worst_sample_time = 0.0f;
 
-	for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
-		float bone_worst_sample_time;
-		float error = calculate_bone_max_error(clip, skeleton, compressed_clip, algorithm, context, bone_index, raw_pose_transforms, lossy_pose_transforms, bone_worst_sample_time);
+		// Sample our streams and calculate the error
+		float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
-#if defined(ACL_DEBUG_MAIN_ERROR)
-		printf("%u: final error: %f\n", bone_index, error);
-#endif
+		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
+		algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
 
-		if (error > max_error)
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			max_error = error;
-			worst_bone = bone_index;
-			worst_sample_time = bone_worst_sample_time;
+			float error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+
+			if (error > max_error)
+			{
+				max_error = error;
+				worst_bone = bone_index;
+				worst_sample_time = sample_time;
+			}
 		}
 	}
 
