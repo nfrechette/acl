@@ -162,10 +162,10 @@ namespace acl
 			}
 
 			ClipContext raw_clip_context;
-			initialize_clip_context(allocator, clip, raw_clip_context);
+			initialize_clip_context(allocator, clip, skeleton, raw_clip_context);
 
 			ClipContext clip_context;
-			initialize_clip_context(allocator, clip, clip_context);
+			initialize_clip_context(allocator, clip, skeleton, clip_context);
 
 			convert_rotation_streams(allocator, clip_context, settings.rotation_format);
 

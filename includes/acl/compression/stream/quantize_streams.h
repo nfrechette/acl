@@ -371,8 +371,9 @@ namespace acl
 				float ref_sample_time = use_raw_streams ? min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration) : sample_time;
 
 				const BoneStreams* ref_bone_streams = use_raw_streams ? context.raw_bone_streams : context.bone_streams;
-				sample_streams(ref_bone_streams, context.num_bones, ref_sample_time, context.raw_local_pose);
-				sample_streams(context.bone_streams, context.num_bones, sample_time, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.lossy_local_pose);
+
+				sample_streams_hierarchical(ref_bone_streams, context.num_bones, ref_sample_time, target_bone_index, context.raw_local_pose);
+				sample_streams_hierarchical(context.bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.lossy_local_pose);
 
 				// Constant branch
 				float error;

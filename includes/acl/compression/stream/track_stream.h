@@ -253,6 +253,7 @@ namespace acl
 	{
 		SegmentContext* segment;
 		uint16_t bone_index;
+		uint16_t parent_bone_index;
 
 		RotationTrackStream rotations;
 		TranslationTrackStream translations;
@@ -270,6 +271,7 @@ namespace acl
 			BoneStreams copy;
 			copy.segment = segment;
 			copy.bone_index = bone_index;
+			copy.parent_bone_index = parent_bone_index;
 			copy.rotations = rotations.duplicate();
 			copy.translations = translations.duplicate();
 			copy.is_rotation_constant = is_rotation_constant;

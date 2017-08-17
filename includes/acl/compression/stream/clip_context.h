@@ -64,7 +64,7 @@ namespace acl
 		constexpr SegmentIterator segment_iterator() const { return SegmentIterator(segments, num_segments); }
 	};
 
-	inline void initialize_clip_context(Allocator& allocator, const AnimationClip& clip, ClipContext& out_clip_context)
+	inline void initialize_clip_context(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, ClipContext& out_clip_context)
 	{
 		uint16_t num_bones = clip.get_num_bones();
 		uint32_t num_samples = clip.get_num_samples();
@@ -92,10 +92,12 @@ namespace acl
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const AnimatedBone& bone = bones[bone_index];
+			const RigidBone& skel_bone = skeleton.get_bone(bone_index);
 			BoneStreams& bone_stream = bone_streams[bone_index];
 
 			bone_stream.segment = &segment;
 			bone_stream.bone_index = bone_index;
+			bone_stream.parent_bone_index = skel_bone.parent_index;
 
 			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_32), sample_rate, RotationFormat8::Quat_128);
 			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
