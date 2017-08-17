@@ -288,8 +288,8 @@ namespace acl
 
 			fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(header.rotation_format));
 			fprintf(file, "Clip translation format: %s\n", get_vector_format_name(header.translation_format));
-			fprintf(file, "Clip clip range reduction: %s\n", get_range_reduction_name(header.clip_range_reduction));
-			fprintf(file, "Clip segment range reduction: %s\n", get_range_reduction_name(header.segment_range_reduction));
+			fprintf(file, "Clip range reduction: %s\n", get_range_reduction_name(header.clip_range_reduction));
+			fprintf(file, "Segment range reduction: %s\n", get_range_reduction_name(header.segment_range_reduction));
 			fprintf(file, "Clip num default tracks: %u\n", num_default_tracks);
 			fprintf(file, "Clip num constant tracks: %u\n", num_constant_tracks);
 			fprintf(file, "Clip num animated tracks: %u\n", num_animated_tracks);

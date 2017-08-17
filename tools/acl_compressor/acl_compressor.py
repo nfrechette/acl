@@ -4,7 +4,7 @@ import queue
 import threading
 from collections import namedtuple
 
-Stats = namedtuple('Stats', 'filename name rotation_format translation_format range_reduction raw_size compressed_size ratio max_error compression_time duration num_animated_tracks')
+Stats = namedtuple('Stats', 'filename name algorithm_uid rotation_format translation_format clip_range_reduction segment_range_reduction raw_size compressed_size ratio max_error compression_time duration num_animated_tracks')
 RunStats = namedtuple('RunStats', 'name total_raw_size total_compressed_size total_compression_time total_duration max_error num_runs')
 
 def parse_argv():
@@ -55,7 +55,7 @@ def print_usage():
 	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stats=<path to output directory for stats> [-csv] [-refresh] [-parallel={Num Threads}]')
 
 def print_stat(stat):
-	print('Algorithm: {}, Format: [{}, {}, {}], Ratio: {:.2f}, Error: {}'.format(stat.name, stat.rotation_format, stat.translation_format, stat.range_reduction, stat.ratio, stat.max_error))
+	print('Algorithm: {}, Format: [{}, {}, Clip {}, Segment {}], Ratio: {:.2f}, Error: {}'.format(stat.name, stat.rotation_format, stat.translation_format, stat.clip_range_reduction, stat.segment_range_reduction, stat.ratio, stat.max_error))
 	print('')
 
 def bytes_to_mb(size_in_bytes):
@@ -92,6 +92,24 @@ def run_acl_compressor(cmd_queue):
 
 		print('Compressing {}...'.format(acl_filename))
 		os.system(cmd)
+
+def find_stat(parsed_stats, stat_name):
+	try:
+		return next(x[1] for x in parsed_stats if x[0] == stat_name)
+	except StopIteration:
+		return None
+
+def shorten_range_reduction(range_reduction):
+	if range_reduction == 'RangeReduction::None':
+		return 'RR:None'
+	elif range_reduction == 'RangeReduction::Rotations':
+		return 'RR:Rot'
+	elif range_reduction == 'RangeReduction::Translations':
+		return 'RR:Trans'
+	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations':
+		return 'RR:Rot|Trans'
+	else:
+		return 'RR:???'
 
 if __name__ == "__main__":
 	options = parse_argv()
@@ -186,19 +204,21 @@ if __name__ == "__main__":
 					parsed_stats.append(line.strip().split(': '))
 					line = file.readline()
 
-				name = next(x[1] for x in parsed_stats if x[0] == 'Clip algorithm')
-				rotation_format = next(x[1] for x in parsed_stats if x[0] == 'Clip rotation format')
-				translation_format = next(x[1] for x in parsed_stats if x[0] == 'Clip translation format')
-				range_reduction = next(x[1] for x in parsed_stats if x[0] == 'Clip range reduction')
-				raw_size = int(next(x[1] for x in parsed_stats if x[0] == 'Clip raw size (bytes)'))
-				compressed_size = int(next(x[1] for x in parsed_stats if x[0] == 'Clip compressed size (bytes)'))
+				name = find_stat(parsed_stats, 'Clip algorithm')
+				algorithm_uid = find_stat(parsed_stats, 'Clip algorithm UID')
+				rotation_format = find_stat(parsed_stats, 'Clip rotation format')
+				translation_format = find_stat(parsed_stats, 'Clip translation format')
+				clip_range_reduction = shorten_range_reduction(find_stat(parsed_stats, 'Clip range reduction'))
+				segment_range_reduction = shorten_range_reduction(find_stat(parsed_stats, 'Segment range reduction'))
+				raw_size = int(find_stat(parsed_stats, 'Clip raw size (bytes)'))
+				compressed_size = int(find_stat(parsed_stats, 'Clip compressed size (bytes)'))
 				ratio = float(raw_size) / float(compressed_size)
-				max_error = float(next(x[1] for x in parsed_stats if x[0] == 'Clip max error'))
-				compression_time = float(next(x[1] for x in parsed_stats if x[0] == 'Clip compression time (s)'))
-				duration = float(next(x[1] for x in parsed_stats if x[0] == 'Clip duration (s)'))
-				num_animated_tracks = int(next(x[1] for x in parsed_stats if x[0] == 'Clip num animated tracks'))
+				max_error = float(find_stat(parsed_stats, 'Clip max error'))
+				compression_time = float(find_stat(parsed_stats, 'Clip compression time (s)'))
+				duration = float(find_stat(parsed_stats, 'Clip duration (s)'))
+				num_animated_tracks = int(find_stat(parsed_stats, 'Clip num animated tracks'))
 
-				stats.append(Stats(stat_filename, name, rotation_format, translation_format, range_reduction, raw_size, compressed_size, ratio, max_error, compression_time, duration, num_animated_tracks))
+				stats.append(Stats(stat_filename, name, algorithm_uid, rotation_format, translation_format, clip_range_reduction, segment_range_reduction, raw_size, compressed_size, ratio, max_error, compression_time, duration, num_animated_tracks))
 
 	print('Found {} runs'.format(len(stats)))
 	print()
@@ -210,21 +230,20 @@ if __name__ == "__main__":
 	print('Stats per run type:')
 	run_types = {}
 	for stat in stats:
-		key = stat.rotation_format + stat.translation_format + stat.range_reduction
-		if not key in run_types:
-			run_types[key] = RunStats('{}, {}, {}'.format(stat.rotation_format, stat.translation_format, stat.range_reduction), 0, 0, 0.0, 0.0, 0.0, 0)
-		run_stats = run_types[key]
+		if not stat.algorithm_uid in run_types:
+			run_types[stat.algorithm_uid] = RunStats('{}, {}, Clip {}, Segment {}'.format(stat.rotation_format, stat.translation_format, stat.clip_range_reduction, stat.segment_range_reduction), 0, 0, 0.0, 0.0, 0.0, 0)
+		run_stats = run_types[stat.algorithm_uid]
 		raw_size = stat.raw_size + run_stats.total_raw_size
 		compressed_size = stat.compressed_size + run_stats.total_compressed_size
 		compression_time = stat.compression_time + run_stats.total_compression_time
 		duration = stat.duration + run_stats.total_duration
 		max_error = max(stat.max_error, run_stats.max_error)
-		run_types[key] = RunStats(run_stats.name, raw_size, compressed_size, compression_time, duration, max_error, run_stats.num_runs + 1)
+		run_types[stat.algorithm_uid] = RunStats(run_stats.name, raw_size, compressed_size, compression_time, duration, max_error, run_stats.num_runs + 1)
 
 	run_types_by_size = sorted(run_types.values(), key = lambda entry: entry.total_compressed_size)
 	for run_stats in run_types_by_size:
 		ratio = float(run_stats.total_raw_size) / float(run_stats.total_compressed_size)
-		print('Raw {:.2f} MB, Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats.total_raw_size), bytes_to_mb(run_stats.total_compressed_size), format_elapsed_time(run_stats.total_compression_time), ratio, run_stats.max_error, run_stats.name))
+		print('Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats.total_compressed_size), format_elapsed_time(run_stats.total_compression_time), ratio, run_stats.max_error, run_stats.name))
 	print()
 
 	# Find outliers and other stats
@@ -240,6 +259,7 @@ if __name__ == "__main__":
 	worst_ratio_entry = None
 	total_compression_time = 0.0
 	total_duration = run_types_by_size[0].total_duration
+	total_raw_size = run_types_by_size[0].total_raw_size
 
 	for stat in stats:
 		if stat.max_error < best_error:
@@ -250,7 +270,7 @@ if __name__ == "__main__":
 			worst_error = stat.max_error
 			worst_error_entry = stat
 
-		if stat.max_error > worst_variable_error and stat.rotation_format == 'Quat Drop W Variable' and stat.translation_format == 'Vector3 Variable' and stat.range_reduction == 'Per Clip Rotations, Translations':
+		if stat.max_error > worst_variable_error and stat.rotation_format == 'Quat Drop W Variable' and stat.translation_format == 'Vector3 Variable' and stat.clip_range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations':
 			worst_variable_error = stat.max_error
 			worst_variable_error_entry = stat
 
@@ -266,6 +286,7 @@ if __name__ == "__main__":
 
 	print('Sum of clip durations: {}'.format(format_elapsed_time(total_duration)))
 	print('Total compression time: {}'.format(format_elapsed_time(total_compression_time)))
+	print('Total raw size: {:.2f} MB'.format(bytes_to_mb(total_raw_size)))
 	print()
 
 	print('Most accurate: {}'.format(best_error_entry.filename))
