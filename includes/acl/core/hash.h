@@ -71,10 +71,16 @@ namespace acl
 		return hashfn.digest();
 	}
 
+	template<typename ElementType>
+	inline uint32_t hash32(const ElementType& element) { return hash32(&element, sizeof(ElementType)); }
+
 	inline uint64_t hash64(const void* buffer, size_t buffer_size)
 	{
 		fnv1a_64 hashfn = fnv1a_64();
 		hashfn.update(buffer, buffer_size);
 		return hashfn.digest();
 	}
+
+	template<typename ElementType>
+	inline uint64_t hash64(const ElementType& element) { return hash64(&element, sizeof(ElementType)); }
 }

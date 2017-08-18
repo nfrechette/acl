@@ -28,6 +28,7 @@
 #include "acl/core/error.h"
 #include "acl/core/bitset.h"
 #include "acl/core/enum_utils.h"
+#include "acl/core/hash.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
@@ -82,6 +83,11 @@ namespace acl
 				, range_reduction(RangeReductionFlags8::None)
 				, segmenting()
 			{}
+
+			uint32_t hash() const
+			{
+				return hash32(rotation_format) ^ hash32(translation_format) ^ hash32(range_reduction) ^ segmenting.hash();
+			}
 		};
 
 		namespace impl

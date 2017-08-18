@@ -26,6 +26,7 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
+#include "acl/core/hash.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/stream/track_stream.h"
 
@@ -50,6 +51,11 @@ namespace acl
 			, max_num_samples(31)
 			, range_reduction(RangeReductionFlags8::None)
 		{}
+
+		uint32_t hash() const
+		{
+			return hash32(enabled) ^ hash32(ideal_num_samples) ^ hash32(max_num_samples) ^ hash32(range_reduction);
+		}
 	};
 
 	struct SegmentContext
