@@ -270,8 +270,16 @@ namespace acl
 
 	inline float vector_dot(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
-#if defined(ACL_SSE4_INTRINSICS)
-		return _mm_cvtss_f32(_mm_dp_ps(lhs, rhs, 0x7F));
+#if defined(ACL_SSE4_INTRINSICS) && 0
+		// SSE4 dot product instruction isn't precise enough
+		return _mm_cvtss_f32(_mm_dp_ps(lhs, rhs, 0xFF));
+#elif defined(ACL_SSE2_INTRINSICS)
+		__m128 x2_y2_z2_w2 = _mm_mul_ps(lhs, rhs);
+		__m128 z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
+		__m128 x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
+		__m128 y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
+		__m128 x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
+		return _mm_cvtss_f32(x2y2z2w2_0_0_0);
 #else
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs)) + (vector_get_w(lhs) * vector_get_w(rhs));
 #endif
@@ -279,8 +287,16 @@ namespace acl
 
 	inline float vector_dot3(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
-#if defined(ACL_SSE4_INTRINSICS)
+#if defined(ACL_SSE4_INTRINSICS) && 0
+		// SSE4 dot product instruction isn't precise enough
 		return _mm_cvtss_f32(_mm_dp_ps(lhs, rhs, 0x7F));
+#elif defined(ACL_SSE2_INTRINSICS)
+		__m128 x2_y2_z2_w2 = _mm_mul_ps(lhs, rhs);
+		__m128 y2_0_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 0, 1));
+		__m128 x2y2_0_0_0 = _mm_add_ss(x2_y2_z2_w2, y2_0_0_0);
+		__m128 z2_0_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 0, 2));
+		__m128 x2y2z2_0_0_0 = _mm_add_ss(x2y2_0_0_0, z2_0_0_0);
+		return _mm_cvtss_f32(x2y2z2_0_0_0);
 #else
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs));
 #endif
@@ -298,26 +314,22 @@ namespace acl
 
 	inline float vector_length(const Vector4_32& input)
 	{
-		// TODO: Use intrinsics to avoid scalar coercion
 		return sqrt(vector_length_squared(input));
 	}
 
 	inline float vector_length3(const Vector4_32& input)
 	{
-		// TODO: Use intrinsics to avoid scalar coercion
 		return sqrt(vector_length_squared3(input));
 	}
 
 	inline float vector_length_reciprocal(const Vector4_32& input)
 	{
-		// TODO: Use recip instruction
-		return 1.0f / vector_length(input);
+		return sqrt_reciprocal(vector_length_squared(input));
 	}
 
 	inline float vector_length_reciprocal3(const Vector4_32& input)
 	{
-		// TODO: Use recip instruction
-		return 1.0f / vector_length3(input);
+		return sqrt_reciprocal(vector_length_squared3(input));
 	}
 
 	inline float vector_distance3(const Vector4_32& lhs, const Vector4_32& rhs)

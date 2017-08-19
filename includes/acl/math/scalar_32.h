@@ -55,8 +55,27 @@ namespace acl
 
 	inline float sqrt_reciprocal(float input)
 	{
-		// TODO: Use recip instruction
+#if defined(ACL_SSE2_INTRINSICS)
+		// Perform two passes of Newton-Raphson iteration on the hardware estimate
+		__m128 input_v = _mm_set_ps1(input);
+		__m128 half = _mm_set_ps1(0.5f);
+		__m128 input_half_v = _mm_mul_ss(input_v, half);
+		__m128 x0 = _mm_rsqrt_ss(input_v);
+
+		// First iteration
+		__m128 x1 = _mm_mul_ss(x0, x0);
+		x1 = _mm_sub_ss(half, _mm_mul_ss(input_half_v, x1));
+		x1 = _mm_add_ss(_mm_mul_ss(x0, x1), x0);
+
+		// Second iteration
+		__m128 x2 = _mm_mul_ss(x1, x1);
+		x2 = _mm_sub_ss(half, _mm_mul_ss(input_half_v, x2));
+		x2 = _mm_add_ss(_mm_mul_ss(x1, x2), x1);
+
+		return _mm_cvtss_f32(x2);
+#else
 		return 1.0f / sqrt(input);
+#endif
 	}
 
 	inline float sin(float angle)

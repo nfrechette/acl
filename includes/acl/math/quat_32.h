@@ -279,40 +279,24 @@ namespace acl
 
 	inline float quat_length_squared(const Quat_32& input)
 	{
-#if defined(ACL_SSE4_INTRINSICS)
-		return _mm_cvtss_f32(_mm_dp_ps(input, input, 0xFF));
-#else
-		return (quat_get_x(input) * quat_get_x(input)) + (quat_get_y(input) * quat_get_y(input)) + (quat_get_z(input) * quat_get_z(input)) + (quat_get_w(input) * quat_get_w(input));
-#endif
+		return vector_length_squared(quat_to_vector(input));
 	}
 
 	inline float quat_length(const Quat_32& input)
 	{
-		// TODO: Use intrinsics to avoid scalar coercion
-		return sqrt(quat_length_squared(input));
+		return vector_length(quat_to_vector(input));
 	}
 
 	inline float quat_length_reciprocal(const Quat_32& input)
 	{
-		// TODO: Use recip instruction
-		return sqrt_reciprocal(quat_length_squared(input));
+		return vector_length_reciprocal(quat_to_vector(input));
 	}
 
 	inline Quat_32 quat_normalize(const Quat_32& input)
 	{
-#if 0
-		// TODO: Use high precision recip sqrt function and vector_mul
-		__m128 three = _mm_set1_ps(3.0f), half = _mm_set1_ps(0.5f);
-		__m128 lensq = _mm_dp_ps(input, input, 0xFF);
-		__m128 res = _mm_rsqrt_ss(lensq);
-		__m128 muls = _mm_mul_ss(_mm_mul_ss(lensq, res), res);
-		__m128 invlensq = _mm_mul_ss(_mm_mul_ss(half, res), _mm_sub_ss(three, muls));
-		return _mm_mul_ps(input, _mm_shuffle_ps(invlensq, invlensq, _MM_SHUFFLE(0, 0, 0, 0)));
-#else
-		float length = quat_length(input);
-		Vector4_32 input_vector = quat_to_vector(input);
-		return vector_to_quat(vector_div(input_vector, vector_set(length)));
-#endif
+		// Reciprocal is more accurate to normalize with
+		float inv_len = vector_length_reciprocal(input);
+		return vector_to_quat(vector_mul(quat_to_vector(input), vector_set(inv_len)));
 	}
 
 	inline Quat_32 quat_lerp(const Quat_32& start, const Quat_32& end, float alpha)
