@@ -50,12 +50,12 @@ namespace acl
 		uint32_t* num_samples_per_segment = allocate_type_array<uint32_t>(allocator, num_segments);
 		std::fill(num_samples_per_segment, num_samples_per_segment + num_segments, settings.ideal_num_samples);
 
-		uint32_t leftover_samples = settings.ideal_num_samples - (max_num_samples - clip_context.num_samples);
-		if (leftover_samples != 0)
-			num_samples_per_segment[num_segments - 1] = leftover_samples;
+		uint32_t num_leftover_samples = settings.ideal_num_samples - (max_num_samples - clip_context.num_samples);
+		if (num_leftover_samples != 0)
+			num_samples_per_segment[num_segments - 1] = num_leftover_samples;
 
 		uint32_t slack = settings.max_num_samples - settings.ideal_num_samples;
-		if ((num_segments - 1) * slack >= leftover_samples)
+		if ((num_segments - 1) * slack >= num_leftover_samples)
 		{
 			// Enough segments to distribute the leftover samples of the last segment
 			while (num_samples_per_segment[num_segments - 1] != 0)
