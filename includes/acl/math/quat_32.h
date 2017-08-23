@@ -324,7 +324,8 @@ namespace acl
 
 	inline Quat_32 quat_from_positive_w(const Vector4_32& input)
 	{
-		float w_squared = 1.0f - vector_length_squared3(input);
+		// Operation order is important here, due to rounding, ((1.0 - (X*X)) - Y*Y) - Z*Z is more accurate than 1.0 - dot3(xyz, xyz)
+		float w_squared = ((1.0f - vector_get_x(input) * vector_get_x(input)) - vector_get_y(input) * vector_get_y(input)) - vector_get_z(input) * vector_get_z(input);
 		float w = w_squared > 0.0f ? sqrt(w_squared) : 0.0f;
 		return quat_set(vector_get_x(input), vector_get_y(input), vector_get_z(input), w);
 	}
