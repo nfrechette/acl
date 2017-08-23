@@ -261,6 +261,24 @@ namespace acl
 		return vector_mul(input, -1.0f);
 	}
 
+	inline Vector4_32 vector_reciprocal(const Vector4_32& input)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		// Perform two passes of Newton-Raphson iteration on the hardware estimate
+		__m128 x0 = _mm_rcp_ps(input);
+
+		// First iteration
+		__m128 x1 = _mm_sub_ps(_mm_add_ps(x0, x0), _mm_mul_ps(input, _mm_mul_ps(x0, x0)));
+
+		// Second iteration
+		__m128 x2 = _mm_sub_ps(_mm_add_ps(x1, x1), _mm_mul_ps(input, _mm_mul_ps(x1, x1)));
+
+		return x2;
+#else
+		return vector_div(vector_set(1.0f), input);
+#endif
+	}
+
 	inline Vector4_32 vector_cross3(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
 		return vector_set(vector_get_y(lhs) * vector_get_z(rhs) - vector_get_z(lhs) * vector_get_y(rhs),
