@@ -24,31 +24,62 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
-#include "acl/core/compressed_clip.h"
-#include "acl/compression/skeleton.h"
-#include "acl/compression/animation_clip.h"
-#include "acl/decompression/output_writer.h"
-#include "acl/math/transform_32.h"
+#define NOMINMAX
+#include <Windows.h>
+
+#include <stdint.h>
 
 namespace acl
 {
-	class OutputStats;
-
-	// This interface serves to make unit testing and manipulating algorithms easier
-	class IAlgorithm
+	class ScopeProfiler
 	{
 	public:
-		virtual ~IAlgorithm() {}
+		ScopeProfiler(uint64_t* output_var = nullptr);
+		~ScopeProfiler() { stop(); }
 
-		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, OutputStats& stats) = 0;
+		uint64_t stop();
+		uint64_t get_elapsed_cycles() const { return m_end_cycles - m_start_cycles; }
 
-		virtual void* allocate_decompression_context(Allocator& allocator, const CompressedClip& clip) = 0;
-		virtual void deallocate_decompression_context(Allocator& allocator, void* context) = 0;
+	private:
+		ScopeProfiler(const ScopeProfiler&) = delete;
+		ScopeProfiler& operator=(const ScopeProfiler&) = delete;
 
-		virtual void decompress_pose(const CompressedClip& clip, void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) = 0;
-		virtual void decompress_bone(const CompressedClip& clip, void* context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) = 0;
+		uint64_t m_start_cycles;
+		uint64_t m_end_cycles;
 
-		virtual uint32_t get_uid() const = 0;
+		uint64_t* m_output_var;
 	};
+
+	inline double cycles_to_seconds(uint64_t cycles)
+	{
+		LARGE_INTEGER frequency_cycles_per_sec;
+		QueryPerformanceFrequency(&frequency_cycles_per_sec);
+		return double(cycles) / double(frequency_cycles_per_sec.QuadPart);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+
+	inline ScopeProfiler::ScopeProfiler(uint64_t* output_var)
+	{
+		LARGE_INTEGER time_cycles;
+		QueryPerformanceCounter(&time_cycles);
+		m_start_cycles = time_cycles.QuadPart;
+		m_end_cycles = m_start_cycles;
+		m_output_var = output_var;
+	}
+
+	inline uint64_t ScopeProfiler::stop()
+	{
+		if (m_end_cycles == m_start_cycles)
+		{
+			LARGE_INTEGER time_cycles;
+			QueryPerformanceCounter(&time_cycles);
+			m_end_cycles = time_cycles.QuadPart;
+
+			if (m_output_var != nullptr)
+				*m_output_var = get_elapsed_cycles();
+		}
+
+		return m_end_cycles - m_start_cycles;
+	}
 }

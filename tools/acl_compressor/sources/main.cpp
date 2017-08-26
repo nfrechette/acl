@@ -28,11 +28,10 @@
 #include "acl/compression/animation_clip.h"
 #include "acl/io/clip_reader.h"
 #include "acl/compression/skeleton_error_metric.h"
+#include "acl/sjson/sjson_writer.h"
 
 #include "acl/algorithm/uniformly_sampled/algorithm.h"
 
-#define NOMINMAX
-#include <Windows.h>
 #include <conio.h>
 
 #include <cstring>
@@ -115,7 +114,19 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, STATS_OUTPUT_OPTION, option_length) == 0)
 		{
 			options.output_stats = true;
-			options.output_stats_filename = argument[option_length] == '=' ? argument + option_length + 1 : nullptr;
+			if (argument[option_length] == '=')
+			{
+				options.output_stats_filename = argument + option_length + 1;
+				size_t filename_len = std::strlen(options.output_stats_filename);
+				if (filename_len < 6 || strncmp(options.output_stats_filename + filename_len - 6, ".sjson", 6) != 0)
+				{
+					printf("Stats output file must be an SJSON file.\n");
+					return false;
+				}
+			}
+			else
+				options.output_stats_filename = nullptr;
+
 			options.open_output_stats_file();
 			continue;
 		}
@@ -133,48 +144,8 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
-struct BoneError
+static void unit_test(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
 {
-	uint16_t index;
-	double error;
-	double sample_time;
-};
-
-static void print_stats(const Options& options, const AnimationClip& clip, const CompressedClip& compressed_clip, uint64_t elapsed_cycles, BoneError error, IAlgorithm& algorithm)
-{
-	if (!options.output_stats)
-		return;
-
-	uint32_t raw_size = clip.get_total_size();
-	uint32_t compressed_size = compressed_clip.get_size();
-	double compression_ratio = double(raw_size) / double(compressed_size);
-
-	LARGE_INTEGER frequency_cycles_per_sec;
-	QueryPerformanceFrequency(&frequency_cycles_per_sec);
-	double elapsed_time_sec = double(elapsed_cycles) / double(frequency_cycles_per_sec.QuadPart);
-
-	std::FILE* file = options.output_stats_file;
-
-	fprintf(file, "Clip algorithm: %s\n", get_algorithm_name(compressed_clip.get_algorithm_type()));
-	fprintf(file, "Clip algorithm UID: 0x%X\n", algorithm.get_uid());
-	fprintf(file, "Clip raw size (bytes): %u\n", raw_size);
-	fprintf(file, "Clip compressed size (bytes): %u\n", compressed_size);
-	fprintf(file, "Clip compression ratio: %.2f : 1\n", compression_ratio);
-	fprintf(file, "Clip max error: %.5f\n", error.error);
-	fprintf(file, "Clip worst bone: %u\n", error.index);
-	fprintf(file, "Clip worst time (s): %.5f\n", error.sample_time);
-	fprintf(file, "Clip compression time (s): %.6f\n", elapsed_time_sec);
-	fprintf(file, "Clip duration (s): %.3f\n", clip.get_duration());
-	fprintf(file, "Clip num samples: %u\n", clip.get_num_samples());
-	fprintf(file, "Clip num bones: %u\n", clip.get_num_bones());
-	algorithm.print_stats(compressed_clip, file);
-	fprintf(file, "\n");
-}
-
-static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, void* context, IAlgorithm& algorithm)
-{
-	using namespace acl;
-
 	uint16_t num_bones = clip.get_num_bones();
 	float clip_duration = clip.get_duration();
 	float sample_rate = float(clip.get_sample_rate());
@@ -182,14 +153,10 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 
 	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-
-	uint16_t worst_bone = INVALID_BONE_INDEX;
-	float max_error = 0.0f;
-	float worst_sample_time = 0.0f;
+	void* context = algorithm.allocate_decompression_context(allocator, compressed_clip);
 
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
-		// Sample our streams and calculate the error
 		float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
 		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
@@ -198,13 +165,7 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			float error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
-
-			if (error > max_error)
-			{
-				max_error = error;
-				worst_bone = bone_index;
-				worst_sample_time = sample_time;
-			}
+			ACL_ENSURE(error < 1.0f, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
 		}
 	}
 
@@ -223,32 +184,28 @@ static BoneError find_max_error(Allocator& allocator, const AnimationClip& clip,
 
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-
-	return BoneError{worst_bone, max_error, worst_sample_time};
+	algorithm.deallocate_decompression_context(allocator, context);
 }
 
-static void try_algorithm(const Options& options, Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm)
+static void try_algorithm(const Options& options, Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, SJSONArrayWriter* runs_writer)
 {
-	using namespace acl;
+	auto try_algorithm_impl = [&](SJSONObjectWriter* stats_writer)
+	{
+		OutputStats stats(logging, stats_writer);
+		CompressedClip* compressed_clip = algorithm.compress_clip(allocator, clip, skeleton, stats);
 
-	LARGE_INTEGER start_time_cycles;
-	QueryPerformanceCounter(&start_time_cycles);
+		ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
 
-	CompressedClip* compressed_clip = algorithm.compress_clip(allocator, clip, skeleton);
+		unit_test(allocator, clip, skeleton, *compressed_clip, algorithm);
 
-	LARGE_INTEGER end_time_cycles;
-	QueryPerformanceCounter(&end_time_cycles);
+		allocator.deallocate(compressed_clip, compressed_clip->get_size());
+	};
 
-	ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
-
-	void* context = algorithm.allocate_decompression_context(allocator, *compressed_clip);
-
-	BoneError error = find_max_error(allocator, clip, skeleton, *compressed_clip, context, algorithm);
-
-	print_stats(options, clip, *compressed_clip, end_time_cycles.QuadPart - start_time_cycles.QuadPart, error, algorithm);
-
-	allocator.deallocate(compressed_clip, compressed_clip->get_size());
-	algorithm.deallocate_decompression_context(allocator, context);
+	if (runs_writer != nullptr)
+		runs_writer->push_object([&](SJSONObjectWriter& writer) { try_algorithm_impl(&writer); });
+	else
+		try_algorithm_impl(nullptr);
+	
 }
 
 static bool read_clip(Allocator& allocator, const char* filename,
@@ -297,7 +254,7 @@ static bool read_clip(Allocator& allocator, const char* filename,
 	return true;
 }
 
-int main(int argc, char** argv)
+static int main_impl(int argc, char** argv)
 {
 	Options options;
 
@@ -312,8 +269,10 @@ int main(int argc, char** argv)
 		return -1;
 
 	// Compress & Decompress
+	auto exec_algos = [&](SJSONArrayWriter* runs_writer)
 	{
 		bool use_segmenting_options[] = { false, true };
+		StatLogging logging = StatLogging::Detailed;
 
 		for (size_t segmenting_option_index = 0; segmenting_option_index < sizeof(use_segmenting_options) / sizeof(use_segmenting_options[0]); ++segmenting_option_index)
 		{
@@ -336,7 +295,7 @@ int main(int argc, char** argv)
 			};
 
 			for (UniformlySampledAlgorithm& algorithm : uniform_tests)
-				try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm);
+				try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer);
 		}
 
 		{
@@ -354,9 +313,31 @@ int main(int argc, char** argv)
 			};
 
 			for (UniformlySampledAlgorithm& algorithm : uniform_tests)
-				try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm);
+				try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer);
 		}
+	};
+
+	if (options.output_stats)
+	{
+		SJSONFileStreamWriter stream_writer(options.output_stats_file);
+		SJSONWriter writer(stream_writer);
+
+		writer["runs"] = [&](SJSONArrayWriter& writer)
+		{
+			writer.push_newline();
+			exec_algos(&writer);
+			writer.push_newline();
+		};
 	}
+	else
+		exec_algos(nullptr);
+
+	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	int result = main_impl(argc, argv);
 
 	if (IsDebuggerPresent())
 	{
@@ -364,5 +345,5 @@ int main(int argc, char** argv)
 		while (_kbhit() == 0);
 	}
 
-	return 0;
+	return result;
 }

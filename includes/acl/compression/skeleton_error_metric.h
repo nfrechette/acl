@@ -24,16 +24,19 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compressed_clip.h"
+#include "acl/core/ialgorithm.h"
+#include "acl/core/memory.h"
 #include "acl/math/transform_32.h"
 #include "acl/math/scalar_32.h"
 #include "acl/compression/skeleton.h"
+#include "acl/compression/animation_clip.h"
 
 #include <algorithm>
 #include <functional>
 
 namespace acl
 {
-	// TODO: Add separate types for local/object space poses, avoid any possible usage error
 	// TODO: Add a context object to avoid malloc/free of the buffers with every call of the function
 	//       or manage the pose buffers externally?
 	inline float calculate_skeleton_error(Allocator& allocator, const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, float* out_error_per_bone = nullptr)
@@ -141,6 +144,59 @@ namespace acl
 		float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
 
 		return max(vtx0_error, vtx1_error);
+	}
+
+	struct BoneError
+	{
+		uint16_t index;
+		double error;
+		double sample_time;
+	};
+
+	inline BoneError calculate_compressed_clip_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton,
+		std::function<void*(Allocator& allocator)> alloc_ctx_fun,
+		std::function<void(Allocator& allocator, void* context)> free_ctx_fun,
+		std::function<void(void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)> compressed_clip_sample_fun)
+	{
+		uint16_t num_bones = clip.get_num_bones();
+		float clip_duration = clip.get_duration();
+		float sample_rate = float(clip.get_sample_rate());
+		uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
+
+		void* context = alloc_ctx_fun(allocator);
+
+		Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+
+		uint16_t worst_bone = INVALID_BONE_INDEX;
+		float max_error = 0.0f;
+		float worst_sample_time = 0.0f;
+
+		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		{
+			float sample_time = min(float(sample_index) / sample_rate, clip_duration);
+
+			clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
+			compressed_clip_sample_fun(context, sample_time, lossy_pose_transforms, num_bones);
+
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			{
+				float error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+
+				if (error > max_error)
+				{
+					max_error = error;
+					worst_bone = bone_index;
+					worst_sample_time = sample_time;
+				}
+			}
+		}
+
+		deallocate_type_array(allocator, raw_pose_transforms, num_bones);
+		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
+		free_ctx_fun(allocator, context);
+
+		return BoneError{ worst_bone, max_error, worst_sample_time };
 	}
 
 	struct BoneTrackError

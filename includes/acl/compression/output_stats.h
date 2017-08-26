@@ -24,31 +24,32 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
-#include "acl/core/compressed_clip.h"
-#include "acl/compression/skeleton.h"
-#include "acl/compression/animation_clip.h"
-#include "acl/decompression/output_writer.h"
-#include "acl/math/transform_32.h"
+#include "acl/sjson/sjson_writer.h"
 
 namespace acl
 {
-	class OutputStats;
+	enum class StatLogging
+	{
+		None,
+		Summary,
+		Detailed,
+	};
 
-	// This interface serves to make unit testing and manipulating algorithms easier
-	class IAlgorithm
+	class OutputStats
 	{
 	public:
-		virtual ~IAlgorithm() {}
+		OutputStats() : m_logging(StatLogging::None), m_writer(nullptr) {}
+		OutputStats(StatLogging logging_, SJSONObjectWriter* writer_) : m_logging(logging_), m_writer(writer_) {}
 
-		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, OutputStats& stats) = 0;
+		StatLogging get_logging() const { return m_logging; }
+		SJSONObjectWriter& get_writer()
+		{
+			ACL_ENSURE(m_writer != nullptr, "Cannot query NULL writer");
+			return *m_writer;
+		}
 
-		virtual void* allocate_decompression_context(Allocator& allocator, const CompressedClip& clip) = 0;
-		virtual void deallocate_decompression_context(Allocator& allocator, void* context) = 0;
-
-		virtual void decompress_pose(const CompressedClip& clip, void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) = 0;
-		virtual void decompress_bone(const CompressedClip& clip, void* context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) = 0;
-
-		virtual uint32_t get_uid() const = 0;
+	private:
+		StatLogging			m_logging;
+		SJSONObjectWriter*	m_writer;
 	};
 }

@@ -45,9 +45,13 @@ namespace acl
 			m_compression_settings.segmenting.range_reduction = segment_range_reduction;
 		}
 
-		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton) override
+		UniformlySampledAlgorithm(uniformly_sampled::CompressionSettings settings)
+			: m_compression_settings(settings)
+		{}
+
+		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, OutputStats& stats) override
 		{
-			return uniformly_sampled::compress_clip(allocator, clip, skeleton, m_compression_settings);
+			return uniformly_sampled::compress_clip(allocator, clip, skeleton, m_compression_settings, stats);
 		}
 
 		virtual void* allocate_decompression_context(Allocator& allocator, const CompressedClip& clip) override
@@ -72,11 +76,6 @@ namespace acl
 		{
 			uniformly_sampled::DecompressionSettings settings;
 			uniformly_sampled::decompress_bone(settings, clip, context, sample_time, sample_bone_index, out_rotation, out_translation);
-		}
-
-		virtual void print_stats(const CompressedClip& clip, std::FILE* file) override
-		{
-			uniformly_sampled::print_stats(clip, file, m_compression_settings);
 		}
 
 		virtual uint32_t get_uid() const override

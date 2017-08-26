@@ -32,10 +32,13 @@
 #include "acl/core/algorithm_types.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
+#include "acl/core/scope_profiler.h"
 #include "acl/algorithm/uniformly_sampled/common.h"
+#include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/compression/compressed_clip_impl.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/compression/output_stats.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/stream/track_stream.h"
 #include "acl/compression/stream/convert_rotation_streams.h"
@@ -46,6 +49,7 @@
 #include "acl/compression/stream/write_stream_bitsets.h"
 #include "acl/compression/stream/write_stream_data.h"
 #include "acl/compression/stream/write_range_data.h"
+#include "acl/decompression/default_output_writer.h"
 
 #include <stdint.h>
 #include <cstdio>
@@ -141,9 +145,11 @@ namespace acl
 		}
 
 		// Encoder entry point
-		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressionSettings& settings)
+		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressionSettings& settings, OutputStats& stats)
 		{
 			using namespace impl;
+
+			ScopeProfiler compression_time;
 
 			uint16_t num_bones = clip.get_num_bones();
 			uint32_t num_samples = clip.get_num_samples();
@@ -212,7 +218,8 @@ namespace acl
 
 			uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format);
 
-			uint32_t bitset_size = get_bitset_size(num_bones * Constants::NUM_TRACKS_PER_BONE);
+			uint32_t num_tracks = num_bones * Constants::NUM_TRACKS_PER_BONE;
+			uint32_t bitset_size = get_bitset_size(num_tracks);
 
 			uint32_t buffer_size = 0;
 			// Per clip data
@@ -273,39 +280,79 @@ namespace acl
 
 			finalize_compressed_clip(*compressed_clip);
 
+			compression_time.stop();
+
+			if (stats.get_logging() != StatLogging::None)
+			{
+				uint32_t raw_size = clip.get_total_size();
+				uint32_t compressed_size = compressed_clip->get_size();
+				double compression_ratio = double(raw_size) / double(compressed_size);
+
+				uint32_t num_default_tracks = bitset_count_set_bits(header.get_default_tracks_bitset(), bitset_size);
+				uint32_t num_constant_tracks = bitset_count_set_bits(header.get_constant_tracks_bitset(), bitset_size);
+				uint32_t num_animated_tracks = num_tracks - num_default_tracks - num_constant_tracks;
+
+				auto alloc_ctx_fun = [&](Allocator& allocator)
+				{
+					DecompressionSettings settings;
+					return allocate_decompression_context(allocator, settings, *compressed_clip);
+				};
+
+				auto free_ctx_fun = [&](Allocator& allocator, void* context)
+				{
+					deallocate_decompression_context(allocator, context);
+				};
+
+				auto sample_fun = [&](void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)
+				{
+					DecompressionSettings settings;
+					DefaultOutputWriter writer(out_transforms, num_transforms);
+					decompress_pose(settings, *compressed_clip, context, sample_time, writer);
+				};
+
+				// Use the compressed clip to make sure the decoder works properly
+				BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, alloc_ctx_fun, free_ctx_fun, sample_fun);
+
+				SJSONObjectWriter& writer = stats.get_writer();
+				writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);
+				writer["algorithm_uid"] = settings.hash();
+				writer["raw_size"] = raw_size;
+				writer["compressed_size"] = compressed_size;
+				writer["compression_ratio"] = compression_ratio;
+				writer["max_error"] = error.error;
+				writer["worst_bone"] = error.index;
+				writer["worst_time"] = error.sample_time;
+				writer["compression_time"] = cycles_to_seconds(compression_time.get_elapsed_cycles());
+				writer["duration"] = clip.get_duration();
+				writer["num_samples"] = clip.get_num_samples();
+				writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
+				writer["translation_format"] = get_vector_format_name(settings.translation_format);
+				writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
+
+				if (stats.get_logging() == StatLogging::Detailed)
+				{
+					writer["num_bones"] = clip.get_num_bones();
+					writer["num_default_tracks"] = num_default_tracks;
+					writer["num_constant_tracks"] = num_constant_tracks;
+					writer["num_animated_tracks"] = num_animated_tracks;
+				}
+
+				if (settings.segmenting.enabled)
+				{
+					writer["segmenting"] = [&](SJSONObjectWriter& writer)
+					{
+						writer["num_segments"] = header.num_segments;
+						writer["range_reduction"] = get_range_reduction_name(settings.segmenting.range_reduction);
+						writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
+						writer["max_num_samples"] = settings.segmenting.max_num_samples;
+					};
+				}
+			}
+
 			destroy_clip_context(allocator, clip_context);
 			destroy_clip_context(allocator, raw_clip_context);
 
 			return compressed_clip;
-		}
-
-		inline void print_stats(const CompressedClip& clip, std::FILE* file, const CompressionSettings& settings)
-		{
-			using namespace impl;
-
-			const ClipHeader& header = get_clip_header(clip);
-
-			uint32_t num_tracks = header.num_bones * Constants::NUM_TRACKS_PER_BONE;
-			uint32_t bitset_size = get_bitset_size(num_tracks);
-
-			uint32_t num_default_tracks = bitset_count_set_bits(header.get_default_tracks_bitset(), bitset_size);
-			uint32_t num_constant_tracks = bitset_count_set_bits(header.get_constant_tracks_bitset(), bitset_size);
-			uint32_t num_animated_tracks = num_tracks - num_default_tracks - num_constant_tracks;
-
-			fprintf(file, "Clip rotation format: %s\n", get_rotation_format_name(header.rotation_format));
-			fprintf(file, "Clip translation format: %s\n", get_vector_format_name(header.translation_format));
-			fprintf(file, "Clip range reduction: %s\n", get_range_reduction_name(header.clip_range_reduction));
-			fprintf(file, "Segment range reduction: %s\n", get_range_reduction_name(header.segment_range_reduction));
-			fprintf(file, "Clip num default tracks: %u\n", num_default_tracks);
-			fprintf(file, "Clip num constant tracks: %u\n", num_constant_tracks);
-			fprintf(file, "Clip num animated tracks: %u\n", num_animated_tracks);
-			fprintf(file, "Clip num segments: %u\n", header.num_segments);
-
-			if (settings.segmenting.enabled)
-			{
-				fprintf(file, "Clip segmenting ideal num samples: %u\n", settings.segmenting.ideal_num_samples);
-				fprintf(file, "Clip segmenting max num samples: %u\n", settings.segmenting.max_num_samples);
-			}
 		}
 	}
 }
