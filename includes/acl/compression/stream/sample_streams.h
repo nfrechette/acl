@@ -557,7 +557,7 @@ namespace acl
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 
 			Quat_32 rotation;
-			if (bone_stream.is_rotation_animated())
+			if (bone_stream.is_rotation_animated() && !is_pack_0_bit_rate(bone_stream.rotations.get_bit_rate()))
 			{
 				uint32_t num_samples = bone_stream.rotations.get_num_samples();
 				float duration = bone_stream.rotations.get_duration();
@@ -577,7 +577,7 @@ namespace acl
 			}
 
 			Vector4_32 translation;
-			if (bone_stream.is_translation_animated())
+			if (bone_stream.is_translation_animated() && !is_pack_0_bit_rate(bone_stream.translations.get_bit_rate()))
 			{
 				uint32_t num_samples = bone_stream.translations.get_num_samples();
 				float duration = bone_stream.translations.get_duration();
