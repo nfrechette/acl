@@ -314,11 +314,15 @@ namespace acl
 		SJSONArrayWriter array_writer(m_stream_writer, m_indent_level + 1);
 		writer_fun(array_writer);
 
-		m_is_locked = false;
 		if (array_writer.m_is_newline)
+		{
+			write_indentation();
 			m_stream_writer.write("]\n");
+		}
 		else
 			m_stream_writer.write(" ]\n");
+
+		m_is_locked = false;
 	}
 
 	inline void SJSONObjectWriter::write_indentation()
@@ -440,12 +444,15 @@ namespace acl
 		SJSONArrayWriter array_writer(m_object_writer->m_stream_writer, m_object_writer->m_indent_level + 1);
 		writer_fun(array_writer);
 
-		m_is_locked = false;
-		m_object_writer->write_indentation();
 		if (array_writer.m_is_newline)
+		{
+			m_object_writer->write_indentation();
 			m_object_writer->m_stream_writer.write("]\n");
+		}
 		else
 			m_object_writer->m_stream_writer.write(" ]\n");
+
+		m_is_locked = false;
 		m_is_empty = false;
 	}
 
@@ -489,7 +496,7 @@ namespace acl
 	{
 		ACL_ENSURE(!m_is_locked, "Cannot push SJSON value in locked array");
 
-		if (!m_is_empty)
+		if (!m_is_empty && !m_is_newline)
 			m_stream_writer.write(", ");
 
 		if (m_is_newline)
@@ -506,7 +513,7 @@ namespace acl
 	{
 		ACL_ENSURE(!m_is_locked, "Cannot push SJSON value in locked array");
 
-		if (!m_is_empty)
+		if (!m_is_empty && !m_is_newline)
 			m_stream_writer.write(", ");
 
 		if (m_is_newline)
@@ -524,7 +531,7 @@ namespace acl
 	{
 		ACL_ENSURE(!m_is_locked, "Cannot push SJSON value in locked array");
 
-		if (!m_is_empty)
+		if (!m_is_empty && !m_is_newline)
 			m_stream_writer.write(", ");
 
 		if (m_is_newline)
@@ -542,7 +549,7 @@ namespace acl
 	{
 		ACL_ENSURE(!m_is_locked, "Cannot push SJSON value in locked array");
 
-		if (!m_is_empty)
+		if (!m_is_empty && !m_is_newline)
 			m_stream_writer.write(", ");
 
 		if (m_is_newline)
@@ -560,7 +567,7 @@ namespace acl
 	{
 		ACL_ENSURE(!m_is_locked, "Cannot push SJSON value in locked array");
 
-		if (!m_is_empty)
+		if (!m_is_empty && !m_is_newline)
 			m_stream_writer.write(", ");
 
 		if (m_is_newline)
@@ -578,39 +585,29 @@ namespace acl
 	{
 		ACL_ENSURE(!m_is_locked, "Cannot push SJSON object in locked array");
 
-		if (!m_is_empty)
-			m_stream_writer.write(",");
+		if (!m_is_empty && !m_is_newline)
+			m_stream_writer.write(",\n");
 
-		if (m_is_newline)
-		{
-			if (!m_is_empty)
-				m_stream_writer.write("\n");
-			write_indentation();
-		}
-		else
-			m_stream_writer.write(" ");
-
+		write_indentation();
 		m_stream_writer.write("{\n");
 		m_is_locked = true;
 
 		SJSONObjectWriter object_writer(m_stream_writer, m_indent_level + 1);
 		writer_fun(object_writer);
 
-		if (m_is_newline)
-		{
-			write_indentation();
-		}
+		write_indentation();
+		m_stream_writer.write("}\n");
 
 		m_is_locked = false;
-		m_stream_writer.write("}");
 		m_is_empty = false;
+		m_is_newline = true;
 	}
 
 	inline void SJSONArrayWriter::push_array(std::function<void(SJSONArrayWriter& array_writer)> writer_fun)
 	{
 		ACL_ENSURE(!m_is_locked, "Cannot push SJSON array in locked array");
 
-		if (!m_is_empty)
+		if (!m_is_empty && !m_is_newline)
 			m_stream_writer.write(", ");
 
 		if (m_is_newline)
