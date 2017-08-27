@@ -131,7 +131,7 @@ namespace acl
 
 	inline Vector4_64 quat_rotate(const Quat_64& rotation, const Vector4_64& vector)
 	{
-		Quat_64 vector_quat = vector_to_quat(vector_mul(vector, vector_set(1.0, 1.0, 1.0, 0.0)));
+		Quat_64 vector_quat = quat_set(vector_get_x(vector), vector_get_y(vector), vector_get_z(vector), 0.0);
 		Quat_64 inv_rotation = quat_conjugate(rotation);
 		return quat_to_vector(quat_mul(quat_mul(inv_rotation, vector_quat), rotation));
 	}
