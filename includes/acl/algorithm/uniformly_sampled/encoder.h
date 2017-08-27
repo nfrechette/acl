@@ -48,6 +48,7 @@
 #include "acl/compression/stream/segment_streams.h"
 #include "acl/compression/stream/write_stream_bitsets.h"
 #include "acl/compression/stream/write_stream_data.h"
+#include "acl/compression/stream/write_stream_stats.h"
 #include "acl/compression/stream/write_range_data.h"
 #include "acl/decompression/default_output_writer.h"
 
@@ -347,6 +348,9 @@ namespace acl
 						writer["max_num_samples"] = settings.segmenting.max_num_samples;
 					};
 				}
+
+				if (stats.get_logging() == StatLogging::Detailed)
+					write_stream_stats(allocator, clip_context, raw_clip_context, skeleton, writer);
 			}
 
 			destroy_clip_context(allocator, clip_context);
