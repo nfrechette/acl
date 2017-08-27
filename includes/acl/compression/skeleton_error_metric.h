@@ -168,9 +168,7 @@ namespace acl
 		Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
-		uint16_t worst_bone = INVALID_BONE_INDEX;
-		float max_error = 0.0f;
-		float worst_sample_time = 0.0f;
+		BoneError bone_error = { INVALID_BONE_INDEX, 0.0f, 0.0f };
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
@@ -183,11 +181,11 @@ namespace acl
 			{
 				float error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
 
-				if (error > max_error)
+				if (error > bone_error.error)
 				{
-					max_error = error;
-					worst_bone = bone_index;
-					worst_sample_time = sample_time;
+					bone_error.error = error;
+					bone_error.index = bone_index;
+					bone_error.sample_time = sample_time;
 				}
 			}
 		}
@@ -196,7 +194,7 @@ namespace acl
 		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 		free_ctx_fun(allocator, context);
 
-		return BoneError{ worst_bone, max_error, worst_sample_time };
+		return bone_error;
 	}
 
 	struct BoneTrackError
