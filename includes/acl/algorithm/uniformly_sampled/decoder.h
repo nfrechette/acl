@@ -891,8 +891,8 @@ namespace acl
 
 						if (is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Translations))
 						{
-							Vector4_32 clip_range_min = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset);
-							Vector4_32 clip_range_extent = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset + (3 * sizeof(float)));
+							Vector4_32 clip_range_min = unpack_vector3_96(context.clip_range_data + context.clip_range_data_offset);
+							Vector4_32 clip_range_extent = unpack_vector3_96(context.clip_range_data + context.clip_range_data_offset + (3 * sizeof(float)));
 
 							translation0 = vector_mul_add(translation0, clip_range_extent, clip_range_min);
 							translation1 = vector_mul_add(translation1, clip_range_extent, clip_range_min);
