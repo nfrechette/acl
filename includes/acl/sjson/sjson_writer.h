@@ -587,6 +587,8 @@ namespace acl
 
 		if (!m_is_empty && !m_is_newline)
 			m_stream_writer.write(",\n");
+		else if (m_is_empty)
+			m_stream_writer.write("\n");
 
 		write_indentation();
 		m_stream_writer.write("{\n");

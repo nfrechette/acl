@@ -272,7 +272,7 @@ static int main_impl(int argc, char** argv)
 	auto exec_algos = [&](SJSONArrayWriter* runs_writer)
 	{
 		bool use_segmenting_options[] = { false, true };
-		StatLogging logging = StatLogging::Detailed;
+		StatLogging logging = StatLogging::Summary;
 
 		for (size_t segmenting_option_index = 0; segmenting_option_index < sizeof(use_segmenting_options) / sizeof(use_segmenting_options[0]); ++segmenting_option_index)
 		{
@@ -322,12 +322,7 @@ static int main_impl(int argc, char** argv)
 		SJSONFileStreamWriter stream_writer(options.output_stats_file);
 		SJSONWriter writer(stream_writer);
 
-		writer["runs"] = [&](SJSONArrayWriter& writer)
-		{
-			writer.push_newline();
-			exec_algos(&writer);
-			writer.push_newline();
-		};
+		writer["runs"] = [&](SJSONArrayWriter& writer) { exec_algos(&writer); };
 	}
 	else
 		exec_algos(nullptr);
