@@ -212,7 +212,8 @@ static bool read_clip(Allocator& allocator, const char* filename,
 					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip,
 					  std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
 {
-	printf("Reading ACL input clip...");
+	if (IsDebuggerPresent())
+		printf("Reading ACL input clip...");
 
 	LARGE_INTEGER read_start_time_cycles;
 	QueryPerformanceCounter(&read_start_time_cycles);
@@ -231,8 +232,11 @@ static bool read_clip(Allocator& allocator, const char* filename,
 	double elapsed_time_sec = double(elapsed_cycles) / double(frequency_cycles_per_sec.QuadPart);
 	double elapsed_time_ms = elapsed_time_sec * 1000.0;
 
-	printf(" Done in %.1f ms!\n", elapsed_time_ms);
-	printf("Parsing ACL input clip...");
+	if (IsDebuggerPresent())
+	{
+		printf(" Done in %.1f ms!\n", elapsed_time_ms);
+		printf("Parsing ACL input clip...");
+	}
 
 	ClipReader reader(allocator, str.c_str(), str.length());
 
@@ -250,7 +254,8 @@ static bool read_clip(Allocator& allocator, const char* filename,
 	elapsed_time_sec = double(elapsed_cycles) / double(frequency_cycles_per_sec.QuadPart);
 	elapsed_time_ms = elapsed_time_sec * 1000.0;
 
-	printf(" Done in %.1f ms!\n", elapsed_time_ms);
+	if (IsDebuggerPresent())
+		printf(" Done in %.1f ms!\n", elapsed_time_ms);
 	return true;
 }
 
