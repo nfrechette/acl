@@ -54,7 +54,7 @@ namespace acl
 
 		uint32_t hash() const
 		{
-			return hash32(enabled) ^ hash32(ideal_num_samples) ^ hash32(max_num_samples) ^ hash32(range_reduction);
+			return hash_combine(hash_combine(hash_combine(hash32(enabled), hash32(ideal_num_samples)), hash32(max_num_samples)), hash32(range_reduction));
 		}
 	};
 

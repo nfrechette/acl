@@ -83,4 +83,7 @@ namespace acl
 
 	template<typename ElementType>
 	inline uint64_t hash64(const ElementType& element) { return hash64(&element, sizeof(ElementType)); }
+
+	inline uint32_t hash_combine(uint32_t hash_a, uint32_t hash_b) { return (hash_a ^ hash_b) * 16777619u; }
+	inline uint64_t hash_combine(uint64_t hash_a, uint64_t hash_b) { return (hash_a ^ hash_b) * 1099511628211ull; }
 }
