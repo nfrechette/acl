@@ -38,6 +38,8 @@ namespace acl
 	class SJSONArrayWriter;
 	class SJSONObjectWriter;
 
+	constexpr char* k_line_terminator = "\r\n";
+
 	class SJSONStreamWriter
 	{
 	public:
@@ -213,7 +215,8 @@ namespace acl
 		m_stream_writer.write(key);
 		m_stream_writer.write(" = \"");
 		m_stream_writer.write(value);
-		m_stream_writer.write("\"\n");
+		m_stream_writer.write("\"");
+		m_stream_writer.write(k_line_terminator);
 	}
 
 	inline void SJSONObjectWriter::insert_value(const char* key, bool value)
@@ -227,7 +230,7 @@ namespace acl
 		m_stream_writer.write(" = ");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%s\n", value ? "true" : "false");
+		size_t length = snprintf(buffer, sizeof(buffer), "%s%s", value ? "true" : "false", k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to insert SJSON value: [%s = %s]", key, value);
 		m_stream_writer.write(buffer, length);
 	}
@@ -243,7 +246,7 @@ namespace acl
 		m_stream_writer.write(" = ");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%.10f\n", value);
+		size_t length = snprintf(buffer, sizeof(buffer), "%.10f%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to insert SJSON value: [%s = %.10f]", key, value);
 		m_stream_writer.write(buffer, length);
 	}
@@ -259,7 +262,7 @@ namespace acl
 		m_stream_writer.write(" = ");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%lld\n", value);
+		size_t length = snprintf(buffer, sizeof(buffer), "%lld%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to insert SJSON value: [%s = %lld]", key, value);
 		m_stream_writer.write(buffer, length);
 	}
@@ -275,7 +278,7 @@ namespace acl
 		m_stream_writer.write(" = ");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%llu\n", value);
+		size_t length = snprintf(buffer, sizeof(buffer), "%llu%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to insert SJSON value: [%s = %llu]", key, value);
 		m_stream_writer.write(buffer, length);
 	}
@@ -288,7 +291,8 @@ namespace acl
 		write_indentation();
 
 		m_stream_writer.write(key);
-		m_stream_writer.write(" = {\n");
+		m_stream_writer.write(" = {");
+		m_stream_writer.write(k_line_terminator);
 		m_is_locked = true;
 
 		SJSONObjectWriter object_writer(m_stream_writer, m_indent_level + 1);
@@ -297,7 +301,8 @@ namespace acl
 		m_is_locked = false;
 		write_indentation();
 
-		m_stream_writer.write("}\n");
+		m_stream_writer.write("}");
+		m_stream_writer.write(k_line_terminator);
 	}
 
 	inline void SJSONObjectWriter::insert_array(const char* key, std::function<void(SJSONArrayWriter& array_writer)> writer_fun)
@@ -317,10 +322,14 @@ namespace acl
 		if (array_writer.m_is_newline)
 		{
 			write_indentation();
-			m_stream_writer.write("]\n");
+			m_stream_writer.write("]");
+			m_stream_writer.write(k_line_terminator);
 		}
 		else
-			m_stream_writer.write(" ]\n");
+		{
+			m_stream_writer.write(" ]");
+			m_stream_writer.write(k_line_terminator);
+		}
 
 		m_is_locked = false;
 	}
@@ -336,7 +345,7 @@ namespace acl
 		ACL_ENSURE(!m_is_locked, "Cannot insert newline in locked object");
 		ACL_ENSURE(!m_has_live_value_ref, "Cannot insert newline in object when it has a live ValueRef");
 
-		m_stream_writer.write("\n");
+		m_stream_writer.write(k_line_terminator);
 	}
 
 	inline SJSONObjectWriter::ValueRef::ValueRef(SJSONObjectWriter& object_writer, const char* key)
@@ -384,7 +393,8 @@ namespace acl
 
 		m_object_writer->m_stream_writer.write("\"");
 		m_object_writer->m_stream_writer.write(value);
-		m_object_writer->m_stream_writer.write("\"\n");
+		m_object_writer->m_stream_writer.write("\"");
+		m_object_writer->m_stream_writer.write(k_line_terminator);
 		m_is_empty = false;
 	}
 
@@ -395,7 +405,7 @@ namespace acl
 		ACL_ENSURE(!m_is_locked, "Cannot assign a value when locked");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%s\n", value ? "true" : "false");
+		size_t length = snprintf(buffer, sizeof(buffer), "%s%s", value ? "true" : "false", k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to assign SJSON value: %s", value);
 		m_object_writer->m_stream_writer.write(buffer, length);
 		m_is_empty = false;
@@ -408,7 +418,7 @@ namespace acl
 		ACL_ENSURE(!m_is_locked, "Cannot assign a value when locked");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%.10f\n", value);
+		size_t length = snprintf(buffer, sizeof(buffer), "%.10f%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to assign SJSON value: %.10f", value);
 		m_object_writer->m_stream_writer.write(buffer, length);
 		m_is_empty = false;
@@ -420,7 +430,8 @@ namespace acl
 		ACL_ENSURE(m_object_writer != nullptr, "ValueRef not initialized");
 		ACL_ENSURE(!m_is_locked, "Cannot assign a value when locked");
 
-		m_object_writer->m_stream_writer.write("{\n");
+		m_object_writer->m_stream_writer.write("{");
+		m_object_writer->m_stream_writer.write(k_line_terminator);
 		m_is_locked = true;
 
 		SJSONObjectWriter object_writer(m_object_writer->m_stream_writer, m_object_writer->m_indent_level + 1);
@@ -428,7 +439,8 @@ namespace acl
 
 		m_is_locked = false;
 		m_object_writer->write_indentation();
-		m_object_writer->m_stream_writer.write("}\n");
+		m_object_writer->m_stream_writer.write("}");
+		m_object_writer->m_stream_writer.write(k_line_terminator);
 		m_is_empty = false;
 	}
 
@@ -447,10 +459,14 @@ namespace acl
 		if (array_writer.m_is_newline)
 		{
 			m_object_writer->write_indentation();
-			m_object_writer->m_stream_writer.write("]\n");
+			m_object_writer->m_stream_writer.write("]");
+			m_object_writer->m_stream_writer.write(k_line_terminator);
 		}
 		else
-			m_object_writer->m_stream_writer.write(" ]\n");
+		{
+			m_object_writer->m_stream_writer.write(" ]");
+			m_object_writer->m_stream_writer.write(k_line_terminator);
+		}
 
 		m_is_locked = false;
 		m_is_empty = false;
@@ -463,7 +479,7 @@ namespace acl
 		ACL_ENSURE(!m_is_locked, "Cannot assign a value when locked");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%lld\n", value);
+		size_t length = snprintf(buffer, sizeof(buffer), "%lld%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to assign SJSON value: %lld", value);
 		m_object_writer->m_stream_writer.write(buffer, length);
 		m_is_empty = false;
@@ -476,7 +492,7 @@ namespace acl
 		ACL_ENSURE(!m_is_locked, "Cannot assign a value when locked");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%llu\n", value);
+		size_t length = snprintf(buffer, sizeof(buffer), "%llu%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to assign SJSON value: %llu", value);
 		m_object_writer->m_stream_writer.write(buffer, length);
 		m_is_empty = false;
@@ -586,19 +602,24 @@ namespace acl
 		ACL_ENSURE(!m_is_locked, "Cannot push SJSON object in locked array");
 
 		if (!m_is_empty && !m_is_newline)
-			m_stream_writer.write(",\n");
+		{
+			m_stream_writer.write(",");
+			m_stream_writer.write(k_line_terminator);
+		}
 		else if (m_is_empty)
-			m_stream_writer.write("\n");
+			m_stream_writer.write(k_line_terminator);
 
 		write_indentation();
-		m_stream_writer.write("{\n");
+		m_stream_writer.write("{");
+		m_stream_writer.write(k_line_terminator);
 		m_is_locked = true;
 
 		SJSONObjectWriter object_writer(m_stream_writer, m_indent_level + 1);
 		writer_fun(object_writer);
 
 		write_indentation();
-		m_stream_writer.write("}\n");
+		m_stream_writer.write("}");
+		m_stream_writer.write(k_line_terminator);
 
 		m_is_locked = false;
 		m_is_empty = false;
@@ -631,7 +652,7 @@ namespace acl
 	{
 		ACL_ENSURE(!m_is_locked, "Cannot insert newline in locked array");
 
-		m_stream_writer.write("\n");
+		m_stream_writer.write(k_line_terminator);
 		m_is_newline = true;
 	}
 
