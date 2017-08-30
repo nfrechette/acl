@@ -2,22 +2,24 @@ import os
 import sys
 import queue
 import threading
-from collections import namedtuple
 import time
+import multiprocessing
+import signal
 
 # This script depends on a SJSON parsing package:
 # https://pypi.python.org/pypi/SJSON/1.0.4
 # https://shelter13.net/projects/SJSON/
 # https://bitbucket.org/Anteru/sjson/src
+#import sjson_dev as sjson
 import sjson
 
-RunStats = namedtuple('RunStats', 'name total_raw_size total_compressed_size total_compression_time total_duration max_error num_runs')
 
 def parse_argv():
 	options = {}
 	options['acl'] = ""
 	options['stats'] = ""
-	options['csv'] = False
+	options['csv_summary'] = False
+	options['csv_error'] = False
 	options['refresh'] = False
 	options['num_threads'] = 1
 
@@ -31,8 +33,11 @@ def parse_argv():
 		if value.startswith('-stats='):
 			options['stats'] = value[len('-stats='):].replace('"', '')
 
-		if value == '-csv':
-			options['csv'] = True
+		if value == '-csv_summary':
+			options['csv_summary'] = True
+
+		if value == '-csv_error':
+			options['csv_error'] = True
 
 		if value == '-refresh':
 			options['refresh'] = True
@@ -52,6 +57,19 @@ def parse_argv():
 
 	if options['num_threads'] <= 0:
 		print('-parallel switch argument must be greater than 0')
+		print_usage()
+		sys.exit(1)
+
+	if not os.path.exists(options['acl']) or not os.path.isdir(options['acl']):
+		print('ACL input directory not found: {}'.format(options['acl']))
+		print_usage()
+		sys.exit(1)
+
+	if not os.path.exists(options['stats']):
+		os.makedirs(options['stats'])
+
+	if not os.path.isdir(options['stats']):
+		print('The output stat argument must be a directory')
 		print_usage()
 		sys.exit(1)
 
@@ -75,20 +93,79 @@ def format_elapsed_time(elapsed_time):
 def sanitize_csv_entry(entry):
 	return entry.replace(', ', ' ').replace(',', '_')
 
-def output_csv(stat_dir):
-	csv_filename = os.path.join(stat_dir, 'stats.csv')
-	print('Generating CSV file {}...'.format(csv_filename))
-	print()
-	file = open(csv_filename, 'w')
-	print('Algorithm Name, Rotation Format, Translation Format, Range Reduction, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks, Max Error', file = file)
-	for stat in stats:
-		rotation_format = sanitize_csv_entry(stat.rotation_format)
-		translation_format = sanitize_csv_entry(stat.translation_format)
-		range_reduction = sanitize_csv_entry(stat.range_reduction)
-		print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(stat.name, rotation_format, translation_format, range_reduction, stat.raw_size, stat.compressed_size, stat.ratio, stat.compression_time, stat.duration, stat.num_animated_tracks, stat.max_error), file = file)
-	file.close()
+def create_csv(options):
+	csv_data = {}
+	stat_dir = options['stats']
+	if options['csv_summary']:
+		stats_summary_csv_filename = os.path.join(stat_dir, 'stats_summary.csv')
+		stats_summary_csv_file = open(stats_summary_csv_filename, 'w')
+		csv_data['stats_summary_csv_file'] = stats_summary_csv_file
 
-def run_acl_compressor(cmd_queue):
+		print('Generating CSV file {} ...'.format(stats_summary_csv_filename))
+		print('Algorithm Name, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks, Max Error', file = stats_summary_csv_file)
+
+	if options['csv_error']:
+		stats_error_csv_filename = os.path.join(stat_dir, 'stats_error.csv')
+		stats_error_csv_file = open(stats_error_csv_filename, 'w')
+		csv_data['stats_error_csv_file'] = stats_error_csv_file
+
+		print('Generating CSV file {} ...'.format(stats_error_csv_filename))
+		print('Algorithm Name, Key Frame, Bone Index, Error', file = stats_error_csv_file)
+
+	return csv_data
+
+def close_csv(csv_data):
+	if len(csv_data) == 0:
+		return
+
+	if 'stats_summary_csv_file' in csv_data:
+		csv_data['stats_summary_csv_file'].close()
+
+	if 'stats_error_csv_file' in csv_data:
+		csv_data['stats_error_csv_file'].close()
+
+def append_csv(csv_data, job_data):
+	if 'stats_summary_csv_file' in csv_data:
+		data = job_data['stats_summary_data']
+		for (name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error) in data:
+			print('{}, {}, {}, {}, {}, {}, {}, {}'.format(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error), file = csv_data['stats_summary_csv_file'])
+
+	if 'stats_error_csv_file' in csv_data:
+		error_data = job_data['stats_error_data']
+		for (name, segment_index, data) in error_data:
+			key_frame = 0
+			for frame_errors in data:
+				bone_index = 0
+				for bone_error in frame_errors:
+					print('{}, {}, {}, {}'.format(name, key_frame, bone_index, bone_error), file = csv_data['stats_error_csv_file'])
+					bone_index += 1
+
+				key_frame += 1
+
+def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_length = 50):
+	# Taken from https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
+	"""
+	Call in a loop to create terminal progress bar
+	@params:
+		iteration   - Required  : current iteration (Int)
+		total       - Required  : total iterations (Int)
+		prefix      - Optional  : prefix string (Str)
+		suffix      - Optional  : suffix string (Str)
+		decimals    - Optional  : positive number of decimals in percent complete (Int)
+		bar_length  - Optional  : character length of bar (Int)
+	"""
+	str_format = "{0:." + str(decimals) + "f}"
+	percents = str_format.format(100 * (iteration / float(total)))
+	filled_length = int(round(bar_length * iteration / float(total)))
+	bar = '█' * filled_length + '-' * (bar_length - filled_length)
+
+	sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+
+	if iteration == total:
+		sys.stdout.write('\n')
+	sys.stdout.flush()
+
+def run_acl_compressor(cmd_queue, result_queue):
 	while True:
 		entry = cmd_queue.get()
 		if entry is None:
@@ -96,42 +173,13 @@ def run_acl_compressor(cmd_queue):
 
 		(acl_filename, cmd) = entry
 
-		print('Compressing {}...'.format(acl_filename))
 		os.system(cmd)
+		result_queue.put(acl_filename)
 
-def shorten_range_reduction(range_reduction):
-	if range_reduction == 'RangeReduction::None':
-		return 'RR:None'
-	elif range_reduction == 'RangeReduction::Rotations':
-		return 'RR:Rot'
-	elif range_reduction == 'RangeReduction::Translations':
-		return 'RR:Trans'
-	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations':
-		return 'RR:Rot|Trans'
-	else:
-		return 'RR:???'
-
-if __name__ == "__main__":
-	options = parse_argv()
-
-	compressor_exe_path = '../../build/bin/acl_compressor.exe'
-
+def compress_clips(options):
 	acl_dir = options['acl']
 	stat_dir = options['stats']
 	refresh = options['refresh']
-
-	if not os.path.exists(acl_dir) or not os.path.isdir(acl_dir):
-		print('ACL input directory not found: {}'.format(acl_dir))
-		print_usage()
-		sys.exit(1)
-
-	if not os.path.exists(stat_dir):
-		os.makedirs(stat_dir)
-
-	if not os.path.isdir(stat_dir):
-		print('The output stat argument must be a directory')
-		print_usage()
-		sys.exit(1)
 
 	stat_files = []
 	cmd_queue = queue.Queue()
@@ -166,15 +214,21 @@ if __name__ == "__main__":
 		for i in range(options['num_threads']):
 			cmd_queue.put(None)
 
-		threads = [ threading.Thread(target = run_acl_compressor, args = (cmd_queue,)) for _i in range(options['num_threads']) ]
+		result_queue = queue.Queue()
+
+		threads = [ threading.Thread(target = run_acl_compressor, args = (cmd_queue, result_queue)) for _i in range(options['num_threads']) ]
 		for thread in threads:
 			thread.daemon = True
 			thread.start()
 
+		print_progress(0, len(stat_files), 'Compressing clips:', '{} / {}'.format(0, len(stat_files)))
 		try:
 			while True:
 				for thread in threads:
 					thread.join(1.0)
+
+				num_processed = result_queue.qsize()
+				print_progress(num_processed, len(stat_files), 'Compressing clips:', '{} / {}'.format(num_processed, len(stat_files)))
 
 				all_threads_done = True
 				for thread in threads:
@@ -186,103 +240,273 @@ if __name__ == "__main__":
 		except KeyboardInterrupt:
 			sys.exit(1)
 
-	print('')
-	print('Aggregating results...')
+	return stat_files
+
+def shorten_range_reduction(range_reduction):
+	if range_reduction == 'RangeReduction::None':
+		return 'RR:None'
+	elif range_reduction == 'RangeReduction::Rotations':
+		return 'RR:Rot'
+	elif range_reduction == 'RangeReduction::Translations':
+		return 'RR:Trans'
+	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations':
+		return 'RR:Rot|Trans'
+	else:
+		return 'RR:???'
+
+def aggregate_stats(agg_run_stats, run_stats):
+	algorithm_uid = run_stats['algorithm_uid']
+	if not algorithm_uid in agg_run_stats:
+		agg_data = {}
+		agg_data['name'] = run_stats['desc']
+		agg_data['total_raw_size'] = 0
+		agg_data['total_compressed_size'] = 0
+		agg_data['total_compression_time'] = 0.0
+		agg_data['total_duration'] = 0.0
+		agg_data['max_error'] = 0
+		agg_data['num_runs'] = 0
+		agg_run_stats[algorithm_uid] = agg_data
+
+	agg_data = agg_run_stats[algorithm_uid]
+	agg_data['total_raw_size'] += run_stats['raw_size']
+	agg_data['total_compressed_size'] += run_stats['compressed_size']
+	agg_data['total_compression_time'] += run_stats['compression_time']
+	agg_data['total_duration'] += run_stats['duration']
+	agg_data['max_error'] = max(agg_data['max_error'], run_stats['max_error'])
+	agg_data['num_runs'] += 1
+
+def track_best_runs(best_runs, run_stats):
+	if run_stats['max_error'] < best_runs['best_error']:
+		best_runs['best_error'] = run_stats['max_error']
+		best_runs['best_error_entry'] = run_stats
+
+	if run_stats['compression_ratio'] > best_runs['best_ratio']:
+		best_runs['best_ratio'] = run_stats['compression_ratio']
+		best_runs['best_ratio_entry'] = run_stats
+
+def track_worst_runs(worst_runs, run_stats):
+	if run_stats['max_error'] > worst_runs['worst_error']:
+		worst_runs['worst_error'] = run_stats['max_error']
+		worst_runs['worst_error_entry'] = run_stats
+
+	if run_stats['compression_ratio'] < worst_runs['worst_ratio']:
+		worst_runs['worst_ratio'] = run_stats['compression_ratio']
+		worst_runs['worst_ratio_entry'] = run_stats
+
+def run_stat_parsing(options, stat_queue, result_queue):
+	#signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+	try:
+		agg_run_stats = {}
+		best_runs = {}
+		best_runs['best_error'] = 100000000.0
+		best_runs['best_error_entry'] = None
+		best_runs['best_ratio'] = 0.0
+		best_runs['best_ratio_entry'] = None
+		worst_runs = {}
+		worst_runs['worst_error'] = -100000000.0
+		worst_runs['worst_error_entry'] = None
+		worst_runs['worst_ratio'] = 100000000.0
+		worst_runs['worst_ratio_entry'] = None
+		num_runs = 0
+		total_compression_time = 0.0
+		stats_summary_data = []
+		stats_error_data = []
+
+		while True:
+			stat_filename = stat_queue.get()
+			if stat_filename is None:
+				break
+
+			with open(stat_filename, 'r') as file:
+				file_data = sjson.loads(file.read())
+				runs = file_data['runs']
+				for run_stats in runs:
+					run_stats['range_reduction'] = shorten_range_reduction(run_stats['range_reduction'])
+					run_stats['filename'] = stat_filename
+
+					if 'segmenting' in run_stats:
+						run_stats['segmenting']['range_reduction'] = shorten_range_reduction(run_stats['segmenting']['range_reduction'])
+						run_stats['desc'] = '{}, {}, Clip {}, Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
+						run_stats['csv_desc'] = '{} {} Clip {} Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
+					else:
+						run_stats['desc'] = '{}, {}, Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['range_reduction'])
+						run_stats['csv_desc'] = '{} {} Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['range_reduction'])
+
+					aggregate_stats(agg_run_stats, run_stats)
+					track_best_runs(best_runs, run_stats)
+					track_worst_runs(worst_runs, run_stats)
+
+					num_runs += 1
+					total_compression_time += run_stats['compression_time']
+
+					if options['csv_summary']:
+						#(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error)
+						num_animated_tracks = run_stats.get('num_animated_tracks', 0)
+						data = (run_stats['csv_desc'], run_stats['raw_size'], run_stats['compressed_size'], run_stats['compression_ratio'], run_stats['compression_time'], run_stats['duration'], num_animated_tracks, run_stats['max_error'])
+						stats_summary_data.append(data)
+
+					if 'segments' in run_stats and len(run_stats['segments']) > 0:
+						segment_index = 0
+						for segment in run_stats['segments']:
+							if 'error_per_frame_and_bone' in segment and len(segment['error_per_frame_and_bone']) > 0:
+								# Convert to array https://docs.python.org/3/library/array.html
+								# Lower memory footprint and more efficient
+								# Drop the data if we don't write the csv files, otherwise aggregate it
+								if options['csv_error']:
+									#(name, segment_index, data)
+									data = (run_stats['csv_desc'], segment_index, segment['error_per_frame_and_bone'])
+									stats_error_data.append(data)
+
+								# Data isn't needed anymore, discard it
+								segment['error_per_frame_and_bone'] = []
+
+							segment_index += 1
+
+				result_queue.put(('progress', stat_filename))
+
+		# Done
+		results = {}
+		results['agg_run_stats'] = agg_run_stats
+		results['best_runs'] = best_runs
+		results['worst_runs'] = worst_runs
+		results['num_runs'] = num_runs
+		results['total_compression_time'] = total_compression_time
+		results['stats_summary_data'] = stats_summary_data
+		results['stats_error_data'] = stats_error_data
+		result_queue.put(('done', results))
+	except KeyboardInterrupt:
+		print('Interrupted')
+
+def pretty_print(d, indent = 0):
+	for key, value in d.items():
+		if isinstance(value, dict):
+			print('\t' * indent + str(key))
+			pretty(value, indent + 1)
+		else:
+			print('\t' * indent + str(key) + ': ' + str(value))
+
+def aggregate_job_stats(agg_job_results, job_results):
+	if job_results['num_runs'] == 0:
+		return
+
+	if len(agg_job_results) == 0:
+		agg_job_results.update(job_results)
+	else:
+		agg_job_results['num_runs'] += job_results['num_runs']
+		agg_job_results['total_compression_time'] += job_results['total_compression_time']
+		for key in job_results['agg_run_stats'].keys():
+			agg_job_results['agg_run_stats'][key]['total_raw_size'] += job_results['agg_run_stats'][key]['total_raw_size']
+			agg_job_results['agg_run_stats'][key]['total_compressed_size'] += job_results['agg_run_stats'][key]['total_compressed_size']
+			agg_job_results['agg_run_stats'][key]['total_compression_time'] += job_results['agg_run_stats'][key]['total_compression_time']
+			agg_job_results['agg_run_stats'][key]['total_duration'] += job_results['agg_run_stats'][key]['total_duration']
+			agg_job_results['agg_run_stats'][key]['max_error'] = max(agg_job_results['agg_run_stats'][key]['max_error'], job_results['agg_run_stats'][key]['max_error'])
+			agg_job_results['agg_run_stats'][key]['num_runs'] += job_results['agg_run_stats'][key]['num_runs']
+
+		if job_results['best_runs']['best_error'] < agg_job_results['best_runs']['best_error']:
+			agg_job_results['best_runs']['best_error'] = job_results['best_runs']['best_error']
+			agg_job_results['best_runs']['best_error_entry'] = job_results['best_runs']['best_error_entry']
+
+		if job_results['best_runs']['best_ratio'] > agg_job_results['best_runs']['best_ratio']:
+			agg_job_results['best_runs']['best_ratio'] = job_results['best_runs']['best_ratio']
+			agg_job_results['best_runs']['best_ratio_entry'] = job_results['best_runs']['best_ratio_entry']
+
+		if job_results['worst_runs']['worst_error'] > agg_job_results['worst_runs']['worst_error']:
+			agg_job_results['worst_runs']['worst_error'] = job_results['worst_runs']['worst_error']
+			agg_job_results['worst_runs']['worst_error_entry'] = job_results['worst_runs']['worst_error_entry']
+
+		if job_results['worst_runs']['worst_ratio'] < agg_job_results['worst_runs']['worst_ratio']:
+			agg_job_results['worst_runs']['worst_ratio'] = job_results['worst_runs']['worst_ratio']
+			agg_job_results['worst_runs']['worst_ratio_entry'] = job_results['worst_runs']['worst_ratio_entry']
+
+if __name__ == "__main__":
+	options = parse_argv()
+
+	compressor_exe_path = '../../build/bin/acl_compressor.exe'
+
+	stat_files = compress_clips(options)
+
+	csv_data = create_csv(options)
+
 	print('')
 
-	# TODO: Run this in parallel with 'multiprocessing'
-	# https://www.quantstart.com/articles/parallelising-python-with-threading-and-multiprocessing
 	aggregating_start_time = time.clock();
-	stats = []
+
+	stat_queue = multiprocessing.Queue()
 	for stat_filename in stat_files:
-		with open(stat_filename, 'r') as file:
-			file_data = sjson.loads(file.read())
-			runs = file_data['runs']
-			for run_stats in runs:
-				run_stats['range_reduction'] = shorten_range_reduction(run_stats['range_reduction'])
-				run_stats['filename'] = stat_filename
+		stat_queue.put(stat_filename)
 
-				if 'segmenting' in run_stats:
-					run_stats['segmenting']['range_reduction'] = shorten_range_reduction(run_stats['segmenting']['range_reduction'])
-					run_stats['desc'] = '{}, {}, Clip {}, Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
-				else:
-					run_stats['desc'] = '{}, {}, Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['range_reduction'])
+	# Add a marker to terminate the jobs
+	for i in range(options['num_threads']):
+		stat_queue.put(None)
 
-				stats.append(run_stats)
+	result_queue = multiprocessing.Queue()
+
+	jobs = [ multiprocessing.Process(target = run_stat_parsing, args = (options, stat_queue, result_queue)) for _i in range(options['num_threads']) ]
+	for job in jobs:
+		job.start()
+
+	agg_job_results = {}
+	num_stat_file_processed = 0
+	print_progress(num_stat_file_processed, len(stat_files), 'Aggregating results:', '{} / {}'.format(num_stat_file_processed, len(stat_files)))
+	try:
+		while True:
+			try:
+				(msg, data) = result_queue.get(True, 1.0)
+				if msg == 'progress':
+					num_stat_file_processed += 1
+					print_progress(num_stat_file_processed, len(stat_files), 'Aggregating results:', '{} / {}'.format(num_stat_file_processed, len(stat_files)))
+				elif msg == 'done':
+					aggregate_job_stats(agg_job_results, data)
+					append_csv(csv_data, data)
+			except queue.Empty:
+				all_jobs_done = True
+				for job in jobs:
+					if job.is_alive():
+						all_jobs_done = False
+
+				if all_jobs_done:
+					break
+	except KeyboardInterrupt:
+		sys.exit(1)
+	print()
+
+	agg_run_stats = agg_job_results['agg_run_stats']
+	best_runs = agg_job_results['best_runs']
+	worst_runs = agg_job_results['worst_runs']
+	num_runs = agg_job_results['num_runs']
+	total_compression_time = agg_job_results['total_compression_time']
 
 	aggregating_end_time = time.clock();
-	print('Found {} runs in {}'.format(len(stats), format_elapsed_time(aggregating_end_time - aggregating_start_time)))
+	print('Found {} runs in {}'.format(num_runs, format_elapsed_time(aggregating_end_time - aggregating_start_time)))
 	print()
 
-	if options['csv']:
-		output_csv(stat_dir)
+	close_csv(csv_data)
 
-	# Aggregate per run type
 	print('Stats per run type:')
-	run_types = {}
-	for stat in stats:
-		algorithm_uid = stat['algorithm_uid']
-		if not algorithm_uid in run_types:
-			run_types[algorithm_uid] = RunStats(stat['desc'], 0, 0, 0.0, 0.0, 0.0, 0)
-		run_stats = run_types[algorithm_uid]
-		raw_size = stat['raw_size'] + run_stats.total_raw_size
-		compressed_size = stat['compressed_size'] + run_stats.total_compressed_size
-		compression_time = stat['compression_time'] + run_stats.total_compression_time
-		duration = stat['duration'] + run_stats.total_duration
-		max_error = max(stat['max_error'], run_stats.max_error)
-		run_types[algorithm_uid] = RunStats(run_stats.name, raw_size, compressed_size, compression_time, duration, max_error, run_stats.num_runs + 1)
-
-	run_types_by_size = sorted(run_types.values(), key = lambda entry: entry.total_compressed_size)
+	run_types_by_size = sorted(agg_run_stats.values(), key = lambda entry: entry['total_compressed_size'])
 	for run_stats in run_types_by_size:
-		ratio = float(run_stats.total_raw_size) / float(run_stats.total_compressed_size)
-		print('Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats.total_compressed_size), format_elapsed_time(run_stats.total_compression_time), ratio, run_stats.max_error, run_stats.name))
+		ratio = float(run_stats['total_raw_size']) / float(run_stats['total_compressed_size'])
+		print('Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats['total_compressed_size']), format_elapsed_time(run_stats['total_compression_time']), ratio, run_stats['max_error'], run_stats['name']))
 	print()
 
-	# Find outliers and other stats
-	best_error = 100000000.0
-	best_error_entry = None
-	worst_error = -100000000.0
-	worst_error_entry = None
-	best_ratio = 0.0
-	best_ratio_entry = None
-	worst_ratio = 100000000.0
-	worst_ratio_entry = None
-	total_compression_time = 0.0
-	total_duration = run_types_by_size[0].total_duration
-	total_raw_size = run_types_by_size[0].total_raw_size
+	total_duration = run_types_by_size[0]['total_duration']
+	total_raw_size = run_types_by_size[0]['total_raw_size']
 
-	for stat in stats:
-		if stat['max_error'] < best_error:
-			best_error = stat['max_error']
-			best_error_entry = stat
-
-		if stat['max_error'] > worst_error:
-			worst_error = stat['max_error']
-			worst_error_entry = stat
-
-		if stat['compression_ratio'] > best_ratio:
-			best_ratio = stat['compression_ratio']
-			best_ratio_entry = stat
-
-		if stat['compression_ratio'] < worst_ratio:
-			worst_ratio = stat['compression_ratio']
-			worst_ratio_entry = stat
-
-		total_compression_time += stat['compression_time']
 
 	print('Sum of clip durations: {}'.format(format_elapsed_time(total_duration)))
 	print('Total compression time: {}'.format(format_elapsed_time(total_compression_time)))
 	print('Total raw size: {:.2f} MB'.format(bytes_to_mb(total_raw_size)))
 	print()
 
-	print('Most accurate: {}'.format(best_error_entry['filename']))
-	print_stat(best_error_entry)
+	print('Most accurate: {}'.format(best_runs['best_error_entry']['filename']))
+	print_stat(best_runs['best_error_entry'])
 
-	print('Least accurate: {}'.format(worst_error_entry['filename']))
-	print_stat(worst_error_entry)
+	print('Best ratio: {}'.format(best_runs['best_ratio_entry']['filename']))
+	print_stat(best_runs['best_ratio_entry'])
 
-	print('Best ratio: {}'.format(best_ratio_entry['filename']))
-	print_stat(best_ratio_entry)
+	print('Least accurate: {}'.format(worst_runs['worst_error_entry']['filename']))
+	print_stat(worst_runs['worst_error_entry'])
 
-	print('Worst ratio: {}'.format(worst_ratio_entry['filename']))
-	print_stat(worst_ratio_entry)
+	print('Worst ratio: {}'.format(worst_runs['worst_ratio_entry']['filename']))
+	print_stat(worst_runs['worst_ratio_entry'])
