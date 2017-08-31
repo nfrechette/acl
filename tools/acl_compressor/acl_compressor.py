@@ -215,6 +215,7 @@ def compress_clips(options):
 			cmd_queue.put(None)
 
 		result_queue = queue.Queue()
+		compression_start_time = time.clock();
 
 		threads = [ threading.Thread(target = run_acl_compressor, args = (cmd_queue, result_queue)) for _i in range(options['num_threads']) ]
 		for thread in threads:
@@ -239,6 +240,10 @@ def compress_clips(options):
 					break
 		except KeyboardInterrupt:
 			sys.exit(1)
+
+		compression_end_time = time.clock();
+		print()
+		print('Compressed {} clips in {}'.format(len(stat_files), format_elapsed_time(compression_end_time - compression_start_time)))
 
 	return stat_files
 
@@ -428,8 +433,6 @@ if __name__ == "__main__":
 
 	csv_data = create_csv(options)
 
-	print('')
-
 	aggregating_start_time = time.clock();
 
 	stat_queue = multiprocessing.Queue()
@@ -469,7 +472,6 @@ if __name__ == "__main__":
 					break
 	except KeyboardInterrupt:
 		sys.exit(1)
-	print()
 
 	agg_run_stats = agg_job_results['agg_run_stats']
 	best_runs = agg_job_results['best_runs']
@@ -478,6 +480,7 @@ if __name__ == "__main__":
 	total_compression_time = agg_job_results['total_compression_time']
 
 	aggregating_end_time = time.clock();
+	print()
 	print('Found {} runs in {}'.format(num_runs, format_elapsed_time(aggregating_end_time - aggregating_start_time)))
 	print()
 
