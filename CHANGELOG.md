@@ -1,5 +1,15 @@
 # Significant changes per release
 
+## 0.4.0
+
+*  Lots of math performance, accuracy, and consistency improvements
+*  Implemented segmenting support in uniformly sampled algorithm
+*  Range reduction per segment support added
+*  Minor fixes to fbx2acl
+*  Optimized variable quantization considerably
+*  Major changes to which stats are dumped and how they are processed
+*  Many more improvements and fixes
+
 ## 0.3.0
 
 *  Added CMake support
