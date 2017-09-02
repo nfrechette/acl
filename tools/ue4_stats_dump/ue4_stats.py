@@ -151,6 +151,13 @@ if __name__ == "__main__":
 	# Aggregate per run type
 	print('Stats per run type:')
 	run_types = {}
+	total_run_types = {}
+	total_run_types['desc'] = 'Total'
+	total_run_types['total_raw_size'] = 0
+	total_run_types['total_compressed_size'] = 0
+	total_run_types['total_compression_time'] = 0.0
+	total_run_types['max_error'] = 0.0
+	total_run_types['num_runs'] = 0
 	for stat in stats:
 		key = stat['desc']
 		if not key in run_types:
@@ -170,10 +177,21 @@ if __name__ == "__main__":
 		run_stats['max_error'] = max(stat['max_error'], run_stats['max_error'])
 		run_stats['num_runs'] += 1
 
+		total_run_types['total_raw_size'] += stat['acl_raw_size']
+		total_run_types['total_compressed_size'] += stat['compressed_size']
+		total_run_types['total_compression_time'] += stat['compression_time']
+		total_run_types['max_error'] = max(stat['max_error'], total_run_types['max_error'])
+		total_run_types['num_runs'] += 1
+
 	run_types_by_size = sorted(run_types.values(), key = lambda entry: entry['total_compressed_size'])
 	for run_stats in run_types_by_size:
 		ratio = float(run_stats['total_raw_size']) / float(run_stats['total_compressed_size'])
 		print('Raw {:.2f} MB, Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats['total_raw_size']), bytes_to_mb(run_stats['total_compressed_size']), format_elapsed_time(run_stats['total_compression_time']), ratio, run_stats['max_error'], run_stats['desc']))
+
+	print()
+	print('Total:')
+	ratio = float(total_run_types['total_raw_size']) / float(total_run_types['total_compressed_size'])
+	print('Raw {:.2f} MB, Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}]'.format(bytes_to_mb(total_run_types['total_raw_size']), bytes_to_mb(total_run_types['total_compressed_size']), format_elapsed_time(total_run_types['total_compression_time']), ratio, total_run_types['max_error']))
 	print()
 
 	# Find outliers
