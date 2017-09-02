@@ -33,7 +33,6 @@
 #include "acl/algorithm/uniformly_sampled/algorithm.h"
 
 #include <conio.h>
-
 #include <cstring>
 #include <cstdio>
 #include <fstream>

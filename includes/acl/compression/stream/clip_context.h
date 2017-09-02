@@ -120,7 +120,7 @@ namespace acl
 		segment.bone_streams = bone_streams;
 		segment.clip = &out_clip_context;
 		segment.ranges = nullptr;
-		segment.num_samples = num_samples;
+		segment.num_samples = safe_static_cast<uint16_t>(num_samples);
 		segment.num_bones = num_bones;
 		segment.clip_sample_offset = 0;
 		segment.animated_pose_bit_size = 0;

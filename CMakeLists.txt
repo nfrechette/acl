@@ -18,6 +18,11 @@ foreach(_file IN ITEMS ${ACL_INCLUDE_FILES})
 	source_group("${_group_path}" FILES "${_file}")
 endforeach()
 
+if(CMAKE_CONFIGURATION_TYPES)
+	set(CMAKE_CONFIGURATION_TYPES Debug Release)
+	set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING "Reset the configurations to what we need" FORCE)
+endif()
+
 # Add other projects
 add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")

@@ -183,14 +183,14 @@ namespace acl
 				uint32_t key_frame1;
 				calculate_interpolation_keys(header.num_samples, context.clip_duration, sample_time, key_frame0, key_frame1, context.interpolation_alpha);
 
-				uint32_t segment_key_frame0;
-				uint32_t segment_key_frame1;
+				uint32_t segment_key_frame0 = 0;
+				uint32_t segment_key_frame1 = 0;
 
 				// Find segments
 				// TODO: Use binary search?
 				uint32_t segment_key_frame = 0;
-				const SegmentHeader* segment_header0;
-				const SegmentHeader* segment_header1;
+				const SegmentHeader* segment_header0 = nullptr;
+				const SegmentHeader* segment_header1 = nullptr;
 				for (uint16_t segment_index = 0; segment_index < header.num_segments; ++segment_index)
 				{
 					const SegmentHeader& segment_header = context.segment_headers[segment_index];
@@ -218,6 +218,8 @@ namespace acl
 
 					segment_key_frame += segment_header.num_samples;
 				}
+
+				ACL_ENSURE(segment_header0 != nullptr, "Failed to find segment.");
 
 				context.format_per_track_data0 = header.get_format_per_track_data(*segment_header0);
 				context.format_per_track_data1 = header.get_format_per_track_data(*segment_header1);
@@ -751,8 +753,8 @@ namespace acl
 						Vector4_32 translation0;
 						Vector4_32 translation1;
 
-						uint8_t bit_rate0;
-						uint8_t bit_rate1;
+						uint8_t bit_rate0 = INVALID_BIT_RATE;
+						uint8_t bit_rate1 = INVALID_BIT_RATE;
 
 						if (translation_format == VectorFormat8::Vector3_96 && settings.is_translation_format_supported(VectorFormat8::Vector3_96))
 						{

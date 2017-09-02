@@ -74,7 +74,7 @@ namespace acl
 
 		SegmentContext* clip_segment = clip_context.segments;
 		clip_context.segments = allocate_type_array<SegmentContext>(allocator, num_segments);
-		clip_context.num_segments = num_segments;
+		clip_context.num_segments = safe_static_cast<uint16_t>(num_segments);
 
 		uint32_t clip_sample_index = 0;
 		for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
@@ -86,7 +86,7 @@ namespace acl
 			segment.bone_streams = allocate_type_array<BoneStreams>(allocator, clip_context.num_bones);
 			segment.ranges = nullptr;
 			segment.num_bones = clip_context.num_bones;
-			segment.num_samples = num_samples_in_segment;
+			segment.num_samples = safe_static_cast<uint16_t>(num_samples_in_segment);
 			segment.clip_sample_offset = clip_sample_index;
 			segment.animated_pose_bit_size = 0;
 			segment.animated_data_size = 0;

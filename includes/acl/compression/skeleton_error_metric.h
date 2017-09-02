@@ -244,7 +244,6 @@ namespace acl
 
 		// Initial child bone index is our target bone index, everything is initialized to 0.0,
 		// we'll end up subtracting 0.0 from our current error, no invalid ptr access, no branching
-		uint16_t child_bone_index = target_bone_index;
 		uint16_t current_bone_index = target_bone_index;
 		while (current_bone_index != INVALID_BONE_INDEX)
 		{

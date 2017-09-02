@@ -97,9 +97,6 @@ namespace acl
 				}
 				else
 				{
-					uint16_t* data = safe_ptr_cast<uint16_t>(range_data);
-					uint8_t offset = 0;
-
 					if (bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128)
 					{
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
