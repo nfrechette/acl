@@ -125,10 +125,13 @@ namespace acl
 			}
 		}
 
-		uint32_t get_total_size() const
+		uint32_t get_raw_size() const
 		{
-			uint32_t bone_sample_size = (sizeof(float) * 4) + (sizeof(float) * 3);
-			return m_num_bones * bone_sample_size * m_num_samples;
+			const uint32_t rotation_size = sizeof(float) * 4;		// Quat == Vector4
+			const uint32_t translation_size = sizeof(float) * 3;	// Vector3
+			const uint32_t scale_size = sizeof(float) * 3;			// Vector3
+			const uint32_t bone_sample_size = rotation_size + translation_size + scale_size;
+			return uint32_t(m_num_bones) * bone_sample_size * m_num_samples;
 		}
 
 	private:

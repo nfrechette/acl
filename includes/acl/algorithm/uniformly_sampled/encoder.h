@@ -287,7 +287,7 @@ namespace acl
 
 			if (stats.get_logging() != StatLogging::None)
 			{
-				uint32_t raw_size = clip.get_total_size();
+				uint32_t raw_size = clip.get_raw_size();
 				uint32_t compressed_size = compressed_clip->get_size();
 				double compression_ratio = double(raw_size) / double(compressed_size);
 
@@ -319,6 +319,7 @@ namespace acl
 				SJSONObjectWriter& writer = stats.get_writer();
 				writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);
 				writer["algorithm_uid"] = settings.hash();
+				writer["clip_name"] = clip.get_name().c_str();
 				writer["raw_size"] = raw_size;
 				writer["compressed_size"] = compressed_size;
 				writer["compression_ratio"] = compression_ratio;
