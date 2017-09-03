@@ -47,6 +47,8 @@ namespace acl
 			Vector4_32 rotation_max = vector_set(-1e10f);
 			Vector4_32 translation_min = vector_set(1e10f);
 			Vector4_32 translation_max = vector_set(-1e10f);
+			Vector4_32 scale_min = vector_set(1e10f);
+			Vector4_32 scale_max = vector_set(-1e10f);
 
 			for (uint32_t sample_index = 0; sample_index < bone_stream.rotations.get_num_samples(); ++sample_index)
 			{
@@ -64,9 +66,18 @@ namespace acl
 				translation_max = vector_max(translation_max, translation);
 			}
 
+			for (uint32_t sample_index = 0; sample_index < bone_stream.scales.get_num_samples(); ++sample_index)
+			{
+				Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
+
+				scale_min = vector_min(scale_min, scale);
+				scale_max = vector_max(scale_max, scale);
+			}
+
 			BoneRanges& bone_range = bone_ranges[bone_index];
 			bone_range.rotation = TrackStreamRange(rotation_min, rotation_max);
 			bone_range.translation = TrackStreamRange(translation_min, translation_max);
+			bone_range.scale = TrackStreamRange(scale_min, scale_max);
 		}
 	}
 
@@ -136,6 +147,26 @@ namespace acl
 #endif
 
 					bone_range.translation = TrackStreamRange(translation_range_min, translation_range_max);
+				}
+
+				if (bone_stream.is_scale_animated() && clip_context.are_scales_normalized)
+				{
+					Vector4_32 scale_range_min = vector_max(vector_sub(bone_range.scale.get_min(), padding), zero);
+					Vector4_32 scale_range_max = vector_min(vector_add(bone_range.scale.get_max(), padding), one);
+
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+					pack_vector3_24(scale_range_min, true, &buffer[0]);
+					scale_range_min = unpack_vector3_24(&buffer[0], true);
+					pack_vector3_24(scale_range_max, true, &buffer[0]);
+					scale_range_max = unpack_vector3_24(&buffer[0], true);
+#else
+					pack_vector3_48(scale_range_min, true, &buffer[0]);
+					scale_range_min = unpack_vector3_48(&buffer[0], true);
+					pack_vector3_48(scale_range_max, true, &buffer[0]);
+					scale_range_max = unpack_vector3_48(&buffer[0], true);
+#endif
+
+					bone_range.scale = TrackStreamRange(scale_range_min, scale_range_max);
 				}
 			}
 		}
@@ -227,6 +258,42 @@ namespace acl
 		}
 	}
 
+	inline void normalize_scale_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
+	{
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			BoneStreams& bone_stream = bone_streams[bone_index];
+			const BoneRanges& bone_range = bone_ranges[bone_index];
+
+			// We expect all our samples to have the same width of sizeof(Vector4_32)
+			ACL_ENSURE(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
+
+			// Constant or default tracks are not normalized
+			if (!bone_stream.is_scale_animated())
+				continue;
+
+			uint32_t num_samples = bone_stream.scales.get_num_samples();
+
+			Vector4_32 range_min = bone_range.scale.get_min();
+			Vector4_32 range_extent = bone_range.scale.get_extent();
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				// normalized value is between [0.0 .. 1.0]
+				// value = (normalized value * range extent) + range min
+				// normalized value = (value - range min) / range extent
+				Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
+				Vector4_32 normalized_scale = vector_div(vector_sub(scale, range_min), range_extent);
+				Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
+				normalized_scale = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_scale);
+
+				ACL_ENSURE(vector_all_greater_equal3(normalized_scale, vector_zero_32()) && vector_all_less_equal3(normalized_scale, vector_set(1.0f)), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_scale), vector_get_y(normalized_scale), vector_get_z(normalized_scale));
+
+				bone_stream.scales.set_raw_sample(sample_index, normalized_scale);
+			}
+		}
+	}
+
 	inline void normalize_clip_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction)
 	{
 		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
@@ -242,6 +309,12 @@ namespace acl
 		{
 			normalize_translation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
 			clip_context.are_translations_normalized = true;
+		}
+
+		if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales))
+		{
+			normalize_scale_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
+			clip_context.are_scales_normalized = true;
 		}
 	}
 
@@ -261,6 +334,12 @@ namespace acl
 				segment.are_translations_normalized = true;
 			}
 
+			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales))
+			{
+				normalize_scale_streams(segment.bone_streams, segment.ranges, segment.num_bones);
+				segment.are_scales_normalized = true;
+			}
+
 			uint32_t range_data_size = 0;
 
 			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
@@ -276,6 +355,9 @@ namespace acl
 				}
 
 				if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
+					range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
+
+				if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
 					range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
 			}
 

@@ -77,6 +77,7 @@ namespace acl
 		{
 			RotationFormat8 rotation_format;
 			VectorFormat8 translation_format;
+			VectorFormat8 scale_format;
 
 			RangeReductionFlags8 range_reduction;
 
@@ -85,6 +86,7 @@ namespace acl
 			CompressionSettings()
 				: rotation_format(RotationFormat8::Quat_128)
 				, translation_format(VectorFormat8::Vector3_96)
+				, scale_format(VectorFormat8::Vector3_96)
 				, range_reduction(RangeReductionFlags8::None)
 				, segmenting()
 			{}
@@ -188,7 +190,7 @@ namespace acl
 			// TODO: Expose this, especially the translation threshold depends on the unit scale.
 			// Centimeters VS meters, a different threshold should be used. Perhaps we should pass an
 			// argument to the compression algorithm that states the units used or we should force centimeters
-			compact_constant_streams(allocator, clip_context, 0.00001f, 0.001f);
+			compact_constant_streams(allocator, clip_context, 0.00001f, 0.001f, 0.00001f);
 
 			uint32_t clip_range_data_size = 0;
 			if (settings.range_reduction != RangeReductionFlags8::None)
@@ -208,7 +210,7 @@ namespace acl
 				}
 			}
 
-			quantize_streams(allocator, clip_context, settings.rotation_format, settings.translation_format, clip, skeleton, raw_clip_context);
+			quantize_streams(allocator, clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, clip, skeleton, raw_clip_context);
 
 			const SegmentContext& clip_segment = clip_context.segments[0];
 
@@ -328,6 +330,7 @@ namespace acl
 				writer["num_samples"] = clip.get_num_samples();
 				writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 				writer["translation_format"] = get_vector_format_name(settings.translation_format);
+				writer["scale_format"] = get_vector_format_name(settings.scale_format);
 				writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
 
 				if (stats.get_logging() == StatLogging::Detailed)

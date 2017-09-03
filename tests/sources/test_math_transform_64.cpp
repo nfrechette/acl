@@ -13,14 +13,14 @@ TEST_CASE("transform math 64", "[math][transform64]")
 		Vector4_64 y_axis = vector_set(0.0, 1.0, 0.0);
 
 		Quat_64 rotation_around_z = quat_from_euler(deg2rad(0.0), deg2rad(90.0), deg2rad(0.0));
-		Transform_64 transform_a = transform_set(rotation_around_z, x_axis);
+		Transform_64 transform_a = transform_set(rotation_around_z, x_axis, vector_set(1.0));
 		Vector4_64 result = transform_position(transform_a, x_axis);
 		REQUIRE(vector_near_equal(result, vector_set(1.0, 1.0, 0.0), threshold));
 		result = transform_position(transform_a, y_axis);
 		REQUIRE(vector_near_equal(result, vector_set(0.0, 0.0, 0.0), threshold));
 
 		Quat_64 rotation_around_x = quat_from_euler(deg2rad(0.0), deg2rad(0.0), deg2rad(90.0));
-		Transform_64 transform_b = transform_set(rotation_around_x, y_axis);
+		Transform_64 transform_b = transform_set(rotation_around_x, y_axis, vector_set(1.0));
 		result = transform_position(transform_b, x_axis);
 		REQUIRE(vector_near_equal(result, vector_set(1.0, 1.0, 0.0), threshold));
 		result = transform_position(transform_b, y_axis);

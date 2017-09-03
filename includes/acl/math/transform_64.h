@@ -30,38 +30,41 @@
 
 namespace acl
 {
-	inline Transform_64 transform_set(const Quat_64& rotation, const Vector4_64& translation)
+	inline Transform_64 transform_set(const Quat_64& rotation, const Vector4_64& translation, const Vector4_64& scale)
 	{
-		return Transform_64{ rotation, translation };
+		return Transform_64{ rotation, translation, scale };
 	}
 
 	inline Transform_64 transform_identity_64()
 	{
-		return transform_set(quat_identity_64(), vector_zero_64());
+		return transform_set(quat_identity_64(), vector_zero_64(), vector_set(1.0));
 	}
 
 	inline Transform_64 transform_cast(const Transform_32& input)
 	{
-		return Transform_64{ quat_cast(input.rotation), vector_cast(input.translation) };
+		return Transform_64{ quat_cast(input.rotation), vector_cast(input.translation), vector_cast(input.scale) };
 	}
 
 	// Multiplication order is as follow: local_to_world = transform_mul(local_to_object, object_to_world)
+	// NOTE: When scale is present, multiplication will not properly handle skew/shear, use affine matrices instead
 	inline Transform_64 transform_mul(const Transform_64& lhs, const Transform_64& rhs)
 	{
 		Quat_64 rotation = quat_mul(lhs.rotation, rhs.rotation);
-		Vector4_64 translation = vector_add(quat_rotate(rhs.rotation, lhs.translation), rhs.translation);
-		return transform_set(rotation, translation);
+		Vector4_64 translation = vector_add(quat_rotate(rhs.rotation, vector_mul(lhs.translation, rhs.scale)), rhs.translation);
+		Vector4_64 scale = vector_mul(lhs.scale, rhs.scale);
+		return transform_set(rotation, translation, scale);
 	}
 
 	inline Vector4_64 transform_position(const Transform_64& lhs, const Vector4_64& rhs)
 	{
-		return vector_add(quat_rotate(lhs.rotation, rhs), lhs.translation);
+		return vector_add(quat_rotate(lhs.rotation, vector_mul(lhs.scale, rhs)), lhs.translation);
 	}
 
 	inline Transform_64 transform_inverse(const Transform_64& input)
 	{
-		Quat_64 rotation = quat_conjugate(input.rotation);
-		Vector4_64 translation = quat_rotate(rotation, vector_neg(input.translation));
-		return transform_set(rotation, translation);
+		Quat_64 inv_rotation = quat_conjugate(input.rotation);
+		Vector4_64 inv_scale = vector_reciprocal(input.scale);
+		Vector4_64 inv_translation = vector_neg(quat_rotate(inv_rotation, vector_mul(input.translation, inv_scale)));
+		return transform_set(inv_rotation, inv_translation, inv_scale);
 	}
 }

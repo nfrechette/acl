@@ -987,11 +987,15 @@ namespace acl
 
 				Vector4_32 translation = decompress_translation(settings, header, context);
 				writer.write_bone_translation(bone_index, translation);
+
+				//Vector4_32 scale = decompress_scale(settings, header, context);
+				Vector4_32 scale = vector_set(1.0f);
+				writer.write_bone_scale(bone_index, scale);
 			}
 		}
 
 		template<class SettingsType>
-		inline void decompress_bone(const SettingsType& settings, const CompressedClip& clip, void* opaque_context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation)
+		inline void decompress_bone(const SettingsType& settings, const CompressedClip& clip, void* opaque_context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale)
 		{
 			static_assert(std::is_base_of<DecompressionSettings, SettingsType>::value, "SettingsType must derive from DecompressionSettings!");
 
@@ -1015,6 +1019,7 @@ namespace acl
 
 				skip_rotation(settings, header, context);
 				skip_translation(settings, header, context);
+				//skip_scale(settings, header, context);
 			}
 
 			// TODO: Skip if not interested in return value
@@ -1025,6 +1030,11 @@ namespace acl
 			Vector4_32 translation = decompress_translation(settings, header, context);
 			if (out_translation != nullptr)
 				*out_translation = translation;
+
+			//Vector4_32 scale = decompress_scale(settings, header, context);
+			Vector4_32 scale = vector_set(1.0f);
+			if (out_scale != nullptr)
+				*out_scale = scale;
 		}
 	}
 }

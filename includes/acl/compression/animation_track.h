@@ -96,6 +96,7 @@ namespace acl
 			default:
 			case AnimationTrackType8::Rotation:		return 4;
 			case AnimationTrackType8::Translation:	return 3;
+			case AnimationTrackType8::Scale:		return 3;
 			}
 		}
 
@@ -154,7 +155,6 @@ namespace acl
 		Quat_64 get_sample(uint32_t sample_index) const
 		{
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(m_type == AnimationTrackType8::Rotation, "Invalid track type. %u != %u", m_type, AnimationTrackType8::Rotation);
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
@@ -208,7 +208,7 @@ namespace acl
 		{
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
-			ACL_ENSURE(vector_is_finite3(translation), "Invalid translation: [%f, %f, %f, %f]", vector_get_x(translation), vector_get_y(translation), vector_get_z(translation));
+			ACL_ENSURE(vector_is_finite3(translation), "Invalid translation: [%f, %f, %f]", vector_get_x(translation), vector_get_y(translation), vector_get_z(translation));
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ENSURE(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
@@ -222,7 +222,6 @@ namespace acl
 		Vector4_64 get_sample(uint32_t sample_index) const
 		{
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(m_type == AnimationTrackType8::Translation, "Invalid track type. %u != %u", m_type, AnimationTrackType8::Translation);
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			size_t sample_size = get_animation_track_sample_size(m_type);
@@ -247,5 +246,72 @@ namespace acl
 
 		AnimationTranslationTrack(const AnimationTranslationTrack&) = delete;
 		AnimationTranslationTrack& operator=(const AnimationTranslationTrack&) = delete;
+	};
+
+	class AnimationScaleTrack : public AnimationTrack
+	{
+	public:
+		AnimationScaleTrack()
+			: AnimationTrack()
+		{}
+
+		AnimationScaleTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate)
+			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Scale)
+		{
+			std::fill(m_sample_data, m_sample_data + (num_samples * 3), 0.0);
+		}
+
+		AnimationScaleTrack(AnimationScaleTrack&& track)
+			: AnimationTrack(std::forward<AnimationTrack>(track))
+		{}
+
+		AnimationScaleTrack& operator=(AnimationScaleTrack&& track)
+		{
+			AnimationTrack::operator=(std::forward<AnimationTrack>(track));
+			return *this;
+		}
+
+		void set_sample(uint32_t sample_index, const Vector4_64& scale)
+		{
+			ACL_ENSURE(is_initialized(), "Track is not initialized");
+			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ENSURE(vector_is_finite3(scale) && !vector_near_equal3(scale, vector_zero_64()), "Invalid scale: [%f, %f, %f]", vector_get_x(scale), vector_get_y(scale), vector_get_z(scale));
+
+			size_t sample_size = get_animation_track_sample_size(m_type);
+			ACL_ENSURE(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
+
+			double* sample = &m_sample_data[sample_index * sample_size];
+			sample[0] = vector_get_x(scale);
+			sample[1] = vector_get_y(scale);
+			sample[2] = vector_get_z(scale);
+		}
+
+		Vector4_64 get_sample(uint32_t sample_index) const
+		{
+			ACL_ENSURE(is_initialized(), "Track is not initialized");
+			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+
+			size_t sample_size = get_animation_track_sample_size(m_type);
+
+			const double* sample = &m_sample_data[sample_index * sample_size];
+			return vector_unaligned_load3(sample);
+		}
+
+		Vector4_64 sample_track(double sample_time) const
+		{
+			double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
+
+			uint32_t sample_frame0;
+			uint32_t sample_frame1;
+			double interpolation_alpha;
+			calculate_interpolation_keys(m_num_samples, track_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
+
+			Vector4_64 sample0 = get_sample(sample_frame0);
+			Vector4_64 sample1 = get_sample(sample_frame1);
+			return vector_lerp(sample0, sample1, interpolation_alpha);
+		}
+
+		AnimationScaleTrack(const AnimationScaleTrack&) = delete;
+		AnimationScaleTrack& operator=(const AnimationScaleTrack&) = delete;
 	};
 }

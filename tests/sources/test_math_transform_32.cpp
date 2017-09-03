@@ -13,14 +13,14 @@ TEST_CASE("transform math 32", "[math][transform32]")
 		Vector4_32 y_axis = vector_set(0.0f, 1.0f, 0.0f);
 
 		Quat_32 rotation_around_z = quat_from_euler(deg2rad(0.0f), deg2rad(90.0f), deg2rad(0.0f));
-		Transform_32 transform_a = transform_set(rotation_around_z, x_axis);
+		Transform_32 transform_a = transform_set(rotation_around_z, x_axis, vector_set(1.0f));
 		Vector4_32 result = transform_position(transform_a, x_axis);
 		REQUIRE(vector_near_equal(result, vector_set(1.0f, 1.0f, 0.0f), threshold));
 		result = transform_position(transform_a, y_axis);
 		REQUIRE(vector_near_equal(result, vector_set(0.0f, 0.0f, 0.0f), threshold));
 
 		Quat_32 rotation_around_x = quat_from_euler(deg2rad(0.0f), deg2rad(0.0f), deg2rad(90.0f));
-		Transform_32 transform_b = transform_set(rotation_around_x, y_axis);
+		Transform_32 transform_b = transform_set(rotation_around_x, y_axis, vector_set(1.0f));
 		result = transform_position(transform_b, x_axis);
 		REQUIRE(vector_near_equal(result, vector_set(1.0f, 1.0f, 0.0f), threshold));
 		result = transform_position(transform_b, y_axis);

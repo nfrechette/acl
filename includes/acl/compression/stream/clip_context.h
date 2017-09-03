@@ -47,6 +47,7 @@ namespace acl
 
 		bool are_rotations_normalized;
 		bool are_translations_normalized;
+		bool are_scales_normalized;
 
 		//////////////////////////////////////////////////////////////////////////
 
@@ -84,6 +85,7 @@ namespace acl
 		out_clip_context.error_threshold = clip.get_error_threshold();
 		out_clip_context.are_rotations_normalized = false;
 		out_clip_context.are_translations_normalized = false;
+		out_clip_context.are_scales_normalized = false;
 
 		SegmentContext& segment = out_clip_context.segments[0];
 
@@ -101,6 +103,7 @@ namespace acl
 
 			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_32), sample_rate, RotationFormat8::Quat_128);
 			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
+			bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -109,12 +112,17 @@ namespace acl
 
 				Vector4_32 translation = vector_cast(bone.translation_track.get_sample(sample_index));
 				bone_stream.translations.set_raw_sample(sample_index, translation);
+
+				Vector4_32 scale = vector_cast(bone.scale_track.get_sample(sample_index));
+				bone_stream.scales.set_raw_sample(sample_index, scale);
 			}
 
 			bone_stream.is_rotation_constant = num_samples == 1;
 			bone_stream.is_rotation_default = bone_stream.is_rotation_constant && quat_near_identity(quat_cast(bone.rotation_track.get_sample(0)));
 			bone_stream.is_translation_constant = num_samples == 1;
-			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_near_equal(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32());
+			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_near_equal3(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32());
+			bone_stream.is_scale_constant = num_samples == 1;
+			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_near_equal3(vector_cast(bone.scale_track.get_sample(0)), vector_set(1.0f));
 		}
 
 		segment.bone_streams = bone_streams;
@@ -129,6 +137,7 @@ namespace acl
 		segment.segment_index = 0;
 		segment.are_rotations_normalized = false;
 		segment.are_translations_normalized = false;
+		segment.are_scales_normalized = false;
 	}
 
 	inline void destroy_clip_context(Allocator& allocator, ClipContext& clip_context)

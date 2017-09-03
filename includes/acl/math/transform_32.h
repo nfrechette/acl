@@ -30,38 +30,54 @@
 
 namespace acl
 {
-	inline Transform_32 transform_set(const Quat_32& rotation, const Vector4_32& translation)
+	inline Transform_32 transform_set(const Quat_32& rotation, const Vector4_32& translation, const Vector4_32& scale)
 	{
-		return Transform_32{ rotation, translation };
+		return Transform_32{ rotation, translation, scale };
 	}
 
 	inline Transform_32 transform_identity_32()
 	{
-		return transform_set(quat_identity_32(), vector_zero_32());
+		return transform_set(quat_identity_32(), vector_zero_32(), vector_set(1.0f));
 	}
 
 	inline Transform_32 transform_cast(const Transform_64& input)
 	{
-		return Transform_32{ quat_cast(input.rotation), vector_cast(input.translation) };
+		return Transform_32{ quat_cast(input.rotation), vector_cast(input.translation), vector_cast(input.scale) };
 	}
 
 	// Multiplication order is as follow: local_to_world = transform_mul(local_to_object, object_to_world)
+	// NOTE: When scale is present, multiplication will not properly handle skew/shear, use affine matrices instead
 	inline Transform_32 transform_mul(const Transform_32& lhs, const Transform_32& rhs)
 	{
 		Quat_32 rotation = quat_mul(lhs.rotation, rhs.rotation);
+		Vector4_32 translation = vector_add(quat_rotate(rhs.rotation, vector_mul(lhs.translation, rhs.scale)), rhs.translation);
+		Vector4_32 scale = vector_mul(lhs.scale, rhs.scale);
+		return transform_set(rotation, translation, scale);
+	}
+
+	// Multiplication order is as follow: local_to_world = transform_mul(local_to_object, object_to_world)
+	inline Transform_32 transform_mul_no_scale(const Transform_32& lhs, const Transform_32& rhs)
+	{
+		Quat_32 rotation = quat_mul(lhs.rotation, rhs.rotation);
 		Vector4_32 translation = vector_add(quat_rotate(rhs.rotation, lhs.translation), rhs.translation);
-		return transform_set(rotation, translation);
+		return transform_set(rotation, translation, vector_set(1.0f));
 	}
 
 	inline Vector4_32 transform_position(const Transform_32& lhs, const Vector4_32& rhs)
+	{
+		return vector_add(quat_rotate(lhs.rotation, vector_mul(lhs.scale, rhs)), lhs.translation);
+	}
+
+	inline Vector4_32 transform_position_no_scale(const Transform_32& lhs, const Vector4_32& rhs)
 	{
 		return vector_add(quat_rotate(lhs.rotation, rhs), lhs.translation);
 	}
 
 	inline Transform_32 transform_inverse(const Transform_32& input)
 	{
-		Quat_32 rotation = quat_conjugate(input.rotation);
-		Vector4_32 translation = quat_rotate(rotation, vector_neg(input.translation));
-		return transform_set(rotation, translation);
+		Quat_32 inv_rotation = quat_conjugate(input.rotation);
+		Vector4_32 inv_scale = vector_reciprocal(input.scale);
+		Vector4_32 inv_translation = vector_neg(quat_rotate(inv_rotation, vector_mul(input.translation, inv_scale)));
+		return transform_set(inv_rotation, inv_translation, inv_scale);
 	}
 }

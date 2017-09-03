@@ -71,7 +71,7 @@ namespace acl
 	{
 		Rotation,
 		Translation,
-		// TODO: Scale
+		Scale,
 	};
 
 	enum class RotationVariant8 : uint8_t
@@ -111,7 +111,12 @@ namespace acl
 	constexpr bool is_pack_72_bit_rate(uint8_t bit_rate) { return false; }
 	constexpr bool is_pack_96_bit_rate(uint8_t bit_rate) { return bit_rate == HIGHEST_BIT_RATE; }
 
-	struct BoneBitRate { uint8_t rotation; uint8_t translation; };
+	struct BoneBitRate
+	{
+		uint8_t rotation;
+		uint8_t translation;
+		uint8_t scale;
+	};
 
 	//////////////////////////////////////////////////////////////////////////
 

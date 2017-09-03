@@ -44,7 +44,7 @@ namespace acl
 		// Flags to determine which tracks have range reduction applied
 		Rotations			= 0x01,
 		Translations		= 0x02,
-		//Scales			= 0x04,		// TODO: Implement this
+		Scales				= 0x04,
 		//Properties		= 0x08,		// TODO: Implement this
 	};
 
@@ -62,8 +62,16 @@ namespace acl
 			return "RangeReduction::Rotations";
 		else if (flags == RangeReductionFlags8::Translations)
 			return "RangeReduction::Translations";
+		else if (flags == RangeReductionFlags8::Scales)
+			return "RangeReduction::Scales";
 		else if (flags == (RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
 			return "RangeReduction::Rotations | RangeReduction::Translations";
+		else if (flags == (RangeReductionFlags8::Rotations | RangeReductionFlags8::Scales))
+			return "RangeReduction::Rotations | RangeReduction::Scales";
+		else if (flags == (RangeReductionFlags8::Translations | RangeReductionFlags8::Scales))
+			return "RangeReduction::Translations | RangeReduction::Scales";
+		else if (flags == (RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales))
+			return "RangeReduction::Rotations | RangeReduction::Translations | RangeReduction::Scales";
 		else
 			return "<Invalid>";
 	}

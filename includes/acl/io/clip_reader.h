@@ -311,7 +311,8 @@ namespace acl
 				}
 				else
 				{
-					// TODO: Set default scale
+					for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
+						bone.scale_track.set_sample(sample_index, vector_set(1.0));
 				}
 
 				if (!m_parser.object_ends())
@@ -364,7 +365,7 @@ namespace acl
 				if (!m_parser.array_begins() || !m_parser.read(scale, 3) || !m_parser.array_ends())
 					return false;
 
-				// TODO: do something with scale.
+				bone.scale_track.set_sample(i, vector_unaligned_load3(scale));
 			}
 
 			return true;

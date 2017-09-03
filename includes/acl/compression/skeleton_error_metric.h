@@ -99,12 +99,12 @@ namespace acl
 		Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
 		Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
 
-		Vector4_32 raw_vtx0 = transform_position(raw_local_pose[bone_index], vtx0);
-		Vector4_32 lossy_vtx0 = transform_position(lossy_local_pose[bone_index], vtx0);
+		Vector4_32 raw_vtx0 = transform_position_no_scale(raw_local_pose[bone_index], vtx0);
+		Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_local_pose[bone_index], vtx0);
 		float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
 
-		Vector4_32 raw_vtx1 = transform_position(raw_local_pose[bone_index], vtx1);
-		Vector4_32 lossy_vtx1 = transform_position(lossy_local_pose[bone_index], vtx1);
+		Vector4_32 raw_vtx1 = transform_position_no_scale(raw_local_pose[bone_index], vtx1);
+		Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_local_pose[bone_index], vtx1);
 		float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
 
 		return max(vtx0_error, vtx1_error);
@@ -126,7 +126,7 @@ namespace acl
 				return local_pose[0];
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 			Transform_32 parent_transform = apply_fun(local_pose, bone.parent_index);
-			return transform_mul(local_pose[bone_index], parent_transform);
+			return transform_mul_no_scale(local_pose[bone_index], parent_transform);
 		};
 
 		Transform_32 raw_obj_transform = apply_fun(raw_local_pose, bone_index);
@@ -135,10 +135,10 @@ namespace acl
 		Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
 		Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
 
-		Vector4_32 raw_vtx0 = transform_position(raw_obj_transform, vtx0);
-		Vector4_32 raw_vtx1 = transform_position(raw_obj_transform, vtx1);
-		Vector4_32 lossy_vtx0 = transform_position(lossy_obj_transform, vtx0);
-		Vector4_32 lossy_vtx1 = transform_position(lossy_obj_transform, vtx1);
+		Vector4_32 raw_vtx0 = transform_position_no_scale(raw_obj_transform, vtx0);
+		Vector4_32 raw_vtx1 = transform_position_no_scale(raw_obj_transform, vtx1);
+		Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_obj_transform, vtx0);
+		Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_obj_transform, vtx1);
 
 		float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
 		float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);

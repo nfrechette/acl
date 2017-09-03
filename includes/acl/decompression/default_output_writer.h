@@ -53,6 +53,12 @@ namespace acl
 			m_transforms[bone_index].translation = translation;
 		}
 
+		void write_bone_scale(uint32_t bone_index, const acl::Vector4_32& scale)
+		{
+			ACL_ENSURE(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
+			m_transforms[bone_index].scale = scale;
+		}
+
 		Transform_32* m_transforms;
 		uint16_t m_num_transforms;
 	};

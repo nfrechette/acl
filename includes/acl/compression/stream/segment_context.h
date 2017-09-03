@@ -76,6 +76,7 @@ namespace acl
 
 		bool are_rotations_normalized;
 		bool are_translations_normalized;
+		bool are_scales_normalized;
 
 		//////////////////////////////////////////////////////////////////////////
 

@@ -103,11 +103,13 @@ namespace acl
 	{
 		Quat_32		rotation;
 		Vector4_32	translation;
+		Vector4_32	scale;
 	};
 
 	struct Transform_64
 	{
 		Quat_64		rotation;
 		Vector4_64	translation;
+		Vector4_64	scale;
 	};
 }

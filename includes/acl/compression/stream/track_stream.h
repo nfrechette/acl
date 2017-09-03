@@ -212,6 +212,35 @@ namespace acl
 		VectorFormat8 get_vector_format() const { return m_format.vector; }
 	};
 
+	class ScaleTrackStream : public TrackStream
+	{
+	public:
+		ScaleTrackStream() : TrackStream(AnimationTrackType8::Scale, TrackFormat8(VectorFormat8::Vector3_96)) {}
+		ScaleTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, VectorFormat8 format, uint8_t bit_rate = INVALID_BIT_RATE)
+			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Scale, TrackFormat8(format), bit_rate)
+		{}
+		ScaleTrackStream(const ScaleTrackStream&) = delete;
+		ScaleTrackStream(ScaleTrackStream&& other)
+			: TrackStream(std::forward<TrackStream>(other))
+		{}
+
+		ScaleTrackStream& operator=(const ScaleTrackStream&) = delete;
+		ScaleTrackStream& operator=(ScaleTrackStream&& rhs)
+		{
+			TrackStream::operator=(std::forward<TrackStream>(rhs));
+			return *this;
+		}
+
+		ScaleTrackStream duplicate() const
+		{
+			ScaleTrackStream copy;
+			TrackStream::duplicate(copy);
+			return copy;
+		}
+
+		VectorFormat8 get_vector_format() const { return m_format.vector; }
+	};
+
 	// For a rotation track, the extent only tells us if the track is constant or not
 	// since the min/max we maintain aren't valid rotations.
 	// Similarly, the center isn't a valid rotation and is meaningless.
@@ -245,6 +274,7 @@ namespace acl
 	{
 		TrackStreamRange rotation;
 		TrackStreamRange translation;
+		TrackStreamRange scale;
 	};
 
 	struct SegmentContext;
@@ -257,14 +287,18 @@ namespace acl
 
 		RotationTrackStream rotations;
 		TranslationTrackStream translations;
+		ScaleTrackStream scales;
 
 		bool is_rotation_constant;
 		bool is_rotation_default;
 		bool is_translation_constant;
 		bool is_translation_default;
+		bool is_scale_constant;
+		bool is_scale_default;
 
 		bool is_rotation_animated() const { return !is_rotation_constant && !is_rotation_default; }
 		bool is_translation_animated() const { return !is_translation_constant && !is_translation_default; }
+		bool is_scale_animated() const { return !is_scale_constant && !is_scale_default; }
 
 		BoneStreams duplicate() const
 		{
@@ -274,10 +308,13 @@ namespace acl
 			copy.parent_bone_index = parent_bone_index;
 			copy.rotations = rotations.duplicate();
 			copy.translations = translations.duplicate();
+			copy.scales = scales.duplicate();
 			copy.is_rotation_constant = is_rotation_constant;
 			copy.is_rotation_default = is_rotation_default;
 			copy.is_translation_constant = is_translation_constant;
 			copy.is_translation_default = is_translation_default;
+			copy.is_scale_constant = is_scale_constant;
+			copy.is_scale_default = is_scale_default;
 			return copy;
 		}
 	};
@@ -290,6 +327,7 @@ namespace acl
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 			num_samples = std::max(num_samples, bone_stream.rotations.get_num_samples());
 			num_samples = std::max(num_samples, bone_stream.translations.get_num_samples());
+			num_samples = std::max(num_samples, bone_stream.scales.get_num_samples());
 
 			if (num_samples != 1)
 				break;

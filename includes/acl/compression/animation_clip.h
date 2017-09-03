@@ -39,6 +39,7 @@ namespace acl
 	{
 		AnimationRotationTrack		rotation_track;
 		AnimationTranslationTrack	translation_track;
+		AnimationScaleTrack			scale_track;
 	};
 
 	class AnimationClip
@@ -59,6 +60,7 @@ namespace acl
 			{
 				m_bones[bone_index].rotation_track = AnimationRotationTrack(allocator, num_samples, sample_rate);
 				m_bones[bone_index].translation_track = AnimationTranslationTrack(allocator, num_samples, sample_rate);
+				m_bones[bone_index].scale_track = AnimationScaleTrack(allocator, num_samples, sample_rate);
 			}
 		}
 
@@ -115,7 +117,11 @@ namespace acl
 				Vector4_32 translation1 = vector_cast(bone.translation_track.get_sample(sample_frame1));
 				Vector4_32 translation = vector_lerp(translation0, translation1, interpolation_alpha);
 
-				out_local_pose[bone_index] = transform_set(rotation, translation);
+				Vector4_32 scale0 = vector_cast(bone.scale_track.get_sample(sample_frame0));
+				Vector4_32 scale1 = vector_cast(bone.scale_track.get_sample(sample_frame1));
+				Vector4_32 scale = vector_lerp(scale0, scale1, interpolation_alpha);
+
+				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
 		}
 

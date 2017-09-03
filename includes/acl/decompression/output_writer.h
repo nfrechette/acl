@@ -36,13 +36,15 @@ namespace acl
 	// the callbacks can trivially be inlined.
 	struct OutputWriter
 	{
-		// TODO: use constexpr flags to control if we extract rotation only, translation only, etc.
-
 		void write_bone_rotation(uint32_t bone_index, const Quat_32& rotation)
 		{
 		}
 
 		void write_bone_translation(uint32_t bone_index, const Vector4_32& translation)
+		{
+		}
+
+		void write_bone_scale(uint32_t bone_index, const Vector4_32& scale)
 		{
 		}
 	};

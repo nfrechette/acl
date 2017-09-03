@@ -210,6 +210,11 @@ namespace acl
 		return vector_mul(input, -1.0);
 	}
 
+	inline Vector4_64 vector_reciprocal(const Vector4_64& input)
+	{
+		return vector_div(vector_set(1.0), input);
+	}
+
 	inline Vector4_64 vector_cross3(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 		return vector_set(vector_get_y(lhs) * vector_get_z(rhs) - vector_get_z(lhs) * vector_get_y(rhs),

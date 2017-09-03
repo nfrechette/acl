@@ -550,6 +550,237 @@ namespace acl
 		return packed_translation;
 	}
 
+	inline Vector4_32 get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index)
+	{
+		const SegmentContext* segment = bone_steams.segment;
+		const ClipContext* clip_context = segment->clip;
+		bool are_scales_normalized = clip_context->are_scales_normalized;
+
+		VectorFormat8 format = bone_steams.scales.get_vector_format();
+		uint8_t bit_rate = bone_steams.scales.get_bit_rate();
+
+		if (format == VectorFormat8::Vector3_Variable && is_pack_0_bit_rate(bit_rate))
+			sample_index = 0;
+
+		const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
+
+		Vector4_32 packed_scale;
+
+		switch (format)
+		{
+		case VectorFormat8::Vector3_96:
+			packed_scale = unpack_vector3_96(quantized_ptr);
+			break;
+		case VectorFormat8::Vector3_48:
+			packed_scale = unpack_vector3_48(quantized_ptr, are_scales_normalized);
+			break;
+		case VectorFormat8::Vector3_32:
+			packed_scale = unpack_vector3_32(11, 11, 10, are_scales_normalized, quantized_ptr);
+			break;
+		case VectorFormat8::Vector3_Variable:
+		{
+			ACL_ENSURE(are_scales_normalized, "Scales must be normalized to support variable bit rates.");
+
+			if (is_pack_0_bit_rate(bit_rate))
+			{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+				packed_scale = unpack_vector3_48(quantized_ptr, true);
+#else
+				packed_scale = unpack_vector3_96(quantized_ptr);
+#endif
+			}
+			else if (is_pack_72_bit_rate(bit_rate))
+				packed_scale = unpack_vector3_72(true, quantized_ptr);
+			else if (is_pack_96_bit_rate(bit_rate))
+				packed_scale = unpack_vector3_96(quantized_ptr);
+			else
+			{
+				uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+				packed_scale = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+			}
+		}
+		break;
+		default:
+			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+			packed_scale = vector_set(1.0f);
+			break;
+		}
+
+		if (segment->are_scales_normalized && !is_pack_0_bit_rate(bit_rate))
+		{
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+
+			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
+		}
+
+		if (are_scales_normalized)
+		{
+			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
+
+			Vector4_32 clip_range_min = clip_bone_range.scale.get_min();
+			Vector4_32 clip_range_extent = clip_bone_range.scale.get_extent();
+
+			packed_scale = vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
+		}
+
+		return packed_scale;
+	}
+
+	inline Vector4_32 get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, uint8_t bit_rate)
+	{
+		const SegmentContext* segment = bone_steams.segment;
+		const ClipContext* clip_context = segment->clip;
+		bool are_scales_normalized = clip_context->are_scales_normalized;
+
+		if (is_pack_0_bit_rate(bit_rate))
+			sample_index = 0;
+
+		const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
+
+		Vector4_32 scale;
+
+		VectorFormat8 format = bone_steams.scales.get_vector_format();
+		switch (format)
+		{
+		case VectorFormat8::Vector3_96:
+			scale = unpack_vector3_96(quantized_ptr);
+			break;
+		default:
+			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+			scale = vector_set(1.0f);
+			break;
+		}
+
+		ACL_ENSURE(are_scales_normalized, "Scales must be normalized to support variable bit rates.");
+
+		// Pack and unpack at our desired bit rate
+		uint8_t raw_data[16] = { 0 };
+		Vector4_32 packed_scale;
+
+		if (is_pack_0_bit_rate(bit_rate))
+		{
+			ACL_ENSURE(segment->are_scales_normalized, "Translations must be normalized to support variable bit rates.");
+
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+
+			scale = vector_mul_add(scale, segment_range_extent, segment_range_min);
+
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+			pack_vector3_48(scale, true, &raw_data[0]);
+			packed_scale = unpack_vector3_48(&raw_data[0], true);
+#else
+			pack_vector3_96(scale, &raw_data[0]);
+			packed_scale = unpack_vector3_96(&raw_data[0]);
+#endif
+		}
+		else if (is_pack_72_bit_rate(bit_rate))
+		{
+			pack_vector3_72(scale, true, &raw_data[0]);
+			packed_scale = unpack_vector3_72(true, &raw_data[0]);
+		}
+		else if (is_pack_96_bit_rate(bit_rate))
+		{
+			pack_vector3_96(scale, &raw_data[0]);
+			packed_scale = unpack_vector3_96(&raw_data[0]);
+		}
+		else
+		{
+			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+			pack_vector3_n(scale, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
+			packed_scale = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
+		}
+
+		if (segment->are_scales_normalized && !is_pack_0_bit_rate(bit_rate))
+		{
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+
+			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
+		}
+
+		const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
+
+		Vector4_32 clip_range_min = clip_bone_range.scale.get_min();
+		Vector4_32 clip_range_extent = clip_bone_range.scale.get_extent();
+
+		return vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
+	}
+
+	inline Vector4_32 get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
+	{
+		const SegmentContext* segment = bone_steams.segment;
+		const ClipContext* clip_context = segment->clip;
+		bool are_scales_normalized = clip_context->are_scales_normalized;
+		const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
+
+		Vector4_32 scale;
+
+		VectorFormat8 format = bone_steams.scales.get_vector_format();
+		switch (format)
+		{
+		case VectorFormat8::Vector3_96:
+			scale = unpack_vector3_96(quantized_ptr);
+			break;
+		default:
+			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+			scale = vector_set(1.0f);
+			break;
+		}
+
+		// Pack and unpack in our desired format
+		uint8_t raw_data[16] = { 0 };
+		Vector4_32 packed_scale;
+
+		switch (desired_format)
+		{
+		case VectorFormat8::Vector3_96:
+			packed_scale = scale;
+			break;
+		case VectorFormat8::Vector3_48:
+			pack_vector3_48(scale, are_scales_normalized, &raw_data[0]);
+			packed_scale = unpack_vector3_48(&raw_data[0], are_scales_normalized);
+			break;
+		case VectorFormat8::Vector3_32:
+			pack_vector3_32(scale, 11, 11, 10, are_scales_normalized, &raw_data[0]);
+			packed_scale = unpack_vector3_32(11, 11, 10, are_scales_normalized, &raw_data[0]);
+			break;
+		default:
+			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
+			packed_scale = vector_set(1.0f);
+			break;
+		}
+
+		if (segment->are_scales_normalized)
+		{
+			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+			Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
+			Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+
+			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
+		}
+
+		if (are_scales_normalized)
+		{
+			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
+
+			Vector4_32 clip_range_min = clip_bone_range.scale.get_min();
+			Vector4_32 clip_range_extent = clip_bone_range.scale.get_extent();
+
+			packed_scale = vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
+		}
+
+		return packed_scale;
+	}
+
 	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, Transform_32* out_local_pose)
 	{
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -596,7 +827,27 @@ namespace acl
 				translation = get_translation_sample(bone_stream, 0);
 			}
 
-			out_local_pose[bone_index] = transform_set(rotation, translation);
+			Vector4_32 scale;
+			if (bone_stream.is_scale_animated() && !is_pack_0_bit_rate(bone_stream.scales.get_bit_rate()))
+			{
+				uint32_t num_samples = bone_stream.scales.get_num_samples();
+				float duration = bone_stream.scales.get_duration();
+
+				uint32_t key0;
+				uint32_t key1;
+				float interpolation_alpha;
+				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+
+				Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
+				Vector4_32 sample1 = get_scale_sample(bone_stream, key1);
+				scale = vector_lerp(sample0, sample1, interpolation_alpha);
+			}
+			else
+			{
+				scale = get_scale_sample(bone_stream, 0);
+			}
+
+			out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 		}
 	}
 
@@ -647,15 +898,36 @@ namespace acl
 				translation = get_translation_sample(bone_stream, 0);
 			}
 
-			out_local_pose[current_bone_index] = transform_set(rotation, translation);
+			Vector4_32 scale;
+			if (bone_stream.is_scale_animated())
+			{
+				uint32_t num_samples = bone_stream.scales.get_num_samples();
+				float duration = bone_stream.scales.get_duration();
+
+				uint32_t key0;
+				uint32_t key1;
+				float interpolation_alpha;
+				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+
+				Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
+				Vector4_32 sample1 = get_scale_sample(bone_stream, key1);
+				scale = vector_lerp(sample0, sample1, interpolation_alpha);
+			}
+			else
+			{
+				scale = get_scale_sample(bone_stream, 0);
+			}
+
+			out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 			current_bone_index = bone_stream.parent_bone_index;
 		}
 	}
 
-	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, Transform_32* out_local_pose)
+	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose)
 	{
 		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
+		const bool is_scale_variable = is_vector_format_variable(scale_format);
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
@@ -730,14 +1002,48 @@ namespace acl
 				translation = get_translation_sample(bone_stream, 0, VectorFormat8::Vector3_96);
 			}
 
-			out_local_pose[bone_index] = transform_set(rotation, translation);
+			Vector4_32 scale;
+			if (bone_stream.is_scale_animated())
+			{
+				uint32_t num_samples = bone_stream.scales.get_num_samples();
+				float duration = bone_stream.scales.get_duration();
+
+				uint32_t key0;
+				uint32_t key1;
+				float interpolation_alpha;
+				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+
+				Vector4_32 sample0;
+				Vector4_32 sample1;
+				if (is_scale_variable)
+				{
+					uint8_t bit_rate = bit_rates[bone_index].scale;
+
+					sample0 = get_scale_sample(bone_stream, key0, bit_rate);
+					sample1 = get_scale_sample(bone_stream, key1, bit_rate);
+				}
+				else
+				{
+					sample0 = get_scale_sample(bone_stream, key0, scale_format);
+					sample1 = get_scale_sample(bone_stream, key1, scale_format);
+				}
+
+				scale = vector_lerp(sample0, sample1, interpolation_alpha);
+			}
+			else
+			{
+				scale = get_scale_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+			}
+
+			out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 		}
 	}
 
-	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, Transform_32* out_local_pose)
+	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose)
 	{
 		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
+		const bool is_scale_variable = is_vector_format_variable(scale_format);
 
 		uint16_t current_bone_index = bone_index;
 		while (current_bone_index != INVALID_BONE_INDEX)
@@ -813,7 +1119,40 @@ namespace acl
 				translation = get_translation_sample(bone_stream, 0, VectorFormat8::Vector3_96);
 			}
 
-			out_local_pose[current_bone_index] = transform_set(rotation, translation);
+			Vector4_32 scale;
+			if (bone_stream.is_scale_animated())
+			{
+				uint32_t num_samples = bone_stream.scales.get_num_samples();
+				float duration = bone_stream.scales.get_duration();
+
+				uint32_t key0;
+				uint32_t key1;
+				float interpolation_alpha;
+				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+
+				Vector4_32 sample0;
+				Vector4_32 sample1;
+				if (is_scale_variable)
+				{
+					uint8_t bit_rate = bit_rates[current_bone_index].scale;
+
+					sample0 = get_scale_sample(bone_stream, key0, bit_rate);
+					sample1 = get_scale_sample(bone_stream, key1, bit_rate);
+				}
+				else
+				{
+					sample0 = get_scale_sample(bone_stream, key0, scale_format);
+					sample1 = get_scale_sample(bone_stream, key1, scale_format);
+				}
+
+				scale = vector_lerp(sample0, sample1, interpolation_alpha);
+			}
+			else
+			{
+				scale = get_scale_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+			}
+
+			out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 			current_bone_index = bone_stream.parent_bone_index;
 		}
 	}
@@ -830,7 +1169,10 @@ namespace acl
 			uint32_t translation_sample_index = bone_stream.is_translation_animated() ? sample_index : 0;
 			Vector4_32 translation = get_translation_sample(bone_stream, translation_sample_index);
 
-			out_local_pose[bone_index] = transform_set(rotation, translation);
+			uint32_t scale_sample_index = bone_stream.is_scale_animated() ? sample_index : 0;
+			Vector4_32 scale = get_scale_sample(bone_stream, scale_sample_index);
+
+			out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 		}
 	}
 }

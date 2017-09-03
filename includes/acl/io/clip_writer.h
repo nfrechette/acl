@@ -154,6 +154,25 @@ namespace acl
 							writer.push_newline();
 						}
 					};
+
+					writer["scales"] = [&](SJSONArrayWriter& writer)
+					{
+						uint32_t num_scale_samples = bone.scale_track.get_num_samples();
+						if (num_scale_samples > 0)
+							writer.push_newline();
+
+						for (uint32_t sample_index = 0; sample_index < num_scale_samples; ++sample_index)
+						{
+							Vector4_64 scale = bone.scale_track.get_sample(sample_index);
+							writer.push_array([&](SJSONArrayWriter& writer)
+							{
+								writer.push_value(vector_get_x(scale));
+								writer.push_value(vector_get_y(scale));
+								writer.push_value(vector_get_z(scale));
+							});
+							writer.push_newline();
+						}
+					};
 				});
 			}
 		};

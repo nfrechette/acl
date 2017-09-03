@@ -94,6 +94,7 @@ namespace acl
 			segment.segment_index = segment_index;
 			segment.are_rotations_normalized = false;
 			segment.are_translations_normalized = false;
+			segment.are_scales_normalized = false;
 
 			for (uint16_t bone_index = 0; bone_index < clip_context.num_bones; ++bone_index)
 			{
@@ -130,10 +131,25 @@ namespace acl
 					segment_bone_stream.translations = std::move(translations);
 				}
 
+				if (!clip_bone_stream.is_scale_animated())
+				{
+					segment_bone_stream.scales = clip_bone_stream.scales.duplicate();
+				}
+				else
+				{
+					uint32_t sample_size = clip_bone_stream.scales.get_sample_size();
+					ScaleTrackStream scales(allocator, num_samples_in_segment, sample_size, clip_bone_stream.scales.get_sample_rate(), clip_bone_stream.scales.get_vector_format(), clip_bone_stream.scales.get_bit_rate());
+					memcpy(scales.get_raw_sample_ptr(0), clip_bone_stream.scales.get_raw_sample_ptr(clip_sample_index), num_samples_in_segment * sample_size);
+
+					segment_bone_stream.scales = std::move(scales);
+				}
+
 				segment_bone_stream.is_rotation_constant = clip_bone_stream.is_rotation_constant;
 				segment_bone_stream.is_rotation_default = clip_bone_stream.is_rotation_default;
 				segment_bone_stream.is_translation_constant = clip_bone_stream.is_translation_constant;
 				segment_bone_stream.is_translation_default = clip_bone_stream.is_translation_default;
+				segment_bone_stream.is_scale_constant = clip_bone_stream.is_scale_constant;
+				segment_bone_stream.is_scale_default = clip_bone_stream.is_scale_default;
 			}
 
 			clip_sample_index += num_samples_in_segment;

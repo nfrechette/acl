@@ -33,7 +33,7 @@
 
 namespace acl
 {
-	inline void compact_constant_streams(Allocator& allocator, ClipContext& clip_context, float rotation_threshold, float translation_threshold)
+	inline void compact_constant_streams(Allocator& allocator, ClipContext& clip_context, float rotation_threshold, float translation_threshold, float scale_threshold)
 	{
 		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];
@@ -47,6 +47,7 @@ namespace acl
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
+			ACL_ENSURE(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
 
 			if (bone_range.rotation.is_constant(rotation_threshold))
 			{
@@ -69,9 +70,22 @@ namespace acl
 
 				bone_stream.translations = std::move(constant_stream);
 				bone_stream.is_translation_constant = true;
-				bone_stream.is_translation_default = vector_near_equal(translation, vector_zero_32());
+				bone_stream.is_translation_default = vector_near_equal3(translation, vector_zero_32());
 
 				bone_range.translation = TrackStreamRange(translation, translation);
+			}
+
+			if (bone_range.scale.is_constant(scale_threshold))
+			{
+				ScaleTrackStream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
+				Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(0);
+				constant_stream.set_raw_sample(0, scale);
+
+				bone_stream.scales = std::move(constant_stream);
+				bone_stream.is_scale_constant = true;
+				bone_stream.is_scale_default = vector_near_equal3(scale, vector_set(1.0f));
+
+				bone_range.scale = TrackStreamRange(scale, scale);
 			}
 		}
 	}

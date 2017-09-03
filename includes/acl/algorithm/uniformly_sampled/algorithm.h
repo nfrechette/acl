@@ -72,10 +72,10 @@ namespace acl
 			uniformly_sampled::decompress_pose(settings, clip, context, sample_time, writer);
 		}
 
-		virtual void decompress_bone(const CompressedClip& clip, void* context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation) override
+		virtual void decompress_bone(const CompressedClip& clip, void* context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale) override
 		{
 			uniformly_sampled::DecompressionSettings settings;
-			uniformly_sampled::decompress_bone(settings, clip, context, sample_time, sample_bone_index, out_rotation, out_translation);
+			uniformly_sampled::decompress_bone(settings, clip, context, sample_time, sample_bone_index, out_rotation, out_translation, out_scale);
 		}
 
 		virtual uint32_t get_uid() const override

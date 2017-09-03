@@ -176,9 +176,11 @@ static void unit_test(Allocator& allocator, const AnimationClip& clip, const Rig
 		float sample_time = clip.get_duration();
 		Quat_32 test_rotation;
 		Vector4_32 test_translation;
-		algorithm.decompress_bone(compressed_clip, context, sample_time, sample_bone_index, &test_rotation, &test_translation);
+		Vector4_32 test_scale;
+		algorithm.decompress_bone(compressed_clip, context, sample_time, sample_bone_index, &test_rotation, &test_translation, &test_scale);
 		ACL_ENSURE(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
 		ACL_ENSURE(vector_near_equal3(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
+		ACL_ENSURE(vector_near_equal3(test_scale, lossy_pose_transforms[sample_bone_index].scale), "Failed to sample bone index: %u", sample_bone_index);
 	}
 
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
