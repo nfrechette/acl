@@ -1050,15 +1050,22 @@ namespace acl
 						{
 							BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
 
-							if (bone_bit_rate.rotation >= HIGHEST_BIT_RATE && bone_bit_rate.translation >= HIGHEST_BIT_RATE && bone_bit_rate.scale >= HIGHEST_BIT_RATE)
+							static_assert(offsetof(BoneBitRate, rotation) == 0 && offsetof(BoneBitRate, scale) == sizeof(BoneBitRate) - 1, "Invalid BoneBitRate offsets");
+							uint8_t& smallest_bit_rate = *std::min_element<uint8_t*>(&bone_bit_rate.rotation, &bone_bit_rate.scale + 1);
+
+							if (smallest_bit_rate >= HIGHEST_BIT_RATE)
 							{
 								num_maxed_out++;
 								break;
 							}
 
-							static_assert(offsetof(BoneBitRate, rotation) == 0 && offsetof(BoneBitRate, scale) == sizeof(BoneBitRate) - 1, "Invalid BoneBitRate offsets");
-							uint8_t* smallest_bit_rate = std::min_element<uint8_t*>(&bone_bit_rate.rotation, &bone_bit_rate.scale + 1);
-							(*smallest_bit_rate)++;
+							// If rotation == translation and translation has room, bias translation
+							// This seems to yield an overall tiny win but it isn't always the case.
+							// TODO: Brute force this?
+							if (bone_bit_rate.rotation == bone_bit_rate.translation && bone_bit_rate.translation < HIGHEST_BIT_RATE && bone_bit_rate.scale >= HIGHEST_BIT_RATE)
+								bone_bit_rate.translation++;
+							else
+								smallest_bit_rate++;
 
 							ACL_ENSURE((bone_bit_rate.rotation <= HIGHEST_BIT_RATE || bone_bit_rate.rotation == INVALID_BIT_RATE) && (bone_bit_rate.translation <= HIGHEST_BIT_RATE || bone_bit_rate.translation == INVALID_BIT_RATE) && (bone_bit_rate.scale <= HIGHEST_BIT_RATE || bone_bit_rate.scale == INVALID_BIT_RATE), "Invalid bit rate! [%u, %u, %u]", bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale);
 
