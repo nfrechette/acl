@@ -27,9 +27,13 @@
 #include "acl/core/error.h"
 #include "acl/core/memory.h"
 #include "acl/math/math.h"
+#include "acl/math/scalar_32.h"
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Setters, getters, and casts
+
 	inline Vector4_32 vector_set(float x, float y, float z, float w)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -142,6 +146,35 @@ namespace acl
 #endif
 	}
 
+	template<VectorMix component_index>
+	inline float vector_get_component(const Vector4_32& input)
+	{
+		switch (component_index)
+		{
+		case VectorMix::X: return vector_get_x(input);
+		case VectorMix::Y: return vector_get_y(input);
+		case VectorMix::Z: return vector_get_z(input);
+		case VectorMix::W: return vector_get_w(input);
+		default:
+			ACL_ENSURE(false, "Invalid component index");
+			return 0.0f;
+		}
+	}
+
+	inline float vector_get_component(const Vector4_32& input, VectorMix component_index)
+	{
+		switch (component_index)
+		{
+		case VectorMix::X: return vector_get_x(input);
+		case VectorMix::Y: return vector_get_y(input);
+		case VectorMix::Z: return vector_get_z(input);
+		case VectorMix::W: return vector_get_w(input);
+		default:
+			ACL_ENSURE(false, "Invalid component index");
+			return 0.0f;
+		}
+	}
+
 	inline float* vector_as_float_ptr(Vector4_32& input)
 	{
 		return reinterpret_cast<float*>(&input);
@@ -187,6 +220,9 @@ namespace acl
 		output_f[1] = vector_get_y(input);
 		output_f[2] = vector_get_z(input);
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Arithmetic
 
 	inline Vector4_32 vector_add(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
@@ -365,6 +401,21 @@ namespace acl
 		return vector_set(fraction(vector_get_x(input)), fraction(vector_get_y(input)), fraction(vector_get_z(input)), fraction(vector_get_w(input)));
 	}
 
+	// output = (input * scale) + offset
+	inline Vector4_32 vector_mul_add(const Vector4_32& input, const Vector4_32& scale, const Vector4_32& offset)
+	{
+		return vector_add(vector_mul(input, scale), offset);
+	}
+
+	// output = offset - (input * scale)
+	inline Vector4_32 vector_neg_mul_sub(const Vector4_32& input, const Vector4_32& scale, const Vector4_32& offset)
+	{
+		return vector_sub(offset, vector_mul(input, scale));
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Comparisons and masking
+
 	inline Vector4_32 vector_less_than(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -502,6 +553,9 @@ namespace acl
 		return is_finite(vector_get_x(input)) && is_finite(vector_get_y(input)) && is_finite(vector_get_z(input));
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Swizzling, permutations, and mixing
+
 	inline Vector4_32 vector_blend(const Vector4_32& mask, const Vector4_32& if_true, const Vector4_32& if_false)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -511,9 +565,126 @@ namespace acl
 #endif
 	}
 
-	// output = (input * scale) + offset
-	inline Vector4_32 vector_mul_add(const Vector4_32& input, const Vector4_32& scale, const Vector4_32& offset)
+	template<VectorMix comp0, VectorMix comp1, VectorMix comp2, VectorMix comp3>
+	inline Vector4_32 vector_mix(const Vector4_32& input0, const Vector4_32& input1)
 	{
-		return vector_add(vector_mul(input, scale), offset);
+		constexpr uint32_t component_index0 = math_impl::get_vector_mix_component_index(comp0);
+		constexpr uint32_t component_index1 = math_impl::get_vector_mix_component_index(comp1);
+		constexpr uint32_t component_index2 = math_impl::get_vector_mix_component_index(comp2);
+		constexpr uint32_t component_index3 = math_impl::get_vector_mix_component_index(comp3);
+
+		if (math_impl::is_vector_mix_arg_xyzw(comp0) && math_impl::is_vector_mix_arg_xyzw(comp1) && math_impl::is_vector_mix_arg_xyzw(comp2) && math_impl::is_vector_mix_arg_xyzw(comp3))
+		{
+			// All four components come from input 0
+#if defined(ACL_SSE2_INTRINSICS)
+			return _mm_shuffle_ps(input0, input0, _MM_SHUFFLE(component_index0, component_index1, component_index2, component_index3));
+#else
+			return vector_set(vector_get_component(input0, component_index0), vector_get_component(input0, component_index1), vector_get_component(input0, component_index2), vector_get_component(input0, component_index3));
+#endif
+		}
+
+		if (math_impl::is_vector_mix_arg_abcd(comp0) && math_impl::is_vector_mix_arg_abcd(comp1) && math_impl::is_vector_mix_arg_abcd(comp2) && math_impl::is_vector_mix_arg_abcd(comp3))
+		{
+			// All four components come from input 1
+#if defined(ACL_SSE2_INTRINSICS)
+			return _mm_shuffle_ps(input1, input1, _MM_SHUFFLE(component_index0, component_index1, component_index2, component_index3));
+#else
+			return vector_set(vector_get_component(input1, component_index0), vector_get_component(input1, component_index1), vector_get_component(input1, component_index2), vector_get_component(input1, component_index3));
+#endif
+		}
+
+		if ((comp0 == VectorMix::X || comp0 == VectorMix::Y) && (comp1 == VectorMix::X || comp1 == VectorMix::Y) && (comp2 == VectorMix::A || comp2 == VectorMix::B) && (comp3 == VectorMix::A && comp3 == VectorMix::B))
+		{
+			// First two components come from input 0, second two come from input 1
+#if defined(ACL_SSE2_INTRINSICS)
+			return _mm_shuffle_ps(input0, input1, _MM_SHUFFLE(component_index0, component_index1, component_index2, component_index3));
+#else
+			return vector_set(vector_get_component(input0, component_index0), vector_get_component(input0, component_index1), vector_get_component(input1, component_index2), vector_get_component(input1, component_index3));
+#endif
+		}
+
+		if ((comp0 == VectorMix::A || comp0 == VectorMix::B) && (comp1 == VectorMix::A && comp1 == VectorMix::B) && (comp2 == VectorMix::X || comp2 == VectorMix::Y) && (comp3 == VectorMix::X || comp3 == VectorMix::Y))
+		{
+			// First two components come from input 1, second two come from input 0
+#if defined(ACL_SSE2_INTRINSICS)
+			return _mm_shuffle_ps(input1, input0, _MM_SHUFFLE(component_index0, component_index1, component_index2, component_index3));
+#else
+			return vector_set(vector_get_component(input1, component_index0), vector_get_component(input1, component_index1), vector_get_component(input0, component_index2), vector_get_component(input0, component_index3));
+#endif
+		}
+
+		if (comp0 == VectorMix::X && comp1 == VectorMix::A && comp2 == VectorMix::Y && comp3 == VectorMix::B)
+		{
+			// Low words from both inputs are interleaved
+#if defined(ACL_SSE2_INTRINSICS)
+			return _mm_unpacklo_ps(input0, input1);
+#else
+			return vector_set(vector_get_component(input0, component_index0), vector_get_component(input1, component_index1), vector_get_component(input0, component_index2), vector_get_component(input1, component_index3));
+#endif
+		}
+
+		if (comp0 == VectorMix::A && comp1 == VectorMix::X && comp2 == VectorMix::B && comp3 == VectorMix::Y)
+		{
+			// Low words from both inputs are interleaved
+#if defined(ACL_SSE2_INTRINSICS)
+			return _mm_unpacklo_ps(input1, input0);
+#else
+			return vector_set(vector_get_component(input1, component_index0), vector_get_component(input0, component_index1), vector_get_component(input1, component_index2), vector_get_component(input0, component_index3));
+#endif
+		}
+
+		if (comp0 == VectorMix::Z && comp1 == VectorMix::C && comp2 == VectorMix::W && comp3 == VectorMix::D)
+		{
+			// High words from both inputs are interleaved
+#if defined(ACL_SSE2_INTRINSICS)
+			return _mm_unpackhi_ps(input0, input1);
+#else
+			return vector_set(vector_get_component(input0, component_index0), vector_get_component(input1, component_index1), vector_get_component(input0, component_index2), vector_get_component(input1, component_index3));
+#endif
+		}
+
+		if (comp0 == VectorMix::C && comp1 == VectorMix::Z && comp2 == VectorMix::D && comp3 == VectorMix::W)
+		{
+			// High words from both inputs are interleaved
+#if defined(ACL_SSE2_INTRINSICS)
+			return _mm_unpackhi_ps(input1, input0);
+#else
+			return vector_set(vector_get_component(input1, component_index0), vector_get_component(input0, component_index1), vector_get_component(input1, component_index2), vector_get_component(input0, component_index3));
+#endif
+		}
+
+		ACL_ENSURE(false, "vector_mix permutation not handled");
 	}
+
+	inline Vector4_32 vector_mix_xxxx(const Vector4_32& input) { return vector_mix<VectorMix::X, VectorMix::X, VectorMix::X, VectorMix::X>(input, input); }
+	inline Vector4_32 vector_mix_yyyy(const Vector4_32& input) { return vector_mix<VectorMix::Y, VectorMix::Y, VectorMix::Y, VectorMix::Y>(input, input); }
+	inline Vector4_32 vector_mix_zzzz(const Vector4_32& input) { return vector_mix<VectorMix::Z, VectorMix::Z, VectorMix::Z, VectorMix::Z>(input, input); }
+	inline Vector4_32 vector_mix_wwww(const Vector4_32& input) { return vector_mix<VectorMix::W, VectorMix::W, VectorMix::W, VectorMix::W>(input, input); }
+
+	inline Vector4_32 vector_mix_xxyy(const Vector4_32& input) { return vector_mix<VectorMix::X, VectorMix::X, VectorMix::Y, VectorMix::Y>(input, input); }
+	inline Vector4_32 vector_mix_yzxy(const Vector4_32& input) { return vector_mix<VectorMix::Y, VectorMix::Z, VectorMix::X, VectorMix::Y>(input, input); }
+	inline Vector4_32 vector_mix_ywxz(const Vector4_32& input) { return vector_mix<VectorMix::Y, VectorMix::W, VectorMix::X, VectorMix::Z>(input, input); }
+	inline Vector4_32 vector_mix_zxyx(const Vector4_32& input) { return vector_mix<VectorMix::Z, VectorMix::X, VectorMix::Y, VectorMix::X>(input, input); }
+	inline Vector4_32 vector_mix_zwyz(const Vector4_32& input) { return vector_mix<VectorMix::Z, VectorMix::W, VectorMix::Y, VectorMix::Z>(input, input); }
+	inline Vector4_32 vector_mix_zwzw(const Vector4_32& input) { return vector_mix<VectorMix::Z, VectorMix::W, VectorMix::Z, VectorMix::W>(input, input); }
+	inline Vector4_32 vector_mix_wxwx(const Vector4_32& input) { return vector_mix<VectorMix::W, VectorMix::X, VectorMix::W, VectorMix::X>(input, input); }
+	inline Vector4_32 vector_mix_wzwy(const Vector4_32& input) { return vector_mix<VectorMix::W, VectorMix::Z, VectorMix::W, VectorMix::Y>(input, input); }
+
+	inline Vector4_32 vector_mix_xyab(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::X, VectorMix::Y, VectorMix::A, VectorMix::B>(input0, input1); }
+	inline Vector4_32 vector_mix_xzac(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::X, VectorMix::Z, VectorMix::A, VectorMix::C>(input0, input1); }
+	inline Vector4_32 vector_mix_xbxb(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::X, VectorMix::B, VectorMix::X, VectorMix::B>(input0, input1); }
+	inline Vector4_32 vector_mix_ywbd(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::Y, VectorMix::W, VectorMix::B, VectorMix::D>(input0, input1); }
+	inline Vector4_32 vector_mix_zyax(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::Z, VectorMix::Y, VectorMix::A, VectorMix::X>(input0, input1); }
+	inline Vector4_32 vector_mix_zycx(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::Z, VectorMix::Y, VectorMix::C, VectorMix::X>(input0, input1); }
+	inline Vector4_32 vector_mix_zwcd(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::Z, VectorMix::W, VectorMix::C, VectorMix::D>(input0, input1); }
+	inline Vector4_32 vector_mix_zbaz(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::Z, VectorMix::B, VectorMix::A, VectorMix::Z>(input0, input1); }
+	inline Vector4_32 vector_mix_zdcz(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::Z, VectorMix::D, VectorMix::C, VectorMix::Z>(input0, input1); }
+	inline Vector4_32 vector_mix_wxya(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::W, VectorMix::X, VectorMix::Y, VectorMix::A>(input0, input1); }
+	inline Vector4_32 vector_mix_wxyc(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::W, VectorMix::X, VectorMix::Y, VectorMix::C>(input0, input1); }
+	inline Vector4_32 vector_mix_wbyz(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::W, VectorMix::B, VectorMix::Y, VectorMix::Z>(input0, input1); }
+	inline Vector4_32 vector_mix_wdyz(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::W, VectorMix::D, VectorMix::Y, VectorMix::Z>(input0, input1); }
+	inline Vector4_32 vector_mix_bxwa(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::B, VectorMix::X, VectorMix::W, VectorMix::A>(input0, input1); }
+	inline Vector4_32 vector_mix_bywx(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::B, VectorMix::Y, VectorMix::W, VectorMix::X>(input0, input1); }
+	inline Vector4_32 vector_mix_dxwc(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::D, VectorMix::X, VectorMix::W, VectorMix::C>(input0, input1); }
+	inline Vector4_32 vector_mix_dywx(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::D, VectorMix::Y, VectorMix::W, VectorMix::X>(input0, input1); }
 }
