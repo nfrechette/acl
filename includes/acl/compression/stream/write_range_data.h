@@ -66,10 +66,60 @@ namespace acl
 		return get_stream_range_data_size(segment.bone_streams, segment.num_bones, range_reduction, rotation_format, translation_format);
 	}
 
-	inline void write_range_track_data(const BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones,
+	inline void write_range_track_data_impl(const TrackStream& track, const TrackStreamRange& range, bool is_clip_range_data, uint8_t*& out_range_data)
+	{
+		Vector4_32 range_min = range.get_min();
+		Vector4_32 range_extent = range.get_extent();
+
+		if (is_clip_range_data)
+		{
+			uint32_t range_member_size = sizeof(float) * 3;
+
+			memcpy(out_range_data, vector_as_float_ptr(range_min), range_member_size);
+			out_range_data += range_member_size;
+			memcpy(out_range_data, vector_as_float_ptr(range_extent), range_member_size);
+			out_range_data += range_member_size;
+		}
+		else
+		{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+			if (is_pack_0_bit_rate(track.get_bit_rate()))
+			{
+				const uint8_t* sample_ptr = track.get_raw_sample_ptr(0);
+				memcpy(out_range_data, sample_ptr, sizeof(uint16_t) * 3);
+				out_range_data += sizeof(uint16_t) * 3;
+			}
+			else
+			{
+				pack_vector3_24(range_min, true, out_range_data);
+				out_range_data += sizeof(uint8_t) * 3;
+				pack_vector3_24(range_extent, true, out_range_data);
+				out_range_data += sizeof(uint8_t) * 3;
+			}
+#else
+			if (is_pack_0_bit_rate(track.get_bit_rate()))
+			{
+				const uint8_t* sample_ptr = track.get_raw_sample_ptr(0);
+				memcpy(out_range_data, sample_ptr, sizeof(uint32_t) * 3);
+				out_range_data += sizeof(uint32_t) * 3;
+			}
+			else
+			{
+				pack_vector3_48(range_min, true, out_range_data);
+				out_range_data += sizeof(uint16_t) * 3;
+				pack_vector3_48(range_extent, true, out_range_data);
+				out_range_data += sizeof(uint16_t) * 3;
+			}
+#endif
+		}
+	}
+
+	inline void write_range_track_data(const ClipContext& clip_context, const BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones,
 		RangeReductionFlags8 range_reduction, bool is_clip_range_data,
 		uint8_t* range_data, uint32_t range_data_size)
 	{
+		ACL_ENSURE(range_data != nullptr, "'range_data' cannot be null!");
+
 		const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -147,52 +197,10 @@ namespace acl
 			}
 
 			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
-			{
-				Vector4_32 range_min = bone_range.translation.get_min();
-				Vector4_32 range_extent = bone_range.translation.get_extent();
+				write_range_track_data_impl(bone_stream.translations, bone_range.translation, is_clip_range_data, range_data);
 
-				if (is_clip_range_data)
-				{
-					uint32_t range_member_size = sizeof(float) * 3;
-
-					memcpy(range_data, vector_as_float_ptr(range_min), range_member_size);
-					range_data += range_member_size;
-					memcpy(range_data, vector_as_float_ptr(range_extent), range_member_size);
-					range_data += range_member_size;
-				}
-				else
-				{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-					if (is_pack_0_bit_rate(bone_stream.translations.get_bit_rate()))
-					{
-						const uint8_t* translation = bone_stream.translations.get_raw_sample_ptr(0);
-						memcpy(range_data, translation, sizeof(uint16_t) * 3);
-						range_data += sizeof(uint16_t) * 3;
-					}
-					else
-					{
-						pack_vector3_24(range_min, true, range_data);
-						range_data += sizeof(uint8_t) * 3;
-						pack_vector3_24(range_extent, true, range_data);
-						range_data += sizeof(uint8_t) * 3;
-					}
-#else
-					if (is_pack_0_bit_rate(bone_stream.translations.get_bit_rate()))
-					{
-						const uint8_t* translation = bone_stream.translations.get_raw_sample_ptr(0);
-						memcpy(range_data, translation, sizeof(uint32_t) * 3);
-						range_data += sizeof(uint32_t) * 3;
-					}
-					else
-					{
-						pack_vector3_48(range_min, true, range_data);
-						range_data += sizeof(uint16_t) * 3;
-						pack_vector3_48(range_extent, true, range_data);
-						range_data += sizeof(uint16_t) * 3;
-					}
-#endif
-				}
-			}
+			if (clip_context.has_scale && is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
+				write_range_track_data_impl(bone_stream.scales, bone_range.scale, is_clip_range_data, range_data);
 
 			ACL_ENSURE(range_data <= range_data_end, "Invalid range data offset. Wrote too much data.");
 		}
@@ -200,13 +208,16 @@ namespace acl
 		ACL_ENSURE(range_data == range_data_end, "Invalid range data offset. Wrote too little data.");
 	}
 
-	inline void write_clip_range_data(const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size)
+	inline void write_clip_range_data(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size)
 	{
-		write_range_track_data(segment.bone_streams, segment.clip->ranges, segment.num_bones, range_reduction, true, range_data, range_data_size);
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+
+		write_range_track_data(clip_context, segment.bone_streams, clip_context.ranges, segment.num_bones, range_reduction, true, range_data, range_data_size);
 	}
 
-	inline void write_segment_range_data(const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size)
+	inline void write_segment_range_data(const ClipContext& clip_context, const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size)
 	{
-		write_range_track_data(segment.bone_streams, segment.ranges, segment.num_bones, range_reduction, false, range_data, range_data_size);
+		write_range_track_data(clip_context, segment.bone_streams, segment.ranges, segment.num_bones, range_reduction, false, range_data, range_data_size);
 	}
 }

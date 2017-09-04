@@ -9,6 +9,11 @@ namespace acl
 		return (num_bits + 32 - 1) / 32;
 	}
 
+	constexpr uint32_t get_bitset_num_bits(uint32_t size)
+	{
+		return size * 32;
+	}
+
 	inline void bitset_reset(uint32_t* bitset, uint32_t size, bool value)
 	{
 		uint32_t mask = value ? 0xFFFFFFFF : 0x00000000;
@@ -19,7 +24,7 @@ namespace acl
 
 	inline void bitset_set(uint32_t* bitset, uint32_t size, uint32_t bit_offset, bool value)
 	{
-		ACL_ENSURE(bit_offset < (size * 32), "Invalid bit offset: %u > %u", bit_offset, size * 32);
+		ACL_ENSURE(bit_offset < get_bitset_num_bits(size), "Invalid bit offset: %u > %u", bit_offset, get_bitset_num_bits(size));
 
 		uint32_t offset = bit_offset / 32;
 		uint32_t mask = 1 << (31 - (bit_offset - offset));
@@ -32,7 +37,7 @@ namespace acl
 
 	inline bool bitset_test(const uint32_t* bitset, uint32_t size, uint32_t bit_offset)
 	{
-		ACL_ENSURE(bit_offset < (size * 32), "Invalid bit offset: %u > %u", bit_offset, size * 32);
+		ACL_ENSURE(bit_offset < get_bitset_num_bits(size), "Invalid bit offset: %u > %u", bit_offset, get_bitset_num_bits(size));
 
 		uint32_t offset = bit_offset / 32;
 		uint32_t mask = 1 << (31 - (bit_offset - offset));

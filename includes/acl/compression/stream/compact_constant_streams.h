@@ -38,8 +38,11 @@ namespace acl
 		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];
 
+		const uint16_t num_bones = clip_context.num_bones;
+		uint16_t num_default_bone_scales = 0;
+
 		// When a stream is constant, we only keep the first sample
-		for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			BoneStreams& bone_stream = segment.bone_streams[bone_index];
 			BoneRanges& bone_range = clip_context.ranges[bone_index];
@@ -86,7 +89,11 @@ namespace acl
 				bone_stream.is_scale_default = vector_near_equal3(scale, vector_set(1.0f));
 
 				bone_range.scale = TrackStreamRange(scale, scale);
+
+				num_default_bone_scales += bone_stream.is_scale_default ? 1 : 0;
 			}
 		}
+
+		clip_context.has_scale = num_default_bone_scales != num_bones;
 	}
 }

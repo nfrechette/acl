@@ -254,8 +254,16 @@ def shorten_range_reduction(range_reduction):
 		return 'RR:Rot'
 	elif range_reduction == 'RangeReduction::Translations':
 		return 'RR:Trans'
+	elif range_reduction == 'RangeReduction::Scales':
+		return 'RR:Scale'
 	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations':
 		return 'RR:Rot|Trans'
+	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Scales':
+		return 'RR:Rot|Scale'
+	elif range_reduction == 'RangeReduction::Translations | RangeReduction::Scales':
+		return 'RR:Trans|Scale'
+	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations | RangeReduction::Scales':
+		return 'RR:Rot|Trans|Scale'
 	else:
 		return 'RR:???'
 

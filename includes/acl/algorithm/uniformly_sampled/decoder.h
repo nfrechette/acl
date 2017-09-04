@@ -109,11 +109,51 @@ namespace acl
 				float interpolation_alpha;
 			};
 
+			// We use adapters to wrap the DecompressionSettings
+			// This allows us to re-use the code for skipping and decompressing Vector3 samples
+			// Code generation will generate specialized code for each specialization
+			template<class SettingsType>
+			struct TranslationDecompressionSettingsAdapter
+			{
+				TranslationDecompressionSettingsAdapter(const SettingsType& settings_) : settings(settings_) {}
+
+				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Translations; }
+				constexpr Vector4_32 get_default_value() const { return vector_zero_32(); }
+				constexpr VectorFormat8 get_vector_format(const ClipHeader& header) const { return settings.get_translation_format(header.translation_format); }
+				constexpr bool is_vector_format_supported(VectorFormat8 format) const { return settings.is_translation_format_supported(format); }
+
+				// Just forward the calls
+				constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return settings.get_clip_range_reduction(flags); }
+				constexpr RangeReductionFlags8 get_segment_range_reduction(RangeReductionFlags8 flags) const { return settings.get_segment_range_reduction(flags); }
+				constexpr bool supports_mixed_packing() const { return settings.supports_mixed_packing(); }
+
+				SettingsType settings;
+			};
+
+			template<class SettingsType>
+			struct ScaleDecompressionSettingsAdapter
+			{
+				ScaleDecompressionSettingsAdapter(const SettingsType& settings_) : settings(settings_) {}
+
+				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Scales; }
+				constexpr Vector4_32 get_default_value() const { return vector_set(1.0f); }
+				constexpr VectorFormat8 get_vector_format(const ClipHeader& header) const { return settings.get_scale_format(header.scale_format); }
+				constexpr bool is_vector_format_supported(VectorFormat8 format) const { return settings.is_scale_format_supported(format); }
+
+				// Just forward the calls
+				constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return settings.get_clip_range_reduction(flags); }
+				constexpr RangeReductionFlags8 get_segment_range_reduction(RangeReductionFlags8 flags) const { return settings.get_segment_range_reduction(flags); }
+				constexpr bool supports_mixed_packing() const { return settings.supports_mixed_packing(); }
+
+				SettingsType settings;
+			};
+
 			template<class SettingsType>
 			inline void initialize_context(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
 			{
 				const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 				const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
+				const VectorFormat8 scale_format = settings.get_translation_format(header.scale_format);
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 
@@ -122,6 +162,8 @@ namespace acl
 				ACL_ENSURE(settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
 				ACL_ENSURE(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));
 				ACL_ENSURE(settings.is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
+				ACL_ENSURE(scale_format == header.scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(header.scale_format));
+				ACL_ENSURE(settings.is_scale_format_supported(scale_format), "Scale format (%s) isn't statically supported!", get_vector_format_name(scale_format));
 				ACL_ENSURE(clip_range_reduction == header.clip_range_reduction, "Statically compiled clip range reduction settings (%u) differs from the compressed settings (%u)!", clip_range_reduction, header.clip_range_reduction);
 				ACL_ENSURE(settings.are_clip_range_reduction_flags_supported(clip_range_reduction), "Clip range reduction settings (%u) aren't statically supported!", clip_range_reduction);
 				ACL_ENSURE(segment_range_reduction == header.segment_range_reduction, "Statically compiled segment range reduction settings (%u) differs from the compressed settings (%u)!", segment_range_reduction, header.segment_range_reduction);
@@ -134,6 +176,10 @@ namespace acl
 				if (is_vector_format_variable(translation_format))
 				{
 					ACL_ENSURE(settings.is_translation_format_supported(VectorFormat8::Vector3_96), "Variable translation format requires the highest bit rate to be supported: %s", get_vector_format_name(VectorFormat8::Vector3_96));
+				}
+				if (is_vector_format_variable(scale_format))
+				{
+					ACL_ENSURE(settings.is_scale_format_supported(VectorFormat8::Vector3_96), "Variable scale format requires the highest bit rate to be supported: %s", get_vector_format_name(VectorFormat8::Vector3_96));
 				}
 #endif
 
@@ -154,12 +200,15 @@ namespace acl
 				context.animated_track_data0 = nullptr;
 				context.animated_track_data1 = nullptr;
 
-				context.bitset_size = get_bitset_size(header.num_bones * Constants::NUM_TRACKS_PER_BONE);
+				const uint32_t num_tracks_per_bone = header.has_scale ? 3 : 2;
+				context.bitset_size = get_bitset_size(uint32_t(header.num_bones) * num_tracks_per_bone);
 				context.num_rotation_components = rotation_format == RotationFormat8::Quat_128 ? 4 : 3;
 
 				// If all tracks are variable, no need for any extra padding except at the very end of the data
 				// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
-				context.has_mixed_packing = is_rotation_format_variable(rotation_format) != is_vector_format_variable(translation_format);
+				const bool is_every_format_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
+				const bool is_any_format_variable = is_rotation_format_variable(rotation_format) || is_vector_format_variable(translation_format) || is_vector_format_variable(scale_format);
+				context.has_mixed_packing = !is_every_format_variable && is_any_format_variable;
 
 				context.constant_track_offset = 0;
 				context.constant_track_data_offset = 0;
@@ -299,23 +348,23 @@ namespace acl
 				context.constant_track_offset++;
 			}
 
-			template<class SettingsType>
-			inline void skip_translation(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
+			template<class SettingsAdapterType>
+			inline void skip_vector3(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context)
 			{
-				bool is_translation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
-				if (!is_translation_default)
+				const bool is_sample_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
+				if (!is_sample_default)
 				{
-					bool is_translation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
-					if (is_translation_constant)
+					const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
+					if (is_sample_constant)
 					{
-						// Constant translation tracks store the remaining sample with full precision
+						// Constant Vector3 tracks store the remaining sample with full precision
 						context.constant_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
 					}
 					else
 					{
-						const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
+						const VectorFormat8 format = settings.get_vector_format(header);
 
-						if (is_vector_format_variable(translation_format))
+						if (is_vector_format_variable(format))
 						{
 							uint8_t bit_rate0 = context.format_per_track_data0[context.format_per_track_data_offset];
 							uint8_t bit_rate1 = context.format_per_track_data1[context.format_per_track_data_offset++];
@@ -339,9 +388,9 @@ namespace acl
 						}
 						else
 						{
-							uint32_t translation_size = get_packed_vector_size(translation_format);
-							context.key_frame_byte_offset0 += translation_size;
-							context.key_frame_byte_offset1 += translation_size;
+							const uint32_t sample_size = get_packed_vector_size(format);
+							context.key_frame_byte_offset0 += sample_size;
+							context.key_frame_byte_offset1 += sample_size;
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							{
@@ -352,10 +401,11 @@ namespace acl
 
 						const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 						const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
-						if (is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Translations))
+						const RangeReductionFlags8 range_reduction_flag = settings.get_range_reduction_flag();
+						if (is_enum_flag_set(clip_range_reduction, range_reduction_flag))
 							context.clip_range_data_offset += 3 * sizeof(float) * 2;
 
-						if (is_enum_flag_set(segment_range_reduction, RangeReductionFlags8::Translations))
+						if (is_enum_flag_set(segment_range_reduction, range_reduction_flag))
 							context.segment_range_data_offset += 3 * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
 					}
 				}
@@ -722,48 +772,48 @@ namespace acl
 				return rotation;
 			}
 
-			template<class SettingsType>
-			inline Vector4_32 decompress_translation(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
+			template<class SettingsAdapterType>
+			inline Vector4_32 decompress_vector3(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context)
 			{
-				Vector4_32 translation;
+				Vector4_32 sample;
 
-				bool is_translation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
-				if (is_translation_default)
+				const bool is_sample_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
+				if (is_sample_default)
 				{
-					translation = vector_zero_32();
+					sample = settings.get_default_value();
 				}
 				else
 				{
-					bool is_translation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
-					if (is_translation_constant)
+					const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
+					if (is_sample_constant)
 					{
 						// Constant translation tracks store the remaining sample with full precision
-						translation = unpack_vector3_96(context.constant_track_data + context.constant_track_data_offset);
+						sample = unpack_vector3_96(context.constant_track_data + context.constant_track_data_offset);
 
-						ACL_ENSURE(vector_is_finite3(translation), "Translation is not valid!");
+						ACL_ENSURE(vector_is_finite3(sample), "Sample is not valid!");
 
 						context.constant_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
 					}
 					else
 					{
-						const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
+						const VectorFormat8 format = settings.get_vector_format(header);
 						const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 						const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 
-						Vector4_32 translation0;
-						Vector4_32 translation1;
+						Vector4_32 sample0;
+						Vector4_32 sample1;
 
 						uint8_t bit_rate0 = INVALID_BIT_RATE;
 						uint8_t bit_rate1 = INVALID_BIT_RATE;
 
-						if (translation_format == VectorFormat8::Vector3_96 && settings.is_translation_format_supported(VectorFormat8::Vector3_96))
+						if (format == VectorFormat8::Vector3_96 && settings.is_vector_format_supported(VectorFormat8::Vector3_96))
 						{
-							translation0 = unpack_vector3_96(context.animated_track_data0 + context.key_frame_byte_offset0);
-							translation1 = unpack_vector3_96(context.animated_track_data1 + context.key_frame_byte_offset1);
+							sample0 = unpack_vector3_96(context.animated_track_data0 + context.key_frame_byte_offset0);
+							sample1 = unpack_vector3_96(context.animated_track_data1 + context.key_frame_byte_offset1);
 
-							const uint32_t translation_size = get_packed_vector_size(translation_format);
-							context.key_frame_byte_offset0 += translation_size;
-							context.key_frame_byte_offset1 += translation_size;
+							const uint32_t sample_size = get_packed_vector_size(format);
+							context.key_frame_byte_offset0 += sample_size;
+							context.key_frame_byte_offset1 += sample_size;
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							{
@@ -771,14 +821,14 @@ namespace acl
 								context.key_frame_bit_offset1 = context.key_frame_byte_offset1 * 8;
 							}
 						}
-						else if (translation_format == VectorFormat8::Vector3_48 && settings.is_translation_format_supported(VectorFormat8::Vector3_48))
+						else if (format == VectorFormat8::Vector3_48 && settings.is_vector_format_supported(VectorFormat8::Vector3_48))
 						{
-							translation0 = unpack_vector3_48(context.animated_track_data0 + context.key_frame_byte_offset0, true);
-							translation1 = unpack_vector3_48(context.animated_track_data1 + context.key_frame_byte_offset1, true);
+							sample0 = unpack_vector3_48(context.animated_track_data0 + context.key_frame_byte_offset0, true);
+							sample1 = unpack_vector3_48(context.animated_track_data1 + context.key_frame_byte_offset1, true);
 
-							const uint32_t translation_size = get_packed_vector_size(translation_format);
-							context.key_frame_byte_offset0 += translation_size;
-							context.key_frame_byte_offset1 += translation_size;
+							const uint32_t sample_size = get_packed_vector_size(format);
+							context.key_frame_byte_offset0 += sample_size;
+							context.key_frame_byte_offset1 += sample_size;
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							{
@@ -786,14 +836,14 @@ namespace acl
 								context.key_frame_bit_offset1 = context.key_frame_byte_offset1 * 8;
 							}
 						}
-						else if (translation_format == VectorFormat8::Vector3_32 && settings.is_translation_format_supported(VectorFormat8::Vector3_32))
+						else if (format == VectorFormat8::Vector3_32 && settings.is_vector_format_supported(VectorFormat8::Vector3_32))
 						{
-							translation0 = unpack_vector3_32(11, 11, 10, true, context.animated_track_data0 + context.key_frame_byte_offset0);
-							translation1 = unpack_vector3_32(11, 11, 10, true, context.animated_track_data1 + context.key_frame_byte_offset1);
+							sample0 = unpack_vector3_32(11, 11, 10, true, context.animated_track_data0 + context.key_frame_byte_offset0);
+							sample1 = unpack_vector3_32(11, 11, 10, true, context.animated_track_data1 + context.key_frame_byte_offset1);
 
-							const uint32_t translation_size = get_packed_vector_size(translation_format);
-							context.key_frame_byte_offset0 += translation_size;
-							context.key_frame_byte_offset1 += translation_size;
+							const uint32_t sample_size = get_packed_vector_size(format);
+							context.key_frame_byte_offset0 += sample_size;
+							context.key_frame_byte_offset1 += sample_size;
 
 							if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							{
@@ -801,7 +851,7 @@ namespace acl
 								context.key_frame_bit_offset1 = context.key_frame_byte_offset1 * 8;
 							}
 						}
-						else if (translation_format == VectorFormat8::Vector3_Variable && settings.is_translation_format_supported(VectorFormat8::Vector3_Variable))
+						else if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable))
 						{
 							bit_rate0 = context.format_per_track_data0[context.format_per_track_data_offset];
 							bit_rate1 = context.format_per_track_data1[context.format_per_track_data_offset++];
@@ -811,20 +861,20 @@ namespace acl
 							if (is_pack_0_bit_rate(bit_rate0))
 								(void)bit_rate0;
 							else if (is_pack_72_bit_rate(bit_rate0))
-								translation0 = unpack_vector3_72(true, context.animated_track_data0, context.key_frame_bit_offset0);
+								sample0 = unpack_vector3_72(true, context.animated_track_data0, context.key_frame_bit_offset0);
 							else if (is_pack_96_bit_rate(bit_rate0))
-								translation0 = unpack_vector3_96(context.animated_track_data0, context.key_frame_bit_offset0);
+								sample0 = unpack_vector3_96(context.animated_track_data0, context.key_frame_bit_offset0);
 							else
-								translation0 = unpack_vector3_n(num_bits_at_bit_rate0, num_bits_at_bit_rate0, num_bits_at_bit_rate0, true, context.animated_track_data0, context.key_frame_bit_offset0);
+								sample0 = unpack_vector3_n(num_bits_at_bit_rate0, num_bits_at_bit_rate0, num_bits_at_bit_rate0, true, context.animated_track_data0, context.key_frame_bit_offset0);
 
 							if (is_pack_0_bit_rate(bit_rate1))
 								(void)bit_rate1;
 							else if (is_pack_72_bit_rate(bit_rate1))
-								translation1 = unpack_vector3_72(true, context.animated_track_data1, context.key_frame_bit_offset1);
+								sample1 = unpack_vector3_72(true, context.animated_track_data1, context.key_frame_bit_offset1);
 							else if (is_pack_96_bit_rate(bit_rate1))
-								translation1 = unpack_vector3_96(context.animated_track_data1, context.key_frame_bit_offset1);
+								sample1 = unpack_vector3_96(context.animated_track_data1, context.key_frame_bit_offset1);
 							else
-								translation1 = unpack_vector3_n(num_bits_at_bit_rate1, num_bits_at_bit_rate1, num_bits_at_bit_rate1, true, context.animated_track_data1, context.key_frame_bit_offset1);
+								sample1 = unpack_vector3_n(num_bits_at_bit_rate1, num_bits_at_bit_rate1, num_bits_at_bit_rate1, true, context.animated_track_data1, context.key_frame_bit_offset1);
 
 							uint8_t num_bits_read0 = num_bits_at_bit_rate0 * 3;
 							uint8_t num_bits_read1 = num_bits_at_bit_rate1 * 3;
@@ -844,73 +894,74 @@ namespace acl
 							}
 						}
 
-						if (is_enum_flag_set(segment_range_reduction, RangeReductionFlags8::Translations))
+						const RangeReductionFlags8 range_reduction_flag = settings.get_range_reduction_flag();
+						if (is_enum_flag_set(segment_range_reduction, range_reduction_flag))
 						{
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-							if (translation_format == VectorFormat8::Vector3_Variable && settings.is_translation_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate0))
-								translation0 = unpack_vector3_48(context.segment_range_data0 + context.segment_range_data_offset, true);
+							if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate0))
+								sample0 = unpack_vector3_48(context.segment_range_data0 + context.segment_range_data_offset, true);
 							else
 							{
 								Vector4_32 segment_range_min0 = unpack_vector3_24(context.segment_range_data0 + context.segment_range_data_offset, true);
 								Vector4_32 segment_range_extent0 = unpack_vector3_24(context.segment_range_data0 + context.segment_range_data_offset + (3 * sizeof(uint8_t)), true);
 
-								translation0 = vector_mul_add(translation0, segment_range_extent0, segment_range_min0);
+								sample0 = vector_mul_add(sample0, segment_range_extent0, segment_range_min0);
 							}
 
-							if (translation_format == VectorFormat8::Vector3_Variable && settings.is_translation_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate1))
-								translation1 = unpack_vector3_48(context.segment_range_data1 + context.segment_range_data_offset, true);
+							if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate1))
+								sample1 = unpack_vector3_48(context.segment_range_data1 + context.segment_range_data_offset, true);
 							else
 							{
 								Vector4_32 segment_range_min1 = unpack_vector3_24(context.segment_range_data1 + context.segment_range_data_offset, true);
 								Vector4_32 segment_range_extent1 = unpack_vector3_24(context.segment_range_data1 + context.segment_range_data_offset + (3 * sizeof(uint8_t)), true);
 
-								translation1 = vector_mul_add(translation1, segment_range_extent1, segment_range_min1);
+								sample1 = vector_mul_add(sample1, segment_range_extent1, segment_range_min1);
 							}
 #else
-							if (translation_format == VectorFormat8::Vector3_Variable && settings.is_translation_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate0))
-								translation0 = unpack_vector3_96(context.segment_range_data0 + context.segment_range_data_offset,);
+							if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate0))
+								sample0 = unpack_vector3_96(context.segment_range_data0 + context.segment_range_data_offset,);
 							else
 							{
 								Vector4_32 segment_range_min0 = unpack_vector3_48(context.segment_range_data0 + context.segment_range_data_offset, true);
 								Vector4_32 segment_range_extent0 = unpack_vector3_48(context.segment_range_data0 + context.segment_range_data_offset + (3 * sizeof(uint16_t)), true);
 
-								translation0 = vector_mul_add(translation0, segment_range_extent0, segment_range_min0);
+								sample0 = vector_mul_add(sample0, segment_range_extent0, segment_range_min0);
 							}
 
-							if (translation_format == VectorFormat8::Vector3_Variable && settings.is_translation_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate1))
-								translation1 = unpack_vector3_96(context.segment_range_data1 + context.segment_range_data_offset);
+							if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate1))
+								sample1 = unpack_vector3_96(context.segment_range_data1 + context.segment_range_data_offset);
 							else
 							{
 								Vector4_32 segment_range_min1 = unpack_vector3_48(context.segment_range_data1 + context.segment_range_data_offset, true);
 								Vector4_32 segment_range_extent1 = unpack_vector3_48(context.segment_range_data1 + context.segment_range_data_offset + (3 * sizeof(uint16_t)), true);
 
-								translation1 = vector_mul_add(translation1, segment_range_extent1, segment_range_min1);
+								sample1 = vector_mul_add(sample1, segment_range_extent1, segment_range_min1);
 							}
 #endif
 
 							context.segment_range_data_offset += 3 * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
 						}
 
-						if (is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Translations))
+						if (is_enum_flag_set(clip_range_reduction, range_reduction_flag))
 						{
 							Vector4_32 clip_range_min = unpack_vector3_96(context.clip_range_data + context.clip_range_data_offset);
 							Vector4_32 clip_range_extent = unpack_vector3_96(context.clip_range_data + context.clip_range_data_offset + (3 * sizeof(float)));
 
-							translation0 = vector_mul_add(translation0, clip_range_extent, clip_range_min);
-							translation1 = vector_mul_add(translation1, clip_range_extent, clip_range_min);
+							sample0 = vector_mul_add(sample0, clip_range_extent, clip_range_min);
+							sample1 = vector_mul_add(sample1, clip_range_extent, clip_range_min);
 
 							context.clip_range_data_offset += 3 * sizeof(float) * 2;
 						}
 
-						translation = vector_lerp(translation0, translation1, context.interpolation_alpha);
+						sample = vector_lerp(sample0, sample1, context.interpolation_alpha);
 
-						ACL_ENSURE(vector_is_finite3(translation), "Translation is not valid!");
+						ACL_ENSURE(vector_is_finite3(sample), "Sample is not valid!");
 					}
 				}
 
 				context.default_track_offset++;
 				context.constant_track_offset++;
-				return translation;
+				return sample;
 			}
 		}
 
@@ -928,8 +979,10 @@ namespace acl
 		{
 			constexpr bool is_rotation_format_supported(RotationFormat8 format) const { return true; }
 			constexpr bool is_translation_format_supported(VectorFormat8 format) const { return true; }
+			constexpr bool is_scale_format_supported(VectorFormat8 format) const { return true; }
 			constexpr RotationFormat8 get_rotation_format(RotationFormat8 format) const { return format; }
 			constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return format; }
+			constexpr VectorFormat8 get_scale_format(VectorFormat8 format) const { return format; }
 
 			constexpr bool are_clip_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
 			constexpr bool are_segment_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
@@ -980,17 +1033,38 @@ namespace acl
 
 			seek(settings, header, sample_time, context);
 
-			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
+			const TranslationDecompressionSettingsAdapter<SettingsType> translation_adapter(settings);
+
+			if (header.has_scale)
 			{
-				Quat_32 rotation = decompress_rotation(settings, header, context);
-				writer.write_bone_rotation(bone_index, rotation);
+				const ScaleDecompressionSettingsAdapter<SettingsType> scale_adapter(settings);
 
-				Vector4_32 translation = decompress_translation(settings, header, context);
-				writer.write_bone_translation(bone_index, translation);
+				for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
+				{
+					Quat_32 rotation = decompress_rotation(settings, header, context);
+					writer.write_bone_rotation(bone_index, rotation);
 
-				//Vector4_32 scale = decompress_scale(settings, header, context);
-				Vector4_32 scale = vector_set(1.0f);
-				writer.write_bone_scale(bone_index, scale);
+					Vector4_32 translation = decompress_vector3(translation_adapter, header, context);
+					writer.write_bone_translation(bone_index, translation);
+
+					Vector4_32 scale = decompress_vector3(scale_adapter, header, context);
+					writer.write_bone_scale(bone_index, scale);
+				}
+			}
+			else
+			{
+				const Vector4_32 scale = vector_set(1.0f);
+
+				for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
+				{
+					Quat_32 rotation = decompress_rotation(settings, header, context);
+					writer.write_bone_rotation(bone_index, rotation);
+
+					Vector4_32 translation = decompress_vector3(translation_adapter, header, context);
+					writer.write_bone_translation(bone_index, translation);
+
+					writer.write_bone_scale(bone_index, scale);
+				}
 			}
 		}
 
@@ -1010,16 +1084,33 @@ namespace acl
 
 			seek(settings, header, sample_time, context);
 
+			const TranslationDecompressionSettingsAdapter<SettingsType> translation_adapter(settings);
+			const ScaleDecompressionSettingsAdapter<SettingsType> scale_adapter(settings);
+
 			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
 			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
-			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
+			if (header.has_scale)
 			{
-				if (bone_index == sample_bone_index)
-					break;
+				for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
+				{
+					if (bone_index == sample_bone_index)
+						break;
 
-				skip_rotation(settings, header, context);
-				skip_translation(settings, header, context);
-				//skip_scale(settings, header, context);
+					skip_rotation(settings, header, context);
+					skip_vector3(translation_adapter, header, context);
+					skip_vector3(scale_adapter, header, context);
+				}
+			}
+			else
+			{
+				for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
+				{
+					if (bone_index == sample_bone_index)
+						break;
+
+					skip_rotation(settings, header, context);
+					skip_vector3(translation_adapter, header, context);
+				}
 			}
 
 			// TODO: Skip if not interested in return value
@@ -1027,12 +1118,16 @@ namespace acl
 			if (out_rotation != nullptr)
 				*out_rotation = rotation;
 
-			Vector4_32 translation = decompress_translation(settings, header, context);
+			Vector4_32 translation = decompress_vector3(translation_adapter, header, context);
 			if (out_translation != nullptr)
 				*out_translation = translation;
 
-			//Vector4_32 scale = decompress_scale(settings, header, context);
-			Vector4_32 scale = vector_set(1.0f);
+			Vector4_32 scale;
+			if (header.has_scale)
+				scale = decompress_vector3(scale_adapter, header, context);
+			else
+				scale = vector_set(1.0f);
+
 			if (out_scale != nullptr)
 				*out_scale = scale;
 		}

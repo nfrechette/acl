@@ -101,7 +101,7 @@ namespace acl
 		{
 			inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint16_t segment_headers_start_offset)
 			{
-				uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format);
+				const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
 				uint32_t data_offset = segment_headers_start_offset;
 				for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
@@ -122,7 +122,7 @@ namespace acl
 			inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, ClipHeader& header)
 			{
 				SegmentHeader* segment_headers = header.get_segment_headers();
-				uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format);
+				const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
 				for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
 				{
@@ -130,17 +130,17 @@ namespace acl
 					SegmentHeader& segment_header = segment_headers[segment_index];
 
 					if (format_per_track_data_size > 0)
-						write_format_per_track_data(segment.bone_streams, segment.num_bones, header.get_format_per_track_data(segment_header), format_per_track_data_size);
+						write_format_per_track_data(clip_context, segment, header.get_format_per_track_data(segment_header), format_per_track_data_size);
 					else
 						segment_header.format_per_track_data_offset = InvalidPtrOffset();
 
 					if (segment.range_data_size > 0)
-						write_segment_range_data(segment, settings.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size);
+						write_segment_range_data(clip_context, segment, settings.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size);
 					else
 						segment_header.range_data_offset = InvalidPtrOffset();
 
 					if (segment.animated_data_size > 0)
-						write_animated_track_data(segment, settings.rotation_format, settings.translation_format, header.get_track_data(segment_header), segment.animated_data_size);
+						write_animated_track_data(clip_context, segment, settings.rotation_format, settings.translation_format, settings.scale_format, header.get_track_data(segment_header), segment.animated_data_size);
 					else
 						segment_header.track_data_offset = InvalidPtrOffset();
 				}
@@ -154,8 +154,8 @@ namespace acl
 
 			ScopeProfiler compression_time;
 
-			uint16_t num_bones = clip.get_num_bones();
-			uint32_t num_samples = clip.get_num_samples();
+			const uint16_t num_bones = clip.get_num_bones();
+			const uint32_t num_samples = clip.get_num_samples();
 
 			if (ACL_TRY_ASSERT(num_bones > 0, "Clip has no bones!"))
 				return nullptr;
@@ -212,37 +212,35 @@ namespace acl
 
 			quantize_streams(allocator, clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, clip, skeleton, raw_clip_context);
 
-			const SegmentContext& clip_segment = clip_context.segments[0];
+			const uint32_t constant_data_size = get_constant_data_size(clip_context);
 
-			uint32_t constant_data_size = get_constant_data_size(clip_context);
+			calculate_animated_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
-			for (SegmentContext& segment : clip_context.segment_iterator())
-				segment.animated_data_size = get_animated_data_size(segment, settings.rotation_format, settings.translation_format, segment.animated_pose_bit_size);
+			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
-			uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format);
-
-			uint32_t num_tracks = num_bones * Constants::NUM_TRACKS_PER_BONE;
-			uint32_t bitset_size = get_bitset_size(num_tracks);
+			const uint32_t num_tracks_per_bone = clip_context.has_scale ? 3 : 2;
+			const uint32_t num_tracks = uint32_t(num_bones) * num_tracks_per_bone;
+			const uint32_t bitset_size = get_bitset_size(num_tracks);
 
 			uint32_t buffer_size = 0;
 			// Per clip data
 			buffer_size += sizeof(CompressedClip);
 			buffer_size += sizeof(ClipHeader);
 			buffer_size += sizeof(SegmentHeader) * clip_context.num_segments;	// Segment headers
-			buffer_size += sizeof(uint32_t) * bitset_size;		// Default tracks bitset
-			buffer_size += sizeof(uint32_t) * bitset_size;		// Constant tracks bitset
-			buffer_size = align_to(buffer_size, 4);				// Align constant track data
-			buffer_size += constant_data_size;					// Constant track data
-			buffer_size = align_to(buffer_size, 4);				// Align range data
-			buffer_size += clip_range_data_size;				// Range data
+			buffer_size += sizeof(uint32_t) * bitset_size;						// Default tracks bitset
+			buffer_size += sizeof(uint32_t) * bitset_size;						// Constant tracks bitset
+			buffer_size = align_to(buffer_size, 4);								// Align constant track data
+			buffer_size += constant_data_size;									// Constant track data
+			buffer_size = align_to(buffer_size, 4);								// Align range data
+			buffer_size += clip_range_data_size;								// Range data
 			// Per segment data
 			for (const SegmentContext& segment : clip_context.segment_iterator())
 			{
-				buffer_size += format_per_track_data_size;			// Format per track data
-				buffer_size = align_to(buffer_size, 2);				// Align range data
-				buffer_size += segment.range_data_size;				// Range data
-				buffer_size = align_to(buffer_size, 4);				// Align animated data
-				buffer_size += segment.animated_data_size;			// Animated track data
+				buffer_size += format_per_track_data_size;						// Format per track data
+				buffer_size = align_to(buffer_size, 2);							// Align range data
+				buffer_size += segment.range_data_size;							// Range data
+				buffer_size = align_to(buffer_size, 4);							// Align animated data
+				buffer_size += segment.animated_data_size;						// Animated track data
 			}
 
 			uint8_t* buffer = allocate_type_array_aligned<uint8_t>(allocator, buffer_size, 16);
@@ -254,8 +252,10 @@ namespace acl
 			header.num_segments = clip_context.num_segments;
 			header.rotation_format = settings.rotation_format;
 			header.translation_format = settings.translation_format;
+			header.scale_format = settings.scale_format;
 			header.clip_range_reduction = settings.range_reduction;
 			header.segment_range_reduction = settings.segmenting.range_reduction;
+			header.has_scale = clip_context.has_scale ? 1 : 0;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.segment_headers_offset = sizeof(ClipHeader);
@@ -264,7 +264,7 @@ namespace acl
 			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size), 4);	// Aligned to 4 bytes
 			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);						// Aligned to 4 bytes
 
-			uint16_t segment_headers_start_offset = safe_static_cast<uint16_t>(header.clip_range_data_offset + clip_range_data_size);
+			const uint16_t segment_headers_start_offset = safe_static_cast<uint16_t>(header.clip_range_data_offset + clip_range_data_size);
 			impl::write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
 			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_size);
 			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_size);
@@ -275,7 +275,7 @@ namespace acl
 				header.constant_track_data_offset = InvalidPtrOffset();
 
 			if (settings.range_reduction != RangeReductionFlags8::None)
-				write_clip_range_data(clip_segment, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size);
+				write_clip_range_data(clip_context, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size);
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();
 
@@ -333,6 +333,7 @@ namespace acl
 				writer["translation_format"] = get_vector_format_name(settings.translation_format);
 				writer["scale_format"] = get_vector_format_name(settings.scale_format);
 				writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
+				writer["has_scale"] = clip_context.has_scale;
 
 				if (stats.get_logging() == StatLogging::Detailed)
 				{

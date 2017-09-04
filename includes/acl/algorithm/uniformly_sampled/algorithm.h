@@ -35,11 +35,12 @@ namespace acl
 	class UniformlySampledAlgorithm final : public IAlgorithm
 	{
 	public:
-		UniformlySampledAlgorithm(RotationFormat8 rotation_format, VectorFormat8 translation_format, RangeReductionFlags8 clip_range_reduction, bool use_segmenting = false, RangeReductionFlags8 segment_range_reduction = RangeReductionFlags8::None)
+		UniformlySampledAlgorithm(RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, RangeReductionFlags8 clip_range_reduction, bool use_segmenting = false, RangeReductionFlags8 segment_range_reduction = RangeReductionFlags8::None)
 			: m_compression_settings()
 		{
 			m_compression_settings.rotation_format = rotation_format;
 			m_compression_settings.translation_format = translation_format;
+			m_compression_settings.scale_format = scale_format;
 			m_compression_settings.range_reduction = clip_range_reduction;
 			m_compression_settings.segmenting.enabled = use_segmenting;
 			m_compression_settings.segmenting.range_reduction = segment_range_reduction;

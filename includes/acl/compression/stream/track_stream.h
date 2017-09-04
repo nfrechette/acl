@@ -318,21 +318,4 @@ namespace acl
 			return copy;
 		}
 	};
-
-	inline uint32_t get_animated_num_samples(const BoneStreams* bone_streams, uint16_t num_bones)
-	{
-		uint32_t num_samples = 1;
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			const BoneStreams& bone_stream = bone_streams[bone_index];
-			num_samples = std::max(num_samples, bone_stream.rotations.get_num_samples());
-			num_samples = std::max(num_samples, bone_stream.translations.get_num_samples());
-			num_samples = std::max(num_samples, bone_stream.scales.get_num_samples());
-
-			if (num_samples != 1)
-				break;
-		}
-
-		return num_samples;
-	}
 }

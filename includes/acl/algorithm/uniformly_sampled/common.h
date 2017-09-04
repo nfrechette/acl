@@ -36,11 +36,6 @@ namespace acl
 	{
 		namespace impl
 		{
-			struct Constants
-			{
-				static constexpr uint32_t NUM_TRACKS_PER_BONE = 2;
-			};
-
 			struct SegmentHeader
 			{
 				uint32_t				num_samples;
@@ -56,10 +51,16 @@ namespace acl
 			{
 				uint16_t				num_bones;
 				uint16_t				num_segments;
+
 				RotationFormat8			rotation_format;
 				VectorFormat8			translation_format;
+				VectorFormat8			scale_format;								// TODO: Make this optional?
+
 				RangeReductionFlags8	clip_range_reduction;
 				RangeReductionFlags8	segment_range_reduction;
+
+				uint8_t					has_scale;
+
 				uint32_t				num_samples;
 				uint32_t				sample_rate;								// TODO: Store duration as float instead
 

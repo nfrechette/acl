@@ -48,6 +48,7 @@ namespace acl
 		bool are_rotations_normalized;
 		bool are_translations_normalized;
 		bool are_scales_normalized;
+		bool has_scale;
 
 		//////////////////////////////////////////////////////////////////////////
 
@@ -87,6 +88,8 @@ namespace acl
 		out_clip_context.are_translations_normalized = false;
 		out_clip_context.are_scales_normalized = false;
 
+		bool has_scale = false;
+
 		SegmentContext& segment = out_clip_context.segments[0];
 
 		BoneStreams* bone_streams = allocate_type_array<BoneStreams>(allocator, num_bones);
@@ -123,7 +126,11 @@ namespace acl
 			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_near_equal3(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32());
 			bone_stream.is_scale_constant = num_samples == 1;
 			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_near_equal3(vector_cast(bone.scale_track.get_sample(0)), vector_set(1.0f));
+
+			has_scale |= !bone_stream.is_scale_default;
 		}
+
+		out_clip_context.has_scale = has_scale;
 
 		segment.bone_streams = bone_streams;
 		segment.clip = &out_clip_context;
