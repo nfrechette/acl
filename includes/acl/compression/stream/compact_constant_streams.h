@@ -73,7 +73,7 @@ namespace acl
 
 				bone_stream.translations = std::move(constant_stream);
 				bone_stream.is_translation_constant = true;
-				bone_stream.is_translation_default = vector_near_equal3(translation, vector_zero_32());
+				bone_stream.is_translation_default = vector_all_near_equal3(translation, vector_zero_32());
 
 				bone_range.translation = TrackStreamRange(translation, translation);
 			}
@@ -86,7 +86,7 @@ namespace acl
 
 				bone_stream.scales = std::move(constant_stream);
 				bone_stream.is_scale_constant = true;
-				bone_stream.is_scale_default = vector_near_equal3(scale, vector_set(1.0f));
+				bone_stream.is_scale_default = vector_all_near_equal3(scale, vector_set(1.0f));
 
 				bone_range.scale = TrackStreamRange(scale, scale);
 

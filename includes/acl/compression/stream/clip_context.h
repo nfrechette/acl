@@ -123,9 +123,9 @@ namespace acl
 			bone_stream.is_rotation_constant = num_samples == 1;
 			bone_stream.is_rotation_default = bone_stream.is_rotation_constant && quat_near_identity(quat_cast(bone.rotation_track.get_sample(0)));
 			bone_stream.is_translation_constant = num_samples == 1;
-			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_near_equal3(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32());
+			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_all_near_equal3(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32());
 			bone_stream.is_scale_constant = num_samples == 1;
-			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_near_equal3(vector_cast(bone.scale_track.get_sample(0)), vector_set(1.0f));
+			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_all_near_equal3(vector_cast(bone.scale_track.get_sample(0)), vector_set(1.0f));
 
 			has_scale |= !bone_stream.is_scale_default;
 		}

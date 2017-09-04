@@ -89,7 +89,7 @@ namespace acl
 							writer.push_value(quat_get_z(bone.bind_rotation));
 							writer.push_value(quat_get_w(bone.bind_rotation));
 						};
-					if (!vector_near_equal3(bone.bind_translation, vector_zero_64()))
+					if (!vector_all_near_equal3(bone.bind_translation, vector_zero_64()))
 						writer["bind_translation"] = [&](SJSONArrayWriter& writer)
 						{
 							writer.push_value(vector_get_x(bone.bind_translation));

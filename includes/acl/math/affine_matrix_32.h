@@ -27,6 +27,7 @@
 #include "acl/core/error.h"
 #include "acl/math/math.h"
 #include "acl/math/vector4_32.h"
+#include "acl/math/quat_32.h"
 
 namespace acl
 {
@@ -39,38 +40,94 @@ namespace acl
 		return AffineMatrix_32{x_axis, y_axis, z_axis, w_axis};
 	}
 
+	AffineMatrix_32 matrix_set(const Quat_32& quat, const Vector4_32& translation, const Vector4_32& scale)
+	{
+		ACL_ENSURE(quat_is_normalized(quat), "Quaternion is not normalized");
+
+		const float x2 = quat_get_x(quat) + quat_get_x(quat);
+		const float y2 = quat_get_y(quat) + quat_get_y(quat);
+		const float z2 = quat_get_z(quat) + quat_get_z(quat);
+		const float xx = quat_get_x(quat) * x2;
+		const float xy = quat_get_x(quat) * y2;
+		const float xz = quat_get_x(quat) * z2;
+		const float yy = quat_get_y(quat) * y2;
+		const float yz = quat_get_y(quat) * z2;
+		const float zz = quat_get_z(quat) * z2;
+		const float wx = quat_get_w(quat) * x2;
+		const float wy = quat_get_w(quat) * y2;
+		const float wz = quat_get_w(quat) * z2;
+
+		Vector4_32 x_axis = vector_mul(vector_set(1.0f - (yy + zz), xy + wz, xz - wy, 0.0f), vector_get_x(scale));
+		Vector4_32 y_axis = vector_mul(vector_set(xy - wz, 1.0f - (xx + zz), yz + wx, 0.0f), vector_get_y(scale));
+		Vector4_32 z_axis = vector_mul(vector_set(xz + wy, yz - wx, 1.0f - (xx + yy), 0.0f), vector_get_z(scale));
+		Vector4_32 w_axis = vector_set(vector_get_x(translation), vector_get_y(translation), vector_get_z(translation), 1.0f);
+		return matrix_set(x_axis, y_axis, z_axis, w_axis);
+	}
+
 	inline AffineMatrix_32 matrix_identity_32()
 	{
 		return matrix_set(vector_set(1.0f, 0.0f, 0.0f, 0.0f), vector_set(0.0f, 1.0f, 0.0f, 0.0f), vector_set(0.0f, 0.0f, 1.0f, 0.0f), vector_set(0.0f, 0.0f, 0.0f, 1.0f));
+	}
+
+	inline AffineMatrix_32 matrix_from_quat(const Quat_32& quat)
+	{
+		ACL_ENSURE(quat_is_normalized(quat), "Quaternion is not normalized");
+
+		const float x2 = quat_get_x(quat) + quat_get_x(quat);
+		const float y2 = quat_get_y(quat) + quat_get_y(quat);
+		const float z2 = quat_get_z(quat) + quat_get_z(quat);
+		const float xx = quat_get_x(quat) * x2;
+		const float xy = quat_get_x(quat) * y2;
+		const float xz = quat_get_x(quat) * z2;
+		const float yy = quat_get_y(quat) * y2;
+		const float yz = quat_get_y(quat) * z2;
+		const float zz = quat_get_z(quat) * z2;
+		const float wx = quat_get_w(quat) * x2;
+		const float wy = quat_get_w(quat) * y2;
+		const float wz = quat_get_w(quat) * z2;
+
+		Vector4_32 x_axis = vector_set(1.0f - (yy + zz), xy + wz, xz - wy, 0.0f);
+		Vector4_32 y_axis = vector_set(xy - wz, 1.0f - (xx + zz), yz + wx, 0.0f);
+		Vector4_32 z_axis = vector_set(xz + wy, yz - wx, 1.0f - (xx + yy), 0.0f);
+		Vector4_32 w_axis = vector_set(0.0f, 0.0f, 0.0f, 1.0f);
+		return matrix_set(x_axis, y_axis, z_axis, w_axis);
+	}
+
+	inline AffineMatrix_32 matrix_from_translation(const Vector4_32& translation)
+	{
+		return matrix_set(vector_set(1.0f, 0.0f, 0.0f, 0.0f), vector_set(0.0f, 1.0f, 0.0f, 0.0f), vector_set(0.0f, 0.0f, 1.0f, 0.0f), vector_set(vector_get_x(translation), vector_get_y(translation), vector_get_z(translation), 1.0f));
+	}
+
+	inline AffineMatrix_32 matrix_from_scale(const Vector4_32& scale)
+	{
+		ACL_ENSURE(vector_any_near_equal3(scale, vector_zero_32()), "Scale cannot be zero");
+		return matrix_set(vector_set(vector_get_x(scale), 0.0f, 0.0f, 0.0f), vector_set(0.0f, vector_get_y(scale), 0.0f, 0.0f), vector_set(0.0f, 0.0f, vector_get_z(scale), 0.0f), vector_set(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 
 	// Multiplication order is as follow: local_to_world = matrix_mul(local_to_object, object_to_world)
 	inline AffineMatrix_32 matrix_mul(const AffineMatrix_32& lhs, const AffineMatrix_32& rhs)
 	{
 		// Affine matrices have their last column always equal to [0, 0, 0, 1]
-		Vector4_32 tmp, result_x_axis, result_y_axis, result_z_axis, result_w_axis;
-
-		tmp = vector_mul(vector_mix_xxxx(lhs.x_axis), rhs.x_axis);
+		Vector4_32 tmp = vector_mul(vector_mix_xxxx(lhs.x_axis), rhs.x_axis);
 		tmp = vector_mul_add(vector_mix_yyyy(lhs.x_axis), rhs.y_axis, tmp);
 		tmp = vector_mul_add(vector_mix_zzzz(lhs.x_axis), rhs.z_axis, tmp);
-		result_x_axis = tmp;
+		Vector4_32 x_axis = tmp;
 
 		tmp = vector_mul(vector_mix_xxxx(lhs.y_axis), rhs.x_axis);
 		tmp = vector_mul_add(vector_mix_yyyy(lhs.y_axis), rhs.y_axis, tmp);
 		tmp = vector_mul_add(vector_mix_zzzz(lhs.y_axis), rhs.z_axis, tmp);
-		result_y_axis = tmp;
+		Vector4_32 y_axis = tmp;
 
 		tmp = vector_mul(vector_mix_xxxx(lhs.z_axis), rhs.x_axis);
 		tmp = vector_mul_add(vector_mix_yyyy(lhs.z_axis), rhs.y_axis, tmp);
 		tmp = vector_mul_add(vector_mix_zzzz(lhs.z_axis), rhs.z_axis, tmp);
-		result_z_axis = tmp;
+		Vector4_32 z_axis = tmp;
 
 		tmp = vector_mul(vector_mix_xxxx(lhs.w_axis), rhs.x_axis);
 		tmp = vector_mul_add(vector_mix_yyyy(lhs.w_axis), rhs.y_axis, tmp);
 		tmp = vector_mul_add(vector_mix_zzzz(lhs.w_axis), rhs.z_axis, tmp);
-		result_w_axis = vector_add(rhs.w_axis, tmp);
-
-		return matrix_set(result_x_axis, result_y_axis, result_z_axis, result_w_axis);
+		Vector4_32 w_axis = vector_add(rhs.w_axis, tmp);
+		return matrix_set(x_axis, y_axis, z_axis, w_axis);
 	}
 
 	inline Vector4_32 matrix_mul_position(const AffineMatrix_32& lhs, const Vector4_32& rhs)

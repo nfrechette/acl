@@ -426,12 +426,12 @@ namespace acl
 #endif
 	}
 
-	inline bool vector_near_equal(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
+	inline bool vector_all_near_equal(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
 	{
 		return vector_all_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
-	inline bool vector_near_equal3(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
+	inline bool vector_all_near_equal3(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
 	{
 		return vector_all_less_than3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}

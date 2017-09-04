@@ -166,7 +166,7 @@ namespace acl
 		constexpr __m128 ControlWZYX = { 1.0f,-1.0f, 1.0f,-1.0f };
 		constexpr __m128 ControlZWXY = { 1.0f, 1.0f,-1.0f,-1.0f };
 		constexpr __m128 ControlYXWZ = { -1.0f, 1.0f, 1.0f,-1.0f };
-		// Copy to SSE registers and use as few as possible for x86
+		// Copy to SSE registers and use as few as possible
 		__m128 Q2X = rhs;
 		__m128 Q2Y = rhs;
 		__m128 Q2Z = rhs;
@@ -343,7 +343,7 @@ namespace acl
 
 	inline bool quat_near_equal(const Quat_32& lhs, const Quat_32& rhs, float threshold = 0.00001f)
 	{
-		return vector_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
+		return vector_all_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
 	}
 
 	inline bool quat_near_identity(const Quat_32& input, float threshold = 0.00001f)

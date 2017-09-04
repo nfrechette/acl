@@ -258,7 +258,7 @@ namespace acl
 
 	inline bool quat_near_equal(const Quat_64& lhs, const Quat_64& rhs, double threshold = 0.00001)
 	{
-		return vector_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
+		return vector_all_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
 	}
 
 	inline bool quat_near_identity(const Quat_64& input, double threshold = 0.00001)
