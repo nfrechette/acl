@@ -69,14 +69,14 @@ def output_csv_error(stat_dir, stats):
 	print('Generating CSV file {} ...'.format(csv_filename))
 	print()
 	file = open(csv_filename, 'w')
-	print('Algorithm Name, Key Frame, Bone Index, Error', file = file)
+	print('Clip Name, Key Frame, Bone Index, Error', file = file)
 	for stat in stats:
-		clean_name = sanitize_csv_entry(stat['desc'])
+		name = stat['clip_name']
 		key_frame = 0
 		for frame_errors in stat['error_per_frame_and_bone']:
 			bone_index = 0
 			for bone_error in frame_errors:
-				print('{}, {}, {}, {}'.format(clean_name, key_frame, bone_index, bone_error), file = file)
+				print('{}, {}, {}, {}'.format(name, key_frame, bone_index, bone_error), file = file)
 				bone_index += 1
 
 			key_frame += 1
@@ -136,6 +136,7 @@ if __name__ == "__main__":
 			file_data = sjson.loads(file.read())
 			file_data['filename'] = stat_filename
 			file_data['desc'] = '{} {} {}'.format(file_data['algorithm_name'], file_data['rotation_format'], file_data['translation_format'])
+			file_data['clip_name'] = os.path.splitext(os.path.basename(stat_filename))[0]
 			stats.append(file_data)
 			num_stat_file_processed += 1
 			print_progress(num_stat_file_processed, len(stat_files), 'Aggregating results:', '{} / {}'.format(num_stat_file_processed, len(stat_files)))

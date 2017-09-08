@@ -110,7 +110,7 @@ def create_csv(options):
 		csv_data['stats_error_csv_file'] = stats_error_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_error_csv_filename))
-		print('Algorithm Name, Key Frame, Bone Index, Error', file = stats_error_csv_file)
+		print('Clip Name, Key Frame, Bone Index, Error', file = stats_error_csv_file)
 
 	return csv_data
 
@@ -329,6 +329,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 				for run_stats in runs:
 					run_stats['range_reduction'] = shorten_range_reduction(run_stats['range_reduction'])
 					run_stats['filename'] = stat_filename
+					run_stats['clip_name'] = os.path.splitext(os.path.basename(stat_filename))[0]
 
 					if 'segmenting' in run_stats:
 						run_stats['segmenting']['range_reduction'] = shorten_range_reduction(run_stats['segmenting']['range_reduction'])
@@ -360,7 +361,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 								# Drop the data if we don't write the csv files, otherwise aggregate it
 								if options['csv_error']:
 									#(name, segment_index, data)
-									data = (run_stats['csv_desc'], segment_index, segment['error_per_frame_and_bone'])
+									data = (run_stats['clip_name'], segment_index, segment['error_per_frame_and_bone'])
 									stats_error_data.append(data)
 
 								# Data isn't needed anymore, discard it
