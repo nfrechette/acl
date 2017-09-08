@@ -97,7 +97,7 @@ namespace acl
 			break;
 		}
 
-		if (segment->are_rotations_normalized)
+		if (segment->are_rotations_normalized && !is_pack_0_bit_rate(bit_rate))
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
