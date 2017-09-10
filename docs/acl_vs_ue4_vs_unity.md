@@ -11,9 +11,12 @@ To compile the statistics, the animation database from Carnegie-Mellon Universit
 
 For ACL and Unreal 4, the error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](https://github.com/nfrechette/acl/blob/develop/docs/error_metrics.md).
 
-**TODO: Show stats and graphs**
+*  [ACL](acl_vs_ue4_vs_unity.md#acl)
+*  [Unreal 4](acl_vs_ue4_vs_unity.md#unreal-4)
+*  [Unity 5](acl_vs_ue4_vs_unity.md#unity-5)
+*  Results in images
 
-## ACL
+# ACL
 
 Statistics for ACL are being generated with the `acl_compressor` tool found [here](https://github.com/nfrechette/acl/tree/develop/tools/acl_compressor). It supports various compression method, only the best will be tracked here. Every clip uses an error threshold of **0.01cm (0.1mm)**.
 
@@ -32,7 +35,7 @@ Note that you can compress any number of clips in parallel with multiple threads
 
 See [here](https://github.com/nfrechette/acl/blob/develop/docs/performance_history.md) for a history of performance progress across the various releases.
 
-## Unreal 4
+# Unreal 4
 
 In order to measure statistics in Unreal 4, ACL was integrated along with a small [commandlet](https://github.com/nfrechette/acl/blob/develop/tools/ue4_stats_dump) to run the necessary compression and decompression logic. Everything uses the default and automatic compression settings which performs an exhaustive search of the best compression method.
 
@@ -45,7 +48,7 @@ Sadly the Unreal 4 compression logic does not *yet* support multi-threading and 
 
 **Results from Unreal 4.15.0**
 
-## Unity 5
+# Unity 5
 
 Sadly I have not yet managed to find a way to implement a custom error metric in Unity nor how to even sample a clip procedurally in both the raw and/or compressed form. This makes comparing the results somewhat difficult. However I did manage to extract the following statistics with the default compression settings and the `optimal` compression algorithm:
 
@@ -61,3 +64,23 @@ Sadly I have not yet managed to find a way to implement a custom error metric in
 **Results from Unity 5.6.1f1**
 
 *Contributions welcome on this topic if you are familiar with Unity*
+
+# Results in images
+
+![Compression ratio VS max error per clip](images/acl_compression_ratio_vs_max_error.png)
+
+
+![Compression ratio by clip duration](images/acl_compression_ratio_by_duration.png)
+![Compression ratio by clip duration (shortest 100)](images/acl_compression_ratio_by_duration_shortest_100.png)
+![Compression ratio distribution](images/acl_compression_ratio_distribution.png)
+![Compression ratio distribution (bottom 10%)](images/acl_compression_ratio_distribution_bottom_10.png)
+![Compression ratio histogram](images/acl_compression_ratio_histogram.png)
+
+
+![Max error by clip duration](images/acl_max_clip_error_by_duration.png)
+![Max error distribution](images/acl_max_error_distribution.png)
+![Max error per clip histogram](images/acl_max_error_histogram.png)
+
+
+![Distribution of the error for every bone at every key frame](images/acl_exhaustive_error.png)
+![Distribution of the error for every bone at every key frame (top 10%)](images/acl_exhaustive_error_top_10.png)
