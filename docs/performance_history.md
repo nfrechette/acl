@@ -1,7 +1,7 @@
 # Performance history
 
 To compile the statistics, the animation database from Carnegie-Mellon University is used.
-The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](https://github.com/nfrechette/acl/blob/develop/docs/error_metrics.md).
+The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 Every clip uses an error threshold of **0.01cm (0.1mm)**.
 
 **TODO: Show stats and graphs**

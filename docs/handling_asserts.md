@@ -6,4 +6,4 @@ When integrating ACL, it is very easy to hook up asserts of your own. By default
 *  `ACL_ASSERT`: This macro handles recoverable assertions. Skipping these is safe in the sense that the library should handle these cases and not crash. The behavior might not end up being what you expect or want.
 *  `ACL_ENSURE`: This macro handles fatal assertions. Skipping these is **NOT** safe.
 
-These macros are defined and implemented in [**acl/core/error.h**](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/error.h).
+These macros are defined and implemented in [**acl/core/error.h**](../includes/acl/core/error.h).

@@ -46,4 +46,4 @@ Same as Vector3 32 above to store `[X, Y, Z]`.
 
 ### Quat Variable
 
-See [Vector3 Variable](https://github.com/nfrechette/acl/blob/develop/docs/rotation_and_vector_formats.md#vector3-variable)
+See [Vector3 Variable](rotation_and_vector_formats.md#vector3-variable)
