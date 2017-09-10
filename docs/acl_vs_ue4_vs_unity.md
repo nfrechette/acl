@@ -9,16 +9,16 @@ To compile the statistics, the animation database from Carnegie-Mellon Universit
 *  Total duration: 09h 49m 37.58s
 *  Raw size: 1000.56 MB (7x float32 * num bones * num samples)
 
-For ACL and Unreal 4, the error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](https://github.com/nfrechette/acl/blob/develop/docs/error_metrics.md).
+For ACL and Unreal 4, the error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 
 *  [ACL](acl_vs_ue4_vs_unity.md#acl)
 *  [Unreal 4](acl_vs_ue4_vs_unity.md#unreal-4)
 *  [Unity 5](acl_vs_ue4_vs_unity.md#unity-5)
-*  Results in images
+*  [Results in images](acl_vs_ue4_vs_unity.md#results-in-images)
 
 # ACL
 
-Statistics for ACL are being generated with the `acl_compressor` tool found [here](https://github.com/nfrechette/acl/tree/develop/tools/acl_compressor). It supports various compression method, only the best will be tracked here. Every clip uses an error threshold of **0.01cm (0.1mm)**.
+Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression method, only the best will be tracked here. Every clip uses an error threshold of **0.01cm (0.1mm)**.
 
 *  Compressed size: 82.25 MB
 *  Compression ratio: 12.16 : 1
@@ -33,11 +33,11 @@ Note that you can compress any number of clips in parallel with multiple threads
 
 **Results from release [0.4.0](https://github.com/nfrechette/acl/releases/tag/v0.4.0)**
 
-See [here](https://github.com/nfrechette/acl/blob/develop/docs/performance_history.md) for a history of performance progress across the various releases.
+See [here](performance_history.md) for a history of performance progress across the various releases.
 
 # Unreal 4
 
-In order to measure statistics in Unreal 4, ACL was integrated along with a small [commandlet](https://github.com/nfrechette/acl/blob/develop/tools/ue4_stats_dump) to run the necessary compression and decompression logic. Everything uses the default and automatic compression settings which performs an exhaustive search of the best compression method.
+In order to measure statistics in Unreal 4, ACL was integrated along with a small [commandlet](../tools/ue4_stats_dump) to run the necessary compression and decompression logic. Everything uses the default and automatic compression settings which performs an exhaustive search of the best compression method.
 
 *  Compressed size: 107.94 MB
 *  Compression ratio: 9.27 : 1
