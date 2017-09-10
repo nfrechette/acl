@@ -8,6 +8,7 @@ output_csv_file_path_ratios = 'D:\\acl-dev\\tools\\graph_generation\\compression
 output_csv_file_path_ratios_by_raw_size = 'D:\\acl-dev\\tools\\graph_generation\\compression_ratios_by_raw_size.csv'
 output_csv_file_path_max_errors = 'D:\\acl-dev\\tools\\graph_generation\\max_errors.csv'
 output_csv_file_path_max_errors_by_raw_size = 'D:\\acl-dev\\tools\\graph_generation\\max_errors_by_raw_size.csv'
+output_csv_file_path_ratio_vs_max_error = 'D:\\acl-dev\\tools\\graph_generation\\ratio_vs_max_error.csv'
 
 input_csv_files =  []
 input_csv_files.append(('ACL v0.4 @ 0.01cm', columns_to_extract_acl, 'D:\\test_animations\\carnegie-mellon-acl-stats-0.4.0-summary\\stats_summary.csv'))
@@ -26,6 +27,7 @@ output_csv_data_ratios = []
 output_csv_data_ratios_by_raw_size = []
 output_csv_data_max_errors = []
 output_csv_data_max_errors_by_raw_size = []
+output_csv_data_ratio_vs_max_error = []
 output_csv_headers = []
 
 for (header, columns_to_extract, input_csv_file_path) in input_csv_files:
@@ -38,11 +40,14 @@ for (header, columns_to_extract, input_csv_file_path) in input_csv_files:
 	csv_data_ratios_by_raw_size = numpy.sort(csv_data, order='raw_sizes')['compression_ratios']
 	csv_data_max_errors = numpy.sort(csv_data, order='max_errors')['max_errors']
 	csv_data_max_errors_by_raw_size = numpy.sort(csv_data, order='raw_sizes')['max_errors']
+	csv_data_ratio_by_max_error = numpy.sort(csv_data, order='max_errors')['compression_ratios']
 
 	output_csv_data_ratios.append(csv_data_ratios)
 	output_csv_data_ratios_by_raw_size.append(csv_data_ratios_by_raw_size)
 	output_csv_data_max_errors.append(csv_data_max_errors)
 	output_csv_data_max_errors_by_raw_size.append(csv_data_max_errors_by_raw_size)
+	output_csv_data_ratio_vs_max_error.append(csv_data_max_errors)
+	output_csv_data_ratio_vs_max_error.append(csv_data_ratio_by_max_error)
 
 	output_csv_headers.append(header)
 
@@ -50,6 +55,7 @@ output_csv_data_ratios = numpy.column_stack(output_csv_data_ratios)
 output_csv_data_ratios_by_raw_size = numpy.column_stack(output_csv_data_ratios_by_raw_size)
 output_csv_data_max_errors = numpy.column_stack(output_csv_data_max_errors)
 output_csv_data_max_errors_by_raw_size = numpy.column_stack(output_csv_data_max_errors_by_raw_size)
+output_csv_data_ratio_vs_max_error = numpy.column_stack(output_csv_data_ratio_vs_max_error)
 
 with open(output_csv_file_path_ratios, 'wb') as f:
 	header = bytes('{}\n'.format(','.join(output_csv_headers)), 'utf-8')
@@ -70,3 +76,8 @@ with open(output_csv_file_path_max_errors_by_raw_size, 'wb') as f:
 	header = bytes('{}\n'.format(','.join(output_csv_headers)), 'utf-8')
 	f.write(header)
 	numpy.savetxt(f, output_csv_data_max_errors_by_raw_size, delimiter=',', fmt=('%f'))
+
+with open(output_csv_file_path_ratio_vs_max_error, 'wb') as f:
+	header = bytes('{}\n'.format(','.join(output_csv_headers)), 'utf-8')
+	f.write(header)
+	numpy.savetxt(f, output_csv_data_ratio_vs_max_error, delimiter=',', fmt=('%f'))
