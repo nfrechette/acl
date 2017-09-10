@@ -34,8 +34,10 @@ for (header, input_csv_file_path) in input_csv_files:
 
 	percentiles = numpy.percentile(csv_data['errors'], desired_percentiles)
 	percentiles_top10 = numpy.percentile(csv_data['errors'], desired_percentiles_top10)
+
 	output_csv_data.append(percentiles)
 	output_csv_data_top10.append(percentiles_top10)
+
 	output_csv_headers.append(header)
 
 output_csv_data = numpy.column_stack(output_csv_data)
