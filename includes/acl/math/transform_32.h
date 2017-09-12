@@ -75,6 +75,7 @@ namespace acl
 
 	inline Transform_32 transform_inverse(const Transform_32& input)
 	{
+		// TODO: Add unit tests for this!
 		Quat_32 inv_rotation = quat_conjugate(input.rotation);
 		Vector4_32 inv_scale = vector_reciprocal(input.scale);
 		Vector4_32 inv_translation = vector_neg(quat_rotate(inv_rotation, vector_mul(input.translation, inv_scale)));

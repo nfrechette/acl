@@ -145,6 +145,7 @@ namespace acl
 
 	inline AffineMatrix_32 matrix_transpose(const AffineMatrix_32& input)
 	{
+		// TODO: Add unit tests for this!
 		Vector4_32 tmp0 = vector_mix_xyab(input.x_axis, input.y_axis);
 		Vector4_32 tmp1 = vector_mix_zwcd(input.x_axis, input.y_axis);
 		Vector4_32 tmp2 = vector_mix_xyab(input.z_axis, input.w_axis);
@@ -159,6 +160,7 @@ namespace acl
 
 	inline AffineMatrix_32 matrix_inverse(const AffineMatrix_32& input)
 	{
+		// TODO: Add unit tests for this!
 		// TODO: This is a generic matrix inverse function, implement the affine version?
 		AffineMatrix_32 input_transposed = matrix_transpose(input);
 

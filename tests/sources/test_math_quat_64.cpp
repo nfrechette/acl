@@ -53,26 +53,26 @@ TEST_CASE("quat math 64", "[math][quat64]")
 
 		Quat_64 rotation_around_z = quat_from_euler(deg2rad(0.0), deg2rad(90.0), deg2rad(0.0));
 		Vector4_64 result = quat_rotate(rotation_around_z, x_axis);
-		REQUIRE(vector_all_near_equal(result, vector_set(0.0, 1.0, 0.0), threshold));
+		REQUIRE(vector_all_near_equal3(result, vector_set(0.0, 1.0, 0.0), threshold));
 		result = quat_rotate(rotation_around_z, y_axis);
-		REQUIRE(vector_all_near_equal(result, vector_set(-1.0, 0.0, 0.0), threshold));
+		REQUIRE(vector_all_near_equal3(result, vector_set(-1.0, 0.0, 0.0), threshold));
 
 		Quat_64 rotation_around_x = quat_from_euler(deg2rad(0.0), deg2rad(0.0), deg2rad(90.0));
 		result = quat_rotate(rotation_around_x, x_axis);
-		REQUIRE(vector_all_near_equal(result, vector_set(1.0, 0.0, 0.0), threshold));
+		REQUIRE(vector_all_near_equal3(result, vector_set(1.0, 0.0, 0.0), threshold));
 		result = quat_rotate(rotation_around_x, y_axis);
-		REQUIRE(vector_all_near_equal(result, vector_set(0.0, 0.0, -1.0), threshold));
+		REQUIRE(vector_all_near_equal3(result, vector_set(0.0, 0.0, -1.0), threshold));
 
 		Quat_64 rotation_xz = quat_mul(rotation_around_x, rotation_around_z);
 		Quat_64 rotation_zx = quat_mul(rotation_around_z, rotation_around_x);
 		result = quat_rotate(rotation_xz, x_axis);
-		REQUIRE(vector_all_near_equal(result, vector_set(0.0, 1.0, 0.0), threshold));
+		REQUIRE(vector_all_near_equal3(result, vector_set(0.0, 1.0, 0.0), threshold));
 		result = quat_rotate(rotation_xz, y_axis);
-		REQUIRE(vector_all_near_equal(result, vector_set(0.0, 0.0, -1.0), threshold));
+		REQUIRE(vector_all_near_equal3(result, vector_set(0.0, 0.0, -1.0), threshold));
 		result = quat_rotate(rotation_zx, x_axis);
-		REQUIRE(vector_all_near_equal(result, vector_set(0.0, 0.0, -1.0), threshold));
+		REQUIRE(vector_all_near_equal3(result, vector_set(0.0, 0.0, -1.0), threshold));
 		result = quat_rotate(rotation_zx, y_axis);
-		REQUIRE(vector_all_near_equal(result, vector_set(-1.0, 0.0, 0.0), threshold));
+		REQUIRE(vector_all_near_equal3(result, vector_set(-1.0, 0.0, 0.0), threshold));
 	}
 
 	{
@@ -104,7 +104,7 @@ TEST_CASE("quat math 64", "[math][quat64]")
 				const Vector4_64& vector = test_vectors[vector_index];
 				Vector4_64 result = quat_rotate(rotation, vector);
 				Vector4_64 result_ref = quat_rotate_scalar(rotation, vector);
-				REQUIRE(vector_all_near_equal(result, result_ref, threshold));
+				REQUIRE(vector_all_near_equal3(result, result_ref, threshold));
 			}
 		}
 	}
@@ -114,8 +114,8 @@ TEST_CASE("quat math 64", "[math][quat64]")
 		Vector4_64 axis;
 		double angle;
 		quat_to_axis_angle(rotation, axis, angle);
-		REQUIRE(vector_all_near_equal(axis, vector_set(0.0, 0.0, 1.0), threshold));
-		REQUIRE(vector_all_near_equal(quat_get_axis(rotation), vector_set(0.0, 0.0, 1.0), threshold));
+		REQUIRE(vector_all_near_equal3(axis, vector_set(0.0, 0.0, 1.0), threshold));
+		REQUIRE(vector_all_near_equal3(quat_get_axis(rotation), vector_set(0.0, 0.0, 1.0), threshold));
 		REQUIRE(scalar_near_equal(quat_get_angle(rotation), deg2rad(90.0), threshold));
 	}
 
@@ -137,7 +137,7 @@ TEST_CASE("quat math 64", "[math][quat64]")
 		Vector4_64 axis;
 		double angle;
 		quat_to_axis_angle(result, axis, angle);
-		REQUIRE(vector_all_near_equal(axis, axis_ref, threshold));
+		REQUIRE(vector_all_near_equal3(axis, axis_ref, threshold));
 		REQUIRE(scalar_near_equal(angle, angle_ref, threshold));
 	}
 }

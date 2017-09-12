@@ -664,6 +664,7 @@ namespace acl
 		}
 
 		ACL_ENSURE(false, "vector_mix permutation not handled");
+		return input0;
 	}
 
 	inline Vector4_32 vector_mix_xxxx(const Vector4_32& input) { return vector_mix<VectorMix::X, VectorMix::X, VectorMix::X, VectorMix::X>(input, input); }

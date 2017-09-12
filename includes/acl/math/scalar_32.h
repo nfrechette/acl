@@ -32,7 +32,7 @@
 namespace acl
 {
 	// TODO: Get a higher precision number
-	static constexpr float ACL_PI_32 = 3.141592654f;
+	constexpr float ACL_PI_32 = 3.141592654f;
 
 	inline float floor(float input)
 	{

@@ -32,7 +32,7 @@
 namespace acl
 {
 	// TODO: Get a higher precision number
-	static constexpr double ACL_PI_64 = 3.141592654;
+	constexpr double ACL_PI_64 = 3.141592654;
 
 	inline double floor(double input)
 	{
