@@ -104,6 +104,11 @@ namespace acl
 		return matrix_set(vector_set(vector_get_x(scale), 0.0f, 0.0f, 0.0f), vector_set(0.0f, vector_get_y(scale), 0.0f, 0.0f), vector_set(0.0f, 0.0f, vector_get_z(scale), 0.0f), vector_set(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 
+	inline AffineMatrix_32 matrix_from_transform(const Transform_32& transform)
+	{
+		return matrix_set(transform.rotation, transform.translation, transform.scale);
+	}
+
 	// Multiplication order is as follow: local_to_world = matrix_mul(local_to_object, object_to_world)
 	inline AffineMatrix_32 matrix_mul(const AffineMatrix_32& lhs, const AffineMatrix_32& rhs)
 	{

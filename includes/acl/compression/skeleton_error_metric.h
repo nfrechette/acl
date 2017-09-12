@@ -27,6 +27,7 @@
 #include "acl/core/compressed_clip.h"
 #include "acl/core/ialgorithm.h"
 #include "acl/core/memory.h"
+#include "acl/math/affine_matrix_32.h"
 #include "acl/math/transform_32.h"
 #include "acl/math/scalar_32.h"
 #include "acl/compression/skeleton.h"
@@ -87,7 +88,7 @@ namespace acl
 		return error;
 	}
 
-	inline float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
+	inline float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
 	{
 		uint16_t num_bones = skeleton.get_num_bones();
 		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
@@ -110,7 +111,30 @@ namespace acl
 		return max(vtx0_error, vtx1_error);
 	}
 
-	inline float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
+	inline float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
+	{
+		uint16_t num_bones = skeleton.get_num_bones();
+		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
+		ACL_ENSURE(bone_index < num_bones, "Invalid bone index: %u", bone_index);
+
+		const RigidBone& bone = skeleton.get_bone(bone_index);
+		float vtx_distance = float(bone.vertex_distance);
+
+		Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
+		Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
+
+		Vector4_32 raw_vtx0 = transform_position(raw_local_pose[bone_index], vtx0);
+		Vector4_32 lossy_vtx0 = transform_position(lossy_local_pose[bone_index], vtx0);
+		float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+
+		Vector4_32 raw_vtx1 = transform_position(raw_local_pose[bone_index], vtx1);
+		Vector4_32 lossy_vtx1 = transform_position(lossy_local_pose[bone_index], vtx1);
+		float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+
+		return max(vtx0_error, vtx1_error);
+	}
+
+	inline float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
 	{
 		uint16_t num_bones = skeleton.get_num_bones();
 		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
@@ -146,6 +170,43 @@ namespace acl
 		return max(vtx0_error, vtx1_error);
 	}
 
+	inline float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
+	{
+		uint16_t num_bones = skeleton.get_num_bones();
+		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
+		ACL_ENSURE(bone_index < num_bones, "Invalid bone index: %u", bone_index);
+
+		const RigidBone& target_bone = skeleton.get_bone(bone_index);
+		float vtx_distance = float(target_bone.vertex_distance);
+
+		std::function<AffineMatrix_32(const Transform_32*, uint16_t)> apply_fun;
+		apply_fun = [&](const Transform_32* local_pose, uint16_t bone_index) -> AffineMatrix_32
+		{
+			if (bone_index == 0)
+				return matrix_from_transform(local_pose[0]);
+			const RigidBone& bone = skeleton.get_bone(bone_index);
+			AffineMatrix_32 parent_mtx = apply_fun(local_pose, bone.parent_index);
+			AffineMatrix_32 local_mtx = matrix_from_transform(local_pose[bone_index]);
+			return matrix_mul(local_mtx, parent_mtx);
+		};
+
+		AffineMatrix_32 raw_obj_mtx = apply_fun(raw_local_pose, bone_index);
+		AffineMatrix_32 lossy_obj_mtx = apply_fun(lossy_local_pose, bone_index);
+
+		Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
+		Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
+
+		Vector4_32 raw_vtx0 = matrix_mul_position(raw_obj_mtx, vtx0);
+		Vector4_32 raw_vtx1 = matrix_mul_position(raw_obj_mtx, vtx1);
+		Vector4_32 lossy_vtx0 = matrix_mul_position(lossy_obj_mtx, vtx0);
+		Vector4_32 lossy_vtx1 = matrix_mul_position(lossy_obj_mtx, vtx1);
+
+		float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+		float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+
+		return max(vtx0_error, vtx1_error);
+	}
+
 	struct BoneError
 	{
 		uint16_t index;
@@ -153,7 +214,7 @@ namespace acl
 		double sample_time;
 	};
 
-	inline BoneError calculate_compressed_clip_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton,
+	inline BoneError calculate_compressed_clip_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, bool has_scale,
 		std::function<void*(Allocator& allocator)> alloc_ctx_fun,
 		std::function<void(Allocator& allocator, void* context)> free_ctx_fun,
 		std::function<void(void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)> compressed_clip_sample_fun)
@@ -179,7 +240,11 @@ namespace acl
 
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				float error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+				float error;
+				if (has_scale)
+					error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+				else
+					error = calculate_object_bone_error_no_scale(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
 
 				if (error > bone_error.error)
 				{

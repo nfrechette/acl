@@ -314,7 +314,7 @@ namespace acl
 				};
 
 				// Use the compressed clip to make sure the decoder works properly
-				BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, alloc_ctx_fun, free_ctx_fun, sample_fun);
+				BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, clip_context.has_scale, alloc_ctx_fun, free_ctx_fun, sample_fun);
 
 				SJSONObjectWriter& writer = stats.get_writer();
 				writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);

@@ -449,6 +449,7 @@ namespace acl
 			float error_threshold;
 			float clip_duration;
 			float segment_duration;
+			bool has_scale;
 
 			const BoneStreams* raw_bone_streams;
 
@@ -471,6 +472,7 @@ namespace acl
 				error_threshold = clip_.get_error_threshold();
 				clip_duration = clip_.get_duration();
 				segment_duration = float(num_samples - 1) / sample_rate;
+				has_scale = segment.clip->has_scale;
 
 				raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
@@ -504,9 +506,19 @@ namespace acl
 				// Constant branch
 				float error;
 				if (use_local_error)
-					error = calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+				{
+					if (context.has_scale)
+						error = calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+					else
+						error = calculate_local_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+				}
 				else
-					error = calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+				{
+					if (context.has_scale)
+						error = calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+					else
+						error = calculate_object_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+				}
 
 				max_error = max(max_error, error);
 				if (!scan_whole_clip && error >= context.error_threshold)
@@ -665,7 +677,7 @@ namespace acl
 			}
 		}
 
-		inline uint8_t increment_and_clamp_bit_rate(uint8_t bit_rate, uint8_t increment)
+		constexpr uint8_t increment_and_clamp_bit_rate(uint8_t bit_rate, uint8_t increment)
 		{
 			return bit_rate >= HIGHEST_BIT_RATE ? bit_rate : std::min<uint8_t>(bit_rate + increment, HIGHEST_BIT_RATE);
 		}
@@ -1339,33 +1351,6 @@ namespace acl
 			deallocate_type_array(allocator, error_per_bone, num_bones);
 			deallocate_type_array(allocator, error_per_stream, num_bones);
 			deallocate_type_array(allocator, low_resolution_bones, bitset_size);
-		}
-	}
-
-	inline void quantize_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, const AnimationClip& clip, const RigidSkeleton& skeleton, const BoneStreams* raw_bone_streams)
-	{
-		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
-		const bool is_translation_variable = is_vector_format_variable(translation_format);
-		const bool is_scale_variable = is_vector_format_variable(scale_format);
-		constexpr bool use_new_variable_quantization = true;
-
-		if (is_rotation_variable || is_translation_variable || is_scale_variable)
-		{
-			SegmentContext segment;
-			segment.bone_streams = bone_streams;
-			segment.num_bones = num_bones;
-			segment.num_samples = safe_static_cast<uint16_t>(clip.get_num_samples());
-
-			if (use_new_variable_quantization)
-				impl::quantize_variable_streams_new(allocator, segment, rotation_format, translation_format, scale_format, clip, skeleton, raw_bone_streams);
-			else
-				impl::quantize_variable_streams(allocator, bone_streams, num_bones, rotation_format, translation_format, clip, skeleton);
-		}
-		else
-		{
-			impl::quantize_fixed_rotation_streams(allocator, bone_streams, num_bones, rotation_format, false);
-			impl::quantize_fixed_translation_streams(allocator, bone_streams, num_bones, translation_format);
-			impl::quantize_fixed_scale_streams(allocator, bone_streams, num_bones, scale_format);
 		}
 	}
 
