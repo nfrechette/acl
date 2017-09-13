@@ -196,7 +196,7 @@ namespace acl
 			if (settings.range_reduction != RangeReductionFlags8::None)
 			{
 				normalize_clip_streams(clip_context, settings.range_reduction);
-				clip_range_data_size = get_stream_range_data_size(clip_context, settings.range_reduction, settings.rotation_format, settings.translation_format);
+				clip_range_data_size = get_stream_range_data_size(clip_context, settings.range_reduction, settings.rotation_format, settings.translation_format, settings.scale_format);
 			}
 
 			if (settings.segmenting.enabled)

@@ -39,31 +39,28 @@
 
 namespace acl
 {
-	inline uint32_t get_stream_range_data_size(const BoneStreams* bone_streams, uint16_t num_bones, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format, VectorFormat8 translation_format)
+	inline uint32_t get_stream_range_data_size(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format)
 	{
-		uint32_t rotation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
-		uint32_t translation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) ? get_range_reduction_vector_size(translation_format) : 0;
+		const uint32_t rotation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
+		const uint32_t translation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) ? get_range_reduction_vector_size(translation_format) : 0;
+		const uint32_t scale_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales) ? get_range_reduction_vector_size(scale_format) : 0;
 		uint32_t range_data_size = 0;
 
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+		for (const BoneStreams& bone_stream : segment.bone_iterator())
 		{
-			const BoneStreams& bone_stream = bone_streams[bone_index];
-
 			if (bone_stream.is_rotation_animated())
 				range_data_size += rotation_size;
 
 			if (bone_stream.is_translation_animated())
 				range_data_size += translation_size;
+
+			if (clip_context.has_scale && bone_stream.is_scale_animated())
+				range_data_size += scale_size;
 		}
 
 		return range_data_size;
-	}
-
-	inline uint32_t get_stream_range_data_size(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format, VectorFormat8 translation_format)
-	{
-		// Only use the first segment, it contains the necessary information
-		const SegmentContext& segment = clip_context.segments[0];
-		return get_stream_range_data_size(segment.bone_streams, segment.num_bones, range_reduction, rotation_format, translation_format);
 	}
 
 	inline void write_range_track_data_impl(const TrackStream& track, const TrackStreamRange& range, bool is_clip_range_data, uint8_t*& out_range_data)

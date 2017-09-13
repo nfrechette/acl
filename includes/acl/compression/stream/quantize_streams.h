@@ -563,11 +563,11 @@ namespace acl
 				{
 					uint8_t target_sum = 3 * iteration;
 
-					for (uint8_t rotation_bit_rate = bone_bit_rates.rotation; rotation_bit_rate < NUM_BIT_RATES || rotation_bit_rate >= HIGHEST_BIT_RATE; ++rotation_bit_rate)
+					for (uint8_t rotation_bit_rate = bone_bit_rates.rotation; true; ++rotation_bit_rate)
 					{
-						for (uint8_t translation_bit_rate = bone_bit_rates.translation; translation_bit_rate < NUM_BIT_RATES || translation_bit_rate >= HIGHEST_BIT_RATE; ++translation_bit_rate)
+						for (uint8_t translation_bit_rate = bone_bit_rates.translation; true; ++translation_bit_rate)
 						{
-							for (uint8_t scale_bit_rate = bone_bit_rates.scale; scale_bit_rate < NUM_BIT_RATES || scale_bit_rate >= HIGHEST_BIT_RATE; ++scale_bit_rate)
+							for (uint8_t scale_bit_rate = bone_bit_rates.scale; true; ++scale_bit_rate)
 							{
 								uint8_t rotation_increment = rotation_bit_rate - bone_bit_rates.rotation;
 								uint8_t translation_increment = translation_bit_rate - bone_bit_rates.translation;
@@ -619,11 +619,11 @@ namespace acl
 					{
 						uint8_t target_sum = 3 * iteration + (3 * num_iterations);
 
-						for (uint8_t rotation_bit_rate = bone_bit_rates.rotation; rotation_bit_rate < NUM_BIT_RATES || rotation_bit_rate >= HIGHEST_BIT_RATE; ++rotation_bit_rate)
+						for (uint8_t rotation_bit_rate = bone_bit_rates.rotation; true; ++rotation_bit_rate)
 						{
-							for (uint8_t translation_bit_rate = bone_bit_rates.translation; translation_bit_rate < NUM_BIT_RATES || translation_bit_rate >= HIGHEST_BIT_RATE; ++translation_bit_rate)
+							for (uint8_t translation_bit_rate = bone_bit_rates.translation; true; ++translation_bit_rate)
 							{
-								for (uint8_t scale_bit_rate = bone_bit_rates.translation; scale_bit_rate < NUM_BIT_RATES || scale_bit_rate >= HIGHEST_BIT_RATE; ++scale_bit_rate)
+								for (uint8_t scale_bit_rate = bone_bit_rates.scale; true; ++scale_bit_rate)
 								{
 									uint8_t rotation_increment = rotation_bit_rate - bone_bit_rates.rotation;
 									uint8_t translation_increment = translation_bit_rate - bone_bit_rates.translation;
