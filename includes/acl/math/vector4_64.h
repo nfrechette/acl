@@ -64,7 +64,7 @@ namespace acl
 
 	inline Vector4_64 vector_unaligned_load3(const double* input)
 	{
-		return vector_set(input[0], input[1], input[2], 0.0f);
+		return vector_set(input[0], input[1], input[2], 0.0);
 	}
 
 	inline Vector4_64 vector_zero_64()
@@ -434,6 +434,16 @@ namespace acl
 	inline bool vector_all_near_equal3(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
 	{
 		return vector_all_less_than3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+	}
+
+	inline bool vector_any_near_equal(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
+	{
+		return vector_any_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+	}
+
+	inline bool vector_any_near_equal3(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
+	{
+		return vector_any_less_than3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
 	inline bool vector_is_finite(const Vector4_64& input)

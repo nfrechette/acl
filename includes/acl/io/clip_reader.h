@@ -217,17 +217,15 @@ namespace acl
 
 				double rotation[4];
 				if (m_parser.try_read("bind_rotation", rotation, 4) && !counting)
-					bone.bind_rotation = quat_unaligned_load(rotation);
+					bone.bind_transform.rotation = quat_unaligned_load(&rotation[0]);
 
 				double translation[3];
 				if (m_parser.try_read("bind_translation", translation, 3) && !counting)
-					bone.bind_translation = vector_unaligned_load3(translation);
+					bone.bind_transform.translation = vector_unaligned_load3(&translation[0]);
 
 				double scale[3];
 				if (m_parser.try_read("bind_scale", scale, 3) && !counting)
-				{
-					// TODO: do something with bind_scale.
-				}
+					bone.bind_transform.scale = vector_unaligned_load3(&scale[0]);
 
 				if (!m_parser.object_ends())
 					goto error;

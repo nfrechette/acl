@@ -26,9 +26,8 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/string.h"
-#include "acl/math/quat_64.h"		// todo remove
-#include "acl/math/vector4_64.h"	// todo remove
 #include "acl/math/transform_32.h"
+#include "acl/math/transform_64.h"
 
 #include <stdint.h>
 
@@ -40,19 +39,17 @@ namespace acl
 	{
 		RigidBone()
 			: name()
-			, parent_index(INVALID_BONE_INDEX)
-			, bind_rotation(quat_identity_64())
-			, bind_translation(vector_zero_64())
+			, bind_transform(transform_identity_64())
 			, vertex_distance(1.0)
+			, parent_index(INVALID_BONE_INDEX)
 		{
 		}
 
 		RigidBone(RigidBone&& bone)
 			: name(std::move(bone.name))
-			, parent_index(bone.parent_index)
-			, bind_rotation(bone.bind_rotation)
-			, bind_translation(bone.bind_translation)
+			, bind_transform(bone.bind_transform)
 			, vertex_distance(bone.vertex_distance)
+			, parent_index(bone.parent_index)
 		{
 			new(this) RigidBone();
 		}
@@ -60,28 +57,20 @@ namespace acl
 		RigidBone& operator=(RigidBone&& bone)
 		{
 			std::swap(name, bone.name);
-			std::swap(parent_index, bone.parent_index);
-			std::swap(bind_rotation, bone.bind_rotation);
-			std::swap(bind_translation, bone.bind_translation);
+			std::swap(bind_transform, bone.bind_transform);
 			std::swap(vertex_distance, bone.vertex_distance);
+			std::swap(parent_index, bone.parent_index);
 
 			return *this;
 		}
 
 		bool is_root() const { return parent_index == INVALID_BONE_INDEX; }
 
-		String		name;
+		String			name;
 
-		// TODO: Introduce a type for bone indices
-		uint16_t	parent_index;
-
-		// Bind transform is in parent bone local space
-		// TODO: convert to transform
-		Quat_64		bind_rotation;
-		Vector4_64	bind_translation;
-		// TODO: bind_scale
-
-		double		vertex_distance;	// Virtual vertex distance used by hierarchical error function
+		Transform_64	bind_transform;		// Bind transform is in parent bone local space
+		double			vertex_distance;	// Virtual vertex distance used by hierarchical error function
+		uint16_t		parent_index;		// TODO: Introduce a type for bone indices
 	};
 
 	class RigidSkeleton
@@ -102,9 +91,11 @@ namespace acl
 
 				ACL_ENSURE(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
 				ACL_ENSURE((is_root && !found_root) || !is_root, "Multiple root bones found");
-				ACL_ENSURE(quat_is_finite(bone.bind_rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_rotation), quat_get_y(bone.bind_rotation), quat_get_z(bone.bind_rotation), quat_get_w(bone.bind_rotation));
-				ACL_ENSURE(quat_is_normalized(bone.bind_rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", quat_get_x(bone.bind_rotation), quat_get_y(bone.bind_rotation), quat_get_z(bone.bind_rotation), quat_get_w(bone.bind_rotation));
-				ACL_ENSURE(vector_is_finite3(bone.bind_translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_translation), vector_get_y(bone.bind_translation), vector_get_z(bone.bind_translation));
+				ACL_ENSURE(quat_is_finite(bone.bind_transform.rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
+				ACL_ENSURE(quat_is_normalized(bone.bind_transform.rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
+				ACL_ENSURE(vector_is_finite3(bone.bind_transform.translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.translation), vector_get_y(bone.bind_transform.translation), vector_get_z(bone.bind_transform.translation));
+				ACL_ENSURE(vector_is_finite3(bone.bind_transform.scale), "Bind scale is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.scale), vector_get_y(bone.bind_transform.scale), vector_get_z(bone.bind_transform.scale));
+				ACL_ENSURE(!vector_any_near_equal3(bone.bind_transform.scale, vector_zero_64()), "Bind scale is zero: [%f, %f, %f]", vector_get_x(bone.bind_transform.scale), vector_get_y(bone.bind_transform.scale), vector_get_z(bone.bind_transform.scale));
 
 				found_root |= is_root;
 
