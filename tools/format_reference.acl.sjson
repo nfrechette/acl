@@ -1,4 +1,4 @@
-// Raw clip filenames should have the form: *.acl.js
+// Raw clip filenames should have the form: *.acl.sjson
 // Note: a clip raw file isn't a true valid javascript file. It uses simplified json syntax.
 
 // Compressed clip filenames should have the form: *.acl.zip

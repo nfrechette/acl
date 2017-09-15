@@ -6,4 +6,4 @@ Small auxiliary tools exist to convert to this format such as the [fbx2acl](../t
 
 It is important to note that this file format is not meant to be used in production (although you could). It's primary purpose is to help us debug and reproduce issues by attaching an ACL file to bug reports.
 
-A reference ACL file can be found [here](../tools/format_reference.acl.js).
+A reference ACL file can be found [here](../tools/format_reference.acl.sjson).

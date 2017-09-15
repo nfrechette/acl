@@ -326,7 +326,7 @@ def convert_file(fbx_filename, anim_stack_name, acl_filename, zip):
 		# If we provide both, we'll only output a zip file with the same name
 		if len(acl_filename) != 0:
 			if zip:
-				zip_filename = acl_filename.replace('.js', '.zip')
+				zip_filename = acl_filename.replace('.sjson', '.zip')
 				print('Writing {}...'.format(zip_filename))
 				file = io.StringIO()
 			else:
@@ -401,7 +401,7 @@ if __name__ == "__main__":
 					continue
 
 				fbx_filename = os.path.join(dirpath, filename)
-				acl_filename = os.path.join(acl_dirname, filename.replace('.fbx', '.acl.js'))
+				acl_filename = os.path.join(acl_dirname, filename.replace('.fbx', '.acl.sjson'))
 
 				if not os.path.exists(acl_dirname):
 					os.makedirs(acl_dirname)
@@ -413,8 +413,8 @@ if __name__ == "__main__":
 		sys.exit(0)
 
 	# Convert a single file
-	if not acl_filename.endswith('.acl.js'):
-		print('Invalid ACL filename, it should be of the form *.acl.js')
+	if not acl_filename.endswith('.acl.sjson'):
+		print('Invalid ACL filename, it should be of the form *.acl.sjson')
 		sys.exit(1)
 
 	result = convert_file(fbx_filename, anim_stack_name, acl_filename, zip)

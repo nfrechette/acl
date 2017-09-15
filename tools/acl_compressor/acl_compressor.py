@@ -188,11 +188,11 @@ def compress_clips(options):
 		stat_dirname = dirpath.replace(acl_dir, stat_dir)
 
 		for filename in filenames:
-			if not filename.endswith('.acl.js'):
+			if not filename.endswith('.acl.sjson'):
 				continue
 
 			acl_filename = os.path.join(dirpath, filename)
-			stat_filename = os.path.join(stat_dirname, filename.replace('.acl.js', '_stats.sjson'))
+			stat_filename = os.path.join(stat_dirname, filename.replace('.acl.sjson', '_stats.sjson'))
 
 			stat_files.append(stat_filename)
 

@@ -254,7 +254,7 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 
 	FFileManagerGeneric file_manager;
 	TArray<FString> files;
-	file_manager.FindFiles(files, *acl_raw_dir, TEXT(".acl.js"));
+	file_manager.FindFiles(files, *acl_raw_dir, TEXT(".acl.sjson"));
 
 	acl::Allocator allocator;
 
@@ -265,7 +265,7 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 	for (const FString& file : files)
 	{
 		FString acl_clip_path = FPaths::Combine(*acl_raw_dir, *file);
-		FString ue4_stat_path = FPaths::Combine(*ue4_stat_dir, *file.Replace(TEXT(".acl.js"), TEXT("_stats.sjson"), ESearchCase::CaseSensitive));
+		FString ue4_stat_path = FPaths::Combine(*ue4_stat_dir, *file.Replace(TEXT(".acl.sjson"), TEXT("_stats.sjson"), ESearchCase::CaseSensitive));
 
 		if (file_manager.FileExists(*ue4_stat_path))
 			continue;
