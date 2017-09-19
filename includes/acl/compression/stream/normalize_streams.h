@@ -39,6 +39,8 @@ namespace acl
 {
 	inline void extract_bone_ranges_impl(SegmentContext& segment, BoneRanges* bone_ranges)
 	{
+		const bool has_scale = segment_context_has_scale(segment);
+
 		for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 		{
 			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
@@ -66,12 +68,15 @@ namespace acl
 				translation_max = vector_max(translation_max, translation);
 			}
 
-			for (uint32_t sample_index = 0; sample_index < bone_stream.scales.get_num_samples(); ++sample_index)
+			if (has_scale)
 			{
-				Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
+				for (uint32_t sample_index = 0; sample_index < bone_stream.scales.get_num_samples(); ++sample_index)
+				{
+					Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
 
-				scale_min = vector_min(scale_min, scale);
-				scale_max = vector_max(scale_max, scale);
+					scale_min = vector_min(scale_min, scale);
+					scale_max = vector_max(scale_max, scale);
+				}
 			}
 
 			BoneRanges& bone_range = bone_ranges[bone_index];
@@ -94,9 +99,10 @@ namespace acl
 	inline void extract_segment_bone_ranges(Allocator& allocator, ClipContext& clip_context)
 	{
 		uint8_t buffer[8] = {0};
-		Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE));
-		Vector4_32 one = vector_set(1.0f);
-		Vector4_32 zero = vector_zero_32();
+		const Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE));
+		const Vector4_32 one = vector_set(1.0f);
+		const Vector4_32 zero = vector_zero_32();
+		const bool has_scale = clip_context.has_scale;
 
 		for (SegmentContext& segment : clip_context.segment_iterator())
 		{
@@ -149,7 +155,7 @@ namespace acl
 					bone_range.translation = TrackStreamRange(translation_range_min, translation_range_max);
 				}
 
-				if (bone_stream.is_scale_animated() && clip_context.are_scales_normalized)
+				if (has_scale && bone_stream.is_scale_animated() && clip_context.are_scales_normalized)
 				{
 					Vector4_32 scale_range_min = vector_max(vector_sub(bone_range.scale.get_min(), padding), zero);
 					Vector4_32 scale_range_max = vector_min(vector_add(bone_range.scale.get_max(), padding), one);
@@ -299,6 +305,8 @@ namespace acl
 		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];
 
+		const bool has_scale = segment_context_has_scale(segment);
+
 		if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
 		{
 			normalize_rotation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
@@ -311,7 +319,7 @@ namespace acl
 			clip_context.are_translations_normalized = true;
 		}
 
-		if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales))
+		if (has_scale && is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales))
 		{
 			normalize_scale_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
 			clip_context.are_scales_normalized = true;
@@ -334,7 +342,8 @@ namespace acl
 				segment.are_translations_normalized = true;
 			}
 
-			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales))
+			const bool has_scale = segment_context_has_scale(segment);
+			if (has_scale && is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales))
 			{
 				normalize_scale_streams(segment.bone_streams, segment.ranges, segment.num_bones);
 				segment.are_scales_normalized = true;
@@ -357,7 +366,7 @@ namespace acl
 				if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
 					range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
 
-				if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
+				if (has_scale && is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
 					range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
 			}
 

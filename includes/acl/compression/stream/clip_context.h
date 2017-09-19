@@ -154,4 +154,7 @@ namespace acl
 
 		deallocate_type_array(allocator, clip_context.segments, clip_context.num_segments);
 	}
+
+	constexpr bool segment_context_has_scale(const SegmentContext& segment) { return segment.clip->has_scale; }
+	constexpr bool bone_streams_has_scale(const BoneStreams& bone_streams) { return segment_context_has_scale(*bone_streams.segment); }
 }

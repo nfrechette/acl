@@ -853,6 +853,9 @@ namespace acl
 
 	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose)
 	{
+		const bool has_scale = bone_streams_has_scale(bone_streams[0]);
+		const Vector4_32 default_scale = vector_set(1.0f);
+
 		uint16_t current_bone_index = bone_index;
 		while (current_bone_index != INVALID_BONE_INDEX)
 		{
@@ -899,7 +902,11 @@ namespace acl
 			}
 
 			Vector4_32 scale;
-			if (bone_stream.is_scale_animated())
+			if (!has_scale)
+			{
+				scale = default_scale;
+			}
+			else if (bone_stream.is_scale_animated())
 			{
 				uint32_t num_samples = bone_stream.scales.get_num_samples();
 				float duration = bone_stream.scales.get_duration();
@@ -1044,6 +1051,8 @@ namespace acl
 		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
 		const bool is_scale_variable = is_vector_format_variable(scale_format);
+		const bool has_scale = bone_streams_has_scale(bone_streams[0]);
+		const Vector4_32 default_scale = vector_set(1.0f);
 
 		uint16_t current_bone_index = bone_index;
 		while (current_bone_index != INVALID_BONE_INDEX)
@@ -1120,7 +1129,11 @@ namespace acl
 			}
 
 			Vector4_32 scale;
-			if (bone_stream.is_scale_animated())
+			if (!has_scale)
+			{
+				scale = default_scale;
+			}
+			else if (bone_stream.is_scale_animated())
 			{
 				uint32_t num_samples = bone_stream.scales.get_num_samples();
 				float duration = bone_stream.scales.get_duration();

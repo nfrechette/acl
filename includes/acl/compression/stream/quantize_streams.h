@@ -472,7 +472,7 @@ namespace acl
 				error_threshold = clip_.get_error_threshold();
 				clip_duration = clip_.get_duration();
 				segment_duration = float(num_samples - 1) / sample_rate;
-				has_scale = segment.clip->has_scale;
+				has_scale = segment_context_has_scale(segment);
 
 				raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
@@ -490,17 +490,14 @@ namespace acl
 		inline float calculate_max_error_at_bit_rate(QuantizationContext& context, uint16_t target_bone_index, bool use_local_error, bool scan_whole_clip = false)
 		{
 			float max_error = 0.0f;
-			constexpr bool use_raw_streams = true;
 
 			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
 				// Sample our streams and calculate the error
-				float sample_time = min(float(sample_index) / context.sample_rate, context.segment_duration);
-				float ref_sample_time = use_raw_streams ? min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration) : sample_time;
+				const float sample_time = min(float(sample_index) / context.sample_rate, context.segment_duration);
+				const float ref_sample_time = min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration);
 
-				const BoneStreams* ref_bone_streams = use_raw_streams ? context.raw_bone_streams : context.bone_streams;
-
-				sample_streams_hierarchical(ref_bone_streams, context.num_bones, ref_sample_time, target_bone_index, context.raw_local_pose);
+				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, ref_sample_time, target_bone_index, context.raw_local_pose);
 				sample_streams_hierarchical(context.bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.scale_format, context.lossy_local_pose);
 
 				// Constant branch
@@ -685,6 +682,7 @@ namespace acl
 		inline float increase_bone_bit_rate(QuantizationContext& context, uint16_t bone_index, uint8_t num_increments, float old_error, BoneBitRate& out_best_bit_rates)
 		{
 			const BoneBitRate bone_bit_rates = context.bit_rate_per_bone[bone_index];
+			const uint8_t num_scale_increments = context.has_scale ? num_increments : 0;
 
 			BoneBitRate best_bit_rates = bone_bit_rates;
 			float best_error = old_error;
@@ -697,7 +695,7 @@ namespace acl
 				{
 					uint8_t translation_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.translation, translation_increment);
 
-					for (uint8_t scale_increment = 0; scale_increment <= num_increments; ++scale_increment)
+					for (uint8_t scale_increment = 0; scale_increment <= num_scale_increments; ++scale_increment)
 					{
 						uint8_t scale_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.scale, scale_increment);
 
@@ -797,6 +795,9 @@ namespace acl
 			const bool translation_supports_constant_tracks = segment.are_translations_normalized;
 			const bool scale_supports_constant_tracks = segment.are_scales_normalized;
 
+			QuantizationContext context(allocator, segment, rotation_format, translation_format, scale_format, clip, skeleton);
+			context.raw_bone_streams = raw_bone_streams;
+
 			// Quantize everything to the lowest bit rate of the same variant
 			if (is_rotation_variable)
 				quantize_fixed_rotation_streams(allocator, quantized_streams, segment.num_bones, rotation_supports_constant_tracks ? 0 : LOWEST_BIT_RATE);
@@ -808,13 +809,13 @@ namespace acl
 			else
 				quantize_fixed_translation_streams(allocator, quantized_streams, segment.num_bones, translation_format);
 
-			if (is_scale_variable)
-				quantize_fixed_scale_streams(allocator, quantized_streams, segment.num_bones, scale_supports_constant_tracks ? 0 : LOWEST_BIT_RATE);
-			else
-				quantize_fixed_scale_streams(allocator, quantized_streams, segment.num_bones, scale_format);
-
-			QuantizationContext context(allocator, segment, rotation_format, translation_format, scale_format, clip, skeleton);
-			context.raw_bone_streams = raw_bone_streams;
+			if (context.has_scale)
+			{
+				if (is_scale_variable)
+					quantize_fixed_scale_streams(allocator, quantized_streams, segment.num_bones, scale_supports_constant_tracks ? 0 : LOWEST_BIT_RATE);
+				else
+					quantize_fixed_scale_streams(allocator, quantized_streams, segment.num_bones, scale_format);
+			}
 
 			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				context.bit_rate_per_bone[bone_index] = BoneBitRate{ quantized_streams[bone_index].rotations.get_bit_rate(), quantized_streams[bone_index].translations.get_bit_rate(), quantized_streams[bone_index].scales.get_bit_rate() };
@@ -1128,7 +1129,7 @@ namespace acl
 					quantize_fixed_translation_stream(allocator, segment.bone_streams[bone_index].translations, bone_range, context.bit_rate_per_bone[bone_index].translation, quantized_streams[bone_index].translations);
 				}
 
-				if (context.bit_rate_per_bone[bone_index].scale != INVALID_BIT_RATE)
+				if (context.has_scale && context.bit_rate_per_bone[bone_index].scale != INVALID_BIT_RATE)
 				{
 					const TrackStreamRange& bone_range = segment.are_scales_normalized ? segment.ranges[bone_index].scale : invalid_range;
 					quantize_fixed_scale_stream(allocator, segment.bone_streams[bone_index].scales, bone_range, context.bit_rate_per_bone[bone_index].scale, quantized_streams[bone_index].scales);
@@ -1168,7 +1169,9 @@ namespace acl
 			{
 				impl::quantize_fixed_rotation_streams(allocator, segment.bone_streams, segment.num_bones, rotation_format, false);
 				impl::quantize_fixed_translation_streams(allocator, segment.bone_streams, segment.num_bones, translation_format);
-				impl::quantize_fixed_scale_streams(allocator, segment.bone_streams, segment.num_bones, scale_format);
+
+				if (clip_context.has_scale)
+					impl::quantize_fixed_scale_streams(allocator, segment.bone_streams, segment.num_bones, scale_format);
 			}
 		}
 	}
