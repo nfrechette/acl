@@ -33,6 +33,7 @@ namespace acl
 		None,
 		Summary,
 		Detailed,
+		Exhaustive,
 	};
 
 	class OutputStats

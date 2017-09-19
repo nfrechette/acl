@@ -48,7 +48,7 @@
 #include "acl/compression/stream/segment_streams.h"
 #include "acl/compression/stream/write_stream_bitsets.h"
 #include "acl/compression/stream/write_stream_data.h"
-#include "acl/compression/stream/write_stream_stats.h"
+#include "acl/compression/stream/write_segment_stats.h"
 #include "acl/compression/stream/write_range_data.h"
 #include "acl/decompression/default_output_writer.h"
 
@@ -291,10 +291,6 @@ namespace acl
 				uint32_t compressed_size = compressed_clip->get_size();
 				double compression_ratio = double(raw_size) / double(compressed_size);
 
-				uint32_t num_default_tracks = bitset_count_set_bits(header.get_default_tracks_bitset(), bitset_size);
-				uint32_t num_constant_tracks = bitset_count_set_bits(header.get_constant_tracks_bitset(), bitset_size);
-				uint32_t num_animated_tracks = num_tracks - num_default_tracks - num_constant_tracks;
-
 				auto alloc_ctx_fun = [&](Allocator& allocator)
 				{
 					DecompressionSettings settings;
@@ -335,9 +331,60 @@ namespace acl
 				writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
 				writer["has_scale"] = clip_context.has_scale;
 
-				if (stats.get_logging() == StatLogging::Detailed)
+				if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
 				{
 					writer["num_bones"] = clip.get_num_bones();
+
+					uint32_t num_default_rotation_tracks = 0;
+					uint32_t num_default_translation_tracks = 0;
+					uint32_t num_default_scale_tracks = 0;
+					uint32_t num_constant_rotation_tracks = 0;
+					uint32_t num_constant_translation_tracks = 0;
+					uint32_t num_constant_scale_tracks = 0;
+					uint32_t num_animated_rotation_tracks = 0;
+					uint32_t num_animated_translation_tracks = 0;
+					uint32_t num_animated_scale_tracks = 0;
+
+					for (const BoneStreams& bone_stream : clip_context.segments[0].bone_iterator())
+					{
+						if (bone_stream.is_rotation_default)
+							num_default_rotation_tracks++;
+						else if (bone_stream.is_rotation_constant)
+							num_constant_rotation_tracks++;
+						else
+							num_animated_rotation_tracks++;
+
+						if (bone_stream.is_translation_default)
+							num_default_translation_tracks++;
+						else if (bone_stream.is_translation_constant)
+							num_constant_translation_tracks++;
+						else
+							num_animated_translation_tracks++;
+
+						if (bone_stream.is_scale_default)
+							num_default_scale_tracks++;
+						else if (bone_stream.is_scale_constant)
+							num_constant_scale_tracks++;
+						else
+							num_animated_scale_tracks++;
+					}
+
+					uint32_t num_default_tracks = num_default_rotation_tracks + num_default_translation_tracks + num_default_scale_tracks;
+					uint32_t num_constant_tracks = num_constant_rotation_tracks + num_constant_translation_tracks + num_constant_scale_tracks;
+					uint32_t num_animated_tracks = num_animated_rotation_tracks + num_animated_translation_tracks + num_animated_scale_tracks;
+
+					writer["num_default_rotation_tracks"] = num_default_rotation_tracks;
+					writer["num_default_translation_tracks"] = num_default_translation_tracks;
+					writer["num_default_scale_tracks"] = num_default_scale_tracks;
+
+					writer["num_constant_rotation_tracks"] = num_constant_rotation_tracks;
+					writer["num_constant_translation_tracks"] = num_constant_translation_tracks;
+					writer["num_constant_scale_tracks"] = num_constant_scale_tracks;
+
+					writer["num_animated_rotation_tracks"] = num_animated_rotation_tracks;
+					writer["num_animated_translation_tracks"] = num_animated_translation_tracks;
+					writer["num_animated_scale_tracks"] = num_animated_scale_tracks;
+
 					writer["num_default_tracks"] = num_default_tracks;
 					writer["num_constant_tracks"] = num_constant_tracks;
 					writer["num_animated_tracks"] = num_animated_tracks;
@@ -354,8 +401,26 @@ namespace acl
 					};
 				}
 
-				if (stats.get_logging() == StatLogging::Detailed)
-					write_stream_stats(allocator, clip_context, raw_clip_context, skeleton, writer);
+				writer["segments"] = [&](SJSONArrayWriter& writer)
+				{
+					for (const SegmentContext& segment : clip_context.segment_iterator())
+					{
+						writer.push_object([&](SJSONObjectWriter& writer)
+						{
+							write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, writer);
+
+							if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
+							{
+								write_detailed_segment_stats(segment, writer);
+							}
+
+							if (stats.get_logging() == StatLogging::Exhaustive)
+							{
+								write_exhaustive_segment_stats(allocator, segment, raw_clip_context, skeleton, writer);
+							}
+						});
+					}
+				};
 			}
 
 			destroy_clip_context(allocator, clip_context);
