@@ -46,7 +46,7 @@
 		{
 			namespace error_impl
 			{
-				inline void assert_impl(bool expression)
+				inline void assert_impl(bool expression, const char* format, ...)
 				{
 				#if !defined(NDEBUG)
 					assert(expression);
@@ -57,20 +57,39 @@
 			}
 		}
 
-		#define ACL_ASSERT(expression, format, ...) acl::error_impl::assert_impl(expression)
+		#define ACL_ASSERT(expression, format, ...) acl::error_impl::assert_impl(expression, format, __VA_ARGS__)
 	#else
 		#define ACL_ASSERT(expression, format, ...) ((void)0)
 	#endif
+#endif
 
-	// Handy macro to handle asserts in it statement, usage:
-	// if (ACL_TRY_ASSERT(foo != bar, "omg so bad!")) return error;
-	#define ACL_TRY_ASSERT(expression, format, ...) ACL_ASSERT(expression, format, __VAR_ARGS__), !(expression)
+// Handy macro to handle asserts in it statement, usage:
+// if (ACL_TRY_ASSERT(foo != bar, "omg so bad!")) return error;
+#if !defined(ACL_TRY_ASSERT)
+	#if defined(ACL_USE_ERROR_CHECKS)
+		namespace acl
+		{
+			namespace error_impl
+			{
+				// A shim is often required because an engine assert macro might do any number of things which
+				// are not compatible with an 'if' statement which breaks ACL_TRY_ASSERT
+				inline void assert_shim(bool expression, const char* format, ...)
+				{
+					ACL_ASSERT(expression, format);	// TODO: Format everything and pass it here
+				}
+			}
+		}
+
+		#define ACL_TRY_ASSERT(expression, format, ...) acl::error_impl::assert_shim(expression, format, __VA_ARGS__), !(expression)
+	#else
+		#define ACL_TRY_ASSERT(expression, format, ...) !(expression)
+	#endif
 #endif
 
 // Ensure is fatal, the library does not handle skipping this safely.
 #if !defined(ACL_ENSURE)
 	#if defined(ACL_USE_ERROR_CHECKS)
-		#define ACL_ENSURE(expression, format, ...) acl::error_impl::assert_impl(expression)
+		#define ACL_ENSURE(expression, format, ...) acl::error_impl::assert_impl(expression, format, __VA_ARGS__)
 	#else
 		#define ACL_ENSURE(expression, format, ...) ((void)0)
 	#endif
