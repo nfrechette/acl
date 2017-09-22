@@ -27,6 +27,7 @@
 #include "acl/core/error.h"
 #include "acl/math/scalar_32.h"
 #include "acl/math/vector4_32.h"
+#include "acl/math/vector4_64.h"
 
 #include <stdint.h>
 
