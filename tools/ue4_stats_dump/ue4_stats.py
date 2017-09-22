@@ -2,10 +2,9 @@ import os
 import sys
 
 # This script depends on a SJSON parsing package:
-# https://pypi.python.org/pypi/SJSON/1.0.4
+# https://pypi.python.org/pypi/SJSON/1.1.0
 # https://shelter13.net/projects/SJSON/
 # https://bitbucket.org/Anteru/sjson/src
-#import sjson_dev as sjson
 import sjson
 
 
