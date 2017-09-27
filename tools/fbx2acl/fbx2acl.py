@@ -155,9 +155,11 @@ def is_track_default(track, default_value, error_threshold = 0.000001):
 	# Everything is equal, we are a default track
 	return True
 
-def parse_tracks(scene, clip, bones, nodes):
+def parse_tracks(scene, anim_stack, clip, bones, nodes):
 	tracks = []
 
+	scene.SetCurrentAnimationStack(anim_stack)
+	
 	root_node = scene.GetRootNode()
 	anim_evaluator = scene.GetAnimationEvaluator()
 
@@ -319,7 +321,7 @@ def convert_file(fbx_filename, anim_stack_name, acl_filename, zip):
 		clip = parse_clip(scene, anim_stack)
 		nodes = parse_hierarchy(scene)
 		bones = parse_bind_pose(scene, nodes)
-		tracks = parse_tracks(scene, clip, bones, nodes)
+		tracks = parse_tracks(scene, anim_stack, clip, bones, nodes)
 
 		# If we don't provide an ACL filename, we'll write to STDOUT
 		# If we provide an ACL filename but not '-zip', we'll output the raw file
