@@ -33,7 +33,6 @@
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/scope_profiler.h"
-#include "acl/algorithm/uniformly_sampled/common.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/compression/compressed_clip_impl.h"
 #include "acl/compression/skeleton.h"
@@ -46,10 +45,10 @@
 #include "acl/compression/stream/normalize_streams.h"
 #include "acl/compression/stream/quantize_streams.h"
 #include "acl/compression/stream/segment_streams.h"
+#include "acl/compression/stream/write_segment_data.h"
+#include "acl/compression/stream/write_segment_stats.h"
 #include "acl/compression/stream/write_stream_bitsets.h"
 #include "acl/compression/stream/write_stream_data.h"
-#include "acl/compression/stream/write_segment_stats.h"
-#include "acl/compression/stream/write_range_data.h"
 #include "acl/decompression/default_output_writer.h"
 
 #include <stdint.h>
@@ -73,80 +72,6 @@ namespace acl
 {
 	namespace uniformly_sampled
 	{
-		struct CompressionSettings
-		{
-			RotationFormat8 rotation_format;
-			VectorFormat8 translation_format;
-			VectorFormat8 scale_format;
-
-			RangeReductionFlags8 range_reduction;
-
-			SegmentingSettings segmenting;
-
-			CompressionSettings()
-				: rotation_format(RotationFormat8::Quat_128)
-				, translation_format(VectorFormat8::Vector3_96)
-				, scale_format(VectorFormat8::Vector3_96)
-				, range_reduction(RangeReductionFlags8::None)
-				, segmenting()
-			{}
-
-			uint32_t hash() const
-			{
-				return hash_combine(hash_combine(hash_combine(hash32(rotation_format), hash32(translation_format)), hash32(range_reduction)), segmenting.hash());
-			}
-		};
-
-		namespace impl
-		{
-			inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint16_t segment_headers_start_offset)
-			{
-				const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
-
-				uint32_t data_offset = segment_headers_start_offset;
-				for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
-				{
-					const SegmentContext& segment = clip_context.segments[segment_index];
-					SegmentHeader& header = segment_headers[segment_index];
-
-					header.num_samples = segment.num_samples;
-					header.animated_pose_bit_size = segment.animated_pose_bit_size;
-					header.format_per_track_data_offset = data_offset;
-					header.range_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
-					header.track_data_offset = align_to(header.range_data_offset + segment.range_data_size, 4);						// Aligned to 4 bytes
-
-					data_offset = header.track_data_offset + segment.animated_data_size;
-				}
-			}
-
-			inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, ClipHeader& header)
-			{
-				SegmentHeader* segment_headers = header.get_segment_headers();
-				const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
-
-				for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
-				{
-					const SegmentContext& segment = clip_context.segments[segment_index];
-					SegmentHeader& segment_header = segment_headers[segment_index];
-
-					if (format_per_track_data_size > 0)
-						write_format_per_track_data(clip_context, segment, header.get_format_per_track_data(segment_header), format_per_track_data_size);
-					else
-						segment_header.format_per_track_data_offset = InvalidPtrOffset();
-
-					if (segment.range_data_size > 0)
-						write_segment_range_data(clip_context, segment, settings.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size);
-					else
-						segment_header.range_data_offset = InvalidPtrOffset();
-
-					if (segment.animated_data_size > 0)
-						write_animated_track_data(clip_context, segment, settings.rotation_format, settings.translation_format, settings.scale_format, header.get_track_data(segment_header), segment.animated_data_size);
-					else
-						segment_header.track_data_offset = InvalidPtrOffset();
-				}
-			}
-		}
-
 		// Encoder entry point
 		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressionSettings& settings, OutputStats& stats)
 		{
@@ -265,7 +190,7 @@ namespace acl
 			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);						// Aligned to 4 bytes
 
 			const uint16_t segment_headers_start_offset = safe_static_cast<uint16_t>(header.clip_range_data_offset + clip_range_data_size);
-			impl::write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
+			write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
 			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_size);
 			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_size);
 

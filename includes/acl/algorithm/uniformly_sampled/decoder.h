@@ -31,7 +31,6 @@
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/quat_packing.h"
-#include "acl/algorithm/uniformly_sampled/common.h"
 #include "acl/decompression/output_writer.h"
 
 #include <stdint.h>

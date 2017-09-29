@@ -24,51 +24,58 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
-#include "acl/core/error.h"
 #include "acl/core/hash.h"
-#include "acl/compression/animation_clip.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/core/track_types.h"
+#include "acl/core/range_reduction_types.h"
 
 #include <stdint.h>
 
 namespace acl
 {
-	struct ClipContext;
-
-	struct SegmentContext
+	struct SegmentingSettings
 	{
-		ClipContext* clip;
-		BoneStreams* bone_streams;
-		BoneRanges* ranges;
+		bool enabled;
 
-		uint16_t num_samples;
-		uint16_t num_bones;
+		uint16_t ideal_num_samples;
+		uint16_t max_num_samples;
 
-		uint32_t clip_sample_offset;
+		RangeReductionFlags8 range_reduction;
 
-		uint32_t animated_pose_bit_size;
-		uint32_t animated_data_size;
-		uint32_t range_data_size;
-		uint32_t segment_index;
+		SegmentingSettings()
+			: enabled(false)
+			, ideal_num_samples(16)
+			, max_num_samples(31)
+			, range_reduction(RangeReductionFlags8::None)
+		{}
 
-		bool are_rotations_normalized;
-		bool are_translations_normalized;
-		bool are_scales_normalized;
-
-		//////////////////////////////////////////////////////////////////////////
-
-		struct BoneIterator
+		uint32_t hash() const
 		{
-			constexpr BoneIterator(BoneStreams* bone_streams_, uint16_t num_bones_) : bone_streams(bone_streams_), num_bones(num_bones_) {}
+			return hash_combine(hash_combine(hash_combine(hash32(enabled), hash32(ideal_num_samples)), hash32(max_num_samples)), hash32(range_reduction));
+		}
+	};
 
-			BoneStreams* begin() { return bone_streams; }
-			BoneStreams* end() { return bone_streams + num_bones; }
+	struct CompressionSettings
+	{
+		RotationFormat8 rotation_format;
+		VectorFormat8 translation_format;
+		VectorFormat8 scale_format;
 
-			BoneStreams* bone_streams;
-			uint16_t num_bones;
-		};
+		RangeReductionFlags8 range_reduction;
 
-		constexpr BoneIterator bone_iterator() const { return BoneIterator(bone_streams, num_bones); }
+		SegmentingSettings segmenting;
+
+		CompressionSettings()
+			: rotation_format(RotationFormat8::Quat_128)
+			, translation_format(VectorFormat8::Vector3_96)
+			, scale_format(VectorFormat8::Vector3_96)
+			, range_reduction(RangeReductionFlags8::None)
+			, segmenting()
+		{}
+
+		uint32_t hash() const
+		{
+// CODY TODO: add scale format here
+			return hash_combine(hash_combine(hash_combine(hash32(rotation_format), hash32(translation_format)), hash32(range_reduction)), segmenting.hash());
+		}
 	};
 }

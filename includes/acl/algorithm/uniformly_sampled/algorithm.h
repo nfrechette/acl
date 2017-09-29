@@ -46,7 +46,7 @@ namespace acl
 			m_compression_settings.segmenting.range_reduction = segment_range_reduction;
 		}
 
-		UniformlySampledAlgorithm(uniformly_sampled::CompressionSettings settings)
+		UniformlySampledAlgorithm(CompressionSettings settings)
 			: m_compression_settings(settings)
 		{}
 
@@ -85,6 +85,6 @@ namespace acl
 		}
 
 	private:
-		uniformly_sampled::CompressionSettings m_compression_settings;
+		CompressionSettings m_compression_settings;
 	};
 }
