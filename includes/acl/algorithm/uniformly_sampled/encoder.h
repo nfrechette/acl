@@ -46,7 +46,7 @@
 #include "acl/compression/stream/quantize_streams.h"
 #include "acl/compression/stream/segment_streams.h"
 #include "acl/compression/stream/write_segment_data.h"
-#include "acl/compression/stream/write_segment_stats.h"
+#include "acl/compression/stream/write_stats.h"
 #include "acl/compression/stream/write_stream_bitsets.h"
 #include "acl/compression/stream/write_stream_data.h"
 #include "acl/decompression/default_output_writer.h"
@@ -212,140 +212,22 @@ namespace acl
 
 			if (stats.get_logging() != StatLogging::None)
 			{
-				uint32_t raw_size = clip.get_raw_size();
-				uint32_t compressed_size = compressed_clip->get_size();
-				double compression_ratio = double(raw_size) / double(compressed_size);
-
-				auto alloc_ctx_fun = [&](Allocator& allocator)
-				{
-					DecompressionSettings settings;
-					return allocate_decompression_context(allocator, settings, *compressed_clip);
-				};
-
-				auto free_ctx_fun = [&](Allocator& allocator, void* context)
-				{
-					deallocate_decompression_context(allocator, context);
-				};
-
-				auto sample_fun = [&](void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)
-				{
-					DecompressionSettings settings;
-					DefaultOutputWriter writer(out_transforms, num_transforms);
-					decompress_pose(settings, *compressed_clip, context, sample_time, writer);
-				};
-
-				// Use the compressed clip to make sure the decoder works properly
-				BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, clip_context.has_scale, alloc_ctx_fun, free_ctx_fun, sample_fun);
-
-				SJSONObjectWriter& writer = stats.get_writer();
-				writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);
-				writer["algorithm_uid"] = settings.hash();
-				writer["clip_name"] = clip.get_name().c_str();
-				writer["raw_size"] = raw_size;
-				writer["compressed_size"] = compressed_size;
-				writer["compression_ratio"] = compression_ratio;
-				writer["max_error"] = error.error;
-				writer["worst_bone"] = error.index;
-				writer["worst_time"] = error.sample_time;
-				writer["compression_time"] = compression_time.get_elapsed_seconds();
-				writer["duration"] = clip.get_duration();
-				writer["num_samples"] = clip.get_num_samples();
-				writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
-				writer["translation_format"] = get_vector_format_name(settings.translation_format);
-				writer["scale_format"] = get_vector_format_name(settings.scale_format);
-				writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
-				writer["has_scale"] = clip_context.has_scale;
-
-				if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
-				{
-					writer["num_bones"] = clip.get_num_bones();
-
-					uint32_t num_default_rotation_tracks = 0;
-					uint32_t num_default_translation_tracks = 0;
-					uint32_t num_default_scale_tracks = 0;
-					uint32_t num_constant_rotation_tracks = 0;
-					uint32_t num_constant_translation_tracks = 0;
-					uint32_t num_constant_scale_tracks = 0;
-					uint32_t num_animated_rotation_tracks = 0;
-					uint32_t num_animated_translation_tracks = 0;
-					uint32_t num_animated_scale_tracks = 0;
-
-					for (const BoneStreams& bone_stream : clip_context.segments[0].bone_iterator())
+				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, stats,
+					[&](Allocator& allocator)
 					{
-						if (bone_stream.is_rotation_default)
-							num_default_rotation_tracks++;
-						else if (bone_stream.is_rotation_constant)
-							num_constant_rotation_tracks++;
-						else
-							num_animated_rotation_tracks++;
-
-						if (bone_stream.is_translation_default)
-							num_default_translation_tracks++;
-						else if (bone_stream.is_translation_constant)
-							num_constant_translation_tracks++;
-						else
-							num_animated_translation_tracks++;
-
-						if (bone_stream.is_scale_default)
-							num_default_scale_tracks++;
-						else if (bone_stream.is_scale_constant)
-							num_constant_scale_tracks++;
-						else
-							num_animated_scale_tracks++;
-					}
-
-					uint32_t num_default_tracks = num_default_rotation_tracks + num_default_translation_tracks + num_default_scale_tracks;
-					uint32_t num_constant_tracks = num_constant_rotation_tracks + num_constant_translation_tracks + num_constant_scale_tracks;
-					uint32_t num_animated_tracks = num_animated_rotation_tracks + num_animated_translation_tracks + num_animated_scale_tracks;
-
-					writer["num_default_rotation_tracks"] = num_default_rotation_tracks;
-					writer["num_default_translation_tracks"] = num_default_translation_tracks;
-					writer["num_default_scale_tracks"] = num_default_scale_tracks;
-
-					writer["num_constant_rotation_tracks"] = num_constant_rotation_tracks;
-					writer["num_constant_translation_tracks"] = num_constant_translation_tracks;
-					writer["num_constant_scale_tracks"] = num_constant_scale_tracks;
-
-					writer["num_animated_rotation_tracks"] = num_animated_rotation_tracks;
-					writer["num_animated_translation_tracks"] = num_animated_translation_tracks;
-					writer["num_animated_scale_tracks"] = num_animated_scale_tracks;
-
-					writer["num_default_tracks"] = num_default_tracks;
-					writer["num_constant_tracks"] = num_constant_tracks;
-					writer["num_animated_tracks"] = num_animated_tracks;
-				}
-
-				if (settings.segmenting.enabled)
-				{
-					writer["segmenting"] = [&](SJSONObjectWriter& writer)
+						DecompressionSettings settings;
+						return allocate_decompression_context(allocator, settings, *compressed_clip);
+					},
+					[&](void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)
 					{
-						writer["num_segments"] = header.num_segments;
-						writer["range_reduction"] = get_range_reduction_name(settings.segmenting.range_reduction);
-						writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
-						writer["max_num_samples"] = settings.segmenting.max_num_samples;
-					};
-				}
-
-				writer["segments"] = [&](SJSONArrayWriter& writer)
-				{
-					for (const SegmentContext& segment : clip_context.segment_iterator())
+						DecompressionSettings settings;
+						DefaultOutputWriter writer(out_transforms, num_transforms);
+						decompress_pose(settings, *compressed_clip, context, sample_time, writer);
+					},
+					[&](Allocator& allocator, void* context)
 					{
-						writer.push_object([&](SJSONObjectWriter& writer)
-						{
-							write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, writer);
-
-							if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
-							{
-								write_detailed_segment_stats(segment, writer);
-							}
-
-							if (stats.get_logging() == StatLogging::Exhaustive)
-							{
-								write_exhaustive_segment_stats(allocator, segment, raw_clip_context, skeleton, writer);
-							}
-						});
-					}
-				};
+						deallocate_decompression_context(allocator, context);
+					});
 			}
 
 			destroy_clip_context(allocator, clip_context);

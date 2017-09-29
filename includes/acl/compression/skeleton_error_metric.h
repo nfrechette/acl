@@ -32,6 +32,7 @@
 #include "acl/math/scalar_32.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/decompression/functions.h"
 
 #include <algorithm>
 #include <functional>
@@ -215,16 +216,14 @@ namespace acl
 	};
 
 	inline BoneError calculate_compressed_clip_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, bool has_scale,
-		std::function<void*(Allocator& allocator)> alloc_ctx_fun,
-		std::function<void(Allocator& allocator, void* context)> free_ctx_fun,
-		std::function<void(void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)> compressed_clip_sample_fun)
+		AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
 		uint16_t num_bones = clip.get_num_bones();
 		float clip_duration = clip.get_duration();
 		float sample_rate = float(clip.get_sample_rate());
 		uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
 
-		void* context = alloc_ctx_fun(allocator);
+		void* context = allocate_context(allocator);
 
 		Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
@@ -236,7 +235,7 @@ namespace acl
 			float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
 			clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
-			compressed_clip_sample_fun(context, sample_time, lossy_pose_transforms, num_bones);
+			decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
 
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
@@ -257,7 +256,7 @@ namespace acl
 
 		deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-		free_ctx_fun(allocator, context);
+		deallocate_context(allocator, context);
 
 		return bone_error;
 	}
