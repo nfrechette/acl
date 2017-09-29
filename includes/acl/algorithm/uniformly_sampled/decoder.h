@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/bitset.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/core/utils.h"
 #include "acl/core/range_reduction_types.h"
