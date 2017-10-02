@@ -206,6 +206,7 @@ def compress_clips(options):
 			cmd_queue.put((acl_filename, cmd))
 
 	if len(stat_files) == 0:
+		print("No ACL clips found to compress")
 		sys.exit(0)
 
 	if not cmd_queue.empty():
