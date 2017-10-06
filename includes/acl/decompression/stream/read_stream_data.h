@@ -216,275 +216,36 @@ namespace acl
 				const bool are_clip_rotations_normalized = is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Rotations);
 				const bool are_segment_rotations_normalized = is_enum_flag_set(segment_range_reduction, RangeReductionFlags8::Rotations);
 
-				if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
+				Vector4_32 rotations[num_key_frames];
+
+				bool ignore_segment_range[num_key_frames];
+				for (size_t i = 0; i < num_key_frames; ++i)
+					ignore_segment_range[i] = false;
+
+				if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
 				{
-					Vector4_32 rotations_xyzw[num_key_frames];
-
 					for (size_t i = 0; i < num_key_frames; ++i)
-						rotations_xyzw[i] = unpack_vector4_128(context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
-
-					if (are_segment_rotations_normalized)
 					{
-						for (size_t i = 0; i < num_key_frames; ++i)
+						uint8_t bit_rate = context.format_per_track_data[i][context.format_per_track_data_offset];
+						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+
+						if (is_pack_0_bit_rate(bit_rate))
 						{
-							Vector4_32 segment_range_min, segment_range_extent;
-
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-							segment_range_min = unpack_vector4_32(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							segment_range_extent = unpack_vector4_32(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
+							rotations[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
 #else
-							segment_range_min = unpack_vector4_64(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							segment_range_extent = unpack_vector4_64(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
+							rotations[i] = unpack_vector3_96(context.segment_range_data[i] + context.segment_range_data_offset);
 #endif
-
-							rotations_xyzw[i] = vector_mul_add(rotations_xyzw[i], segment_range_extent, segment_range_min);
+							ignore_segment_range[i] = true;
 						}
-
-						context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
-					}
-
-					if (are_clip_rotations_normalized)
-					{
-						Vector4_32 clip_range_min = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset);
-						Vector4_32 clip_range_extent = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
-
-						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations_xyzw[i] = vector_mul_add(rotations_xyzw[i], clip_range_extent, clip_range_min);
-
-						context.clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2;
-					}
-
-					const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-					{
-						out_rotations[i] = vector_to_quat(rotations_xyzw[i]);
-
-						context.key_frame_byte_offsets[i] += rotation_size;
-
-						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							context.key_frame_bit_offsets[i] = context.key_frame_byte_offsets[i] * 8;
-					}
-				}
-				else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
-				{
-					Vector4_32 rotations_xyz[num_key_frames];
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-						rotations_xyz[i] = unpack_vector3_96(context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
-
-					if (are_segment_rotations_normalized)
-					{
-						for (size_t i = 0; i < num_key_frames; ++i)
-						{
-							Vector4_32 segment_range_min, segment_range_extent;
-
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-							segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
-#else
-							segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
-#endif
-
-							rotations_xyz[i] = vector_mul_add(rotations_xyz[i], segment_range_extent, segment_range_min);
-						}
-
-						context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
-					}
-
-					if (are_clip_rotations_normalized)
-					{
-						Vector4_32 clip_range_min = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset);
-						Vector4_32 clip_range_extent = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
-
-						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations_xyz[i] = vector_mul_add(rotations_xyz[i], clip_range_extent, clip_range_min);
-
-						context.clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2;
-					}
-
-					const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-					{
-						out_rotations[i] = quat_from_positive_w(rotations_xyz[i]);
-
-						context.key_frame_byte_offsets[i] += rotation_size;
-
-						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							context.key_frame_bit_offsets[i] = context.key_frame_byte_offsets[i] * 8;
-					}
-				}
-				else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
-				{
-					Vector4_32 rotations_xyz[num_key_frames];
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-						rotations_xyz[i] = unpack_vector3_48(context.animated_track_data[i] + context.key_frame_byte_offsets[i], are_clip_rotations_normalized);
-
-					if (are_segment_rotations_normalized)
-					{
-						for (size_t i = 0; i < num_key_frames; ++i)
-						{
-							Vector4_32 segment_range_min, segment_range_extent;
-
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-							segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
-#else
-							segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
-#endif
-
-							rotations_xyz[i] = vector_mul_add(rotations_xyz[i], segment_range_extent, segment_range_min);
-						}
-
-						context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
-					}
-
-					if (are_clip_rotations_normalized)
-					{
-						Vector4_32 clip_range_min = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset);
-						Vector4_32 clip_range_extent = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
-
-						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations_xyz[i] = vector_mul_add(rotations_xyz[i], clip_range_extent, clip_range_min);
-
-						context.clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2;
-					}
-
-					const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-					{
-						out_rotations[i] = quat_from_positive_w(rotations_xyz[i]);
-
-						context.key_frame_byte_offsets[i] += rotation_size;
-
-						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							context.key_frame_bit_offsets[i] = context.key_frame_byte_offsets[i] * 8;
-					}
-				}
-				else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
-				{
-					Vector4_32 rotations_xyz[num_key_frames];
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-						rotations_xyz[i] = unpack_vector3_32(11, 11, 10, are_clip_rotations_normalized, context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
-
-					if (are_segment_rotations_normalized)
-					{
-						for (size_t i = 0; i < num_key_frames; ++i)
-						{
-							Vector4_32 segment_range_min, segment_range_extent;
-
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-							segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
-#else
-							segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
-#endif
-
-							rotations_xyz[i] = vector_mul_add(rotations_xyz[i], segment_range_extent, segment_range_min);
-						}
-
-						context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
-					}
-
-					if (are_clip_rotations_normalized)
-					{
-						Vector4_32 clip_range_min = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset);
-						Vector4_32 clip_range_extent = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
-
-						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations_xyz[i] = vector_mul_add(rotations_xyz[i], clip_range_extent, clip_range_min);
-
-						context.clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2;
-					}
-
-					const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-					{
-						out_rotations[i] = quat_from_positive_w(rotations_xyz[i]);
-
-						context.key_frame_byte_offsets[i] += rotation_size;
-
-						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							context.key_frame_bit_offsets[i] = context.key_frame_byte_offsets[i] * 8;
-					}
-				}
-				else if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
-				{
-					uint8_t bit_rates[num_key_frames];
-					uint8_t num_bits_at_bit_rates[num_key_frames];
-					Vector4_32 rotations_xyz[num_key_frames];
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-					{
-						bit_rates[i] = context.format_per_track_data[i][context.format_per_track_data_offset];
-						num_bits_at_bit_rates[i] = get_num_bits_at_bit_rate(bit_rates[i]);
-
-						if (is_pack_0_bit_rate(bit_rates[i]))
-							(void)bit_rates[i];
-						else if (is_pack_72_bit_rate(bit_rates[i]))
-							rotations_xyz[i] = unpack_vector3_72(are_clip_rotations_normalized, context.animated_track_data[i], context.key_frame_bit_offsets[i]);
-						else if (is_pack_96_bit_rate(bit_rates[i]))
-							rotations_xyz[i] = unpack_vector3_96(context.animated_track_data[i], context.key_frame_bit_offsets[i]);
+						else if (is_pack_72_bit_rate(bit_rate))
+							rotations[i] = unpack_vector3_72(are_clip_rotations_normalized, context.animated_track_data[i], context.key_frame_bit_offsets[i]);
+						else if (is_pack_96_bit_rate(bit_rate))
+							rotations[i] = unpack_vector3_96(context.animated_track_data[i], context.key_frame_bit_offsets[i]);
 						else
-							rotations_xyz[i] = unpack_vector3_n(num_bits_at_bit_rates[i], num_bits_at_bit_rates[i], num_bits_at_bit_rates[i], are_clip_rotations_normalized, context.animated_track_data[i], context.key_frame_bit_offsets[i]);
-					}
+							rotations[i] = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_clip_rotations_normalized, context.animated_track_data[i], context.key_frame_bit_offsets[i]);
 
-					++context.format_per_track_data_offset;
-
-					if (are_segment_rotations_normalized)
-					{
-						for (size_t i = 0; i < num_key_frames; ++i)
-						{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-							if (is_pack_0_bit_rate(bit_rates[i]))
-								rotations_xyz[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							else
-							{
-								Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
-								Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
-
-								rotations_xyz[i] = vector_mul_add(rotations_xyz[i], segment_range_extent, segment_range_min);
-							}
-#else
-							if (is_pack_0_bit_rate(bit_rate[i]))
-								rotation_xyz[i] = unpack_vector3_96(context.segment_range_data[i] + context.segment_range_data_offset);
-							else
-							{
-								Vector4_32 segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-								Vector4_32 segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
-
-								rotation_xyz[i] = vector_mul_add(rotation_xyz[i], segment_range_extent, segment_range_min);
-							}
-#endif
-						}
-
-						context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
-					}
-
-					if (are_clip_rotations_normalized)
-					{
-						Vector4_32 clip_range_min = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset);
-						Vector4_32 clip_range_extent = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
-
-						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations_xyz[i] = vector_mul_add(rotations_xyz[i], clip_range_extent, clip_range_min);
-
-						context.clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2;
-					}
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-					{
-						out_rotations[i] = quat_from_positive_w(rotations_xyz[i]);
-
-						uint8_t num_bits_read = num_bits_at_bit_rates[i] * 3;
+						uint8_t num_bits_read = num_bits_at_bit_rate * 3;
 
 						if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							num_bits_read = align_to(num_bits_read, MIXED_PACKING_ALIGNMENT_NUM_BITS);
@@ -494,6 +255,117 @@ namespace acl
 						if (settings.supports_mixed_packing() && context.has_mixed_packing)
 							context.key_frame_byte_offsets[i] = context.key_frame_bit_offsets[i] / 8;
 					}
+
+					++context.format_per_track_data_offset;
+				}
+				else
+				{
+					if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
+					{
+						for (size_t i = 0; i < num_key_frames; ++i)
+							rotations[i] = unpack_vector4_128(context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
+					}
+					else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
+					{
+						for (size_t i = 0; i < num_key_frames; ++i)
+							rotations[i] = unpack_vector3_96(context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
+					}
+					else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
+					{
+						for (size_t i = 0; i < num_key_frames; ++i)
+							rotations[i] = unpack_vector3_48(context.animated_track_data[i] + context.key_frame_byte_offsets[i], are_clip_rotations_normalized);
+					}
+					else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
+					{
+						for (size_t i = 0; i < num_key_frames; ++i)
+							rotations[i] = unpack_vector3_32(11, 11, 10, are_clip_rotations_normalized, context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
+					}
+
+					const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
+
+					for (size_t i = 0; i < num_key_frames; ++i)
+					{
+						context.key_frame_byte_offsets[i] += rotation_size;
+
+						if (settings.supports_mixed_packing() && context.has_mixed_packing)
+							context.key_frame_bit_offsets[i] = context.key_frame_byte_offsets[i] * 8;
+					}
+				}
+
+				if (are_segment_rotations_normalized)
+				{
+					if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
+					{
+						for (size_t i = 0; i < num_key_frames; ++i)
+						{
+							if (!ignore_segment_range[i])
+							{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+								Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
+								Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
+#else
+								Vector4_32 segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
+								Vector4_32 segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
+#endif
+								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
+							}
+						}
+					}
+					else
+					{
+						if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
+						{
+							for (size_t i = 0; i < num_key_frames; ++i)
+							{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+								Vector4_32 segment_range_min = unpack_vector4_32(context.segment_range_data[i] + context.segment_range_data_offset, true);
+								Vector4_32 segment_range_extent = unpack_vector4_32(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
+#else
+								Vector4_32 segment_range_min = unpack_vector4_64(context.segment_range_data[i] + context.segment_range_data_offset, true);
+								Vector4_32 segment_range_extent = unpack_vector4_64(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
+#endif
+								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
+							}
+						}
+						else
+						{
+							for (size_t i = 0; i < num_key_frames; ++i)
+							{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+								Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
+								Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
+#else
+								Vector4_32 segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
+								Vector4_32 segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
+#endif
+								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
+							}
+						}
+					}
+
+					context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
+				}
+
+				if (are_clip_rotations_normalized)
+				{
+					Vector4_32 clip_range_min = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset);
+					Vector4_32 clip_range_extent = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
+
+					for (size_t i = 0; i < num_key_frames; ++i)
+						rotations[i] = vector_mul_add(rotations[i], clip_range_extent, clip_range_min);
+
+					context.clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2;
+				}
+
+				if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
+				{
+					for (size_t i = 0; i < num_key_frames; ++i)
+						out_rotations[i] = vector_to_quat(rotations[i]);
+				}
+				else
+				{
+					for (size_t i = 0; i < num_key_frames; ++i)
+						out_rotations[i] = quat_from_positive_w(rotations[i]);
 				}
 			}
 		}
@@ -541,65 +413,29 @@ namespace acl
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 
-				uint8_t bit_rates[num_key_frames];
-
+				bool ignore_segment_range[num_key_frames];
 				for (size_t i = 0; i < num_key_frames; ++i)
-					bit_rates[i] = INVALID_BIT_RATE;
+					ignore_segment_range[i] = false;
 
-				if (format == VectorFormat8::Vector3_96 && settings.is_vector_format_supported(VectorFormat8::Vector3_96))
-				{
-					const uint32_t sample_size = get_packed_vector_size(format);
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-					{
-						out_vectors[i] = unpack_vector3_96(context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
-					
-						context.key_frame_byte_offsets[i] += sample_size;
-
-						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							context.key_frame_bit_offsets[i] = context.key_frame_byte_offsets[i] * 8;
-					}
-				}
-				else if (format == VectorFormat8::Vector3_48 && settings.is_vector_format_supported(VectorFormat8::Vector3_48))
-				{
-					const uint32_t sample_size = get_packed_vector_size(format);
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-					{
-						out_vectors[i] = unpack_vector3_48(context.animated_track_data[i] + context.key_frame_byte_offsets[i], true);
-
-						context.key_frame_byte_offsets[i] += sample_size;
-
-						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							context.key_frame_bit_offsets[i] = context.key_frame_byte_offsets[i] * 8;
-					}
-				}
-				else if (format == VectorFormat8::Vector3_32 && settings.is_vector_format_supported(VectorFormat8::Vector3_32))
-				{
-					const uint32_t sample_size = get_packed_vector_size(format);
-
-					for (size_t i = 0; i < num_key_frames; ++i)
-					{
-						out_vectors[i] = unpack_vector3_32(11, 11, 10, true, context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
-
-						context.key_frame_byte_offsets[i] += sample_size;
-
-						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							context.key_frame_bit_offsets[i] = context.key_frame_byte_offsets[i] * 8;
-					}
-				}
-				else if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable))
+				if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable))
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
-						bit_rates[i] = context.format_per_track_data[i][context.format_per_track_data_offset];
-						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rates[i]);
+						uint8_t bit_rate = context.format_per_track_data[i][context.format_per_track_data_offset];
+						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
-						if (is_pack_0_bit_rate(bit_rates[i]))
-							(void)bit_rates[i];
-						else if (is_pack_72_bit_rate(bit_rates[i]))
+						if (is_pack_0_bit_rate(bit_rate))
+						{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
+							out_vectors[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
+#else
+							out_vectors[i] = unpack_vector3_96(context.segment_range_data[i] + context.segment_range_data_offset, );
+#endif
+							ignore_segment_range[i] = true;
+						}
+						else if (is_pack_72_bit_rate(bit_rate))
 							out_vectors[i] = unpack_vector3_72(true, context.animated_track_data[i], context.key_frame_bit_offsets[i]);
-						else if (is_pack_96_bit_rate(bit_rates[i]))
+						else if (is_pack_96_bit_rate(bit_rate))
 							out_vectors[i] = unpack_vector3_96(context.animated_track_data[i], context.key_frame_bit_offsets[i]);
 						else
 							out_vectors[i] = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, context.animated_track_data[i], context.key_frame_bit_offsets[i]);
@@ -616,33 +452,51 @@ namespace acl
 
 					++context.format_per_track_data_offset;
 				}
+				else
+				{
+					if (format == VectorFormat8::Vector3_96 && settings.is_vector_format_supported(VectorFormat8::Vector3_96))
+					{
+						for (size_t i = 0; i < num_key_frames; ++i)
+							out_vectors[i] = unpack_vector3_96(context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
+					}
+					else if (format == VectorFormat8::Vector3_48 && settings.is_vector_format_supported(VectorFormat8::Vector3_48))
+					{
+						for (size_t i = 0; i < num_key_frames; ++i)
+							out_vectors[i] = unpack_vector3_48(context.animated_track_data[i] + context.key_frame_byte_offsets[i], true);
+					}
+					else if (format == VectorFormat8::Vector3_32 && settings.is_vector_format_supported(VectorFormat8::Vector3_32))
+					{
+						for (size_t i = 0; i < num_key_frames; ++i)
+							out_vectors[i] = unpack_vector3_32(11, 11, 10, true, context.animated_track_data[i] + context.key_frame_byte_offsets[i]);
+					}
+
+					const uint32_t sample_size = get_packed_vector_size(format);
+
+					for (size_t i = 0; i < num_key_frames; ++i)
+					{
+						context.key_frame_byte_offsets[i] += sample_size;
+
+						if (settings.supports_mixed_packing() && context.has_mixed_packing)
+							context.key_frame_bit_offsets[i] = context.key_frame_byte_offsets[i] * 8;
+					}
+				}
 
 				const RangeReductionFlags8 range_reduction_flag = settings.get_range_reduction_flag();
 				if (is_enum_flag_set(segment_range_reduction, range_reduction_flag))
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-						if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rates[i]))
-							out_vectors[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-						else
+						if (format != VectorFormat8::Vector3_Variable || !settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) || !ignore_segment_range[i])
 						{
+#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 							Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
 							Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (3 * sizeof(uint8_t)), true);
-
-							out_vectors[i] = vector_mul_add(out_vectors[i], segment_range_extent, segment_range_min);
-						}
 #else
-						if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) && is_pack_0_bit_rate(bit_rate0))
-							out_vectors[i] = unpack_vector3_96(context.segment_range_data[i] + context.segment_range_data_offset, );
-						else
-						{
 							Vector4_32 segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
 							Vector4_32 segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (3 * sizeof(uint16_t)), true);
-
+#endif
 							out_vectors[i] = vector_mul_add(out_vectors[i], segment_range_extent, segment_range_min);
 						}
-#endif
 					}
 
 					context.segment_range_data_offset += 3 * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
