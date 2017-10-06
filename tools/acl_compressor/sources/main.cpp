@@ -193,6 +193,37 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
+constexpr size_t CACHE_FLUSH_BUFFER_BYTES = 8 * 1024 * 1024;
+constexpr size_t CACHE_FLUSH_PASSES = 16;
+
+static void flush_caches(Allocator& allocator)
+{
+	uint8_t* buffer = allocate_type_array<uint8_t>(allocator, CACHE_FLUSH_BUFFER_BYTES);
+
+	for (size_t pass_index = 0; pass_index < CACHE_FLUSH_PASSES; ++pass_index)
+		std::memset(buffer, std::rand(), CACHE_FLUSH_BUFFER_BYTES);
+
+	deallocate_type_array(allocator, buffer, CACHE_FLUSH_BUFFER_BYTES);
+}
+
+static LARGE_INTEGER start_time;
+
+static void start_timer()
+{
+	QueryPerformanceCounter(&start_time);
+}
+
+static double get_elapsed_seconds()
+{
+	LARGE_INTEGER end_time;
+	QueryPerformanceCounter(&end_time);
+
+	LARGE_INTEGER frequency_cycles_per_sec;
+	QueryPerformanceFrequency(&frequency_cycles_per_sec);
+
+	return double(end_time.QuadPart - start_time.QuadPart) / double(frequency_cycles_per_sec.QuadPart);
+}
+
 static void unit_test(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
 {
 	uint16_t num_bones = clip.get_num_bones();
@@ -238,6 +269,8 @@ static void unit_test(Allocator& allocator, const AnimationClip& clip, const Rig
 	algorithm.deallocate_decompression_context(allocator, context);
 }
 
+static constexpr uint16_t DECOMPRESSION_TIME_EVALUATIONS = 32;
+
 static void try_algorithm(const Options& options, Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, SJSONArrayWriter* runs_writer)
 {
 	auto try_algorithm_impl = [&](SJSONObjectWriter* stats_writer)
@@ -247,7 +280,23 @@ static void try_algorithm(const Options& options, Allocator& allocator, const An
 
 		ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
 
-		unit_test(allocator, clip, skeleton, *compressed_clip, algorithm);
+		if (DECOMPRESSION_TIME_EVALUATIONS == 0)
+			unit_test(allocator, clip, skeleton, *compressed_clip, algorithm);
+		else
+		{
+			double total_seconds = 0.0;
+
+			for (uint16_t i = 0; i < DECOMPRESSION_TIME_EVALUATIONS; ++i)
+			{
+				flush_caches(allocator);
+
+				start_timer();
+				unit_test(allocator, clip, skeleton, *compressed_clip, algorithm);
+				total_seconds += get_elapsed_seconds();
+			}
+
+			printf("Decompressing the clip took %f ms on average\n", total_seconds * 1000.0 / static_cast<double>(DECOMPRESSION_TIME_EVALUATIONS));
+		}
 
 		allocator.deallocate(compressed_clip, compressed_clip->get_size());
 	};
