@@ -17,5 +17,5 @@ if __name__ == "__main__":
 
 	for filename in glob.glob(img_path):
 		with Image.open(filename, 'r') as img:
-			file_path_no_ext, file_ext = os.path.splitext(filename)
+			filename = filename.replace('.png', '_packed.png')
 			img.save(filename, 'PNG', optimize=True)
