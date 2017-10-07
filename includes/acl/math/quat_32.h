@@ -295,7 +295,7 @@ namespace acl
 	inline Quat_32 quat_normalize(const Quat_32& input)
 	{
 		// Reciprocal is more accurate to normalize with
-		float inv_len = vector_length_reciprocal(input);
+		float inv_len = quat_length_reciprocal(input);
 		return vector_to_quat(vector_mul(quat_to_vector(input), vector_set(inv_len)));
 	}
 
@@ -338,7 +338,7 @@ namespace acl
 	inline bool quat_is_normalized(const Quat_32& input, float threshold = 0.00001f)
 	{
 		float length_squared = quat_length_squared(input);
-		return abs(length_squared - 1.0) < threshold;
+		return abs(length_squared - 1.0f) < threshold;
 	}
 
 	inline bool quat_near_equal(const Quat_32& lhs, const Quat_32& rhs, float threshold = 0.00001f)

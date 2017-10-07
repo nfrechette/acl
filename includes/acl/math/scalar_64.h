@@ -44,6 +44,11 @@ namespace acl
 		return std::min(std::max(input, min), max);
 	}
 
+	inline double abs(double input)
+	{
+		return std::fabs(input);
+	}
+
 	inline double sqrt(double input)
 	{
 		return std::sqrt(input);

@@ -33,6 +33,14 @@
 #include <memory>
 #include <algorithm>
 
+#if defined(__ANDROID__)
+namespace std
+{
+	template<typename Type>
+	using is_trivially_default_constructible = has_trivial_default_constructor<Type>;
+}
+#endif
+
 namespace acl
 {
 	constexpr bool is_power_of_two(size_t input)
@@ -253,7 +261,7 @@ namespace acl
 			template<typename DestIntegralType, typename SrcEnumType>
 			static inline DestIntegralType cast(SrcEnumType input)
 			{
-				typedef std::underlying_type<SrcEnumType>::type SrcIntegralType;
+				typedef typename std::underlying_type<SrcEnumType>::type SrcIntegralType;
 				SrcIntegralType integral_input = static_cast<SrcIntegralType>(input);
 				ACL_ENSURE(integral_input >= std::numeric_limits<DestIntegralType>::min() && integral_input <= std::numeric_limits<DestIntegralType>::max(), "static_cast would result in truncation");
 				return static_cast<DestIntegralType>(input);
@@ -275,7 +283,7 @@ namespace acl
 	template<typename DestIntegralType, typename SrcType>
 	inline DestIntegralType safe_static_cast(SrcType input)
 	{
-		return memory_impl::safe_static_cast_impl<std::is_enum<SrcType>::value>::cast<DestIntegralType, SrcType>(input);
+		return memory_impl::safe_static_cast_impl<std::is_enum<SrcType>::value>::template cast<DestIntegralType, SrcType>(input);
 	}
 
 	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>

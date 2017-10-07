@@ -50,17 +50,27 @@ namespace acl
 		{
 			double dbl;
 			uint64_t u64;
+			float flt;
 
 			constexpr Converter(uint64_t value) : u64(value) {}
 			constexpr Converter(double value) : dbl(value) {}
+			constexpr Converter(float value) : flt(value) {}
+
+			constexpr operator double() const { return dbl; }
+			constexpr operator float() const { return flt; }
 		};
 
-		constexpr double get_mask_value(bool is_true)
+		constexpr Converter get_mask_value(bool is_true)
 		{
-			return is_true ? Converter(0xFFFFFFFFFFFFFFFFull).dbl : 0.0;
+			return Converter(is_true ? 0xFFFFFFFFFFFFFFFFull : 0ull);
 		}
 
 		constexpr double select(double mask, double if_true, double if_false)
+		{
+			return Converter(mask).u64 == 0 ? if_false : if_true;
+		}
+
+		constexpr float select(float mask, float if_true, float if_false)
 		{
 			return Converter(mask).u64 == 0 ? if_false : if_true;
 		}

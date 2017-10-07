@@ -151,9 +151,13 @@ namespace acl
 	{
 		switch (component_index)
 		{
+		case VectorMix::A:
 		case VectorMix::X: return vector_get_x(input);
+		case VectorMix::B:
 		case VectorMix::Y: return vector_get_y(input);
+		case VectorMix::C:
 		case VectorMix::Z: return vector_get_z(input);
+		case VectorMix::D:
 		case VectorMix::W: return vector_get_w(input);
 		default:
 			ACL_ENSURE(false, "Invalid component index");
@@ -165,9 +169,13 @@ namespace acl
 	{
 		switch (component_index)
 		{
+		case VectorMix::A:
 		case VectorMix::X: return vector_get_x(input);
+		case VectorMix::B:
 		case VectorMix::Y: return vector_get_y(input);
+		case VectorMix::C:
 		case VectorMix::Z: return vector_get_z(input);
+		case VectorMix::D:
 		case VectorMix::W: return vector_get_w(input);
 		default:
 			ACL_ENSURE(false, "Invalid component index");
@@ -578,10 +586,12 @@ namespace acl
 	template<VectorMix comp0, VectorMix comp1, VectorMix comp2, VectorMix comp3>
 	inline Vector4_32 vector_mix(const Vector4_32& input0, const Vector4_32& input1)
 	{
+#if defined(ACL_SSE2_INTRINSICS)
 		constexpr uint32_t component_index0 = math_impl::get_vector_mix_component_index(comp0);
 		constexpr uint32_t component_index1 = math_impl::get_vector_mix_component_index(comp1);
 		constexpr uint32_t component_index2 = math_impl::get_vector_mix_component_index(comp2);
 		constexpr uint32_t component_index3 = math_impl::get_vector_mix_component_index(comp3);
+#endif
 
 		if (math_impl::is_vector_mix_arg_xyzw(comp0) && math_impl::is_vector_mix_arg_xyzw(comp1) && math_impl::is_vector_mix_arg_xyzw(comp2) && math_impl::is_vector_mix_arg_xyzw(comp3))
 		{
@@ -589,7 +599,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 			return _mm_shuffle_ps(input0, input0, _MM_SHUFFLE(component_index0, component_index1, component_index2, component_index3));
 #else
-			return vector_set(vector_get_component(input0, component_index0), vector_get_component(input0, component_index1), vector_get_component(input0, component_index2), vector_get_component(input0, component_index3));
+			return vector_set(vector_get_component(input0, comp0), vector_get_component(input0, comp1), vector_get_component(input0, comp2), vector_get_component(input0, comp3));
 #endif
 		}
 
@@ -599,7 +609,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 			return _mm_shuffle_ps(input1, input1, _MM_SHUFFLE(component_index0, component_index1, component_index2, component_index3));
 #else
-			return vector_set(vector_get_component(input1, component_index0), vector_get_component(input1, component_index1), vector_get_component(input1, component_index2), vector_get_component(input1, component_index3));
+			return vector_set(vector_get_component(input1, comp0), vector_get_component(input1, comp1), vector_get_component(input1, comp2), vector_get_component(input1, comp3));
 #endif
 		}
 
@@ -609,7 +619,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 			return _mm_shuffle_ps(input0, input1, _MM_SHUFFLE(component_index0, component_index1, component_index2, component_index3));
 #else
-			return vector_set(vector_get_component(input0, component_index0), vector_get_component(input0, component_index1), vector_get_component(input1, component_index2), vector_get_component(input1, component_index3));
+			return vector_set(vector_get_component(input0, comp0), vector_get_component(input0, comp1), vector_get_component(input1, comp2), vector_get_component(input1, comp3));
 #endif
 		}
 
@@ -619,7 +629,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 			return _mm_shuffle_ps(input1, input0, _MM_SHUFFLE(component_index0, component_index1, component_index2, component_index3));
 #else
-			return vector_set(vector_get_component(input1, component_index0), vector_get_component(input1, component_index1), vector_get_component(input0, component_index2), vector_get_component(input0, component_index3));
+			return vector_set(vector_get_component(input1, comp0), vector_get_component(input1, comp1), vector_get_component(input0, comp2), vector_get_component(input0, comp3));
 #endif
 		}
 
@@ -629,7 +639,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 			return _mm_unpacklo_ps(input0, input1);
 #else
-			return vector_set(vector_get_component(input0, component_index0), vector_get_component(input1, component_index1), vector_get_component(input0, component_index2), vector_get_component(input1, component_index3));
+			return vector_set(vector_get_component(input0, comp0), vector_get_component(input1, comp1), vector_get_component(input0, comp2), vector_get_component(input1, comp3));
 #endif
 		}
 
@@ -639,7 +649,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 			return _mm_unpacklo_ps(input1, input0);
 #else
-			return vector_set(vector_get_component(input1, component_index0), vector_get_component(input0, component_index1), vector_get_component(input1, component_index2), vector_get_component(input0, component_index3));
+			return vector_set(vector_get_component(input1, comp0), vector_get_component(input0, comp1), vector_get_component(input1, comp2), vector_get_component(input0, comp3));
 #endif
 		}
 
@@ -649,7 +659,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 			return _mm_unpackhi_ps(input0, input1);
 #else
-			return vector_set(vector_get_component(input0, component_index0), vector_get_component(input1, component_index1), vector_get_component(input0, component_index2), vector_get_component(input1, component_index3));
+			return vector_set(vector_get_component(input0, comp0), vector_get_component(input1, comp1), vector_get_component(input0, comp2), vector_get_component(input1, comp3));
 #endif
 		}
 
@@ -659,7 +669,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 			return _mm_unpackhi_ps(input1, input0);
 #else
-			return vector_set(vector_get_component(input1, component_index0), vector_get_component(input0, component_index1), vector_get_component(input1, component_index2), vector_get_component(input0, component_index3));
+			return vector_set(vector_get_component(input1, comp0), vector_get_component(input0, comp1), vector_get_component(input1, comp2), vector_get_component(input0, comp3));
 #endif
 		}
 

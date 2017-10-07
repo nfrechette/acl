@@ -44,6 +44,11 @@ namespace acl
 		return std::min(std::max(input, min), max);
 	}
 
+	inline float abs(float input)
+	{
+		return std::fabs(input);
+	}
+
 	inline float sqrt(float input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)

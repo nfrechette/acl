@@ -31,44 +31,44 @@
 #define ACL_IMPL_ENUM_FLAGS_OPERATORS(EnumType) \
 	constexpr EnumType operator|(EnumType lhs, EnumType rhs) \
 	{ \
-		typedef std::underlying_type<EnumType>::type IntegralType; \
-		typedef std::make_unsigned<IntegralType>::type RawType; \
+		typedef typename std::underlying_type<EnumType>::type IntegralType; \
+		typedef typename std::make_unsigned<IntegralType>::type RawType; \
 		return static_cast<EnumType>(static_cast<RawType>(lhs) | static_cast<RawType>(rhs)); \
 	} \
 	inline void operator|=(EnumType& lhs, EnumType rhs) \
 	{ \
-		typedef std::underlying_type<EnumType>::type IntegralType; \
-		typedef std::make_unsigned<IntegralType>::type RawType; \
+		typedef typename std::underlying_type<EnumType>::type IntegralType; \
+		typedef typename std::make_unsigned<IntegralType>::type RawType; \
 		lhs = static_cast<EnumType>(static_cast<RawType>(lhs) | static_cast<RawType>(rhs)); \
 	} \
 	constexpr EnumType operator&(EnumType lhs, EnumType rhs) \
 	{ \
-		typedef std::underlying_type<EnumType>::type IntegralType; \
-		typedef std::make_unsigned<IntegralType>::type RawType; \
+		typedef typename std::underlying_type<EnumType>::type IntegralType; \
+		typedef typename std::make_unsigned<IntegralType>::type RawType; \
 		return static_cast<EnumType>(static_cast<RawType>(lhs) & static_cast<RawType>(rhs)); \
 	} \
 	inline void operator&=(EnumType& lhs, EnumType rhs) \
 	{ \
-		typedef std::underlying_type<EnumType>::type IntegralType; \
-		typedef std::make_unsigned<IntegralType>::type RawType; \
+		typedef typename std::underlying_type<EnumType>::type IntegralType; \
+		typedef typename std::make_unsigned<IntegralType>::type RawType; \
 		lhs = static_cast<EnumType>(static_cast<RawType>(lhs) & static_cast<RawType>(rhs)); \
 	} \
 	constexpr EnumType operator^(EnumType lhs, EnumType rhs) \
 	{ \
-		typedef std::underlying_type<EnumType>::type IntegralType; \
-		typedef std::make_unsigned<IntegralType>::type RawType; \
+		typedef typename std::underlying_type<EnumType>::type IntegralType; \
+		typedef typename std::make_unsigned<IntegralType>::type RawType; \
 		return static_cast<EnumType>(static_cast<RawType>(lhs) ^ static_cast<RawType>(rhs)); \
 	} \
 	inline void operator^=(EnumType& lhs, EnumType rhs) \
 	{ \
-		typedef std::underlying_type<EnumType>::type IntegralType; \
-		typedef std::make_unsigned<IntegralType>::type RawType; \
+		typedef typename std::underlying_type<EnumType>::type IntegralType; \
+		typedef typename std::make_unsigned<IntegralType>::type RawType; \
 		lhs = static_cast<EnumType>(static_cast<RawType>(lhs) ^ static_cast<RawType>(rhs)); \
 	} \
 	constexpr EnumType operator~(EnumType rhs) \
 	{ \
-		typedef std::underlying_type<EnumType>::type IntegralType; \
-		typedef std::make_unsigned<IntegralType>::type RawType; \
+		typedef typename std::underlying_type<EnumType>::type IntegralType; \
+		typedef typename std::make_unsigned<IntegralType>::type RawType; \
 		return static_cast<EnumType>(~static_cast<RawType>(rhs)); \
 	}
 
@@ -77,14 +77,14 @@ namespace acl
 	template<typename EnumType>
 	constexpr bool is_enum_flag_set(EnumType flags, EnumType flag_to_test)
 	{
-		typedef std::underlying_type<EnumType>::type IntegralType;
+		typedef typename std::underlying_type<EnumType>::type IntegralType;
 		return static_cast<IntegralType>(flags & flag_to_test) != 0;
 	}
 
 	template<typename EnumType>
 	constexpr bool are_enum_flags_set(EnumType flags, EnumType flags_to_test)
 	{
-		typedef std::underlying_type<EnumType>::type IntegralType;
+		typedef typename std::underlying_type<EnumType>::type IntegralType;
 		return static_cast<IntegralType>(flags & flags_to_test) == static_cast<IntegralType>(flags_to_test);
 	}
 }
