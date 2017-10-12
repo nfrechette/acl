@@ -169,15 +169,13 @@ namespace acl
 	inline void skip_vectors_in_four_key_frames(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context) { skip_vectors<4>(settings, header, context); }
 
 	template<size_t num_key_frames, class SettingsType, class DecompressionContext>
-	inline void decompress_rotations(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context, Quat_32* out_rotations)
+	inline void decompress_rotations(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type)
 	{
 		bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
 		if (is_rotation_default)
 		{
-			Quat_32 default = quat_identity_32();
-
-			for (size_t i = 0; i < num_key_frames; ++i)
-				out_rotations[i] = default;
+			out_rotations[0] = quat_identity_32();
+			out_time_series_type = TimeSeriesType8::ConstantDefault;
 		}
 		else
 		{
@@ -204,8 +202,8 @@ namespace acl
 					rotation = quat_identity_32();
 				}
 
-				for (size_t i = 0; i < num_key_frames; ++i)
-					out_rotations[i] = rotation;
+				out_rotations[0] = rotation;
+				out_time_series_type = TimeSeriesType8::Constant;
 
 				context.constant_track_data_offset += get_packed_rotation_size(packed_format);
 			}
@@ -367,6 +365,8 @@ namespace acl
 					for (size_t i = 0; i < num_key_frames; ++i)
 						out_rotations[i] = quat_from_positive_w(rotations[i]);
 				}
+
+				out_time_series_type = TimeSeriesType8::Varying;
 			}
 		}
 
@@ -375,24 +375,22 @@ namespace acl
 	}
 
 	template<class SettingsType, class DecompressionContext>
-	inline void decompress_rotation(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context, Quat_32* out_rotations) { decompress_rotations<1>(settings, header, context, out_rotations); }
+	inline void decompress_rotation(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type) { decompress_rotations<1>(settings, header, context, out_rotations, out_time_series_type); }
 
 	template<class SettingsType, class DecompressionContext>
-	inline void decompress_rotations_in_two_key_frames(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context, Quat_32* out_rotations) { decompress_rotations<2>(settings, header, context, out_rotations); }
+	inline void decompress_rotations_in_two_key_frames(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type) { decompress_rotations<2>(settings, header, context, out_rotations, out_time_series_type); }
 
 	template<class SettingsType, class DecompressionContext>
-	inline void decompress_rotations_in_four_key_frames(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context, Quat_32* out_rotations) { decompress_rotations<4>(settings, header, context, out_rotations); }
+	inline void decompress_rotations_in_four_key_frames(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type) { decompress_rotations<4>(settings, header, context, out_rotations, out_time_series_type); }
 
 	template<size_t num_key_frames, class SettingsAdapterType, class DecompressionContext>
-	inline void decompress_vectors(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context, Vector4_32* out_vectors)
+	inline void decompress_vectors(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type)
 	{
 		const bool is_sample_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
 		if (is_sample_default)
 		{
-			Vector4_32 default = settings.get_default_value();
-
-			for (size_t i = 0; i < num_key_frames; ++i)
-				out_vectors[i] = default;
+			out_vectors[0] = settings.get_default_value();
+			out_time_series_type = TimeSeriesType8::ConstantDefault;
 		}
 		else
 		{
@@ -400,10 +398,8 @@ namespace acl
 			if (is_sample_constant)
 			{
 				// Constant translation tracks store the remaining sample with full precision
-				Vector4_32 default = unpack_vector3_96(context.constant_track_data + context.constant_track_data_offset);
-
-				for (size_t i = 0; i < num_key_frames; ++i)
-					out_vectors[i] = default;
+				out_vectors[0] = unpack_vector3_96(context.constant_track_data + context.constant_track_data_offset);
+				out_time_series_type = TimeSeriesType8::Constant;
 
 				context.constant_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
 			}
@@ -512,6 +508,8 @@ namespace acl
 
 					context.clip_range_data_offset += 3 * sizeof(float) * 2;
 				}
+
+				out_time_series_type = TimeSeriesType8::Varying;
 			}
 		}
 
@@ -520,44 +518,69 @@ namespace acl
 	}
 
 	template<class SettingsAdapterType, class DecompressionContext>
-	inline void decompress_vector(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context, Vector4_32* out_vectors) { decompress_vectors<1>(settings, header, context, out_vectors); }
+	inline void decompress_vector(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type) { decompress_vectors<1>(settings, header, context, out_vectors, out_time_series_type); }
 
 	template<class SettingsAdapterType, class DecompressionContext>
-	inline void decompress_vectors_in_two_key_frames(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context, Vector4_32* out_vectors) { decompress_vectors<2>(settings, header, context, out_vectors); }
+	inline void decompress_vectors_in_two_key_frames(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type) { decompress_vectors<2>(settings, header, context, out_vectors, out_time_series_type); }
 
 	template<class SettingsAdapterType, class DecompressionContext>
-	inline void decompress_vectors_in_four_key_frames(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context, Vector4_32* out_vectors) { decompress_vectors<4>(settings, header, context, out_vectors); }
+	inline void decompress_vectors_in_four_key_frames(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type) { decompress_vectors<4>(settings, header, context, out_vectors, out_time_series_type); }
 
 	template <class SettingsType, class DecompressionContext>
 	inline Quat_32 decompress_and_interpolate_rotation(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
 	{
 		Quat_32 rotations[2];
+		TimeSeriesType8 time_series_type;
 
 		ACL_ENSURE(array_length(context.key_frame_byte_offsets) == array_length(rotations), "Interpolation requires exactly two keyframes.");
 
-		decompress_rotations_in_two_key_frames(settings, header, context, rotations);
+		decompress_rotations_in_two_key_frames(settings, header, context, rotations, time_series_type);
 
-		Quat_32 rotation = quat_lerp(rotations[0], rotations[1], context.interpolation_alpha);
+		switch (time_series_type)
+		{
+		case TimeSeriesType8::Constant:
+			return rotations[0];
 
-		ACL_ENSURE(quat_is_finite(rotation), "Rotation is not valid!");
-		ACL_ENSURE(quat_is_normalized(rotation), "Rotation is not normalized!");
+		case TimeSeriesType8::ConstantDefault:
+			ACL_ENSURE(quat_is_finite(rotations[0]), "Rotation is not valid!");
+			ACL_ENSURE(quat_is_normalized(rotations[0]), "Rotation is not normalized!");
+			return rotations[0];
 
-		return rotation;
+		case TimeSeriesType8::Varying:
+			Quat_32 rotation = quat_lerp(rotations[0], rotations[1], context.interpolation_alpha);
+
+			ACL_ENSURE(quat_is_finite(rotation), "Rotation is not valid!");
+			ACL_ENSURE(quat_is_normalized(rotation), "Rotation is not normalized!");
+
+			return rotation;
+		}
 	}
 
 	template<class SettingsAdapterType, class DecompressionContext>
 	inline Vector4_32 decompress_and_interpolate_vector(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context)
 	{
 		Vector4_32 vectors[2];
+		TimeSeriesType8 time_series_type;
 
 		ACL_ENSURE(array_length(context.key_frame_byte_offsets) == array_length(vectors), "Interpolation requires exactly two keyframes.");
 
-		decompress_vectors_in_two_key_frames(settings, header, context, vectors);
+		decompress_vectors_in_two_key_frames(settings, header, context, vectors, time_series_type);
 
-		Vector4_32 vector = vector_lerp(vectors[0], vectors[1], context.interpolation_alpha);
+		switch (time_series_type)
+		{
+		case TimeSeriesType8::Constant:
+			return vectors[0];
 
-		ACL_ENSURE(vector_is_finite3(vector), "Vector is not valid!");
+		case TimeSeriesType8::ConstantDefault:
+			ACL_ENSURE(vector_is_finite3(vectors[0]), "Vector is not valid!");
+			return vectors[0];
 
-		return vector;
+		case TimeSeriesType8::Varying:
+			Vector4_32 vector = vector_lerp(vectors[0], vectors[1], context.interpolation_alpha);
+
+			ACL_ENSURE(vector_is_finite3(vector), "Vector is not valid!");
+
+			return vector;
+		}
 	}
 }

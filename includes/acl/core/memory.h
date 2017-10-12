@@ -54,6 +54,9 @@ namespace acl
 		return is_power_of_two(alignment) && alignment >= alignof(Type);
 	}
 
+	template<typename ElementType, size_t num_elements>
+	constexpr size_t array_length(ElementType const (&)[num_elements]) { return num_elements; }
+
 	//////////////////////////////////////////////////////////////////////////
 
 	class Allocator
@@ -404,5 +407,20 @@ namespace acl
 			dest_bit_offset += num_bits_copied;
 			src_bit_offset += num_bits_copied;
 		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+
+	// TODO: get an official L3 cache size
+	constexpr size_t CACHE_FLUSH_BUFFER_BYTES = 12 * 1024 * 1024;
+
+	inline void flush_data_cache(Allocator& allocator)
+	{
+		uint8_t* buffer = allocate_type_array<uint8_t>(allocator, CACHE_FLUSH_BUFFER_BYTES);
+
+		for (size_t i = 0; i < CACHE_FLUSH_BUFFER_BYTES; ++i)
+			buffer[std::rand() % CACHE_FLUSH_BUFFER_BYTES] ^= buffer[std::rand() % CACHE_FLUSH_BUFFER_BYTES];
+
+		deallocate_type_array(allocator, buffer, CACHE_FLUSH_BUFFER_BYTES);
 	}
 }

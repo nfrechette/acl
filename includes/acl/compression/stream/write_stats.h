@@ -131,6 +131,53 @@ namespace acl
 		deallocate_type_array(allocator, lossy_local_pose, num_bones);
 	}
 
+	inline void write_decompression_times(Allocator& allocator, const AnimationClip& clip, SJSONObjectWriter& writer,
+		AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
+	{
+		uint16_t num_bones = clip.get_num_bones();
+		float clip_duration = clip.get_duration();
+		float sample_rate = float(clip.get_sample_rate());
+		uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
+
+		void* context = allocate_context(allocator);
+		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+
+		{
+			flush_data_cache(allocator);
+
+			ScopeProfiler timer;
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				float sample_time = min(float(sample_index) / sample_rate, clip_duration);
+				decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
+			}
+
+			timer.stop();
+
+			writer["forward_decompression_time"] = timer.get_elapsed_seconds();
+		}
+
+		{
+			flush_data_cache(allocator);
+
+			ScopeProfiler timer;
+
+			for (int32_t sample_index = num_samples - 1; sample_index >= 0; --sample_index)
+			{
+				float sample_time = min(float(sample_index) / sample_rate, clip_duration);
+				decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
+			}
+
+			timer.stop();
+
+			writer["backward_decompression_time"] = timer.get_elapsed_seconds();
+		}
+
+		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
+		deallocate_context(allocator, context);
+	}
+
 	inline void write_stats(Allocator& allocator, const AnimationClip& clip, const ClipContext& clip_context, const RigidSkeleton& skeleton,
 		const CompressedClip& compressed_clip, const CompressionSettings& settings, const ClipHeader& header, const ClipContext& raw_clip_context, const ScopeProfiler& compression_time,
 		OutputStats& stats, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
@@ -152,7 +199,7 @@ namespace acl
 		writer["max_error"] = error.error;
 		writer["worst_bone"] = error.index;
 		writer["worst_time"] = error.sample_time;
-		writer["compression_time"] = cycles_to_seconds(compression_time.get_elapsed_cycles());
+		writer["compression_time"] = compression_time.get_elapsed_seconds();
 		writer["duration"] = clip.get_duration();
 		writer["num_samples"] = clip.get_num_samples();
 		writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
@@ -160,6 +207,8 @@ namespace acl
 		writer["scale_format"] = get_vector_format_name(settings.scale_format);
 		writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
 		writer["has_scale"] = clip_context.has_scale;
+
+		write_decompression_times(allocator, clip, writer, allocate_context, decompress_pose, deallocate_context);
 
 		if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
 		{
