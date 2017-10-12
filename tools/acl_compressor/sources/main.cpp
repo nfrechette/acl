@@ -41,6 +41,56 @@
 #include <string>
 #include <memory>
 
+#if !defined(_WINDOWS_)
+// The below excludes some other unused services from the windows headers -- see windows.h for details.
+#define NOGDICAPMASKS            // CC_*, LC_*, PC_*, CP_*, TC_*, RC_
+#define NOVIRTUALKEYCODES        // VK_*
+#define NOWINMESSAGES            // WM_*, EM_*, LB_*, CB_*
+#define NOWINSTYLES                // WS_*, CS_*, ES_*, LBS_*, SBS_*, CBS_*
+#define NOSYSMETRICS            // SM_*
+#define NOMENUS                    // MF_*
+#define NOICONS                    // IDI_*
+#define NOKEYSTATES                // MK_*
+#define NOSYSCOMMANDS            // SC_*
+#define NORASTEROPS                // Binary and Tertiary raster ops
+#define NOSHOWWINDOW            // SW_*
+#define OEMRESOURCE                // OEM Resource values
+#define NOATOM                    // Atom Manager routines
+#define NOCLIPBOARD                // Clipboard routines
+#define NOCOLOR                    // Screen colors
+#define NOCTLMGR                // Control and Dialog routines
+#define NODRAWTEXT                // DrawText() and DT_*
+#define NOGDI                    // All GDI #defines and routines
+#define NOKERNEL                // All KERNEL #defines and routines
+#define NOUSER                    // All USER #defines and routines
+#define NONLS                    // All NLS #defines and routines
+#define NOMB                    // MB_* and MessageBox()
+#define NOMEMMGR                // GMEM_*, LMEM_*, GHND, LHND, associated routines
+#define NOMETAFILE                // typedef METAFILEPICT
+#define NOMINMAX                // Macros min(a,b) and max(a,b)
+#define NOMSG                    // typedef MSG and associated routines
+#define NOOPENFILE                // OpenFile(), OemToAnsi, AnsiToOem, and OF_*
+#define NOSCROLL                // SB_* and scrolling routines
+#define NOSERVICE                // All Service Controller routines, SERVICE_ equates, etc.
+#define NOSOUND                    // Sound driver routines
+#define NOTEXTMETRIC            // typedef TEXTMETRIC and associated routines
+#define NOWH                    // SetWindowsHook and WH_*
+#define NOWINOFFSETS            // GWL_*, GCL_*, associated routines
+#define NOCOMM                    // COMM driver routines
+#define NOKANJI                    // Kanji support stuff.
+#define NOHELP                    // Help engine interface.
+#define NOPROFILER                // Profiler interface.
+#define NODEFERWINDOWPOS        // DeferWindowPos routines
+#define NOMCX                    // Modem Configuration Extensions
+#define NOCRYPT
+#define NOTAPE
+#define NOIMAGE
+#define NOPROXYSTUB
+#define NORPC
+
+#include <Windows.h>
+#endif    // _WINDOWS_
+
 using namespace acl;
 
 struct Options
@@ -216,29 +266,22 @@ static bool read_clip(Allocator& allocator, const char* filename,
 	if (IsDebuggerPresent())
 		printf("Reading ACL input clip...");
 
-	LARGE_INTEGER read_start_time_cycles;
-	QueryPerformanceCounter(&read_start_time_cycles);
+	ScopeProfiler io_read_timer;
 
 	std::ifstream t(filename);
 	std::stringstream buffer;
 	buffer << t.rdbuf();
 	std::string str = buffer.str();
 
-	LARGE_INTEGER read_end_time_cycles;
-	QueryPerformanceCounter(&read_end_time_cycles);
-
-	uint64_t elapsed_cycles = read_end_time_cycles.QuadPart - read_start_time_cycles.QuadPart;
-	LARGE_INTEGER frequency_cycles_per_sec;
-	QueryPerformanceFrequency(&frequency_cycles_per_sec);
-	double elapsed_time_sec = double(elapsed_cycles) / double(frequency_cycles_per_sec.QuadPart);
-	double elapsed_time_ms = elapsed_time_sec * 1000.0;
+	io_read_timer.stop();
 
 	if (IsDebuggerPresent())
 	{
-		printf(" Done in %.1f ms!\n", elapsed_time_ms);
+		printf(" Done in %.1f ms!\n", io_read_timer.get_elapsed_milliseconds());
 		printf("Parsing ACL input clip...");
 	}
 
+	ScopeProfiler clip_reader_timer;
 	ClipReader reader(allocator, str.c_str(), str.length());
 
 	if (!reader.read(skeleton) || !reader.read(clip, *skeleton))
@@ -248,15 +291,11 @@ static bool read_clip(Allocator& allocator, const char* filename,
 		return false;
 	}
 
-	LARGE_INTEGER parse_end_time_cycles;
-	QueryPerformanceCounter(&parse_end_time_cycles);
-
-	elapsed_cycles = parse_end_time_cycles.QuadPart - read_end_time_cycles.QuadPart;
-	elapsed_time_sec = double(elapsed_cycles) / double(frequency_cycles_per_sec.QuadPart);
-	elapsed_time_ms = elapsed_time_sec * 1000.0;
+	clip_reader_timer.stop();
 
 	if (IsDebuggerPresent())
-		printf(" Done in %.1f ms!\n", elapsed_time_ms);
+		printf(" Done in %.1f ms!\n", clip_reader_timer.get_elapsed_milliseconds());
+
 	return true;
 }
 

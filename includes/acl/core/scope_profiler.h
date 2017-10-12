@@ -24,56 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#if !defined(_WINDOWS_)
-// The below excludes some other unused services from the windows headers -- see windows.h for details.
-#define NOGDICAPMASKS			// CC_*, LC_*, PC_*, CP_*, TC_*, RC_
-#define NOVIRTUALKEYCODES		// VK_*
-#define NOWINMESSAGES			// WM_*, EM_*, LB_*, CB_*
-#define NOWINSTYLES				// WS_*, CS_*, ES_*, LBS_*, SBS_*, CBS_*
-#define NOSYSMETRICS			// SM_*
-#define NOMENUS					// MF_*
-#define NOICONS					// IDI_*
-#define NOKEYSTATES				// MK_*
-#define NOSYSCOMMANDS			// SC_*
-#define NORASTEROPS				// Binary and Tertiary raster ops
-#define NOSHOWWINDOW			// SW_*
-#define OEMRESOURCE				// OEM Resource values
-#define NOATOM					// Atom Manager routines
-#define NOCLIPBOARD				// Clipboard routines
-#define NOCOLOR					// Screen colors
-#define NOCTLMGR				// Control and Dialog routines
-#define NODRAWTEXT				// DrawText() and DT_*
-#define NOGDI					// All GDI #defines and routines
-#define NOKERNEL				// All KERNEL #defines and routines
-#define NOUSER					// All USER #defines and routines
-#define NONLS					// All NLS #defines and routines
-#define NOMB					// MB_* and MessageBox()
-#define NOMEMMGR				// GMEM_*, LMEM_*, GHND, LHND, associated routines
-#define NOMETAFILE				// typedef METAFILEPICT
-#define NOMINMAX				// Macros min(a,b) and max(a,b)
-#define NOMSG					// typedef MSG and associated routines
-#define NOOPENFILE				// OpenFile(), OemToAnsi, AnsiToOem, and OF_*
-#define NOSCROLL				// SB_* and scrolling routines
-#define NOSERVICE				// All Service Controller routines, SERVICE_ equates, etc.
-#define NOSOUND					// Sound driver routines
-#define NOTEXTMETRIC			// typedef TEXTMETRIC and associated routines
-#define NOWH					// SetWindowsHook and WH_*
-#define NOWINOFFSETS			// GWL_*, GCL_*, associated routines
-#define NOCOMM					// COMM driver routines
-#define NOKANJI					// Kanji support stuff.
-#define NOHELP					// Help engine interface.
-#define NOPROFILER				// Profiler interface.
-#define NODEFERWINDOWPOS		// DeferWindowPos routines
-#define NOMCX					// Modem Configuration Extensions
-#define NOCRYPT
-#define NOTAPE
-#define NOIMAGE
-#define NOPROXYSTUB
-#define NORPC
-
-#include <Windows.h>
-#endif	// _WINDOWS_
-
+#include <chrono>
 #include <stdint.h>
 
 namespace acl
@@ -81,52 +32,33 @@ namespace acl
 	class ScopeProfiler
 	{
 	public:
-		ScopeProfiler(uint64_t* output_var = nullptr);
+		ScopeProfiler();
 		~ScopeProfiler() { stop(); }
 
-		uint64_t stop();
-		uint64_t get_elapsed_cycles() const { return m_end_cycles - m_start_cycles; }
+		void stop();
+
+		std::chrono::nanoseconds get_elapsed_time() const { return std::chrono::duration_cast<std::chrono::nanoseconds>(m_end_time - m_start_time); }
+		double get_elapsed_milliseconds() const { return std::chrono::duration<double, std::chrono::milliseconds::period>(get_elapsed_time()).count(); }
+		double get_elapsed_seconds() const { return std::chrono::duration<double, std::chrono::seconds::period>(get_elapsed_time()).count(); }
 
 	private:
 		ScopeProfiler(const ScopeProfiler&) = delete;
 		ScopeProfiler& operator=(const ScopeProfiler&) = delete;
 
-		uint64_t m_start_cycles;
-		uint64_t m_end_cycles;
-
-		uint64_t* m_output_var;
+		std::chrono::time_point<std::chrono::high_resolution_clock>		m_start_time;
+		std::chrono::time_point<std::chrono::high_resolution_clock>		m_end_time;
 	};
-
-	inline double cycles_to_seconds(uint64_t cycles)
-	{
-		LARGE_INTEGER frequency_cycles_per_sec;
-		QueryPerformanceFrequency(&frequency_cycles_per_sec);
-		return double(cycles) / double(frequency_cycles_per_sec.QuadPart);
-	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	inline ScopeProfiler::ScopeProfiler(uint64_t* output_var)
+	inline ScopeProfiler::ScopeProfiler()
 	{
-		LARGE_INTEGER time_cycles;
-		QueryPerformanceCounter(&time_cycles);
-		m_start_cycles = time_cycles.QuadPart;
-		m_end_cycles = m_start_cycles;
-		m_output_var = output_var;
+		m_start_time = m_end_time = std::chrono::high_resolution_clock::now();
 	}
 
-	inline uint64_t ScopeProfiler::stop()
+	inline void ScopeProfiler::stop()
 	{
-		if (m_end_cycles == m_start_cycles)
-		{
-			LARGE_INTEGER time_cycles;
-			QueryPerformanceCounter(&time_cycles);
-			m_end_cycles = time_cycles.QuadPart;
-
-			if (m_output_var != nullptr)
-				*m_output_var = get_elapsed_cycles();
-		}
-
-		return m_end_cycles - m_start_cycles;
+		if (m_start_time == m_end_time)
+			m_end_time = std::chrono::high_resolution_clock::now();
 	}
 }

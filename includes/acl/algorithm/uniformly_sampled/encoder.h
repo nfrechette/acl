@@ -322,7 +322,7 @@ namespace acl
 				writer["max_error"] = error.error;
 				writer["worst_bone"] = error.index;
 				writer["worst_time"] = error.sample_time;
-				writer["compression_time"] = cycles_to_seconds(compression_time.get_elapsed_cycles());
+				writer["compression_time"] = compression_time.get_elapsed_seconds();
 				writer["duration"] = clip.get_duration();
 				writer["num_samples"] = clip.get_num_samples();
 				writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
