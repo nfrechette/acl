@@ -152,6 +152,7 @@ namespace acl
 			buffer_size += sizeof(CompressedClip);
 			buffer_size += sizeof(ClipHeader);
 			buffer_size += sizeof(SegmentHeader) * clip_context.num_segments;	// Segment headers
+			buffer_size = align_to(buffer_size, 4);								// Align bitsets
 			buffer_size += sizeof(uint32_t) * bitset_size;						// Default tracks bitset
 			buffer_size += sizeof(uint32_t) * bitset_size;						// Constant tracks bitset
 			buffer_size = align_to(buffer_size, 4);								// Align constant track data
@@ -162,8 +163,10 @@ namespace acl
 			for (const SegmentContext& segment : clip_context.segment_iterator())
 			{
 				buffer_size += format_per_track_data_size;						// Format per track data
+				// TODO: Alignment only necessary with 16bit per component
 				buffer_size = align_to(buffer_size, 2);							// Align range data
 				buffer_size += segment.range_data_size;							// Range data
+				// TODO: Variable bit rate doesn't need alignment
 				buffer_size = align_to(buffer_size, 4);							// Align animated data
 				buffer_size += segment.animated_data_size;						// Animated track data
 			}
@@ -184,10 +187,10 @@ namespace acl
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.segment_headers_offset = sizeof(ClipHeader);
-			header.default_tracks_bitset_offset = header.segment_headers_offset + (sizeof(SegmentHeader) * clip_context.num_segments);
+			header.default_tracks_bitset_offset = align_to(header.segment_headers_offset + (sizeof(SegmentHeader) * clip_context.num_segments), 4);
 			header.constant_tracks_bitset_offset = header.default_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size);
-			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size), 4);	// Aligned to 4 bytes
-			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);						// Aligned to 4 bytes
+			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + (sizeof(uint32_t) * bitset_size), 4);
+			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);
 
 			const uint16_t segment_headers_start_offset = safe_static_cast<uint16_t>(header.clip_range_data_offset + clip_range_data_size);
 			write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
