@@ -408,4 +408,18 @@ namespace acl
 			src_bit_offset += num_bits_copied;
 		}
 	}
+
+	template<typename DataType>
+	inline DataType unaligned_load(const void* input)
+	{
+		DataType result;
+		memcpy(&result, input, sizeof(DataType));
+		return result;
+	}
+
+	template<typename DataType>
+	inline DataType aligned_load(const void* input)
+	{
+		return *safe_ptr_cast<const DataType>(input);
+	}
 }

@@ -111,35 +111,34 @@ namespace acl
 	inline Vector4_32 unpack_vector3_96(const uint8_t* vector_data, uint64_t bit_offset)
 	{
 		uint64_t byte_offset = bit_offset / 8;
-		uint64_t vector_u64 = *(reinterpret_cast<const uint64_t*>(vector_data + byte_offset));
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= bit_offset % 8;
 		vector_u64 >>= 64 - 32;
 
-		uint64_t x64 = vector_u64;
+		const uint64_t x64 = vector_u64;
 
 		bit_offset += 32;
 		byte_offset = bit_offset / 8;
-		vector_u64 = *(reinterpret_cast<const uint64_t*>(vector_data + byte_offset));
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= bit_offset % 8;
 		vector_u64 >>= 64 - 32;
 
-		uint64_t y64 = vector_u64;
+		const uint64_t y64 = vector_u64;
 
 		bit_offset += 32;
 		byte_offset = bit_offset / 8;
-		vector_u64 = *(reinterpret_cast<const uint64_t*>(vector_data + byte_offset));
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= bit_offset % 8;
 		vector_u64 >>= 64 - 32;
 
-		uint64_t z64 = vector_u64;
+		const uint64_t z64 = vector_u64;
 
-		float x, y, z;
-		scalar_unaligned_load(reinterpret_cast<const uint8_t*>(&x64), x);
-		scalar_unaligned_load(reinterpret_cast<const uint8_t*>(&y64), y);
-		scalar_unaligned_load(reinterpret_cast<const uint8_t*>(&z64), z);
+		const float x = aligned_load<float>(&x64);
+		const float y = aligned_load<float>(&y64);
+		const float z = aligned_load<float>(&z64);
 
 		return vector_set(x, y, z);
 	}
@@ -256,25 +255,25 @@ namespace acl
 	inline Vector4_32 unpack_vector3_72(bool is_unsigned, const uint8_t* vector_data, uint64_t bit_offset)
 	{
 		uint64_t byte_offset = bit_offset / 8;
-		uint64_t vector_u64 = *(reinterpret_cast<const uint64_t*>(vector_data + byte_offset));
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= bit_offset % 8;
 		vector_u64 >>= 64 - 48;
 
-		uint64_t x64 = (vector_u64 >> 24) & 0xFFFFFF;
-		uint64_t y64 = vector_u64 & 0xFFFFFF;
+		const uint64_t x64 = (vector_u64 >> 24) & 0xFFFFFF;
+		const uint64_t y64 = vector_u64 & 0xFFFFFF;
 
 		bit_offset += 48;
 		byte_offset = bit_offset / 8;
-		vector_u64 = *(reinterpret_cast<const uint64_t*>(vector_data + byte_offset));
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= bit_offset % 8;
 		vector_u64 >>= 64 - 24;
 
-		uint64_t z64 = vector_u64;
-		float x = is_unsigned ? unpack_scalar_unsigned_24(x64) : unpack_scalar_signed_24(x64);
-		float y = is_unsigned ? unpack_scalar_unsigned_24(y64) : unpack_scalar_signed_24(y64);
-		float z = is_unsigned ? unpack_scalar_unsigned_24(z64) : unpack_scalar_signed_24(z64);
+		const uint64_t z64 = vector_u64;
+		const float x = is_unsigned ? unpack_scalar_unsigned_24(x64) : unpack_scalar_signed_24(x64);
+		const float y = is_unsigned ? unpack_scalar_unsigned_24(y64) : unpack_scalar_signed_24(y64);
+		const float z = is_unsigned ? unpack_scalar_unsigned_24(z64) : unpack_scalar_signed_24(z64);
 		return vector_set(x, y, z);
 	}
 
@@ -309,30 +308,32 @@ namespace acl
 		uint8_t num_bits_to_read = XBits + YBits + ZBits;
 
 		uint64_t byte_offset = bit_offset / 8;
-		uint64_t vector_u64 = *(reinterpret_cast<const uint64_t*>(vector_data + byte_offset));
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= bit_offset % 8;
 		vector_u64 >>= 64 - num_bits_to_read;
 
-		uint64_t x64 = vector_u64 >> (YBits + ZBits);
-		uint64_t y64 = (vector_u64 >> ZBits) & ((1 << YBits) - 1);
-		uint64_t z64 = vector_u64 & ((1 << ZBits) - 1);
+		const uint64_t x64 = vector_u64 >> (YBits + ZBits);
+		const uint64_t y64 = (vector_u64 >> ZBits) & ((1 << YBits) - 1);
+		uint64_t z64;
 
 		if (num_bits_to_read + (bit_offset % 8) > 64)
 		{
 			// Larger values can be split over 2x u64 entries
 			bit_offset += XBits + YBits;
 			byte_offset = bit_offset / 8;
-			vector_u64 = *(reinterpret_cast<const uint64_t*>(vector_data + byte_offset));
+			vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
 			vector_u64 = byte_swap(vector_u64);
 			vector_u64 <<= bit_offset % 8;
 			vector_u64 >>= 64 - ZBits;
 			z64 = vector_u64;
 		}
+		else
+			z64 = vector_u64 & ((1 << ZBits) - 1);
 
-		float x = is_unsigned ? unpack_scalar_unsigned(x64, XBits) : unpack_scalar_signed(x64, XBits);
-		float y = is_unsigned ? unpack_scalar_unsigned(y64, YBits) : unpack_scalar_signed(y64, YBits);
-		float z = is_unsigned ? unpack_scalar_unsigned(z64, ZBits) : unpack_scalar_signed(z64, ZBits);
+		const float x = is_unsigned ? unpack_scalar_unsigned(x64, XBits) : unpack_scalar_signed(x64, XBits);
+		const float y = is_unsigned ? unpack_scalar_unsigned(y64, YBits) : unpack_scalar_signed(y64, YBits);
+		const float z = is_unsigned ? unpack_scalar_unsigned(z64, ZBits) : unpack_scalar_signed(z64, ZBits);
 		return vector_set(x, y, z);
 	}
 

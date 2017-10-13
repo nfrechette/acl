@@ -170,20 +170,4 @@ namespace acl
 		ACL_ENSURE(SrcIntegralType(input_f) == input, "Convertion to float would result in truncation");
 		return input_f;
 	}
-
-	inline void scalar_unaligned_load(const uint8_t* src, float& dest)
-	{
-		// TODO: Safe with SSE?
-		uint8_t* dest_u8 = reinterpret_cast<uint8_t*>(&dest);
-		for (size_t byte_index = 0; byte_index < sizeof(float); ++byte_index)
-			dest_u8[byte_index] = src[byte_index];
-	}
-
-	inline void scalar_unaligned_write(const float& src, uint8_t* dest)
-	{
-		// TODO: Safe with SSE?
-		const uint8_t* src_u8 = reinterpret_cast<const uint8_t*>(&src);
-		for (size_t byte_index = 0; byte_index < sizeof(float); ++byte_index)
-			dest[byte_index] = src_u8[byte_index];
-	}
 }

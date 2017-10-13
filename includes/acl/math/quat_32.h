@@ -49,9 +49,9 @@ namespace acl
 
 	inline Quat_32 quat_unaligned_load(const uint8_t* input)
 	{
-		// TODO: Cross platform unaligned read needs to be safe
-		const float* input_f = reinterpret_cast<const float*>(input);
-		return quat_set(input_f[0], input_f[1], input_f[2], input_f[3]);
+		Quat_32 result;
+		memcpy(&result, input, sizeof(Quat_32));
+		return result;
 	}
 
 	inline Quat_32 quat_identity_32()
@@ -124,12 +124,7 @@ namespace acl
 
 	inline void quat_unaligned_write(const Quat_32& input, uint8_t* output)
 	{
-		// TODO: Cross platform unaligned write needs to be safe
-		float* output_f = reinterpret_cast<float*>(output);
-		output_f[0] = quat_get_x(input);
-		output_f[1] = quat_get_y(input);
-		output_f[2] = quat_get_z(input);
-		output_f[3] = quat_get_w(input);
+		memcpy(output, &input, sizeof(Quat_32));
 	}
 
 	inline Quat_32 quat_conjugate(const Quat_32& input)

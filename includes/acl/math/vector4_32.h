@@ -69,9 +69,9 @@ namespace acl
 
 	inline Vector4_32 vector_unaligned_load(const uint8_t* input)
 	{
-		// TODO: Cross platform unaligned read needs to be safe
-		const float* input_f = reinterpret_cast<const float*>(input);
-		return vector_set(input_f[0], input_f[1], input_f[2], input_f[3]);
+		Vector4_32 result;
+		memcpy(&result, input, sizeof(Vector4_32));
+		return result;
 	}
 
 	inline Vector4_32 vector_unaligned_load3(const float* input)
@@ -82,8 +82,8 @@ namespace acl
 
 	inline Vector4_32 vector_unaligned_load3(const uint8_t* input)
 	{
-		// TODO: Cross platform unaligned read needs to be safe
-		const float* input_f = reinterpret_cast<const float*>(input);
+		float input_f[3];
+		memcpy(&input_f[0], input, sizeof(float) * 3);
 		return vector_set(input_f[0], input_f[1], input_f[2], 0.0f);
 	}
 
@@ -204,12 +204,7 @@ namespace acl
 
 	inline void vector_unaligned_write(const Vector4_32& input, uint8_t* output)
 	{
-		// TODO: Cross platform unaligned write needs to be safe
-		float* output_f = reinterpret_cast<float*>(output);
-		output_f[0] = vector_get_x(input);
-		output_f[1] = vector_get_y(input);
-		output_f[2] = vector_get_z(input);
-		output_f[3] = vector_get_w(input);
+		memcpy(output, &input, sizeof(Vector4_32));
 	}
 
 	inline void vector_unaligned_write3(const Vector4_32& input, float* output)
@@ -222,11 +217,7 @@ namespace acl
 
 	inline void vector_unaligned_write3(const Vector4_32& input, uint8_t* output)
 	{
-		// TODO: Cross platform unaligned write needs to be safe
-		float* output_f = reinterpret_cast<float*>(output);
-		output_f[0] = vector_get_x(input);
-		output_f[1] = vector_get_y(input);
-		output_f[2] = vector_get_z(input);
+		memcpy(output, &input, sizeof(float) * 3);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
