@@ -52,14 +52,14 @@ namespace acl
 		{
 			double dbl;
 			uint64_t u64;
-			float flt;
+			float flt[2];
 
 			constexpr Converter(uint64_t value) : u64(value) {}
 			constexpr Converter(double value) : dbl(value) {}
-			constexpr Converter(float value) : flt(value) {}
+			constexpr Converter(float value) : flt{value, value} {}
 
 			constexpr operator double() const { return dbl; }
-			constexpr operator float() const { return flt; }
+			constexpr operator float() const { return flt[0]; }
 		};
 
 		constexpr Converter get_mask_value(bool is_true)
