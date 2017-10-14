@@ -31,8 +31,8 @@
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/quat_packing.h"
+#include "acl/decompression/decompress_data.h"
 #include "acl/decompression/output_writer.h"
-#include "acl/decompression/stream/read_stream_data.h"
 
 #include <stdint.h>
 

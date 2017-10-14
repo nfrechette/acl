@@ -32,7 +32,7 @@
 #include "acl/math/scalar_32.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
-#include "acl/decompression/functions.h"
+#include "acl/compression/decompression_functions.h"
 
 #include <algorithm>
 #include <functional>

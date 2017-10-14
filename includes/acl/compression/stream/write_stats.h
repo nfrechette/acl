@@ -24,9 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/compression/decompression_functions.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
-#include "acl/decompression/functions.h"
 #include "acl/sjson/sjson_writer.h"
 
 namespace acl
@@ -131,6 +131,8 @@ namespace acl
 		deallocate_type_array(allocator, lossy_local_pose, num_bones);
 	}
 
+	constexpr uint32_t NUM_RANDOM_SEEKS = 1000;
+
 	inline void write_decompression_times(Allocator& allocator, const AnimationClip& clip, SJSONObjectWriter& writer,
 		AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
@@ -141,41 +143,74 @@ namespace acl
 
 		void* context = allocate_context(allocator);
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+		uint8_t* cache_flush_buffer = allocate_cache_flush_buffer(allocator);
 
 		{
-			flush_data_cache(allocator);
-
-			ScopeProfiler timer;
+			double total_elapsed = 0.0;
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				float sample_time = min(float(sample_index) / sample_rate, clip_duration);
+
+				flush_cache(cache_flush_buffer);
+
+				ScopeProfiler timer;
 				decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
+				timer.stop();
+
+				total_elapsed += timer.get_elapsed_seconds();
 			}
 
-			timer.stop();
-
-			writer["forward_decompression_time"] = timer.get_elapsed_seconds();
+			writer["decompression_time_forward_playback"] = total_elapsed;
 		}
 
 		{
-			flush_data_cache(allocator);
-
-			ScopeProfiler timer;
+			double total_elapsed = 0.0;
 
 			for (int32_t sample_index = num_samples - 1; sample_index >= 0; --sample_index)
 			{
 				float sample_time = min(float(sample_index) / sample_rate, clip_duration);
+
+				flush_cache(cache_flush_buffer);
+
+				ScopeProfiler timer;
 				decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
+				timer.stop();
+
+				total_elapsed += timer.get_elapsed_seconds();
 			}
 
-			timer.stop();
+			writer["decompression_time_backward_playback"] = total_elapsed;
+		}
 
-			writer["backward_decompression_time"] = timer.get_elapsed_seconds();
+		{
+			double total_elapsed = 0.0;
+
+			for (uint32_t seek_index = 0; seek_index < NUM_RANDOM_SEEKS; ++seek_index)
+			{
+				uint32_t sample_index = std::rand() % num_samples;
+				float sample_time = min(float(sample_index) / sample_rate, clip_duration);
+
+				// Clearing the context ensures the decoder cannot reuse any of its state from
+				// the last attempt.  This will (approximately) measure the upper bound of seek time.
+				deallocate_context(allocator, context);
+				context = allocate_context(allocator);
+
+				flush_cache(cache_flush_buffer);
+
+				ScopeProfiler timer;
+				decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
+				timer.stop();
+
+				total_elapsed += timer.get_elapsed_seconds();
+			}
+
+			writer["decompression_time_random_seek"] = total_elapsed / static_cast<double>(NUM_RANDOM_SEEKS);
 		}
 
 		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 		deallocate_context(allocator, context);
+		deallocate_cache_flush_buffer(allocator, cache_flush_buffer);
 	}
 
 	inline void write_stats(Allocator& allocator, const AnimationClip& clip, const ClipContext& clip_context, const RigidSkeleton& skeleton,
@@ -208,10 +243,10 @@ namespace acl
 		writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
 		writer["has_scale"] = clip_context.has_scale;
 
-		write_decompression_times(allocator, clip, writer, allocate_context, decompress_pose, deallocate_context);
-
 		if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
 		{
+			write_decompression_times(allocator, clip, writer, allocate_context, decompress_pose, deallocate_context);
+
 			writer["num_bones"] = clip.get_num_bones();
 
 			uint32_t num_default_rotation_tracks = 0;

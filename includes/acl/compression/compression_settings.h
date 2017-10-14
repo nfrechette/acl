@@ -74,8 +74,7 @@ namespace acl
 
 		uint32_t hash() const
 		{
-// CODY TODO: add scale format here
-			return hash_combine(hash_combine(hash_combine(hash32(rotation_format), hash32(translation_format)), hash32(range_reduction)), segmenting.hash());
+			return hash_combine(hash_combine(hash_combine(hash_combine(hash32(rotation_format), hash32(translation_format)), hash32(scale_format)), hash32(range_reduction)), segmenting.hash());
 		}
 	};
 }
