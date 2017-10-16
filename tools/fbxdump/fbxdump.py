@@ -526,11 +526,11 @@ def DisplayMesh(pNode):
     DisplayControlsPoints(lMesh)
     DisplayPolygons(lMesh)
     DisplayMaterialMapping(lMesh)
-    DisplayMaterial(lMesh)
-    DisplayTexture(lMesh)
+    #DisplayMaterial(lMesh)
+    #DisplayTexture(lMesh)
     DisplayMaterialConnections(lMesh)
-    DisplayLink(lMesh)
-    DisplayShape(lMesh)
+    #DisplayLink(lMesh)
+    #DisplayShape(lMesh)
 
 def DisplayControlsPoints(pMesh):
     lControlPointsCount = pMesh.GetControlPointsCount()
@@ -1190,10 +1190,10 @@ def DisplayDefaultAnimationValues(pLight):
     c = pLight.Color.Get()
     lColor = FbxColor(c[0], c[1], c[2])
     DisplayColor("        Default Color: ", lColor)
-    DisplayDouble("        Default Intensity: ", pLight.Intensity.Get())
-    DisplayDouble("        Default Inner Angle: ", pLight.InnerAngle.Get())
-    DisplayDouble("        Default Outer Angle: ", pLight.OuterAngle.Get())
-    DisplayDouble("        Default Fog: ", pLight.Fog.Get())
+    #DisplayDouble("        Default Intensity: ", pLight.Intensity.Get())
+    #DisplayDouble("        Default Inner Angle: ", pLight.InnerAngle.Get())
+    #DisplayDouble("        Default Outer Angle: ", pLight.OuterAngle.Get())
+    #DisplayDouble("        Default Fog: ", pLight.Fog.Get())
 
 def DisplayPose(pScene):
     lPoseCount = pScene.GetPoseCount()
