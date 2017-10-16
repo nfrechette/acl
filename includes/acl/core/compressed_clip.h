@@ -55,7 +55,7 @@ namespace acl
 				return false;
 
 			if (check_hash) {
-				const uint32_t hash = hash32(safe_ptr_cast<const uint8>(this) + k_hash_skip_size, m_size - k_hash_skip_size);
+				const uint32_t hash = hash32(safe_ptr_cast<const uint8_t>(this) + k_hash_skip_size, m_size - k_hash_skip_size);
 				if (hash != m_hash)
 					return false;
 			}
@@ -69,7 +69,7 @@ namespace acl
 
 		CompressedClip(uint32_t size, AlgorithmType8 type)
 			: m_size(size)
-			, m_hash(hash32(safe_ptr_cast<const uint8>(this) + k_hash_skip_size, size - k_hash_skip_size))
+			, m_hash(hash32(safe_ptr_cast<const uint8_t>(this) + k_hash_skip_size, size - k_hash_skip_size))
 			, m_tag(k_compressed_clip_tag)
 			, m_version(get_algorithm_version(type))
 			, m_type(type)
