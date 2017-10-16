@@ -37,6 +37,7 @@
 #endif
 
 #include <cstdio>
+#include <cstdarg>
 
 // Asserts are properly handled by the library and can be optionally skipped by the user.
 // The code found something unexpected but recovered.
