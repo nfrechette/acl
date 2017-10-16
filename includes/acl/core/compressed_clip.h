@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/algorithm_versions.h"
+#include "acl/core/hash.h"
 #include "acl/core/memory.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_types.h"
@@ -39,12 +40,12 @@ namespace acl
 		AlgorithmType8 get_algorithm_type() const { return m_type; }
 		uint32_t get_size() const { return m_size; }
 
-		bool is_valid(bool check_crc) const
+		bool is_valid(bool check_hash) const
 		{
 			if (!is_aligned_to(this, alignof(CompressedClip)))
 				return false;
 
-			if (m_tag != COMPRESSED_CLIP_TAG)
+			if (m_tag != k_compressed_clip_tag)
 				return false;
 
 			if (!is_valid_algorithm_type(m_type))
@@ -53,18 +54,23 @@ namespace acl
 			if (m_version != get_algorithm_version(m_type))
 				return false;
 
-			if (check_crc)
-				return true;	// TODO: Implement
+			if (check_hash) {
+				const uint32_t hash = hash32(safe_ptr_cast<const uint8>(this) + k_hash_skip_size, m_size - k_hash_skip_size);
+				if (hash != m_hash)
+					return false;
+			}
+
 			return true;
 		}
 
 	private:
-		static constexpr uint32_t COMPRESSED_CLIP_TAG = 0xac10ac10;
+		static constexpr uint32_t k_compressed_clip_tag = 0xac10ac10;
+		static constexpr uint32_t k_hash_skip_size = sizeof(uint32_t) + sizeof(uint32_t);	// m_size + m_hash
 
 		CompressedClip(uint32_t size, AlgorithmType8 type)
 			: m_size(size)
-			, m_crc32(0)		// TODO: Implement
-			, m_tag(COMPRESSED_CLIP_TAG)
+			, m_hash(hash32(safe_ptr_cast<const uint8>(this) + k_hash_skip_size, size - k_hash_skip_size))
+			, m_tag(k_compressed_clip_tag)
 			, m_version(get_algorithm_version(type))
 			, m_type(type)
 			, m_padding(0)
@@ -72,9 +78,9 @@ namespace acl
 
 		// 16 byte header, the rest of the data follows in memory
 		uint32_t		m_size;
-		uint32_t		m_crc32;
+		uint32_t		m_hash;
 
-		// Everything starting here is included in the CRC32
+		// Everything starting here is included in the hash
 		uint32_t		m_tag;
 		uint16_t		m_version;
 		AlgorithmType8	m_type;
