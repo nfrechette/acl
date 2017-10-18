@@ -24,10 +24,21 @@ Much thought was put into designing the library for it to be as flexible and pow
 *  All allocations use a [game provided allocator](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/memory.h)
 *  All asserts use a [game provided macro](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/error.h)
 
-## Platforms supported
+## Supported platforms
 
-We aim to support compression and decompression on as many platforms as possible but for now VS2015 on Windows is supported.
-In the future, SSE, AVX, and Neon will be fully supported as well.
+The library aims to support the most common platforms for the most common use cases. There is very little platform specific code as such it should work nearly everywhere.
+
+The math library is not yet fully optimized for every platform. The overwhelming majority of the math heavy code executes when compressing, not decompressing.
+Decompression is typically very simple and light in order to be fast. Very little math is involved beyond interpolating values.
+
+### Compression
+
+*  Windows
+
+### Decompression
+
+*  Windows
+*  Android
 
 ## Algorithms supported
 
@@ -50,7 +61,7 @@ In the future, SSE, AVX, and Neon will be fully supported as well.
 
 ## Reference material
 
-In order to test the algorithm implementations with real world data, we took the Carnegie-Mellon database. It contains over 2500 animation clips.
+In order to test the algorithm implementations with real world data, we took the [Carnegie-Mellon University motion capture database](http://mocap.cs.cmu.edu/). It contains over 2500 animation clips.
 This is the data all graphs and charts shown will be based on. Data available upon request, it is far too large for GitHub.
 
 ## Performance metrics
