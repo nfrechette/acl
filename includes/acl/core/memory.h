@@ -25,7 +25,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/error.h"
-#include "acl/math/math.h"
 
 #include <malloc.h>
 #include <stdint.h>
@@ -408,42 +407,5 @@ namespace acl
 			dest_bit_offset += num_bits_copied;
 			src_bit_offset += num_bits_copied;
 		}
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-
-	// TODO: get an official L3 cache size
-	constexpr size_t CACHE_FLUSH_BUFFER_BYTES = 20 * 1024 * 1024;
-
-	inline uint8_t* allocate_cache_flush_buffer(Allocator& allocator)
-	{
-#if defined(ACL_SSE2_INTRINSICS)
-		size_t alignment = alignof(__m128i);
-#else
-		size_t alignment = 1;
-#endif
-
-		return allocate_type_array_aligned<uint8_t>(allocator, CACHE_FLUSH_BUFFER_BYTES, alignment);
-	}
-
-	inline void deallocate_cache_flush_buffer(Allocator& allocator, uint8_t* buffer) { deallocate_type_array(allocator, buffer, CACHE_FLUSH_BUFFER_BYTES); }
-
-	inline void flush_cache(uint8_t* buffer)
-	{
-#if defined(ACL_SSE2_INTRINSICS)
-		const __m128i ones = _mm_set1_epi8(1);
-
-		const __m128i* sentinel_ptr = safe_ptr_cast<__m128i>(buffer + CACHE_FLUSH_BUFFER_BYTES);
-
-		for (__m128i* buffer_ptr = safe_ptr_cast<__m128i>(buffer); buffer_ptr < sentinel_ptr; ++buffer_ptr)
-		{
-			__m128i values = _mm_load_si128(buffer_ptr);
-			values = _mm_add_epi8(values, ones);
-			_mm_store_si128(buffer_ptr, values);
-		}
-#else
-		for (size_t i = 0; i < CACHE_FLUSH_BUFFER_BYTES; ++i)
-			++buffer[i];
-#endif
 	}
 }

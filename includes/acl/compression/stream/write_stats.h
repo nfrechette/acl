@@ -27,6 +27,7 @@
 #include "acl/compression/decompression_functions.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
+#include "acl/core/memory_cache.h"
 #include "acl/sjson/sjson_writer.h"
 
 namespace acl
@@ -131,85 +132,94 @@ namespace acl
 		deallocate_type_array(allocator, lossy_local_pose, num_bones);
 	}
 
-	constexpr uint32_t NUM_RANDOM_SEEKS = 1000;
+	constexpr uint32_t NUM_DECOMPRESSION_TIMING_PASSES = 5;
 
-	inline void write_decompression_times(Allocator& allocator, const AnimationClip& clip, SJSONObjectWriter& writer,
-		AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
+	inline void write_decompression_stats(Allocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
+		void* contexts[], Vector4_32* cache_flush_buffer, Transform_32* lossy_pose_transforms, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
+		int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
+		double duration = clip.get_duration();
 		uint16_t num_bones = clip.get_num_bones();
-		float clip_duration = clip.get_duration();
-		float sample_rate = float(clip.get_sample_rate());
-		uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
 
-		void* context = allocate_context(allocator);
+		writer[action_type] = [&](SJSONObjectWriter& writer)
+		{
+			int32_t initial_sample_index = forward_order ? 0 : num_samples - 1;
+			int32_t sample_index_sentinel = forward_order ? num_samples : -1;
+			int32_t delta_sample_index = forward_order ? 1 : -1;
+
+			double clip_max, clip_min, clip_total = 0;
+
+			writer["data"] = [&](SJSONArrayWriter& writer)
+			{
+				for (int32_t sample_index = initial_sample_index; sample_index != sample_index_sentinel; sample_index += delta_sample_index)
+				{
+					float sample_time = static_cast<float>(duration * sample_index / (num_samples - 1));
+
+					double decompression_time = 0;
+
+					for (uint32_t pass_index = 0; pass_index < NUM_DECOMPRESSION_TIMING_PASSES; ++pass_index)
+					{
+						void*& context = contexts[pass_index];
+
+						if (measure_upper_bound)
+						{
+							// Clearing the context ensures the decoder cannot reuse any state cached from the last sample.
+							deallocate_context(allocator, context);
+							context = allocate_context(allocator);
+						}
+
+						flush_cache(cache_flush_buffer);
+
+						ScopeProfiler timer;
+						decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
+						timer.stop();
+
+						if (pass_index == 0 || timer.get_elapsed_seconds() < decompression_time)
+							decompression_time = timer.get_elapsed_seconds();
+					}
+
+					if (stats.get_logging() == StatLogging::Exhaustive)
+						writer.push_value(decompression_time);
+
+					if (sample_index == initial_sample_index || decompression_time > clip_max)
+						clip_max = decompression_time;
+
+					if (sample_index == initial_sample_index || decompression_time < clip_min)
+						clip_min = decompression_time;
+
+					clip_total += decompression_time;
+				}
+			};
+
+			writer["max_decompression_time"] = clip_max;
+			writer["avg_decompression_time"] = clip_total / static_cast<double>(num_samples);
+			writer["min_decompression_time"] = clip_min;
+		};
+	}
+
+	inline void write_decompression_stats(Allocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
+	{
+		void* contexts[NUM_DECOMPRESSION_TIMING_PASSES];
+
+		for (uint32_t pass_index = 0; pass_index < NUM_DECOMPRESSION_TIMING_PASSES; ++pass_index)
+			contexts[pass_index] = allocate_context(allocator);
+
+		Vector4_32* cache_flush_buffer = allocate_cache_flush_buffer(allocator);
+
+		uint16_t num_bones = clip.get_num_bones();
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-		uint8_t* cache_flush_buffer = allocate_cache_flush_buffer(allocator);
 
+		writer["decompression_time_per_sample"] = [&](SJSONObjectWriter& writer)
 		{
-			double total_elapsed = 0.0;
+			write_decompression_stats(allocator, clip, stats, writer, "forward_playback", true, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
+			write_decompression_stats(allocator, clip, stats, writer, "backward_playback", false, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
+			write_decompression_stats(allocator, clip, stats, writer, "initial_seek", true, true, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
+		};
 
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-			{
-				float sample_time = min(float(sample_index) / sample_rate, clip_duration);
-
-				flush_cache(cache_flush_buffer);
-
-				ScopeProfiler timer;
-				decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
-				timer.stop();
-
-				total_elapsed += timer.get_elapsed_seconds();
-			}
-
-			writer["decompression_time_forward_playback"] = total_elapsed;
-		}
-
-		{
-			double total_elapsed = 0.0;
-
-			for (int32_t sample_index = num_samples - 1; sample_index >= 0; --sample_index)
-			{
-				float sample_time = min(float(sample_index) / sample_rate, clip_duration);
-
-				flush_cache(cache_flush_buffer);
-
-				ScopeProfiler timer;
-				decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
-				timer.stop();
-
-				total_elapsed += timer.get_elapsed_seconds();
-			}
-
-			writer["decompression_time_backward_playback"] = total_elapsed;
-		}
-
-		{
-			double total_elapsed = 0.0;
-
-			for (uint32_t seek_index = 0; seek_index < NUM_RANDOM_SEEKS; ++seek_index)
-			{
-				uint32_t sample_index = std::rand() % num_samples;
-				float sample_time = min(float(sample_index) / sample_rate, clip_duration);
-
-				// Clearing the context ensures the decoder cannot reuse any of its state from
-				// the last attempt.  This will (approximately) measure the upper bound of seek time.
-				deallocate_context(allocator, context);
-				context = allocate_context(allocator);
-
-				flush_cache(cache_flush_buffer);
-
-				ScopeProfiler timer;
-				decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
-				timer.stop();
-
-				total_elapsed += timer.get_elapsed_seconds();
-			}
-
-			writer["decompression_time_random_seek"] = total_elapsed / static_cast<double>(NUM_RANDOM_SEEKS);
-		}
+		for (uint32_t pass_index = 0; pass_index < NUM_DECOMPRESSION_TIMING_PASSES; ++pass_index)
+			deallocate_context(allocator, contexts[pass_index]);
 
 		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-		deallocate_context(allocator, context);
 		deallocate_cache_flush_buffer(allocator, cache_flush_buffer);
 	}
 
@@ -245,7 +255,7 @@ namespace acl
 
 		if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
 		{
-			write_decompression_times(allocator, clip, writer, allocate_context, decompress_pose, deallocate_context);
+			write_decompression_stats(allocator, clip, stats, writer, allocate_context, decompress_pose, deallocate_context);
 
 			writer["num_bones"] = clip.get_num_bones();
 
