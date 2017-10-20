@@ -38,6 +38,7 @@ if __name__ == "__main__":
 
 	extra_switches = []
 	if options['use_avx']:
+		print('Enabling AVX usage')
 		extra_switches.append("-DUSE_AVX_INSTRUCTIONS:BOOL=true")
 
 	# Generate IDE solution
