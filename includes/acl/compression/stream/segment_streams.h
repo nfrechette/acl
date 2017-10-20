@@ -26,6 +26,7 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
+#include "acl/compression/compression_settings.h"
 #include "acl/compression/stream/clip_context.h"
 
 #include <stdint.h>

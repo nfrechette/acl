@@ -26,6 +26,7 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
+#include "acl/core/compressed_clip.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_32.h"

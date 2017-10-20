@@ -26,6 +26,8 @@
 
 #include "acl/math/math.h"
 
+#include <cstdint>
+
 namespace acl
 {
 #if defined(ACL_SSE2_INTRINSICS)

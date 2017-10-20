@@ -82,6 +82,13 @@ namespace acl
 		//QuatLog,
 	};
 
+	enum class TimeSeriesType8 : uint8_t
+	{
+		Constant,
+		ConstantDefault,
+		Varying,
+	};
+
 	//////////////////////////////////////////////////////////////////////////
 
 	// Bit rate 0 is reserved for tracks that are constant in a segment

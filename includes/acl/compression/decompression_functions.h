@@ -25,50 +25,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/memory.h"
-#include "acl/core/error.h"
-#include "acl/core/hash.h"
-#include "acl/compression/animation_clip.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/math/math_types.h"
 
+#include <functional>
 #include <stdint.h>
 
 namespace acl
 {
-	struct ClipContext;
-
-	struct SegmentContext
-	{
-		ClipContext* clip;
-		BoneStreams* bone_streams;
-		BoneRanges* ranges;
-
-		uint16_t num_samples;
-		uint16_t num_bones;
-
-		uint32_t clip_sample_offset;
-
-		uint32_t animated_pose_bit_size;
-		uint32_t animated_data_size;
-		uint32_t range_data_size;
-		uint32_t segment_index;
-
-		bool are_rotations_normalized;
-		bool are_translations_normalized;
-		bool are_scales_normalized;
-
-		//////////////////////////////////////////////////////////////////////////
-
-		struct BoneIterator
-		{
-			constexpr BoneIterator(BoneStreams* bone_streams_, uint16_t num_bones_) : bone_streams(bone_streams_), num_bones(num_bones_) {}
-
-			BoneStreams* begin() { return bone_streams; }
-			BoneStreams* end() { return bone_streams + num_bones; }
-
-			BoneStreams* bone_streams;
-			uint16_t num_bones;
-		};
-
-		constexpr BoneIterator bone_iterator() const { return BoneIterator(bone_streams, num_bones); }
-	};
+	typedef std::function<void*(Allocator& allocator)> AllocateDecompressionContext;
+	typedef std::function<void(Allocator& allocator, void* context)> DeallocateDecompressionContext;
+	typedef std::function<void(void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)> DecompressPose;
 }

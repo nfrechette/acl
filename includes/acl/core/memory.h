@@ -54,6 +54,9 @@ namespace acl
 		return is_power_of_two(alignment) && alignment >= alignof(Type);
 	}
 
+	template<typename ElementType, size_t num_elements>
+	constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
+
 	//////////////////////////////////////////////////////////////////////////
 
 	class Allocator

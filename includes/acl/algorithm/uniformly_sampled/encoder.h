@@ -33,7 +33,6 @@
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/scope_profiler.h"
-#include "acl/algorithm/uniformly_sampled/common.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/compression/compressed_clip_impl.h"
 #include "acl/compression/skeleton.h"
@@ -46,10 +45,10 @@
 #include "acl/compression/stream/normalize_streams.h"
 #include "acl/compression/stream/quantize_streams.h"
 #include "acl/compression/stream/segment_streams.h"
+#include "acl/compression/stream/write_segment_data.h"
+#include "acl/compression/stream/write_stats.h"
 #include "acl/compression/stream/write_stream_bitsets.h"
 #include "acl/compression/stream/write_stream_data.h"
-#include "acl/compression/stream/write_segment_stats.h"
-#include "acl/compression/stream/write_range_data.h"
 #include "acl/decompression/default_output_writer.h"
 
 #include <stdint.h>
@@ -73,80 +72,6 @@ namespace acl
 {
 	namespace uniformly_sampled
 	{
-		struct CompressionSettings
-		{
-			RotationFormat8 rotation_format;
-			VectorFormat8 translation_format;
-			VectorFormat8 scale_format;
-
-			RangeReductionFlags8 range_reduction;
-
-			SegmentingSettings segmenting;
-
-			CompressionSettings()
-				: rotation_format(RotationFormat8::Quat_128)
-				, translation_format(VectorFormat8::Vector3_96)
-				, scale_format(VectorFormat8::Vector3_96)
-				, range_reduction(RangeReductionFlags8::None)
-				, segmenting()
-			{}
-
-			uint32_t hash() const
-			{
-				return hash_combine(hash_combine(hash_combine(hash32(rotation_format), hash32(translation_format)), hash32(range_reduction)), segmenting.hash());
-			}
-		};
-
-		namespace impl
-		{
-			inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint16_t segment_headers_start_offset)
-			{
-				const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
-
-				uint32_t data_offset = segment_headers_start_offset;
-				for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
-				{
-					const SegmentContext& segment = clip_context.segments[segment_index];
-					SegmentHeader& header = segment_headers[segment_index];
-
-					header.num_samples = segment.num_samples;
-					header.animated_pose_bit_size = segment.animated_pose_bit_size;
-					header.format_per_track_data_offset = data_offset;
-					header.range_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
-					header.track_data_offset = align_to(header.range_data_offset + segment.range_data_size, 4);						// Aligned to 4 bytes
-
-					data_offset = header.track_data_offset + segment.animated_data_size;
-				}
-			}
-
-			inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, ClipHeader& header)
-			{
-				SegmentHeader* segment_headers = header.get_segment_headers();
-				const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
-
-				for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
-				{
-					const SegmentContext& segment = clip_context.segments[segment_index];
-					SegmentHeader& segment_header = segment_headers[segment_index];
-
-					if (format_per_track_data_size > 0)
-						write_format_per_track_data(clip_context, segment, header.get_format_per_track_data(segment_header), format_per_track_data_size);
-					else
-						segment_header.format_per_track_data_offset = InvalidPtrOffset();
-
-					if (segment.range_data_size > 0)
-						write_segment_range_data(clip_context, segment, settings.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size);
-					else
-						segment_header.range_data_offset = InvalidPtrOffset();
-
-					if (segment.animated_data_size > 0)
-						write_animated_track_data(clip_context, segment, settings.rotation_format, settings.translation_format, settings.scale_format, header.get_track_data(segment_header), segment.animated_data_size);
-					else
-						segment_header.track_data_offset = InvalidPtrOffset();
-				}
-			}
-		}
-
 		// Encoder entry point
 		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressionSettings& settings, OutputStats& stats)
 		{
@@ -265,7 +190,7 @@ namespace acl
 			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);						// Aligned to 4 bytes
 
 			const uint16_t segment_headers_start_offset = safe_static_cast<uint16_t>(header.clip_range_data_offset + clip_range_data_size);
-			impl::write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
+			write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
 			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_size);
 			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_size);
 
@@ -287,140 +212,22 @@ namespace acl
 
 			if (stats.get_logging() != StatLogging::None)
 			{
-				uint32_t raw_size = clip.get_raw_size();
-				uint32_t compressed_size = compressed_clip->get_size();
-				double compression_ratio = double(raw_size) / double(compressed_size);
-
-				auto alloc_ctx_fun = [&](Allocator& allocator)
-				{
-					DecompressionSettings settings;
-					return allocate_decompression_context(allocator, settings, *compressed_clip);
-				};
-
-				auto free_ctx_fun = [&](Allocator& allocator, void* context)
-				{
-					deallocate_decompression_context(allocator, context);
-				};
-
-				auto sample_fun = [&](void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)
-				{
-					DecompressionSettings settings;
-					DefaultOutputWriter writer(out_transforms, num_transforms);
-					decompress_pose(settings, *compressed_clip, context, sample_time, writer);
-				};
-
-				// Use the compressed clip to make sure the decoder works properly
-				BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, clip_context.has_scale, alloc_ctx_fun, free_ctx_fun, sample_fun);
-
-				SJSONObjectWriter& writer = stats.get_writer();
-				writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);
-				writer["algorithm_uid"] = settings.hash();
-				writer["clip_name"] = clip.get_name().c_str();
-				writer["raw_size"] = raw_size;
-				writer["compressed_size"] = compressed_size;
-				writer["compression_ratio"] = compression_ratio;
-				writer["max_error"] = error.error;
-				writer["worst_bone"] = error.index;
-				writer["worst_time"] = error.sample_time;
-				writer["compression_time"] = compression_time.get_elapsed_seconds();
-				writer["duration"] = clip.get_duration();
-				writer["num_samples"] = clip.get_num_samples();
-				writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
-				writer["translation_format"] = get_vector_format_name(settings.translation_format);
-				writer["scale_format"] = get_vector_format_name(settings.scale_format);
-				writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
-				writer["has_scale"] = clip_context.has_scale;
-
-				if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
-				{
-					writer["num_bones"] = clip.get_num_bones();
-
-					uint32_t num_default_rotation_tracks = 0;
-					uint32_t num_default_translation_tracks = 0;
-					uint32_t num_default_scale_tracks = 0;
-					uint32_t num_constant_rotation_tracks = 0;
-					uint32_t num_constant_translation_tracks = 0;
-					uint32_t num_constant_scale_tracks = 0;
-					uint32_t num_animated_rotation_tracks = 0;
-					uint32_t num_animated_translation_tracks = 0;
-					uint32_t num_animated_scale_tracks = 0;
-
-					for (const BoneStreams& bone_stream : clip_context.segments[0].bone_iterator())
+				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, stats,
+					[&](Allocator& allocator)
 					{
-						if (bone_stream.is_rotation_default)
-							num_default_rotation_tracks++;
-						else if (bone_stream.is_rotation_constant)
-							num_constant_rotation_tracks++;
-						else
-							num_animated_rotation_tracks++;
-
-						if (bone_stream.is_translation_default)
-							num_default_translation_tracks++;
-						else if (bone_stream.is_translation_constant)
-							num_constant_translation_tracks++;
-						else
-							num_animated_translation_tracks++;
-
-						if (bone_stream.is_scale_default)
-							num_default_scale_tracks++;
-						else if (bone_stream.is_scale_constant)
-							num_constant_scale_tracks++;
-						else
-							num_animated_scale_tracks++;
-					}
-
-					uint32_t num_default_tracks = num_default_rotation_tracks + num_default_translation_tracks + num_default_scale_tracks;
-					uint32_t num_constant_tracks = num_constant_rotation_tracks + num_constant_translation_tracks + num_constant_scale_tracks;
-					uint32_t num_animated_tracks = num_animated_rotation_tracks + num_animated_translation_tracks + num_animated_scale_tracks;
-
-					writer["num_default_rotation_tracks"] = num_default_rotation_tracks;
-					writer["num_default_translation_tracks"] = num_default_translation_tracks;
-					writer["num_default_scale_tracks"] = num_default_scale_tracks;
-
-					writer["num_constant_rotation_tracks"] = num_constant_rotation_tracks;
-					writer["num_constant_translation_tracks"] = num_constant_translation_tracks;
-					writer["num_constant_scale_tracks"] = num_constant_scale_tracks;
-
-					writer["num_animated_rotation_tracks"] = num_animated_rotation_tracks;
-					writer["num_animated_translation_tracks"] = num_animated_translation_tracks;
-					writer["num_animated_scale_tracks"] = num_animated_scale_tracks;
-
-					writer["num_default_tracks"] = num_default_tracks;
-					writer["num_constant_tracks"] = num_constant_tracks;
-					writer["num_animated_tracks"] = num_animated_tracks;
-				}
-
-				if (settings.segmenting.enabled)
-				{
-					writer["segmenting"] = [&](SJSONObjectWriter& writer)
+						DecompressionSettings settings;
+						return allocate_decompression_context(allocator, settings, *compressed_clip);
+					},
+					[&](void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)
 					{
-						writer["num_segments"] = header.num_segments;
-						writer["range_reduction"] = get_range_reduction_name(settings.segmenting.range_reduction);
-						writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
-						writer["max_num_samples"] = settings.segmenting.max_num_samples;
-					};
-				}
-
-				writer["segments"] = [&](SJSONArrayWriter& writer)
-				{
-					for (const SegmentContext& segment : clip_context.segment_iterator())
+						DecompressionSettings settings;
+						DefaultOutputWriter writer(out_transforms, num_transforms);
+						decompress_pose(settings, *compressed_clip, context, sample_time, writer);
+					},
+					[&](Allocator& allocator, void* context)
 					{
-						writer.push_object([&](SJSONObjectWriter& writer)
-						{
-							write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, writer);
-
-							if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
-							{
-								write_detailed_segment_stats(segment, writer);
-							}
-
-							if (stats.get_logging() == StatLogging::Exhaustive)
-							{
-								write_exhaustive_segment_stats(allocator, segment, raw_clip_context, skeleton, writer);
-							}
-						});
-					}
-				};
+						deallocate_decompression_context(allocator, context);
+					});
 			}
 
 			destroy_clip_context(allocator, clip_context);
