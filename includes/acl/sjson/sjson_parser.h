@@ -98,6 +98,11 @@ namespace acl
 			return read_key(key) && read_equal_sign() && read_opening_bracket() && read(values, num_elements) && read_closing_bracket();
 		}
 
+		bool read(const char* key, StringView* values, uint32_t num_elements)
+		{
+			return read_key(key) && read_equal_sign() && read_opening_bracket() && read(values, num_elements) && read_closing_bracket();
+		}
+
 		bool read(double* values, uint32_t num_elements)
 		{
 			if (num_elements == 0)
@@ -105,7 +110,21 @@ namespace acl
 
 			for (uint32_t i = 0; i < num_elements; ++i)
 			{
-				if (!read_double(values[i]) || i < num_elements - 1 && !read_comma())
+				if (!read_double(values[i]) || i < (num_elements - 1) && !read_comma())
+					return false;
+			}
+
+			return true;
+		}
+
+		bool read(StringView* values, uint32_t num_elements)
+		{
+			if (num_elements == 0)
+				return true;
+
+			for (uint32_t i = 0; i < num_elements; ++i)
+			{
+				if (!read_string(values[i]) || i < (num_elements - 1) && !read_comma())
 					return false;
 			}
 
@@ -136,6 +155,23 @@ namespace acl
 
 				for (uint32_t i = 0; i < num_elements; ++i)
 					values[i] = 0.0;
+
+				return false;
+			}
+
+			return true;
+		}
+
+		bool try_read(const char* key, StringView* values, uint32_t num_elements)
+		{
+			State s = save_state();
+
+			if (!read(key, values, num_elements))
+			{
+				restore_state(s);
+
+				for (uint32_t i = 0; i < num_elements; ++i)
+					values[i] = StringView();
 
 				return false;
 			}

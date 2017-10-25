@@ -43,9 +43,11 @@ namespace acl
 			: m_allocator(allocator)
 			, m_parser(sjson_input, input_length)
 			, m_error()
-			, m_version()
-			, m_num_samples()
-			, m_sample_rate()
+			, m_version(0.0)
+			, m_num_samples(0)
+			, m_sample_rate(0)
+			, m_error_threshold(0.0)
+			, m_is_binary_exact(false)
 		{
 		}
 
@@ -75,6 +77,7 @@ namespace acl
 		uint32_t m_sample_rate;
 		StringView m_clip_name;
 		double m_error_threshold;
+		bool m_is_binary_exact;
 
 		void reset_state()
 		{
@@ -132,6 +135,10 @@ namespace acl
 			if (!m_parser.read("error_threshold", m_error_threshold))
 				goto error;
 
+			// Optional value
+			if (!m_parser.read("is_binary_exact", m_is_binary_exact))
+				m_is_binary_exact = false;
+
 			if (!m_parser.object_ends())
 				goto error;
 
@@ -165,6 +172,30 @@ namespace acl
 		{
 			uint16_t num_bones;
 			return process_each_bone(nullptr, num_bones);
+		}
+
+		static double hex_to_double(const StringView& value)
+		{
+			union UInt64ToDouble
+			{
+				uint64_t u64;
+				double dbl;
+
+				constexpr explicit UInt64ToDouble(uint64_t value) : u64(value) {}
+			};
+
+			uint64_t value_u64 = std::strtoull(value.get_chars(), nullptr, 16);
+			return UInt64ToDouble(value_u64).dbl;
+		}
+
+		static Quat_64 hex_to_quat(const StringView values[4])
+		{
+			return quat_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]), hex_to_double(values[3]));
+		}
+
+		static Vector4_64 hex_to_vector3(const StringView values[3])
+		{
+			return vector_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]));
 		}
 
 		bool process_each_bone(RigidBone* bones, uint16_t& num_bones)
@@ -215,17 +246,34 @@ namespace acl
 				if (!m_parser.read("vertex_distance", bone.vertex_distance))
 					goto error;
 
-				double rotation[4];
-				if (m_parser.try_read("bind_rotation", rotation, 4) && !counting)
-					bone.bind_transform.rotation = quat_unaligned_load(&rotation[0]);
+				if (m_is_binary_exact)
+				{
+					StringView rotation[4];
+					if (m_parser.try_read("bind_rotation", rotation, 4) && !counting)
+						bone.bind_transform.rotation = hex_to_quat(rotation);
 
-				double translation[3];
-				if (m_parser.try_read("bind_translation", translation, 3) && !counting)
-					bone.bind_transform.translation = vector_unaligned_load3(&translation[0]);
+					StringView translation[3];
+					if (m_parser.try_read("bind_translation", translation, 3) && !counting)
+						bone.bind_transform.translation = hex_to_vector3(translation);
 
-				double scale[3];
-				if (m_parser.try_read("bind_scale", scale, 3) && !counting)
-					bone.bind_transform.scale = vector_unaligned_load3(&scale[0]);
+					StringView scale[3];
+					if (m_parser.try_read("bind_scale", scale, 3) && !counting)
+						bone.bind_transform.scale = hex_to_vector3(scale);
+				}
+				else
+				{
+					double rotation[4];
+					if (m_parser.try_read("bind_rotation", rotation, 4) && !counting)
+						bone.bind_transform.rotation = quat_unaligned_load(&rotation[0]);
+
+					double translation[3];
+					if (m_parser.try_read("bind_translation", translation, 3) && !counting)
+						bone.bind_transform.translation = vector_unaligned_load3(&translation[0]);
+
+					double scale[3];
+					if (m_parser.try_read("bind_scale", scale, 3) && !counting)
+						bone.bind_transform.scale = vector_unaligned_load3(&scale[0]);
+				}
 
 				if (!m_parser.object_ends())
 					goto error;
@@ -328,12 +376,32 @@ namespace acl
 		{
 			for (uint32_t i = 0; i < m_num_samples; ++i)
 			{
-				double quaternion[4];
-
-				if (!m_parser.array_begins() || !m_parser.read(quaternion, 4) || !m_parser.array_ends())
+				if (!m_parser.array_begins())
 					return false;
 
-				bone.rotation_track.set_sample(i, quat_unaligned_load(quaternion));
+				Quat_64 rotation;
+
+				if (m_is_binary_exact)
+				{
+					StringView values[4];
+					if (!m_parser.read(values, 4))
+						return false;
+
+					rotation = hex_to_quat(values);
+				}
+				else
+				{
+					double values[4];
+					if (!m_parser.read(values, 4))
+						return false;
+
+					rotation = quat_unaligned_load(values);
+				}
+
+				if (!m_parser.array_ends())
+					return false;
+
+				bone.rotation_track.set_sample(i, rotation);
 			}
 
 			return true;
@@ -343,12 +411,32 @@ namespace acl
 		{
 			for (uint32_t i = 0; i < m_num_samples; ++i)
 			{
-				double translation[3];
-
-				if (!m_parser.array_begins() || !m_parser.read(translation, 3) || !m_parser.array_ends())
+				if (!m_parser.array_begins())
 					return false;
 
-				bone.translation_track.set_sample(i, vector_unaligned_load3(translation));
+				Vector4_64 translation;
+
+				if (m_is_binary_exact)
+				{
+					StringView values[3];
+					if (!m_parser.read(values, 3))
+						return false;
+
+					translation = hex_to_vector3(values);
+				}
+				else
+				{
+					double values[3];
+					if (!m_parser.read(values, 3))
+						return false;
+
+					translation = vector_unaligned_load3(values);
+				}
+
+				if (!m_parser.array_ends())
+					return false;
+
+				bone.translation_track.set_sample(i, translation);
 			}
 
 			return true;
@@ -358,12 +446,32 @@ namespace acl
 		{
 			for (uint32_t i = 0; i < m_num_samples; ++i)
 			{
-				double scale[3];
-
-				if (!m_parser.array_begins() || !m_parser.read(scale, 3) || !m_parser.array_ends())
+				if (!m_parser.array_begins())
 					return false;
 
-				bone.scale_track.set_sample(i, vector_unaligned_load3(scale));
+				Vector4_64 scale;
+
+				if (m_is_binary_exact)
+				{
+					StringView values[3];
+					if (!m_parser.read(values, 3))
+						return false;
+
+					scale = hex_to_vector3(values);
+				}
+				else
+				{
+					double values[3];
+					if (!m_parser.read(values, 3))
+						return false;
+
+					scale = vector_unaligned_load3(values);
+				}
+
+				if (!m_parser.array_ends())
+					return false;
+
+				bone.scale_track.set_sample(i, scale);
 			}
 
 			return true;

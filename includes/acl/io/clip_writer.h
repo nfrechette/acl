@@ -50,6 +50,26 @@ namespace acl
 		if (ACL_TRY_ASSERT(file != nullptr, "Failed to open ACL file for writing: %s", acl_filename))
 			return false;
 
+		char buffer[32] = {0};
+		auto format_double = [&](double value)
+		{
+			union DoubleToUInt64
+			{
+				uint64_t u64;
+				double dbl;
+
+				constexpr explicit DoubleToUInt64(double value) : dbl(value) {}
+			};
+
+#ifdef _MSC_VER
+			sprintf_s(buffer, "%llX", DoubleToUInt64(value).u64);
+#else
+			sprintf(buffer, "%llX", DoubleToUInt64(value).u64);
+#endif
+
+			return buffer;
+		};
+
 		SJSONFileStreamWriter stream_writer(file);
 		SJSONWriter writer(stream_writer);
 
@@ -62,6 +82,7 @@ namespace acl
 			writer["num_samples"] = clip.get_num_samples();
 			writer["sample_rate"] = clip.get_sample_rate();
 			writer["error_threshold"] = clip.get_error_threshold();
+			writer["is_binary_exact"] = true;
 		};
 		writer.insert_newline();
 
@@ -81,22 +102,31 @@ namespace acl
 					writer["name"] = bone.name.c_str();
 					writer["parent"] = bone.is_root() ? "" : parent_bone.name.c_str();
 					writer["vertex_distance"] = bone.vertex_distance;
-					if (!quat_near_identity(bone.bind_rotation))
+
+					if (!quat_near_identity(bone.bind_transform.rotation))
 						writer["bind_rotation"] = [&](SJSONArrayWriter& writer)
 						{
-							writer.push_value(quat_get_x(bone.bind_rotation));
-							writer.push_value(quat_get_y(bone.bind_rotation));
-							writer.push_value(quat_get_z(bone.bind_rotation));
-							writer.push_value(quat_get_w(bone.bind_rotation));
+							writer.push_value(format_double(quat_get_x(bone.bind_transform.rotation)));
+							writer.push_value(format_double(quat_get_y(bone.bind_transform.rotation)));
+							writer.push_value(format_double(quat_get_z(bone.bind_transform.rotation)));
+							writer.push_value(format_double(quat_get_w(bone.bind_transform.rotation)));
 						};
-					if (!vector_all_near_equal3(bone.bind_translation, vector_zero_64()))
+
+					if (!vector_all_near_equal3(bone.bind_transform.translation, vector_zero_64()))
 						writer["bind_translation"] = [&](SJSONArrayWriter& writer)
 						{
-							writer.push_value(vector_get_x(bone.bind_translation));
-							writer.push_value(vector_get_y(bone.bind_translation));
-							writer.push_value(vector_get_z(bone.bind_translation));
+							writer.push_value(format_double(vector_get_x(bone.bind_transform.translation)));
+							writer.push_value(format_double(vector_get_y(bone.bind_transform.translation)));
+							writer.push_value(format_double(vector_get_z(bone.bind_transform.translation)));
 						};
-					//fprintf(file, "\t\tbind_scale = [ %.16f, %.16f, %.16f ]\n", vector_get_x(bone.bind_scale), vector_get_y(bone.bind_scale), vector_get_z(bone.bind_scale));
+
+					if (!vector_all_near_equal3(bone.bind_transform.scale, vector_set(1.0)))
+						writer["bind_scale"] = [&](SJSONArrayWriter& writer)
+						{
+							writer.push_value(format_double(vector_get_x(bone.bind_transform.scale)));
+							writer.push_value(format_double(vector_get_y(bone.bind_transform.scale)));
+							writer.push_value(format_double(vector_get_z(bone.bind_transform.scale)));
+						};
 				});
 			}
 		};
@@ -127,10 +157,10 @@ namespace acl
 							Quat_64 rotation = bone.rotation_track.get_sample(sample_index);
 							writer.push_array([&](SJSONArrayWriter& writer)
 							{
-								writer.push_value(quat_get_x(rotation));
-								writer.push_value(quat_get_y(rotation));
-								writer.push_value(quat_get_z(rotation));
-								writer.push_value(quat_get_w(rotation));
+								writer.push_value(format_double(quat_get_x(rotation)));
+								writer.push_value(format_double(quat_get_y(rotation)));
+								writer.push_value(format_double(quat_get_z(rotation)));
+								writer.push_value(format_double(quat_get_w(rotation)));
 							});
 							writer.push_newline();
 						}
@@ -147,9 +177,9 @@ namespace acl
 							Vector4_64 translation = bone.translation_track.get_sample(sample_index);
 							writer.push_array([&](SJSONArrayWriter& writer)
 							{
-								writer.push_value(vector_get_x(translation));
-								writer.push_value(vector_get_y(translation));
-								writer.push_value(vector_get_z(translation));
+								writer.push_value(format_double(vector_get_x(translation)));
+								writer.push_value(format_double(vector_get_y(translation)));
+								writer.push_value(format_double(vector_get_z(translation)));
 							});
 							writer.push_newline();
 						}
@@ -166,9 +196,9 @@ namespace acl
 							Vector4_64 scale = bone.scale_track.get_sample(sample_index);
 							writer.push_array([&](SJSONArrayWriter& writer)
 							{
-								writer.push_value(vector_get_x(scale));
-								writer.push_value(vector_get_y(scale));
-								writer.push_value(vector_get_z(scale));
+								writer.push_value(format_double(vector_get_x(scale)));
+								writer.push_value(format_double(vector_get_y(scale)));
+								writer.push_value(format_double(vector_get_z(scale)));
 							});
 							writer.push_newline();
 						}
