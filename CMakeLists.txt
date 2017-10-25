@@ -4,7 +4,9 @@ project(acl)
 set(USE_AVX_INSTRUCTIONS false CACHE BOOL "Use AVX instructions")
 
 # Grab all of our include files
-file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false ${PROJECT_SOURCE_DIR}/includes/*.h)
+file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false
+	${PROJECT_SOURCE_DIR}/includes/*.h
+	${PROJECT_SOURCE_DIR}/tools/vs_visualizers/*.natvis)
 
 # Create a dummy target so they show up in the IDE
 add_custom_target(acl SOURCES ${ACL_INCLUDE_FILES})
