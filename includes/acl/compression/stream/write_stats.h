@@ -247,6 +247,7 @@ namespace acl
 		writer["compression_time"] = compression_time.get_elapsed_seconds();
 		writer["duration"] = clip.get_duration();
 		writer["num_samples"] = clip.get_num_samples();
+		writer["num_bones"] = clip.get_num_bones();
 		writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 		writer["translation_format"] = get_vector_format_name(settings.translation_format);
 		writer["scale_format"] = get_vector_format_name(settings.scale_format);
@@ -256,8 +257,6 @@ namespace acl
 		if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
 		{
 			write_decompression_stats(allocator, clip, stats, writer, allocate_context, decompress_pose, deallocate_context);
-
-			writer["num_bones"] = clip.get_num_bones();
 
 			uint32_t num_default_rotation_tracks = 0;
 			uint32_t num_default_translation_tracks = 0;
