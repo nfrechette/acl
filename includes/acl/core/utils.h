@@ -54,6 +54,6 @@ namespace acl
 
 	inline uint32_t calculate_num_samples(float duration, uint32_t sample_rate)
 	{
-		return safe_static_cast<uint32_t>(floor(duration * float(sample_rate))) + 1;
+		return safe_static_cast<uint32_t>(floor((duration * float(sample_rate)) + 0.5f)) + 1;
 	}
 }
