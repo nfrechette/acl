@@ -420,7 +420,7 @@ namespace acl
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 							out_vectors[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
 #else
-							out_vectors[i] = unpack_vector3_96(context.segment_range_data[i] + context.segment_range_data_offset, );
+							out_vectors[i] = unpack_vector3_96(context.segment_range_data[i] + context.segment_range_data_offset);
 #endif
 							ignore_segment_range[i] = true;
 						}
