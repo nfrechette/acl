@@ -1058,11 +1058,20 @@ namespace acl
 					uint16_t num_maxed_out = 0;
 					for (int16_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)
 					{
-						uint16_t chain_bone_index = chain_bone_indices[chain_link_index];
+						const uint16_t chain_bone_index = chain_bone_indices[chain_link_index];
+
+						// Work with a copy. We'll increase the bit rate as much as we can and retain the values
+						// that yield the smallest error BUT increasing the bit rate does NOT always means
+						// that the error will reduce and improve. It could get worse in which case we'll do nothing.
+
+						BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
+
+						// Copy original values
+						BoneBitRate best_bone_bit_rate = bone_bit_rate;
+						float best_bit_rate_error = error;
+
 						while (error >= context.error_threshold)
 						{
-							BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
-
 							static_assert(offsetof(BoneBitRate, rotation) == 0 && offsetof(BoneBitRate, scale) == sizeof(BoneBitRate) - 1, "Invalid BoneBitRate offsets");
 							uint8_t& smallest_bit_rate = *std::min_element<uint8_t*>(&bone_bit_rate.rotation, &bone_bit_rate.scale + 1);
 
@@ -1082,12 +1091,22 @@ namespace acl
 
 							ACL_ENSURE((bone_bit_rate.rotation <= HIGHEST_BIT_RATE || bone_bit_rate.rotation == INVALID_BIT_RATE) && (bone_bit_rate.translation <= HIGHEST_BIT_RATE || bone_bit_rate.translation == INVALID_BIT_RATE) && (bone_bit_rate.scale <= HIGHEST_BIT_RATE || bone_bit_rate.scale == INVALID_BIT_RATE), "Invalid bit rate! [%u, %u, %u]", bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale);
 
-							error = calculate_max_error_at_bit_rate(context, bone_index, false);
+							error = calculate_max_error_at_bit_rate(context, bone_index, false, true);
+
+							if (error < best_bit_rate_error)
+							{
+								best_bone_bit_rate = bone_bit_rate;
+								best_bit_rate_error = error;
 
 #if ACL_DEBUG_VARIABLE_QUANTIZATION
-							printf("%u: => %u %u %u (%f)\n", chain_bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error);
+								printf("%u: => %u %u %u (%f)\n", chain_bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error);
 #endif
+							}
 						}
+
+						// Only retain the lowest error bit rates
+						bone_bit_rate = best_bone_bit_rate;
+						error = best_bit_rate_error;
 
 						if (error < context.error_threshold)
 							break;
