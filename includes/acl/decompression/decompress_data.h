@@ -531,26 +531,32 @@ namespace acl
 
 		decompress_rotations_in_two_key_frames(settings, header, context, rotations, time_series_type);
 
+		Quat_32 result;
 		switch (time_series_type)
 		{
 		case TimeSeriesType8::Constant:
-			return rotations[0];
-
-		case TimeSeriesType8::ConstantDefault:
 			ACL_ENSURE(quat_is_finite(rotations[0]), "Rotation is not valid!");
 			ACL_ENSURE(quat_is_normalized(rotations[0]), "Rotation is not normalized!");
-			return rotations[0];
+			result = rotations[0];
+			break;
+
+		case TimeSeriesType8::ConstantDefault:
+			result = rotations[0];
+			break;
 
 		case TimeSeriesType8::Varying:
-			Quat_32 rotation = quat_lerp(rotations[0], rotations[1], context.interpolation_alpha);
-			ACL_ENSURE(quat_is_finite(rotation), "Rotation is not valid!");
-			ACL_ENSURE(quat_is_normalized(rotation), "Rotation is not normalized!");
-			return rotation;
+			result = quat_lerp(rotations[0], rotations[1], context.interpolation_alpha);
+			ACL_ENSURE(quat_is_finite(result), "Rotation is not valid!");
+			ACL_ENSURE(quat_is_normalized(result), "Rotation is not normalized!");
+			break;
 
 		default:
 			ACL_ENSURE(false, "Unrecognized time series type");
-			return quat_identity_32();
+			result = quat_identity_32();
+			break;
 		}
+
+		return result;
 	}
 
 	template<class SettingsAdapterType, class DecompressionContext>
@@ -563,23 +569,29 @@ namespace acl
 
 		decompress_vectors_in_two_key_frames(settings, header, context, vectors, time_series_type);
 
+		Vector4_32 result;
 		switch (time_series_type)
 		{
 		case TimeSeriesType8::Constant:
-			return vectors[0];
+			ACL_ENSURE(vector_is_finite3(vectors[0]), "Vector is not valid!");
+			result = vectors[0];
+			break;
 
 		case TimeSeriesType8::ConstantDefault:
-			ACL_ENSURE(vector_is_finite3(vectors[0]), "Vector is not valid!");
-			return vectors[0];
+			result = vectors[0];
+			break;
 
 		case TimeSeriesType8::Varying:
-			Vector4_32 vector = vector_lerp(vectors[0], vectors[1], context.interpolation_alpha);
-			ACL_ENSURE(vector_is_finite3(vector), "Vector is not valid!");
-			return vector;
+			result = vector_lerp(vectors[0], vectors[1], context.interpolation_alpha);
+			ACL_ENSURE(vector_is_finite3(result), "Vector is not valid!");
+			break;
 
 		default:
 			ACL_ENSURE(false, "Unrecognized time series type");
-			return vector_zero_32();
+			result = vector_zero_32();
+			break;
 		}
+
+		return result;
 	}
 }
