@@ -214,7 +214,7 @@ static void unit_test(Allocator& allocator, const AnimationClip& clip, const Rig
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			float error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
-			ACL_ENSURE(error < 1.0f, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
+			ACL_ENSURE(error < 10.0f, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
 		}
 	}
 
