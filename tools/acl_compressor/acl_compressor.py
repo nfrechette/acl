@@ -75,7 +75,7 @@ def parse_argv():
 	return options
 
 def print_usage():
-	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stats=<path to output directory for stats> [-csv] [-refresh] [-parallel={Num Threads}]')
+	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stats=<path to output directory for stats> [-csv_summary] [-csv_error] [-refresh] [-parallel={Num Threads}]')
 
 def print_stat(stat):
 	print('Algorithm: {}, Format: [{}], Ratio: {:.2f}, Error: {}'.format(stat['algorithm_name'], stat['desc'], stat['compression_ratio'], stat['max_error']))
