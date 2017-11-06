@@ -1051,7 +1051,7 @@ namespace acl
 				}
 
 				// Last ditch effort if our error remains too high, this should be rare
-				error = calculate_max_error_at_bit_rate(context, bone_index, false);
+				error = calculate_max_error_at_bit_rate(context, bone_index, false, true);
 				while (error >= context.error_threshold)
 				{
 					// From child to parent, increase the bit rate indiscriminately
@@ -1100,6 +1100,12 @@ namespace acl
 
 #if ACL_DEBUG_VARIABLE_QUANTIZATION
 								printf("%u: => %u %u %u (%f)\n", chain_bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error);
+								for (uint16_t i = chain_link_index + 1; i < num_bones_in_chain; ++i)
+								{
+									const uint16_t chain_bone_index2 = chain_bone_indices[chain_link_index];
+									float error2 = calculate_max_error_at_bit_rate(context, chain_bone_index2, false, true);
+									printf("  %u: => (%f)\n", i, error2);
+								}
 #endif
 							}
 						}
