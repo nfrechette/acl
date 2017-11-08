@@ -128,6 +128,10 @@ namespace acl
 			{
 				segment_streams(allocator, clip_context, settings.segmenting);
 
+
+
+
+
 				if (settings.segmenting.range_reduction != RangeReductionFlags8::None)
 				{
 					extract_segment_bone_ranges(allocator, clip_context);
