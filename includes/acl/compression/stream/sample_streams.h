@@ -240,7 +240,7 @@ namespace acl
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
-		bool are_rotations_normalized = clip_context->are_rotations_normalized;
+		const bool are_rotations_normalized = clip_context->are_rotations_normalized && !bone_steams.is_rotation_constant;
 		const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 
 		Vector4_32 rotation;
@@ -487,7 +487,7 @@ namespace acl
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
-		bool are_translations_normalized = clip_context->are_translations_normalized;
+		const bool are_translations_normalized = clip_context->are_translations_normalized && !bone_steams.is_translation_constant;
 		const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 
 		Vector4_32 translation;
@@ -718,7 +718,7 @@ namespace acl
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
-		bool are_scales_normalized = clip_context->are_scales_normalized;
+		const bool are_scales_normalized = clip_context->are_scales_normalized && !bone_steams.is_scale_constant;
 		const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
 
 		Vector4_32 scale;
@@ -783,12 +783,20 @@ namespace acl
 
 	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, Transform_32* out_local_pose)
 	{
+		const Quat_32 default_rotation = quat_identity_32();
+		const Vector4_32 default_translation = vector_zero_32();
+		const Vector4_32 default_scale = vector_set(1.0f);
+
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 
 			Quat_32 rotation;
-			if (bone_stream.is_rotation_animated() && !is_pack_0_bit_rate(bone_stream.rotations.get_bit_rate()))
+			if (bone_stream.is_rotation_default)
+				rotation = default_rotation;
+			else if (bone_stream.is_rotation_constant || is_pack_0_bit_rate(bone_stream.rotations.get_bit_rate()))
+				rotation = get_rotation_sample(bone_stream, 0);
+			else
 			{
 				uint32_t num_samples = bone_stream.rotations.get_num_samples();
 				float duration = bone_stream.rotations.get_duration();
@@ -802,13 +810,13 @@ namespace acl
 				Quat_32 sample1 = get_rotation_sample(bone_stream, key1);
 				rotation = quat_lerp(sample0, sample1, interpolation_alpha);
 			}
-			else
-			{
-				rotation = get_rotation_sample(bone_stream, 0);
-			}
 
 			Vector4_32 translation;
-			if (bone_stream.is_translation_animated() && !is_pack_0_bit_rate(bone_stream.translations.get_bit_rate()))
+			if (bone_stream.is_translation_default)
+				translation = default_translation;
+			else if (bone_stream.is_translation_constant || is_pack_0_bit_rate(bone_stream.translations.get_bit_rate()))
+				translation = get_translation_sample(bone_stream, 0);
+			else
 			{
 				uint32_t num_samples = bone_stream.translations.get_num_samples();
 				float duration = bone_stream.translations.get_duration();
@@ -822,13 +830,13 @@ namespace acl
 				Vector4_32 sample1 = get_translation_sample(bone_stream, key1);
 				translation = vector_lerp(sample0, sample1, interpolation_alpha);
 			}
-			else
-			{
-				translation = get_translation_sample(bone_stream, 0);
-			}
 
 			Vector4_32 scale;
-			if (bone_stream.is_scale_animated() && !is_pack_0_bit_rate(bone_stream.scales.get_bit_rate()))
+			if (bone_stream.is_scale_default)
+				scale = default_scale;
+			else if (bone_stream.is_scale_constant || is_pack_0_bit_rate(bone_stream.scales.get_bit_rate()))
+				scale = get_scale_sample(bone_stream, 0);
+			else
 			{
 				uint32_t num_samples = bone_stream.scales.get_num_samples();
 				float duration = bone_stream.scales.get_duration();
@@ -841,10 +849,6 @@ namespace acl
 				Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
 				Vector4_32 sample1 = get_scale_sample(bone_stream, key1);
 				scale = vector_lerp(sample0, sample1, interpolation_alpha);
-			}
-			else
-			{
-				scale = get_scale_sample(bone_stream, 0);
 			}
 
 			out_local_pose[bone_index] = transform_set(rotation, translation, scale);
@@ -853,7 +857,8 @@ namespace acl
 
 	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose)
 	{
-		const bool has_scale = bone_streams_has_scale(bone_streams[0]);
+		const Quat_32 default_rotation = quat_identity_32();
+		const Vector4_32 default_translation = vector_zero_32();
 		const Vector4_32 default_scale = vector_set(1.0f);
 
 		uint16_t current_bone_index = bone_index;
@@ -862,7 +867,11 @@ namespace acl
 			const BoneStreams& bone_stream = bone_streams[current_bone_index];
 
 			Quat_32 rotation;
-			if (bone_stream.is_rotation_animated())
+			if (bone_stream.is_rotation_default)
+				rotation = default_rotation;
+			else if (bone_stream.is_rotation_constant)
+				rotation = get_rotation_sample(bone_stream, 0);
+			else
 			{
 				uint32_t num_samples = bone_stream.rotations.get_num_samples();
 				float duration = bone_stream.rotations.get_duration();
@@ -876,13 +885,13 @@ namespace acl
 				Quat_32 sample1 = get_rotation_sample(bone_stream, key1);
 				rotation = quat_lerp(sample0, sample1, interpolation_alpha);
 			}
-			else
-			{
-				rotation = get_rotation_sample(bone_stream, 0);
-			}
 
 			Vector4_32 translation;
-			if (bone_stream.is_translation_animated())
+			if (bone_stream.is_translation_default)
+				translation = default_translation;
+			else if (bone_stream.is_translation_constant)
+				translation = get_translation_sample(bone_stream, 0);
+			else
 			{
 				uint32_t num_samples = bone_stream.translations.get_num_samples();
 				float duration = bone_stream.translations.get_duration();
@@ -896,17 +905,13 @@ namespace acl
 				Vector4_32 sample1 = get_translation_sample(bone_stream, key1);
 				translation = vector_lerp(sample0, sample1, interpolation_alpha);
 			}
-			else
-			{
-				translation = get_translation_sample(bone_stream, 0);
-			}
 
 			Vector4_32 scale;
-			if (!has_scale)
-			{
+			if (bone_stream.is_scale_default)
 				scale = default_scale;
-			}
-			else if (bone_stream.is_scale_animated())
+			else if (bone_stream.is_scale_constant)
+				scale = get_scale_sample(bone_stream, 0);
+			else
 			{
 				uint32_t num_samples = bone_stream.scales.get_num_samples();
 				float duration = bone_stream.scales.get_duration();
@@ -919,10 +924,6 @@ namespace acl
 				Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
 				Vector4_32 sample1 = get_scale_sample(bone_stream, key1);
 				scale = vector_lerp(sample0, sample1, interpolation_alpha);
-			}
-			else
-			{
-				scale = get_scale_sample(bone_stream, 0);
 			}
 
 			out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
@@ -935,16 +936,28 @@ namespace acl
 		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
 		const bool is_scale_variable = is_vector_format_variable(scale_format);
+		const Quat_32 default_rotation = quat_identity_32();
+		const Vector4_32 default_translation = vector_zero_32();
+		const Vector4_32 default_scale = vector_set(1.0f);
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 
 			Quat_32 rotation;
-			if (bone_stream.is_rotation_animated())
+			if (bone_stream.is_rotation_default)
+				rotation = default_rotation;
+			else if (bone_stream.is_rotation_constant)
 			{
-				uint32_t num_samples = bone_stream.rotations.get_num_samples();
-				float duration = bone_stream.rotations.get_duration();
+				if (is_rotation_variable)
+					rotation = get_rotation_sample(bone_stream, 0);
+				else
+					rotation = get_rotation_sample(bone_stream, 0, rotation_format);
+			}
+			else
+			{
+				const uint32_t num_samples = bone_stream.rotations.get_num_samples();
+				const float duration = bone_stream.rotations.get_duration();
 
 				uint32_t key0;
 				uint32_t key1;
@@ -955,7 +968,7 @@ namespace acl
 				Quat_32 sample1;
 				if (is_rotation_variable)
 				{
-					uint8_t bit_rate = bit_rates[bone_index].rotation;
+					const uint8_t bit_rate = bit_rates[bone_index].rotation;
 
 					sample0 = get_rotation_sample(bone_stream, key0, bit_rate);
 					sample1 = get_rotation_sample(bone_stream, key1, bit_rate);
@@ -968,19 +981,16 @@ namespace acl
 
 				rotation = quat_lerp(sample0, sample1, interpolation_alpha);
 			}
-			else
-			{
-				if (is_rotation_variable)
-					rotation = get_rotation_sample(bone_stream, 0);
-				else
-					rotation = get_rotation_sample(bone_stream, 0, rotation_format);
-			}
 
 			Vector4_32 translation;
-			if (bone_stream.is_translation_animated())
+			if (bone_stream.is_translation_default)
+				translation = default_translation;
+			else if (bone_stream.is_translation_constant)
+				translation = get_translation_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+			else
 			{
-				uint32_t num_samples = bone_stream.translations.get_num_samples();
-				float duration = bone_stream.translations.get_duration();
+				const uint32_t num_samples = bone_stream.translations.get_num_samples();
+				const float duration = bone_stream.translations.get_duration();
 
 				uint32_t key0;
 				uint32_t key1;
@@ -991,7 +1001,7 @@ namespace acl
 				Vector4_32 sample1;
 				if (is_translation_variable)
 				{
-					uint8_t bit_rate = bit_rates[bone_index].translation;
+					const uint8_t bit_rate = bit_rates[bone_index].translation;
 
 					sample0 = get_translation_sample(bone_stream, key0, bit_rate);
 					sample1 = get_translation_sample(bone_stream, key1, bit_rate);
@@ -1004,16 +1014,16 @@ namespace acl
 
 				translation = vector_lerp(sample0, sample1, interpolation_alpha);
 			}
-			else
-			{
-				translation = get_translation_sample(bone_stream, 0, VectorFormat8::Vector3_96);
-			}
 
 			Vector4_32 scale;
-			if (bone_stream.is_scale_animated())
+			if (bone_stream.is_scale_default)
+				scale = default_scale;
+			else if (bone_stream.is_scale_constant)
+				scale = get_scale_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+			else
 			{
-				uint32_t num_samples = bone_stream.scales.get_num_samples();
-				float duration = bone_stream.scales.get_duration();
+				const uint32_t num_samples = bone_stream.scales.get_num_samples();
+				const float duration = bone_stream.scales.get_duration();
 
 				uint32_t key0;
 				uint32_t key1;
@@ -1024,7 +1034,7 @@ namespace acl
 				Vector4_32 sample1;
 				if (is_scale_variable)
 				{
-					uint8_t bit_rate = bit_rates[bone_index].scale;
+					const uint8_t bit_rate = bit_rates[bone_index].scale;
 
 					sample0 = get_scale_sample(bone_stream, key0, bit_rate);
 					sample1 = get_scale_sample(bone_stream, key1, bit_rate);
@@ -1036,10 +1046,6 @@ namespace acl
 				}
 
 				scale = vector_lerp(sample0, sample1, interpolation_alpha);
-			}
-			else
-			{
-				scale = get_scale_sample(bone_stream, 0, VectorFormat8::Vector3_96);
 			}
 
 			out_local_pose[bone_index] = transform_set(rotation, translation, scale);
@@ -1051,7 +1057,8 @@ namespace acl
 		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
 		const bool is_scale_variable = is_vector_format_variable(scale_format);
-		const bool has_scale = bone_streams_has_scale(bone_streams[0]);
+		const Quat_32 default_rotation = quat_identity_32();
+		const Vector4_32 default_translation = vector_zero_32();
 		const Vector4_32 default_scale = vector_set(1.0f);
 
 		uint16_t current_bone_index = bone_index;
@@ -1060,10 +1067,19 @@ namespace acl
 			const BoneStreams& bone_stream = bone_streams[current_bone_index];
 
 			Quat_32 rotation;
-			if (bone_stream.is_rotation_animated())
+			if (bone_stream.is_rotation_default)
+				rotation = default_rotation;
+			else if (bone_stream.is_rotation_constant)
 			{
-				uint32_t num_samples = bone_stream.rotations.get_num_samples();
-				float duration = bone_stream.rotations.get_duration();
+				if (is_rotation_variable)
+					rotation = get_rotation_sample(bone_stream, 0);
+				else
+					rotation = get_rotation_sample(bone_stream, 0, rotation_format);
+			}
+			else
+			{
+				const uint32_t num_samples = bone_stream.rotations.get_num_samples();
+				const float duration = bone_stream.rotations.get_duration();
 
 				uint32_t key0;
 				uint32_t key1;
@@ -1074,7 +1090,7 @@ namespace acl
 				Quat_32 sample1;
 				if (is_rotation_variable)
 				{
-					uint8_t bit_rate = bit_rates[current_bone_index].rotation;
+					const uint8_t bit_rate = bit_rates[current_bone_index].rotation;
 
 					sample0 = get_rotation_sample(bone_stream, key0, bit_rate);
 					sample1 = get_rotation_sample(bone_stream, key1, bit_rate);
@@ -1087,19 +1103,16 @@ namespace acl
 
 				rotation = quat_lerp(sample0, sample1, interpolation_alpha);
 			}
-			else
-			{
-				if (is_rotation_variable)
-					rotation = get_rotation_sample(bone_stream, 0);
-				else
-					rotation = get_rotation_sample(bone_stream, 0, rotation_format);
-			}
 
 			Vector4_32 translation;
-			if (bone_stream.is_translation_animated())
+			if (bone_stream.is_translation_default)
+				translation = default_translation;
+			else if (bone_stream.is_translation_constant)
+				translation = get_translation_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+			else
 			{
-				uint32_t num_samples = bone_stream.translations.get_num_samples();
-				float duration = bone_stream.translations.get_duration();
+				const uint32_t num_samples = bone_stream.translations.get_num_samples();
+				const float duration = bone_stream.translations.get_duration();
 
 				uint32_t key0;
 				uint32_t key1;
@@ -1110,7 +1123,7 @@ namespace acl
 				Vector4_32 sample1;
 				if (is_translation_variable)
 				{
-					uint8_t bit_rate = bit_rates[current_bone_index].translation;
+					const uint8_t bit_rate = bit_rates[current_bone_index].translation;
 
 					sample0 = get_translation_sample(bone_stream, key0, bit_rate);
 					sample1 = get_translation_sample(bone_stream, key1, bit_rate);
@@ -1123,20 +1136,16 @@ namespace acl
 
 				translation = vector_lerp(sample0, sample1, interpolation_alpha);
 			}
-			else
-			{
-				translation = get_translation_sample(bone_stream, 0, VectorFormat8::Vector3_96);
-			}
 
 			Vector4_32 scale;
-			if (!has_scale)
-			{
+			if (bone_stream.is_scale_default)
 				scale = default_scale;
-			}
-			else if (bone_stream.is_scale_animated())
+			else if (bone_stream.is_scale_constant)
+				scale = get_scale_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+			else
 			{
-				uint32_t num_samples = bone_stream.scales.get_num_samples();
-				float duration = bone_stream.scales.get_duration();
+				const uint32_t num_samples = bone_stream.scales.get_num_samples();
+				const float duration = bone_stream.scales.get_duration();
 
 				uint32_t key0;
 				uint32_t key1;
@@ -1147,7 +1156,7 @@ namespace acl
 				Vector4_32 sample1;
 				if (is_scale_variable)
 				{
-					uint8_t bit_rate = bit_rates[current_bone_index].scale;
+					const uint8_t bit_rate = bit_rates[current_bone_index].scale;
 
 					sample0 = get_scale_sample(bone_stream, key0, bit_rate);
 					sample1 = get_scale_sample(bone_stream, key1, bit_rate);
@@ -1159,10 +1168,6 @@ namespace acl
 				}
 
 				scale = vector_lerp(sample0, sample1, interpolation_alpha);
-			}
-			else
-			{
-				scale = get_scale_sample(bone_stream, 0, VectorFormat8::Vector3_96);
 			}
 
 			out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
@@ -1176,14 +1181,14 @@ namespace acl
 		{
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 
-			uint32_t rotation_sample_index = bone_stream.is_rotation_animated() ? sample_index : 0;
-			Quat_32 rotation = get_rotation_sample(bone_stream, rotation_sample_index);
+			const uint32_t rotation_sample_index = bone_stream.is_rotation_animated() ? sample_index : 0;
+			const Quat_32 rotation = get_rotation_sample(bone_stream, rotation_sample_index);
 
-			uint32_t translation_sample_index = bone_stream.is_translation_animated() ? sample_index : 0;
-			Vector4_32 translation = get_translation_sample(bone_stream, translation_sample_index);
+			const uint32_t translation_sample_index = bone_stream.is_translation_animated() ? sample_index : 0;
+			const Vector4_32 translation = get_translation_sample(bone_stream, translation_sample_index);
 
-			uint32_t scale_sample_index = bone_stream.is_scale_animated() ? sample_index : 0;
-			Vector4_32 scale = get_scale_sample(bone_stream, scale_sample_index);
+			const uint32_t scale_sample_index = bone_stream.is_scale_animated() ? sample_index : 0;
+			const Vector4_32 scale = get_scale_sample(bone_stream, scale_sample_index);
 
 			out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 		}
