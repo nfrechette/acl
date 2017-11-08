@@ -1,3 +1,5 @@
+[![CLA assistant](https://cla-assistant.io/readme/badge/nfrechette/acl)](https://cla-assistant.io/nfrechette/acl) 
+
 # Animation Compression Library
 
 ## Goals
