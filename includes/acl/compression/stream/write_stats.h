@@ -178,7 +178,7 @@ namespace acl
 							decompression_time = timer.get_elapsed_seconds();
 					}
 
-					if (stats.get_logging() == StatLogging::Exhaustive)
+					if (are_any_enum_flags_set(stats.get_logging(), StatLogging::ExhaustiveDecompression))
 						writer.push_value(decompression_time);
 
 					if (sample_index == initial_sample_index || decompression_time > clip_max)
@@ -254,10 +254,8 @@ namespace acl
 		writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
 		writer["has_scale"] = clip_context.has_scale;
 
-		if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
+		if (are_any_enum_flags_set(stats.get_logging(), StatLogging::Detailed | StatLogging::Exhaustive))
 		{
-			write_decompression_stats(allocator, clip, stats, writer, allocate_context, decompress_pose, deallocate_context);
-
 			uint32_t num_default_rotation_tracks = 0;
 			uint32_t num_default_translation_tracks = 0;
 			uint32_t num_default_scale_tracks = 0;
@@ -332,17 +330,20 @@ namespace acl
 				{
 					write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, writer);
 
-					if (stats.get_logging() == StatLogging::Detailed || stats.get_logging() == StatLogging::Exhaustive)
+					if (are_any_enum_flags_set(stats.get_logging(), StatLogging::Detailed))
 					{
 						write_detailed_segment_stats(segment, writer);
 					}
 
-					if (stats.get_logging() == StatLogging::Exhaustive)
+					if (are_any_enum_flags_set(stats.get_logging(), StatLogging::Exhaustive))
 					{
 						write_exhaustive_segment_stats(allocator, segment, raw_clip_context, skeleton, writer);
 					}
 				});
 			}
 		};
+
+		if (are_any_enum_flags_set(stats.get_logging(), StatLogging::SummaryDecompression))
+			write_decompression_stats(allocator, clip, stats, writer, allocate_context, decompress_pose, deallocate_context);
 	}
 }

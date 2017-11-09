@@ -24,17 +24,22 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/enum_utils.h"
 #include "acl/sjson/sjson_writer.h"
 
 namespace acl
 {
 	enum class StatLogging
 	{
-		None,
-		Summary,
-		Detailed,
-		Exhaustive,
+		None						= 0x0000,
+		Summary						= 0x0001,
+		Detailed					= 0x0002,
+		Exhaustive					= 0x0004,
+		SummaryDecompression		= 0x0010,
+		ExhaustiveDecompression		= 0x0020,
 	};
+
+	ACL_IMPL_ENUM_FLAGS_OPERATORS(StatLogging)
 
 	class OutputStats
 	{

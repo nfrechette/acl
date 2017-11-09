@@ -89,8 +89,8 @@ namespace acl
 
 			if (settings.translation_format != VectorFormat8::Vector3_96)
 			{
-				bool has_clip_range_reduction = is_enum_flag_set(settings.range_reduction, RangeReductionFlags8::Translations);
-				bool has_segment_range_reduction = settings.segmenting.enabled && is_enum_flag_set(settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
+				bool has_clip_range_reduction = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Translations);
+				bool has_segment_range_reduction = settings.segmenting.enabled && are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
 				if (ACL_TRY_ASSERT(has_clip_range_reduction | has_segment_range_reduction, "%s quantization requires range reduction to be enabled at the clip or segment level!", get_vector_format_name(settings.translation_format)))
 					return nullptr;
 			}

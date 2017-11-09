@@ -41,9 +41,9 @@ namespace acl
 {
 	inline uint32_t get_stream_range_data_size(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format)
 	{
-		const uint32_t rotation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
-		const uint32_t translation_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) ? get_range_reduction_vector_size(translation_format) : 0;
-		const uint32_t scale_size = is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales) ? get_range_reduction_vector_size(scale_format) : 0;
+		const uint32_t rotation_size = are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
+		const uint32_t translation_size = are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations) ? get_range_reduction_vector_size(translation_format) : 0;
+		const uint32_t scale_size = are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales) ? get_range_reduction_vector_size(scale_format) : 0;
 		uint32_t range_data_size = 0;
 
 		// Only use the first segment, it contains the necessary information
@@ -128,7 +128,7 @@ namespace acl
 			// value = (normalized value * range extent) + range min
 			// normalized value = (value - range min) / range extent
 
-			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
+			if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
 			{
 				Vector4_32 range_min = bone_range.rotation.get_min();
 				Vector4_32 range_extent = bone_range.rotation.get_extent();
@@ -193,10 +193,10 @@ namespace acl
 				}
 			}
 
-			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
+			if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
 				write_range_track_data_impl(bone_stream.translations, bone_range.translation, is_clip_range_data, range_data);
 
-			if (clip_context.has_scale && is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
+			if (clip_context.has_scale && are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
 				write_range_track_data_impl(bone_stream.scales, bone_range.scale, is_clip_range_data, range_data);
 
 			ACL_ENSURE(range_data <= range_data_end, "Invalid range data offset. Wrote too much data.");

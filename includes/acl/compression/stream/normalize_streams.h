@@ -307,19 +307,19 @@ namespace acl
 
 		const bool has_scale = segment_context_has_scale(segment);
 
-		if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
+		if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations))
 		{
 			normalize_rotation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
 			clip_context.are_rotations_normalized = true;
 		}
 
-		if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations))
+		if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations))
 		{
 			normalize_translation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
 			clip_context.are_translations_normalized = true;
 		}
 
-		if (has_scale && is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales))
+		if (has_scale && are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales))
 		{
 			normalize_scale_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
 			clip_context.are_scales_normalized = true;
@@ -330,20 +330,20 @@ namespace acl
 	{
 		for (SegmentContext& segment : clip_context.segment_iterator())
 		{
-			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations))
+			if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations))
 			{
 				normalize_rotation_streams(segment.bone_streams, segment.ranges, segment.num_bones);
 				segment.are_rotations_normalized = true;
 			}
 
-			if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations))
+			if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations))
 			{
 				normalize_translation_streams(segment.bone_streams, segment.ranges, segment.num_bones);
 				segment.are_translations_normalized = true;
 			}
 
 			const bool has_scale = segment_context_has_scale(segment);
-			if (has_scale && is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales))
+			if (has_scale && are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales))
 			{
 				normalize_scale_streams(segment.bone_streams, segment.ranges, segment.num_bones);
 				segment.are_scales_normalized = true;
@@ -355,7 +355,7 @@ namespace acl
 			{
 				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 
-				if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
+				if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
 				{
 					if (bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128)
 						range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 8;
@@ -363,10 +363,10 @@ namespace acl
 						range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
 				}
 
-				if (is_enum_flag_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
+				if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
 					range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
 
-				if (has_scale && is_enum_flag_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
+				if (has_scale && are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
 					range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
 			}
 

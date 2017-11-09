@@ -74,11 +74,11 @@ namespace acl
 				}
 
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
-				if (is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Rotations))
+				if (are_any_enum_flags_set(clip_range_reduction, RangeReductionFlags8::Rotations))
 					context.clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2;
 
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
-				if (is_enum_flag_set(segment_range_reduction, RangeReductionFlags8::Rotations))
+				if (are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Rotations))
 					context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
 			}
 		}
@@ -146,11 +146,11 @@ namespace acl
 				const RangeReductionFlags8 range_reduction_flag = settings.get_range_reduction_flag();
 
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
-				if (is_enum_flag_set(clip_range_reduction, range_reduction_flag))
+				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))
 					context.clip_range_data_offset += 3 * sizeof(float) * 2;
 
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
-				if (is_enum_flag_set(segment_range_reduction, range_reduction_flag))
+				if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flag))
 					context.segment_range_data_offset += 3 * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
 			}
 		}
@@ -211,8 +211,8 @@ namespace acl
 			{
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
-				const bool are_clip_rotations_normalized = is_enum_flag_set(clip_range_reduction, RangeReductionFlags8::Rotations);
-				const bool are_segment_rotations_normalized = is_enum_flag_set(segment_range_reduction, RangeReductionFlags8::Rotations);
+				const bool are_clip_rotations_normalized = are_any_enum_flags_set(clip_range_reduction, RangeReductionFlags8::Rotations);
+				const bool are_segment_rotations_normalized = are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Rotations);
 
 				Vector4_32 rotations[num_key_frames];
 				bool ignore_segment_range[num_key_frames] = {};
@@ -473,7 +473,7 @@ namespace acl
 				}
 
 				const RangeReductionFlags8 range_reduction_flag = settings.get_range_reduction_flag();
-				if (is_enum_flag_set(segment_range_reduction, range_reduction_flag))
+				if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flag))
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
@@ -493,7 +493,7 @@ namespace acl
 					context.segment_range_data_offset += 3 * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
 				}
 
-				if (is_enum_flag_set(clip_range_reduction, range_reduction_flag))
+				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))
 				{
 					Vector4_32 clip_range_min = unpack_vector3_96(context.clip_range_data + context.clip_range_data_offset);
 					Vector4_32 clip_range_extent = unpack_vector3_96(context.clip_range_data + context.clip_range_data_offset + (3 * sizeof(float)));
