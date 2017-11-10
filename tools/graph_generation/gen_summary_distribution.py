@@ -11,17 +11,14 @@ output_csv_file_path_max_errors_by_raw_size = 'D:\\acl-dev\\tools\\graph_generat
 output_csv_file_path_ratio_vs_max_error = 'D:\\acl-dev\\tools\\graph_generation\\ratio_vs_max_error.csv'
 
 input_csv_files =  []
-input_csv_files.append(('ACL v0.4 @ 0.01cm', columns_to_extract_acl, 'D:\\test_animations\\carnegie-mellon-acl-stats-0.4.0-summary\\stats_summary.csv'))
-input_csv_files.append(('UE 4.15 @ 0.01cm', columns_to_extract_ue4, 'D:\\test_animations\\carnegie-mellon-ue4-stats-0.4.0-0.01\\stats_summary.csv'))
-input_csv_files.append(('UE 4.15 @ 0.1cm', columns_to_extract_ue4, 'D:\\test_animations\\carnegie-mellon-ue4-stats-0.4.0-0.1\\stats_summary.csv'))
-input_csv_files.append(('UE 4.15 @ 1.0cm', columns_to_extract_ue4, 'D:\\test_animations\\carnegie-mellon-ue4-stats-0.4.0-1.0\\stats_summary.csv'))
+input_csv_files.append(('ACL v0.4 @ 0.01cm', columns_to_extract_acl, 'D:\\test_animations\\carnegie-mellon-acl-stats-0.4.0-summary-fixed-ratio\\stats_summary.csv'))
+input_csv_files.append(('ACL v0.5 @ 0.01cm', columns_to_extract_acl, 'D:\\test_animations\\carnegie-mellon-acl-stats-0.5.0-summary\\stats_summary.csv'))
+input_csv_files.append(('UE 4.15 @ 0.01cm', columns_to_extract_ue4, 'D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.4.0-0.01-fixed-ratio\\stats_summary.csv'))
+input_csv_files.append(('UE 4.15 @ 0.1cm', columns_to_extract_ue4, 'D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.4.0-0.1-fixed-ratio\\stats_summary.csv'))
+input_csv_files.append(('UE 4.15 @ 1.0cm', columns_to_extract_ue4, 'D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.4.0-1.0-fixed-ratio\\stats_summary.csv'))
 
-acl_best_algorithm_name = b'Quat Drop W Variable Vector3 Variable Clip RR:Rot|Trans Segment RR:Rot|Trans'
-
-#acl_csv_data = numpy.loadtxt(input_acl_csv_file_path, delimiter=',', dtype=input_data_type_def, skiprows=1, usecols=(0, 1, 3))
-
-#acl_best_variable_data_mask = acl_csv_data['algorithm_names'] == acl_best_variable_name
-#acl_best_variable_data = acl_csv_data[acl_best_variable_data_mask]
+acl_best_algorithm_name_v04 = b'Quat Drop W Variable Vector3 Variable Clip RR:Rot|Trans Segment RR:Rot|Trans'
+acl_best_algorithm_name = b'R:QuatNoWVar|T:Vec3Var|S:Vec3Var Clip RR:Rot|Trans|Scale Segment RR:Rot|Trans|Scale'
 
 output_csv_data_ratios = []
 output_csv_data_ratios_by_raw_size = []
@@ -32,7 +29,10 @@ output_csv_headers = []
 
 for (header, columns_to_extract, input_csv_file_path) in input_csv_files:
 	csv_data = numpy.loadtxt(input_csv_file_path, delimiter=',', dtype=input_data_type_def, skiprows=1, usecols=columns_to_extract)
-	if header.startswith('ACL'):
+	if header.startswith('ACL v0.4'):
+		acl_best_variable_data_mask = csv_data['algorithm_names'] == acl_best_algorithm_name_v04
+		csv_data = csv_data[acl_best_variable_data_mask]
+	elif header.startswith('ACL'):
 		acl_best_variable_data_mask = csv_data['algorithm_names'] == acl_best_algorithm_name
 		csv_data = csv_data[acl_best_variable_data_mask]
 

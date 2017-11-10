@@ -14,9 +14,10 @@ output_csv_file_path_top10 = 'D:\\acl-dev\\tools\\graph_generation\\full_errors_
 
 input_csv_files =  []
 input_csv_files.append(('ACL 0.4 @ 0.01cm', 'D:\\test_animations\\carnegie-mellon-acl-stats-0.4.0-error\\stats_error.csv'))
-input_csv_files.append(('UE 4.15 @ 0.01cm', 'D:\\test_animations\\carnegie-mellon-ue4-stats-0.4.0-0.01\\stats_error.csv'))
-input_csv_files.append(('UE 4.15 @ 0.1cm', 'D:\\test_animations\\carnegie-mellon-ue4-stats-0.4.0-0.1\\stats_error.csv'))
-#input_csv_files.append(('UE 4.15 @ 1.0cm', 'D:\\test_animations\\carnegie-mellon-ue4-stats-0.4.0-1.0\\stats_error.csv'))
+input_csv_files.append(('ACL 0.5 @ 0.01cm', 'D:\\test_animations\\carnegie-mellon-acl-stats-0.5.0-error\\stats_error.csv'))
+input_csv_files.append(('UE 4.15 @ 0.01cm', 'D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.4.0-0.01\\stats_error.csv'))
+input_csv_files.append(('UE 4.15 @ 0.1cm', 'D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.4.0-0.1\\stats_error.csv'))
+#input_csv_files.append(('UE 4.15 @ 1.0cm', 'D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.4.0-1.0\\stats_error.csv'))
 
 desired_percentiles = [x * 0.1 for x in range(0, 1001)]
 desired_percentiles_top10 = [90.0 + (x * 0.01) for x in range(0, 1001)]
