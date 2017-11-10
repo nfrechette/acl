@@ -35,7 +35,7 @@ def parse_argv():
 	return options
 
 def print_usage():
-	print('Usage: python ue4_stats.py -stats=<path to input directory for stats> [-csv]')
+	print('Usage: python ue4_stats.py -stats=<path to input directory for stats> [-csv_summary] [-csv_error]')
 
 def print_stat(stat):
 	print('Algorithm: {}, Format: [{}, {}], Ratio: {:.2f}, Error: {}'.format(stat['algorithm_name'], stat['rotation_format'], stat['translation_format'], stat['acl_compression_ratio'], stat['max_error']))
