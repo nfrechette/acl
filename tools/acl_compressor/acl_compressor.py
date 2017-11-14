@@ -19,6 +19,7 @@ def parse_argv():
 	options['stats'] = ""
 	options['csv_summary'] = False
 	options['csv_bit_rate'] = False
+	options['csv_animated_size'] = False
 	options['csv_error'] = False
 	options['refresh'] = False
 	options['num_threads'] = 1
@@ -38,6 +39,9 @@ def parse_argv():
 
 		if value == '-csv_bit_rate':
 			options['csv_bit_rate'] = True
+
+		if value == '-csv_animated_size':
+			options['csv_animated_size'] = True
 
 		if value == '-csv_error':
 			options['csv_error'] = True
@@ -79,7 +83,7 @@ def parse_argv():
 	return options
 
 def print_usage():
-	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stats=<path to output directory for stats> [-csv_summary] [-csv_bit_rate] [-csv_error] [-refresh] [-parallel={Num Threads}]')
+	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stats=<path to output directory for stats> [-csv_summary] [-csv_bit_rate] [-csv_animated_size] [-csv_error] [-refresh] [-parallel={Num Threads}]')
 
 def print_stat(stat):
 	print('Algorithm: {}, Format: [{}], Ratio: {:.2f}, Error: {}'.format(stat['algorithm_name'], stat['desc'], stat['compression_ratio'], stat['max_error']))
@@ -115,6 +119,14 @@ def create_csv(options):
 		print('Generating CSV file {} ...'.format(stats_bit_rate_csv_filename))
 		print('Algorithm Name, 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32', file = stats_bit_rate_csv_file)
 
+	if options['csv_animated_size']:
+		stats_animated_size_csv_filename = os.path.join(stat_dir, 'stats_animated_size.csv')
+		stats_animated_size_csv_file = open(stats_animated_size_csv_filename, 'w')
+		csv_data['stats_animated_size_csv_file'] = stats_animated_size_csv_file
+
+		print('Generating CSV file {} ...'.format(stats_animated_size_csv_filename))
+		print('Algorithm Name, Segment Index, Animated Size', file = stats_animated_size_csv_file)
+
 	if options['csv_error']:
 		stats_error_csv_filename = os.path.join(stat_dir, 'stats_error.csv')
 		stats_error_csv_file = open(stats_error_csv_filename, 'w')
@@ -135,6 +147,9 @@ def close_csv(csv_data):
 	if 'stats_bit_rate_csv_file' in csv_data:
 		csv_data['stats_bit_rate_csv_file'].close()
 
+	if 'stats_animated_size_csv_file' in csv_data:
+		csv_data['stats_animated_size_csv_file'].close()
+
 	if 'stats_error_csv_file' in csv_data:
 		csv_data['stats_error_csv_file'].close()
 
@@ -143,6 +158,11 @@ def append_csv(csv_data, job_data):
 		data = job_data['stats_summary_data']
 		for (name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error) in data:
 			print('{}, {}, {}, {}, {}, {}, {}, {}'.format(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error), file = csv_data['stats_summary_csv_file'])
+
+	if 'stats_animated_size_csv_file' in csv_data:
+		size_data = job_data['stats_animated_size']
+		for (name, segment_index, size) in size_data:
+			print('{}, {}, {}'.format(name, segment_index, size), file = csv_data['stats_animated_size_csv_file'])
 
 	if 'stats_error_csv_file' in csv_data:
 		error_data = job_data['stats_error_data']
@@ -389,6 +409,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 		total_compression_time = 0.0
 		stats_summary_data = []
 		stats_error_data = []
+		stats_animated_size = []
 
 		while True:
 			stat_filename = stat_queue.get()
@@ -430,6 +451,9 @@ def run_stat_parsing(options, stat_queue, result_queue):
 					if 'segments' in run_stats and len(run_stats['segments']) > 0:
 						segment_index = 0
 						for segment in run_stats['segments']:
+							if 'animated_frame_size' in segment and options['csv_animated_size']:
+								stats_animated_size.append((run_stats['clip_name'], segment_index, segment['animated_frame_size']))
+
 							if 'error_per_frame_and_bone' in segment and len(segment['error_per_frame_and_bone']) > 0:
 								# Convert to array https://docs.python.org/3/library/array.html
 								# Lower memory footprint and more efficient
@@ -455,6 +479,8 @@ def run_stat_parsing(options, stat_queue, result_queue):
 		results['total_compression_time'] = total_compression_time
 		results['stats_summary_data'] = stats_summary_data
 		results['stats_error_data'] = stats_error_data
+		results['stats_animated_size'] = stats_animated_size
+
 		result_queue.put(('done', results))
 	except KeyboardInterrupt:
 		print('Interrupted')
