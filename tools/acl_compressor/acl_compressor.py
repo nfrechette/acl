@@ -18,6 +18,7 @@ def parse_argv():
 	options['acl'] = ""
 	options['stats'] = ""
 	options['csv_summary'] = False
+	options['csv_bit_rate'] = False
 	options['csv_error'] = False
 	options['refresh'] = False
 	options['num_threads'] = 1
@@ -34,6 +35,9 @@ def parse_argv():
 
 		if value == '-csv_summary':
 			options['csv_summary'] = True
+
+		if value == '-csv_bit_rate':
+			options['csv_bit_rate'] = True
 
 		if value == '-csv_error':
 			options['csv_error'] = True
@@ -75,7 +79,7 @@ def parse_argv():
 	return options
 
 def print_usage():
-	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stats=<path to output directory for stats> [-csv_summary] [-csv_error] [-refresh] [-parallel={Num Threads}]')
+	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stats=<path to output directory for stats> [-csv_summary] [-csv_bit_rate] [-csv_error] [-refresh] [-parallel={Num Threads}]')
 
 def print_stat(stat):
 	print('Algorithm: {}, Format: [{}], Ratio: {:.2f}, Error: {}'.format(stat['algorithm_name'], stat['desc'], stat['compression_ratio'], stat['max_error']))
@@ -103,6 +107,14 @@ def create_csv(options):
 		print('Generating CSV file {} ...'.format(stats_summary_csv_filename))
 		print('Algorithm Name, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks, Max Error', file = stats_summary_csv_file)
 
+	if options['csv_bit_rate']:
+		stats_bit_rate_csv_filename = os.path.join(stat_dir, 'stats_bit_rate.csv')
+		stats_bit_rate_csv_file = open(stats_bit_rate_csv_filename, 'w')
+		csv_data['stats_bit_rate_csv_file'] = stats_bit_rate_csv_file
+
+		print('Generating CSV file {} ...'.format(stats_bit_rate_csv_filename))
+		print('Algorithm Name, 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32', file = stats_bit_rate_csv_file)
+
 	if options['csv_error']:
 		stats_error_csv_filename = os.path.join(stat_dir, 'stats_error.csv')
 		stats_error_csv_file = open(stats_error_csv_filename, 'w')
@@ -119,6 +131,9 @@ def close_csv(csv_data):
 
 	if 'stats_summary_csv_file' in csv_data:
 		csv_data['stats_summary_csv_file'].close()
+
+	if 'stats_bit_rate_csv_file' in csv_data:
+		csv_data['stats_bit_rate_csv_file'].close()
 
 	if 'stats_error_csv_file' in csv_data:
 		csv_data['stats_error_csv_file'].close()
@@ -140,6 +155,12 @@ def append_csv(csv_data, job_data):
 					bone_index += 1
 
 				key_frame += 1
+
+def write_csv(csv_data, agg_data):
+	if 'stats_bit_rate_csv_file' in csv_data:
+		for algorithm_uid, algo_data in agg_data.items():
+			total_count = float(sum(algo_data['bit_rates']))
+			print('{}, {}'.format(algo_data['csv_name'], ', '.join([str((float(x) / total_count) * 100.0) for x in algo_data['bit_rates']])), file = csv_data['stats_bit_rate_csv_file'])
 
 def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_length = 50):
 	# Taken from https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
@@ -310,12 +331,14 @@ def aggregate_stats(agg_run_stats, run_stats):
 	if not algorithm_uid in agg_run_stats:
 		agg_data = {}
 		agg_data['name'] = run_stats['desc']
+		agg_data['csv_name'] = run_stats['csv_desc']
 		agg_data['total_raw_size'] = 0
 		agg_data['total_compressed_size'] = 0
 		agg_data['total_compression_time'] = 0.0
 		agg_data['total_duration'] = 0.0
 		agg_data['max_error'] = 0
 		agg_data['num_runs'] = 0
+		agg_data['bit_rates'] = [0] * 19
 		agg_run_stats[algorithm_uid] = agg_data
 
 	agg_data = agg_run_stats[algorithm_uid]
@@ -325,6 +348,9 @@ def aggregate_stats(agg_run_stats, run_stats):
 	agg_data['total_duration'] += run_stats['duration']
 	agg_data['max_error'] = max(agg_data['max_error'], run_stats['max_error'])
 	agg_data['num_runs'] += 1
+	for segment in run_stats['segments']:
+		for i in range(19):
+			agg_data['bit_rates'][i] += segment['bit_rate_counts'][i]
 
 def track_best_runs(best_runs, run_stats):
 	if run_stats['max_error'] < best_runs['best_error']:
@@ -457,6 +483,8 @@ def aggregate_job_stats(agg_job_results, job_results):
 			agg_job_results['agg_run_stats'][key]['total_duration'] += job_results['agg_run_stats'][key]['total_duration']
 			agg_job_results['agg_run_stats'][key]['max_error'] = max(agg_job_results['agg_run_stats'][key]['max_error'], job_results['agg_run_stats'][key]['max_error'])
 			agg_job_results['agg_run_stats'][key]['num_runs'] += job_results['agg_run_stats'][key]['num_runs']
+			for i in range(19):
+				agg_job_results['agg_run_stats'][key]['bit_rates'][i] += job_results['agg_run_stats'][key]['bit_rates'][i]
 
 		if job_results['best_runs']['best_error'] < agg_job_results['best_runs']['best_error']:
 			agg_job_results['best_runs']['best_error'] = job_results['best_runs']['best_error']
@@ -528,6 +556,8 @@ if __name__ == "__main__":
 	worst_runs = agg_job_results['worst_runs']
 	num_runs = agg_job_results['num_runs']
 	total_compression_time = agg_job_results['total_compression_time']
+
+	write_csv(csv_data, agg_run_stats)
 
 	aggregating_end_time = time.clock();
 	print()
