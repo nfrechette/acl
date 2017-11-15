@@ -4,10 +4,10 @@ In order to keep the progress of ACL grounded in the real world, it is imperativ
 
 To compile the statistics, the animation database from Carnegie-Mellon University is used.
 
-*  Number of clips: 2534
-*  Sample rate: 24 FPS
-*  Total duration: 09h 49m 37.58s
-*  Raw size: 1429.38 MB (10x float32 * num bones * num samples)
+*  Number of clips: **2534**
+*  Sample rate: **24 FPS**
+*  Total duration: **09h 49m 37.58s**
+*  Raw size: **1429.38 MB** (10x float32 * num bones * num samples)
 
 For ACL and Unreal 4, the error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 
