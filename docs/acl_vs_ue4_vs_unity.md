@@ -84,3 +84,7 @@ Sadly I have not yet managed to find a way to implement a custom error metric in
 
 ![Distribution of the error for every bone at every key frame](images/acl_exhaustive_error.png)
 ![Distribution of the error for every bone at every key frame (top 10%)](images/acl_exhaustive_error_top_10.png)
+
+![Distribution of clip durations](images/acl_clip_durations.png)
+
+![Distribution of selected bit rates](images/acl_bit_rates.png)
