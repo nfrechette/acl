@@ -1,10 +1,23 @@
 # Performance history
 
-To compile the statistics, the animation database from Carnegie-Mellon University is used.
+To compile the statistics, the animation database from [Carnegie-Mellon University](http://mocap.cs.cmu.edu/) is used.
 The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 Every clip uses an error threshold of **0.01cm (0.1mm)**.
 
-**TODO: Show stats and graphs**
+## Results from release [0.5.0](https://github.com/nfrechette/acl/releases/tag/v0.5.0):
+
+*  Raw size: 1429.38 MB
+*  Compressed size: 67.09 MB
+*  Compression ratio: 21.31 : 1
+*  Max error: 0.0587 centimeters (clip 144_32)
+*  Compression time: 01h 23m 51.48s (single threaded)
+*  Compression time: 00h 09m 21.94s (multi threaded)
+*  Best algorithm: Uniform sampling
+*  Best rotation format: Quat Drop W Variable
+*  Best translation format: Vector3 Variable
+*  Best range reduction format: Per Clip Rotations & Translations, Per Segment Rotations & Translations
+
+Note that this release introduced 3D scale support and this is reflected in the raw size as well as the compression ratio.
 
 ## Results from release [0.4.0](https://github.com/nfrechette/acl/releases/tag/v0.4.0):
 
