@@ -10,7 +10,7 @@ import sjson
 
 if __name__ == "__main__":
 	if len(sys.argv) != 2:
-		print('Usage: python gen_summary_distribution.py <path/to/input_file.sjson>')
+		print('Usage: python gen_summary_stats.py <path/to/input_file.sjson>')
 		sys.exit(1)
 
 	input_sjson_file = sys.argv[1]

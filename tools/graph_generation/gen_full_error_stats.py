@@ -16,7 +16,7 @@ def format_elapsed_time(elapsed_time):
 
 if __name__ == "__main__":
 	if len(sys.argv) != 2:
-		print('Usage: python gen_full_error_distribution.py <path/to/input_file.sjson>')
+		print('Usage: python gen_full_error_stats.py <path/to/input_file.sjson>')
 		sys.exit(1)
 
 	input_sjson_file = sys.argv[1]

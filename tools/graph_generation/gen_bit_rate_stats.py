@@ -10,7 +10,7 @@ import sjson
 
 if __name__ == "__main__":
 	if len(sys.argv) != 2:
-		print('Usage: python gen_bit_rate_graph.py <path/to/input_file.sjson>')
+		print('Usage: python gen_bit_rate_stats.py <path/to/input_file.sjson>')
 		sys.exit(1)
 
 	input_sjson_file = sys.argv[1]
