@@ -192,24 +192,23 @@ namespace acl
 			if (!bone_stream.is_rotation_animated())
 				continue;
 
-			uint32_t num_samples = bone_stream.rotations.get_num_samples();
-			RotationFormat8 rotation_format = bone_stream.rotations.get_rotation_format();
+			const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 
-			Vector4_32 range_min = bone_range.rotation.get_min();
-			Vector4_32 range_extent = bone_range.rotation.get_extent();
+			const Vector4_32 range_min = bone_range.rotation.get_min();
+			const Vector4_32 range_extent = bone_range.rotation.get_extent();
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				// normalized value is between [0.0 .. 1.0]
 				// value = (normalized value * range extent) + range min
 				// normalized value = (value - range min) / range extent
-				Vector4_32 rotation = bone_stream.rotations.get_raw_sample<Vector4_32>(sample_index);
+				const Vector4_32 rotation = bone_stream.rotations.get_raw_sample<Vector4_32>(sample_index);
 				Vector4_32 normalized_rotation = vector_div(vector_sub(rotation, range_min), range_extent);
-				Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
+				const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
 				normalized_rotation = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_rotation);
 
 #if defined(ACL_USE_ERROR_CHECKS)
-				switch (rotation_format)
+				switch (bone_stream.rotations.get_rotation_format())
 				{
 				case RotationFormat8::Quat_128:
 					ACL_ENSURE(vector_all_greater_equal(normalized_rotation, vector_zero_32()) && vector_all_less_equal(normalized_rotation, vector_set(1.0f)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation), vector_get_w(normalized_rotation));

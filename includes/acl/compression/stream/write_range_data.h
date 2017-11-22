@@ -117,7 +117,9 @@ namespace acl
 	{
 		ACL_ENSURE(range_data != nullptr, "'range_data' cannot be null!");
 
+#if defined(ACL_USE_ERROR_CHECKS)
 		const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
+#endif
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{

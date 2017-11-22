@@ -185,7 +185,9 @@ namespace acl
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
 
+#if defined(ACL_USE_ERROR_CHECKS)
 		const uint8_t* constant_data_end = add_offset_to_ptr<uint8_t>(constant_data, constant_data_size);
+#endif
 
 		for (const BoneStreams& bone_stream : segment.bone_iterator())
 		{
@@ -276,7 +278,10 @@ namespace acl
 		ACL_ENSURE(animated_track_data != nullptr, "'animated_track_data' cannot be null!");
 
 		uint8_t* animated_track_data_begin = animated_track_data;
+
+#if defined(ACL_USE_ERROR_CHECKS)
 		const uint8_t* animated_track_data_end = add_offset_to_ptr<uint8_t>(animated_track_data, animated_data_size);
+#endif
 
 		// If all tracks are variable, no need for any extra padding except at the very end of the data
 		// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
@@ -315,7 +320,9 @@ namespace acl
 	{
 		ACL_ENSURE(format_per_track_data != nullptr, "'format_per_track_data' cannot be null!");
 
+#if defined(ACL_USE_ERROR_CHECKS)
 		const uint8_t* format_per_track_data_end = add_offset_to_ptr<uint8_t>(format_per_track_data, format_per_track_data_size);
+#endif
 
 		auto write_track_format = [&](const TrackStream& track)
 		{

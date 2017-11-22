@@ -265,8 +265,7 @@ namespace acl
 			static inline DestIntegralType cast(SrcEnumType input)
 			{
 				typedef typename std::underlying_type<SrcEnumType>::type SrcIntegralType;
-				SrcIntegralType integral_input = static_cast<SrcIntegralType>(input);
-				ACL_ENSURE(integral_input >= std::numeric_limits<DestIntegralType>::min() && integral_input <= std::numeric_limits<DestIntegralType>::max(), "static_cast would result in truncation");
+				ACL_ENSURE(static_cast<SrcIntegralType>(input) >= std::numeric_limits<DestIntegralType>::min() && static_cast<SrcIntegralType>(input) <= std::numeric_limits<DestIntegralType>::max(), "static_cast would result in truncation");
 				return static_cast<DestIntegralType>(input);
 			}
 		};

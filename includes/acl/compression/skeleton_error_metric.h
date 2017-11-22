@@ -91,9 +91,7 @@ namespace acl
 
 	inline float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
 	{
-		uint16_t num_bones = skeleton.get_num_bones();
-		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
-		ACL_ENSURE(bone_index < num_bones, "Invalid bone index: %u", bone_index);
+		ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 		const RigidBone& bone = skeleton.get_bone(bone_index);
 		float vtx_distance = float(bone.vertex_distance);
@@ -114,9 +112,7 @@ namespace acl
 
 	inline float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
 	{
-		uint16_t num_bones = skeleton.get_num_bones();
-		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
-		ACL_ENSURE(bone_index < num_bones, "Invalid bone index: %u", bone_index);
+		ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 		const RigidBone& bone = skeleton.get_bone(bone_index);
 		float vtx_distance = float(bone.vertex_distance);
@@ -137,9 +133,7 @@ namespace acl
 
 	inline float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
 	{
-		uint16_t num_bones = skeleton.get_num_bones();
-		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
-		ACL_ENSURE(bone_index < num_bones, "Invalid bone index: %u", bone_index);
+		ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 		const RigidBone& target_bone = skeleton.get_bone(bone_index);
 		float vtx_distance = float(target_bone.vertex_distance);
@@ -173,9 +167,7 @@ namespace acl
 
 	inline float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
 	{
-		uint16_t num_bones = skeleton.get_num_bones();
-		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
-		ACL_ENSURE(bone_index < num_bones, "Invalid bone index: %u", bone_index);
+		ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 		const RigidBone& target_bone = skeleton.get_bone(bone_index);
 		float vtx_distance = float(target_bone.vertex_distance);

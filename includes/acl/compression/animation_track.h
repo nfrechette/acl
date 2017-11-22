@@ -34,6 +34,13 @@
 #include <stdint.h>
 #include <utility>
 
+// VS2015 sometimes dies when it attemps to compile too many inlined functions
+#if defined(_MSC_VER)
+#define VS2015_HACK_NO_INLINE __declspec(noinline)
+#else
+#define VS2015_HACK_NO_INLINE
+#endif
+
 namespace acl
 {
 	class AnimationTrack
@@ -89,7 +96,7 @@ namespace acl
 
 		// TODO: constexpr
 		// Returns the number of values per sample
-		static inline size_t get_animation_track_sample_size(AnimationTrackType8 type)
+		static uint32_t get_animation_track_sample_size(AnimationTrackType8 type)
 		{
 			switch (type)
 			{
@@ -135,14 +142,14 @@ namespace acl
 			return *this;
 		}
 
-		void set_sample(uint32_t sample_index, const Quat_64& rotation)
+		VS2015_HACK_NO_INLINE void set_sample(uint32_t sample_index, const Quat_64& rotation)
 		{
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 			ACL_ENSURE(quat_is_finite(rotation), "Invalid rotation: [%f, %f, %f, %f]", quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation), quat_get_w(rotation));
 			ACL_ENSURE(quat_is_normalized(rotation), "Rotation not normalized: [%f, %f, %f, %f]", quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation), quat_get_w(rotation));
 
-			size_t sample_size = get_animation_track_sample_size(m_type);
+			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ENSURE(sample_size == 4, "Invalid sample size. %u != 4", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
@@ -157,7 +164,7 @@ namespace acl
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
-			size_t sample_size = get_animation_track_sample_size(m_type);
+			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 
 			const double* sample = &m_sample_data[sample_index * sample_size];
 			return quat_unaligned_load(sample);
@@ -165,15 +172,15 @@ namespace acl
 
 		Quat_64 sample_track(double sample_time) const
 		{
-			double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
+			const double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
 
 			uint32_t sample_frame0;
 			uint32_t sample_frame1;
 			double interpolation_alpha;
 			calculate_interpolation_keys(m_num_samples, track_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
 
-			Quat_64 sample0 = get_sample(sample_frame0);
-			Quat_64 sample1 = get_sample(sample_frame1);
+			const Quat_64 sample0 = get_sample(sample_frame0);
+			const Quat_64 sample1 = get_sample(sample_frame1);
 			return quat_lerp(sample0, sample1, interpolation_alpha);
 		}
 
@@ -210,7 +217,7 @@ namespace acl
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 			ACL_ENSURE(vector_is_finite3(translation), "Invalid translation: [%f, %f, %f]", vector_get_x(translation), vector_get_y(translation), vector_get_z(translation));
 
-			size_t sample_size = get_animation_track_sample_size(m_type);
+			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ENSURE(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
@@ -224,7 +231,7 @@ namespace acl
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
-			size_t sample_size = get_animation_track_sample_size(m_type);
+			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 
 			const double* sample = &m_sample_data[sample_index * sample_size];
 			return vector_unaligned_load3(sample);
@@ -232,15 +239,15 @@ namespace acl
 
 		Vector4_64 sample_track(double sample_time) const
 		{
-			double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
+			const double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
 
 			uint32_t sample_frame0;
 			uint32_t sample_frame1;
 			double interpolation_alpha;
 			calculate_interpolation_keys(m_num_samples, track_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
 
-			Vector4_64 sample0 = get_sample(sample_frame0);
-			Vector4_64 sample1 = get_sample(sample_frame1);
+			const Vector4_64 sample0 = get_sample(sample_frame0);
+			const Vector4_64 sample1 = get_sample(sample_frame1);
 			return vector_lerp(sample0, sample1, interpolation_alpha);
 		}
 
@@ -271,13 +278,13 @@ namespace acl
 			return *this;
 		}
 
-		void set_sample(uint32_t sample_index, const Vector4_64& scale)
+		VS2015_HACK_NO_INLINE void set_sample(uint32_t sample_index, const Vector4_64& scale)
 		{
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 			ACL_ENSURE(vector_is_finite3(scale) && !vector_all_near_equal3(scale, vector_zero_64()), "Invalid scale: [%f, %f, %f]", vector_get_x(scale), vector_get_y(scale), vector_get_z(scale));
 
-			size_t sample_size = get_animation_track_sample_size(m_type);
+			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ENSURE(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
@@ -291,7 +298,7 @@ namespace acl
 			ACL_ENSURE(is_initialized(), "Track is not initialized");
 			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
-			size_t sample_size = get_animation_track_sample_size(m_type);
+			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 
 			const double* sample = &m_sample_data[sample_index * sample_size];
 			return vector_unaligned_load3(sample);
@@ -299,15 +306,15 @@ namespace acl
 
 		Vector4_64 sample_track(double sample_time) const
 		{
-			double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
+			const double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
 
 			uint32_t sample_frame0;
 			uint32_t sample_frame1;
 			double interpolation_alpha;
 			calculate_interpolation_keys(m_num_samples, track_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
 
-			Vector4_64 sample0 = get_sample(sample_frame0);
-			Vector4_64 sample1 = get_sample(sample_frame1);
+			const Vector4_64 sample0 = get_sample(sample_frame0);
+			const Vector4_64 sample1 = get_sample(sample_frame1);
 			return vector_lerp(sample0, sample1, interpolation_alpha);
 		}
 

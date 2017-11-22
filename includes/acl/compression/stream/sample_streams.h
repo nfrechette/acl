@@ -402,7 +402,6 @@ namespace acl
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
-		bool are_translations_normalized = clip_context->are_translations_normalized;
 
 		if (is_pack_0_bit_rate(bit_rate))
 			sample_index = 0;
@@ -423,7 +422,7 @@ namespace acl
 			break;
 		}
 
-		ACL_ENSURE(are_translations_normalized, "Translations must be normalized to support variable bit rates.");
+		ACL_ENSURE(clip_context->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
 		uint8_t raw_data[16] = { 0 };
@@ -633,7 +632,6 @@ namespace acl
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
-		bool are_scales_normalized = clip_context->are_scales_normalized;
 
 		if (is_pack_0_bit_rate(bit_rate))
 			sample_index = 0;
@@ -654,7 +652,7 @@ namespace acl
 			break;
 		}
 
-		ACL_ENSURE(are_scales_normalized, "Scales must be normalized to support variable bit rates.");
+		ACL_ENSURE(clip_context->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
 		uint8_t raw_data[16] = { 0 };
