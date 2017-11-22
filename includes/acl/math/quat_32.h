@@ -321,7 +321,9 @@ namespace acl
 	{
 		// Operation order is important here, due to rounding, ((1.0 - (X*X)) - Y*Y) - Z*Z is more accurate than 1.0 - dot3(xyz, xyz)
 		float w_squared = ((1.0f - vector_get_x(input) * vector_get_x(input)) - vector_get_y(input) * vector_get_y(input)) - vector_get_z(input) * vector_get_z(input);
-		float w = w_squared > 0.0f ? sqrt(w_squared) : 0.0f;
+		// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
+		// to ensure the resulting quaternion is always normalized with a positive W component
+		float w = sqrt(abs(w_squared));
 		return quat_set(vector_get_x(input), vector_get_y(input), vector_get_z(input), w);
 	}
 
