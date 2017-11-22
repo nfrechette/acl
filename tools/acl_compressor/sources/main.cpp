@@ -195,6 +195,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 
 static void unit_test(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
 {
+#if defined(ACL_USE_ERROR_CHECKS)
 	uint16_t num_bones = clip.get_num_bones();
 	float clip_duration = clip.get_duration();
 	float sample_rate = float(clip.get_sample_rate());
@@ -236,6 +237,7 @@ static void unit_test(Allocator& allocator, const AnimationClip& clip, const Rig
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 	algorithm.deallocate_decompression_context(allocator, context);
+#endif
 }
 
 static void try_algorithm(const Options& options, Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, SJSONArrayWriter* runs_writer)
