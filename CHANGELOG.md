@@ -1,5 +1,15 @@
 # Significant changes per release
 
+## 0.5.0
+
+*  Added support for 3D scale
+*  Added partial support for Android (works in Unreal 4.15)
+*  A fix to the variable bit rate optimization algorithm
+*  Added a CLA system
+*  Refactoring to support multiple algorithms better
+*  More changes and additions to stat logging
+*  Many more improvements and fixes
+
 ## 0.4.0
 
 *  Lots of math performance, accuracy, and consistency improvements
