@@ -368,9 +368,11 @@ def aggregate_stats(agg_run_stats, run_stats):
 	agg_data['total_duration'] += run_stats['duration']
 	agg_data['max_error'] = max(agg_data['max_error'], run_stats['max_error'])
 	agg_data['num_runs'] += 1
-	for segment in run_stats['segments']:
-		for i in range(19):
-			agg_data['bit_rates'][i] += segment['bit_rate_counts'][i]
+	if 'segments' in run_stats and len(run_stats['segments']) > 0:
+		for segment in run_stats['segments']:
+			if 'bit_rate_counts' in segment:
+				for i in range(19):
+					agg_data['bit_rates'][i] += segment['bit_rate_counts'][i]
 
 def track_best_runs(best_runs, run_stats):
 	if run_stats['max_error'] < best_runs['best_error']:
