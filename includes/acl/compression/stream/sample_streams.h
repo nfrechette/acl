@@ -52,7 +52,7 @@ namespace acl
 
 		const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 
-		Vector4_32 packed_rotation;
+		Vector4 packed_rotation;
 
 		switch (format)
 		{
@@ -93,7 +93,7 @@ namespace acl
 		break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
-			packed_rotation = vector_zero_32();
+			packed_rotation = ArithmeticImpl::vector_zero();
 			break;
 		}
 
@@ -101,8 +101,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+			Vector4 segment_range_min = segment_bone_range.rotation.get_min();
+			Vector4 segment_range_extent = segment_bone_range.rotation.get_extent();
 
 			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
 		}
@@ -111,8 +111,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = clip_bone_range.rotation.get_min();
-			Vector4_32 clip_range_extent = clip_bone_range.rotation.get_extent();
+			Vector4 clip_range_min = clip_bone_range.rotation.get_min();
+			Vector4 clip_range_extent = clip_bone_range.rotation.get_extent();
 
 			packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 		}
@@ -120,12 +120,12 @@ namespace acl
 		switch (format)
 		{
 		case RotationFormat8::Quat_128:
-			return vector_to_quat(packed_rotation);
+			return ArithmeticImpl_<ArithmeticType8::Float32>::cast(vector_to_quat(packed_rotation));
 		case RotationFormat8::QuatDropW_96:
 		case RotationFormat8::QuatDropW_48:
 		case RotationFormat8::QuatDropW_32:
 		case RotationFormat8::QuatDropW_Variable:
-			return quat_from_positive_w(packed_rotation);
+			return ArithmeticImpl_<ArithmeticType8::Float32>::cast(quat_from_positive_w(packed_rotation));
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 			return quat_identity_32();

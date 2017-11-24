@@ -26,6 +26,7 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
+#include "acl/core/research.h"
 #include "acl/math/vector4_32.h"
 #include "acl/compression/stream/clip_context.h"
 
@@ -48,14 +49,14 @@ namespace acl
 			BoneRanges& bone_range = clip_context.ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
-			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
-			ACL_ENSURE(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
 
 			if (bone_range.rotation.is_constant(rotation_threshold))
 			{
 				RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
-				Vector4_32 rotation = bone_stream.rotations.get_raw_sample<Vector4_32>(0);
+				Vector4 rotation = bone_stream.rotations.get_raw_sample<Vector4>(0);
 				constant_stream.set_raw_sample(0, rotation);
 
 				bone_stream.rotations = std::move(constant_stream);
@@ -68,12 +69,12 @@ namespace acl
 			if (bone_range.translation.is_constant(translation_threshold))
 			{
 				TranslationTrackStream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
-				Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(0);
+				Vector4 translation = bone_stream.translations.get_raw_sample<Vector4>(0);
 				constant_stream.set_raw_sample(0, translation);
 
 				bone_stream.translations = std::move(constant_stream);
 				bone_stream.is_translation_constant = true;
-				bone_stream.is_translation_default = vector_all_near_equal3(translation, vector_zero_32());
+				bone_stream.is_translation_default = vector_all_near_equal3(translation, ArithmeticImpl::vector_zero());
 
 				bone_range.translation = TrackStreamRange(translation, translation);
 			}
@@ -81,12 +82,12 @@ namespace acl
 			if (bone_range.scale.is_constant(scale_threshold))
 			{
 				ScaleTrackStream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
-				Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(0);
+				Vector4 scale = bone_stream.scales.get_raw_sample<Vector4>(0);
 				constant_stream.set_raw_sample(0, scale);
 
 				bone_stream.scales = std::move(constant_stream);
 				bone_stream.is_scale_constant = true;
-				bone_stream.is_scale_default = vector_all_near_equal3(scale, vector_set(1.0f));
+				bone_stream.is_scale_default = vector_all_near_equal3(scale, vector_set(Scalar(1.0)));
 
 				bone_range.scale = TrackStreamRange(scale, scale);
 

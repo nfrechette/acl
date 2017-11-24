@@ -32,6 +32,7 @@
 #include "acl/core/algorithm_types.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
+#include "acl/core/research.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/compression/compressed_clip_impl.h"

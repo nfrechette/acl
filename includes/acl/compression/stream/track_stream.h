@@ -248,26 +248,26 @@ namespace acl
 	{
 	public:
 		TrackStreamRange()
-			: m_min(vector_set(0.0f))
-			, m_max(vector_set(0.0f))
+			: m_min(vector_set(ArithmeticImpl::cast(0.0)))
+			, m_max(vector_set(ArithmeticImpl::cast(0.0)))
 		{}
 
-		TrackStreamRange(const Vector4_32& min, const Vector4_32& max)
+		TrackStreamRange(const Vector4& min, const Vector4& max)
 			: m_min(min)
 			, m_max(max)
 		{}
 
-		Vector4_32 get_min() const { return m_min; }
-		Vector4_32 get_max() const { return m_max; }
+		Vector4 get_min() const { return m_min; }
+		Vector4 get_max() const { return m_max; }
 
-		Vector4_32 get_center() const { return vector_mul(vector_add(m_max, m_min), 0.5f); }
-		Vector4_32 get_extent() const { return vector_sub(m_max, m_min); }
+		Vector4 get_center() const { return vector_mul(vector_add(m_max, m_min), Scalar(0.5)); }
+		Vector4 get_extent() const { return vector_sub(m_max, m_min); }
 
-		bool is_constant(float threshold) const { return vector_all_less_than(vector_abs(vector_sub(m_max, m_min)), vector_set(threshold)); }
+		bool is_constant(float threshold) const { return vector_all_less_than(vector_abs(vector_sub(m_max, m_min)), vector_set(Scalar(threshold))); }
 
 	private:
-		Vector4_32	m_min;
-		Vector4_32	m_max;
+		Vector4	m_min;
+		Vector4	m_max;
 	};
 
 	struct BoneRanges

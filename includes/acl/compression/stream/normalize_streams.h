@@ -29,6 +29,7 @@
 #include "acl/core/enum_utils.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
+#include "acl/core/research.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/compression/stream/clip_context.h"
@@ -45,16 +46,16 @@ namespace acl
 		{
 			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 
-			Vector4_32 rotation_min = vector_set(1e10f);
-			Vector4_32 rotation_max = vector_set(-1e10f);
-			Vector4_32 translation_min = vector_set(1e10f);
-			Vector4_32 translation_max = vector_set(-1e10f);
-			Vector4_32 scale_min = vector_set(1e10f);
-			Vector4_32 scale_max = vector_set(-1e10f);
+			Vector4 rotation_min = vector_set(Scalar(1e10));
+			Vector4 rotation_max = vector_set(Scalar(-1e10));
+			Vector4 translation_min = vector_set(Scalar(1e10));
+			Vector4 translation_max = vector_set(Scalar(-1e10));
+			Vector4 scale_min = vector_set(Scalar(1e10));
+			Vector4 scale_max = vector_set(Scalar(-1e10));
 
 			for (uint32_t sample_index = 0; sample_index < bone_stream.rotations.get_num_samples(); ++sample_index)
 			{
-				Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
+				Quat rotation = bone_stream.rotations.get_raw_sample<Quat>(sample_index);
 
 				rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
 				rotation_max = vector_max(rotation_max, quat_to_vector(rotation));
@@ -62,7 +63,7 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < bone_stream.translations.get_num_samples(); ++sample_index)
 			{
-				Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
+				Vector4 translation = bone_stream.translations.get_raw_sample<Vector4>(sample_index);
 
 				translation_min = vector_min(translation_min, translation);
 				translation_max = vector_max(translation_max, translation);
@@ -72,7 +73,7 @@ namespace acl
 			{
 				for (uint32_t sample_index = 0; sample_index < bone_stream.scales.get_num_samples(); ++sample_index)
 				{
-					Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
+					Vector4 scale = bone_stream.scales.get_raw_sample<Vector4>(sample_index);
 
 					scale_min = vector_min(scale_min, scale);
 					scale_max = vector_max(scale_max, scale);
@@ -99,9 +100,9 @@ namespace acl
 	inline void extract_segment_bone_ranges(Allocator& allocator, ClipContext& clip_context)
 	{
 		uint8_t buffer[8] = {0};
-		const Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE));
-		const Vector4_32 one = vector_set(1.0f);
-		const Vector4_32 zero = vector_zero_32();
+		const Vector4 padding = vector_set(ArithmeticImpl::cast(unpack_scalar_unsigned(1, ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE)));
+		const Vector4 one = vector_set(Scalar(1.0));
+		const Vector4 zero = ArithmeticImpl::vector_zero();
 		const bool has_scale = clip_context.has_scale;
 
 		for (SegmentContext& segment : clip_context.segment_iterator())
@@ -117,8 +118,8 @@ namespace acl
 
 				if (bone_stream.is_rotation_animated() && clip_context.are_rotations_normalized)
 				{
-					Vector4_32 rotation_range_min = vector_max(vector_sub(bone_range.rotation.get_min(), padding), zero);
-					Vector4_32 rotation_range_max = vector_min(vector_add(bone_range.rotation.get_max(), padding), one);
+					Vector4 rotation_range_min = vector_max(vector_sub(bone_range.rotation.get_min(), padding), zero);
+					Vector4 rotation_range_max = vector_min(vector_add(bone_range.rotation.get_max(), padding), one);
 
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 					pack_vector4_32(rotation_range_min, true, &buffer[0]);
@@ -137,8 +138,8 @@ namespace acl
 
 				if (bone_stream.is_translation_animated() && clip_context.are_translations_normalized)
 				{
-					Vector4_32 translation_range_min = vector_max(vector_sub(bone_range.translation.get_min(), padding), zero);
-					Vector4_32 translation_range_max = vector_min(vector_add(bone_range.translation.get_max(), padding), one);
+					Vector4 translation_range_min = vector_max(vector_sub(bone_range.translation.get_min(), padding), zero);
+					Vector4 translation_range_max = vector_min(vector_add(bone_range.translation.get_max(), padding), one);
 
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 					pack_vector3_24(translation_range_min, true, &buffer[0]);
@@ -157,8 +158,8 @@ namespace acl
 
 				if (has_scale && bone_stream.is_scale_animated() && clip_context.are_scales_normalized)
 				{
-					Vector4_32 scale_range_min = vector_max(vector_sub(bone_range.scale.get_min(), padding), zero);
-					Vector4_32 scale_range_max = vector_min(vector_add(bone_range.scale.get_max(), padding), one);
+					Vector4 scale_range_min = vector_max(vector_sub(bone_range.scale.get_min(), padding), zero);
+					Vector4 scale_range_max = vector_min(vector_add(bone_range.scale.get_max(), padding), one);
 
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 					pack_vector3_24(scale_range_min, true, &buffer[0]);
@@ -186,7 +187,7 @@ namespace acl
 			const BoneRanges& bone_range = bone_ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
 
 			// Constant or default tracks are not normalized
 			if (!bone_stream.is_rotation_animated())
@@ -194,30 +195,30 @@ namespace acl
 
 			const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 
-			const Vector4_32 range_min = bone_range.rotation.get_min();
-			const Vector4_32 range_extent = bone_range.rotation.get_extent();
+			const Vector4 range_min = bone_range.rotation.get_min();
+			const Vector4 range_extent = bone_range.rotation.get_extent();
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				// normalized value is between [0.0 .. 1.0]
 				// value = (normalized value * range extent) + range min
 				// normalized value = (value - range min) / range extent
-				const Vector4_32 rotation = bone_stream.rotations.get_raw_sample<Vector4_32>(sample_index);
-				Vector4_32 normalized_rotation = vector_div(vector_sub(rotation, range_min), range_extent);
-				const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
-				normalized_rotation = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_rotation);
+				const Vector4 rotation = bone_stream.rotations.get_raw_sample<Vector4>(sample_index);
+				Vector4 normalized_rotation = vector_div(vector_sub(rotation, range_min), range_extent);
+				const Vector4 is_range_zero_mask = vector_less_than(range_extent, vector_set(Scalar(0.000000001)));
+				normalized_rotation = vector_blend(is_range_zero_mask, ArithmeticImpl::vector_zero(), normalized_rotation);
 
 #if defined(ACL_USE_ERROR_CHECKS)
 				switch (bone_stream.rotations.get_rotation_format())
 				{
 				case RotationFormat8::Quat_128:
-					ACL_ENSURE(vector_all_greater_equal(normalized_rotation, vector_zero_32()) && vector_all_less_equal(normalized_rotation, vector_set(1.0f)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation), vector_get_w(normalized_rotation));
+					ACL_ENSURE(vector_all_greater_equal(normalized_rotation, ArithmeticImpl::vector_zero()) && vector_all_less_equal(normalized_rotation, vector_set(Scalar(1.0))), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation), vector_get_w(normalized_rotation));
 					break;
 				case RotationFormat8::QuatDropW_96:
 				case RotationFormat8::QuatDropW_48:
 				case RotationFormat8::QuatDropW_32:
 				case RotationFormat8::QuatDropW_Variable:
-					ACL_ENSURE(vector_all_greater_equal3(normalized_rotation, vector_zero_32()) && vector_all_less_equal3(normalized_rotation, vector_set(1.0f)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation));
+					ACL_ENSURE(vector_all_greater_equal3(normalized_rotation, ArithmeticImpl::vector_zero()) && vector_all_less_equal3(normalized_rotation, vector_set(Scalar(1.0))), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation));
 					break;
 				}
 #endif
@@ -235,7 +236,7 @@ namespace acl
 			const BoneRanges& bone_range = bone_ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
 
 			// Constant or default tracks are not normalized
 			if (!bone_stream.is_translation_animated())
@@ -243,20 +244,20 @@ namespace acl
 
 			uint32_t num_samples = bone_stream.translations.get_num_samples();
 
-			Vector4_32 range_min = bone_range.translation.get_min();
-			Vector4_32 range_extent = bone_range.translation.get_extent();
+			Vector4 range_min = bone_range.translation.get_min();
+			Vector4 range_extent = bone_range.translation.get_extent();
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				// normalized value is between [0.0 .. 1.0]
 				// value = (normalized value * range extent) + range min
 				// normalized value = (value - range min) / range extent
-				Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
-				Vector4_32 normalized_translation = vector_div(vector_sub(translation, range_min), range_extent);
-				Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
-				normalized_translation = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_translation);
+				Vector4 translation = bone_stream.translations.get_raw_sample<Vector4>(sample_index);
+				Vector4 normalized_translation = vector_div(vector_sub(translation, range_min), range_extent);
+				Vector4 is_range_zero_mask = vector_less_than(range_extent, vector_set(Scalar(0.000000001)));
+				normalized_translation = vector_blend(is_range_zero_mask, ArithmeticImpl::vector_zero(), normalized_translation);
 
-				ACL_ENSURE(vector_all_greater_equal3(normalized_translation, vector_zero_32()) && vector_all_less_equal3(normalized_translation, vector_set(1.0f)), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_translation), vector_get_y(normalized_translation), vector_get_z(normalized_translation));
+				ACL_ENSURE(vector_all_greater_equal3(normalized_translation, ArithmeticImpl::vector_zero()) && vector_all_less_equal3(normalized_translation, vector_set(Scalar(1.0))), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_translation), vector_get_y(normalized_translation), vector_get_z(normalized_translation));
 
 				bone_stream.translations.set_raw_sample(sample_index, normalized_translation);
 			}
@@ -271,7 +272,7 @@ namespace acl
 			const BoneRanges& bone_range = bone_ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
 
 			// Constant or default tracks are not normalized
 			if (!bone_stream.is_scale_animated())
@@ -279,20 +280,20 @@ namespace acl
 
 			uint32_t num_samples = bone_stream.scales.get_num_samples();
 
-			Vector4_32 range_min = bone_range.scale.get_min();
-			Vector4_32 range_extent = bone_range.scale.get_extent();
+			Vector4 range_min = bone_range.scale.get_min();
+			Vector4 range_extent = bone_range.scale.get_extent();
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				// normalized value is between [0.0 .. 1.0]
 				// value = (normalized value * range extent) + range min
 				// normalized value = (value - range min) / range extent
-				Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
-				Vector4_32 normalized_scale = vector_div(vector_sub(scale, range_min), range_extent);
-				Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
-				normalized_scale = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_scale);
+				Vector4 scale = bone_stream.scales.get_raw_sample<Vector4>(sample_index);
+				Vector4 normalized_scale = vector_div(vector_sub(scale, range_min), range_extent);
+				Vector4 is_range_zero_mask = vector_less_than(range_extent, vector_set(Scalar(0.000000001)));
+				normalized_scale = vector_blend(is_range_zero_mask, ArithmeticImpl::vector_zero(), normalized_scale);
 
-				ACL_ENSURE(vector_all_greater_equal3(normalized_scale, vector_zero_32()) && vector_all_less_equal3(normalized_scale, vector_set(1.0f)), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_scale), vector_get_y(normalized_scale), vector_get_z(normalized_scale));
+				ACL_ENSURE(vector_all_greater_equal3(normalized_scale, ArithmeticImpl::vector_zero()) && vector_all_less_equal3(normalized_scale, vector_set(Scalar(1.0))), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_scale), vector_get_y(normalized_scale), vector_get_z(normalized_scale));
 
 				bone_stream.scales.set_raw_sample(sample_index, normalized_scale);
 			}

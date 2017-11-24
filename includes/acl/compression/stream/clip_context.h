@@ -26,6 +26,7 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
+#include "acl/core/research.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/stream/segment_context.h"
 
@@ -104,19 +105,19 @@ namespace acl
 			bone_stream.bone_index = bone_index;
 			bone_stream.parent_bone_index = skel_bone.parent_index;
 
-			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_32), sample_rate, RotationFormat8::Quat_128);
-			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
-			bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
+			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat), sample_rate, RotationFormat8::Quat_128);
+			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4), sample_rate, VectorFormat8::Vector3_96);
+			bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(Vector4), sample_rate, VectorFormat8::Vector3_96);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_32 rotation = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index)));
+				Quat rotation = quat_normalize(ArithmeticImpl::cast(bone.rotation_track.get_sample(sample_index)));
 				bone_stream.rotations.set_raw_sample(sample_index, rotation);
 
-				Vector4_32 translation = vector_cast(bone.translation_track.get_sample(sample_index));
+				Vector4 translation = ArithmeticImpl::cast(bone.translation_track.get_sample(sample_index));
 				bone_stream.translations.set_raw_sample(sample_index, translation);
 
-				Vector4_32 scale = vector_cast(bone.scale_track.get_sample(sample_index));
+				Vector4 scale = ArithmeticImpl::cast(bone.scale_track.get_sample(sample_index));
 				bone_stream.scales.set_raw_sample(sample_index, scale);
 			}
 

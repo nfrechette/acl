@@ -26,6 +26,7 @@
 
 #include "acl/core/memory.h"
 #include "acl/core/error.h"
+#include "acl/core/research.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/compression/stream/clip_context.h"
@@ -42,7 +43,7 @@ namespace acl
 		{
 			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored at Quat_32
 			// For all other formats, we keep the same sample size and either keep Quat_32 or use Vector4_32
-			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
+			//ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
 
 			const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 			const uint32_t sample_rate = bone_stream.rotations.get_sample_rate();
@@ -50,7 +51,7 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
+				Quat rotation = bone_stream.rotations.get_raw_sample<Quat>(sample_index);
 
 				switch (high_precision_format)
 				{
