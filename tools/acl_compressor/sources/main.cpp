@@ -88,7 +88,7 @@
 #define NOPROXYSTUB
 #define NORPC
 
-#include <Windows.h>
+#include <windows.h>
 #endif    // _WINDOWS_
 
 using namespace acl;
@@ -143,8 +143,8 @@ struct Options
 	}
 };
 
-constexpr char* ACL_INPUT_FILE_OPTION = "-acl=";
-constexpr char* STATS_OUTPUT_OPTION = "-stats";
+constexpr const char* ACL_INPUT_FILE_OPTION = "-acl=";
+constexpr const char* STATS_OUTPUT_OPTION = "-stats";
 
 static bool parse_options(int argc, char** argv, Options& options)
 {

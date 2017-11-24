@@ -38,7 +38,7 @@ namespace acl
 	class SJSONArrayWriter;
 	class SJSONObjectWriter;
 
-	constexpr char* k_line_terminator = "\r\n";
+	constexpr const char* k_line_terminator = "\n";
 
 	class SJSONStreamWriter
 	{
