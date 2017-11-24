@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.9)
 project(acl_compressor)
 
+set(CMAKE_CXX_STANDARD 14)
+
 include_directories("${PROJECT_SOURCE_DIR}/../../includes")
 
 # Grab all of our source files
@@ -9,6 +11,7 @@ file(GLOB_RECURSE ACL_COMPRESSOR_SOURCE_FILES
 	${PROJECT_SOURCE_DIR}/*.py)
 
 add_executable(acl_compressor ${ACL_COMPRESSOR_SOURCE_FILES})
+
 
 if(MSVC)
 	# Replace some default compiler switches and add new ones

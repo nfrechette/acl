@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.9)
 project(acl_unit_tests)
 
+set(CMAKE_CXX_STANDARD 14)
+
 include_directories("${PROJECT_SOURCE_DIR}/../includes")
 include_directories("${PROJECT_SOURCE_DIR}/external/catch-1.9.6")
 
