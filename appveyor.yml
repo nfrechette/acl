@@ -1,0 +1,9 @@
+version: 0.5.{build}
+image:
+- Visual Studio 2017
+- Visual Studio 2015
+build_script:
+- cmd: >-
+    cmake .
+
+    cmake --build . --config Release --target INSTALL
