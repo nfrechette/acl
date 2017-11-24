@@ -67,7 +67,7 @@ namespace acl
 		return vector_set(input[0], input[1], input[2], input[3]);
 	}
 
-	inline Vector4_32 vector_unaligned_load(const uint8_t* input)
+	inline Vector4_32 vector_unaligned_load_32(const uint8_t* input)
 	{
 		Vector4_32 result;
 		memcpy(&result, input, sizeof(Vector4_32));
@@ -80,7 +80,7 @@ namespace acl
 		return vector_set(input[0], input[1], input[2], 0.0f);
 	}
 
-	inline Vector4_32 vector_unaligned_load3(const uint8_t* input)
+	inline Vector4_32 vector_unaligned_load3_32(const uint8_t* input)
 	{
 		float input_f[3];
 		memcpy(&input_f[0], input, sizeof(float) * 3);

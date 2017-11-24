@@ -24,6 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
+#include "acl/core/memory.h"
 #include "acl/math/math.h"
 #include "acl/math/scalar_64.h"
 
@@ -62,9 +64,23 @@ namespace acl
 		return vector_set(input[0], input[1], input[2], input[3]);
 	}
 
+	inline Vector4_64 vector_unaligned_load_64(const uint8_t* input)
+	{
+		Vector4_64 result;
+		memcpy(&result, input, sizeof(Vector4_64));
+		return result;
+	}
+
 	inline Vector4_64 vector_unaligned_load3(const double* input)
 	{
 		return vector_set(input[0], input[1], input[2], 0.0);
+	}
+
+	inline Vector4_64 vector_unaligned_load3_64(const uint8_t* input)
+	{
+		double input_f[3];
+		memcpy(&input_f[0], input, sizeof(double) * 3);
+		return vector_set(input_f[0], input_f[1], input_f[2], 0.0);
 	}
 
 	inline Vector4_64 vector_zero_64()
@@ -134,6 +150,24 @@ namespace acl
 	inline const double* vector_as_double_ptr(const Vector4_64& input)
 	{
 		return reinterpret_cast<const double*>(&input);
+	}
+
+	inline void vector_unaligned_write(const Vector4_64& input, uint8_t* output)
+	{
+		memcpy(output, &input, sizeof(Vector4_64));
+	}
+
+	inline void vector_unaligned_write3(const Vector4_64& input, double* output)
+	{
+		ACL_ENSURE(is_aligned(output), "Invalid alignment");
+		output[0] = vector_get_x(input);
+		output[1] = vector_get_y(input);
+		output[2] = vector_get_z(input);
+	}
+
+	inline void vector_unaligned_write3(const Vector4_64& input, uint8_t* output)
+	{
+		memcpy(output, &input, sizeof(double) * 3);
 	}
 
 	inline Vector4_64 vector_add(const Vector4_64& lhs, const Vector4_64& rhs)

@@ -40,7 +40,7 @@ namespace acl
 
 	inline Vector4_32 unpack_vector4_128(const uint8_t* vector_data)
 	{
-		return vector_unaligned_load(vector_data);
+		return vector_unaligned_load_32(vector_data);
 	}
 
 	inline void pack_vector4_64(const Vector4_32& vector, bool is_unsigned, uint8_t* out_vector_data)
@@ -104,7 +104,7 @@ namespace acl
 
 	inline Vector4_32 unpack_vector3_96(const uint8_t* vector_data)
 	{
-		return vector_unaligned_load3(vector_data);
+		return vector_unaligned_load3_32(vector_data);
 	}
 
 	// Assumes the 'vector_data' is in big-endian order

@@ -343,8 +343,8 @@ namespace acl
 
 				if (are_clip_rotations_normalized)
 				{
-					Vector4_32 clip_range_min = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset);
-					Vector4_32 clip_range_extent = vector_unaligned_load(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
+					Vector4_32 clip_range_min = vector_unaligned_load_32(context.clip_range_data + context.clip_range_data_offset);
+					Vector4_32 clip_range_extent = vector_unaligned_load_32(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
 
 					for (size_t i = 0; i < num_key_frames; ++i)
 						rotations[i] = vector_mul_add(rotations[i], clip_range_extent, clip_range_min);
