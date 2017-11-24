@@ -2,6 +2,12 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/8h1jwmhumqh9ie3h?svg=true)](https://ci.appveyor.com/project/nfrechette/acl)
 [![Build Status](https://travis-ci.org/nfrechette/acl.svg?branch=develop)](https://travis-ci.org/nfrechette/acl)
 
+# ==> Research Branch <==
+
+THIS IS A RESEARCH BRANCH. IT IS NOT MAINTAINED AND ITS ONLY PURPOSE IS TO BE A PLAYGROUND FOR RESEARCH.
+
+This branch will compare the accuracy of using the current approach with **float32** arithmetic against **float64** and **fixed point** arithmetic. See [here](./includes/acl/core/research.h) for relevant defines.
+
 # Animation Compression Library
 
 ## Goals
