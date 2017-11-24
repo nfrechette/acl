@@ -30,6 +30,8 @@ matrix:
           packages:
             - clang-5.0
             - libstdc++-5-dev
+    - os: osx
+      osx_image: xcode9
 
 # prevent Travis from overwriting our CXX variables
 before_install:
