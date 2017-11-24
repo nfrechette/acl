@@ -138,7 +138,7 @@ struct Options
 	{
 		std::FILE* file = nullptr;
 		if (output_stats_filename != nullptr)
-			fopen_s(&file, output_stats_filename, "w");
+			file = fopen(output_stats_filename, "w");
 		output_stats_file = file != nullptr ? file : stdout;
 	}
 };
