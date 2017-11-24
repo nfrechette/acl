@@ -32,7 +32,6 @@
 
 #include "acl/algorithm/uniformly_sampled/algorithm.h"
 
-#include <conio.h>
 #include <cstring>
 #include <cstdio>
 #include <fstream>
@@ -41,6 +40,8 @@
 #include <string>
 #include <memory>
 
+#ifdef _WIN32
+#include <conio.h>
 #if !defined(_WINDOWS_)
 // The below excludes some other unused services from the windows headers -- see windows.h for details.
 #define NOGDICAPMASKS            // CC_*, LC_*, PC_*, CP_*, TC_*, RC_
@@ -90,6 +91,7 @@
 
 #include <windows.h>
 #endif    // _WINDOWS_
+#endif    // _WIN32
 
 using namespace acl;
 
@@ -260,6 +262,18 @@ static void try_algorithm(const Options& options, Allocator& allocator, const An
 		try_algorithm_impl(nullptr);
 	
 }
+
+#ifndef _WIN32
+static int _kbhit()
+{
+	return 0;
+}
+
+static bool IsDebuggerPresent()
+{
+	return false;
+}
+#endif
 
 static bool read_clip(Allocator& allocator, const char* filename,
 					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip,

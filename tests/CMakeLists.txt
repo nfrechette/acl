@@ -28,6 +28,10 @@ if(MSVC)
 
 	# Add linker flags
 	set(CMAKE_EXE_LINKER_FLAGS /DEBUG)
+else()
+	if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86" OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
+		target_compile_options(acl_unit_tests PRIVATE "-msse4.1")
+	endif()
 endif()
 
 install(TARGETS acl_unit_tests RUNTIME DESTINATION bin)
