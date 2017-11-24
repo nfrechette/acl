@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.9)
+cmake_minimum_required (VERSION 3.2)
 project(acl_unit_tests)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -10,6 +10,7 @@ include_directories("${PROJECT_SOURCE_DIR}/external/catch-1.9.6")
 file(GLOB_RECURSE ACL_UNIT_TEST_SOURCE_FILES ${PROJECT_SOURCE_DIR}/sources/*.cpp)
 
 add_executable(acl_unit_tests ${ACL_UNIT_TEST_SOURCE_FILES})
+add_test(NAME UNIT COMMAND acl_unit_tests)
 
 if(MSVC)
 	# Replace some default compiler switches and add new ones

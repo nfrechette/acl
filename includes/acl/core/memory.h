@@ -26,7 +26,6 @@
 
 #include "acl/core/error.h"
 
-#include <malloc.h>
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
