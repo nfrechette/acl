@@ -27,7 +27,8 @@
 #include "acl/core/error.h"
 
 #include <malloc.h>
-#include <stdint.h>
+#include <cstdint>
+#include <cstring>
 #include <type_traits>
 #include <limits>
 #include <memory>
@@ -72,7 +73,11 @@ namespace acl
 
 		virtual void* allocate(size_t size, size_t alignment = DEFAULT_ALIGNMENT)
 		{
+#ifndef _WIN32
+			return aligned_alloc(size, alignment);
+#else
 			return _aligned_malloc(size, alignment);
+#endif
 		}
 
 		virtual void deallocate(void* ptr, size_t size)
@@ -80,7 +85,11 @@ namespace acl
 			if (ptr == nullptr)
 				return;
 
+#ifndef _WIN32
+			free(ptr);
+#else
 			_aligned_free(ptr);
+#endif
 		}
 	};
 

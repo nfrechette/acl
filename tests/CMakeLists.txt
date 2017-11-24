@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.9)
 project(acl_unit_tests)
 
+set(CMAKE_CXX_STANDARD 14)
+
 include_directories("${PROJECT_SOURCE_DIR}/../includes")
 include_directories("${PROJECT_SOURCE_DIR}/external/catch-1.9.6")
 
@@ -28,6 +30,10 @@ if(MSVC)
 
 	# Add linker flags
 	set(CMAKE_EXE_LINKER_FLAGS /DEBUG)
+else()
+	if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86" OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
+		target_compile_options(acl_unit_tests PRIVATE "-msse4.1")
+	endif()
 endif()
 
 install(TARGETS acl_unit_tests RUNTIME DESTINATION bin)
