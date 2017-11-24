@@ -86,13 +86,15 @@ static void convert_skeleton(const acl::RigidSkeleton& acl_skeleton, USkeleton* 
 		bone.ParentIndex = acl_bone.is_root() ? INDEX_NONE : acl_bone.parent_index;
 		bone.ExportName = ANSI_TO_TCHAR(acl_bone.name.c_str());
 
-		acl::Quat_32 acl_rotation = acl::quat_cast(acl_bone.bind_rotation);
-		acl::Vector4_32 acl_translation = acl::vector_cast(acl_bone.bind_translation);
+		acl::Quat_32 acl_rotation = acl::quat_cast(acl_bone.bind_transform.rotation);
+		acl::Vector4_32 acl_translation = acl::vector_cast(acl_bone.bind_transform.translation);
+		acl::Vector4_32 acl_scale = acl::vector_cast(acl_bone.bind_transform.scale);
 
 		FQuat rotation(acl::quat_get_x(acl_rotation), acl::quat_get_y(acl_rotation), acl::quat_get_z(acl_rotation), acl::quat_get_w(acl_rotation));
 		FVector translation(acl::vector_get_x(acl_translation), acl::vector_get_y(acl_translation), acl::vector_get_z(acl_translation));
+		FVector scale(acl::vector_get_x(acl_scale), acl::vector_get_y(acl_scale), acl::vector_get_z(acl_scale));
 
-		FTransform bone_transform(rotation, translation);
+		FTransform bone_transform(rotation, translation, scale);
 		skeleton_modifier.Add(bone, bone_transform);
 	}
 
@@ -134,15 +136,25 @@ static void convert_clip(const acl::AnimationClip& acl_clip, const acl::RigidSke
 			RawTrack.PosKeys.Add(translation);
 		}
 
+		num_samples = bone.scale_track.get_num_samples();
+		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		{
+			acl::Vector4_32 acl_scale = acl::vector_cast(bone.scale_track.get_sample(sample_index));
+
+			FVector scale(acl::vector_get_x(acl_scale), acl::vector_get_y(acl_scale), acl::vector_get_z(acl_scale));
+			RawTrack.ScaleKeys.Add(scale);
+		}
+
 		FName bone_name(acl_bone.name.c_str());
 		ue4_clip->AddNewRawTrack(bone_name, &RawTrack);
 	}
 
 	ue4_clip->MarkRawDataAsModified();
 	ue4_clip->UpdateCompressedTrackMapFromRaw();
+	ue4_clip->PostProcessSequence();
 }
 
-static void sample_ue4_clip(const acl::RigidSkeleton& acl_skeleton, USkeleton* ue4_skeleton, UAnimSequence* ue4_clip, float sample_time, acl::Transform_32* lossy_pose_transforms)
+static void sample_ue4_clip(const acl::RigidSkeleton& acl_skeleton, USkeleton* ue4_skeleton, const UAnimSequence* ue4_clip, float sample_time, acl::Transform_32* lossy_pose_transforms)
 {
 	const FReferenceSkeleton& ref_skeleton = ue4_skeleton->GetReferenceSkeleton();
 
@@ -159,11 +171,24 @@ static void sample_ue4_clip(const acl::RigidSkeleton& acl_skeleton, USkeleton* u
 
 		acl::Quat_32 rotation = acl::quat_set(BoneAtom.GetRotation().X, BoneAtom.GetRotation().Y, BoneAtom.GetRotation().Z, BoneAtom.GetRotation().W);
 		acl::Vector4_32 translation = acl::vector_set(BoneAtom.GetTranslation().X, BoneAtom.GetTranslation().Y, BoneAtom.GetTranslation().Z);
-		lossy_pose_transforms[bone_index] = acl::transform_set(rotation, translation);
+		acl::Vector4_32 scale = acl::vector_set(BoneAtom.GetScale3D().X, BoneAtom.GetScale3D().Y, BoneAtom.GetScale3D().Z);
+		lossy_pose_transforms[bone_index] = acl::transform_set(rotation, translation, scale);
 	}
 }
 
-static void calculate_clip_error(acl::Allocator& allocator, const acl::AnimationClip& acl_clip, const acl::RigidSkeleton& acl_skeleton, UAnimSequence* ue4_clip, USkeleton* ue4_skeleton, uint16_t& out_worst_bone, float& out_max_error, float& out_worst_sample_time)
+static bool ue4_clip_has_scale(const UAnimSequence* ue4_clip)
+{
+	const TArray<FRawAnimSequenceTrack>& tracks = ue4_clip->GetRawAnimationData();
+	for (const FRawAnimSequenceTrack& track : tracks)
+	{
+		if (track.ScaleKeys.Num() != 0)
+			return true;
+	}
+
+	return false;
+}
+
+static void calculate_clip_error(acl::Allocator& allocator, const acl::AnimationClip& acl_clip, const acl::RigidSkeleton& acl_skeleton, const UAnimSequence* ue4_clip, USkeleton* ue4_skeleton, uint16_t& out_worst_bone, float& out_max_error, float& out_worst_sample_time)
 {
 	using namespace acl;
 
@@ -171,6 +196,7 @@ static void calculate_clip_error(acl::Allocator& allocator, const acl::Animation
 	float clip_duration = acl_clip.get_duration();
 	float sample_rate = float(acl_clip.get_sample_rate());
 	uint32_t num_samples = calculate_num_samples(clip_duration, sample_rate);
+	bool has_scale = ue4_clip_has_scale(ue4_clip);
 
 	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
@@ -189,7 +215,11 @@ static void calculate_clip_error(acl::Allocator& allocator, const acl::Animation
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			float error = calculate_object_bone_error(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+			float error;
+			if (has_scale)
+				error = calculate_object_bone_error(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+			else
+				error = calculate_object_bone_error_no_scale(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
 
 			if (error > max_error)
 			{
@@ -251,6 +281,7 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 	FString acl_raw_dir(TEXT("D:\\test_animations\\carnegie-mellon-acl-raw"));
 	FString ue4_stat_dir(TEXT("D:\\test_animations\\carnegie-mellon-acl-ue4-stats"));
 	const bool exhaustive_dump = false;
+	const float master_tolerance = 0.1f;
 
 	FFileManagerGeneric file_manager;
 	TArray<FString> files;
@@ -259,6 +290,8 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 	acl::Allocator allocator;
 
 	UAnimCompress_Automatic* auto_compressor = NewObject<UAnimCompress_Automatic>(this, UAnimCompress_Automatic::StaticClass());
+	auto_compressor->MaxEndEffectorError = master_tolerance;
+	auto_compressor->bAutoReplaceIfExistingErrorTooGreat = true;
 
 	const UEnum* anim_format_enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("AnimationCompressionFormat"), true);
 
@@ -302,7 +335,7 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 				float worst_sample_time;
 				calculate_clip_error(allocator, *acl_clip, *acl_skeleton, ue4_clip, ue4_skeleton, worst_bone, max_error, worst_sample_time);
 
-				uint32_t acl_raw_size = acl_clip->get_total_size();
+				uint32_t acl_raw_size = acl_clip->get_raw_size();
 				int32 raw_size = ue4_clip->GetApproxRawSize();
 				int32 compressed_size = ue4_clip->GetApproxCompressedSize();
 				double compression_ratio = double(raw_size) / double(compressed_size);
