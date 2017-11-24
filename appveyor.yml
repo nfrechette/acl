@@ -2,8 +2,13 @@ version: 0.5.{build}
 image:
 - Visual Studio 2017
 - Visual Studio 2015
+configuration:
+- Release
 build_script:
 - cmd: >-
     cmake .
 
-    cmake --build . --config Release --target INSTALL
+    cmake --build . --config %configuration% --target INSTALL
+
+test_script:
+  - ctest -C %configuration% --timeout 300 --output-on-failure
