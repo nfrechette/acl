@@ -64,7 +64,7 @@ namespace acl
 
 		constexpr Converter get_mask_value(bool is_true)
 		{
-			return Converter(is_true ? 0xFFFFFFFFFFFFFFFFull : 0ull);
+			return Converter(is_true ? uint64_t(0xFFFFFFFFFFFFFFFFull) : uint64_t(0));
 		}
 
 		constexpr double select(double mask, double if_true, double if_false)

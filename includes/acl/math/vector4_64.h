@@ -24,6 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <cstring>
+
 #include "acl/core/error.h"
 #include "acl/core/memory.h"
 #include "acl/math/math.h"
