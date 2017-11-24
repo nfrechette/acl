@@ -22,9 +22,9 @@ to compare them fairly.
 Much thought was put into designing the library for it to be as flexible and powerful as possible. To this end, the following decisions were made:
 
 *  The library consists of 100% C++ header files and is thus easy to integrate in any game engine
-*  [An intermediary clip format](https://github.com/nfrechette/acl/wiki/The-ACL-file-format) is supported in order to facilitate debugging and bug reporting
-*  All allocations use a [game provided allocator](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/memory.h)
-*  All asserts use a [game provided macro](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/error.h)
+*  [An intermediary clip format](./docs/the_acl_file_format.md) is supported in order to facilitate debugging and bug reporting
+*  All allocations use a [game provided allocator](./includes/acl/core/memory.h)
+*  All asserts use a [game provided macro](./includes/acl/core/error.h)
 
 ## Supported platforms
 
@@ -44,7 +44,7 @@ Decompression is typically very simple and light in order to be fast. Very littl
 
 ## Algorithms supported
 
-*  [Uniformly sampled](https://github.com/nfrechette/acl/wiki/Algorithm:-uniformly-sampled)
+*  [Uniformly sampled](./docs/algorithm_uniformly_sampled.md)
 *  Linear key reduction (TODO)
 *  Spline key reduction (TODO)
 *  Wavelets (TODO)
@@ -68,7 +68,7 @@ This is the data all graphs and charts shown will be based on. Data available up
 
 ## Performance metrics
 
-*  [ACL vs Unreal 4 vs Unity 5](https://github.com/nfrechette/acl/blob/develop/docs/acl_vs_ue4_vs_unity.md)
+*  [ACL vs Unreal 4 vs Unity 5](./docs/acl_vs_ue4_vs_unity.md)
 
 ## MIT License
 
