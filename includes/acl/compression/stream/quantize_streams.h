@@ -34,7 +34,8 @@
 #include "acl/compression/stream/sample_streams.h"
 #include "acl/compression/skeleton_error_metric.h"
 
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 // 0 = no debug info, 1 = basic info, 2 = verbose
 #define ACL_DEBUG_VARIABLE_QUANTIZATION		0
