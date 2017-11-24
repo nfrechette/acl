@@ -60,7 +60,7 @@
 			}
 		}
 
-		#define ACL_ASSERT(expression, format, ...) acl::error_impl::assert_impl(expression, format, __VA_ARGS__)
+		#define ACL_ASSERT(expression, format, ...) acl::error_impl::assert_impl(expression, format, ## __VA_ARGS__)
 	#else
 		#define ACL_ASSERT(expression, format, ...) ((void)0)
 	#endif
@@ -69,7 +69,7 @@
 // Ensure is fatal, the library does not handle skipping this safely.
 #if !defined(ACL_ENSURE)
 	#if defined(ACL_USE_ERROR_CHECKS)
-		#define ACL_ENSURE(expression, format, ...) acl::error_impl::assert_impl(expression, format, __VA_ARGS__)
+		#define ACL_ENSURE(expression, format, ...) acl::error_impl::assert_impl(expression, format, ## __VA_ARGS__)
 	#else
 		#define ACL_ENSURE(expression, format, ...) ((void)0)
 	#endif
@@ -106,7 +106,7 @@
 			}
 		}
 
-		#define ACL_TRY_ASSERT(expression, format, ...) acl::error_impl::assert_shim(expression, format, __VA_ARGS__), !(expression)
+		#define ACL_TRY_ASSERT(expression, format, ...) acl::error_impl::assert_shim(expression, format, ## __VA_ARGS__), !(expression)
 	#else
 		#define ACL_TRY_ASSERT(expression, format, ...) !(expression)
 	#endif
