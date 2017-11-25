@@ -56,7 +56,7 @@ Decompression is typically very simple and light in order to be fast. Very littl
 ### Windows
 
 1. Install Visual Studio 2015
-2. Install CMake 3.9 or higher
+2. Install CMake 3.2 or higher
 3. Install Python 3.3 (version 3.3 is required for the FBX SDK by some scripts)
 4. Generate the IDE solution with: `python make.py`  
    The solution is generated under `./build`  
