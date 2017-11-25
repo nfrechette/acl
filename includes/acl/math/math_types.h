@@ -148,8 +148,8 @@ namespace acl
 
 	namespace math_impl
 	{
-		constexpr bool is_vector_mix_arg_xyzw(VectorMix arg) { return uint32_t(arg) >= uint32_t(VectorMix::X) && uint32_t(arg) <= uint32_t(VectorMix::W); }
-		constexpr bool is_vector_mix_arg_abcd(VectorMix arg) { return uint32_t(arg) >= uint32_t(VectorMix::A) && uint32_t(arg) <= uint32_t(VectorMix::D); }
-		constexpr uint32_t get_vector_mix_component_index(VectorMix arg) { return is_vector_mix_arg_xyzw(arg) ? uint32_t(arg) : (uint32_t(arg) - 4); }
+		constexpr bool is_vector_mix_arg_xyzw(VectorMix arg) { return int32_t(arg) >= int32_t(VectorMix::X) && int32_t(arg) <= int32_t(VectorMix::W); }
+		constexpr bool is_vector_mix_arg_abcd(VectorMix arg) { return int32_t(arg) >= int32_t(VectorMix::A) && int32_t(arg) <= int32_t(VectorMix::D); }
+		constexpr int32_t get_vector_mix_component_index(VectorMix arg) { return is_vector_mix_arg_xyzw(arg) ? int32_t(arg) : (int32_t(arg) - 4); }
 	}
 }

@@ -131,6 +131,7 @@ struct Options
 		std::swap(output_stats, rhs.output_stats);
 		std::swap(output_stats_filename, rhs.output_stats_filename);
 		std::swap(output_stats_file, rhs.output_stats_file);
+		return *this;
 	}
 
 	Options(const Options&) = delete;

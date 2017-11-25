@@ -110,7 +110,7 @@ namespace acl
 
 			for (uint32_t i = 0; i < num_elements; ++i)
 			{
-				if (!read_double(values[i]) || i < (num_elements - 1) && !read_comma())
+				if (!read_double(values[i]) || (i < (num_elements - 1) && !read_comma()))
 					return false;
 			}
 
@@ -124,7 +124,7 @@ namespace acl
 
 			for (uint32_t i = 0; i < num_elements; ++i)
 			{
-				if (!read_string(values[i]) || i < (num_elements - 1) && !read_comma())
+				if (!read_string(values[i]) || (i < (num_elements - 1) && !read_comma()))
 					return false;
 			}
 

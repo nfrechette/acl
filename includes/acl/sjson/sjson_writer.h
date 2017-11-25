@@ -28,7 +28,8 @@
 
 #include <functional>
 #include <cstdio>
-#include <stdint.h>
+#include <cstdint>
+#include <cinttypes>
 
 namespace acl
 {
@@ -59,7 +60,7 @@ namespace acl
 
 		virtual void write(const void* buffer, size_t buffer_size) override
 		{
-			fprintf(m_file, reinterpret_cast<const char*>(buffer));
+			fprintf(m_file, "%s", reinterpret_cast<const char*>(buffer));
 		}
 
 	private:
@@ -262,7 +263,7 @@ namespace acl
 		m_stream_writer.write(" = ");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%lld%s", value, k_line_terminator);
+		size_t length = snprintf(buffer, sizeof(buffer), "%" PRId64 "%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to insert SJSON value: [%s = %lld]", key, value);
 		m_stream_writer.write(buffer, length);
 	}
@@ -278,7 +279,7 @@ namespace acl
 		m_stream_writer.write(" = ");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%llu%s", value, k_line_terminator);
+		size_t length = snprintf(buffer, sizeof(buffer), "%" PRIu64 "%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to insert SJSON value: [%s = %llu]", key, value);
 		m_stream_writer.write(buffer, length);
 	}
@@ -479,7 +480,7 @@ namespace acl
 		ACL_ENSURE(!m_is_locked, "Cannot assign a value when locked");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%lld%s", value, k_line_terminator);
+		size_t length = snprintf(buffer, sizeof(buffer), "%" PRId64 "%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to assign SJSON value: %lld", value);
 		m_object_writer->m_stream_writer.write(buffer, length);
 		m_is_empty = false;
@@ -492,7 +493,7 @@ namespace acl
 		ACL_ENSURE(!m_is_locked, "Cannot assign a value when locked");
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%llu%s", value, k_line_terminator);
+		size_t length = snprintf(buffer, sizeof(buffer), "%" PRIu64 "%s", value, k_line_terminator);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to assign SJSON value: %llu", value);
 		m_object_writer->m_stream_writer.write(buffer, length);
 		m_is_empty = false;
@@ -572,7 +573,7 @@ namespace acl
 			write_indentation();
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%lld", value);
+		size_t length = snprintf(buffer, sizeof(buffer), "%" PRId64, value);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to push SJSON value: %lld", value);
 		m_stream_writer.write(buffer, length);
 		m_is_empty = false;
@@ -590,7 +591,7 @@ namespace acl
 			write_indentation();
 
 		char buffer[256];
-		size_t length = snprintf(buffer, sizeof(buffer), "%llu", value);
+		size_t length = snprintf(buffer, sizeof(buffer), "%" PRIu64, value);
 		ACL_ENSURE(length > 0 && length < sizeof(buffer), "Failed to push SJSON value: %llu", value);
 		m_stream_writer.write(buffer, length);
 		m_is_empty = false;

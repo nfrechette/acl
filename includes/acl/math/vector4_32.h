@@ -580,10 +580,10 @@ namespace acl
 	inline Vector4_32 vector_mix(const Vector4_32& input0, const Vector4_32& input1)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		constexpr uint32_t component_index0 = math_impl::get_vector_mix_component_index(comp0);
-		constexpr uint32_t component_index1 = math_impl::get_vector_mix_component_index(comp1);
-		constexpr uint32_t component_index2 = math_impl::get_vector_mix_component_index(comp2);
-		constexpr uint32_t component_index3 = math_impl::get_vector_mix_component_index(comp3);
+		constexpr int32_t component_index0 = math_impl::get_vector_mix_component_index(comp0);
+		constexpr int32_t component_index1 = math_impl::get_vector_mix_component_index(comp1);
+		constexpr int32_t component_index2 = math_impl::get_vector_mix_component_index(comp2);
+		constexpr int32_t component_index3 = math_impl::get_vector_mix_component_index(comp3);
 #endif
 
 		if (math_impl::is_vector_mix_arg_xyzw(comp0) && math_impl::is_vector_mix_arg_xyzw(comp1) && math_impl::is_vector_mix_arg_xyzw(comp2) && math_impl::is_vector_mix_arg_xyzw(comp3))
