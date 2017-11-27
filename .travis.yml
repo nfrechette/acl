@@ -39,6 +39,6 @@ before_install:
 script:
     - mkdir build
     - cd build
-    - cmake --config Debug ..
+    - cmake -DCMAKE_BUILD_TYPE=RELEASE -G "Unix Makefiles" ..
     - cmake --build . -- -j2
     - ctest --output-on-failure

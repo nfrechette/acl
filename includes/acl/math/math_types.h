@@ -146,10 +146,17 @@ namespace acl
 		D = 7,
 	};
 
+	// The result is sometimes required as part of an immediate for an intrinsic
+	// and as such we much know the value at compile time and constexpr isn't always evaluated.
+	// Required at least on GCC 5 in Debug
+	#define IS_VECTOR_MIX_ARG_XYZW(arg) (int32_t(arg) >= int32_t(VectorMix::X) && int32_t(arg) <= int32_t(VectorMix::W))
+	#define IS_VECTOR_MIX_ARG_ABCD(arg) (int32_t(arg) >= int32_t(VectorMix::A) && int32_t(arg) <= int32_t(VectorMix::D))
+	#define GET_VECTOR_MIX_COMPONENT_INDEX(arg) (IS_VECTOR_MIX_ARG_XYZW(arg) ? int8_t(arg) : (int8_t(arg) - 4))
+
 	namespace math_impl
 	{
 		constexpr bool is_vector_mix_arg_xyzw(VectorMix arg) { return int32_t(arg) >= int32_t(VectorMix::X) && int32_t(arg) <= int32_t(VectorMix::W); }
 		constexpr bool is_vector_mix_arg_abcd(VectorMix arg) { return int32_t(arg) >= int32_t(VectorMix::A) && int32_t(arg) <= int32_t(VectorMix::D); }
-		constexpr int32_t get_vector_mix_component_index(VectorMix arg) { return is_vector_mix_arg_xyzw(arg) ? int32_t(arg) : (int32_t(arg) - 4); }
+		constexpr int8_t get_vector_mix_component_index(VectorMix arg) { return is_vector_mix_arg_xyzw(arg) ? int8_t(arg) : (int8_t(arg) - 4); }
 	}
 }
