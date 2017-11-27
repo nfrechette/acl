@@ -73,7 +73,7 @@ namespace acl
 		virtual void* allocate(size_t size, size_t alignment = DEFAULT_ALIGNMENT)
 		{
 #ifndef _WIN32
-			return aligned_alloc(size, alignment);
+			return aligned_alloc(alignment, size);
 #else
 			return _aligned_malloc(size, alignment);
 #endif
@@ -236,12 +236,6 @@ namespace acl
 	constexpr bool is_aligned(PtrType* value)
 	{
 		return is_aligned_to(value, alignof(PtrType));
-	}
-
-	template<typename PtrType>
-	constexpr PtrType* align_to(PtrType* value, size_t alignment)
-	{
-		return reinterpret_cast<PtrType*>((reinterpret_cast<uintptr_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
 	template<typename IntegralType>

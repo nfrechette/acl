@@ -95,13 +95,18 @@ if __name__ == "__main__":
 	# Generate IDE solution
 	print('Generating build files for: {}'.format(cmake_generator))
 	cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" {} -G "{}"'.format(cmake_exe, build_dir, '.'.join(extra_switches), cmake_generator)
+	if not platform.system() == 'Windows':
+		cmake_cmd += ' -DCMAKE_BUILD_TYPE=RELEASE'
+
 	subprocess.call(cmake_cmd, shell=True)
 
 	if options['build']:
 		print('Building ...')
-		cmake_cmd = '"{}" --build . --config Release'.format(cmake_exe)
+		cmake_cmd = '"{}" --build .'.format(cmake_exe)
 		if platform.system() == 'Windows':
-			cmake_cmd += ' --target INSTALL'
+			cmake_cmd += ' --config Release --target INSTALL'
+		else:
+			cmake_cmd += ' --target install'
 
 		subprocess.call(cmake_cmd, shell=True)
 	

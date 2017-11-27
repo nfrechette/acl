@@ -33,6 +33,21 @@
 	#define ACL_SSE2_INTRINSICS
 #endif
 
+#if defined(__SSE4_1__) && !defined(ACL_NO_INTRINSICS)
+	#define ACL_SSE4_INTRINSICS
+	#define ACL_SSE3_INTRINSICS
+	#define ACL_SSE2_INTRINSICS
+#endif
+
+#if defined(__SSSE3__) && !defined(ACL_NO_INTRINSICS)
+	#define ACL_SSE3_INTRINSICS
+	#define ACL_SSE2_INTRINSICS
+#endif
+
+#if defined(__SSE2__) && !defined(ACL_NO_INTRINSICS)
+	#define ACL_SSE2_INTRINSICS
+#endif
+
 #if !defined(ACL_SSE2_INTRINSICS) && !defined(ACL_NO_INTRINSICS)
 	#if defined(_M_IX86) || defined(_M_X64)
 		#define ACL_SSE2_INTRINSICS

@@ -1,10 +1,11 @@
+import multiprocessing
 import os
-import sys
+import platform
 import queue
 import threading
 import time
-import multiprocessing
 import signal
+import sys
 
 # This script depends on a SJSON parsing package:
 # https://pypi.python.org/pypi/SJSON/1.1.0
@@ -30,9 +31,11 @@ def parse_argv():
 		# TODO: Strip trailing '/' or '\'
 		if value.startswith('-acl='):
 			options['acl'] = value[len('-acl='):].replace('"', '')
+			options['acl'] = os.path.expanduser(options['acl'])
 
 		if value.startswith('-stats='):
 			options['stats'] = value[len('-stats='):].replace('"', '')
+			options['stats'] = os.path.expanduser(options['stats'])
 
 		if value == '-csv_summary':
 			options['csv_summary'] = True
@@ -221,6 +224,16 @@ def compress_clips(options):
 	stat_dir = options['stats']
 	refresh = options['refresh']
 
+	if platform.system() == 'Windows':
+		compressor_exe_path = '../../build/bin/acl_compressor.exe'
+	else:
+		compressor_exe_path = '../../build/bin/acl_compressor'
+
+	compressor_exe_path = os.path.abspath(compressor_exe_path)
+	if not os.path.exists(compressor_exe_path):
+		print('Compressor exe not found: {}'.format(compressor_exe_path))
+		sys.exit(1)
+
 	stat_files = []
 	cmd_queue = queue.Queue()
 
@@ -243,7 +256,9 @@ def compress_clips(options):
 				os.makedirs(stat_dirname)
 
 			cmd = '{} -acl="{}" -stats="{}"'.format(compressor_exe_path, acl_filename, stat_filename)
-			cmd = cmd.replace('/', '\\')
+			if platform.system() == 'Windows':
+				cmd = cmd.replace('/', '\\')
+
 			cmd_queue.put((acl_filename, cmd))
 
 	if len(stat_files) == 0:
@@ -532,8 +547,6 @@ def aggregate_job_stats(agg_job_results, job_results):
 
 if __name__ == "__main__":
 	options = parse_argv()
-
-	compressor_exe_path = '../../build/bin/acl_compressor.exe'
 
 	stat_files = compress_clips(options)
 

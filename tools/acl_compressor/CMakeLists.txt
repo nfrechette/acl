@@ -12,7 +12,6 @@ file(GLOB_RECURSE ACL_COMPRESSOR_SOURCE_FILES
 
 add_executable(acl_compressor ${ACL_COMPRESSOR_SOURCE_FILES})
 
-
 if(MSVC)
 	# Replace some default compiler switches and add new ones
 	STRING(REPLACE "/GR" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})		# Disable RTTI
@@ -34,7 +33,11 @@ if(MSVC)
 	set(CMAKE_EXE_LINKER_FLAGS /DEBUG)
 else()
 	if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86" OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
-		target_compile_options(acl_compressor PRIVATE "-msse4.1")
+		if(USE_AVX_INSTRUCTIONS)
+			target_compile_options(acl_compressor PRIVATE "-mavx")
+		else()
+			target_compile_options(acl_compressor PRIVATE "-msse4.1")
+		endif()
 	endif()
 endif()
 

@@ -1,3 +1,4 @@
 build/
 *.suo
 **/__pycache__/
+.vscode/
