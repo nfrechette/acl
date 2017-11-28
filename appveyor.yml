@@ -1,14 +1,20 @@
 version: 0.5.{build}
+
+environment:
+  PYTHON: "C:\\Python33-x64"
+
 image:
-- Visual Studio 2017
 - Visual Studio 2015
+- Visual Studio 2017
+
 configuration:
+- Debug
 - Release
+
 build_script:
 - cmd: >-
-    cmake .
-
-    cmake --build . --config %configuration% --target INSTALL
+    %PYTHON%\\python.exe make.py -build -%configuration%
 
 test_script:
-  - ctest -C %configuration% --timeout 300 --output-on-failure
+- cmd: >-
+    %PYTHON%\\python.exe make.py -test -%configuration%

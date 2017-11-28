@@ -3,15 +3,25 @@ language: cpp
 matrix:
   include:
     - os: linux
-      env: MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+      env: MATRIX_EVAL="CC=gcc-5 && CXX=g++-5" CONFIG=Debug
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
             - g++-5
+
     - os: linux
-      env: MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+      env: MATRIX_EVAL="CC=gcc-5 && CXX=g++-5" CONFIG=Release
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+
+    - os: linux
+      env: MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0" CONFIG=Debug
       addons:
         apt:
           sources:
@@ -20,8 +30,31 @@ matrix:
           packages:
             - clang-4.0
             - libstdc++-5-dev
+
     - os: linux
-      env: MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
+      env: MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0" CONFIG=Release
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-4.0
+            - ubuntu-toolchain-r-test
+          packages:
+            - clang-4.0
+            - libstdc++-5-dev
+
+    - os: linux
+      env: MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0" CONFIG=Debug
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-5.0
+            - ubuntu-toolchain-r-test
+          packages:
+            - clang-5.0
+            - libstdc++-5-dev
+
+    - os: linux
+      env: MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0" CONFIG=Release
       addons:
         apt:
           sources:
@@ -37,8 +70,4 @@ before_install:
     - echo $CXX
 
 script:
-    - mkdir build
-    - cd build
-    - cmake -DCMAKE_BUILD_TYPE=RELEASE -G "Unix Makefiles" ..
-    - cmake --build . -- -j2
-    - ctest --output-on-failure
+    - python3 make.py -build -test -${CONFIG}
