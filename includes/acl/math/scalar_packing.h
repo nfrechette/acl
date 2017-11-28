@@ -34,9 +34,10 @@
 
 namespace acl
 {
-	inline size_t pack_scalar_unsigned(Scalar input, size_t num_bits)
+	template<typename ScalarType>
+	inline size_t pack_scalar_unsigned(ScalarType input, size_t num_bits)
 	{
-		ACL_ENSURE(input >= Scalar(0.0) && input <= Scalar(1.0), "Invalue input value: 0.0 <= %f <= 1.0", input);
+		ACL_ENSURE(input >= ScalarType(0.0) && input <= ScalarType(1.0), "Invalue input value: 0.0 <= %f <= 1.0", input);
 		size_t max_value = (1 << num_bits) - 1;
 		return static_cast<size_t>(symmetric_round(input * safe_to_float(max_value)));
 	}
@@ -48,10 +49,11 @@ namespace acl
 		return safe_to_float(input) / safe_to_float(max_value);
 	}
 
-	inline size_t pack_scalar_signed(Scalar input, size_t num_bits)
+	template<typename ScalarType>
+	inline size_t pack_scalar_signed(ScalarType input, size_t num_bits)
 	{
-		ACL_ENSURE(input >= Scalar(-1.0) && input <= Scalar(1.0), "Invalue input value: -1.0 <= %f <= 1.0", input);
-		return pack_scalar_unsigned((input * Scalar(0.5)) + Scalar(0.5), num_bits);
+		ACL_ENSURE(input >= ScalarType(-1.0) && input <= ScalarType(1.0), "Invalue input value: -1.0 <= %f <= 1.0", input);
+		return pack_scalar_unsigned((input * ScalarType(0.5)) + ScalarType(0.5), num_bits);
 	}
 
 	inline Scalar unpack_scalar_signed(size_t input, size_t num_bits)

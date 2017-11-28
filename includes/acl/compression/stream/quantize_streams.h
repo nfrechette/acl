@@ -47,7 +47,7 @@ namespace acl
 		inline void quantize_fixed_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t rotation_sample_size = get_packed_rotation_size(rotation_format);
@@ -56,7 +56,7 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				const Quat_32 rotation = raw_stream.get_raw_sample<Quat_32>(sample_index);
+				const Quat rotation = raw_stream.get_raw_sample<Quat>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
 				switch (rotation_format)
@@ -100,7 +100,7 @@ namespace acl
 		inline void quantize_variable_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, const TrackStreamRange& raw_segment_range, uint8_t bit_rate, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 
 			const uint32_t num_samples = is_pack_0_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
@@ -111,11 +111,11 @@ namespace acl
 			{
 				ACL_ENSURE(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
 
-				Vector4_32 rotation = quat_to_vector(raw_stream.get_raw_sample<Quat_32>(0));
+				Vector4 rotation = raw_stream.get_raw_sample<Vector4>(0);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
 
-				const Vector4_32 segment_range_min = raw_segment_range.get_min();
-				const Vector4_32 segment_range_extent = raw_segment_range.get_extent();
+				const Vector4 segment_range_min = raw_segment_range.get_min();
+				const Vector4 segment_range_extent = raw_segment_range.get_extent();
 
 				rotation = vector_mul_add(rotation, segment_range_extent, segment_range_min);
 
@@ -131,15 +131,15 @@ namespace acl
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const Quat_32 rotation = raw_stream.get_raw_sample<Quat_32>(sample_index);
+					const Vector4 rotation = raw_stream.get_raw_sample<Vector4>(sample_index);
 					uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
 					if (is_pack_72_bit_rate(bit_rate))
-						pack_vector3_72(quat_to_vector(rotation), are_rotations_normalized, quantized_ptr);
+						pack_vector3_72(rotation, are_rotations_normalized, quantized_ptr);
 					else if (is_pack_96_bit_rate(bit_rate))
-						pack_vector3_96(quat_to_vector(rotation), quantized_ptr);
+						pack_vector3_96(rotation, quantized_ptr);
 					else
-						pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
+						pack_vector3_n(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
 				}
 			}
 			
@@ -172,7 +172,7 @@ namespace acl
 		inline void quantize_fixed_translation_stream(Allocator& allocator, const TranslationTrackStream& raw_stream, VectorFormat8 translation_format, TranslationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
@@ -182,7 +182,7 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				const Vector4_32 translation = raw_stream.get_raw_sample<Vector4_32>(sample_index);
+				const Vector4 translation = raw_stream.get_raw_sample<Vector4>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
 				switch (translation_format)
@@ -225,7 +225,7 @@ namespace acl
 		inline void quantize_variable_translation_stream(Allocator& allocator, const TranslationTrackStream& raw_stream, const TrackStreamRange& raw_segment_range, uint8_t bit_rate, TranslationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			const uint32_t num_samples = is_pack_0_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
@@ -235,11 +235,11 @@ namespace acl
 
 			if (is_pack_0_bit_rate(bit_rate))
 			{
-				Vector4_32 translation = raw_stream.get_raw_sample<Vector4_32>(0);
+				Vector4 translation = raw_stream.get_raw_sample<Vector4>(0);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
 
-				const Vector4_32 segment_range_min = raw_segment_range.get_min();
-				const Vector4_32 segment_range_extent = raw_segment_range.get_extent();
+				const Vector4 segment_range_min = raw_segment_range.get_min();
+				const Vector4 segment_range_extent = raw_segment_range.get_extent();
 
 				translation = vector_mul_add(translation, segment_range_extent, segment_range_min);
 
@@ -255,7 +255,7 @@ namespace acl
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const Vector4_32 translation = raw_stream.get_raw_sample<Vector4_32>(sample_index);
+					const Vector4 translation = raw_stream.get_raw_sample<Vector4>(sample_index);
 					uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
 					if (is_pack_72_bit_rate(bit_rate))
@@ -303,7 +303,7 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				const Vector4_32 scale = raw_stream.get_raw_sample<Vector4_32>(sample_index);
+				const Vector4 scale = raw_stream.get_raw_sample<Vector4>(sample_index);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
 				switch (scale_format)
@@ -356,11 +356,11 @@ namespace acl
 
 			if (is_pack_0_bit_rate(bit_rate))
 			{
-				Vector4_32 scale = raw_stream.get_raw_sample<Vector4_32>(0);
+				Vector4 scale = raw_stream.get_raw_sample<Vector4>(0);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
 
-				const Vector4_32 segment_range_min = raw_segment_range.get_min();
-				const Vector4_32 segment_range_extent = raw_segment_range.get_extent();
+				const Vector4 segment_range_min = raw_segment_range.get_min();
+				const Vector4 segment_range_extent = raw_segment_range.get_extent();
 
 				scale = vector_mul_add(scale, segment_range_extent, segment_range_min);
 
@@ -376,7 +376,7 @@ namespace acl
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const Vector4_32 scale = raw_stream.get_raw_sample<Vector4_32>(sample_index);
+					const Vector4 scale = raw_stream.get_raw_sample<Vector4>(sample_index);
 					uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
 					if (is_pack_72_bit_rate(bit_rate))

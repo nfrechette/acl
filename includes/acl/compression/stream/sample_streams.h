@@ -143,27 +143,27 @@ namespace acl
 
 		const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 
-		Vector4_32 rotation;
+		Vector4 rotation;
 
 		RotationFormat8 format = bone_steams.rotations.get_rotation_format();
 		switch (format)
 		{
 		case RotationFormat8::Quat_128:
-			rotation = unpack_vector4_128(quantized_ptr);
+			rotation = ArithmeticImpl::vector_unaligned_load(quantized_ptr);
 			break;
 		case RotationFormat8::QuatDropW_96:
-			rotation = unpack_vector3_96(quantized_ptr);
+			rotation = ArithmeticImpl::vector_unaligned_load3(quantized_ptr);
 			break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
-			rotation = vector_zero_32();
+			rotation = ArithmeticImpl::vector_zero();
 			break;
 		}
 
 		// Pack and unpack at our desired bit rate
 		uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-		alignas(8) uint8_t raw_data[16] = { 0 };
-		Vector4_32 packed_rotation;
+		alignas(8) uint8_t raw_data[sizeof(Vector4)] = { 0 };
+		Vector4 packed_rotation;
 
 		if (is_pack_0_bit_rate(bit_rate))
 		{
@@ -172,8 +172,8 @@ namespace acl
 
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+			Vector4 segment_range_min = segment_bone_range.rotation.get_min();
+			Vector4 segment_range_extent = segment_bone_range.rotation.get_extent();
 
 			rotation = vector_mul_add(rotation, segment_range_extent, segment_range_min);
 
@@ -205,8 +205,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+			Vector4 segment_range_min = segment_bone_range.rotation.get_min();
+			Vector4 segment_range_extent = segment_bone_range.rotation.get_extent();
 
 			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
 		}
@@ -215,8 +215,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = clip_bone_range.rotation.get_min();
-			Vector4_32 clip_range_extent = clip_bone_range.rotation.get_extent();
+			Vector4 clip_range_min = clip_bone_range.rotation.get_min();
+			Vector4 clip_range_extent = clip_bone_range.rotation.get_extent();
 
 			packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 		}
@@ -224,12 +224,12 @@ namespace acl
 		switch (format)
 		{
 		case RotationFormat8::Quat_128:
-			return vector_to_quat(packed_rotation);
+			return ArithmeticImpl_<ArithmeticType8::Float32>::cast(vector_to_quat(packed_rotation));
 		case RotationFormat8::QuatDropW_96:
 		case RotationFormat8::QuatDropW_48:
 		case RotationFormat8::QuatDropW_32:
 		case RotationFormat8::QuatDropW_Variable:
-			return quat_from_positive_w(packed_rotation);
+			return ArithmeticImpl_<ArithmeticType8::Float32>::cast(quat_from_positive_w(packed_rotation));
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 			return quat_identity_32();
@@ -243,26 +243,26 @@ namespace acl
 		const bool are_rotations_normalized = clip_context->are_rotations_normalized && !bone_steams.is_rotation_constant;
 		const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 
-		Vector4_32 rotation;
+		Vector4 rotation;
 
 		RotationFormat8 format = bone_steams.rotations.get_rotation_format();
 		switch (format)
 		{
 		case RotationFormat8::Quat_128:
-			rotation = unpack_vector4_128(quantized_ptr);
+			rotation = ArithmeticImpl::vector_unaligned_load(quantized_ptr);
 			break;
 		case RotationFormat8::QuatDropW_96:
-			rotation = unpack_vector3_96(quantized_ptr);
+			rotation = ArithmeticImpl::vector_unaligned_load3(quantized_ptr);
 			break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
-			rotation = vector_zero_32();
+			rotation = ArithmeticImpl::vector_zero();
 			break;
 		}
 
 		// Pack and unpack in our desired format
-		alignas(8) uint8_t raw_data[16] = { 0 };
-		Vector4_32 packed_rotation;
+		alignas(8) uint8_t raw_data[sizeof(Vector4)] = { 0 };
+		Vector4 packed_rotation;
 
 		switch (desired_format)
 		{
@@ -280,7 +280,7 @@ namespace acl
 			break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(desired_format));
-			packed_rotation = vector_zero_32();
+			packed_rotation = ArithmeticImpl::vector_zero();
 			break;
 		}
 
@@ -288,8 +288,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+			Vector4 segment_range_min = segment_bone_range.rotation.get_min();
+			Vector4 segment_range_extent = segment_bone_range.rotation.get_extent();
 
 			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
 		}
@@ -298,8 +298,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = clip_bone_range.rotation.get_min();
-			Vector4_32 clip_range_extent = clip_bone_range.rotation.get_extent();
+			Vector4 clip_range_min = clip_bone_range.rotation.get_min();
+			Vector4 clip_range_extent = clip_bone_range.rotation.get_extent();
 
 			packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 		}
@@ -307,12 +307,12 @@ namespace acl
 		switch (format)
 		{
 		case RotationFormat8::Quat_128:
-			return vector_to_quat(packed_rotation);
+			return ArithmeticImpl_<ArithmeticType8::Float32>::cast(vector_to_quat(packed_rotation));
 		case RotationFormat8::QuatDropW_96:
 		case RotationFormat8::QuatDropW_48:
 		case RotationFormat8::QuatDropW_32:
 		case RotationFormat8::QuatDropW_Variable:
-			return quat_from_positive_w(packed_rotation);
+			return ArithmeticImpl_<ArithmeticType8::Float32>::cast(quat_from_positive_w(packed_rotation));
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 			return quat_identity_32();
@@ -333,7 +333,7 @@ namespace acl
 
 		const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 
-		Vector4_32 packed_translation;
+		Vector4 packed_translation;
 
 		switch (format)
 		{
@@ -371,7 +371,7 @@ namespace acl
 		break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
-			packed_translation = vector_zero_32();
+			packed_translation = ArithmeticImpl::vector_zero();
 			break;
 		}
 
@@ -379,8 +379,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+			Vector4 segment_range_min = segment_bone_range.translation.get_min();
+			Vector4 segment_range_extent = segment_bone_range.translation.get_extent();
 
 			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
 		}
@@ -389,13 +389,13 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = clip_bone_range.translation.get_min();
-			Vector4_32 clip_range_extent = clip_bone_range.translation.get_extent();
+			Vector4 clip_range_min = clip_bone_range.translation.get_min();
+			Vector4 clip_range_extent = clip_bone_range.translation.get_extent();
 
 			packed_translation = vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
 		}
 
-		return packed_translation;
+		return ArithmeticImpl_<ArithmeticType8::Float32>::cast(packed_translation);
 	}
 
 	inline Vector4_32 get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, uint8_t bit_rate)
@@ -408,25 +408,25 @@ namespace acl
 
 		const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 
-		Vector4_32 translation;
+		Vector4 translation;
 
 		VectorFormat8 format = bone_steams.translations.get_vector_format();
 		switch (format)
 		{
 		case VectorFormat8::Vector3_96:
-			translation = unpack_vector3_96(quantized_ptr);
+			translation = ArithmeticImpl::vector_unaligned_load3(quantized_ptr);
 			break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
-			translation = vector_zero_32();
+			translation = ArithmeticImpl::vector_zero();
 			break;
 		}
 
 		ACL_ENSURE(clip_context->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
-		alignas(8) uint8_t raw_data[16] = { 0 };
-		Vector4_32 packed_translation;
+		alignas(8) uint8_t raw_data[sizeof(Vector4)] = { 0 };
+		Vector4 packed_translation;
 
 		if (is_pack_0_bit_rate(bit_rate))
 		{
@@ -434,8 +434,8 @@ namespace acl
 
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+			Vector4 segment_range_min = segment_bone_range.translation.get_min();
+			Vector4 segment_range_extent = segment_bone_range.translation.get_extent();
 
 			translation = vector_mul_add(translation, segment_range_extent, segment_range_min);
 
@@ -468,18 +468,18 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+			Vector4 segment_range_min = segment_bone_range.translation.get_min();
+			Vector4 segment_range_extent = segment_bone_range.translation.get_extent();
 
 			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
 		}
 
 		const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-		Vector4_32 clip_range_min = clip_bone_range.translation.get_min();
-		Vector4_32 clip_range_extent = clip_bone_range.translation.get_extent();
+		Vector4 clip_range_min = clip_bone_range.translation.get_min();
+		Vector4 clip_range_extent = clip_bone_range.translation.get_extent();
 
-		return vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
+		return ArithmeticImpl_<ArithmeticType8::Float32>::cast(vector_mul_add(packed_translation, clip_range_extent, clip_range_min));
 	}
 
 	inline Vector4_32 get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
@@ -489,23 +489,23 @@ namespace acl
 		const bool are_translations_normalized = clip_context->are_translations_normalized && !bone_steams.is_translation_constant;
 		const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 
-		Vector4_32 translation;
+		Vector4 translation;
 
 		VectorFormat8 format = bone_steams.translations.get_vector_format();
 		switch (format)
 		{
 		case VectorFormat8::Vector3_96:
-			translation = unpack_vector3_96(quantized_ptr);
+			translation = ArithmeticImpl::vector_unaligned_load3(quantized_ptr);
 			break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
-			translation = vector_zero_32();
+			translation = ArithmeticImpl::vector_zero();
 			break;
 		}
 
 		// Pack and unpack in our desired format
-		alignas(8) uint8_t raw_data[16] = { 0 };
-		Vector4_32 packed_translation;
+		alignas(8) uint8_t raw_data[sizeof(Vector4)] = { 0 };
+		Vector4 packed_translation;
 
 		switch (desired_format)
 		{
@@ -522,7 +522,7 @@ namespace acl
 			break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
-			packed_translation = vector_zero_32();
+			packed_translation = ArithmeticImpl::vector_zero();
 			break;
 		}
 
@@ -530,8 +530,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+			Vector4 segment_range_min = segment_bone_range.translation.get_min();
+			Vector4 segment_range_extent = segment_bone_range.translation.get_extent();
 
 			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
 		}
@@ -540,13 +540,13 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = clip_bone_range.translation.get_min();
-			Vector4_32 clip_range_extent = clip_bone_range.translation.get_extent();
+			Vector4 clip_range_min = clip_bone_range.translation.get_min();
+			Vector4 clip_range_extent = clip_bone_range.translation.get_extent();
 
 			packed_translation = vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
 		}
 
-		return packed_translation;
+		return ArithmeticImpl_<ArithmeticType8::Float32>::cast(packed_translation);
 	}
 
 	inline Vector4_32 get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index)
@@ -563,7 +563,7 @@ namespace acl
 
 		const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
 
-		Vector4_32 packed_scale;
+		Vector4 packed_scale;
 
 		switch (format)
 		{
@@ -601,7 +601,7 @@ namespace acl
 		break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
-			packed_scale = vector_set(1.0f);
+			packed_scale = vector_set(Scalar(1.0));
 			break;
 		}
 
@@ -609,8 +609,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+			Vector4 segment_range_min = segment_bone_range.scale.get_min();
+			Vector4 segment_range_extent = segment_bone_range.scale.get_extent();
 
 			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
 		}
@@ -619,13 +619,13 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = clip_bone_range.scale.get_min();
-			Vector4_32 clip_range_extent = clip_bone_range.scale.get_extent();
+			Vector4 clip_range_min = clip_bone_range.scale.get_min();
+			Vector4 clip_range_extent = clip_bone_range.scale.get_extent();
 
 			packed_scale = vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
 		}
 
-		return packed_scale;
+		return ArithmeticImpl_<ArithmeticType8::Float32>::cast(packed_scale);
 	}
 
 	inline Vector4_32 get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, uint8_t bit_rate)
@@ -638,25 +638,25 @@ namespace acl
 
 		const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
 
-		Vector4_32 scale;
+		Vector4 scale;
 
 		VectorFormat8 format = bone_steams.scales.get_vector_format();
 		switch (format)
 		{
 		case VectorFormat8::Vector3_96:
-			scale = unpack_vector3_96(quantized_ptr);
+			scale = ArithmeticImpl::vector_unaligned_load3(quantized_ptr);
 			break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
-			scale = vector_set(1.0f);
+			scale = vector_set(Scalar(1.0));
 			break;
 		}
 
 		ACL_ENSURE(clip_context->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
-		alignas(8) uint8_t raw_data[16] = { 0 };
-		Vector4_32 packed_scale;
+		alignas(8) uint8_t raw_data[sizeof(Vector4)] = { 0 };
+		Vector4 packed_scale;
 
 		if (is_pack_0_bit_rate(bit_rate))
 		{
@@ -664,8 +664,8 @@ namespace acl
 
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+			Vector4 segment_range_min = segment_bone_range.scale.get_min();
+			Vector4 segment_range_extent = segment_bone_range.scale.get_extent();
 
 			scale = vector_mul_add(scale, segment_range_extent, segment_range_min);
 
@@ -698,18 +698,18 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+			Vector4 segment_range_min = segment_bone_range.scale.get_min();
+			Vector4 segment_range_extent = segment_bone_range.scale.get_extent();
 
 			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
 		}
 
 		const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-		Vector4_32 clip_range_min = clip_bone_range.scale.get_min();
-		Vector4_32 clip_range_extent = clip_bone_range.scale.get_extent();
+		Vector4 clip_range_min = clip_bone_range.scale.get_min();
+		Vector4 clip_range_extent = clip_bone_range.scale.get_extent();
 
-		return vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
+		return ArithmeticImpl_<ArithmeticType8::Float32>::cast(vector_mul_add(packed_scale, clip_range_extent, clip_range_min));
 	}
 
 	inline Vector4_32 get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
@@ -719,23 +719,23 @@ namespace acl
 		const bool are_scales_normalized = clip_context->are_scales_normalized && !bone_steams.is_scale_constant;
 		const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
 
-		Vector4_32 scale;
+		Vector4 scale;
 
 		VectorFormat8 format = bone_steams.scales.get_vector_format();
 		switch (format)
 		{
 		case VectorFormat8::Vector3_96:
-			scale = unpack_vector3_96(quantized_ptr);
+			scale = ArithmeticImpl::vector_unaligned_load3(quantized_ptr);
 			break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
-			scale = vector_set(1.0f);
+			scale = vector_set(Scalar(1.0));
 			break;
 		}
 
 		// Pack and unpack in our desired format
-		alignas(8) uint8_t raw_data[16] = { 0 };
-		Vector4_32 packed_scale;
+		alignas(8) uint8_t raw_data[sizeof(Vector4)] = { 0 };
+		Vector4 packed_scale;
 
 		switch (desired_format)
 		{
@@ -752,7 +752,7 @@ namespace acl
 			break;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
-			packed_scale = vector_set(1.0f);
+			packed_scale = vector_set(Scalar(1.0));
 			break;
 		}
 
@@ -760,8 +760,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+			Vector4 segment_range_min = segment_bone_range.scale.get_min();
+			Vector4 segment_range_extent = segment_bone_range.scale.get_extent();
 
 			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
 		}
@@ -770,13 +770,13 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4_32 clip_range_min = clip_bone_range.scale.get_min();
-			Vector4_32 clip_range_extent = clip_bone_range.scale.get_extent();
+			Vector4 clip_range_min = clip_bone_range.scale.get_min();
+			Vector4 clip_range_extent = clip_bone_range.scale.get_extent();
 
 			packed_scale = vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
 		}
 
-		return packed_scale;
+		return ArithmeticImpl_<ArithmeticType8::Float32>::cast(packed_scale);
 	}
 
 	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, Transform_32* out_local_pose)

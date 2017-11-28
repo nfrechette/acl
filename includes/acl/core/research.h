@@ -62,6 +62,8 @@ namespace acl
 		static constexpr float cast(double input) { return float(input); }
 		static constexpr float cast(float input) { return input; }
 
+		static constexpr QuatType quat_identity() { return quat_identity_32(); }
+
 		static constexpr Vector4Type vector_zero() { return vector_zero_32(); }
 		static constexpr Vector4Type vector_unaligned_load(const uint8_t* input) { return vector_unaligned_load_32(input); }
 		static constexpr Vector4Type vector_unaligned_load3(const uint8_t* input) { return vector_unaligned_load3_32(input); }
@@ -77,8 +79,11 @@ namespace acl
 
 		static constexpr QuatType cast(const Quat_64& input) { return input; }
 		static constexpr Vector4Type cast(const Vector4_64& input) { return input; }
+		static constexpr Vector4Type cast(const Vector4_32& input) { return vector_cast(input); }
 		static constexpr double cast(double input) { return input; }
 		static constexpr double cast(float input) { return double(input); }
+
+		static constexpr QuatType quat_identity() { return quat_identity_64(); }
 
 		static constexpr Vector4Type vector_zero() { return vector_zero_64(); }
 		static constexpr Vector4Type vector_unaligned_load(const uint8_t* input) { return vector_unaligned_load_64(input); }

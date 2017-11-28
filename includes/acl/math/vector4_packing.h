@@ -72,7 +72,8 @@ namespace acl
 		return vector_set(x, y, z, w);
 	}
 
-	inline void pack_vector4_32(const Vector4& vector, bool is_unsigned, uint8_t* out_vector_data)
+	template<typename Vector4Type>
+	inline void pack_vector4_32(const Vector4Type& vector, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		size_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 8) : pack_scalar_signed(vector_get_x(vector), 8);
 		size_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 8) : pack_scalar_signed(vector_get_y(vector), 8);
@@ -100,12 +101,12 @@ namespace acl
 
 	inline void pack_vector3_96(const Vector4& vector, uint8_t* out_vector_data)
 	{
-		vector_unaligned_write3(vector, out_vector_data);
+		vector_unaligned_write3(ArithmeticImpl_<ArithmeticType8::Float32>::cast(vector), out_vector_data);
 	}
 
 	inline Vector4 unpack_vector3_96(const uint8_t* vector_data)
 	{
-		return ArithmeticImpl::vector_unaligned_load3(vector_data);
+		return ArithmeticImpl::cast(vector_unaligned_load3_32(vector_data));
 	}
 
 	// Assumes the 'vector_data' is in big-endian order
@@ -200,7 +201,8 @@ namespace acl
 		return vector_set(x, y, z);
 	}
 
-	inline void pack_vector3_24(const Vector4& vector, bool is_unsigned, uint8_t* out_vector_data)
+	template<typename Vector4Type>
+	inline void pack_vector3_24(const Vector4Type& vector, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		size_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 8) : pack_scalar_signed(vector_get_x(vector), 8);
 		size_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 8) : pack_scalar_signed(vector_get_y(vector), 8);

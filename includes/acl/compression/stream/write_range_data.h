@@ -65,8 +65,8 @@ namespace acl
 
 	inline void write_range_track_data_impl(const TrackStream& track, const TrackStreamRange& range, bool is_clip_range_data, uint8_t*& out_range_data)
 	{
-		Vector4_32 range_min = range.get_min();
-		Vector4_32 range_extent = range.get_extent();
+		Vector4_32 range_min = ArithmeticImpl_<ArithmeticType8::Float32>::cast(range.get_min());
+		Vector4_32 range_extent = ArithmeticImpl_<ArithmeticType8::Float32>::cast(range.get_extent());
 
 		if (is_clip_range_data)
 		{
@@ -132,8 +132,8 @@ namespace acl
 
 			if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
 			{
-				Vector4_32 range_min = bone_range.rotation.get_min();
-				Vector4_32 range_extent = bone_range.rotation.get_extent();
+				Vector4_32 range_min = ArithmeticImpl_<ArithmeticType8::Float32>::cast(bone_range.rotation.get_min());
+				Vector4_32 range_extent = ArithmeticImpl_<ArithmeticType8::Float32>::cast(bone_range.rotation.get_extent());
 
 				if (is_clip_range_data)
 				{
