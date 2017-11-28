@@ -11,9 +11,11 @@ def parse_argv():
 	options['test'] = False
 	options['use_avx'] = False
 	options['compiler'] = None
+	options['config'] = 'Release'
 
 	for i in range(1, len(sys.argv)):
 		value = sys.argv[i]
+		value_upper = value.upper()
 
 		if value == '-build':
 			options['build'] = True
@@ -27,6 +29,13 @@ def parse_argv():
 		if value == '-avx':
 			options['use_avx'] = True
 
+		# TODO: Refactor to use the form: -compiler=vs2015
+		if value == '-vs2015':
+			options['compiler'] = 'vs2015'
+
+		if value == '-vs2017':
+			options['compiler'] = 'vs2017'
+
 		if value == '-clang4':
 			options['compiler'] = 'clang4'
 
@@ -36,6 +45,13 @@ def parse_argv():
 		if value == '-gcc5':
 			options['compiler'] = 'gcc5'
 
+		# TODO: Refactor to use the form: -config=Release
+		if value_upper == '-DEBUG':
+			options['config'] = 'Debug'
+
+		if value_upper == '-RELEASE':
+			options['config'] = 'Release'
+
 	return options
 
 def get_cmake_exes():
@@ -44,27 +60,42 @@ def get_cmake_exes():
 	else:
 		return ('cmake', 'ctest')
 
-def get_generator():
+def get_generator(compiler):
 	if platform.system() == 'Windows':
-		return 'Visual Studio 14 Win64'
+		if compiler == 'vs2015':
+			return 'Visual Studio 14 Win64'
+		elif compiler == 'vs2017':
+			return 'Visual Studio 15 Win64'
+		else:
+			print('Unknown compiler: {}'.format(compiler))
+			sys.exit(1)
 	else:
 		return 'Unix Makefiles'
 
-def set_compiler(compiler):
-	if compiler == 'clang4':
-		os.environ['CC'] = 'clang-4.0'
-		os.environ['CXX'] = 'clang++-4.0'
-	elif compiler == 'clang5':
-		os.environ['CC'] = 'clang-5.0'
-		os.environ['CXX'] = 'clang++-5.0'
-	elif compiler == 'gcc5':
-		os.environ['CC'] = 'gcc-5'
-		os.environ['CXX'] = 'g++-5'
+def set_compiler_env(compiler):
+	if not platform.system() == 'Windows':
+		if compiler == 'clang4':
+			os.environ['CC'] = 'clang-4.0'
+			os.environ['CXX'] = 'clang++-4.0'
+		elif compiler == 'clang5':
+			os.environ['CC'] = 'clang-5.0'
+			os.environ['CXX'] = 'clang++-5.0'
+		elif compiler == 'gcc5':
+			os.environ['CC'] = 'gcc-5'
+			os.environ['CXX'] = 'g++-5'
+		else:
+			print('Unknown compiler: {}'.format(compiler))
+			sys.exit(1)
 
 if __name__ == "__main__":
 	options = parse_argv()
 	cmake_exe, ctest_exe = get_cmake_exes()
-	cmake_generator = get_generator()
+	compiler = options['compiler']
+	config = options['config']
+
+	if not compiler == None:
+		print('Using compiler: {}'.format(compiler))
+	print('Using config: {}'.format(config))
 
 	# Set the ACL_CMAKE_HOME environment variable to point to CMake
 	# otherwise we assume it is already in the user PATH
@@ -84,8 +115,8 @@ if __name__ == "__main__":
 
 	os.chdir(build_dir)
 
-	if options['compiler'] != None:
-		set_compiler(options['compiler'])
+	if not compiler == None:
+		set_compiler_env(compiler)
 
 	extra_switches = []
 	if options['use_avx']:
@@ -93,27 +124,38 @@ if __name__ == "__main__":
 		extra_switches.append("-DUSE_AVX_INSTRUCTIONS:BOOL=true")
 
 	# Generate IDE solution
-	print('Generating build files for: {}'.format(cmake_generator))
-	cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" {} -G "{}"'.format(cmake_exe, build_dir, '.'.join(extra_switches), cmake_generator)
-	if not platform.system() == 'Windows':
-		cmake_cmd += ' -DCMAKE_BUILD_TYPE=RELEASE'
+	print('Generating build files ...')
+	cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(cmake_exe, build_dir, ' '.join(extra_switches))
+	if platform.system() == 'Windows':
+		if not compiler == None:
+			cmake_generator = get_generator(compiler)
+			print('Using generator: {}'.format(cmake_generator))
+			cmake_cmd += ' -G "{}"'.format(cmake_generator)
+	else:
+		cmake_cmd += ' -DCMAKE_BUILD_TYPE={}'.format(config.upper())
 
-	subprocess.call(cmake_cmd, shell=True)
+	result = subprocess.call(cmake_cmd, shell=True)
+	if result != 0:
+		sys.exit(result)
 
 	if options['build']:
 		print('Building ...')
 		cmake_cmd = '"{}" --build .'.format(cmake_exe)
 		if platform.system() == 'Windows':
-			cmake_cmd += ' --config Release --target INSTALL'
+			cmake_cmd += ' --config {} --target INSTALL'.format(config)
 		else:
 			cmake_cmd += ' --target install'
 
-		subprocess.call(cmake_cmd, shell=True)
+		result = subprocess.call(cmake_cmd, shell=True)
+		if result != 0:
+			sys.exit(result)
 	
 	if options['test']:
 		print('Running unit tests ...')
 		ctest_cmd = '"{}" --output-on-failure'.format(ctest_exe)
 		if platform.system() == 'Windows':
-			ctest_cmd += ' -C Release'
+			ctest_cmd += ' -C {}'.format(config)
 
-		subprocess.call(ctest_cmd, shell=True)
+		result = subprocess.call(ctest_cmd, shell=True)
+		if result != 0:
+			sys.exit(result)
