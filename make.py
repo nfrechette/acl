@@ -113,4 +113,7 @@ if __name__ == "__main__":
 	if options['test']:
 		print('Running unit tests ...')
 		ctest_cmd = '"{}" --output-on-failure'.format(ctest_exe)
+		if platform.system() == 'Windows':
+			ctest_cmd += ' -C Release'
+
 		subprocess.call(ctest_cmd, shell=True)
