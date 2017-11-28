@@ -136,6 +136,10 @@ if __name__ == "__main__":
 			file_data['filename'] = stat_filename
 			file_data['desc'] = '{} {} {}'.format(file_data['algorithm_name'], file_data['rotation_format'], file_data['translation_format'])
 			file_data['clip_name'] = os.path.splitext(os.path.basename(stat_filename))[0]
+
+			if not options['csv_error']:
+				file_data['error_per_frame_and_bone'] = []
+
 			stats.append(file_data)
 			num_stat_file_processed += 1
 			print_progress(num_stat_file_processed, len(stat_files), 'Aggregating results:', '{} / {}'.format(num_stat_file_processed, len(stat_files)))
