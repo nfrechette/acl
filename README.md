@@ -35,14 +35,8 @@ The library aims to support the most common platforms for the most common use ca
 The math library is not yet fully optimized for every platform. The overwhelming majority of the math heavy code executes when compressing, not decompressing.
 Decompression is typically very simple and light in order to be fast. Very little math is involved beyond interpolating values.
 
-### Compression
-
-*  Windows
-
-### Decompression
-
-*  Windows
-*  Android
+*  Compression and decompression: Windows (VS2015, VS2017), Linux (gcc5, clang4, clang5)
+*  Decompression only: Android (NVIDIA CodeWorks)
 
 ## Algorithms supported
 
@@ -53,15 +47,16 @@ Decompression is typically very simple and light in order to be fast. Very littl
 
 ## Getting up and running
 
-### Windows
+### Windows and Linux
 
-1. Install Visual Studio 2015
+1. Install the proper compiler for your platform
 2. Install CMake 3.2 or higher
-3. Install Python 3.3 (version 3.3 is required for the FBX SDK by some scripts)
+3. Install Python 3
 4. Generate the IDE solution with: `python make.py`  
    The solution is generated under `./build`  
    Note that if you do not have CMake in your `PATH`, you should define the `ACL_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
 5. Build the IDE solution with: `python make.py -build`
+6. Run the unit tests with: `python make.py -test`
 
 ## Reference material
 
