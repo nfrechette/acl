@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.2)
 project(acl)
 
 set(USE_AVX_INSTRUCTIONS false CACHE BOOL "Use AVX instructions")
+set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
 
 # Grab all of our include files
 file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false
