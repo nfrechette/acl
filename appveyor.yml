@@ -7,13 +7,19 @@ image:
 - Visual Studio 2015
 - Visual Studio 2017
 
+platform:
+- x86
+- x64
+
 configuration:
 - Debug
 - Release
 
 build_script:
 - cmd: >-
-    %PYTHON%\\python.exe make.py -build -%configuration%
+    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2015" (SET COMPILER=vs2015) ELSE (SET COMPILER=vs2017)
+    
+    %PYTHON%\\python.exe make.py -build -%configuration% -%platform% -%COMPILER%
 
 test_script:
 - cmd: >-
