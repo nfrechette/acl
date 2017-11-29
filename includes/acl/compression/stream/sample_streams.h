@@ -162,7 +162,7 @@ namespace acl
 
 		// Pack and unpack at our desired bit rate
 		uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-		uint8_t raw_data[16] = { 0 };
+		alignas(8) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_rotation;
 
 		if (is_pack_0_bit_rate(bit_rate))
@@ -261,7 +261,7 @@ namespace acl
 		}
 
 		// Pack and unpack in our desired format
-		uint8_t raw_data[16] = { 0 };
+		alignas(8) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_rotation;
 
 		switch (desired_format)
@@ -425,7 +425,7 @@ namespace acl
 		ACL_ENSURE(clip_context->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
-		uint8_t raw_data[16] = { 0 };
+		alignas(8) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_translation;
 
 		if (is_pack_0_bit_rate(bit_rate))
@@ -504,7 +504,7 @@ namespace acl
 		}
 
 		// Pack and unpack in our desired format
-		uint8_t raw_data[16] = { 0 };
+		alignas(8) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_translation;
 
 		switch (desired_format)
@@ -655,7 +655,7 @@ namespace acl
 		ACL_ENSURE(clip_context->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
-		uint8_t raw_data[16] = { 0 };
+		alignas(8) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_scale;
 
 		if (is_pack_0_bit_rate(bit_rate))
@@ -734,7 +734,7 @@ namespace acl
 		}
 
 		// Pack and unpack in our desired format
-		uint8_t raw_data[16] = { 0 };
+		alignas(8) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_scale;
 
 		switch (desired_format)
