@@ -23,7 +23,11 @@ if(MSVC)
 	target_compile_options(acl_unit_tests PRIVATE /wd4100)			# unreferenced formal parameter
 	target_compile_options(acl_unit_tests PRIVATE /wd4324)			# structure was padded due to alignment specified
 	target_compile_options(acl_unit_tests PRIVATE /wd4127)			# conditional expression is constant
-	target_compile_options(acl_unit_tests PRIVATE /permissive-)
+
+	if(MSVC_VERSION GREATER 1900)
+		# VS2017 and above
+		target_compile_options(acl_compressor PRIVATE /permissive-)
+	endif()
 
 	if(USE_AVX_INSTRUCTIONS)
 		target_compile_options(acl_unit_tests PRIVATE "/arch:AVX")

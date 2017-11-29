@@ -927,7 +927,7 @@ namespace acl
 					float best_error = error;
 
 					// The first permutation increases the bit rate of a single track/bone
-					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
+					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
 					bone_chain_permutation[num_bones_in_chain - 1] = 1;
 					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
@@ -940,7 +940,7 @@ namespace acl
 					}
 
 					// The second permutation increases the bit rate of 2 track/bones
-					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
+					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
 					bone_chain_permutation[num_bones_in_chain - 1] = 2;
 					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
@@ -954,7 +954,7 @@ namespace acl
 
 					if (num_bones_in_chain > 1)
 					{
-						std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
+						std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
 						bone_chain_permutation[num_bones_in_chain - 2] = 1;
 						bone_chain_permutation[num_bones_in_chain - 1] = 1;
 						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
@@ -969,7 +969,7 @@ namespace acl
 					}
 
 					// The third permutation increases the bit rate of 3 track/bones
-					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
+					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
 					bone_chain_permutation[num_bones_in_chain - 1] = 3;
 					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
@@ -983,7 +983,7 @@ namespace acl
 
 					if (num_bones_in_chain > 1)
 					{
-						std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
+						std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
 						bone_chain_permutation[num_bones_in_chain - 2] = 2;
 						bone_chain_permutation[num_bones_in_chain - 1] = 1;
 						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
@@ -998,7 +998,7 @@ namespace acl
 
 						if (num_bones_in_chain > 2)
 						{
-							std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, 0);
+							std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
 							bone_chain_permutation[num_bones_in_chain - 3] = 1;
 							bone_chain_permutation[num_bones_in_chain - 2] = 1;
 							bone_chain_permutation[num_bones_in_chain - 1] = 1;
