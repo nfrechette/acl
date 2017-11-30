@@ -35,19 +35,25 @@
 
 namespace acl
 {
-	inline void convert_rotation_streams(Allocator& allocator, SegmentContext& segment, RotationFormat8 rotation_format)
+	inline void convert_rotation_streams(Allocator& allocator, BoneStreams* bone_streams, uint16_t num_bones, RotationFormat8 rotation_format)
 	{
-		const RotationFormat8 high_precision_format = get_rotation_variant(rotation_format) == RotationVariant8::Quat ? RotationFormat8::Quat_128 : RotationFormat8::QuatDropW_96;
+		RotationFormat8 high_precision_format;
+		if (get_rotation_variant(rotation_format) == RotationVariant8::Quat)
+			high_precision_format = ArithmeticImpl::k_type == ArithmeticType8::Float32 ? RotationFormat8::Quat_128 : RotationFormat8::Quat_256;
+		else
+			high_precision_format = ArithmeticImpl::k_type == ArithmeticType8::Float32 ? RotationFormat8::QuatDropW_96 : RotationFormat8::QuatDropW_192;
 
-		for (BoneStreams& bone_stream : segment.bone_iterator())
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
+			BoneStreams& bone_stream = bone_streams[bone_index];
+
 			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored at Quat_32
 			// For all other formats, we keep the same sample size and either keep Quat_32 or use Vector4_32
 			//ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
 
-			const uint32_t num_samples = bone_stream.rotations.get_num_samples();
-			const uint32_t sample_rate = bone_stream.rotations.get_sample_rate();
-			RotationTrackStream converted_stream(allocator, num_samples, sizeof(Quat_32), sample_rate, high_precision_format);
+			uint32_t num_samples = bone_stream.rotations.get_num_samples();
+			uint32_t sample_rate = bone_stream.rotations.get_sample_rate();
+			RotationTrackStream converted_stream(allocator, num_samples, sizeof(Quat), sample_rate, high_precision_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -56,9 +62,11 @@ namespace acl
 				switch (high_precision_format)
 				{
 				case RotationFormat8::Quat_128:
+				case RotationFormat8::Quat_256:
 					// Original format, nothing to do
 					break;
 				case RotationFormat8::QuatDropW_96:
+				case RotationFormat8::QuatDropW_192:
 					// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 					rotation = quat_ensure_positive_w(rotation);
 					break;
@@ -77,6 +85,6 @@ namespace acl
 	inline void convert_rotation_streams(Allocator& allocator, ClipContext& clip_context, RotationFormat8 rotation_format)
 	{
 		for (SegmentContext& segment : clip_context.segment_iterator())
-			convert_rotation_streams(allocator, segment, rotation_format);
+			convert_rotation_streams(allocator, segment.bone_streams, segment.num_bones, rotation_format);
 	}
 }

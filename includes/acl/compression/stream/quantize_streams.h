@@ -173,7 +173,7 @@ namespace acl
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			//ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
-			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
+			//ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t sample_size = get_packed_vector_size(translation_format);
@@ -226,7 +226,7 @@ namespace acl
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			//ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
-			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
+			//ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			const uint32_t num_samples = is_pack_0_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
@@ -293,8 +293,8 @@ namespace acl
 		inline void quantize_fixed_scale_stream(Allocator& allocator, const ScaleTrackStream& raw_stream, VectorFormat8 scale_format, ScaleTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
-			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
+			//ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
+			//ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t sample_size = get_packed_vector_size(scale_format);

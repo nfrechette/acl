@@ -74,6 +74,9 @@ namespace acl
 		uint32_t sample_rate = clip.get_sample_rate();
 		const AnimatedBone* bones = clip.get_bones();
 
+		RotationFormat8 rotation_format = ArithmeticImpl::k_type == ArithmeticType8::Float32 ? RotationFormat8::Quat_128 : RotationFormat8::Quat_256;
+		VectorFormat8 vector_format = ArithmeticImpl::k_type == ArithmeticType8::Float32 ? VectorFormat8::Vector3_96 : VectorFormat8::Vector3_192;
+
 		ACL_ENSURE(num_bones > 0, "Clip has no bones!");
 		ACL_ENSURE(num_samples > 0, "Clip has no samples!");
 
@@ -105,9 +108,9 @@ namespace acl
 			bone_stream.bone_index = bone_index;
 			bone_stream.parent_bone_index = skel_bone.parent_index;
 
-			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat), sample_rate, RotationFormat8::Quat_128);
-			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4), sample_rate, VectorFormat8::Vector3_96);
-			bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(Vector4), sample_rate, VectorFormat8::Vector3_96);
+			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat), sample_rate, rotation_format);
+			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4), sample_rate, vector_format);
+			bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(Vector4), sample_rate, vector_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{

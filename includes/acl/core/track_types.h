@@ -44,6 +44,9 @@ namespace acl
 		//QuatLog_48,			// Quantized quaternion logarithm, [x,y,z] stored with [16,16,16] bits
 		//QuatLog_32,			// Quantized quaternion logarithm, [x,y,z] stored with [11,11,10] bits
 		//QuatLog_Variable,		// Quantized quaternion logarithm, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
+		// Compression only
+		Quat_256,
+		QuatDropW_192,
 	};
 
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
@@ -55,6 +58,8 @@ namespace acl
 		Vector3_48					= 1,	// Quantized vector3, [x,y,z] stored with [16,16,16] bits
 		Vector3_32					= 2,	// Quantized vector3, [x,y,z] stored with [11,11,10] bits
 		Vector3_Variable			= 3,	// Quantized vector3, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
+		// Compression only
+		Vector3_192,
 	};
 
 	union TrackFormat8
@@ -160,11 +165,13 @@ namespace acl
 		switch (rotation_format)
 		{
 		case RotationFormat8::Quat_128:
+		case RotationFormat8::Quat_256:
 			return RotationVariant8::Quat;
 		case RotationFormat8::QuatDropW_96:
 		case RotationFormat8::QuatDropW_48:
 		case RotationFormat8::QuatDropW_32:
 		case RotationFormat8::QuatDropW_Variable:
+		case RotationFormat8::QuatDropW_192:
 			return RotationVariant8::QuatDropW;
 		default:
 			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));

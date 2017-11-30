@@ -138,11 +138,11 @@ namespace acl
 
 		const uint64_t z64 = vector_u64;
 
-		const Scalar x = aligned_load<Scalar>(&x64);
-		const Scalar y = aligned_load<Scalar>(&y64);
-		const Scalar z = aligned_load<Scalar>(&z64);
+		const float x = aligned_load<float>(&x64);
+		const float y = aligned_load<float>(&y64);
+		const float z = aligned_load<float>(&z64);
 
-		return vector_set(x, y, z);
+		return ArithmeticImpl::cast(vector_set(x, y, z));
 	}
 
 	inline void pack_vector3_48(const Vector4& vector, bool is_unsigned , uint8_t* out_vector_data)
