@@ -121,7 +121,7 @@ namespace acl
 			}
 		}
 
-		inline Quat_32 rotation_to_quat_32(Vector4 rotation, RotationFormat8 format)
+		inline Quat_32 rotation_to_quat_32(const Vector4& rotation, RotationFormat8 format)
 		{
 			switch (format)
 			{
@@ -133,13 +133,19 @@ namespace acl
 			case RotationFormat8::QuatDropW_Variable:
 				return ArithmeticImpl_<ArithmeticType8::Float32>::cast(quat_from_positive_w(rotation));
 			case RotationFormat8::Quat_256:
-				return ArithmeticImpl_<ArithmeticType8::Float32>::cast(quat_normalize(vector_to_quat(rotation)));
+				return quat_normalize(ArithmeticImpl_<ArithmeticType8::Float32>::cast(vector_to_quat(rotation)));
 			case RotationFormat8::QuatDropW_192:
-				return ArithmeticImpl_<ArithmeticType8::Float32>::cast(quat_normalize(quat_from_positive_w(rotation)));
+				return quat_from_positive_w(ArithmeticImpl_<ArithmeticType8::Float32>::cast(rotation));
 			default:
 				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 				return quat_identity_32();
 			}
+		}
+
+		inline Vector4 range_round_trip(const Vector4& input)
+		{
+			// Cast to the intermediary representation and back
+			return ArithmeticImpl::cast(ArithmeticImpl_<ArithmeticType8::Float32>::cast(input));
 		}
 	}
 
@@ -163,8 +169,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4 segment_range_min = segment_bone_range.rotation.get_min();
-			Vector4 segment_range_extent = segment_bone_range.rotation.get_extent();
+			Vector4 segment_range_min = impl::range_round_trip(segment_bone_range.rotation.get_min());
+			Vector4 segment_range_extent = impl::range_round_trip(segment_bone_range.rotation.get_extent());
 
 			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
 		}
@@ -173,8 +179,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4 clip_range_min = clip_bone_range.rotation.get_min();
-			Vector4 clip_range_extent = clip_bone_range.rotation.get_extent();
+			Vector4 clip_range_min = impl::range_round_trip(clip_bone_range.rotation.get_min());
+			Vector4 clip_range_extent = impl::range_round_trip(clip_bone_range.rotation.get_extent());
 
 			packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 		}
@@ -241,8 +247,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4 segment_range_min = segment_bone_range.rotation.get_min();
-			Vector4 segment_range_extent = segment_bone_range.rotation.get_extent();
+			Vector4 segment_range_min = impl::range_round_trip(segment_bone_range.rotation.get_min());
+			Vector4 segment_range_extent = impl::range_round_trip(segment_bone_range.rotation.get_extent());
 
 			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
 		}
@@ -251,8 +257,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4 clip_range_min = clip_bone_range.rotation.get_min();
-			Vector4 clip_range_extent = clip_bone_range.rotation.get_extent();
+			Vector4 clip_range_min = impl::range_round_trip(clip_bone_range.rotation.get_min());
+			Vector4 clip_range_extent = impl::range_round_trip(clip_bone_range.rotation.get_extent());
 
 			packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 		}
@@ -298,8 +304,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4 segment_range_min = segment_bone_range.rotation.get_min();
-			Vector4 segment_range_extent = segment_bone_range.rotation.get_extent();
+			Vector4 segment_range_min = impl::range_round_trip(segment_bone_range.rotation.get_min());
+			Vector4 segment_range_extent = impl::range_round_trip(segment_bone_range.rotation.get_extent());
 
 			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
 		}
@@ -308,8 +314,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4 clip_range_min = clip_bone_range.rotation.get_min();
-			Vector4 clip_range_extent = clip_bone_range.rotation.get_extent();
+			Vector4 clip_range_min = impl::range_round_trip(clip_bone_range.rotation.get_min());
+			Vector4 clip_range_extent = impl::range_round_trip(clip_bone_range.rotation.get_extent());
 
 			packed_rotation = vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 		}
@@ -336,8 +342,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4 segment_range_min = segment_bone_range.translation.get_min();
-			Vector4 segment_range_extent = segment_bone_range.translation.get_extent();
+			Vector4 segment_range_min = impl::range_round_trip(segment_bone_range.translation.get_min());
+			Vector4 segment_range_extent = impl::range_round_trip(segment_bone_range.translation.get_extent());
 
 			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
 		}
@@ -346,8 +352,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4 clip_range_min = clip_bone_range.translation.get_min();
-			Vector4 clip_range_extent = clip_bone_range.translation.get_extent();
+			Vector4 clip_range_min = impl::range_round_trip(clip_bone_range.translation.get_min());
+			Vector4 clip_range_extent = impl::range_round_trip(clip_bone_range.translation.get_extent());
 
 			packed_translation = vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
 		}
@@ -414,16 +420,16 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4 segment_range_min = segment_bone_range.translation.get_min();
-			Vector4 segment_range_extent = segment_bone_range.translation.get_extent();
+			Vector4 segment_range_min = impl::range_round_trip(segment_bone_range.translation.get_min());
+			Vector4 segment_range_extent = impl::range_round_trip(segment_bone_range.translation.get_extent());
 
 			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
 		}
 
 		const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-		Vector4 clip_range_min = clip_bone_range.translation.get_min();
-		Vector4 clip_range_extent = clip_bone_range.translation.get_extent();
+		Vector4 clip_range_min = impl::range_round_trip(clip_bone_range.translation.get_min());
+		Vector4 clip_range_extent = impl::range_round_trip(clip_bone_range.translation.get_extent());
 
 		return ArithmeticImpl_<ArithmeticType8::Float32>::cast(vector_mul_add(packed_translation, clip_range_extent, clip_range_min));
 	}
@@ -465,8 +471,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4 segment_range_min = segment_bone_range.translation.get_min();
-			Vector4 segment_range_extent = segment_bone_range.translation.get_extent();
+			Vector4 segment_range_min = impl::range_round_trip(segment_bone_range.translation.get_min());
+			Vector4 segment_range_extent = impl::range_round_trip(segment_bone_range.translation.get_extent());
 
 			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
 		}
@@ -475,8 +481,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4 clip_range_min = clip_bone_range.translation.get_min();
-			Vector4 clip_range_extent = clip_bone_range.translation.get_extent();
+			Vector4 clip_range_min = impl::range_round_trip(clip_bone_range.translation.get_min());
+			Vector4 clip_range_extent = impl::range_round_trip(clip_bone_range.translation.get_extent());
 
 			packed_translation = vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
 		}
@@ -503,8 +509,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4 segment_range_min = segment_bone_range.scale.get_min();
-			Vector4 segment_range_extent = segment_bone_range.scale.get_extent();
+			Vector4 segment_range_min = impl::range_round_trip(segment_bone_range.scale.get_min());
+			Vector4 segment_range_extent = impl::range_round_trip(segment_bone_range.scale.get_extent());
 
 			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
 		}
@@ -513,8 +519,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4 clip_range_min = clip_bone_range.scale.get_min();
-			Vector4 clip_range_extent = clip_bone_range.scale.get_extent();
+			Vector4 clip_range_min = impl::range_round_trip(clip_bone_range.scale.get_min());
+			Vector4 clip_range_extent = impl::range_round_trip(clip_bone_range.scale.get_extent());
 
 			packed_scale = vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
 		}
@@ -581,16 +587,16 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4 segment_range_min = segment_bone_range.scale.get_min();
-			Vector4 segment_range_extent = segment_bone_range.scale.get_extent();
+			Vector4 segment_range_min = impl::range_round_trip(segment_bone_range.scale.get_min());
+			Vector4 segment_range_extent = impl::range_round_trip(segment_bone_range.scale.get_extent());
 
 			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
 		}
 
 		const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-		Vector4 clip_range_min = clip_bone_range.scale.get_min();
-		Vector4 clip_range_extent = clip_bone_range.scale.get_extent();
+		Vector4 clip_range_min = impl::range_round_trip(clip_bone_range.scale.get_min());
+		Vector4 clip_range_extent = impl::range_round_trip(clip_bone_range.scale.get_extent());
 
 		return ArithmeticImpl_<ArithmeticType8::Float32>::cast(vector_mul_add(packed_scale, clip_range_extent, clip_range_min));
 	}
@@ -632,8 +638,8 @@ namespace acl
 		{
 			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
-			Vector4 segment_range_min = segment_bone_range.scale.get_min();
-			Vector4 segment_range_extent = segment_bone_range.scale.get_extent();
+			Vector4 segment_range_min = impl::range_round_trip(segment_bone_range.scale.get_min());
+			Vector4 segment_range_extent = impl::range_round_trip(segment_bone_range.scale.get_extent());
 
 			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
 		}
@@ -642,8 +648,8 @@ namespace acl
 		{
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
-			Vector4 clip_range_min = clip_bone_range.scale.get_min();
-			Vector4 clip_range_extent = clip_bone_range.scale.get_extent();
+			Vector4 clip_range_min = impl::range_round_trip(clip_bone_range.scale.get_min());
+			Vector4 clip_range_extent = impl::range_round_trip(clip_bone_range.scale.get_extent());
 
 			packed_scale = vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
 		}
