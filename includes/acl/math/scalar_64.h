@@ -120,4 +120,12 @@ namespace acl
 	{
 		return value - floor(value);
 	}
+
+	template<typename SrcIntegralType>
+	inline double safe_to_double(SrcIntegralType input)
+	{
+		double input_f = double(input);
+		ACL_ENSURE(SrcIntegralType(input_f) == input, "Convertion to double would result in truncation");
+		return input_f;
+	}
 }
