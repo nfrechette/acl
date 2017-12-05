@@ -24,8 +24,6 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <cstring>
-
 #include "acl/core/error.h"
 #include "acl/core/memory.h"
 #include "acl/math/math.h"
@@ -579,11 +577,18 @@ namespace acl
 	template<VectorMix comp0, VectorMix comp1, VectorMix comp2, VectorMix comp3>
 	inline Vector4_32 vector_mix(const Vector4_32& input0, const Vector4_32& input1)
 	{
+#if defined(ACL_SSE2_INTRINSICS)
+		constexpr uint32_t component_index0 = math_impl::get_vector_mix_component_index(comp0);
+		constexpr uint32_t component_index1 = math_impl::get_vector_mix_component_index(comp1);
+		constexpr uint32_t component_index2 = math_impl::get_vector_mix_component_index(comp2);
+		constexpr uint32_t component_index3 = math_impl::get_vector_mix_component_index(comp3);
+#endif
+
 		if (math_impl::is_vector_mix_arg_xyzw(comp0) && math_impl::is_vector_mix_arg_xyzw(comp1) && math_impl::is_vector_mix_arg_xyzw(comp2) && math_impl::is_vector_mix_arg_xyzw(comp3))
 		{
 			// All four components come from input 0
 #if defined(ACL_SSE2_INTRINSICS)
-			return _mm_shuffle_ps(input0, input0, _MM_SHUFFLE(GET_VECTOR_MIX_COMPONENT_INDEX(comp0), GET_VECTOR_MIX_COMPONENT_INDEX(comp1), GET_VECTOR_MIX_COMPONENT_INDEX(comp2), GET_VECTOR_MIX_COMPONENT_INDEX(comp3)));
+			return _mm_shuffle_ps(input0, input0, _MM_SHUFFLE(component_index3, component_index2, component_index1, component_index0));
 #else
 			return vector_set(vector_get_component(input0, comp0), vector_get_component(input0, comp1), vector_get_component(input0, comp2), vector_get_component(input0, comp3));
 #endif
@@ -593,7 +598,7 @@ namespace acl
 		{
 			// All four components come from input 1
 #if defined(ACL_SSE2_INTRINSICS)
-			return _mm_shuffle_ps(input1, input1, _MM_SHUFFLE(GET_VECTOR_MIX_COMPONENT_INDEX(comp0), GET_VECTOR_MIX_COMPONENT_INDEX(comp1), GET_VECTOR_MIX_COMPONENT_INDEX(comp2), GET_VECTOR_MIX_COMPONENT_INDEX(comp3)));
+			return _mm_shuffle_ps(input1, input1, _MM_SHUFFLE(component_index3, component_index2, component_index1, component_index0));
 #else
 			return vector_set(vector_get_component(input1, comp0), vector_get_component(input1, comp1), vector_get_component(input1, comp2), vector_get_component(input1, comp3));
 #endif
@@ -603,7 +608,7 @@ namespace acl
 		{
 			// First two components come from input 0, second two come from input 1
 #if defined(ACL_SSE2_INTRINSICS)
-			return _mm_shuffle_ps(input0, input1, _MM_SHUFFLE(GET_VECTOR_MIX_COMPONENT_INDEX(comp0), GET_VECTOR_MIX_COMPONENT_INDEX(comp1), GET_VECTOR_MIX_COMPONENT_INDEX(comp2), GET_VECTOR_MIX_COMPONENT_INDEX(comp3)));
+			return _mm_shuffle_ps(input0, input1, _MM_SHUFFLE(component_index3, component_index2, component_index1, component_index0));
 #else
 			return vector_set(vector_get_component(input0, comp0), vector_get_component(input0, comp1), vector_get_component(input1, comp2), vector_get_component(input1, comp3));
 #endif
@@ -613,7 +618,7 @@ namespace acl
 		{
 			// First two components come from input 1, second two come from input 0
 #if defined(ACL_SSE2_INTRINSICS)
-			return _mm_shuffle_ps(input1, input0, _MM_SHUFFLE(GET_VECTOR_MIX_COMPONENT_INDEX(comp0), GET_VECTOR_MIX_COMPONENT_INDEX(comp1), GET_VECTOR_MIX_COMPONENT_INDEX(comp2), GET_VECTOR_MIX_COMPONENT_INDEX(comp3)));
+			return _mm_shuffle_ps(input1, input0, _MM_SHUFFLE(component_index3, component_index2, component_index1, component_index0));
 #else
 			return vector_set(vector_get_component(input1, comp0), vector_get_component(input1, comp1), vector_get_component(input0, comp2), vector_get_component(input0, comp3));
 #endif
@@ -669,6 +674,7 @@ namespace acl
 	inline Vector4_32 vector_mix_wwww(const Vector4_32& input) { return vector_mix<VectorMix::W, VectorMix::W, VectorMix::W, VectorMix::W>(input, input); }
 
 	inline Vector4_32 vector_mix_xxyy(const Vector4_32& input) { return vector_mix<VectorMix::X, VectorMix::X, VectorMix::Y, VectorMix::Y>(input, input); }
+	inline Vector4_32 vector_mix_xzyw(const Vector4_32& input) { return vector_mix<VectorMix::X, VectorMix::Z, VectorMix::Y, VectorMix::W>(input, input); }
 	inline Vector4_32 vector_mix_yzxy(const Vector4_32& input) { return vector_mix<VectorMix::Y, VectorMix::Z, VectorMix::X, VectorMix::Y>(input, input); }
 	inline Vector4_32 vector_mix_ywxz(const Vector4_32& input) { return vector_mix<VectorMix::Y, VectorMix::W, VectorMix::X, VectorMix::Z>(input, input); }
 	inline Vector4_32 vector_mix_zxyx(const Vector4_32& input) { return vector_mix<VectorMix::Z, VectorMix::X, VectorMix::Y, VectorMix::X>(input, input); }
