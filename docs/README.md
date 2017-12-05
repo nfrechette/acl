@@ -19,6 +19,7 @@ The library aims to support a few core algorithms that will be well suited for p
 # Performance metrics
 
 *  [Carnegie-Mellon University database performance](cmu_performance.md)
+*  [Paragon database performance](paragon_performance.md)
 
 # Miscellaneous
 
