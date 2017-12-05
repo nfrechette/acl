@@ -58,14 +58,9 @@ Decompression is typically very simple and light in order to be fast. Very littl
 5. Build the IDE solution with: `python make.py -build`
 6. Run the unit tests with: `python make.py -test`
 
-## Reference material
-
-In order to test the algorithm implementations with real world data, we took the [Carnegie-Mellon University motion capture database](http://mocap.cs.cmu.edu/). It contains over 2500 animation clips.
-This is the data all graphs and charts shown will be based on. Data available upon request, it is far too large for GitHub.
-
 ## Performance metrics
 
-*  [ACL vs Unreal 4 vs Unity 5](./docs/acl_vs_ue4_vs_unity.md)
+*  [Carnegie-Mellon University database performance](./docs/cmu_performance.md)
 
 ## MIT License
 

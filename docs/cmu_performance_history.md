@@ -1,4 +1,4 @@
-# Performance history
+# Carnegie-Mellon University database performance history
 
 To compile the statistics, the animation database from [Carnegie-Mellon University](http://mocap.cs.cmu.edu/) is used.
 The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
