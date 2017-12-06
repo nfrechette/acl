@@ -1992,138 +1992,167 @@ void test_exhaustive()
 		eMax,
 	};
 
-	int32_t num_segment_value_bits = 8;
+	double total_error[eMax] = { 0.0 };
+	double max_error[eMax] = { 0.0 };
+	double num_samples = 0.0;
 
-	int32_t segment_min_value = 0;
+	int32_t num_segment_value_bits = 8;
 
 	for (uint8_t bit_rate = 1; bit_rate < 15; ++bit_rate)
 	{
 		int32_t num_value_bits = get_num_bits_at_bit_rate(bit_rate);
+		//if (num_value_bits != 3) continue;
 
-		double total_error[eMax] = { 0.0 };
-		double max_error[eMax] = { 0.0 };
-		double num_samples = 0.0;
+		double total_bit_rate_error[eMax] = { 0.0 };
+		double max_bit_rate_error[eMax] = { 0.0 };
+		double num_bit_rate_samples = 0.0;
 
-		for (int32_t segment_extent_value = 1; segment_extent_value < (1 << num_segment_value_bits); ++segment_extent_value)
+		for (int32_t segment_min_value = 0; segment_min_value < (1 << num_segment_value_bits); ++segment_min_value)
 		{
-			for (int32_t sample_value = 1; sample_value < (1 << num_value_bits); ++sample_value)
+			//if (segment_min_value != 255) continue;
+			for (int32_t segment_extent_value = 1; segment_extent_value < (1 << num_segment_value_bits); ++segment_extent_value)
 			{
-				float results[eMax];
-
+				if (segment_min_value + segment_extent_value > 255) continue;
+				//if (segment_extent_value != 255) continue;
+				for (int32_t sample_value = 1; sample_value < (1 << num_value_bits); ++sample_value)
 				{
-					// float32 truth
-					double sample_flt = double(sample_value) / double((1 << num_value_bits) - 1);
-					double segment_extent_flt = double(segment_extent_value) / double((1 << num_value_bits) - 1);
-					double segment_min_flt = double(segment_min_value) / double((1 << num_value_bits) - 1);
-					results[eF32_Truth] = float((sample_flt * segment_extent_flt) + segment_min_flt);
-				}
+					//if (sample_value != 15) continue;
+					float results[eMax];
 
-				{
-					// Legacy float32
-					float sample_flt = float(sample_value) / float((1 << num_value_bits) - 1);
-					float segment_extent_flt = float(segment_extent_value) / float((1 << num_value_bits) - 1);
-					float segment_min_flt = float(segment_min_value) / float((1 << num_value_bits) - 1);
-					results[eF32_Legacy] = (sample_flt * segment_extent_flt) + segment_min_flt;
-				}
+					{
+						// float32 truth
+						double sample_flt = double(sample_value) / double((1 << num_value_bits) - 1);
+						double segment_extent_flt = double(segment_extent_value) / double((1 << num_segment_value_bits) - 1);
+						double segment_min_flt = double(segment_min_value) / double((1 << num_segment_value_bits) - 1);
+						results[eF32_Truth] = float((sample_flt * segment_extent_flt) + segment_min_flt);
+					}
 
-				{
-					// float32 hack 1
-					int32_t exponent = 0x3f800000;
-					int32_t sample_i32 = (sample_value << (23 - num_value_bits)) | exponent;
-					int32_t segment_extent_i32 = (segment_extent_value << (23 - num_segment_value_bits)) | exponent;
-					int32_t segment_min_i32 = (segment_min_value << (23 - num_segment_value_bits)) | exponent;
-					float sample_scale = float(1 << num_value_bits) / float((1 << num_value_bits) - 1);
-					float segment_scale = float(1 << num_segment_value_bits) / float((1 << num_segment_value_bits) - 1);
-					float sample_flt = (*reinterpret_cast<float*>(&sample_i32) - 1.0f) * sample_scale;
-					float segment_extent_flt = (*reinterpret_cast<float*>(&segment_extent_i32) - 1.0f) * segment_scale;
-					float segment_min_flt = (*reinterpret_cast<float*>(&segment_min_i32) - 1.0f) * segment_scale;
-					results[eF32_Hack1] = (sample_flt * segment_extent_flt) + segment_min_flt;
-				}
+					{
+						// Legacy float32
+						float sample_flt = float(sample_value) / float((1 << num_value_bits) - 1);
+						float segment_extent_flt = float(segment_extent_value) / float((1 << num_segment_value_bits) - 1);
+						float segment_min_flt = float(segment_min_value) / float((1 << num_segment_value_bits) - 1);
+						results[eF32_Legacy] = (sample_flt * segment_extent_flt) + segment_min_flt;
+					}
 
-				{
-					// float32 hack 2
-					// (9.0 << 8) / 8.0 = 9.0 | 1.8
-					int32_t sample_scale_i32 = ((1 << num_value_bits) << 8) / ((1 << num_value_bits) - 1);
-					int32_t segment_scale_i32 = ((1 << num_segment_value_bits) << 8) / ((1 << num_segment_value_bits) - 1);
-					// r = (v * s1 * x * s2) + m * s2
-					// ((0.8 * 1.8) * (0.8 * 1.8)) + (0.8 * 1.8) = (2.32 >> 16) + 1.16 = 1.16
-					int32_t scaled_sample_i32 = sample_value * sample_scale_i32;						// 0.8 * 1.8 = 1.16
-					int32_t scaled_extent_i32 = segment_extent_value * segment_scale_i32;				// 0.8 * 1.8 = 1.16
-					int32_t scaled_min_i32 = segment_min_value * segment_scale_i32;						// 0.8 * 1.8 = 1.16
-					int32_t scaled_range_i32 = (scaled_sample_i32 >> 1) * (scaled_extent_i32 >> 1);		// 1.15 * 1.15 = 2.30
-					int32_t result_mantissa_i32 = (scaled_range_i32 >> 7) + (scaled_min_i32 << 15);		// 1.23 + 1.23 = 1.23
-					int32_t exponent = 0x3f800000;
-					int32_t result_i32 = result_mantissa_i32 + exponent;
-					results[eF32_Hack2] = (*reinterpret_cast<float*>(&result_i32) - 1.0f);
-				}
+					{
+						// float32 hack 1
+						int32_t exponent = 0x3f800000;
+						int32_t sample_i32 = (sample_value << (23 - num_value_bits)) | exponent;
+						int32_t segment_extent_i32 = (segment_extent_value << (23 - num_segment_value_bits)) | exponent;
+						int32_t segment_min_i32 = (segment_min_value << (23 - num_segment_value_bits)) | exponent;
+						float sample_scale = float(1 << num_value_bits) / float((1 << num_value_bits) - 1);
+						float segment_scale = float(1 << num_segment_value_bits) / float((1 << num_segment_value_bits) - 1);
+						float sample_flt = (*reinterpret_cast<float*>(&sample_i32) - 1.0f) * sample_scale;
+						float segment_extent_flt = (*reinterpret_cast<float*>(&segment_extent_i32) - 1.0f) * segment_scale;
+						float segment_min_flt = (*reinterpret_cast<float*>(&segment_min_i32) - 1.0f) * segment_scale;
+						results[eF32_Hack1] = (sample_flt * segment_extent_flt) + segment_min_flt;
+					}
 
-				{
-					// float32 hack 3
-					// (9.0 << 23) / 8.0 = 24.0 | 1.23
-					uint32_t sample_scale_i32 = uint32_t((1 << num_value_bits) << 23) / uint32_t((1 << num_value_bits) - 1);
-					uint32_t segment_scale_i32 = uint32_t((1 << num_segment_value_bits) << 23) / uint32_t((1 << num_segment_value_bits) - 1);
-					uint64_t scaled_sample_i32 = sample_value * sample_scale_i32;								// 0.8 * 1.23 = 1.31
-					uint64_t scaled_extent_i32 = segment_extent_value * segment_scale_i32;						// 0.8 * 1.23 = 1.31
-					uint32_t scaled_min_i32 = segment_min_value * segment_scale_i32;							// 0.8 * 1.23 = 1.31
-					uint64_t scaled_range_i32 = scaled_sample_i32 * scaled_extent_i32;							// 1.31 * 1.31 = 2.62
-					uint32_t result_mantissa_i32 = uint32_t(scaled_range_i32 >> 39) + (scaled_min_i32 >> 8);	// 1.23 + 1.23 = 1.23
-					uint32_t exponent = 0x3f800000;
-					uint32_t result_i32 = result_mantissa_i32 + exponent;
-					results[eF32_Hack3] = (*reinterpret_cast<float*>(&result_i32) - 1.0f);
-				}
+					{
+						// float32 hack 2
+						// (9.0 << 8) / 8.0 = 9.0 | 1.8
+						int32_t sample_scale_i32 = ((1 << num_value_bits) << 8) / ((1 << num_value_bits) - 1);
+						int32_t segment_scale_i32 = ((1 << num_segment_value_bits) << 8) / ((1 << num_segment_value_bits) - 1);
+						// r = (v * s1 * x * s2) + m * s2
+						// ((0.8 * 1.8) * (0.8 * 1.8)) + (0.8 * 1.8) = (2.32 >> 16) + 1.16 = 1.16
+						int32_t scaled_sample_i32 = (sample_value << (16 - num_value_bits)) * sample_scale_i32;		// 0.16 * 1.8 = 1.24
+						int32_t scaled_extent_i32 = segment_extent_value * segment_scale_i32;						// 0.8 * 1.8 = 1.16
+						int32_t scaled_min_i32 = segment_min_value * segment_scale_i32;								// 0.8 * 1.8 = 1.16
+						int32_t scaled_range_i32 = (scaled_sample_i32 >> 9) * (scaled_extent_i32 >> 1);				// 1.15 * 1.15 = 2.30
+						int32_t result_mantissa_i32 = (scaled_range_i32 >> 7) + (scaled_min_i32 << 7);				// 1.23 + 1.23 = 1.23
+						int32_t exponent = 0x3f800000;
+						int32_t result_i32 = result_mantissa_i32 + exponent;
+						results[eF32_Hack2] = (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+					}
 
-				{
-					// float32 hack 4
-					// (9.0 << 23) / 8.0 = 24.0 | 1.23
-					uint32_t sample_scale_i32 = uint32_t((1 << num_value_bits) << 23) / uint32_t((1 << num_value_bits) - 1);
-					uint64_t scaled_sample_i32 = sample_value * sample_scale_i32;									// 0.8 * 1.23 = 1.31
-					uint64_t scaled_range_i32 = scaled_sample_i32 * segment_extent_value;							// 1.31 * 0.8 = 1.39
-					uint32_t result_mantissa_i32 = uint32_t(scaled_range_i32 >> 16) + (segment_min_value << 16);	// 1.23 + 1.23 = 1.23
-					uint32_t exponent = 0x3f800000;
-					uint32_t result_i32 = result_mantissa_i32 + exponent;
-					float segment_scale = float(1 << num_segment_value_bits) / float((1 << num_segment_value_bits) - 1);
-					results[eF32_Hack4] = (*reinterpret_cast<float*>(&result_i32) - 1.0f) * segment_scale;
-				}
+					{
+						// float32 hack 3
+						// (9.0 << 23) / 8.0 = 24.0 | 1.23
+						uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 23) / ((uint64_t(1) << num_value_bits) - 1);
+						uint32_t segment_scale_i32 = uint32_t((1 << num_segment_value_bits) << 23) / uint32_t((1 << num_segment_value_bits) - 1);
+						uint64_t scaled_sample_i64 = (sample_value << (16 - num_value_bits)) * sample_scale_i64;	// 0.16 * 1.23 = 1.39
+						uint64_t scaled_extent_i64 = segment_extent_value * segment_scale_i32;						// 0.8 * 1.23 = 1.31
+						uint32_t scaled_min_i32 = segment_min_value * segment_scale_i32;							// 0.8 * 1.23 = 1.31
+						uint64_t scaled_range_i64 = (scaled_sample_i64 >> 8) * scaled_extent_i64;					// 1.31 * 1.31 = 2.62
+						uint32_t result_mantissa_i32 = uint32_t(scaled_range_i64 >> 39) + (scaled_min_i32 >> 8);	// 1.23 + 1.23 = 1.23
+						uint32_t exponent = 0x3f800000;
+						uint32_t result_i32 = result_mantissa_i32 + exponent;
+						results[eF32_Hack3] = (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+					}
 
-				{
-					// float32 hack 5
-					// (9.0 << 15) / 8.0 = 16.0 | 1.15
-					uint32_t sample_scale_i32 = uint32_t((1 << num_value_bits) << 15) / uint32_t((1 << num_value_bits) - 1);
-					uint32_t scaled_sample_i32 = sample_value * sample_scale_i32;									// 0.8 * 1.15 = 1.23
-					uint32_t scaled_range_i32 = scaled_sample_i32 * segment_extent_value;							// 1.23 * 0.8 = 1.31
-					uint32_t result_mantissa_i32 = (scaled_range_i32 >> 8) + (segment_min_value << 16);				// 1.23 + 1.23 = 1.23
-					uint32_t exponent = 0x3f800000;
-					uint32_t result_i32 = result_mantissa_i32 + exponent;
-					float segment_scale = float(1 << num_segment_value_bits) / float((1 << num_segment_value_bits) - 1);
-					results[eF32_Hack5] = (*reinterpret_cast<float*>(&result_i32) - 1.0f) * segment_scale;
-				}
+					{
+						// float32 hack 4
+						// (9.0 << 23) / 8.0 = 24.0 | 1.23
+						uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 23) / ((uint64_t(1) << num_value_bits) - 1);
+						uint64_t scaled_sample_i64 = (sample_value << (16 - num_value_bits)) * sample_scale_i64;		// 0.16 * 1.23 = 1.39
+						//uint64_t scaled_range_i64 = (scaled_sample_i64 >> 8) * segment_extent_value;					// 1.31 * 0.8 = 1.39
+						uint64_t scaled_range_i64 = scaled_sample_i64 * segment_extent_value;							// 1.39 * 0.8 = 1.47
+						//uint32_t result_mantissa_i32 = uint32_t(scaled_range_i64 >> 16) + (segment_min_value << 16);	// 1.23 + 1.23 = 1.23
+						uint32_t result_mantissa_i32 = uint32_t(scaled_range_i64 >> 24) + (segment_min_value << 15);	// 1.23 + 1.23 = 1.23
+						uint32_t exponent = 0x3f800000;
+						uint32_t result_i32 = result_mantissa_i32 + exponent;
+						float segment_scale = float(1 << num_segment_value_bits) / float((1 << num_segment_value_bits) - 1);
+						results[eF32_Hack4] = (*reinterpret_cast<float*>(&result_i32) - 1.0f) * segment_scale;
+					}
 
-				printf("%4u | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_extent_value, sample_value, results[eF32_Truth], results[eF32_Legacy], results[eF32_Hack1], results[eF32_Hack2], results[eF32_Hack3], results[eF32_Hack4], results[eF32_Hack5]);
-				printf("%4u | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_extent_value, sample_value, results[eF32_Truth], fabs(results[eF32_Legacy] - results[eF32_Truth]), fabs(results[eF32_Hack1] - results[eF32_Truth]), fabs(results[eF32_Hack2] - results[eF32_Truth]), fabs(results[eF32_Hack3] - results[eF32_Truth]), fabs(results[eF32_Hack4] - results[eF32_Truth]), fabs(results[eF32_Hack5] - results[eF32_Truth]));
+					{
+						// float32 hack 5
+						// (9.0 << 15) / 8.0 = 16.0 | 1.15
+						uint32_t sample_scale_i32 = uint32_t((1 << num_value_bits) << 15) / uint32_t((1 << num_value_bits) - 1);
+						uint32_t scaled_sample_i32 = (sample_value << (16 - num_value_bits)) * sample_scale_i32;		// 0.16 * 1.15 = 1.31
+						ACL_ENSURE((scaled_sample_i32 & (1 << 31)) == 0, "Integer bit used!");
+						// Due to rounding, the integral part is never used and always 0, re-use that bit!
+						uint32_t scaled_range_i32 = (scaled_sample_i32 >> 7) * segment_extent_value;					// 0.24 * 0.8 = 0.32
+						uint32_t result_mantissa_i32 = (scaled_range_i32 >> 9) + (segment_min_value << 15);				// 0.23 + 0.23 = 0.23
+						ACL_ENSURE((result_mantissa_i32 & (1 << 23)) == 0, "Integer bit used!");
+						// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
+						uint32_t exponent = 0x3f800000;
+						uint32_t result_i32 = result_mantissa_i32 | exponent;
+						float segment_scale = float(1 << num_segment_value_bits) / float((1 << num_segment_value_bits) - 1);
+						results[eF32_Hack5] = (*reinterpret_cast<float*>(&result_i32) - 1.0f) * segment_scale;
+					}
 
-				for (int32_t i = 0; i < eMax; ++i)
-				{
-					double error = fabs(results[i] - results[eF32_Truth]);
-					total_error[i] += error;
-					max_error[i] = max(max_error[i], error);
+					//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], results[eF32_Legacy], results[eF32_Hack1], results[eF32_Hack2], results[eF32_Hack3], results[eF32_Hack4], results[eF32_Hack5]);
+					//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], fabs(results[eF32_Legacy] - results[eF32_Truth]), fabs(results[eF32_Hack1] - results[eF32_Truth]), fabs(results[eF32_Hack2] - results[eF32_Truth]), fabs(results[eF32_Hack3] - results[eF32_Truth]), fabs(results[eF32_Hack4] - results[eF32_Truth]), fabs(results[eF32_Hack5] - results[eF32_Truth]));
+
+					for (int32_t i = 0; i < eMax; ++i)
+					{
+						double error = fabs(results[i] - results[eF32_Truth]);
+						total_bit_rate_error[i] += error;
+						max_bit_rate_error[i] = max(max_bit_rate_error[i], error);
+					}
+					num_bit_rate_samples += 1.0;
 				}
-				num_samples += 1.0;
 			}
-
-			break;
 		}
 
 		double avg_error[eMax] = { 0.0 };
 		for (int32_t i = 0; i < eMax; ++i)
-			avg_error[i] = total_error[i] / num_samples;
+		{
+			avg_error[i] = total_bit_rate_error[i] / num_bit_rate_samples;
+
+			total_error[i] += total_bit_rate_error[i];
+			max_error[i] = max(max_error[i], max_bit_rate_error[i]);
+		}
+		num_samples += num_bit_rate_samples;
 
 		printf("\n");
 		printf("Bits: %2u       [Truth]      | Legacy     | Hack 1     | Hack 2     | Hack 3     | Hack 4     | Hack 5\n", num_value_bits);
 		printf("Avg         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", avg_error[eF32_Truth], avg_error[eF32_Legacy], avg_error[eF32_Hack1], avg_error[eF32_Hack2], avg_error[eF32_Hack3], avg_error[eF32_Hack4], avg_error[eF32_Hack5]);
-		printf("Max         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", max_error[eF32_Truth], max_error[eF32_Legacy], max_error[eF32_Hack1], max_error[eF32_Hack2], max_error[eF32_Hack3], max_error[eF32_Hack4], max_error[eF32_Hack5]);
-		break;
+		printf("Max         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", max_bit_rate_error[eF32_Truth], max_bit_rate_error[eF32_Legacy], max_bit_rate_error[eF32_Hack1], max_bit_rate_error[eF32_Hack2], max_bit_rate_error[eF32_Hack3], max_bit_rate_error[eF32_Hack4], max_bit_rate_error[eF32_Hack5]);
 	}
-	
+
+	{
+		double avg_error[eMax] = { 0.0 };
+		for (int32_t i = 0; i < eMax; ++i)
+			avg_error[i] = total_error[i] / num_samples;
+
+		printf("\n\n");
+		printf("               [Truth]      | Legacy     | Hack 1     | Hack 2     | Hack 3     | Hack 4     | Hack 5\n");
+		printf("Avg         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", avg_error[eF32_Truth], avg_error[eF32_Legacy], avg_error[eF32_Hack1], avg_error[eF32_Hack2], avg_error[eF32_Hack3], avg_error[eF32_Hack4], avg_error[eF32_Hack5]);
+		printf("Max         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", max_error[eF32_Truth], max_error[eF32_Legacy], max_error[eF32_Hack1], max_error[eF32_Hack2], max_error[eF32_Hack3], max_error[eF32_Hack4], max_error[eF32_Hack5]);
+	}
 }
 
 static int main_impl(int argc, char** argv)
