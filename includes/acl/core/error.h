@@ -89,14 +89,14 @@
 				{
 					if (!expression)
 					{
-						constexpr size_t BUFFER_SIZE = 64 * 1024;
+						constexpr int BUFFER_SIZE = 64 * 1024;
 						char buffer[BUFFER_SIZE];
 
 						va_list args;
 						va_start(args, format);
 
 						int count = vsnprintf(buffer, BUFFER_SIZE, format, args);
-						ACL_ENSURE(count >= 0 && count <= BUFFER_SIZE, "Failed to format assert");
+						ACL_ENSURE(count >= 0 && count < BUFFER_SIZE, "Failed to format assert");
 
 						ACL_ASSERT(expression, &buffer[0]);
 
