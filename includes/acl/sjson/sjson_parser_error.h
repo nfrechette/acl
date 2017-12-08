@@ -64,7 +64,7 @@ namespace acl
 		uint32_t line;
 		uint32_t column;
 
-		virtual const char* const get_description() const
+		virtual const char* get_description() const
 		{
 			switch (error)
 			{

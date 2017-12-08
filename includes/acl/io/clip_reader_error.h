@@ -49,7 +49,7 @@ namespace acl
 			column = e.column;
 		}
 
-		virtual const char* const get_description() const override
+		virtual const char* get_description() const override
 		{
 			switch (error)
 			{
