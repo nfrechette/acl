@@ -32,6 +32,7 @@
 #include <vector>
 #include <thread>
 #include <atomic>
+#include <random>
 
 #if !defined(_WINDOWS_)
 // The below excludes some other unused services from the windows headers -- see windows.h for details.
@@ -1991,6 +1992,8 @@ enum ResultType
 	eF32_Hack4,
 	eF32_Hack5,
 	eF32_Hack6,
+	eF32_Hack7,
+	eF32_Hack8,
 	eMax,
 };
 
@@ -2005,9 +2008,35 @@ struct ExhaustiveSearchSlice
 	int32_t clip_max_value_start_i32;
 	int32_t clip_max_value_end_i32;
 
-	double total_bit_rate_error[eMax] = { 0.0 };
-	double max_bit_rate_error[eMax] = { 0.0 };
-	double num_bit_rate_samples = 0.0;
+	double total_bit_rate_error[eMax];
+	double max_bit_rate_error[eMax];
+	double num_bit_rate_samples;
+
+	float worst_clip_extent_value[eMax];
+	float worst_clip_min_value[eMax];
+
+	int32_t worst_segment_min_value[eMax];
+	int32_t worst_segment_extent_value[eMax];
+	int32_t worst_sample_value[eMax];
+
+	void merge(const ExhaustiveSearchSlice& other)
+	{
+		for (int32_t i = 0; i < eMax; ++i)
+		{
+			total_bit_rate_error[i] += other.total_bit_rate_error[i];
+			num_bit_rate_samples += other.num_bit_rate_samples;
+
+			if (other.max_bit_rate_error[i] > max_bit_rate_error[i])
+			{
+				max_bit_rate_error[i] = other.max_bit_rate_error[i];
+				worst_clip_extent_value[i] = other.worst_clip_extent_value[i];
+				worst_clip_min_value[i] = other.worst_clip_min_value[i];
+				worst_segment_min_value[i] = other.worst_segment_min_value[i];
+				worst_segment_extent_value[i] = other.worst_segment_extent_value[i];
+				worst_sample_value[i] = other.worst_sample_value[i];
+			}
+		}
+	}
 };
 
 // Most accurate are: hack1, hack 4, hack 3
@@ -2042,9 +2071,10 @@ static float calculate_f32_hack1(uint32_t sample_value, uint32_t num_value_bits,
 	float sample_scale = float(1 << num_value_bits) / float((1 << num_value_bits) - 1);
 	float segment_scale = float(1 << k_num_segment_value_bits) / float((1 << k_num_segment_value_bits) - 1);
 	float sample_flt = (*reinterpret_cast<float*>(&sample_i32) - 1.0f) * sample_scale;
-	float segment_extent_flt = (*reinterpret_cast<float*>(&segment_extent_i32) - 1.0f) * segment_scale;
-	float segment_min_flt = (*reinterpret_cast<float*>(&segment_min_i32) - 1.0f) * segment_scale;
-	float clip_normalized = (sample_flt * segment_extent_flt) + segment_min_flt;
+	// TODO: Maybe use mul/sub with the segment scale? ext = (exti32 * scale) - scale
+	float segment_extent_flt = *reinterpret_cast<float*>(&segment_extent_i32) - 1.0f;
+	float segment_min_flt = *reinterpret_cast<float*>(&segment_min_i32) - 1.0f;
+	float clip_normalized = ((sample_flt * segment_extent_flt) + segment_min_flt) * segment_scale;
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
@@ -2052,23 +2082,22 @@ static float calculate_f32_hack1(uint32_t sample_value, uint32_t num_value_bits,
 static float calculate_f32_hack2(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	// Due to rounding, some integral parts are never used and always 0, re-use those bits!
-	// (9.0 << 8) / 8.0 = 9.0 | 1.8
-	uint32_t sample_scale_i32 = ((1 << num_value_bits) << 8) / ((1 << num_value_bits) - 1);
-	uint32_t scaled_sample_i32 = (sample_value << (16 - num_value_bits)) * sample_scale_i32;	// 0.16 * 1.8 = 0.24	(integral part always 0)
-	ACL_ENSURE((scaled_sample_i32 & (1 << 24)) == 0, "Integer bit used!");
+	// (1.0 << (N + 16)) / N.0 = 17.0 | 1.16
+	uint32_t sample_scale_i32 = uint32_t(((uint64_t(1) << num_value_bits) << 16) / ((uint64_t(1) << num_value_bits) - 1));
+	ACL_ENSURE(sample_scale_i32 > (1 << 16), "Must be >= 1.0!");
+	uint32_t scaled_sample_i32 = (sample_value << (16 - num_value_bits)) * sample_scale_i32;	// 0.16 * 1.16 = 0.32	(integral part always 0)
+	ACL_ENSURE((((uint64_t(sample_value) << (16 - num_value_bits)) * sample_scale_i32) & (uint64_t(1) << 32)) == 0, "Integer bit used!");
 
-	// TODO: Reuse the extra bits we have!
-	// TODO: For scaled values, dump every possible value, see if we can reduce bit rate without loss
+	uint32_t scaled_range_i32 = (scaled_sample_i32 >> 8) * segment_extent_value;				// 0.24 * 0.8 = 0.32
+	uint32_t unnormalized_i32 = scaled_range_i32 + (segment_min_value << 24);					// 0.32 + 0.32 = 0.32
 
-	// (9.0 << 8) / 8.0 = 9.0 | 1.8
+	// (1.0 << (8 + 8)) / 8.0 = 9.0 | 1.8
 	uint32_t segment_scale_i32 = ((1 << k_num_segment_value_bits) << 8) / ((1 << k_num_segment_value_bits) - 1);
-	uint32_t scaled_extent_i32 = segment_extent_value * segment_scale_i32;						// 0.8 * 1.8 = 0.16		(integral part always 0)
-	uint32_t scaled_min_i32 = segment_min_value * segment_scale_i32;							// 0.8 * 1.8 = 0.16		(integral part always 0)
-	ACL_ENSURE((scaled_extent_i32 & (1 << 16)) == 0, "Integer bit used!");
-	ACL_ENSURE((scaled_min_i32 & (1 << 16)) == 0, "Integer bit used!");
+	ACL_ENSURE(segment_scale_i32 > (1 << 8), "Must be >= 1.0!");
+	uint32_t normalized_i32 = (unnormalized_i32 >> 8) * segment_scale_i32;						// 0.24 * 1.8 = 0.32	(integral part always 0)
+	ACL_ENSURE((((uint64_t(unnormalized_i32) >> 8) * segment_scale_i32) & (uint64_t(1) << 32)) == 0, "Integer bit used!");
 
-	uint32_t scaled_range_i32 = (scaled_sample_i32 >> 9) * (scaled_extent_i32 >> 1);			// 0.15 * 0.15 = 0.30
-	uint32_t result_mantissa_i32 = (scaled_range_i32 >> 7) + (scaled_min_i32 << 7);				// 0.23 + 0.23 = 0.23
+	uint32_t result_mantissa_i32 = normalized_i32 >> 9;											// 0.32 >> 9 = 0.23
 	ACL_ENSURE((result_mantissa_i32 & (1 << 23)) == 0, "Integer bit used!");
 	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
 	uint32_t exponent = 0x3f800000;
@@ -2081,13 +2110,15 @@ static float calculate_f32_hack2(uint32_t sample_value, uint32_t num_value_bits,
 static float calculate_f32_hack3(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	// Due to rounding, some integral parts are never used and always 0, re-use those bits!
-	// (9.0 << 31) / 8.0 = 32.0 | 1.31
+	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
 	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 31) / ((uint64_t(1) << num_value_bits) - 1);
+	ACL_ENSURE(sample_scale_i64 > (uint64_t(1) << 31), "Must be >= 1.0!");
 	uint64_t scaled_sample_i64 = (sample_value << (16 - num_value_bits)) * sample_scale_i64;	// 0.16 * 1.31 = 0.47	(integral part always 0)
 	ACL_ENSURE((scaled_sample_i64 & (uint64_t(1) << 47)) == 0, "Integer bit used!");
 
-	// (9.0 << 24) / 8.0 = 24.0 | 1.24
+	// (1.0 << (8 + 24)) / 8.0 = 24.0 | 1.24
 	uint32_t segment_scale_i32 = uint32_t(((uint64_t(1) << k_num_segment_value_bits) << 24) / ((uint64_t(1) << k_num_segment_value_bits) - 1));
+	ACL_ENSURE(segment_scale_i32 > (1 << 24), "Must be >= 1.0!");
 	uint64_t scaled_extent_i64 = segment_extent_value * segment_scale_i32;						// 0.8 * 1.24 = 0.32	(integral part always 0)
 	uint32_t scaled_min_i32 = segment_min_value * segment_scale_i32;							// 0.8 * 1.24 = 0.32	(integral part always 0)
 	ACL_ENSURE((scaled_extent_i64 & (uint64_t(1) << 32)) == 0, "Integer bit used!");
@@ -2107,12 +2138,14 @@ static float calculate_f32_hack3(uint32_t sample_value, uint32_t num_value_bits,
 static float calculate_f32_hack4(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	// Due to rounding, some integral parts are never used and always 0, re-use those bits!
-	// (9.0 << 31) / 8.0 = 32.0 | 1.31 (fits on 32 bits)
+	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
 	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 31) / ((uint64_t(1) << num_value_bits) - 1);
+	ACL_ENSURE(sample_scale_i64 > (uint64_t(1) << 31), "Must be >= 1.0!");
 	uint64_t scaled_sample_i64 = (sample_value << (16 - num_value_bits)) * sample_scale_i64;		// 0.16 * 1.31 = 0.47	(integral part always 0)
 	ACL_ENSURE((scaled_sample_i64 & (uint64_t(1) << 47)) == 0, "Integer bit used!");
-	uint64_t scaled_range_i64 = scaled_sample_i64 * segment_extent_value;							// 0.47 * 0.8 = 0.55
-	uint32_t result_mantissa_i32 = uint32_t(scaled_range_i64 >> 32) + (segment_min_value << 15);	// 0.23 + 0.23 = 0.23
+
+	uint64_t scaled_range_i64 = (scaled_sample_i64 >> 15) * segment_extent_value;					// 0.32 * 0.8 = 0.40
+	uint32_t result_mantissa_i32 = uint32_t(scaled_range_i64 >> 17) + (segment_min_value << 15);	// 0.23 + 0.23 = 0.23
 	ACL_ENSURE((result_mantissa_i32 & (1 << 23)) == 0, "Integer bit used!");
 	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
 	uint32_t exponent = 0x3f800000;
@@ -2126,10 +2159,12 @@ static float calculate_f32_hack4(uint32_t sample_value, uint32_t num_value_bits,
 static float calculate_f32_hack5(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	// Due to rounding, some integral parts are never used and always 0, re-use those bits!
-	// (17.0 << 16) / 8.0 = 17.0 | 1.16
+	// (1.0 << (N + 16)) / N.0 = 17.0 | 1.16
 	uint32_t sample_scale_i32 = uint32_t(((uint64_t(1) << num_value_bits) << 16) / ((uint64_t(1) << num_value_bits) - 1));
+	ACL_ENSURE(sample_scale_i32 > (1 << 16), "Must be >= 1.0!");
 	uint32_t scaled_sample_i32 = (sample_value << (16 - num_value_bits)) * sample_scale_i32;		// 0.16 * 1.16 = 0.32	(integral part always 0)
 	ACL_ENSURE((((uint64_t(sample_value) << (16 - num_value_bits)) * sample_scale_i32) & (uint64_t(1) << 32)) == 0, "Integer bit used!");
+
 	uint32_t scaled_range_i32 = (scaled_sample_i32 >> 8) * segment_extent_value;					// 0.24 * 0.8 = 0.32
 	uint32_t result_mantissa_i32 = (scaled_range_i32 >> 9) + (segment_min_value << 15);				// 0.23 + 0.23 = 0.23
 	ACL_ENSURE((result_mantissa_i32 & (1 << 23)) == 0, "Integer bit used!");
@@ -2141,31 +2176,186 @@ static float calculate_f32_hack5(uint32_t sample_value, uint32_t num_value_bits,
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-// This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion
+// This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion, clip range on 32 bit
 static float calculate_f32_hack6(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
 {
-	// (9.0 << 23) / 8.0 = 24.0 | 1.23
-	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 23) / ((uint64_t(1) << num_value_bits) - 1);
-	uint32_t segment_scale_i32 = uint32_t((1 << k_num_segment_value_bits) << 23) / uint32_t((1 << k_num_segment_value_bits) - 1);
-	// (33.0 << 31) / 32.0 = 32.0 | 1.31
-	uint64_t clip_scale_i64 = (uint64_t(1) << 63) / ((uint64_t(1) << 32) - 1);							// 1.31
-	uint64_t scaled_sample_i64 = (sample_value << (16 - num_value_bits)) * sample_scale_i64;			// 0.16 * 1.23 = 1.39
-	uint64_t scaled_segment_extent_i64 = segment_extent_value * segment_scale_i32;						// 0.8 * 1.23 = 1.31
-	uint64_t scaled_segment_min_i64 = segment_min_value * segment_scale_i32;							// 0.8 * 1.23 = 1.31
-	uint64_t scaled_segment_range_i64 = (scaled_sample_i64 >> 8) * scaled_segment_extent_i64;			// 1.31 * 1.31 = 2.62
-	uint64_t clip_normalized_i64 = scaled_segment_range_i64 + (scaled_segment_min_i64 << 31);			// 0.62
-	ACL_ENSURE((clip_normalized_i64 & (1ull << 63)) == 0, "Integer bit used!");
-	ACL_ENSURE((clip_normalized_i64 & (1ull << 62)) == 0, "Integer bit used!");
-	uint64_t scaled_clip_extent_i64 = clip_extent_value * clip_scale_i64;								// 0.32 * 1.31 = 0.63
+	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
+	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 31) / ((uint64_t(1) << num_value_bits) - 1);
+	ACL_ENSURE(sample_scale_i64 > (uint64_t(1) << 31), "Must be >= 1.0!");
+	uint64_t scaled_sample_i64 = (sample_value << (16 - num_value_bits)) * sample_scale_i64;						// 0.16 * 1.31 = 0.47	(integral part always 0)
+	ACL_ENSURE((scaled_sample_i64 & (1ull << 47)) == 0, "Integer bit used!");
+
+	// (1.0 << (8 + 24)) / 8.0 = 25.0 | 1.24
+	uint32_t segment_scale_i32 = uint32_t(((uint64_t(1) << k_num_segment_value_bits) << 24) / ((uint64_t(1) << k_num_segment_value_bits) - 1));
+	ACL_ENSURE(segment_scale_i32 > (1 << 24), "Must be >= 1.0!");
+	uint64_t scaled_segment_extent_i64 = segment_extent_value * segment_scale_i32;									// 0.8 * 1.24 = 0.32	(integral part always 0)
+	ACL_ENSURE((scaled_segment_extent_i64 & (1ull << 32)) == 0, "Integer bit used!");
+	uint64_t scaled_segment_min_i64 = segment_min_value * segment_scale_i32;										// 0.8 * 1.24 = 0.32	(integral part always 0)
+	ACL_ENSURE((scaled_segment_min_i64 & (1ull << 32)) == 0, "Integer bit used!");
+
+	uint64_t scaled_segment_range_i64 = (scaled_sample_i64 >> 15) * scaled_segment_extent_i64;						// 0.32 * 0.32 = 0.64
+	uint64_t clip_normalized_i64 = scaled_segment_range_i64 + (scaled_segment_min_i64 << 32);						// 0.64
+
+	// (1.0 << (32 + 31)) / 32.0 = 32.0 | 1.31
+	uint64_t clip_scale_i64 = (uint64_t(1) << 63) / ((uint64_t(1) << 32) - 1);										// 1.31
+	ACL_ENSURE(clip_scale_i64 == (uint64_t(1) << 31), "Must be == 1.0!");	// :( not necessary, cannot scale higher
+	uint64_t scaled_clip_extent_i64 = clip_extent_value * clip_scale_i64;											// 0.32 * 1.31 = 0.63	(integral part always 0)
 	ACL_ENSURE((scaled_clip_extent_i64 & (1ull << 63)) == 0, "Integer bit used!");
-	uint64_t scaled_clip_min_i64 = clip_min_value * clip_scale_i64;										// 0.32 * 1.31 = 0.63
+	uint64_t scaled_clip_min_i64 = clip_min_value * clip_scale_i64;													// 0.32 * 1.31 = 0.63	(integral part always 0)
 	ACL_ENSURE((scaled_clip_min_i64 & (1ull << 63)) == 0, "Integer bit used!");
-	uint64_t scaled_clip_range_i64 = (clip_normalized_i64 >> 30) * (scaled_clip_extent_i64 >> 31);		// 0.32 * 0.32 = 0.64
-	uint32_t result_mantissa_i32 = uint32_t(scaled_clip_range_i64 >> 41) + uint32_t(scaled_clip_min_i64 >> 40);	// 0.23 + 0.23 = 0.23
+
+	uint64_t scaled_clip_range_i64 = (clip_normalized_i64 >> 32) * (scaled_clip_extent_i64 >> 31);					// 0.32 * 0.32 = 0.64
+	uint32_t result_mantissa_i32 = uint32_t(scaled_clip_range_i64 >> 41) + uint32_t(scaled_clip_min_i64 >> 40);		// 0.23 + 0.23 = 0.23
 	ACL_ENSURE((result_mantissa_i32 & (1 << 23)) == 0, "Integer bit used!");
+	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
 	uint32_t exponent = 0x3f800000;
 	uint32_t result_i32 = result_mantissa_i32 | exponent;
 	return (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+}
+
+// This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion, clip range on 24 bit
+static float calculate_f32_hack7(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
+{
+	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
+	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 31) / ((uint64_t(1) << num_value_bits) - 1);
+	ACL_ENSURE(sample_scale_i64 > (uint64_t(1) << 31), "Must be >= 1.0!");
+	uint64_t scaled_sample_i64 = (sample_value << (16 - num_value_bits)) * sample_scale_i64;						// 0.16 * 1.31 = 0.47	(integral part always 0)
+	ACL_ENSURE((scaled_sample_i64 & (1ull << 47)) == 0, "Integer bit used!");
+
+	// (1.0 << (8 + 24)) / 8.0 = 25.0 | 1.24
+	uint32_t segment_scale_i32 = uint32_t(((uint64_t(1) << k_num_segment_value_bits) << 24) / ((uint64_t(1) << k_num_segment_value_bits) - 1));
+	ACL_ENSURE(segment_scale_i32 > (1 << 24), "Must be >= 1.0!");
+	uint64_t scaled_segment_extent_i64 = segment_extent_value * segment_scale_i32;									// 0.8 * 1.24 = 0.32	(integral part always 0)
+	ACL_ENSURE((scaled_segment_extent_i64 & (1ull << 32)) == 0, "Integer bit used!");
+	uint64_t scaled_segment_min_i64 = segment_min_value * segment_scale_i32;										// 0.8 * 1.24 = 0.32	(integral part always 0)
+	ACL_ENSURE((scaled_segment_min_i64 & (1ull << 32)) == 0, "Integer bit used!");
+
+	uint64_t scaled_segment_range_i64 = (scaled_sample_i64 >> 15) * scaled_segment_extent_i64;						// 0.32 * 0.32 = 0.64
+	uint64_t clip_normalized_i64 = scaled_segment_range_i64 + (scaled_segment_min_i64 << 32);						// 0.64
+
+	// (1.0 << (32 + 31)) / 32.0 = 32.0 | 1.31
+	uint64_t clip_scale_i64 = (uint64_t(1) << 63) / ((uint64_t(1) << 32) - 1);										// 1.31
+	ACL_ENSURE(clip_scale_i64 == (uint64_t(1) << 31), "Must be == 1.0!");	// :( not necessary, cannot scale higher
+	uint64_t scaled_clip_extent_i64 = clip_extent_value * clip_scale_i64;											// 0.24 * 1.31 = 0.55	(integral part always 0)
+	ACL_ENSURE((scaled_clip_extent_i64 & (1ull << 55)) == 0, "Integer bit used!");
+	uint64_t scaled_clip_min_i64 = clip_min_value * clip_scale_i64;													// 0.24 * 1.31 = 0.55	(integral part always 0)
+	ACL_ENSURE((scaled_clip_min_i64 & (1ull << 55)) == 0, "Integer bit used!");
+
+	uint64_t scaled_clip_range_i64 = (clip_normalized_i64 >> 32) * (scaled_clip_extent_i64 >> 23);					// 0.32 * 0.32 = 0.64
+	uint32_t result_mantissa_i32 = uint32_t(scaled_clip_range_i64 >> 41) + uint32_t(scaled_clip_min_i64 >> 32);		// 0.23 + 0.23 = 0.23
+	ACL_ENSURE((result_mantissa_i32 & (1 << 23)) == 0, "Integer bit used!");
+	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
+	uint32_t exponent = 0x3f800000;
+	uint32_t result_i32 = result_mantissa_i32 | exponent;
+	return (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+}
+
+// This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion, clip range min on 8 bit, clip range extent on 24 bit
+static float calculate_f32_hack8(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
+{
+	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
+	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 31) / ((uint64_t(1) << num_value_bits) - 1);
+	ACL_ENSURE(sample_scale_i64 > (uint64_t(1) << 31), "Must be >= 1.0!");
+	uint64_t scaled_sample_i64 = (sample_value << (16 - num_value_bits)) * sample_scale_i64;						// 0.16 * 1.31 = 0.47	(integral part always 0)
+	ACL_ENSURE((scaled_sample_i64 & (1ull << 47)) == 0, "Integer bit used!");
+
+	// (1.0 << (8 + 24)) / 8.0 = 25.0 | 1.24
+	uint32_t segment_scale_i32 = uint32_t(((uint64_t(1) << k_num_segment_value_bits) << 24) / ((uint64_t(1) << k_num_segment_value_bits) - 1));
+	ACL_ENSURE(segment_scale_i32 > (1 << 24), "Must be >= 1.0!");
+	uint64_t scaled_segment_extent_i64 = segment_extent_value * segment_scale_i32;									// 0.8 * 1.24 = 0.32	(integral part always 0)
+	ACL_ENSURE((scaled_segment_extent_i64 & (1ull << 32)) == 0, "Integer bit used!");
+	uint64_t scaled_segment_min_i64 = segment_min_value * segment_scale_i32;										// 0.8 * 1.24 = 0.32	(integral part always 0)
+	ACL_ENSURE((scaled_segment_min_i64 & (1ull << 32)) == 0, "Integer bit used!");
+
+	uint64_t scaled_segment_range_i64 = (scaled_sample_i64 >> 15) * scaled_segment_extent_i64;						// 0.32 * 0.32 = 0.64
+	uint64_t clip_normalized_i64 = scaled_segment_range_i64 + (scaled_segment_min_i64 << 32);						// 0.64
+
+	// (1.0 << (32 + 31)) / 32.0 = 32.0 | 1.31
+	uint64_t clip_extent_scale_i64 = (uint64_t(1) << 63) / ((uint64_t(1) << 32) - 1);								// 1.31
+	ACL_ENSURE(clip_extent_scale_i64 == (uint64_t(1) << 31), "Must be == 1.0!");	// :( not necessary, cannot scale higher
+	uint64_t scaled_clip_extent_i64 = clip_extent_value * clip_extent_scale_i64;									// 0.24 * 1.31 = 0.55	(integral part always 0)
+	ACL_ENSURE((scaled_clip_extent_i64 & (1ull << 55)) == 0, "Integer bit used!");
+	
+	// (1.0 << (8 + 24)) / 8.0 = 25.0 | 1.24
+	uint64_t clip_min_scale_i64 = (((uint64_t(1) << 8) << 24) / ((uint64_t(1) << 8) - 1));							// 1.24
+	ACL_ENSURE(clip_min_scale_i64 > (uint64_t(1) << 24), "Must be >= 1.0!");
+	uint64_t scaled_clip_min_i64 = clip_min_value * clip_min_scale_i64;												// 0.8 * 1.24 = 0.32	(integral part always 0)
+	ACL_ENSURE((scaled_clip_min_i64 & (1ull << 32)) == 0, "Integer bit used!");
+
+	uint64_t scaled_clip_range_i64 = (clip_normalized_i64 >> 32) * (scaled_clip_extent_i64 >> 23);					// 0.32 * 0.32 = 0.64
+	uint32_t result_mantissa_i32 = uint32_t(scaled_clip_range_i64 >> 41) + uint32_t(scaled_clip_min_i64 >> 9);		// 0.23 + 0.23 = 0.23
+	ACL_ENSURE((result_mantissa_i32 & (1 << 23)) == 0, "Integer bit used!");
+	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
+	uint32_t exponent = 0x3f800000;
+	uint32_t result_i32 = result_mantissa_i32 | exponent;
+	return (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+}
+
+static void exhaustive_search_with_inputs(uint8_t bit_rate, float clip_min_value, float clip_extent_value
+	, double total_bit_rate_error[eMax], double max_bit_rate_error[eMax], double& num_bit_rate_samples
+	, float worst_clip_min_value[eMax], float worst_clip_extent_value[eMax]
+	, int32_t worst_segment_min_value[eMax], int32_t worst_segment_extent_value[eMax]
+	, int32_t worst_sample_value[eMax])
+{
+	const int32_t num_value_bits = get_num_bits_at_bit_rate(bit_rate);
+
+	double clip_min_value_dbl = double(clip_min_value);
+	uint32_t clip_min_value_i32 = uint32_t(uint64_t(clip_min_value_dbl * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1)));
+	uint32_t clip_min_value_i24 = uint32_t(uint64_t(clip_min_value_dbl * (double((1ull << 24) - 1) / double(1ull << 24)) * double((uint64_t(1) << 24) - 1)));
+	uint32_t clip_min_value_i8 = uint32_t(uint64_t(clip_min_value_dbl * (double((1ull << 8) - 1) / double(1ull << 8)) * double((uint64_t(1) << 8) - 1)));
+
+	double clip_extent_value_dbl = double(clip_extent_value);
+	uint32_t clip_extent_value_i32 = uint32_t(uint64_t(clip_extent_value_dbl * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1)));
+	uint32_t clip_extent_value_i24 = uint32_t(uint64_t(clip_extent_value_dbl * (double((1ull << 24) - 1) / double(1ull << 24)) * double((uint64_t(1) << 24) - 1)));
+
+	for (int32_t segment_min_value = 0; segment_min_value < (1 << k_num_segment_value_bits); ++segment_min_value)
+	{
+		//if (segment_min_value != 255) continue;
+		for (int32_t segment_max_value = segment_min_value + 1; segment_max_value < (1 << k_num_segment_value_bits); ++segment_max_value)
+		{
+			int32_t segment_extent_value = segment_max_value - segment_min_value;
+			//if (segment_min_value + segment_extent_value > 255) continue;
+			//if (segment_extent_value != 255) continue;
+			for (int32_t sample_value = 1; sample_value < (1 << num_value_bits); ++sample_value)
+			{
+				//if (sample_value != 15) continue;
+				float results[eMax];
+
+				results[eF32_Truth] = calculate_f32_truth(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_dbl, clip_min_value_dbl);
+				results[eF32_Legacy] = calculate_f32_legacy(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack1] = calculate_f32_hack1(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack2] = calculate_f32_hack2(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack3] = calculate_f32_hack3(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack4] = calculate_f32_hack4(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack5] = calculate_f32_hack5(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack6] = calculate_f32_hack6(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i32, clip_min_value_i32);
+				//results[eF32_Hack7] = calculate_f32_hack7(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i24);
+				//results[eF32_Hack8] = calculate_f32_hack8(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i8);
+
+				//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], results[eF32_Legacy], results[eF32_Hack1], results[eF32_Hack2], results[eF32_Hack3], results[eF32_Hack4], results[eF32_Hack5]);
+				//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], fabs(results[eF32_Legacy] - results[eF32_Truth]), fabs(results[eF32_Hack1] - results[eF32_Truth]), fabs(results[eF32_Hack2] - results[eF32_Truth]), fabs(results[eF32_Hack3] - results[eF32_Truth]), fabs(results[eF32_Hack4] - results[eF32_Truth]), fabs(results[eF32_Hack5] - results[eF32_Truth]));
+				float err = fabs(results[eF32_Hack5] - results[eF32_Truth]);
+				if (err > 0.2f && 1)
+					printf("!!\n");
+
+				for (int32_t i = 0; i < eMax; ++i)
+				{
+					double error = fabs(results[i] - results[eF32_Truth]);
+					total_bit_rate_error[i] += error;
+					if (error > max_bit_rate_error[i])
+					{
+						max_bit_rate_error[i] = error;
+						worst_clip_min_value[i] = clip_min_value;
+						worst_clip_extent_value[i] = clip_extent_value;
+						worst_segment_min_value[i] = segment_min_value;
+						worst_segment_extent_value[i] = segment_extent_value;
+						worst_sample_value[i] = sample_value;
+					}
+				}
+				num_bit_rate_samples += 1.0;
+			}
+		}
+	}
 }
 
 static void exhaustive_search_slice(ExhaustiveSearchSlice& slice)
@@ -2173,7 +2363,9 @@ static void exhaustive_search_slice(ExhaustiveSearchSlice& slice)
 	const int32_t num_value_bits = get_num_bits_at_bit_rate(slice.bit_rate);
 	float clip_min_value = *reinterpret_cast<float*>(&slice.clip_min_value_i32) - 1.0f;
 	double clip_min_value_dbl = double(clip_min_value);
-	uint32_t clip_min_value_i32 = uint32_t(clip_min_value_dbl * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1));
+	uint32_t clip_min_value_i32 = uint32_t(uint64_t(clip_min_value_dbl * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1)));
+	uint32_t clip_min_value_i24 = uint32_t(uint64_t(clip_min_value_dbl * (double((1ull << 24) - 1) / double(1ull << 24)) * double((uint64_t(1) << 24) - 1)));
+	uint32_t clip_min_value_i8 = uint32_t(uint64_t(clip_min_value_dbl * (double((1ull << 8) - 1) / double(1ull << 8)) * double((uint64_t(1) << 8) - 1)));
 
 	for (int32_t clip_max_value_i32 = slice.clip_max_value_start_i32;;)
 	{
@@ -2183,56 +2375,25 @@ static void exhaustive_search_slice(ExhaustiveSearchSlice& slice)
 		float clip_max_value = *reinterpret_cast<float*>(&clip_max_value_i32) - 1.0f;
 		float clip_extent_value = clip_max_value - clip_min_value;
 		double clip_extent_value_dbl = double(clip_max_value) - clip_min_value_dbl;
-		uint32_t clip_extent_value_i32 = uint32_t(clip_extent_value_dbl * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1));
+		uint32_t clip_extent_value_i32 = uint32_t(uint64_t(clip_extent_value_dbl * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1)));
+		uint32_t clip_extent_value_i24 = uint32_t(uint64_t(clip_extent_value_dbl * (double((1ull << 24) - 1) / double(1ull << 24)) * double((uint64_t(1) << 24) - 1)));
 
 		if (slice.clip_min_value_i32 < 0)
 		{
 			clip_min_value = 0.0f;
 			clip_min_value_dbl = 0.0;
 			clip_min_value_i32 = 0;
+			clip_min_value_i24 = 0;
+			clip_min_value_i8 = 0;
 			clip_extent_value = 1.0f;
 			clip_extent_value_dbl = 1.0;
 			clip_extent_value_i32 = 0xFFFFFFFF;
+			clip_extent_value_i24 = 0x00FFFFFF;
 		}
 
-		for (int32_t segment_min_value = 0; segment_min_value < (1 << k_num_segment_value_bits); ++segment_min_value)
-		{
-			//if (segment_min_value != 255) continue;
-			for (int32_t segment_max_value = segment_min_value + 1; segment_max_value < (1 << k_num_segment_value_bits); ++segment_max_value)
-			{
-				int32_t segment_extent_value = segment_max_value - segment_min_value;
-				//if (segment_min_value + segment_extent_value > 255) continue;
-				//if (segment_extent_value != 255) continue;
-				for (int32_t sample_value = 1; sample_value < (1 << num_value_bits); ++sample_value)
-				{
-					//if (sample_value != 15) continue;
-					float results[eMax];
-
-					results[eF32_Truth] = calculate_f32_truth(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_dbl, clip_min_value_dbl);
-					results[eF32_Legacy] = calculate_f32_legacy(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-					results[eF32_Hack1] = calculate_f32_hack1(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-					results[eF32_Hack2] = calculate_f32_hack2(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-					results[eF32_Hack3] = calculate_f32_hack3(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-					results[eF32_Hack4] = calculate_f32_hack4(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-					results[eF32_Hack5] = calculate_f32_hack5(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-					results[eF32_Hack6] = calculate_f32_hack6(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i32, clip_min_value_i32);
-
-					//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], results[eF32_Legacy], results[eF32_Hack1], results[eF32_Hack2], results[eF32_Hack3], results[eF32_Hack4], results[eF32_Hack5]);
-					//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], fabs(results[eF32_Legacy] - results[eF32_Truth]), fabs(results[eF32_Hack1] - results[eF32_Truth]), fabs(results[eF32_Hack2] - results[eF32_Truth]), fabs(results[eF32_Hack3] - results[eF32_Truth]), fabs(results[eF32_Hack4] - results[eF32_Truth]), fabs(results[eF32_Hack5] - results[eF32_Truth]));
-					float err = fabs(results[eF32_Hack3] - results[eF32_Truth]);
-					if (err > 0.2f && 1)
-						printf("!!\n");
-
-					for (int32_t i = 0; i < eMax; ++i)
-					{
-						double error = fabs(results[i] - results[eF32_Truth]);
-						slice.total_bit_rate_error[i] += error;
-						slice.max_bit_rate_error[i] = max(slice.max_bit_rate_error[i], error);
-					}
-					slice.num_bit_rate_samples += 1.0;
-				}
-			}
-		}
+		exhaustive_search_with_inputs(slice.bit_rate, clip_min_value, clip_extent_value
+			, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
+			, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
 
 		if (clip_max_value_i32 == slice.clip_max_value_end_i32)
 			break;
@@ -2244,15 +2405,25 @@ static void exhaustive_search_slice(ExhaustiveSearchSlice& slice)
 
 void test_exhaustive()
 {
-	double total_error[eMax] = { 0.0 };
-	double max_error[eMax] = { 0.0 };
-	double num_samples = 0.0;
+	ExhaustiveSearchSlice total_result_slice;
+	memset(&total_result_slice, 0, sizeof(total_result_slice));
 
 	const int32_t slice_size = 1000000;
 	const int32_t num_threads = 6;
 	const bool quick_test = true;
-	const bool no_clip = true;
+	const bool no_clip = false;
 	const bool print_avg = no_clip;
+	const bool use_random_sampling = true;
+	const int32_t random_seed = 304;
+
+	std::uniform_real_distribution<float> random_flt_distribution(0.1e-10f, std::nextafter(1.0f, std::numeric_limits<float>::max()));
+	std::uniform_int_distribution<int32_t> random_sign_distribution(0, 3);
+	std::default_random_engine re(random_seed);
+
+	// TODO: Change clip range to [-1.0 .. 1.0] (fix hack 6, 7, 8)
+	// TODO: Try uniform sampling in parallel
+	// TODO: Implement SSE versions of hack implementations
+	// TODO: Profile SSE versions
 
 	for (uint8_t bit_rate = 1; bit_rate < 15; ++bit_rate)
 	{
@@ -2270,6 +2441,54 @@ void test_exhaustive()
 			slice.clip_min_value_i32 = -1;
 			slice.clip_max_value_start_i32 = -1;
 			slice.clip_max_value_end_i32 = -1;
+
+			slices.push_back(slice);
+		}
+		else if (use_random_sampling)
+		{
+			ExhaustiveSearchSlice slice;
+			memset(&slice, 0, sizeof(slice));
+
+			// First test edge cases
+			exhaustive_search_with_inputs(bit_rate, -1.0f, 0.0f
+				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
+				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
+			exhaustive_search_with_inputs(bit_rate, -1.0f, 1.0f
+				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
+				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
+			exhaustive_search_with_inputs(bit_rate, 0.0f, 0.0f
+				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
+				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
+			exhaustive_search_with_inputs(bit_rate, 1.0f, 0.0f
+				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
+				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
+			exhaustive_search_with_inputs(bit_rate, 0.9999999999999f, 1.0f - 0.9999999999999f
+				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
+				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
+
+			const int32_t num_random_samples = 2;
+			for (int32_t sample_index = 0; sample_index < num_random_samples; ++sample_index)
+			{
+				float clip_range_value0 = random_flt_distribution(re);
+				float clip_range_value1 = random_flt_distribution(re);
+				int32_t sign_bias = random_sign_distribution(re);
+
+				// 0 (-/-), 1 (-/+), 2 (+/+)
+				float clip_range_min_sign = sign_bias < 2 ? -1.0f : 1.0f;
+				float clip_range_max_sign = sign_bias < 1 ? -1.0f : 1.0f;
+
+				float clip_range_min = min(clip_range_value0, clip_range_value1) * clip_range_min_sign;
+				float clip_range_max = max(clip_range_value0, clip_range_value1) * clip_range_max_sign;
+				float clip_range_extent = clip_range_max - clip_range_min;
+
+				exhaustive_search_with_inputs(bit_rate, clip_range_min, clip_range_extent
+					, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
+					, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
+
+				float progress = (float(sample_index + 1) / float(num_random_samples)) * 100.0f;
+				printf("\rCompleted %.2f %% ...", progress);
+				fflush(stdout);
+			}
 
 			slices.push_back(slice);
 		}
@@ -2346,46 +2565,62 @@ void test_exhaustive()
 		printf("\r                                      \n");
 		fflush(stdout);
 
-		double total_bit_rate_error[eMax] = { 0.0 };
-		double max_bit_rate_error[eMax] = { 0.0 };
-		double num_bit_rate_samples = 0.0;
+		ExhaustiveSearchSlice result_slice;
+		memset(&result_slice, 0, sizeof(result_slice));
 		for (int32_t i = 0; i < eMax; ++i)
 		{
 			for (ExhaustiveSearchSlice& slice : slices)
 			{
-				total_bit_rate_error[i] += slice.total_bit_rate_error[i];
-				max_bit_rate_error[i] = std::max(max_bit_rate_error[i], slice.max_bit_rate_error[i]);
-				num_bit_rate_samples = slice.num_bit_rate_samples;
+				result_slice.merge(slice);
+				total_result_slice.merge(slice);
 			}
 		}
 
 		double avg_error[eMax] = { 0.0 };
 		for (int32_t i = 0; i < eMax; ++i)
 		{
-			avg_error[i] = total_bit_rate_error[i] / num_bit_rate_samples;
-
-			total_error[i] += total_bit_rate_error[i];
-			max_error[i] = max(max_error[i], max_bit_rate_error[i]);
+			avg_error[i] = result_slice.total_bit_rate_error[i] / result_slice.num_bit_rate_samples;
 		}
-		num_samples += num_bit_rate_samples;
 
-		printf("Bits: %2u       [Truth]      | Legacy     | Hack 1     | Hack 2     | Hack 3     | Hack 4     | Hack 5     | Hack 6\n", num_value_bits);
+		printf("Bits: %2u       [Truth]      | Legacy     | Hack 1     | Hack 2     | Hack 3     | Hack 4     | Hack 5     | Hack 6     | Hack 7     | Hack 8\n", num_value_bits);
 		if (print_avg)
-			printf("Avg         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", avg_error[eF32_Truth], avg_error[eF32_Legacy], avg_error[eF32_Hack1], avg_error[eF32_Hack2], avg_error[eF32_Hack3], avg_error[eF32_Hack4], avg_error[eF32_Hack5], avg_error[eF32_Hack6]);
-		printf("Max         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", max_bit_rate_error[eF32_Truth], max_bit_rate_error[eF32_Legacy], max_bit_rate_error[eF32_Hack1], max_bit_rate_error[eF32_Hack2], max_bit_rate_error[eF32_Hack3], max_bit_rate_error[eF32_Hack4], max_bit_rate_error[eF32_Hack5], max_bit_rate_error[eF32_Hack6]);
+			printf("Avg         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", avg_error[eF32_Truth], avg_error[eF32_Legacy], avg_error[eF32_Hack1], avg_error[eF32_Hack2], avg_error[eF32_Hack3], avg_error[eF32_Hack4], avg_error[eF32_Hack5], avg_error[eF32_Hack6], avg_error[eF32_Hack7], avg_error[eF32_Hack8]);
+		printf("Max         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", result_slice.max_bit_rate_error[eF32_Truth], result_slice.max_bit_rate_error[eF32_Legacy], result_slice.max_bit_rate_error[eF32_Hack1], result_slice.max_bit_rate_error[eF32_Hack2], result_slice.max_bit_rate_error[eF32_Hack3], result_slice.max_bit_rate_error[eF32_Hack4], result_slice.max_bit_rate_error[eF32_Hack5], result_slice.max_bit_rate_error[eF32_Hack6], result_slice.max_bit_rate_error[eF32_Hack7], result_slice.max_bit_rate_error[eF32_Hack8]);
+		printf("\n");
+
+		printf("Worst Sample:               | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", result_slice.worst_sample_value[eF32_Legacy], result_slice.worst_sample_value[eF32_Hack1], result_slice.worst_sample_value[eF32_Hack2], result_slice.worst_sample_value[eF32_Hack3], result_slice.worst_sample_value[eF32_Hack4], result_slice.worst_sample_value[eF32_Hack5], result_slice.worst_sample_value[eF32_Hack6], result_slice.worst_sample_value[eF32_Hack7], result_slice.worst_sample_value[eF32_Hack8]);
+		printf("Worst Segment Min:          | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", result_slice.worst_segment_min_value[eF32_Legacy], result_slice.worst_segment_min_value[eF32_Hack1], result_slice.worst_segment_min_value[eF32_Hack2], result_slice.worst_segment_min_value[eF32_Hack3], result_slice.worst_segment_min_value[eF32_Hack4], result_slice.worst_segment_min_value[eF32_Hack5], result_slice.worst_segment_min_value[eF32_Hack6], result_slice.worst_segment_min_value[eF32_Hack7], result_slice.worst_segment_min_value[eF32_Hack8]);
+		printf("Worst Segment Extent:       | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", result_slice.worst_segment_extent_value[eF32_Legacy], result_slice.worst_segment_extent_value[eF32_Hack1], result_slice.worst_segment_extent_value[eF32_Hack2], result_slice.worst_segment_extent_value[eF32_Hack3], result_slice.worst_segment_extent_value[eF32_Hack4], result_slice.worst_segment_extent_value[eF32_Hack5], result_slice.worst_segment_extent_value[eF32_Hack6], result_slice.worst_segment_extent_value[eF32_Hack7], result_slice.worst_segment_extent_value[eF32_Hack8]);
+
+		printf("Worst Clip Min:             | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", result_slice.worst_clip_min_value[eF32_Legacy], result_slice.worst_clip_min_value[eF32_Hack1], result_slice.worst_clip_min_value[eF32_Hack2], result_slice.worst_clip_min_value[eF32_Hack3], result_slice.worst_clip_min_value[eF32_Hack4], result_slice.worst_clip_min_value[eF32_Hack5], result_slice.worst_clip_min_value[eF32_Hack6], result_slice.worst_clip_min_value[eF32_Hack7], result_slice.worst_clip_min_value[eF32_Hack8]);
+		printf("Worst Clip Min:             | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", *(int32_t*)&result_slice.worst_clip_min_value[eF32_Legacy], *(int32_t*)&result_slice.worst_clip_min_value[eF32_Hack1], *(int32_t*)&result_slice.worst_clip_min_value[eF32_Hack2], *(int32_t*)&result_slice.worst_clip_min_value[eF32_Hack3], *(int32_t*)&result_slice.worst_clip_min_value[eF32_Hack4], *(int32_t*)&result_slice.worst_clip_min_value[eF32_Hack5], *(int32_t*)&result_slice.worst_clip_min_value[eF32_Hack6], *(int32_t*)&result_slice.worst_clip_min_value[eF32_Hack7], *(int32_t*)&result_slice.worst_clip_min_value[eF32_Hack8]);
+
+		printf("Worst Clip Extent:          | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", result_slice.worst_clip_extent_value[eF32_Legacy], result_slice.worst_clip_extent_value[eF32_Hack1], result_slice.worst_clip_extent_value[eF32_Hack2], result_slice.worst_clip_extent_value[eF32_Hack3], result_slice.worst_clip_extent_value[eF32_Hack4], result_slice.worst_clip_extent_value[eF32_Hack5], result_slice.worst_clip_extent_value[eF32_Hack6], result_slice.worst_clip_extent_value[eF32_Hack7], result_slice.worst_clip_extent_value[eF32_Hack8]);
+		printf("Worst Clip Extent:          | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Legacy], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack1], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack2], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack3], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack4], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack5], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack6], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack7], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack8]);
 		printf("\n");
 	}
 
 	{
 		double avg_error[eMax] = { 0.0 };
 		for (int32_t i = 0; i < eMax; ++i)
-			avg_error[i] = total_error[i] / num_samples;
+			avg_error[i] = total_result_slice.total_bit_rate_error[i] / total_result_slice.num_bit_rate_samples;
 
 		printf("\n\n");
-		printf("               [Truth]      | Legacy     | Hack 1     | Hack 2     | Hack 3     | Hack 4     | Hack 5     | Hack 6\n");
+		printf("               [Truth]      | Legacy     | Hack 1     | Hack 2     | Hack 3     | Hack 4     | Hack 5     | Hack 6     | Hack 7     | Hack 8\n");
 		if (print_avg)
-			printf("Avg         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", avg_error[eF32_Truth], avg_error[eF32_Legacy], avg_error[eF32_Hack1], avg_error[eF32_Hack2], avg_error[eF32_Hack3], avg_error[eF32_Hack4], avg_error[eF32_Hack5], avg_error[eF32_Hack6]);
-		printf("Max         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", max_error[eF32_Truth], max_error[eF32_Legacy], max_error[eF32_Hack1], max_error[eF32_Hack2], max_error[eF32_Hack3], max_error[eF32_Hack4], max_error[eF32_Hack5], max_error[eF32_Hack6]);
+			printf("Avg         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", avg_error[eF32_Truth], avg_error[eF32_Legacy], avg_error[eF32_Hack1], avg_error[eF32_Hack2], avg_error[eF32_Hack3], avg_error[eF32_Hack4], avg_error[eF32_Hack5], avg_error[eF32_Hack6], avg_error[eF32_Hack7], avg_error[eF32_Hack8]);
+		printf("Max         -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", total_result_slice.max_bit_rate_error[eF32_Truth], total_result_slice.max_bit_rate_error[eF32_Legacy], total_result_slice.max_bit_rate_error[eF32_Hack1], total_result_slice.max_bit_rate_error[eF32_Hack2], total_result_slice.max_bit_rate_error[eF32_Hack3], total_result_slice.max_bit_rate_error[eF32_Hack4], total_result_slice.max_bit_rate_error[eF32_Hack5], total_result_slice.max_bit_rate_error[eF32_Hack6], total_result_slice.max_bit_rate_error[eF32_Hack7], total_result_slice.max_bit_rate_error[eF32_Hack8]);
+		printf("\n");
+
+		printf("Worst Sample:               | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", total_result_slice.worst_sample_value[eF32_Legacy], total_result_slice.worst_sample_value[eF32_Hack1], total_result_slice.worst_sample_value[eF32_Hack2], total_result_slice.worst_sample_value[eF32_Hack3], total_result_slice.worst_sample_value[eF32_Hack4], total_result_slice.worst_sample_value[eF32_Hack5], total_result_slice.worst_sample_value[eF32_Hack6], total_result_slice.worst_sample_value[eF32_Hack7], total_result_slice.worst_sample_value[eF32_Hack8]);
+		printf("Worst Segment Min:          | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", total_result_slice.worst_segment_min_value[eF32_Legacy], total_result_slice.worst_segment_min_value[eF32_Hack1], total_result_slice.worst_segment_min_value[eF32_Hack2], total_result_slice.worst_segment_min_value[eF32_Hack3], total_result_slice.worst_segment_min_value[eF32_Hack4], total_result_slice.worst_segment_min_value[eF32_Hack5], total_result_slice.worst_segment_min_value[eF32_Hack6], total_result_slice.worst_segment_min_value[eF32_Hack7], total_result_slice.worst_segment_min_value[eF32_Hack8]);
+		printf("Worst Segment Extent:       | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", total_result_slice.worst_segment_extent_value[eF32_Legacy], total_result_slice.worst_segment_extent_value[eF32_Hack1], total_result_slice.worst_segment_extent_value[eF32_Hack2], total_result_slice.worst_segment_extent_value[eF32_Hack3], total_result_slice.worst_segment_extent_value[eF32_Hack4], total_result_slice.worst_segment_extent_value[eF32_Hack5], total_result_slice.worst_segment_extent_value[eF32_Hack6], total_result_slice.worst_segment_extent_value[eF32_Hack7], total_result_slice.worst_segment_extent_value[eF32_Hack8]);
+
+		printf("Worst Clip Min:             | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", total_result_slice.worst_clip_min_value[eF32_Legacy], total_result_slice.worst_clip_min_value[eF32_Hack1], total_result_slice.worst_clip_min_value[eF32_Hack2], total_result_slice.worst_clip_min_value[eF32_Hack3], total_result_slice.worst_clip_min_value[eF32_Hack4], total_result_slice.worst_clip_min_value[eF32_Hack5], total_result_slice.worst_clip_min_value[eF32_Hack6], total_result_slice.worst_clip_min_value[eF32_Hack7], total_result_slice.worst_clip_min_value[eF32_Hack8]);
+		printf("Worst Clip Min:             | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", *(int32_t*)&total_result_slice.worst_clip_min_value[eF32_Legacy], *(int32_t*)&total_result_slice.worst_clip_min_value[eF32_Hack1], *(int32_t*)&total_result_slice.worst_clip_min_value[eF32_Hack2], *(int32_t*)&total_result_slice.worst_clip_min_value[eF32_Hack3], *(int32_t*)&total_result_slice.worst_clip_min_value[eF32_Hack4], *(int32_t*)&total_result_slice.worst_clip_min_value[eF32_Hack5], *(int32_t*)&total_result_slice.worst_clip_min_value[eF32_Hack6], *(int32_t*)&total_result_slice.worst_clip_min_value[eF32_Hack7], *(int32_t*)&total_result_slice.worst_clip_min_value[eF32_Hack8]);
+
+		printf("Worst Clip Extent:          | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", total_result_slice.worst_clip_extent_value[eF32_Legacy], total_result_slice.worst_clip_extent_value[eF32_Hack1], total_result_slice.worst_clip_extent_value[eF32_Hack2], total_result_slice.worst_clip_extent_value[eF32_Hack3], total_result_slice.worst_clip_extent_value[eF32_Hack4], total_result_slice.worst_clip_extent_value[eF32_Hack5], total_result_slice.worst_clip_extent_value[eF32_Hack6], total_result_slice.worst_clip_extent_value[eF32_Hack7], total_result_slice.worst_clip_extent_value[eF32_Hack8]);
+		printf("Worst Clip Extent:          | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Legacy], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack1], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack2], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack3], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack4], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack5], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack6], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack7], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack8]);
 	}
 }
 
