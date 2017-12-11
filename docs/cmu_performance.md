@@ -50,20 +50,7 @@ Sadly the Unreal 4 compression logic does not *yet* support multi-threading and 
 
 # Unity 5
 
-Sadly I have not yet managed to find a way to implement a custom error metric in Unity nor how to even sample a clip procedurally in both the raw and/or compressed form. This makes comparing the results somewhat difficult. However I did manage to extract the following statistics with the default compression settings and the `optimal` compression algorithm:
-
-*  Number of muscle curves: **329153**
-*  Number of constant curves: **119173**
-*  Number of dense curves: **203526**
-*  Number of stream curves: **6454**
-*  Editor memory footprint: **1.22 GB**
-*  Win32 memory footprint: **282 MB**
-*  Max error: unknown
-*  Compression time: unknown
-
-**Results from Unity 5.6.1f1**
-
-*Contributions welcome on this topic if you are familiar with Unity*
+Even though the data set comes from the Unity store, the Unity EULA expressly forbids the usage of the engine for competitive analysis without prior written concent.
 
 # Results in images
 
