@@ -2210,7 +2210,8 @@ static float calculate_f32_hack6(uint32_t sample_value, uint32_t num_value_bits,
 	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
 	uint32_t exponent = 0x3f800000;
 	uint32_t result_i32 = result_mantissa_i32 | exponent;
-	return (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+	float result_remapped = (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+	return (result_remapped * 2.0f) - 1.0f;
 }
 
 // This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion, clip range on 24 bit
@@ -2247,7 +2248,8 @@ static float calculate_f32_hack7(uint32_t sample_value, uint32_t num_value_bits,
 	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
 	uint32_t exponent = 0x3f800000;
 	uint32_t result_i32 = result_mantissa_i32 | exponent;
-	return (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+	float result_remapped = (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+	return (result_remapped * 2.0f) - 1.0f;
 }
 
 // This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion, clip range min on 8 bit, clip range extent on 24 bit
@@ -2288,7 +2290,8 @@ static float calculate_f32_hack8(uint32_t sample_value, uint32_t num_value_bits,
 	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
 	uint32_t exponent = 0x3f800000;
 	uint32_t result_i32 = result_mantissa_i32 | exponent;
-	return (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+	float result_remapped = (*reinterpret_cast<float*>(&result_i32) - 1.0f);
+	return (result_remapped * 2.0f) - 1.0f;
 }
 
 static void exhaustive_search_with_inputs(uint8_t bit_rate, float clip_min_value, float clip_extent_value
@@ -2300,13 +2303,15 @@ static void exhaustive_search_with_inputs(uint8_t bit_rate, float clip_min_value
 	const int32_t num_value_bits = get_num_bits_at_bit_rate(bit_rate);
 
 	double clip_min_value_dbl = double(clip_min_value);
-	uint32_t clip_min_value_i32 = uint32_t(uint64_t(clip_min_value_dbl * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1)));
-	uint32_t clip_min_value_i24 = uint32_t(uint64_t(clip_min_value_dbl * (double((1ull << 24) - 1) / double(1ull << 24)) * double((uint64_t(1) << 24) - 1)));
-	uint32_t clip_min_value_i8 = uint32_t(uint64_t(clip_min_value_dbl * (double((1ull << 8) - 1) / double(1ull << 8)) * double((uint64_t(1) << 8) - 1)));
+	double clip_min_value_dbl_remapped = (clip_min_value_dbl * 0.5) + 0.5;
+	uint32_t clip_min_value_i32 = uint32_t(uint64_t(clip_min_value_dbl_remapped * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1)));
+	uint32_t clip_min_value_i24 = uint32_t(uint64_t(clip_min_value_dbl_remapped * (double((1ull << 24) - 1) / double(1ull << 24)) * double((uint64_t(1) << 24) - 1)));
+	uint32_t clip_min_value_i8 = uint32_t(uint64_t(clip_min_value_dbl_remapped * (double((1ull << 8) - 1) / double(1ull << 8)) * double((uint64_t(1) << 8) - 1)));
 
 	double clip_extent_value_dbl = double(clip_extent_value);
-	uint32_t clip_extent_value_i32 = uint32_t(uint64_t(clip_extent_value_dbl * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1)));
-	uint32_t clip_extent_value_i24 = uint32_t(uint64_t(clip_extent_value_dbl * (double((1ull << 24) - 1) / double(1ull << 24)) * double((uint64_t(1) << 24) - 1)));
+	double clip_extent_value_dbl_remapped = clip_extent_value_dbl * 0.5;
+	uint32_t clip_extent_value_i32 = uint32_t(uint64_t(clip_extent_value_dbl_remapped * (double((1ull << 32) - 1) / double(1ull << 32)) * double((uint64_t(1) << 32) - 1)));
+	uint32_t clip_extent_value_i24 = uint32_t(uint64_t(clip_extent_value_dbl_remapped * (double((1ull << 24) - 1) / double(1ull << 24)) * double((uint64_t(1) << 24) - 1)));
 
 	for (int32_t segment_min_value = 0; segment_min_value < (1 << k_num_segment_value_bits); ++segment_min_value)
 	{
@@ -2329,8 +2334,8 @@ static void exhaustive_search_with_inputs(uint8_t bit_rate, float clip_min_value
 				results[eF32_Hack4] = calculate_f32_hack4(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
 				results[eF32_Hack5] = calculate_f32_hack5(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
 				results[eF32_Hack6] = calculate_f32_hack6(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i32, clip_min_value_i32);
-				//results[eF32_Hack7] = calculate_f32_hack7(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i24);
-				//results[eF32_Hack8] = calculate_f32_hack8(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i8);
+				results[eF32_Hack7] = calculate_f32_hack7(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i24);
+				results[eF32_Hack8] = calculate_f32_hack8(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i8);
 
 				//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], results[eF32_Legacy], results[eF32_Hack1], results[eF32_Hack2], results[eF32_Hack3], results[eF32_Hack4], results[eF32_Hack5]);
 				//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], fabs(results[eF32_Legacy] - results[eF32_Truth]), fabs(results[eF32_Hack1] - results[eF32_Truth]), fabs(results[eF32_Hack2] - results[eF32_Truth]), fabs(results[eF32_Hack3] - results[eF32_Truth]), fabs(results[eF32_Hack4] - results[eF32_Truth]), fabs(results[eF32_Hack5] - results[eF32_Truth]));
@@ -2417,10 +2422,9 @@ void test_exhaustive()
 	const int32_t random_seed = 304;
 
 	std::uniform_real_distribution<float> random_flt_distribution(0.1e-10f, std::nextafter(1.0f, std::numeric_limits<float>::max()));
-	std::uniform_int_distribution<int32_t> random_sign_distribution(0, 3);
+	std::uniform_int_distribution<int32_t> random_sign_distribution(0, 2);
 	std::default_random_engine re(random_seed);
 
-	// TODO: Change clip range to [-1.0 .. 1.0] (fix hack 6, 7, 8)
 	// TODO: Try uniform sampling in parallel
 	// TODO: Implement SSE versions of hack implementations
 	// TODO: Profile SSE versions
@@ -2469,16 +2473,17 @@ void test_exhaustive()
 			const int32_t num_random_samples = 2;
 			for (int32_t sample_index = 0; sample_index < num_random_samples; ++sample_index)
 			{
-				float clip_range_value0 = random_flt_distribution(re);
-				float clip_range_value1 = random_flt_distribution(re);
-				int32_t sign_bias = random_sign_distribution(re);
+				int32_t sign_bias0 = random_sign_distribution(re);
+				int32_t sign_bias1 = random_sign_distribution(re);
 
-				// 0 (-/-), 1 (-/+), 2 (+/+)
-				float clip_range_min_sign = sign_bias < 2 ? -1.0f : 1.0f;
-				float clip_range_max_sign = sign_bias < 1 ? -1.0f : 1.0f;
+				float clip_value0_sign = sign_bias0 != 0 ? 1.0f : -1.0f;
+				float clip_value1_sign = sign_bias1 != 0 ? 1.0f : -1.0f;
 
-				float clip_range_min = min(clip_range_value0, clip_range_value1) * clip_range_min_sign;
-				float clip_range_max = max(clip_range_value0, clip_range_value1) * clip_range_max_sign;
+				float clip_range_value0 = random_flt_distribution(re) * clip_value0_sign;
+				float clip_range_value1 = random_flt_distribution(re) * clip_value1_sign;
+
+				float clip_range_min = min(clip_range_value0, clip_range_value1);
+				float clip_range_max = max(clip_range_value0, clip_range_value1);
 				float clip_range_extent = clip_range_max - clip_range_min;
 
 				exhaustive_search_with_inputs(bit_rate, clip_range_min, clip_range_extent
