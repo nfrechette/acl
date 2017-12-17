@@ -104,6 +104,9 @@
 // 4: FixedPoint -> Cvt float32 -> remap signed
 #define ACL_HACK_COERCION_FP_32					0
 
+//#define ACL_DEBUG_INLINE						__declspec(noinline)
+#define ACL_DEBUG_INLINE
+
 
 static const size_t k_num_segment_values = 18;
 static const bool k_remap_fp_range = false;
@@ -112,6 +115,7 @@ static const bool k_enable_float32 = true;
 static const bool k_enable_fp = true;
 static const bool k_dump_error = false;
 static const bool k_dump_bit_rate_wins = false;
+static const bool k_validate_sse_results = false;
 
 using namespace acl;
 
@@ -2107,9 +2111,13 @@ static const float SEGMENT_SCALE_FLT = float(1 << k_num_segment_value_bits) / fl
 static const uint32_t SEGMENT_SCALE_I9 = ((1 << k_num_segment_value_bits) << 8) / ((1 << k_num_segment_value_bits) - 1);
 static const uint32_t SEGMENT_SCALE_I25 = uint32_t(((uint64_t(1) << k_num_segment_value_bits) << 24) / ((uint64_t(1) << k_num_segment_value_bits) - 1));
 static const float ONE = 1.0f;
+static const float TWO = 2.0f;
+
+// (1.0 << (32 + 31)) / 32.0 = 32.0 | 1.31
+static const uint32_t CLIP_SCALE_I32 = uint32_t((uint64_t(1) << 63) / ((uint64_t(1) << 32) - 1));
 
 // This is the current legacy implementation
-__declspec(noinline) static float calculate_f32_legacy(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_legacy(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	float sample_flt = float(sample_value) / VALUE_BITS_MAX[num_value_bits];
 	float segment_extent_flt = float(segment_extent_value) / SEGMENT_BITS_MAX;
@@ -2118,7 +2126,7 @@ __declspec(noinline) static float calculate_f32_legacy(uint32_t sample_value, ui
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-__declspec(noinline) static float calculate_f32_legacy_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_legacy_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128 value_bits_max = _mm_load1_ps(&VALUE_BITS_MAX[num_value_bits]);
@@ -2138,7 +2146,7 @@ __declspec(noinline) static float calculate_f32_legacy_sse(uint32_t sample_value
 }
 
 // This uses fast coercion for the sample and segment values and float32 arithmetic to combine everything
-__declspec(noinline) static float calculate_f32_hack1(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack1(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	int32_t sample_i32 = (sample_value << (23 - num_value_bits)) | EXPONENT_BITS;
 	int32_t segment_extent_i32 = (segment_extent_value << SEGMENT_SHIFT_AMOUNT) | EXPONENT_BITS;
@@ -2152,7 +2160,7 @@ __declspec(noinline) static float calculate_f32_hack1(uint32_t sample_value, uin
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-__declspec(noinline) static float calculate_f32_hack1_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack1_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_shift_amount = _mm_set1_epi64x(23 - num_value_bits);
@@ -2181,7 +2189,7 @@ __declspec(noinline) static float calculate_f32_hack1_sse(uint32_t sample_value,
 }
 
 // This uses 32 bit fixed point arithmetic to perform segment range expansion and float32 arithmetic for clip range expansion
-__declspec(noinline) static float calculate_f32_hack2(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack2(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	// Due to rounding, some integral parts are never used and always 0, re-use those bits!
 	// (1.0 << (N + 16)) / N.0 = 17.0 | 1.16
@@ -2208,7 +2216,7 @@ __declspec(noinline) static float calculate_f32_hack2(uint32_t sample_value, uin
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-__declspec(noinline) static float calculate_f32_hack2_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack2_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I17[num_value_bits]);
@@ -2236,7 +2244,7 @@ __declspec(noinline) static float calculate_f32_hack2_sse(uint32_t sample_value,
 }
 
 // This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment range expansion and float32 arithmetic for clip range expansion
-__declspec(noinline) static float calculate_f32_hack3(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack3(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	// Due to rounding, some integral parts are never used and always 0, re-use those bits!
 	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
@@ -2263,7 +2271,7 @@ __declspec(noinline) static float calculate_f32_hack3(uint32_t sample_value, uin
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-__declspec(noinline) static float calculate_f32_hack3_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack3_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I32[num_value_bits]);
@@ -2274,10 +2282,10 @@ __declspec(noinline) static float calculate_f32_hack3_sse(uint32_t sample_value,
 	__m128i segment_extent_value_ = _mm_set1_epi32(segment_extent_value);
 	__m128i segment_min_value_ = _mm_set1_epi32(segment_min_value);
 	__m128i segment_scale_i32 = _mm_set1_epi32(SEGMENT_SCALE_I25);
-	__m128i scaled_extent_i64 = _mm_mul_epu32(segment_extent_value_, segment_scale_i32);
+	__m128i scaled_extent_i64 = _mm_mullo_epi32(segment_extent_value_, segment_scale_i32);
 	__m128i scaled_min_i32 = _mm_mullo_epi32(segment_min_value_, segment_scale_i32);
 
-	__m128i scaled_range_i64 = _mm_mullo_epi32(_mm_srli_epi64(scaled_sample_i64, 15), scaled_extent_i64);
+	__m128i scaled_range_i64 = _mm_mul_epu32(_mm_srli_epi64(scaled_sample_i64, 15), scaled_extent_i64);
 	__m128i clip_normalized_mantissa_i32 = _mm_add_epi32(_mm_srli_epi64(scaled_range_i64, 41), _mm_srli_epi32(scaled_min_i32, 9));
 	__m128i exponent = _mm_set1_epi32(EXPONENT_BITS);
 	__m128i clip_normalized_i32 = _mm_or_si128(clip_normalized_mantissa_i32, exponent);
@@ -2291,7 +2299,7 @@ __declspec(noinline) static float calculate_f32_hack3_sse(uint32_t sample_value,
 }
 
 // This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment range expansion but applies the normalization scale with float32 arithmetic and uses float32 for clip range expansion
-__declspec(noinline) static float calculate_f32_hack4(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack4(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	// Due to rounding, some integral parts are never used and always 0, re-use those bits!
 	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
@@ -2306,17 +2314,41 @@ __declspec(noinline) static float calculate_f32_hack4(uint32_t sample_value, uin
 	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
 	uint32_t exponent = 0x3f800000;
 	uint32_t result_i32 = result_mantissa_i32 | exponent;
-	float segment_scale = float(1 << k_num_segment_value_bits) / float((1 << k_num_segment_value_bits) - 1);
-	float clip_normalized = (*reinterpret_cast<float*>(&result_i32) - 1.0f) * segment_scale;
+	float clip_normalized = (*reinterpret_cast<float*>(&result_i32) - 1.0f) * SEGMENT_SCALE_FLT;
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
+ACL_DEBUG_INLINE static float calculate_f32_hack4_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+{
+	__m128i sample_value_ = _mm_set1_epi32(sample_value);
+	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I32[num_value_bits]);
+	__m128i sample_shift_amount = _mm_set1_epi64x(16 - num_value_bits);
+	__m128i shifted_sample_value = _mm_sll_epi32(sample_value_, sample_shift_amount);
+	__m128i scaled_sample_i64 = _mm_mul_epu32(shifted_sample_value, sample_scale_i32);
+
+	__m128i segment_extent_value_ = _mm_set1_epi32(segment_extent_value);
+	__m128i segment_min_value_ = _mm_set1_epi32(segment_min_value);
+	__m128i scaled_range_i64 = _mm_mul_epu32(_mm_srli_epi64(scaled_sample_i64, 15), segment_extent_value_);
+
+	__m128i clip_normalized_mantissa_i32 = _mm_add_epi32(_mm_srli_epi64(scaled_range_i64, 17), _mm_slli_epi32(segment_min_value_, 15));
+	__m128i exponent = _mm_set1_epi32(EXPONENT_BITS);
+	__m128i clip_normalized_i32 = _mm_or_si128(clip_normalized_mantissa_i32, exponent);
+	__m128 one = _mm_load1_ps(&ONE);
+	__m128 segment_scale = _mm_load1_ps(&SEGMENT_SCALE_FLT);
+	__m128 clip_normalized = _mm_mul_ps(_mm_sub_ps(_mm_castsi128_ps(clip_normalized_i32), one), segment_scale);
+
+	__m128 clip_extent_value_ = _mm_set1_ps(clip_extent_value);
+	__m128 clip_min_value_ = _mm_set1_ps(clip_min_value);
+	__m128 result = _mm_add_ps(_mm_mul_ps(clip_normalized, clip_extent_value_), clip_min_value_);
+	return _mm_cvtss_f32(result);
+}
+
 // This uses 32 bit fixed point arithmetic to perform segment range expansion but applies the normalization scale with float32 arithmetic and uses float32 for clip range expansion
-__declspec(noinline) static float calculate_f32_hack5(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack5(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	// Due to rounding, some integral parts are never used and always 0, re-use those bits!
 	// (1.0 << (N + 16)) / N.0 = 17.0 | 1.16
-	uint32_t sample_scale_i32 = uint32_t(((uint64_t(1) << num_value_bits) << 16) / ((uint64_t(1) << num_value_bits) - 1));
+	uint32_t sample_scale_i32 = SAMPLE_SCALE_I17[num_value_bits];
 	ACL_ENSURE(sample_scale_i32 > (1 << 16), "Must be >= 1.0!");
 	uint32_t scaled_sample_i32 = (sample_value << (16 - num_value_bits)) * sample_scale_i32;		// 0.16 * 1.16 = 0.32	(integral part always 0)
 	ACL_ENSURE((((uint64_t(sample_value) << (16 - num_value_bits)) * sample_scale_i32) & (uint64_t(1) << 32)) == 0, "Integer bit used!");
@@ -2327,13 +2359,36 @@ __declspec(noinline) static float calculate_f32_hack5(uint32_t sample_value, uin
 	// Due to rounding, the integral part is never used and always 0, we can safely OR the bits with the exponent
 	uint32_t exponent = 0x3f800000;
 	uint32_t result_i32 = result_mantissa_i32 | exponent;
-	float segment_scale = float(1 << k_num_segment_value_bits) / float((1 << k_num_segment_value_bits) - 1);
-	float clip_normalized = (*reinterpret_cast<float*>(&result_i32) - 1.0f) * segment_scale;
+	float clip_normalized = (*reinterpret_cast<float*>(&result_i32) - 1.0f) * SEGMENT_SCALE_FLT;
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
+ACL_DEBUG_INLINE static float calculate_f32_hack5_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+{
+	__m128i sample_value_ = _mm_set1_epi32(sample_value);
+	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I17[num_value_bits]);
+	__m128i sample_shift_amount = _mm_set1_epi64x(16 - num_value_bits);
+	__m128i scaled_sample_i32 = _mm_mullo_epi32(_mm_sll_epi32(sample_value_, sample_shift_amount), sample_scale_i32);
+
+	__m128i segment_extent_value_ = _mm_set1_epi32(segment_extent_value);
+	__m128i segment_min_value_ = _mm_set1_epi32(segment_min_value);
+	__m128i scaled_range_i32 = _mm_mullo_epi32(_mm_srli_epi32(scaled_sample_i32, 8), segment_extent_value_);
+	__m128i clip_normalized_mantissa_i32 = _mm_add_epi32(_mm_srli_epi32(scaled_range_i32, 9), _mm_slli_epi32(segment_min_value_, 15));
+
+	__m128i exponent = _mm_set1_epi32(EXPONENT_BITS);
+	__m128i clip_normalized_i32 = _mm_or_si128(clip_normalized_mantissa_i32, exponent);
+	__m128 one = _mm_load1_ps(&ONE);
+	__m128 segment_scale = _mm_load1_ps(&SEGMENT_SCALE_FLT);
+	__m128 clip_normalized = _mm_mul_ps(_mm_sub_ps(_mm_castsi128_ps(clip_normalized_i32), one), segment_scale);
+
+	__m128 clip_extent_value_ = _mm_set1_ps(clip_extent_value);
+	__m128 clip_min_value_ = _mm_set1_ps(clip_min_value);
+	__m128 result = _mm_add_ps(_mm_mul_ps(clip_normalized, clip_extent_value_), clip_min_value_);
+	return _mm_cvtss_f32(result);
+}
+
 // This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion, clip range on 32 bit
-__declspec(noinline) static float calculate_f32_hack6(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack6(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
 {
 	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
 	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 31) / ((uint64_t(1) << num_value_bits) - 1);
@@ -2342,7 +2397,7 @@ __declspec(noinline) static float calculate_f32_hack6(uint32_t sample_value, uin
 	ACL_ENSURE((scaled_sample_i64 & (1ull << 47)) == 0, "Integer bit used!");
 
 	// (1.0 << (8 + 24)) / 8.0 = 25.0 | 1.24
-	uint32_t segment_scale_i32 = uint32_t(((uint64_t(1) << k_num_segment_value_bits) << 24) / ((uint64_t(1) << k_num_segment_value_bits) - 1));
+	uint32_t segment_scale_i32 = SEGMENT_SCALE_I25;
 	ACL_ENSURE(segment_scale_i32 > (1 << 24), "Must be >= 1.0!");
 	uint64_t scaled_segment_extent_i64 = segment_extent_value * segment_scale_i32;									// 0.8 * 1.24 = 0.32	(integral part always 0)
 	ACL_ENSURE((scaled_segment_extent_i64 & (1ull << 32)) == 0, "Integer bit used!");
@@ -2370,8 +2425,43 @@ __declspec(noinline) static float calculate_f32_hack6(uint32_t sample_value, uin
 	return (result_remapped * 2.0f) - 1.0f;
 }
 
+ACL_DEBUG_INLINE static float calculate_f32_hack6_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
+{
+	__m128i sample_value_ = _mm_set1_epi32(sample_value);
+	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I32[num_value_bits]);
+	__m128i sample_shift_amount = _mm_set1_epi64x(16 - num_value_bits);
+	__m128i shifted_sample_value = _mm_sll_epi32(sample_value_, sample_shift_amount);
+	__m128i scaled_sample_i64 = _mm_mul_epu32(shifted_sample_value, sample_scale_i32);
+
+	__m128i segment_extent_value_ = _mm_set1_epi32(segment_extent_value);
+	__m128i segment_min_value_ = _mm_set1_epi32(segment_min_value);
+	__m128i segment_scale_i32 = _mm_set1_epi32(SEGMENT_SCALE_I25);
+	__m128i scaled_segment_extent_i64 = _mm_mullo_epi32(segment_extent_value_, segment_scale_i32);
+	__m128i scaled_segment_min_i64 = _mm_mullo_epi32(segment_min_value_, segment_scale_i32);
+
+	__m128i scaled_segment_range_i64 = _mm_mul_epu32(_mm_srli_epi64(scaled_sample_i64, 15), scaled_segment_extent_i64);
+	__m128i clip_normalized_i64 = _mm_add_epi64(scaled_segment_range_i64, _mm_slli_epi64(scaled_segment_min_i64, 32));
+
+	__m128i clip_scale_i64 = _mm_set1_epi32(CLIP_SCALE_I32);
+	__m128i clip_extent_value_ = _mm_set1_epi32(clip_extent_value);
+	__m128i clip_min_value_ = _mm_set1_epi32(clip_min_value);
+	__m128i scaled_clip_extent_i64 = _mm_mul_epu32(clip_extent_value_, clip_scale_i64);
+	__m128i scaled_clip_min_i64 = _mm_mul_epu32(clip_min_value_, clip_scale_i64);
+
+	__m128i scaled_clip_range_i64 = _mm_mul_epu32(_mm_srli_epi64(clip_normalized_i64, 32), _mm_srli_epi64(scaled_clip_extent_i64, 31));
+	__m128i result_mantissa_i32 = _mm_add_epi32(_mm_srli_epi64(scaled_clip_range_i64, 41), _mm_srli_epi64(scaled_clip_min_i64, 40));
+
+	__m128i exponent = _mm_set1_epi32(EXPONENT_BITS);
+	__m128i result_i32 = _mm_or_si128(result_mantissa_i32, exponent);
+	__m128 one = _mm_load1_ps(&ONE);
+	__m128 two = _mm_load1_ps(&TWO);
+	__m128 result_remapped = _mm_sub_ps(_mm_castsi128_ps(result_i32), one);
+	__m128 result = _mm_sub_ps(_mm_mul_ps(result_remapped, two), one);
+	return _mm_cvtss_f32(result);
+}
+
 // This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion, clip range on 24 bit
-__declspec(noinline) static float calculate_f32_hack7(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack7(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
 {
 	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
 	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 31) / ((uint64_t(1) << num_value_bits) - 1);
@@ -2380,7 +2470,7 @@ __declspec(noinline) static float calculate_f32_hack7(uint32_t sample_value, uin
 	ACL_ENSURE((scaled_sample_i64 & (1ull << 47)) == 0, "Integer bit used!");
 
 	// (1.0 << (8 + 24)) / 8.0 = 25.0 | 1.24
-	uint32_t segment_scale_i32 = uint32_t(((uint64_t(1) << k_num_segment_value_bits) << 24) / ((uint64_t(1) << k_num_segment_value_bits) - 1));
+	uint32_t segment_scale_i32 = SEGMENT_SCALE_I25;
 	ACL_ENSURE(segment_scale_i32 > (1 << 24), "Must be >= 1.0!");
 	uint64_t scaled_segment_extent_i64 = segment_extent_value * segment_scale_i32;									// 0.8 * 1.24 = 0.32	(integral part always 0)
 	ACL_ENSURE((scaled_segment_extent_i64 & (1ull << 32)) == 0, "Integer bit used!");
@@ -2408,8 +2498,43 @@ __declspec(noinline) static float calculate_f32_hack7(uint32_t sample_value, uin
 	return (result_remapped * 2.0f) - 1.0f;
 }
 
+ACL_DEBUG_INLINE static float calculate_f32_hack7_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
+{
+	__m128i sample_value_ = _mm_set1_epi32(sample_value);
+	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I32[num_value_bits]);
+	__m128i sample_shift_amount = _mm_set1_epi64x(16 - num_value_bits);
+	__m128i shifted_sample_value = _mm_sll_epi32(sample_value_, sample_shift_amount);
+	__m128i scaled_sample_i64 = _mm_mul_epu32(shifted_sample_value, sample_scale_i32);
+
+	__m128i segment_extent_value_ = _mm_set1_epi32(segment_extent_value);
+	__m128i segment_min_value_ = _mm_set1_epi32(segment_min_value);
+	__m128i segment_scale_i32 = _mm_set1_epi32(SEGMENT_SCALE_I25);
+	__m128i scaled_segment_extent_i64 = _mm_mullo_epi32(segment_extent_value_, segment_scale_i32);
+	__m128i scaled_segment_min_i64 = _mm_mullo_epi32(segment_min_value_, segment_scale_i32);
+
+	__m128i scaled_segment_range_i64 = _mm_mul_epu32(_mm_srli_epi64(scaled_sample_i64, 15), scaled_segment_extent_i64);
+	__m128i clip_normalized_i64 = _mm_add_epi64(scaled_segment_range_i64, _mm_slli_epi64(scaled_segment_min_i64, 32));
+
+	__m128i clip_scale_i64 = _mm_set1_epi32(CLIP_SCALE_I32);
+	__m128i clip_extent_value_ = _mm_set1_epi32(clip_extent_value);
+	__m128i clip_min_value_ = _mm_set1_epi32(clip_min_value);
+	__m128i scaled_clip_extent_i64 = _mm_mul_epu32(clip_extent_value_, clip_scale_i64);
+	__m128i scaled_clip_min_i64 = _mm_mul_epu32(clip_min_value_, clip_scale_i64);
+
+	__m128i scaled_clip_range_i64 = _mm_mul_epu32(_mm_srli_epi64(clip_normalized_i64, 32), _mm_srli_epi64(scaled_clip_extent_i64, 23));
+	__m128i result_mantissa_i32 = _mm_add_epi32(_mm_srli_epi64(scaled_clip_range_i64, 41), _mm_srli_epi64(scaled_clip_min_i64, 32));
+
+	__m128i exponent = _mm_set1_epi32(EXPONENT_BITS);
+	__m128i result_i32 = _mm_or_si128(result_mantissa_i32, exponent);
+	__m128 one = _mm_load1_ps(&ONE);
+	__m128 two = _mm_load1_ps(&TWO);
+	__m128 result_remapped = _mm_sub_ps(_mm_castsi128_ps(result_i32), one);
+	__m128 result = _mm_sub_ps(_mm_mul_ps(result_remapped, two), one);
+	return _mm_cvtss_f32(result);
+}
+
 // This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion, clip range min on 8 bit, clip range extent on 24 bit
-__declspec(noinline) static float calculate_f32_hack8(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack8(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
 {
 	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
 	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 31) / ((uint64_t(1) << num_value_bits) - 1);
@@ -2486,15 +2611,33 @@ static void exhaustive_search_with_inputs(uint8_t bit_rate, float clip_min_value
 				results[eF32_Legacy] = calculate_f32_legacy_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
 				results[eF32_Hack1] = calculate_f32_hack1_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
 				results[eF32_Hack2] = calculate_f32_hack2_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				results[eF32_Hack3] = calculate_f32_hack3(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				float tmp = calculate_f32_hack3_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				if (tmp != results[eF32_Hack3])
-					printf("");
-				results[eF32_Hack4] = calculate_f32_hack4(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				results[eF32_Hack5] = calculate_f32_hack5(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				results[eF32_Hack6] = calculate_f32_hack6(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i32, clip_min_value_i32);
-				results[eF32_Hack7] = calculate_f32_hack7(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i24);
+				results[eF32_Hack3] = calculate_f32_hack3_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack4] = calculate_f32_hack4_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack5] = calculate_f32_hack5_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack6] = calculate_f32_hack6_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i32, clip_min_value_i32);
+				results[eF32_Hack7] = calculate_f32_hack7_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i24);
 				results[eF32_Hack8] = calculate_f32_hack8(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i8);
+
+				if (k_validate_sse_results)
+				{
+					float results_ref[eMax];
+
+					results_ref[eF32_Truth] = calculate_f32_truth(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_dbl, clip_min_value_dbl);
+					results_ref[eF32_Legacy] = calculate_f32_legacy(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+					results_ref[eF32_Hack1] = calculate_f32_hack1(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+					results_ref[eF32_Hack2] = calculate_f32_hack2(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+					results_ref[eF32_Hack3] = calculate_f32_hack3(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+					results_ref[eF32_Hack4] = calculate_f32_hack4(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+					results_ref[eF32_Hack5] = calculate_f32_hack5(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+					results_ref[eF32_Hack6] = calculate_f32_hack6(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i32, clip_min_value_i32);
+					results_ref[eF32_Hack7] = calculate_f32_hack7(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i24);
+					results_ref[eF32_Hack8] = calculate_f32_hack8(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i8);
+
+					for (int32_t i = 0; i < eMax; ++i)
+					{
+						ACL_ENSURE(results[i] == results_ref[i], "SSE implementation is invalid!");
+					}
+				}
 
 				//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], results[eF32_Legacy], results[eF32_Hack1], results[eF32_Hack2], results[eF32_Hack3], results[eF32_Hack4], results[eF32_Hack5]);
 				//printf("[%4u, %4u] | %4u -> [%.8f] | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", segment_min_value, segment_extent_value, sample_value, results[eF32_Truth], fabs(results[eF32_Legacy] - results[eF32_Truth]), fabs(results[eF32_Hack1] - results[eF32_Truth]), fabs(results[eF32_Hack2] - results[eF32_Truth]), fabs(results[eF32_Hack3] - results[eF32_Truth]), fabs(results[eF32_Hack4] - results[eF32_Truth]), fabs(results[eF32_Hack5] - results[eF32_Truth]));
