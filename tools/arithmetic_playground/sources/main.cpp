@@ -2716,18 +2716,20 @@ void test_exhaustive()
 	memset(&total_result_slice, 0, sizeof(total_result_slice));
 
 	const int32_t slice_size = 1000000;
-	const int32_t num_threads = 6;
-	const bool quick_test = true;
+	const int32_t num_threads = 11;				// It is slightly faster if you saturate logical cores instead of physical cores
+	const bool quick_test = false;
 	const bool no_clip = false;
 	const bool print_avg = no_clip;
 	const bool use_random_sampling = true;
 	const int32_t random_seed = 304;
+	//const int32_t num_random_samples = quick_test ? 0 : 100000;
+	const int32_t num_random_samples = quick_test ? 0 : 10;
 
 	std::uniform_real_distribution<float> random_flt_distribution(0.1e-10f, std::nextafter(1.0f, std::numeric_limits<float>::max()));
 	std::uniform_int_distribution<int32_t> random_sign_distribution(0, 2);
 	std::default_random_engine re(random_seed);
+	ScopeProfiler total_profiler;
 
-	// TODO: Try uniform sampling in parallel
 	// TODO: Implement SSE versions of hack implementations
 	// TODO: Profile SSE versions
 
@@ -2737,6 +2739,7 @@ void test_exhaustive()
 		//if (num_value_bits != 16) continue;
 
 		std::vector<ExhaustiveSearchSlice> slices;
+		ScopeProfiler bit_rate_profiler;
 
 		if (no_clip)
 		{
@@ -2752,52 +2755,106 @@ void test_exhaustive()
 		}
 		else if (use_random_sampling)
 		{
-			ExhaustiveSearchSlice slice;
-			memset(&slice, 0, sizeof(slice));
-
-			// First test edge cases
-			exhaustive_search_with_inputs(bit_rate, -1.0f, 0.0f
-				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
-				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
-			exhaustive_search_with_inputs(bit_rate, -1.0f, 1.0f
-				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
-				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
-			exhaustive_search_with_inputs(bit_rate, 0.0f, 0.0f
-				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
-				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
-			exhaustive_search_with_inputs(bit_rate, 1.0f, 0.0f
-				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
-				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
-			exhaustive_search_with_inputs(bit_rate, 0.9999999999999f, 1.0f - 0.9999999999999f
-				, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
-				, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
-
-			const int32_t num_random_samples = 2;
-			for (int32_t sample_index = 0; sample_index < num_random_samples; ++sample_index)
+			struct ClipRange
 			{
-				int32_t sign_bias0 = random_sign_distribution(re);
-				int32_t sign_bias1 = random_sign_distribution(re);
+				float clip_min;
+				float clip_extent;
+			};
 
-				float clip_value0_sign = sign_bias0 != 0 ? 1.0f : -1.0f;
-				float clip_value1_sign = sign_bias1 != 0 ? 1.0f : -1.0f;
+			// Test edge cases
+			const ClipRange default_samples[] =
+			{
+				ClipRange{ -1.0f, 0.0f },
+				ClipRange{ -1.0f, 1.0f },
+				ClipRange{ -1.0f, 2.0f },
+				ClipRange{ 0.0f, 1.0f },
+				ClipRange{ 0.5f, 0.5f },
+				ClipRange{ 1.0f, 0.0f },
+				ClipRange{ 0.9999999999999f, 1.0f - 0.9999999999999f },
+			};
 
-				float clip_range_value0 = random_flt_distribution(re) * clip_value0_sign;
-				float clip_range_value1 = random_flt_distribution(re) * clip_value1_sign;
+			const int32_t num_default_samples = sizeof(default_samples) / sizeof(ClipRange);
+			const int32_t num_samples = num_random_samples + num_default_samples;
 
-				float clip_range_min = min(clip_range_value0, clip_range_value1);
-				float clip_range_max = max(clip_range_value0, clip_range_value1);
-				float clip_range_extent = clip_range_max - clip_range_min;
+			printf("\rCompleted %.2f %% ...", 0.0f);
+			fflush(stdout);
 
-				exhaustive_search_with_inputs(bit_rate, clip_range_min, clip_range_extent
-					, slice.total_bit_rate_error, slice.max_bit_rate_error, slice.num_bit_rate_samples
-					, slice.worst_clip_min_value, slice.worst_clip_extent_value, slice.worst_segment_min_value, slice.worst_segment_extent_value, slice.worst_sample_value);
+			std::vector<std::thread> threads;
+			std::atomic<int32_t> sample_index = 0;
+			std::atomic<int32_t> num_completed = 0;
+			std::atomic_flag lock = ATOMIC_FLAG_INIT;
+			for (int32_t thread_index = 0; thread_index < num_threads; ++thread_index)
+			{
+				std::thread thread([&]()
+				{
+					ExhaustiveSearchSlice thread_slice;
+					memset(&thread_slice, 0, sizeof(thread_slice));
 
-				float progress = (float(sample_index + 1) / float(num_random_samples)) * 100.0f;
-				printf("\rCompleted %.2f %% ...", progress);
-				fflush(stdout);
+					while (true)
+					{
+						int32_t thread_sample_index = sample_index.fetch_add(1, std::memory_order_relaxed);
+						if (thread_sample_index >= num_samples)
+							break;
+
+						ClipRange clip_range;
+						if (thread_sample_index < num_default_samples)
+						{
+							clip_range = default_samples[thread_sample_index];
+						}
+						else
+						{
+							while (lock.test_and_set(std::memory_order_acquire));
+
+							int32_t sign_bias0 = random_sign_distribution(re);
+							int32_t sign_bias1 = random_sign_distribution(re);
+
+							float clip_value0_sign = sign_bias0 != 0 ? 1.0f : -1.0f;
+							float clip_value1_sign = sign_bias1 != 0 ? 1.0f : -1.0f;
+
+							float clip_range_value0 = random_flt_distribution(re) * clip_value0_sign;
+							float clip_range_value1 = random_flt_distribution(re) * clip_value1_sign;
+
+							lock.clear(std::memory_order_release);
+
+							float clip_range_min = min(clip_range_value0, clip_range_value1);
+							float clip_range_max = max(clip_range_value0, clip_range_value1);
+							float clip_range_extent = clip_range_max - clip_range_min;
+
+							clip_range.clip_min = clip_range_min;
+							clip_range.clip_extent = clip_range_extent;
+						}
+
+						exhaustive_search_with_inputs(bit_rate, clip_range.clip_min, clip_range.clip_extent
+							, thread_slice.total_bit_rate_error, thread_slice.max_bit_rate_error, thread_slice.num_bit_rate_samples
+							, thread_slice.worst_clip_min_value, thread_slice.worst_clip_extent_value, thread_slice.worst_segment_min_value, thread_slice.worst_segment_extent_value, thread_slice.worst_sample_value);
+
+						{
+							while (lock.test_and_set(std::memory_order_acquire));
+
+							size_t thread_num_completed = num_completed.fetch_add(1, std::memory_order_relaxed) + 1;
+							float progress = (float(thread_num_completed) / float(num_samples)) * 100.0f;
+							printf("\rCompleted %.2f %% ...", progress);
+							fflush(stdout);
+
+							lock.clear(std::memory_order_release);
+						}
+					}
+
+					while (lock.test_and_set(std::memory_order_acquire));
+
+					slices.push_back(thread_slice);
+
+					lock.clear(std::memory_order_release);
+				});
+
+				threads.push_back(std::move(thread));
 			}
 
-			slices.push_back(slice);
+			for (std::thread& thread : threads)
+				thread.join();
+
+			printf("\r                                      \n");
+			fflush(stdout);
 		}
 		else
 		{
@@ -2831,46 +2888,48 @@ void test_exhaustive()
 				int32_t skip_offset = 10000;
 				clip_min_value_i32 = std::min(clip_min_value_i32 + skip_offset, k_two_float_as_i32);
 			}
-		}
 
-		std::vector<std::thread> threads;
-		std::atomic<size_t> slice_index = 0;
-		std::atomic<int32_t> num_completed = 0;
-		std::atomic_flag printf_lock = ATOMIC_FLAG_INIT;
-		for (int32_t thread_index = 0; thread_index < num_threads; ++thread_index)
-		{
-			std::thread thread([&]()
+			std::vector<std::thread> threads;
+			std::atomic<size_t> slice_index = 0;
+			std::atomic<int32_t> num_completed = 0;
+			std::atomic_flag printf_lock = ATOMIC_FLAG_INIT;
+			for (int32_t thread_index = 0; thread_index < num_threads; ++thread_index)
 			{
-				while (true)
+				std::thread thread([&]()
 				{
-					size_t thread_slice_index = slice_index.fetch_add(1, std::memory_order_relaxed);
-					if (thread_slice_index >= slices.size())
-						break;
-
-					ExhaustiveSearchSlice& slice = slices[thread_slice_index];
-					exhaustive_search_slice(slice);
-
+					while (true)
 					{
-						while (printf_lock.test_and_set(std::memory_order_acquire));
+						size_t thread_slice_index = slice_index.fetch_add(1, std::memory_order_relaxed);
+						if (thread_slice_index >= slices.size())
+							break;
 
-						size_t thread_num_completed = num_completed.fetch_add(1, std::memory_order_relaxed) + 1;
-						float progress = (float(thread_num_completed) / float(slices.size())) * 100.0f;
-						printf("\rCompleted %.2f %% ...", progress);
-						fflush(stdout);
+						ExhaustiveSearchSlice& slice = slices[thread_slice_index];
+						exhaustive_search_slice(slice);
 
-						printf_lock.clear(std::memory_order_release);
+						{
+							while (printf_lock.test_and_set(std::memory_order_acquire));
+
+							size_t thread_num_completed = num_completed.fetch_add(1, std::memory_order_relaxed) + 1;
+							float progress = (float(thread_num_completed) / float(slices.size())) * 100.0f;
+							printf("\rCompleted %.2f %% ...", progress);
+							fflush(stdout);
+
+							printf_lock.clear(std::memory_order_release);
+						}
 					}
-				}
-			});
+				});
 
-			threads.push_back(std::move(thread));
+				threads.push_back(std::move(thread));
+			}
+
+			for (std::thread& thread : threads)
+				thread.join();
+
+			printf("\r                                      \n");
+			fflush(stdout);
 		}
 
-		for (std::thread& thread : threads)
-			thread.join();
-
-		printf("\r                                      \n");
-		fflush(stdout);
+		bit_rate_profiler.stop();
 
 		ExhaustiveSearchSlice result_slice;
 		memset(&result_slice, 0, sizeof(result_slice));
@@ -2904,8 +2963,20 @@ void test_exhaustive()
 
 		printf("Worst Clip Extent:          | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", result_slice.worst_clip_extent_value[eF32_Legacy], result_slice.worst_clip_extent_value[eF32_Hack1], result_slice.worst_clip_extent_value[eF32_Hack2], result_slice.worst_clip_extent_value[eF32_Hack3], result_slice.worst_clip_extent_value[eF32_Hack4], result_slice.worst_clip_extent_value[eF32_Hack5], result_slice.worst_clip_extent_value[eF32_Hack6], result_slice.worst_clip_extent_value[eF32_Hack7], result_slice.worst_clip_extent_value[eF32_Hack8]);
 		printf("Worst Clip Extent:          | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Legacy], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack1], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack2], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack3], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack4], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack5], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack6], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack7], *(int32_t*)&result_slice.worst_clip_extent_value[eF32_Hack8]);
+
+		{
+			double elapsed_seconds = bit_rate_profiler.get_elapsed_seconds();
+			int32_t elapsed_hours = int32_t(elapsed_seconds / (60.0 * 60.0));
+			elapsed_seconds -= elapsed_hours * (60.0 * 60.0);
+			int32_t elapsed_minutes = int32_t(elapsed_seconds / 60.0);
+			elapsed_seconds -= elapsed_minutes * 60.0;
+			printf("Completed in %uh %02um %.2fs\n", elapsed_hours, elapsed_minutes, elapsed_seconds);
+		}
+
 		printf("\n");
 	}
+
+	total_profiler.stop();
 
 	{
 		double avg_error[eMax] = { 0.0 };
@@ -2928,6 +2999,15 @@ void test_exhaustive()
 
 		printf("Worst Clip Extent:          | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f | %.8f\n", total_result_slice.worst_clip_extent_value[eF32_Legacy], total_result_slice.worst_clip_extent_value[eF32_Hack1], total_result_slice.worst_clip_extent_value[eF32_Hack2], total_result_slice.worst_clip_extent_value[eF32_Hack3], total_result_slice.worst_clip_extent_value[eF32_Hack4], total_result_slice.worst_clip_extent_value[eF32_Hack5], total_result_slice.worst_clip_extent_value[eF32_Hack6], total_result_slice.worst_clip_extent_value[eF32_Hack7], total_result_slice.worst_clip_extent_value[eF32_Hack8]);
 		printf("Worst Clip Extent:          | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X | 0x%08X\n", *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Legacy], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack1], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack2], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack3], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack4], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack5], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack6], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack7], *(int32_t*)&total_result_slice.worst_clip_extent_value[eF32_Hack8]);
+
+		{
+			double elapsed_seconds = total_profiler.get_elapsed_seconds();
+			int32_t elapsed_hours = int32_t(elapsed_seconds / (60.0 * 60.0));
+			elapsed_seconds -= elapsed_hours * (60.0 * 60.0);
+			int32_t elapsed_minutes = int32_t(elapsed_seconds / 60.0);
+			elapsed_seconds -= elapsed_minutes * 60.0;
+			printf("Completed in %uh %02um %.2fs\n", elapsed_hours, elapsed_minutes, elapsed_seconds);
+		}
 	}
 }
 
