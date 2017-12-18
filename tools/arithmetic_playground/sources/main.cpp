@@ -107,6 +107,9 @@
 //#define ACL_DEBUG_INLINE						__declspec(noinline)
 #define ACL_DEBUG_INLINE
 
+#define ACL_VOLATILE_ volatile
+//#define ACL_VOLATILE_
+
 
 static const size_t k_num_segment_values = 18;
 static const bool k_remap_fp_range = false;
@@ -116,6 +119,7 @@ static const bool k_enable_fp = true;
 static const bool k_dump_error = false;
 static const bool k_dump_bit_rate_wins = false;
 static const bool k_validate_sse_results = false;
+static const bool k_exhaustive_accuracy_test = false;
 
 using namespace acl;
 
@@ -1199,6 +1203,69 @@ static __m128  k_max_16bit_value = vector_set(65535.0f);
 static __m128  k_8bit_scale = vector_set(256.0f / 255.0f);
 static __m128  k_16bit_scale = vector_set(65536.0f / 65535.0f);
 
+static const int32_t k_num_segment_value_bits = 8;
+static const int32_t k_one_float_as_i32 = 0x3f800000;
+static const int32_t k_two_float_as_i32 = 0x40000000;
+
+static const float VALUE_BITS_MAX[] =
+{
+	float((1 << 0) - 1), float((1 << 1) - 1), float((1 << 2) - 1), float((1 << 3) - 1),
+	float((1 << 4) - 1), float((1 << 5) - 1), float((1 << 6) - 1), float((1 << 7) - 1),
+	float((1 << 8) - 1), float((1 << 9) - 1), float((1 << 10) - 1), float((1 << 11) - 1),
+	float((1 << 12) - 1), float((1 << 13) - 1), float((1 << 14) - 1), float((1 << 15) - 1),
+	float((1 << 16) - 1),
+};
+
+static const float SEGMENT_BITS_MAX = float((1 << k_num_segment_value_bits) - 1);
+static const int32_t SEGMENT_SHIFT_AMOUNT = 23 - k_num_segment_value_bits;
+static const int32_t EXPONENT_BITS = 0x3f800000;
+
+static const float SAMPLE_SCALE_FLT[] =
+{
+	float(1 << 0) / float((1 << 0) - 1), float(1 << 1) / float((1 << 1) - 1), float(1 << 2) / float((1 << 2) - 1), float(1 << 3) / float((1 << 3) - 1),
+	float(1 << 4) / float((1 << 4) - 1), float(1 << 5) / float((1 << 5) - 1), float(1 << 6) / float((1 << 6) - 1), float(1 << 7) / float((1 << 7) - 1),
+	float(1 << 8) / float((1 << 8) - 1), float(1 << 9) / float((1 << 9) - 1), float(1 << 10) / float((1 << 10) - 1), float(1 << 11) / float((1 << 11) - 1),
+	float(1 << 12) / float((1 << 12) - 1), float(1 << 13) / float((1 << 13) - 1), float(1 << 14) / float((1 << 14) - 1), float(1 << 15) / float((1 << 15) - 1),
+	float(1 << 16) / float((1 << 16) - 1),
+};
+
+// (1.0 << (N + 16)) / N.0 = 17.0 | 1.16
+static const uint32_t SAMPLE_SCALE_I17[] =
+{
+	uint32_t(((uint64_t(1) << 0) << 16) / ((uint64_t(1) << 0) - 1)), uint32_t(((uint64_t(1) << 1) << 16) / ((uint64_t(1) << 1) - 1)),
+	uint32_t(((uint64_t(1) << 2) << 16) / ((uint64_t(1) << 2) - 1)), uint32_t(((uint64_t(1) << 3) << 16) / ((uint64_t(1) << 3) - 1)),
+	uint32_t(((uint64_t(1) << 4) << 16) / ((uint64_t(1) << 4) - 1)), uint32_t(((uint64_t(1) << 5) << 16) / ((uint64_t(1) << 5) - 1)),
+	uint32_t(((uint64_t(1) << 6) << 16) / ((uint64_t(1) << 6) - 1)), uint32_t(((uint64_t(1) << 7) << 16) / ((uint64_t(1) << 7) - 1)),
+	uint32_t(((uint64_t(1) << 8) << 16) / ((uint64_t(1) << 8) - 1)), uint32_t(((uint64_t(1) << 9) << 16) / ((uint64_t(1) << 9) - 1)),
+	uint32_t(((uint64_t(1) << 10) << 16) / ((uint64_t(1) << 10) - 1)), uint32_t(((uint64_t(1) << 11) << 16) / ((uint64_t(1) << 11) - 1)),
+	uint32_t(((uint64_t(1) << 12) << 16) / ((uint64_t(1) << 12) - 1)), uint32_t(((uint64_t(1) << 13) << 16) / ((uint64_t(1) << 13) - 1)),
+	uint32_t(((uint64_t(1) << 14) << 16) / ((uint64_t(1) << 14) - 1)), uint32_t(((uint64_t(1) << 15) << 16) / ((uint64_t(1) << 15) - 1)),
+	uint32_t(((uint64_t(1) << 16) << 16) / ((uint64_t(1) << 16) - 1)),
+};
+
+// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
+static const uint32_t SAMPLE_SCALE_I32[] =
+{
+	uint32_t(((uint64_t(1) << 0) << 31) / ((uint64_t(1) << 0) - 1)), uint32_t(((uint64_t(1) << 1) << 31) / ((uint64_t(1) << 1) - 1)),
+	uint32_t(((uint64_t(1) << 2) << 31) / ((uint64_t(1) << 2) - 1)), uint32_t(((uint64_t(1) << 3) << 31) / ((uint64_t(1) << 3) - 1)),
+	uint32_t(((uint64_t(1) << 4) << 31) / ((uint64_t(1) << 4) - 1)), uint32_t(((uint64_t(1) << 5) << 31) / ((uint64_t(1) << 5) - 1)),
+	uint32_t(((uint64_t(1) << 6) << 31) / ((uint64_t(1) << 6) - 1)), uint32_t(((uint64_t(1) << 7) << 31) / ((uint64_t(1) << 7) - 1)),
+	uint32_t(((uint64_t(1) << 8) << 31) / ((uint64_t(1) << 8) - 1)), uint32_t(((uint64_t(1) << 9) << 31) / ((uint64_t(1) << 9) - 1)),
+	uint32_t(((uint64_t(1) << 10) << 31) / ((uint64_t(1) << 10) - 1)), uint32_t(((uint64_t(1) << 11) << 31) / ((uint64_t(1) << 11) - 1)),
+	uint32_t(((uint64_t(1) << 12) << 31) / ((uint64_t(1) << 12) - 1)), uint32_t(((uint64_t(1) << 13) << 31) / ((uint64_t(1) << 13) - 1)),
+	uint32_t(((uint64_t(1) << 14) << 31) / ((uint64_t(1) << 14) - 1)), uint32_t(((uint64_t(1) << 15) << 31) / ((uint64_t(1) << 15) - 1)),
+	uint32_t(((uint64_t(1) << 16) << 31) / ((uint64_t(1) << 16) - 1)),
+};
+
+static const float SEGMENT_SCALE_FLT = float(1 << k_num_segment_value_bits) / float((1 << k_num_segment_value_bits) - 1);
+static const uint32_t SEGMENT_SCALE_I9 = ((1 << k_num_segment_value_bits) << 8) / ((1 << k_num_segment_value_bits) - 1);
+static const uint32_t SEGMENT_SCALE_I25 = uint32_t(((uint64_t(1) << k_num_segment_value_bits) << 24) / ((uint64_t(1) << k_num_segment_value_bits) - 1));
+static const float ONE = 1.0f;
+static const float TWO = 2.0f;
+
+// (1.0 << (32 + 31)) / 32.0 = 32.0 | 1.31
+static const uint32_t CLIP_SCALE_I32 = uint32_t((uint64_t(1) << 63) / ((uint64_t(1) << 32) - 1));
+
 #define _mm_shuffle_epi32(a, b, mask) _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(a), _mm_castsi128_ps(b), mask))
 
 // Float32 classic conversion
@@ -1442,7 +1509,20 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 		print_error_fp(k_values_64, k_num_segment_values, dequantized_values_32, i, out_errors);
 #endif
 
-		if (use_segment_range_reduction && use_fixed_point_clip_range_reduction && i == ACL_DEBUG_BIT_RATE)
+		if (use_segment_range_reduction && !use_fixed_point_clip_range_reduction && i == ACL_DEBUG_BIT_RATE)
+		{
+			// Warm up
+			for (int64_t iter = 0; iter < 1000000000; ++iter)
+			{
+				//ACL_VOLATILE_ __m128 value0 = decompress_f32_0(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
+				//ACL_VOLATILE_ __m128 value1 = decompress_f32_1(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
+				//ACL_VOLATILE_ __m128 value2 = decompress_1(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
+				//ACL_VOLATILE_ __m128 value3 = decompress_2(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
+				//ACL_VOLATILE_ __m128 value4 = decompress_3(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xyzw);
+			}
+		}
+
+		if (use_segment_range_reduction && use_fixed_point_clip_range_reduction && i == ACL_DEBUG_BIT_RATE && 0)
 		{
 			uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(i);
 
@@ -1465,24 +1545,21 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 			int32_t num_iter = 10000000;
 			//num_iter = 1;
 
-#define VOLATILE_ volatile
-//#define VOLATILE_
-
 			// Warm up
 			for (int64_t iter = 0; iter < 1000000000; ++iter)
 			{
-				VOLATILE_ __m128 value0 = decompress_f32_0(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
-				VOLATILE_ __m128 value1 = decompress_f32_1(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
-				VOLATILE_ __m128 value2 = decompress_1(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
-				VOLATILE_ __m128 value3 = decompress_2(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
-				VOLATILE_ __m128 value4 = decompress_3(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xyzw);
+				ACL_VOLATILE_ __m128 value0 = decompress_f32_0(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
+				ACL_VOLATILE_ __m128 value1 = decompress_f32_1(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
+				ACL_VOLATILE_ __m128 value2 = decompress_1(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
+				ACL_VOLATILE_ __m128 value3 = decompress_2(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
+				ACL_VOLATILE_ __m128 value4 = decompress_3(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xyzw);
 			}
 
 			{
 				ScopeProfiler prof;
 				for (int32_t iter = 0; iter < num_iter; ++iter)
 				{
-					VOLATILE_ __m128 value = decompress_f32_0(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
+					ACL_VOLATILE_ __m128 value = decompress_f32_0(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
 					//printf("F32 0: %f\n", _mm_cvtss_f32(value));
 				}
 				prof.stop();
@@ -1493,7 +1570,7 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 				ScopeProfiler prof;
 				for (int32_t iter = 0; iter < num_iter; ++iter)
 				{
-					VOLATILE_ __m128 value = decompress_f32_1(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
+					ACL_VOLATILE_ __m128 value = decompress_f32_1(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
 					//printf("F32 1: %f\n", _mm_cvtss_f32(value));
 				}
 				prof.stop();
@@ -1504,7 +1581,7 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 				ScopeProfiler prof;
 				for (int32_t iter = 0; iter < num_iter; ++iter)
 				{
-					VOLATILE_ __m128 value = decompress_1(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
+					ACL_VOLATILE_ __m128 value = decompress_1(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
 					//printf("1: %f\n", _mm_cvtss_f32(value));
 				}
 				prof.stop();
@@ -1515,7 +1592,7 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 				ScopeProfiler prof;
 				for (int32_t iter = 0; iter < num_iter; ++iter)
 				{
-					VOLATILE_ __m128 value = decompress_2(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
+					ACL_VOLATILE_ __m128 value = decompress_2(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
 					//printf("2: %f\n", _mm_cvtss_f32(value));
 				}
 				prof.stop();
@@ -1526,7 +1603,7 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 				ScopeProfiler prof;
 				for (int32_t iter = 0; iter < num_iter; ++iter)
 				{
-					VOLATILE_ __m128 value = decompress_3(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xyzw);
+					ACL_VOLATILE_ __m128 value = decompress_3(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xyzw);
 					//printf("3: %f\n", _mm_cvtss_f32(value));
 				}
 				prof.stop();
@@ -2003,10 +2080,6 @@ enum ResultType
 	eMax,
 };
 
-static const int32_t k_num_segment_value_bits = 8;
-static const int32_t k_one_float_as_i32 = 0x3f800000;
-static const int32_t k_two_float_as_i32 = 0x40000000;
-
 struct ExhaustiveSearchSlice
 {
 	uint8_t bit_rate;
@@ -2057,65 +2130,6 @@ static float calculate_f32_truth(uint32_t sample_value, uint32_t num_value_bits,
 	return float((clip_normalized * clip_extent_value) + clip_min_value);
 }
 
-static const float VALUE_BITS_MAX[] =
-{
-	float((1 << 0) - 1), float((1 << 1) - 1), float((1 << 2) - 1), float((1 << 3) - 1),
-	float((1 << 4) - 1), float((1 << 5) - 1), float((1 << 6) - 1), float((1 << 7) - 1),
-	float((1 << 8) - 1), float((1 << 9) - 1), float((1 << 10) - 1), float((1 << 11) - 1),
-	float((1 << 12) - 1), float((1 << 13) - 1), float((1 << 14) - 1), float((1 << 15) - 1),
-	float((1 << 16) - 1),
-};
-
-static const float SEGMENT_BITS_MAX = float((1 << k_num_segment_value_bits) - 1);
-static const int32_t SEGMENT_SHIFT_AMOUNT = 23 - k_num_segment_value_bits;
-static const int32_t EXPONENT_BITS = 0x3f800000;
-
-static const float SAMPLE_SCALE_FLT[] =
-{
-	float(1 << 0) / float((1 << 0) - 1), float(1 << 1) / float((1 << 1) - 1), float(1 << 2) / float((1 << 2) - 1), float(1 << 3) / float((1 << 3) - 1),
-	float(1 << 4) / float((1 << 4) - 1), float(1 << 5) / float((1 << 5) - 1), float(1 << 6) / float((1 << 6) - 1), float(1 << 7) / float((1 << 7) - 1),
-	float(1 << 8) / float((1 << 8) - 1), float(1 << 9) / float((1 << 9) - 1), float(1 << 10) / float((1 << 10) - 1), float(1 << 11) / float((1 << 11) - 1),
-	float(1 << 12) / float((1 << 12) - 1), float(1 << 13) / float((1 << 13) - 1), float(1 << 14) / float((1 << 14) - 1), float(1 << 15) / float((1 << 15) - 1),
-	float(1 << 16) / float((1 << 16) - 1),
-};
-
-// (1.0 << (N + 16)) / N.0 = 17.0 | 1.16
-static const uint32_t SAMPLE_SCALE_I17[] =
-{
-	uint32_t(((uint64_t(1) << 0) << 16) / ((uint64_t(1) << 0) - 1)), uint32_t(((uint64_t(1) << 1) << 16) / ((uint64_t(1) << 1) - 1)),
-	uint32_t(((uint64_t(1) << 2) << 16) / ((uint64_t(1) << 2) - 1)), uint32_t(((uint64_t(1) << 3) << 16) / ((uint64_t(1) << 3) - 1)),
-	uint32_t(((uint64_t(1) << 4) << 16) / ((uint64_t(1) << 4) - 1)), uint32_t(((uint64_t(1) << 5) << 16) / ((uint64_t(1) << 5) - 1)),
-	uint32_t(((uint64_t(1) << 6) << 16) / ((uint64_t(1) << 6) - 1)), uint32_t(((uint64_t(1) << 7) << 16) / ((uint64_t(1) << 7) - 1)),
-	uint32_t(((uint64_t(1) << 8) << 16) / ((uint64_t(1) << 8) - 1)), uint32_t(((uint64_t(1) << 9) << 16) / ((uint64_t(1) << 9) - 1)),
-	uint32_t(((uint64_t(1) << 10) << 16) / ((uint64_t(1) << 10) - 1)), uint32_t(((uint64_t(1) << 11) << 16) / ((uint64_t(1) << 11) - 1)),
-	uint32_t(((uint64_t(1) << 12) << 16) / ((uint64_t(1) << 12) - 1)), uint32_t(((uint64_t(1) << 13) << 16) / ((uint64_t(1) << 13) - 1)),
-	uint32_t(((uint64_t(1) << 14) << 16) / ((uint64_t(1) << 14) - 1)), uint32_t(((uint64_t(1) << 15) << 16) / ((uint64_t(1) << 15) - 1)),
-	uint32_t(((uint64_t(1) << 16) << 16) / ((uint64_t(1) << 16) - 1)),
-};
-
-// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
-static const uint32_t SAMPLE_SCALE_I32[] =
-{
-	uint32_t(((uint64_t(1) << 0) << 31) / ((uint64_t(1) << 0) - 1)), uint32_t(((uint64_t(1) << 1) << 31) / ((uint64_t(1) << 1) - 1)),
-	uint32_t(((uint64_t(1) << 2) << 31) / ((uint64_t(1) << 2) - 1)), uint32_t(((uint64_t(1) << 3) << 31) / ((uint64_t(1) << 3) - 1)),
-	uint32_t(((uint64_t(1) << 4) << 31) / ((uint64_t(1) << 4) - 1)), uint32_t(((uint64_t(1) << 5) << 31) / ((uint64_t(1) << 5) - 1)),
-	uint32_t(((uint64_t(1) << 6) << 31) / ((uint64_t(1) << 6) - 1)), uint32_t(((uint64_t(1) << 7) << 31) / ((uint64_t(1) << 7) - 1)),
-	uint32_t(((uint64_t(1) << 8) << 31) / ((uint64_t(1) << 8) - 1)), uint32_t(((uint64_t(1) << 9) << 31) / ((uint64_t(1) << 9) - 1)),
-	uint32_t(((uint64_t(1) << 10) << 31) / ((uint64_t(1) << 10) - 1)), uint32_t(((uint64_t(1) << 11) << 31) / ((uint64_t(1) << 11) - 1)),
-	uint32_t(((uint64_t(1) << 12) << 31) / ((uint64_t(1) << 12) - 1)), uint32_t(((uint64_t(1) << 13) << 31) / ((uint64_t(1) << 13) - 1)),
-	uint32_t(((uint64_t(1) << 14) << 31) / ((uint64_t(1) << 14) - 1)), uint32_t(((uint64_t(1) << 15) << 31) / ((uint64_t(1) << 15) - 1)),
-	uint32_t(((uint64_t(1) << 16) << 31) / ((uint64_t(1) << 16) - 1)),
-};
-
-static const float SEGMENT_SCALE_FLT = float(1 << k_num_segment_value_bits) / float((1 << k_num_segment_value_bits) - 1);
-static const uint32_t SEGMENT_SCALE_I9 = ((1 << k_num_segment_value_bits) << 8) / ((1 << k_num_segment_value_bits) - 1);
-static const uint32_t SEGMENT_SCALE_I25 = uint32_t(((uint64_t(1) << k_num_segment_value_bits) << 24) / ((uint64_t(1) << k_num_segment_value_bits) - 1));
-static const float ONE = 1.0f;
-static const float TWO = 2.0f;
-
-// (1.0 << (32 + 31)) / 32.0 = 32.0 | 1.31
-static const uint32_t CLIP_SCALE_I32 = uint32_t((uint64_t(1) << 63) / ((uint64_t(1) << 32) - 1));
-
 // This is the current legacy implementation
 ACL_DEBUG_INLINE static float calculate_f32_legacy(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
@@ -2126,7 +2140,7 @@ ACL_DEBUG_INLINE static float calculate_f32_legacy(uint32_t sample_value, uint32
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-ACL_DEBUG_INLINE static float calculate_f32_legacy_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_legacy_sse_ss(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128 value_bits_max = _mm_load1_ps(&VALUE_BITS_MAX[num_value_bits]);
@@ -2160,7 +2174,7 @@ ACL_DEBUG_INLINE static float calculate_f32_hack1(uint32_t sample_value, uint32_
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-ACL_DEBUG_INLINE static float calculate_f32_hack1_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack1_sse_ss(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_shift_amount = _mm_set1_epi64x(23 - num_value_bits);
@@ -2216,7 +2230,7 @@ ACL_DEBUG_INLINE static float calculate_f32_hack2(uint32_t sample_value, uint32_
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-ACL_DEBUG_INLINE static float calculate_f32_hack2_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack2_sse_ss(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I17[num_value_bits]);
@@ -2271,7 +2285,7 @@ ACL_DEBUG_INLINE static float calculate_f32_hack3(uint32_t sample_value, uint32_
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-ACL_DEBUG_INLINE static float calculate_f32_hack3_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack3_sse_ss(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I32[num_value_bits]);
@@ -2318,7 +2332,7 @@ ACL_DEBUG_INLINE static float calculate_f32_hack4(uint32_t sample_value, uint32_
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-ACL_DEBUG_INLINE static float calculate_f32_hack4_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack4_sse_ss(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I32[num_value_bits]);
@@ -2363,7 +2377,7 @@ ACL_DEBUG_INLINE static float calculate_f32_hack5(uint32_t sample_value, uint32_
 	return (clip_normalized * clip_extent_value) + clip_min_value;
 }
 
-ACL_DEBUG_INLINE static float calculate_f32_hack5_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack5_sse_ss(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, float clip_extent_value, float clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I17[num_value_bits]);
@@ -2425,7 +2439,7 @@ ACL_DEBUG_INLINE static float calculate_f32_hack6(uint32_t sample_value, uint32_
 	return (result_remapped * 2.0f) - 1.0f;
 }
 
-ACL_DEBUG_INLINE static float calculate_f32_hack6_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack6_sse_ss(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I32[num_value_bits]);
@@ -2498,7 +2512,7 @@ ACL_DEBUG_INLINE static float calculate_f32_hack7(uint32_t sample_value, uint32_
 	return (result_remapped * 2.0f) - 1.0f;
 }
 
-ACL_DEBUG_INLINE static float calculate_f32_hack7_sse(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
+ACL_DEBUG_INLINE static float calculate_f32_hack7_sse_ss(uint32_t sample_value, uint32_t num_value_bits, uint32_t segment_extent_value, uint32_t segment_min_value, uint32_t clip_extent_value, uint32_t clip_min_value)
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I32[num_value_bits]);
@@ -2608,14 +2622,14 @@ static void exhaustive_search_with_inputs(uint8_t bit_rate, float clip_min_value
 				float results[eMax];
 
 				results[eF32_Truth] = calculate_f32_truth(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_dbl, clip_min_value_dbl);
-				results[eF32_Legacy] = calculate_f32_legacy_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				results[eF32_Hack1] = calculate_f32_hack1_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				results[eF32_Hack2] = calculate_f32_hack2_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				results[eF32_Hack3] = calculate_f32_hack3_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				results[eF32_Hack4] = calculate_f32_hack4_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				results[eF32_Hack5] = calculate_f32_hack5_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
-				results[eF32_Hack6] = calculate_f32_hack6_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i32, clip_min_value_i32);
-				results[eF32_Hack7] = calculate_f32_hack7_sse(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i24);
+				results[eF32_Legacy] = calculate_f32_legacy_sse_ss(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack1] = calculate_f32_hack1_sse_ss(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack2] = calculate_f32_hack2_sse_ss(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack3] = calculate_f32_hack3_sse_ss(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack4] = calculate_f32_hack4_sse_ss(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack5] = calculate_f32_hack5_sse_ss(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value, clip_min_value);
+				results[eF32_Hack6] = calculate_f32_hack6_sse_ss(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i32, clip_min_value_i32);
+				results[eF32_Hack7] = calculate_f32_hack7_sse_ss(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i24);
 				results[eF32_Hack8] = calculate_f32_hack8(sample_value, num_value_bits, segment_extent_value, segment_min_value, clip_extent_value_i24, clip_min_value_i8);
 
 				if (k_validate_sse_results)
@@ -2729,9 +2743,6 @@ void test_exhaustive()
 	std::uniform_int_distribution<int32_t> random_sign_distribution(0, 2);
 	std::default_random_engine re(random_seed);
 	ScopeProfiler total_profiler;
-
-	// TODO: Implement SSE versions of hack implementations
-	// TODO: Profile SSE versions
 
 	for (uint8_t bit_rate = 1; bit_rate < 15; ++bit_rate)
 	{
@@ -3013,8 +3024,11 @@ void test_exhaustive()
 
 static int main_impl(int argc, char** argv)
 {
-	test_exhaustive();
-	//test_arithmetic();
+	if (k_exhaustive_accuracy_test)
+		test_exhaustive();
+	else
+		test_arithmetic();
+
 	return 0;
 }
 
