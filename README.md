@@ -6,7 +6,34 @@
 
 THIS IS A RESEARCH BRANCH. IT IS NOT MAINTAINED AND ITS ONLY PURPOSE IS TO BE A PLAYGROUND FOR RESEARCH.
 
-This branch will compare the accuracy of using the current approach with **float32** arithmetic against **float64** and **fixed point** arithmetic. See [here](./includes/acl/core/research.h) for relevant defines.
+This branch will compare the accuracy of using the current approach with **float32** arithmetic against **float64** and **fixed point** arithmetic.
+See [here](./includes/acl/core/research.h) for relevant defines.
+
+This research branch adds two things: **float64** support to `acl_compressor` and the `arithmetic_playground` executable.
+
+## Conclusion
+
+**float64** does not have a measurable impact on the memory footprint. It seems that **float32** arithmetic is good enough for us and nearly as accurate.
+However, **float64** arithmetic is much slower to execute and the compression time increases considerably. **float32** wins hands down here.
+
+Adding **fixed point** support to everything seemed too complicated and instead a small playground was created to explore how it performs.
+Various flavors were tried and measured. Overall, accuracy is almost always worst or equal to **float32** arithmetic. **64** bit integers
+are required to keep accuracy competitive but performance degrades considerably with the sharp increase in registers and instructions used.
+The biggest win came from performing a fast coercion from **fixed point** to **float32** by performing a `shift` and logical `or` with the exponent
+bits. This yielded a **20-30%** win over the legacy **float32** implementation with nearly the same accuracy. A **32** bit **fixed point** variant
+did come close in terms of performance but the accuracy was quite a bit worst. It is hard to estimate how the memory footprint would be impacted.
+Despite being shorter by **3** instructions compared to the legacy with fast coercion, it consistently clocked slower on my machine. This is likely
+due to pipeline stalls and in the real decompression code, it is quite possible these could be hidden much better.
+
+Overall, **fixed point** performance was underwhelming on my CPU. It is worth noting that it contains **2** floating point units which allow
+dual dispatching just like for integer arithmetic. However, the Xbox One CPU does not and nor do current mobile devices. It is entirely possible that
+**fixed point** arithmetic could be a consistent win on those platforms and proper measurement will be required.
+
+The key take aways are:
+
+*  Arithmetic accuracy does not measurably impact the memory footprint, **float32** is good enough
+*  Fixed point arithmetic is not more accurate and it can be slower on modern processors
+*  Fast coercion is a big performance win
 
 # Animation Compression Library
 
