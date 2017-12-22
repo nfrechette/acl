@@ -7,6 +7,8 @@ set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
 # Grab all of our include files
 file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false
 	${PROJECT_SOURCE_DIR}/includes/*.h
+	${PROJECT_SOURCE_DIR}/docs/*.md
+	${PROJECT_SOURCE_DIR}/*.md
 	${PROJECT_SOURCE_DIR}/tools/vs_visualizers/*.natvis)
 
 # Create a dummy target so they show up in the IDE
