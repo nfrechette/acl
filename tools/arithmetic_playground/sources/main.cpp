@@ -118,7 +118,7 @@ static const bool k_enable_float32 = true;
 static const bool k_enable_fp = true;
 static const bool k_dump_error = false;
 static const bool k_dump_bit_rate_wins = false;
-static const bool k_validate_sse_results = true;
+static const bool k_validate_sse_results = false;
 static const bool k_exhaustive_accuracy_test = false;
 
 using namespace acl;
@@ -1859,21 +1859,21 @@ ACL_DEBUG_INLINE static float calculate_f32_hack6(uint32_t sample_value, uint32_
 	// (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
 	uint64_t sample_scale_i64 = ((uint64_t(1) << num_value_bits) << 31) / ((uint64_t(1) << num_value_bits) - 1);
 	ACL_ENSURE(sample_scale_i64 > (uint64_t(1) << 31), "Must be >= 1.0!");
-	uint64_t scaled_sample_i64 = (sample_value << (16 - num_value_bits)) * sample_scale_i64;						// 0.16 * 1.31 = 0.47	(integral part always 0)
-	ACL_ENSURE((scaled_sample_i64 & (1ull << 47)) == 0, "Integer bit used!");
+	uint64_t scaled_sample_i64 = (sample_value << SAMPLE_SHIFT_AMOUNT_16[num_value_bits]) * sample_scale_i64;						// 0.16 * 1.31 = 0.47	(integral part always 0)
+	ACL_ENSURE((scaled_sample_i64 & (uint64_t(1) << 47)) == 0, "Integer bit used!");
 
 	// (1.0 << (8 + 24)) / 8.0 = 25.0 | 1.24
 	uint32_t segment_scale_i32 = SEGMENT_SCALE_I25;
 	ACL_ENSURE(segment_scale_i32 > (1 << 24), "Must be >= 1.0!");
 	uint64_t scaled_segment_extent_i64 = segment_extent_value * segment_scale_i32;									// 0.8 * 1.24 = 0.32	(integral part always 0)
-	ACL_ENSURE((scaled_segment_extent_i64 & (1ull << 32)) == 0, "Integer bit used!");
+	ACL_ENSURE((scaled_segment_extent_i64 & (uint64_t(1) << 32)) == 0, "Integer bit used!");
 	uint64_t scaled_segment_min_i64 = segment_min_value * segment_scale_i32;										// 0.8 * 1.24 = 0.32	(integral part always 0)
-	ACL_ENSURE((scaled_segment_min_i64 & (1ull << 32)) == 0, "Integer bit used!");
+	ACL_ENSURE((scaled_segment_min_i64 & (uint64_t(1) << 32)) == 0, "Integer bit used!");
 
 	uint64_t scaled_segment_range_i64 = (scaled_sample_i64 >> 15) * scaled_segment_extent_i64;						// 0.32 * 0.32 = 0.64
 	uint64_t clip_normalized_i64 = scaled_segment_range_i64 + (scaled_segment_min_i64 << 32);						// 0.64
 
-																													// (1.0 << (32 + 31)) / 32.0 = 32.0 | 1.31
+	// (1.0 << (32 + 31)) / 32.0 = 32.0 | 1.31
 	uint64_t clip_scale_i64 = (uint64_t(1) << 63) / ((uint64_t(1) << 32) - 1);										// 1.31
 	ACL_ENSURE(clip_scale_i64 == (uint64_t(1) << 31), "Must be == 1.0!");	// :( not necessary, cannot scale higher
 	uint64_t scaled_clip_extent_i64 = clip_extent_value * clip_scale_i64;											// 0.32 * 1.31 = 0.63	(integral part always 0)
@@ -1895,7 +1895,7 @@ ACL_DEBUG_INLINE static float calculate_f32_hack6_sse_ss(uint32_t sample_value, 
 {
 	__m128i sample_value_ = _mm_set1_epi32(sample_value);
 	__m128i sample_scale_i32 = _mm_set1_epi32(SAMPLE_SCALE_I32[num_value_bits]);
-	__m128i sample_shift_amount = _mm_set1_epi64x(16 - num_value_bits);
+	__m128i sample_shift_amount = _mm_load_epi32(&SAMPLE_SHIFT_AMOUNT_16[num_value_bits]);
 	__m128i shifted_sample_value = _mm_sll_epi32(sample_value_, sample_shift_amount);
 	__m128i scaled_sample_i64 = _mm_mul_epu32(shifted_sample_value, sample_scale_i32);
 
@@ -1908,11 +1908,11 @@ ACL_DEBUG_INLINE static float calculate_f32_hack6_sse_ss(uint32_t sample_value, 
 	__m128i scaled_segment_range_i64 = _mm_mul_epu32(_mm_srli_epi64(scaled_sample_i64, 15), scaled_segment_extent_i64);
 	__m128i clip_normalized_i64 = _mm_add_epi64(scaled_segment_range_i64, _mm_slli_epi64(scaled_segment_min_i64, 32));
 
-	__m128i clip_scale_i64 = _mm_set1_epi32(CLIP_SCALE_I32);
+	__m128i clip_scale_i32 = _mm_set1_epi32(CLIP_SCALE_I32);
 	__m128i clip_extent_value_ = _mm_set1_epi32(clip_extent_value);
 	__m128i clip_min_value_ = _mm_set1_epi32(clip_min_value);
-	__m128i scaled_clip_extent_i64 = _mm_mul_epu32(clip_extent_value_, clip_scale_i64);
-	__m128i scaled_clip_min_i64 = _mm_mul_epu32(clip_min_value_, clip_scale_i64);
+	__m128i scaled_clip_extent_i64 = _mm_mul_epu32(clip_extent_value_, clip_scale_i32);
+	__m128i scaled_clip_min_i64 = _mm_mul_epu32(clip_min_value_, clip_scale_i32);
 
 	__m128i scaled_clip_range_i64 = _mm_mul_epu32(_mm_srli_epi64(clip_normalized_i64, 32), _mm_srli_epi64(scaled_clip_extent_i64, 31));
 	__m128i result_mantissa_i32 = _mm_add_epi32(_mm_srli_epi64(scaled_clip_range_i64, 41), _mm_srli_epi64(scaled_clip_min_i64, 40));
@@ -1924,6 +1924,60 @@ ACL_DEBUG_INLINE static float calculate_f32_hack6_sse_ss(uint32_t sample_value, 
 	__m128 result_remapped = _mm_sub_ps(_mm_castsi128_ps(result_i32), one);
 	__m128 result = _mm_sub_ps(_mm_mul_ps(result_remapped, two), one);
 	return _mm_cvtss_f32(result);
+}
+
+__declspec(noinline) static __m128 __vectorcall calculate_f32_hack6_sse_ps(__m128i segment_range_extent_xzyw, __m128i segment_range_min_xzyw, __m128i* clip_range_extent_xzyw, __m128i* clip_range_min_xzyw, uint8_t num_bits_at_bit_rate, __m128i* quantized_value)
+{
+	__m128i sample_value_xzyw = _mm_loadu_si128(quantized_value);
+	__m128i sample_scale_i32 = _mm_broadcast_epi32(&SAMPLE_SCALE_I32[num_bits_at_bit_rate]);
+	__m128i sample_shift_amount = _mm_load_epi32(&SAMPLE_SHIFT_AMOUNT_16[num_bits_at_bit_rate]);
+	__m128i shifted_sample_value_xzyw = _mm_sll_epi32(sample_value_xzyw, sample_shift_amount);
+
+	__m128i shifted_sample_value_x_y_ = shifted_sample_value_xzyw;
+	__m128i shifted_sample_value_z_w_ = _mm_shuffle_epi32(shifted_sample_value_xzyw, shifted_sample_value_xzyw, _MM_SHUFFLE(3, 1, 3, 1));
+	__m128i scaled_sample_xlohi_ylohi = _mm_mul_epu32(shifted_sample_value_x_y_, sample_scale_i32);
+	__m128i scaled_sample_zlohi_wlohi = _mm_mul_epu32(shifted_sample_value_z_w_, sample_scale_i32);
+
+	__m128i segment_scale_i32 = _mm_broadcast_epi32(&SEGMENT_SCALE_I25);
+	__m128i scaled_segment_extent_xzyw = _mm_mullo_epi32(segment_range_extent_xzyw, segment_scale_i32);
+	__m128i scaled_segment_extent_x_y_ = scaled_segment_extent_xzyw;
+	__m128i scaled_segment_extent_z_w_ = _mm_shuffle_epi32(scaled_segment_extent_xzyw, scaled_segment_extent_xzyw, _MM_SHUFFLE(3, 1, 3, 1));
+	__m128i scaled_segment_min_xzyw = _mm_mullo_epi32(segment_range_min_xzyw, segment_scale_i32);
+	__m128i scaled_segment_min_x_y_ = scaled_segment_min_xzyw;
+	__m128i scaled_segment_min_z_w_ = _mm_shuffle_epi32(scaled_segment_min_xzyw, scaled_segment_min_xzyw, _MM_SHUFFLE(3, 1, 3, 1));
+
+	__m128i scaled_segment_range_xlohi_ylohi = _mm_mul_epu32(_mm_srli_epi64(scaled_sample_xlohi_ylohi, 15), scaled_segment_extent_x_y_);
+	__m128i scaled_segment_range_zlohi_wlohi = _mm_mul_epu32(_mm_srli_epi64(scaled_sample_zlohi_wlohi, 15), scaled_segment_extent_z_w_);
+	__m128i clip_normalized_xlohi_ylohi = _mm_add_epi64(scaled_segment_range_xlohi_ylohi, _mm_slli_epi64(scaled_segment_min_x_y_, 32));
+	__m128i clip_normalized_zlohi_wlohi = _mm_add_epi64(scaled_segment_range_zlohi_wlohi, _mm_slli_epi64(scaled_segment_min_z_w_, 32));
+
+	__m128i clip_scale_i32 = _mm_broadcast_epi32(&CLIP_SCALE_I32);
+	__m128i clip_range_extent_x_y_ = *clip_range_extent_xzyw;
+	__m128i clip_range_extent_z_w_ = _mm_shuffle_epi32(clip_range_extent_x_y_, clip_range_extent_x_y_, _MM_SHUFFLE(3, 1, 3, 1));
+	__m128i scaled_clip_extent_xlohi_ylohi = _mm_mul_epu32(clip_range_extent_x_y_, clip_scale_i32);
+	__m128i scaled_clip_extent_zlohi_wlohi = _mm_mul_epu32(clip_range_extent_z_w_, clip_scale_i32);
+	__m128i clip_range_min_x_y_ = *clip_range_min_xzyw;
+	__m128i clip_range_min_z_w_ = _mm_shuffle_epi32(clip_range_min_x_y_, clip_range_min_x_y_, _MM_SHUFFLE(3, 1, 3, 1));
+	__m128i scaled_clip_min_xlohi_ylohi = _mm_mul_epu32(clip_range_min_x_y_, clip_scale_i32);
+	__m128i scaled_clip_min_zlohi_wlohi = _mm_mul_epu32(clip_range_min_z_w_, clip_scale_i32);
+
+	__m128i scaled_clip_range_xlohi_ylohi = _mm_mul_epu32(_mm_srli_epi64(clip_normalized_xlohi_ylohi, 32), _mm_srli_epi64(scaled_clip_extent_xlohi_ylohi, 31));
+	__m128i scaled_clip_range_zlohi_wlohi = _mm_mul_epu32(_mm_srli_epi64(clip_normalized_zlohi_wlohi, 32), _mm_srli_epi64(scaled_clip_extent_zlohi_wlohi, 31));
+	__m128i scaled_clip_range_x_y_ = _mm_srli_epi64(scaled_clip_range_xlohi_ylohi, 41);
+	__m128i scaled_clip_range_z_w_ = _mm_srli_epi64(scaled_clip_range_zlohi_wlohi, 41);
+	__m128i scaled_clip_min_x_y_ = _mm_srli_epi64(scaled_clip_min_xlohi_ylohi, 40);
+	__m128i scaled_clip_min_z_w_ = _mm_srli_epi64(scaled_clip_min_zlohi_wlohi, 40);
+	__m128i scaled_clip_range_xyzw = _mm_shuffle_epi32(scaled_clip_range_x_y_, scaled_clip_range_z_w_, _MM_SHUFFLE(2, 0, 2, 0));
+	__m128i scaled_clip_min_xyzw = _mm_shuffle_epi32(scaled_clip_min_x_y_, scaled_clip_min_z_w_, _MM_SHUFFLE(2, 0, 2, 0));
+	__m128i result_mantissa_i32 = _mm_add_epi32(scaled_clip_range_xyzw, scaled_clip_min_xyzw);
+
+	__m128i exponent = _mm_broadcast_epi32(&EXPONENT_BITS);
+	__m128i result_i32 = _mm_or_si128(result_mantissa_i32, exponent);
+	__m128 one = _mm_load1_ps(&ONE);
+	__m128 two = _mm_load1_ps(&TWO);
+	__m128 result_remapped = _mm_sub_ps(_mm_castsi128_ps(result_i32), one);
+	__m128 result = _mm_sub_ps(_mm_mul_ps(result_remapped, two), one);
+	return result;
 }
 
 // This uses a mix of 64 and 32 bit fixed point arithmetic to perform segment and clip range expansion, clip range on 24 bit
@@ -2165,6 +2219,9 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 			__m128i segment_range_min_xyzw = _mm_set_epi32(int32_t(segment_min_fp.w), int32_t(segment_min_fp.z), int32_t(segment_min_fp.y), int32_t(segment_min_fp.x));
 
 			Vector4_32 clip_range_extent_32 = vector_sub(clip_max_32, clip_min_32);
+			Vector4_FP clip_range_extent_fp = vector_sub(clip_max_fp, clip_min_fp);
+			__m128i clip_range_extent_xzyw = _mm_set_epi32(int32_t(clip_range_extent_fp.w), int32_t(clip_range_extent_fp.y), int32_t(clip_range_extent_fp.z), int32_t(clip_range_extent_fp.x));
+			__m128i clip_range_min_xzyw = _mm_set_epi32(int32_t(clip_min_fp.w), int32_t(clip_min_fp.y), int32_t(clip_min_fp.z), int32_t(clip_min_fp.x));
 
 			if (k_validate_sse_results)
 			{
@@ -2175,6 +2232,8 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 					uint32_t segment_range_min_ = uint32_t(((uint64_t*)&segment_min_fp.x)[comp_index]);
 					float clip_range_extent_ = vector_as_float_ptr(clip_range_extent_32)[comp_index];
 					float clip_range_min_ = vector_as_float_ptr(clip_min_32)[comp_index];
+					uint32_t clip_range_extent_i32 = uint32_t(((uint64_t*)&clip_range_extent_fp.x)[comp_index]);
+					uint32_t clip_range_min_i32 = uint32_t(((uint64_t*)&clip_min_fp.x)[comp_index]);
 
 					__m128 value_legacy_ps = calculate_f32_legacy_sse_ps(segment_range_extent_xyzw, segment_range_min_xyzw, &clip_range_extent_32, &clip_min_32, num_bits_at_bit_rate, &sample_value_xyzw);
 					float value_legacy_ss = calculate_f32_legacy_sse_ss(sample_value_, num_bits_at_bit_rate, segment_range_extent_, segment_range_min_, clip_range_extent_, clip_range_min_);
@@ -2199,6 +2258,10 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 					__m128 value_hack5_ps = calculate_f32_hack5_sse_ps(segment_range_extent_xyzw, segment_range_min_xyzw, &clip_range_extent_32, &clip_min_32, num_bits_at_bit_rate, &sample_value_xyzw);
 					float value_hack5_ss = calculate_f32_hack5_sse_ss(sample_value_, num_bits_at_bit_rate, segment_range_extent_, segment_range_min_, clip_range_extent_, clip_range_min_);
 					ACL_ENSURE(value_hack5_ss == vector_as_float_ptr(value_hack5_ps)[comp_index], "SSE implementations differ!");
+
+					__m128 value_hack6_ps = calculate_f32_hack6_sse_ps(segment_range_extent_xzyw, segment_range_min_xzyw, &clip_range_extent_xzyw, &clip_range_min_xzyw, num_bits_at_bit_rate, &sample_value_xzyw);
+					float value_hack6_ss = calculate_f32_hack6_sse_ss(sample_value_, num_bits_at_bit_rate, segment_range_extent_, segment_range_min_, clip_range_extent_i32, clip_range_min_i32);
+					ACL_ENSURE(value_hack6_ss == vector_as_float_ptr(value_hack6_ps)[comp_index], "SSE implementations differ!");
 				}
 			}
 
@@ -2211,10 +2274,7 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 				ACL_VOLATILE_ __m128 value_hack3 = calculate_f32_hack3_sse_ps(segment_range_extent_xzyw, segment_range_min_xyzw, &clip_range_extent_32, &clip_min_32, num_bits_at_bit_rate, &sample_value_xzyw);
 				ACL_VOLATILE_ __m128 value_hack4 = calculate_f32_hack4_sse_ps(segment_range_extent_xzyw, segment_range_min_xyzw, &clip_range_extent_32, &clip_min_32, num_bits_at_bit_rate, &sample_value_xzyw);
 				ACL_VOLATILE_ __m128 value_hack5 = calculate_f32_hack5_sse_ps(segment_range_extent_xyzw, segment_range_min_xyzw, &clip_range_extent_32, &clip_min_32, num_bits_at_bit_rate, &sample_value_xyzw);
-				//ACL_VOLATILE_ __m128 value1 = decompress_f32_1(segment_range_extent_xyzw, segment_range_min_xyzw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_32, &clip_min_32);
-				//ACL_VOLATILE_ __m128 value2 = decompress_1(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
-				//ACL_VOLATILE_ __m128 value3 = decompress_2(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xzyw);
-				//ACL_VOLATILE_ __m128 value4 = decompress_3(segment_range_extent_xzyw, segment_range_min_xzyw, num_bits_at_bit_rate, (__m128i*)&quantized_values_fp[0], &clip_range_extent_xzyw, &clip_range_min_xyzw);
+				ACL_VOLATILE_ __m128 value_hack6 = calculate_f32_hack6_sse_ps(segment_range_extent_xzyw, segment_range_min_xzyw, &clip_range_extent_xzyw, &clip_range_min_xzyw, num_bits_at_bit_rate, &sample_value_xzyw);
 			}
 
 			const int32_t num_iter = 10000000;
@@ -2283,6 +2343,17 @@ static void measure_error_fp(bool use_segment_range_reduction, bool use_fixed_po
 				}
 				prof.stop();
 				printf("Hack5: %f ms\n", prof.get_elapsed_milliseconds());
+			}
+
+			{
+				ScopeProfiler prof;
+				for (int32_t iter = 0; iter < num_iter; ++iter)
+				{
+					ACL_VOLATILE_ __m128 value = calculate_f32_hack6_sse_ps(segment_range_extent_xzyw, segment_range_min_xzyw, &clip_range_extent_xzyw, &clip_range_min_xzyw, num_bits_at_bit_rate, &sample_value_xzyw);
+					//printf("F32 0: %f\n", _mm_cvtss_f32(value));
+				}
+				prof.stop();
+				printf("Hack6: %f ms\n", prof.get_elapsed_milliseconds());
 			}
 		}
 
