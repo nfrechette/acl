@@ -28,11 +28,13 @@
 #include "acl/math/vector4_32.h"
 #include "acl/math/vector4_64.h"
 
-#include <conio.h>
 #include <vector>
 #include <thread>
 #include <atomic>
 #include <random>
+
+#ifdef _WIN32
+#include <conio.h>
 
 #if !defined(_WINDOWS_)
 // The below excludes some other unused services from the windows headers -- see windows.h for details.
@@ -83,6 +85,11 @@
 
 #include <Windows.h>
 #endif    // _WINDOWS_
+
+#else	// _WIN32
+static constexpr int _kbhit() { return 0; }
+static constexpr bool IsDebuggerPresent() { return false; }
+#endif	// _WIN32
 
 #define ACL_DEBUG_ARITHMETIC					0
 #define ACL_DEBUG_BIT_RATE						14

@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.9)
 project(arithmetic_playground)
 
+set(CMAKE_CXX_STANDARD 14)
+
 include_directories("${PROJECT_SOURCE_DIR}/../../includes")
 
 # Grab all of our source files
