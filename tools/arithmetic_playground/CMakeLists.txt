@@ -31,14 +31,14 @@ if(MSVC)
 else()
 	# TODO: Handle OS X properly: https://stackoverflow.com/questions/5334095/cmake-multiarchitecture-compilation
 	if(CPU_INSTRUCTION_SET MATCHES "x86")
-		target_compile_options(acl_compressor PRIVATE "-m32")
+		target_compile_options(arithmetic_playground PRIVATE "-m32")
 	elseif(CPU_INSTRUCTION_SET MATCHES "x64")
-		target_compile_options(acl_compressor PRIVATE "-m64")
+		target_compile_options(arithmetic_playground PRIVATE "-m64")
 	endif()
 
 	if(CPU_INSTRUCTION_SET MATCHES "x86" OR CPU_INSTRUCTION_SET MATCHES "x64")
 		# Always enable AVX in the playground
-		target_compile_options(acl_compressor PRIVATE "-mavx")
+		target_compile_options(arithmetic_playground PRIVATE "-mavx")
 	endif()
 endif()
 
