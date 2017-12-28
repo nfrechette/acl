@@ -40,6 +40,8 @@ else()
 		# Always enable AVX in the playground
 		target_compile_options(arithmetic_playground PRIVATE "-mavx")
 	endif()
+
+	target_link_libraries(arithmetic_playground pthread)
 endif()
 
 install(TARGETS arithmetic_playground RUNTIME DESTINATION bin)
