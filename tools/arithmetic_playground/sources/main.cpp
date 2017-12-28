@@ -3169,8 +3169,8 @@ void test_exhaustive()
 			fflush(stdout);
 
 			std::vector<std::thread> threads;
-			std::atomic<int32_t> sample_index = 0;
-			std::atomic<int32_t> num_completed = 0;
+			std::atomic<int32_t> sample_index(0);
+			std::atomic<int32_t> num_completed(0);
 			std::atomic_flag lock = ATOMIC_FLAG_INIT;
 			for (int32_t thread_index = 0; thread_index < num_threads; ++thread_index)
 			{
@@ -3279,8 +3279,8 @@ void test_exhaustive()
 			}
 
 			std::vector<std::thread> threads;
-			std::atomic<size_t> slice_index = 0;
-			std::atomic<int32_t> num_completed = 0;
+			std::atomic<size_t> slice_index(0);
+			std::atomic<int32_t> num_completed(0);
 			std::atomic_flag printf_lock = ATOMIC_FLAG_INIT;
 			for (int32_t thread_index = 0; thread_index < num_threads; ++thread_index)
 			{
