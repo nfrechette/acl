@@ -1246,7 +1246,7 @@ static const float SAMPLE_SCALE_FLT[] =
 // (1.0 << (N + 16)) / N.0 = 17.0 | 1.16
 static const uint32_t SAMPLE_SCALE_I17[] =
 {
-	uint32_t(((uint64_t(1) << 0) << 16) / ((uint64_t(1) << 0) - 1)), uint32_t(((uint64_t(1) << 1) << 16) / ((uint64_t(1) << 1) - 1)),
+	0, uint32_t(((uint64_t(1) << 1) << 16) / ((uint64_t(1) << 1) - 1)),
 	uint32_t(((uint64_t(1) << 2) << 16) / ((uint64_t(1) << 2) - 1)), uint32_t(((uint64_t(1) << 3) << 16) / ((uint64_t(1) << 3) - 1)),
 	uint32_t(((uint64_t(1) << 4) << 16) / ((uint64_t(1) << 4) - 1)), uint32_t(((uint64_t(1) << 5) << 16) / ((uint64_t(1) << 5) - 1)),
 	uint32_t(((uint64_t(1) << 6) << 16) / ((uint64_t(1) << 6) - 1)), uint32_t(((uint64_t(1) << 7) << 16) / ((uint64_t(1) << 7) - 1)),
@@ -1260,7 +1260,7 @@ static const uint32_t SAMPLE_SCALE_I17[] =
 // (1.0 << (N + 31)) / N.0 = 32.0 | 1.31
 static const uint32_t SAMPLE_SCALE_I32[] =
 {
-	uint32_t(((uint64_t(1) << 0) << 31) / ((uint64_t(1) << 0) - 1)), uint32_t(((uint64_t(1) << 1) << 31) / ((uint64_t(1) << 1) - 1)),
+	0, uint32_t(((uint64_t(1) << 1) << 31) / ((uint64_t(1) << 1) - 1)),
 	uint32_t(((uint64_t(1) << 2) << 31) / ((uint64_t(1) << 2) - 1)), uint32_t(((uint64_t(1) << 3) << 31) / ((uint64_t(1) << 3) - 1)),
 	uint32_t(((uint64_t(1) << 4) << 31) / ((uint64_t(1) << 4) - 1)), uint32_t(((uint64_t(1) << 5) << 31) / ((uint64_t(1) << 5) - 1)),
 	uint32_t(((uint64_t(1) << 6) << 31) / ((uint64_t(1) << 6) - 1)), uint32_t(((uint64_t(1) << 7) << 31) / ((uint64_t(1) << 7) - 1)),
