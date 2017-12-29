@@ -196,6 +196,7 @@ namespace acl
 
 			const Vector4_32 range_min = bone_range.rotation.get_min();
 			const Vector4_32 range_extent = bone_range.rotation.get_extent();
+			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -204,7 +205,6 @@ namespace acl
 				// normalized value = (value - range min) / range extent
 				const Vector4_32 rotation = bone_stream.rotations.get_raw_sample<Vector4_32>(sample_index);
 				Vector4_32 normalized_rotation = vector_div(vector_sub(rotation, range_min), range_extent);
-				const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
 				normalized_rotation = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_rotation);
 
 #if defined(ACL_USE_ERROR_CHECKS)
@@ -241,19 +241,19 @@ namespace acl
 			if (!bone_stream.is_translation_animated())
 				continue;
 
-			uint32_t num_samples = bone_stream.translations.get_num_samples();
+			const uint32_t num_samples = bone_stream.translations.get_num_samples();
 
-			Vector4_32 range_min = bone_range.translation.get_min();
-			Vector4_32 range_extent = bone_range.translation.get_extent();
+			const Vector4_32 range_min = bone_range.translation.get_min();
+			const Vector4_32 range_extent = bone_range.translation.get_extent();
+			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				// normalized value is between [0.0 .. 1.0]
 				// value = (normalized value * range extent) + range min
 				// normalized value = (value - range min) / range extent
-				Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
+				const Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
 				Vector4_32 normalized_translation = vector_div(vector_sub(translation, range_min), range_extent);
-				Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
 				normalized_translation = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_translation);
 
 				ACL_ENSURE(vector_all_greater_equal3(normalized_translation, vector_zero_32()) && vector_all_less_equal3(normalized_translation, vector_set(1.0f)), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_translation), vector_get_y(normalized_translation), vector_get_z(normalized_translation));
@@ -277,19 +277,19 @@ namespace acl
 			if (!bone_stream.is_scale_animated())
 				continue;
 
-			uint32_t num_samples = bone_stream.scales.get_num_samples();
+			const uint32_t num_samples = bone_stream.scales.get_num_samples();
 
-			Vector4_32 range_min = bone_range.scale.get_min();
-			Vector4_32 range_extent = bone_range.scale.get_extent();
+			const Vector4_32 range_min = bone_range.scale.get_min();
+			const Vector4_32 range_extent = bone_range.scale.get_extent();
+			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				// normalized value is between [0.0 .. 1.0]
 				// value = (normalized value * range extent) + range min
 				// normalized value = (value - range min) / range extent
-				Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
+				const Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
 				Vector4_32 normalized_scale = vector_div(vector_sub(scale, range_min), range_extent);
-				Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
 				normalized_scale = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_scale);
 
 				ACL_ENSURE(vector_all_greater_equal3(normalized_scale, vector_zero_32()) && vector_all_less_equal3(normalized_scale, vector_set(1.0f)), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_scale), vector_get_y(normalized_scale), vector_get_z(normalized_scale));
