@@ -46,25 +46,13 @@ namespace acl
 		for (const BoneStreams& bone_stream : segment.bone_iterator())
 		{
 			if (!bone_stream.is_rotation_default && bone_stream.is_rotation_constant)
-			{
-				RotationFormat8 format = bone_stream.rotations.get_rotation_format();
-				uint32_t sample_size = get_packed_rotation_size(format);
-				constant_data_size += sample_size;
-			}
+				constant_data_size += bone_stream.rotations.get_packed_sample_size();
 
 			if (!bone_stream.is_translation_default && bone_stream.is_translation_constant)
-			{
-				VectorFormat8 format = bone_stream.translations.get_vector_format();
-				uint32_t sample_size = get_packed_vector_size(format);
-				constant_data_size += sample_size;
-			}
+				constant_data_size += bone_stream.translations.get_packed_sample_size();
 
 			if (clip_context.has_scale && !bone_stream.is_scale_default && bone_stream.is_scale_constant)
-			{
-				VectorFormat8 format = bone_stream.scales.get_vector_format();
-				uint32_t sample_size = get_packed_vector_size(format);
-				constant_data_size += sample_size;
-			}
+				constant_data_size += bone_stream.scales.get_packed_sample_size();
 		}
 
 		return constant_data_size;
@@ -72,12 +60,28 @@ namespace acl
 
 	inline void get_animated_variable_bit_rate_data_size(const TrackStream& track_stream, bool has_mixed_packing, uint32_t num_samples, uint32_t& out_num_animated_data_bits, uint32_t& out_num_animated_pose_bits)
 	{
-		uint8_t bit_rate = track_stream.get_bit_rate();
+		const uint8_t bit_rate = track_stream.get_bit_rate();
 		uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 		if (has_mixed_packing)
 			num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
 		out_num_animated_data_bits += num_bits_at_bit_rate * num_samples;
 		out_num_animated_pose_bits += num_bits_at_bit_rate;
+	}
+
+	inline void calculate_animated_data_size(const TrackStream& track_stream, bool has_mixed_packing, uint32_t& num_animated_data_bits, uint32_t& num_animated_pose_bits)
+	{
+		const uint32_t num_samples = track_stream.get_num_samples();
+
+		if (track_stream.is_bit_rate_variable())
+		{
+			get_animated_variable_bit_rate_data_size(track_stream, has_mixed_packing, num_samples, num_animated_data_bits, num_animated_pose_bits);
+		}
+		else
+		{
+			const uint32_t sample_size = track_stream.get_packed_sample_size();
+			num_animated_data_bits += sample_size * num_samples * 8;
+			num_animated_pose_bits += sample_size * 8;
+		}
 	}
 
 	inline void calculate_animated_data_size(ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format)
@@ -96,55 +100,13 @@ namespace acl
 			for (const BoneStreams& bone_stream : segment.bone_iterator())
 			{
 				if (bone_stream.is_rotation_animated())
-				{
-					uint32_t num_samples = bone_stream.rotations.get_num_samples();
-
-					if (bone_stream.rotations.is_bit_rate_variable())
-					{
-						get_animated_variable_bit_rate_data_size(bone_stream.rotations, has_mixed_packing, num_samples, num_animated_data_bits, num_animated_pose_bits);
-					}
-					else
-					{
-						RotationFormat8 format = bone_stream.rotations.get_rotation_format();
-						uint32_t sample_size = get_packed_rotation_size(format);
-						num_animated_data_bits += sample_size * num_samples * 8;
-						num_animated_pose_bits += sample_size * 8;
-					}
-				}
+					calculate_animated_data_size(bone_stream.rotations, has_mixed_packing, num_animated_data_bits, num_animated_pose_bits);
 
 				if (bone_stream.is_translation_animated())
-				{
-					uint32_t num_samples = bone_stream.translations.get_num_samples();
-
-					if (bone_stream.translations.is_bit_rate_variable())
-					{
-						get_animated_variable_bit_rate_data_size(bone_stream.translations, has_mixed_packing, num_samples, num_animated_data_bits, num_animated_pose_bits);
-					}
-					else
-					{
-						VectorFormat8 format = bone_stream.translations.get_vector_format();
-						uint32_t sample_size = get_packed_vector_size(format);
-						num_animated_data_bits += sample_size * num_samples * 8;
-						num_animated_pose_bits += sample_size * 8;
-					}
-				}
+					calculate_animated_data_size(bone_stream.translations, has_mixed_packing, num_animated_data_bits, num_animated_pose_bits);
 
 				if (clip_context.has_scale && bone_stream.is_scale_animated())
-				{
-					uint32_t num_samples = bone_stream.scales.get_num_samples();
-
-					if (bone_stream.scales.is_bit_rate_variable())
-					{
-						get_animated_variable_bit_rate_data_size(bone_stream.scales, has_mixed_packing, num_samples, num_animated_data_bits, num_animated_pose_bits);
-					}
-					else
-					{
-						VectorFormat8 format = bone_stream.scales.get_vector_format();
-						uint32_t sample_size = get_packed_vector_size(format);
-						num_animated_data_bits += sample_size * num_samples * 8;
-						num_animated_pose_bits += sample_size * 8;
-					}
-				}
+					calculate_animated_data_size(bone_stream.scales, has_mixed_packing, num_animated_data_bits, num_animated_pose_bits);
 			}
 
 			segment.animated_data_size = align_to(num_animated_data_bits, 8) / 8;
@@ -157,7 +119,7 @@ namespace acl
 		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
 		const bool is_scale_variable = is_vector_format_variable(scale_format);
-		
+
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
 
@@ -225,7 +187,7 @@ namespace acl
 	{
 		if (track_stream.is_bit_rate_variable())
 		{
-			uint8_t bit_rate = track_stream.get_bit_rate();
+			const uint8_t bit_rate = track_stream.get_bit_rate();
 			uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 			// Track is constant, our constant sample is stored in the range information
@@ -237,23 +199,23 @@ namespace acl
 				uint64_t raw_sample_u64 = byte_swap(safe_ptr_cast<const uint64_t>(raw_sample_ptr)[0]);
 				memcpy_bits(animated_track_data_begin, out_bit_offset, &raw_sample_u64, 0, 64);
 				raw_sample_u64 = byte_swap(safe_ptr_cast<const uint64_t>(raw_sample_ptr)[1]);
-				uint64_t offset = 64 - 8;
+				const uint64_t offset = 64 - 8;
 				memcpy_bits(animated_track_data_begin, out_bit_offset + 64, &raw_sample_u64, offset, 8);
 			}
 			else if (is_pack_96_bit_rate(bit_rate))
 			{
 				const uint32_t* raw_sample_u32 = safe_ptr_cast<const uint32_t>(raw_sample_ptr);
-				uint32_t x = byte_swap(raw_sample_u32[0]);
+				const uint32_t x = byte_swap(raw_sample_u32[0]);
 				memcpy_bits(animated_track_data_begin, out_bit_offset + 0, &x, 0, 32);
-				uint32_t y = byte_swap(raw_sample_u32[1]);
+				const uint32_t y = byte_swap(raw_sample_u32[1]);
 				memcpy_bits(animated_track_data_begin, out_bit_offset + 32, &y, 0, 32);
-				uint32_t z = byte_swap(raw_sample_u32[2]);
+				const uint32_t z = byte_swap(raw_sample_u32[2]);
 				memcpy_bits(animated_track_data_begin, out_bit_offset + 64, &z, 0, 32);
 			}
 			else
 			{
-				uint64_t raw_sample_u64 = byte_swap(*safe_ptr_cast<const uint64_t>(raw_sample_ptr));
-				uint64_t offset = 64 - num_bits_at_bit_rate;
+				const uint64_t raw_sample_u64 = byte_swap(*safe_ptr_cast<const uint64_t>(raw_sample_ptr));
+				const uint64_t offset = 64 - num_bits_at_bit_rate;
 				memcpy_bits(animated_track_data_begin, out_bit_offset, &raw_sample_u64, offset, num_bits_at_bit_rate);
 			}
 
@@ -266,7 +228,7 @@ namespace acl
 		else
 		{
 			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
-			uint32_t sample_size = track_stream.get_sample_size();
+			const uint32_t sample_size = track_stream.get_packed_sample_size();
 			memcpy(out_animated_track_data, raw_sample_ptr, sample_size);
 			out_animated_track_data += sample_size;
 			out_bit_offset = (out_animated_track_data - animated_track_data_begin) * 8;
