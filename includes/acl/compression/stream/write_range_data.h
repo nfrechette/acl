@@ -79,7 +79,6 @@ namespace acl
 		}
 		else
 		{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 			if (is_raw_bit_rate(track.get_bit_rate()))
 			{
 				const uint8_t* sample_ptr = track.get_raw_sample_ptr(0);
@@ -93,21 +92,6 @@ namespace acl
 				pack_vector3_24(range_extent, true, out_range_data);
 				out_range_data += sizeof(uint8_t) * 3;
 			}
-#else
-			if (is_raw_bit_rate(track.get_bit_rate()))
-			{
-				const uint8_t* sample_ptr = track.get_raw_sample_ptr(0);
-				memcpy(out_range_data, sample_ptr, sizeof(uint32_t) * 3);
-				out_range_data += sizeof(uint32_t) * 3;
-			}
-			else
-			{
-				pack_vector3_48(range_min, true, out_range_data);
-				out_range_data += sizeof(uint16_t) * 3;
-				pack_vector3_48(range_extent, true, out_range_data);
-				out_range_data += sizeof(uint16_t) * 3;
-			}
-#endif
 		}
 	}
 
@@ -148,21 +132,13 @@ namespace acl
 				{
 					if (bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128)
 					{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 						pack_vector4_32(range_min, true, range_data);
 						range_data += sizeof(uint8_t) * 4;
 						pack_vector4_32(range_extent, true, range_data);
 						range_data += sizeof(uint8_t) * 4;
-#else
-						pack_vector4_64(range_min, true, range_data);
-						range_data += sizeof(uint16_t) * 4;
-						pack_vector4_64(range_extent, true, range_data);
-						range_data += sizeof(uint16_t) * 4;
-#endif
 					}
 					else
 					{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 						if (is_raw_bit_rate(bone_stream.rotations.get_bit_rate()))
 						{
 							const uint8_t* rotation = bone_stream.rotations.get_raw_sample_ptr(0);
@@ -176,21 +152,6 @@ namespace acl
 							pack_vector3_24(range_extent, true, range_data);
 							range_data += sizeof(uint8_t) * 3;
 						}
-#else
-						if (is_raw_bit_rate(bone_stream.rotations.get_bit_rate()))
-						{
-							const uint8_t* rotation = bone_stream.rotations.get_raw_sample_ptr(0);
-							memcpy(range_data, rotation, sizeof(uint32_t) * 3);
-							range_data += sizeof(uint32_t) * 3;
-						}
-						else
-						{
-							pack_vector3_48(range_min, true, range_data);
-							range_data += sizeof(uint16_t) * 3;
-							pack_vector3_48(range_extent, true, range_data);
-							range_data += sizeof(uint16_t) * 3;
-						}
-#endif
 					}
 				}
 			}

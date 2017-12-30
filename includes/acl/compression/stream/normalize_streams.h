@@ -99,7 +99,7 @@ namespace acl
 	inline void extract_segment_bone_ranges(Allocator& allocator, ClipContext& clip_context)
 	{
 		uint8_t buffer[8] = {0};
-		const Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE));
+		const Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, k_segment_range_reduction_num_bits_per_component));
 		const Vector4_32 one = vector_set(1.0f);
 		const Vector4_32 zero = vector_zero_32();
 		const bool has_scale = clip_context.has_scale;
@@ -120,17 +120,10 @@ namespace acl
 					Vector4_32 rotation_range_min = vector_max(vector_sub(bone_range.rotation.get_min(), padding), zero);
 					Vector4_32 rotation_range_max = vector_min(vector_add(bone_range.rotation.get_max(), padding), one);
 
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 					pack_vector4_32(rotation_range_min, true, &buffer[0]);
 					rotation_range_min = unpack_vector4_32(&buffer[0], true);
 					pack_vector4_32(rotation_range_max, true, &buffer[0]);
 					rotation_range_max = unpack_vector4_32(&buffer[0], true);
-#else
-					pack_vector4_64(rotation_range_min, true, &buffer[0]);
-					rotation_range_min = unpack_vector4_64(&buffer[0], true);
-					pack_vector4_64(rotation_range_max, true, &buffer[0]);
-					rotation_range_max = unpack_vector4_64(&buffer[0], true);
-#endif
 
 					bone_range.rotation = TrackStreamRange(rotation_range_min, rotation_range_max);
 				}
@@ -140,17 +133,10 @@ namespace acl
 					Vector4_32 translation_range_min = vector_max(vector_sub(bone_range.translation.get_min(), padding), zero);
 					Vector4_32 translation_range_max = vector_min(vector_add(bone_range.translation.get_max(), padding), one);
 
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 					pack_vector3_24(translation_range_min, true, &buffer[0]);
 					translation_range_min = unpack_vector3_24(&buffer[0], true);
 					pack_vector3_24(translation_range_max, true, &buffer[0]);
 					translation_range_max = unpack_vector3_24(&buffer[0], true);
-#else
-					pack_vector3_48(translation_range_min, true, &buffer[0]);
-					translation_range_min = unpack_vector3_48(&buffer[0], true);
-					pack_vector3_48(translation_range_max, true, &buffer[0]);
-					translation_range_max = unpack_vector3_48(&buffer[0], true);
-#endif
 
 					bone_range.translation = TrackStreamRange(translation_range_min, translation_range_max);
 				}
@@ -160,17 +146,10 @@ namespace acl
 					Vector4_32 scale_range_min = vector_max(vector_sub(bone_range.scale.get_min(), padding), zero);
 					Vector4_32 scale_range_max = vector_min(vector_add(bone_range.scale.get_max(), padding), one);
 
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 					pack_vector3_24(scale_range_min, true, &buffer[0]);
 					scale_range_min = unpack_vector3_24(&buffer[0], true);
 					pack_vector3_24(scale_range_max, true, &buffer[0]);
 					scale_range_max = unpack_vector3_24(&buffer[0], true);
-#else
-					pack_vector3_48(scale_range_min, true, &buffer[0]);
-					scale_range_min = unpack_vector3_48(&buffer[0], true);
-					pack_vector3_48(scale_range_max, true, &buffer[0]);
-					scale_range_max = unpack_vector3_48(&buffer[0], true);
-#endif
 
 					bone_range.scale = TrackStreamRange(scale_range_min, scale_range_max);
 				}
@@ -357,16 +336,16 @@ namespace acl
 				if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
 				{
 					if (bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128)
-						range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 8;
+						range_data_size += k_segment_range_reduction_num_bytes_per_component * 8;
 					else
-						range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
+						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
 				}
 
 				if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
-					range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
+					range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
 
 				if (has_scale && are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
-					range_data_size += ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 6;
+					range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
 			}
 
 			segment.range_data_size = range_data_size;

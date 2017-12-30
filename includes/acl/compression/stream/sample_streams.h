@@ -57,12 +57,7 @@ namespace acl
 				if (is_raw_bit_rate(bit_rate))
 				{
 					ACL_ENSURE(is_normalized, "Cannot drop a constant track if it isn't normalized");
-
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 					return unpack_vector3_48(ptr, true);
-#else
-					return unpack_vector3_96(ptr);
-#endif
 				}
 				else if (is_pack_72_bit_rate(bit_rate))
 					return unpack_vector3_72(is_normalized, ptr);
@@ -93,20 +88,14 @@ namespace acl
 			case VectorFormat8::Vector3_Variable:
 				ACL_ENSURE(bit_rate != INVALID_BIT_RATE, "Invalid bit rate!");
 				if (is_raw_bit_rate(bit_rate))
-				{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 					return unpack_vector3_48(ptr, true);
-#else
-					return unpack_vector3_96(ptr);
-#endif
-				}
 				else if (is_pack_72_bit_rate(bit_rate))
 					return unpack_vector3_72(true, ptr);
 				else if (is_pack_96_bit_rate(bit_rate))
 					return unpack_vector3_96(ptr);
 				else
 				{
-					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+					const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 					return unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, ptr);
 				}
 			default:
@@ -203,13 +192,8 @@ namespace acl
 
 			rotation = vector_mul_add(rotation, segment_range_extent, segment_range_min);
 
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 			pack_vector3_48(rotation, true, &raw_data[0]);
 			packed_rotation = unpack_vector3_48(&raw_data[0], true);
-#else
-			pack_vector3_96(rotation, &raw_data[0]);
-			packed_rotation = unpack_vector3_96(&raw_data[0]);
-#endif
 		}
 		else if (is_pack_72_bit_rate(bit_rate))
 		{
@@ -376,13 +360,8 @@ namespace acl
 
 			translation = vector_mul_add(translation, segment_range_extent, segment_range_min);
 
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 			pack_vector3_48(translation, true, &raw_data[0]);
 			packed_translation = unpack_vector3_48(&raw_data[0], true);
-#else
-			pack_vector3_96(translation, &raw_data[0]);
-			packed_translation = unpack_vector3_96(&raw_data[0]);
-#endif
 		}
 		else if (is_pack_72_bit_rate(bit_rate))
 		{
@@ -544,13 +523,8 @@ namespace acl
 
 			scale = vector_mul_add(scale, segment_range_extent, segment_range_min);
 
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 			pack_vector3_48(scale, true, &raw_data[0]);
 			packed_scale = unpack_vector3_48(&raw_data[0], true);
-#else
-			pack_vector3_96(scale, &raw_data[0]);
-			packed_scale = unpack_vector3_96(&raw_data[0]);
-#endif
 		}
 		else if (is_pack_72_bit_rate(bit_rate))
 		{

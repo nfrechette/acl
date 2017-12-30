@@ -79,7 +79,7 @@ namespace acl
 
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 				if (are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Rotations))
-					context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
+					context.segment_range_data_offset += context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2;
 			}
 		}
 
@@ -151,7 +151,7 @@ namespace acl
 
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 				if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flag))
-					context.segment_range_data_offset += 3 * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
+					context.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
 			}
 		}
 
@@ -226,11 +226,7 @@ namespace acl
 
 						if (is_raw_bit_rate(bit_rate))
 						{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 							rotations[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-#else
-							rotations[i] = unpack_vector3_96(context.segment_range_data[i] + context.segment_range_data_offset);
-#endif
 							ignore_segment_range[i] = true;
 						}
 						else if (is_pack_72_bit_rate(bit_rate))
@@ -295,13 +291,9 @@ namespace acl
 						{
 							if (!ignore_segment_range[i])
 							{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-								Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
-								Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
-#else
-								Vector4_32 segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-								Vector4_32 segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
-#endif
+								const Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
+								const Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
+
 								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
 							}
 						}
@@ -312,13 +304,9 @@ namespace acl
 						{
 							for (size_t i = 0; i < num_key_frames; ++i)
 							{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-								Vector4_32 segment_range_min = unpack_vector4_32(context.segment_range_data[i] + context.segment_range_data_offset, true);
-								Vector4_32 segment_range_extent = unpack_vector4_32(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
-#else
-								Vector4_32 segment_range_min = unpack_vector4_64(context.segment_range_data[i] + context.segment_range_data_offset, true);
-								Vector4_32 segment_range_extent = unpack_vector4_64(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
-#endif
+								const Vector4_32 segment_range_min = unpack_vector4_32(context.segment_range_data[i] + context.segment_range_data_offset, true);
+								const Vector4_32 segment_range_extent = unpack_vector4_32(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
+
 								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
 							}
 						}
@@ -326,25 +314,21 @@ namespace acl
 						{
 							for (size_t i = 0; i < num_key_frames; ++i)
 							{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-								Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
-								Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
-#else
-								Vector4_32 segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-								Vector4_32 segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint16_t)), true);
-#endif
+								const Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
+								const Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (context.num_rotation_components * sizeof(uint8_t)), true);
+
 								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
 							}
 						}
 					}
 
-					context.segment_range_data_offset += context.num_rotation_components * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
+					context.segment_range_data_offset += context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2;
 				}
 
 				if (are_clip_rotations_normalized)
 				{
-					Vector4_32 clip_range_min = vector_unaligned_load_32(context.clip_range_data + context.clip_range_data_offset);
-					Vector4_32 clip_range_extent = vector_unaligned_load_32(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
+					const Vector4_32 clip_range_min = vector_unaligned_load_32(context.clip_range_data + context.clip_range_data_offset);
+					const Vector4_32 clip_range_extent = vector_unaligned_load_32(context.clip_range_data + context.clip_range_data_offset + (context.num_rotation_components * sizeof(float)));
 
 					for (size_t i = 0; i < num_key_frames; ++i)
 						rotations[i] = vector_mul_add(rotations[i], clip_range_extent, clip_range_min);
@@ -417,11 +401,7 @@ namespace acl
 
 						if (is_raw_bit_rate(bit_rate))
 						{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 							out_vectors[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-#else
-							out_vectors[i] = unpack_vector3_96(context.segment_range_data[i] + context.segment_range_data_offset);
-#endif
 							ignore_segment_range[i] = true;
 						}
 						else if (is_pack_72_bit_rate(bit_rate))
@@ -479,18 +459,14 @@ namespace acl
 					{
 						if (format != VectorFormat8::Vector3_Variable || !settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) || !ignore_segment_range[i])
 						{
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-							Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (3 * sizeof(uint8_t)), true);
-#else
-							Vector4_32 segment_range_min = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
-							Vector4_32 segment_range_extent = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset + (3 * sizeof(uint16_t)), true);
-#endif
+							const Vector4_32 segment_range_min = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset, true);
+							const Vector4_32 segment_range_extent = unpack_vector3_24(context.segment_range_data[i] + context.segment_range_data_offset + (3 * sizeof(uint8_t)), true);
+
 							out_vectors[i] = vector_mul_add(out_vectors[i], segment_range_extent, segment_range_min);
 						}
 					}
 
-					context.segment_range_data_offset += 3 * ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BYTE_SIZE * 2;
+					context.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
 				}
 
 				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))

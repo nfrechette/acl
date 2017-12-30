@@ -119,11 +119,7 @@ namespace acl
 
 				rotation = vector_mul_add(rotation, segment_range_extent, segment_range_min);
 
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 				pack_vector3_48(rotation, true, quantized_ptr);
-#else
-				pack_vector3_96(rotation, quantized_ptr);
-#endif
 			}
 			else
 			{
@@ -243,11 +239,7 @@ namespace acl
 
 				translation = vector_mul_add(translation, segment_range_extent, segment_range_min);
 
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 				pack_vector3_48(translation, true, quantized_ptr);
-#else
-				pack_vector3_96(translation, quantized_ptr);
-#endif
 			}
 			else
 			{
@@ -364,11 +356,7 @@ namespace acl
 
 				scale = vector_mul_add(scale, segment_range_extent, segment_range_min);
 
-#if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 				pack_vector3_48(scale, true, quantized_ptr);
-#else
-				pack_vector3_96(scale, quantized_ptr);
-#endif
 			}
 			else
 			{
