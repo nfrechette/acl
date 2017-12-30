@@ -73,7 +73,7 @@ namespace acl
 	namespace uniformly_sampled
 	{
 		// Encoder entry point
-		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressionSettings& settings, OutputStats& stats)
+		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings settings, OutputStats& stats)
 		{
 			using namespace impl;
 
@@ -89,8 +89,8 @@ namespace acl
 
 			if (settings.translation_format != VectorFormat8::Vector3_96)
 			{
-				bool has_clip_range_reduction = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Translations);
-				bool has_segment_range_reduction = settings.segmenting.enabled && are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
+				const bool has_clip_range_reduction = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Translations);
+				const bool has_segment_range_reduction = settings.segmenting.enabled && are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
 				if (ACL_TRY_ASSERT(has_clip_range_reduction | has_segment_range_reduction, "%s quantization requires range reduction to be enabled at the clip or segment level!", get_vector_format_name(settings.translation_format)))
 					return nullptr;
 			}
@@ -128,6 +128,10 @@ namespace acl
 			if (settings.segmenting.enabled)
 			{
 				segment_streams(allocator, clip_context, settings.segmenting);
+
+				// If we have a single segment, disable range reduction since it won't help
+				if (clip_context.num_segments == 1)
+					settings.segmenting.range_reduction = RangeReductionFlags8::None;
 
 				if (settings.segmenting.range_reduction != RangeReductionFlags8::None)
 				{
