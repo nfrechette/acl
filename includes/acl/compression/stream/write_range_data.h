@@ -65,12 +65,12 @@ namespace acl
 
 	inline void write_range_track_data_impl(const TrackStream& track, const TrackStreamRange& range, bool is_clip_range_data, uint8_t*& out_range_data)
 	{
-		Vector4_32 range_min = range.get_min();
-		Vector4_32 range_extent = range.get_extent();
+		const Vector4_32 range_min = range.get_min();
+		const Vector4_32 range_extent = range.get_extent();
 
 		if (is_clip_range_data)
 		{
-			uint32_t range_member_size = sizeof(float) * 3;
+			const uint32_t range_member_size = sizeof(float) * 3;
 
 			memcpy(out_range_data, vector_as_float_ptr(range_min), range_member_size);
 			out_range_data += range_member_size;
@@ -79,7 +79,7 @@ namespace acl
 		}
 		else
 		{
-			if (is_raw_bit_rate(track.get_bit_rate()))
+			if (is_constant_bit_rate(track.get_bit_rate()))
 			{
 				const uint8_t* sample_ptr = track.get_raw_sample_ptr(0);
 				memcpy(out_range_data, sample_ptr, sizeof(uint16_t) * 3);
@@ -116,12 +116,12 @@ namespace acl
 
 			if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
 			{
-				Vector4_32 range_min = bone_range.rotation.get_min();
-				Vector4_32 range_extent = bone_range.rotation.get_extent();
+				const Vector4_32 range_min = bone_range.rotation.get_min();
+				const Vector4_32 range_extent = bone_range.rotation.get_extent();
 
 				if (is_clip_range_data)
 				{
-					uint32_t range_member_size = bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128 ? (sizeof(float) * 4) : (sizeof(float) * 3);
+					const uint32_t range_member_size = bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128 ? (sizeof(float) * 4) : (sizeof(float) * 3);
 
 					memcpy(range_data, vector_as_float_ptr(range_min), range_member_size);
 					range_data += range_member_size;
@@ -139,7 +139,7 @@ namespace acl
 					}
 					else
 					{
-						if (is_raw_bit_rate(bone_stream.rotations.get_bit_rate()))
+						if (is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
 						{
 							const uint8_t* rotation = bone_stream.rotations.get_raw_sample_ptr(0);
 							memcpy(range_data, rotation, sizeof(uint16_t) * 3);
