@@ -21,9 +21,12 @@ The library aims to support a few core algorithms that will be well suited for p
 *  [Carnegie-Mellon University database performance](cmu_performance.md)
 *  [Paragon database performance](paragon_performance.md)
 
+# Research
+
+*  [Arithmetic accuracy](research_arithmetic_accuracy.md)
+
 # Miscellaneous
 
 *  [The ACL file format](the_acl_file_format.md)
 *  [Rotation and vector formats](rotation_and_vector_formats.md)
 *  [Error metrics](error_metrics.md)
-*  [Why we don't use 64-bit floats](no_64bit_math.md)
