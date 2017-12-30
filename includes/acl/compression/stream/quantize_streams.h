@@ -32,6 +32,7 @@
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/stream/sample_streams.h"
+#include "acl/compression/stream/normalize_streams.h"
 #include "acl/compression/skeleton_error_metric.h"
 
 #include <cstddef>
@@ -158,17 +159,7 @@ namespace acl
 			quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, rotation_format, are_rotations_normalized, bone_stream.rotations);
 		}
 
-		inline Vector4_32 normalize_sample(const Vector4_32& sample, const TrackStreamRange& range)
-		{
-			const Vector4_32 range_min = range.get_min();
-			const Vector4_32 range_extent = range.get_extent();
-			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
-
-			Vector4_32 normalized_sample = vector_div(vector_sub(sample, range_min), range_extent);
-			return vector_blend(is_range_zero_mask, vector_zero_32(), normalized_sample);
-		}
-
-		inline void quantize_variable_rotation_stream(QuantizationContext& context, const RotationTrackStream& raw_clip_stream, const RotationTrackStream& raw_segment_stream, const TrackStreamRange& raw_clip_range, uint8_t bit_rate, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
+		inline void quantize_variable_rotation_stream(QuantizationContext& context, const RotationTrackStream& raw_clip_stream, const RotationTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_segment_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_segment_stream.get_sample_size(), sizeof(Vector4_32));
@@ -183,7 +174,7 @@ namespace acl
 				ACL_ENSURE(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
 
 				const Vector4_32 rotation = raw_clip_stream.get_raw_sample<Vector4_32>(context.segment_sample_start_index);
-				const Vector4_32 normalized_rotation = normalize_sample(rotation, raw_clip_range);
+				const Vector4_32 normalized_rotation = normalize_sample(rotation, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
 				pack_vector3_48(normalized_rotation, true, quantized_ptr);
@@ -194,15 +185,21 @@ namespace acl
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const Quat_32 rotation = raw_segment_stream.get_raw_sample<Quat_32>(sample_index);
 					uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
-					if (is_pack_72_bit_rate(bit_rate))
-						pack_vector3_72(quat_to_vector(rotation), are_rotations_normalized, quantized_ptr);
-					else if (is_raw_bit_rate(bit_rate))
+					if (is_raw_bit_rate(bit_rate))
+					{
+						const Quat_32 rotation = raw_clip_stream.get_raw_sample<Quat_32>(context.segment_sample_start_index + sample_index);
 						pack_vector3_96(quat_to_vector(rotation), quantized_ptr);
+					}
 					else
-						pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
+					{
+						const Quat_32 rotation = raw_segment_stream.get_raw_sample<Quat_32>(sample_index);
+						if (is_pack_72_bit_rate(bit_rate))
+							pack_vector3_72(quat_to_vector(rotation), are_rotations_normalized, quantized_ptr);
+						else
+							pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
+					}
 				}
 			}
 
@@ -285,7 +282,7 @@ namespace acl
 			quantize_fixed_translation_stream(context.allocator, bone_stream.translations, format, bone_stream.translations);
 		}
 
-		inline void quantize_variable_translation_stream(QuantizationContext& context, const TranslationTrackStream& raw_clip_stream, const TranslationTrackStream& raw_segment_stream, const TrackStreamRange& raw_clip_range, uint8_t bit_rate, TranslationTrackStream& out_quantized_stream)
+		inline void quantize_variable_translation_stream(QuantizationContext& context, const TranslationTrackStream& raw_clip_stream, const TranslationTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, TranslationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_segment_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_segment_stream.get_sample_size(), sizeof(Vector4_32));
@@ -299,7 +296,7 @@ namespace acl
 			if (is_constant_bit_rate(bit_rate))
 			{
 				const Vector4_32 translation = raw_clip_stream.get_raw_sample<Vector4_32>(context.segment_sample_start_index);
-				const Vector4_32 normalized_translation = normalize_sample(translation, raw_clip_range);
+				const Vector4_32 normalized_translation = normalize_sample(translation, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
 				pack_vector3_48(normalized_translation, true, quantized_ptr);
@@ -310,15 +307,21 @@ namespace acl
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const Vector4_32 translation = raw_segment_stream.get_raw_sample<Vector4_32>(sample_index);
 					uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
-					if (is_pack_72_bit_rate(bit_rate))
-						pack_vector3_72(translation, true, quantized_ptr);
-					else if (is_raw_bit_rate(bit_rate))
+					if (is_raw_bit_rate(bit_rate))
+					{
+						const Vector4_32 translation = raw_clip_stream.get_raw_sample<Vector4_32>(context.segment_sample_start_index + sample_index);
 						pack_vector3_96(translation, quantized_ptr);
+					}
 					else
-						pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+					{
+						const Vector4_32 translation = raw_segment_stream.get_raw_sample<Vector4_32>(sample_index);
+						if (is_pack_72_bit_rate(bit_rate))
+							pack_vector3_72(translation, true, quantized_ptr);
+						else
+							pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+					}
 				}
 			}
 
@@ -399,7 +402,7 @@ namespace acl
 			quantize_fixed_scale_stream(context.allocator, bone_stream.scales, format, bone_stream.scales);
 		}
 
-		inline void quantize_variable_scale_stream(QuantizationContext& context, const ScaleTrackStream& raw_clip_stream, const ScaleTrackStream& raw_segment_stream, const TrackStreamRange& raw_clip_range, uint8_t bit_rate, ScaleTrackStream& out_quantized_stream)
+		inline void quantize_variable_scale_stream(QuantizationContext& context, const ScaleTrackStream& raw_clip_stream, const ScaleTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, ScaleTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_segment_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", raw_segment_stream.get_sample_size(), sizeof(Vector4_32));
@@ -413,10 +416,10 @@ namespace acl
 			if (is_constant_bit_rate(bit_rate))
 			{
 				const Vector4_32 scale = raw_clip_stream.get_raw_sample<Vector4_32>(context.segment_sample_start_index);
-				const Vector4_32 normalized_scale = normalize_sample(scale, raw_clip_range);
+				const Vector4_32 normalized_scale = normalize_sample(scale, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
-				pack_vector3_48(scale, true, quantized_ptr);
+				pack_vector3_48(normalized_scale, true, quantized_ptr);
 			}
 			else
 			{
@@ -424,15 +427,21 @@ namespace acl
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const Vector4_32 scale = raw_segment_stream.get_raw_sample<Vector4_32>(sample_index);
 					uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(sample_index);
 
-					if (is_pack_72_bit_rate(bit_rate))
-						pack_vector3_72(scale, true, quantized_ptr);
-					else if (is_raw_bit_rate(bit_rate))
+					if (is_raw_bit_rate(bit_rate))
+					{
+						const Vector4_32 scale = raw_clip_stream.get_raw_sample<Vector4_32>(context.segment_sample_start_index + sample_index);
 						pack_vector3_96(scale, quantized_ptr);
+					}
 					else
-						pack_vector3_n(scale, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+					{
+						const Vector4_32 scale = raw_segment_stream.get_raw_sample<Vector4_32>(sample_index);
+						if (is_pack_72_bit_rate(bit_rate))
+							pack_vector3_72(scale, true, quantized_ptr);
+						else
+							pack_vector3_n(scale, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+					}
 				}
 			}
 
@@ -471,7 +480,7 @@ namespace acl
 				const float ref_sample_time = min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration);
 
 				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, ref_sample_time, target_bone_index, context.raw_local_pose);
-				sample_streams_hierarchical(context.bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.scale_format, context.lossy_local_pose);
+				sample_streams_hierarchical(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.scale_format, context.lossy_local_pose);
 
 				// Constant branch
 				float error;

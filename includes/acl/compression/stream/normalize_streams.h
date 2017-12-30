@@ -157,6 +157,16 @@ namespace acl
 		}
 	}
 
+	inline Vector4_32 normalize_sample(const Vector4_32& sample, const TrackStreamRange& range)
+	{
+		const Vector4_32 range_min = range.get_min();
+		const Vector4_32 range_extent = range.get_extent();
+		const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
+
+		Vector4_32 normalized_sample = vector_div(vector_sub(sample, range_min), range_extent);
+		return vector_blend(is_range_zero_mask, vector_zero_32(), normalized_sample);
+	}
+
 	inline void normalize_rotation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 	{
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
