@@ -596,7 +596,7 @@ if __name__ == "__main__":
 	best_runs = agg_job_results['best_runs']
 	worst_runs = agg_job_results['worst_runs']
 	num_runs = agg_job_results['num_runs']
-	total_compression_time = agg_job_results['total_compression_time']
+	total_wall_compression_time = agg_job_results['total_compression_time']
 
 	write_csv(csv_data, agg_run_stats)
 
@@ -613,13 +613,19 @@ if __name__ == "__main__":
 		ratio = float(run_stats['total_raw_size']) / float(run_stats['total_compressed_size'])
 		print('Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}] Run type: {}'.format(bytes_to_mb(run_stats['total_compressed_size']), format_elapsed_time(run_stats['total_compression_time']), ratio, run_stats['max_error'], run_stats['name']))
 	print()
+	print('Total:')
+	total_raw_size = sum([x['total_raw_size'] for x in agg_run_stats.values()])
+	total_compressed_size = sum([x['total_compressed_size'] for x in agg_run_stats.values()])
+	total_compression_time = sum([x['total_compression_time'] for x in agg_run_stats.values()])
+	total_max_error = max([x['max_error'] for x in agg_run_stats.values()])
+	total_ratio = float(total_raw_size) / float(total_compressed_size)
+	print('Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}]'.format(bytes_to_mb(total_compressed_size), format_elapsed_time(total_compression_time), total_ratio, total_max_error))
+	print()
 
-	total_duration = run_types_by_size[0]['total_duration']
-	total_raw_size = run_types_by_size[0]['total_raw_size']
-
+	total_duration = sum([x['total_duration'] for x in agg_run_stats.values()])
 
 	print('Sum of clip durations: {}'.format(format_elapsed_time(total_duration)))
-	print('Total compression time: {}'.format(format_elapsed_time(total_compression_time)))
+	print('Total compression time: {}'.format(format_elapsed_time(total_wall_compression_time)))
 	print('Total raw size: {:.2f} MB'.format(bytes_to_mb(total_raw_size)))
 	print()
 
