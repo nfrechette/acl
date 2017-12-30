@@ -116,7 +116,7 @@ namespace acl
 	// Pack 72 really isn't great, it barely improves the error of most clips with high error
 	// Disabled for now but code left in to test
 	constexpr bool is_pack_72_bit_rate(uint8_t bit_rate) { return false; }
-	constexpr bool is_pack_96_bit_rate(uint8_t bit_rate) { return bit_rate == HIGHEST_BIT_RATE; }
+	constexpr bool is_raw_bit_rate(uint8_t bit_rate) { return bit_rate == HIGHEST_BIT_RATE; }
 
 	struct BoneBitRate
 	{

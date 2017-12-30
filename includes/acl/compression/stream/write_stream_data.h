@@ -202,7 +202,7 @@ namespace acl
 				const uint64_t offset = 64 - 8;
 				memcpy_bits(animated_track_data_begin, out_bit_offset + 64, &raw_sample_u64, offset, 8);
 			}
-			else if (is_pack_96_bit_rate(bit_rate))
+			else if (is_raw_bit_rate(bit_rate))
 			{
 				const uint32_t* raw_sample_u32 = safe_ptr_cast<const uint32_t>(raw_sample_ptr);
 				const uint32_t x = byte_swap(raw_sample_u32[0]);

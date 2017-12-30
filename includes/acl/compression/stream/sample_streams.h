@@ -61,7 +61,7 @@ namespace acl
 				}
 				else if (is_pack_72_bit_rate(bit_rate))
 					return unpack_vector3_72(is_normalized, ptr);
-				else if (is_pack_96_bit_rate(bit_rate))
+				else if (is_raw_bit_rate(bit_rate))
 					return unpack_vector3_96(ptr);
 				else
 				{
@@ -91,7 +91,7 @@ namespace acl
 					return unpack_vector3_48(ptr, true);
 				else if (is_pack_72_bit_rate(bit_rate))
 					return unpack_vector3_72(true, ptr);
-				else if (is_pack_96_bit_rate(bit_rate))
+				else if (is_raw_bit_rate(bit_rate))
 					return unpack_vector3_96(ptr);
 				else
 				{
@@ -200,7 +200,7 @@ namespace acl
 			pack_vector3_72(rotation, are_rotations_normalized, &raw_data[0]);
 			packed_rotation = unpack_vector3_72(are_rotations_normalized, &raw_data[0]);
 		}
-		else if (is_pack_96_bit_rate(bit_rate))
+		else if (is_raw_bit_rate(bit_rate))
 		{
 			pack_vector3_96(rotation, &raw_data[0]);
 			packed_rotation = unpack_vector3_96(&raw_data[0]);
@@ -368,7 +368,7 @@ namespace acl
 			pack_vector3_72(translation, true, &raw_data[0]);
 			packed_translation = unpack_vector3_72(true, &raw_data[0]);
 		}
-		else if (is_pack_96_bit_rate(bit_rate))
+		else if (is_raw_bit_rate(bit_rate))
 		{
 			pack_vector3_96(translation, &raw_data[0]);
 			packed_translation = unpack_vector3_96(&raw_data[0]);
@@ -531,7 +531,7 @@ namespace acl
 			pack_vector3_72(scale, true, &raw_data[0]);
 			packed_scale = unpack_vector3_72(true, &raw_data[0]);
 		}
-		else if (is_pack_96_bit_rate(bit_rate))
+		else if (is_raw_bit_rate(bit_rate))
 		{
 			pack_vector3_96(scale, &raw_data[0]);
 			packed_scale = unpack_vector3_96(&raw_data[0]);

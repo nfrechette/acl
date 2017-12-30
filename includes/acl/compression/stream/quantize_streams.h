@@ -199,7 +199,7 @@ namespace acl
 
 					if (is_pack_72_bit_rate(bit_rate))
 						pack_vector3_72(quat_to_vector(rotation), are_rotations_normalized, quantized_ptr);
-					else if (is_pack_96_bit_rate(bit_rate))
+					else if (is_raw_bit_rate(bit_rate))
 						pack_vector3_96(quat_to_vector(rotation), quantized_ptr);
 					else
 						pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
@@ -315,7 +315,7 @@ namespace acl
 
 					if (is_pack_72_bit_rate(bit_rate))
 						pack_vector3_72(translation, true, quantized_ptr);
-					else if (is_pack_96_bit_rate(bit_rate))
+					else if (is_raw_bit_rate(bit_rate))
 						pack_vector3_96(translation, quantized_ptr);
 					else
 						pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
@@ -429,7 +429,7 @@ namespace acl
 
 					if (is_pack_72_bit_rate(bit_rate))
 						pack_vector3_72(scale, true, quantized_ptr);
-					else if (is_pack_96_bit_rate(bit_rate))
+					else if (is_raw_bit_rate(bit_rate))
 						pack_vector3_96(scale, quantized_ptr);
 					else
 						pack_vector3_n(scale, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
