@@ -34,9 +34,6 @@
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/decompression_functions.h"
 
-#include <algorithm>
-#include <functional>
-
 namespace acl
 {
 	// TODO: Add a context object to avoid malloc/free of the buffers with every call of the function
@@ -135,32 +132,32 @@ namespace acl
 	{
 		ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
-		const RigidBone& target_bone = skeleton.get_bone(bone_index);
-		float vtx_distance = float(target_bone.vertex_distance);
+		Transform_32 raw_obj_transform = raw_local_pose[0];
+		Transform_32 lossy_obj_transform = lossy_local_pose[0];
 
-		std::function<Transform_32(const Transform_32*, uint16_t)> apply_fun;
-		apply_fun = [&](const Transform_32* local_pose, uint16_t bone_index) -> Transform_32
+		const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
+		for (uint16_t chain_bone_index : bone_chain)
 		{
-			if (bone_index == 0)
-				return local_pose[0];
-			const RigidBone& bone = skeleton.get_bone(bone_index);
-			Transform_32 parent_transform = apply_fun(local_pose, bone.parent_index);
-			return transform_mul_no_scale(local_pose[bone_index], parent_transform);
-		};
+			if (chain_bone_index != 0)
+			{
+				raw_obj_transform = transform_mul_no_scale(raw_local_pose[chain_bone_index], raw_obj_transform);
+				lossy_obj_transform = transform_mul_no_scale(lossy_local_pose[chain_bone_index], lossy_obj_transform);
+			}
+		}
 
-		Transform_32 raw_obj_transform = apply_fun(raw_local_pose, bone_index);
-		Transform_32 lossy_obj_transform = apply_fun(lossy_local_pose, bone_index);
+		const RigidBone& target_bone = skeleton.get_bone(bone_index);
+		const float vtx_distance = float(target_bone.vertex_distance);
 
-		Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
-		Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
+		const Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
+		const Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
 
-		Vector4_32 raw_vtx0 = transform_position_no_scale(raw_obj_transform, vtx0);
-		Vector4_32 raw_vtx1 = transform_position_no_scale(raw_obj_transform, vtx1);
-		Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_obj_transform, vtx0);
-		Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_obj_transform, vtx1);
+		const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_obj_transform, vtx0);
+		const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_obj_transform, vtx1);
+		const Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_obj_transform, vtx0);
+		const Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_obj_transform, vtx1);
 
-		float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
-		float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+		const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+		const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
 
 		return max(vtx0_error, vtx1_error);
 	}
@@ -169,33 +166,32 @@ namespace acl
 	{
 		ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
-		const RigidBone& target_bone = skeleton.get_bone(bone_index);
-		float vtx_distance = float(target_bone.vertex_distance);
+		AffineMatrix_32 raw_obj_mtx = matrix_from_transform(raw_local_pose[0]);
+		AffineMatrix_32 lossy_obj_mtx = matrix_from_transform(lossy_local_pose[0]);
 
-		std::function<AffineMatrix_32(const Transform_32*, uint16_t)> apply_fun;
-		apply_fun = [&](const Transform_32* local_pose, uint16_t bone_index) -> AffineMatrix_32
+		const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
+		for (uint16_t chain_bone_index : bone_chain)
 		{
-			if (bone_index == 0)
-				return matrix_from_transform(local_pose[0]);
-			const RigidBone& bone = skeleton.get_bone(bone_index);
-			AffineMatrix_32 parent_mtx = apply_fun(local_pose, bone.parent_index);
-			AffineMatrix_32 local_mtx = matrix_from_transform(local_pose[bone_index]);
-			return matrix_mul(local_mtx, parent_mtx);
-		};
+			if (chain_bone_index != 0)
+			{
+				raw_obj_mtx = matrix_mul(matrix_from_transform(raw_local_pose[chain_bone_index]), raw_obj_mtx);
+				lossy_obj_mtx = matrix_mul(matrix_from_transform(lossy_local_pose[chain_bone_index]), lossy_obj_mtx);
+			}
+		}
 
-		AffineMatrix_32 raw_obj_mtx = apply_fun(raw_local_pose, bone_index);
-		AffineMatrix_32 lossy_obj_mtx = apply_fun(lossy_local_pose, bone_index);
+		const RigidBone& target_bone = skeleton.get_bone(bone_index);
+		const float vtx_distance = float(target_bone.vertex_distance);
 
-		Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
-		Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
+		const Vector4_32 vtx0 = vector_set(vtx_distance, 0.0f, 0.0f);
+		const Vector4_32 vtx1 = vector_set(0.0f, vtx_distance, 0.0f);
 
-		Vector4_32 raw_vtx0 = matrix_mul_position(raw_obj_mtx, vtx0);
-		Vector4_32 raw_vtx1 = matrix_mul_position(raw_obj_mtx, vtx1);
-		Vector4_32 lossy_vtx0 = matrix_mul_position(lossy_obj_mtx, vtx0);
-		Vector4_32 lossy_vtx1 = matrix_mul_position(lossy_obj_mtx, vtx1);
+		const Vector4_32 raw_vtx0 = matrix_mul_position(raw_obj_mtx, vtx0);
+		const Vector4_32 raw_vtx1 = matrix_mul_position(raw_obj_mtx, vtx1);
+		const Vector4_32 lossy_vtx0 = matrix_mul_position(lossy_obj_mtx, vtx0);
+		const Vector4_32 lossy_vtx1 = matrix_mul_position(lossy_obj_mtx, vtx1);
 
-		float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
-		float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+		const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+		const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
 
 		return max(vtx0_error, vtx1_error);
 	}
