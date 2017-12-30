@@ -80,7 +80,7 @@ namespace acl
 		else
 		{
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-			if (is_pack_0_bit_rate(track.get_bit_rate()))
+			if (is_raw_bit_rate(track.get_bit_rate()))
 			{
 				const uint8_t* sample_ptr = track.get_raw_sample_ptr(0);
 				memcpy(out_range_data, sample_ptr, sizeof(uint16_t) * 3);
@@ -94,7 +94,7 @@ namespace acl
 				out_range_data += sizeof(uint8_t) * 3;
 			}
 #else
-			if (is_pack_0_bit_rate(track.get_bit_rate()))
+			if (is_raw_bit_rate(track.get_bit_rate()))
 			{
 				const uint8_t* sample_ptr = track.get_raw_sample_ptr(0);
 				memcpy(out_range_data, sample_ptr, sizeof(uint32_t) * 3);
@@ -163,7 +163,7 @@ namespace acl
 					else
 					{
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
-						if (is_pack_0_bit_rate(bone_stream.rotations.get_bit_rate()))
+						if (is_raw_bit_rate(bone_stream.rotations.get_bit_rate()))
 						{
 							const uint8_t* rotation = bone_stream.rotations.get_raw_sample_ptr(0);
 							memcpy(range_data, rotation, sizeof(uint16_t) * 3);
@@ -177,7 +177,7 @@ namespace acl
 							range_data += sizeof(uint8_t) * 3;
 						}
 #else
-						if (is_pack_0_bit_rate(bone_stream.rotations.get_bit_rate()))
+						if (is_raw_bit_rate(bone_stream.rotations.get_bit_rate()))
 						{
 							const uint8_t* rotation = bone_stream.rotations.get_raw_sample_ptr(0);
 							memcpy(range_data, rotation, sizeof(uint32_t) * 3);

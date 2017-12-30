@@ -224,7 +224,7 @@ namespace acl
 						uint8_t bit_rate = context.format_per_track_data[i][context.format_per_track_data_offset];
 						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
-						if (is_pack_0_bit_rate(bit_rate))
+						if (is_raw_bit_rate(bit_rate))
 						{
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 							rotations[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
@@ -415,7 +415,7 @@ namespace acl
 						uint8_t bit_rate = context.format_per_track_data[i][context.format_per_track_data_offset];
 						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
-						if (is_pack_0_bit_rate(bit_rate))
+						if (is_raw_bit_rate(bit_rate))
 						{
 #if ACL_PER_SEGMENT_RANGE_REDUCTION_COMPONENT_BIT_SIZE == 8
 							out_vectors[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);

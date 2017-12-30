@@ -112,7 +112,7 @@ namespace acl
 	}
 
 	// Track is constant, our constant sample is stored in the range information
-	constexpr bool is_pack_0_bit_rate(uint8_t bit_rate) { return bit_rate == 0; }
+	constexpr bool is_raw_bit_rate(uint8_t bit_rate) { return bit_rate == 0; }
 	// Pack 72 really isn't great, it barely improves the error of most clips with high error
 	// Disabled for now but code left in to test
 	constexpr bool is_pack_72_bit_rate(uint8_t bit_rate) { return false; }

@@ -102,12 +102,12 @@ namespace acl
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 
-			const uint32_t num_samples = is_pack_0_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
+			const uint32_t num_samples = is_raw_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const uint32_t sample_rate = raw_stream.get_sample_rate();
 			RotationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, RotationFormat8::QuatDropW_Variable, bit_rate);
 
-			if (is_pack_0_bit_rate(bit_rate))
+			if (is_raw_bit_rate(bit_rate))
 			{
 				ACL_ENSURE(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
 
@@ -142,7 +142,7 @@ namespace acl
 						pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
 				}
 			}
-			
+
 
 			out_quantized_stream = std::move(quantized_stream);
 		}
@@ -228,12 +228,12 @@ namespace acl
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
-			const uint32_t num_samples = is_pack_0_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
+			const uint32_t num_samples = is_raw_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const uint32_t sample_rate = raw_stream.get_sample_rate();
 			TranslationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
 
-			if (is_pack_0_bit_rate(bit_rate))
+			if (is_raw_bit_rate(bit_rate))
 			{
 				Vector4_32 translation = raw_stream.get_raw_sample<Vector4_32>(0);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
@@ -349,12 +349,12 @@ namespace acl
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
 			ACL_ENSURE(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
-			const uint32_t num_samples = is_pack_0_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
+			const uint32_t num_samples = is_raw_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const uint32_t sample_rate = raw_stream.get_sample_rate();
 			ScaleTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
 
-			if (is_pack_0_bit_rate(bit_rate))
+			if (is_raw_bit_rate(bit_rate))
 			{
 				Vector4_32 scale = raw_stream.get_raw_sample<Vector4_32>(0);
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
