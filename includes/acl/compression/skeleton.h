@@ -51,6 +51,8 @@ namespace acl
 
 			BoneChainIterator& operator++()
 			{
+				ACL_ENSURE(m_offset <= m_bone_index, "Cannot increment the iterator, it is no longer valid");
+
 				// Skip the current bone
 				m_offset++;
 
