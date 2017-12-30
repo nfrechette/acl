@@ -100,6 +100,7 @@ namespace acl
 			, m_format(format)
 			, m_bit_rate(bit_rate)
 		{}
+
 		TrackStream(const TrackStream&) = delete;
 		TrackStream(TrackStream&& other)
 			: m_allocator(other.m_allocator)

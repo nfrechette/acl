@@ -34,7 +34,7 @@ namespace acl
 	class String
 	{
 	public:
-		String() : m_allocator(nullptr) , m_chars(nullptr) {}
+		String() : m_allocator(nullptr), m_chars(nullptr) {}
 
 		String(Allocator& allocator, const char* str, size_t len)
 			: m_allocator(&allocator)
@@ -73,8 +73,7 @@ namespace acl
 			: m_allocator(other.m_allocator)
 			, m_chars(other.m_chars)
 		{
-			other.m_allocator = nullptr;
-			other.m_chars = nullptr;
+			new(&other) String();
 		}
 
 		String& operator=(String&& other)

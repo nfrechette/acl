@@ -59,13 +59,16 @@ namespace acl
 			, m_type(AnimationTrackType8::Rotation)
 		{}
 
-		AnimationTrack(AnimationTrack&& track)
-			: m_allocator(track.m_allocator)
-			, m_sample_data(track.m_sample_data)
-			, m_num_samples(track.m_num_samples)
-			, m_sample_rate(track.m_sample_rate)
-			, m_type(track.m_type)
-		{}
+		AnimationTrack(AnimationTrack&& other)
+			: m_allocator(other.m_allocator)
+			, m_sample_data(other.m_sample_data)
+			, m_num_samples(other.m_num_samples)
+			, m_sample_rate(other.m_sample_rate)
+			, m_type(other.m_type)
+		{
+			// Safe because our derived classes do not add any data and aren't virtual
+			new(&other) AnimationTrack();
+		}
 
 		AnimationTrack(Allocator& allocator, uint32_t num_samples, uint32_t sample_rate, AnimationTrackType8 type)
 			: m_allocator(&allocator)
@@ -132,8 +135,8 @@ namespace acl
 			std::fill(samples, samples + num_samples, quat_identity_64());
 		}
 
-		AnimationRotationTrack(AnimationRotationTrack&& track)
-			: AnimationTrack(std::forward<AnimationTrack>(track))
+		AnimationRotationTrack(AnimationRotationTrack&& other)
+			: AnimationTrack(std::forward<AnimationTrack>(other))
 		{}
 
 		AnimationRotationTrack& operator=(AnimationRotationTrack&& track)
@@ -201,8 +204,8 @@ namespace acl
 			std::fill(m_sample_data, m_sample_data + (num_samples * 3), 0.0);
 		}
 
-		AnimationTranslationTrack(AnimationTranslationTrack&& track)
-			: AnimationTrack(std::forward<AnimationTrack>(track))
+		AnimationTranslationTrack(AnimationTranslationTrack&& other)
+			: AnimationTrack(std::forward<AnimationTrack>(other))
 		{}
 
 		AnimationTranslationTrack& operator=(AnimationTranslationTrack&& track)
@@ -268,8 +271,8 @@ namespace acl
 			std::fill(m_sample_data, m_sample_data + (num_samples * 3), 0.0);
 		}
 
-		AnimationScaleTrack(AnimationScaleTrack&& track)
-			: AnimationTrack(std::forward<AnimationTrack>(track))
+		AnimationScaleTrack(AnimationScaleTrack&& other)
+			: AnimationTrack(std::forward<AnimationTrack>(other))
 		{}
 
 		AnimationScaleTrack& operator=(AnimationScaleTrack&& track)
