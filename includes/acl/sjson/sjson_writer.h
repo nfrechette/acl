@@ -39,7 +39,9 @@ namespace acl
 	class SJSONArrayWriter;
 	class SJSONObjectWriter;
 
-	constexpr const char* k_line_terminator = "\n";
+	// TODO: Make this an argument to the writer. For now we assume that SJSON generated files
+	// can be shared between various OS and having the most conservative line ending is safer.
+	constexpr const char* k_line_terminator = "\r\n";
 
 	class SJSONStreamWriter
 	{
