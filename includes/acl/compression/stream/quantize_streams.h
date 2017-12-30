@@ -44,6 +44,65 @@ namespace acl
 {
 	namespace impl
 	{
+		struct QuantizationContext
+		{
+			Allocator& allocator;
+			ClipContext& clip;
+			SegmentContext& segment;
+			BoneStreams* bone_streams;
+			uint16_t num_bones;
+			RotationFormat8 rotation_format;
+			VectorFormat8 translation_format;
+			VectorFormat8 scale_format;
+			const RigidSkeleton& skeleton;
+
+			uint32_t num_samples;
+			uint32_t segment_sample_start_index;
+			float sample_rate;
+			float error_threshold;
+			float clip_duration;
+			float segment_duration;
+			bool has_scale;
+
+			const BoneStreams* raw_bone_streams;
+
+			Transform_32* raw_local_pose;
+			Transform_32* lossy_local_pose;
+			BoneBitRate* bit_rate_per_bone;
+
+			QuantizationContext(Allocator& allocator_, ClipContext& clip_, SegmentContext& segment_, RotationFormat8 rotation_format_, VectorFormat8 translation_format_, VectorFormat8 scale_format_, const RigidSkeleton& skeleton_, const BoneStreams* raw_bone_streams_)
+				: allocator(allocator_)
+				, clip(clip_)
+				, segment(segment_)
+				, bone_streams(segment_.bone_streams)
+				, num_bones(segment_.num_bones)
+				, rotation_format(rotation_format_)
+				, translation_format(translation_format_)
+				, scale_format(scale_format_)
+				, skeleton(skeleton_)
+				, raw_bone_streams(raw_bone_streams_)
+			{
+				num_samples = segment_.num_samples;
+				segment_sample_start_index = segment_.clip_sample_offset;
+				sample_rate = float(segment.bone_streams[0].rotations.get_sample_rate());
+				error_threshold = clip_.error_threshold;
+				clip_duration = clip_.duration;
+				segment_duration = float(num_samples - 1) / sample_rate;
+				has_scale = segment_context_has_scale(segment_);
+
+				raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
+				lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
+				bit_rate_per_bone = allocate_type_array<BoneBitRate>(allocator, num_bones);
+			}
+
+			~QuantizationContext()
+			{
+				deallocate_type_array(allocator, raw_local_pose, num_bones);
+				deallocate_type_array(allocator, lossy_local_pose, num_bones);
+				deallocate_type_array(allocator, bit_rate_per_bone, num_bones);
+			}
+		};
+
 		inline void quantize_fixed_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
@@ -83,21 +142,21 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_rotation_stream(Allocator& allocator, SegmentContext& segment, uint16_t bone_index, RotationFormat8 rotation_format)
+		inline void quantize_fixed_rotation_stream(QuantizationContext& context, uint16_t bone_index, RotationFormat8 rotation_format)
 		{
-			ACL_ENSURE(bone_index < segment.num_bones, "Invalid bone index: %u", bone_index);
+			ACL_ENSURE(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			BoneStreams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_rotation_default)
 				return;
 
-			const bool are_rotations_normalized = segment.clip->are_rotations_normalized && !bone_stream.is_rotation_constant;
-			quantize_fixed_rotation_stream(allocator, bone_stream.rotations, rotation_format, are_rotations_normalized, bone_stream.rotations);
+			const bool are_rotations_normalized = context.clip.are_rotations_normalized && !bone_stream.is_rotation_constant;
+			quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, rotation_format, are_rotations_normalized, bone_stream.rotations);
 		}
 
-		inline void quantize_variable_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, const TrackStreamRange& raw_segment_range, uint8_t bit_rate, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
+		inline void quantize_variable_rotation_stream(QuantizationContext& context, const RotationTrackStream& raw_stream, const TrackStreamRange& raw_segment_range, uint8_t bit_rate, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
@@ -105,7 +164,7 @@ namespace acl
 			const uint32_t num_samples = is_raw_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const uint32_t sample_rate = raw_stream.get_sample_rate();
-			RotationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, RotationFormat8::QuatDropW_Variable, bit_rate);
+			RotationTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, RotationFormat8::QuatDropW_Variable, bit_rate);
 
 			if (is_raw_bit_rate(bit_rate))
 			{
@@ -143,11 +202,11 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_variable_rotation_stream(Allocator& allocator, SegmentContext& segment, uint16_t bone_index, uint8_t bit_rate)
+		inline void quantize_variable_rotation_stream(QuantizationContext& context, uint16_t bone_index, uint8_t bit_rate)
 		{
-			ACL_ENSURE(bone_index < segment.num_bones, "Invalid bone index: %u", bone_index);
+			ACL_ENSURE(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			BoneStreams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_rotation_default)
@@ -155,14 +214,14 @@ namespace acl
 
 			const RotationFormat8 highest_bit_rate = get_highest_variant_precision(RotationVariant8::QuatDropW);
 			const TrackStreamRange invalid_range;
-			const TrackStreamRange& bone_range = segment.are_rotations_normalized ? segment.ranges[bone_index].rotation : invalid_range;
-			const bool are_rotations_normalized = segment.clip->are_rotations_normalized && !bone_stream.is_rotation_constant;
+			const TrackStreamRange& bone_range = context.segment.are_rotations_normalized ? context.segment.ranges[bone_index].rotation : invalid_range;
+			const bool are_rotations_normalized = context.clip.are_rotations_normalized && !bone_stream.is_rotation_constant;
 
 			// If our format is variable, we keep them fixed at the highest bit rate in the variant
 			if (bone_stream.is_rotation_constant)
-				quantize_fixed_rotation_stream(allocator, bone_stream.rotations, highest_bit_rate, are_rotations_normalized, bone_stream.rotations);
+				quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, highest_bit_rate, are_rotations_normalized, bone_stream.rotations);
 			else
-				quantize_variable_rotation_stream(allocator, bone_stream.rotations, bone_range, bit_rate, are_rotations_normalized, bone_stream.rotations);
+				quantize_variable_rotation_stream(context, bone_stream.rotations, bone_range, bit_rate, are_rotations_normalized, bone_stream.rotations);
 		}
 
 		inline void quantize_fixed_translation_stream(Allocator& allocator, const TranslationTrackStream& raw_stream, VectorFormat8 translation_format, TranslationTrackStream& out_quantized_stream)
@@ -202,11 +261,11 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_translation_stream(Allocator& allocator, SegmentContext& segment, uint16_t bone_index, VectorFormat8 translation_format)
+		inline void quantize_fixed_translation_stream(QuantizationContext& context, uint16_t bone_index, VectorFormat8 translation_format)
 		{
-			ACL_ENSURE(bone_index < segment.num_bones, "Invalid bone index: %u", bone_index);
+			ACL_ENSURE(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			BoneStreams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_translation_default)
@@ -215,10 +274,10 @@ namespace acl
 			// Constant translation tracks store the remaining sample with full precision
 			const VectorFormat8 format = bone_stream.is_translation_constant ? VectorFormat8::Vector3_96 : translation_format;
 
-			quantize_fixed_translation_stream(allocator, bone_stream.translations, format, bone_stream.translations);
+			quantize_fixed_translation_stream(context.allocator, bone_stream.translations, format, bone_stream.translations);
 		}
 
-		inline void quantize_variable_translation_stream(Allocator& allocator, const TranslationTrackStream& raw_stream, const TrackStreamRange& raw_segment_range, uint8_t bit_rate, TranslationTrackStream& out_quantized_stream)
+		inline void quantize_variable_translation_stream(QuantizationContext& context, const TranslationTrackStream& raw_stream, const TrackStreamRange& raw_segment_range, uint8_t bit_rate, TranslationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
@@ -227,7 +286,7 @@ namespace acl
 			const uint32_t num_samples = is_raw_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const uint32_t sample_rate = raw_stream.get_sample_rate();
-			TranslationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
+			TranslationTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
 
 			if (is_raw_bit_rate(bit_rate))
 			{
@@ -262,24 +321,24 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_variable_translation_stream(Allocator& allocator, SegmentContext& segment, uint16_t bone_index, uint8_t bit_rate)
+		inline void quantize_variable_translation_stream(QuantizationContext& context, uint16_t bone_index, uint8_t bit_rate)
 		{
-			ACL_ENSURE(bone_index < segment.num_bones, "Invalid bone index: %u", bone_index);
+			ACL_ENSURE(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			BoneStreams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_translation_default)
 				return;
 
 			const TrackStreamRange invalid_range;
-			const TrackStreamRange& bone_range = segment.are_translations_normalized ? segment.ranges[bone_index].translation : invalid_range;
+			const TrackStreamRange& bone_range = context.segment.are_translations_normalized ? context.segment.ranges[bone_index].translation : invalid_range;
 
 			// Constant translation tracks store the remaining sample with full precision
 			if (bone_stream.is_translation_constant)
-				quantize_fixed_translation_stream(allocator, bone_stream.translations, VectorFormat8::Vector3_96, bone_stream.translations);
+				quantize_fixed_translation_stream(context.allocator, bone_stream.translations, VectorFormat8::Vector3_96, bone_stream.translations);
 			else
-				quantize_variable_translation_stream(allocator, bone_stream.translations, bone_range, bit_rate, bone_stream.translations);
+				quantize_variable_translation_stream(context, bone_stream.translations, bone_range, bit_rate, bone_stream.translations);
 		}
 
 		inline void quantize_fixed_scale_stream(Allocator& allocator, const ScaleTrackStream& raw_stream, VectorFormat8 scale_format, ScaleTrackStream& out_quantized_stream)
@@ -319,11 +378,11 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_scale_stream(Allocator& allocator, SegmentContext& segment, uint16_t bone_index, VectorFormat8 scale_format)
+		inline void quantize_fixed_scale_stream(QuantizationContext& context, uint16_t bone_index, VectorFormat8 scale_format)
 		{
-			ACL_ENSURE(bone_index < segment.num_bones, "Invalid bone index: %u", bone_index);
+			ACL_ENSURE(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			BoneStreams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_scale_default)
@@ -332,10 +391,10 @@ namespace acl
 			// Constant scale tracks store the remaining sample with full precision
 			const VectorFormat8 format = bone_stream.is_scale_constant ? VectorFormat8::Vector3_96 : scale_format;
 
-			quantize_fixed_scale_stream(allocator, bone_stream.scales, format, bone_stream.scales);
+			quantize_fixed_scale_stream(context.allocator, bone_stream.scales, format, bone_stream.scales);
 		}
 
-		inline void quantize_variable_scale_stream(Allocator& allocator, const ScaleTrackStream& raw_stream, const TrackStreamRange& raw_segment_range, uint8_t bit_rate, ScaleTrackStream& out_quantized_stream)
+		inline void quantize_variable_scale_stream(QuantizationContext& context, const ScaleTrackStream& raw_stream, const TrackStreamRange& raw_segment_range, uint8_t bit_rate, ScaleTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
@@ -344,7 +403,7 @@ namespace acl
 			const uint32_t num_samples = is_raw_bit_rate(bit_rate) ? 1 : raw_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const uint32_t sample_rate = raw_stream.get_sample_rate();
-			ScaleTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
+			ScaleTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
 
 			if (is_raw_bit_rate(bit_rate))
 			{
@@ -379,80 +438,25 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_variable_scale_stream(Allocator& allocator, SegmentContext& segment, uint16_t bone_index, uint8_t bit_rate)
+		inline void quantize_variable_scale_stream(QuantizationContext& context, uint16_t bone_index, uint8_t bit_rate)
 		{
-			ACL_ENSURE(bone_index < segment.num_bones, "Invalid bone index: %u", bone_index);
+			ACL_ENSURE(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			BoneStreams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_scale_default)
 				return;
 
 			const TrackStreamRange invalid_range;
-			const TrackStreamRange& bone_range = segment.are_scales_normalized ? segment.ranges[bone_index].scale : invalid_range;
+			const TrackStreamRange& bone_range = context.segment.are_scales_normalized ? context.segment.ranges[bone_index].scale : invalid_range;
 
 			// Constant scale tracks store the remaining sample with full precision
 			if (bone_stream.is_scale_constant)
-				quantize_fixed_scale_stream(allocator, bone_stream.scales, VectorFormat8::Vector3_96, bone_stream.scales);
+				quantize_fixed_scale_stream(context.allocator, bone_stream.scales, VectorFormat8::Vector3_96, bone_stream.scales);
 			else
-				quantize_variable_scale_stream(allocator, bone_stream.scales, bone_range, bit_rate, bone_stream.scales);
+				quantize_variable_scale_stream(context, bone_stream.scales, bone_range, bit_rate, bone_stream.scales);
 		}
-
-		struct QuantizationContext
-		{
-			Allocator& allocator;
-			BoneStreams* bone_streams;
-			uint16_t num_bones;
-			RotationFormat8 rotation_format;
-			VectorFormat8 translation_format;
-			VectorFormat8 scale_format;
-			const RigidSkeleton& skeleton;
-
-			uint32_t num_samples;
-			uint32_t segment_sample_start_index;
-			float sample_rate;
-			float error_threshold;
-			float clip_duration;
-			float segment_duration;
-			bool has_scale;
-
-			const BoneStreams* raw_bone_streams;
-
-			Transform_32* raw_local_pose;
-			Transform_32* lossy_local_pose;
-			BoneBitRate* bit_rate_per_bone;
-
-			QuantizationContext(Allocator& allocator_, SegmentContext& segment, RotationFormat8 rotation_format_, VectorFormat8 translation_format_, VectorFormat8 scale_format_, const AnimationClip& clip_, const RigidSkeleton& skeleton_, const BoneStreams* raw_bone_streams_)
-				: allocator(allocator_)
-				, bone_streams(segment.bone_streams)
-				, num_bones(segment.num_bones)
-				, rotation_format(rotation_format_)
-				, translation_format(translation_format_)
-				, scale_format(scale_format_)
-				, skeleton(skeleton_)
-				, raw_bone_streams(raw_bone_streams_)
-			{
-				num_samples = segment.num_samples;
-				segment_sample_start_index = segment.clip_sample_offset;
-				sample_rate = float(segment.bone_streams[0].rotations.get_sample_rate());
-				error_threshold = clip_.get_error_threshold();
-				clip_duration = clip_.get_duration();
-				segment_duration = float(num_samples - 1) / sample_rate;
-				has_scale = segment_context_has_scale(segment);
-
-				raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
-				lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
-				bit_rate_per_bone = allocate_type_array<BoneBitRate>(allocator, num_bones);
-			}
-
-			~QuantizationContext()
-			{
-				deallocate_type_array(allocator, raw_local_pose, num_bones);
-				deallocate_type_array(allocator, lossy_local_pose, num_bones);
-				deallocate_type_array(allocator, bit_rate_per_bone, num_bones);
-			}
-		};
 
 		inline float calculate_max_error_at_bit_rate(QuantizationContext& context, uint16_t target_bone_index, bool use_local_error, bool scan_whole_clip = false)
 		{
@@ -796,42 +800,39 @@ namespace acl
 			}
 		}
 
-		inline void quantize_all_streams(Allocator& allocator, SegmentContext& segment, const BoneBitRate* bit_rate_per_bone, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format)
+		inline void quantize_all_streams(QuantizationContext& context)
 		{
-			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
-			const bool is_translation_variable = is_vector_format_variable(translation_format);
-			const bool is_scale_variable = is_vector_format_variable(scale_format);
-			const bool has_scale = segment_context_has_scale(segment);
+			const bool is_rotation_variable = is_rotation_format_variable(context.rotation_format);
+			const bool is_translation_variable = is_vector_format_variable(context.translation_format);
+			const bool is_scale_variable = is_vector_format_variable(context.scale_format);
 
-			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
-				const BoneBitRate& bone_bit_rate = bit_rate_per_bone[bone_index];
+				const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[bone_index];
 
 				if (is_rotation_variable)
-					quantize_variable_rotation_stream(allocator, segment, bone_index, bone_bit_rate.rotation);
+					quantize_variable_rotation_stream(context, bone_index, bone_bit_rate.rotation);
 				else
-					quantize_fixed_rotation_stream(allocator, segment, bone_index, rotation_format);
+					quantize_fixed_rotation_stream(context, bone_index, context.rotation_format);
 
 				if (is_translation_variable)
-					quantize_variable_translation_stream(allocator, segment, bone_index, bone_bit_rate.translation);
+					quantize_variable_translation_stream(context, bone_index, bone_bit_rate.translation);
 				else
-					quantize_fixed_translation_stream(allocator, segment, bone_index, translation_format);
+					quantize_fixed_translation_stream(context, bone_index, context.translation_format);
 
-				if (has_scale && is_scale_variable)
+				if (context.has_scale)
 				{
 					if (is_scale_variable)
-						quantize_variable_scale_stream(allocator, segment, bone_index, bone_bit_rate.scale);
+						quantize_variable_scale_stream(context, bone_index, bone_bit_rate.scale);
 					else
-						quantize_fixed_scale_stream(allocator, segment, bone_index, scale_format);
+						quantize_fixed_scale_stream(context, bone_index, context.scale_format);
 				}
 			}
 		}
 
-		inline void quantize_variable_streams(Allocator& allocator, SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, const AnimationClip& clip, const RigidSkeleton& skeleton, const BoneStreams* raw_bone_streams)
+		inline void quantize_variable_streams(QuantizationContext& context)
 		{
-			QuantizationContext context(allocator, segment, rotation_format, translation_format, scale_format, clip, skeleton, raw_bone_streams);
-
-			initialize_bone_bit_rates(segment, rotation_format, translation_format, scale_format, context.bit_rate_per_bone);
+			initialize_bone_bit_rates(context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
 			// First iterate over all bones and find the optimal bit rate for each track using the local space error.
 			// We use the local space error to prime the algorithm. If each parent bone has infinite precision,
@@ -880,14 +881,14 @@ namespace acl
 			//		[bone 0] + 0 [bone 1] + 1 [bone 2] + 2 (9)
 			//		[bone 0] + 0 [bone 1] + 0 [bone 2] + 3 (9)
 
-			uint8_t* bone_chain_permutation = allocate_type_array<uint8_t>(allocator, segment.num_bones);
-			uint16_t* chain_bone_indices = allocate_type_array<uint16_t>(allocator, segment.num_bones);
-			BoneBitRate* permutation_bit_rates = allocate_type_array<BoneBitRate>(allocator, segment.num_bones);
-			BoneBitRate* best_permutation_bit_rates = allocate_type_array<BoneBitRate>(allocator, segment.num_bones);
-			BoneBitRate* best_bit_rates = allocate_type_array<BoneBitRate>(allocator, segment.num_bones);
-			memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * segment.num_bones);
+			uint8_t* bone_chain_permutation = allocate_type_array<uint8_t>(context.allocator, context.num_bones);
+			uint16_t* chain_bone_indices = allocate_type_array<uint16_t>(context.allocator, context.num_bones);
+			BoneBitRate* permutation_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
+			BoneBitRate* best_permutation_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
+			BoneBitRate* best_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
+			memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * context.num_bones);
 
-			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
 				float error = calculate_max_error_at_bit_rate(context, bone_index, false);
 				if (error < context.error_threshold)
@@ -902,7 +903,7 @@ namespace acl
 						continue;
 				}
 
-				const uint16_t num_bones_in_chain = calculate_bone_chain_indices(skeleton, bone_index, chain_bone_indices);
+				const uint16_t num_bones_in_chain = calculate_bone_chain_indices(context.skeleton, bone_index, chain_bone_indices);
 
 				const float initial_error = error;
 
@@ -915,7 +916,7 @@ namespace acl
 					float best_error = error;
 
 					// The first permutation increases the bit rate of a single track/bone
-					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
+					std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 					bone_chain_permutation[num_bones_in_chain - 1] = 1;
 					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
@@ -928,7 +929,7 @@ namespace acl
 					}
 
 					// The second permutation increases the bit rate of 2 track/bones
-					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
+					std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 					bone_chain_permutation[num_bones_in_chain - 1] = 2;
 					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
@@ -942,7 +943,7 @@ namespace acl
 
 					if (num_bones_in_chain > 1)
 					{
-						std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
+						std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 						bone_chain_permutation[num_bones_in_chain - 2] = 1;
 						bone_chain_permutation[num_bones_in_chain - 1] = 1;
 						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
@@ -957,7 +958,7 @@ namespace acl
 					}
 
 					// The third permutation increases the bit rate of 3 track/bones
-					std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
+					std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 					bone_chain_permutation[num_bones_in_chain - 1] = 3;
 					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
@@ -971,7 +972,7 @@ namespace acl
 
 					if (num_bones_in_chain > 1)
 					{
-						std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
+						std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 						bone_chain_permutation[num_bones_in_chain - 2] = 2;
 						bone_chain_permutation[num_bones_in_chain - 1] = 1;
 						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
@@ -986,7 +987,7 @@ namespace acl
 
 						if (num_bones_in_chain > 2)
 						{
-							std::fill(bone_chain_permutation, bone_chain_permutation + segment.num_bones, uint8_t(0));
+							std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 							bone_chain_permutation[num_bones_in_chain - 3] = 1;
 							bone_chain_permutation[num_bones_in_chain - 2] = 1;
 							bone_chain_permutation[num_bones_in_chain - 1] = 1;
@@ -1137,17 +1138,17 @@ namespace acl
 #endif
 
 			// Quantize our streams now that we found the optimal bit rates
-			quantize_all_streams(allocator, segment, context.bit_rate_per_bone, rotation_format, translation_format, scale_format);
+			quantize_all_streams(context);
 
-			deallocate_type_array(allocator, bone_chain_permutation, segment.num_bones);
-			deallocate_type_array(allocator, chain_bone_indices, segment.num_bones);
-			deallocate_type_array(allocator, permutation_bit_rates, segment.num_bones);
-			deallocate_type_array(allocator, best_permutation_bit_rates, segment.num_bones);
-			deallocate_type_array(allocator, best_bit_rates, segment.num_bones);
+			deallocate_type_array(context.allocator, bone_chain_permutation, context.num_bones);
+			deallocate_type_array(context.allocator, chain_bone_indices, context.num_bones);
+			deallocate_type_array(context.allocator, permutation_bit_rates, context.num_bones);
+			deallocate_type_array(context.allocator, best_permutation_bit_rates, context.num_bones);
+			deallocate_type_array(context.allocator, best_bit_rates, context.num_bones);
 		}
 	}
 
-	inline void quantize_streams(Allocator& allocator, ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, const AnimationClip& clip, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context)
+	inline void quantize_streams(Allocator& allocator, ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context)
 	{
 		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -1162,19 +1163,21 @@ namespace acl
 			printf("Quantizing segment %u...\n", segment.segment_index);
 #endif
 
+			impl::QuantizationContext context(allocator, clip_context, segment, rotation_format, translation_format, scale_format, skeleton, raw_bone_streams);
+
 			if (is_any_variable)
 			{
-				impl::quantize_variable_streams(allocator, segment, rotation_format, translation_format, scale_format, clip, skeleton, raw_bone_streams);
+				impl::quantize_variable_streams(context);
 			}
 			else
 			{
 				for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				{
-					impl::quantize_fixed_rotation_stream(allocator, segment, bone_index, rotation_format);
-					impl::quantize_fixed_translation_stream(allocator, segment, bone_index, translation_format);
+					impl::quantize_fixed_rotation_stream(context, bone_index, rotation_format);
+					impl::quantize_fixed_translation_stream(context, bone_index, translation_format);
 
 					if (clip_context.has_scale)
-						impl::quantize_fixed_scale_stream(allocator, segment, bone_index, scale_format);
+						impl::quantize_fixed_scale_stream(context, bone_index, scale_format);
 				}
 			}
 		}

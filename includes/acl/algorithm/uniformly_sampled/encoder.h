@@ -135,7 +135,7 @@ namespace acl
 				}
 			}
 
-			quantize_streams(allocator, clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, clip, skeleton, raw_clip_context);
+			quantize_streams(allocator, clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, skeleton, raw_clip_context);
 
 			const uint32_t constant_data_size = get_constant_data_size(clip_context);
 
