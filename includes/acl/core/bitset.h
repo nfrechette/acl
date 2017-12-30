@@ -35,6 +35,16 @@ namespace acl
 			bitset[offset] &= ~mask;
 	}
 
+	inline void bitset_set_range(uint32_t* bitset, uint32_t size, uint32_t start_bit_offset, uint32_t num_bits, bool value)
+	{
+		ACL_ENSURE(start_bit_offset < get_bitset_num_bits(size), "Invalid start bit offset: %u >= %u", start_bit_offset, get_bitset_num_bits(size));
+		ACL_ENSURE(start_bit_offset + num_bits < get_bitset_num_bits(size), "Invalid num bits: %u >= %u", start_bit_offset + num_bits, get_bitset_num_bits(size));
+
+		const uint32_t end_bit_offset = start_bit_offset + num_bits;
+		for (uint32_t offset = start_bit_offset; offset < end_bit_offset; ++offset)
+			bitset_set(bitset, size, offset, value);
+	}
+
 	inline bool bitset_test(const uint32_t* bitset, uint32_t size, uint32_t bit_offset)
 	{
 		ACL_ENSURE(bit_offset < get_bitset_num_bits(size), "Invalid bit offset: %u >= %u", bit_offset, get_bitset_num_bits(size));

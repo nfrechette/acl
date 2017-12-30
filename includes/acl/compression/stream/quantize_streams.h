@@ -764,18 +764,11 @@ namespace acl
 
 		inline uint16_t calculate_bone_chain_indices(const RigidSkeleton& skeleton, uint16_t bone_index, uint16_t* out_chain_bone_indices)
 		{
-			uint16_t current_bone_index = bone_index;
+			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
+
 			uint16_t num_bones_in_chain = 0;
-			while (current_bone_index != INVALID_BONE_INDEX)
-			{
-				out_chain_bone_indices[num_bones_in_chain++] = current_bone_index;
-
-				const RigidBone& bone = skeleton.get_bone(current_bone_index);
-				current_bone_index = bone.parent_index;
-			}
-
-			// Root first
-			std::reverse(out_chain_bone_indices, out_chain_bone_indices + num_bones_in_chain);
+			for (uint16_t chain_bone_index : bone_chain)
+				out_chain_bone_indices[num_bones_in_chain++] = chain_bone_index;
 
 			return num_bones_in_chain;
 		}
