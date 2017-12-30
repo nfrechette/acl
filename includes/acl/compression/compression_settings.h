@@ -74,7 +74,10 @@ namespace acl
 
 		uint32_t hash() const
 		{
-			return hash_combine(hash_combine(hash_combine(hash_combine(hash32(rotation_format), hash32(translation_format)), hash32(scale_format)), hash32(range_reduction)), segmenting.hash());
+			uint32_t hash_value = hash_combine(hash_combine(hash_combine(hash32(rotation_format), hash32(translation_format)), hash32(scale_format)), hash32(range_reduction));
+			if (segmenting.enabled)
+				hash_value = hash_combine(hash_value, segmenting.hash());
+			return hash_value;
 		}
 	};
 }
