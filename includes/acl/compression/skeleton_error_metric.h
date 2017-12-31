@@ -199,8 +199,8 @@ namespace acl
 	struct BoneError
 	{
 		uint16_t index;
-		double error;
-		double sample_time;
+		float error;
+		float sample_time;
 	};
 
 	inline BoneError calculate_compressed_clip_error(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, bool has_scale,

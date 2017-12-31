@@ -32,30 +32,24 @@ namespace acl
 	enum class StatLogging
 	{
 		None						= 0x0000,
-		Summary						= 0x0001,
-		Detailed					= 0x0002,
-		Exhaustive					= 0x0004,
-		SummaryDecompression		= 0x0010,
-		ExhaustiveDecompression		= 0x0020,
+		MaxError					= 0x0001,
+		Summary						= 0x0002 | MaxError,
+		Detailed					= 0x0004 | Summary,
+		Exhaustive					= 0x0010 | Detailed,
+		SummaryDecompression		= 0x0020,
+		ExhaustiveDecompression		= 0x0040,
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(StatLogging)
 
-	class OutputStats
+	struct OutputStats
 	{
-	public:
-		OutputStats() : m_logging(StatLogging::None), m_writer(nullptr) {}
-		OutputStats(StatLogging logging_, SJSONObjectWriter* writer_) : m_logging(logging_), m_writer(writer_) {}
+		OutputStats() : logging(StatLogging::None), writer(nullptr), max_error(0.0f) {}
+		OutputStats(StatLogging logging_, SJSONObjectWriter* writer_) : logging(logging_), writer(writer_), max_error(0.0f) {}
 
-		StatLogging get_logging() const { return m_logging; }
-		SJSONObjectWriter& get_writer()
-		{
-			ACL_ENSURE(m_writer != nullptr, "Cannot query NULL writer");
-			return *m_writer;
-		}
+		StatLogging			logging;
+		SJSONObjectWriter*	writer;
 
-	private:
-		StatLogging			m_logging;
-		SJSONObjectWriter*	m_writer;
+		float				max_error;
 	};
 }

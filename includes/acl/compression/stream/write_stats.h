@@ -178,7 +178,7 @@ namespace acl
 							decompression_time = timer.get_elapsed_seconds();
 					}
 
-					if (are_any_enum_flags_set(stats.get_logging(), StatLogging::ExhaustiveDecompression))
+					if (are_any_enum_flags_set(stats.logging, StatLogging::ExhaustiveDecompression))
 						writer.push_value(decompression_time);
 
 					if (sample_index == initial_sample_index || decompression_time > clip_max)
@@ -233,8 +233,12 @@ namespace acl
 
 		// Use the compressed clip to make sure the decoder works properly
 		BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, clip_context.has_scale, allocate_context, decompress_pose, deallocate_context);
+		stats.max_error = error.error;
 
-		SJSONObjectWriter& writer = stats.get_writer();
+		if (stats.logging == StatLogging::MaxError)
+			return;		// We don't need anything else
+
+		SJSONObjectWriter& writer = *stats.writer;
 		writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);
 		writer["algorithm_uid"] = settings.hash();
 		writer["clip_name"] = clip.get_name().c_str();
@@ -254,7 +258,7 @@ namespace acl
 		writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
 		writer["has_scale"] = clip_context.has_scale;
 
-		if (are_any_enum_flags_set(stats.get_logging(), StatLogging::Detailed | StatLogging::Exhaustive))
+		if (are_any_enum_flags_set(stats.logging, StatLogging::Detailed | StatLogging::Exhaustive))
 		{
 			uint32_t num_default_rotation_tracks = 0;
 			uint32_t num_default_translation_tracks = 0;
@@ -330,12 +334,12 @@ namespace acl
 				{
 					write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, writer);
 
-					if (are_any_enum_flags_set(stats.get_logging(), StatLogging::Detailed))
+					if (are_any_enum_flags_set(stats.logging, StatLogging::Detailed))
 					{
 						write_detailed_segment_stats(segment, writer);
 					}
 
-					if (are_any_enum_flags_set(stats.get_logging(), StatLogging::Exhaustive))
+					if (are_any_enum_flags_set(stats.logging, StatLogging::Exhaustive))
 					{
 						write_exhaustive_segment_stats(allocator, segment, raw_clip_context, skeleton, writer);
 					}
@@ -343,7 +347,7 @@ namespace acl
 			}
 		};
 
-		if (are_any_enum_flags_set(stats.get_logging(), StatLogging::SummaryDecompression))
+		if (are_any_enum_flags_set(stats.logging, StatLogging::SummaryDecompression))
 			write_decompression_stats(allocator, clip, stats, writer, allocate_context, decompress_pose, deallocate_context);
 	}
 }

@@ -33,7 +33,7 @@
 
 namespace acl
 {
-	class OutputStats;
+	struct OutputStats;
 
 	// This interface serves to make unit testing and manipulating algorithms easier
 	class IAlgorithm

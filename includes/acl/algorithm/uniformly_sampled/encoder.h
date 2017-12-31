@@ -218,7 +218,7 @@ namespace acl
 
 			compression_time.stop();
 
-			if (stats.get_logging() != StatLogging::None)
+			if (stats.logging != StatLogging::None)
 			{
 				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, stats,
 					[&](Allocator& allocator)
