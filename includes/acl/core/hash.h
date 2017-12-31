@@ -74,6 +74,8 @@ namespace acl
 	template<typename ElementType>
 	inline uint32_t hash32(const ElementType& element) { return hash32(&element, sizeof(ElementType)); }
 
+	inline uint32_t hash32(const char* str) { return hash32(str, std::strlen(str)); }
+
 	inline uint64_t hash64(const void* buffer, size_t buffer_size)
 	{
 		fnv1a_64 hashfn = fnv1a_64();
@@ -83,6 +85,8 @@ namespace acl
 
 	template<typename ElementType>
 	inline uint64_t hash64(const ElementType& element) { return hash64(&element, sizeof(ElementType)); }
+
+	inline uint64_t hash64(const char* str) { return hash64(str, std::strlen(str)); }
 
 	inline uint32_t hash_combine(uint32_t hash_a, uint32_t hash_b) { return (hash_a ^ hash_b) * 16777619u; }
 	inline uint64_t hash_combine(uint64_t hash_a, uint64_t hash_b) { return (hash_a ^ hash_b) * 1099511628211ull; }
