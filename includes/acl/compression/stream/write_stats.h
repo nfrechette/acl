@@ -238,6 +238,9 @@ namespace acl
 		if (stats.logging == StatLogging::MaxError)
 			return;		// We don't need anything else
 
+		if (ACL_TRY_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer"))
+			return;
+
 		SJSONObjectWriter& writer = *stats.writer;
 		writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);
 		writer["algorithm_uid"] = settings.hash();
@@ -258,7 +261,7 @@ namespace acl
 		writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
 		writer["has_scale"] = clip_context.has_scale;
 
-		if (are_any_enum_flags_set(stats.logging, StatLogging::Detailed | StatLogging::Exhaustive))
+		if (are_all_enum_flags_set(stats.logging, StatLogging::Detailed) || are_all_enum_flags_set(stats.logging, StatLogging::Exhaustive))
 		{
 			uint32_t num_default_rotation_tracks = 0;
 			uint32_t num_default_translation_tracks = 0;
@@ -334,12 +337,12 @@ namespace acl
 				{
 					write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, writer);
 
-					if (are_any_enum_flags_set(stats.logging, StatLogging::Detailed))
+					if (are_all_enum_flags_set(stats.logging, StatLogging::Detailed))
 					{
 						write_detailed_segment_stats(segment, writer);
 					}
 
-					if (are_any_enum_flags_set(stats.logging, StatLogging::Exhaustive))
+					if (are_all_enum_flags_set(stats.logging, StatLogging::Exhaustive))
 					{
 						write_exhaustive_segment_stats(allocator, segment, raw_clip_context, skeleton, writer);
 					}

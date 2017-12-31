@@ -35,9 +35,9 @@ namespace acl
 		MaxError					= 0x0001,
 		Summary						= 0x0002 | MaxError,
 		Detailed					= 0x0004 | Summary,
-		Exhaustive					= 0x0010 | Detailed,
-		SummaryDecompression		= 0x0020,
-		ExhaustiveDecompression		= 0x0040,
+		Exhaustive					= 0x0008 | Detailed,
+		SummaryDecompression		= 0x0010,
+		ExhaustiveDecompression		= 0x0020,
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(StatLogging)
