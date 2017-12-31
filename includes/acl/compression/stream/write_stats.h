@@ -47,7 +47,7 @@ namespace acl
 		segment_size += segment.animated_data_size;						// Animated track data
 
 		writer["segment_size"] = segment_size;
-		writer["animated_frame_size"] = float(segment.animated_data_size) / float(segment.num_samples);
+		writer["animated_frame_size"] = double(segment.animated_data_size) / double(segment.num_samples);
 	}
 
 	inline void write_detailed_segment_stats(const SegmentContext& segment, SJSONObjectWriter& writer)
@@ -74,6 +74,15 @@ namespace acl
 			for (uint8_t bit_rate = 0; bit_rate < NUM_BIT_RATES; ++bit_rate)
 				writer.push_value(bit_rate_counts[bit_rate]);
 		};
+
+		// We assume that we always interpolate between 2 poses
+		const uint32_t animated_pose_byte_size = align_to(segment.animated_pose_bit_size * 2, 8) / 8;
+		constexpr uint32_t k_cache_line_byte_size = 64;
+		const uint32_t num_clip_header_cache_lines = align_to(segment.clip->total_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
+		const uint32_t num_segment_header_cache_lines = align_to(segment.total_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
+		const uint32_t num_animated_pose_cache_lines = align_to(animated_pose_byte_size, k_cache_line_byte_size) / k_cache_line_byte_size;
+		writer["decomp_touched_bytes"] = segment.clip->total_header_size + segment.total_header_size + animated_pose_byte_size;
+		writer["decomp_touched_cache_lines"] = num_clip_header_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 	}
 
 	inline void write_exhaustive_segment_stats(Allocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const RigidSkeleton& skeleton, SJSONObjectWriter& writer)

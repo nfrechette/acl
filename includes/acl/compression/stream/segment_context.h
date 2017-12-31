@@ -46,15 +46,17 @@ namespace acl
 		uint16_t num_bones;
 
 		uint32_t clip_sample_offset;
-
-		uint32_t animated_pose_bit_size;
-		uint32_t animated_data_size;
-		uint32_t range_data_size;
 		uint32_t segment_index;
 
 		bool are_rotations_normalized;
 		bool are_translations_normalized;
 		bool are_scales_normalized;
+
+		// Stat tracking
+		uint32_t animated_pose_bit_size;
+		uint32_t animated_data_size;
+		uint32_t range_data_size;
+		uint32_t total_header_size;
 
 		//////////////////////////////////////////////////////////////////////////
 

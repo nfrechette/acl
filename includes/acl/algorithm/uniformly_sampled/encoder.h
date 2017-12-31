@@ -164,16 +164,26 @@ namespace acl
 			buffer_size += constant_data_size;									// Constant track data
 			buffer_size = align_to(buffer_size, 4);								// Align range data
 			buffer_size += clip_range_data_size;								// Range data
+
+			clip_context.total_header_size = buffer_size;
+
 			// Per segment data
-			for (const SegmentContext& segment : clip_context.segment_iterator())
+			for (SegmentContext& segment : clip_context.segment_iterator())
 			{
+				const uint32_t header_start = buffer_size;
+
 				buffer_size += format_per_track_data_size;						// Format per track data
 				// TODO: Alignment only necessary with 16bit per component
 				buffer_size = align_to(buffer_size, 2);							// Align range data
 				buffer_size += segment.range_data_size;							// Range data
+
+				const uint32_t header_end = buffer_size;
+
 				// TODO: Variable bit rate doesn't need alignment
 				buffer_size = align_to(buffer_size, 4);							// Align animated data
 				buffer_size += segment.animated_data_size;						// Animated track data
+
+				segment.total_header_size = header_end - header_start;
 			}
 
 			uint8_t* buffer = allocate_type_array_aligned<uint8_t>(allocator, buffer_size, 16);

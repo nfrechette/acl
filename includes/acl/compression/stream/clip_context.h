@@ -51,6 +51,9 @@ namespace acl
 		bool are_scales_normalized;
 		bool has_scale;
 
+		// Stat tracking
+		uint32_t total_header_size;
+
 		//////////////////////////////////////////////////////////////////////////
 
 		struct SegmentIterator
@@ -133,6 +136,7 @@ namespace acl
 		}
 
 		out_clip_context.has_scale = has_scale;
+		out_clip_context.total_header_size = 0;
 
 		segment.bone_streams = bone_streams;
 		segment.clip = &out_clip_context;
@@ -140,13 +144,15 @@ namespace acl
 		segment.num_samples = safe_static_cast<uint16_t>(num_samples);
 		segment.num_bones = num_bones;
 		segment.clip_sample_offset = 0;
-		segment.animated_pose_bit_size = 0;
-		segment.animated_data_size = 0;
-		segment.range_data_size = 0;
 		segment.segment_index = 0;
 		segment.are_rotations_normalized = false;
 		segment.are_translations_normalized = false;
 		segment.are_scales_normalized = false;
+
+		segment.animated_pose_bit_size = 0;
+		segment.animated_data_size = 0;
+		segment.range_data_size = 0;
+		segment.total_header_size = 0;
 	}
 
 	inline void destroy_clip_context(Allocator& allocator, ClipContext& clip_context)
