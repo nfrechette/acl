@@ -60,6 +60,11 @@ namespace acl
 		return 1.0 / sqrt(input);
 	}
 
+	inline double reciprocal(double input)
+	{
+		return 1.0 / input;
+	}
+
 	inline double sin(double angle)
 	{
 		return std::sin(angle);

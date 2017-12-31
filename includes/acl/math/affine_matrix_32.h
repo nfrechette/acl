@@ -69,6 +69,11 @@ namespace acl
 		return matrix_set(vector_set(1.0f, 0.0f, 0.0f, 0.0f), vector_set(0.0f, 1.0f, 0.0f, 0.0f), vector_set(0.0f, 0.0f, 1.0f, 0.0f), vector_set(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 
+	inline AffineMatrix_32 matrix_cast(const AffineMatrix_64& input)
+	{
+		return matrix_set(vector_cast(input.x_axis), vector_cast(input.y_axis), vector_cast(input.z_axis), vector_cast(input.w_axis));
+	}
+
 	inline AffineMatrix_32 matrix_from_quat(const Quat_32& quat)
 	{
 		ACL_ENSURE(quat_is_normalized(quat), "Quaternion is not normalized");
