@@ -36,56 +36,6 @@
 
 namespace acl
 {
-	// TODO: Add a context object to avoid malloc/free of the buffers with every call of the function
-	//       or manage the pose buffers externally?
-	inline float calculate_skeleton_error(Allocator& allocator, const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, float* out_error_per_bone = nullptr)
-	{
-		uint16_t num_bones = skeleton.get_num_bones();
-		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
-
-		Transform_32* raw_object_pose = allocate_type_array<Transform_32>(allocator, num_bones);
-		Transform_32* lossy_object_pose = allocate_type_array<Transform_32>(allocator, num_bones);
-
-		local_to_object_space(skeleton, raw_local_pose, raw_object_pose);
-		local_to_object_space(skeleton, lossy_local_pose, lossy_object_pose);
-
-		Vector4_32 x_axis = vector_set(1.0f, 0.0f, 0.0f);
-		Vector4_32 y_axis = vector_set(0.0f, 1.0f, 0.0f);
-
-		float error = -1.0f;
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			const RigidBone& bone = skeleton.get_bone(bone_index);
-
-			// We use a virtual vertex to simulate skinning
-			// We use 2 virtual vertices, to ensure we have at least one that isn't co-linear with the rotation axis
-			float vtx_distance = float(bone.vertex_distance);
-			Vector4_32 vtx0 = vector_mul(x_axis, vtx_distance);
-			Vector4_32 vtx1 = vector_mul(y_axis, vtx_distance);
-
-			Vector4_32 raw_vtx0 = transform_position(raw_object_pose[bone_index], vtx0);
-			Vector4_32 lossy_vtx0 = transform_position(lossy_object_pose[bone_index], vtx0);
-			float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
-
-			Vector4_32 raw_vtx1 = transform_position(raw_object_pose[bone_index], vtx1);
-			Vector4_32 lossy_vtx1 = transform_position(lossy_object_pose[bone_index], vtx1);
-			float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
-
-			float bone_error = max(vtx0_error, vtx1_error);
-			if (out_error_per_bone != nullptr)
-				out_error_per_bone[bone_index] = bone_error;
-
-			error = max(error, bone_error);
-		}
-
-		ACL_ENSURE(error >= 0.0f, "Invalid error: %f", error);
-
-		deallocate_type_array(allocator, raw_object_pose, num_bones);
-		deallocate_type_array(allocator, lossy_object_pose, num_bones);
-
-		return error;
-	}
-
 	inline float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index)
 	{
 		ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
