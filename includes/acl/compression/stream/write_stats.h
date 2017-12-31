@@ -237,7 +237,7 @@ namespace acl
 		double compression_ratio = double(raw_size) / double(compressed_size);
 
 		// Use the compressed clip to make sure the decoder works properly
-		BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, *settings.error_metric, allocate_context, decompress_pose, deallocate_context);
+		BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, clip_context.has_scale, *settings.error_metric, allocate_context, decompress_pose, deallocate_context);
 		stats.max_error = error.error;
 
 		if (stats.logging == StatLogging::MaxError)

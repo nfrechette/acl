@@ -488,9 +488,19 @@ namespace acl
 				// Constant branch
 				float error;
 				if (use_local_error)
-					error = context.error_metric.calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+				{
+					if (context.has_scale)
+						error = context.error_metric.calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+					else
+						error = context.error_metric.calculate_local_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+				}
 				else
-					error = context.error_metric.calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+				{
+					if (context.has_scale)
+						error = context.error_metric.calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+					else
+						error = context.error_metric.calculate_object_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+				}
 
 				max_error = max(max_error, error);
 				if (!scan_whole_clip && error >= context.error_threshold)
