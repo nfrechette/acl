@@ -54,7 +54,10 @@ namespace acl
 		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const = 0;
 	};
 
-	// Uses Transform_32 arithmetic for the local space error but AffineMatrix_32 for the object space error
+	// Uses a mix of Transform_32 and AffineMatrix_32 arithmetic.
+	// The local space error is always calculated with Transform_32 arithmetic.
+	// The object space error is calculated with Transform_32 arithmetic if there is no scale
+	// and with AffineMatrix_32 arithmetic if there is scale.
 	class TransformMatrixErrorMetric final : public ISkeletalErrorMetric
 	{
 		virtual const char* get_name() const override { return "TransformMatrixErrorMetric"; }
