@@ -34,6 +34,7 @@
 #include "acl/compression/stream/sample_streams.h"
 #include "acl/compression/stream/normalize_streams.h"
 #include "acl/compression/skeleton_error_metric.h"
+#include "acl/compression/compression_settings.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -57,6 +58,7 @@ namespace acl
 			VectorFormat8 translation_format;
 			VectorFormat8 scale_format;
 			const RigidSkeleton& skeleton;
+			const ISkeletalErrorMetric& error_metric;
 
 			uint32_t num_samples;
 			uint32_t segment_sample_start_index;
@@ -72,17 +74,18 @@ namespace acl
 			Transform_32* lossy_local_pose;
 			BoneBitRate* bit_rate_per_bone;
 
-			QuantizationContext(Allocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, SegmentContext& segment_, RotationFormat8 rotation_format_, VectorFormat8 translation_format_, VectorFormat8 scale_format_, const RigidSkeleton& skeleton_)
+			QuantizationContext(Allocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, SegmentContext& segment_, const CompressionSettings& settings_, const RigidSkeleton& skeleton_)
 				: allocator(allocator_)
 				, clip(clip_)
 				, raw_clip(raw_clip_)
 				, segment(segment_)
 				, bone_streams(segment_.bone_streams)
 				, num_bones(segment_.num_bones)
-				, rotation_format(rotation_format_)
-				, translation_format(translation_format_)
-				, scale_format(scale_format_)
+				, rotation_format(settings_.rotation_format)
+				, translation_format(settings_.translation_format)
+				, scale_format(settings_.scale_format)
 				, skeleton(skeleton_)
+				, error_metric(*settings_.error_metric)
 				, raw_bone_streams(raw_clip_.segments[0].bone_streams)
 			{
 				num_samples = segment_.num_samples;
@@ -485,19 +488,9 @@ namespace acl
 				// Constant branch
 				float error;
 				if (use_local_error)
-				{
-					if (context.has_scale)
-						error = calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
-					else
-						error = calculate_local_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
-				}
+					error = context.error_metric.calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
 				else
-				{
-					if (context.has_scale)
-						error = calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
-					else
-						error = calculate_object_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
-				}
+					error = context.error_metric.calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
 
 				max_error = max(max_error, error);
 				if (!scan_whole_clip && error >= context.error_threshold)
@@ -1152,11 +1145,11 @@ namespace acl
 		}
 	}
 
-	inline void quantize_streams(Allocator& allocator, ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context)
+	inline void quantize_streams(Allocator& allocator, ClipContext& clip_context, const CompressionSettings& settings, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context)
 	{
-		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
-		const bool is_translation_variable = is_vector_format_variable(translation_format);
-		const bool is_scale_variable = is_vector_format_variable(scale_format);
+		const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
+		const bool is_translation_variable = is_vector_format_variable(settings.translation_format);
+		const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
 		const bool is_any_variable = is_rotation_variable || is_translation_variable || is_scale_variable;
 
 		for (SegmentContext& segment : clip_context.segment_iterator())
@@ -1166,7 +1159,7 @@ namespace acl
 #endif
 
 			// TODO: Reuse the context if we can and just update the current segment
-			impl::QuantizationContext context(allocator, clip_context, raw_clip_context, segment, rotation_format, translation_format, scale_format, skeleton);
+			impl::QuantizationContext context(allocator, clip_context, raw_clip_context, segment, settings, skeleton);
 
 			if (is_any_variable)
 			{
@@ -1176,11 +1169,11 @@ namespace acl
 			{
 				for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				{
-					impl::quantize_fixed_rotation_stream(context, bone_index, rotation_format);
-					impl::quantize_fixed_translation_stream(context, bone_index, translation_format);
+					impl::quantize_fixed_rotation_stream(context, bone_index, settings.rotation_format);
+					impl::quantize_fixed_translation_stream(context, bone_index, settings.translation_format);
 
 					if (clip_context.has_scale)
-						impl::quantize_fixed_scale_stream(context, bone_index, scale_format);
+						impl::quantize_fixed_scale_stream(context, bone_index, settings.scale_format);
 				}
 			}
 		}

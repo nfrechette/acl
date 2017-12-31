@@ -28,6 +28,7 @@
 #include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/core/ialgorithm.h"
 #include "acl/core/range_reduction_types.h"
+#include "acl/compression/skeleton_error_metric.h"
 #include "acl/decompression/default_output_writer.h"
 
 namespace acl
@@ -44,6 +45,7 @@ namespace acl
 			m_compression_settings.range_reduction = clip_range_reduction;
 			m_compression_settings.segmenting.enabled = use_segmenting;
 			m_compression_settings.segmenting.range_reduction = segment_range_reduction;
+			m_compression_settings.error_metric = &m_error_metric;
 		}
 
 		UniformlySampledAlgorithm(CompressionSettings settings)
@@ -79,12 +81,12 @@ namespace acl
 			uniformly_sampled::decompress_bone(settings, clip, context, sample_time, sample_bone_index, out_rotation, out_translation, out_scale);
 		}
 
-		virtual uint32_t get_uid() const override
-		{
-			return m_compression_settings.hash();
-		}
+		virtual const CompressionSettings& get_compression_settings() const override { return m_compression_settings; }
+
+		virtual uint32_t get_uid() const override { return m_compression_settings.hash(); }
 
 	private:
+		TransformMatrixErrorMetric m_error_metric;
 		CompressionSettings m_compression_settings;
 	};
 }

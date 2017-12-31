@@ -205,10 +205,11 @@ static bool parse_options(int argc, char** argv, Options& options)
 static void unit_test(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
 {
 #if defined(ACL_USE_ERROR_CHECKS)
-	uint16_t num_bones = clip.get_num_bones();
-	float clip_duration = clip.get_duration();
-	float sample_rate = float(clip.get_sample_rate());
-	uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
+	const uint16_t num_bones = clip.get_num_bones();
+	const float clip_duration = clip.get_duration();
+	const float sample_rate = float(clip.get_sample_rate());
+	const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
+	const ISkeletalErrorMetric& error_metric = *algorithm.get_compression_settings().error_metric;
 
 	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
@@ -216,15 +217,14 @@ static void unit_test(Allocator& allocator, const AnimationClip& clip, const Rig
 
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
-		float sample_time = min(float(sample_index) / sample_rate, clip_duration);
+		const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
 		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
 		algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			float error = calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
-			ACL_ENSURE(error < 10.0f, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
+			const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
 		}
 	}
 
@@ -267,7 +267,7 @@ static void try_algorithm(const Options& options, Allocator& allocator, const An
 		runs_writer->push_object([&](SJSONObjectWriter& writer) { try_algorithm_impl(&writer); });
 	else
 		try_algorithm_impl(nullptr);
-	
+
 }
 
 #ifndef _WIN32

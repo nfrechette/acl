@@ -85,7 +85,7 @@ namespace acl
 		writer["decomp_touched_cache_lines"] = num_clip_header_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 	}
 
-	inline void write_exhaustive_segment_stats(Allocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const RigidSkeleton& skeleton, SJSONObjectWriter& writer)
+	inline void write_exhaustive_segment_stats(Allocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const RigidSkeleton& skeleton, const CompressionSettings& settings, SJSONObjectWriter& writer)
 	{
 		const uint16_t num_bones = skeleton.get_num_bones();
 		const bool has_scale = segment_context_has_scale(segment);
@@ -115,11 +115,7 @@ namespace acl
 				{
 					for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 					{
-						float error;
-						if (has_scale)
-							error = calculate_object_bone_error(skeleton, raw_local_pose, lossy_local_pose, bone_index);
-						else
-							error = calculate_object_bone_error_no_scale(skeleton, raw_local_pose, lossy_local_pose, bone_index);
+						const float error = settings.error_metric->calculate_object_bone_error(skeleton, raw_local_pose, lossy_local_pose, bone_index);
 						writer.push_value(error);
 
 						if (error > worst_bone_error.error)
@@ -241,7 +237,7 @@ namespace acl
 		double compression_ratio = double(raw_size) / double(compressed_size);
 
 		// Use the compressed clip to make sure the decoder works properly
-		BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, clip_context.has_scale, allocate_context, decompress_pose, deallocate_context);
+		BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, *settings.error_metric, allocate_context, decompress_pose, deallocate_context);
 		stats.max_error = error.error;
 
 		if (stats.logging == StatLogging::MaxError)
@@ -269,6 +265,7 @@ namespace acl
 		writer["scale_format"] = get_vector_format_name(settings.scale_format);
 		writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
 		writer["has_scale"] = clip_context.has_scale;
+		writer["error_metric"] = settings.error_metric->get_name();
 
 		if (are_all_enum_flags_set(stats.logging, StatLogging::Detailed) || are_all_enum_flags_set(stats.logging, StatLogging::Exhaustive))
 		{
@@ -353,7 +350,7 @@ namespace acl
 
 					if (are_all_enum_flags_set(stats.logging, StatLogging::Exhaustive))
 					{
-						write_exhaustive_segment_stats(allocator, segment, raw_clip_context, skeleton, writer);
+						write_exhaustive_segment_stats(allocator, segment, raw_clip_context, skeleton, settings, writer);
 					}
 				});
 			}

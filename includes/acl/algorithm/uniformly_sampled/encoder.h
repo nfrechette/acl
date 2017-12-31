@@ -87,19 +87,9 @@ namespace acl
 			if (ACL_TRY_ASSERT(num_samples > 0, "Clip has no samples!"))
 				return nullptr;
 
-			if (settings.translation_format != VectorFormat8::Vector3_96)
-			{
-				const bool has_clip_range_reduction = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Translations);
-				const bool has_segment_range_reduction = settings.segmenting.enabled && are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
-				if (ACL_TRY_ASSERT(has_clip_range_reduction | has_segment_range_reduction, "%s quantization requires range reduction to be enabled at the clip or segment level!", get_vector_format_name(settings.translation_format)))
-					return nullptr;
-			}
-
-			if (settings.segmenting.enabled && settings.segmenting.range_reduction != RangeReductionFlags8::None)
-			{
-				if (ACL_TRY_ASSERT(settings.range_reduction != RangeReductionFlags8::None, "Per segment range reduction requires per clip range reduction to be enabled!"))
-					return nullptr;
-			}
+			const char* settings_error = settings.get_error();
+			if (ACL_TRY_ASSERT(settings_error == nullptr, "%s", settings_error))
+				return nullptr;
 
 			ClipContext raw_clip_context;
 			initialize_clip_context(allocator, clip, skeleton, raw_clip_context);
@@ -140,7 +130,7 @@ namespace acl
 				}
 			}
 
-			quantize_streams(allocator, clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, skeleton, raw_clip_context);
+			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context);
 
 			const uint32_t constant_data_size = get_constant_data_size(clip_context);
 
