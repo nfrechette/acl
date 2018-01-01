@@ -112,7 +112,7 @@ def create_csv(options):
 		csv_data['stats_summary_csv_file'] = stats_summary_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_summary_csv_filename))
-		print('Algorithm Name, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks, Max Error', file = stats_summary_csv_file)
+		print('Clip Name, Algorithm Name, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks, Max Error', file = stats_summary_csv_file)
 
 	if options['csv_bit_rate']:
 		stats_bit_rate_csv_filename = os.path.join(stat_dir, 'stats_bit_rate.csv')
@@ -159,8 +159,8 @@ def close_csv(csv_data):
 def append_csv(csv_data, job_data):
 	if 'stats_summary_csv_file' in csv_data:
 		data = job_data['stats_summary_data']
-		for (name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error) in data:
-			print('{}, {}, {}, {}, {}, {}, {}, {}'.format(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error), file = csv_data['stats_summary_csv_file'])
+		for (clip_name, algo_name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error) in data:
+			print('{}, {}, {}, {}, {}, {}, {}, {}, {}'.format(clip_name, algo_name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error), file = csv_data['stats_summary_csv_file'])
 
 	if 'stats_animated_size_csv_file' in csv_data:
 		size_data = job_data['stats_animated_size']
@@ -434,58 +434,61 @@ def run_stat_parsing(options, stat_queue, result_queue):
 				break
 
 			with open(stat_filename, 'r') as file:
-				file_data = sjson.loads(file.read())
-				runs = file_data['runs']
-				for run_stats in runs:
-					run_stats['range_reduction'] = shorten_range_reduction(run_stats['range_reduction'])
-					run_stats['filename'] = stat_filename
-					run_stats['clip_name'] = os.path.splitext(os.path.basename(stat_filename))[0]
-					run_stats['rotation_format'] = shorten_rotation_format(run_stats['rotation_format'])
-					run_stats['translation_format'] = shorten_translation_format(run_stats['translation_format'])
-					run_stats['scale_format'] = shorten_scale_format(run_stats['scale_format'])
+				try:
+					file_data = sjson.loads(file.read())
+					runs = file_data['runs']
+					for run_stats in runs:
+						run_stats['range_reduction'] = shorten_range_reduction(run_stats['range_reduction'])
+						run_stats['filename'] = stat_filename
+						run_stats['clip_name'] = os.path.splitext(os.path.basename(stat_filename))[0]
+						run_stats['rotation_format'] = shorten_rotation_format(run_stats['rotation_format'])
+						run_stats['translation_format'] = shorten_translation_format(run_stats['translation_format'])
+						run_stats['scale_format'] = shorten_scale_format(run_stats['scale_format'])
 
-					if 'segmenting' in run_stats:
-						run_stats['segmenting']['range_reduction'] = shorten_range_reduction(run_stats['segmenting']['range_reduction'])
-						run_stats['desc'] = '{}|{}|{}, Clip {}, Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
-						run_stats['csv_desc'] = '{}|{}|{} Clip {} Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
-					else:
-						run_stats['desc'] = '{}|{}|{}, Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'])
-						run_stats['csv_desc'] = '{}|{}|{} Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'])
+						if 'segmenting' in run_stats:
+							run_stats['segmenting']['range_reduction'] = shorten_range_reduction(run_stats['segmenting']['range_reduction'])
+							run_stats['desc'] = '{}|{}|{}, Clip {}, Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
+							run_stats['csv_desc'] = '{}|{}|{} Clip {} Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
+						else:
+							run_stats['desc'] = '{}|{}|{}, Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'])
+							run_stats['csv_desc'] = '{}|{}|{} Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'])
 
-					aggregate_stats(agg_run_stats, run_stats)
-					track_best_runs(best_runs, run_stats)
-					track_worst_runs(worst_runs, run_stats)
+						aggregate_stats(agg_run_stats, run_stats)
+						track_best_runs(best_runs, run_stats)
+						track_worst_runs(worst_runs, run_stats)
 
-					num_runs += 1
-					total_compression_time += run_stats['compression_time']
+						num_runs += 1
+						total_compression_time += run_stats['compression_time']
 
-					if options['csv_summary']:
-						#(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error)
-						num_animated_tracks = run_stats.get('num_animated_tracks', 0)
-						data = (run_stats['csv_desc'], run_stats['raw_size'], run_stats['compressed_size'], run_stats['compression_ratio'], run_stats['compression_time'], run_stats['duration'], num_animated_tracks, run_stats['max_error'])
-						stats_summary_data.append(data)
+						if options['csv_summary']:
+							#(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error)
+							num_animated_tracks = run_stats.get('num_animated_tracks', 0)
+							data = (run_stats['clip_name'], run_stats['csv_desc'], run_stats['raw_size'], run_stats['compressed_size'], run_stats['compression_ratio'], run_stats['compression_time'], run_stats['duration'], num_animated_tracks, run_stats['max_error'])
+							stats_summary_data.append(data)
 
-					if 'segments' in run_stats and len(run_stats['segments']) > 0:
-						segment_index = 0
-						for segment in run_stats['segments']:
-							if 'animated_frame_size' in segment and options['csv_animated_size']:
-								stats_animated_size.append((run_stats['clip_name'], segment_index, segment['animated_frame_size']))
+						if 'segments' in run_stats and len(run_stats['segments']) > 0:
+							segment_index = 0
+							for segment in run_stats['segments']:
+								if 'animated_frame_size' in segment and options['csv_animated_size']:
+									stats_animated_size.append((run_stats['clip_name'], segment_index, segment['animated_frame_size']))
 
-							if 'error_per_frame_and_bone' in segment and len(segment['error_per_frame_and_bone']) > 0:
-								# Convert to array https://docs.python.org/3/library/array.html
-								# Lower memory footprint and more efficient
-								# Drop the data if we don't write the csv files, otherwise aggregate it
-								if options['csv_error']:
-									#(name, segment_index, data)
-									data = (run_stats['clip_name'], segment_index, segment['error_per_frame_and_bone'])
-									stats_error_data.append(data)
+								if 'error_per_frame_and_bone' in segment and len(segment['error_per_frame_and_bone']) > 0:
+									# Convert to array https://docs.python.org/3/library/array.html
+									# Lower memory footprint and more efficient
+									# Drop the data if we don't write the csv files, otherwise aggregate it
+									if options['csv_error']:
+										#(name, segment_index, data)
+										data = (run_stats['clip_name'], segment_index, segment['error_per_frame_and_bone'])
+										stats_error_data.append(data)
 
-								# Data isn't needed anymore, discard it
-								segment['error_per_frame_and_bone'] = []
+									# Data isn't needed anymore, discard it
+									segment['error_per_frame_and_bone'] = []
 
-							segment_index += 1
+								segment_index += 1
 
-				result_queue.put(('progress', stat_filename))
+					result_queue.put(('progress', stat_filename))
+				except sjson.ParseException:
+					print('Failed to parse SJSON file: {}'.format(stat_filename))
 
 		# Done
 		results = {}
