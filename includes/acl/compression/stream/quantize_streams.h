@@ -33,6 +33,7 @@
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/stream/sample_streams.h"
 #include "acl/compression/stream/normalize_streams.h"
+#include "acl/compression/stream/convert_rotation_streams.h"
 #include "acl/compression/skeleton_error_metric.h"
 #include "acl/compression/compression_settings.h"
 
@@ -176,7 +177,9 @@ namespace acl
 			{
 				ACL_ENSURE(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
 
-				const Vector4_32 rotation = raw_clip_stream.get_raw_sample<Vector4_32>(context.segment_sample_start_index);
+				Vector4_32 rotation = raw_clip_stream.get_raw_sample<Vector4_32>(context.segment_sample_start_index);
+				rotation = convert_rotation(rotation, RotationFormat8::Quat_128, RotationFormat8::QuatDropW_Variable);
+
 				const Vector4_32 normalized_rotation = normalize_sample(rotation, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
@@ -192,8 +195,9 @@ namespace acl
 
 					if (is_raw_bit_rate(bit_rate))
 					{
-						const Quat_32 rotation = raw_clip_stream.get_raw_sample<Quat_32>(context.segment_sample_start_index + sample_index);
-						pack_vector3_96(quat_to_vector(rotation), quantized_ptr);
+						Vector4_32 rotation = raw_clip_stream.get_raw_sample<Vector4_32>(context.segment_sample_start_index + sample_index);
+						rotation = convert_rotation(rotation, RotationFormat8::Quat_128, RotationFormat8::QuatDropW_Variable);
+						pack_vector3_96(rotation, quantized_ptr);
 					}
 					else
 					{

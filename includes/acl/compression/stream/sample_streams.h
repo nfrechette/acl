@@ -34,6 +34,7 @@
 #include "acl/math/transform_32.h"
 #include "acl/compression/stream/track_stream.h"
 #include "acl/compression/stream/normalize_streams.h"
+#include "acl/compression/stream/convert_rotation_streams.h"
 
 #include <stdint.h>
 
@@ -169,15 +170,24 @@ namespace acl
 		const bool are_rotations_normalized = clip_context->are_rotations_normalized;
 		const RotationFormat8 format = bone_steams.rotations.get_rotation_format();
 
-		const uint8_t* quantized_ptr;
+		Vector4_32 rotation;
 		if (is_constant_bit_rate(bit_rate))
-			quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(0);
+		{
+			const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset);
+			rotation = impl::load_rotation_sample(quantized_ptr, RotationFormat8::Quat_128, INVALID_BIT_RATE, are_rotations_normalized);
+			rotation = convert_rotation(rotation, RotationFormat8::Quat_128, format);
+		}
 		else if (is_raw_bit_rate(bit_rate))
-			quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
+		{
+			const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
+			rotation = impl::load_rotation_sample(quantized_ptr, RotationFormat8::Quat_128, INVALID_BIT_RATE, are_rotations_normalized);
+			rotation = convert_rotation(rotation, RotationFormat8::Quat_128, format);
+		}
 		else
-			quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
-
-		const Vector4_32 rotation = impl::load_rotation_sample(quantized_ptr, format, INVALID_BIT_RATE, are_rotations_normalized);
+		{
+			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
+			rotation = impl::load_rotation_sample(quantized_ptr, format, INVALID_BIT_RATE, are_rotations_normalized);
+		}
 
 		// Pack and unpack at our desired bit rate
 		uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
@@ -338,7 +348,7 @@ namespace acl
 
 		const uint8_t* quantized_ptr;
 		if (is_constant_bit_rate(bit_rate))
-			quantized_ptr = raw_bone_steams.translations.get_raw_sample_ptr(0);
+			quantized_ptr = raw_bone_steams.translations.get_raw_sample_ptr(segment->clip_sample_offset);
 		else if (is_raw_bit_rate(bit_rate))
 			quantized_ptr = raw_bone_steams.translations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
 		else
@@ -505,7 +515,7 @@ namespace acl
 
 		const uint8_t* quantized_ptr;
 		if (is_constant_bit_rate(bit_rate))
-			quantized_ptr = raw_bone_steams.scales.get_raw_sample_ptr(0);
+			quantized_ptr = raw_bone_steams.scales.get_raw_sample_ptr(segment->clip_sample_offset);
 		else if (is_raw_bit_rate(bit_rate))
 			quantized_ptr = raw_bone_steams.scales.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
 		else

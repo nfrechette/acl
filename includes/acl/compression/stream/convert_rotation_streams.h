@@ -34,6 +34,25 @@
 
 namespace acl
 {
+	inline Vector4_32 convert_rotation(const Vector4_32& rotation, RotationFormat8 from, RotationFormat8 to)
+	{
+		ACL_ENSURE(from == RotationFormat8::Quat_128, "Source rotation format must be a full precision quaternion");
+
+		const RotationFormat8 high_precision_format = get_rotation_variant(to) == RotationVariant8::Quat ? RotationFormat8::Quat_128 : RotationFormat8::QuatDropW_96;
+		switch (high_precision_format)
+		{
+		case RotationFormat8::Quat_128:
+			// Original format, nothing to do
+			return rotation;
+		case RotationFormat8::QuatDropW_96:
+			// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
+			return quat_to_vector(quat_ensure_positive_w(vector_to_quat(rotation)));
+		default:
+			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(to));
+			return rotation;
+		}
+	}
+
 	inline void convert_rotation_streams(Allocator& allocator, SegmentContext& segment, RotationFormat8 rotation_format)
 	{
 		const RotationFormat8 high_precision_format = get_rotation_variant(rotation_format) == RotationVariant8::Quat ? RotationFormat8::Quat_128 : RotationFormat8::QuatDropW_96;

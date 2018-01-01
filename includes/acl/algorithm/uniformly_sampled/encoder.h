@@ -97,7 +97,6 @@ namespace acl
 			ClipContext clip_context;
 			initialize_clip_context(allocator, clip, skeleton, clip_context);
 
-			convert_rotation_streams(allocator, raw_clip_context, settings.rotation_format);
 			convert_rotation_streams(allocator, clip_context, settings.rotation_format);
 
 			// Extract our clip ranges now, we need it for compacting the constant streams
