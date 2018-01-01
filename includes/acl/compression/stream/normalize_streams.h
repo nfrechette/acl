@@ -37,52 +37,42 @@
 
 namespace acl
 {
-	inline void extract_bone_ranges_impl(SegmentContext& segment, BoneRanges* bone_ranges)
+	namespace impl
 	{
-		const bool has_scale = segment_context_has_scale(segment);
-
-		for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+		inline TrackStreamRange calculate_track_range(const TrackStream& stream)
 		{
-			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			Vector4_32 min = vector_set(1e10f);
+			Vector4_32 max = vector_set(-1e10f);
 
-			Vector4_32 rotation_min = vector_set(1e10f);
-			Vector4_32 rotation_max = vector_set(-1e10f);
-			Vector4_32 translation_min = vector_set(1e10f);
-			Vector4_32 translation_max = vector_set(-1e10f);
-			Vector4_32 scale_min = vector_set(1e10f);
-			Vector4_32 scale_max = vector_set(-1e10f);
-
-			for (uint32_t sample_index = 0; sample_index < bone_stream.rotations.get_num_samples(); ++sample_index)
+			const uint32_t num_samples = stream.get_num_samples();
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
+				const Vector4_32 rotation = stream.get_raw_sample<Vector4_32>(sample_index);
 
-				rotation_min = vector_min(rotation_min, quat_to_vector(rotation));
-				rotation_max = vector_max(rotation_max, quat_to_vector(rotation));
+				min = vector_min(min, rotation);
+				max = vector_max(max, rotation);
 			}
 
-			for (uint32_t sample_index = 0; sample_index < bone_stream.translations.get_num_samples(); ++sample_index)
+			return TrackStreamRange(min, max);
+		}
+
+		inline void extract_bone_ranges_impl(SegmentContext& segment, BoneRanges* bone_ranges)
+		{
+			const bool has_scale = segment_context_has_scale(segment);
+
+			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 			{
-				Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
+				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				BoneRanges& bone_range = bone_ranges[bone_index];
 
-				translation_min = vector_min(translation_min, translation);
-				translation_max = vector_max(translation_max, translation);
+				bone_range.rotation = calculate_track_range(bone_stream.rotations);
+				bone_range.translation = calculate_track_range(bone_stream.translations);
+
+				if (has_scale)
+					bone_range.scale = calculate_track_range(bone_stream.scales);
+				else
+					bone_range.scale = TrackStreamRange();
 			}
-
-			if (has_scale)
-			{
-				for (uint32_t sample_index = 0; sample_index < bone_stream.scales.get_num_samples(); ++sample_index)
-				{
-					Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
-
-					scale_min = vector_min(scale_min, scale);
-					scale_max = vector_max(scale_max, scale);
-				}
-			}
-
-			BoneRanges& bone_range = bone_ranges[bone_index];
-			bone_range.rotation = TrackStreamRange(rotation_min, rotation_max);
-			bone_range.translation = TrackStreamRange(translation_min, translation_max);
-			bone_range.scale = TrackStreamRange(scale_min, scale_max);
 		}
 	}
 
@@ -93,7 +83,7 @@ namespace acl
 		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];
 
-		extract_bone_ranges_impl(segment, clip_context.ranges);
+		impl::extract_bone_ranges_impl(segment, clip_context.ranges);
 	}
 
 	inline void extract_segment_bone_ranges(Allocator& allocator, ClipContext& clip_context)
@@ -104,11 +94,24 @@ namespace acl
 		const Vector4_32 zero = vector_zero_32();
 		const bool has_scale = clip_context.has_scale;
 
+		auto fixup_range = [&](const TrackStreamRange& range)
+		{
+			Vector4_32 padded_range_min = vector_max(vector_sub(range.get_min(), padding), zero);
+			Vector4_32 padded_range_max = vector_min(vector_add(range.get_max(), padding), one);
+
+			pack_vector4_32(padded_range_min, true, &buffer[0]);
+			padded_range_min = unpack_vector4_32(&buffer[0], true);
+			pack_vector4_32(padded_range_max, true, &buffer[0]);
+			padded_range_max = unpack_vector4_32(&buffer[0], true);
+
+			return TrackStreamRange(padded_range_min, padded_range_max);
+		};
+
 		for (SegmentContext& segment : clip_context.segment_iterator())
 		{
 			segment.ranges = allocate_type_array<BoneRanges>(allocator, segment.num_bones);
 
-			extract_bone_ranges_impl(segment, segment.ranges);
+			impl::extract_bone_ranges_impl(segment, segment.ranges);
 
 			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 			{
@@ -116,43 +119,13 @@ namespace acl
 				BoneRanges& bone_range = segment.ranges[bone_index];
 
 				if (bone_stream.is_rotation_animated() && clip_context.are_rotations_normalized)
-				{
-					Vector4_32 rotation_range_min = vector_max(vector_sub(bone_range.rotation.get_min(), padding), zero);
-					Vector4_32 rotation_range_max = vector_min(vector_add(bone_range.rotation.get_max(), padding), one);
-
-					pack_vector4_32(rotation_range_min, true, &buffer[0]);
-					rotation_range_min = unpack_vector4_32(&buffer[0], true);
-					pack_vector4_32(rotation_range_max, true, &buffer[0]);
-					rotation_range_max = unpack_vector4_32(&buffer[0], true);
-
-					bone_range.rotation = TrackStreamRange(rotation_range_min, rotation_range_max);
-				}
+					bone_range.rotation = fixup_range(bone_range.rotation);
 
 				if (bone_stream.is_translation_animated() && clip_context.are_translations_normalized)
-				{
-					Vector4_32 translation_range_min = vector_max(vector_sub(bone_range.translation.get_min(), padding), zero);
-					Vector4_32 translation_range_max = vector_min(vector_add(bone_range.translation.get_max(), padding), one);
-
-					pack_vector3_24(translation_range_min, true, &buffer[0]);
-					translation_range_min = unpack_vector3_24(&buffer[0], true);
-					pack_vector3_24(translation_range_max, true, &buffer[0]);
-					translation_range_max = unpack_vector3_24(&buffer[0], true);
-
-					bone_range.translation = TrackStreamRange(translation_range_min, translation_range_max);
-				}
+					bone_range.translation = fixup_range(bone_range.translation);
 
 				if (has_scale && bone_stream.is_scale_animated() && clip_context.are_scales_normalized)
-				{
-					Vector4_32 scale_range_min = vector_max(vector_sub(bone_range.scale.get_min(), padding), zero);
-					Vector4_32 scale_range_max = vector_min(vector_add(bone_range.scale.get_max(), padding), one);
-
-					pack_vector3_24(scale_range_min, true, &buffer[0]);
-					scale_range_min = unpack_vector3_24(&buffer[0], true);
-					pack_vector3_24(scale_range_max, true, &buffer[0]);
-					scale_range_max = unpack_vector3_24(&buffer[0], true);
-
-					bone_range.scale = TrackStreamRange(scale_range_min, scale_range_max);
-				}
+					bone_range.scale = fixup_range(bone_range.scale);
 			}
 		}
 	}
