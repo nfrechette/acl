@@ -390,6 +390,16 @@ namespace acl
 		return vector_length3(vector_sub(rhs, lhs));
 	}
 
+	inline Vector4_32 vector_normalize3(const Vector4_32& input, float threshold = 0.00000001f)
+	{
+		// Reciprocal is more accurate to normalize with
+		float inv_len = vector_length_reciprocal3(input);
+		if (inv_len >= threshold)
+			return vector_mul(input, vector_set(inv_len));
+		else
+			return input;
+	}
+
 	inline Vector4_32 vector_lerp(const Vector4_32& start, const Vector4_32& end, float alpha)
 	{
 		return vector_add(start, vector_mul(vector_sub(end, start), vector_set(alpha)));
@@ -421,6 +431,15 @@ namespace acl
 		return _mm_cmplt_ps(lhs, rhs);
 #else
 		return Vector4_32{ math_impl::get_mask_value(lhs.x < rhs.x), math_impl::get_mask_value(lhs.y < rhs.y), math_impl::get_mask_value(lhs.z < rhs.z), math_impl::get_mask_value(lhs.w < rhs.w) };
+#endif
+	}
+
+	inline Vector4_32 vector_greater_equal(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_cmpge_ps(lhs, rhs);
+#else
+		return Vector4_32{ math_impl::get_mask_value(lhs.x >= rhs.x), math_impl::get_mask_value(lhs.y >= rhs.y), math_impl::get_mask_value(lhs.z >= rhs.z), math_impl::get_mask_value(lhs.w >= rhs.w) };
 #endif
 	}
 
@@ -693,4 +712,13 @@ namespace acl
 	inline Vector4_32 vector_mix_bywx(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::B, VectorMix::Y, VectorMix::W, VectorMix::X>(input0, input1); }
 	inline Vector4_32 vector_mix_dxwc(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::D, VectorMix::X, VectorMix::W, VectorMix::C>(input0, input1); }
 	inline Vector4_32 vector_mix_dywx(const Vector4_32& input0, const Vector4_32& input1) { return vector_mix<VectorMix::D, VectorMix::Y, VectorMix::W, VectorMix::X>(input0, input1); }
+
+	//////////////////////////////////////////////////////////////////////////
+	// Misc
+
+	inline Vector4_32 vector_sign(const Vector4_32& input)
+	{
+		Vector4_32 mask = vector_greater_equal(input, vector_zero_32());
+		return vector_blend(mask, vector_set(1.0f), vector_set(-1.0f));
+	}
 }

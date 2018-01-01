@@ -154,6 +154,14 @@ namespace acl
 		D = 7,
 	};
 
+	enum class MatrixAxis
+	{
+		X = 0,
+		Y = 1,
+		Z = 2,
+		W = 3,
+	};
+
 	// The result is sometimes required as part of an immediate for an intrinsic
 	// and as such we much know the value at compile time and constexpr isn't always evaluated.
 	// Required at least on GCC 5 in Debug
