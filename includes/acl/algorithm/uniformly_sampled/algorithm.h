@@ -86,7 +86,7 @@ namespace acl
 		virtual uint32_t get_uid() const override { return m_compression_settings.hash(); }
 
 	private:
-		TransformMatrixErrorMetric m_error_metric;
+		TransformErrorMetric m_error_metric;
 		CompressionSettings m_compression_settings;
 	};
 }
