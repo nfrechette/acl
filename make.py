@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
 	build_dir = os.path.join(os.getcwd(), 'build')
 
-	if options['clean']:
+	if options['clean'] and os.path.exists(build_dir):
 		print('Cleaning previous build ...')
 		shutil.rmtree(build_dir)
 
