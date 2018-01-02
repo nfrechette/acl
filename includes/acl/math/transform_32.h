@@ -67,9 +67,6 @@ namespace acl
 			result_mtx.z_axis = vector_mul(result_mtx.z_axis, vector_mix_zzzz(sign));
 
 			Quat_32 rotation = quat_from_matrix(result_mtx);
-			if (!quat_is_finite(rotation))
-				printf("");
-			ACL_ENSURE(quat_is_finite(rotation), "Invalid rotation");
 			Vector4_32 translation = result_mtx.w_axis;
 			return transform_set(rotation, translation, scale);
 		}
