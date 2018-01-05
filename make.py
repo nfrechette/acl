@@ -46,6 +46,9 @@ def parse_argv():
 		if value == '-gcc5':
 			options['compiler'] = 'gcc5'
 
+		if value == '-xcode':
+			options['compiler'] = 'xcode'
+
 		# TODO: Refactor to use the form: -config=Release
 		if value_upper == '-DEBUG':
 			options['config'] = 'Debug'
@@ -69,6 +72,9 @@ def get_cmake_exes():
 		return ('cmake', 'ctest')
 
 def get_generator(compiler, cpu):
+	if compiler == None:
+		return None
+
 	if platform.system() == 'Windows':
 		if compiler == 'vs2015':
 			if cpu == 'x86':
@@ -80,14 +86,17 @@ def get_generator(compiler, cpu):
 				return 'Visual Studio 15'
 			else:
 				return 'Visual Studio 15 Win64'
-		else:
-			print('Unknown compiler: {}'.format(compiler))
-			sys.exit(1)
+	elif platform.system() == 'Darwin':
+		if compiler == 'xcode':
+			return 'Xcode'
 	else:
 		return 'Unix Makefiles'
 
+	print('Unknown compiler: {}'.format(compiler))
+	sys.exit(1)
+
 def set_compiler_env(compiler):
-	if not platform.system() == 'Windows':
+	if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
 		if compiler == 'clang4':
 			os.environ['CC'] = 'clang-4.0'
 			os.environ['CXX'] = 'clang++-4.0'
@@ -147,13 +156,14 @@ if __name__ == "__main__":
 		# Generate IDE solution
 		print('Generating build files ...')
 		cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(cmake_exe, build_dir, ' '.join(extra_switches))
-		if platform.system() == 'Windows':
-			if not compiler == None:
-				cmake_generator = get_generator(compiler, cpu)
-				print('Using generator: {}'.format(cmake_generator))
-				cmake_cmd += ' -G "{}"'.format(cmake_generator)
+		cmake_generator = get_generator(compiler, cpu)
+		if cmake_generator == None:
+			print('Using default generator')
 		else:
-			cmake_cmd += ' -DCMAKE_BUILD_TYPE={}'.format(config.upper())
+			print('Using generator: {}'.format(cmake_generator))
+			cmake_cmd += ' -G "{}"'.format(cmake_generator)
+
+		cmake_cmd += ' -DCMAKE_BUILD_TYPE={}'.format(config.upper())
 
 		result = subprocess.call(cmake_cmd, shell=True)
 		if result != 0:
@@ -164,6 +174,8 @@ if __name__ == "__main__":
 		cmake_cmd = '"{}" --build .'.format(cmake_exe)
 		if platform.system() == 'Windows':
 			cmake_cmd += ' --config {} --target INSTALL'.format(config)
+		elif platform.system() == 'Darwin':
+			cmake_cmd += ' --config {}'.format(config)
 		else:
 			cmake_cmd += ' --target install'
 
@@ -174,7 +186,7 @@ if __name__ == "__main__":
 	if options['test']:
 		print('Running unit tests ...')
 		ctest_cmd = '"{}" --output-on-failure'.format(ctest_exe)
-		if platform.system() == 'Windows':
+		if platform.system() == 'Windows' or platform.system() == 'Darwin':
 			ctest_cmd += ' -C {}'.format(config)
 
 		result = subprocess.call(ctest_cmd, shell=True)
