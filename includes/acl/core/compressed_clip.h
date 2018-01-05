@@ -30,7 +30,7 @@
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_types.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
@@ -74,7 +74,9 @@ namespace acl
 			, m_version(get_algorithm_version(type))
 			, m_type(type)
 			, m_padding(0)
-		{}
+		{
+			(void)m_padding;	// Avoid unused warning
+		}
 
 		// 16 byte header, the rest of the data follows in memory
 		uint32_t		m_size;
