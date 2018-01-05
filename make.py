@@ -175,7 +175,7 @@ if __name__ == "__main__":
 		if platform.system() == 'Windows':
 			cmake_cmd += ' --config {} --target INSTALL'.format(config)
 		elif platform.system() == 'Darwin':
-			cmake_cmd += ' --config {}'.format(config)
+			cmake_cmd += ' --config {} --target install'.format(config)
 		else:
 			cmake_cmd += ' --target install'
 
