@@ -33,6 +33,10 @@
 #include <memory>
 #include <algorithm>
 
+#if defined(__APPLE__)
+#include <cstdlib>
+#endif
+
 #if defined(__ANDROID__)
 namespace std
 {
@@ -72,10 +76,14 @@ namespace acl
 
 		virtual void* allocate(size_t size, size_t alignment = DEFAULT_ALIGNMENT)
 		{
-#ifndef _WIN32
-			return aligned_alloc(alignment, size);
-#else
+#if defined(_WIN32)
 			return _aligned_malloc(size, alignment);
+#elif defined(__APPLE__)
+			void* ptr = nullptr;
+			posix_memalign(&ptr, alignment, size);
+			return ptr;
+#else
+			return aligned_alloc(alignment, size);
 #endif
 		}
 
@@ -84,10 +92,10 @@ namespace acl
 			if (ptr == nullptr)
 				return;
 
-#ifndef _WIN32
-			free(ptr);
-#else
+#if defined(_WIN32)
 			_aligned_free(ptr);
+#else
+			free(ptr);
 #endif
 		}
 	};
