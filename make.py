@@ -163,7 +163,8 @@ if __name__ == "__main__":
 			print('Using generator: {}'.format(cmake_generator))
 			cmake_cmd += ' -G "{}"'.format(cmake_generator)
 
-		cmake_cmd += ' -DCMAKE_BUILD_TYPE={}'.format(config.upper())
+		if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
+			cmake_cmd += ' -DCMAKE_BUILD_TYPE={}'.format(config.upper())
 
 		result = subprocess.call(cmake_cmd, shell=True)
 		if result != 0:
