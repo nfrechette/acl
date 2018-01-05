@@ -80,7 +80,7 @@ namespace acl
 			return _aligned_malloc(size, alignment);
 #elif defined(__APPLE__)
 			void* ptr = nullptr;
-			posix_memalign(&ptr, alignment, size);
+			posix_memalign(&ptr, std::max<size_t>(alignment, sizeof(void*)), size);
 			return ptr;
 #else
 			return aligned_alloc(alignment, size);
