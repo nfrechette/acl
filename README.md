@@ -37,7 +37,10 @@ The library aims to support the most common platforms for the most common use ca
 The math library is not yet fully optimized for every platform. The overwhelming majority of the math heavy code executes when compressing, not decompressing.
 Decompression is typically very simple and light in order to be fast. Very little math is involved beyond interpolating values.
 
-*  Compression and decompression: Windows (VS2015, VS2017) x86 and x64, Linux (gcc5, clang4, clang5) x64
+*  Compression and decompression:
+   *  Windows (VS2015, VS2017) x86 and x64
+   *  Linux (gcc5, clang4, clang5) x86 and x64
+   *  OS X (Xcode 8.3, Xcode 9.2) x86 and x64
 *  Decompression only: Android (NVIDIA CodeWorks)
 
 ## Algorithms supported
@@ -49,7 +52,7 @@ Decompression is typically very simple and light in order to be fast. Very littl
 
 ## Getting up and running
 
-### Windows and Linux
+### Windows, Linux, and OS X
 
 1. Install the proper compiler for your platform
 2. Install CMake 3.2 or higher
