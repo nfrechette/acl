@@ -5,7 +5,7 @@ language: cpp
 
 matrix:
   include:
-    # gcc5
+    # Linux gcc5
     - os: linux
       env: COMPILER=gcc5 CONFIG=Debug PLATFORM=x86 PACKAGES="g++-5 g++-5-multilib g++-multilib"
     - os: linux
@@ -15,7 +15,7 @@ matrix:
     - os: linux
       env: COMPILER=gcc5 CONFIG=Release PLATFORM=x64 PACKAGES="g++-5"
 
-    # clang4
+    # Linux clang4
     - os: linux
       env: COMPILER=clang4 CONFIG=Debug PLATFORM=x86 PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
     - os: linux
@@ -25,7 +25,7 @@ matrix:
     - os: linux
       env: COMPILER=clang4 CONFIG=Release PLATFORM=x64 PACKAGES="clang-4.0 libstdc++-5-dev"
 
-    # clang5
+    # Linux clang5
     - os: linux
       env: COMPILER=clang5 CONFIG=Debug PLATFORM=x86 PACKAGES="clang-5.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
     - os: linux
@@ -35,14 +35,43 @@ matrix:
     - os: linux
       env: COMPILER=clang5 CONFIG=Release PLATFORM=x64 PACKAGES="clang-5.0 libstdc++-5-dev"
 
+    # OS X xcode8
+    - os: osx
+      osx_image: xcode8.3
+      env: COMPILER=xcode CONFIG=Debug PLATFORM=x86
+    - os: osx
+      osx_image: xcode8.3
+      env: COMPILER=xcode CONFIG=Debug PLATFORM=x64
+    - os: osx
+      osx_image: xcode8.3
+      env: COMPILER=xcode CONFIG=Release PLATFORM=x86
+    - os: osx
+      osx_image: xcode8.3
+      env: COMPILER=xcode CONFIG=Release PLATFORM=x64
+
+    # OS X xcode9
+    - os: osx
+      osx_image: xcode9.2
+      env: COMPILER=xcode CONFIG=Debug PLATFORM=x86
+    - os: osx
+      osx_image: xcode9.2
+      env: COMPILER=xcode CONFIG=Debug PLATFORM=x64
+    - os: osx
+      osx_image: xcode9.2
+      env: COMPILER=xcode CONFIG=Release PLATFORM=x86
+    - os: osx
+      osx_image: xcode9.2
+      env: COMPILER=xcode CONFIG=Release PLATFORM=x64
+
 before_install:
-    - if [ "$COMPILER" = "clang4" ]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add -; fi
-    - if [ "$COMPILER" = "clang4" ]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null; fi
-    - if [ "$COMPILER" = "clang5" ]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add -; fi
-    - if [ "$COMPILER" = "clang5" ]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null; fi
-    - sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test"
-    - sudo -E apt-get -yq update
-    - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install ${PACKAGES}
+    - if [ "$COMPILER" = "clang4" ]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
+    - if [ "$COMPILER" = "clang4" ]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [ "$COMPILER" = "clang5" ]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
+    - if [ "$COMPILER" = "clang5" ]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test" ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-get -yq update ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install ${PACKAGES} ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python3 ; fi
 
 script:
     - python3 make.py -build -test -${COMPILER} -${CONFIG} -${PLATFORM}
