@@ -115,7 +115,12 @@ namespace acl
 				{
 					for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 					{
-						const float error = settings.error_metric->calculate_object_bone_error(skeleton, raw_local_pose, lossy_local_pose, bone_index);
+						float error;
+						if (has_scale)
+							error = settings.error_metric->calculate_object_bone_error(skeleton, raw_local_pose, lossy_local_pose, bone_index);
+						else
+							error = settings.error_metric->calculate_object_bone_error_no_scale(skeleton, raw_local_pose, lossy_local_pose, bone_index);
+
 						writer.push_value(error);
 
 						if (error > worst_bone_error.error)
