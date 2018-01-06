@@ -26,12 +26,12 @@
 
 #include "acl/core/algorithm_types.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
 	// Algorithm version numbers
-	static constexpr uint16_t ALGORITHM_VERSION_UNIFORMLY_SAMPLED		= 0;
+	static constexpr uint16_t ALGORITHM_VERSION_UNIFORMLY_SAMPLED		= 1;
 	//static constexpr uint16_t ALGORITHM_VERSION_LINEAR_KEY_REDUCTION	= 0;
 	//static constexpr uint16_t ALGORITHM_VERSION_SPLINE_KEY_REDUCTION	= 0;
 
