@@ -62,6 +62,7 @@ namespace acl
 	// scale values.
 	class TransformMatrixErrorMetric final : public ISkeletalErrorMetric
 	{
+	public:
 		virtual const char* get_name() const override { return "TransformMatrixErrorMetric"; }
 		virtual uint32_t get_hash() const override { return hash32("TransformMatrixErrorMetric"); }
 
@@ -180,6 +181,7 @@ namespace acl
 	// Note that this can cause inaccuracy when dealing with shear/skew.
 	class TransformErrorMetric final : public ISkeletalErrorMetric
 	{
+	public:
 		virtual const char* get_name() const override { return "TransformErrorMetric"; }
 		virtual uint32_t get_hash() const override { return hash32("TransformErrorMetric"); }
 
