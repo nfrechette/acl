@@ -24,7 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstring>
 #include <type_traits>
 
 namespace acl
@@ -35,11 +36,11 @@ namespace acl
 		class fnv1a_impl final
 		{
 		public:
-			constexpr fnv1a_impl() noexcept
+			constexpr fnv1a_impl()
 				: m_state(OffsetBasis)
 			{}
 
-			void update(const void* data, size_t size) noexcept
+			void update(const void* data, size_t size)
 			{
 				const uint8_t* cdata = static_cast<const uint8_t*>(data);
 				ResultType acc = m_state;
@@ -51,7 +52,7 @@ namespace acl
 				m_state = acc;
 			}
 
-			constexpr ResultType digest() const noexcept { return m_state; }
+			constexpr ResultType digest() const { return m_state; }
 
 		private:
 			static_assert(std::is_unsigned<ResultType>::value, "need unsigned integer");
