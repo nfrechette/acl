@@ -33,13 +33,14 @@
 #include <memory>
 #include <algorithm>
 
-#if defined(__APPLE__)
-#include <cstdlib>
+#if defined(__APPLE__) || defined(__ANDROID__)
+#include <cstdlib>	// For posix_memalign
 #endif
 
 #if defined(__ANDROID__)
 namespace std
 {
+	// Missing function because android uses an older compiler that doesn't support all of C++11
 	template<typename Type>
 	using is_trivially_default_constructible = has_trivial_default_constructor<Type>;
 }
@@ -78,7 +79,7 @@ namespace acl
 		{
 #if defined(_WIN32)
 			return _aligned_malloc(size, alignment);
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(__ANDROID__)
 			void* ptr = nullptr;
 			posix_memalign(&ptr, std::max<size_t>(alignment, sizeof(void*)), size);
 			return ptr;
