@@ -20,6 +20,7 @@ The library aims to support a few core algorithms that will be well suited for p
 
 *  [Carnegie-Mellon University database performance](cmu_performance.md)
 *  [Paragon database performance](paragon_performance.md)
+*  [Matinee fight scene performance](fight_scene_performance.md)
 
 # Research
 

@@ -67,6 +67,7 @@ Decompression is typically very simple and light in order to be fast. Very littl
 
 *  [Carnegie-Mellon University database performance](./docs/cmu_performance.md)
 *  [Paragon database performance](./docs/paragon_performance.md)
+*  [Matinee fight scene performance](./docs/fight_scene_performance.md)
 
 ## MIT License
 
