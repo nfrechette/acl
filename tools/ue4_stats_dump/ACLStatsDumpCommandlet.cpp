@@ -205,6 +205,8 @@ static void calculate_clip_error(acl::Allocator& allocator, const acl::Animation
 	float max_error = 0.0f;
 	float worst_sample_time = 0.0f;
 
+	TransformErrorMetric error_metric;
+
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
 		// Sample our streams and calculate the error
@@ -217,9 +219,9 @@ static void calculate_clip_error(acl::Allocator& allocator, const acl::Animation
 		{
 			float error;
 			if (has_scale)
-				error = calculate_object_bone_error(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+				error = error_metric.calculate_object_bone_error(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
 			else
-				error = calculate_object_bone_error_no_scale(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+				error = error_metric.calculate_object_bone_error_no_scale(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
 
 			if (error > max_error)
 			{
@@ -246,9 +248,12 @@ static void dump_clip_detailed_error(acl::Allocator& allocator, const acl::Anima
 	float clip_duration = acl_clip.get_duration();
 	float sample_rate = float(acl_clip.get_sample_rate());
 	uint32_t num_samples = calculate_num_samples(clip_duration, sample_rate);
+	bool has_scale = ue4_clip_has_scale(ue4_clip);
 
 	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+
+	TransformErrorMetric error_metric;
 
 	writer["error_per_frame_and_bone"] = [&](SJSONArrayWriter& writer)
 	{
@@ -265,7 +270,12 @@ static void dump_clip_detailed_error(acl::Allocator& allocator, const acl::Anima
 			{
 				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 				{
-					float error = calculate_object_bone_error(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+					float error;
+					if (has_scale)
+						error = error_metric.calculate_object_bone_error(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+					else
+						error = error_metric.calculate_object_bone_error_no_scale(acl_skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+
 					writer.push_value(error);
 				}
 			});
@@ -280,7 +290,7 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 {
 	FString acl_raw_dir(TEXT("D:\\test_animations\\carnegie-mellon-acl-raw"));
 	FString ue4_stat_dir(TEXT("D:\\test_animations\\carnegie-mellon-acl-ue4-stats"));
-	const bool exhaustive_dump = false;
+	const bool exhaustive_dump = true;
 	const float master_tolerance = 0.1f;
 
 	FFileManagerGeneric file_manager;
@@ -330,6 +340,12 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 
 			if (success)
 			{
+				TArray<FBoneData> ue4_bone_data;
+				FAnimationUtils::BuildSkeletonMetaData(ue4_skeleton, ue4_bone_data);
+
+				AnimationErrorStats ue4_error_stats;
+				FAnimationUtils::ComputeCompressionError(ue4_clip, ue4_bone_data, ue4_error_stats);
+
 				uint16_t worst_bone;
 				float max_error;
 				float worst_sample_time;
@@ -350,9 +366,13 @@ int32 UACLStatsDumpCommandlet::Main(const FString& Params)
 				writer["compression_time"] = elapsed_time_sec;
 				writer["duration"] = ue4_clip->SequenceLength;
 				writer["num_samples"] = ue4_clip->NumFrames;
-				writer["max_error"] = max_error;
-				writer["worst_bone"] = worst_bone;
-				writer["worst_time"] = worst_sample_time;
+				writer["ue4_max_error"] = ue4_error_stats.MaxError;
+				writer["ue4_avg_error"] = ue4_error_stats.AverageError;
+				writer["ue4_worst_bone"] = ue4_error_stats.MaxErrorBone;
+				writer["ue4_worst_time"] = ue4_error_stats.MaxErrorTime;
+				writer["acl_max_error"] = max_error;
+				writer["acl_worst_bone"] = worst_bone;
+				writer["acl_worst_time"] = worst_sample_time;
 				writer["rotation_format"] = TCHAR_TO_ANSI(*anim_format_enum->GetDisplayNameText(ue4_clip->CompressionScheme->RotationCompressionFormat).ToString());
 				writer["translation_format"] = TCHAR_TO_ANSI(*anim_format_enum->GetDisplayNameText(ue4_clip->CompressionScheme->TranslationCompressionFormat).ToString());
 				writer["scale_format"] = TCHAR_TO_ANSI(*anim_format_enum->GetDisplayNameText(ue4_clip->CompressionScheme->ScaleCompressionFormat).ToString());
