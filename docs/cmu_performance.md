@@ -18,33 +18,32 @@ For ACL and Unreal 4, the error is measured **3cm** away from each bone to simul
 
 # ACL
 
-Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression method, only the best will be tracked here. Every clip uses an error threshold of **0.01cm (0.1mm)**.
+Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression method but only the overall best variant will be tracked here: variable bit rate with range reduction enabled. Every clip uses an error threshold of **0.01cm (0.1mm)**.
 
-*  Compressed size: **67.09 MB**
-*  Compression ratio: **21.31 : 1**
-*  Max error: **0.0587** centimeters (clip 144_32)
-*  Compression time: **01h 23m 51.48s** (single threaded)
-*  Compression time: **00h 09m 21.94s** (multi threaded)
-*  Best rotation format: Quat Drop W Variable
-*  Best translation format: Vector3 Variable
-*  Best range reduction format: Per Clip Rotations & Translations, Per Segment Rotations & Translations
+*  Compressed size: **67.04 MB**
+*  Compression ratio: **21.32 : 1**
+*  Max error: **0.0479** centimeters (clip *81_18*)
+*  Compression time: **00h 51m 40.20s** (single threaded)
+*  Compression time: **00h 13m 04.58s** (multi threaded on 4 cores)
 
 Note that you can compress any number of clips in parallel with multiple threads but each clip uses a single thread for now.
 
-**Results from release [0.5.0](https://github.com/nfrechette/acl/releases/tag/v0.5.0)**
+**Results from release [0.6.0](https://github.com/nfrechette/acl/releases/tag/v0.6.0)**
 
 See [here](cmu_performance_history.md) for a history of performance progress across the various releases.
 
 # Unreal 4
 
-In order to measure statistics in Unreal 4, ACL was integrated along with a small [commandlet](../tools/ue4_stats_dump) to run the necessary compression and decompression logic. Everything uses the default values from the automatic compression settings which performs an exhaustive search of the best compression variant.
+In order to measure statistics in *Unreal 4*, ACL was integrated along with a small [commandlet](../tools/ue4_stats_dump) to run the necessary compression and decompression logic. Everything uses the default values from the automatic compression settings which performs an exhaustive search of the best compression variant. As described [here](http://nfrechette.github.io/2017/01/11/anim_compression_unreal4/), the automatic compression tries many algorithms and settles on the best memory footprint that is also under the desired error threshold. The default error threshold is **1.0cm** but here we used **0.1cm** which is more realistic for production use.
 
-*  Compressed size: **107.94 MB**
-*  Compression ratio: **9.27 : 1**
-*  Max error: **0.0850** centimeters (clip 128_11)
-*  Compression time: **03h 54m 16.43s** (single threaded)
+*  Compressed size: **108.00 MB**
+*  Compression ratio: **13.23 : 1**
+*  Max error: **0.0785** centimeters (clip *88_06*)
+*  Compression time: **02h 51m 20.21s** (single threaded)
 
-Sadly the Unreal 4 compression logic does not *yet* support multi-threading and must be run from the main thread.
+Sadly the *Unreal 4* compression logic does not *yet* support multi-threading and must be run from the main thread.
+
+*Note: Down-sampling variants were causing issues and were disabled in the interest of keeping things fair. This speeds up the compression time considerably but does not affect the compressed size much*
 
 **Results from Unreal 4.15.0**
 
