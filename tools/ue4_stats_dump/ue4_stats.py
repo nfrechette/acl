@@ -38,7 +38,7 @@ def print_usage():
 	print('Usage: python ue4_stats.py -stats=<path to input directory for stats> [-csv_summary] [-csv_error]')
 
 def print_stat(stat):
-	print('Algorithm: {}, Format: [{}, {}], Ratio: {:.2f}, Error: {}'.format(stat['algorithm_name'], stat['rotation_format'], stat['translation_format'], stat['acl_compression_ratio'], stat['max_error']))
+	print('Algorithm: {}, Format: [{}, {}], Ratio: {:.2f}, Error: {}'.format(stat['algorithm_name'], stat['rotation_format'], stat['translation_format'], stat['acl_compression_ratio'], stat['acl_max_error']))
 	print('')
 
 def bytes_to_mb(size_in_bytes):
@@ -60,7 +60,7 @@ def output_csv_summary(stat_dir, stats):
 	print('Algorithm Name, Raw Size, Compressed Size, Compression Ratio, Clip Duration, Max Error', file = file)
 	for stat in stats:
 		clean_name = sanitize_csv_entry(stat['desc'])
-		print('{}, {}, {}, {}, {}, {}'.format(clean_name, stat['acl_raw_size'], stat['compressed_size'], stat['acl_compression_ratio'], stat['duration'], stat['max_error']), file = file)
+		print('{}, {}, {}, {}, {}, {}'.format(clean_name, stat['acl_raw_size'], stat['compressed_size'], stat['acl_compression_ratio'], stat['duration'], stat['acl_max_error']), file = file)
 	file.close()
 
 def output_csv_error(stat_dir, stats):
@@ -178,13 +178,13 @@ if __name__ == "__main__":
 		run_stats['total_raw_size'] += stat['acl_raw_size']
 		run_stats['total_compressed_size'] += stat['compressed_size']
 		run_stats['total_compression_time'] += stat['compression_time']
-		run_stats['max_error'] = max(stat['max_error'], run_stats['max_error'])
+		run_stats['max_error'] = max(stat['acl_max_error'], run_stats['max_error'])
 		run_stats['num_runs'] += 1
 
 		total_run_types['total_raw_size'] += stat['acl_raw_size']
 		total_run_types['total_compressed_size'] += stat['compressed_size']
 		total_run_types['total_compression_time'] += stat['compression_time']
-		total_run_types['max_error'] = max(stat['max_error'], total_run_types['max_error'])
+		total_run_types['max_error'] = max(stat['acl_max_error'], total_run_types['max_error'])
 		total_run_types['num_runs'] += 1
 
 	run_types_by_size = sorted(run_types.values(), key = lambda entry: entry['total_compressed_size'])
@@ -208,12 +208,12 @@ if __name__ == "__main__":
 	worst_ratio = 100000000.0
 	worst_ratio_entry = None
 	for stat in stats:
-		if stat['max_error'] < best_error:
-			best_error = stat['max_error']
+		if stat['acl_max_error'] < best_error:
+			best_error = stat['acl_max_error']
 			best_error_entry = stat
 
-		if stat['max_error'] > worst_error:
-			worst_error = stat['max_error']
+		if stat['acl_max_error'] > worst_error:
+			worst_error = stat['acl_max_error']
 			worst_error_entry = stat
 
 		if stat['acl_compression_ratio'] > best_ratio:
