@@ -1,5 +1,15 @@
 # Significant changes per release
 
+## 0.6.0
+
+*  Hooked up continuous build integration
+*  Added support for VS2017 on Windows
+*  Added support for GCC5, Clang4, and Clang5 on Linux
+*  Added support for Xcode 8.3 and Xcode 9.2 on OS X
+*  Added support for x86 on Windows, Linux, and OS X
+*  Better handle scale with built in error metrics
+*  Many more improvements and fixes
+
 ## 0.5.0
 
 *  Added support for 3D scale
