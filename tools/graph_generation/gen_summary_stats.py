@@ -25,8 +25,13 @@ if __name__ == "__main__":
 	with open(input_sjson_file, 'r') as file:
 		input_sjson_data = sjson.loads(file.read())
 
-	input_data_type_def = { 'names': ('algorithm_names', 'raw_sizes', 'compression_ratios', 'durations', 'max_errors'), 'formats': ('S128', 'f4', 'f4', 'f4', 'f4') }
-	columns_to_extract_acl = (0, 1, 3, 5, 7)
+	input_data_type_def = {
+		'names': ('algorithm_names', 'raw_sizes', 'compression_ratios', 'durations', 'max_errors'),
+		'formats': ('S128', 'f4', 'f4', 'f4', 'f4')
+	}
+
+	columns_to_extract_acl_pre_v06 = (0, 1, 3, 5, 7)
+	columns_to_extract_acl_post_v06 = (1, 2, 4, 6, 8)
 	columns_to_extract_ue4 = (0, 1, 3, 4, 5)
 
 	output_csv_file_path_ratios = 'D:\\acl-dev\\tools\\graph_generation\\compression_ratios.csv'
@@ -45,14 +50,22 @@ if __name__ == "__main__":
 	output_csv_headers = []
 
 	for entry in input_sjson_data['inputs']:
-		if 'filter' in entry and entry['filter'] != None:
-			columns_to_extract = columns_to_extract_acl
+		if entry['version'] >= 0.6:
+			if entry['source'] == 'acl':
+				columns_to_extract = columns_to_extract_acl_post_v06
+			else:
+				columns_to_extract = columns_to_extract_ue4
 		else:
-			columns_to_extract = columns_to_extract_ue4
+			if entry['source'] == 'acl':
+				columns_to_extract = columns_to_extract_acl_pre_v06
+			else:
+				columns_to_extract = columns_to_extract_ue4
 
+		print('Parsing {} ...'.format(entry['header']))
 		csv_data = numpy.loadtxt(entry['file'], delimiter=',', dtype=input_data_type_def, skiprows=1, usecols=columns_to_extract)
 
-		if 'filter' in entry and entry['filter'] != None:
+		filter = entry.get('filter', None)
+		if filter != None:
 			best_variable_data_mask = csv_data['algorithm_names'] == bytes(entry['filter'], encoding = 'utf-8')
 			csv_data = csv_data[best_variable_data_mask]
 

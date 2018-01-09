@@ -39,9 +39,11 @@ if __name__ == "__main__":
 	output_csv_data.append(['0', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '32'])
 
 	for entry in input_sjson_data['inputs']:
+		print('Parsing {} ...'.format(entry['header']))
 		csv_data = numpy.loadtxt(entry['file'], delimiter=',', dtype=input_data_type_def, skiprows=1, usecols=columns_to_extract)
 
-		if 'filter' in entry and entry['filter'] != None:
+		filter = entry.get('filter', None)
+		if filter != None:
 			best_variable_data_mask = csv_data['algorithm_names'] == bytes(entry['filter'], encoding = 'utf-8')
 			csv_data = csv_data[best_variable_data_mask]
 
