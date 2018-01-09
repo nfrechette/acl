@@ -1,25 +1,22 @@
 inputs =
 [
 	{
-		header = "ACL v0.4 @ 0.01cm"
-		file = "D:\\test_animations\\carnegie-mellon-acl-stats-0.4.0-summary-fixed-ratio\\stats_summary.csv"
-		filter = "Quat Drop W Variable Vector3 Variable Clip RR:Rot|Trans Segment RR:Rot|Trans"
+		header = "ACL v0.6 @ 0.01cm"
+		file = "D:\\test_animations\\carnegie-mellon-acl-stats-0.6.0-summary\\stats_summary.csv"
+		version = 0.6
+		source = "acl"
 	}
 	{
 		header = "ACL v0.5 @ 0.01cm"
 		file = "D:\\test_animations\\carnegie-mellon-acl-stats-0.5.0-summary\\stats_summary.csv"
 		filter = "R:QuatNoWVar|T:Vec3Var|S:Vec3Var Clip RR:Rot|Trans|Scale Segment RR:Rot|Trans|Scale"
-	}
-	{
-		header = "UE 4.15 @ 0.01cm"
-		file = "D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.4.0-0.01-fixed-ratio\\stats_summary.csv"
+		version = 0.5
+		source = "acl"
 	}
 	{
 		header = "UE 4.15 @ 0.1cm"
-		file = "D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.4.0-0.1-fixed-ratio\\stats_summary.csv"
-	}
-	{
-		header = "UE 4.15 @ 1.0cm"
-		file = "D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.4.0-1.0-fixed-ratio\\stats_summary.csv"
+		file = "D:\\test_animations\\carnegie-mellon-ue4-4.15-stats-0.6.0-0.1\\stats_summary.csv"
+		version = 0.6
+		source = "ue4"
 	}
 ]
