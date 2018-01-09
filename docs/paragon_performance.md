@@ -41,6 +41,8 @@ Notes:
 
 **Results from release [0.6.0](https://github.com/nfrechette/acl/releases/tag/v0.6.0)**
 
+See [here](paragon_performance_history.md) for a history of performance progress across the various releases.
+
 # Unreal 4
 
 In order to measure statistics in *Unreal 4*, ACL was integrated along with a small [commandlet](../tools/ue4_stats_dump) to run the necessary compression and decompression logic. Everything uses the default values from the automatic compression settings which performs an exhaustive search of the best compression variant. As described [here](http://nfrechette.github.io/2017/01/11/anim_compression_unreal4/), the automatic compression tries many algorithms and settles on the best memory footprint that is also under the desired error threshold. The default error threshold is **1.0cm** but here we used **0.1cm** which is more realistic for production use.
