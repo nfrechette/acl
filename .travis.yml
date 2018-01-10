@@ -7,61 +7,25 @@ matrix:
   include:
     # Linux gcc5
     - os: linux
-      env: COMPILER=gcc5 CONFIG=Debug PLATFORM=x86 PACKAGES="g++-5 g++-5-multilib g++-multilib"
-    - os: linux
-      env: COMPILER=gcc5 CONFIG=Debug PLATFORM=x64 PACKAGES="g++-5"
-    - os: linux
-      env: COMPILER=gcc5 CONFIG=Release PLATFORM=x86 PACKAGES="g++-5 g++-5-multilib g++-multilib"
-    - os: linux
-      env: COMPILER=gcc5 CONFIG=Release PLATFORM=x64 PACKAGES="g++-5"
+      env: COMPILER=gcc5 PACKAGES="g++-5 g++-5-multilib g++-multilib"
 
     # Linux clang4
     - os: linux
-      env: COMPILER=clang4 CONFIG=Debug PLATFORM=x86 PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
-    - os: linux
-      env: COMPILER=clang4 CONFIG=Debug PLATFORM=x64 PACKAGES="clang-4.0 libstdc++-5-dev"
-    - os: linux
-      env: COMPILER=clang4 CONFIG=Release PLATFORM=x86 PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
-    - os: linux
-      env: COMPILER=clang4 CONFIG=Release PLATFORM=x64 PACKAGES="clang-4.0 libstdc++-5-dev"
+      env: COMPILER=clang4 PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
 
     # Linux clang5
     - os: linux
-      env: COMPILER=clang5 CONFIG=Debug PLATFORM=x86 PACKAGES="clang-5.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
-    - os: linux
-      env: COMPILER=clang5 CONFIG=Debug PLATFORM=x64 PACKAGES="clang-5.0 libstdc++-5-dev"
-    - os: linux
-      env: COMPILER=clang5 CONFIG=Release PLATFORM=x86 PACKAGES="clang-5.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
-    - os: linux
-      env: COMPILER=clang5 CONFIG=Release PLATFORM=x64 PACKAGES="clang-5.0 libstdc++-5-dev"
+      env: COMPILER=clang5 PACKAGES="clang-5.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
 
     # OS X xcode8
     - os: osx
       osx_image: xcode8.3
-      env: COMPILER=xcode CONFIG=Debug PLATFORM=x86
-    - os: osx
-      osx_image: xcode8.3
-      env: COMPILER=xcode CONFIG=Debug PLATFORM=x64
-    - os: osx
-      osx_image: xcode8.3
-      env: COMPILER=xcode CONFIG=Release PLATFORM=x86
-    - os: osx
-      osx_image: xcode8.3
-      env: COMPILER=xcode CONFIG=Release PLATFORM=x64
+      env: COMPILER=xcode
 
     # OS X xcode9
     - os: osx
       osx_image: xcode9.2
-      env: COMPILER=xcode CONFIG=Debug PLATFORM=x86
-    - os: osx
-      osx_image: xcode9.2
-      env: COMPILER=xcode CONFIG=Debug PLATFORM=x64
-    - os: osx
-      osx_image: xcode9.2
-      env: COMPILER=xcode CONFIG=Release PLATFORM=x86
-    - os: osx
-      osx_image: xcode9.2
-      env: COMPILER=xcode CONFIG=Release PLATFORM=x64
+      env: COMPILER=xcode
 
 before_install:
     - if [ "$COMPILER" = "clang4" ]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
@@ -74,4 +38,7 @@ before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python3 ; fi
 
 script:
-    - python3 make.py -build -test -${COMPILER} -${CONFIG} -${PLATFORM}
+    - python3 make.py -clean -build -test -${COMPILER} -Debug -x86
+    - python3 make.py -clean -build -test -${COMPILER} -Release -x86
+    - python3 make.py -clean -build -test -${COMPILER} -Debug -x64
+    - python3 make.py -clean -build -test -${COMPILER} -Release -x64
