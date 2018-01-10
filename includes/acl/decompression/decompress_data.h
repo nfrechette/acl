@@ -50,7 +50,7 @@ namespace acl
 						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
 
 						context.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
 
@@ -120,7 +120,7 @@ namespace acl
 						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
 
 						context.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
 
@@ -244,7 +244,7 @@ namespace acl
 						uint8_t num_bits_read = num_bits_at_bit_rate * 3;
 
 						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							num_bits_read = align_to(num_bits_read, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							num_bits_read = align_to(num_bits_read, k_mixed_packing_alignment_num_bits);
 
 						context.key_frame_bit_offsets[i] += num_bits_read;
 
@@ -426,7 +426,7 @@ namespace acl
 
 						uint8_t num_bits_read = num_bits_at_bit_rate * 3;
 						if (settings.supports_mixed_packing() && context.has_mixed_packing)
-							num_bits_read = align_to(num_bits_read, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+							num_bits_read = align_to(num_bits_read, k_mixed_packing_alignment_num_bits);
 
 						context.key_frame_bit_offsets[i] += num_bits_read;
 

@@ -52,26 +52,26 @@ namespace acl
 
 	inline void write_detailed_segment_stats(const SegmentContext& segment, SJSONObjectWriter& writer)
 	{
-		uint32_t bit_rate_counts[NUM_BIT_RATES] = {0};
+		uint32_t bit_rate_counts[k_num_bit_rates] = {0};
 
 		for (const BoneStreams& bone_stream : segment.bone_iterator())
 		{
 			const uint8_t rotation_bit_rate = bone_stream.rotations.get_bit_rate();
-			if (rotation_bit_rate != INVALID_BIT_RATE)
+			if (rotation_bit_rate != k_invalid_bit_rate)
 				bit_rate_counts[rotation_bit_rate]++;
 
 			const uint8_t translation_bit_rate = bone_stream.translations.get_bit_rate();
-			if (translation_bit_rate != INVALID_BIT_RATE)
+			if (translation_bit_rate != k_invalid_bit_rate)
 				bit_rate_counts[translation_bit_rate]++;
 
 			const uint8_t scale_bit_rate = bone_stream.scales.get_bit_rate();
-			if (scale_bit_rate != INVALID_BIT_RATE)
+			if (scale_bit_rate != k_invalid_bit_rate)
 				bit_rate_counts[scale_bit_rate]++;
 		}
 
 		writer["bit_rate_counts"] = [&](SJSONArrayWriter& writer)
 		{
-			for (uint8_t bit_rate = 0; bit_rate < NUM_BIT_RATES; ++bit_rate)
+			for (uint8_t bit_rate = 0; bit_rate < k_num_bit_rates; ++bit_rate)
 				writer.push_value(bit_rate_counts[bit_rate]);
 		};
 
@@ -98,7 +98,7 @@ namespace acl
 
 		const float segment_duration = float(segment.num_samples - 1) / sample_rate;
 
-		BoneError worst_bone_error = { INVALID_BONE_INDEX, 0.0f, 0.0f };
+		BoneError worst_bone_error = { k_invalid_bone_index, 0.0f, 0.0f };
 
 		writer["error_per_frame_and_bone"] = [&](SJSONArrayWriter& writer)
 		{
@@ -142,7 +142,7 @@ namespace acl
 		deallocate_type_array(allocator, lossy_local_pose, num_bones);
 	}
 
-	constexpr uint32_t NUM_DECOMPRESSION_TIMING_PASSES = 5;
+	constexpr uint32_t k_num_decompression_timing_passes = 5;
 
 	inline void write_decompression_stats(Allocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
 		void* contexts[], Vector4_32* cache_flush_buffer, Transform_32* lossy_pose_transforms, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
@@ -167,7 +167,7 @@ namespace acl
 
 					double decompression_time = 0;
 
-					for (uint32_t pass_index = 0; pass_index < NUM_DECOMPRESSION_TIMING_PASSES; ++pass_index)
+					for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
 					{
 						void*& context = contexts[pass_index];
 
@@ -209,9 +209,9 @@ namespace acl
 
 	inline void write_decompression_stats(Allocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
-		void* contexts[NUM_DECOMPRESSION_TIMING_PASSES];
+		void* contexts[k_num_decompression_timing_passes];
 
-		for (uint32_t pass_index = 0; pass_index < NUM_DECOMPRESSION_TIMING_PASSES; ++pass_index)
+		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
 			contexts[pass_index] = allocate_context(allocator);
 
 		Vector4_32* cache_flush_buffer = allocate_cache_flush_buffer(allocator);
@@ -226,7 +226,7 @@ namespace acl
 			write_decompression_stats(allocator, clip, stats, writer, "initial_seek", true, true, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
 		};
 
-		for (uint32_t pass_index = 0; pass_index < NUM_DECOMPRESSION_TIMING_PASSES; ++pass_index)
+		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
 			deallocate_context(allocator, contexts[pass_index]);
 
 		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);

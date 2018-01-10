@@ -28,7 +28,7 @@
 #include "acl/core/bitset.h"
 #include "acl/compression/stream/clip_context.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {

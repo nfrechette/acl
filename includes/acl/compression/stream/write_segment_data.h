@@ -32,7 +32,7 @@
 #include "acl/compression/stream/write_range_data.h"
 #include "acl/compression/stream/write_stream_data.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {

@@ -318,7 +318,7 @@ namespace acl
 		Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
-		BoneError bone_error = { INVALID_BONE_INDEX, 0.0f, 0.0f };
+		BoneError bone_error = { k_invalid_bone_index, 0.0f, 0.0f };
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{

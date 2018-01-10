@@ -532,7 +532,7 @@ namespace acl
 			{
 				const BoneBitRate bone_bit_rates = context.bit_rate_per_bone[bone_index];
 
-				if (bone_bit_rates.rotation == INVALID_BIT_RATE && bone_bit_rates.translation == INVALID_BIT_RATE && bone_bit_rates.scale == INVALID_BIT_RATE)
+				if (bone_bit_rates.rotation == k_invalid_bit_rate && bone_bit_rates.translation == k_invalid_bit_rate && bone_bit_rates.scale == k_invalid_bit_rate)
 				{
 #if ACL_DEBUG_VARIABLE_QUANTIZATION
 					printf("%u: Best bit rates: %u | %u | %u\n", bone_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale);
@@ -540,11 +540,11 @@ namespace acl
 					continue;
 				}
 
-				BoneBitRate best_bit_rates = BoneBitRate{ std::max<uint8_t>(bone_bit_rates.rotation, HIGHEST_BIT_RATE), std::max<uint8_t>(bone_bit_rates.translation, HIGHEST_BIT_RATE), std::max<uint8_t>(bone_bit_rates.scale, HIGHEST_BIT_RATE) };
+				BoneBitRate best_bit_rates = BoneBitRate{ std::max<uint8_t>(bone_bit_rates.rotation, k_highest_bit_rate), std::max<uint8_t>(bone_bit_rates.translation, k_highest_bit_rate), std::max<uint8_t>(bone_bit_rates.scale, k_highest_bit_rate) };
 				uint8_t best_size = 0xFF;
 				float best_error = context.error_threshold;
 
-				uint8_t num_iterations = NUM_BIT_RATES - 1;
+				uint8_t num_iterations = k_num_bit_rates - 1;
 				for (uint8_t iteration = 1; iteration <= num_iterations; ++iteration)
 				{
 					uint8_t target_sum = 3 * iteration;
@@ -561,7 +561,7 @@ namespace acl
 								uint8_t current_sum = rotation_increment * 3 + translation_increment * 3 + scale_increment * 3;
 								if (current_sum != target_sum)
 								{
-									if (scale_bit_rate >= HIGHEST_BIT_RATE)
+									if (scale_bit_rate >= k_highest_bit_rate)
 										break;
 									else
 										continue;
@@ -583,15 +583,15 @@ namespace acl
 
 								context.bit_rate_per_bone[bone_index] = bone_bit_rates;
 
-								if (scale_bit_rate >= HIGHEST_BIT_RATE)
+								if (scale_bit_rate >= k_highest_bit_rate)
 									break;
 							}
 
-							if (translation_bit_rate >= HIGHEST_BIT_RATE)
+							if (translation_bit_rate >= k_highest_bit_rate)
 								break;
 						}
 
-						if (rotation_bit_rate >= HIGHEST_BIT_RATE)
+						if (rotation_bit_rate >= k_highest_bit_rate)
 							break;
 					}
 
@@ -617,7 +617,7 @@ namespace acl
 									uint8_t current_sum = rotation_increment * 3 + translation_increment * 3 + scale_increment * 3;
 									if (current_sum != target_sum)
 									{
-										if (scale_bit_rate >= HIGHEST_BIT_RATE)
+										if (scale_bit_rate >= k_highest_bit_rate)
 											break;
 										else
 											continue;
@@ -639,15 +639,15 @@ namespace acl
 
 									context.bit_rate_per_bone[bone_index] = bone_bit_rates;
 
-									if (scale_bit_rate >= HIGHEST_BIT_RATE)
+									if (scale_bit_rate >= k_highest_bit_rate)
 										break;
 								}
 
-								if (translation_bit_rate >= HIGHEST_BIT_RATE)
+								if (translation_bit_rate >= k_highest_bit_rate)
 									break;
 							}
 
-							if (rotation_bit_rate >= HIGHEST_BIT_RATE)
+							if (rotation_bit_rate >= k_highest_bit_rate)
 								break;
 						}
 
@@ -665,7 +665,7 @@ namespace acl
 
 		constexpr uint8_t increment_and_clamp_bit_rate(uint8_t bit_rate, uint8_t increment)
 		{
-			return bit_rate >= HIGHEST_BIT_RATE ? bit_rate : std::min<uint8_t>(bit_rate + increment, HIGHEST_BIT_RATE);
+			return bit_rate >= k_highest_bit_rate ? bit_rate : std::min<uint8_t>(bit_rate + increment, k_highest_bit_rate);
 		}
 
 		inline float increase_bone_bit_rate(QuantizationContext& context, uint16_t bone_index, uint8_t num_increments, float old_error, BoneBitRate& out_best_bit_rates)
@@ -690,7 +690,7 @@ namespace acl
 
 						if (rotation_increment + translation_increment + scale_increment != num_increments)
 						{
-							if (scale_bit_rate >= HIGHEST_BIT_RATE)
+							if (scale_bit_rate >= k_highest_bit_rate)
 								break;
 							else
 								continue;
@@ -707,15 +707,15 @@ namespace acl
 
 						context.bit_rate_per_bone[bone_index] = bone_bit_rates;
 
-						if (scale_bit_rate >= HIGHEST_BIT_RATE)
+						if (scale_bit_rate >= k_highest_bit_rate)
 							break;
 					}
 
-					if (translation_bit_rate >= HIGHEST_BIT_RATE)
+					if (translation_bit_rate >= k_highest_bit_rate)
 						break;
 				}
 
-				if (rotation_bit_rate >= HIGHEST_BIT_RATE)
+				if (rotation_bit_rate >= k_highest_bit_rate)
 					break;
 			}
 
@@ -793,21 +793,21 @@ namespace acl
 
 				const bool rotation_supports_constant_tracks = segment.are_rotations_normalized;
 				if (is_rotation_variable && segment.bone_streams[bone_index].is_rotation_animated())
-					bone_bit_rate.rotation = rotation_supports_constant_tracks ? 0 : LOWEST_BIT_RATE;
+					bone_bit_rate.rotation = rotation_supports_constant_tracks ? 0 : k_lowest_bit_rate;
 				else
-					bone_bit_rate.rotation = INVALID_BIT_RATE;
+					bone_bit_rate.rotation = k_invalid_bit_rate;
 
 				const bool translation_supports_constant_tracks = segment.are_translations_normalized;
 				if (is_translation_variable && segment.bone_streams[bone_index].is_translation_animated())
-					bone_bit_rate.translation = translation_supports_constant_tracks ? 0 : LOWEST_BIT_RATE;
+					bone_bit_rate.translation = translation_supports_constant_tracks ? 0 : k_lowest_bit_rate;
 				else
-					bone_bit_rate.translation = INVALID_BIT_RATE;
+					bone_bit_rate.translation = k_invalid_bit_rate;
 
 				const bool scale_supports_constant_tracks = segment.are_scales_normalized;
 				if (has_scale && is_scale_variable && segment.bone_streams[bone_index].is_scale_animated())
-					bone_bit_rate.scale = scale_supports_constant_tracks ? 0 : LOWEST_BIT_RATE;
+					bone_bit_rate.scale = scale_supports_constant_tracks ? 0 : k_lowest_bit_rate;
 				else
-					bone_bit_rate.scale = INVALID_BIT_RATE;
+					bone_bit_rate.scale = k_invalid_bit_rate;
 			}
 		}
 
@@ -905,7 +905,7 @@ namespace acl
 				if (error < context.error_threshold)
 					continue;
 
-				if (context.bit_rate_per_bone[bone_index].rotation >= HIGHEST_BIT_RATE && context.bit_rate_per_bone[bone_index].translation >= HIGHEST_BIT_RATE && context.bit_rate_per_bone[bone_index].scale >= HIGHEST_BIT_RATE)
+				if (context.bit_rate_per_bone[bone_index].rotation >= k_highest_bit_rate && context.bit_rate_per_bone[bone_index].translation >= k_highest_bit_rate && context.bit_rate_per_bone[bone_index].scale >= k_highest_bit_rate)
 				{
 					// Our bone already has the highest precision possible locally, if the local error already exceeds our threshold,
 					// there is nothing we can do, bail out
@@ -1088,7 +1088,7 @@ namespace acl
 							static_assert(offsetof(BoneBitRate, rotation) == 0 && offsetof(BoneBitRate, scale) == sizeof(BoneBitRate) - 1, "Invalid BoneBitRate offsets");
 							uint8_t& smallest_bit_rate = *std::min_element<uint8_t*>(&bone_bit_rate.rotation, &bone_bit_rate.scale + 1);
 
-							if (smallest_bit_rate >= HIGHEST_BIT_RATE)
+							if (smallest_bit_rate >= k_highest_bit_rate)
 							{
 								num_maxed_out++;
 								break;
@@ -1097,12 +1097,12 @@ namespace acl
 							// If rotation == translation and translation has room, bias translation
 							// This seems to yield an overall tiny win but it isn't always the case.
 							// TODO: Brute force this?
-							if (bone_bit_rate.rotation == bone_bit_rate.translation && bone_bit_rate.translation < HIGHEST_BIT_RATE && bone_bit_rate.scale >= HIGHEST_BIT_RATE)
+							if (bone_bit_rate.rotation == bone_bit_rate.translation && bone_bit_rate.translation < k_highest_bit_rate && bone_bit_rate.scale >= k_highest_bit_rate)
 								bone_bit_rate.translation++;
 							else
 								smallest_bit_rate++;
 
-							ACL_ENSURE((bone_bit_rate.rotation <= HIGHEST_BIT_RATE || bone_bit_rate.rotation == INVALID_BIT_RATE) && (bone_bit_rate.translation <= HIGHEST_BIT_RATE || bone_bit_rate.translation == INVALID_BIT_RATE) && (bone_bit_rate.scale <= HIGHEST_BIT_RATE || bone_bit_rate.scale == INVALID_BIT_RATE), "Invalid bit rate! [%u, %u, %u]", bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale);
+							ACL_ENSURE((bone_bit_rate.rotation <= k_highest_bit_rate || bone_bit_rate.rotation == k_invalid_bit_rate) && (bone_bit_rate.translation <= k_highest_bit_rate || bone_bit_rate.translation == k_invalid_bit_rate) && (bone_bit_rate.scale <= k_highest_bit_rate || bone_bit_rate.scale == k_invalid_bit_rate), "Invalid bit rate! [%u, %u, %u]", bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale);
 
 							error = calculate_max_error_at_bit_rate(context, bone_index, false, true);
 

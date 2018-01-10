@@ -67,7 +67,7 @@ namespace acl
 	class Allocator
 	{
 	public:
-		static constexpr size_t DEFAULT_ALIGNMENT = 16;
+		static constexpr size_t k_default_alignment = 16;
 
 		Allocator() {}
 		virtual ~Allocator() {}
@@ -75,7 +75,7 @@ namespace acl
 		Allocator(const Allocator&) = delete;
 		Allocator& operator=(const Allocator&) = delete;
 
-		virtual void* allocate(size_t size, size_t alignment = DEFAULT_ALIGNMENT)
+		virtual void* allocate(size_t size, size_t alignment = k_default_alignment)
 		{
 #if defined(_WIN32)
 			return _aligned_malloc(size, alignment);

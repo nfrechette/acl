@@ -106,7 +106,7 @@ namespace acl
 		{
 			if (!m_parser.object_begins("clip"))
 				goto error;
-			
+
 			if (!m_parser.read("name", m_clip_name))
 				goto error;
 
@@ -224,18 +224,18 @@ namespace acl
 				StringView parent;
 				if (!m_parser.read("parent", parent))
 					goto error;
-				
+
 				if (!counting)
 				{
 					if (parent.get_length() == 0)
 					{
 						// This is the root bone.
-						bone.parent_index = INVALID_BONE_INDEX;
+						bone.parent_index = k_invalid_bone_index;
 					}
 					else
 					{
 						bone.parent_index = find_bone(bones, num_bones, parent);
-						if (bone.parent_index == INVALID_BONE_INDEX)
+						if (bone.parent_index == k_invalid_bone_index)
 						{
 							set_error(ClipReaderError::NoParentBoneWithThatName);
 							return false;
@@ -296,7 +296,7 @@ namespace acl
 					return i;
 			}
 
-			return INVALID_BONE_INDEX;
+			return k_invalid_bone_index;
 		}
 
 		bool create_clip(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
@@ -320,7 +320,7 @@ namespace acl
 					goto error;
 
 				uint16_t bone_index = find_bone(skeleton.get_bones(), skeleton.get_num_bones(), name);
-				if (bone_index == INVALID_BONE_INDEX)
+				if (bone_index == k_invalid_bone_index)
 				{
 					set_error(ClipReaderError::NoBoneWithThatName);
 					return false;

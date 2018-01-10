@@ -34,7 +34,7 @@
 
 namespace acl
 {
-	static constexpr uint16_t INVALID_BONE_INDEX = 0xFFFF;
+	constexpr uint16_t k_invalid_bone_index = 0xFFFF;
 
 	namespace impl
 	{
@@ -107,7 +107,7 @@ namespace acl
 			, bone_chain(nullptr)
 			, bind_transform(transform_identity_64())
 			, vertex_distance(1.0)
-			, parent_index(INVALID_BONE_INDEX)
+			, parent_index(k_invalid_bone_index)
 		{
 		}
 
@@ -132,7 +132,7 @@ namespace acl
 			return *this;
 		}
 
-		bool is_root() const { return parent_index == INVALID_BONE_INDEX; }
+		bool is_root() const { return parent_index == k_invalid_bone_index; }
 
 		String			name;
 
@@ -164,7 +164,7 @@ namespace acl
 			{
 				RigidBone& bone = bones[bone_index];
 
-				const bool is_root = bone.parent_index == INVALID_BONE_INDEX;
+				const bool is_root = bone.parent_index == k_invalid_bone_index;
 
 				ACL_ENSURE(bone.bone_chain == nullptr, "Bone chain should be calculated internally");
 				ACL_ENSURE(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
@@ -198,7 +198,7 @@ namespace acl
 				bitset_reset(bone_chain, bone_chain_size, false);
 
 				uint16_t chain_bone_index = bone_index;
-				while (chain_bone_index != INVALID_BONE_INDEX)
+				while (chain_bone_index != k_invalid_bone_index)
 				{
 					bitset_set(bone_chain, bone_chain_size, chain_bone_index, true);
 

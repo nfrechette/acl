@@ -32,14 +32,14 @@
 namespace acl
 {
 	// TODO: get an official L3 cache size
-	constexpr size_t CACHE_FLUSH_BUFFER_BYTES = 20 * 1024 * 1024;
+	constexpr size_t k_cache_flush_buffer_size = 20 * 1024 * 1024;
 
-	inline Vector4_32* allocate_cache_flush_buffer(Allocator& allocator) { return allocate_type_array<Vector4_32>(allocator, CACHE_FLUSH_BUFFER_BYTES / sizeof(Vector4_32)); }
-	inline void deallocate_cache_flush_buffer(Allocator& allocator, Vector4_32* buffer) { deallocate_type_array(allocator, buffer, CACHE_FLUSH_BUFFER_BYTES / sizeof(Vector4_32)); }
+	inline Vector4_32* allocate_cache_flush_buffer(Allocator& allocator) { return allocate_type_array<Vector4_32>(allocator, k_cache_flush_buffer_size / sizeof(Vector4_32)); }
+	inline void deallocate_cache_flush_buffer(Allocator& allocator, Vector4_32* buffer) { deallocate_type_array(allocator, buffer, k_cache_flush_buffer_size / sizeof(Vector4_32)); }
 
 	inline void flush_cache(Vector4_32* buffer)
 	{
-		for (size_t i = 0; i < CACHE_FLUSH_BUFFER_BYTES / sizeof(Vector4_32); ++i)
+		for (size_t i = 0; i < k_cache_flush_buffer_size / sizeof(Vector4_32); ++i)
 			buffer[i] = vector_add(buffer[i], vector_set(1.0f));
 	}
 }

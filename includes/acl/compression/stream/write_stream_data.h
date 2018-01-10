@@ -32,7 +32,7 @@
 #include "acl/math/vector4_32.h"
 #include "acl/compression/stream/clip_context.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
@@ -63,7 +63,7 @@ namespace acl
 		const uint8_t bit_rate = track_stream.get_bit_rate();
 		uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 		if (has_mixed_packing)
-			num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+			num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
 		out_num_animated_data_bits += num_bits_at_bit_rate * num_samples;
 		out_num_animated_pose_bits += num_bits_at_bit_rate;
 	}
@@ -220,7 +220,7 @@ namespace acl
 			}
 
 			if (has_mixed_packing)
-				num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, MIXED_PACKING_ALIGNMENT_NUM_BITS);
+				num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
 
 			out_bit_offset += num_bits_at_bit_rate;
 			out_animated_track_data = animated_track_data_begin + (out_bit_offset / 8);

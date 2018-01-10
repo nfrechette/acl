@@ -73,7 +73,7 @@ namespace acl
 		uint32_t get_sample_rate() const { return m_sample_rate; }
 		AnimationTrackType8 get_track_type() const { return m_type; }
 		uint8_t get_bit_rate() const { return m_bit_rate; }
-		bool is_bit_rate_variable() const { return m_bit_rate != INVALID_BIT_RATE; }
+		bool is_bit_rate_variable() const { return m_bit_rate != k_invalid_bit_rate; }
 		float get_duration() const
 		{
 			ACL_ENSURE(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
@@ -167,7 +167,7 @@ namespace acl
 	{
 	public:
 		RotationTrackStream() : TrackStream(AnimationTrackType8::Rotation, TrackFormat8(RotationFormat8::Quat_128)) {}
-		RotationTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, RotationFormat8 format, uint8_t bit_rate = INVALID_BIT_RATE)
+		RotationTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, RotationFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
 			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Rotation, TrackFormat8(format), bit_rate)
 		{}
 		RotationTrackStream(const RotationTrackStream&) = delete;
@@ -196,7 +196,7 @@ namespace acl
 	{
 	public:
 		TranslationTrackStream() : TrackStream(AnimationTrackType8::Translation, TrackFormat8(VectorFormat8::Vector3_96)) {}
-		TranslationTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, VectorFormat8 format, uint8_t bit_rate = INVALID_BIT_RATE)
+		TranslationTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, VectorFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
 			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Translation, TrackFormat8(format), bit_rate)
 		{}
 		TranslationTrackStream(const TranslationTrackStream&) = delete;
@@ -225,7 +225,7 @@ namespace acl
 	{
 	public:
 		ScaleTrackStream() : TrackStream(AnimationTrackType8::Scale, TrackFormat8(VectorFormat8::Vector3_96)) {}
-		ScaleTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, VectorFormat8 format, uint8_t bit_rate = INVALID_BIT_RATE)
+		ScaleTrackStream(Allocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, VectorFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
 			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Scale, TrackFormat8(format), bit_rate)
 		{}
 		ScaleTrackStream(const ScaleTrackStream&) = delete;

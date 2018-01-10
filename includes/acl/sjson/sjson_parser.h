@@ -37,7 +37,7 @@ namespace acl
 	   http://help.autodesk.com/view/Stingray/ENU/?guid=__stingray_help_managing_content_sjson_html
 
 	   This parser is intended to accept only pure SJSON, and it will fail if given a JSON file,
-	   unlike the Autodesk Stingray parser. 
+	   unlike the Autodesk Stingray parser.
 
 	   The following are not yet supported:
 	     - null literals
@@ -76,7 +76,7 @@ namespace acl
 			return true;
 		}
 
-		bool try_array_ends() 
+		bool try_array_ends()
 		{
 			State s = save_state();
 
@@ -148,7 +148,7 @@ namespace acl
 		bool try_read(const char* key, double* values, uint32_t num_elements)
 		{
 			State s = save_state();
-			
+
 			if (!read(key, values, num_elements))
 			{
 				restore_state(s);
@@ -252,7 +252,7 @@ namespace acl
 		void reset_state() { m_state = State(m_input, m_input_length); }
 
 	private:
-		static size_t constexpr MAX_NUMBER_LENGTH = 64;
+		static constexpr size_t k_max_number_length = 64;
 
 		const char* m_input;
 		const size_t m_input_length;
@@ -489,7 +489,7 @@ namespace acl
 					return true;
 				}
 			}
-			
+
 			restore_state(start_of_literal);
 			set_error(SJSONParserError::TrueOrFalseExpected);
 			return false;
@@ -546,12 +546,12 @@ namespace acl
 				while (std::isdigit(m_state.symbol))
 					advance();
 			}
-			
+
 			end_offset = m_state.offset - 1;
 			size_t length = end_offset - start_offset + 1;
 
-			char slice[MAX_NUMBER_LENGTH + 1];
-			if (length >= MAX_NUMBER_LENGTH)
+			char slice[k_max_number_length + 1];
+			if (length >= k_max_number_length)
 			{
 				set_error(SJSONParserError::NumberIsTooLong);
 				return false;

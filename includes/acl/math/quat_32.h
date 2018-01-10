@@ -225,22 +225,22 @@ namespace acl
 
 	inline void quat_to_axis_angle(const Quat_32& input, Vector4_32& out_axis, float& out_angle)
 	{
-		constexpr float EPSILON = 1.0e-8f;
-		constexpr float EPSILON_SQUARED = EPSILON * EPSILON;
+		constexpr float epsilon = 1.0e-8f;
+		constexpr float epsilon_squared = epsilon * epsilon;
 
 		out_angle = acos(quat_get_w(input)) * 2.0f;
 
 		float scale_sq = max(1.0f - quat_get_w(input) * quat_get_w(input), 0.0f);
-		out_axis = scale_sq >= EPSILON_SQUARED ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0f, 0.0f, 0.0f);
+		out_axis = scale_sq >= epsilon_squared ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0f, 0.0f, 0.0f);
 	}
 
 	inline Vector4_32 quat_get_axis(const Quat_32& input)
 	{
-		constexpr float EPSILON = 1.0e-8f;
-		constexpr float EPSILON_SQUARED = EPSILON * EPSILON;
+		constexpr float epsilon = 1.0e-8f;
+		constexpr float epsilon_squared = epsilon * epsilon;
 
 		float scale_sq = max(1.0f - quat_get_w(input) * quat_get_w(input), 0.0f);
-		return scale_sq >= EPSILON_SQUARED ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0f, 0.0f, 0.0f);
+		return scale_sq >= epsilon_squared ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0f, 0.0f, 0.0f);
 	}
 
 	inline float quat_get_angle(const Quat_32& input)

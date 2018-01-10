@@ -26,12 +26,12 @@
 
 #include "acl/core/enum_utils.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
-	static constexpr uint8_t k_segment_range_reduction_num_bits_per_component = 8;
-	static constexpr uint8_t k_segment_range_reduction_num_bytes_per_component = 1;
+	constexpr uint8_t k_segment_range_reduction_num_bits_per_component = 8;
+	constexpr uint8_t k_segment_range_reduction_num_bytes_per_component = 1;
 
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
 	// The range reduction strategy is serialized in the compressed data, if you change a value

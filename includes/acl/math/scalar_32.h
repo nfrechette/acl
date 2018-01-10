@@ -32,7 +32,7 @@
 namespace acl
 {
 	// TODO: Get a higher precision number
-	constexpr float ACL_PI_32 = 3.141592654f;
+	constexpr float k_pi_32 = 3.141592654f;
 
 	inline float floor(float input)
 	{
@@ -140,7 +140,7 @@ namespace acl
 
 	constexpr float deg2rad(float deg)
 	{
-		return (deg / 180.0f) * ACL_PI_32;
+		return (deg / 180.0f) * k_pi_32;
 	}
 
 	inline bool scalar_near_equal(float lhs, float rhs, float threshold)

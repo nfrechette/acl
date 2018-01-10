@@ -63,10 +63,9 @@ namespace acl
 
 		namespace impl
 		{
-			// TODO: Add a platform define or constant for the cache line size
-			static constexpr size_t CONTEXT_ALIGN_AS = 64;
+			constexpr size_t k_cache_line_size = 64;
 
-			struct alignas(CONTEXT_ALIGN_AS) DecompressionContext
+			struct alignas(k_cache_line_size) DecompressionContext
 			{
 				// Read-only data
 				const SegmentHeader* segment_headers;
@@ -89,7 +88,7 @@ namespace acl
 				bool has_mixed_packing;
 
 				// Read-write data
-				alignas(CONTEXT_ALIGN_AS) uint32_t constant_track_offset;
+				alignas(k_cache_line_size) uint32_t constant_track_offset;
 				uint32_t constant_track_data_offset;
 				uint32_t default_track_offset;
 				uint32_t clip_range_data_offset;
@@ -311,8 +310,8 @@ namespace acl
 
 			DecompressionContext* context = allocate_type<DecompressionContext>(allocator);
 
-			ACL_ASSERT(is_aligned_to(&context->segment_headers, CONTEXT_ALIGN_AS), "Read-only decompression context is misaligned");
-			ACL_ASSERT(is_aligned_to(&context->constant_track_offset, CONTEXT_ALIGN_AS), "Read-write decompression context is misaligned");
+			ACL_ASSERT(is_aligned_to(&context->segment_headers, k_cache_line_size), "Read-only decompression context is misaligned");
+			ACL_ASSERT(is_aligned_to(&context->constant_track_offset, k_cache_line_size), "Read-write decompression context is misaligned");
 
 			initialize_context(settings, get_clip_header(clip), *context);
 
@@ -381,7 +380,7 @@ namespace acl
 
 			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
 			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
-			
+
 			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 			{
 				if (bone_index == sample_bone_index)

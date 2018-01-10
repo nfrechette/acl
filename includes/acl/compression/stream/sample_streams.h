@@ -88,7 +88,7 @@ namespace acl
 			case VectorFormat8::Vector3_32:
 				return unpack_vector3_32(11, 11, 10, true, ptr);
 			case VectorFormat8::Vector3_Variable:
-				ACL_ENSURE(bit_rate != INVALID_BIT_RATE, "Invalid bit rate!");
+				ACL_ENSURE(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
 					return unpack_vector3_48(ptr, true);
 				else if (is_pack_72_bit_rate(bit_rate))
@@ -174,19 +174,19 @@ namespace acl
 		if (is_constant_bit_rate(bit_rate))
 		{
 			const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset);
-			rotation = impl::load_rotation_sample(quantized_ptr, RotationFormat8::Quat_128, INVALID_BIT_RATE, are_rotations_normalized);
+			rotation = impl::load_rotation_sample(quantized_ptr, RotationFormat8::Quat_128, k_invalid_bit_rate, are_rotations_normalized);
 			rotation = convert_rotation(rotation, RotationFormat8::Quat_128, format);
 		}
 		else if (is_raw_bit_rate(bit_rate))
 		{
 			const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
-			rotation = impl::load_rotation_sample(quantized_ptr, RotationFormat8::Quat_128, INVALID_BIT_RATE, are_rotations_normalized);
+			rotation = impl::load_rotation_sample(quantized_ptr, RotationFormat8::Quat_128, k_invalid_bit_rate, are_rotations_normalized);
 			rotation = convert_rotation(rotation, RotationFormat8::Quat_128, format);
 		}
 		else
 		{
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
-			rotation = impl::load_rotation_sample(quantized_ptr, format, INVALID_BIT_RATE, are_rotations_normalized);
+			rotation = impl::load_rotation_sample(quantized_ptr, format, k_invalid_bit_rate, are_rotations_normalized);
 		}
 
 		// Pack and unpack at our desired bit rate
@@ -252,7 +252,7 @@ namespace acl
 		const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 		const RotationFormat8 format = bone_steams.rotations.get_rotation_format();
 
-		const Vector4_32 rotation = impl::load_rotation_sample(quantized_ptr, format, INVALID_BIT_RATE, are_rotations_normalized);
+		const Vector4_32 rotation = impl::load_rotation_sample(quantized_ptr, format, k_invalid_bit_rate, are_rotations_normalized);
 
 		// Pack and unpack in our desired format
 		alignas(8) uint8_t raw_data[16] = { 0 };
@@ -354,7 +354,7 @@ namespace acl
 		else
 			quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 
-		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, INVALID_BIT_RATE);
+		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
 		ACL_ENSURE(clip_context->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
@@ -420,7 +420,7 @@ namespace acl
 		const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 		const VectorFormat8 format = bone_steams.translations.get_vector_format();
 
-		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, INVALID_BIT_RATE);
+		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
 		// Pack and unpack in our desired format
 		alignas(8) uint8_t raw_data[16] = { 0 };
@@ -521,7 +521,7 @@ namespace acl
 		else
 			quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
 
-		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, INVALID_BIT_RATE);
+		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
 		ACL_ENSURE(clip_context->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
 
@@ -587,7 +587,7 @@ namespace acl
 		const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
 		const VectorFormat8 format = bone_steams.scales.get_vector_format();
 
-		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, INVALID_BIT_RATE);
+		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
 		// Pack and unpack in our desired format
 		alignas(8) uint8_t raw_data[16] = { 0 };
@@ -716,7 +716,7 @@ namespace acl
 		const Vector4_32 default_scale = vector_set(1.0f);
 
 		uint16_t current_bone_index = bone_index;
-		while (current_bone_index != INVALID_BONE_INDEX)
+		while (current_bone_index != k_invalid_bone_index)
 		{
 			const BoneStreams& bone_stream = bone_streams[current_bone_index];
 
@@ -917,7 +917,7 @@ namespace acl
 		const Vector4_32 default_scale = vector_set(1.0f);
 
 		uint16_t current_bone_index = bone_index;
-		while (current_bone_index != INVALID_BONE_INDEX)
+		while (current_bone_index != k_invalid_bone_index)
 		{
 			const BoneStreams& bone_stream = bone_streams[current_bone_index];
 			const BoneStreams& raw_bone_stream = raw_bone_steams[current_bone_index];
