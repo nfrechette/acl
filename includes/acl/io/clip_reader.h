@@ -160,11 +160,15 @@ namespace acl
 
 			m_parser.restore_state(before_bones);
 
-			std::unique_ptr<RigidBone, Deleter<RigidBone>> bones = make_unique_array<RigidBone>(m_allocator, num_bones);
-			if (!process_each_bone(bones.get(), num_bones))
+			RigidBone* bones = allocate_type_array<RigidBone>(m_allocator, num_bones);
+			if (!process_each_bone(bones, num_bones))
+			{
+				deallocate_type_array(m_allocator, bones, num_bones);
 				return false;
+			}
 
-			skeleton = make_unique<RigidSkeleton>(m_allocator, m_allocator, bones.get(), num_bones);
+			skeleton = make_unique<RigidSkeleton>(m_allocator, m_allocator, bones, num_bones);
+			deallocate_type_array(m_allocator, bones, num_bones);
 
 			return true;
 		}

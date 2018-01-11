@@ -66,20 +66,4 @@ namespace acl
 			allocate_type_aligned<AllocatedType>(allocator, alignment, std::forward<Args>(args)...),
 			Deleter<AllocatedType>(allocator));
 	}
-
-	template<typename AllocatedType, typename... Args>
-	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> make_unique_array(IAllocator& allocator, size_t num_elements, Args&&... args)
-	{
-		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
-			allocate_type_array<AllocatedType>(allocator, num_elements, std::forward<Args>(args)...),
-			Deleter<AllocatedType>(allocator));
-	}
-
-	template<typename AllocatedType, typename... Args>
-	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> make_unique_array_aligned(IAllocator& allocator, size_t num_elements, size_t alignment, Args&&... args)
-	{
-		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
-			allocate_type_array_aligned<AllocatedType>(allocator, num_elements, alignment, std::forward<Args>(args)...),
-			Deleter<AllocatedType>(allocator));
-	}
 }
