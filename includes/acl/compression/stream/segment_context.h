@@ -73,4 +73,10 @@ namespace acl
 
 		constexpr BoneIterator bone_iterator() const { return BoneIterator(bone_streams, num_bones); }
 	};
+
+	inline void destroy_segment_context(IAllocator& allocator, SegmentContext& segment)
+	{
+		deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
+		deallocate_type_array(allocator, segment.ranges, segment.num_bones);
+	}
 }

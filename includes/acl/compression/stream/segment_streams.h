@@ -158,6 +158,7 @@ namespace acl
 		}
 
 		deallocate_type_array(allocator, num_samples_per_segment, original_num_segments);
+		destroy_segment_context(allocator, *clip_segment);
 		deallocate_type_array(allocator, clip_segment, 1);
 	}
 }
