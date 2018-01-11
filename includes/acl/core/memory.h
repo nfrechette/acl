@@ -35,6 +35,9 @@
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Various miscellaneous utilities related to alignment
+
 	constexpr bool is_power_of_two(size_t input)
 	{
 		return input != 0 && (input & (input - 1)) == 0;
@@ -45,11 +48,6 @@ namespace acl
 	{
 		return is_power_of_two(alignment) && alignment >= alignof(Type);
 	}
-
-	template<typename ElementType, size_t num_elements>
-	constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
-
-	//////////////////////////////////////////////////////////////////////////
 
 	template<typename PtrType>
 	constexpr bool is_aligned_to(PtrType* value, size_t alignment)
@@ -74,6 +72,18 @@ namespace acl
 	{
 		return static_cast<IntegralType>((static_cast<size_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
+
+	template<typename ElementType, size_t num_elements>
+	constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
+
+	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>
+	constexpr OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, OffsetType offset)
+	{
+		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Type safe casting
 
 	template<typename DestPtrType, typename SrcPtrType>
 	inline DestPtrType* safe_ptr_cast(SrcPtrType* input)
@@ -121,65 +131,8 @@ namespace acl
 		return memory_impl::safe_static_cast_impl<std::is_enum<SrcType>::value>::template cast<DestIntegralType, SrcType>(input);
 	}
 
-	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>
-	constexpr OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, OffsetType offset)
-	{
-		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
-	}
-
 	//////////////////////////////////////////////////////////////////////////
-
-	struct InvalidPtrOffset {};
-
-	template<typename DataType, typename OffsetType>
-	class PtrOffset
-	{
-	public:
-		constexpr PtrOffset() : m_value(0) {}
-		constexpr PtrOffset(size_t value) : m_value(safe_static_cast<OffsetType>(value)) {}
-		constexpr PtrOffset(InvalidPtrOffset) : m_value(std::numeric_limits<OffsetType>::max()) {}
-
-		template<typename BaseType>
-		constexpr DataType* add_to(BaseType* ptr) const
-		{
-			ACL_ENSURE(is_valid(), "Invalid PtrOffset!");
-			return add_offset_to_ptr<DataType>(ptr, m_value);
-		}
-
-		template<typename BaseType>
-		constexpr const DataType* add_to(const BaseType* ptr) const
-		{
-			ACL_ENSURE(is_valid(), "Invalid PtrOffset!");
-			return add_offset_to_ptr<const DataType>(ptr, m_value);
-		}
-
-		template<typename BaseType>
-		constexpr DataType* safe_add_to(BaseType* ptr) const
-		{
-			return is_valid() ? add_offset_to_ptr<DataType>(ptr, m_value) : nullptr;
-		}
-
-		template<typename BaseType>
-		constexpr const DataType* safe_add_to(const BaseType* ptr) const
-		{
-			return is_valid() ? add_offset_to_ptr<DataType>(ptr, m_value) : nullptr;
-		}
-
-		constexpr operator OffsetType() const { return m_value; }
-
-		constexpr bool is_valid() const { return m_value != std::numeric_limits<OffsetType>::max(); }
-
-	private:
-		OffsetType m_value;
-	};
-
-	template<typename DataType>
-	using PtrOffset16 = PtrOffset<DataType, uint16_t>;
-
-	template<typename DataType>
-	using PtrOffset32 = PtrOffset<DataType, uint32_t>;
-
-	//////////////////////////////////////////////////////////////////////////
+	// Endian and raw memory support
 
 	constexpr uint16_t byte_swap(uint16_t value)
 	{
