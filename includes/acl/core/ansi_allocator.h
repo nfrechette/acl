@@ -33,7 +33,7 @@
 #include <malloc.h>
 #endif
 
-#if defined(ACL_USE_ERROR_CHECKS) && 0
+#if defined(ACL_USE_ERROR_CHECKS)
 #define ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS
 #include <atomic>
 #endif
@@ -63,6 +63,16 @@ namespace acl
 
 		virtual ~ANSIAllocator()
 		{
+#if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
+			if (!m_debug_allocations.empty())
+			{
+				for (const auto& pair : m_debug_allocations)
+				{
+					printf("Live allocation at the allocator destruction: 0x%p (%zu)\n", pair.second.ptr, pair.second.size);
+				}
+			}
+#endif
+
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 			ACL_ENSURE(m_allocation_count == 0, "The number of allocations and deallocations does not match");
 #endif
@@ -90,7 +100,6 @@ namespace acl
 
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
 			m_debug_allocations.insert({ {ptr, AllocationEntry{ptr, size}} });
-			printf("Allocating size: 0x%p (%zu)\n", ptr, size);
 #endif
 
 			return ptr;
@@ -108,7 +117,6 @@ namespace acl
 #endif
 
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
-			printf("Deallocating size: 0x%p (%zu)\n", ptr, size);
 			auto it = m_debug_allocations.find(ptr);
 			ACL_ENSURE(it != m_debug_allocations.end(), "Attempting to deallocate a pointer that isn't allocated");
 			ACL_ENSURE(it->second.size == size, "Allocation and deallocation size do not match");
@@ -117,7 +125,7 @@ namespace acl
 
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 			int32_t old_value = m_allocation_count.fetch_sub(1, std::memory_order_relaxed);
-			ACL_ENSURE(old_value > 1, "The number of allocations and deallocations does not match");
+			ACL_ENSURE(old_value > 0, "The number of allocations and deallocations does not match");
 #endif
 		}
 
