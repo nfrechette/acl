@@ -158,9 +158,13 @@ namespace acl
 	inline void destroy_clip_context(IAllocator& allocator, ClipContext& clip_context)
 	{
 		for (SegmentContext& segment : clip_context.segment_iterator())
+		{
 			deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
+			deallocate_type_array(allocator, segment.ranges, segment.num_bones);
+		}
 
 		deallocate_type_array(allocator, clip_context.segments, clip_context.num_segments);
+		deallocate_type_array(allocator, clip_context.ranges, clip_context.num_bones);
 	}
 
 	constexpr bool segment_context_has_scale(const SegmentContext& segment) { return segment.clip->has_scale; }
