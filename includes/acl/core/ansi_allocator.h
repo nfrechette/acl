@@ -38,6 +38,8 @@
 #include <atomic>
 #endif
 
+// This is used for debugging memory leaks, double frees, etc.
+// It should never be enabled in production!
 //#define ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS
 
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)

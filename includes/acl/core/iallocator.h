@@ -26,6 +26,7 @@
 
 #include "acl/core/error.h"
 
+#include <type_traits>
 #include <cstdint>
 
 #if defined(__ANDROID__)
