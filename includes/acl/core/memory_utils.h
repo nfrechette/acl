@@ -76,12 +76,6 @@ namespace acl
 	template<typename ElementType, size_t num_elements>
 	constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
 
-	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>
-	constexpr OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, OffsetType offset)
-	{
-		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
-	}
-
 	//////////////////////////////////////////////////////////////////////////
 	// Type safe casting
 
@@ -133,6 +127,12 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 	// Endian and raw memory support
+
+	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>
+	constexpr OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, OffsetType offset)
+	{
+		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
+	}
 
 	constexpr uint16_t byte_swap(uint16_t value)
 	{
