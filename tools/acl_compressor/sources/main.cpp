@@ -344,7 +344,7 @@ static int main_impl(int argc, char** argv)
 		bool use_segmenting_options[] = { false, true };
 		StatLogging logging = StatLogging::Summary;
 
-		for (size_t segmenting_option_index = 0; segmenting_option_index < sizeof(use_segmenting_options) / sizeof(use_segmenting_options[0]); ++segmenting_option_index)
+		for (size_t segmenting_option_index = 0; segmenting_option_index < get_array_size(use_segmenting_options); ++segmenting_option_index)
 		{
 			bool use_segmenting = use_segmenting_options[segmenting_option_index];
 
