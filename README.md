@@ -69,6 +69,10 @@ Decompression is typically very simple and light in order to be fast. Very littl
 *  [Paragon database performance](./docs/paragon_performance.md)
 *  [Matinee fight scene performance](./docs/fight_scene_performance.md)
 
-## MIT License
+## License, copyright, and code of conduct
 
+This project uses the [MIT license](LICENSE).
 Copyright (c) 2017 Nicholas Frechette & Animation Compression Library contributors
+
+Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
+
