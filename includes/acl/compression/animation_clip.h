@@ -45,7 +45,7 @@ namespace acl
 	class AnimationClip
 	{
 	public:
-		AnimationClip(Allocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate, const String &name, float error_threshold)
+		AnimationClip(IAllocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate, const String &name, float error_threshold)
 			: m_allocator(allocator)
 			, m_bones()
 			, m_error_threshold(error_threshold)
@@ -134,7 +134,7 @@ namespace acl
 		}
 
 	private:
-		Allocator&				m_allocator;
+		IAllocator&				m_allocator;
 
 		AnimatedBone*			m_bones;
 

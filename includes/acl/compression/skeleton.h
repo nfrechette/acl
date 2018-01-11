@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/bitset.h"
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/string.h"
 #include "acl/math/transform_32.h"
 #include "acl/math/transform_64.h"
@@ -148,7 +148,7 @@ namespace acl
 	class RigidSkeleton
 	{
 	public:
-		RigidSkeleton(Allocator& allocator, RigidBone* bones, uint16_t num_bones)
+		RigidSkeleton(IAllocator& allocator, RigidBone* bones, uint16_t num_bones)
 			: m_allocator(allocator)
 			, m_bones(allocate_type_array<RigidBone>(allocator, num_bones))
 			, m_num_bones(num_bones)
@@ -245,7 +245,7 @@ namespace acl
 		}
 
 	private:
-		Allocator&	m_allocator;
+		IAllocator&	m_allocator;
 		RigidBone*	m_bones;				// Array of RigidBone entries, contains m_num_bones entries
 		uint32_t*	m_leaf_bone_chains;		// Contiguous block of memory for the bone chains, contains m_num_leaf_bones * get_bitset_size(m_num_bones) entries
 

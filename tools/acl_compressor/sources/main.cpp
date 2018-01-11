@@ -22,8 +22,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/range_reduction_types.h"
+#include "acl/core/ansi_allocator.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/io/clip_reader.h"
@@ -202,7 +203,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
-static void unit_test(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
+static void unit_test(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
 {
 #if defined(ACL_USE_ERROR_CHECKS)
 	const uint16_t num_bones = clip.get_num_bones();
@@ -250,7 +251,7 @@ static void unit_test(Allocator& allocator, const AnimationClip& clip, const Rig
 #endif
 }
 
-static void try_algorithm(const Options& options, Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, SJSONArrayWriter* runs_writer)
+static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, SJSONArrayWriter* runs_writer)
 {
 	auto try_algorithm_impl = [&](SJSONObjectWriter* stats_writer)
 	{
@@ -283,7 +284,7 @@ static bool IsDebuggerPresent()
 }
 #endif
 
-static bool read_clip(Allocator& allocator, const char* filename,
+static bool read_clip(IAllocator& allocator, const char* filename,
 					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip,
 					  std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
 {
@@ -330,7 +331,7 @@ static int main_impl(int argc, char** argv)
 	if (!parse_options(argc, argv, options))
 		return -1;
 
-	Allocator allocator;
+	ANSIAllocator allocator;
 	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
 	std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
 

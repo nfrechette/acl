@@ -96,10 +96,10 @@ TEST_CASE("quat math 32", "[math][quat32]")
 			vector_set(-1.0f, 0.0f, 0.0f),
 		};
 
-		for (size_t quat_index = 0; quat_index < (sizeof(test_rotations) / sizeof(Quat_32)); ++quat_index)
+		for (size_t quat_index = 0; quat_index < get_array_size(test_rotations); ++quat_index)
 		{
 			const Quat_32& rotation = test_rotations[quat_index];
-			for (size_t vector_index = 0; vector_index < (sizeof(test_vectors) / sizeof(Vector4_32)); ++vector_index)
+			for (size_t vector_index = 0; vector_index < get_array_size(test_vectors); ++vector_index)
 			{
 				const Vector4_32& vector = test_vectors[vector_index];
 				Vector4_32 result = quat_rotate(rotation, vector);

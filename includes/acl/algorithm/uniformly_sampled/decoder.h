@@ -304,7 +304,7 @@ namespace acl
 		};
 
 		template<class SettingsType>
-		inline void* allocate_decompression_context(Allocator& allocator, const SettingsType& settings, const CompressedClip& clip)
+		inline void* allocate_decompression_context(IAllocator& allocator, const SettingsType& settings, const CompressedClip& clip)
 		{
 			using namespace impl;
 
@@ -318,7 +318,7 @@ namespace acl
 			return context;
 		}
 
-		inline void deallocate_decompression_context(Allocator& allocator, void* opaque_context)
+		inline void deallocate_decompression_context(IAllocator& allocator, void* opaque_context)
 		{
 			using namespace impl;
 

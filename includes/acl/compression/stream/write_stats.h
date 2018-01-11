@@ -85,7 +85,7 @@ namespace acl
 		writer["decomp_touched_cache_lines"] = num_clip_header_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 	}
 
-	inline void write_exhaustive_segment_stats(Allocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const RigidSkeleton& skeleton, const CompressionSettings& settings, SJSONObjectWriter& writer)
+	inline void write_exhaustive_segment_stats(IAllocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const RigidSkeleton& skeleton, const CompressionSettings& settings, SJSONObjectWriter& writer)
 	{
 		const uint16_t num_bones = skeleton.get_num_bones();
 		const bool has_scale = segment_context_has_scale(segment);
@@ -144,7 +144,7 @@ namespace acl
 
 	constexpr uint32_t k_num_decompression_timing_passes = 5;
 
-	inline void write_decompression_stats(Allocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
+	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
 		void* contexts[], Vector4_32* cache_flush_buffer, Transform_32* lossy_pose_transforms, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
 		int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
@@ -207,7 +207,7 @@ namespace acl
 		};
 	}
 
-	inline void write_decompression_stats(Allocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
+	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
 		void* contexts[k_num_decompression_timing_passes];
 
@@ -233,7 +233,7 @@ namespace acl
 		deallocate_cache_flush_buffer(allocator, cache_flush_buffer);
 	}
 
-	inline void write_stats(Allocator& allocator, const AnimationClip& clip, const ClipContext& clip_context, const RigidSkeleton& skeleton,
+	inline void write_stats(IAllocator& allocator, const AnimationClip& clip, const ClipContext& clip_context, const RigidSkeleton& skeleton,
 		const CompressedClip& compressed_clip, const CompressionSettings& settings, const ClipHeader& header, const ClipContext& raw_clip_context, const ScopeProfiler& compression_time,
 		OutputStats& stats, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{

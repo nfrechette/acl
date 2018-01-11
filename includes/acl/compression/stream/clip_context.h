@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/stream/segment_context.h"
@@ -70,7 +70,7 @@ namespace acl
 		constexpr SegmentIterator segment_iterator() const { return SegmentIterator(segments, num_segments); }
 	};
 
-	inline void initialize_clip_context(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, ClipContext& out_clip_context)
+	inline void initialize_clip_context(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, ClipContext& out_clip_context)
 	{
 		uint16_t num_bones = clip.get_num_bones();
 		uint32_t num_samples = clip.get_num_samples();
@@ -155,7 +155,7 @@ namespace acl
 		segment.total_header_size = 0;
 	}
 
-	inline void destroy_clip_context(Allocator& allocator, ClipContext& clip_context)
+	inline void destroy_clip_context(IAllocator& allocator, ClipContext& clip_context)
 	{
 		for (SegmentContext& segment : clip_context.segment_iterator())
 			deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);

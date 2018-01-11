@@ -26,7 +26,7 @@
 
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/skeleton.h"
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/sjson/sjson_writer.h"
 

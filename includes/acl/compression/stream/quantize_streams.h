@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
@@ -49,7 +49,7 @@ namespace acl
 	{
 		struct QuantizationContext
 		{
-			Allocator& allocator;
+			IAllocator& allocator;
 			ClipContext& clip;
 			const ClipContext& raw_clip;
 			SegmentContext& segment;
@@ -75,7 +75,7 @@ namespace acl
 			Transform_32* lossy_local_pose;
 			BoneBitRate* bit_rate_per_bone;
 
-			QuantizationContext(Allocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, SegmentContext& segment_, const CompressionSettings& settings_, const RigidSkeleton& skeleton_)
+			QuantizationContext(IAllocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, SegmentContext& segment_, const CompressionSettings& settings_, const RigidSkeleton& skeleton_)
 				: allocator(allocator_)
 				, clip(clip_)
 				, raw_clip(raw_clip_)
@@ -110,7 +110,7 @@ namespace acl
 			}
 		};
 
-		inline void quantize_fixed_rotation_stream(Allocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_rotation_stream(IAllocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
@@ -236,7 +236,7 @@ namespace acl
 				quantize_variable_rotation_stream(context, raw_bone_stream.rotations, bone_stream.rotations, bone_range, bit_rate, are_rotations_normalized, bone_stream.rotations);
 		}
 
-		inline void quantize_fixed_translation_stream(Allocator& allocator, const TranslationTrackStream& raw_stream, VectorFormat8 translation_format, TranslationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_translation_stream(IAllocator& allocator, const TranslationTrackStream& raw_stream, VectorFormat8 translation_format, TranslationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
@@ -356,7 +356,7 @@ namespace acl
 				quantize_variable_translation_stream(context, raw_bone_stream.translations, bone_stream.translations, bone_range, bit_rate, bone_stream.translations);
 		}
 
-		inline void quantize_fixed_scale_stream(Allocator& allocator, const ScaleTrackStream& raw_stream, VectorFormat8 scale_format, ScaleTrackStream& out_quantized_stream)
+		inline void quantize_fixed_scale_stream(IAllocator& allocator, const ScaleTrackStream& raw_stream, VectorFormat8 scale_format, ScaleTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ENSURE(raw_stream.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", raw_stream.get_sample_size(), sizeof(Vector4_32));
@@ -1159,7 +1159,7 @@ namespace acl
 		}
 	}
 
-	inline void quantize_streams(Allocator& allocator, ClipContext& clip_context, const CompressionSettings& settings, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context)
+	inline void quantize_streams(IAllocator& allocator, ClipContext& clip_context, const CompressionSettings& settings, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context)
 	{
 		const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(settings.translation_format);

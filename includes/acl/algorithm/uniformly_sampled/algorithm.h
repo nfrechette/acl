@@ -52,18 +52,18 @@ namespace acl
 			: m_compression_settings(settings)
 		{}
 
-		virtual CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, OutputStats& stats) override
+		virtual CompressedClip* compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, OutputStats& stats) override
 		{
 			return uniformly_sampled::compress_clip(allocator, clip, skeleton, m_compression_settings, stats);
 		}
 
-		virtual void* allocate_decompression_context(Allocator& allocator, const CompressedClip& clip) override
+		virtual void* allocate_decompression_context(IAllocator& allocator, const CompressedClip& clip) override
 		{
 			uniformly_sampled::DecompressionSettings settings;
 			return uniformly_sampled::allocate_decompression_context(allocator, settings, clip);
 		}
 
-		virtual void deallocate_decompression_context(Allocator& allocator, void* context) override
+		virtual void deallocate_decompression_context(IAllocator& allocator, void* context) override
 		{
 			uniformly_sampled::deallocate_decompression_context(allocator, context);
 		}

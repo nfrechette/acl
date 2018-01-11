@@ -27,19 +27,20 @@
 #include "acl/io/clip_reader_error.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/skeleton.h"
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/string.h"
 #include "acl/core/string_view.h"
+#include "acl/core/unique_ptr.h"
 #include "acl/sjson/sjson_parser.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
 	class ClipReader
 	{
 	public:
-		ClipReader(Allocator& allocator, const char* sjson_input, size_t input_length)
+		ClipReader(IAllocator& allocator, const char* sjson_input, size_t input_length)
 			: m_allocator(allocator)
 			, m_parser(sjson_input, input_length)
 			, m_error()
@@ -68,7 +69,7 @@ namespace acl
 		ClipReaderError get_error() { return m_error; }
 
 	private:
-		Allocator& m_allocator;
+		IAllocator& m_allocator;
 		SJSONParser m_parser;
 		ClipReaderError m_error;
 

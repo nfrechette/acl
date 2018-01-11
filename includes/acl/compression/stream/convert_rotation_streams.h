@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
@@ -53,7 +53,7 @@ namespace acl
 		}
 	}
 
-	inline void convert_rotation_streams(Allocator& allocator, SegmentContext& segment, RotationFormat8 rotation_format)
+	inline void convert_rotation_streams(IAllocator& allocator, SegmentContext& segment, RotationFormat8 rotation_format)
 	{
 		const RotationFormat8 high_precision_format = get_rotation_variant(rotation_format) == RotationVariant8::Quat ? RotationFormat8::Quat_128 : RotationFormat8::QuatDropW_96;
 
@@ -92,7 +92,7 @@ namespace acl
 		}
 	}
 
-	inline void convert_rotation_streams(Allocator& allocator, ClipContext& clip_context, RotationFormat8 rotation_format)
+	inline void convert_rotation_streams(IAllocator& allocator, ClipContext& clip_context, RotationFormat8 rotation_format)
 	{
 		for (SegmentContext& segment : clip_context.segment_iterator())
 			convert_rotation_streams(allocator, segment, rotation_format);

@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/core/bitset.h"
 #include "acl/core/enum_utils.h"
@@ -73,7 +73,7 @@ namespace acl
 	namespace uniformly_sampled
 	{
 		// Encoder entry point
-		inline CompressedClip* compress_clip(Allocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings settings, OutputStats& stats)
+		inline CompressedClip* compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings settings, OutputStats& stats)
 		{
 			using namespace impl;
 
@@ -220,7 +220,7 @@ namespace acl
 			if (stats.logging != StatLogging::None)
 			{
 				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, stats,
-					[&](Allocator& allocator)
+					[&](IAllocator& allocator)
 					{
 						DecompressionSettings settings;
 						return allocate_decompression_context(allocator, settings, *compressed_clip);
@@ -231,7 +231,7 @@ namespace acl
 						DefaultOutputWriter writer(out_transforms, num_transforms);
 						decompress_pose(settings, *compressed_clip, context, sample_time, writer);
 					},
-					[&](Allocator& allocator, void* context)
+					[&](IAllocator& allocator, void* context)
 					{
 						deallocate_decompression_context(allocator, context);
 					});

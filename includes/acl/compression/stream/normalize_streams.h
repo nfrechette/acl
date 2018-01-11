@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/core/enum_utils.h"
 #include "acl/core/track_types.h"
@@ -76,7 +76,7 @@ namespace acl
 		}
 	}
 
-	inline void extract_clip_bone_ranges(Allocator& allocator, ClipContext& clip_context)
+	inline void extract_clip_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
 	{
 		clip_context.ranges = allocate_type_array<BoneRanges>(allocator, clip_context.num_bones);
 
@@ -86,7 +86,7 @@ namespace acl
 		impl::extract_bone_ranges_impl(segment, clip_context.ranges);
 	}
 
-	inline void extract_segment_bone_ranges(Allocator& allocator, ClipContext& clip_context)
+	inline void extract_segment_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
 	{
 		uint8_t buffer[8] = {0};
 		const Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, k_segment_range_reduction_num_bits_per_component));

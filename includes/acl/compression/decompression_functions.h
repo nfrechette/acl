@@ -24,15 +24,15 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
-#include "acl/math/math_types.h"
-
 #include <functional>
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
-	typedef std::function<void*(Allocator& allocator)> AllocateDecompressionContext;
-	typedef std::function<void(Allocator& allocator, void* context)> DeallocateDecompressionContext;
+	class IAllocator;
+	struct Transform_32;
+
+	typedef std::function<void*(IAllocator& allocator)> AllocateDecompressionContext;
+	typedef std::function<void(IAllocator& allocator, void* context)> DeallocateDecompressionContext;
 	typedef std::function<void(void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)> DecompressPose;
 }

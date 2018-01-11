@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/math/vector4_32.h"
 #include "acl/compression/stream/clip_context.h"
@@ -33,7 +33,7 @@
 
 namespace acl
 {
-	inline void compact_constant_streams(Allocator& allocator, ClipContext& clip_context, float rotation_threshold, float translation_threshold, float scale_threshold)
+	inline void compact_constant_streams(IAllocator& allocator, ClipContext& clip_context, float rotation_threshold, float translation_threshold, float scale_threshold)
 	{
 		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];

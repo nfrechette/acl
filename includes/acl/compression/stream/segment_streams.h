@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/stream/clip_context.h"
@@ -33,7 +33,7 @@
 
 namespace acl
 {
-	inline void segment_streams(Allocator& allocator, ClipContext& clip_context, const SegmentingSettings& settings)
+	inline void segment_streams(IAllocator& allocator, ClipContext& clip_context, const SegmentingSettings& settings)
 	{
 		if (!settings.enabled)
 			return;

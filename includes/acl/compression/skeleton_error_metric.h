@@ -27,7 +27,7 @@
 #include "acl/core/compressed_clip.h"
 #include "acl/core/hash.h"
 #include "acl/core/ialgorithm.h"
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/math/affine_matrix_32.h"
 #include "acl/math/affine_matrix_64.h"
 #include "acl/math/transform_32.h"
@@ -303,7 +303,7 @@ namespace acl
 		float sample_time;
 	};
 
-	inline BoneError calculate_compressed_clip_error(Allocator& allocator,
+	inline BoneError calculate_compressed_clip_error(IAllocator& allocator,
 		const AnimationClip& clip, const RigidSkeleton& skeleton,
 		bool has_scale, const ISkeletalErrorMetric& error_metric,
 		AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)

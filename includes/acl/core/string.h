@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/memory.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/string_view.h"
 
 #include <memory>
@@ -36,7 +36,7 @@ namespace acl
 	public:
 		String() : m_allocator(nullptr), m_chars(nullptr) {}
 
-		String(Allocator& allocator, const char* str, size_t len)
+		String(IAllocator& allocator, const char* str, size_t len)
 			: m_allocator(&allocator)
 		{
 			if (len > 0)
@@ -51,15 +51,15 @@ namespace acl
 			}
 		}
 
-		String(Allocator& allocator, const char* str)
+		String(IAllocator& allocator, const char* str)
 			: String(allocator, str, str != nullptr ? std::strlen(str) : 0)
 		{}
 
-		String(Allocator& allocator, const StringView& view)
+		String(IAllocator& allocator, const StringView& view)
 			: String(allocator, view.get_chars(), view.get_length())
 		{}
 
-		String(Allocator& allocator, const String& str)
+		String(IAllocator& allocator, const String& str)
 			: String(allocator, str.c_str(), str.size())
 		{}
 
@@ -90,7 +90,7 @@ namespace acl
 		bool empty() const { return m_chars != nullptr ? (std::strlen(m_chars) == 1) : true; }
 
 	private:
-		Allocator* m_allocator;
+		IAllocator* m_allocator;
 		char* m_chars;
 	};
 }
