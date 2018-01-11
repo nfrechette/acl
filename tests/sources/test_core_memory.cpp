@@ -1,6 +1,6 @@
 #include <catch.hpp>
 
-#include <acl/core/memory.h>
+#include <acl/core/memory_utils.h>
 
 using namespace acl;
 

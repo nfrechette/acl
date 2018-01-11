@@ -26,7 +26,7 @@
 
 #include "acl/core/algorithm_versions.h"
 #include "acl/core/hash.h"
-#include "acl/core/memory.h"
+#include "acl/core/memory_utils.h"
 #include "acl/core/ptr_offset.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_types.h"

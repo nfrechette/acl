@@ -27,7 +27,7 @@
 #include <cstring>
 
 #include "acl/core/error.h"
-#include "acl/core/memory.h"
+#include "acl/core/memory_utils.h"
 #include "acl/math/math.h"
 #include "acl/math/scalar_32.h"
 #include "acl/math/vector4_32.h"
