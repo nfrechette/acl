@@ -27,7 +27,7 @@ Much thought was put into designing the library for it to be as flexible and pow
 
 *  The library consists of 100% C++ header files and is thus easy to integrate in any game engine
 *  [An intermediary clip format](./docs/the_acl_file_format.md) is supported in order to facilitate debugging and bug reporting
-*  All allocations use a [game provided allocator](./includes/acl/core/memory.h)
+*  All allocations use a [game provided allocator](./includes/acl/core/iallocator.h)
 *  All asserts use a [game provided macro](./includes/acl/core/error.h)
 
 ## Supported platforms
