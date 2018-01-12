@@ -45,13 +45,14 @@ TEST_CASE("misc tests", "[core][memory]")
 	struct alignas(8) Tmp
 	{
 		int32_t padding;	// Aligned to 8 bytes
-		int32_t array[8];	// Element 0 is aligned to 4 bytes
+		int32_t value;		// Aligned to 4 bytes
 	};
 	Tmp tmp;
-	REQUIRE(is_aligned_to(&tmp.array[0], 4) == true);
-	REQUIRE(is_aligned_to(&tmp.array[0], 2) == true);
-	REQUIRE(is_aligned_to(&tmp.array[0], 1) == true);
-	REQUIRE(is_aligned_to(&tmp.array[0], 8) == false);
+	REQUIRE(is_aligned_to(&tmp.padding, 8) == true);
+	REQUIRE(is_aligned_to(&tmp.value, 4) == true);
+	REQUIRE(is_aligned_to(&tmp.value, 2) == true);
+	REQUIRE(is_aligned_to(&tmp.value, 1) == true);
+	REQUIRE(is_aligned_to(&tmp.value, 8) == false);
 
 	REQUIRE(is_aligned_to(4, 4) == true);
 	REQUIRE(is_aligned_to(4, 2) == true);
@@ -66,7 +67,8 @@ TEST_CASE("misc tests", "[core][memory]")
 	REQUIRE(is_aligned_to(align_to(8, 4), 4) == true);
 	REQUIRE(align_to(8, 4) == 8);
 
-	REQUIRE(get_array_size(tmp.array) == (sizeof(tmp.array) / sizeof(tmp.array[0])));
+	int32_t array[8];
+	REQUIRE(get_array_size(array) == (sizeof(array) / sizeof(array[0])));
 }
 
 TEST_CASE("raw memory support", "[core][memory]")
