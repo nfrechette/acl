@@ -50,14 +50,16 @@ namespace acl
 	}
 
 	template<typename PtrType>
-	constexpr bool is_aligned_to(PtrType* value, size_t alignment)
+	inline bool is_aligned_to(PtrType* value, size_t alignment)
 	{
+		ACL_ENSURE(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return (reinterpret_cast<uintptr_t>(value) & (alignment - 1)) == 0;
 	}
 
 	template<typename IntegralType>
-	constexpr bool is_aligned_to(IntegralType value, size_t alignment)
+	inline bool is_aligned_to(IntegralType value, size_t alignment)
 	{
+		ACL_ENSURE(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return (static_cast<size_t>(value) & (alignment - 1)) == 0;
 	}
 
@@ -68,8 +70,9 @@ namespace acl
 	}
 
 	template<typename IntegralType>
-	constexpr IntegralType align_to(IntegralType value, size_t alignment)
+	inline IntegralType align_to(IntegralType value, size_t alignment)
 	{
+		ACL_ENSURE(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return static_cast<IntegralType>((static_cast<size_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
