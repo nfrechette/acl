@@ -33,14 +33,17 @@
 #include <malloc.h>
 #endif
 
-#if defined(ACL_USE_ERROR_CHECKS)
+#if defined(ACL_USE_ERROR_CHECKS) && !defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 #define ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS
-#include <atomic>
 #endif
 
 // This is used for debugging memory leaks, double frees, etc.
 // It should never be enabled in production!
 //#define ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS
+
+#if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
+#include <atomic>
+#endif
 
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
 #include <unordered_map>
@@ -128,6 +131,10 @@ namespace acl
 			ACL_ENSURE(old_value > 0, "The number of allocations and deallocations does not match");
 #endif
 		}
+
+#if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
+		int32_t get_allocation_count() const { return m_allocation_count.load(std::memory_order_relaxed); }
+#endif
 
 	private:
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
