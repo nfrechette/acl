@@ -102,10 +102,8 @@ namespace acl
 			// Extract our clip ranges now, we need it for compacting the constant streams
 			extract_clip_bone_ranges(allocator, clip_context);
 
-			// TODO: Expose this, especially the translation threshold depends on the unit scale.
-			// Centimeters VS meters, a different threshold should be used. Perhaps we should pass an
-			// argument to the compression algorithm that states the units used or we should force centimeters
-			compact_constant_streams(allocator, clip_context, 0.00001f, 0.001f, 0.00001f);
+			// Compact and collapse the constant streams
+			compact_constant_streams(allocator, clip_context, settings.constant_rotation_threshold, settings.constant_translation_threshold, settings.constant_scale_threshold);
 
 			uint32_t clip_range_data_size = 0;
 			if (settings.range_reduction != RangeReductionFlags8::None)

@@ -28,8 +28,9 @@
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/compression/skeleton_error_metric.h"
+#include "acl/math/scalar_32.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
@@ -89,6 +90,13 @@ namespace acl
 
 		ISkeletalErrorMetric* error_metric;
 
+		// Constant thresholds are used with the track range:
+		// is_constant = all_less_than(abs(range.max - range.min), threshold)
+		// For translation, this value might depend on the units you use: centimeters VS meters, etc.
+		float constant_rotation_threshold;
+		float constant_translation_threshold;
+		float constant_scale_threshold;
+
 		CompressionSettings()
 			: rotation_format(RotationFormat8::Quat_128)
 			, translation_format(VectorFormat8::Vector3_96)
@@ -96,6 +104,9 @@ namespace acl
 			, range_reduction(RangeReductionFlags8::None)
 			, segmenting()
 			, error_metric(nullptr)
+			, constant_rotation_threshold(0.00001f)
+			, constant_translation_threshold(0.001f)
+			, constant_scale_threshold(0.00001f)
 		{}
 
 		uint32_t hash() const
@@ -111,6 +122,10 @@ namespace acl
 
 			if (error_metric != nullptr)
 				hash_value = hash_combine(hash_value, error_metric->get_hash());
+
+			hash_value = hash_combine(hash_value, hash32(constant_rotation_threshold));
+			hash_value = hash_combine(hash_value, hash32(constant_translation_threshold));
+			hash_value = hash_combine(hash_value, hash32(constant_scale_threshold));
 
 			return hash_value;
 		}
@@ -141,6 +156,15 @@ namespace acl
 
 			if (error_metric == nullptr)
 				return "error_metric cannot be NULL";
+
+			if (constant_rotation_threshold < 0.0f || !is_finite(constant_rotation_threshold))
+				return "Invalid constant_rotation_threshold";
+
+			if (constant_translation_threshold < 0.0f || !is_finite(constant_translation_threshold))
+				return "Invalid constant_translation_threshold";
+
+			if (constant_scale_threshold < 0.0f || !is_finite(constant_scale_threshold))
+				return "Invalid constant_scale_threshold";
 
 			return segmenting.get_error();
 		}
