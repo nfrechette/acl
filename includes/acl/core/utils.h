@@ -28,7 +28,7 @@
 #include "acl/math/scalar_32.h"
 #include "acl/math/scalar_64.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <algorithm>
 
 namespace acl
