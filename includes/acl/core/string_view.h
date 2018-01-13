@@ -34,9 +34,13 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// A StringView is just a pointer to a string and an associated length.
 	// It does NOT own the memory and no allocation or deallocation ever takes place.
-	// An empty StringView() is equal to a StringView("") or the empty string.
+	// An empty StringView() is equal to a StringView("") of the empty string.
 	// It is not legal to create a StringView that contains multiple NULL terminators
 	// and if you do so, the behavior is undefined.
+	//
+	// Two different StringViews are equal if the strings pointed to are equal.
+	// They do not need to be pointing to the same physical string.
+	// StringView("this") == StringView("this is fun", 4)
 	//
 	// The string pointed to is immutable.
 	//////////////////////////////////////////////////////////////////////////
@@ -52,7 +56,7 @@ namespace acl
 			: m_c_str(c_str)
 			, m_length(length)
 		{
-#if defined(ACL_USE_ERROR_CHECKS)
+#if defined(ACL_USE_ERROR_CHECKS) && !defined(NDEBUG)
 			for (size_t i = 0; i < length; ++i)
 				ACL_ENSURE(c_str[i] != '\0', "StringView cannot contain NULL terminators");
 #endif
