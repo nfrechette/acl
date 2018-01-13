@@ -2,32 +2,59 @@
 
 #include "acl/core/error.h"
 
+#include <cstdint>
+
 namespace acl
 {
-	constexpr uint32_t get_bitset_size(uint32_t num_bits)
+	// A bit set description holds the required information to ensure type and memory safety
+	// with the various bit set functions.
+	class BitSetDescription
 	{
-		return (num_bits + 32 - 1) / 32;
-	}
+	public:
+		constexpr BitSetDescription() : m_size(0) {}
 
-	constexpr uint32_t get_bitset_num_bits(uint32_t size)
+		template<uint32_t num_bits>
+		static constexpr BitSetDescription make_from_num_bits()
+		{
+			static_assert(num_bits == int32_t(num_bits), "Number of bits exceeds the maximum number allowed");
+			return BitSetDescription((num_bits + 32 - 1) / 32);
+		}
+
+		inline static BitSetDescription make_from_num_bits(int32_t num_bits)
+		{
+			ACL_ENSURE(num_bits >= 0, "Cannot create a bit set with a negative number of bits: %d", num_bits);
+			return BitSetDescription((num_bits + 32 - 1) / 32);
+		}
+
+		constexpr int32_t get_size() const { return m_size; }
+		constexpr int32_t get_num_bits() const { return m_size * 32; }
+		constexpr int32_t get_num_bytes() const { return m_size * sizeof(int32_t); }
+		constexpr bool is_bit_index_valid(int32_t index) const { return index >= 0 && index < get_num_bits(); }
+
+	private:
+		explicit constexpr BitSetDescription(int32_t size) : m_size(size) {}
+
+		// Number of words required to hold the bit set
+		// 1 == 32 bits, 2 == 64 bits, etc.
+		int32_t		m_size;
+	};
+
+
+	inline void bitset_reset(uint32_t* bitset, BitSetDescription desc, bool value)
 	{
-		return size * 32;
-	}
+		const int32_t mask = value ? 0xFFFFFFFF : 0x00000000;
+		const int32_t size = desc.get_size();
 
-	inline void bitset_reset(uint32_t* bitset, uint32_t size, bool value)
-	{
-		const uint32_t mask = value ? 0xFFFFFFFF : 0x00000000;
-
-		for (uint32_t offset = 0; offset < size; ++offset)
+		for (int32_t offset = 0; offset < size; ++offset)
 			bitset[offset] = mask;
 	}
 
-	inline void bitset_set(uint32_t* bitset, uint32_t size, uint32_t bit_offset, bool value)
+	inline void bitset_set(uint32_t* bitset, BitSetDescription desc, int32_t bit_index, bool value)
 	{
-		ACL_ENSURE(bit_offset < get_bitset_num_bits(size), "Invalid bit offset: %u >= %u", bit_offset, get_bitset_num_bits(size));
+		ACL_ENSURE(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
 
-		const uint32_t offset = bit_offset / 32;
-		const uint32_t mask = 1 << (31 - (bit_offset % 32));
+		const int32_t offset = bit_index / 32;
+		const int32_t mask = 1 << (31 - (bit_index % 32));
 
 		if (value)
 			bitset[offset] |= mask;
@@ -35,31 +62,34 @@ namespace acl
 			bitset[offset] &= ~mask;
 	}
 
-	inline void bitset_set_range(uint32_t* bitset, uint32_t size, uint32_t start_bit_offset, uint32_t num_bits, bool value)
+	inline void bitset_set_range(uint32_t* bitset, BitSetDescription desc, int32_t start_bit_index, int32_t num_bits, bool value)
 	{
-		ACL_ENSURE(start_bit_offset < get_bitset_num_bits(size), "Invalid start bit offset: %u >= %u", start_bit_offset, get_bitset_num_bits(size));
-		ACL_ENSURE(start_bit_offset + num_bits <= get_bitset_num_bits(size), "Invalid num bits: %u > %u", start_bit_offset + num_bits, get_bitset_num_bits(size));
+		ACL_ENSURE(desc.is_bit_index_valid(start_bit_index), "Invalid start bit index: %d", start_bit_index);
+		ACL_ENSURE(num_bits >= 0, "Invalid num bits: %d", num_bits);
+		ACL_ENSURE(start_bit_index + num_bits <= desc.get_num_bits(), "Invalid num bits: %d > %d", start_bit_index + num_bits, desc.get_num_bits());
 
-		const uint32_t end_bit_offset = start_bit_offset + num_bits;
-		for (uint32_t offset = start_bit_offset; offset < end_bit_offset; ++offset)
-			bitset_set(bitset, size, offset, value);
+		const int32_t end_bit_offset = start_bit_index + num_bits;
+		for (int32_t offset = start_bit_index; offset < end_bit_offset; ++offset)
+			bitset_set(bitset, desc, offset, value);
 	}
 
-	inline bool bitset_test(const uint32_t* bitset, uint32_t size, uint32_t bit_offset)
+	inline bool bitset_test(const uint32_t* bitset, BitSetDescription desc, int32_t bit_index)
 	{
-		ACL_ENSURE(bit_offset < get_bitset_num_bits(size), "Invalid bit offset: %u >= %u", bit_offset, get_bitset_num_bits(size));
+		ACL_ENSURE(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
 
-		const uint32_t offset = bit_offset / 32;
-		const uint32_t mask = 1 << (31 - (bit_offset % 32));
+		const int32_t offset = bit_index / 32;
+		const int32_t mask = 1 << (31 - (bit_index % 32));
 
 		return (bitset[offset] & mask) != 0;
 	}
 
-	inline uint32_t bitset_count_set_bits(const uint32_t* bitset, uint32_t size)
+	inline int32_t bitset_count_set_bits(const uint32_t* bitset, BitSetDescription desc)
 	{
+		const int32_t size = desc.get_size();
+
 		// TODO: Use popcount instruction if available
-		uint32_t num_set_bits = 0;
-		for (uint32_t offset = 0; offset < size; ++offset)
+		int32_t num_set_bits = 0;
+		for (int32_t offset = 0; offset < size; ++offset)
 		{
 			uint32_t value = bitset[offset];
 			value = value - ((value >> 1) & 0x55555555);

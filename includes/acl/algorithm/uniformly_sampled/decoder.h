@@ -80,7 +80,7 @@ namespace acl
 				const uint8_t* segment_range_data[2];
 				const uint8_t* animated_track_data[2];
 
-				uint32_t bitset_size;
+				BitSetDescription bitset_desc;
 				uint8_t num_rotation_components;
 
 				float clip_duration;
@@ -192,7 +192,7 @@ namespace acl
 				}
 
 				const uint32_t num_tracks_per_bone = header.has_scale ? 3 : 2;
-				context.bitset_size = get_bitset_size(uint32_t(header.num_bones) * num_tracks_per_bone);
+				context.bitset_desc = BitSetDescription::make_from_num_bits(header.num_bones * num_tracks_per_bone);
 				context.num_rotation_components = rotation_format == RotationFormat8::Quat_128 ? 4 : 3;
 
 				// If all tracks are variable, no need for any extra padding except at the very end of the data

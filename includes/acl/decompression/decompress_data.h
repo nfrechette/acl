@@ -29,12 +29,12 @@ namespace acl
 	template<size_t num_key_frames, class SettingsType, class DecompressionContext>
 	inline void skip_rotations(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
 	{
-		bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
+		bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_desc, context.default_track_offset);
 		if (!is_rotation_default)
 		{
 			const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 
-			bool is_rotation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
+			bool is_rotation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_desc, context.constant_track_offset);
 			if (is_rotation_constant)
 			{
 				const RotationFormat8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
@@ -99,10 +99,10 @@ namespace acl
 	template<size_t num_key_frames, class SettingsAdapterType, class DecompressionContext>
 	inline void skip_vectors(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context)
 	{
-		const bool is_sample_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
+		const bool is_sample_default = bitset_test(context.default_tracks_bitset, context.bitset_desc, context.default_track_offset);
 		if (!is_sample_default)
 		{
-			const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
+			const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, context.bitset_desc, context.constant_track_offset);
 			if (is_sample_constant)
 			{
 				// Constant Vector3 tracks store the remaining sample with full precision
@@ -171,7 +171,7 @@ namespace acl
 	template<size_t num_key_frames, class SettingsType, class DecompressionContext>
 	inline void decompress_rotations(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type)
 	{
-		bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
+		bool is_rotation_default = bitset_test(context.default_tracks_bitset, context.bitset_desc, context.default_track_offset);
 		if (is_rotation_default)
 		{
 			out_rotations[0] = quat_identity_32();
@@ -181,7 +181,7 @@ namespace acl
 		{
 			const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 
-			bool is_rotation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
+			bool is_rotation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_desc, context.constant_track_offset);
 			if (is_rotation_constant)
 			{
 				const RotationFormat8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
@@ -375,7 +375,7 @@ namespace acl
 	template<size_t num_key_frames, class SettingsAdapterType, class DecompressionContext>
 	inline void decompress_vectors(const SettingsAdapterType& settings, const ClipHeader& header, DecompressionContext& context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type)
 	{
-		const bool is_sample_default = bitset_test(context.default_tracks_bitset, context.bitset_size, context.default_track_offset);
+		const bool is_sample_default = bitset_test(context.default_tracks_bitset, context.bitset_desc, context.default_track_offset);
 		if (is_sample_default)
 		{
 			out_vectors[0] = settings.get_default_value();
@@ -383,7 +383,7 @@ namespace acl
 		}
 		else
 		{
-			const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, context.bitset_size, context.constant_track_offset);
+			const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, context.bitset_desc, context.constant_track_offset);
 			if (is_sample_constant)
 			{
 				// Constant translation tracks store the remaining sample with full precision

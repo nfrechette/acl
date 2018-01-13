@@ -42,9 +42,9 @@ namespace acl
 		{
 		public:
 			// Root bone is always part of the current chain, default offset is our root bone
-			BoneChainIterator(const uint32_t* bone_chain, uint32_t bone_chain_size, uint16_t bone_index, uint16_t offset = 0)
+			BoneChainIterator(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index, uint16_t offset = 0)
 				: m_bone_chain(bone_chain)
-				, m_bone_chain_size(bone_chain_size)
+				, m_bone_chain_desc(bone_chain_desc)
 				, m_bone_index(bone_index)
 				, m_offset(offset)
 			{}
@@ -58,7 +58,7 @@ namespace acl
 
 				// Iterate until we find the next bone part of the chain or until we reach the end of the chain
 				// TODO: Use clz or similar to find the next set bit starting at the current index
-				while (m_offset < m_bone_index && !bitset_test(m_bone_chain, m_bone_chain_size, m_offset))
+				while (m_offset < m_bone_index && !bitset_test(m_bone_chain, m_bone_chain_desc, m_offset))
 					m_offset++;
 
 				return *this;
@@ -67,7 +67,7 @@ namespace acl
 			uint16_t operator*() const
 			{
 				ACL_ENSURE(m_offset <= m_bone_index, "Returned bone index doesn't belong to the bone chain");
-				ACL_ENSURE(bitset_test(m_bone_chain, m_bone_chain_size, m_offset), "Returned bone index doesn't belong to the bone chain");
+				ACL_ENSURE(bitset_test(m_bone_chain, m_bone_chain_desc, m_offset), "Returned bone index doesn't belong to the bone chain");
 				return m_offset;
 			}
 
@@ -78,7 +78,7 @@ namespace acl
 
 		private:
 			const uint32_t*		m_bone_chain;
-			uint32_t			m_bone_chain_size;
+			BitSetDescription	m_bone_chain_desc;
 			uint16_t			m_bone_index;
 			uint16_t			m_offset;
 		};
@@ -86,17 +86,17 @@ namespace acl
 
 	struct BoneChain
 	{
-		constexpr BoneChain(const uint32_t* bone_chain, uint32_t bone_chain_size, uint16_t bone_index)
+		constexpr BoneChain(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index)
 			: m_bone_chain(bone_chain)
-			, m_bone_chain_size(bone_chain_size)
+			, m_bone_chain_desc(bone_chain_desc)
 			, m_bone_index(bone_index)
 		{}
 
-		impl::BoneChainIterator begin() const { return impl::BoneChainIterator(m_bone_chain, m_bone_chain_size, m_bone_index); }
-		impl::BoneChainIterator end() const { return impl::BoneChainIterator(m_bone_chain, m_bone_chain_size, m_bone_index, m_bone_index + 1); }
+		impl::BoneChainIterator begin() const { return impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index); }
+		impl::BoneChainIterator end() const { return impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_bone_index + 1); }
 
 		const uint32_t*		m_bone_chain;
-		uint32_t			m_bone_chain_size;
+		BitSetDescription	m_bone_chain_desc;
 		uint16_t			m_bone_index;
 	};
 
@@ -153,10 +153,10 @@ namespace acl
 			, m_bones(allocate_type_array<RigidBone>(allocator, num_bones))
 			, m_num_bones(num_bones)
 		{
-			const uint32_t is_leaf_bitset_size = get_bitset_size(num_bones);
-			uint32_t* is_leaf_bitset = allocate_type_array<uint32_t>(allocator, is_leaf_bitset_size);
-			bitset_reset(is_leaf_bitset, is_leaf_bitset_size, false);
-			bitset_set_range(is_leaf_bitset, is_leaf_bitset_size, 0, num_bones, true);
+			BitSetDescription bone_bitset_desc = BitSetDescription::make_from_num_bits(num_bones);
+			uint32_t* is_leaf_bitset = allocate_type_array<uint32_t>(allocator, bone_bitset_desc.get_size());
+			bitset_reset(is_leaf_bitset, bone_bitset_desc, false);
+			bitset_set_range(is_leaf_bitset, bone_bitset_desc, 0, num_bones, true);
 
 			// Move and validate the input data
 			bool found_root = false;
@@ -176,31 +176,30 @@ namespace acl
 				ACL_ENSURE(!vector_any_near_equal3(bone.bind_transform.scale, vector_zero_64()), "Bind scale is zero: [%f, %f, %f]", vector_get_x(bone.bind_transform.scale), vector_get_y(bone.bind_transform.scale), vector_get_z(bone.bind_transform.scale));
 
 				if (!is_root)
-					bitset_set(is_leaf_bitset, is_leaf_bitset_size, bone.parent_index, false);
+					bitset_set(is_leaf_bitset, bone_bitset_desc, bone.parent_index, false);
 				else
 					found_root = true;
 
 				m_bones[bone_index] = std::move(bone);
 			}
 
-			m_num_leaf_bones = safe_static_cast<uint16_t>(bitset_count_set_bits(is_leaf_bitset, is_leaf_bitset_size));
+			m_num_leaf_bones = safe_static_cast<uint16_t>(bitset_count_set_bits(is_leaf_bitset, bone_bitset_desc));
 
-			const uint32_t bone_chain_size = get_bitset_size(num_bones);
-			m_leaf_bone_chains = allocate_type_array<uint32_t>(allocator, m_num_leaf_bones * bone_chain_size);
+			m_leaf_bone_chains = allocate_type_array<uint32_t>(allocator, m_num_leaf_bones * bone_bitset_desc.get_size());
 
 			uint16_t leaf_index = 0;
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				if (!bitset_test(is_leaf_bitset, is_leaf_bitset_size, bone_index))
+				if (!bitset_test(is_leaf_bitset, bone_bitset_desc, bone_index))
 					continue;	// Skip non-leaf bones
 
-				uint32_t* bone_chain = m_leaf_bone_chains + (leaf_index * bone_chain_size);
-				bitset_reset(bone_chain, bone_chain_size, false);
+				uint32_t* bone_chain = m_leaf_bone_chains + (leaf_index * bone_bitset_desc.get_size());
+				bitset_reset(bone_chain, bone_bitset_desc, false);
 
 				uint16_t chain_bone_index = bone_index;
 				while (chain_bone_index != k_invalid_bone_index)
 				{
-					bitset_set(bone_chain, bone_chain_size, chain_bone_index, true);
+					bitset_set(bone_chain, bone_bitset_desc, chain_bone_index, true);
 
 					RigidBone& bone = m_bones[chain_bone_index];
 
@@ -216,13 +215,15 @@ namespace acl
 
 			ACL_ENSURE(found_root, "No root bone found. The root bone must have a parent index = 0xFFFF");
 			ACL_ENSURE(leaf_index == m_num_leaf_bones, "Invalid number of leaf bone found");
-			deallocate_type_array(m_allocator, is_leaf_bitset, is_leaf_bitset_size);
+			deallocate_type_array(m_allocator, is_leaf_bitset, bone_bitset_desc.get_size());
 		}
 
 		~RigidSkeleton()
 		{
 			deallocate_type_array(m_allocator, m_bones, m_num_bones);
-			deallocate_type_array(m_allocator, m_leaf_bone_chains, m_num_leaf_bones * get_bitset_size(m_num_bones));
+
+			BitSetDescription bone_bitset_desc = BitSetDescription::make_from_num_bits(m_num_bones);
+			deallocate_type_array(m_allocator, m_leaf_bone_chains, m_num_leaf_bones * bone_bitset_desc.get_size());
 		}
 
 		RigidSkeleton(const RigidSkeleton&) = delete;
@@ -241,7 +242,7 @@ namespace acl
 		{
 			ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
 			const RigidBone& bone = m_bones[bone_index];
-			return BoneChain(bone.bone_chain, get_bitset_size(m_num_bones), bone_index);
+			return BoneChain(bone.bone_chain, BitSetDescription::make_from_num_bits(m_num_bones), bone_index);
 		}
 
 	private:
