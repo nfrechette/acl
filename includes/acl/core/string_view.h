@@ -24,60 +24,85 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
+
 #include <cstring>
 #include <memory>
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// A StringView is just a pointer to a string and an associated length.
+	// It does NOT own the memory and no allocation or deallocation ever takes place.
+	// An empty StringView() is equal to a StringView("") or the empty string.
+	// It is not legal to create a StringView that contains multiple NULL terminators
+	// and if you do so, the behavior is undefined.
+	//
+	// The string pointed to is immutable.
+	//////////////////////////////////////////////////////////////////////////
 	class StringView
 	{
 	public:
-		StringView()
-			: m_chars(nullptr)
+		constexpr StringView()
+			: m_c_str(nullptr)
 			, m_length(0)
-		{
-		}
-		
-		StringView(const char* chars, size_t length)
-			: m_chars(chars)
+		{}
+
+		StringView(const char* c_str, size_t length)
+			: m_c_str(c_str)
 			, m_length(length)
 		{
+#if defined(ACL_USE_ERROR_CHECKS)
+			for (size_t i = 0; i < length; ++i)
+				ACL_ENSURE(c_str[i] != '\0', "StringView cannot contain NULL terminators");
+#endif
 		}
 
-		StringView(const char* chars)
-			: m_chars(chars)
-			, m_length(chars == nullptr ? 0 : std::strlen(chars))
-		{
-		}
+		StringView(const char* c_str)
+			: m_c_str(c_str)
+			, m_length(c_str == nullptr ? 0 : std::strlen(c_str))
+		{}
 
-		StringView& operator=(const char* chars)
+		StringView& operator=(const char* c_str)
 		{
-			this->m_chars = chars;
-			this->m_length = chars == nullptr ? 0 : std::strlen(chars);
+			m_c_str = c_str;
+			m_length = c_str == nullptr ? 0 : std::strlen(c_str);
 			return *this;
-		}	
+		}
 
-		const char* get_chars() const { return m_chars; }
-		size_t get_length() const { return m_length; }
+		constexpr const char* c_str() const { return m_length == 0 ? "" : m_c_str; }
+		constexpr size_t size() const { return m_length; }
+		constexpr bool empty() const { return m_length == 0; }
 
 		bool operator==(const char* c_str) const
 		{
-			return m_chars != nullptr && c_str != nullptr &&
-				std::strlen(c_str) == m_length && std::memcmp(c_str, m_chars, m_length) == 0;
+			const size_t length = c_str == nullptr ? 0 : std::strlen(c_str);
+			if (m_length != length)
+				return false;
+
+			if (m_c_str == c_str)
+				return true;
+
+			return std::memcmp(m_c_str, c_str, length) == 0;
 		}
 
 		bool operator !=(const char* c_str) const { return !(*this == c_str); }
 
-		bool operator==(const StringView& view) const
+		bool operator==(const StringView& other) const
 		{
-			return m_chars != nullptr && view.m_chars != nullptr &&
-				m_length == view.m_length && std::memcmp(view.m_chars, m_chars, m_length) == 0;
+			if (m_length != other.m_length)
+				return false;
+
+			if (m_c_str == other.m_c_str)
+				return true;
+
+			return std::memcmp(m_c_str, other.m_c_str, m_length) == 0;
 		}
 
-		bool operator !=(const StringView& view) const { return !(*this == view); }
+		bool operator !=(const StringView& other) const { return !(*this == other); }
 
 	private:
-		const char* m_chars;
+		const char* m_c_str;
 		size_t m_length;
 	};
 }

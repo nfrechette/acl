@@ -189,7 +189,7 @@ namespace acl
 				constexpr explicit UInt64ToDouble(uint64_t value) : u64(value) {}
 			};
 
-			uint64_t value_u64 = std::strtoull(value.get_chars(), nullptr, 16);
+			uint64_t value_u64 = std::strtoull(value.c_str(), nullptr, 16);
 			return UInt64ToDouble(value_u64).dbl;
 		}
 
@@ -232,7 +232,7 @@ namespace acl
 
 				if (!counting)
 				{
-					if (parent.get_length() == 0)
+					if (parent.size() == 0)
 					{
 						// This is the root bone.
 						bone.parent_index = k_invalid_bone_index;

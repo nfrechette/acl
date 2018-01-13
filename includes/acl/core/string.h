@@ -56,7 +56,7 @@ namespace acl
 		{}
 
 		String(IAllocator& allocator, const StringView& view)
-			: String(allocator, view.get_chars(), view.get_length())
+			: String(allocator, view.c_str(), view.size())
 		{}
 
 		String(IAllocator& allocator, const String& str)
