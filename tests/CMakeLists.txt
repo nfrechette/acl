@@ -9,6 +9,15 @@ include_directories("${PROJECT_SOURCE_DIR}/external/catch-1.9.6")
 # Grab all of our source files
 file(GLOB_RECURSE ACL_UNIT_TEST_SOURCE_FILES ${PROJECT_SOURCE_DIR}/sources/*.cpp)
 
+# Create groups for the source files, this creates the proper directory structure under the
+# Visual Studio filters
+foreach(_file IN ITEMS ${ACL_UNIT_TEST_SOURCE_FILES})
+	get_filename_component(_file_path "${_file}" PATH)
+	file(RELATIVE_PATH _file_path_rel "${PROJECT_SOURCE_DIR}" "${_file_path}")
+	string(REPLACE "/" "\\" _group_path "${_file_path_rel}")
+	source_group("${_group_path}" FILES "${_file}")
+endforeach()
+
 add_executable(acl_unit_tests ${ACL_UNIT_TEST_SOURCE_FILES})
 add_test(NAME UNIT COMMAND acl_unit_tests)
 
