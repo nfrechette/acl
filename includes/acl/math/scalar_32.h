@@ -39,6 +39,11 @@ namespace acl
 		return std::floor(input);
 	}
 
+	inline float ceil(float input)
+	{
+		return std::ceil(input);
+	}
+
 	inline float clamp(float input, float min, float max)
 	{
 		return std::min(std::max(input, min), max);
@@ -148,14 +153,14 @@ namespace acl
 		return abs(lhs - rhs) < threshold;
 	}
 
-	inline float is_finite(float input)
+	inline bool is_finite(float input)
 	{
 		return std::isfinite(input);
 	}
 
 	inline float symmetric_round(float input)
 	{
-		return floor(input >= 0.0f ? (input + 0.5f) : (input - 0.5f));
+		return input >= 0.0f ? floor(input + 0.5f) : ceil(input - 0.5f);
 	}
 
 	inline float fraction(float value)

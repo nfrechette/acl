@@ -39,6 +39,11 @@ namespace acl
 		return std::floor(input);
 	}
 
+	inline double ceil(double input)
+	{
+		return std::ceil(input);
+	}
+
 	inline double clamp(double input, double min, double max)
 	{
 		return std::min(std::max(input, min), max);
@@ -111,14 +116,14 @@ namespace acl
 		return abs(lhs - rhs) < threshold;
 	}
 
-	inline double is_finite(double input)
+	inline bool is_finite(double input)
 	{
 		return std::isfinite(input);
 	}
 
 	inline double symmetric_round(double input)
 	{
-		return floor(input >= 0.0 ? (input + 0.5) : (input - 0.5));
+		return input >= 0.0 ? floor(input + 0.5) : ceil(input - 0.5);
 	}
 
 	inline double fraction(double value)
