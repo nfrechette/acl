@@ -25,34 +25,46 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
+#include "acl/core/error.h"
 #include "acl/core/string_view.h"
 
 #include <memory>
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// A basic string class that uses our custom allocator.
+	// It is used exclusively for debug purposes.
+	//
+	// Strings are immutable.
+	//////////////////////////////////////////////////////////////////////////
 	class String
 	{
 	public:
-		String() : m_allocator(nullptr), m_chars(nullptr) {}
+		String() : m_allocator(nullptr), m_c_str(nullptr) {}
 
-		String(IAllocator& allocator, const char* str, size_t len)
+		String(IAllocator& allocator, const char* c_str, size_t length)
 			: m_allocator(&allocator)
 		{
-			if (len > 0)
+			if (length > 0)
 			{
-				m_chars = allocate_type_array<char>(allocator, len + 1);
-				std::memcpy(m_chars, str, len);
-				m_chars[len] = '\0';
+#if defined(ACL_USE_ERROR_CHECKS) && !defined(NDEBUG)
+				for (size_t i = 0; i < length; ++i)
+					ACL_ENSURE(c_str[i] != '\0', "StringView cannot contain NULL terminators");
+#endif
+
+				m_c_str = allocate_type_array<char>(allocator, length + 1);
+				std::memcpy(m_c_str, c_str, length);
+				m_c_str[length] = '\0';
 			}
 			else
 			{
-				m_chars = nullptr;
+				m_c_str = nullptr;
 			}
 		}
 
-		String(IAllocator& allocator, const char* str)
-			: String(allocator, str, str != nullptr ? std::strlen(str) : 0)
+		String(IAllocator& allocator, const char* c_str)
+			: String(allocator, c_str, c_str != nullptr ? std::strlen(c_str) : 0)
 		{}
 
 		String(IAllocator& allocator, const StringView& view)
@@ -65,32 +77,37 @@ namespace acl
 
 		~String()
 		{
-			if (m_allocator != nullptr)
-				deallocate_type_array(*m_allocator, m_chars, std::strlen(m_chars) + 1);
+			if (m_allocator != nullptr && m_c_str != nullptr)
+				deallocate_type_array(*m_allocator, m_c_str, std::strlen(m_c_str) + 1);
 		}
 
 		String(String&& other)
 			: m_allocator(other.m_allocator)
-			, m_chars(other.m_chars)
+			, m_c_str(other.m_c_str)
 		{
 			new(&other) String();
 		}
 
 		String& operator=(String&& other)
 		{
+			ACL_ENSURE(m_allocator == other.m_allocator || m_allocator == nullptr || other.m_allocator == nullptr, "Allocators must be identical or NULL otherwise the behavior is undefined");
 			std::swap(m_allocator, other.m_allocator);
-			std::swap(m_chars, other.m_chars);
+			std::swap(m_c_str, other.m_c_str);
 			return *this;
 		}
 
-		bool operator==(const StringView& view) const { return view == m_chars; }
+		bool operator==(const StringView& view) const { return view == m_c_str; }
+		bool operator!=(const StringView& view) const { return view != m_c_str; }
 
-		const char* c_str() const { return m_chars != nullptr ? m_chars : ""; }
-		size_t size() const { return m_chars != nullptr ? std::strlen(m_chars) : 0; }
-		bool empty() const { return m_chars != nullptr ? (std::strlen(m_chars) == 1) : true; }
+		bool operator==(const String& other) const { return StringView(other.m_c_str) == m_c_str; }
+		bool operator!=(const String& other) const { return StringView(other.m_c_str) != m_c_str; }
+
+		const char* c_str() const { return m_c_str != nullptr ? m_c_str : ""; }
+		size_t size() const { return m_c_str != nullptr ? std::strlen(m_c_str) : 0; }
+		bool empty() const { return m_c_str != nullptr ? (std::strlen(m_c_str) == 0) : true; }
 
 	private:
 		IAllocator* m_allocator;
-		char* m_chars;
+		char* m_c_str;
 	};
 }

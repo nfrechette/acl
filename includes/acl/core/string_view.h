@@ -90,7 +90,7 @@ namespace acl
 			return std::memcmp(m_c_str, c_str, length) == 0;
 		}
 
-		bool operator !=(const char* c_str) const { return !(*this == c_str); }
+		bool operator!=(const char* c_str) const { return !(*this == c_str); }
 
 		bool operator==(const StringView& other) const
 		{
