@@ -79,7 +79,7 @@ static void TestScalarImpl(const FloatType pi, const FloatType threshold)
 	REQUIRE(scalar_near_equal(acl::reciprocal(FloatType(-0.5)), FloatType(1.0 / -0.5), threshold));
 	REQUIRE(scalar_near_equal(acl::reciprocal(FloatType(-32.5)), FloatType(1.0 / -32.5), threshold));
 
-	const FloatType angles[] = { 0.0, pi, -pi, half_pi, -half_pi, 0.5, 32.5, -0.5, -32.5 };
+	const FloatType angles[] = { FloatType(0.0), pi, -pi, half_pi, -half_pi, FloatType(0.5), FloatType(32.5), FloatType(-0.5), FloatType(-32.5) };
 
 	for (const FloatType angle : angles)
 	{
