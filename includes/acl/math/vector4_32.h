@@ -67,17 +67,17 @@ namespace acl
 		return vector_set(input[0], input[1], input[2], input[3]);
 	}
 
+	inline Vector4_32 vector_unaligned_load3(const float* input)
+	{
+		ACL_ENSURE(is_aligned(input), "Invalid alignment");
+		return vector_set(input[0], input[1], input[2], 0.0f);
+	}
+
 	inline Vector4_32 vector_unaligned_load_32(const uint8_t* input)
 	{
 		Vector4_32 result;
 		memcpy(&result, input, sizeof(Vector4_32));
 		return result;
-	}
-
-	inline Vector4_32 vector_unaligned_load3(const float* input)
-	{
-		ACL_ENSURE(is_aligned(input), "Invalid alignment");
-		return vector_set(input[0], input[1], input[2], 0.0f);
 	}
 
 	inline Vector4_32 vector_unaligned_load3_32(const uint8_t* input)
@@ -181,11 +181,6 @@ namespace acl
 			ACL_ENSURE(false, "Invalid component index");
 			return 0.0f;
 		}
-	}
-
-	inline float* vector_as_float_ptr(Vector4_32& input)
-	{
-		return reinterpret_cast<float*>(&input);
 	}
 
 	inline const float* vector_as_float_ptr(const Vector4_32& input)
@@ -553,22 +548,22 @@ namespace acl
 
 	inline bool vector_all_near_equal(const Vector4_32& lhs, const Vector4_32& rhs, float threshold = 0.00001f)
 	{
-		return vector_all_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+		return vector_all_less_equal(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
 	inline bool vector_all_near_equal3(const Vector4_32& lhs, const Vector4_32& rhs, float threshold = 0.00001f)
 	{
-		return vector_all_less_than3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+		return vector_all_less_equal3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
 	inline bool vector_any_near_equal(const Vector4_32& lhs, const Vector4_32& rhs, float threshold = 0.00001f)
 	{
-		return vector_any_less_than(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+		return vector_any_less_equal(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
 	inline bool vector_any_near_equal3(const Vector4_32& lhs, const Vector4_32& rhs, float threshold = 0.00001f)
 	{
-		return vector_any_less_than3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+		return vector_any_less_equal3(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
 	inline bool vector_is_finite(const Vector4_32& input)
@@ -676,8 +671,13 @@ namespace acl
 #endif
 		}
 
-		ACL_ENSURE(false, "vector_mix permutation not handled");
-		return input0;
+		// Slow code path, not yet optimized
+		//ACL_ENSURE(false, "vector_mix permutation not handled");
+		const float x = math_impl::is_vector_mix_arg_xyzw(comp0) ? vector_get_component<comp0>(input0) : vector_get_component<comp0>(input1);
+		const float y = math_impl::is_vector_mix_arg_xyzw(comp1) ? vector_get_component<comp1>(input0) : vector_get_component<comp1>(input1);
+		const float z = math_impl::is_vector_mix_arg_xyzw(comp2) ? vector_get_component<comp2>(input0) : vector_get_component<comp2>(input1);
+		const float w = math_impl::is_vector_mix_arg_xyzw(comp3) ? vector_get_component<comp3>(input0) : vector_get_component<comp3>(input1);
+		return vector_set(x, y, z, w);
 	}
 
 	inline Vector4_32 vector_mix_xxxx(const Vector4_32& input) { return vector_mix<VectorMix::X, VectorMix::X, VectorMix::X, VectorMix::X>(input, input); }
