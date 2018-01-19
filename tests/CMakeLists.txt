@@ -43,7 +43,8 @@ if(MSVC)
 	endif()
 
 	# Add linker flags
-	set(CMAKE_EXE_LINKER_FLAGS /DEBUG)
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -STACK:2097152")
 else()
 	if(CPU_INSTRUCTION_SET MATCHES "x86")
 		target_compile_options(acl_unit_tests PRIVATE "-m32")

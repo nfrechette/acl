@@ -34,7 +34,7 @@ if(MSVC)
 	endif()
 
 	# Add linker flags
-	set(CMAKE_EXE_LINKER_FLAGS /DEBUG)
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG")
 else()
 	# TODO: Handle OS X properly: https://stackoverflow.com/questions/5334095/cmake-multiarchitecture-compilation
 	if(CPU_INSTRUCTION_SET MATCHES "x86")
