@@ -257,12 +257,14 @@ static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity,
 	REQUIRE(scalar_near_equal(vector_get_y(vector_cross3_result), vector_get_y(scalar_cross3_result), threshold));
 	REQUIRE(scalar_near_equal(vector_get_z(vector_cross3_result), vector_get_z(scalar_cross3_result), threshold));
 
-	const FloatType scalar_dot_result = scalar_dot<Vector4Type, FloatType>(test_value0, test_value1);
-	const FloatType vector_dot_result = vector_dot(test_value0, test_value1);
+	const Vector4Type test_value10 = vector_set(FloatType(-0.001138), FloatType(0.91623), FloatType(-1.624598), FloatType(0.715671));
+	const Vector4Type test_value11 = vector_set(FloatType(0.1138), FloatType(-0.623), FloatType(1.4598), FloatType(-0.5671));
+	const FloatType scalar_dot_result = scalar_dot<Vector4Type, FloatType>(test_value10, test_value11);
+	const FloatType vector_dot_result = vector_dot(test_value10, test_value11);
 	REQUIRE(scalar_near_equal(vector_dot_result, scalar_dot_result, threshold));
 
-	const FloatType scalar_dot3_result = scalar_dot3<Vector4Type, FloatType>(test_value0, test_value1);
-	const FloatType vector_dot3_result = vector_dot3(test_value0, test_value1);
+	const FloatType scalar_dot3_result = scalar_dot3<Vector4Type, FloatType>(test_value10, test_value11);
+	const FloatType vector_dot3_result = vector_dot3(test_value10, test_value11);
 	REQUIRE(scalar_near_equal(vector_dot3_result, scalar_dot3_result, threshold));
 
 	REQUIRE(scalar_near_equal(scalar_dot<Vector4Type, FloatType>(test_value0, test_value0), vector_length_squared(test_value0), threshold));
