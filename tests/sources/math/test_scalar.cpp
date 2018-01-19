@@ -32,7 +32,7 @@
 using namespace acl;
 
 template<typename FloatType>
-static void TestScalarImpl(const FloatType pi, const FloatType threshold)
+static void test_scalar_impl(const FloatType pi, const FloatType threshold)
 {
 	const FloatType half_pi = pi * FloatType(0.5);
 	const FloatType two_pi = pi * FloatType(2.0);
@@ -155,10 +155,10 @@ static void TestScalarImpl(const FloatType pi, const FloatType threshold)
 
 TEST_CASE("scalar 32 math", "[math][scalar]")
 {
-	TestScalarImpl<float>(acl::k_pi_32, 1.0e-6f);
+	test_scalar_impl<float>(acl::k_pi_32, 1.0e-6f);
 }
 
 TEST_CASE("scalar 64 math", "[math][scalar]")
 {
-	TestScalarImpl<double>(acl::k_pi_64, 1.0e-9);
+	test_scalar_impl<double>(acl::k_pi_64, 1.0e-9);
 }
