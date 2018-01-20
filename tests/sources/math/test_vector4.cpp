@@ -27,6 +27,7 @@
 #include <acl/math/vector4_32.h>
 #include <acl/math/vector4_64.h>
 #include <acl/math/quat_32.h>
+#include <acl/math/quat_64.h>
 
 #include <cstring>
 #include <limits>
@@ -42,6 +43,12 @@ Vector4_32 vector_unaligned_load_raw<Vector4_32>(const uint8_t* input)
 	return vector_unaligned_load_32(input);
 }
 
+template<>
+Vector4_64 vector_unaligned_load_raw<Vector4_64>(const uint8_t* input)
+{
+	return vector_unaligned_load_64(input);
+}
+
 template<typename Vector4Type>
 Vector4Type vector_unaligned_load3_raw(const uint8_t* input);
 
@@ -49,6 +56,27 @@ template<>
 Vector4_32 vector_unaligned_load3_raw<Vector4_32>(const uint8_t* input)
 {
 	return vector_unaligned_load3_32(input);
+}
+
+template<>
+Vector4_64 vector_unaligned_load3_raw<Vector4_64>(const uint8_t* input)
+{
+	return vector_unaligned_load3_64(input);
+}
+
+template<typename Vector4Type, typename FloatType>
+const FloatType* vector_as_float_ptr_raw(const Vector4Type& input);
+
+template<>
+const float* vector_as_float_ptr_raw<Vector4_32, float>(const Vector4_32& input)
+{
+	return vector_as_float_ptr(input);
+}
+
+template<>
+const double* vector_as_float_ptr_raw<Vector4_64, double>(const Vector4_64& input)
+{
+	return vector_as_double_ptr(input);
 }
 
 template<typename Vector4Type>
@@ -74,7 +102,7 @@ static FloatType scalar_dot3(const Vector4Type& lhs, const Vector4Type& rhs)
 template<typename Vector4Type, typename FloatType>
 static Vector4Type scalar_normalize3(const Vector4Type& input, FloatType threshold)
 {
-	float inv_len = FloatType(1.0) / acl::sqrt(scalar_dot3<Vector4Type, FloatType>(input, input));
+	FloatType inv_len = FloatType(1.0) / acl::sqrt(scalar_dot3<Vector4Type, FloatType>(input, input));
 	if (inv_len >= threshold)
 		return vector_set(vector_get_x(input) * inv_len, vector_get_y(input) * inv_len, vector_get_z(input) * inv_len);
 	else
@@ -176,10 +204,10 @@ static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity,
 	REQUIRE(vector_get_component(vector_set(FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0)), VectorMix::C) == FloatType(-3.12));
 	REQUIRE(vector_get_component(vector_set(FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0)), VectorMix::D) == FloatType(10000.0));
 
-	REQUIRE(vector_as_float_ptr(vector_unaligned_load(&tmp.values[0]))[0] == tmp.values[0]);
-	REQUIRE(vector_as_float_ptr(vector_unaligned_load(&tmp.values[0]))[1] == tmp.values[1]);
-	REQUIRE(vector_as_float_ptr(vector_unaligned_load(&tmp.values[0]))[2] == tmp.values[2]);
-	REQUIRE(vector_as_float_ptr(vector_unaligned_load(&tmp.values[0]))[3] == tmp.values[3]);
+	REQUIRE((vector_as_float_ptr_raw<Vector4Type, FloatType>(vector_unaligned_load(&tmp.values[0]))[0] == tmp.values[0]));
+	REQUIRE((vector_as_float_ptr_raw<Vector4Type, FloatType>(vector_unaligned_load(&tmp.values[0]))[1] == tmp.values[1]));
+	REQUIRE((vector_as_float_ptr_raw<Vector4Type, FloatType>(vector_unaligned_load(&tmp.values[0]))[2] == tmp.values[2]));
+	REQUIRE((vector_as_float_ptr_raw<Vector4Type, FloatType>(vector_unaligned_load(&tmp.values[0]))[3] == tmp.values[3]));
 
 	vector_unaligned_write(test_value0, &tmp.values[0]);
 	REQUIRE(vector_get_x(test_value0) == tmp.values[0]);
@@ -576,14 +604,21 @@ TEST_CASE("vector4 32 math", "[math][vector4]")
 	test_vector4_impl<Vector4_32, Quat_32, float>(vector_zero_32(), quat_identity_32(), 1.0e-6f);
 
 	const Vector4_32 src = vector_set(-2.65f, 2.996113f, 0.68123521f, -5.9182f);
-	const Vector4_64 dst_64 = vector_cast(src);
-	REQUIRE(scalar_near_equal(vector_get_x(dst_64), -2.65, 1.0e-6));
-	REQUIRE(scalar_near_equal(vector_get_y(dst_64), 2.996113, 1.0e-6));
-	REQUIRE(scalar_near_equal(vector_get_z(dst_64), 0.68123521, 1.0e-6));
-	REQUIRE(scalar_near_equal(vector_get_w(dst_64), -5.9182, 1.0e-6));
+	const Vector4_64 dst = vector_cast(src);
+	REQUIRE(scalar_near_equal(vector_get_x(dst), -2.65, 1.0e-6));
+	REQUIRE(scalar_near_equal(vector_get_y(dst), 2.996113, 1.0e-6));
+	REQUIRE(scalar_near_equal(vector_get_z(dst), 0.68123521, 1.0e-6));
+	REQUIRE(scalar_near_equal(vector_get_w(dst), -5.9182, 1.0e-6));
 }
 
 TEST_CASE("vector4 64 math", "[math][vector4]")
 {
-	//test_vector4_impl<Vector4_64, double>(vector_zero_64(), 1.0e-9);
+	test_vector4_impl<Vector4_64, Quat_64, double>(vector_zero_64(), quat_identity_64(), 1.0e-9);
+
+	const Vector4_64 src = vector_set(-2.65, 2.996113, 0.68123521, -5.9182);
+	const Vector4_32 dst = vector_cast(src);
+	REQUIRE(scalar_near_equal(vector_get_x(dst), -2.65f, 1.0e-6f));
+	REQUIRE(scalar_near_equal(vector_get_y(dst), 2.996113f, 1.0e-6f));
+	REQUIRE(scalar_near_equal(vector_get_z(dst), 0.68123521f, 1.0e-6f));
+	REQUIRE(scalar_near_equal(vector_get_w(dst), -5.9182f, 1.0e-6f));
 }
