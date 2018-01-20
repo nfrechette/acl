@@ -501,39 +501,65 @@ static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity,
 	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::C>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::C>(input0, input1), threshold)); \
 	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::D>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::D>(input0, input1), threshold))
 
-#define ACL_TEST_MIX_XY(input0, input1, comp0, comp1) \
-	ACL_TEST_MIX_XYZ(input0, input1, comp0, comp1, VectorMix::X); \
-	ACL_TEST_MIX_XYZ(input0, input1, comp0, comp1, VectorMix::Y); \
-	ACL_TEST_MIX_XYZ(input0, input1, comp0, comp1, VectorMix::Z); \
-	ACL_TEST_MIX_XYZ(input0, input1, comp0, comp1, VectorMix::W); \
-	ACL_TEST_MIX_XYZ(input0, input1, comp0, comp1, VectorMix::A); \
-	ACL_TEST_MIX_XYZ(input0, input1, comp0, comp1, VectorMix::B); \
-	ACL_TEST_MIX_XYZ(input0, input1, comp0, comp1, VectorMix::C); \
-	ACL_TEST_MIX_XYZ(input0, input1, comp0, comp1, VectorMix::D)
+#define ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, comp2) \
+	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::X] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::X>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::X>(input0, input1), threshold); \
+	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::Y] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::Y>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::Y>(input0, input1), threshold); \
+	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::Z] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::Z>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::Z>(input0, input1), threshold); \
+	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::W] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::W>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::W>(input0, input1), threshold); \
+	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::A] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::A>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::A>(input0, input1), threshold); \
+	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::B] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::B>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::B>(input0, input1), threshold); \
+	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::C] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::C>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::C>(input0, input1), threshold); \
+	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::D] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::D>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::D>(input0, input1), threshold)
 
-#define ACL_TEST_MIX_X(input0, input1, comp0) \
-	ACL_TEST_MIX_XY(input0, input1, comp0, VectorMix::X); \
-	ACL_TEST_MIX_XY(input0, input1, comp0, VectorMix::Y); \
-	ACL_TEST_MIX_XY(input0, input1, comp0, VectorMix::Z); \
-	ACL_TEST_MIX_XY(input0, input1, comp0, VectorMix::W); \
-	ACL_TEST_MIX_XY(input0, input1, comp0, VectorMix::A); \
-	ACL_TEST_MIX_XY(input0, input1, comp0, VectorMix::B); \
-	ACL_TEST_MIX_XY(input0, input1, comp0, VectorMix::C); \
-	ACL_TEST_MIX_XY(input0, input1, comp0, VectorMix::D)
+#define ACL_TEST_MIX_XY(results, input0, input1, comp0, comp1) \
+	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::X); \
+	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::Y); \
+	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::Z); \
+	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::W); \
+	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::A); \
+	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::B); \
+	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::C); \
+	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::D)
 
-#define ACL_TEST_MIX(input0, input1) \
-	ACL_TEST_MIX_X(input0, input1, VectorMix::X); \
-	ACL_TEST_MIX_X(input0, input1, VectorMix::Y); \
-	ACL_TEST_MIX_X(input0, input1, VectorMix::Z); \
-	ACL_TEST_MIX_X(input0, input1, VectorMix::W); \
-	ACL_TEST_MIX_X(input0, input1, VectorMix::A); \
-	ACL_TEST_MIX_X(input0, input1, VectorMix::B); \
-	ACL_TEST_MIX_X(input0, input1, VectorMix::C); \
-	ACL_TEST_MIX_X(input0, input1, VectorMix::D)
+#define ACL_TEST_MIX_X(results, input0, input1, comp0) \
+	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::X); \
+	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::Y); \
+	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::Z); \
+	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::W); \
+	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::A); \
+	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::B); \
+	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::C); \
+	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::D)
+
+#define ACL_TEST_MIX(results, input0, input1) \
+	ACL_TEST_MIX_X(results, input0, input1, VectorMix::X); \
+	ACL_TEST_MIX_X(results, input0, input1, VectorMix::Y); \
+	ACL_TEST_MIX_X(results, input0, input1, VectorMix::Z); \
+	ACL_TEST_MIX_X(results, input0, input1, VectorMix::W); \
+	ACL_TEST_MIX_X(results, input0, input1, VectorMix::A); \
+	ACL_TEST_MIX_X(results, input0, input1, VectorMix::B); \
+	ACL_TEST_MIX_X(results, input0, input1, VectorMix::C); \
+	ACL_TEST_MIX_X(results, input0, input1, VectorMix::D)
 
 	// This generates 8*8*8*8 = 4096 unit tests... it takes a while to compile and uses a lot of stack space
 	// Disabled by default to reduce the build time
-	//ACL_TEST_MIX(test_value0, test_value1);
+	bool vector_mix_results[8][8][8][8];
+	ACL_TEST_MIX(vector_mix_results, test_value0, test_value1);
+
+	for (int comp0 = 0; comp0 < 8; ++comp0)
+	{
+		for (int comp1 = 0; comp1 < 8; ++comp1)
+		{
+			for (int comp2 = 0; comp2 < 8; ++comp2)
+			{
+				for (int comp3 = 0; comp3 < 8; ++comp3)
+				{
+					INFO("vector_mix<" << comp0 << ", " << comp1 << ", " << comp2 << ", " << comp3 << ">");
+					REQUIRE(vector_mix_results[comp0][comp1][comp2][comp3] == true);
+				}
+			}
+		}
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Misc
