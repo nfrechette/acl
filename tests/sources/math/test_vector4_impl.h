@@ -1,3 +1,5 @@
+#pragma once
+
 ////////////////////////////////////////////////////////////////////////////////
 // The MIT License (MIT)
 //
@@ -35,52 +37,52 @@
 using namespace acl;
 
 template<typename Vector4Type>
-Vector4Type vector_unaligned_load_raw(const uint8_t* input);
+inline Vector4Type vector_unaligned_load_raw(const uint8_t* input);
 
 template<>
-Vector4_32 vector_unaligned_load_raw<Vector4_32>(const uint8_t* input)
+inline Vector4_32 vector_unaligned_load_raw<Vector4_32>(const uint8_t* input)
 {
 	return vector_unaligned_load_32(input);
 }
 
 template<>
-Vector4_64 vector_unaligned_load_raw<Vector4_64>(const uint8_t* input)
+inline Vector4_64 vector_unaligned_load_raw<Vector4_64>(const uint8_t* input)
 {
 	return vector_unaligned_load_64(input);
 }
 
 template<typename Vector4Type>
-Vector4Type vector_unaligned_load3_raw(const uint8_t* input);
+inline Vector4Type vector_unaligned_load3_raw(const uint8_t* input);
 
 template<>
-Vector4_32 vector_unaligned_load3_raw<Vector4_32>(const uint8_t* input)
+inline Vector4_32 vector_unaligned_load3_raw<Vector4_32>(const uint8_t* input)
 {
 	return vector_unaligned_load3_32(input);
 }
 
 template<>
-Vector4_64 vector_unaligned_load3_raw<Vector4_64>(const uint8_t* input)
+inline Vector4_64 vector_unaligned_load3_raw<Vector4_64>(const uint8_t* input)
 {
 	return vector_unaligned_load3_64(input);
 }
 
 template<typename Vector4Type, typename FloatType>
-const FloatType* vector_as_float_ptr_raw(const Vector4Type& input);
+inline const FloatType* vector_as_float_ptr_raw(const Vector4Type& input);
 
 template<>
-const float* vector_as_float_ptr_raw<Vector4_32, float>(const Vector4_32& input)
+inline const float* vector_as_float_ptr_raw<Vector4_32, float>(const Vector4_32& input)
 {
 	return vector_as_float_ptr(input);
 }
 
 template<>
-const double* vector_as_float_ptr_raw<Vector4_64, double>(const Vector4_64& input)
+inline const double* vector_as_float_ptr_raw<Vector4_64, double>(const Vector4_64& input)
 {
 	return vector_as_double_ptr(input);
 }
 
 template<typename Vector4Type>
-static Vector4Type scalar_cross3(const Vector4Type& lhs, const Vector4Type& rhs)
+inline Vector4Type scalar_cross3(const Vector4Type& lhs, const Vector4Type& rhs)
 {
 	return vector_set(vector_get_y(lhs) * vector_get_z(rhs) - vector_get_z(lhs) * vector_get_y(rhs),
 		vector_get_z(lhs) * vector_get_x(rhs) - vector_get_x(lhs) * vector_get_z(rhs),
@@ -88,19 +90,19 @@ static Vector4Type scalar_cross3(const Vector4Type& lhs, const Vector4Type& rhs)
 }
 
 template<typename Vector4Type, typename FloatType>
-static FloatType scalar_dot(const Vector4Type& lhs, const Vector4Type& rhs)
+inline FloatType scalar_dot(const Vector4Type& lhs, const Vector4Type& rhs)
 {
 	return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs)) + (vector_get_w(lhs) * vector_get_w(rhs));
 }
 
 template<typename Vector4Type, typename FloatType>
-static FloatType scalar_dot3(const Vector4Type& lhs, const Vector4Type& rhs)
+inline FloatType scalar_dot3(const Vector4Type& lhs, const Vector4Type& rhs)
 {
 	return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs));
 }
 
 template<typename Vector4Type, typename FloatType>
-static Vector4Type scalar_normalize3(const Vector4Type& input, FloatType threshold)
+inline Vector4Type scalar_normalize3(const Vector4Type& input, FloatType threshold)
 {
 	FloatType inv_len = FloatType(1.0) / acl::sqrt(scalar_dot3<Vector4Type, FloatType>(input, input));
 	if (inv_len >= threshold)
@@ -110,7 +112,7 @@ static Vector4Type scalar_normalize3(const Vector4Type& input, FloatType thresho
 }
 
 template<typename Vector4Type, VectorMix comp0, VectorMix comp1, VectorMix comp2, VectorMix comp3>
-static Vector4Type scalar_mix(const Vector4Type& input0, const Vector4Type& input1)
+inline Vector4Type scalar_mix(const Vector4Type& input0, const Vector4Type& input1)
 {
 	const auto x = math_impl::is_vector_mix_arg_xyzw(comp0) ? vector_get_component<comp0>(input0) : vector_get_component<comp0>(input1);
 	const auto y = math_impl::is_vector_mix_arg_xyzw(comp1) ? vector_get_component<comp1>(input0) : vector_get_component<comp1>(input1);
@@ -120,7 +122,7 @@ static Vector4Type scalar_mix(const Vector4Type& input0, const Vector4Type& inpu
 }
 
 template<typename Vector4Type, typename QuatType, typename FloatType>
-static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const FloatType threshold)
+void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const FloatType threshold)
 {
 	struct alignas(16) Tmp
 	{
@@ -589,28 +591,4 @@ static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity,
 	REQUIRE(vector_get_y(vector_sign(test_value0)) == scalar_sign(test_value0_flt[1]));
 	REQUIRE(vector_get_z(vector_sign(test_value0)) == scalar_sign(test_value0_flt[2]));
 	REQUIRE(vector_get_w(vector_sign(test_value0)) == scalar_sign(test_value0_flt[3]));
-}
-
-TEST_CASE("vector4 32 math", "[math][vector4]")
-{
-	test_vector4_impl<Vector4_32, Quat_32, float>(vector_zero_32(), quat_identity_32(), 1.0e-6f);
-
-	const Vector4_32 src = vector_set(-2.65f, 2.996113f, 0.68123521f, -5.9182f);
-	const Vector4_64 dst = vector_cast(src);
-	REQUIRE(scalar_near_equal(vector_get_x(dst), -2.65, 1.0e-6));
-	REQUIRE(scalar_near_equal(vector_get_y(dst), 2.996113, 1.0e-6));
-	REQUIRE(scalar_near_equal(vector_get_z(dst), 0.68123521, 1.0e-6));
-	REQUIRE(scalar_near_equal(vector_get_w(dst), -5.9182, 1.0e-6));
-}
-
-TEST_CASE("vector4 64 math", "[math][vector4]")
-{
-	test_vector4_impl<Vector4_64, Quat_64, double>(vector_zero_64(), quat_identity_64(), 1.0e-9);
-
-	const Vector4_64 src = vector_set(-2.65, 2.996113, 0.68123521, -5.9182);
-	const Vector4_32 dst = vector_cast(src);
-	REQUIRE(scalar_near_equal(vector_get_x(dst), -2.65f, 1.0e-6f));
-	REQUIRE(scalar_near_equal(vector_get_y(dst), 2.996113f, 1.0e-6f));
-	REQUIRE(scalar_near_equal(vector_get_z(dst), 0.68123521f, 1.0e-6f));
-	REQUIRE(scalar_near_equal(vector_get_w(dst), -5.9182f, 1.0e-6f));
 }
