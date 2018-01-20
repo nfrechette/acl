@@ -7,7 +7,9 @@ include_directories("${PROJECT_SOURCE_DIR}/../includes")
 include_directories("${PROJECT_SOURCE_DIR}/external/catch-1.9.6")
 
 # Grab all of our source files
-file(GLOB_RECURSE ACL_UNIT_TEST_SOURCE_FILES ${PROJECT_SOURCE_DIR}/sources/*.cpp)
+file(GLOB_RECURSE ACL_UNIT_TEST_SOURCE_FILES LIST_DIRECTORIES false
+	${PROJECT_SOURCE_DIR}/sources/*.h
+	${PROJECT_SOURCE_DIR}/sources/*.cpp)
 
 # Create groups for the source files, this creates the proper directory structure under the
 # Visual Studio filters
