@@ -24,12 +24,17 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
+#include "acl/core/memory_utils.h"
 #include "acl/math/math.h"
 #include "acl/math/scalar_64.h"
 #include "acl/math/vector4_64.h"
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Setters, getters, and casts
+
 	inline Quat_64 quat_set(double x, double y, double z, double w)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -103,6 +108,9 @@ namespace acl
 #endif
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Arithmetic
+
 	inline Quat_64 quat_conjugate(const Quat_64& input)
 	{
 		return quat_set(-quat_get_x(input), -quat_get_y(input), -quat_get_z(input), quat_get_w(input));
@@ -134,57 +142,6 @@ namespace acl
 		Quat_64 vector_quat = quat_set(vector_get_x(vector), vector_get_y(vector), vector_get_z(vector), 0.0);
 		Quat_64 inv_rotation = quat_conjugate(rotation);
 		return quat_to_vector(quat_mul(quat_mul(inv_rotation, vector_quat), rotation));
-	}
-
-	inline void quat_to_axis_angle(const Quat_64& input, Vector4_64& out_axis, double& out_angle)
-	{
-		constexpr double epsilon = 1.0e-8;
-		constexpr double epsilon_squared = epsilon * epsilon;
-
-		out_angle = acos(quat_get_w(input)) * 2.0;
-
-		double scale_sq = max(1.0 - quat_get_w(input) * quat_get_w(input), 0.0);
-		out_axis = scale_sq >= epsilon_squared ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0, 0.0, 0.0);
-	}
-
-	inline Vector4_64 quat_get_axis(const Quat_64& input)
-	{
-		constexpr double epsilon = 1.0e-8;
-		constexpr double epsilon_squared = epsilon * epsilon;
-
-		double scale_sq = max(1.0 - quat_get_w(input) * quat_get_w(input), 0.0);
-		return scale_sq >= epsilon_squared ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0, 0.0, 0.0);
-	}
-
-	inline double quat_get_angle(const Quat_64& input)
-	{
-		return acos(quat_get_w(input)) * 2.0;
-	}
-
-	inline Quat_64 quat_from_axis_angle(const Vector4_64& axis, double angle)
-	{
-		double s, c;
-		sincos(0.5 * angle, s, c);
-
-		return quat_set(s * vector_get_x(axis), s * vector_get_y(axis), s * vector_get_z(axis), c);
-	}
-
-	// Pitch is around the Y axis (right)
-	// Yaw is around the Z axis (up)
-	// Roll is around the X axis (forward)
-	inline Quat_64 quat_from_euler(double pitch, double yaw, double roll)
-	{
-		double sp, sy, sr;
-		double cp, cy, cr;
-
-		sincos(pitch * 0.5, sp, cp);
-		sincos(yaw * 0.5, sy, cy);
-		sincos(roll * 0.5, sr, cr);
-
-		return quat_set(cr * sp * sy - sr * cp * cy,
-						-cr * sp * cy - sr * cp * sy,
-						cr * cp * sy - sr * sp * cy,
-						cr * cp * cy + sr * sp * sy);
 	}
 
 	inline double quat_length_squared(const Quat_64& input)
@@ -247,6 +204,63 @@ namespace acl
 		double w = sqrt(abs(w_squared));
 		return quat_set(vector_get_x(input), vector_get_y(input), vector_get_z(input), w);
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Conversion to/from axis/angle/euler
+
+	inline void quat_to_axis_angle(const Quat_64& input, Vector4_64& out_axis, double& out_angle)
+	{
+		constexpr double epsilon = 1.0e-8;
+		constexpr double epsilon_squared = epsilon * epsilon;
+
+		out_angle = acos(quat_get_w(input)) * 2.0;
+
+		double scale_sq = max(1.0 - quat_get_w(input) * quat_get_w(input), 0.0);
+		out_axis = scale_sq >= epsilon_squared ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0, 0.0, 0.0);
+	}
+
+	inline Vector4_64 quat_get_axis(const Quat_64& input)
+	{
+		constexpr double epsilon = 1.0e-8;
+		constexpr double epsilon_squared = epsilon * epsilon;
+
+		double scale_sq = max(1.0 - quat_get_w(input) * quat_get_w(input), 0.0);
+		return scale_sq >= epsilon_squared ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0, 0.0, 0.0);
+	}
+
+	inline double quat_get_angle(const Quat_64& input)
+	{
+		return acos(quat_get_w(input)) * 2.0;
+	}
+
+	inline Quat_64 quat_from_axis_angle(const Vector4_64& axis, double angle)
+	{
+		double s, c;
+		sincos(0.5 * angle, s, c);
+
+		return quat_set(s * vector_get_x(axis), s * vector_get_y(axis), s * vector_get_z(axis), c);
+	}
+
+	// Pitch is around the Y axis (right)
+	// Yaw is around the Z axis (up)
+	// Roll is around the X axis (forward)
+	inline Quat_64 quat_from_euler(double pitch, double yaw, double roll)
+	{
+		double sp, sy, sr;
+		double cp, cy, cr;
+
+		sincos(pitch * 0.5, sp, cp);
+		sincos(yaw * 0.5, sy, cy);
+		sincos(roll * 0.5, sr, cr);
+
+		return quat_set(cr * sp * sy - sr * cp * cy,
+			-cr * sp * cy - sr * cp * sy,
+			cr * cp * sy - sr * sp * cy,
+			cr * cp * cy + sr * sp * sy);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Comparisons and masking
 
 	inline bool quat_is_finite(const Quat_64& input)
 	{
