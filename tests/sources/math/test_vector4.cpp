@@ -125,7 +125,7 @@ static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity,
 	struct alignas(16) Tmp
 	{
 		int32_t padding;
-		FloatType values[4];
+		alignas(8) FloatType values[4];
 	};
 
 	Tmp tmp = { 0, { FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0) } };
@@ -285,8 +285,10 @@ static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity,
 	REQUIRE(scalar_near_equal(vector_get_y(vector_cross3_result), vector_get_y(scalar_cross3_result), threshold));
 	REQUIRE(scalar_near_equal(vector_get_z(vector_cross3_result), vector_get_z(scalar_cross3_result), threshold));
 
-	const Vector4Type test_value10 = vector_set(FloatType(-0.001138), FloatType(0.91623), FloatType(-1.624598), FloatType(0.715671));
-	const Vector4Type test_value11 = vector_set(FloatType(0.1138), FloatType(-0.623), FloatType(1.4598), FloatType(-0.5671));
+	const FloatType test_value10_flt[4] = { FloatType(-0.001138), FloatType(0.91623), FloatType(-1.624598), FloatType(0.715671) };
+	const FloatType test_value11_flt[4] = { FloatType(0.1138), FloatType(-0.623), FloatType(1.4598), FloatType(-0.5671) };
+	const Vector4Type test_value10 = vector_set(test_value10_flt[0], test_value10_flt[1], test_value10_flt[2], test_value10_flt[3]);
+	const Vector4Type test_value11 = vector_set(test_value11_flt[0], test_value11_flt[1], test_value11_flt[2], test_value11_flt[3]);
 	const FloatType scalar_dot_result = scalar_dot<Vector4Type, FloatType>(test_value10, test_value11);
 	const FloatType vector_dot_result = vector_dot(test_value10, test_value11);
 	REQUIRE(scalar_near_equal(vector_dot_result, scalar_dot_result, threshold));
@@ -313,25 +315,25 @@ static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity,
 	REQUIRE(scalar_near_equal(vector_get_y(vector_normalize3_result), vector_get_y(scalar_normalize3_result), threshold));
 	REQUIRE(scalar_near_equal(vector_get_z(vector_normalize3_result), vector_get_z(scalar_normalize3_result), threshold));
 
-	REQUIRE(scalar_near_equal(vector_get_x(vector_lerp(test_value0, test_value1, FloatType(0.33))), ((test_value1_flt[0] - test_value0_flt[0]) * FloatType(0.33)) + test_value0_flt[0], threshold));
-	REQUIRE(scalar_near_equal(vector_get_y(vector_lerp(test_value0, test_value1, FloatType(0.33))), ((test_value1_flt[1] - test_value0_flt[1]) * FloatType(0.33)) + test_value0_flt[1], threshold));
-	REQUIRE(scalar_near_equal(vector_get_z(vector_lerp(test_value0, test_value1, FloatType(0.33))), ((test_value1_flt[2] - test_value0_flt[2]) * FloatType(0.33)) + test_value0_flt[2], threshold));
-	REQUIRE(scalar_near_equal(vector_get_w(vector_lerp(test_value0, test_value1, FloatType(0.33))), ((test_value1_flt[3] - test_value0_flt[3]) * FloatType(0.33)) + test_value0_flt[3], threshold));
+	REQUIRE(scalar_near_equal(vector_get_x(vector_lerp(test_value10, test_value11, FloatType(0.33))), ((test_value11_flt[0] - test_value10_flt[0]) * FloatType(0.33)) + test_value10_flt[0], threshold));
+	REQUIRE(scalar_near_equal(vector_get_y(vector_lerp(test_value10, test_value11, FloatType(0.33))), ((test_value11_flt[1] - test_value10_flt[1]) * FloatType(0.33)) + test_value10_flt[1], threshold));
+	REQUIRE(scalar_near_equal(vector_get_z(vector_lerp(test_value10, test_value11, FloatType(0.33))), ((test_value11_flt[2] - test_value10_flt[2]) * FloatType(0.33)) + test_value10_flt[2], threshold));
+	REQUIRE(scalar_near_equal(vector_get_w(vector_lerp(test_value10, test_value11, FloatType(0.33))), ((test_value11_flt[3] - test_value10_flt[3]) * FloatType(0.33)) + test_value10_flt[3], threshold));
 
 	REQUIRE(scalar_near_equal(vector_get_x(vector_fraction(test_value0)), acl::fraction(test_value0_flt[0]), threshold));
 	REQUIRE(scalar_near_equal(vector_get_y(vector_fraction(test_value0)), acl::fraction(test_value0_flt[1]), threshold));
 	REQUIRE(scalar_near_equal(vector_get_z(vector_fraction(test_value0)), acl::fraction(test_value0_flt[2]), threshold));
 	REQUIRE(scalar_near_equal(vector_get_w(vector_fraction(test_value0)), acl::fraction(test_value0_flt[3]), threshold));
 
-	REQUIRE(scalar_near_equal(vector_get_x(vector_mul_add(test_value0, test_value1, test_value2)), (test_value0_flt[0] * test_value1_flt[0]) + test_value2_flt[0], threshold));
-	REQUIRE(scalar_near_equal(vector_get_y(vector_mul_add(test_value0, test_value1, test_value2)), (test_value0_flt[1] * test_value1_flt[1]) + test_value2_flt[1], threshold));
-	REQUIRE(scalar_near_equal(vector_get_z(vector_mul_add(test_value0, test_value1, test_value2)), (test_value0_flt[2] * test_value1_flt[2]) + test_value2_flt[2], threshold));
-	REQUIRE(scalar_near_equal(vector_get_w(vector_mul_add(test_value0, test_value1, test_value2)), (test_value0_flt[3] * test_value1_flt[3]) + test_value2_flt[3], threshold));
+	REQUIRE(scalar_near_equal(vector_get_x(vector_mul_add(test_value10, test_value11, test_value2)), (test_value10_flt[0] * test_value11_flt[0]) + test_value2_flt[0], threshold));
+	REQUIRE(scalar_near_equal(vector_get_y(vector_mul_add(test_value10, test_value11, test_value2)), (test_value10_flt[1] * test_value11_flt[1]) + test_value2_flt[1], threshold));
+	REQUIRE(scalar_near_equal(vector_get_z(vector_mul_add(test_value10, test_value11, test_value2)), (test_value10_flt[2] * test_value11_flt[2]) + test_value2_flt[2], threshold));
+	REQUIRE(scalar_near_equal(vector_get_w(vector_mul_add(test_value10, test_value11, test_value2)), (test_value10_flt[3] * test_value11_flt[3]) + test_value2_flt[3], threshold));
 
-	REQUIRE(scalar_near_equal(vector_get_x(vector_neg_mul_sub(test_value0, test_value1, test_value2)), (test_value0_flt[0] * -test_value1_flt[0]) + test_value2_flt[0], threshold));
-	REQUIRE(scalar_near_equal(vector_get_y(vector_neg_mul_sub(test_value0, test_value1, test_value2)), (test_value0_flt[1] * -test_value1_flt[1]) + test_value2_flt[1], threshold));
-	REQUIRE(scalar_near_equal(vector_get_z(vector_neg_mul_sub(test_value0, test_value1, test_value2)), (test_value0_flt[2] * -test_value1_flt[2]) + test_value2_flt[2], threshold));
-	REQUIRE(scalar_near_equal(vector_get_w(vector_neg_mul_sub(test_value0, test_value1, test_value2)), (test_value0_flt[3] * -test_value1_flt[3]) + test_value2_flt[3], threshold));
+	REQUIRE(scalar_near_equal(vector_get_x(vector_neg_mul_sub(test_value10, test_value11, test_value2)), (test_value10_flt[0] * -test_value11_flt[0]) + test_value2_flt[0], threshold));
+	REQUIRE(scalar_near_equal(vector_get_y(vector_neg_mul_sub(test_value10, test_value11, test_value2)), (test_value10_flt[1] * -test_value11_flt[1]) + test_value2_flt[1], threshold));
+	REQUIRE(scalar_near_equal(vector_get_z(vector_neg_mul_sub(test_value10, test_value11, test_value2)), (test_value10_flt[2] * -test_value11_flt[2]) + test_value2_flt[2], threshold));
+	REQUIRE(scalar_near_equal(vector_get_w(vector_neg_mul_sub(test_value10, test_value11, test_value2)), (test_value10_flt[3] * -test_value11_flt[3]) + test_value2_flt[3], threshold));
 
 	//////////////////////////////////////////////////////////////////////////
 	// Comparisons and masking
@@ -519,17 +521,7 @@ static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity,
 	REQUIRE(scalar_near_equal(vector_get_z(vector_blend(vector_less_than(vector_set(FloatType(1.0)), zero), test_value0, test_value1)), test_value1_flt[2], threshold));
 	REQUIRE(scalar_near_equal(vector_get_w(vector_blend(vector_less_than(vector_set(FloatType(1.0)), zero), test_value0, test_value1)), test_value1_flt[3], threshold));
 
-#define ACL_TEST_MIX_XYZ(input0, input1, comp0, comp1, comp2) \
-	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::X>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::X>(input0, input1), threshold)); \
-	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::Y>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::Y>(input0, input1), threshold)); \
-	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::Z>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::Z>(input0, input1), threshold)); \
-	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::W>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::W>(input0, input1), threshold)); \
-	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::A>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::A>(input0, input1), threshold)); \
-	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::B>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::B>(input0, input1), threshold)); \
-	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::C>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::C>(input0, input1), threshold)); \
-	REQUIRE(vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::D>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::D>(input0, input1), threshold))
-
-#define ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, comp2) \
+#define ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, comp2) \
 	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::X] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::X>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::X>(input0, input1), threshold); \
 	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::Y] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::Y>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::Y>(input0, input1), threshold); \
 	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::Z] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::Z>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::Z>(input0, input1), threshold); \
@@ -540,14 +532,14 @@ static void test_vector4_impl(const Vector4Type& zero, const QuatType& identity,
 	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::D] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::D>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::D>(input0, input1), threshold)
 
 #define ACL_TEST_MIX_XY(results, input0, input1, comp0, comp1) \
-	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::X); \
-	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::Y); \
-	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::Z); \
-	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::W); \
-	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::A); \
-	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::B); \
-	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::C); \
-	ACL_TEST_MIX_XYZ_(results, input0, input1, comp0, comp1, VectorMix::D)
+	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::X); \
+	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::Y); \
+	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::Z); \
+	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::W); \
+	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::A); \
+	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::B); \
+	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::C); \
+	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::D)
 
 #define ACL_TEST_MIX_X(results, input0, input1, comp0) \
 	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::X); \
