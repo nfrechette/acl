@@ -96,7 +96,8 @@ def get_generator(compiler, cpu):
 	sys.exit(1)
 
 def set_compiler_env(compiler):
-	if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
+	if platform.system() == 'Linux':
+		os.environ['MAKEFLAGS'] = '-j4'
 		if compiler == 'clang4':
 			os.environ['CC'] = 'clang-4.0'
 			os.environ['CXX'] = 'clang++-4.0'
