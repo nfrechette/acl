@@ -197,17 +197,17 @@ namespace acl
 		output[3] = vector_get_w(input);
 	}
 
-	inline void vector_unaligned_write(const Vector4_32& input, uint8_t* output)
-	{
-		memcpy(output, &input, sizeof(Vector4_32));
-	}
-
 	inline void vector_unaligned_write3(const Vector4_32& input, float* output)
 	{
 		ACL_ENSURE(is_aligned(output), "Invalid alignment");
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
+	}
+
+	inline void vector_unaligned_write(const Vector4_32& input, uint8_t* output)
+	{
+		memcpy(output, &input, sizeof(Vector4_32));
 	}
 
 	inline void vector_unaligned_write3(const Vector4_32& input, uint8_t* output)
