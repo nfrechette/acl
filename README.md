@@ -43,13 +43,6 @@ Decompression is typically very simple and light in order to be fast. Very littl
    *  OS X (Xcode 8.3, Xcode 9.2) x86 and x64
 *  Decompression only: Android (NVIDIA CodeWorks)
 
-## Algorithms supported
-
-*  [Uniformly sampled](./docs/algorithm_uniformly_sampled.md)
-*  Linear key reduction (TODO)
-*  Spline key reduction (TODO)
-*  Wavelets (TODO)
-
 ## Getting up and running
 
 ### Windows, Linux, and OS X
@@ -72,6 +65,7 @@ Decompression is typically very simple and light in order to be fast. Very littl
 ## License, copyright, and code of conduct
 
 This project uses the [MIT license](LICENSE).
+
 Copyright (c) 2017 Nicholas Frechette & Animation Compression Library contributors
 
 Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
