@@ -663,6 +663,7 @@ namespace acl
 	inline Vector4_64 vector_mix_xyab(const Vector4_64& input0, const Vector4_64& input1) { return vector_mix<VectorMix::X, VectorMix::Y, VectorMix::A, VectorMix::B>(input0, input1); }
 	inline Vector4_64 vector_mix_xzac(const Vector4_64& input0, const Vector4_64& input1) { return vector_mix<VectorMix::X, VectorMix::Z, VectorMix::A, VectorMix::C>(input0, input1); }
 	inline Vector4_64 vector_mix_xbxb(const Vector4_64& input0, const Vector4_64& input1) { return vector_mix<VectorMix::X, VectorMix::B, VectorMix::X, VectorMix::B>(input0, input1); }
+	inline Vector4_64 vector_mix_xbzd(const Vector4_64& input0, const Vector4_64& input1) { return vector_mix<VectorMix::X, VectorMix::B, VectorMix::Z, VectorMix::D>(input0, input1); }
 	inline Vector4_64 vector_mix_ywbd(const Vector4_64& input0, const Vector4_64& input1) { return vector_mix<VectorMix::Y, VectorMix::W, VectorMix::B, VectorMix::D>(input0, input1); }
 	inline Vector4_64 vector_mix_zyax(const Vector4_64& input0, const Vector4_64& input1) { return vector_mix<VectorMix::Z, VectorMix::Y, VectorMix::A, VectorMix::X>(input0, input1); }
 	inline Vector4_64 vector_mix_zycx(const Vector4_64& input0, const Vector4_64& input1) { return vector_mix<VectorMix::Z, VectorMix::Y, VectorMix::C, VectorMix::X>(input0, input1); }
