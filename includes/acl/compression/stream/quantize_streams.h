@@ -202,10 +202,7 @@ namespace acl
 					else
 					{
 						const Quat_32 rotation = raw_segment_stream.get_raw_sample<Quat_32>(sample_index);
-						if (is_pack_72_bit_rate(bit_rate))
-							pack_vector3_72(quat_to_vector(rotation), are_rotations_normalized, quantized_ptr);
-						else
-							pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
+						pack_vector3_n(quat_to_vector(rotation), num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, quantized_ptr);
 					}
 				}
 			}
@@ -324,10 +321,7 @@ namespace acl
 					else
 					{
 						const Vector4_32 translation = raw_segment_stream.get_raw_sample<Vector4_32>(sample_index);
-						if (is_pack_72_bit_rate(bit_rate))
-							pack_vector3_72(translation, true, quantized_ptr);
-						else
-							pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+						pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
 					}
 				}
 			}
@@ -444,10 +438,7 @@ namespace acl
 					else
 					{
 						const Vector4_32 scale = raw_segment_stream.get_raw_sample<Vector4_32>(sample_index);
-						if (is_pack_72_bit_rate(bit_rate))
-							pack_vector3_72(scale, true, quantized_ptr);
-						else
-							pack_vector3_n(scale, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
+						pack_vector3_n(scale, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, quantized_ptr);
 					}
 				}
 			}

@@ -194,15 +194,7 @@ namespace acl
 			ACL_ENSURE(!is_constant_bit_rate(bit_rate), "Cannot write constant variable track data");
 			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 
-			if (is_pack_72_bit_rate(bit_rate))
-			{
-				uint64_t raw_sample_u64 = byte_swap(safe_ptr_cast<const uint64_t>(raw_sample_ptr)[0]);
-				memcpy_bits(animated_track_data_begin, out_bit_offset, &raw_sample_u64, 0, 64);
-				raw_sample_u64 = byte_swap(safe_ptr_cast<const uint64_t>(raw_sample_ptr)[1]);
-				const uint64_t offset = 64 - 8;
-				memcpy_bits(animated_track_data_begin, out_bit_offset + 64, &raw_sample_u64, offset, 8);
-			}
-			else if (is_raw_bit_rate(bit_rate))
+			if (is_raw_bit_rate(bit_rate))
 			{
 				const uint32_t* raw_sample_u32 = safe_ptr_cast<const uint32_t>(raw_sample_ptr);
 				const uint32_t x = byte_swap(raw_sample_u32[0]);

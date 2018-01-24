@@ -61,13 +61,11 @@ namespace acl
 					ACL_ENSURE(is_normalized, "Cannot drop a constant track if it isn't normalized");
 					return unpack_vector3_48(ptr, true);
 				}
-				else if (is_pack_72_bit_rate(bit_rate))
-					return unpack_vector3_72(is_normalized, ptr);
 				else if (is_raw_bit_rate(bit_rate))
 					return unpack_vector3_96(ptr);
 				else
 				{
-					uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+					const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 					return unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, is_normalized, ptr);
 				}
 			}
@@ -91,8 +89,6 @@ namespace acl
 				ACL_ENSURE(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
 					return unpack_vector3_48(ptr, true);
-				else if (is_pack_72_bit_rate(bit_rate))
-					return unpack_vector3_72(true, ptr);
 				else if (is_raw_bit_rate(bit_rate))
 					return unpack_vector3_96(ptr);
 				else
@@ -204,11 +200,6 @@ namespace acl
 
 			pack_vector3_48(normalized_rotation, true, &raw_data[0]);
 			packed_rotation = unpack_vector3_48(&raw_data[0], true);
-		}
-		else if (is_pack_72_bit_rate(bit_rate))
-		{
-			pack_vector3_72(rotation, are_rotations_normalized, &raw_data[0]);
-			packed_rotation = unpack_vector3_72(are_rotations_normalized, &raw_data[0]);
 		}
 		else if (is_raw_bit_rate(bit_rate))
 		{
@@ -372,11 +363,6 @@ namespace acl
 			pack_vector3_48(normalized_translation, true, &raw_data[0]);
 			packed_translation = unpack_vector3_48(&raw_data[0], true);
 		}
-		else if (is_pack_72_bit_rate(bit_rate))
-		{
-			pack_vector3_72(translation, true, &raw_data[0]);
-			packed_translation = unpack_vector3_72(true, &raw_data[0]);
-		}
 		else if (is_raw_bit_rate(bit_rate))
 		{
 			pack_vector3_96(translation, &raw_data[0]);
@@ -538,11 +524,6 @@ namespace acl
 
 			pack_vector3_48(normalized_scale, true, &raw_data[0]);
 			packed_scale = unpack_vector3_48(&raw_data[0], true);
-		}
-		else if (is_pack_72_bit_rate(bit_rate))
-		{
-			pack_vector3_72(scale, true, &raw_data[0]);
-			packed_scale = unpack_vector3_72(true, &raw_data[0]);
 		}
 		else if (is_raw_bit_rate(bit_rate))
 		{

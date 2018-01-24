@@ -230,8 +230,6 @@ namespace acl
 							rotations[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
 							ignore_segment_range[i] = true;
 						}
-						else if (is_pack_72_bit_rate(bit_rate))
-							rotations[i] = unpack_vector3_72(are_clip_rotations_normalized, context.animated_track_data[i], context.key_frame_bit_offsets[i]);
 						else if (is_raw_bit_rate(bit_rate))
 						{
 							rotations[i] = unpack_vector3_96(context.animated_track_data[i], context.key_frame_bit_offsets[i]);
@@ -413,8 +411,6 @@ namespace acl
 							out_vectors[i] = unpack_vector3_48(context.segment_range_data[i] + context.segment_range_data_offset, true);
 							ignore_segment_range[i] = true;
 						}
-						else if (is_pack_72_bit_rate(bit_rate))
-							out_vectors[i] = unpack_vector3_72(true, context.animated_track_data[i], context.key_frame_bit_offsets[i]);
 						else if (is_raw_bit_rate(bit_rate))
 						{
 							out_vectors[i] = unpack_vector3_96(context.animated_track_data[i], context.key_frame_bit_offsets[i]);
