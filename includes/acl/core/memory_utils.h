@@ -210,4 +210,10 @@ namespace acl
 	{
 		return *safe_ptr_cast<const DataType>(input);
 	}
+
+	template<typename DataType>
+	inline void unaligned_write(DataType input, void* output)
+	{
+		memcpy(output, &input, sizeof(DataType));
+	}
 }

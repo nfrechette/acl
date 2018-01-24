@@ -26,6 +26,7 @@
 
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
+#include "acl/core/track_types.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/scalar_packing.h"
 
@@ -229,9 +230,7 @@ namespace acl
 
 		uint64_t vector_u64 = (static_cast<uint64_t>(vector_x) << (YBits + ZBits)) | (static_cast<uint64_t>(vector_y) << ZBits) | static_cast<uint64_t>(vector_z);
 
-		// Unaligned write
-		uint64_t* data = reinterpret_cast<uint64_t*>(out_vector_data);
-		*data = vector_u64;
+		unaligned_write(vector_u64, out_vector_data);
 	}
 
 	inline Vector4_32 unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data)
