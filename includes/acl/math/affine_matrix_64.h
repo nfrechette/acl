@@ -31,7 +31,7 @@
 
 namespace acl
 {
-	AffineMatrix_64 matrix_set(const Vector4_64& x_axis, const Vector4_64& y_axis, const Vector4_64& z_axis, const Vector4_64& w_axis)
+	inline AffineMatrix_64 matrix_set(const Vector4_64& x_axis, const Vector4_64& y_axis, const Vector4_64& z_axis, const Vector4_64& w_axis)
 	{
 		ACL_ENSURE(vector_get_w(x_axis) == 0.0, "X axis does not have a W component == 0.0");
 		ACL_ENSURE(vector_get_w(y_axis) == 0.0, "Y axis does not have a W component == 0.0");
@@ -40,7 +40,7 @@ namespace acl
 		return AffineMatrix_64{x_axis, y_axis, z_axis, w_axis};
 	}
 
-	AffineMatrix_64 matrix_set(const Quat_64& quat, const Vector4_64& translation, const Vector4_64& scale)
+	inline AffineMatrix_64 matrix_set(const Quat_64& quat, const Vector4_64& translation, const Vector4_64& scale)
 	{
 		ACL_ENSURE(quat_is_normalized(quat), "Quaternion is not normalized");
 
@@ -112,6 +112,76 @@ namespace acl
 	inline AffineMatrix_64 matrix_from_transform(const Transform_64& transform)
 	{
 		return matrix_set(transform.rotation, transform.translation, transform.scale);
+	}
+
+	inline Vector4_64 matrix_get_axis(const AffineMatrix_64& input, MatrixAxis axis)
+	{
+		switch (axis)
+		{
+		case MatrixAxis::X: return input.x_axis;
+		case MatrixAxis::Y: return input.y_axis;
+		case MatrixAxis::Z: return input.z_axis;
+		case MatrixAxis::W: return input.w_axis;
+		default:
+			ACL_ENSURE(false, "Invalid matrix axis");
+			return vector_zero_64();
+		}
+	}
+
+	inline Quat_64 quat_from_matrix(const AffineMatrix_64& input)
+	{
+		if (vector_all_near_equal3(input.x_axis, vector_zero_64()) || vector_all_near_equal3(input.y_axis, vector_zero_64()) || vector_all_near_equal3(input.z_axis, vector_zero_64()))
+		{
+			// Zero scale not supported, return the identity
+			return quat_identity_64();
+		}
+
+		const double mtx_trace = vector_get_x(input.x_axis) + vector_get_y(input.y_axis) + vector_get_z(input.z_axis);
+		if (mtx_trace > 0.0)
+		{
+			const double inv_trace = sqrt_reciprocal(mtx_trace + 1.0);
+			const double half_inv_trace = inv_trace * 0.5;
+
+			const double x = (vector_get_z(input.y_axis) - vector_get_y(input.z_axis)) * half_inv_trace;
+			const double y = (vector_get_x(input.z_axis) - vector_get_z(input.x_axis)) * half_inv_trace;
+			const double z = (vector_get_y(input.x_axis) - vector_get_x(input.y_axis)) * half_inv_trace;
+			const double w = reciprocal(inv_trace) * 0.5;
+
+			return quat_normalize(quat_set(x, y, z, w));
+		}
+		else
+		{
+			int8_t best_axis = 0;
+			if (vector_get_y(input.y_axis) > vector_get_x(input.x_axis))
+				best_axis = 1;
+			if (vector_get_z(input.z_axis) > vector_get_component(matrix_get_axis(input, MatrixAxis(best_axis)), VectorMix(best_axis)))
+				best_axis = 2;
+
+			const int8_t next_best_axis = (best_axis + 1) % 3;
+			const int8_t next_next_best_axis = (next_best_axis + 1) % 3;
+
+			const double mtx_pseudo_trace = 1.0 +
+				vector_get_component(matrix_get_axis(input, MatrixAxis(best_axis)), VectorMix(best_axis)) -
+				vector_get_component(matrix_get_axis(input, MatrixAxis(next_best_axis)), VectorMix(next_best_axis)) -
+				vector_get_component(matrix_get_axis(input, MatrixAxis(next_next_best_axis)), VectorMix(next_next_best_axis));
+
+			const double inv_pseudo_trace = sqrt_reciprocal(mtx_pseudo_trace);
+			const double half_inv_pseudo_trace = inv_pseudo_trace * 0.5;
+
+			double quat_values[4];
+			quat_values[best_axis] = reciprocal(inv_pseudo_trace) * 0.5;
+			quat_values[next_best_axis] = half_inv_pseudo_trace *
+				(vector_get_component(matrix_get_axis(input, MatrixAxis(best_axis)), VectorMix(next_best_axis)) +
+					vector_get_component(matrix_get_axis(input, MatrixAxis(next_best_axis)), VectorMix(best_axis)));
+			quat_values[next_next_best_axis] = half_inv_pseudo_trace *
+				(vector_get_component(matrix_get_axis(input, MatrixAxis(best_axis)), VectorMix(next_next_best_axis)) +
+					vector_get_component(matrix_get_axis(input, MatrixAxis(next_next_best_axis)), VectorMix(best_axis)));
+			quat_values[3] = half_inv_pseudo_trace *
+				(vector_get_component(matrix_get_axis(input, MatrixAxis(next_best_axis)), VectorMix(next_next_best_axis)) -
+					vector_get_component(matrix_get_axis(input, MatrixAxis(next_next_best_axis)), VectorMix(next_best_axis)));
+
+			return quat_normalize(quat_unaligned_load(&quat_values[0]));
+		}
 	}
 
 	// Multiplication order is as follow: local_to_world = matrix_mul(local_to_object, object_to_world)
@@ -255,5 +325,15 @@ namespace acl
 		z_axis = vector_mul(z_axis, inv_det);
 		w_axis = vector_mul(w_axis, inv_det);
 		return matrix_set(x_axis, y_axis, z_axis, w_axis);
+	}
+
+	inline AffineMatrix_64 matrix_remove_scale(const AffineMatrix_64& input)
+	{
+		AffineMatrix_64 result;
+		result.x_axis = vector_normalize3(input.x_axis);
+		result.y_axis = vector_normalize3(input.y_axis);
+		result.z_axis = vector_normalize3(input.z_axis);
+		result.w_axis = input.w_axis;
+		return result;
 	}
 }
