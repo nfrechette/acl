@@ -26,8 +26,6 @@
 
 #include "acl/core/error.h"
 #include "acl/math/scalar_32.h"
-#include "acl/math/vector4_32.h"
-#include "acl/math/vector4_64.h"
 
 #include <cstdint>
 
@@ -35,25 +33,25 @@ namespace acl
 {
 	inline uint32_t pack_scalar_unsigned(float input, uint8_t num_bits)
 	{
-		ACL_ENSURE(input >= 0.0f && input <= 1.0f, "Invalue input value: 0.0 <= %f <= 1.0", input);
-		uint32_t max_value = (1 << num_bits) - 1;
+		ACL_ENSURE(input >= 0.0f && input <= 1.0f, "Expected normalized unsigned input value: %f", input);
+		const uint32_t max_value = (1 << num_bits) - 1;
 		return static_cast<uint32_t>(symmetric_round(input * safe_to_float(max_value)));
 	}
 
 	inline float unpack_scalar_unsigned(uint32_t input, uint8_t num_bits)
 	{
-		uint32_t max_value = (1 << num_bits) - 1;
-		ACL_ENSURE(input <= max_value, "Invalue input value: %ull <= 1.0", input);
+		const uint32_t max_value = (1 << num_bits) - 1;
+		ACL_ENSURE(input <= max_value, "Input value too large: %ull", input);
 		return safe_to_float(input) / safe_to_float(max_value);
 	}
 
 	inline uint32_t pack_scalar_signed(float input, uint8_t num_bits)
 	{
-		ACL_ENSURE(input >= -1.0f && input <= 1.0f, "Invalue input value: -1.0 <= %f <= 1.0", input);
+		ACL_ENSURE(input >= -1.0f && input <= 1.0f, "Expected normalized signed input value: %f", input);
 		return pack_scalar_unsigned((input * 0.5f) + 0.5f, num_bits);
 	}
 
-	inline float unpack_scalar_signed(int32_t input, uint8_t num_bits)
+	inline float unpack_scalar_signed(uint32_t input, uint8_t num_bits)
 	{
 		return (unpack_scalar_unsigned(input, num_bits) * 2.0f) - 1.0f;
 	}
