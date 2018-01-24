@@ -31,7 +31,7 @@
 
 namespace acl
 {
-	inline Transform_32 transform_set(const Quat_32& rotation, const Vector4_32& translation, const Vector4_32& scale)
+	constexpr Transform_32 transform_set(const Quat_32& rotation, const Vector4_32& translation, const Vector4_32& scale)
 	{
 		return Transform_32{ rotation, translation, scale };
 	}
@@ -98,10 +98,16 @@ namespace acl
 
 	inline Transform_32 transform_inverse(const Transform_32& input)
 	{
-		// TODO: Add unit tests for this!
 		Quat_32 inv_rotation = quat_conjugate(input.rotation);
 		Vector4_32 inv_scale = vector_reciprocal(input.scale);
 		Vector4_32 inv_translation = vector_neg(quat_rotate(inv_rotation, vector_mul(input.translation, inv_scale)));
 		return transform_set(inv_rotation, inv_translation, inv_scale);
+	}
+
+	inline Transform_32 transform_inverse_no_scale(const Transform_32& input)
+	{
+		Quat_32 inv_rotation = quat_conjugate(input.rotation);
+		Vector4_32 inv_translation = vector_neg(quat_rotate(inv_rotation, input.translation));
+		return transform_set(inv_rotation, inv_translation, vector_set(1.0f));
 	}
 }
