@@ -147,7 +147,7 @@ namespace acl
 
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))
-					context.clip_range_data_offset += 3 * sizeof(float) * 2;
+					context.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
 
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 				if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flag))
@@ -489,7 +489,7 @@ namespace acl
 							out_vectors[i] = vector_mul_add(out_vectors[i], clip_range_extent, clip_range_min);
 					}
 
-					context.clip_range_data_offset += 3 * sizeof(float) * 2;
+					context.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
 				}
 
 				out_time_series_type = TimeSeriesType8::Varying;

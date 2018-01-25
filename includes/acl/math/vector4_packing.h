@@ -296,9 +296,4 @@ namespace acl
 			return 0;
 		}
 	}
-
-	constexpr uint32_t get_range_reduction_vector_size(VectorFormat8 format)
-	{
-		return sizeof(float) * 6;
-	}
 }
