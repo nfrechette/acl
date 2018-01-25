@@ -32,7 +32,7 @@
 #include "acl/math/scalar_packing.h"
 #include "acl/math/vector4_packing.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
