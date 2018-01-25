@@ -59,7 +59,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			Vector4_32 vec0 = vector_set(value_signed);
 			pack_vector4_64(vec0, false, &tmp.buffer[0]);
 			Vector4_32 vec1 = unpack_vector4_64(&tmp.buffer[0], false);
-			if (std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) != 0)
+			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned);
@@ -170,7 +170,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			Vector4_32 vec0 = vector_set(value_signed_xy, value_signed_xy, value_signed_z);
 			pack_vector3_32(vec0, 11, 11, 10, false, &tmp0.buffer[0]);
 			Vector4_32 vec1 = unpack_vector3_32(11, 11, 10, false, &tmp0.buffer[0]);
-			if (std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) != 0)
+			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned_xy, value_unsigned_xy, value_unsigned_z);
