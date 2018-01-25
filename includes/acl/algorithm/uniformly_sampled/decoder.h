@@ -97,7 +97,7 @@ namespace acl
 				uint32_t segment_range_data_offset;
 
 				uint32_t key_frame_byte_offsets[2];
-				uint32_t key_frame_bit_offsets[2];
+				int32_t key_frame_bit_offsets[2];
 
 				float interpolation_alpha;
 			};

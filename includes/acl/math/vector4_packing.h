@@ -246,11 +246,11 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is in big-endian order
-	inline Vector4_32 unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data, uint64_t bit_offset)
+	inline Vector4_32 unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data, int32_t bit_offset)
 	{
 		uint8_t num_bits_to_read = XBits + YBits + ZBits;
 
-		uint64_t byte_offset = bit_offset / 8;
+		int32_t byte_offset = bit_offset / 8;
 		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= bit_offset % 8;
