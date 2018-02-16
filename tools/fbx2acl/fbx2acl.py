@@ -1,10 +1,12 @@
 # For this script to work, you must first install the FBX SKD Python bindings
 # Make sure your python version is supported by the bindings as well
 
+import io
+import math
+import os
 import sys
 import zipfile
-import os
-import io
+
 from collections import namedtuple
 
 FBXNode = namedtuple('FBXNode', 'name parent node')
@@ -46,15 +48,39 @@ def get_animation_stack(scene, anim_stack_name):
 	
 	return anim_stack
 
-def parse_clip(scene, anim_stack):
-	clip_name = anim_stack.GetName()
+def get_sample_rate(scene):
+	return int(FbxTime.GetFrameRate(scene.GetGlobalSettings().GetTimeMode()) + 0.5)
+
+def snap_start_time_to_sample(scene, anim_stack, start_time):
+	snapped = round(float(start_time) * get_sample_rate(scene)) / get_sample_rate(scene)
+
+	if snapped != start_time:
+		print('Snapped the start time to the sample at {}s'.format(snapped))
+	
+	return snapped
+	
+def get_window_duration(anim_stack, start_time, end_time):
 	timespan = anim_stack.GetLocalTimeSpan()
-	sample_rate = int(FbxTime.GetFrameRate(scene.GetGlobalSettings().GetTimeMode()) + 0.5)
-	duration = timespan.GetDuration().GetSecondDouble()
-	num_samples = int((duration * sample_rate) + 0.5) + 1
+	clip_duration = timespan.GetDuration().GetSecondDouble()
+	
+	if end_time == None:
+		end_time = clip_duration
+	if end_time > clip_duration:
+		print('The end time must be <= {}'.format(clip_duration))
+		sys.exit(1)
+	if end_time < start_time:
+		print('The start time must be before the end time')
+		sys.exit(1)
+	
+	return end_time - start_time
+
+def parse_clip(scene, anim_stack, window_duration):
+	clip_name = anim_stack.GetName()
+	sample_rate = get_sample_rate(scene)
+	num_samples = int((window_duration * sample_rate) + 0.5) + 1
 	error_threshold = 0.01
 
-	return ACLClip(clip_name, num_samples, sample_rate, error_threshold, duration)
+	return ACLClip(clip_name, num_samples, sample_rate, error_threshold, window_duration)
 
 def parse_hierarchy(scene):
 	nodes = []
@@ -155,7 +181,7 @@ def is_track_default(track, default_value, error_threshold = 0.000001):
 	# Everything is equal, we are a default track
 	return True
 
-def parse_tracks(scene, anim_stack, clip, bones, nodes):
+def parse_tracks(scene, anim_stack, clip, bones, nodes, start_time):
 	tracks = []
 
 	scene.SetCurrentAnimationStack(anim_stack)
@@ -178,7 +204,7 @@ def parse_tracks(scene, anim_stack, clip, bones, nodes):
 		scales = []
 
 		for i in range(clip.num_samples):
-			time.SetSecondDouble(i * frame_duration)
+			time.SetSecondDouble(start_time + i * frame_duration)
 			matrix = anim_evaluator.GetNodeLocalTransform(bone_node.node, time)
 
 			rotation = matrix.GetQ()
@@ -283,6 +309,8 @@ def parse_argv():
 	options = {}
 	options['fbx'] = ""
 	options['stack'] = ""
+	options['start'] = 0.0
+	options['end'] = None
 	options['acl'] = ""
 	options['zip'] = False
 
@@ -295,6 +323,12 @@ def parse_argv():
 
 		if value.startswith('-stack='):
 			options['stack'] = value[7:].replace('"', '')
+
+		if value.startswith('-start='):
+			options['start'] = float(value[7:])
+
+		if value.startswith('-end='):
+			options['end'] = float(value[5:])
 		
 		if value.startswith('-acl='):
 			options['acl'] = value[5:].replace('"', '')
@@ -304,7 +338,7 @@ def parse_argv():
 
 	return options
 
-def convert_file(fbx_filename, anim_stack_name, acl_filename, zip):
+def convert_file(fbx_filename, anim_stack_name, start_time, end_time, acl_filename, zip):
 	# Prepare the FBX SDK.
 	sdk_manager, scene = InitializeSdkObjects()
 
@@ -318,10 +352,14 @@ def convert_file(fbx_filename, anim_stack_name, acl_filename, zip):
 		print('Parsing FBX...')
 		# TODO: Ensure we only have 1 anim layer
 		anim_stack = get_animation_stack(scene, anim_stack_name)
-		clip = parse_clip(scene, anim_stack)
+		
+		start_time = snap_start_time_to_sample(scene, anim_stack, start_time)
+		window_duration = get_window_duration(anim_stack, start_time, end_time)
+		
+		clip = parse_clip(scene, anim_stack, window_duration)
 		nodes = parse_hierarchy(scene)
 		bones = parse_bind_pose(scene, nodes)
-		tracks = parse_tracks(scene, anim_stack, clip, bones, nodes)
+		tracks = parse_tracks(scene, anim_stack, clip, bones, nodes, start_time)
 
 		# If we don't provide an ACL filename, we'll write to STDOUT
 		# If we provide an ACL filename but not '-zip', we'll output the raw file
@@ -372,10 +410,12 @@ if __name__ == "__main__":
 
 	fbx_filename = options['fbx']
 	if len(fbx_filename) == 0:
-		print('Usage: fbx2acl -fbx=<FBX file name> [-stack=<animation stack name>] [-acl=<ACL file name>] [-zip]')
+		print('Usage: fbx2acl -fbx=<FBX file name> [-stack=<animation stack name>] [-start=<time>] [-end=<time>] [-acl=<ACL file name>] [-zip]')
 		sys.exit(1)
 
 	anim_stack_name = options['stack']
+	start_time = options['start']
+	end_time = options['end']
 	acl_filename = options['acl']
 	zip = options['zip']
 
@@ -408,7 +448,7 @@ if __name__ == "__main__":
 				if not os.path.exists(acl_dirname):
 					os.makedirs(acl_dirname)
 
-				result = convert_file(fbx_filename, anim_stack_name, acl_filename, zip)
+				result = convert_file(fbx_filename, anim_stack_name, start_time, end_time, acl_filename, zip)
 				if not result:
 					sys.exit(1)
 
@@ -419,7 +459,7 @@ if __name__ == "__main__":
 		print('Invalid ACL filename, it should be of the form *.acl.sjson')
 		sys.exit(1)
 
-	result = convert_file(fbx_filename, anim_stack_name, acl_filename, zip)
+	result = convert_file(fbx_filename, anim_stack_name, start_time, end_time, acl_filename, zip)
 
 	if result:
 		sys.exit(0)
