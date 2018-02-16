@@ -105,7 +105,24 @@ namespace acl
 			static inline DestIntegralType cast(SrcEnumType input)
 			{
 				typedef typename std::underlying_type<SrcEnumType>::type SrcIntegralType;
-				ACL_ENSURE(static_cast<SrcIntegralType>(input) >= std::numeric_limits<DestIntegralType>::min() && static_cast<SrcIntegralType>(input) <= std::numeric_limits<DestIntegralType>::max(), "static_cast would result in truncation");
+
+#if defined(ACL_USE_ERROR_CHECKS)
+				const SrcIntegralType integralInput = static_cast<SrcIntegralType>(input);
+
+				const bool srcSigned = std::numeric_limits<SrcIntegralType>::is_signed;
+				const bool destSigned = std::numeric_limits<DestIntegralType>::is_signed;
+
+				const DestIntegralType min = std::numeric_limits<DestIntegralType>::lowest();
+				const DestIntegralType max = std::numeric_limits<DestIntegralType>::max();
+
+				if (srcSigned && !destSigned)
+					ACL_ENSURE(0 <= integralInput && integralInput <= max, "static_cast would result in truncation");
+				else if (!srcSigned && destSigned)
+					ACL_ENSURE(integralInput <= max, "static_cast would result in truncation");
+				else
+					ACL_ENSURE(min <= integralInput && integralInput <= max, "static_cast would result in truncation");
+#endif
+
 				return static_cast<DestIntegralType>(input);
 			}
 		};
@@ -116,7 +133,21 @@ namespace acl
 			template<typename DestNumericType, typename SrcNumericType>
 			static inline DestNumericType cast(SrcNumericType input)
 			{
-				ACL_ENSURE(input >= std::numeric_limits<DestNumericType>::min() && input <= std::numeric_limits<DestNumericType>::max(), "static_cast would result in truncation");
+#if defined(ACL_USE_ERROR_CHECKS)
+				const bool srcSigned = std::numeric_limits<SrcNumericType>::is_signed;
+				const bool destSigned = std::numeric_limits<DestNumericType>::is_signed;
+
+				const DestNumericType min = std::numeric_limits<DestNumericType>::lowest();
+				const DestNumericType max = std::numeric_limits<DestNumericType>::max();
+
+				if (srcSigned && !destSigned)
+					ACL_ENSURE(0 <= input && input <= max, "static_cast would result in truncation");
+				else if (!srcSigned && destSigned)
+					ACL_ENSURE(input <= max, "static_cast would result in truncation");
+				else
+					ACL_ENSURE(min <= input && input <= max, "static_cast would result in truncation");
+#endif
+
 				return static_cast<DestNumericType>(input);
 			}
 		};
