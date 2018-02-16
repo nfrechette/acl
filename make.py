@@ -111,14 +111,73 @@ def set_compiler_env(compiler):
 			print('Unknown compiler: {}'.format(compiler))
 			sys.exit(1)
 
+def do_generate_solution(cmake_exe, build_dir, options):
+	compiler = options['compiler']
+	cpu = options['cpu']
+	config = options['config']
+
+	if not compiler == None:
+		set_compiler_env(compiler)
+
+	extra_switches = []
+	if not platform.system() == 'Windows':
+		extra_switches.append('-DCPU_INSTRUCTION_SET:STRING={}'.format(cpu))
+
+	if options['use_avx']:
+		print('Enabling AVX usage')
+		extra_switches.append('-DUSE_AVX_INSTRUCTIONS:BOOL=true')
+
+	# Generate IDE solution
+	print('Generating build files ...')
+	cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(cmake_exe, build_dir, ' '.join(extra_switches))
+	cmake_generator = get_generator(compiler, cpu)
+	if cmake_generator == None:
+		print('Using default generator')
+	else:
+		print('Using generator: {}'.format(cmake_generator))
+		cmake_cmd += ' -G "{}"'.format(cmake_generator)
+
+	if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
+		cmake_cmd += ' -DCMAKE_BUILD_TYPE={}'.format(config.upper())
+
+	result = subprocess.call(cmake_cmd, shell=True)
+	if result != 0:
+		sys.exit(result)
+
+def do_build(cmake_exe, options):
+	config = options['config']
+
+	print('Building ...')
+	cmake_cmd = '"{}" --build .'.format(cmake_exe)
+	if platform.system() == 'Windows':
+		cmake_cmd += ' --config {} --target INSTALL'.format(config)
+	elif platform.system() == 'Darwin':
+		cmake_cmd += ' --config {} --target install'.format(config)
+	else:
+		cmake_cmd += ' --target install'
+
+	result = subprocess.call(cmake_cmd, shell=True)
+	if result != 0:
+		sys.exit(result)
+
+def do_tests(ctest_exe, options):
+	config = options['config']
+
+	print('Running unit tests ...')
+	ctest_cmd = '"{}" --output-on-failure'.format(ctest_exe)
+	if platform.system() == 'Windows' or platform.system() == 'Darwin':
+		ctest_cmd += ' -C {}'.format(config)
+
+	result = subprocess.call(ctest_cmd, shell=True)
+	if result != 0:
+		sys.exit(result)
+
 if __name__ == "__main__":
 	options = parse_argv()
 	cmake_exe, ctest_exe = get_cmake_exes()
 	compiler = options['compiler']
 	cpu = options['cpu']
 	config = options['config']
-
-	print('Using config: {}'.format(config))
 
 	# Set the ACL_CMAKE_HOME environment variable to point to CMake
 	# otherwise we assume it is already in the user PATH
@@ -138,59 +197,16 @@ if __name__ == "__main__":
 
 	os.chdir(build_dir)
 
+	print('Using config: {}'.format(config))
+	print('Using cpu: {}'.format(cpu))
+	if not compiler == None:
+		print('Using compiler: {}'.format(compiler))
+
 	if options['build'] or not options['test']:
-		print('Using cpu: {}'.format(cpu))
-		if not compiler == None:
-			print('Using compiler: {}'.format(compiler))
-
-		if not compiler == None:
-			set_compiler_env(compiler)
-
-		extra_switches = []
-		if not platform.system() == 'Windows':
-			extra_switches.append('-DCPU_INSTRUCTION_SET:STRING={}'.format(cpu))
-
-		if options['use_avx']:
-			print('Enabling AVX usage')
-			extra_switches.append('-DUSE_AVX_INSTRUCTIONS:BOOL=true')
-
-		# Generate IDE solution
-		print('Generating build files ...')
-		cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(cmake_exe, build_dir, ' '.join(extra_switches))
-		cmake_generator = get_generator(compiler, cpu)
-		if cmake_generator == None:
-			print('Using default generator')
-		else:
-			print('Using generator: {}'.format(cmake_generator))
-			cmake_cmd += ' -G "{}"'.format(cmake_generator)
-
-		if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
-			cmake_cmd += ' -DCMAKE_BUILD_TYPE={}'.format(config.upper())
-
-		result = subprocess.call(cmake_cmd, shell=True)
-		if result != 0:
-			sys.exit(result)
+		do_generate_solution(cmake_exe, build_dir, options)
 
 	if options['build']:
-		print('Building ...')
-		cmake_cmd = '"{}" --build .'.format(cmake_exe)
-		if platform.system() == 'Windows':
-			cmake_cmd += ' --config {} --target INSTALL'.format(config)
-		elif platform.system() == 'Darwin':
-			cmake_cmd += ' --config {} --target install'.format(config)
-		else:
-			cmake_cmd += ' --target install'
+		do_build(cmake_exe, options)
 
-		result = subprocess.call(cmake_cmd, shell=True)
-		if result != 0:
-			sys.exit(result)
-	
 	if options['test']:
-		print('Running unit tests ...')
-		ctest_cmd = '"{}" --output-on-failure'.format(ctest_exe)
-		if platform.system() == 'Windows' or platform.system() == 'Darwin':
-			ctest_cmd += ' -C {}'.format(config)
-
-		result = subprocess.call(ctest_cmd, shell=True)
-		if result != 0:
-			sys.exit(result)
+		do_tests(ctest_exe, options)
