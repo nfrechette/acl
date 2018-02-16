@@ -33,60 +33,58 @@
 	#define ACL_USE_ERROR_CHECKS
 #endif
 
-class AssertFailed : public std::exception
+namespace acl
 {
-public:
-	template<typename ... Args>
-	AssertFailed(const char* format, Args&& ... args)
+	namespace error_impl
 	{
-		snprintf(m_reason, get_array_size(m_reason), format, std::forward<Args>(args) ...);
-	}
-
-	virtual const char* what() const noexcept override { return m_reason; }
-
-private:
-	char m_reason[1024];
-};
-
-class EnsureFailed : public AssertFailed
-{
-public:
-	template<typename ... Args>
-	EnsureFailed(const char* format, Args&& ... args)
-		: AssertFailed(format, std::forward<Args>(args) ...)
-	{
-	}
-};
-
-#if defined(ACL_USE_ERROR_CHECKS)
-	namespace acl
-	{
-		namespace error_impl
+		class AssertFailed : public std::exception
 		{
-			template<typename Exception, typename ... Args>
-			inline void assert_impl(bool expression, const char* format, Args&& ... args)
+		public:
+			template<typename ... Args>
+			AssertFailed(const char* format, Args&& ... args)
 			{
-				if (!expression)
-					throw Exception(format, std::forward<Args>(args) ...);
+				snprintf(m_reason, sizeof(m_reason), format, std::forward<Args>(args) ...);
 			}
+
+			virtual const char* what() const noexcept override { return m_reason; }
+
+		private:
+			char m_reason[1024];
+		};
+
+		class EnsureFailed : public AssertFailed
+		{
+		public:
+			template<typename ... Args>
+			EnsureFailed(const char* format, Args&& ... args)
+				: AssertFailed(format, std::forward<Args>(args) ...)
+			{
+			}
+		};
+
+		template<typename Exception, typename ... Args>
+		inline void assert_impl(bool expression, const char* format, Args&& ... args)
+		{
+			if (!expression)
+				throw Exception(format, std::forward<Args>(args) ...);
 		}
 	}
+}
 
-	#define ACL_ASSERT(expression, format, ...) acl::error_impl::assert_impl<AssertFailed>(expression, format, ## __VA_ARGS__)
+#if defined(ACL_USE_ERROR_CHECKS)
+	#define ACL_ASSERT(expression, format, ...) acl::error_impl::assert_impl<acl::error_impl::AssertFailed>(expression, format, ## __VA_ARGS__)
 #else
 	#define ACL_ASSERT(expression, format, ...) ((void)0)
 #endif
 
 #if defined(ACL_USE_ERROR_CHECKS)
-	#define ACL_ENSURE(expression, format, ...) acl::error_impl::assert_impl<EnsureFailed>(expression, format, ## __VA_ARGS__)
+	#define ACL_ENSURE(expression, format, ...) acl::error_impl::assert_impl<acl::error_impl::EnsureFailed>(expression, format, ## __VA_ARGS__)
 #else
 	#define ACL_ENSURE(expression, format, ...) ((void)0)
 #endif
 
-// Analogue to the ACL_TRY_ASSERT in error.h, but an exception will be thrown if the assert fails.
-// This is only provided so failing ACL_TRY_ASSERTS can be detected by automated tests.
 #if defined(ACL_USE_ERROR_CHECKS)
-	#define ACL_TRY_ASSERT(expression, format, ...) acl::error_impl::assert_impl<AssertFailed>(expression, format, ## __VA_ARGS__), !(expression)
+	#define ACL_TRY_ASSERT(expression, format, ...) acl::error_impl::assert_impl<acl::error_impl::AssertFailed>(expression, format, ## __VA_ARGS__), !(expression)
 #else
 	#define ACL_TRY_ASSERT(expression, format, ...) !(expression)
 #endif

@@ -24,7 +24,7 @@
 
 #include <catch.hpp>
 
-#include <acl/core/error_exceptions.h>
+#include <error_exceptions.h>
 #include <acl/core/memory_utils.h>
 
 #include <cfloat>

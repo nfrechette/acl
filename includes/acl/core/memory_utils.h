@@ -107,20 +107,20 @@ namespace acl
 				typedef typename std::underlying_type<SrcEnumType>::type SrcIntegralType;
 
 #if defined(ACL_USE_ERROR_CHECKS)
-				const SrcIntegralType integralInput = static_cast<SrcIntegralType>(input);
+				const SrcIntegralType integral_input = static_cast<SrcIntegralType>(input);
 
-				const bool srcSigned = std::numeric_limits<SrcIntegralType>::is_signed;
-				const bool destSigned = std::numeric_limits<DestIntegralType>::is_signed;
+				const bool src_is_signed = std::numeric_limits<SrcIntegralType>::is_signed;
+				const bool dest_is_signed = std::numeric_limits<DestIntegralType>::is_signed;
 
 				const DestIntegralType min = std::numeric_limits<DestIntegralType>::lowest();
 				const DestIntegralType max = std::numeric_limits<DestIntegralType>::max();
 
-				if (srcSigned && !destSigned)
-					ACL_ENSURE(0 <= integralInput && integralInput <= max, "static_cast would result in truncation");
-				else if (!srcSigned && destSigned)
-					ACL_ENSURE(integralInput <= max, "static_cast would result in truncation");
+				if (src_is_signed && !dest_is_signed)
+					ACL_ENSURE(0 <= integral_input && integral_input <= max, "static_cast would result in truncation");
+				else if (!src_is_signed && dest_is_signed)
+					ACL_ENSURE(integral_input <= max, "static_cast would result in truncation");
 				else
-					ACL_ENSURE(min <= integralInput && integralInput <= max, "static_cast would result in truncation");
+					ACL_ENSURE(min <= integral_input && integral_input <= max, "static_cast would result in truncation");
 #endif
 
 				return static_cast<DestIntegralType>(input);
@@ -134,15 +134,15 @@ namespace acl
 			static inline DestNumericType cast(SrcNumericType input)
 			{
 #if defined(ACL_USE_ERROR_CHECKS)
-				const bool srcSigned = std::numeric_limits<SrcNumericType>::is_signed;
-				const bool destSigned = std::numeric_limits<DestNumericType>::is_signed;
+				const bool src_is_signed = std::numeric_limits<SrcNumericType>::is_signed;
+				const bool dest_is_signed = std::numeric_limits<DestNumericType>::is_signed;
 
 				const DestNumericType min = std::numeric_limits<DestNumericType>::lowest();
 				const DestNumericType max = std::numeric_limits<DestNumericType>::max();
 
-				if (srcSigned && !destSigned)
+				if (src_is_signed && !dest_is_signed)
 					ACL_ENSURE(0 <= input && input <= max, "static_cast would result in truncation");
-				else if (!srcSigned && destSigned)
+				else if (!src_is_signed && dest_is_signed)
 					ACL_ENSURE(input <= max, "static_cast would result in truncation");
 				else
 					ACL_ENSURE(min <= input && input <= max, "static_cast would result in truncation");
