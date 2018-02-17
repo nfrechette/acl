@@ -75,7 +75,7 @@
 	#endif
 #endif
 
-// Handy macro to handle asserts in it statement, usage:
+// Handy macro to handle asserts in if statement, usage:
 // if (ACL_TRY_ASSERT(foo != bar, "omg so bad!")) return error;
 #if !defined(ACL_TRY_ASSERT)
 	#if defined(ACL_USE_ERROR_CHECKS)
