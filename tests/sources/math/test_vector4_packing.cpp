@@ -241,7 +241,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 
 					memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, 48);
 					vec1 = unpack_vector3_n(16, 16, 16, false, &tmp0.buffer[0], offset);
-					if (std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) != 0)
+					if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
 						num_errors++;
 				}
 			}
