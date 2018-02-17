@@ -3,7 +3,6 @@ project(acl_unit_tests)
 
 set(CMAKE_CXX_STANDARD 14)
 
-include_directories("${PROJECT_SOURCE_DIR}/sources")
 include_directories("${PROJECT_SOURCE_DIR}/../includes")
 include_directories("${PROJECT_SOURCE_DIR}/external/catch-1.9.6")
 

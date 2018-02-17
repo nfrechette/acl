@@ -24,7 +24,7 @@
 
 #include <catch.hpp>
 
-#include <error_exceptions.h>
+#include "../error_exceptions.h"
 #include <acl/core/memory_utils.h>
 
 #include <cfloat>
@@ -247,19 +247,14 @@ TEST_CASE("safe_static_cast from unsigned int", "[core][memory]")
 	CHECK_THROWS(safe_static_cast<int16_t>(UINT32_MAX));
 }
 
-#ifdef _MSC_VER
-	#pragma warning(push)
-	#pragma warning(disable: 4756) /* overflow in constant arithmetic */
-#endif
-
 TEST_CASE("safe_static_cast from double", "[core][memory]")
 {
-	CHECK_THROWS(safe_static_cast<float>(-DBL_MAX));
+	// Use volatile to avoid a constant being truncated warning
+	volatile double value = -DBL_MAX;
+	CHECK_THROWS(safe_static_cast<float>(value));
+	value = DBL_MAX;
+	CHECK_THROWS(safe_static_cast<float>(value));
+
 	CHECK(safe_static_cast<float>(-FLT_MAX) == -FLT_MAX);
 	CHECK(safe_static_cast<float>(FLT_MAX) == FLT_MAX);
-	CHECK_THROWS(safe_static_cast<float>(DBL_MAX));
 }
-
-#ifdef _MSC_VER
-	#pragma warning(pop)
-#endif
