@@ -48,7 +48,7 @@ namespace acl
 			m_compression_settings.error_metric = &m_error_metric;
 		}
 
-		UniformlySampledAlgorithm(CompressionSettings settings)
+		UniformlySampledAlgorithm(const CompressionSettings& settings)
 			: m_compression_settings(settings)
 		{}
 
