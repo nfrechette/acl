@@ -131,21 +131,49 @@ namespace acl
 			return true;
 		}
 
-		bool try_read(const char* key, StringView& value)
+		bool try_read(const char* key, StringView& value, const char* default_value)
 		{
 			State s = save_state();
 
 			if (!read(key, value))
 			{
 				restore_state(s);
-				value = nullptr;
+				value = default_value;
 				return false;
 			}
 
 			return true;
 		}
 
-		bool try_read(const char* key, double* values, uint32_t num_elements)
+		bool try_read(const char* key, bool& value, bool default_value)
+		{
+			State s = save_state();
+
+			if (!read(key, value))
+			{
+				restore_state(s);
+				value = default_value;
+				return false;
+			}
+
+			return true;
+		}
+
+		bool try_read(const char* key, double& value, double default_value)
+		{
+			State s = save_state();
+
+			if (!read(key, value))
+			{
+				restore_state(s);
+				value = default_value;
+				return false;
+			}
+
+			return true;
+		}
+
+		bool try_read(const char* key, double* values, uint32_t num_elements, double default_value)
 		{
 			State s = save_state();
 
@@ -154,7 +182,7 @@ namespace acl
 				restore_state(s);
 
 				for (uint32_t i = 0; i < num_elements; ++i)
-					values[i] = 0.0;
+					values[i] = default_value;
 
 				return false;
 			}
@@ -162,7 +190,7 @@ namespace acl
 			return true;
 		}
 
-		bool try_read(const char* key, StringView* values, uint32_t num_elements)
+		bool try_read(const char* key, StringView* values, uint32_t num_elements, const char* default_value)
 		{
 			State s = save_state();
 
@@ -171,7 +199,7 @@ namespace acl
 				restore_state(s);
 
 				for (uint32_t i = 0; i < num_elements; ++i)
-					values[i] = StringView();
+					values[i] = default_value;
 
 				return false;
 			}

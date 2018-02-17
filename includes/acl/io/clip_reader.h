@@ -137,8 +137,7 @@ namespace acl
 				goto error;
 
 			// Optional value
-			if (!m_parser.read("is_binary_exact", m_is_binary_exact))
-				m_is_binary_exact = false;
+			m_parser.try_read("is_binary_exact", m_is_binary_exact, false);
 
 			if (!m_parser.object_ends())
 				goto error;
@@ -254,29 +253,29 @@ namespace acl
 				if (m_is_binary_exact)
 				{
 					StringView rotation[4];
-					if (m_parser.try_read("bind_rotation", rotation, 4) && !counting)
+					if (m_parser.try_read("bind_rotation", rotation, 4, nullptr) && !counting)
 						bone.bind_transform.rotation = hex_to_quat(rotation);
 
 					StringView translation[3];
-					if (m_parser.try_read("bind_translation", translation, 3) && !counting)
+					if (m_parser.try_read("bind_translation", translation, 3, nullptr) && !counting)
 						bone.bind_transform.translation = hex_to_vector3(translation);
 
 					StringView scale[3];
-					if (m_parser.try_read("bind_scale", scale, 3) && !counting)
+					if (m_parser.try_read("bind_scale", scale, 3, nullptr) && !counting)
 						bone.bind_transform.scale = hex_to_vector3(scale);
 				}
 				else
 				{
 					double rotation[4];
-					if (m_parser.try_read("bind_rotation", rotation, 4) && !counting)
+					if (m_parser.try_read("bind_rotation", rotation, 4, 0.0) && !counting)
 						bone.bind_transform.rotation = quat_unaligned_load(&rotation[0]);
 
 					double translation[3];
-					if (m_parser.try_read("bind_translation", translation, 3) && !counting)
+					if (m_parser.try_read("bind_translation", translation, 3, 0.0) && !counting)
 						bone.bind_transform.translation = vector_unaligned_load3(&translation[0]);
 
 					double scale[3];
-					if (m_parser.try_read("bind_scale", scale, 3) && !counting)
+					if (m_parser.try_read("bind_scale", scale, 3, 0.0) && !counting)
 						bone.bind_transform.scale = vector_unaligned_load3(&scale[0]);
 				}
 
