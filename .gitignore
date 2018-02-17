@@ -1,4 +1,11 @@
+# Temporary data rules
 build/
 *.suo
 **/__pycache__/
 .vscode/
+
+# Test data rules
+test_data/*.zip
+test_data/**/*.acl.sjson
+test_data/**/*.md
+!test_data/README.md
