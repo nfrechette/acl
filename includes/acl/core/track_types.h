@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <cstdint>
+#include <cstring>
 
 namespace acl
 {
@@ -138,6 +139,46 @@ namespace acl
 		}
 	}
 
+	inline bool get_rotation_format(const char* format, RotationFormat8& out_format)
+	{
+		const char* quat_128_format = "Quat_128";
+		if (std::strncmp(format, quat_128_format, std::strlen(quat_128_format)) == 0)
+		{
+			out_format = RotationFormat8::Quat_128;
+			return true;
+		}
+
+		const char* quatdropw_96_format = "QuatDropW_96";
+		if (std::strncmp(format, quatdropw_96_format, std::strlen(quatdropw_96_format)) == 0)
+		{
+			out_format = RotationFormat8::QuatDropW_96;
+			return true;
+		}
+
+		const char* quatdropw_48_format = "QuatDropW_48";
+		if (std::strncmp(format, quatdropw_48_format, std::strlen(quatdropw_48_format)) == 0)
+		{
+			out_format = RotationFormat8::QuatDropW_48;
+			return true;
+		}
+
+		const char* quatdropw_32_format = "QuatDropW_32";
+		if (std::strncmp(format, quatdropw_32_format, std::strlen(quatdropw_32_format)) == 0)
+		{
+			out_format = RotationFormat8::QuatDropW_32;
+			return true;
+		}
+
+		const char* quatdropw_variable_format = "QuatDropW_Variable";
+		if (std::strncmp(format, quatdropw_variable_format, std::strlen(quatdropw_variable_format)) == 0)
+		{
+			out_format = RotationFormat8::QuatDropW_Variable;
+			return true;
+		}
+
+		return false;
+	}
+
 	// TODO: constexpr
 	inline const char* get_vector_format_name(VectorFormat8 format)
 	{
@@ -149,6 +190,39 @@ namespace acl
 		case VectorFormat8::Vector3_Variable:	return "Vector3 Variable";
 		default:								return "<Invalid>";
 		}
+	}
+
+	inline bool get_vector_format(const char* format, VectorFormat8& out_format)
+	{
+		const char* vector3_96_format = "Vector3_96";
+		if (std::strncmp(format, vector3_96_format, std::strlen(vector3_96_format)) == 0)
+		{
+			out_format = VectorFormat8::Vector3_96;
+			return true;
+		}
+
+		const char* vector3_48_format = "Vector3_48";
+		if (std::strncmp(format, vector3_48_format, std::strlen(vector3_48_format)) == 0)
+		{
+			out_format = VectorFormat8::Vector3_48;
+			return true;
+		}
+
+		const char* vector3_32_format = "Vector3_32";
+		if (std::strncmp(format, vector3_32_format, std::strlen(vector3_32_format)) == 0)
+		{
+			out_format = VectorFormat8::Vector3_32;
+			return true;
+		}
+
+		const char* vector3_variable_format = "Vector3_Variable";
+		if (std::strncmp(format, vector3_variable_format, std::strlen(vector3_variable_format)) == 0)
+		{
+			out_format = VectorFormat8::Vector3_Variable;
+			return true;
+		}
+
+		return false;
 	}
 
 	// TODO: constexpr

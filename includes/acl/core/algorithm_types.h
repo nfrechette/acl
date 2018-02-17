@@ -24,9 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/enum_utils.h"
-
-#include <stdint.h>
+#include <cstdint>
+#include <cstring>
 
 namespace acl
 {
@@ -66,5 +65,17 @@ namespace acl
 			//case AlgorithmType8::SplineKeyReduction:	return "Spline Key Reduction";
 			default:									return "<Invalid>";
 		}
+	}
+
+	inline bool get_algorithm_type(const char* type, AlgorithmType8& out_type)
+	{
+		const char* uniformly_sampled_name = "UniformlySampled";
+		if (std::strncmp(type, uniformly_sampled_name, std::strlen(uniformly_sampled_name)) == 0)
+		{
+			out_type = AlgorithmType8::UniformlySampled;
+			return true;
+		}
+
+		return false;
 	}
 }
