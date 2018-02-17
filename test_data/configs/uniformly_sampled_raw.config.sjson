@@ -1,0 +1,13 @@
+version = 1
+
+algorithm_name = "UniformlySampled"
+
+rotation_format = "Quat_128"
+translation_format = "Vector3_96"
+scale_format = "Vector3_96"
+
+segmenting = {
+	enabled = false
+}
+
+regression_error_threshold = 0.01

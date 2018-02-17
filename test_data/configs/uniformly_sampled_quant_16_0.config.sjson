@@ -1,0 +1,17 @@
+version = 1
+
+algorithm_name = "UniformlySampled"
+
+rotation_format = "QuatDropW_48"
+translation_format = "Vector3_48"
+scale_format = "Vector3_48"
+
+rotation_range_reduction = true
+translation_range_reduction = true
+scale_range_reduction = true
+
+segmenting = {
+	enabled = false
+}
+
+regression_error_threshold = 1.0
