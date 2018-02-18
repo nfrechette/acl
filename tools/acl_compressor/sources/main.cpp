@@ -22,13 +22,43 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <assert.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstdarg>
+
+static void assert_impl(bool expression, const char* format, ...)
+{
+	if (expression)
+		return;
+
+	va_list args;
+	va_start(args, format);
+
+	std::vprintf(format, args);
+	printf("\n");
+
+	va_end(args);
+
+#if !defined(NDEBUG)
+	assert(expression);
+#endif
+
+	std::abort();
+}
+
+#define ACL_ASSERT(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
+#define ACL_ENSURE(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
+
 #include "acl/core/iallocator.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/ansi_allocator.h"
+#include "acl/core/string.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/io/clip_reader.h"
 #include "acl/compression/skeleton_error_metric.h"
+#include "acl/sjson/sjson_parser.h"
 #include "acl/sjson/sjson_writer.h"
 
 #include "acl/algorithm/uniformly_sampled/algorithm.h"
@@ -99,24 +129,32 @@ using namespace acl;
 struct Options
 {
 	const char*		input_filename;
+	const char*		config_filename;
+
 	bool			output_stats;
 	const char*		output_stats_filename;
+	std::FILE*		output_stats_file;
+
+	bool			regression_testing;
 
 	//////////////////////////////////////////////////////////////////////////
 
-	std::FILE*		output_stats_file;
-
 	Options()
-		: input_filename(nullptr),
-		  output_stats(false)
+		: input_filename(nullptr)
+		, config_filename(nullptr)
+		, output_stats(false)
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
+		, regression_testing(false)
 	{}
 
 	Options(Options&& other)
-		: output_stats(other.output_stats)
+		: input_filename(other.input_filename)
+		, config_filename(other.config_filename)
+		, output_stats(other.output_stats)
 		, output_stats_filename(other.output_stats_filename)
 		, output_stats_file(other.output_stats_file)
+		, regression_testing(other.regression_testing)
 	{
 		new (&other) Options();
 	}
@@ -129,9 +167,12 @@ struct Options
 
 	Options& operator=(Options&& rhs)
 	{
+		std::swap(input_filename, rhs.input_filename);
+		std::swap(config_filename, rhs.config_filename);
 		std::swap(output_stats, rhs.output_stats);
 		std::swap(output_stats_filename, rhs.output_stats_filename);
 		std::swap(output_stats_file, rhs.output_stats_file);
+		std::swap(regression_testing, rhs.regression_testing);
 		return *this;
 	}
 
@@ -154,7 +195,9 @@ struct Options
 };
 
 constexpr const char* k_acl_input_file_option = "-acl=";
+constexpr const char* k_config_input_file_option = "-config=";
 constexpr const char* k_stats_output_option = "-stats";
+constexpr const char* k_regression_test_option = "-test";
 
 static bool parse_options(int argc, char** argv, Options& options)
 {
@@ -166,6 +209,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_acl_input_file_option, option_length) == 0)
 		{
 			options.input_filename = argument + option_length;
+			continue;
+		}
+
+		option_length = std::strlen(k_config_input_file_option);
+		if (std::strncmp(argument, k_config_input_file_option, option_length) == 0)
+		{
+			options.config_filename = argument + option_length;
 			continue;
 		}
 
@@ -190,6 +240,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
+		option_length = std::strlen(k_regression_test_option);
+		if (std::strncmp(argument, k_regression_test_option, option_length) == 0)
+		{
+			options.regression_testing = true;
+			continue;
+		}
+
 		printf("Unrecognized option %s\n", argument);
 		return false;
 	}
@@ -203,9 +260,8 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
-static void unit_test(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
+static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm, double regression_error_threshold)
 {
-#if defined(ACL_USE_ERROR_CHECKS)
 	const uint16_t num_bones = clip.get_num_bones();
 	const float clip_duration = clip.get_duration();
 	const float sample_rate = float(clip.get_sample_rate());
@@ -216,6 +272,7 @@ static void unit_test(IAllocator& allocator, const AnimationClip& clip, const Ri
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	void* context = algorithm.allocate_decompression_context(allocator, compressed_clip);
 
+	// Regression test
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
 		const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
@@ -226,7 +283,7 @@ static void unit_test(IAllocator& allocator, const AnimationClip& clip, const Ri
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
-			ACL_ENSURE(error < 10.0f, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
+			ACL_ENSURE(error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
 		}
 	}
 
@@ -248,10 +305,9 @@ static void unit_test(IAllocator& allocator, const AnimationClip& clip, const Ri
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 	algorithm.deallocate_decompression_context(allocator, context);
-#endif
 }
 
-static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, SJSONArrayWriter* runs_writer)
+static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, SJSONArrayWriter* runs_writer, double regression_error_threshold)
 {
 	auto try_algorithm_impl = [&](SJSONObjectWriter* stats_writer)
 	{
@@ -260,7 +316,8 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 
 		ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
 
-		unit_test(allocator, clip, skeleton, *compressed_clip, algorithm);
+		if (options.regression_testing)
+			validate_accuracy(allocator, clip, skeleton, *compressed_clip, algorithm, regression_error_threshold);
 
 		allocator.deallocate(compressed_clip, compressed_clip->get_size());
 	};
@@ -269,20 +326,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 		runs_writer->push_object([&](SJSONObjectWriter& writer) { try_algorithm_impl(&writer); });
 	else
 		try_algorithm_impl(nullptr);
-
 }
-
-#ifndef _WIN32
-static int _kbhit()
-{
-	return 0;
-}
-
-static bool IsDebuggerPresent()
-{
-	return false;
-}
-#endif
 
 static bool read_clip(IAllocator& allocator, const char* filename,
 					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip,
@@ -324,6 +368,126 @@ static bool read_clip(IAllocator& allocator, const char* filename,
 	return true;
 }
 
+static bool read_config(IAllocator& allocator, const char* filename, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings, double& out_regression_error_threshold)
+{
+	std::ifstream t(filename);
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+	std::string str = buffer.str();
+
+	SJSONParser parser(str.c_str(), str.length());
+
+	double version = 0.0;
+	if (!parser.read("version", version))
+	{
+		uint32_t line, column;
+		parser.get_position(line, column);
+
+		printf("Error on line %d column %d: Missing config version\n", line, column);
+		return false;
+	}
+
+	if (version != 1.0)
+	{
+		printf("Unsupported version: %f\n", version);
+		return false;
+	}
+
+	StringView algorithm_name;
+	if (!parser.read("algorithm_name", algorithm_name))
+	{
+		uint32_t line, column;
+		parser.get_position(line, column);
+
+		printf("Error on line %d column %d: Missing algorithm name\n", line, column);
+		return false;
+	}
+
+	if (!get_algorithm_type(algorithm_name.c_str(), out_algorithm_type))
+	{
+		printf("Invalid algorithm name: %s\n", String(allocator, algorithm_name).c_str());
+		return false;
+	}
+
+	StringView rotation_format;
+	if (parser.try_read("rotation_format", rotation_format, nullptr))
+	{
+		if (!get_rotation_format(rotation_format.c_str(), out_settings.rotation_format))
+		{
+			printf("Invalid rotation format: %s\n", String(allocator, rotation_format).c_str());
+			return false;
+		}
+	}
+
+	StringView translation_format;
+	if (parser.try_read("translation_format", translation_format, nullptr))
+	{
+		if (!get_vector_format(translation_format.c_str(), out_settings.translation_format))
+		{
+			printf("Invalid translation format: %s\n", String(allocator, translation_format).c_str());
+			return false;
+		}
+	}
+
+	StringView scale_format;
+	if (parser.try_read("scale_format", scale_format, nullptr))
+	{
+		if (!get_vector_format(scale_format.c_str(), out_settings.scale_format))
+		{
+			printf("Invalid scale format: %s\n", String(allocator, scale_format).c_str());
+			return false;
+		}
+	}
+
+	bool rotation_range_reduction;
+	if (parser.try_read("rotation_range_reduction", rotation_range_reduction, false) && rotation_range_reduction)
+		out_settings.range_reduction |= RangeReductionFlags8::Rotations;
+
+	bool translation_range_reduction;
+	if (parser.try_read("translation_range_reduction", translation_range_reduction, false) && translation_range_reduction)
+		out_settings.range_reduction |= RangeReductionFlags8::Translations;
+
+	bool scale_range_reduction;
+	if (parser.try_read("scale_range_reduction", scale_range_reduction, false) && scale_range_reduction)
+		out_settings.range_reduction |= RangeReductionFlags8::Scales;
+
+	if (parser.object_begins("segmenting"))
+	{
+		parser.try_read("enabled", out_settings.segmenting.enabled, false);
+
+		if (parser.try_read("rotation_range_reduction", rotation_range_reduction, false) && rotation_range_reduction)
+			out_settings.segmenting.range_reduction |= RangeReductionFlags8::Rotations;
+
+		if (parser.try_read("translation_range_reduction", translation_range_reduction, false) && translation_range_reduction)
+			out_settings.segmenting.range_reduction |= RangeReductionFlags8::Translations;
+
+		if (parser.try_read("scale_range_reduction", scale_range_reduction, false) && scale_range_reduction)
+			out_settings.segmenting.range_reduction |= RangeReductionFlags8::Scales;
+
+		if (!parser.object_ends())
+		{
+			uint32_t line, column;
+			parser.get_position(line, column);
+
+			printf("Error on line %d column %d: Expected segmenting object to end\n", line, column);
+			return false;
+		}
+	}
+
+	parser.try_read("regression_error_threshold", out_regression_error_threshold, 0.0);
+
+	if (!parser.remainder_is_comments_and_whitespace())
+	{
+		uint32_t line, column;
+		parser.get_position(line, column);
+
+		printf("Error on line %d column %d: Expected end of file\n", line, column);
+		return false;
+	}
+
+	return true;
+}
+
 static int main_impl(int argc, char** argv)
 {
 	Options options;
@@ -338,56 +502,81 @@ static int main_impl(int argc, char** argv)
 	if (!read_clip(allocator, options.input_filename, clip, skeleton))
 		return -1;
 
+	bool use_external_config = false;
+	AlgorithmType8 external_algorithm_type = AlgorithmType8::UniformlySampled;
+	CompressionSettings external_settings;
+	TransformErrorMetric default_error_metric;
+	double regression_error_threshold;
+	if (options.config_filename != nullptr)
+	{
+		if (!read_config(allocator, options.config_filename, external_algorithm_type, external_settings, regression_error_threshold))
+			return -1;
+
+		use_external_config = true;
+		external_settings.error_metric = &default_error_metric;
+	}
+
 	// Compress & Decompress
 	auto exec_algos = [&](SJSONArrayWriter* runs_writer)
 	{
-		bool use_segmenting_options[] = { false, true };
-		StatLogging logging = StatLogging::Summary;
+		StatLogging logging = options.output_stats ? StatLogging::Summary : StatLogging::None;
 
-		for (size_t segmenting_option_index = 0; segmenting_option_index < get_array_size(use_segmenting_options); ++segmenting_option_index)
+		if (use_external_config)
 		{
-			bool use_segmenting = use_segmenting_options[segmenting_option_index];
+			ACL_ENSURE(external_algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
 
-			UniformlySampledAlgorithm uniform_tests[] =
-			{
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
-
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
-
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
-
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales, use_segmenting),
-			};
-
-			for (UniformlySampledAlgorithm& algorithm : uniform_tests)
-				try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer);
+			UniformlySampledAlgorithm algorithm(external_settings);
+			try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer, regression_error_threshold);
 		}
-
+		else
 		{
-			UniformlySampledAlgorithm uniform_tests[] =
+			// Use defaults
+			bool use_segmenting_options[] = { false, true };
+			for (size_t segmenting_option_index = 0; segmenting_option_index < get_array_size(use_segmenting_options); ++segmenting_option_index)
 			{
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-				UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+				bool use_segmenting = use_segmenting_options[segmenting_option_index];
 
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+				UniformlySampledAlgorithm uniform_tests[] =
+				{
+					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
+					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-				UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales),
-			};
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-			for (UniformlySampledAlgorithm& algorithm : uniform_tests)
-				try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer);
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales, use_segmenting),
+				};
+
+				for (UniformlySampledAlgorithm& algorithm : uniform_tests)
+					try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer, regression_error_threshold);
+			}
+
+			{
+				UniformlySampledAlgorithm uniform_tests[] =
+				{
+					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
+					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+
+					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales),
+				};
+
+				for (UniformlySampledAlgorithm& algorithm : uniform_tests)
+					try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer, regression_error_threshold);
+			}
 		}
 	};
 
@@ -404,15 +593,47 @@ static int main_impl(int argc, char** argv)
 	return 0;
 }
 
+#ifdef _WIN32
+static LONG WINAPI unhandled_exception_filter(EXCEPTION_POINTERS *info)
+{
+	if (IsDebuggerPresent())
+		return EXCEPTION_CONTINUE_SEARCH;
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 int main(int argc, char** argv)
 {
-	int result = main_impl(argc, argv);
+#ifdef _WIN32
+	// Disables Windows OS generated error dialogs and reporting
+	SetErrorMode(SEM_FAILCRITICALERRORS);
+	SetUnhandledExceptionFilter(&unhandled_exception_filter);
+	_set_abort_behavior(0, _CALL_REPORTFAULT);
+#endif
 
+	int result = -1;
+	try
+	{
+		result = main_impl(argc, argv);
+	}
+	catch (const std::runtime_error& exception)
+	{
+		printf("Exception occurred: %s", exception.what());
+		result = -1;
+	}
+	catch (...)
+	{
+		printf("Unknown exception occurred");
+		result = -1;
+	}
+
+#ifdef _WIN32
 	if (IsDebuggerPresent())
 	{
 		printf("Press any key to continue...\n");
 		while (_kbhit() == 0);
 	}
+#endif
 
 	return result;
 }
