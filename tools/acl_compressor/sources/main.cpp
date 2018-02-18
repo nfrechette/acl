@@ -332,25 +332,11 @@ static bool read_clip(IAllocator& allocator, const char* filename,
 					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip,
 					  std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
 {
-	if (IsDebuggerPresent())
-		printf("Reading ACL input clip...");
-
-	ScopeProfiler io_read_timer;
-
 	std::ifstream t(filename);
 	std::stringstream buffer;
 	buffer << t.rdbuf();
 	std::string str = buffer.str();
 
-	io_read_timer.stop();
-
-	if (IsDebuggerPresent())
-	{
-		printf(" Done in %.1f ms!\n", io_read_timer.get_elapsed_milliseconds());
-		printf("Parsing ACL input clip...");
-	}
-
-	ScopeProfiler clip_reader_timer;
 	ClipReader reader(allocator, str.c_str(), str.length());
 
 	if (!reader.read(skeleton) || !reader.read(clip, *skeleton))
@@ -359,11 +345,6 @@ static bool read_clip(IAllocator& allocator, const char* filename,
 		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
 		return false;
 	}
-
-	clip_reader_timer.stop();
-
-	if (IsDebuggerPresent())
-		printf(" Done in %.1f ms!\n", clip_reader_timer.get_elapsed_milliseconds());
 
 	return true;
 }
