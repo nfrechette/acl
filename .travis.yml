@@ -38,7 +38,7 @@ before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python3 ; fi
 
 script:
-    - python3 make.py -clean -build -test -${COMPILER} -Debug -x86
-    - python3 make.py -clean -build -test -${COMPILER} -Release -x86
-    - python3 make.py -clean -build -test -${COMPILER} -Debug -x64
-    - python3 make.py -clean -build -test -${COMPILER} -Release -x64
+    - python3 make.py -clean -build -unit_test -${COMPILER} -Debug -x86
+    - python3 make.py -clean -build -unit_test -${COMPILER} -Release -x86
+    - python3 make.py -clean -build -unit_test -${COMPILER} -Debug -x64
+    - python3 make.py -clean -build -unit_test -${COMPILER} -Release -x64

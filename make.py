@@ -30,10 +30,6 @@ def parse_argv():
 		if value == '-clean':
 			options['clean'] = True
 
-		if value == '-test':
-			options['unit_test'] = True
-			options['regression_test'] = True
-
 		if value == '-unit_test':
 			options['unit_test'] = True
 

@@ -54,7 +54,8 @@ Decompression is typically very simple and light in order to be fast. Very littl
    The solution is generated under `./build`  
    Note that if you do not have CMake in your `PATH`, you should define the `ACL_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
 5. Build the IDE solution with: `python make.py -build`
-6. Run the unit tests with: `python make.py -test`
+6. Run the unit tests with: `python make.py -unit_test`
+7. Run the regression tests with: `python make.py -regression_test`
 
 ## Performance metrics
 

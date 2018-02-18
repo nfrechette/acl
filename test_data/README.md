@@ -10,7 +10,7 @@ Find the latest test data zip file located on Google Drive and save it into this
 
 ## Running the tests
 
-Using **Python 3**, run [make.py](../make.py) either with `-test` which performs both unit tests and regression tests or with `-regression_test` which performs only the later.
+Using **Python 3**, run [make.py](../make.py) with the `-regression_test` command line switch.
 
 ## Test configurations
 
