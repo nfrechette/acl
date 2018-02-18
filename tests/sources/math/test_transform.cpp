@@ -24,6 +24,7 @@
 
 #include <catch.hpp>
 
+#include "../error_exceptions.h"
 #include <acl/math/transform_32.h>
 #include <acl/math/transform_64.h>
 

@@ -24,6 +24,7 @@
 
 #include <catch.hpp>
 
+#include "../error_exceptions.h"
 #include <acl/math/affine_matrix_32.h>
 #include <acl/math/affine_matrix_64.h>
 #include <acl/math/transform_32.h>

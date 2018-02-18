@@ -24,6 +24,7 @@
 
 #include <catch.hpp>
 
+#include "../error_exceptions.h"
 #include <acl/math/vector4_packing.h>
 
 #include <cstring>

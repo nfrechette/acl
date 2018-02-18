@@ -24,6 +24,7 @@
 
 #include <catch.hpp>
 
+#include "../error_exceptions.h"
 #include <acl/core/ansi_allocator.h>
 #include <acl/core/string.h>
 #include <acl/core/string_view.h>

@@ -24,6 +24,7 @@
 
 #include <catch.hpp>
 
+#include "../error_exceptions.h"
 #include <acl/core/utils.h>
 #include <acl/math/scalar_32.h>
 
