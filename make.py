@@ -1,18 +1,24 @@
 import os
 import platform
+import queue
 import shutil
 import subprocess
 import sys
+import threading
+import time
+import zipfile
 
 def parse_argv():
 	options = {}
 	options['build'] = False
 	options['clean'] = False
-	options['test'] = False
+	options['unit_test'] = False
+	options['regression_test'] = False
 	options['use_avx'] = False
 	options['compiler'] = None
 	options['config'] = 'Release'
 	options['cpu'] = 'x64'
+	options['num_threads'] = 4
 
 	for i in range(1, len(sys.argv)):
 		value = sys.argv[i]
@@ -25,7 +31,14 @@ def parse_argv():
 			options['clean'] = True
 
 		if value == '-test':
-			options['test'] = True
+			options['unit_test'] = True
+			options['regression_test'] = True
+
+		if value == '-unit_test':
+			options['unit_test'] = True
+
+		if value == '-regression_test':
+			options['regression_test'] = True
 
 		if value == '-avx':
 			options['use_avx'] = True
@@ -95,9 +108,9 @@ def get_generator(compiler, cpu):
 	print('Unknown compiler: {}'.format(compiler))
 	sys.exit(1)
 
-def set_compiler_env(compiler):
+def set_compiler_env(compiler, options):
 	if platform.system() == 'Linux':
-		os.environ['MAKEFLAGS'] = '-j4'
+		os.environ['MAKEFLAGS'] = '-j{}'.format(options['num_threads'])
 		if compiler == 'clang4':
 			os.environ['CC'] = 'clang-4.0'
 			os.environ['CXX'] = 'clang++-4.0'
@@ -117,7 +130,7 @@ def do_generate_solution(cmake_exe, build_dir, options):
 	config = options['config']
 
 	if not compiler == None:
-		set_compiler_env(compiler)
+		set_compiler_env(compiler, options)
 
 	extra_switches = []
 	if not platform.system() == 'Windows':
@@ -172,6 +185,173 @@ def do_tests(ctest_exe, options):
 	if result != 0:
 		sys.exit(result)
 
+def format_elapsed_time(elapsed_time):
+	hours, rem = divmod(elapsed_time, 3600)
+	minutes, seconds = divmod(rem, 60)
+	return '{:0>2}h {:0>2}m {:05.2f}s'.format(int(hours), int(minutes), seconds)
+
+def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_length = 50):
+	# Taken from https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
+	"""
+	Call in a loop to create terminal progress bar
+	@params:
+		iteration   - Required  : current iteration (Int)
+		total       - Required  : total iterations (Int)
+		prefix      - Optional  : prefix string (Str)
+		suffix      - Optional  : suffix string (Str)
+		decimals    - Optional  : positive number of decimals in percent complete (Int)
+		bar_length  - Optional  : character length of bar (Int)
+	"""
+	str_format = "{0:." + str(decimals) + "f}"
+	percents = str_format.format(100 * (iteration / float(total)))
+	filled_length = int(round(bar_length * iteration / float(total)))
+	bar = '█' * filled_length + '-' * (bar_length - filled_length)
+
+	if platform.system() == 'Darwin':
+		# On OS X, \r doesn't appear to work properly in the terminal
+		print('{}{} |{}| {}{} {}'.format('\b' * 100, prefix, bar, percents, '%', suffix), end='')
+	else:
+		sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+
+	if iteration == total:
+		print('')
+
+	sys.stdout.flush()
+
+def do_regression_tests(ctest_exe, test_data_dir, options):
+	print('Running regression tests ...')
+
+	# Validate that our regression testing tool is present
+	if platform.system() == 'Windows':
+		compressor_exe_path = './bin/acl_compressor.exe'
+	else:
+		compressor_exe_path = './bin/acl_compressor'
+
+	compressor_exe_path = os.path.abspath(compressor_exe_path)
+	if not os.path.exists(compressor_exe_path):
+		print('Compressor exe not found: {}'.format(compressor_exe_path))
+		sys.exit(1)
+
+	current_test_data = 'cmu_test_data_v1'
+	current_test_data_zip = os.path.join(test_data_dir, '{}.zip'.format(current_test_data))
+
+	# Validate that our regression test data is present
+	if not os.path.exists(current_test_data_zip):
+		print('Regression test data not found: {}'.format(current_test_data_zip))
+		sys.exit(1)
+
+	# If it hasn't been decompressed yet, do so now
+	current_test_data_dir = os.path.join(test_data_dir, current_test_data)
+	if not os.path.exists(current_test_data_dir):
+		print('Decompressing {} ...'.format(current_test_data_zip))
+		with zipfile.ZipFile(current_test_data_zip, 'r') as zip_ref:
+			zip_ref.extractall(test_data_dir)
+
+	# Grab all the test clips
+	regression_clips = []
+	for (dirpath, dirnames, filenames) in os.walk(current_test_data_dir):
+		for filename in filenames:
+			if not filename.endswith('.acl.sjson'):
+				continue
+
+			clip_filename = os.path.join(dirpath, filename)
+			regression_clips.append(clip_filename)
+
+	if len(regression_clips) == 0:
+		print('No regression clips found')
+		sys.exit(1)
+
+	print('Found {} regression clips'.format(len(regression_clips)))
+
+	# Grab all the test configurations
+	test_configs = []
+	test_config_dir = os.path.join(test_data_dir, 'configs')
+	if os.path.exists(test_config_dir):
+		for (dirpath, dirnames, filenames) in os.walk(test_config_dir):
+			for filename in filenames:
+				if not filename.endswith('.config.sjson'):
+					continue
+
+				config_filename = os.path.join(dirpath, filename)
+				test_configs.append(config_filename)
+
+	if len(test_configs) == 0:
+		print('No regression configurations found')
+		sys.exit(1)
+
+	print('Found {} regression configurations'.format(len(test_configs)))
+
+	# Iterate over every clip and configuration and perform the regression testing
+	for config_filename in test_configs:
+		print('Performing regression tests for configuration: {}'.format(os.path.basename(config_filename)))
+		regression_start_time = time.clock()
+
+		cmd_queue = queue.Queue()
+		completed_queue = queue.Queue()
+		failed_queue = queue.Queue()
+		failure_lock = threading.Lock()
+		for clip_filename in regression_clips:
+			cmd = '{} -acl="{}" -test -config="{}"'.format(compressor_exe_path, clip_filename, config_filename)
+			if platform.system() == 'Windows':
+				cmd = cmd.replace('/', '\\')
+
+			cmd_queue.put((clip_filename, cmd))
+
+		# Add a marker to terminate the threads
+		for i in range(options['num_threads']):
+			cmd_queue.put(None)
+
+		def run_clip_regression_test(cmd_queue, completed_queue, failed_queue, failure_lock):
+			while True:
+				entry = cmd_queue.get()
+				if entry is None:
+					return
+
+				(clip_filename, cmd) = entry
+
+				result = os.system(cmd)
+
+				if result != 0:
+					failed_queue.put((clip_filename, cmd))
+					failure_lock.acquire()
+					print('Failed to run regression test for clip: {}'.format(clip_filename))
+					print(cmd)
+					failure_lock.release()
+
+				completed_queue.put(clip_filename)
+
+		threads = [ threading.Thread(target = run_clip_regression_test, args = (cmd_queue, completed_queue, failed_queue, failure_lock)) for _i in range(options['num_threads']) ]
+		for thread in threads:
+			thread.daemon = True
+			thread.start()
+
+		print_progress(0, len(regression_clips), 'Testing clips:', '{} / {}'.format(0, len(regression_clips)))
+		try:
+			while True:
+				for thread in threads:
+					thread.join(1.0)
+
+				num_processed = completed_queue.qsize()
+				print_progress(num_processed, len(regression_clips), 'Testing clips:', '{} / {}'.format(num_processed, len(regression_clips)))
+
+				all_threads_done = True
+				for thread in threads:
+					if thread.isAlive():
+						all_threads_done = False
+
+				if all_threads_done:
+					break
+		except KeyboardInterrupt:
+			sys.exit(1)
+
+		regression_testing_failed = not failed_queue.empty()
+
+		regression_end_time = time.clock()
+		print('Done in {}'.format(format_elapsed_time(regression_end_time - regression_start_time)))
+
+		if regression_testing_failed:
+			sys.exit(1)
+
 if __name__ == "__main__":
 	options = parse_argv()
 	cmake_exe, ctest_exe = get_cmake_exes()
@@ -187,6 +367,7 @@ if __name__ == "__main__":
 		ctest_exe = os.path.join(cmake_home, 'bin', ctest_exe)
 
 	build_dir = os.path.join(os.getcwd(), 'build')
+	test_data_dir = os.path.join(os.getcwd(), 'test_data')
 
 	if options['clean'] and os.path.exists(build_dir):
 		print('Cleaning previous build ...')
@@ -202,11 +383,15 @@ if __name__ == "__main__":
 	if not compiler == None:
 		print('Using compiler: {}'.format(compiler))
 
-	if options['build'] or not options['test']:
+	running_tests = options['unit_test'] or options['regression_test']
+	if options['build'] or not running_tests:
 		do_generate_solution(cmake_exe, build_dir, options)
 
 	if options['build']:
 		do_build(cmake_exe, options)
 
-	if options['test']:
+	if options['unit_test']:
 		do_tests(ctest_exe, options)
+
+	if options['regression_test']:
+		do_regression_tests(ctest_exe, test_data_dir, options)
