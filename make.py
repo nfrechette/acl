@@ -228,7 +228,7 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 		print('Compressor exe not found: {}'.format(compressor_exe_path))
 		sys.exit(1)
 
-	current_test_data = 'cmu_test_data_v1'
+	current_test_data = 'test_data_v1'
 	current_test_data_zip = os.path.join(test_data_dir, '{}.zip'.format(current_test_data))
 
 	# Validate that our regression test data is present
