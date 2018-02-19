@@ -6,20 +6,28 @@
 
 # Animation Compression Library
 
+Animation compression is a fundamental aspect of modern video game engines. Not only is it important to keep the memory footprint down but it is also critical to keep the animation clip sampling performance fast.
+
+The more memory an animation clip consumes, the slower it will be to sample it and extract a character pose at runtime. For these reasons, any game that attempts to push the boundaries of what the hardware can achieve will at some point need to implement some form of animation compression.
+
+While some degree of compression can easily be achieved with simple tricks, achieving high compression ratios, fast decompression, while simultaneously not compromising the accuracy of the resulting compressed animation requires a great deal of care.
+
 ## Goals
 
-This library has two primary goals:
+This library has four primary goals:
 
 *  Implement state of the art and production ready animation compression algorithms
+*  Be easy to integrate into modern video game engines
 *  Serve as a benchmark to compare various techniques against one another
+*  Document what works and doesn't work
 
-It is very common for most game engines or animation libraries to implement their own animation compression but the problem
-is so narrow and focused in scope, that it makes sense for the industry to converge on a single implementation.
+Algorithms are optimized with a focus on (in this particular order):
 
-Academic papers on the subject often will not compare techniques using the same error metric or raw size function which can
-skew the results or make them very hard to evaluate. They might also compare against techniques which are not state of the
-art or even used in production. This library aims to implement as many techniques as possible, side by side, in order
-to compare them fairly.
+*  Minimizing the compression artifacts in order to reach high cinematographic quality
+*  Fast decompression on all our supported hardware
+*  A small memory footprint to lower memory pressure at runtime as well as reducing disk and network usage
+
+Decompression speed will not be sacrifised for a smaller memory footprint nor will accuracy be compromised under any circomstances.
 
 ## Philosophy
 
@@ -39,7 +47,7 @@ Decompression is typically very simple and light in order to be fast. Very littl
 
 *  Compression and decompression:
    *  Windows (VS2015, VS2017) x86 and x64
-   *  Linux (gcc5, clang4, clang5) x86 and x64
+   *  Linux (gcc5, gcc6, gcc7, clang4, clang5) x86 and x64
    *  OS X (Xcode 8.3, Xcode 9.2) x86 and x64
 *  Decompression only: Android (NVIDIA CodeWorks)
 
