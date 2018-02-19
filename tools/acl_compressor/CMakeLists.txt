@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.2)
 project(acl_compressor)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 
 include_directories("${PROJECT_SOURCE_DIR}/../../includes")
 
