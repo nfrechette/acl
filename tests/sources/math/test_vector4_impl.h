@@ -524,6 +524,19 @@ void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const 
 	REQUIRE(scalar_near_equal(vector_get_z(vector_blend(vector_less_than(vector_set(FloatType(1.0)), zero), test_value0, test_value1)), test_value1_flt[2], threshold));
 	REQUIRE(scalar_near_equal(vector_get_w(vector_blend(vector_less_than(vector_set(FloatType(1.0)), zero), test_value0, test_value1)), test_value1_flt[3], threshold));
 
+	//////////////////////////////////////////////////////////////////////////
+	// Misc
+
+	auto scalar_sign = [](FloatType value) { return value >= FloatType(0.0) ? FloatType(1.0) : FloatType(-1.0); };
+	REQUIRE(vector_get_x(vector_sign(test_value0)) == scalar_sign(test_value0_flt[0]));
+	REQUIRE(vector_get_y(vector_sign(test_value0)) == scalar_sign(test_value0_flt[1]));
+	REQUIRE(vector_get_z(vector_sign(test_value0)) == scalar_sign(test_value0_flt[2]));
+	REQUIRE(vector_get_w(vector_sign(test_value0)) == scalar_sign(test_value0_flt[3]));
+}
+
+template<typename Vector4Type, typename FloatType, VectorMix XArg>
+void test_vector4_vector_mix_impl(const FloatType threshold)
+{
 #define ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, comp2) \
 	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::X] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::X>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::X>(input0, input1), threshold); \
 	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::Y] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::Y>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::Y>(input0, input1), threshold); \
@@ -554,42 +567,31 @@ void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const 
 	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::C); \
 	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::D)
 
-#define ACL_TEST_MIX(results, input0, input1) \
-	ACL_TEST_MIX_X(results, input0, input1, VectorMix::X); \
-	ACL_TEST_MIX_X(results, input0, input1, VectorMix::Y); \
-	ACL_TEST_MIX_X(results, input0, input1, VectorMix::Z); \
-	ACL_TEST_MIX_X(results, input0, input1, VectorMix::W); \
-	ACL_TEST_MIX_X(results, input0, input1, VectorMix::A); \
-	ACL_TEST_MIX_X(results, input0, input1, VectorMix::B); \
-	ACL_TEST_MIX_X(results, input0, input1, VectorMix::C); \
-	ACL_TEST_MIX_X(results, input0, input1, VectorMix::D)
-
 	// This generates 8*8*8*8 = 4096 unit tests... it takes a while to compile and uses a lot of stack space
 	// Disabled by default to reduce the build time
 	bool vector_mix_results[8][8][8][8];
-	ACL_TEST_MIX(vector_mix_results, test_value0, test_value1);
 
-	for (int comp0 = 0; comp0 < 8; ++comp0)
+	const FloatType test_value0_flt[4] = { FloatType(2.0), FloatType(9.34), FloatType(-54.12), FloatType(6000.0) };
+	const FloatType test_value1_flt[4] = { FloatType(0.75), FloatType(-4.52), FloatType(44.68), FloatType(-54225.0) };
+	const Vector4Type test_value0 = vector_set(test_value0_flt[0], test_value0_flt[1], test_value0_flt[2], test_value0_flt[3]);
+	const Vector4Type test_value1 = vector_set(test_value1_flt[0], test_value1_flt[1], test_value1_flt[2], test_value1_flt[3]);
+
+	ACL_TEST_MIX_X(vector_mix_results, test_value0, test_value1, XArg);
+
+	const int comp0 = (int)XArg;
+	for (int comp1 = 0; comp1 < 8; ++comp1)
 	{
-		for (int comp1 = 0; comp1 < 8; ++comp1)
+		for (int comp2 = 0; comp2 < 8; ++comp2)
 		{
-			for (int comp2 = 0; comp2 < 8; ++comp2)
+			for (int comp3 = 0; comp3 < 8; ++comp3)
 			{
-				for (int comp3 = 0; comp3 < 8; ++comp3)
-				{
-					INFO("vector_mix<" << comp0 << ", " << comp1 << ", " << comp2 << ", " << comp3 << ">");
-					REQUIRE(vector_mix_results[comp0][comp1][comp2][comp3] == true);
-				}
+				INFO("vector_mix<" << comp0 << ", " << comp1 << ", " << comp2 << ", " << comp3 << ">");
+				REQUIRE(vector_mix_results[comp0][comp1][comp2][comp3] == true);
 			}
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Misc
-
-	auto scalar_sign = [](FloatType value) { return value >= FloatType(0.0) ? FloatType(1.0) : FloatType(-1.0); };
-	REQUIRE(vector_get_x(vector_sign(test_value0)) == scalar_sign(test_value0_flt[0]));
-	REQUIRE(vector_get_y(vector_sign(test_value0)) == scalar_sign(test_value0_flt[1]));
-	REQUIRE(vector_get_z(vector_sign(test_value0)) == scalar_sign(test_value0_flt[2]));
-	REQUIRE(vector_get_w(vector_sign(test_value0)) == scalar_sign(test_value0_flt[3]));
+#undef ACL_TEST_MIX_X
+#undef ACL_TEST_MIX_XY
+#undef ACL_TEST_MIX_XYZ
 }
