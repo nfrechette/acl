@@ -27,7 +27,7 @@ Algorithms are optimized with a focus on (in this particular order):
 *  Fast decompression on all our supported hardware
 *  A small memory footprint to lower memory pressure at runtime as well as reducing disk and network usage
 
-Decompression speed will not be sacrifised for a smaller memory footprint nor will accuracy be compromised under any circomstances.
+Decompression speed will not be sacrificed for a smaller memory footprint nor will accuracy be compromised under any circumstances.
 
 ## Philosophy
 
