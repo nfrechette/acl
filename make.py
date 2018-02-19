@@ -55,6 +55,12 @@ def parse_argv():
 		if value == '-gcc5':
 			options['compiler'] = 'gcc5'
 
+		if value == '-gcc6':
+			options['compiler'] = 'gcc6'
+
+		if value == '-gcc7':
+			options['compiler'] = 'gcc7'
+
 		if value == '-xcode':
 			options['compiler'] = 'xcode'
 
@@ -116,6 +122,12 @@ def set_compiler_env(compiler, options):
 		elif compiler == 'gcc5':
 			os.environ['CC'] = 'gcc-5'
 			os.environ['CXX'] = 'g++-5'
+		elif compiler == 'gcc6':
+			os.environ['CC'] = 'gcc-6'
+			os.environ['CXX'] = 'g++-6'
+		elif compiler == 'gcc7':
+			os.environ['CC'] = 'gcc-7'
+			os.environ['CXX'] = 'g++-7'
 		else:
 			print('Unknown compiler: {}'.format(compiler))
 			sys.exit(1)
