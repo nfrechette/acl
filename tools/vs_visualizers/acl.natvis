@@ -35,11 +35,11 @@
   </Type>
 
   <Type Name="acl::StringView">
-    <DisplayString>{m_chars,[m_length]s8}</DisplayString>
+    <DisplayString>{m_c_str,[m_length]s8}</DisplayString>
   </Type>
 
   <Type Name="acl::String">
-    <DisplayString>{m_chars,s8}</DisplayString>
+    <DisplayString>{m_c_str,s8}</DisplayString>
   </Type>
 
 </AutoVisualizer>
