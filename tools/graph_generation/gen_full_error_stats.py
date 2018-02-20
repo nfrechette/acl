@@ -59,7 +59,12 @@ if __name__ == "__main__":
 
 		output_csv_headers.append(entry['header'])
 
+	output_csv_headers.append('Percentile')
+
+	output_csv_data.append(desired_percentiles)
 	output_csv_data = numpy.column_stack(output_csv_data)
+
+	output_csv_data_top10.append(desired_percentiles_top10)
 	output_csv_data_top10 = numpy.column_stack(output_csv_data_top10)
 
 	with open(output_csv_file_path, 'wb') as f:
