@@ -157,12 +157,12 @@ namespace acl
 		const uint8_t*	get_segment_range_data(const SegmentHeader& header) const	{ return header.range_data_offset.safe_add_to(this); }
 	};
 
-	constexpr ClipHeader& get_clip_header(CompressedClip& clip)
+	inline ClipHeader& get_clip_header(CompressedClip& clip)
 	{
 		return *add_offset_to_ptr<ClipHeader>(&clip, sizeof(CompressedClip));
 	}
 
-	constexpr const ClipHeader& get_clip_header(const CompressedClip& clip)
+	inline const ClipHeader& get_clip_header(const CompressedClip& clip)
 	{
 		return *add_offset_to_ptr<const ClipHeader>(&clip, sizeof(CompressedClip));
 	}

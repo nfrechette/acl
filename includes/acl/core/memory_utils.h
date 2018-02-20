@@ -163,7 +163,7 @@ namespace acl
 	// Endian and raw memory support
 
 	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>
-	constexpr OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, OffsetType offset)
+	inline OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, OffsetType offset)
 	{
 		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
 	}
