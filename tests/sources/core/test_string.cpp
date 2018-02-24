@@ -27,7 +27,6 @@
 #include "../error_exceptions.h"
 #include <acl/core/ansi_allocator.h>
 #include <acl/core/string.h>
-#include <acl/core/string_view.h>
 
 #include <cstring>
 
@@ -47,7 +46,6 @@ TEST_CASE("String", "[core][string]")
 	const char* str2 = "this is a test asset!";
 
 	REQUIRE(String(allocator, str0) == str0);
-	REQUIRE(String(allocator, str0) == StringView(str0));
 	REQUIRE(String(allocator, str0) != str1);
 	REQUIRE(String(allocator, str0) != str2);
 	REQUIRE(String(allocator, str0) == String(allocator, str0));

@@ -26,7 +26,6 @@
 
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
-#include "acl/core/string_view.h"
 
 #include <memory>
 
@@ -67,10 +66,6 @@ namespace acl
 			: String(allocator, c_str, c_str != nullptr ? std::strlen(c_str) : 0)
 		{}
 
-		String(IAllocator& allocator, const StringView& view)
-			: String(allocator, view.c_str(), view.size())
-		{}
-
 		String(IAllocator& allocator, const String& str)
 			: String(allocator, str.c_str(), str.size())
 		{}
@@ -96,11 +91,20 @@ namespace acl
 			return *this;
 		}
 
-		bool operator==(const StringView& view) const { return view == m_c_str; }
-		bool operator!=(const StringView& view) const { return view != m_c_str; }
+		bool operator==(const char* c_str) const
+		{
+			const size_t this_length = m_c_str == nullptr ? 0 : std::strlen(m_c_str);
+			const size_t other_length = c_str == nullptr ? 0 : std::strlen(c_str);
+			if (this_length != other_length)
+				return false;
 
-		bool operator==(const String& other) const { return StringView(other.m_c_str) == m_c_str; }
-		bool operator!=(const String& other) const { return StringView(other.m_c_str) != m_c_str; }
+			return std::memcmp(m_c_str, c_str, other_length) == 0;
+		}
+
+		bool operator!=(const char* c_str) const { return !(*this == c_str); }
+
+		bool operator==(const String& other) const { return (*this == other.c_str()); }
+		bool operator!=(const String& other) const { return !(*this == other.c_str()); }
 
 		const char* c_str() const { return m_c_str != nullptr ? m_c_str : ""; }
 		size_t size() const { return m_c_str != nullptr ? std::strlen(m_c_str) : 0; }
