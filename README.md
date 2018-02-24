@@ -33,7 +33,7 @@ Decompression speed will not be sacrificed for a smaller memory footprint nor wi
 
 Much thought was put into designing the library for it to be as flexible and powerful as possible. To this end, the following decisions were made:
 
-*  The library consists of 100% C++ header files and is thus easy to integrate in any game engine
+*  The library consists of **100% C++11** header files and is thus easy to integrate in any game engine
 *  [An intermediary clip format](./docs/the_acl_file_format.md) is supported in order to facilitate debugging and bug reporting
 *  All allocations use a [game provided allocator](./includes/acl/core/iallocator.h)
 *  All asserts use a [game provided macro](./includes/acl/core/error.h)
@@ -55,15 +55,13 @@ Decompression is typically very simple and light in order to be fast. Very littl
 
 ### Windows, Linux, and OS X
 
-1. Install the proper compiler for your platform
-2. Install CMake 3.2 or higher
-3. Install Python 3
-4. Generate the IDE solution with: `python make.py`  
+1. Install CMake 3.2 or higher, Python 3, and the proper compiler for your platform
+2. Generate the IDE solution with: `python make.py`  
    The solution is generated under `./build`  
    Note that if you do not have CMake in your `PATH`, you should define the `ACL_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
-5. Build the IDE solution with: `python make.py -build`
-6. Run the unit tests with: `python make.py -unit_test`
-7. Run the regression tests with: `python make.py -regression_test`
+3. Build the IDE solution with: `python make.py -build`
+4. Run the unit tests with: `python make.py -unit_test`
+5. Run the regression tests with: `python make.py -regression_test`
 
 ## Performance metrics
 
