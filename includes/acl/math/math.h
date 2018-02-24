@@ -60,20 +60,20 @@
 #endif
 
 #if defined(ACL_SSE2_INTRINSICS)
-#include <xmmintrin.h>
-#include <emmintrin.h>
+	#include <xmmintrin.h>
+	#include <emmintrin.h>
 #endif
 
 #if defined(ACL_SSE3_INTRINSICS)
-#include <pmmintrin.h>
+	#include <pmmintrin.h>
 #endif
 
 #if defined(ACL_SSE4_INTRINSICS)
-#include <smmintrin.h>
+	#include <smmintrin.h>
 #endif
 
 #if defined(ACL_AVX_INTRINSICS)
-#include <immintrin.h>
+	#include <immintrin.h>
 #endif
 
 #include "acl/math/math_types.h"
