@@ -25,7 +25,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/enum_utils.h"
-#include "acl/sjson/sjson_writer.h"
+
+namespace sjson { class ObjectWriter; }
 
 namespace acl
 {
@@ -45,11 +46,11 @@ namespace acl
 	struct OutputStats
 	{
 		OutputStats() : logging(StatLogging::None), writer(nullptr), max_error(0.0f) {}
-		OutputStats(StatLogging logging_, SJSONObjectWriter* writer_) : logging(logging_), writer(writer_), max_error(0.0f) {}
+		OutputStats(StatLogging logging_, sjson::ObjectWriter* writer_) : logging(logging_), writer(writer_), max_error(0.0f) {}
 
-		StatLogging			logging;
-		SJSONObjectWriter*	writer;
+		StatLogging				logging;
+		sjson::ObjectWriter*	writer;
 
-		float				max_error;
+		float					max_error;
 	};
 }

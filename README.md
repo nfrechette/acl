@@ -51,6 +51,11 @@ Decompression is typically very simple and light in order to be fast. Very littl
    *  OS X (Xcode 8.3, Xcode 9.2) x86 and x64
 *  Decompression only: Android (NVIDIA CodeWorks)
 
+## External dependencies
+
+There are none! You don't need anything else to get started: everything is self contained.
+See [here](./external) for details on the ones we do include.
+
 ## Getting up and running
 
 ### Windows, Linux, and OS X

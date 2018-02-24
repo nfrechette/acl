@@ -24,15 +24,17 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/sjson/sjson_parser_error.h"
+#if defined(SJSON_CPP_PARSER)
+
+#include <cstdint>
 
 namespace acl
 {
-	struct ClipReaderError : SJSONParserError
+	struct ClipReaderError : sjson::ParserError
 	{
 		enum : uint32_t
 		{
-			UnsupportedVersion = SJSONParserError::Last,
+			UnsupportedVersion = sjson::ParserError::Last,
 			NoParentBoneWithThatName,
 			NoBoneWithThatName,
 			UnsignedIntegerExpected,
@@ -42,7 +44,7 @@ namespace acl
 		{
 		}
 
-		ClipReaderError(const SJSONParserError& e)
+		ClipReaderError(const sjson::ParserError& e)
 		{
 			error = e.error;
 			line = e.line;
@@ -62,8 +64,10 @@ namespace acl
 			case UnsignedIntegerExpected:
 				return "An unsigned integer is expected here";
 			default:
-				return SJSONParserError::get_description();
+				return sjson::ParserError::get_description();
 			}
 		}
 	};
 }
+
+#endif	// #if defined(SJSON_CPP_PARSER)

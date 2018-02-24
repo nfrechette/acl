@@ -215,6 +215,7 @@ namespace acl
 
 			compression_time.stop();
 
+#if defined(SJSON_CPP_WRITER)
 			if (stats.logging != StatLogging::None)
 			{
 				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, stats,
@@ -234,6 +235,7 @@ namespace acl
 						deallocate_decompression_context(allocator, context);
 					});
 			}
+#endif
 
 			destroy_clip_context(allocator, clip_context);
 			destroy_clip_context(allocator, raw_clip_context);

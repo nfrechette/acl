@@ -24,14 +24,14 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined(SJSON_CPP_PARSER)
+
 #include "acl/io/clip_reader_error.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/skeleton.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/string.h"
-#include "acl/core/string_view.h"
 #include "acl/core/unique_ptr.h"
-#include "acl/sjson/sjson_parser.h"
 
 #include <cstdint>
 
@@ -70,13 +70,13 @@ namespace acl
 
 	private:
 		IAllocator& m_allocator;
-		SJSONParser m_parser;
+		sjson::Parser m_parser;
 		ClipReaderError m_error;
 
 		double m_version;
 		uint32_t m_num_samples;
 		uint32_t m_sample_rate;
-		StringView m_clip_name;
+		sjson::StringView m_clip_name;
 		double m_error_threshold;
 		bool m_is_binary_exact;
 
@@ -151,7 +151,7 @@ namespace acl
 
 		bool create_skeleton(std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
 		{
-			SJSONParser::State before_bones = m_parser.save_state();
+			sjson::ParserState before_bones = m_parser.save_state();
 
 			uint16_t num_bones;
 			if (!process_each_bone(nullptr, num_bones))
@@ -160,14 +160,17 @@ namespace acl
 			m_parser.restore_state(before_bones);
 
 			RigidBone* bones = allocate_type_array<RigidBone>(m_allocator, num_bones);
+			const uint16_t num_allocated_bones = num_bones;
+
 			if (!process_each_bone(bones, num_bones))
 			{
-				deallocate_type_array(m_allocator, bones, num_bones);
+				deallocate_type_array(m_allocator, bones, num_allocated_bones);
 				return false;
 			}
 
+			ACL_ENSURE(num_bones == num_allocated_bones, "Number of bones read mismatch");
 			skeleton = make_unique<RigidSkeleton>(m_allocator, m_allocator, bones, num_bones);
-			deallocate_type_array(m_allocator, bones, num_bones);
+			deallocate_type_array(m_allocator, bones, num_allocated_bones);
 
 			return true;
 		}
@@ -178,7 +181,7 @@ namespace acl
 			return process_each_bone(nullptr, num_bones);
 		}
 
-		static double hex_to_double(const StringView& value)
+		static double hex_to_double(const sjson::StringView& value)
 		{
 			union UInt64ToDouble
 			{
@@ -188,16 +191,17 @@ namespace acl
 				constexpr explicit UInt64ToDouble(uint64_t value) : u64(value) {}
 			};
 
+			ACL_ENSURE(value.size() <= 16, "Invalid binary exact double value");
 			uint64_t value_u64 = std::strtoull(value.c_str(), nullptr, 16);
 			return UInt64ToDouble(value_u64).dbl;
 		}
 
-		static Quat_64 hex_to_quat(const StringView values[4])
+		static Quat_64 hex_to_quat(const sjson::StringView values[4])
 		{
 			return quat_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]), hex_to_double(values[3]));
 		}
 
-		static Vector4_64 hex_to_vector3(const StringView values[3])
+		static Vector4_64 hex_to_vector3(const sjson::StringView values[3])
 		{
 			return vector_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]));
 		}
@@ -218,14 +222,14 @@ namespace acl
 				if (!m_parser.object_begins())
 					goto error;
 
-				StringView name;
+				sjson::StringView name;
 				if (!m_parser.read("name", name))
 					goto error;
 
 				if (!counting)
-					bone.name = String(m_allocator, name);
+					bone.name = String(m_allocator, name.c_str(), name.size());
 
-				StringView parent;
+				sjson::StringView parent;
 				if (!m_parser.read("parent", parent))
 					goto error;
 
@@ -252,15 +256,15 @@ namespace acl
 
 				if (m_is_binary_exact)
 				{
-					StringView rotation[4];
+					sjson::StringView rotation[4];
 					if (m_parser.try_read("bind_rotation", rotation, 4, nullptr) && !counting)
 						bone.bind_transform.rotation = hex_to_quat(rotation);
 
-					StringView translation[3];
+					sjson::StringView translation[3];
 					if (m_parser.try_read("bind_translation", translation, 3, nullptr) && !counting)
 						bone.bind_transform.translation = hex_to_vector3(translation);
 
-					StringView scale[3];
+					sjson::StringView scale[3];
 					if (m_parser.try_read("bind_scale", scale, 3, nullptr) && !counting)
 						bone.bind_transform.scale = hex_to_vector3(scale);
 				}
@@ -292,11 +296,11 @@ namespace acl
 			return false;
 		}
 
-		uint16_t find_bone(const RigidBone* bones, uint16_t num_bones, StringView name) const
+		uint16_t find_bone(const RigidBone* bones, uint16_t num_bones, const sjson::StringView& name) const
 		{
 			for (uint16_t i = 0; i < num_bones; ++i)
 			{
-				if (bones[i].name == name)
+				if (name == bones[i].name.c_str())
 					return i;
 			}
 
@@ -305,7 +309,7 @@ namespace acl
 
 		bool create_clip(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
 		{
-			clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_num_samples, m_sample_rate, String(m_allocator, m_clip_name), (float)m_error_threshold);
+			clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_num_samples, m_sample_rate, String(m_allocator, m_clip_name.c_str(), m_clip_name.size()), (float)m_error_threshold);
 			return true;
 		}
 
@@ -319,7 +323,7 @@ namespace acl
 				if (!m_parser.object_begins())
 					goto error;
 
-				StringView name;
+				sjson::StringView name;
 				if (!m_parser.read("name", name))
 					goto error;
 
@@ -387,7 +391,7 @@ namespace acl
 
 				if (m_is_binary_exact)
 				{
-					StringView values[4];
+					sjson::StringView values[4];
 					if (!m_parser.read(values, 4))
 						return false;
 
@@ -422,7 +426,7 @@ namespace acl
 
 				if (m_is_binary_exact)
 				{
-					StringView values[3];
+					sjson::StringView values[3];
 					if (!m_parser.read(values, 3))
 						return false;
 
@@ -457,7 +461,7 @@ namespace acl
 
 				if (m_is_binary_exact)
 				{
-					StringView values[3];
+					sjson::StringView values[3];
 					if (!m_parser.read(values, 3))
 						return false;
 
@@ -499,3 +503,5 @@ namespace acl
 		}
 	};
 }
+
+#endif	// #if defined(SJSON_CPP_PARSER)

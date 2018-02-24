@@ -28,11 +28,12 @@
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
 #include "acl/core/memory_cache.h"
-#include "acl/sjson/sjson_writer.h"
+
+#if defined(SJSON_CPP_WRITER)
 
 namespace acl
 {
-	inline void write_summary_segment_stats(const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, SJSONObjectWriter& writer)
+	inline void write_summary_segment_stats(const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, sjson::ObjectWriter& writer)
 	{
 		writer["segment_index"] = segment.segment_index;
 		writer["num_samples"] = segment.num_samples;
@@ -50,7 +51,7 @@ namespace acl
 		writer["animated_frame_size"] = double(segment.animated_data_size) / double(segment.num_samples);
 	}
 
-	inline void write_detailed_segment_stats(const SegmentContext& segment, SJSONObjectWriter& writer)
+	inline void write_detailed_segment_stats(const SegmentContext& segment, sjson::ObjectWriter& writer)
 	{
 		uint32_t bit_rate_counts[k_num_bit_rates] = {0};
 
@@ -69,10 +70,10 @@ namespace acl
 				bit_rate_counts[scale_bit_rate]++;
 		}
 
-		writer["bit_rate_counts"] = [&](SJSONArrayWriter& writer)
+		writer["bit_rate_counts"] = [&](sjson::ArrayWriter& writer)
 		{
 			for (uint8_t bit_rate = 0; bit_rate < k_num_bit_rates; ++bit_rate)
-				writer.push_value(bit_rate_counts[bit_rate]);
+				writer.push(bit_rate_counts[bit_rate]);
 		};
 
 		// We assume that we always interpolate between 2 poses
@@ -85,7 +86,7 @@ namespace acl
 		writer["decomp_touched_cache_lines"] = num_clip_header_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 	}
 
-	inline void write_exhaustive_segment_stats(IAllocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const RigidSkeleton& skeleton, const CompressionSettings& settings, SJSONObjectWriter& writer)
+	inline void write_exhaustive_segment_stats(IAllocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const RigidSkeleton& skeleton, const CompressionSettings& settings, sjson::ObjectWriter& writer)
 	{
 		const uint16_t num_bones = skeleton.get_num_bones();
 		const bool has_scale = segment_context_has_scale(segment);
@@ -100,7 +101,7 @@ namespace acl
 
 		BoneError worst_bone_error = { k_invalid_bone_index, 0.0f, 0.0f };
 
-		writer["error_per_frame_and_bone"] = [&](SJSONArrayWriter& writer)
+		writer["error_per_frame_and_bone"] = [&](sjson::ArrayWriter& writer)
 		{
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
@@ -111,7 +112,7 @@ namespace acl
 				sample_streams(segment.bone_streams, num_bones, sample_time, lossy_local_pose);
 
 				writer.push_newline();
-				writer.push_array([&](SJSONArrayWriter& writer)
+				writer.push([&](sjson::ArrayWriter& writer)
 				{
 					for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 					{
@@ -121,7 +122,7 @@ namespace acl
 						else
 							error = settings.error_metric->calculate_object_bone_error_no_scale(skeleton, raw_local_pose, lossy_local_pose, bone_index);
 
-						writer.push_value(error);
+						writer.push(error);
 
 						if (error > worst_bone_error.error)
 						{
@@ -144,14 +145,14 @@ namespace acl
 
 	constexpr uint32_t k_num_decompression_timing_passes = 5;
 
-	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
+	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, const OutputStats& stats, sjson::ObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
 		void* contexts[], Vector4_32* cache_flush_buffer, Transform_32* lossy_pose_transforms, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
 		int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
 		double duration = clip.get_duration();
 		uint16_t num_bones = clip.get_num_bones();
 
-		writer[action_type] = [&](SJSONObjectWriter& writer)
+		writer[action_type] = [&](sjson::ObjectWriter& writer)
 		{
 			int32_t initial_sample_index = forward_order ? 0 : num_samples - 1;
 			int32_t sample_index_sentinel = forward_order ? num_samples : -1;
@@ -159,7 +160,7 @@ namespace acl
 
 			double clip_max, clip_min, clip_total = 0;
 
-			writer["data"] = [&](SJSONArrayWriter& writer)
+			writer["data"] = [&](sjson::ArrayWriter& writer)
 			{
 				for (int32_t sample_index = initial_sample_index; sample_index != sample_index_sentinel; sample_index += delta_sample_index)
 				{
@@ -189,7 +190,7 @@ namespace acl
 					}
 
 					if (are_any_enum_flags_set(stats.logging, StatLogging::ExhaustiveDecompression))
-						writer.push_value(decompression_time);
+						writer.push(decompression_time);
 
 					if (sample_index == initial_sample_index || decompression_time > clip_max)
 						clip_max = decompression_time;
@@ -207,7 +208,7 @@ namespace acl
 		};
 	}
 
-	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, const OutputStats& stats, SJSONObjectWriter& writer, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
+	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, const OutputStats& stats, sjson::ObjectWriter& writer, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
 		void* contexts[k_num_decompression_timing_passes];
 
@@ -219,7 +220,7 @@ namespace acl
 		uint16_t num_bones = clip.get_num_bones();
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
-		writer["decompression_time_per_sample"] = [&](SJSONObjectWriter& writer)
+		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& writer)
 		{
 			write_decompression_stats(allocator, clip, stats, writer, "forward_playback", true, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
 			write_decompression_stats(allocator, clip, stats, writer, "backward_playback", false, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
@@ -251,7 +252,7 @@ namespace acl
 		if (ACL_TRY_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer"))
 			return;
 
-		SJSONObjectWriter& writer = *stats.writer;
+		sjson::ObjectWriter& writer = *stats.writer;
 		writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);
 		writer["algorithm_uid"] = settings.hash();
 		writer["clip_name"] = clip.get_name().c_str();
@@ -331,7 +332,7 @@ namespace acl
 
 		if (settings.segmenting.enabled)
 		{
-			writer["segmenting"] = [&](SJSONObjectWriter& writer)
+			writer["segmenting"] = [&](sjson::ObjectWriter& writer)
 			{
 				writer["num_segments"] = header.num_segments;
 				writer["range_reduction"] = get_range_reduction_name(settings.segmenting.range_reduction);
@@ -340,11 +341,11 @@ namespace acl
 			};
 		}
 
-		writer["segments"] = [&](SJSONArrayWriter& writer)
+		writer["segments"] = [&](sjson::ArrayWriter& writer)
 		{
 			for (const SegmentContext& segment : clip_context.segment_iterator())
 			{
-				writer.push_object([&](SJSONObjectWriter& writer)
+				writer.push([&](sjson::ObjectWriter& writer)
 				{
 					write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, writer);
 
@@ -365,3 +366,5 @@ namespace acl
 			write_decompression_stats(allocator, clip, stats, writer, allocate_context, decompress_pose, deallocate_context);
 	}
 }
+
+#endif	// #if defined(SJSON_CPP_WRITER)

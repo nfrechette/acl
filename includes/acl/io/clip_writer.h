@@ -24,13 +24,14 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined(SJSON_CPP_WRITER)
+
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/skeleton.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
-#include "acl/sjson/sjson_writer.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
@@ -39,8 +40,8 @@ namespace acl
 		if (ACL_TRY_ASSERT(acl_filename != nullptr, "'acl_filename' cannot be NULL!"))
 			return false;
 
-		size_t filename_len = std::strlen(acl_filename);
-		bool is_filename_valid = filename_len < 6 || strncmp(acl_filename + filename_len - 6, ".acl.sjson", 6) != 0;
+		const size_t filename_len = std::strlen(acl_filename);
+		const bool is_filename_valid = filename_len < 6 || strncmp(acl_filename + filename_len - 6, ".acl.sjson", 6) != 0;
 		if (ACL_TRY_ASSERT(is_filename_valid, "'acl_filename' file must be an ACL SJSON file: %s", acl_filename))
 			return false;
 
@@ -70,13 +71,13 @@ namespace acl
 			return buffer;
 		};
 
-		SJSONFileStreamWriter stream_writer(file);
-		SJSONWriter writer(stream_writer);
+		sjson::FileStreamWriter stream_writer(file);
+		sjson::Writer writer(stream_writer);
 
 		writer["version"] = 1;
 		writer.insert_newline();
 
-		writer["clip"] = [&](SJSONObjectWriter& writer)
+		writer["clip"] = [&](sjson::ObjectWriter& writer)
 		{
 			writer["name"] = clip.get_name().c_str();
 			writer["num_samples"] = clip.get_num_samples();
@@ -86,9 +87,9 @@ namespace acl
 		};
 		writer.insert_newline();
 
-		writer["bones"] = [&](SJSONArrayWriter& writer)
+		writer["bones"] = [&](sjson::ArrayWriter& writer)
 		{
-			uint16_t num_bones = skeleton.get_num_bones();
+			const uint16_t num_bones = skeleton.get_num_bones();
 			if (num_bones > 0)
 				writer.push_newline();
 
@@ -97,44 +98,44 @@ namespace acl
 				const RigidBone& bone = skeleton.get_bone(bone_index);
 				const RigidBone& parent_bone = bone.is_root() ? bone : skeleton.get_bone(bone.parent_index);
 
-				writer.push_object([&](SJSONObjectWriter& writer)
+				writer.push([&](sjson::ObjectWriter& writer)
 				{
 					writer["name"] = bone.name.c_str();
 					writer["parent"] = bone.is_root() ? "" : parent_bone.name.c_str();
 					writer["vertex_distance"] = bone.vertex_distance;
 
 					if (!quat_near_identity(bone.bind_transform.rotation))
-						writer["bind_rotation"] = [&](SJSONArrayWriter& writer)
+						writer["bind_rotation"] = [&](sjson::ArrayWriter& writer)
 						{
-							writer.push_value(format_double(quat_get_x(bone.bind_transform.rotation)));
-							writer.push_value(format_double(quat_get_y(bone.bind_transform.rotation)));
-							writer.push_value(format_double(quat_get_z(bone.bind_transform.rotation)));
-							writer.push_value(format_double(quat_get_w(bone.bind_transform.rotation)));
+							writer.push(format_double(quat_get_x(bone.bind_transform.rotation)));
+							writer.push(format_double(quat_get_y(bone.bind_transform.rotation)));
+							writer.push(format_double(quat_get_z(bone.bind_transform.rotation)));
+							writer.push(format_double(quat_get_w(bone.bind_transform.rotation)));
 						};
 
 					if (!vector_all_near_equal3(bone.bind_transform.translation, vector_zero_64()))
-						writer["bind_translation"] = [&](SJSONArrayWriter& writer)
+						writer["bind_translation"] = [&](sjson::ArrayWriter& writer)
 						{
-							writer.push_value(format_double(vector_get_x(bone.bind_transform.translation)));
-							writer.push_value(format_double(vector_get_y(bone.bind_transform.translation)));
-							writer.push_value(format_double(vector_get_z(bone.bind_transform.translation)));
+							writer.push(format_double(vector_get_x(bone.bind_transform.translation)));
+							writer.push(format_double(vector_get_y(bone.bind_transform.translation)));
+							writer.push(format_double(vector_get_z(bone.bind_transform.translation)));
 						};
 
 					if (!vector_all_near_equal3(bone.bind_transform.scale, vector_set(1.0)))
-						writer["bind_scale"] = [&](SJSONArrayWriter& writer)
+						writer["bind_scale"] = [&](sjson::ArrayWriter& writer)
 						{
-							writer.push_value(format_double(vector_get_x(bone.bind_transform.scale)));
-							writer.push_value(format_double(vector_get_y(bone.bind_transform.scale)));
-							writer.push_value(format_double(vector_get_z(bone.bind_transform.scale)));
+							writer.push(format_double(vector_get_x(bone.bind_transform.scale)));
+							writer.push(format_double(vector_get_y(bone.bind_transform.scale)));
+							writer.push(format_double(vector_get_z(bone.bind_transform.scale)));
 						};
 				});
 			}
 		};
 		writer.insert_newline();
 
-		writer["tracks"] = [&](SJSONArrayWriter& writer)
+		writer["tracks"] = [&](sjson::ArrayWriter& writer)
 		{
-			uint16_t num_bones = skeleton.get_num_bones();
+			const uint16_t num_bones = skeleton.get_num_bones();
 			if (num_bones > 0)
 				writer.push_newline();
 
@@ -143,62 +144,62 @@ namespace acl
 				const RigidBone& rigid_bone = skeleton.get_bone(bone_index);
 				const AnimatedBone& bone = clip.get_animated_bone(bone_index);
 
-				writer.push_object([&](SJSONObjectWriter& writer)
+				writer.push([&](sjson::ObjectWriter& writer)
 				{
 					writer["name"] = rigid_bone.name.c_str();
-					writer["rotations"] = [&](SJSONArrayWriter& writer)
+					writer["rotations"] = [&](sjson::ArrayWriter& writer)
 					{
-						uint32_t num_rotation_samples = bone.rotation_track.get_num_samples();
+						const uint32_t num_rotation_samples = bone.rotation_track.get_num_samples();
 						if (num_rotation_samples > 0)
 							writer.push_newline();
 
 						for (uint32_t sample_index = 0; sample_index < num_rotation_samples; ++sample_index)
 						{
-							Quat_64 rotation = bone.rotation_track.get_sample(sample_index);
-							writer.push_array([&](SJSONArrayWriter& writer)
+							const Quat_64 rotation = bone.rotation_track.get_sample(sample_index);
+							writer.push([&](sjson::ArrayWriter& writer)
 							{
-								writer.push_value(format_double(quat_get_x(rotation)));
-								writer.push_value(format_double(quat_get_y(rotation)));
-								writer.push_value(format_double(quat_get_z(rotation)));
-								writer.push_value(format_double(quat_get_w(rotation)));
+								writer.push(format_double(quat_get_x(rotation)));
+								writer.push(format_double(quat_get_y(rotation)));
+								writer.push(format_double(quat_get_z(rotation)));
+								writer.push(format_double(quat_get_w(rotation)));
 							});
 							writer.push_newline();
 						}
 					};
 
-					writer["translations"] = [&](SJSONArrayWriter& writer)
+					writer["translations"] = [&](sjson::ArrayWriter& writer)
 					{
-						uint32_t num_translation_samples = bone.translation_track.get_num_samples();
+						const uint32_t num_translation_samples = bone.translation_track.get_num_samples();
 						if (num_translation_samples > 0)
 							writer.push_newline();
 
 						for (uint32_t sample_index = 0; sample_index < num_translation_samples; ++sample_index)
 						{
-							Vector4_64 translation = bone.translation_track.get_sample(sample_index);
-							writer.push_array([&](SJSONArrayWriter& writer)
+							const Vector4_64 translation = bone.translation_track.get_sample(sample_index);
+							writer.push([&](sjson::ArrayWriter& writer)
 							{
-								writer.push_value(format_double(vector_get_x(translation)));
-								writer.push_value(format_double(vector_get_y(translation)));
-								writer.push_value(format_double(vector_get_z(translation)));
+								writer.push(format_double(vector_get_x(translation)));
+								writer.push(format_double(vector_get_y(translation)));
+								writer.push(format_double(vector_get_z(translation)));
 							});
 							writer.push_newline();
 						}
 					};
 
-					writer["scales"] = [&](SJSONArrayWriter& writer)
+					writer["scales"] = [&](sjson::ArrayWriter& writer)
 					{
-						uint32_t num_scale_samples = bone.scale_track.get_num_samples();
+						const uint32_t num_scale_samples = bone.scale_track.get_num_samples();
 						if (num_scale_samples > 0)
 							writer.push_newline();
 
 						for (uint32_t sample_index = 0; sample_index < num_scale_samples; ++sample_index)
 						{
-							Vector4_64 scale = bone.scale_track.get_sample(sample_index);
-							writer.push_array([&](SJSONArrayWriter& writer)
+							const Vector4_64 scale = bone.scale_track.get_sample(sample_index);
+							writer.push([&](sjson::ArrayWriter& writer)
 							{
-								writer.push_value(format_double(vector_get_x(scale)));
-								writer.push_value(format_double(vector_get_y(scale)));
-								writer.push_value(format_double(vector_get_z(scale)));
+								writer.push(format_double(vector_get_x(scale)));
+								writer.push(format_double(vector_get_y(scale)));
+								writer.push(format_double(vector_get_z(scale)));
 							});
 							writer.push_newline();
 						}
@@ -211,3 +212,5 @@ namespace acl
 		return true;
 	}
 }
+
+#endif	// #if defined(SJSON_CPP_WRITER)

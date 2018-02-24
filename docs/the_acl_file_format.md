@@ -7,3 +7,5 @@ Small auxiliary tools exist to convert to this format such as the [fbx2acl](../t
 It is important to note that this file format is not meant to be used in production (although you could). It's primary purpose is to help us debug and reproduce issues by attaching an ACL file to bug reports. For this purpose they can be generated with a binary exact representation where each floating point value is stored as a hexadecimal string of the underlying 64 bit value.
 
 A reference ACL file can be found [here](../tools/format_reference.acl.sjson).
+
+Note that in order to use the ACL clip reader and writer, you will need to include the `sjson-cpp` headers prior to the ACL headers. This is done to decouple the dependency should you need to make custom modifications or should you be using your own version.

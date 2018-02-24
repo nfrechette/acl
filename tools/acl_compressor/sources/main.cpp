@@ -50,6 +50,18 @@ static void assert_impl(bool expression, const char* format, ...)
 #define ACL_ASSERT(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
 #define ACL_ENSURE(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
 
+// Used to debug and validate that we compile without sjson-cpp
+// Defaults to being enabled
+#define ACL_ENABLE_STAT_WRITING		1
+
+#if ACL_ENABLE_STAT_WRITING
+	#include <sjson/writer.h>
+#else
+	namespace sjson { class ArrayWriter; }
+#endif
+
+#include <sjson/parser.h>
+
 #include "acl/core/iallocator.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/ansi_allocator.h"
@@ -58,8 +70,6 @@ static void assert_impl(bool expression, const char* format, ...)
 #include "acl/compression/animation_clip.h"
 #include "acl/io/clip_reader.h"
 #include "acl/compression/skeleton_error_metric.h"
-#include "acl/sjson/sjson_parser.h"
-#include "acl/sjson/sjson_writer.h"
 
 #include "acl/algorithm/uniformly_sampled/algorithm.h"
 
@@ -307,9 +317,9 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	algorithm.deallocate_decompression_context(allocator, context);
 }
 
-static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, SJSONArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
-	auto try_algorithm_impl = [&](SJSONObjectWriter* stats_writer)
+	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
 		OutputStats stats(logging, stats_writer);
 		CompressedClip* compressed_clip = algorithm.compress_clip(allocator, clip, skeleton, stats);
@@ -322,9 +332,11 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 		allocator.deallocate(compressed_clip, compressed_clip->get_size());
 	};
 
+#if defined(SJSON_CPP_WRITER)
 	if (runs_writer != nullptr)
-		runs_writer->push_object([&](SJSONObjectWriter& writer) { try_algorithm_impl(&writer); });
+		runs_writer->push([&](sjson::ObjectWriter& writer) { try_algorithm_impl(&writer); });
 	else
+#endif
 		try_algorithm_impl(nullptr);
 }
 
@@ -356,7 +368,7 @@ static bool read_config(IAllocator& allocator, const char* filename, AlgorithmTy
 	buffer << t.rdbuf();
 	std::string str = buffer.str();
 
-	SJSONParser parser(str.c_str(), str.length());
+	sjson::Parser parser(str.c_str(), str.length());
 
 	double version = 0.0;
 	if (!parser.read("version", version))
@@ -374,7 +386,7 @@ static bool read_config(IAllocator& allocator, const char* filename, AlgorithmTy
 		return false;
 	}
 
-	StringView algorithm_name;
+	sjson::StringView algorithm_name;
 	if (!parser.read("algorithm_name", algorithm_name))
 	{
 		uint32_t line, column;
@@ -386,36 +398,36 @@ static bool read_config(IAllocator& allocator, const char* filename, AlgorithmTy
 
 	if (!get_algorithm_type(algorithm_name.c_str(), out_algorithm_type))
 	{
-		printf("Invalid algorithm name: %s\n", String(allocator, algorithm_name).c_str());
+		printf("Invalid algorithm name: %s\n", String(allocator, algorithm_name.c_str(), algorithm_name.size()).c_str());
 		return false;
 	}
 
-	StringView rotation_format;
+	sjson::StringView rotation_format;
 	if (parser.try_read("rotation_format", rotation_format, nullptr))
 	{
 		if (!get_rotation_format(rotation_format.c_str(), out_settings.rotation_format))
 		{
-			printf("Invalid rotation format: %s\n", String(allocator, rotation_format).c_str());
+			printf("Invalid rotation format: %s\n", String(allocator, rotation_format.c_str(), rotation_format.size()).c_str());
 			return false;
 		}
 	}
 
-	StringView translation_format;
+	sjson::StringView translation_format;
 	if (parser.try_read("translation_format", translation_format, nullptr))
 	{
 		if (!get_vector_format(translation_format.c_str(), out_settings.translation_format))
 		{
-			printf("Invalid translation format: %s\n", String(allocator, translation_format).c_str());
+			printf("Invalid translation format: %s\n", String(allocator, translation_format.c_str(), translation_format.size()).c_str());
 			return false;
 		}
 	}
 
-	StringView scale_format;
+	sjson::StringView scale_format;
 	if (parser.try_read("scale_format", scale_format, nullptr))
 	{
 		if (!get_vector_format(scale_format.c_str(), out_settings.scale_format))
 		{
-			printf("Invalid scale format: %s\n", String(allocator, scale_format).c_str());
+			printf("Invalid scale format: %s\n", String(allocator, scale_format.c_str(), scale_format.size()).c_str());
 			return false;
 		}
 	}
@@ -498,7 +510,7 @@ static int main_impl(int argc, char** argv)
 	}
 
 	// Compress & Decompress
-	auto exec_algos = [&](SJSONArrayWriter* runs_writer)
+	auto exec_algos = [&](sjson::ArrayWriter* runs_writer)
 	{
 		StatLogging logging = options.output_stats ? StatLogging::Summary : StatLogging::None;
 
@@ -561,14 +573,16 @@ static int main_impl(int argc, char** argv)
 		}
 	};
 
+#if defined(SJSON_CPP_WRITER)
 	if (options.output_stats)
 	{
-		SJSONFileStreamWriter stream_writer(options.output_stats_file);
-		SJSONWriter writer(stream_writer);
+		sjson::FileStreamWriter stream_writer(options.output_stats_file);
+		sjson::Writer writer(stream_writer);
 
-		writer["runs"] = [&](SJSONArrayWriter& writer) { exec_algos(&writer); };
+		writer["runs"] = [&](sjson::ArrayWriter& writer) { exec_algos(&writer); };
 	}
 	else
+#endif
 		exec_algos(nullptr);
 
 	return 0;
