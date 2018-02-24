@@ -1,0 +1,32 @@
+cmake_minimum_required (VERSION 3.2)
+project(sjson-cpp)
+
+set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
+
+# Grab all of our include files
+file(GLOB_RECURSE SJSON_CPP_INCLUDE_FILES LIST_DIRECTORIES false
+	${PROJECT_SOURCE_DIR}/includes/*.h
+	${PROJECT_SOURCE_DIR}/*.md
+	${PROJECT_SOURCE_DIR}/tools/vs_visualizers/*.natvis)
+
+# Create a dummy target so they show up in the IDE
+add_custom_target(sjson-cpp SOURCES ${SJSON_CPP_INCLUDE_FILES})
+
+# Create groups for the source files, this creates the proper directory structure under the
+# Visual Studio filters
+foreach(_file IN ITEMS ${SJSON_CPP_INCLUDE_FILES})
+	get_filename_component(_file_path "${_file}" PATH)
+	file(RELATIVE_PATH _file_path_rel "${PROJECT_SOURCE_DIR}" "${_file_path}")
+	string(REPLACE "/" "\\" _group_path "${_file_path_rel}")
+	source_group("${_group_path}" FILES "${_file}")
+endforeach()
+
+if(CMAKE_CONFIGURATION_TYPES)
+	set(CMAKE_CONFIGURATION_TYPES Debug Release)
+	set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING "Reset the configurations to what we need" FORCE)
+endif()
+
+enable_testing()
+
+# Add other projects
+add_subdirectory("${PROJECT_SOURCE_DIR}/tests")

@@ -1,0 +1,52 @@
+dist: trusty
+sudo: required
+
+language: cpp
+
+matrix:
+  include:
+    # Linux gcc5
+    - os: linux
+      env: COMPILER=gcc5 PACKAGES="g++-5 g++-5-multilib g++-multilib"
+
+    # Linux gcc6
+    - os: linux
+      env: COMPILER=gcc6 PACKAGES="g++-6 g++-6-multilib g++-multilib"
+
+    # Linux gcc7
+    - os: linux
+      env: COMPILER=gcc7 PACKAGES="g++-7 g++-7-multilib g++-multilib"
+
+    # Linux clang4
+    - os: linux
+      env: COMPILER=clang4 PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+
+    # Linux clang5
+    - os: linux
+      env: COMPILER=clang5 PACKAGES="clang-5.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+
+    # OS X xcode8
+    - os: osx
+      osx_image: xcode8.3
+      env: COMPILER=xcode
+
+    # OS X xcode9
+    - os: osx
+      osx_image: xcode9.2
+      env: COMPILER=xcode
+
+before_install:
+    - if [ "$COMPILER" = "clang4" ]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
+    - if [ "$COMPILER" = "clang4" ]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [ "$COMPILER" = "clang5" ]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
+    - if [ "$COMPILER" = "clang5" ]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test" ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-get -yq update ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install ${PACKAGES} ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python3 ; fi
+
+script:
+    - python3 make.py -clean -build -unit_test -${COMPILER} -Debug -x86
+    - python3 make.py -clean -build -unit_test -${COMPILER} -Release -x86
+    - python3 make.py -clean -build -unit_test -${COMPILER} -Debug -x64
+    - python3 make.py -clean -build -unit_test -${COMPILER} -Release -x64
