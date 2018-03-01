@@ -3,7 +3,8 @@ project(acl)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
-include(CMakeMacros)
+include(CMakeUtils)
+include(CMakeCompiler)
 
 set(USE_AVX_INSTRUCTIONS false CACHE BOOL "Use AVX instructions")
 set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
