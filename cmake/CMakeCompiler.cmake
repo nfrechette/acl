@@ -1,8 +1,6 @@
 cmake_minimum_required (VERSION 3.2)
 
 macro(setup_default_compiler_flags _project_name)
-	set(CMAKE_CXX_STANDARD 11)
-
 	if(MSVC)
 		# Replace some default compiler switches and add new ones
 		STRING(REPLACE "/GR" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})		# Disable RTTI
