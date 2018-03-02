@@ -405,7 +405,7 @@ namespace acl
 		__m128d zw_ge_pd = _mm_cmpge_pd(lhs.zw, rhs.zw);
 		return Vector4_64{ xy_ge_pd, zw_ge_pd };
 #else
-		return Vector4_32{ math_impl::get_mask_value(lhs.x >= rhs.x), math_impl::get_mask_value(lhs.y >= rhs.y), math_impl::get_mask_value(lhs.z >= rhs.z), math_impl::get_mask_value(lhs.w >= rhs.w) };
+		return Vector4_64{ math_impl::get_mask_value(lhs.x >= rhs.x), math_impl::get_mask_value(lhs.y >= rhs.y), math_impl::get_mask_value(lhs.z >= rhs.z), math_impl::get_mask_value(lhs.w >= rhs.w) };
 #endif
 	}
 
