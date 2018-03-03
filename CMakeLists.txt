@@ -5,6 +5,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 include(CMakeUtils)
 include(CMakeCompiler)
+include(CMakePlatforms)
 
 set(USE_AVX_INSTRUCTIONS false CACHE BOOL "Use AVX instructions")
 set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
@@ -33,5 +34,7 @@ endif()
 enable_testing()
 
 # Add other projects
-add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
+if(PLATFORM_WINDOWS OR PLATFORM_OSX OR PLATFORM_LINUX)
+	add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
+endif()
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
