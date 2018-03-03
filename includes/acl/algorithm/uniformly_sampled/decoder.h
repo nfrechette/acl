@@ -26,15 +26,16 @@
 
 #include "acl/core/bitset.h"
 #include "acl/core/compressed_clip.h"
-#include "acl/core/utils.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/range_reduction_types.h"
+#include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/quat_packing.h"
 #include "acl/decompression/decompress_data.h"
 #include "acl/decompression/output_writer.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 //////////////////////////////////////////////////////////////////////////
 // See encoder for details
