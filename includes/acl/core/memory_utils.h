@@ -53,7 +53,7 @@ namespace acl
 	inline bool is_aligned_to(PtrType* value, size_t alignment)
 	{
 		ACL_ENSURE(is_power_of_two(alignment), "Alignment value must be a power of two");
-		return (reinterpret_cast<uintptr_t>(value) & (alignment - 1)) == 0;
+		return (reinterpret_cast<intptr_t>(value) & (alignment - 1)) == 0;
 	}
 
 	template<typename IntegralType>
@@ -69,6 +69,13 @@ namespace acl
 		return is_aligned_to(value, alignof(PtrType));
 	}
 
+	template<typename PtrType>
+	inline PtrType* align_to(PtrType* value, size_t alignment)
+	{
+		ACL_ENSURE(is_power_of_two(alignment), "Alignment value must be a power of two");
+		return reinterpret_cast<PtrType*>((reinterpret_cast<intptr_t>(value) + (alignment - 1)) & ~(alignment - 1));
+	}
+
 	template<typename IntegralType>
 	inline IntegralType align_to(IntegralType value, size_t alignment)
 	{
@@ -82,18 +89,51 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Type safe casting
 
-	template<typename DestPtrType, typename SrcPtrType>
-	inline DestPtrType* safe_ptr_cast(SrcPtrType* input)
+	namespace memory_impl
 	{
-		ACL_ENSURE(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
-		return reinterpret_cast<DestPtrType*>(input);
+		template<typename DestPtrType, typename SrcType>
+		struct safe_ptr_to_ptr_cast_impl
+		{
+			inline static DestPtrType* cast(SrcType* input)
+			{
+				ACL_ENSURE(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
+				return reinterpret_cast<DestPtrType*>(input);
+			}
+		};
+
+		template<typename SrcType>
+		struct safe_ptr_to_ptr_cast_impl<void, SrcType>
+		{
+			static constexpr void* cast(SrcType* input) { return input; }
+		};
+
+		template<typename DestPtrType, typename SrcType>
+		struct safe_int_to_ptr_cast_impl
+		{
+			inline static DestPtrType* cast(SrcType input)
+			{
+				ACL_ENSURE(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
+				return reinterpret_cast<DestPtrType*>(input);
+			}
+		};
+
+		template<typename SrcType>
+		struct safe_int_to_ptr_cast_impl<void, SrcType>
+		{
+			static constexpr void* cast(SrcType input) { return reinterpret_cast<void*>(input); }
+		};
 	}
 
-	template<typename DestPtrType, typename SrcIntegralType>
-	inline DestPtrType* safe_ptr_cast(SrcIntegralType input)
+	template<typename DestPtrType, typename SrcType>
+	inline DestPtrType* safe_ptr_cast(SrcType* input)
 	{
-		ACL_ENSURE(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
-		return reinterpret_cast<DestPtrType*>(input);
+		return memory_impl::safe_ptr_to_ptr_cast_impl<DestPtrType, SrcType>::cast(input);
+	}
+
+	template<typename DestPtrType, typename SrcType>
+	inline DestPtrType* safe_ptr_cast(SrcType input)
+	{
+		return memory_impl::safe_int_to_ptr_cast_impl<DestPtrType, SrcType>::cast(input);
 	}
 
 	namespace memory_impl
@@ -239,7 +279,7 @@ namespace acl
 	template<typename DataType>
 	inline DataType aligned_load(const void* input)
 	{
-		return *safe_ptr_cast<const DataType>(input);
+		return *safe_ptr_cast<const DataType, const void*>(input);
 	}
 
 	template<typename DataType>

@@ -27,9 +27,9 @@
 #include "../error_exceptions.h"
 #include <acl/core/memory_utils.h>
 
-#include <cfloat>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 
 using namespace acl;
 
@@ -94,6 +94,16 @@ TEST_CASE("misc tests", "[core][memory]")
 	REQUIRE(is_aligned_to(align_to(8, 4), 4) == true);
 	REQUIRE(align_to(8, 4) == 8);
 
+	void* ptr = (void*)0x00000000;
+	REQUIRE(align_to(ptr, 4) == (void*)0x00000000);
+	REQUIRE(align_to(ptr, 8) == (void*)0x00000000);
+	ptr = (void*)0x00000001;
+	REQUIRE(align_to(ptr, 4) == (void*)0x00000004);
+	REQUIRE(align_to(ptr, 8) == (void*)0x00000008);
+	ptr = (void*)0x00000004;
+	REQUIRE(align_to(ptr, 4) == (void*)0x00000004);
+	REQUIRE(align_to(ptr, 8) == (void*)0x00000008);
+
 	int32_t array[8];
 	REQUIRE(get_array_size(array) == (sizeof(array) / sizeof(array[0])));
 }
@@ -151,30 +161,30 @@ TEST_CASE("memcpy_bits", "[core][memory]")
 enum class UnsignedEnum : uint32_t
 {
 	ZERO = 0,
-	U16_MAX = UINT16_MAX,
-	U32_MAX = UINT32_MAX,
+	U16_MAX = std::numeric_limits<uint16_t>::max(),
+	U32_MAX = std::numeric_limits<uint32_t>::max(),
 };
 
 enum class SignedEnum : int32_t
 {
-	I32_MIN = INT32_MIN,
-	I16_MIN = INT16_MIN,
-	I16_MAX = INT16_MAX,
-	I32_MAX = INT32_MAX,
+	I32_MIN = std::numeric_limits<int32_t>::min(),
+	I16_MIN = std::numeric_limits<int16_t>::min(),
+	I16_MAX = std::numeric_limits<int16_t>::max(),
+	I32_MAX = std::numeric_limits<int32_t>::max(),
 };
 
 TEST_CASE("safe_static_cast from unsigned enum", "[core][memory]")
 {
 	CHECK(safe_static_cast<uint32_t>(UnsignedEnum::ZERO) == 0);
-	CHECK(safe_static_cast<uint32_t>(UnsignedEnum::U16_MAX) == UINT16_MAX);
-	CHECK(safe_static_cast<uint32_t>(UnsignedEnum::U32_MAX) == UINT32_MAX);
+	CHECK(safe_static_cast<uint32_t>(UnsignedEnum::U16_MAX) == std::numeric_limits<uint16_t>::max());
+	CHECK(safe_static_cast<uint32_t>(UnsignedEnum::U32_MAX) == std::numeric_limits<uint32_t>::max());
 
 	CHECK(safe_static_cast<int32_t>(UnsignedEnum::ZERO) == 0);
 	CHECK(safe_static_cast<int32_t>(UnsignedEnum::U16_MAX));
 	CHECK_THROWS(safe_static_cast<int32_t>(UnsignedEnum::U32_MAX));
 
 	CHECK(safe_static_cast<uint16_t>(UnsignedEnum::ZERO) == 0);
-	CHECK(safe_static_cast<uint16_t>(UnsignedEnum::U16_MAX) == UINT16_MAX);
+	CHECK(safe_static_cast<uint16_t>(UnsignedEnum::U16_MAX) == std::numeric_limits<uint16_t>::max());
 	CHECK_THROWS(safe_static_cast<uint16_t>(UnsignedEnum::U32_MAX));
 
 	CHECK(safe_static_cast<int16_t>(UnsignedEnum::ZERO) == 0);
@@ -186,75 +196,75 @@ TEST_CASE("safe_static_cast from signed enum", "[core][memory]")
 {
 	CHECK_THROWS(safe_static_cast<uint32_t>(SignedEnum::I32_MIN));
 	CHECK_THROWS(safe_static_cast<uint32_t>(SignedEnum::I16_MIN));
-	CHECK(safe_static_cast<uint32_t>(SignedEnum::I16_MAX) == INT16_MAX);
-	CHECK(safe_static_cast<uint32_t>(SignedEnum::I32_MAX) == INT32_MAX);
+	CHECK(safe_static_cast<uint32_t>(SignedEnum::I16_MAX) == safe_static_cast<uint32_t>(std::numeric_limits<int16_t>::max()));
+	CHECK(safe_static_cast<uint32_t>(SignedEnum::I32_MAX) == safe_static_cast<uint32_t>(std::numeric_limits<int32_t>::max()));
 
-	CHECK(safe_static_cast<int32_t>(SignedEnum::I32_MIN) == INT32_MIN);
-	CHECK(safe_static_cast<int32_t>(SignedEnum::I16_MIN) == INT16_MIN);
-	CHECK(safe_static_cast<int32_t>(SignedEnum::I16_MAX) == INT16_MAX);
-	CHECK(safe_static_cast<int32_t>(SignedEnum::I32_MAX) == INT32_MAX);
+	CHECK(safe_static_cast<int32_t>(SignedEnum::I32_MIN) == std::numeric_limits<int32_t>::min());
+	CHECK(safe_static_cast<int32_t>(SignedEnum::I16_MIN) == std::numeric_limits<int16_t>::min());
+	CHECK(safe_static_cast<int32_t>(SignedEnum::I16_MAX) == std::numeric_limits<int16_t>::max());
+	CHECK(safe_static_cast<int32_t>(SignedEnum::I32_MAX) == std::numeric_limits<int32_t>::max());
 
 	CHECK_THROWS(safe_static_cast<uint16_t>(SignedEnum::I32_MIN));
 	CHECK_THROWS(safe_static_cast<uint16_t>(SignedEnum::I16_MIN));
-	CHECK(safe_static_cast<uint16_t>(SignedEnum::I16_MAX) == INT16_MAX);
+	CHECK(safe_static_cast<uint16_t>(SignedEnum::I16_MAX) == std::numeric_limits<int16_t>::max());
 	CHECK_THROWS(safe_static_cast<uint16_t>(SignedEnum::I32_MAX));
 
 	CHECK_THROWS(safe_static_cast<int16_t>(SignedEnum::I32_MIN));
-	CHECK(safe_static_cast<int16_t>(SignedEnum::I16_MIN) == INT16_MIN);
-	CHECK(safe_static_cast<int16_t>(SignedEnum::I16_MAX) == INT16_MAX);
+	CHECK(safe_static_cast<int16_t>(SignedEnum::I16_MIN) == std::numeric_limits<int16_t>::min());
+	CHECK(safe_static_cast<int16_t>(SignedEnum::I16_MAX) == std::numeric_limits<int16_t>::max());
 	CHECK_THROWS(safe_static_cast<int16_t>(SignedEnum::I32_MAX));
 }
 
 TEST_CASE("safe_static_cast from signed int", "[core][memory]")
 {
-	CHECK_THROWS(safe_static_cast<uint32_t>(INT32_MIN));
-	CHECK_THROWS(safe_static_cast<uint32_t>(INT16_MIN));
-	CHECK(safe_static_cast<uint32_t>(INT16_MAX) == INT16_MAX);
-	CHECK(safe_static_cast<uint32_t>(INT32_MAX) == INT32_MAX);
+	CHECK_THROWS(safe_static_cast<uint32_t>(std::numeric_limits<int32_t>::min()));
+	CHECK_THROWS(safe_static_cast<uint32_t>(std::numeric_limits<int16_t>::min()));
+	CHECK(safe_static_cast<uint32_t>(std::numeric_limits<int16_t>::max()) == safe_static_cast<uint32_t>(std::numeric_limits<int16_t>::max()));
+	CHECK(safe_static_cast<uint32_t>(std::numeric_limits<int32_t>::max()) == safe_static_cast<uint32_t>(std::numeric_limits<int32_t>::max()));
 
-	CHECK(safe_static_cast<int32_t>(INT32_MIN) == INT32_MIN);
-	CHECK(safe_static_cast<int32_t>(INT16_MIN) == INT16_MIN);
-	CHECK(safe_static_cast<int32_t>(INT16_MAX) == INT16_MAX);
-	CHECK(safe_static_cast<int32_t>(INT32_MAX) == INT32_MAX);
+	CHECK(safe_static_cast<int32_t>(std::numeric_limits<int32_t>::min()) == std::numeric_limits<int32_t>::min());
+	CHECK(safe_static_cast<int32_t>(std::numeric_limits<int16_t>::min()) == std::numeric_limits<int16_t>::min());
+	CHECK(safe_static_cast<int32_t>(std::numeric_limits<int16_t>::max()) == std::numeric_limits<int16_t>::max());
+	CHECK(safe_static_cast<int32_t>(std::numeric_limits<int32_t>::max()) == std::numeric_limits<int32_t>::max());
 
-	CHECK_THROWS(safe_static_cast<uint16_t>(INT32_MIN));
-	CHECK_THROWS(safe_static_cast<uint16_t>(INT16_MIN));
-	CHECK(safe_static_cast<uint16_t>(INT16_MAX) == INT16_MAX);
-	CHECK_THROWS(safe_static_cast<uint16_t>(INT32_MAX));
+	CHECK_THROWS(safe_static_cast<uint16_t>(std::numeric_limits<int32_t>::min()));
+	CHECK_THROWS(safe_static_cast<uint16_t>(std::numeric_limits<int16_t>::min()));
+	CHECK(safe_static_cast<uint16_t>(std::numeric_limits<int16_t>::max()) == std::numeric_limits<int16_t>::max());
+	CHECK_THROWS(safe_static_cast<uint16_t>(std::numeric_limits<int32_t>::max()));
 
-	CHECK_THROWS(safe_static_cast<int16_t>(INT32_MIN));
-	CHECK(safe_static_cast<int16_t>(INT16_MIN) == INT16_MIN);
-	CHECK(safe_static_cast<int16_t>(INT16_MAX) == INT16_MAX);
-	CHECK_THROWS(safe_static_cast<int16_t>(INT32_MAX));
+	CHECK_THROWS(safe_static_cast<int16_t>(std::numeric_limits<int32_t>::min()));
+	CHECK(safe_static_cast<int16_t>(std::numeric_limits<int16_t>::min()) == std::numeric_limits<int16_t>::min());
+	CHECK(safe_static_cast<int16_t>(std::numeric_limits<int16_t>::max()) == std::numeric_limits<int16_t>::max());
+	CHECK_THROWS(safe_static_cast<int16_t>(std::numeric_limits<int32_t>::max()));
 }
 
 TEST_CASE("safe_static_cast from unsigned int", "[core][memory]")
 {
 	CHECK(safe_static_cast<uint32_t>(0U) == 0);
-	CHECK(safe_static_cast<uint32_t>(UINT16_MAX) == UINT16_MAX);
-	CHECK(safe_static_cast<uint32_t>(UINT32_MAX) == UINT32_MAX);
+	CHECK(safe_static_cast<uint32_t>(std::numeric_limits<uint16_t>::max()) == std::numeric_limits<uint16_t>::max());
+	CHECK(safe_static_cast<uint32_t>(std::numeric_limits<uint32_t>::max()) == std::numeric_limits<uint32_t>::max());
 
 	CHECK(safe_static_cast<int32_t>(0U) == 0);
-	CHECK(safe_static_cast<int32_t>(UINT16_MAX) == UINT16_MAX);
-	CHECK_THROWS(safe_static_cast<int32_t>(UINT32_MAX));
+	CHECK(safe_static_cast<int32_t>(std::numeric_limits<uint16_t>::max()) == std::numeric_limits<uint16_t>::max());
+	CHECK_THROWS(safe_static_cast<int32_t>(std::numeric_limits<uint32_t>::max()));
 
 	CHECK(safe_static_cast<uint16_t>(0U) == 0);
-	CHECK(safe_static_cast<uint16_t>(UINT16_MAX) == UINT16_MAX);
-	CHECK_THROWS(safe_static_cast<uint16_t>(UINT32_MAX));
+	CHECK(safe_static_cast<uint16_t>(std::numeric_limits<uint16_t>::max()) == std::numeric_limits<uint16_t>::max());
+	CHECK_THROWS(safe_static_cast<uint16_t>(std::numeric_limits<uint32_t>::max()));
 
 	CHECK(safe_static_cast<int16_t>(0U) == 0);
-	CHECK_THROWS(safe_static_cast<int16_t>(UINT16_MAX));
-	CHECK_THROWS(safe_static_cast<int16_t>(UINT32_MAX));
+	CHECK_THROWS(safe_static_cast<int16_t>(std::numeric_limits<uint16_t>::max()));
+	CHECK_THROWS(safe_static_cast<int16_t>(std::numeric_limits<uint32_t>::max()));
 }
 
 TEST_CASE("safe_static_cast from double", "[core][memory]")
 {
 	// Use volatile to avoid a constant being truncated warning
-	volatile double value = -DBL_MAX;
+	volatile double value = -std::numeric_limits<double>::max();
 	CHECK_THROWS(safe_static_cast<float>(value));
-	value = DBL_MAX;
+	value = std::numeric_limits<double>::max();
 	CHECK_THROWS(safe_static_cast<float>(value));
 
-	CHECK(safe_static_cast<float>(-FLT_MAX) == -FLT_MAX);
-	CHECK(safe_static_cast<float>(FLT_MAX) == FLT_MAX);
+	CHECK(safe_static_cast<float>(-std::numeric_limits<float>::max()) == -std::numeric_limits<float>::max());
+	CHECK(safe_static_cast<float>(std::numeric_limits<float>::max()) == std::numeric_limits<float>::max());
 }
