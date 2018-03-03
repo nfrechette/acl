@@ -27,7 +27,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 
-#if defined(__APPLE__) || defined(__ANDROID__)
+#if defined(__APPLE__)
 #include <cstdlib>	// For posix_memalign
 #elif defined(_WIN32)
 #include <malloc.h>
@@ -94,9 +94,22 @@ namespace acl
 
 #if defined(_WIN32)
 			ptr = _aligned_malloc(size, alignment);
-#elif defined(__APPLE__) || defined(__ANDROID__)
+#elif defined(__APPLE__)
 			ptr = nullptr;
 			posix_memalign(&ptr, std::max<size_t>(alignment, sizeof(void*)), size);
+#elif defined(__ANDROID__)
+			alignment = std::max<size_t>(std::max<size_t>(alignment, sizeof(void*)), sizeof(size_t));
+			const size_t padded_size = size + alignment + sizeof(size_t);
+			ptr = malloc(padded_size);
+			if (ptr != nullptr)
+			{
+				const void* allocated_ptr = ptr;
+				ptr = align_to(add_offset_to_ptr<void>(ptr, sizeof(size_t)), alignment);
+
+				const size_t padding_size = safe_static_cast<size_t>(reinterpret_cast<uintptr_t>(ptr) - reinterpret_cast<uintptr_t>(allocated_ptr));
+				size_t* padding_size_ptr = add_offset_to_ptr<size_t>(ptr, -sizeof(size_t));
+				*padding_size_ptr = padding_size;
+			}
 #else
 			ptr = aligned_alloc(alignment, size);
 #endif
@@ -115,19 +128,23 @@ namespace acl
 
 #if defined(_WIN32)
 			_aligned_free(ptr);
+#elif defined(__ANDROID__)
+			const size_t* padding_size_ptr = add_offset_to_ptr<size_t>(ptr, -sizeof(size_t));
+			void* allocated_ptr = add_offset_to_ptr<void>(ptr, -*padding_size_ptr);
+			free(allocated_ptr);
 #else
 			free(ptr);
 #endif
 
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
-			auto it = m_debug_allocations.find(ptr);
+			const auto it = m_debug_allocations.find(ptr);
 			ACL_ENSURE(it != m_debug_allocations.end(), "Attempting to deallocate a pointer that isn't allocated");
 			ACL_ENSURE(it->second.size == size, "Allocation and deallocation size do not match");
 			m_debug_allocations.erase(ptr);
 #endif
 
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
-			int32_t old_value = m_allocation_count.fetch_sub(1, std::memory_order_relaxed);
+			const int32_t old_value = m_allocation_count.fetch_sub(1, std::memory_order_relaxed);
 			ACL_ENSURE(old_value > 0, "The number of allocations and deallocations does not match");
 #endif
 		}
