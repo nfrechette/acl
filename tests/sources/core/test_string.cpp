@@ -24,6 +24,10 @@
 
 #include <catch.hpp>
 
+// Enable allocation tracking
+#define ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS
+#define ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS
+
 #include "../error_exceptions.h"
 #include <acl/core/ansi_allocator.h>
 #include <acl/core/string.h>
