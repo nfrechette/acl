@@ -35,13 +35,39 @@
 
 #include <cctype>
 #include <cmath>
-#include <cstdlib>
 #include <cstring>
 #include <cstdint>
 #include <algorithm>
 
+#if defined(__ANDROID__)
+	#include <stdlib.h>
+#else
+	#include <cstdlib>
+#endif
+
 namespace sjson
 {
+	namespace impl
+	{
+		inline unsigned long long int strtoull(const char* str, char** endptr, int base)
+		{
+#if defined(__ANDROID__)
+			return ::strtoull(str, endptr, base);
+#else
+			return std::strtoull(str, endptr, base);
+#endif
+		}
+
+		inline long long int strtoll(const char* str, char** endptr, int base)
+		{
+#if defined(__ANDROID__)
+			return ::strtoll(str, endptr, base);
+#else
+			return std::strtoll(str, endptr, base);
+#endif
+		}
+	}
+
 	class Parser
 	{
 	public:
@@ -749,7 +775,7 @@ namespace sjson
 			char* last_used_symbol = nullptr;
 			if (std::is_unsigned<IntegralType>::value)
 			{
-				uint64_t raw_value = std::strtoull(slice, &last_used_symbol, base);
+				const uint64_t raw_value = impl::strtoull(slice, &last_used_symbol, base);
 				value = static_cast<IntegralType>(raw_value);
 
 				if (static_cast<uint64_t>(value) != raw_value)
@@ -760,7 +786,7 @@ namespace sjson
 			}
 			else
 			{
-				int64_t raw_value = std::strtoll(slice, &last_used_symbol, base);
+				const int64_t raw_value = impl::strtoll(slice, &last_used_symbol, base);
 				value = static_cast<IntegralType>(raw_value);
 
 				if (static_cast<int64_t>(value) != raw_value)

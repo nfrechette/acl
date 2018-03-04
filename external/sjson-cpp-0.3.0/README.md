@@ -39,6 +39,7 @@ The library aims to support the most common platforms for the most common use ca
 *  Windows (VS2015, VS2017) x86 and x64
 *  Linux (gcc5, gcc6, gcc7, clang4, clang5) x86 and x64
 *  OS X (Xcode 8.3, Xcode 9.2) x86 and x64
+*  Android (NVIDIA CodeWorks)
 
 ## External dependencies
 
@@ -55,6 +56,10 @@ See [here](./external) for details on the ones we do include.
    Note that if you do not have CMake in your `PATH`, you should define the `SJSON_CPP_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
 3. Build the IDE solution with: `python make.py -build`
 4. Run the unit tests with: `python make.py -unit_test`
+
+### Android
+
+For Android, the steps are identical to Windows, Linux, and OS X but you also need to install NVIDIA CodeWorks 1R5 (or higher).
 
 ## Authors
 
