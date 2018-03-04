@@ -43,7 +43,7 @@ before_install:
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test" ; fi
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-get -yq update ; fi
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install ${PACKAGES} ; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python3 ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade python ; fi
 
 script:
     - python3 make.py -clean -build -unit_test -${COMPILER} -Debug -x86
