@@ -35,8 +35,26 @@
 
 #include <cstdint>
 
+#if defined(__ANDROID__)
+	#include <stdlib.h>
+#else
+	#include <cstdlib>
+#endif
+
 namespace acl
 {
+	namespace impl
+	{
+		inline unsigned long long int strtoull(const char* str, char** endptr, int base)
+		{
+#if defined(__ANDROID__)
+			return ::strtoull(str, endptr, base);
+#else
+			return std::strtoull(str, endptr, base);
+#endif
+		}
+	}
+
 	class ClipReader
 	{
 	public:
@@ -192,7 +210,7 @@ namespace acl
 			};
 
 			ACL_ENSURE(value.size() <= 16, "Invalid binary exact double value");
-			uint64_t value_u64 = std::strtoull(value.c_str(), nullptr, 16);
+			uint64_t value_u64 = impl::strtoull(value.c_str(), nullptr, 16);
 			return UInt64ToDouble(value_u64).dbl;
 		}
 
