@@ -26,7 +26,6 @@ create_source_groups("${ALL_TEST_SOURCE_FILES}" ${PROJECT_SOURCE_DIR}/..)
 
 # Grab all of our main source files
 file(GLOB_RECURSE ALL_MAIN_SOURCE_FILES LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/*.gradle
 	${PROJECT_SOURCE_DIR}/*.cpp)
 
 create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
@@ -42,7 +41,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -fexceptions)
 
 target_include_directories(${PROJECT_NAME} PUBLIC jni)
 
-target_link_libraries(${PROJECT_NAME} m) # test linking to library by name
+target_link_libraries(${PROJECT_NAME} m)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 11)
 set_target_properties(${PROJECT_NAME} PROPERTIES ANDROID_SKIP_ANT_STEP 0)
