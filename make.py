@@ -46,6 +46,13 @@ def parse_argv():
 		if value == '-vs2017':
 			options['compiler'] = 'vs2017'
 
+		if value == '-android':
+			if not platform.system() == 'Windows':
+				print('Android is only supported on Windows')
+				sys.exit(1)
+
+			options['compiler'] = 'android'
+
 		if value == '-clang4':
 			options['compiler'] = 'clang4'
 
@@ -101,6 +108,8 @@ def get_generator(compiler, cpu):
 				return 'Visual Studio 15'
 			else:
 				return 'Visual Studio 15 Win64'
+		elif compiler == 'android':
+			return 'Visual Studio 14'
 	elif platform.system() == 'Darwin':
 		if compiler == 'xcode':
 			return 'Xcode'
@@ -132,7 +141,7 @@ def set_compiler_env(compiler, options):
 			print('Unknown compiler: {}'.format(compiler))
 			sys.exit(1)
 
-def do_generate_solution(cmake_exe, build_dir, options):
+def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
 	compiler = options['compiler']
 	cpu = options['cpu']
 	config = options['config']
@@ -148,6 +157,12 @@ def do_generate_solution(cmake_exe, build_dir, options):
 		print('Enabling AVX usage')
 		extra_switches.append('-DUSE_AVX_INSTRUCTIONS:BOOL=true')
 
+	if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
+		extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))
+
+	if platform.system() == 'Windows' and compiler == 'android':
+		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE={} --no-warn-unused-cli'.format(os.path.join(cmake_script_dir, 'Toolchain-Android.cmake')))
+
 	# Generate IDE solution
 	print('Generating build files ...')
 	cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(cmake_exe, build_dir, ' '.join(extra_switches))
@@ -157,9 +172,6 @@ def do_generate_solution(cmake_exe, build_dir, options):
 	else:
 		print('Using generator: {}'.format(cmake_generator))
 		cmake_cmd += ' -G "{}"'.format(cmake_generator)
-
-	if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
-		cmake_cmd += ' -DCMAKE_BUILD_TYPE={}'.format(config.upper())
 
 	result = subprocess.call(cmake_cmd, shell=True)
 	if result != 0:
@@ -171,7 +183,10 @@ def do_build(cmake_exe, options):
 	print('Building ...')
 	cmake_cmd = '"{}" --build .'.format(cmake_exe)
 	if platform.system() == 'Windows':
-		cmake_cmd += ' --config {} --target INSTALL'.format(config)
+		if options['compiler'] == 'android':
+			cmake_cmd += ' --config {}'.format(config)
+		else:
+			cmake_cmd += ' --config {} --target INSTALL'.format(config)
 	elif platform.system() == 'Darwin':
 		cmake_cmd += ' --config {} --target install'.format(config)
 	else:
@@ -376,6 +391,7 @@ if __name__ == "__main__":
 
 	build_dir = os.path.join(os.getcwd(), 'build')
 	test_data_dir = os.path.join(os.getcwd(), 'test_data')
+	cmake_script_dir = os.path.join(os.getcwd(), 'cmake')
 
 	if options['clean'] and os.path.exists(build_dir):
 		print('Cleaning previous build ...')
@@ -393,7 +409,7 @@ if __name__ == "__main__":
 
 	running_tests = options['unit_test'] or options['regression_test']
 	if options['build'] or not running_tests:
-		do_generate_solution(cmake_exe, build_dir, options)
+		do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options)
 
 	if options['build']:
 		do_build(cmake_exe, options)
