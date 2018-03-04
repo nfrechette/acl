@@ -22,6 +22,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl_compressor.h"
+
 #include <assert.h>
 #include <cstdlib>
 #include <cstdio>
@@ -481,7 +483,7 @@ static bool read_config(IAllocator& allocator, const char* filename, AlgorithmTy
 	return true;
 }
 
-static int main_impl(int argc, char** argv)
+static int safe_main_impl(int argc, char* argv[])
 {
 	Options options;
 
@@ -597,7 +599,7 @@ static LONG WINAPI unhandled_exception_filter(EXCEPTION_POINTERS *info)
 }
 #endif
 
-int main(int argc, char** argv)
+int main_impl(int argc, char* argv[])
 {
 #ifdef _WIN32
 	// Disables Windows OS generated error dialogs and reporting
@@ -609,7 +611,7 @@ int main(int argc, char** argv)
 	int result = -1;
 	try
 	{
-		result = main_impl(argc, argv);
+		result = safe_main_impl(argc, argv);
 	}
 	catch (const std::runtime_error& exception)
 	{

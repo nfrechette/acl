@@ -34,7 +34,5 @@ endif()
 enable_testing()
 
 # Add other projects
-if(PLATFORM_WINDOWS OR PLATFORM_OSX OR PLATFORM_LINUX)
-	add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
-endif()
+add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
