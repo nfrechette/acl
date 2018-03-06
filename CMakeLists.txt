@@ -9,6 +9,7 @@ include(CMakePlatforms)
 
 set(USE_AVX_INSTRUCTIONS false CACHE BOOL "Use AVX instructions")
 set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
+set(REGRESSION_TESTING false CACHE BOOL "Whether or not we are regression testing")
 
 # Grab all of our include files
 file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false
@@ -36,3 +37,7 @@ enable_testing()
 # Add other projects
 add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
+
+if(PLATFORM_ANDROID AND REGRESSION_TESTING)
+	add_subdirectory("${PROJECT_SOURCE_DIR}/tools/regression_tester_android")
+endif()

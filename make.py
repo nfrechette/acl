@@ -8,6 +8,9 @@ import threading
 import time
 import zipfile
 
+# The current test data version in used
+current_test_data = 'test_data_v1'
+
 def parse_argv():
 	options = {}
 	options['build'] = False
@@ -47,10 +50,6 @@ def parse_argv():
 			options['compiler'] = 'vs2017'
 
 		if value == '-android':
-			if not platform.system() == 'Windows':
-				print('Android is only supported on Windows')
-				sys.exit(1)
-
 			options['compiler'] = 'android'
 
 		if value == '-clang4':
@@ -84,6 +83,22 @@ def parse_argv():
 
 		if value == '-x64':
 			options['cpu'] = 'x64'
+
+	# Sanitize and validate our options
+	if options['compiler'] == 'android':
+		options['cpu'] = 'armv7-a'
+
+		if not platform.system() == 'Windows':
+			print('Android is only supported on Windows')
+			sys.exit(1)
+
+		if options['use_avx']:
+			print('AVX is not supported on Android')
+			sys.exit(1)
+
+		if options['unit_test']:
+			print('Unit tests cannot run from the command line on Android')
+			sys.exit(1)
 
 	return options
 
@@ -162,6 +177,8 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
 
 	if platform.system() == 'Windows' and compiler == 'android':
 		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE={} --no-warn-unused-cli'.format(os.path.join(cmake_script_dir, 'Toolchain-Android.cmake')))
+		if options['regression_test']:
+			extra_switches.append('-DREGRESSION_TESTING:BOOL=true')
 
 	# Generate IDE solution
 	print('Generating build files ...')
@@ -241,21 +258,9 @@ def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_len
 
 	sys.stdout.flush()
 
-def do_regression_tests(ctest_exe, test_data_dir, options):
-	print('Running regression tests ...')
+def do_prepare_regression_test_data(test_data_dir, options):
+	print('Preparing regression test data ...')
 
-	# Validate that our regression testing tool is present
-	if platform.system() == 'Windows':
-		compressor_exe_path = './bin/acl_compressor.exe'
-	else:
-		compressor_exe_path = './bin/acl_compressor'
-
-	compressor_exe_path = os.path.abspath(compressor_exe_path)
-	if not os.path.exists(compressor_exe_path):
-		print('Compressor exe not found: {}'.format(compressor_exe_path))
-		sys.exit(1)
-
-	current_test_data = 'test_data_v1'
 	current_test_data_zip = os.path.join(test_data_dir, '{}.zip'.format(current_test_data))
 
 	# Validate that our regression test data is present
@@ -265,7 +270,8 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 
 	# If it hasn't been decompressed yet, do so now
 	current_test_data_dir = os.path.join(test_data_dir, current_test_data)
-	if not os.path.exists(current_test_data_dir):
+	needs_decompression = not os.path.exists(current_test_data_dir)
+	if needs_decompression:
 		print('Decompressing {} ...'.format(current_test_data_zip))
 		with zipfile.ZipFile(current_test_data_zip, 'r') as zip_ref:
 			zip_ref.extractall(test_data_dir)
@@ -303,6 +309,56 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 		sys.exit(1)
 
 	print('Found {} regression configurations'.format(len(test_configs)))
+
+	if needs_decompression:
+		with open(os.path.join(current_test_data_dir, 'metadata.sjson'), 'w') as metadata_file:
+			print('configs = [', file = metadata_file)
+			for config_filename in test_configs:
+				print('\t"{}"'.format(os.path.relpath(config_filename, test_config_dir)), file = metadata_file)
+			print(']', file = metadata_file)
+			print('', file = metadata_file)
+			print('clips = [', file = metadata_file)
+			for clip_filename in regression_clips:
+				print('\t"{}"'.format(os.path.relpath(clip_filename, current_test_data_dir)), file = metadata_file)
+			print(']', file = metadata_file)
+			print('', file = metadata_file)
+
+def do_regression_tests(ctest_exe, test_data_dir, options):
+	print('Running regression tests ...')
+
+	# Validate that our regression testing tool is present
+	if platform.system() == 'Windows':
+		compressor_exe_path = './bin/acl_compressor.exe'
+	else:
+		compressor_exe_path = './bin/acl_compressor'
+
+	compressor_exe_path = os.path.abspath(compressor_exe_path)
+	if not os.path.exists(compressor_exe_path):
+		print('Compressor exe not found: {}'.format(compressor_exe_path))
+		sys.exit(1)
+
+	# Grab all the test clips
+	regression_clips = []
+	current_test_data_dir = os.path.join(test_data_dir, current_test_data)
+	for (dirpath, dirnames, filenames) in os.walk(current_test_data_dir):
+		for filename in filenames:
+			if not filename.endswith('.acl.sjson'):
+				continue
+
+			clip_filename = os.path.join(dirpath, filename)
+			regression_clips.append(clip_filename)
+
+	# Grab all the test configurations
+	test_configs = []
+	test_config_dir = os.path.join(test_data_dir, 'configs')
+	if os.path.exists(test_config_dir):
+		for (dirpath, dirnames, filenames) in os.walk(test_config_dir):
+			for filename in filenames:
+				if not filename.endswith('.config.sjson'):
+					continue
+
+				config_filename = os.path.join(dirpath, filename)
+				test_configs.append(config_filename)
 
 	# Iterate over every clip and configuration and perform the regression testing
 	for config_filename in test_configs:
@@ -407,6 +463,9 @@ if __name__ == "__main__":
 	if not compiler == None:
 		print('Using compiler: {}'.format(compiler))
 
+	if options['regression_test']:
+		do_prepare_regression_test_data(test_data_dir, options)
+
 	running_tests = options['unit_test'] or options['regression_test']
 	if options['build'] or not running_tests:
 		do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options)
@@ -417,5 +476,5 @@ if __name__ == "__main__":
 	if options['unit_test']:
 		do_tests(ctest_exe, options)
 
-	if options['regression_test']:
+	if options['regression_test'] and not options['compiler'] == 'android':
 		do_regression_tests(ctest_exe, test_data_dir, options)
