@@ -6,6 +6,4 @@ build/
 
 # Test data rules
 test_data/*.zip
-test_data/**/*.acl.sjson
-test_data/**/*.md
-!test_data/README.md
+test_data/test_data*
