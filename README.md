@@ -40,16 +40,10 @@ Much thought was put into designing the library for it to be as flexible and pow
 
 ## Supported platforms
 
-The library aims to support the most common platforms for the most common use cases. There is very little platform specific code as such it should work nearly everywhere.
-
-The math library is not yet fully optimized for every platform. The overwhelming majority of the math heavy code executes when compressing, not decompressing.
-Decompression is typically very simple and light in order to be fast. Very little math is involved beyond interpolating values.
-
-*  Compression and decompression:
-   *  Windows (VS2015, VS2017) x86 and x64
-   *  Linux (gcc5, gcc6, gcc7, clang4, clang5) x86 and x64
-   *  OS X (Xcode 8.3, Xcode 9.2) x86 and x64
-*  Decompression only: Android (NVIDIA CodeWorks)
+*  Windows (VS2015, VS2017) x86 and x64
+*  Linux (gcc5, gcc6, gcc7, clang4, clang5) x86 and x64
+*  OS X (Xcode 8.3, Xcode 9.2) x86 and x64
+*  Android (NVIDIA CodeWorks) ARMv7-A
 
 ## External dependencies
 
@@ -67,6 +61,10 @@ See [here](./external) for details on the ones we do include.
 3. Build the IDE solution with: `python make.py -build`
 4. Run the unit tests with: `python make.py -unit_test`
 5. Run the regression tests with: `python make.py -regression_test`
+
+### Android
+
+For Android, the steps are identical to Windows, Linux, and OS X but you also need to install NVIDIA CodeWorks 1R5 (or higher).
 
 ## Performance metrics
 
