@@ -33,7 +33,7 @@
 #include <malloc.h>
 #endif
 
-#if defined(ACL_USE_ERROR_CHECKS) && !defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
+#if defined(ACL_USE_ERROR_CHECKS) && !defined(ACL_NO_ALLOCATOR_TRACKING)
 #define ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS
 #endif
 
