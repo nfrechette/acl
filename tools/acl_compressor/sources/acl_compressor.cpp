@@ -49,8 +49,10 @@ static void assert_impl(bool expression, const char* format, ...)
 	std::abort();
 }
 
-#define ACL_ASSERT(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
-#define ACL_ENSURE(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
+#if !defined(ACL_ASSERT) && !defined(ACL_NO_ERROR_CHECKS)
+	#define ACL_ASSERT(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
+	#define ACL_ENSURE(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
+#endif
 
 // Used to debug and validate that we compile without sjson-cpp
 // Defaults to being enabled
@@ -140,8 +142,15 @@ using namespace acl;
 
 struct Options
 {
+#if defined(__ANDROID__)
+	const char*		input_buffer;
+	size_t			input_buffer_size;
+	const char*		config_buffer;
+	size_t			config_buffer_size;
+#else
 	const char*		input_filename;
 	const char*		config_filename;
+#endif
 
 	bool			output_stats;
 	const char*		output_stats_filename;
@@ -152,8 +161,15 @@ struct Options
 	//////////////////////////////////////////////////////////////////////////
 
 	Options()
+#if defined(__ANDROID__)
+		: input_buffer(nullptr)
+		, input_buffer_size(0)
+		, config_buffer(nullptr)
+		, config_buffer_size(0)
+#else
 		: input_filename(nullptr)
 		, config_filename(nullptr)
+#endif
 		, output_stats(false)
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
@@ -161,8 +177,15 @@ struct Options
 	{}
 
 	Options(Options&& other)
+#if defined(__ANDROID__)
+		: input_buffer(other.input_buffer)
+		, input_buffer_size(other.input_buffer_size)
+		, config_buffer(other.config_buffer)
+		, config_buffer_size(other.config_buffer_size)
+#else
 		: input_filename(other.input_filename)
 		, config_filename(other.config_filename)
+#endif
 		, output_stats(other.output_stats)
 		, output_stats_filename(other.output_stats_filename)
 		, output_stats_file(other.output_stats_file)
@@ -179,8 +202,15 @@ struct Options
 
 	Options& operator=(Options&& rhs)
 	{
+#if defined(__ANDROID__)
+		std::swap(input_buffer, rhs.input_buffer);
+		std::swap(input_buffer_size, rhs.input_buffer_size);
+		std::swap(config_buffer, rhs.config_buffer);
+		std::swap(config_buffer_size, rhs.config_buffer_size);
+#else
 		std::swap(input_filename, rhs.input_filename);
 		std::swap(config_filename, rhs.config_filename);
+#endif
 		std::swap(output_stats, rhs.output_stats);
 		std::swap(output_stats_filename, rhs.output_stats_filename);
 		std::swap(output_stats_file, rhs.output_stats_file);
@@ -220,14 +250,26 @@ static bool parse_options(int argc, char** argv, Options& options)
 		size_t option_length = std::strlen(k_acl_input_file_option);
 		if (std::strncmp(argument, k_acl_input_file_option, option_length) == 0)
 		{
+#if defined(__ANDROID__)
+			unsigned int buffer_size;
+			sscanf(argument + option_length, "@%u,%p", &buffer_size, &options.input_buffer);
+			options.input_buffer_size = buffer_size;
+#else
 			options.input_filename = argument + option_length;
+#endif
 			continue;
 		}
 
 		option_length = std::strlen(k_config_input_file_option);
 		if (std::strncmp(argument, k_config_input_file_option, option_length) == 0)
 		{
+#if defined(__ANDROID__)
+			unsigned int buffer_size;
+			sscanf(argument + option_length, "@%u,%p", &buffer_size, &options.config_buffer);
+			options.config_buffer_size = buffer_size;
+#else
 			options.config_filename = argument + option_length;
+#endif
 			continue;
 		}
 
@@ -263,7 +305,11 @@ static bool parse_options(int argc, char** argv, Options& options)
 		return false;
 	}
 
+#if defined(__ANDROID__)
+	if (options.input_buffer == nullptr || options.input_buffer_size == 0)
+#else
 	if (options.input_filename == nullptr || std::strlen(options.input_filename) == 0)
+#endif
 	{
 		printf("An input file is required.\n");
 		return false;
@@ -342,16 +388,20 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 		try_algorithm_impl(nullptr);
 }
 
-static bool read_clip(IAllocator& allocator, const char* filename,
+static bool read_clip(IAllocator& allocator, const Options& options,
 					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip,
 					  std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
 {
-	std::ifstream t(filename);
+#if defined(__ANDROID__)
+	ClipReader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
+#else
+	std::ifstream t(options.input_filename);
 	std::stringstream buffer;
 	buffer << t.rdbuf();
 	std::string str = buffer.str();
 
 	ClipReader reader(allocator, str.c_str(), str.length());
+#endif
 
 	if (!reader.read(skeleton) || !reader.read(clip, *skeleton))
 	{
@@ -363,14 +413,18 @@ static bool read_clip(IAllocator& allocator, const char* filename,
 	return true;
 }
 
-static bool read_config(IAllocator& allocator, const char* filename, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings, double& out_regression_error_threshold)
+static bool read_config(IAllocator& allocator, const Options& options, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings, double& out_regression_error_threshold)
 {
-	std::ifstream t(filename);
+#if defined(__ANDROID__)
+	sjson::Parser parser(options.config_buffer, options.config_buffer_size - 1);
+#else
+	std::ifstream t(options.config_filename);
 	std::stringstream buffer;
 	buffer << t.rdbuf();
 	std::string str = buffer.str();
 
 	sjson::Parser parser(str.c_str(), str.length());
+#endif
 
 	double version = 0.0;
 	if (!parser.read("version", version))
@@ -494,7 +548,7 @@ static int safe_main_impl(int argc, char* argv[])
 	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
 	std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
 
-	if (!read_clip(allocator, options.input_filename, clip, skeleton))
+	if (!read_clip(allocator, options, clip, skeleton))
 		return -1;
 
 	bool use_external_config = false;
@@ -502,9 +556,14 @@ static int safe_main_impl(int argc, char* argv[])
 	CompressionSettings external_settings;
 	TransformErrorMetric default_error_metric;
 	double regression_error_threshold;
-	if (options.config_filename != nullptr)
+
+#if defined(__ANDROID__)
+	if (options.config_buffer != nullptr && options.config_buffer_size != 0)
+#else
+	if (options.config_filename != nullptr && std::strlen(options.config_filename) != 0)
+#endif
 	{
-		if (!read_config(allocator, options.config_filename, external_algorithm_type, external_settings, regression_error_threshold))
+		if (!read_config(allocator, options, external_algorithm_type, external_settings, regression_error_threshold))
 			return -1;
 
 		use_external_config = true;
