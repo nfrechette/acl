@@ -410,7 +410,7 @@ if __name__ == "__main__":
 
 	fbx_filename = options['fbx']
 	if len(fbx_filename) == 0:
-		print('Usage: fbx2acl -fbx=<FBX file name> [-stack=<animation stack name>] [-start=<time>] [-end=<time>] [-acl=<ACL file name>] [-zip]')
+		print('Usage: python fbx2acl -fbx=<FBX file name> [-stack=<animation stack name>] [-start=<time>] [-end=<time>] [-acl=<ACL file name>] [-zip]')
 		sys.exit(1)
 
 	anim_stack_name = options['stack']
