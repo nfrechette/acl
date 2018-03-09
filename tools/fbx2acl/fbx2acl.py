@@ -58,7 +58,7 @@ def snap_start_time_to_sample(scene, anim_stack, start_time):
 		print('Snapped the start time to the sample at {}s'.format(snapped))
 	
 	return snapped
-	
+
 def get_window_duration(anim_stack, start_time, end_time):
 	timespan = anim_stack.GetLocalTimeSpan()
 	clip_duration = timespan.GetDuration().GetSecondDouble()
