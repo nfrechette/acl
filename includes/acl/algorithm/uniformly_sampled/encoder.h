@@ -51,7 +51,7 @@
 #include "acl/compression/stream/write_stream_data.h"
 #include "acl/decompression/default_output_writer.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <cstdio>
 
 //////////////////////////////////////////////////////////////////////////
