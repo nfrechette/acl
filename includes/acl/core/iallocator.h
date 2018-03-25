@@ -42,6 +42,15 @@ namespace std
 
 namespace acl
 {
+	////////////////////////////////////////////////////////////////////////////////
+	// A simple memory allocator interface.
+	//
+	// In order to integrate this library into your own code base, you will
+	// need to provide some functions with an allocator instance that derives
+	// from this interface.
+	//
+	// See ansi_allocator.h for an implementation that uses the system malloc/free.
+	////////////////////////////////////////////////////////////////////////////////
 	class IAllocator
 	{
 	public:
@@ -53,7 +62,18 @@ namespace acl
 		IAllocator(const IAllocator&) = delete;
 		IAllocator& operator=(const IAllocator&) = delete;
 
+		////////////////////////////////////////////////////////////////////////////////
+		// Allocates memory with the specified size and alignment.
+		//
+		// size: Size in bytes to allocate.
+		// alignment: Alignment to allocate the memory with.
 		virtual void* allocate(size_t size, size_t alignment = k_default_alignment) = 0;
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Deallocates previously allocated memory and releases it.
+		//
+		// ptr: A pointer to memory previously allocated or nullptr.
+		// size: Size in bytes of the allocation. This will match the original size requested through 'allocate'.
 		virtual void deallocate(void* ptr, size_t size) = 0;
 	};
 

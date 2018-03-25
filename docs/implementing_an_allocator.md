@@ -1,8 +1,6 @@
 # Implementing an allocator
 
-At the moment, the decompression makes no allocations. As such, for decompression it is not necessary to implement or provide an allocator.
-
-On the other hand, the compression performs a number of allocations and must be provided an allocator. The interface is very simple and provided in [**acl/core/memory.h**](../includes/acl/core/memory.h).
+The interface is very simple and provided in [**acl/core/iallocator.h**](../includes/acl/core/iallocator.h). ACL also provides a simple implementation that uses the system malloc/free through [**acl/core/ansi_allocator.h**](../includes/acl/core/ansi_allocator.h). You can use it as is or for inspiration to implement your own.
 
 Only two functions are exposed and required:
 
