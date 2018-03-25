@@ -6,13 +6,19 @@
 
 namespace acl
 {
+	////////////////////////////////////////////////////////////////////////////////
 	// A bit set description holds the required information to ensure type and memory safety
 	// with the various bit set functions.
+	////////////////////////////////////////////////////////////////////////////////
 	class BitSetDescription
 	{
 	public:
+		////////////////////////////////////////////////////////////////////////////////
+		// Creates an invalid bit set description.
 		constexpr BitSetDescription() : m_size(0) {}
 
+		////////////////////////////////////////////////////////////////////////////////
+		// Creates a bit set description from a compile time known number of bits.
 		template<uint32_t num_bits>
 		static constexpr BitSetDescription make_from_num_bits()
 		{
@@ -20,18 +26,34 @@ namespace acl
 			return BitSetDescription((num_bits + 32 - 1) / 32);
 		}
 
+		////////////////////////////////////////////////////////////////////////////////
+		// Creates a bit set description from a runtime known number of bits.
 		inline static BitSetDescription make_from_num_bits(int32_t num_bits)
 		{
 			ACL_ENSURE(num_bits >= 0, "Cannot create a bit set with a negative number of bits: %d", num_bits);
 			return BitSetDescription((num_bits + 32 - 1) / 32);
 		}
 
+		////////////////////////////////////////////////////////////////////////////////
+		// Returns the number of 32 bit words used to represent the bitset.
+		// 1 == 32 bits, 2 == 64 bits, etc.
 		constexpr int32_t get_size() const { return m_size; }
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Returns the number of bits contained within the bit set.
 		constexpr int32_t get_num_bits() const { return m_size * 32; }
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Returns the number of bytes used by the bit set.
 		constexpr int32_t get_num_bytes() const { return m_size * sizeof(int32_t); }
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Returns true if the index is valid within the bit set.
 		constexpr bool is_bit_index_valid(int32_t index) const { return index >= 0 && index < get_num_bits(); }
 
 	private:
+		////////////////////////////////////////////////////////////////////////////////
+		// Creates a bit set description from a specified size.
 		explicit constexpr BitSetDescription(int32_t size) : m_size(size) {}
 
 		// Number of words required to hold the bit set
@@ -39,7 +61,8 @@ namespace acl
 		int32_t		m_size;
 	};
 
-
+	////////////////////////////////////////////////////////////////////////////////
+	// Resets the entire bit set to the provided value.
 	inline void bitset_reset(uint32_t* bitset, BitSetDescription desc, bool value)
 	{
 		const int32_t mask = value ? 0xFFFFFFFF : 0x00000000;
@@ -49,6 +72,8 @@ namespace acl
 			bitset[offset] = mask;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+	// Sets a specific bit to its desired value.
 	inline void bitset_set(uint32_t* bitset, BitSetDescription desc, int32_t bit_index, bool value)
 	{
 		ACL_ENSURE(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
@@ -62,6 +87,8 @@ namespace acl
 			bitset[offset] &= ~mask;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+	// Sets a specified range of bits to a specified value.
 	inline void bitset_set_range(uint32_t* bitset, BitSetDescription desc, int32_t start_bit_index, int32_t num_bits, bool value)
 	{
 		ACL_ENSURE(desc.is_bit_index_valid(start_bit_index), "Invalid start bit index: %d", start_bit_index);
@@ -73,6 +100,8 @@ namespace acl
 			bitset_set(bitset, desc, offset, value);
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+	// Returns the bit value as a specific index.
 	inline bool bitset_test(const uint32_t* bitset, BitSetDescription desc, int32_t bit_index)
 	{
 		ACL_ENSURE(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
@@ -83,6 +112,8 @@ namespace acl
 		return (bitset[offset] & mask) != 0;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+	// Counts the total number of set (true) bits within the bit set.
 	inline int32_t bitset_count_set_bits(const uint32_t* bitset, BitSetDescription desc)
 	{
 		const int32_t size = desc.get_size();
