@@ -51,6 +51,10 @@
 
 namespace acl
 {
+	////////////////////////////////////////////////////////////////////////////////
+	// An ANSI allocator implementation. It uses the system malloc/free to manage
+	// memory as well as provides some debugging functionality to track memory leaks.
+	////////////////////////////////////////////////////////////////////////////////
 	class ANSIAllocator : public IAllocator
 	{
 	public:
