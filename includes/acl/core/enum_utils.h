@@ -74,6 +74,8 @@
 
 namespace acl
 {
+	////////////////////////////////////////////////////////////////////////////////
+	// Returns true if any of the requested flags are set.
 	template<typename EnumType>
 	constexpr bool are_any_enum_flags_set(EnumType flags, EnumType flags_to_test)
 	{
@@ -81,6 +83,8 @@ namespace acl
 		return static_cast<IntegralType>(flags & flags_to_test) != 0;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+	// Returns true if all of the requested flags are set.
 	template<typename EnumType>
 	constexpr bool are_all_enum_flags_set(EnumType flags, EnumType flags_to_test)
 	{
