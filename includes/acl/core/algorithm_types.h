@@ -29,6 +29,9 @@
 
 namespace acl
 {
+	////////////////////////////////////////////////////////////////////////////////
+	// AlgorithmType8 is an enum that represents every supported algorithm.
+	//
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
 	// The algorithm type is serialized in the compressed data, if you change a value
 	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
@@ -41,6 +44,9 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 
+	////////////////////////////////////////////////////////////////////////////////
+	// Returns true if the algorithm type is a valid value. Used to validate if
+	// memory has been corrupted.
 	// TODO: constexpr
 	inline bool is_valid_algorithm_type(AlgorithmType8 type)
 	{
@@ -55,6 +61,8 @@ namespace acl
 		}
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+	// Returns a string of the algorithm name suitable for display.
 	// TODO: constexpr
 	inline const char* get_algorithm_name(AlgorithmType8 type)
 	{
@@ -67,6 +75,11 @@ namespace acl
 		}
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+	// Returns true if the algorithm type was properly parsed from an input string.
+	//
+	// type: A string representing the algorithm name to parse. It must match the enum name.
+	// out_type: On success, it will contain the the parsed algorithm type otherwise it is left untouched.
 	inline bool get_algorithm_type(const char* type, AlgorithmType8& out_type)
 	{
 		const char* uniformly_sampled_name = "UniformlySampled";
