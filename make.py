@@ -22,6 +22,7 @@ def parse_argv():
 	options['config'] = 'Release'
 	options['cpu'] = 'x64'
 	options['num_threads'] = 4
+	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
 		value = sys.argv[i]
@@ -38,6 +39,9 @@ def parse_argv():
 
 		if value == '-regression_test':
 			options['regression_test'] = True
+
+		if value == '-help':
+			options['print_help'] = True
 
 		if value == '-avx':
 			options['use_avx'] = True
@@ -132,6 +136,7 @@ def get_generator(compiler, cpu):
 		return 'Unix Makefiles'
 
 	print('Unknown compiler: {}'.format(compiler))
+	print('See help with: python make.py -help')
 	sys.exit(1)
 
 def set_compiler_env(compiler, options):
@@ -154,6 +159,7 @@ def set_compiler_env(compiler, options):
 			os.environ['CXX'] = 'g++-7'
 		else:
 			print('Unknown compiler: {}'.format(compiler))
+			print('See help with: python make.py -help')
 			sys.exit(1)
 
 def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
@@ -431,8 +437,52 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 		if regression_testing_failed:
 			sys.exit(1)
 
+def print_help():
+	print('Usage: python make.py [actions] [cpu arch] [compiler] [config] [misc]')
+	print()
+	print('Actions:')
+	print('  If no action is specified, on Windows, OS X, and Linux the solution/make files are generated.')
+	print('  Multiple actions can be used simultaneously.')
+	print('  -build: Builds the solution.')
+	print('  -clean: Cleans the build directory.')
+	print('  -unit_test: Runs the unit tests.')
+	print('  -regression_test: Runs the regression tests.')
+	print()
+	print('CPU Architecture:')
+	print('  Only supported for Windows, OS X, and Linux. Defaults to the host system architecture.')
+	print('  Only a single architecture argument must be used.')
+	print('  -x86: Builds an x86 executable')
+	print('  -x64: Builds an x64 executable')
+	print()
+	print('Compiler:')
+	print('  Defaults to the host system\'s default compiler.')
+	print('  Only a single compiler argument must be used.')
+	print('  -vs2015: Uses Visual Studio 2015')
+	print('  -vs2017: Uses Visual Studio 2017')
+	print('  -xcode: Uses X Code')
+	print('  -gcc5: Uses GCC 5')
+	print('  -gcc6: Uses GCC 6')
+	print('  -gcc7: Uses GCC 7')
+	print('  -clang4: Uses clang 4')
+	print('  -clang5: Uses clang 5')
+	print('  -android: Uses NVIDIA CodeWorks (on Windows only)')
+	print()
+	print('Config:')
+	print('  Defaults to Release.')
+	print('  Only a single config argument mus tbe used.')
+	print('  -debug: Uses the Debug configuration to build and test.')
+	print('  -release: Uses the Release configuration to build and test.')
+	print()
+	print('Miscelanous:')
+	print('  -avx: On Windows, OS X, and Linux AVX support will be enabled.')
+	print('  -help: Prints this help message.')
+
 if __name__ == "__main__":
 	options = parse_argv()
+	if options['print_help']:
+		print_help()
+		sys.exit(0)
+
 	cmake_exe, ctest_exe = get_cmake_exes()
 	compiler = options['compiler']
 	cpu = options['cpu']
