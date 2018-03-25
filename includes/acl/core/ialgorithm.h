@@ -31,26 +31,44 @@
 #include "acl/decompression/output_writer.h"
 #include "acl/math/transform_32.h"
 
+#include <cstdint>
+
 namespace acl
 {
 	struct CompressionSettings;
 	struct OutputStats;
 
+	////////////////////////////////////////////////////////////////////////////////
+	// A compression algorithm interface.
+	//
 	// This interface serves to make unit testing and manipulating algorithms easier
+	////////////////////////////////////////////////////////////////////////////////
 	class IAlgorithm
 	{
 	public:
 		virtual ~IAlgorithm() {}
 
+		////////////////////////////////////////////////////////////////////////////////
+		// Compressed the specified clip.
 		virtual CompressedClip* compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, OutputStats& stats) = 0;
 
+		////////////////////////////////////////////////////////////////////////////////
+		// Allocates and deallocates a decompression context.
 		virtual void* allocate_decompression_context(IAllocator& allocator, const CompressedClip& clip) = 0;
 		virtual void deallocate_decompression_context(IAllocator& allocator, void* context) = 0;
 
+		////////////////////////////////////////////////////////////////////////////////
+		// Decompress a whole pose or a specific bone at a particular point in time.
 		virtual void decompress_pose(const CompressedClip& clip, void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms) = 0;
 		virtual void decompress_bone(const CompressedClip& clip, void* context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale) = 0;
 
+		////////////////////////////////////////////////////////////////////////////////
+		// Returns the compression settings used by the algorithm.
 		virtual const CompressionSettings& get_compression_settings() const = 0;
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Returns a unique identifier for a particular algorithm instance that takes
+		// into account all compression settings.
 		virtual uint32_t get_uid() const = 0;
 	};
 }
