@@ -71,8 +71,11 @@ def parse_argv():
 		if value == '-gcc7':
 			options['compiler'] = 'gcc7'
 
-		if value == '-xcode':
-			options['compiler'] = 'xcode'
+		if value == '-osx':
+			options['compiler'] = 'osx'
+
+		if value == '-ios':
+			options['compiler'] = 'ios'
 
 		# TODO: Refactor to use the form: -config=Release
 		if value_upper == '-DEBUG':
@@ -104,6 +107,21 @@ def parse_argv():
 			print('Unit tests cannot run from the command line on Android')
 			sys.exit(1)
 
+	if options['compiler'] == 'ios':
+		options['cpu'] = 'arm64'
+
+		if not platform.system() == 'Darwin':
+			print('iOS is only supported on OS X')
+			sys.exit(1)
+
+		if options['use_avx']:
+			print('AVX is not supported on iOS')
+			sys.exit(1)
+
+		if options['unit_test']:
+			print('Unit tests cannot run from the command line on iOS')
+			sys.exit(1)
+
 	return options
 
 def get_cmake_exes():
@@ -130,7 +148,7 @@ def get_generator(compiler, cpu):
 		elif compiler == 'android':
 			return 'Visual Studio 14'
 	elif platform.system() == 'Darwin':
-		if compiler == 'xcode':
+		if compiler == 'osx' or compiler == 'ios':
 			return 'Xcode'
 	else:
 		return 'Unix Makefiles'
@@ -138,6 +156,15 @@ def get_generator(compiler, cpu):
 	print('Unknown compiler: {}'.format(compiler))
 	print('See help with: python make.py -help')
 	sys.exit(1)
+
+def get_toolchain(compiler):
+	if platform.system() == 'Windows' and compiler == 'android':
+		return 'Toolchain-Android.cmake'
+	elif platform.system() == 'Darwin' and compiler == 'ios':
+		return 'Toolchain-iOS.cmake'
+
+	# No toolchain
+	return None
 
 def set_compiler_env(compiler, options):
 	if platform.system() == 'Linux':
@@ -170,7 +197,7 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
 	if not compiler == None:
 		set_compiler_env(compiler, options)
 
-	extra_switches = []
+	extra_switches = ['--no-warn-unused-cli']
 	if not platform.system() == 'Windows':
 		extra_switches.append('-DCPU_INSTRUCTION_SET:STRING={}'.format(cpu))
 
@@ -181,10 +208,12 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
 	if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
 		extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))
 
-	if platform.system() == 'Windows' and compiler == 'android':
-		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE={} --no-warn-unused-cli'.format(os.path.join(cmake_script_dir, 'Toolchain-Android.cmake')))
-		if options['regression_test']:
-			extra_switches.append('-DREGRESSION_TESTING:BOOL=true')
+	toolchain = get_toolchain(compiler)
+	if not toolchain == None:
+		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE={}'.format(os.path.join(cmake_script_dir, toolchain)))
+
+	if options['regression_test']:
+		extra_switches.append('-DREGRESSION_TESTING:BOOL=true')
 
 	# Generate IDE solution
 	print('Generating build files ...')
@@ -211,7 +240,10 @@ def do_build(cmake_exe, options):
 		else:
 			cmake_cmd += ' --config {} --target INSTALL'.format(config)
 	elif platform.system() == 'Darwin':
-		cmake_cmd += ' --config {} --target install'.format(config)
+		if options['compiler'] == 'ios':
+			cmake_cmd += ' --config {}'.format(config)
+		else:
+			cmake_cmd += ' --config {} --target install'.format(config)
 	else:
 		cmake_cmd += ' --target install'
 
@@ -459,13 +491,14 @@ def print_help():
 	print('  Only a single compiler argument must be used.')
 	print('  -vs2015: Uses Visual Studio 2015')
 	print('  -vs2017: Uses Visual Studio 2017')
-	print('  -xcode: Uses X Code')
+	print('  -osx: Uses X Code for OS X')
 	print('  -gcc5: Uses GCC 5')
 	print('  -gcc6: Uses GCC 6')
 	print('  -gcc7: Uses GCC 7')
 	print('  -clang4: Uses clang 4')
 	print('  -clang5: Uses clang 5')
-	print('  -android: Uses NVIDIA CodeWorks (on Windows only)')
+	print('  -android: Uses NVIDIA CodeWorks')
+	print('  -ios: Uses X Code for iOS')
 	print()
 	print('Config:')
 	print('  Defaults to Release.')
@@ -526,5 +559,5 @@ if __name__ == "__main__":
 	if options['unit_test']:
 		do_tests(ctest_exe, options)
 
-	if options['regression_test'] and not options['compiler'] == 'android':
+	if options['regression_test'] and not options['compiler'] == 'android' and not options['compiler'] == 'ios':
 		do_regression_tests(ctest_exe, test_data_dir, options)

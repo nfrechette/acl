@@ -3,6 +3,8 @@ project(acl_unit_tests_root)
 
 if(PLATFORM_ANDROID)
 	add_subdirectory("${PROJECT_SOURCE_DIR}/main_android")
+elseif(PLATFORM_IOS)
+	add_subdirectory("${PROJECT_SOURCE_DIR}/main_ios")
 else()
 	add_subdirectory("${PROJECT_SOURCE_DIR}/main_generic")
 endif()

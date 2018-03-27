@@ -28,12 +28,12 @@ matrix:
     # OS X xcode8
     - os: osx
       osx_image: xcode8.3
-      env: COMPILER=xcode
+      env: COMPILER=osx
 
     # OS X xcode9
     - os: osx
       osx_image: xcode9.2
-      env: COMPILER=xcode
+      env: COMPILER=osx
 
 before_install:
     - if [ "$COMPILER" = "clang4" ]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
@@ -50,3 +50,5 @@ script:
     - python3 make.py -clean -build -unit_test -${COMPILER} -Release -x86
     - python3 make.py -clean -build -unit_test -${COMPILER} -Debug -x64
     - python3 make.py -clean -build -unit_test -${COMPILER} -Release -x64
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then python3 make.py -clean -build -ios -Debug ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then python3 make.py -clean -build -ios -Release; fi
