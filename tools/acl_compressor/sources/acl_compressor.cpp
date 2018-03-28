@@ -29,27 +29,27 @@
 #include <cstdio>
 #include <cstdarg>
 
-static void assert_impl(bool expression, const char* format, ...)
-{
-	if (expression)
-		return;
-
-	va_list args;
-	va_start(args, format);
-
-	std::vprintf(format, args);
-	printf("\n");
-
-	va_end(args);
-
-#if !defined(NDEBUG)
-	assert(expression);
-#endif
-
-	std::abort();
-}
-
 #if !defined(ACL_ASSERT) && !defined(ACL_NO_ERROR_CHECKS)
+	static void assert_impl(bool expression, const char* format, ...)
+	{
+		if (expression)
+			return;
+
+		va_list args;
+		va_start(args, format);
+
+		std::vprintf(format, args);
+		printf("\n");
+
+		va_end(args);
+
+	#if !defined(NDEBUG)
+		assert(expression);
+	#endif
+
+		std::abort();
+	}
+
 	#define ACL_ASSERT(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
 	#define ACL_ENSURE(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
 #endif
