@@ -549,9 +549,7 @@ if __name__ == "__main__":
 	if options['regression_test']:
 		do_prepare_regression_test_data(test_data_dir, options)
 
-	running_tests = options['unit_test'] or options['regression_test']
-	if options['build'] or not running_tests:
-		do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options)
+	do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options)
 
 	if options['build']:
 		do_build(cmake_exe, options)
