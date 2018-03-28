@@ -35,10 +35,7 @@ endif()
 enable_testing()
 
 # Add other projects
-if(NOT PLATFORM_IOS)
-	# Not supported on iOS yet!
-	add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
-endif()
+add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
 
 if(PLATFORM_ANDROID AND REGRESSION_TESTING)
