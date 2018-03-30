@@ -1,5 +1,14 @@
 # Significant changes per release
 
+## 0.7.0
+
+*  Added full support for Android and iOS
+*  Added support for GCC6 and GCC7 on Linux
+*  Downgraded C++ version to from 14 to 11
+*  Added regression tests
+*  Added lots of unit tests for core and math headers
+*  Many more improvements and fixes
+
 ## 0.6.0
 
 *  Hooked up continuous build integration
