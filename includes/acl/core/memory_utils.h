@@ -156,11 +156,17 @@ namespace acl
 				const DestIntegralType max = std::numeric_limits<DestIntegralType>::max();
 
 				if (src_is_signed && !dest_is_signed)
+				{
 					ACL_ENSURE(0 <= integral_input && integral_input <= max, "static_cast would result in truncation");
+				}
 				else if (!src_is_signed && dest_is_signed)
+				{
 					ACL_ENSURE(integral_input <= max, "static_cast would result in truncation");
+				}
 				else
+				{
 					ACL_ENSURE(min <= integral_input && integral_input <= max, "static_cast would result in truncation");
+				}
 #endif
 
 				return static_cast<DestIntegralType>(input);
@@ -181,11 +187,17 @@ namespace acl
 				const DestNumericType max = std::numeric_limits<DestNumericType>::max();
 
 				if (src_is_signed && !dest_is_signed)
+				{
 					ACL_ENSURE(0 <= input && input <= max, "static_cast would result in truncation");
+				}
 				else if (!src_is_signed && dest_is_signed)
+				{
 					ACL_ENSURE(input <= max, "static_cast would result in truncation");
+				}
 				else
+				{
 					ACL_ENSURE(min <= input && input <= max, "static_cast would result in truncation");
+				}
 #endif
 
 				return static_cast<DestNumericType>(input);
