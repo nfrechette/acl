@@ -1,16 +1,15 @@
 inputs =
 [
 	{
-		header = "ACL v0.6 @ 0.01cm"
-		file = "D:\\test_animations\\carnegie-mellon-acl-stats-0.6.0-summary\\stats_summary.csv"
-		version = 0.6
+		header = "ACL v0.7 @ 0.01cm"
+		file = "D:\\test_animations\\carnegie-mellon-acl-stats-0.7.0-summary\\stats_summary.csv"
+		version = 0.7
 		source = "acl"
 	}
 	{
-		header = "ACL v0.5 @ 0.01cm"
-		file = "D:\\test_animations\\carnegie-mellon-acl-stats-0.5.0-summary\\stats_summary.csv"
-		filter = "R:QuatNoWVar|T:Vec3Var|S:Vec3Var Clip RR:Rot|Trans|Scale Segment RR:Rot|Trans|Scale"
-		version = 0.5
+		header = "ACL v0.6 @ 0.01cm"
+		file = "D:\\test_animations\\carnegie-mellon-acl-stats-0.6.0-summary\\stats_summary.csv"
+		version = 0.6
 		source = "acl"
 	}
 	{

@@ -23,12 +23,12 @@ Statistics for ACL are being generated with the `acl_compressor` tool found [her
 *  Compressed size: **67.04 MB**
 *  Compression ratio: **21.32 : 1**
 *  Max error: **0.0479** centimeters (clip *81_18*)
-*  Compression time: **00h 51m 40.20s** (single threaded)
-*  Compression time: **00h 13m 04.58s** (multi threaded on 4 cores)
+*  Compression time: **00h 51m 24.01s** (single threaded)
+*  Compression time: **00h 13m 38.96s** (multi threaded on 4 cores)
 
 Note that you can compress any number of clips in parallel with multiple threads but each clip uses a single thread for now.
 
-**Results from release [0.6.0](https://github.com/nfrechette/acl/releases/tag/v0.6.0)**
+**Results from release [0.7.0](https://github.com/nfrechette/acl/releases/tag/v0.7.0)**
 
 See [here](cmu_performance_history.md) for a history of performance progress across the various releases.
 
@@ -72,5 +72,3 @@ Even though the data set comes from the Unity store, the Unity EULA expressly fo
 ![Distribution of the error for every bone at every key frame (top 10%)](images/acl_cmu_exhaustive_error_top_10.png)
 
 ![Distribution of clip durations](images/acl_cmu_clip_durations.png)
-
-![Distribution of selected bit rates](images/acl_cmu_bit_rates.png)
