@@ -1,4 +1,4 @@
-version: 0.6.0.{build}
+version: 0.7.0.{build}
 
 environment:
   PYTHON: "C:\\Python33-x64"
