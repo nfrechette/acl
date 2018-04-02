@@ -24,6 +24,7 @@ def parse_argv():
 	options['csv_error'] = False
 	options['refresh'] = False
 	options['num_threads'] = 1
+	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
 		value = sys.argv[i]
@@ -54,6 +55,13 @@ def parse_argv():
 
 		if value.startswith('-parallel='):
 			options['num_threads'] = int(value[len('-parallel='):].replace('"', ''))
+
+		if value == '-help':
+			options['print_help'] = True
+
+	if options['print_help']:
+		print_help()
+		sys.exit(1)
 
 	if options['acl'] == None:
 		print('ACL input directory not found')
@@ -86,7 +94,22 @@ def parse_argv():
 	return options
 
 def print_usage():
-	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stats=<path to output directory for stats> [-csv_summary] [-csv_bit_rate] [-csv_animated_size] [-csv_error] [-refresh] [-parallel={Num Threads}]')
+	print('Usage: python acl_compressor.py -acl=<path to directory containing ACL files> -stats=<path to output directory for stats> [-csv_summary] [-csv_bit_rate] [-csv_animated_size] [-csv_error] [-refresh] [-parallel={Num Threads}] [-help]')
+
+def print_help():
+	print('Usage: python acl_compressor.py [arguments]')
+	print()
+	print('Arguments:')
+	print('  At least one argument must be provided.')
+	print('  -acl=<path>: Input directory tree containing clips to compress.')
+	print('  -stats=<path>: Output directory tree for the stats to output.')
+	print('  -csv_summary: Generates a basic summary CSV file with various clip information and statistics.')
+	print('  -csv_bit_rate: Generates a CSV with the bit rate usage frequency by the variable quantization algorithm. The executable must be compiled with detailed statistics enabled.')
+	print('  -csv_animated_size: Generates a CSV with statistics about the animated size of key frames. The executable must be compiled with detailed statistics enabled.')
+	print('  -csv_error: Generates a CSV with the error for every bone at every key frame. The executable must be compiled with exhaustive statistics enabled.')
+	print('  -refresh: If an output stat file already exists for a particular clip, it is recompressed anyway instead of being skipped.')
+	print('  -parallel=<Num Threads>: Allows multiple clips to be compressed and processed in parallel.')
+	print('  -help: Prints this help message.')
 
 def print_stat(stat):
 	print('Algorithm: {}, Format: [{}], Ratio: {:.2f}, Error: {}'.format(stat['algorithm_name'], stat['desc'], stat['compression_ratio'], stat['max_error']))
