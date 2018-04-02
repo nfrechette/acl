@@ -59,6 +59,9 @@ if __name__ == "__main__":
 
 		output_csv_headers.append(entry['header'])
 
+		# Clear data to release memory
+		csv_data = None
+
 	output_csv_headers.append('Percentile')
 
 	output_csv_data.append(desired_percentiles)
