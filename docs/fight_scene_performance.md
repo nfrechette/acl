@@ -16,13 +16,13 @@ For ACL and Unreal 4, the error is measured **3cm** away from each bone to simul
 
 Statistics for ACL are being generated with a custom integration into Unreal **4.15**. The variant profiled uses uniform sampling with variable bit rate and range reduction enabled. Every clip uses an error threshold of **0.01cm (0.1mm)**. The max error is the error reported by Unreal from their own error metric.
 
-| ACL v0.6                 | Trooper 1 | Trooper 2 | Trooper 3 | Trooper 4 | Main Trooper | Total    |
+| ACL v0.7                 | Trooper 1 | Trooper 2 | Trooper 3 | Trooper 4 | Main Trooper | Total    |
 | ------------------------ | --------- | --------- | --------- | --------- | ------------ | -------- |
 | **Compressed size (KB)** | 286.98    | 303.78    | 302.86    | 311.66    | 7488.00      | 8693.28  |
 | **Raw size (KB)**        | 5508.05   | 5352.89   | 5430.47   | 5508.05   | 42075.43     | 63874.88 |
 | **Compression ratio**    | 19.19 : 1 | 17.62 : 1 | 17.93 : 1 | 17.67 : 1 | 5.62 : 1     | 7.35 : 1 |
 | **Max error (cm)**       | 0.245     | 0.215     | 0.178     | 0.220     | 0.200        |          |
-| **Compression time (s)** | 9.48      | 14.80     | 12.72     | 14.33     | 78.19        | 129.53   |
+| **Compression time (s)** | 9.64      | 14.78     | 12.42     | 14.32     | 78.10        | 129.26   |
 
 # Unreal 4
 
