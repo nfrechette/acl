@@ -183,7 +183,11 @@ def write_csv(csv_data, agg_data):
 	if 'stats_bit_rate_csv_file' in csv_data:
 		for algorithm_uid, algo_data in agg_data.items():
 			total_count = float(sum(algo_data['bit_rates']))
-			print('{}, {}'.format(algo_data['csv_name'], ', '.join([str((float(x) / total_count) * 100.0) for x in algo_data['bit_rates']])), file = csv_data['stats_bit_rate_csv_file'])
+			if total_count <= 0.0:
+				inv_total_count = 0.0	# Clamp to zero if a bit rate isn't used
+			else:
+				inv_total_count = 1.0 / total_count
+			print('{}, {}'.format(algo_data['csv_name'], ', '.join([str((float(x) * inv_total_count) * 100.0) for x in algo_data['bit_rates']])), file = csv_data['stats_bit_rate_csv_file'])
 
 def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_length = 50):
 	# Taken from https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
