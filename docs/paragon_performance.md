@@ -4,6 +4,8 @@ To compile the statistics, a large number of animations from [Paragon](https://w
 In October 2017 the animations were extracted and converted to the [ACL file format](the_acl_file_format.md) losslessly. The data is sadly **NOT** available upon request.
 Epic has permitted [Nicholas Frechette](https://github.com/nfrechette) to use them for research purposes only under a non-disclosure agreement.
 
+**Note: Epic has released Paragon assets publicly in early 2018, once we get around to it, it will be extracted and made available along with updated stats.**
+
 *  Number of clips: **6558**
 *  Total duration: **07h 00m 45.27s**
 *  Raw size: **4276.11 MB** (10x float32 * num bones * num samples)
@@ -31,15 +33,15 @@ Statistics for ACL are being generated with the `acl_compressor` tool found [her
 *  Compressed size: **205.58 MB**
 *  Compression ratio: **20.80 : 1**
 *  Max error: **3.8615** centimeters
-*  Compression time: **09h 38m 28.25s** (single threaded)
-*  Compression time: **02h 36m 46.82s** (multi threaded on 4 cores)
+*  Compression time: **09h 43m 41.08s** (single threaded)
+*  Compression time: **02h 37m 23.60s** (multi threaded on 4 cores)
 
 Notes:
 
 *  You can compress any number of clips in parallel with multiple threads but each clip uses a single thread for now.
 *  The error is unusually high for **3** exotic clips
 
-**Results from release [0.6.0](https://github.com/nfrechette/acl/releases/tag/v0.6.0)**
+**Results from release [0.7.0](https://github.com/nfrechette/acl/releases/tag/v0.7.0)**
 
 See [here](paragon_performance_history.md) for a history of performance progress across the various releases.
 
@@ -80,5 +82,3 @@ Sadly the *Unreal 4* compression logic does not *yet* support multi-threading an
 ![Distribution of the error for every bone at every key frame (top 10%)](images/acl_paragon_exhaustive_error_top_10.png)
 
 ![Distribution of clip durations](images/acl_paragon_clip_durations.png)
-
-![Distribution of selected bit rates](images/acl_paragon_bit_rates.png)
