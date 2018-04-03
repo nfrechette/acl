@@ -48,36 +48,22 @@ Much thought was put into designing the library for it to be as flexible and pow
 
 The above supported platform list is only what is tested every release but if it compiles, it should run just fine.
 
-## External dependencies
+## Getting started
 
-There are none! You don't need anything else to get started: everything is self contained.
-See [here](./external) for details on the ones we do include.
+If you would like to contribute to ACL or use it for research, head on over to the [getting started](./docs/getting_started.md) section in order to setup your environment and make sure to check out the [contributing guidelines](CONTRIBUTING.md).
 
-## Getting up and running
-
-### Windows, Linux, and OS X
-
-1. Install CMake 3.2 or higher, Python 3, and the proper compiler for your platform
-2. Generate the IDE solution with: `python make.py`  
-   The solution is generated under `./build`  
-   Note that if you do not have CMake in your `PATH`, you should define the `ACL_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
-3. Build the IDE solution with: `python make.py -build`
-4. Run the unit tests with: `python make.py -unit_test`
-5. Run the regression tests with: `python make.py -regression_test`
-
-### Android
-
-For Android, the steps are identical to Windows, Linux, and OS X but you also need to install NVIDIA CodeWorks 1R5 (or higher).
-
-### iOS
-
-For iOS, the steps are identical to the other platforms but due to code signing, you will need to perform the builds from Xcode manually. Note that this is only an issue if you attempt to use the tools or run the unit tests locally.
+If you would like to integrate ACL into your own game engine, follow the integration instructions [here](./docs#how-to-integrate-the-library).
 
 ## Performance metrics
 
 *  [Carnegie-Mellon University database performance](./docs/cmu_performance.md)
 *  [Paragon database performance](./docs/paragon_performance.md)
 *  [Matinee fight scene performance](./docs/fight_scene_performance.md)
+
+## External dependencies
+
+There are none! You don't need anything else to get started: everything is self contained.
+See [here](./external) for details on the ones we do include.
 
 ## License, copyright, and code of conduct
 

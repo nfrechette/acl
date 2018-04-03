@@ -8,7 +8,9 @@ Project contact email: zeno490@gmail.com
 
 # Getting set up
 
-See the [readme](README.md) file for details on how to generate project solutions, build, and run the unit tests. Every pull request should run with continuous integration on every platform we support and the unit tests will also execute as well.
+See the [getting started](./docs/getting_started.md) section for details on how to generate project solutions, build, and run the unit tests.
+
+Every pull request should trigger continuous integration on every platform we support and most of them will also execute the unit tests automatically (except on Android and iOS).
 
 The project roadmap for the next few milestones is tracked with [GitHub issues](https://github.com/nfrechette/acl/issues). [Backlog issues](https://github.com/nfrechette/acl/milestone/4) are things I would like to get done eventually but that have not been prioritized yet.
 
@@ -22,8 +24,8 @@ Feature requests are welcome providing that they fit within the project scope. F
 
 # Contributions we are *not* looking for
 
-A lot of older compilers do not properly support C++11 and there is no plan to support them. This also applies to platforms that are either not mainstream or that we cannot easily test with continuous integration. If you would like to support such an exotic environment, reach out by email first so we can discuss this.
+A lot of older compilers do not properly support **C++11** and there is no plan to support them. This also applies to platforms that are either not mainstream or that we cannot easily test with continuous integration. If you would like to support such an exotic environment, reach out by email first so we can discuss this.
 
-This library's focus is solely on animation compression. There is no plan to include blending of animation poses or state machines to drive that process. Other middlewares and libraries already cover that field reasonably very well.
+This library's focus is solely on animation compression. There is no plan to include blending of animation poses or state machines to drive that process. Other middlewares and libraries already cover that field reasonably well.
 
 If you aren't sure, don't be afraid to reach out by email!
