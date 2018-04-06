@@ -33,6 +33,8 @@
 #include "acl/core/error.h"
 
 #include <cstdint>
+#include <cinttypes>
+#include <cstdio>
 
 namespace acl
 {
@@ -48,11 +50,7 @@ namespace acl
 				constexpr explicit DoubleToUInt64(double value) : dbl(value) {}
 			};
 
-#ifdef _MSC_VER
-			sprintf_s(buffer, buffer_size, "%llX", DoubleToUInt64(value).u64);
-#else
-			sprintf(buffer, "%llX", DoubleToUInt64(value).u64);
-#endif
+			snprintf(buffer, buffer_size, "%" PRIX64, DoubleToUInt64(value).u64);
 
 			return buffer;
 		};
@@ -241,7 +239,12 @@ namespace acl
 				return false;
 
 			std::FILE* file = nullptr;
+
+#ifdef _WIN32
 			fopen_s(&file, acl_filename, "w");
+#else
+			file = fopen(acl_filename, "w");
+#endif
 
 			if (ACL_TRY_ASSERT(file != nullptr, "Failed to open ACL file for writing: %s", acl_filename))
 				return false;
