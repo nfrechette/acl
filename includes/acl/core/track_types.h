@@ -130,11 +130,11 @@ namespace acl
 	{
 		switch (format)
 		{
-		case RotationFormat8::Quat_128:				return "Quat 128";
-		case RotationFormat8::QuatDropW_96:			return "Quat Drop W 96";
-		case RotationFormat8::QuatDropW_48:			return "Quat Drop W 48";
-		case RotationFormat8::QuatDropW_32:			return "Quat Drop W 32";
-		case RotationFormat8::QuatDropW_Variable:	return "Quat Drop W Variable";
+		case RotationFormat8::Quat_128:				return "Quat_128";
+		case RotationFormat8::QuatDropW_96:			return "QuatDropW_96";
+		case RotationFormat8::QuatDropW_48:			return "QuatDropW_48";
+		case RotationFormat8::QuatDropW_32:			return "QuatDropW_32";
+		case RotationFormat8::QuatDropW_Variable:	return "QuatDropW_Variable";
 		default:									return "<Invalid>";
 		}
 	}
@@ -184,10 +184,10 @@ namespace acl
 	{
 		switch (format)
 		{
-		case VectorFormat8::Vector3_96:			return "Vector3 96";
-		case VectorFormat8::Vector3_48:			return "Vector3 48";
-		case VectorFormat8::Vector3_32:			return "Vector3 32";
-		case VectorFormat8::Vector3_Variable:	return "Vector3 Variable";
+		case VectorFormat8::Vector3_96:			return "Vector3_96";
+		case VectorFormat8::Vector3_48:			return "Vector3_48";
+		case VectorFormat8::Vector3_32:			return "Vector3_32";
+		case VectorFormat8::Vector3_Variable:	return "Vector3_Variable";
 		default:								return "<Invalid>";
 		}
 	}

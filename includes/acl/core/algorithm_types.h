@@ -68,9 +68,9 @@ namespace acl
 	{
 		switch (type)
 		{
-			case AlgorithmType8::UniformlySampled:		return "Uniformly Sampled";
-			//case AlgorithmType8::LinearKeyReduction:	return "Linear Key Reduction";
-			//case AlgorithmType8::SplineKeyReduction:	return "Spline Key Reduction";
+			case AlgorithmType8::UniformlySampled:		return "UniformlySampled";
+			//case AlgorithmType8::LinearKeyReduction:	return "LinearKeyReduction";
+			//case AlgorithmType8::SplineKeyReduction:	return "SplineKeyReduction";
 			default:									return "<Invalid>";
 		}
 	}
@@ -78,7 +78,7 @@ namespace acl
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns true if the algorithm type was properly parsed from an input string.
 	//
-	// type: A string representing the algorithm name to parse. It must match the enum name.
+	// type: A string representing the algorithm name to parse. It must match the get_algorithm_name(..) output.
 	// out_type: On success, it will contain the the parsed algorithm type otherwise it is left untouched.
 	inline bool get_algorithm_type(const char* type, AlgorithmType8& out_type)
 	{
