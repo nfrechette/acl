@@ -28,7 +28,9 @@
 
 #include "acl/io/clip_reader_error.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/compression/compression_settings.h"
 #include "acl/compression/skeleton.h"
+#include "acl/core/algorithm_types.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/string.h"
 #include "acl/core/unique_ptr.h"
@@ -62,26 +64,32 @@ namespace acl
 			: m_allocator(allocator)
 			, m_parser(sjson_input, input_length)
 			, m_error()
-			, m_version(0.0)
+			, m_version(0)
 			, m_num_samples(0)
 			, m_sample_rate(0)
-			, m_error_threshold(0.0)
 			, m_is_binary_exact(false)
 		{
 		}
 
-		bool read(std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
+		bool read_settings(bool& out_has_settings, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings)
 		{
 			reset_state();
 
-			return read_version() && read_clip_header() && create_skeleton(skeleton);
+			return read_version() && read_clip_header() && read_settings(&out_has_settings, &out_algorithm_type, &out_settings);
 		}
 
-		bool read(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
+		bool read_skeleton(std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
 		{
 			reset_state();
 
-			return read_version() && read_clip_header() && read_skeleton() && create_clip(clip, skeleton) && read_tracks(*clip, skeleton) && nothing_follows();
+			return read_version() && read_clip_header() && read_settings(nullptr, nullptr, nullptr) && create_skeleton(skeleton);
+		}
+
+		bool read_clip(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
+		{
+			reset_state();
+
+			return read_version() && read_clip_header() && read_settings(nullptr, nullptr, nullptr) && read_skeleton() && create_clip(clip, skeleton) && read_tracks(*clip, skeleton) && nothing_follows();
 		}
 
 		ClipReaderError get_error() { return m_error; }
@@ -91,11 +99,10 @@ namespace acl
 		sjson::Parser m_parser;
 		ClipReaderError m_error;
 
-		double m_version;
+		uint32_t m_version;
 		uint32_t m_num_samples;
 		uint32_t m_sample_rate;
 		sjson::StringView m_clip_name;
-		double m_error_threshold;
 		bool m_is_binary_exact;
 
 		void reset_state()
@@ -112,7 +119,7 @@ namespace acl
 				return false;
 			}
 
-			if (m_version != 1.0)
+			if (m_version > 2)
 			{
 				set_error(ClipReaderError::UnsupportedVersion);
 				return false;
@@ -151,7 +158,9 @@ namespace acl
 				return false;
 			}
 
-			if (!m_parser.read("error_threshold", m_error_threshold))
+			// Version 1 had an error_threshold field, skip it
+			double error_threshold;
+			if (m_version == 1 && !m_parser.read("error_threshold", error_threshold))
 				goto error;
 
 			// Optional value
@@ -164,6 +173,123 @@ namespace acl
 
 		error:
 			m_error = m_parser.get_error();
+			return false;
+		}
+
+		bool read_settings(bool* out_has_settings, AlgorithmType8* out_algorithm_type, CompressionSettings* out_settings)
+		{
+			if (!m_parser.try_object_begins("settings"))
+			{
+				if (out_has_settings != nullptr)
+					*out_has_settings = false;
+
+				// Settings are optional, all good
+				return true;
+			}
+
+			CompressionSettings default_settings;
+
+			sjson::StringView algorithm_name;
+			sjson::StringView rotation_format;
+			sjson::StringView translation_format;
+			sjson::StringView scale_format;
+			bool rotation_range_reduction;
+			bool translation_range_reduction;
+			bool scale_range_reduction;
+			double constant_rotation_threshold;
+			double constant_translation_threshold;
+			double constant_scale_threshold;
+			double error_threshold;
+
+			bool segmenting_enabled = default_settings.segmenting.enabled;
+			double segmenting_ideal_num_samples = double(default_settings.segmenting.ideal_num_samples);
+			double segmenting_max_num_samples = double(default_settings.segmenting.max_num_samples);
+			bool segmenting_rotation_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Rotations);
+			bool segmenting_translation_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
+			bool segmenting_scale_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Scales);
+
+			m_parser.try_read("algorithm_name", algorithm_name, get_algorithm_name(AlgorithmType8::UniformlySampled));
+			m_parser.try_read("rotation_format", rotation_format, get_rotation_format_name(default_settings.rotation_format));
+			m_parser.try_read("translation_format", translation_format, get_vector_format_name(default_settings.translation_format));
+			m_parser.try_read("scale_format", scale_format, get_vector_format_name(default_settings.scale_format));
+			m_parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Rotations));
+			m_parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Translations));
+			m_parser.try_read("scale_range_reduction", scale_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Scales));
+
+			if (m_parser.try_object_begins("segmenting"))
+			{
+				m_parser.try_read("enabled", segmenting_enabled, default_settings.segmenting.enabled);
+				m_parser.try_read("ideal_num_samples", segmenting_ideal_num_samples, double(default_settings.segmenting.ideal_num_samples));
+				m_parser.try_read("max_num_samples", segmenting_max_num_samples, double(default_settings.segmenting.max_num_samples));
+				m_parser.try_read("rotation_range_reduction", segmenting_rotation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Rotations));
+				m_parser.try_read("translation_range_reduction", segmenting_translation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Translations));
+				m_parser.try_read("scale_range_reduction", segmenting_scale_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Scales));
+
+				if (!m_parser.is_valid() || !m_parser.object_ends())
+					goto parsing_error;
+			}
+
+			m_parser.try_read("constant_rotation_threshold", constant_rotation_threshold, double(default_settings.constant_rotation_threshold));
+			m_parser.try_read("constant_translation_threshold", constant_translation_threshold, double(default_settings.constant_translation_threshold));
+			m_parser.try_read("constant_scale_threshold", constant_scale_threshold, double(default_settings.constant_scale_threshold));
+			m_parser.try_read("error_threshold", error_threshold, double(default_settings.error_threshold));
+
+			if (!m_parser.is_valid() || !m_parser.object_ends())
+				goto parsing_error;
+
+			if (out_has_settings != nullptr)
+			{
+				*out_has_settings = true;
+
+				if (!get_algorithm_type(algorithm_name.c_str(), *out_algorithm_type))
+					goto invalid_value_error;
+
+				if (!get_rotation_format(rotation_format.c_str(), out_settings->rotation_format))
+					goto invalid_value_error;
+
+				RangeReductionFlags8 range_reduction = RangeReductionFlags8::None;
+				if (rotation_range_reduction)
+					range_reduction |= RangeReductionFlags8::Rotations;
+
+				if (translation_range_reduction)
+					range_reduction |= RangeReductionFlags8::Translations;
+
+				if (scale_range_reduction)
+					range_reduction |= RangeReductionFlags8::Scales;
+
+				out_settings->range_reduction = range_reduction;
+
+				out_settings->segmenting.enabled = segmenting_enabled;
+				out_settings->segmenting.ideal_num_samples = uint16_t(segmenting_ideal_num_samples);
+				out_settings->segmenting.max_num_samples = uint16_t(segmenting_max_num_samples);
+
+				RangeReductionFlags8 segmenting_range_reduction = RangeReductionFlags8::None;
+				if (rotation_range_reduction)
+					segmenting_range_reduction |= RangeReductionFlags8::Rotations;
+
+				if (translation_range_reduction)
+					segmenting_range_reduction |= RangeReductionFlags8::Translations;
+
+				if (scale_range_reduction)
+					segmenting_range_reduction |= RangeReductionFlags8::Scales;
+
+				out_settings->segmenting.range_reduction = segmenting_range_reduction;
+
+				out_settings->constant_rotation_threshold = float(constant_rotation_threshold);
+				out_settings->constant_translation_threshold = float(constant_translation_threshold);
+				out_settings->constant_scale_threshold = float(constant_scale_threshold);
+				out_settings->error_threshold = float(error_threshold);
+			}
+
+			return true;
+
+		parsing_error:
+			m_error = m_parser.get_error();
+			return false;
+
+		invalid_value_error:
+			m_parser.get_position(m_error.line, m_error.column);
+			m_error.error = ClipReaderError::InvalidCompressionSetting;
 			return false;
 		}
 
@@ -327,7 +453,7 @@ namespace acl
 
 		bool create_clip(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
 		{
-			clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_num_samples, m_sample_rate, String(m_allocator, m_clip_name.c_str(), m_clip_name.size()), (float)m_error_threshold);
+			clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_num_samples, m_sample_rate, String(m_allocator, m_clip_name.c_str(), m_clip_name.size()));
 			return true;
 		}
 

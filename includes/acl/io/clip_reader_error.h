@@ -38,6 +38,7 @@ namespace acl
 			NoParentBoneWithThatName,
 			NoBoneWithThatName,
 			UnsignedIntegerExpected,
+			InvalidCompressionSetting,
 		};
 
 		ClipReaderError()

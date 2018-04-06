@@ -18,6 +18,7 @@ translation_range_reduction = false
 scale_range_reduction = false
 
 // Settings used when segmenting clips
+// Optional
 segmenting = {
 	// Whether to enable segmenting or not
 	// Defaults to 'false'
@@ -29,6 +30,22 @@ segmenting = {
 	translation_range_reduction = false
 	scale_range_reduction = false
 }
+
+// Threshold value to use when detecting if a rotation track is constant
+// Defaults to '0.00001'
+constant_rotation_threshold = 0.00001
+
+// Threshold value to use when detecting if a translation track is constant
+// Defaults to '0.001'
+constant_translation_threshold = 0.001
+
+// Threshold value to use when detecting if a scale track is constant
+// Defaults to '0.00001'
+constant_scale_threshold = 0.00001
+
+// The error threshold used when optimizing the bit rate
+// Defaults to '0.01'
+error_threshold = 0.01
 
 // The error threshold used when performing regression testing
 // We will sample the clip at various positions and compare the raw and decompressed poses

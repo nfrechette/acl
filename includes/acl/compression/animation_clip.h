@@ -45,10 +45,9 @@ namespace acl
 	class AnimationClip
 	{
 	public:
-		AnimationClip(IAllocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate, const String &name, float error_threshold)
+		AnimationClip(IAllocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate, const String &name)
 			: m_allocator(allocator)
 			, m_bones()
-			, m_error_threshold(error_threshold)
 			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
 			, m_num_bones(skeleton.get_num_bones())
@@ -90,7 +89,6 @@ namespace acl
 			return float(m_num_samples - 1) / float(m_sample_rate);
 		}
 		const String& get_name() const { return m_name; }
-		float get_error_threshold() const { return m_error_threshold; }
 
 		void sample_pose(float sample_time, Transform_32* out_local_pose, uint16_t num_transforms) const
 		{
@@ -138,7 +136,6 @@ namespace acl
 
 		AnimatedBone*			m_bones;
 
-		float					m_error_threshold;
 		uint32_t				m_num_samples;
 		uint32_t				m_sample_rate;
 		uint16_t				m_num_bones;

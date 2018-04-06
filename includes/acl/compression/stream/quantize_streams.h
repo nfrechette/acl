@@ -92,7 +92,7 @@ namespace acl
 				num_samples = segment_.num_samples;
 				segment_sample_start_index = segment_.clip_sample_offset;
 				sample_rate = float(segment.bone_streams[0].rotations.get_sample_rate());
-				error_threshold = clip_.error_threshold;
+				error_threshold = settings_.error_threshold;
 				clip_duration = clip_.duration;
 				segment_duration = float(num_samples - 1) / sample_rate;
 				has_scale = segment_context_has_scale(segment_);

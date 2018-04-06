@@ -36,11 +36,24 @@ namespace acl
 {
 	struct SegmentingSettings
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// Whether to enable segmenting or not
+		// Defaults to 'false'
 		bool enabled;
 
+		//////////////////////////////////////////////////////////////////////////
+		// How many samples to try and fit in our segments
+		// Defaults to '16'
 		uint16_t ideal_num_samples;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Maximum number of samples per segment
+		// Defaults to '31'
 		uint16_t max_num_samples;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Whether to use range reduction or not at the segment level
+		// Defaults to 'None'
 		RangeReductionFlags8 range_reduction;
 
 		SegmentingSettings()
@@ -50,6 +63,8 @@ namespace acl
 			, range_reduction(RangeReductionFlags8::None)
 		{}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Calculates a hash from the internal state to uniquely identify a configuration.
 		uint32_t get_hash() const
 		{
 			uint32_t hash_value = 0;
@@ -60,6 +75,9 @@ namespace acl
 			return hash_value;
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Checks if everything is valid and if it isn't, returns an error string.
+		// Returns nullptr if the settings are valid.
 		const char* get_error() const
 		{
 			if (!enabled)
@@ -80,22 +98,42 @@ namespace acl
 
 	struct CompressionSettings
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
+		// Defaults to raw: 'Quat_128' and 'Vector3_96'
 		RotationFormat8 rotation_format;
 		VectorFormat8 translation_format;
 		VectorFormat8 scale_format;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Whether to use range reduction or not at the clip level
+		// Defaults to 'None'
 		RangeReductionFlags8 range_reduction;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Segmenting settings, if used
 		SegmentingSettings segmenting;
 
+		//////////////////////////////////////////////////////////////////////////
+		// The error metric to use.
+		// Defaults to 'null', this value must be set manually!
 		ISkeletalErrorMetric* error_metric;
 
+		//////////////////////////////////////////////////////////////////////////
 		// Constant thresholds are used with the track range:
 		// is_constant = all_less_than(abs(range.max - range.min), threshold)
 		// For translation, this value might depend on the units you use: centimeters VS meters, etc.
+		// constant_rotation_threshold defaults to '0.00001'
+		// constant_translation_threshold defaults to '0.001'
+		// constant_scale_threshold defaults to '0.00001'
 		float constant_rotation_threshold;
 		float constant_translation_threshold;
 		float constant_scale_threshold;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The error threshold used when optimizing the bit rate
+		// Defaults to '0.01'
+		float error_threshold;
 
 		CompressionSettings()
 			: rotation_format(RotationFormat8::Quat_128)
@@ -107,8 +145,11 @@ namespace acl
 			, constant_rotation_threshold(0.00001f)
 			, constant_translation_threshold(0.001f)
 			, constant_scale_threshold(0.00001f)
+			, error_threshold(0.01f)
 		{}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Calculates a hash from the internal state to uniquely identify a configuration.
 		uint32_t hash() const
 		{
 			uint32_t hash_value = 0;
@@ -127,9 +168,14 @@ namespace acl
 			hash_value = hash_combine(hash_value, hash32(constant_translation_threshold));
 			hash_value = hash_combine(hash_value, hash32(constant_scale_threshold));
 
+			hash_value = hash_combine(hash_value, hash32(error_threshold));
+
 			return hash_value;
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Checks if everything is valid and if it isn't, returns an error string.
+		// Returns nullptr if the settings are valid.
 		const char* get_error() const
 		{
 			if (translation_format != VectorFormat8::Vector3_96)
@@ -165,6 +211,9 @@ namespace acl
 
 			if (constant_scale_threshold < 0.0f || !is_finite(constant_scale_threshold))
 				return "Invalid constant_scale_threshold";
+
+			if (error_threshold < 0.0f || !is_finite(error_threshold))
+				return "Invalid error_threshold";
 
 			return segmenting.get_error();
 		}

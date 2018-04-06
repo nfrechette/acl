@@ -73,6 +73,7 @@
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/io/clip_reader.h"
+#include "acl/io/clip_writer.h"							// Included just so we compile it to test for basic errors
 #include "acl/compression/skeleton_error_metric.h"
 
 #include "acl/algorithm/uniformly_sampled/algorithm.h"
@@ -390,8 +391,11 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 }
 
 static bool read_clip(IAllocator& allocator, const Options& options,
-					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip,
-					  std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
+					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& out_clip,
+					  std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& out_skeleton,
+					  bool& has_settings,
+					  AlgorithmType8& out_algorithm_type,
+					  CompressionSettings& out_settings)
 {
 #if defined(__ANDROID__)
 	ClipReader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
@@ -404,7 +408,9 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 	ClipReader reader(allocator, str.c_str(), str.length());
 #endif
 
-	if (!reader.read(skeleton) || !reader.read(clip, *skeleton))
+	if (!reader.read_settings(has_settings, out_algorithm_type, out_settings)
+		|| !reader.read_skeleton(out_skeleton)
+		|| !reader.read_clip(out_clip, *out_skeleton))
 	{
 		ClipReaderError err = reader.get_error();
 		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
@@ -459,60 +465,70 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 		return false;
 	}
 
+	CompressionSettings default_settings;
+
 	sjson::StringView rotation_format;
-	if (parser.try_read("rotation_format", rotation_format, nullptr))
+	parser.try_read("rotation_format", rotation_format, get_rotation_format_name(default_settings.rotation_format));
+	if (!get_rotation_format(rotation_format.c_str(), out_settings.rotation_format))
 	{
-		if (!get_rotation_format(rotation_format.c_str(), out_settings.rotation_format))
-		{
-			printf("Invalid rotation format: %s\n", String(allocator, rotation_format.c_str(), rotation_format.size()).c_str());
-			return false;
-		}
+		printf("Invalid rotation format: %s\n", String(allocator, rotation_format.c_str(), rotation_format.size()).c_str());
+		return false;
 	}
 
 	sjson::StringView translation_format;
-	if (parser.try_read("translation_format", translation_format, nullptr))
+	parser.try_read("translation_format", translation_format, get_vector_format_name(default_settings.translation_format));
+	if (!get_vector_format(translation_format.c_str(), out_settings.translation_format))
 	{
-		if (!get_vector_format(translation_format.c_str(), out_settings.translation_format))
-		{
-			printf("Invalid translation format: %s\n", String(allocator, translation_format.c_str(), translation_format.size()).c_str());
-			return false;
-		}
+		printf("Invalid translation format: %s\n", String(allocator, translation_format.c_str(), translation_format.size()).c_str());
+		return false;
 	}
 
 	sjson::StringView scale_format;
-	if (parser.try_read("scale_format", scale_format, nullptr))
+	parser.try_read("scale_format", scale_format, get_vector_format_name(default_settings.scale_format));
+	if (!get_vector_format(scale_format.c_str(), out_settings.scale_format))
 	{
-		if (!get_vector_format(scale_format.c_str(), out_settings.scale_format))
-		{
-			printf("Invalid scale format: %s\n", String(allocator, scale_format.c_str(), scale_format.size()).c_str());
-			return false;
-		}
+		printf("Invalid scale format: %s\n", String(allocator, scale_format.c_str(), scale_format.size()).c_str());
+		return false;
 	}
 
+	RangeReductionFlags8 range_reduction = RangeReductionFlags8::None;
+
 	bool rotation_range_reduction;
-	if (parser.try_read("rotation_range_reduction", rotation_range_reduction, false) && rotation_range_reduction)
-		out_settings.range_reduction |= RangeReductionFlags8::Rotations;
+	parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Rotations));
+	if (rotation_range_reduction)
+		range_reduction |= RangeReductionFlags8::Rotations;
 
 	bool translation_range_reduction;
-	if (parser.try_read("translation_range_reduction", translation_range_reduction, false) && translation_range_reduction)
-		out_settings.range_reduction |= RangeReductionFlags8::Translations;
+	parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Translations));
+	if (translation_range_reduction)
+		range_reduction |= RangeReductionFlags8::Translations;
 
 	bool scale_range_reduction;
-	if (parser.try_read("scale_range_reduction", scale_range_reduction, false) && scale_range_reduction)
-		out_settings.range_reduction |= RangeReductionFlags8::Scales;
+	parser.try_read("scale_range_reduction", scale_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Scales));
+	if (scale_range_reduction)
+		range_reduction |= RangeReductionFlags8::Scales;
+
+	out_settings.range_reduction = range_reduction;
 
 	if (parser.object_begins("segmenting"))
 	{
 		parser.try_read("enabled", out_settings.segmenting.enabled, false);
 
-		if (parser.try_read("rotation_range_reduction", rotation_range_reduction, false) && rotation_range_reduction)
-			out_settings.segmenting.range_reduction |= RangeReductionFlags8::Rotations;
+		range_reduction = RangeReductionFlags8::None;
+		parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Rotations));
+		parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Translations));
+		parser.try_read("scale_range_reduction", scale_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Scales));
 
-		if (parser.try_read("translation_range_reduction", translation_range_reduction, false) && translation_range_reduction)
-			out_settings.segmenting.range_reduction |= RangeReductionFlags8::Translations;
+		if (rotation_range_reduction)
+			range_reduction |= RangeReductionFlags8::Rotations;
 
-		if (parser.try_read("scale_range_reduction", scale_range_reduction, false) && scale_range_reduction)
-			out_settings.segmenting.range_reduction |= RangeReductionFlags8::Scales;
+		if (translation_range_reduction)
+			range_reduction |= RangeReductionFlags8::Translations;
+
+		if (scale_range_reduction)
+			range_reduction |= RangeReductionFlags8::Scales;
+
+		out_settings.segmenting.range_reduction = range_reduction;
 
 		if (!parser.object_ends())
 		{
@@ -524,9 +540,14 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 		}
 	}
 
+	parser.try_read("constant_rotation_threshold", out_settings.constant_rotation_threshold, default_settings.constant_rotation_threshold);
+	parser.try_read("constant_translation_threshold", out_settings.constant_translation_threshold, default_settings.constant_translation_threshold);
+	parser.try_read("constant_scale_threshold", out_settings.constant_scale_threshold, default_settings.constant_scale_threshold);
+	parser.try_read("error_threshold", out_settings.error_threshold, default_settings.error_threshold);
+
 	parser.try_read("regression_error_threshold", out_regression_error_threshold, 0.0);
 
-	if (!parser.remainder_is_comments_and_whitespace())
+	if (!parser.is_valid() || !parser.remainder_is_comments_and_whitespace())
 	{
 		uint32_t line, column;
 		parser.get_position(line, column);
@@ -549,13 +570,13 @@ static int safe_main_impl(int argc, char* argv[])
 	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
 	std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
 
-	if (!read_clip(allocator, options, clip, skeleton))
+	bool use_external_config = false;
+	AlgorithmType8 algorithm_type = AlgorithmType8::UniformlySampled;
+	CompressionSettings settings;
+
+	if (!read_clip(allocator, options, clip, skeleton, use_external_config, algorithm_type, settings))
 		return -1;
 
-	bool use_external_config = false;
-	AlgorithmType8 external_algorithm_type = AlgorithmType8::UniformlySampled;
-	CompressionSettings external_settings;
-	TransformErrorMetric default_error_metric;
 	double regression_error_threshold;
 
 #if defined(__ANDROID__)
@@ -564,12 +585,19 @@ static int safe_main_impl(int argc, char* argv[])
 	if (options.config_filename != nullptr && std::strlen(options.config_filename) != 0)
 #endif
 	{
-		if (!read_config(allocator, options, external_algorithm_type, external_settings, regression_error_threshold))
+		// Override whatever the ACL clip might have contained
+		algorithm_type = AlgorithmType8::UniformlySampled;
+		settings = CompressionSettings();
+
+		if (!read_config(allocator, options, algorithm_type, settings, regression_error_threshold))
 			return -1;
 
 		use_external_config = true;
-		external_settings.error_metric = &default_error_metric;
 	}
+
+	TransformErrorMetric default_error_metric;
+	if (use_external_config)
+		settings.error_metric = &default_error_metric;
 
 	// Compress & Decompress
 	auto exec_algos = [&](sjson::ArrayWriter* runs_writer)
@@ -578,9 +606,9 @@ static int safe_main_impl(int argc, char* argv[])
 
 		if (use_external_config)
 		{
-			ACL_ENSURE(external_algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
+			ACL_ENSURE(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
 
-			UniformlySampledAlgorithm algorithm(external_settings);
+			UniformlySampledAlgorithm algorithm(settings);
 			try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer, regression_error_threshold);
 		}
 		else
