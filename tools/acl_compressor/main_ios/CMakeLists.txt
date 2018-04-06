@@ -16,7 +16,7 @@ set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.acl.acl-compressor")
 set(MACOSX_BUNDLE_BUNDLE_NAME "acl-compressor")
 
 include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
-include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp-0.3.0/includes")
+include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp-0.4.0/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../includes")
 
 # Grab all of our common source files

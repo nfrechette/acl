@@ -15,7 +15,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 set(CMAKE_ANDROID_JAVA_SOURCE_DIR "${PROJECT_SOURCE_DIR}/java")
 
 include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
-include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp-0.3.0/includes")
+include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp-0.4.0/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../includes")
 
 # Grab all of our common source files

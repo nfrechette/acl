@@ -4,7 +4,7 @@ project(acl_compressor)
 set(CMAKE_CXX_STANDARD 11)
 
 include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
-include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp-0.3.0/includes")
+include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp-0.4.0/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../includes")
 
 # Grab all of our common source files

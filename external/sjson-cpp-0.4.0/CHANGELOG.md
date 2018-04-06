@@ -1,5 +1,10 @@
 # Significant changes per release
 
+## 0.4.0
+
+*  Added iOS support
+*  Other misc additions
+
 ## 0.3.0
 
 *  Added Android support through NVIDIA CodeWorks

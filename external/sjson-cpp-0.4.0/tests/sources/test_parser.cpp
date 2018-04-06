@@ -248,6 +248,15 @@ TEST_CASE("Parser Number Reading", "[parser]")
 	}
 
 	{
+		Parser parser = parser_from_c_str("key = 123.456789");
+		float value;
+		REQUIRE(parser.read("key", value));
+		REQUIRE(value == 123.456789f);
+		REQUIRE(parser.eof());
+		REQUIRE(parser.is_valid());
+	}
+
+	{
 		Parser parser = parser_from_c_str("key = -123");
 		int8_t value;
 		REQUIRE(parser.read("key", value));
@@ -333,6 +342,24 @@ TEST_CASE("Parser Number Reading", "[parser]")
 		double value = 0.0;
 		REQUIRE(parser.try_read("key", value, 1.0));
 		REQUIRE(value == 2.0);
+		REQUIRE(parser.eof());
+		REQUIRE(parser.is_valid());
+	}
+
+	{
+		Parser parser = parser_from_c_str("bad_key = \"bad\"");
+		float value = 0.0f;
+		REQUIRE_FALSE(parser.try_read("key", value, 1.0f));
+		REQUIRE(value == 1.0f);
+		REQUIRE_FALSE(parser.eof());
+		REQUIRE(parser.is_valid());
+	}
+
+	{
+		Parser parser = parser_from_c_str("key = 2.0");
+		float value = 0.0f;
+		REQUIRE(parser.try_read("key", value, 1.0f));
+		REQUIRE(value == 2.0f);
 		REQUIRE(parser.eof());
 		REQUIRE(parser.is_valid());
 	}

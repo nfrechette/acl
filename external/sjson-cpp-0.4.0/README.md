@@ -34,12 +34,13 @@ Unicode formats other than UTF-8 aren't supported.
 
 ## Supported platforms
 
-The library aims to support the most common platforms for the most common use cases. There is very little platform specific code as such it should work nearly everywhere.
-
 *  Windows (VS2015, VS2017) x86 and x64
 *  Linux (gcc5, gcc6, gcc7, clang4, clang5) x86 and x64
 *  OS X (Xcode 8.3, Xcode 9.2) x86 and x64
-*  Android (NVIDIA CodeWorks)
+*  Android (NVIDIA CodeWorks) ARMv7-A
+*  iOS (Xcode 8.3, Xcode 9.2) ARM64
+
+The above supported platform list is only what is tested every release but if it compiles, it should run just fine.
 
 ## External dependencies
 
@@ -60,6 +61,10 @@ See [here](./external) for details on the ones we do include.
 ### Android
 
 For Android, the steps are identical to Windows, Linux, and OS X but you also need to install NVIDIA CodeWorks 1R5 (or higher).
+
+### iOS
+
+For iOS, the steps are identical to the other platforms but due to code signing, you will need to perform the builds from Xcode manually. Note that this is only an issue if you attempt to use the tools or run the unit tests locally.
 
 ## Authors
 

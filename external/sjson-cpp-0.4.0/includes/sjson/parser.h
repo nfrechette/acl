@@ -66,6 +66,15 @@ namespace sjson
 			return std::strtoll(str, endptr, base);
 #endif
 		}
+
+		inline float strtof(const char* str, char** endptr)
+		{
+#if defined(__ANDROID__)
+			return ::strtof(str, endptr);
+#else
+			return std::strtof(str, endptr);
+#endif
+		}
 	}
 
 	class Parser
@@ -101,6 +110,32 @@ namespace sjson
 		bool object_begins() { return read_opening_brace(); }
 		bool object_begins(const char* having_name) { return read_key(having_name) && read_equal_sign() && object_begins(); }
 		bool object_ends() { return read_closing_brace(); }
+
+		bool try_object_begins(const char* having_name)
+		{
+			ParserState s = save_state();
+
+			if (!object_begins(having_name))
+			{
+				restore_state(s);
+				return false;
+			}
+
+			return true;
+		}
+
+		bool try_object_ends()
+		{
+			ParserState s = save_state();
+
+			if (!object_ends())
+			{
+				restore_state(s);
+				return false;
+			}
+
+			return true;
+		}
 
 		bool array_begins() { return read_opening_bracket(); }
 		bool array_begins(const char* having_name) { return read_key(having_name) && read_equal_sign() && read_opening_bracket(); }
@@ -147,7 +182,8 @@ namespace sjson
 		//  StringView start ^                                             end ^
 		bool read(const char* key, StringView& value) { return read_key(key) && read_equal_sign() && read_string(value); }
 		bool read(const char* key, bool& value) { return read_key(key) && read_equal_sign() && read_bool(value); }
-		bool read(const char* key, double& value) { return read_key(key) && read_equal_sign() && read_double(value); }
+		bool read(const char* key, double& value) { return read_key(key) && read_equal_sign() && read_double(&value, nullptr); }
+		bool read(const char* key, float& value) { return read_key(key) && read_equal_sign() && read_double(nullptr, &value); }
 		bool read(const char* key, int8_t& value) { return read_key(key) && read_equal_sign() && read_integer(value); }
 		bool read(const char* key, uint8_t& value) { return read_key(key) && read_equal_sign() && read_integer(value); }
 		bool read(const char* key, int16_t& value) { return read_key(key) && read_equal_sign() && read_integer(value); }
@@ -221,7 +257,28 @@ namespace sjson
 					return false;
 				}
 
-				if (read_double(value))
+				if (read_double(&value, nullptr))
+					return true;
+			}
+
+			restore_state(s);
+			value = default_value;
+			return false;
+		}
+
+		bool try_read(const char* key, float& value, float default_value)
+		{
+			ParserState s = save_state();
+
+			if (read_key(key) && read_equal_sign())
+			{
+				if (try_read_null())
+				{
+					value = default_value;
+					return false;
+				}
+
+				if (read_double(nullptr, &value))
 					return true;
 			}
 
@@ -279,7 +336,7 @@ namespace sjson
 
 			for (uint32_t i = 0; i < num_elements; ++i)
 			{
-				if (!read_double(values[i]))
+				if (!read_double(&values[i], nullptr))
 					return false;
 
 				if (i < (num_elements - 1) && !read_comma())
@@ -632,7 +689,7 @@ namespace sjson
 			return false;
 		}
 
-		bool read_double(double& value)
+		bool read_double(double* dbl_value, float* flt_value)
 		{
 			if (!skip_comments_and_whitespace_fail_if_eof())
 				return false;
@@ -698,7 +755,10 @@ namespace sjson
 			slice[length] = '\0';
 
 			char* last_used_symbol = nullptr;
-			value = std::strtod(slice, &last_used_symbol);
+			if (dbl_value != nullptr)
+				*dbl_value = std::strtod(slice, &last_used_symbol);
+			else
+				*flt_value = impl::strtof(slice, &last_used_symbol);
 
 			if (last_used_symbol != slice + length)
 			{
