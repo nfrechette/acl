@@ -1,9 +1,38 @@
 # Handling asserts
 
-When integrating ACL, it is very easy to hook up asserts of your own. By default, the library uses the standard C++ `assert(..);` in **Debug** and simply aborts in other configurations. To override the library asserts and plug in your own, simply define the appropriate asserts before including any ACL header.
+This library uses a simple system to handle asserts. Asserts are fatal and must terminate otherwise the behavior is undefined if execution continues.
 
-*  `ACL_NO_ERROR_CHECKS`: This macro, if defined, disabled all asserts regardless of the configuration.
-*  `ACL_ASSERT`: This macro handles recoverable assertions. Skipping these is safe in the sense that the library should handle these cases and not crash. The behavior might not end up being what you expect or want.
-*  `ACL_ENSURE`: This macro handles fatal assertions. Skipping these is **NOT** safe.
+A total of 4 behaviors are supported:
 
-These macros are defined and implemented in [**acl/core/error.h**](../includes/acl/core/error.h).
+*  We can print to `stderr` and `abort`
+*  We can `throw` and exception
+*  We can call a custom function
+*  Do nothing and strip the check at compile time (**default behavior**)
+
+Everything necessary is implemented in [**acl/core/error.h**](../includes/acl/core/error.h).
+
+## Aborting
+
+In order to enable the aborting behavior, simply define the macro `ACL_ON_ASSERT_ABORT`:
+
+`#define ACL_ON_ASSERT_ABORT`
+
+## Throwing
+
+In order to enable the throwing behavior, simply define the macro `ACL_ON_ASSERT_THROW`:
+
+`#define ACL_ON_ASSERT_THROW`
+
+Note that the type of the exception thrown is `std::runtime_error`.
+
+## Custom function
+
+In order to enable the custom function calling behavior, define the macro `ACL_ON_ASSERT_CUSTOM` with the name of the function to call.
+
+`#define ACL_ON_ASSERT_CUSTOM on_custom_assert_impl`
+
+Note that the function signature is as follow: `void on_custom_assert_impl(const char* expression, int line, const char* file, const char* format, ...) {}`
+
+## No checks
+
+By default if no macro mentioned above is defined, all asserts will be stripped at compile time.

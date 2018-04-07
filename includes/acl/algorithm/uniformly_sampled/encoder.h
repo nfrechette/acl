@@ -73,23 +73,23 @@ namespace acl
 	namespace uniformly_sampled
 	{
 		// Encoder entry point
-		inline CompressedClip* compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings settings, OutputStats& stats)
+		inline const char* compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings settings, CompressedClip*& out_compressed_clip, OutputStats& out_stats)
 		{
 			using namespace impl;
 
-			ScopeProfiler compression_time;
-
 			const uint16_t num_bones = clip.get_num_bones();
-			const uint32_t num_samples = clip.get_num_samples();
+			if (num_bones == 0)
+				return "Clip has no bones!";
 
-			if (ACL_TRY_ASSERT(num_bones > 0, "Clip has no bones!"))
-				return nullptr;
-			if (ACL_TRY_ASSERT(num_samples > 0, "Clip has no samples!"))
-				return nullptr;
+			const uint32_t num_samples = clip.get_num_samples();
+			if (num_samples == 0)
+				return "Clip has no samples!";
 
 			const char* settings_error = settings.get_error();
-			if (ACL_TRY_ASSERT(settings_error == nullptr, "%s", settings_error))
-				return nullptr;
+			if (settings_error != nullptr)
+				return settings_error;
+
+			ScopeProfiler compression_time;
 
 			ClipContext raw_clip_context;
 			initialize_clip_context(allocator, clip, skeleton, raw_clip_context);
@@ -216,9 +216,9 @@ namespace acl
 			compression_time.stop();
 
 #if defined(SJSON_CPP_WRITER)
-			if (stats.logging != StatLogging::None)
+			if (out_stats.logging != StatLogging::None)
 			{
-				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, stats,
+				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, out_stats,
 					[&](IAllocator& allocator)
 					{
 						DecompressionSettings settings;
@@ -240,7 +240,8 @@ namespace acl
 			destroy_clip_context(allocator, clip_context);
 			destroy_clip_context(allocator, raw_clip_context);
 
-			return compressed_clip;
+			out_compressed_clip = compressed_clip;
+			return nullptr;
 		}
 	}
 }

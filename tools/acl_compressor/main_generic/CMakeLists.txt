@@ -24,4 +24,7 @@ add_executable(${PROJECT_NAME} ${ALL_COMMON_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILE
 
 setup_default_compiler_flags(${PROJECT_NAME})
 
+# Abort on failure, easier to debug issues this way
+add_definitions(-DACL_ON_ASSERT_ABORT)
+
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

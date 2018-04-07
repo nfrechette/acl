@@ -58,7 +58,7 @@ namespace acl
 			{
 				if (is_constant_bit_rate(bit_rate))
 				{
-					ACL_ENSURE(is_normalized, "Cannot drop a constant track if it isn't normalized");
+					ACL_ASSERT(is_normalized, "Cannot drop a constant track if it isn't normalized");
 					return unpack_vector3_48(ptr, true);
 				}
 				else if (is_raw_bit_rate(bit_rate))
@@ -70,7 +70,7 @@ namespace acl
 				}
 			}
 			default:
-				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
+				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 				return vector_zero_32();
 			}
 		}
@@ -86,7 +86,7 @@ namespace acl
 			case VectorFormat8::Vector3_32:
 				return unpack_vector3_32(11, 11, 10, true, ptr);
 			case VectorFormat8::Vector3_Variable:
-				ACL_ENSURE(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
+				ACL_ASSERT(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
 					return unpack_vector3_48(ptr, true);
 				else if (is_raw_bit_rate(bit_rate))
@@ -97,7 +97,7 @@ namespace acl
 					return unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, ptr);
 				}
 			default:
-				ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+				ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
 				return vector_zero_32();
 			}
 		}
@@ -114,7 +114,7 @@ namespace acl
 			case RotationFormat8::QuatDropW_Variable:
 				return quat_from_positive_w(rotation);
 			default:
-				ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
+				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 				return quat_identity_32();
 			}
 		}
@@ -192,8 +192,8 @@ namespace acl
 
 		if (is_constant_bit_rate(bit_rate))
 		{
-			ACL_ENSURE(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
-			ACL_ENSURE(segment->are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
+			ACL_ASSERT(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
+			ACL_ASSERT(segment->are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
 
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_rotation = normalize_sample(rotation, clip_bone_range.rotation);
@@ -264,7 +264,7 @@ namespace acl
 			packed_rotation = unpack_vector3_32(11, 11, 10, are_rotations_normalized, &raw_data[0]);
 			break;
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(desired_format));
+			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(desired_format));
 			packed_rotation = vector_zero_32();
 			break;
 		}
@@ -347,7 +347,7 @@ namespace acl
 
 		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
-		ACL_ENSURE(clip_context->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
+		ACL_ASSERT(clip_context->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
 		alignas(8) uint8_t raw_data[16] = { 0 };
@@ -355,7 +355,7 @@ namespace acl
 
 		if (is_constant_bit_rate(bit_rate))
 		{
-			ACL_ENSURE(segment->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
+			ACL_ASSERT(segment->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_translation = normalize_sample(translation, clip_bone_range.translation);
@@ -426,7 +426,7 @@ namespace acl
 			packed_translation = unpack_vector3_32(11, 11, 10, are_translations_normalized, &raw_data[0]);
 			break;
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
+			ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
 			packed_translation = vector_zero_32();
 			break;
 		}
@@ -509,7 +509,7 @@ namespace acl
 
 		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
-		ACL_ENSURE(clip_context->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
+		ACL_ASSERT(clip_context->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
 		alignas(8) uint8_t raw_data[16] = { 0 };
@@ -517,7 +517,7 @@ namespace acl
 
 		if (is_constant_bit_rate(bit_rate))
 		{
-			ACL_ENSURE(segment->are_scales_normalized, "Translations must be normalized to support variable bit rates.");
+			ACL_ASSERT(segment->are_scales_normalized, "Translations must be normalized to support variable bit rates.");
 
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_scale = normalize_sample(scale, clip_bone_range.scale);
@@ -588,7 +588,7 @@ namespace acl
 			packed_scale = unpack_vector3_32(11, 11, 10, are_scales_normalized, &raw_data[0]);
 			break;
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
+			ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
 			packed_scale = vector_set(1.0f);
 			break;
 		}

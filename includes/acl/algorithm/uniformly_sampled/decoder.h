@@ -151,29 +151,29 @@ namespace acl
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 
-#if defined(ACL_USE_ERROR_CHECKS)
-				ACL_ENSURE(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
-				ACL_ENSURE(settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
-				ACL_ENSURE(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));
-				ACL_ENSURE(settings.is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
-				ACL_ENSURE(scale_format == header.scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(header.scale_format));
-				ACL_ENSURE(settings.is_scale_format_supported(scale_format), "Scale format (%s) isn't statically supported!", get_vector_format_name(scale_format));
-				ACL_ENSURE(clip_range_reduction == header.clip_range_reduction, "Statically compiled clip range reduction settings (%u) differs from the compressed settings (%u)!", clip_range_reduction, header.clip_range_reduction);
-				ACL_ENSURE(settings.are_clip_range_reduction_flags_supported(clip_range_reduction), "Clip range reduction settings (%u) aren't statically supported!", clip_range_reduction);
-				ACL_ENSURE(segment_range_reduction == header.segment_range_reduction, "Statically compiled segment range reduction settings (%u) differs from the compressed settings (%u)!", segment_range_reduction, header.segment_range_reduction);
-				ACL_ENSURE(settings.are_segment_range_reduction_flags_supported(segment_range_reduction), "Segment range reduction settings (%u) aren't statically supported!", segment_range_reduction);
+#if defined(ACL_HAS_ASSERT_CHECKS)
+				ACL_ASSERT(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
+				ACL_ASSERT(settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
+				ACL_ASSERT(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));
+				ACL_ASSERT(settings.is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
+				ACL_ASSERT(scale_format == header.scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(header.scale_format));
+				ACL_ASSERT(settings.is_scale_format_supported(scale_format), "Scale format (%s) isn't statically supported!", get_vector_format_name(scale_format));
+				ACL_ASSERT(clip_range_reduction == header.clip_range_reduction, "Statically compiled clip range reduction settings (%u) differs from the compressed settings (%u)!", clip_range_reduction, header.clip_range_reduction);
+				ACL_ASSERT(settings.are_clip_range_reduction_flags_supported(clip_range_reduction), "Clip range reduction settings (%u) aren't statically supported!", clip_range_reduction);
+				ACL_ASSERT(segment_range_reduction == header.segment_range_reduction, "Statically compiled segment range reduction settings (%u) differs from the compressed settings (%u)!", segment_range_reduction, header.segment_range_reduction);
+				ACL_ASSERT(settings.are_segment_range_reduction_flags_supported(segment_range_reduction), "Segment range reduction settings (%u) aren't statically supported!", segment_range_reduction);
 				if (is_rotation_format_variable(rotation_format))
 				{
 					RotationFormat8 highest_bit_rate_format = get_highest_variant_precision(get_rotation_variant(rotation_format));
-					ACL_ENSURE(settings.is_rotation_format_supported(highest_bit_rate_format), "Variable rotation format requires the highest bit rate to be supported: %s", get_rotation_format_name(highest_bit_rate_format));
+					ACL_ASSERT(settings.is_rotation_format_supported(highest_bit_rate_format), "Variable rotation format requires the highest bit rate to be supported: %s", get_rotation_format_name(highest_bit_rate_format));
 				}
 				if (is_vector_format_variable(translation_format))
 				{
-					ACL_ENSURE(settings.is_translation_format_supported(VectorFormat8::Vector3_96), "Variable translation format requires the highest bit rate to be supported: %s", get_vector_format_name(VectorFormat8::Vector3_96));
+					ACL_ASSERT(settings.is_translation_format_supported(VectorFormat8::Vector3_96), "Variable translation format requires the highest bit rate to be supported: %s", get_vector_format_name(VectorFormat8::Vector3_96));
 				}
 				if (is_vector_format_variable(scale_format))
 				{
-					ACL_ENSURE(settings.is_scale_format_supported(VectorFormat8::Vector3_96), "Variable scale format requires the highest bit rate to be supported: %s", get_vector_format_name(VectorFormat8::Vector3_96));
+					ACL_ASSERT(settings.is_scale_format_supported(VectorFormat8::Vector3_96), "Variable scale format requires the highest bit rate to be supported: %s", get_vector_format_name(VectorFormat8::Vector3_96));
 				}
 #endif
 
@@ -248,7 +248,7 @@ namespace acl
 						}
 						else
 						{
-							ACL_ENSURE(segment_index + 1 < header.num_segments, "Invalid segment index: %u", segment_index + 1);
+							ACL_ASSERT(segment_index + 1 < header.num_segments, "Invalid segment index: %u", segment_index + 1);
 							const SegmentHeader& next_segment_header = context.segment_headers[segment_index + 1];
 							segment_header1 = &next_segment_header;
 							segment_key_frame1 = key_frame1 - (segment_key_frame + segment_header.num_samples);
@@ -260,7 +260,7 @@ namespace acl
 					segment_key_frame += segment_header.num_samples;
 				}
 
-				ACL_ENSURE(segment_header0 != nullptr, "Failed to find segment.");
+				ACL_ASSERT(segment_header0 != nullptr, "Failed to find segment.");
 
 				context.format_per_track_data[0] = header.get_format_per_track_data(*segment_header0);
 				context.format_per_track_data[1] = header.get_format_per_track_data(*segment_header1);
@@ -335,8 +335,8 @@ namespace acl
 
 			using namespace impl;
 
-			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
-			ACL_ENSURE(clip.is_valid(false), "Clip is invalid");
+			ACL_ASSERT(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
+			ACL_ASSERT(clip.is_valid(false), "Clip is invalid");
 
 			const ClipHeader& header = get_clip_header(clip);
 
@@ -367,8 +367,8 @@ namespace acl
 
 			using namespace impl;
 
-			ACL_ENSURE(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
-			ACL_ENSURE(clip.is_valid(false), "Clip is invalid");
+			ACL_ASSERT(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
+			ACL_ASSERT(clip.is_valid(false), "Clip is invalid");
 
 			const ClipHeader& header = get_clip_header(clip);
 

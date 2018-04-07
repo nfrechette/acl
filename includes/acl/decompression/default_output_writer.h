@@ -37,25 +37,25 @@ namespace acl
 			: m_transforms(transforms)
 			, m_num_transforms(num_transforms)
 		{
-			ACL_ENSURE(transforms != nullptr, "Transforms array cannot be null");
-			ACL_ENSURE(num_transforms != 0, "Transforms array cannot be empty");
+			ACL_ASSERT(transforms != nullptr, "Transforms array cannot be null");
+			ACL_ASSERT(num_transforms != 0, "Transforms array cannot be empty");
 		}
 
 		void write_bone_rotation(uint32_t bone_index, const acl::Quat_32& rotation)
 		{
-			ACL_ENSURE(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
+			ACL_ASSERT(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
 			m_transforms[bone_index].rotation = rotation;
 		}
 
 		void write_bone_translation(uint32_t bone_index, const acl::Vector4_32& translation)
 		{
-			ACL_ENSURE(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
+			ACL_ASSERT(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
 			m_transforms[bone_index].translation = translation;
 		}
 
 		void write_bone_scale(uint32_t bone_index, const acl::Vector4_32& scale)
 		{
-			ACL_ENSURE(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
+			ACL_ASSERT(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
 			m_transforms[bone_index].scale = scale;
 		}
 

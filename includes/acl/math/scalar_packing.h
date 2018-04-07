@@ -33,7 +33,7 @@ namespace acl
 {
 	inline uint32_t pack_scalar_unsigned(float input, uint8_t num_bits)
 	{
-		ACL_ENSURE(input >= 0.0f && input <= 1.0f, "Expected normalized unsigned input value: %f", input);
+		ACL_ASSERT(input >= 0.0f && input <= 1.0f, "Expected normalized unsigned input value: %f", input);
 		const uint32_t max_value = (1 << num_bits) - 1;
 		return static_cast<uint32_t>(symmetric_round(input * safe_to_float(max_value)));
 	}
@@ -41,13 +41,13 @@ namespace acl
 	inline float unpack_scalar_unsigned(uint32_t input, uint8_t num_bits)
 	{
 		const uint32_t max_value = (1 << num_bits) - 1;
-		ACL_ENSURE(input <= max_value, "Input value too large: %ull", input);
+		ACL_ASSERT(input <= max_value, "Input value too large: %ull", input);
 		return safe_to_float(input) / safe_to_float(max_value);
 	}
 
 	inline uint32_t pack_scalar_signed(float input, uint8_t num_bits)
 	{
-		ACL_ENSURE(input >= -1.0f && input <= 1.0f, "Expected normalized signed input value: %f", input);
+		ACL_ASSERT(input >= -1.0f && input <= 1.0f, "Expected normalized signed input value: %f", input);
 		return pack_scalar_unsigned((input * 0.5f) + 0.5f, num_bits);
 	}
 

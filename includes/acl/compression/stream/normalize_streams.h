@@ -80,7 +80,7 @@ namespace acl
 	{
 		clip_context.ranges = allocate_type_array<BoneRanges>(allocator, clip_context.num_bones);
 
-		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
+		ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];
 
 		impl::extract_bone_ranges_impl(segment, clip_context.ranges);
@@ -148,7 +148,7 @@ namespace acl
 			const BoneRanges& bone_range = bone_ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
+			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
 
 			// Constant or default tracks are not normalized
 			if (!bone_stream.is_rotation_animated())
@@ -169,17 +169,17 @@ namespace acl
 				Vector4_32 normalized_rotation = vector_div(vector_sub(rotation, range_min), range_extent);
 				normalized_rotation = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_rotation);
 
-#if defined(ACL_USE_ERROR_CHECKS)
+#if defined(ACL_HAS_ASSERT_CHECKS)
 				switch (bone_stream.rotations.get_rotation_format())
 				{
 				case RotationFormat8::Quat_128:
-					ACL_ENSURE(vector_all_greater_equal(normalized_rotation, vector_zero_32()) && vector_all_less_equal(normalized_rotation, vector_set(1.0f)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation), vector_get_w(normalized_rotation));
+					ACL_ASSERT(vector_all_greater_equal(normalized_rotation, vector_zero_32()) && vector_all_less_equal(normalized_rotation, vector_set(1.0f)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation), vector_get_w(normalized_rotation));
 					break;
 				case RotationFormat8::QuatDropW_96:
 				case RotationFormat8::QuatDropW_48:
 				case RotationFormat8::QuatDropW_32:
 				case RotationFormat8::QuatDropW_Variable:
-					ACL_ENSURE(vector_all_greater_equal3(normalized_rotation, vector_zero_32()) && vector_all_less_equal3(normalized_rotation, vector_set(1.0f)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation));
+					ACL_ASSERT(vector_all_greater_equal3(normalized_rotation, vector_zero_32()) && vector_all_less_equal3(normalized_rotation, vector_set(1.0f)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation));
 					break;
 				}
 #endif
@@ -197,7 +197,7 @@ namespace acl
 			const BoneRanges& bone_range = bone_ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
+			ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
 
 			// Constant or default tracks are not normalized
 			if (!bone_stream.is_translation_animated())
@@ -218,7 +218,7 @@ namespace acl
 				Vector4_32 normalized_translation = vector_div(vector_sub(translation, range_min), range_extent);
 				normalized_translation = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_translation);
 
-				ACL_ENSURE(vector_all_greater_equal3(normalized_translation, vector_zero_32()) && vector_all_less_equal3(normalized_translation, vector_set(1.0f)), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_translation), vector_get_y(normalized_translation), vector_get_z(normalized_translation));
+				ACL_ASSERT(vector_all_greater_equal3(normalized_translation, vector_zero_32()) && vector_all_less_equal3(normalized_translation, vector_set(1.0f)), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_translation), vector_get_y(normalized_translation), vector_get_z(normalized_translation));
 
 				bone_stream.translations.set_raw_sample(sample_index, normalized_translation);
 			}
@@ -233,7 +233,7 @@ namespace acl
 			const BoneRanges& bone_range = bone_ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
+			ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
 
 			// Constant or default tracks are not normalized
 			if (!bone_stream.is_scale_animated())
@@ -254,7 +254,7 @@ namespace acl
 				Vector4_32 normalized_scale = vector_div(vector_sub(scale, range_min), range_extent);
 				normalized_scale = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_scale);
 
-				ACL_ENSURE(vector_all_greater_equal3(normalized_scale, vector_zero_32()) && vector_all_less_equal3(normalized_scale, vector_set(1.0f)), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_scale), vector_get_y(normalized_scale), vector_get_z(normalized_scale));
+				ACL_ASSERT(vector_all_greater_equal3(normalized_scale, vector_zero_32()) && vector_all_less_equal3(normalized_scale, vector_set(1.0f)), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_scale), vector_get_y(normalized_scale), vector_get_z(normalized_scale));
 
 				bone_stream.scales.set_raw_sample(sample_index, normalized_scale);
 			}
@@ -263,7 +263,7 @@ namespace acl
 
 	inline void normalize_clip_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction)
 	{
-		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
+		ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];
 
 		const bool has_scale = segment_context_has_scale(segment);

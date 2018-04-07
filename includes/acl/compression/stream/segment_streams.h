@@ -38,8 +38,8 @@ namespace acl
 		if (!settings.enabled)
 			return;
 
-		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must have a single segment.");
-		ACL_ENSURE(settings.ideal_num_samples <= settings.max_num_samples, "Invalid num samples for segmenting settings. %u > %u", settings.ideal_num_samples, settings.max_num_samples);
+		ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must have a single segment.");
+		ACL_ASSERT(settings.ideal_num_samples <= settings.max_num_samples, "Invalid num samples for segmenting settings. %u > %u", settings.ideal_num_samples, settings.max_num_samples);
 
 		if (clip_context.num_samples <= settings.max_num_samples)
 			return;
@@ -71,7 +71,7 @@ namespace acl
 			num_segments--;
 		}
 
-		ACL_ENSURE(num_segments != 1, "Expected a number of segments greater than 1.");
+		ACL_ASSERT(num_segments != 1, "Expected a number of segments greater than 1.");
 
 		SegmentContext* clip_segment = clip_context.segments;
 		clip_context.segments = allocate_type_array<SegmentContext>(allocator, num_segments);

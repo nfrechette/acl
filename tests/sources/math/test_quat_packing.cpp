@@ -24,7 +24,6 @@
 
 #include <catch.hpp>
 
-#include "../error_exceptions.h"
 #include <acl/math/quat_packing.h>
 
 using namespace acl;

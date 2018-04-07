@@ -63,13 +63,13 @@ namespace acl
 
 	inline Vector4_32 vector_unaligned_load(const float* input)
 	{
-		ACL_ENSURE(is_aligned(input), "Invalid alignment");
+		ACL_ASSERT(is_aligned(input), "Invalid alignment");
 		return vector_set(input[0], input[1], input[2], input[3]);
 	}
 
 	inline Vector4_32 vector_unaligned_load3(const float* input)
 	{
-		ACL_ENSURE(is_aligned(input), "Invalid alignment");
+		ACL_ASSERT(is_aligned(input), "Invalid alignment");
 		return vector_set(input[0], input[1], input[2], 0.0f);
 	}
 
@@ -160,7 +160,7 @@ namespace acl
 		case VectorMix::D:
 		case VectorMix::W: return vector_get_w(input);
 		default:
-			ACL_ENSURE(false, "Invalid component index");
+			ACL_ASSERT(false, "Invalid component index");
 			return 0.0f;
 		}
 	}
@@ -178,7 +178,7 @@ namespace acl
 		case VectorMix::D:
 		case VectorMix::W: return vector_get_w(input);
 		default:
-			ACL_ENSURE(false, "Invalid component index");
+			ACL_ASSERT(false, "Invalid component index");
 			return 0.0f;
 		}
 	}
@@ -190,7 +190,7 @@ namespace acl
 
 	inline void vector_unaligned_write(const Vector4_32& input, float* output)
 	{
-		ACL_ENSURE(is_aligned(output), "Invalid alignment");
+		ACL_ASSERT(is_aligned(output), "Invalid alignment");
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
@@ -199,7 +199,7 @@ namespace acl
 
 	inline void vector_unaligned_write3(const Vector4_32& input, float* output)
 	{
-		ACL_ENSURE(is_aligned(output), "Invalid alignment");
+		ACL_ASSERT(is_aligned(output), "Invalid alignment");
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
@@ -672,7 +672,7 @@ namespace acl
 		}
 
 		// Slow code path, not yet optimized
-		//ACL_ENSURE(false, "vector_mix permutation not handled");
+		//ACL_ASSERT(false, "vector_mix permutation not handled");
 		const float x = math_impl::is_vector_mix_arg_xyzw(comp0) ? vector_get_component<comp0>(input0) : vector_get_component<comp0>(input1);
 		const float y = math_impl::is_vector_mix_arg_xyzw(comp1) ? vector_get_component<comp1>(input0) : vector_get_component<comp1>(input1);
 		const float z = math_impl::is_vector_mix_arg_xyzw(comp2) ? vector_get_component<comp2>(input0) : vector_get_component<comp2>(input1);

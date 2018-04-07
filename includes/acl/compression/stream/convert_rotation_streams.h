@@ -36,7 +36,7 @@ namespace acl
 {
 	inline Vector4_32 convert_rotation(const Vector4_32& rotation, RotationFormat8 from, RotationFormat8 to)
 	{
-		ACL_ENSURE(from == RotationFormat8::Quat_128, "Source rotation format must be a full precision quaternion");
+		ACL_ASSERT(from == RotationFormat8::Quat_128, "Source rotation format must be a full precision quaternion");
 
 		const RotationFormat8 high_precision_format = get_rotation_variant(to) == RotationVariant8::Quat ? RotationFormat8::Quat_128 : RotationFormat8::QuatDropW_96;
 		switch (high_precision_format)
@@ -48,7 +48,7 @@ namespace acl
 			// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 			return quat_to_vector(quat_ensure_positive_w(vector_to_quat(rotation)));
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(to));
+			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(to));
 			return rotation;
 		}
 	}
@@ -61,7 +61,7 @@ namespace acl
 		{
 			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored at Quat_32
 			// For all other formats, we keep the same sample size and either keep Quat_32 or use Vector4_32
-			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
+			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
 
 			const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 			const uint32_t sample_rate = bone_stream.rotations.get_sample_rate();
@@ -81,7 +81,7 @@ namespace acl
 					rotation = quat_ensure_positive_w(rotation);
 					break;
 				default:
-					ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(high_precision_format));
+					ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(high_precision_format));
 					break;
 				}
 

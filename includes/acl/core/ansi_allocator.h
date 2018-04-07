@@ -33,7 +33,7 @@
 #include <malloc.h>
 #endif
 
-#if defined(ACL_USE_ERROR_CHECKS) && !defined(ACL_NO_ALLOCATOR_TRACKING)
+#if defined(ACL_HAS_ASSERT_CHECKS) && !defined(ACL_NO_ALLOCATOR_TRACKING)
 #define ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS
 #endif
 
@@ -81,7 +81,7 @@ namespace acl
 #endif
 
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
-			ACL_ENSURE(m_allocation_count == 0, "The number of allocations and deallocations does not match");
+			ACL_ASSERT(m_allocation_count == 0, "The number of allocations and deallocations does not match");
 #endif
 		}
 
@@ -142,14 +142,14 @@ namespace acl
 
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
 			const auto it = m_debug_allocations.find(ptr);
-			ACL_ENSURE(it != m_debug_allocations.end(), "Attempting to deallocate a pointer that isn't allocated");
-			ACL_ENSURE(it->second.size == size, "Allocation and deallocation size do not match");
+			ACL_ASSERT(it != m_debug_allocations.end(), "Attempting to deallocate a pointer that isn't allocated");
+			ACL_ASSERT(it->second.size == size, "Allocation and deallocation size do not match");
 			m_debug_allocations.erase(ptr);
 #endif
 
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 			const int32_t old_value = m_allocation_count.fetch_sub(1, std::memory_order_relaxed);
-			ACL_ENSURE(old_value > 0, "The number of allocations and deallocations does not match");
+			ACL_ASSERT(old_value > 0, "The number of allocations and deallocations does not match");
 #endif
 		}
 

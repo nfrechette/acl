@@ -24,7 +24,6 @@
 
 #include <catch.hpp>
 
-#include "../error_exceptions.h"
 #include <acl/core/enum_utils.h>
 
 #include <cstdint>

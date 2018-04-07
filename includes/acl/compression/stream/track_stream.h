@@ -41,14 +41,14 @@ namespace acl
 	public:
 		uint8_t* get_raw_sample_ptr(uint32_t sample_index)
 		{
-			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 			uint32_t offset = sample_index * m_sample_size;
 			return m_samples + offset;
 		}
 
 		const uint8_t* get_raw_sample_ptr(uint32_t sample_index) const
 		{
-			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 			uint32_t offset = sample_index * m_sample_size;
 			return m_samples + offset;
 		}
@@ -63,7 +63,7 @@ namespace acl
 		template<typename SampleType>
 		void set_raw_sample(uint32_t sample_index, const SampleType& sample)
 		{
-			ACL_ENSURE(m_sample_size == sizeof(SampleType), "Unexpected sample size. %u != %u", m_sample_size, sizeof(SampleType));
+			ACL_ASSERT(m_sample_size == sizeof(SampleType), "Unexpected sample size. %u != %u", m_sample_size, sizeof(SampleType));
 			uint8_t* ptr = get_raw_sample_ptr(sample_index);
 			*safe_ptr_cast<SampleType>(ptr) = sample;
 		}
@@ -76,7 +76,7 @@ namespace acl
 		bool is_bit_rate_variable() const { return m_bit_rate != k_invalid_bit_rate; }
 		float get_duration() const
 		{
-			ACL_ENSURE(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
+			ACL_ASSERT(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
 			return float(m_num_samples - 1) / float(m_sample_rate);
 		}
 
@@ -137,7 +137,7 @@ namespace acl
 
 		void duplicate(TrackStream& copy) const
 		{
-			ACL_ENSURE(copy.m_type == m_type, "Attempting to duplicate streams with incompatible types!");
+			ACL_ASSERT(copy.m_type == m_type, "Attempting to duplicate streams with incompatible types!");
 			if (m_allocator != nullptr)
 			{
 				copy.m_allocator = m_allocator;

@@ -95,7 +95,7 @@ namespace acl
 		case RotationFormat8::QuatDropW_32:	return sizeof(uint32_t);
 		case RotationFormat8::QuatDropW_Variable:
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
+			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 			return 0;
 		}
 	}
@@ -112,7 +112,7 @@ namespace acl
 		case RotationFormat8::QuatDropW_Variable:
 			return sizeof(float) * 6;
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
+			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 			return 0;
 		}
 	}

@@ -24,7 +24,6 @@
 
 #include <catch.hpp>
 
-#include "../error_exceptions.h"
 #include <acl/math/quat_32.h>
 #include <acl/math/quat_64.h>
 #include <acl/math/vector4_32.h>

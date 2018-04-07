@@ -99,9 +99,9 @@ namespace acl
 		RangeReductionFlags8 range_reduction, bool is_clip_range_data,
 		uint8_t* range_data, uint32_t range_data_size)
 	{
-		ACL_ENSURE(range_data != nullptr, "'range_data' cannot be null!");
+		ACL_ASSERT(range_data != nullptr, "'range_data' cannot be null!");
 
-#if defined(ACL_USE_ERROR_CHECKS)
+#if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
 #endif
 
@@ -162,10 +162,10 @@ namespace acl
 			if (clip_context.has_scale && are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
 				write_range_track_data_impl(bone_stream.scales, bone_range.scale, is_clip_range_data, range_data);
 
-			ACL_ENSURE(range_data <= range_data_end, "Invalid range data offset. Wrote too much data.");
+			ACL_ASSERT(range_data <= range_data_end, "Invalid range data offset. Wrote too much data.");
 		}
 
-		ACL_ENSURE(range_data == range_data_end, "Invalid range data offset. Wrote too little data.");
+		ACL_ASSERT(range_data == range_data_end, "Invalid range data offset. Wrote too little data.");
 	}
 
 	inline void write_clip_range_data(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size)

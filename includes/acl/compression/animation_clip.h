@@ -76,7 +76,7 @@ namespace acl
 
 		const AnimatedBone& get_animated_bone(uint16_t bone_index) const
 		{
-			ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
+			ACL_ASSERT(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
 			return m_bones[bone_index];
 		}
 
@@ -85,15 +85,15 @@ namespace acl
 		uint32_t get_sample_rate() const { return m_sample_rate; }
 		float get_duration() const
 		{
-			ACL_ENSURE(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
+			ACL_ASSERT(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
 			return float(m_num_samples - 1) / float(m_sample_rate);
 		}
 		const String& get_name() const { return m_name; }
 
 		void sample_pose(float sample_time, Transform_32* out_local_pose, uint16_t num_transforms) const
 		{
-			ACL_ENSURE(m_num_bones > 0, "Invalid number of bones: %u", m_num_bones);
-			ACL_ENSURE(m_num_bones == num_transforms, "Number of transforms does not match the number of bones: %u != %u", num_transforms, m_num_bones);
+			ACL_ASSERT(m_num_bones > 0, "Invalid number of bones: %u", m_num_bones);
+			ACL_ASSERT(m_num_bones == num_transforms, "Number of transforms does not match the number of bones: %u != %u", num_transforms, m_num_bones);
 
 			float clip_duration = get_duration();
 

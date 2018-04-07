@@ -147,13 +147,13 @@ namespace acl
 
 		VS2015_HACK_NO_INLINE void set_sample(uint32_t sample_index, const Quat_64& rotation)
 		{
-			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
-			ACL_ENSURE(quat_is_finite(rotation), "Invalid rotation: [%f, %f, %f, %f]", quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation), quat_get_w(rotation));
-			ACL_ENSURE(quat_is_normalized(rotation), "Rotation not normalized: [%f, %f, %f, %f]", quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation), quat_get_w(rotation));
+			ACL_ASSERT(is_initialized(), "Track is not initialized");
+			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ASSERT(quat_is_finite(rotation), "Invalid rotation: [%f, %f, %f, %f]", quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation), quat_get_w(rotation));
+			ACL_ASSERT(quat_is_normalized(rotation), "Rotation not normalized: [%f, %f, %f, %f]", quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation), quat_get_w(rotation));
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
-			ACL_ENSURE(sample_size == 4, "Invalid sample size. %u != 4", sample_size);
+			ACL_ASSERT(sample_size == 4, "Invalid sample size. %u != 4", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
 			sample[0] = quat_get_x(rotation);
@@ -164,8 +164,8 @@ namespace acl
 
 		Quat_64 get_sample(uint32_t sample_index) const
 		{
-			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ASSERT(is_initialized(), "Track is not initialized");
+			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 
@@ -216,12 +216,12 @@ namespace acl
 
 		void set_sample(uint32_t sample_index, const Vector4_64& translation)
 		{
-			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
-			ACL_ENSURE(vector_is_finite3(translation), "Invalid translation: [%f, %f, %f]", vector_get_x(translation), vector_get_y(translation), vector_get_z(translation));
+			ACL_ASSERT(is_initialized(), "Track is not initialized");
+			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ASSERT(vector_is_finite3(translation), "Invalid translation: [%f, %f, %f]", vector_get_x(translation), vector_get_y(translation), vector_get_z(translation));
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
-			ACL_ENSURE(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
+			ACL_ASSERT(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
 			sample[0] = vector_get_x(translation);
@@ -231,8 +231,8 @@ namespace acl
 
 		Vector4_64 get_sample(uint32_t sample_index) const
 		{
-			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ASSERT(is_initialized(), "Track is not initialized");
+			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 
@@ -283,12 +283,12 @@ namespace acl
 
 		VS2015_HACK_NO_INLINE void set_sample(uint32_t sample_index, const Vector4_64& scale)
 		{
-			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
-			ACL_ENSURE(vector_is_finite3(scale) && !vector_all_near_equal3(scale, vector_zero_64()), "Invalid scale: [%f, %f, %f]", vector_get_x(scale), vector_get_y(scale), vector_get_z(scale));
+			ACL_ASSERT(is_initialized(), "Track is not initialized");
+			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ASSERT(vector_is_finite3(scale) && !vector_all_near_equal3(scale, vector_zero_64()), "Invalid scale: [%f, %f, %f]", vector_get_x(scale), vector_get_y(scale), vector_get_z(scale));
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
-			ACL_ENSURE(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
+			ACL_ASSERT(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
 			sample[0] = vector_get_x(scale);
@@ -298,8 +298,8 @@ namespace acl
 
 		Vector4_64 get_sample(uint32_t sample_index) const
 		{
-			ACL_ENSURE(is_initialized(), "Track is not initialized");
-			ACL_ENSURE(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
+			ACL_ASSERT(is_initialized(), "Track is not initialized");
+			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 

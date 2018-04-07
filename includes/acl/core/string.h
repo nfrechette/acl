@@ -47,9 +47,9 @@ namespace acl
 		{
 			if (length > 0)
 			{
-#if defined(ACL_USE_ERROR_CHECKS) && !defined(NDEBUG)
+#if defined(ACL_HAS_ASSERT_CHECKS) && !defined(NDEBUG)
 				for (size_t i = 0; i < length; ++i)
-					ACL_ENSURE(c_str[i] != '\0', "StringView cannot contain NULL terminators");
+					ACL_ASSERT(c_str[i] != '\0', "StringView cannot contain NULL terminators");
 #endif
 
 				m_c_str = allocate_type_array<char>(allocator, length + 1);
@@ -85,7 +85,7 @@ namespace acl
 
 		String& operator=(String&& other)
 		{
-			ACL_ENSURE(m_allocator == other.m_allocator || m_allocator == nullptr || other.m_allocator == nullptr, "Allocators must be identical or NULL otherwise the behavior is undefined");
+			ACL_ASSERT(m_allocator == other.m_allocator || m_allocator == nullptr || other.m_allocator == nullptr, "Allocators must be identical or NULL otherwise the behavior is undefined");
 			std::swap(m_allocator, other.m_allocator);
 			std::swap(m_c_str, other.m_c_str);
 			return *this;

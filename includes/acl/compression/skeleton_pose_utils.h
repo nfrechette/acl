@@ -37,14 +37,14 @@ namespace acl
 	{
 		const uint16_t num_bones = skeleton.get_num_bones();
 		const RigidBone* bones = skeleton.get_bones();
-		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
+		ACL_ASSERT(num_bones != 0, "Invalid number of bones: %u", num_bones);
 
 		out_object_pose[0] = local_pose[0];
 
 		for (uint16_t bone_index = 1; bone_index < num_bones; ++bone_index)
 		{
 			const uint16_t parent_bone_index = bones[bone_index].parent_index;
-			ACL_ENSURE(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
+			ACL_ASSERT(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
 
 			out_object_pose[bone_index] = transform_mul(local_pose[bone_index], out_object_pose[parent_bone_index]);
 			out_object_pose[bone_index].rotation = quat_normalize(out_object_pose[bone_index].rotation);
@@ -56,14 +56,14 @@ namespace acl
 	{
 		uint16_t num_bones = skeleton.get_num_bones();
 		const RigidBone* bones = skeleton.get_bones();
-		ACL_ENSURE(num_bones != 0, "Invalid number of bones: %u", num_bones);
+		ACL_ASSERT(num_bones != 0, "Invalid number of bones: %u", num_bones);
 
 		out_local_pose[0] = object_pose[0];
 
 		for (uint16_t bone_index = 1; bone_index < num_bones; ++bone_index)
 		{
 			const uint16_t parent_bone_index = bones[bone_index].parent_index;
-			ACL_ENSURE(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
+			ACL_ASSERT(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
 
 			const Transform_32 inv_parent_transform = transform_inverse(object_pose[parent_bone_index]);
 			out_local_pose[bone_index] = transform_mul(inv_parent_transform, object_pose[bone_index]);

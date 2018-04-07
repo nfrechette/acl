@@ -35,7 +35,9 @@
 // and fail to free memory, leading to a crash in the allocator
 #define ACL_NO_ALLOCATOR_TRACKING
 
-#include <error_exceptions.h>
+// Throw when we assert in order to recover and continue
+#define ACL_ON_ASSERT_THROW
+
 #include <acl_compressor.h>
 
 // Include the CPP file manually in order to override asserts

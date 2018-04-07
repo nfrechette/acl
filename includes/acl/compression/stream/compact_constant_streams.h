@@ -35,7 +35,7 @@ namespace acl
 {
 	inline void compact_constant_streams(IAllocator& allocator, ClipContext& clip_context, float rotation_threshold, float translation_threshold, float scale_threshold)
 	{
-		ACL_ENSURE(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
+		ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];
 
 		const uint16_t num_bones = clip_context.num_bones;
@@ -48,9 +48,9 @@ namespace acl
 			BoneRanges& bone_range = clip_context.ranges[bone_index];
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
-			ACL_ENSURE(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
-			ACL_ENSURE(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
-			ACL_ENSURE(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
+			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
+			ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
+			ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
 
 			if (bone_range.rotation.is_constant(rotation_threshold))
 			{

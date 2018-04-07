@@ -142,12 +142,12 @@ namespace acl
 
 	inline void write_constant_track_data(const ClipContext& clip_context, uint8_t* constant_data, uint32_t constant_data_size)
 	{
-		ACL_ENSURE(constant_data != nullptr, "'constant_data' cannot be null!");
+		ACL_ASSERT(constant_data != nullptr, "'constant_data' cannot be null!");
 
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
 
-#if defined(ACL_USE_ERROR_CHECKS)
+#if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint8_t* constant_data_end = add_offset_to_ptr<uint8_t>(constant_data, constant_data_size);
 #endif
 
@@ -177,10 +177,10 @@ namespace acl
 				constant_data += sample_size;
 			}
 
-			ACL_ENSURE(constant_data <= constant_data_end, "Invalid constant data offset. Wrote too much data.");
+			ACL_ASSERT(constant_data <= constant_data_end, "Invalid constant data offset. Wrote too much data.");
 		}
 
-		ACL_ENSURE(constant_data == constant_data_end, "Invalid constant data offset. Wrote too little data.");
+		ACL_ASSERT(constant_data == constant_data_end, "Invalid constant data offset. Wrote too little data.");
 	}
 
 	inline void write_animated_track_data(const TrackStream& track_stream, uint32_t sample_index, bool has_mixed_packing, uint8_t* animated_track_data_begin, uint8_t*& out_animated_track_data, uint64_t& out_bit_offset)
@@ -191,7 +191,7 @@ namespace acl
 			uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 			// Track is constant, our constant sample is stored in the range information
-			ACL_ENSURE(!is_constant_bit_rate(bit_rate), "Cannot write constant variable track data");
+			ACL_ASSERT(!is_constant_bit_rate(bit_rate), "Cannot write constant variable track data");
 			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 
 			if (is_raw_bit_rate(bit_rate))
@@ -229,11 +229,11 @@ namespace acl
 
 	inline void write_animated_track_data(const ClipContext& clip_context, const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, uint8_t* animated_track_data, uint32_t animated_data_size)
 	{
-		ACL_ENSURE(animated_track_data != nullptr, "'animated_track_data' cannot be null!");
+		ACL_ASSERT(animated_track_data != nullptr, "'animated_track_data' cannot be null!");
 
 		uint8_t* animated_track_data_begin = animated_track_data;
 
-#if defined(ACL_USE_ERROR_CHECKS)
+#if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint8_t* animated_track_data_end = add_offset_to_ptr<uint8_t>(animated_track_data, animated_data_size);
 #endif
 
@@ -260,21 +260,21 @@ namespace acl
 				if (clip_context.has_scale && bone_stream.is_scale_animated() && !is_constant_bit_rate(bone_stream.scales.get_bit_rate()))
 					write_animated_track_data(bone_stream.scales, sample_index, has_mixed_packing, animated_track_data_begin, animated_track_data, bit_offset);
 
-				ACL_ENSURE(animated_track_data <= animated_track_data_end, "Invalid animated track data offset. Wrote too much data.");
+				ACL_ASSERT(animated_track_data <= animated_track_data_end, "Invalid animated track data offset. Wrote too much data.");
 			}
 		}
 
 		if (bit_offset != 0)
 			animated_track_data = animated_track_data_begin + (align_to(bit_offset, 8) / 8);
 
-		ACL_ENSURE(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
+		ACL_ASSERT(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
 	}
 
 	inline void write_format_per_track_data(const ClipContext& clip_context, const SegmentContext& segment, uint8_t* format_per_track_data, uint32_t format_per_track_data_size)
 	{
-		ACL_ENSURE(format_per_track_data != nullptr, "'format_per_track_data' cannot be null!");
+		ACL_ASSERT(format_per_track_data != nullptr, "'format_per_track_data' cannot be null!");
 
-#if defined(ACL_USE_ERROR_CHECKS)
+#if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint8_t* format_per_track_data_end = add_offset_to_ptr<uint8_t>(format_per_track_data, format_per_track_data_size);
 #endif
 
@@ -296,9 +296,9 @@ namespace acl
 			if (clip_context.has_scale && bone_stream.is_scale_animated() && bone_stream.scales.is_bit_rate_variable())
 				write_track_format(bone_stream.scales);
 
-			ACL_ENSURE(format_per_track_data <= format_per_track_data_end, "Invalid format per track data offset. Wrote too much data.");
+			ACL_ASSERT(format_per_track_data <= format_per_track_data_end, "Invalid format per track data offset. Wrote too much data.");
 		}
 
-		ACL_ENSURE(format_per_track_data == format_per_track_data_end, "Invalid format per track data offset. Wrote too little data.");
+		ACL_ASSERT(format_per_track_data == format_per_track_data_end, "Invalid format per track data offset. Wrote too little data.");
 	}
 }

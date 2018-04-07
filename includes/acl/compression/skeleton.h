@@ -51,7 +51,7 @@ namespace acl
 
 			BoneChainIterator& operator++()
 			{
-				ACL_ENSURE(m_offset <= m_bone_index, "Cannot increment the iterator, it is no longer valid");
+				ACL_ASSERT(m_offset <= m_bone_index, "Cannot increment the iterator, it is no longer valid");
 
 				// Skip the current bone
 				m_offset++;
@@ -66,8 +66,8 @@ namespace acl
 
 			uint16_t operator*() const
 			{
-				ACL_ENSURE(m_offset <= m_bone_index, "Returned bone index doesn't belong to the bone chain");
-				ACL_ENSURE(bitset_test(m_bone_chain, m_bone_chain_desc, m_offset), "Returned bone index doesn't belong to the bone chain");
+				ACL_ASSERT(m_offset <= m_bone_index, "Returned bone index doesn't belong to the bone chain");
+				ACL_ASSERT(bitset_test(m_bone_chain, m_bone_chain_desc, m_offset), "Returned bone index doesn't belong to the bone chain");
 				return m_offset;
 			}
 
@@ -166,14 +166,14 @@ namespace acl
 
 				const bool is_root = bone.parent_index == k_invalid_bone_index;
 
-				ACL_ENSURE(bone.bone_chain == nullptr, "Bone chain should be calculated internally");
-				ACL_ENSURE(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
-				ACL_ENSURE((is_root && !found_root) || !is_root, "Multiple root bones found");
-				ACL_ENSURE(quat_is_finite(bone.bind_transform.rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
-				ACL_ENSURE(quat_is_normalized(bone.bind_transform.rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
-				ACL_ENSURE(vector_is_finite3(bone.bind_transform.translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.translation), vector_get_y(bone.bind_transform.translation), vector_get_z(bone.bind_transform.translation));
-				ACL_ENSURE(vector_is_finite3(bone.bind_transform.scale), "Bind scale is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.scale), vector_get_y(bone.bind_transform.scale), vector_get_z(bone.bind_transform.scale));
-				ACL_ENSURE(!vector_any_near_equal3(bone.bind_transform.scale, vector_zero_64()), "Bind scale is zero: [%f, %f, %f]", vector_get_x(bone.bind_transform.scale), vector_get_y(bone.bind_transform.scale), vector_get_z(bone.bind_transform.scale));
+				ACL_ASSERT(bone.bone_chain == nullptr, "Bone chain should be calculated internally");
+				ACL_ASSERT(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
+				ACL_ASSERT((is_root && !found_root) || !is_root, "Multiple root bones found");
+				ACL_ASSERT(quat_is_finite(bone.bind_transform.rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
+				ACL_ASSERT(quat_is_normalized(bone.bind_transform.rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
+				ACL_ASSERT(vector_is_finite3(bone.bind_transform.translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.translation), vector_get_y(bone.bind_transform.translation), vector_get_z(bone.bind_transform.translation));
+				ACL_ASSERT(vector_is_finite3(bone.bind_transform.scale), "Bind scale is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.scale), vector_get_y(bone.bind_transform.scale), vector_get_z(bone.bind_transform.scale));
+				ACL_ASSERT(!vector_any_near_equal3(bone.bind_transform.scale, vector_zero_64()), "Bind scale is zero: [%f, %f, %f]", vector_get_x(bone.bind_transform.scale), vector_get_y(bone.bind_transform.scale), vector_get_z(bone.bind_transform.scale));
 
 				if (!is_root)
 					bitset_set(is_leaf_bitset, bone_bitset_desc, bone.parent_index, false);
@@ -213,8 +213,8 @@ namespace acl
 				leaf_index++;
 			}
 
-			ACL_ENSURE(found_root, "No root bone found. The root bone must have a parent index = 0xFFFF");
-			ACL_ENSURE(leaf_index == m_num_leaf_bones, "Invalid number of leaf bone found");
+			ACL_ASSERT(found_root, "No root bone found. The root bone must have a parent index = 0xFFFF");
+			ACL_ASSERT(leaf_index == m_num_leaf_bones, "Invalid number of leaf bone found");
 			deallocate_type_array(m_allocator, is_leaf_bitset, bone_bitset_desc.get_size());
 		}
 
@@ -232,7 +232,7 @@ namespace acl
 		const RigidBone* get_bones() const { return m_bones; }
 		const RigidBone& get_bone(uint16_t bone_index) const
 		{
-			ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
+			ACL_ASSERT(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
 			return m_bones[bone_index];
 		}
 
@@ -240,7 +240,7 @@ namespace acl
 
 		BoneChain get_bone_chain(uint16_t bone_index) const
 		{
-			ACL_ENSURE(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
+			ACL_ASSERT(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
 			const RigidBone& bone = m_bones[bone_index];
 			return BoneChain(bone.bone_chain, BitSetDescription::make_from_num_bits(m_num_bones), bone_index);
 		}

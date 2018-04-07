@@ -172,7 +172,7 @@ namespace acl
 	inline float safe_to_float(SrcIntegralType input)
 	{
 		float input_f = float(input);
-		ACL_ENSURE(SrcIntegralType(input_f) == input, "Convertion to float would result in truncation");
+		ACL_ASSERT(SrcIntegralType(input_f) == input, "Convertion to float would result in truncation");
 		return input_f;
 	}
 }

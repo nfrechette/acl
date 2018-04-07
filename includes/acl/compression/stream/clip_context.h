@@ -76,8 +76,8 @@ namespace acl
 		uint32_t sample_rate = clip.get_sample_rate();
 		const AnimatedBone* bones = clip.get_bones();
 
-		ACL_ENSURE(num_bones > 0, "Clip has no bones!");
-		ACL_ENSURE(num_samples > 0, "Clip has no samples!");
+		ACL_ASSERT(num_bones > 0, "Clip has no bones!");
+		ACL_ASSERT(num_samples > 0, "Clip has no samples!");
 
 		// Create a single segment with the whole clip
 		out_clip_context.segments = allocate_type_array<SegmentContext>(allocator, 1);

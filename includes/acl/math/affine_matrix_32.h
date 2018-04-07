@@ -45,16 +45,16 @@ namespace acl
 
 	inline AffineMatrix_32 matrix_set(const Vector4_32& x_axis, const Vector4_32& y_axis, const Vector4_32& z_axis, const Vector4_32& w_axis)
 	{
-		ACL_ENSURE(vector_get_w(x_axis) == 0.0f, "X axis does not have a W component == 0.0");
-		ACL_ENSURE(vector_get_w(y_axis) == 0.0f, "Y axis does not have a W component == 0.0");
-		ACL_ENSURE(vector_get_w(z_axis) == 0.0f, "Z axis does not have a W component == 0.0");
-		ACL_ENSURE(vector_get_w(w_axis) == 1.0f, "W axis does not have a W component == 1.0");
+		ACL_ASSERT(vector_get_w(x_axis) == 0.0f, "X axis does not have a W component == 0.0");
+		ACL_ASSERT(vector_get_w(y_axis) == 0.0f, "Y axis does not have a W component == 0.0");
+		ACL_ASSERT(vector_get_w(z_axis) == 0.0f, "Z axis does not have a W component == 0.0");
+		ACL_ASSERT(vector_get_w(w_axis) == 1.0f, "W axis does not have a W component == 1.0");
 		return AffineMatrix_32{x_axis, y_axis, z_axis, w_axis};
 	}
 
 	inline AffineMatrix_32 matrix_set(const Quat_32& quat, const Vector4_32& translation, const Vector4_32& scale)
 	{
-		ACL_ENSURE(quat_is_normalized(quat), "Quaternion is not normalized");
+		ACL_ASSERT(quat_is_normalized(quat), "Quaternion is not normalized");
 
 		const float x2 = quat_get_x(quat) + quat_get_x(quat);
 		const float y2 = quat_get_y(quat) + quat_get_y(quat);
@@ -88,7 +88,7 @@ namespace acl
 
 	inline AffineMatrix_32 matrix_from_quat(const Quat_32& quat)
 	{
-		ACL_ENSURE(quat_is_normalized(quat), "Quaternion is not normalized");
+		ACL_ASSERT(quat_is_normalized(quat), "Quaternion is not normalized");
 
 		const float x2 = quat_get_x(quat) + quat_get_x(quat);
 		const float y2 = quat_get_y(quat) + quat_get_y(quat);
@@ -117,7 +117,7 @@ namespace acl
 
 	inline AffineMatrix_32 matrix_from_scale(const Vector4_32& scale)
 	{
-		ACL_ENSURE(!vector_any_near_equal3(scale, vector_zero_32()), "Scale cannot be zero");
+		ACL_ASSERT(!vector_any_near_equal3(scale, vector_zero_32()), "Scale cannot be zero");
 		return matrix_set(vector_set(vector_get_x(scale), 0.0f, 0.0f, 0.0f), vector_set(0.0f, vector_get_y(scale), 0.0f, 0.0f), vector_set(0.0f, 0.0f, vector_get_z(scale), 0.0f), vector_set(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 
@@ -135,7 +135,7 @@ namespace acl
 		case MatrixAxis::Z: return input.z_axis;
 		case MatrixAxis::W: return input.w_axis;
 		default:
-			ACL_ENSURE(false, "Invalid matrix axis");
+			ACL_ASSERT(false, "Invalid matrix axis");
 			return input.x_axis;
 		}
 	}
@@ -149,7 +149,7 @@ namespace acl
 		case MatrixAxis::Z: return input.z_axis;
 		case MatrixAxis::W: return input.w_axis;
 		default:
-			ACL_ENSURE(false, "Invalid matrix axis");
+			ACL_ASSERT(false, "Invalid matrix axis");
 			return input.x_axis;
 		}
 	}

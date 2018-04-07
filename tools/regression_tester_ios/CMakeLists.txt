@@ -19,7 +19,6 @@ include_directories("${PROJECT_SOURCE_DIR}/../../includes")
 include_directories("${PROJECT_SOURCE_DIR}/../acl_compressor/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../acl_compressor/sources")
 include_directories("${PROJECT_SOURCE_DIR}/../../external/sjson-cpp-0.4.0/includes")
-include_directories("${PROJECT_SOURCE_DIR}/../../tests/sources")
 
 # Setup resources
 set(TEST_DATA_DIR_SRC "${PROJECT_SOURCE_DIR}/../../test_data/test_data_v1")
@@ -43,5 +42,8 @@ file(GLOB_RECURSE ALL_MAIN_SOURCE_FILES LIST_DIRECTORIES false
 create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
 
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${ALL_MAIN_SOURCE_FILES} ${ALL_TEST_DATA_RESOURCE_FILES})
+
+# Throw on failure to allow us to catch them and recover
+add_definitions(-DACL_ON_ASSERT_THROW)
 
 target_link_libraries(${PROJECT_NAME} "-framework CoreFoundation")

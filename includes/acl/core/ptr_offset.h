@@ -62,7 +62,7 @@ namespace acl
 		template<typename BaseType>
 		inline DataType* add_to(BaseType* ptr) const
 		{
-			ACL_ENSURE(is_valid(), "Invalid PtrOffset!");
+			ACL_ASSERT(is_valid(), "Invalid PtrOffset!");
 			return add_offset_to_ptr<DataType>(ptr, m_value);
 		}
 
@@ -71,7 +71,7 @@ namespace acl
 		template<typename BaseType>
 		inline const DataType* add_to(const BaseType* ptr) const
 		{
-			ACL_ENSURE(is_valid(), "Invalid PtrOffset!");
+			ACL_ASSERT(is_valid(), "Invalid PtrOffset!");
 			return add_offset_to_ptr<const DataType>(ptr, m_value);
 		}
 

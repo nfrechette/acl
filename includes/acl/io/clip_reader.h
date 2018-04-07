@@ -312,7 +312,7 @@ namespace acl
 				return false;
 			}
 
-			ACL_ENSURE(num_bones == num_allocated_bones, "Number of bones read mismatch");
+			ACL_ASSERT(num_bones == num_allocated_bones, "Number of bones read mismatch");
 			skeleton = make_unique<RigidSkeleton>(m_allocator, m_allocator, bones, num_bones);
 			deallocate_type_array(m_allocator, bones, num_allocated_bones);
 
@@ -335,7 +335,7 @@ namespace acl
 				constexpr explicit UInt64ToDouble(uint64_t value) : u64(value) {}
 			};
 
-			ACL_ENSURE(value.size() <= 16, "Invalid binary exact double value");
+			ACL_ASSERT(value.size() <= 16, "Invalid binary exact double value");
 			uint64_t value_u64 = impl::strtoull(value.c_str(), nullptr, 16);
 			return UInt64ToDouble(value_u64).dbl;
 		}

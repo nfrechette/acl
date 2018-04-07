@@ -30,7 +30,7 @@ namespace acl
 		// Creates a bit set description from a runtime known number of bits.
 		inline static BitSetDescription make_from_num_bits(int32_t num_bits)
 		{
-			ACL_ENSURE(num_bits >= 0, "Cannot create a bit set with a negative number of bits: %d", num_bits);
+			ACL_ASSERT(num_bits >= 0, "Cannot create a bit set with a negative number of bits: %d", num_bits);
 			return BitSetDescription((num_bits + 32 - 1) / 32);
 		}
 
@@ -76,7 +76,7 @@ namespace acl
 	// Sets a specific bit to its desired value.
 	inline void bitset_set(uint32_t* bitset, BitSetDescription desc, int32_t bit_index, bool value)
 	{
-		ACL_ENSURE(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
+		ACL_ASSERT(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
 
 		const int32_t offset = bit_index / 32;
 		const int32_t mask = 1 << (31 - (bit_index % 32));
@@ -91,9 +91,9 @@ namespace acl
 	// Sets a specified range of bits to a specified value.
 	inline void bitset_set_range(uint32_t* bitset, BitSetDescription desc, int32_t start_bit_index, int32_t num_bits, bool value)
 	{
-		ACL_ENSURE(desc.is_bit_index_valid(start_bit_index), "Invalid start bit index: %d", start_bit_index);
-		ACL_ENSURE(num_bits >= 0, "Invalid num bits: %d", num_bits);
-		ACL_ENSURE(start_bit_index + num_bits <= desc.get_num_bits(), "Invalid num bits: %d > %d", start_bit_index + num_bits, desc.get_num_bits());
+		ACL_ASSERT(desc.is_bit_index_valid(start_bit_index), "Invalid start bit index: %d", start_bit_index);
+		ACL_ASSERT(num_bits >= 0, "Invalid num bits: %d", num_bits);
+		ACL_ASSERT(start_bit_index + num_bits <= desc.get_num_bits(), "Invalid num bits: %d > %d", start_bit_index + num_bits, desc.get_num_bits());
 
 		const int32_t end_bit_offset = start_bit_index + num_bits;
 		for (int32_t offset = start_bit_index; offset < end_bit_offset; ++offset)
@@ -104,7 +104,7 @@ namespace acl
 	// Returns the bit value as a specific index.
 	inline bool bitset_test(const uint32_t* bitset, BitSetDescription desc, int32_t bit_index)
 	{
-		ACL_ENSURE(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
+		ACL_ASSERT(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
 
 		const int32_t offset = bit_index / 32;
 		const int32_t mask = 1 << (31 - (bit_index % 32));

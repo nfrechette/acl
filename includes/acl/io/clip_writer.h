@@ -228,15 +228,14 @@ namespace acl
 			};
 		}
 
-		inline bool write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, AlgorithmType8 algorithm, const CompressionSettings* settings, const char* acl_filename)
+		inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, AlgorithmType8 algorithm, const CompressionSettings* settings, const char* acl_filename)
 		{
-			if (ACL_TRY_ASSERT(acl_filename != nullptr, "'acl_filename' cannot be NULL!"))
-				return false;
+			if (acl_filename == nullptr)
+				return "'acl_filename' cannot be NULL!";
 
 			const size_t filename_len = std::strlen(acl_filename);
-			const bool is_filename_valid = filename_len < 6 || strncmp(acl_filename + filename_len - 6, ".acl.sjson", 6) != 0;
-			if (ACL_TRY_ASSERT(is_filename_valid, "'acl_filename' file must be an ACL SJSON file: %s", acl_filename))
-				return false;
+			if (filename_len < 6 || strncmp(acl_filename + filename_len - 6, ".acl.sjson", 6) != 0)
+				return "'acl_filename' file must be an ACL SJSON file of the form: *.acl.sjson";
 
 			std::FILE* file = nullptr;
 
@@ -246,8 +245,8 @@ namespace acl
 			file = fopen(acl_filename, "w");
 #endif
 
-			if (ACL_TRY_ASSERT(file != nullptr, "Failed to open ACL file for writing: %s", acl_filename))
-				return false;
+			if (file == nullptr)
+				return "Failed to open ACL file for writing";
 
 			sjson::FileStreamWriter stream_writer(file);
 			sjson::Writer writer(stream_writer);
@@ -262,15 +261,16 @@ namespace acl
 			write_sjson_tracks(skeleton, clip, writer);
 
 			std::fclose(file);
-			return true;
+			return nullptr;
 		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Write out an SJSON ACL clip file from a skeleton, a clip,
 	// and no specific compression settings.
+	// Returns an error string on failure, null on success.
 	//////////////////////////////////////////////////////////////////////////
-	inline bool write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, const char* acl_filename)
+	inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, const char* acl_filename)
 	{
 		return impl::write_acl_clip(skeleton, clip, AlgorithmType8::UniformlySampled, nullptr, acl_filename);
 	}
@@ -278,8 +278,9 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Write out an SJSON ACL clip file from a skeleton, a clip,
 	// and compression settings.
+	// Returns an error string on failure, null on success.
 	//////////////////////////////////////////////////////////////////////////
-	inline bool write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, AlgorithmType8 algorithm, const CompressionSettings& settings, const char* acl_filename)
+	inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, AlgorithmType8 algorithm, const CompressionSettings& settings, const char* acl_filename)
 	{
 		return impl::write_acl_clip(skeleton, clip, algorithm, &settings, acl_filename);
 	}

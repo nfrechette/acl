@@ -198,7 +198,7 @@ namespace acl
 					rotation = unpack_quat_32(context.constant_track_data + context.constant_track_data_offset);
 				else
 				{
-					ACL_ENSURE(false, "Unrecognized rotation format");
+					ACL_ASSERT(false, "Unrecognized rotation format");
 					rotation = quat_identity_32();
 				}
 
@@ -515,7 +515,7 @@ namespace acl
 		Quat_32 rotations[2];
 		TimeSeriesType8 time_series_type;
 
-		ACL_ENSURE(get_array_size(context.key_frame_byte_offsets) == get_array_size(rotations), "Interpolation requires exactly two keyframes.");
+		ACL_ASSERT(get_array_size(context.key_frame_byte_offsets) == get_array_size(rotations), "Interpolation requires exactly two keyframes.");
 
 		decompress_rotations_in_two_key_frames(settings, header, context, rotations, time_series_type);
 
@@ -523,8 +523,8 @@ namespace acl
 		switch (time_series_type)
 		{
 		case TimeSeriesType8::Constant:
-			ACL_ENSURE(quat_is_finite(rotations[0]), "Rotation is not valid!");
-			ACL_ENSURE(quat_is_normalized(rotations[0]), "Rotation is not normalized!");
+			ACL_ASSERT(quat_is_finite(rotations[0]), "Rotation is not valid!");
+			ACL_ASSERT(quat_is_normalized(rotations[0]), "Rotation is not normalized!");
 			result = rotations[0];
 			break;
 
@@ -534,12 +534,12 @@ namespace acl
 
 		case TimeSeriesType8::Varying:
 			result = quat_lerp(rotations[0], rotations[1], context.interpolation_alpha);
-			ACL_ENSURE(quat_is_finite(result), "Rotation is not valid!");
-			ACL_ENSURE(quat_is_normalized(result), "Rotation is not normalized!");
+			ACL_ASSERT(quat_is_finite(result), "Rotation is not valid!");
+			ACL_ASSERT(quat_is_normalized(result), "Rotation is not normalized!");
 			break;
 
 		default:
-			ACL_ENSURE(false, "Unrecognized time series type");
+			ACL_ASSERT(false, "Unrecognized time series type");
 			result = quat_identity_32();
 			break;
 		}
@@ -553,7 +553,7 @@ namespace acl
 		Vector4_32 vectors[2];
 		TimeSeriesType8 time_series_type;
 
-		ACL_ENSURE(get_array_size(context.key_frame_byte_offsets) == get_array_size(vectors), "Interpolation requires exactly two keyframes.");
+		ACL_ASSERT(get_array_size(context.key_frame_byte_offsets) == get_array_size(vectors), "Interpolation requires exactly two keyframes.");
 
 		decompress_vectors_in_two_key_frames(settings, header, context, vectors, time_series_type);
 
@@ -561,7 +561,7 @@ namespace acl
 		switch (time_series_type)
 		{
 		case TimeSeriesType8::Constant:
-			ACL_ENSURE(vector_is_finite3(vectors[0]), "Vector is not valid!");
+			ACL_ASSERT(vector_is_finite3(vectors[0]), "Vector is not valid!");
 			result = vectors[0];
 			break;
 
@@ -571,11 +571,11 @@ namespace acl
 
 		case TimeSeriesType8::Varying:
 			result = vector_lerp(vectors[0], vectors[1], context.interpolation_alpha);
-			ACL_ENSURE(vector_is_finite3(result), "Vector is not valid!");
+			ACL_ASSERT(vector_is_finite3(result), "Vector is not valid!");
 			break;
 
 		default:
-			ACL_ENSURE(false, "Unrecognized time series type");
+			ACL_ASSERT(false, "Unrecognized time series type");
 			result = vector_zero_32();
 			break;
 		}

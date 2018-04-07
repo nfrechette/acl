@@ -24,36 +24,6 @@
 
 #include "acl_compressor.h"
 
-#include <assert.h>
-#include <cstdlib>
-#include <cstdio>
-#include <cstdarg>
-
-#if !defined(ACL_ASSERT) && !defined(ACL_NO_ERROR_CHECKS)
-	static void assert_impl(bool expression, const char* format, ...)
-	{
-		if (expression)
-			return;
-
-		va_list args;
-		va_start(args, format);
-
-		std::vprintf(format, args);
-		printf("\n");
-
-		va_end(args);
-
-	#if !defined(NDEBUG)
-		assert(expression);
-	#endif
-
-		std::abort();
-	}
-
-	#define ACL_ASSERT(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
-	#define ACL_ENSURE(expression, format, ...) assert_impl(expression, format, ## __VA_ARGS__)
-#endif
-
 // Used to debug and validate that we compile without sjson-cpp
 // Defaults to being enabled
 #define ACL_ENABLE_STAT_WRITING		1
@@ -342,8 +312,8 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
-			ACL_ENSURE(is_finite(error), "Returned error is not a finite value");
-			ACL_ENSURE(error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
+			ACL_ASSERT(is_finite(error), "Returned error is not a finite value");
+			ACL_ASSERT(error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
 		}
 	}
 
@@ -357,9 +327,9 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		Vector4_32 test_translation;
 		Vector4_32 test_scale;
 		algorithm.decompress_bone(compressed_clip, context, sample_time, sample_bone_index, &test_rotation, &test_translation, &test_scale);
-		ACL_ENSURE(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
-		ACL_ENSURE(vector_all_near_equal3(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
-		ACL_ENSURE(vector_all_near_equal3(test_scale, lossy_pose_transforms[sample_bone_index].scale), "Failed to sample bone index: %u", sample_bone_index);
+		ACL_ASSERT(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
+		ACL_ASSERT(vector_all_near_equal3(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
+		ACL_ASSERT(vector_all_near_equal3(test_scale, lossy_pose_transforms[sample_bone_index].scale), "Failed to sample bone index: %u", sample_bone_index);
 	}
 
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
@@ -372,9 +342,12 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
 		OutputStats stats(logging, stats_writer);
-		CompressedClip* compressed_clip = algorithm.compress_clip(allocator, clip, skeleton, stats);
+		CompressedClip* compressed_clip = nullptr;
+		const char* error = algorithm.compress_clip(allocator, clip, skeleton, compressed_clip, stats);
+		(void)error;
 
-		ACL_ENSURE(compressed_clip->is_valid(true), "Compressed clip is invalid");
+		ACL_ASSERT(error == nullptr, error);
+		ACL_ASSERT(compressed_clip->is_valid(true), "Compressed clip is invalid");
 
 		if (options.regression_testing)
 			validate_accuracy(allocator, clip, skeleton, *compressed_clip, algorithm, regression_error_threshold);
@@ -606,7 +579,7 @@ static int safe_main_impl(int argc, char* argv[])
 
 		if (use_external_config)
 		{
-			ACL_ENSURE(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
+			ACL_ASSERT(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
 
 			UniformlySampledAlgorithm algorithm(settings);
 			try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer, regression_error_threshold);
@@ -703,12 +676,12 @@ int main_impl(int argc, char* argv[])
 	}
 	catch (const std::runtime_error& exception)
 	{
-		printf("Exception occurred: %s", exception.what());
+		printf("Exception occurred: %s\n", exception.what());
 		result = -1;
 	}
 	catch (...)
 	{
-		printf("Unknown exception occurred");
+		printf("Unknown exception occurred\n");
 		result = -1;
 	}
 

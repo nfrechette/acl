@@ -52,14 +52,14 @@ namespace acl
 	template<typename PtrType>
 	inline bool is_aligned_to(PtrType* value, size_t alignment)
 	{
-		ACL_ENSURE(is_power_of_two(alignment), "Alignment value must be a power of two");
+		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return (reinterpret_cast<intptr_t>(value) & (alignment - 1)) == 0;
 	}
 
 	template<typename IntegralType>
 	inline bool is_aligned_to(IntegralType value, size_t alignment)
 	{
-		ACL_ENSURE(is_power_of_two(alignment), "Alignment value must be a power of two");
+		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return (static_cast<size_t>(value) & (alignment - 1)) == 0;
 	}
 
@@ -72,14 +72,14 @@ namespace acl
 	template<typename PtrType>
 	inline PtrType* align_to(PtrType* value, size_t alignment)
 	{
-		ACL_ENSURE(is_power_of_two(alignment), "Alignment value must be a power of two");
+		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return reinterpret_cast<PtrType*>((reinterpret_cast<intptr_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
 	template<typename IntegralType>
 	inline IntegralType align_to(IntegralType value, size_t alignment)
 	{
-		ACL_ENSURE(is_power_of_two(alignment), "Alignment value must be a power of two");
+		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return static_cast<IntegralType>((static_cast<size_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
@@ -96,7 +96,7 @@ namespace acl
 		{
 			inline static DestPtrType* cast(SrcType* input)
 			{
-				ACL_ENSURE(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
+				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
 				return reinterpret_cast<DestPtrType*>(input);
 			}
 		};
@@ -112,7 +112,7 @@ namespace acl
 		{
 			inline static DestPtrType* cast(SrcType input)
 			{
-				ACL_ENSURE(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
+				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
 				return reinterpret_cast<DestPtrType*>(input);
 			}
 		};
@@ -146,7 +146,7 @@ namespace acl
 			{
 				typedef typename std::underlying_type<SrcEnumType>::type SrcIntegralType;
 
-#if defined(ACL_USE_ERROR_CHECKS)
+#if defined(ACL_HAS_ASSERT_CHECKS)
 				const SrcIntegralType integral_input = static_cast<SrcIntegralType>(input);
 
 				const bool src_is_signed = std::numeric_limits<SrcIntegralType>::is_signed;
@@ -157,15 +157,15 @@ namespace acl
 
 				if (src_is_signed && !dest_is_signed)
 				{
-					ACL_ENSURE(0 <= integral_input && integral_input <= max, "static_cast would result in truncation");
+					ACL_ASSERT(0 <= integral_input && integral_input <= max, "static_cast would result in truncation");
 				}
 				else if (!src_is_signed && dest_is_signed)
 				{
-					ACL_ENSURE(integral_input <= max, "static_cast would result in truncation");
+					ACL_ASSERT(integral_input <= max, "static_cast would result in truncation");
 				}
 				else
 				{
-					ACL_ENSURE(min <= integral_input && integral_input <= max, "static_cast would result in truncation");
+					ACL_ASSERT(min <= integral_input && integral_input <= max, "static_cast would result in truncation");
 				}
 #endif
 
@@ -179,7 +179,7 @@ namespace acl
 			template<typename DestNumericType, typename SrcNumericType>
 			static inline DestNumericType cast(SrcNumericType input)
 			{
-#if defined(ACL_USE_ERROR_CHECKS)
+#if defined(ACL_HAS_ASSERT_CHECKS)
 				const bool src_is_signed = std::numeric_limits<SrcNumericType>::is_signed;
 				const bool dest_is_signed = std::numeric_limits<DestNumericType>::is_signed;
 
@@ -188,15 +188,15 @@ namespace acl
 
 				if (src_is_signed && !dest_is_signed)
 				{
-					ACL_ENSURE(0 <= input && input <= max, "static_cast would result in truncation");
+					ACL_ASSERT(0 <= input && input <= max, "static_cast would result in truncation");
 				}
 				else if (!src_is_signed && dest_is_signed)
 				{
-					ACL_ENSURE(input <= max, "static_cast would result in truncation");
+					ACL_ASSERT(input <= max, "static_cast would result in truncation");
 				}
 				else
 				{
-					ACL_ENSURE(min <= input && input <= max, "static_cast would result in truncation");
+					ACL_ASSERT(min <= input && input <= max, "static_cast would result in truncation");
 				}
 #endif
 

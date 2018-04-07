@@ -68,7 +68,7 @@ namespace acl
 
 		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
 		{
-			ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
+			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 			float vtx_distance = float(bone.vertex_distance);
@@ -89,7 +89,7 @@ namespace acl
 
 		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
 		{
-			ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
+			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 			float vtx_distance = float(bone.vertex_distance);
@@ -110,7 +110,7 @@ namespace acl
 
 		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
 		{
-			ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
+			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			AffineMatrix_32 raw_obj_mtx = matrix_from_transform(raw_local_pose[0]);
 			AffineMatrix_32 lossy_obj_mtx = matrix_from_transform(lossy_local_pose[0]);
@@ -144,7 +144,7 @@ namespace acl
 
 		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
 		{
-			ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
+			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			Transform_32 raw_obj_transform = raw_local_pose[0];
 			Transform_32 lossy_obj_transform = lossy_local_pose[0];
@@ -187,7 +187,7 @@ namespace acl
 
 		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
 		{
-			ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
+			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 			float vtx_distance = float(bone.vertex_distance);
@@ -208,7 +208,7 @@ namespace acl
 
 		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
 		{
-			ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
+			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 			float vtx_distance = float(bone.vertex_distance);
@@ -229,7 +229,7 @@ namespace acl
 
 		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
 		{
-			ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
+			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			Transform_32 raw_obj_transform = raw_local_pose[0];
 			Transform_32 lossy_obj_transform = lossy_local_pose[0];
@@ -263,7 +263,7 @@ namespace acl
 
 		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
 		{
-			ACL_ENSURE(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
+			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			Transform_32 raw_obj_transform = raw_local_pose[0];
 			Transform_32 lossy_obj_transform = lossy_local_pose[0];

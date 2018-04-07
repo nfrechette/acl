@@ -24,7 +24,6 @@
 
 #include <catch.hpp>
 
-#include "../error_exceptions.h"
 #include <acl/core/memory_utils.h>
 
 #include <cstdint>

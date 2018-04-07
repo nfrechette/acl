@@ -91,7 +91,7 @@ namespace acl
 	template<typename AllocatedType, typename... Args>
 	AllocatedType* allocate_type_aligned(IAllocator& allocator, size_t alignment, Args&&... args)
 	{
-		ACL_ENSURE(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
+		ACL_ASSERT(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignment));
 		if (std::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
@@ -124,7 +124,7 @@ namespace acl
 	template<typename AllocatedType, typename... Args>
 	AllocatedType* allocate_type_array_aligned(IAllocator& allocator, size_t num_elements, size_t alignment, Args&&... args)
 	{
-		ACL_ENSURE(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
+		ACL_ASSERT(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignment));
 		if (std::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;

@@ -170,7 +170,7 @@ namespace acl
 
 	inline void pack_vector3_32(const Vector4_32& vector, uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, uint8_t* out_vector_data)
 	{
-		ACL_ENSURE(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
+		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
 
 		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), XBits) : pack_scalar_signed(vector_get_x(vector), XBits);
 		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), YBits) : pack_scalar_signed(vector_get_y(vector), YBits);
@@ -186,7 +186,7 @@ namespace acl
 
 	inline Vector4_32 unpack_vector3_32(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data)
 	{
-		ACL_ENSURE(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
+		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
 
 		// Read 2 bytes at a time to ensure safe alignment
 		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
@@ -292,7 +292,7 @@ namespace acl
 		case VectorFormat8::Vector3_32:		return sizeof(uint32_t);
 		case VectorFormat8::Vector3_Variable:
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+			ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
 			return 0;
 		}
 	}

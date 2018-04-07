@@ -24,4 +24,7 @@ add_test(NAME UNIT COMMAND ${PROJECT_NAME})
 
 setup_default_compiler_flags(${PROJECT_NAME})
 
+# Throw on failure to allow us to catch them and recover
+add_definitions(-DACL_ON_ASSERT_THROW)
+
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

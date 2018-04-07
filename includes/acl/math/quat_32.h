@@ -46,7 +46,7 @@ namespace acl
 
 	inline Quat_32 quat_unaligned_load(const float* input)
 	{
-		ACL_ENSURE(is_aligned(input), "Invalid alignment");
+		ACL_ASSERT(is_aligned(input), "Invalid alignment");
 		return quat_set(input[0], input[1], input[2], input[3]);
 	}
 

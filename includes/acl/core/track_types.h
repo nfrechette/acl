@@ -108,7 +108,7 @@ namespace acl
 
 	inline uint8_t get_num_bits_at_bit_rate(uint8_t bit_rate)
 	{
-		ACL_ENSURE(bit_rate <= k_highest_bit_rate, "Invalid bit rate: %u", bit_rate);
+		ACL_ASSERT(bit_rate <= k_highest_bit_rate, "Invalid bit rate: %u", bit_rate);
 		return k_bit_rate_num_bits[bit_rate];
 	}
 
@@ -238,7 +238,7 @@ namespace acl
 		case RotationFormat8::QuatDropW_Variable:
 			return RotationVariant8::QuatDropW;
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
+			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
 			return RotationVariant8::Quat;
 		}
 	}
@@ -251,7 +251,7 @@ namespace acl
 		case RotationVariant8::Quat:			return RotationFormat8::Quat_128;
 		case RotationVariant8::QuatDropW:		return RotationFormat8::QuatDropW_32;
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported rotation format: %u", (uint32_t)variant);
+			ACL_ASSERT(false, "Invalid or unsupported rotation format: %u", (uint32_t)variant);
 			return RotationFormat8::Quat_128;
 		}
 	}
@@ -264,7 +264,7 @@ namespace acl
 		case RotationVariant8::Quat:			return RotationFormat8::Quat_128;
 		case RotationVariant8::QuatDropW:		return RotationFormat8::QuatDropW_96;
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported rotation format: %u", (uint32_t)variant);
+			ACL_ASSERT(false, "Invalid or unsupported rotation format: %u", (uint32_t)variant);
 			return RotationFormat8::Quat_128;
 		}
 	}
@@ -282,7 +282,7 @@ namespace acl
 		case RotationFormat8::QuatDropW_Variable:
 			return true;
 		default:
-			ACL_ENSURE(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
+			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
 			return false;
 		}
 	}

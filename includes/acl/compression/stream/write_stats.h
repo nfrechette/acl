@@ -249,8 +249,7 @@ namespace acl
 		if (stats.logging == StatLogging::MaxError)
 			return;		// We don't need anything else
 
-		if (ACL_TRY_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer"))
-			return;
+		ACL_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer");
 
 		sjson::ObjectWriter& writer = *stats.writer;
 		writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);

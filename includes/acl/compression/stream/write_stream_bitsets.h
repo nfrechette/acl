@@ -34,7 +34,7 @@ namespace acl
 {
 	inline void write_default_track_bitset(const ClipContext& clip_context, uint32_t* default_tracks_bitset, BitSetDescription bitset_desc)
 	{
-		ACL_ENSURE(default_tracks_bitset != nullptr, "'default_tracks_bitset' cannot be null!");
+		ACL_ASSERT(default_tracks_bitset != nullptr, "'default_tracks_bitset' cannot be null!");
 
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
@@ -52,12 +52,12 @@ namespace acl
 				bitset_set(default_tracks_bitset, bitset_desc, default_track_offset++, bone_stream.is_scale_default);
 		}
 
-		ACL_ENSURE(default_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
+		ACL_ASSERT(default_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
 	}
 
 	inline void write_constant_track_bitset(const ClipContext& clip_context, uint32_t* constant_tracks_bitset, BitSetDescription bitset_desc)
 	{
-		ACL_ENSURE(constant_tracks_bitset != nullptr, "'constant_tracks_bitset' cannot be null!");
+		ACL_ASSERT(constant_tracks_bitset != nullptr, "'constant_tracks_bitset' cannot be null!");
 
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
@@ -75,6 +75,6 @@ namespace acl
 				bitset_set(constant_tracks_bitset, bitset_desc, constant_track_offset++, bone_stream.is_scale_constant);
 		}
 
-		ACL_ENSURE(constant_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
+		ACL_ASSERT(constant_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
 	}
 }
