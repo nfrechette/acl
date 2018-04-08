@@ -116,13 +116,14 @@ namespace acl
 			AffineMatrix_32 lossy_obj_mtx = matrix_from_transform(lossy_local_pose[0]);
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
-			for (uint16_t chain_bone_index : bone_chain)
+			auto chain_bone_it = bone_chain.begin();
+			++chain_bone_it;	// Skip root bone
+			const auto chain_bone_end = bone_chain.end();
+			for (; chain_bone_it != chain_bone_end; ++chain_bone_it)
 			{
-				if (chain_bone_index != 0)
-				{
-					raw_obj_mtx = matrix_mul(matrix_from_transform(raw_local_pose[chain_bone_index]), raw_obj_mtx);
-					lossy_obj_mtx = matrix_mul(matrix_from_transform(lossy_local_pose[chain_bone_index]), lossy_obj_mtx);
-				}
+				const uint16_t chain_bone_index = *chain_bone_it;
+				raw_obj_mtx = matrix_mul(matrix_from_transform(raw_local_pose[chain_bone_index]), raw_obj_mtx);
+				lossy_obj_mtx = matrix_mul(matrix_from_transform(lossy_local_pose[chain_bone_index]), lossy_obj_mtx);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
@@ -150,13 +151,14 @@ namespace acl
 			Transform_32 lossy_obj_transform = lossy_local_pose[0];
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
-			for (uint16_t chain_bone_index : bone_chain)
+			auto chain_bone_it = bone_chain.begin();
+			++chain_bone_it;	// Skip root bone
+			const auto chain_bone_end = bone_chain.end();
+			for (; chain_bone_it != chain_bone_end; ++chain_bone_it)
 			{
-				if (chain_bone_index != 0)
-				{
-					raw_obj_transform = transform_mul_no_scale(raw_local_pose[chain_bone_index], raw_obj_transform);
-					lossy_obj_transform = transform_mul_no_scale(lossy_local_pose[chain_bone_index], lossy_obj_transform);
-				}
+				const uint16_t chain_bone_index = *chain_bone_it;
+				raw_obj_transform = transform_mul_no_scale(raw_local_pose[chain_bone_index], raw_obj_transform);
+				lossy_obj_transform = transform_mul_no_scale(lossy_local_pose[chain_bone_index], lossy_obj_transform);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
@@ -235,13 +237,14 @@ namespace acl
 			Transform_32 lossy_obj_transform = lossy_local_pose[0];
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
-			for (uint16_t chain_bone_index : bone_chain)
+			auto chain_bone_it = bone_chain.begin();
+			++chain_bone_it;	// Skip root bone
+			const auto chain_bone_end = bone_chain.end();
+			for (; chain_bone_it != chain_bone_end; ++chain_bone_it)
 			{
-				if (chain_bone_index != 0)
-				{
-					raw_obj_transform = transform_mul(raw_local_pose[chain_bone_index], raw_obj_transform);
-					lossy_obj_transform = transform_mul(lossy_local_pose[chain_bone_index], lossy_obj_transform);
-				}
+				const uint16_t chain_bone_index = *chain_bone_it;
+				raw_obj_transform = transform_mul(raw_local_pose[chain_bone_index], raw_obj_transform);
+				lossy_obj_transform = transform_mul(lossy_local_pose[chain_bone_index], lossy_obj_transform);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
@@ -269,13 +272,14 @@ namespace acl
 			Transform_32 lossy_obj_transform = lossy_local_pose[0];
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
-			for (uint16_t chain_bone_index : bone_chain)
+			auto chain_bone_it = bone_chain.begin();
+			++chain_bone_it;	// Skip root bone
+			const auto chain_bone_end = bone_chain.end();
+			for (; chain_bone_it != chain_bone_end; ++chain_bone_it)
 			{
-				if (chain_bone_index != 0)
-				{
-					raw_obj_transform = transform_mul_no_scale(raw_local_pose[chain_bone_index], raw_obj_transform);
-					lossy_obj_transform = transform_mul_no_scale(lossy_local_pose[chain_bone_index], lossy_obj_transform);
-				}
+				const uint16_t chain_bone_index = *chain_bone_it;
+				raw_obj_transform = transform_mul_no_scale(raw_local_pose[chain_bone_index], raw_obj_transform);
+				lossy_obj_transform = transform_mul_no_scale(lossy_local_pose[chain_bone_index], lossy_obj_transform);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
