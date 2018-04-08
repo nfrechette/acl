@@ -27,11 +27,18 @@ Note that the type of the exception thrown is `std::runtime_error`.
 
 ## Custom function
 
-In order to enable the custom function calling behavior, define the macro `ACL_ON_ASSERT_CUSTOM` with the name of the function to call.
+In order to enable the custom function calling behavior, define the macro `ACL_ON_ASSERT_CUSTOM` with the name of the function to call:
 
 `#define ACL_ON_ASSERT_CUSTOM on_custom_assert_impl`
 
 Note that the function signature is as follow: `void on_custom_assert_impl(const char* expression, int line, const char* file, const char* format, ...) {}`
+
+You can also define your own assert implementation by defining the `ACL_ASSERT` macro as well:
+
+```
+#define ACL_ON_ASSERT_CUSTOM
+#define ACL_ASSERT(expression, format, ...) checkf(expression, ANSI_TO_TCHAR(format), #__VA_ARGS__)
+```
 
 ## No checks
 

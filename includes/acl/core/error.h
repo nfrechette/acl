@@ -35,20 +35,24 @@
 //    - Do nothing and strip the check at compile time (default behavior)
 //
 // Aborting:
-//    In order to enable the aborting behavior, simply define the macro ACL_ON_ASSERT_ABORT.
+//    In order to enable the aborting behavior, simply define the macro ACL_ON_ASSERT_ABORT:
 //    #define ACL_ON_ASSERT_ABORT
 //
 // Throwing:
-//    In order to enable the throwing behavior, simply define the macro ACL_ON_ASSERT_THROW.
+//    In order to enable the throwing behavior, simply define the macro ACL_ON_ASSERT_THROW:
 //    #define ACL_ON_ASSERT_THROW
 //    Note that the type of the exception thrown is std::runtime_error.
 //
 // Custom function:
 //    In order to enable the custom function calling behavior, define the macro ACL_ON_ASSERT_CUSTOM
-//    with the name of the function to call.
+//    with the name of the function to call:
 //    #define ACL_ON_ASSERT_CUSTOM on_custom_assert_impl
 //    Note that the function signature is as follow:
 //    void on_custom_assert_impl(const char* expression, int line, const char* file, const char* format, ...) {}
+//
+//    You can also define your own assert implementation by defining the ACL_ASSERT macro as well:
+//    #define ACL_ON_ASSERT_CUSTOM
+//    #define ACL_ASSERT(expression, format, ...) checkf(expression, ANSI_TO_TCHAR(format), #__VA_ARGS__)
 //
 // No checks:
 //    By default if no macro mentioned above is defined, all asserts will be stripped
@@ -119,7 +123,10 @@
 
 #elif defined(ACL_ON_ASSERT_CUSTOM)
 
-	#define ACL_ASSERT(expression, format, ...) if (!(expression)) ACL_ON_ASSERT_CUSTOM(#expression, __LINE__, __FILE__, format, ## __VA_ARGS__)
+	#if !defined(ACL_ASSERT)
+		#define ACL_ASSERT(expression, format, ...) if (!(expression)) ACL_ON_ASSERT_CUSTOM(#expression, __LINE__, __FILE__, format, ## __VA_ARGS__)
+	#endif
+
 	#define ACL_HAS_ASSERT_CHECKS
 
 #else
