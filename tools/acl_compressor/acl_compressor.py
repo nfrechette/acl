@@ -356,39 +356,39 @@ def shorten_range_reduction(range_reduction):
 		return 'RR:???'
 
 def shorten_rotation_format(format):
-	if format == 'Quat 128':
+	if format == 'Quat_128':
 		return 'R:Quat'
-	elif format == 'Quat Drop W 96':
+	elif format == 'QuatDropW_96':
 		return 'R:QuatNoW96'
-	elif format == 'Quat Drop W 48':
+	elif format == 'QuatDropW_48':
 		return 'R:QuatNoW48'
-	elif format == 'Quat Drop W 32':
+	elif format == 'QuatDropW_32':
 		return 'R:QuatNoW32'
-	elif format == 'Quat Drop W Variable':
+	elif format == 'QuatDropW_Variable':
 		return 'R:QuatNoWVar'
 	else:
 		return 'R:???'
 
 def shorten_translation_format(format):
-	if format == 'Vector3 96':
+	if format == 'Vector3_96':
 		return 'T:Vec3_96'
-	elif format == 'Vector3 48':
+	elif format == 'Vector3_48':
 		return 'T:Vec3_48'
-	elif format == 'Vector3 32':
+	elif format == 'Vector3_32':
 		return 'T:Vec3_32'
-	elif format == 'Vector3 Variable':
+	elif format == 'Vector3_Variable':
 		return 'T:Vec3Var'
 	else:
 		return 'T:???'
 
 def shorten_scale_format(format):
-	if format == 'Vector3 96':
+	if format == 'Vector3_96':
 		return 'S:Vec3_96'
-	elif format == 'Vector3 48':
+	elif format == 'Vector3_48':
 		return 'S:Vec3_48'
-	elif format == 'Vector3 32':
+	elif format == 'Vector3_32':
 		return 'S:Vec3_32'
-	elif format == 'Vector3 Variable':
+	elif format == 'Vector3_Variable':
 		return 'S:Vec3Var'
 	else:
 		return 'S:???'
