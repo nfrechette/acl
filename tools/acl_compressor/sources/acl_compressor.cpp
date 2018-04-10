@@ -57,56 +57,56 @@
 #include <memory>
 
 #ifdef _WIN32
-#include <conio.h>
-#if !defined(_WINDOWS_)
-// The below excludes some other unused services from the windows headers -- see windows.h for details.
-#define NOGDICAPMASKS            // CC_*, LC_*, PC_*, CP_*, TC_*, RC_
-#define NOVIRTUALKEYCODES        // VK_*
-#define NOWINMESSAGES            // WM_*, EM_*, LB_*, CB_*
-#define NOWINSTYLES                // WS_*, CS_*, ES_*, LBS_*, SBS_*, CBS_*
-#define NOSYSMETRICS            // SM_*
-#define NOMENUS                    // MF_*
-#define NOICONS                    // IDI_*
-#define NOKEYSTATES                // MK_*
-#define NOSYSCOMMANDS            // SC_*
-#define NORASTEROPS                // Binary and Tertiary raster ops
-#define NOSHOWWINDOW            // SW_*
-#define OEMRESOURCE                // OEM Resource values
-#define NOATOM                    // Atom Manager routines
-#define NOCLIPBOARD                // Clipboard routines
-#define NOCOLOR                    // Screen colors
-#define NOCTLMGR                // Control and Dialog routines
-#define NODRAWTEXT                // DrawText() and DT_*
-#define NOGDI                    // All GDI #defines and routines
-#define NOKERNEL                // All KERNEL #defines and routines
-#define NOUSER                    // All USER #defines and routines
-#define NONLS                    // All NLS #defines and routines
-#define NOMB                    // MB_* and MessageBox()
-#define NOMEMMGR                // GMEM_*, LMEM_*, GHND, LHND, associated routines
-#define NOMETAFILE                // typedef METAFILEPICT
-#define NOMINMAX                // Macros min(a,b) and max(a,b)
-#define NOMSG                    // typedef MSG and associated routines
-#define NOOPENFILE                // OpenFile(), OemToAnsi, AnsiToOem, and OF_*
-#define NOSCROLL                // SB_* and scrolling routines
-#define NOSERVICE                // All Service Controller routines, SERVICE_ equates, etc.
-#define NOSOUND                    // Sound driver routines
-#define NOTEXTMETRIC            // typedef TEXTMETRIC and associated routines
-#define NOWH                    // SetWindowsHook and WH_*
-#define NOWINOFFSETS            // GWL_*, GCL_*, associated routines
-#define NOCOMM                    // COMM driver routines
-#define NOKANJI                    // Kanji support stuff.
-#define NOHELP                    // Help engine interface.
-#define NOPROFILER                // Profiler interface.
-#define NODEFERWINDOWPOS        // DeferWindowPos routines
-#define NOMCX                    // Modem Configuration Extensions
-#define NOCRYPT
-#define NOTAPE
-#define NOIMAGE
-#define NOPROXYSTUB
-#define NORPC
 
-#include <windows.h>
-#endif    // _WINDOWS_
+	// The below excludes some other unused services from the windows headers -- see windows.h for details.
+	#define NOGDICAPMASKS            // CC_*, LC_*, PC_*, CP_*, TC_*, RC_
+	#define NOVIRTUALKEYCODES        // VK_*
+	#define NOWINMESSAGES            // WM_*, EM_*, LB_*, CB_*
+	#define NOWINSTYLES                // WS_*, CS_*, ES_*, LBS_*, SBS_*, CBS_*
+	#define NOSYSMETRICS            // SM_*
+	#define NOMENUS                    // MF_*
+	#define NOICONS                    // IDI_*
+	#define NOKEYSTATES                // MK_*
+	#define NOSYSCOMMANDS            // SC_*
+	#define NORASTEROPS                // Binary and Tertiary raster ops
+	#define NOSHOWWINDOW            // SW_*
+	#define OEMRESOURCE                // OEM Resource values
+	#define NOATOM                    // Atom Manager routines
+	#define NOCLIPBOARD                // Clipboard routines
+	#define NOCOLOR                    // Screen colors
+	#define NOCTLMGR                // Control and Dialog routines
+	#define NODRAWTEXT                // DrawText() and DT_*
+	#define NOGDI                    // All GDI #defines and routines
+	#define NOKERNEL                // All KERNEL #defines and routines
+	#define NOUSER                    // All USER #defines and routines
+	#define NONLS                    // All NLS #defines and routines
+	#define NOMB                    // MB_* and MessageBox()
+	#define NOMEMMGR                // GMEM_*, LMEM_*, GHND, LHND, associated routines
+	#define NOMETAFILE                // typedef METAFILEPICT
+	#define NOMINMAX                // Macros min(a,b) and max(a,b)
+	#define NOMSG                    // typedef MSG and associated routines
+	#define NOOPENFILE                // OpenFile(), OemToAnsi, AnsiToOem, and OF_*
+	#define NOSCROLL                // SB_* and scrolling routines
+	#define NOSERVICE                // All Service Controller routines, SERVICE_ equates, etc.
+	#define NOSOUND                    // Sound driver routines
+	#define NOTEXTMETRIC            // typedef TEXTMETRIC and associated routines
+	#define NOWH                    // SetWindowsHook and WH_*
+	#define NOWINOFFSETS            // GWL_*, GCL_*, associated routines
+	#define NOCOMM                    // COMM driver routines
+	#define NOKANJI                    // Kanji support stuff.
+	#define NOHELP                    // Help engine interface.
+	#define NOPROFILER                // Profiler interface.
+	#define NODEFERWINDOWPOS        // DeferWindowPos routines
+	#define NOMCX                    // Modem Configuration Extensions
+	#define NOCRYPT
+	#define NOTAPE
+	#define NOIMAGE
+	#define NOPROXYSTUB
+	#define NORPC
+
+	#include <windows.h>
+	#include <conio.h>
+
 #endif    // _WIN32
 
 using namespace acl;
@@ -513,7 +513,7 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 		}
 	}
 
-	parser.try_read("constant_rotation_threshold", out_settings.constant_rotation_threshold, default_settings.constant_rotation_threshold);
+	parser.try_read("constant_rotation_threshold_angle", out_settings.constant_rotation_threshold_angle, default_settings.constant_rotation_threshold_angle);
 	parser.try_read("constant_translation_threshold", out_settings.constant_translation_threshold, default_settings.constant_translation_threshold);
 	parser.try_read("constant_scale_threshold", out_settings.constant_scale_threshold, default_settings.constant_scale_threshold);
 	parser.try_read("error_threshold", out_settings.error_threshold, default_settings.error_threshold);
@@ -569,8 +569,7 @@ static int safe_main_impl(int argc, char* argv[])
 	}
 
 	TransformErrorMetric default_error_metric;
-	if (use_external_config)
-		settings.error_metric = &default_error_metric;
+	settings.error_metric = &default_error_metric;
 
 	// Compress & Decompress
 	auto exec_algos = [&](sjson::ArrayWriter* runs_writer)

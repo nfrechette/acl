@@ -120,19 +120,30 @@ namespace acl
 		ISkeletalErrorMetric* error_metric;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Constant thresholds are used with the track range:
-		// is_constant = all_less_than(abs(range.max - range.min), threshold)
-		// For translation, this value might depend on the units you use: centimeters VS meters, etc.
-		// constant_rotation_threshold defaults to '0.00001'
-		// constant_translation_threshold defaults to '0.001'
-		// constant_scale_threshold defaults to '0.00001'
-		float constant_rotation_threshold;
+		// Threshold angle when detecting if rotation tracks are constant or default.
+		// See the Quat_32 quat_near_identity for details about how the default threshold
+		// was chosen. You will typically NEVER need to change this, the value has been
+		// selected to be as safe as possible and is independent of game engine units.
+		// Defaults to '0.00284714461' radians
+		float constant_rotation_threshold_angle;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Threshold value to use when detecting if translation tracks are constant or default.
+		// Note that you will need to change this value if your units are not in centimeters.
+		// Defaults to '0.001' centimeters.
 		float constant_translation_threshold;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Threshold value to use when detecting if scale tracks are constant or default.
+		// There are no units for scale as such a value that was deemed safe was selected
+		// as a default.
+		// Defaults to '0.00001'
 		float constant_scale_threshold;
 
 		//////////////////////////////////////////////////////////////////////////
-		// The error threshold used when optimizing the bit rate
-		// Defaults to '0.01'
+		// The error threshold used when optimizing the bit rate.
+		// Note that you will need to change this value if your units are not in centimeters.
+		// Defaults to '0.01' centimeters
 		float error_threshold;
 
 		CompressionSettings()
@@ -142,7 +153,7 @@ namespace acl
 			, range_reduction(RangeReductionFlags8::None)
 			, segmenting()
 			, error_metric(nullptr)
-			, constant_rotation_threshold(0.00001f)
+			, constant_rotation_threshold_angle(0.00284714461f)
 			, constant_translation_threshold(0.001f)
 			, constant_scale_threshold(0.00001f)
 			, error_threshold(0.01f)
@@ -164,7 +175,7 @@ namespace acl
 			if (error_metric != nullptr)
 				hash_value = hash_combine(hash_value, error_metric->get_hash());
 
-			hash_value = hash_combine(hash_value, hash32(constant_rotation_threshold));
+			hash_value = hash_combine(hash_value, hash32(constant_rotation_threshold_angle));
 			hash_value = hash_combine(hash_value, hash32(constant_translation_threshold));
 			hash_value = hash_combine(hash_value, hash32(constant_scale_threshold));
 
@@ -203,8 +214,8 @@ namespace acl
 			if (error_metric == nullptr)
 				return "error_metric cannot be NULL";
 
-			if (constant_rotation_threshold < 0.0f || !is_finite(constant_rotation_threshold))
-				return "Invalid constant_rotation_threshold";
+			if (constant_rotation_threshold_angle < 0.0f || !is_finite(constant_rotation_threshold_angle))
+				return "Invalid constant_rotation_threshold_angle";
 
 			if (constant_translation_threshold < 0.0f || !is_finite(constant_translation_threshold))
 				return "Invalid constant_translation_threshold";

@@ -196,7 +196,7 @@ namespace acl
 			bool rotation_range_reduction;
 			bool translation_range_reduction;
 			bool scale_range_reduction;
-			double constant_rotation_threshold;
+			double constant_rotation_threshold_angle;
 			double constant_translation_threshold;
 			double constant_scale_threshold;
 			double error_threshold;
@@ -229,7 +229,7 @@ namespace acl
 					goto parsing_error;
 			}
 
-			m_parser.try_read("constant_rotation_threshold", constant_rotation_threshold, double(default_settings.constant_rotation_threshold));
+			m_parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, double(default_settings.constant_rotation_threshold_angle));
 			m_parser.try_read("constant_translation_threshold", constant_translation_threshold, double(default_settings.constant_translation_threshold));
 			m_parser.try_read("constant_scale_threshold", constant_scale_threshold, double(default_settings.constant_scale_threshold));
 			m_parser.try_read("error_threshold", error_threshold, double(default_settings.error_threshold));
@@ -275,7 +275,7 @@ namespace acl
 
 				out_settings->segmenting.range_reduction = segmenting_range_reduction;
 
-				out_settings->constant_rotation_threshold = float(constant_rotation_threshold);
+				out_settings->constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
 				out_settings->constant_translation_threshold = float(constant_translation_threshold);
 				out_settings->constant_scale_threshold = float(constant_scale_threshold);
 				out_settings->error_threshold = float(error_threshold);

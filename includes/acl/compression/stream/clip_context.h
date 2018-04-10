@@ -27,9 +27,10 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/compression/compression_settings.h"
 #include "acl/compression/stream/segment_context.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
@@ -69,11 +70,11 @@ namespace acl
 		constexpr SegmentIterator segment_iterator() const { return SegmentIterator(segments, num_segments); }
 	};
 
-	inline void initialize_clip_context(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, ClipContext& out_clip_context)
+	inline void initialize_clip_context(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressionSettings& settings, ClipContext& out_clip_context)
 	{
-		uint16_t num_bones = clip.get_num_bones();
-		uint32_t num_samples = clip.get_num_samples();
-		uint32_t sample_rate = clip.get_sample_rate();
+		const uint16_t num_bones = clip.get_num_bones();
+		const uint32_t num_samples = clip.get_num_samples();
+		const uint32_t sample_rate = clip.get_sample_rate();
 		const AnimatedBone* bones = clip.get_bones();
 
 		ACL_ASSERT(num_bones > 0, "Clip has no bones!");
@@ -124,11 +125,11 @@ namespace acl
 			}
 
 			bone_stream.is_rotation_constant = num_samples == 1;
-			bone_stream.is_rotation_default = bone_stream.is_rotation_constant && quat_near_identity(quat_cast(bone.rotation_track.get_sample(0)));
+			bone_stream.is_rotation_default = bone_stream.is_rotation_constant && quat_near_identity(quat_cast(bone.rotation_track.get_sample(0)), settings.constant_rotation_threshold_angle);
 			bone_stream.is_translation_constant = num_samples == 1;
-			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_all_near_equal3(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32());
+			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_all_near_equal3(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32(), settings.constant_translation_threshold);
 			bone_stream.is_scale_constant = num_samples == 1;
-			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_all_near_equal3(vector_cast(bone.scale_track.get_sample(0)), vector_set(1.0f));
+			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_all_near_equal3(vector_cast(bone.scale_track.get_sample(0)), vector_set(1.0f), settings.constant_scale_threshold);
 
 			has_scale |= !bone_stream.is_scale_default;
 		}

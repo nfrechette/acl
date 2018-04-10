@@ -278,9 +278,10 @@ namespace acl
 		return vector_all_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
 	}
 
-	inline bool quat_near_identity(const Quat_64& input, double threshold = 0.00001)
+	inline bool quat_near_identity(const Quat_64& input, double threshold_angle = 0.00284714461)
 	{
-		double angle = quat_get_angle(input);
-		return abs(angle) < threshold;
+		// See the Quat_32 version of quat_near_identity for details.
+		const double positive_w_angle = acos(abs(quat_get_w(input))) * 2.0;
+		return positive_w_angle < threshold_angle;
 	}
 }

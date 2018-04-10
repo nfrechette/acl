@@ -89,7 +89,7 @@ namespace acl
 					writer["scale_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Scales);
 				};
 
-				writer["constant_rotation_threshold"] = settings.constant_rotation_threshold;
+				writer["constant_rotation_threshold_angle"] = settings.constant_rotation_threshold_angle;
 				writer["constant_translation_threshold"] = settings.constant_translation_threshold;
 				writer["constant_scale_threshold"] = settings.constant_scale_threshold;
 				writer["error_threshold"] = settings.error_threshold;

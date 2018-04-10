@@ -92,10 +92,10 @@ namespace acl
 			ScopeProfiler compression_time;
 
 			ClipContext raw_clip_context;
-			initialize_clip_context(allocator, clip, skeleton, raw_clip_context);
+			initialize_clip_context(allocator, clip, skeleton, settings, raw_clip_context);
 
 			ClipContext clip_context;
-			initialize_clip_context(allocator, clip, skeleton, clip_context);
+			initialize_clip_context(allocator, clip, skeleton, settings, clip_context);
 
 			convert_rotation_streams(allocator, clip_context, settings.rotation_format);
 
@@ -103,7 +103,7 @@ namespace acl
 			extract_clip_bone_ranges(allocator, clip_context);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, clip_context, settings.constant_rotation_threshold, settings.constant_translation_threshold, settings.constant_scale_threshold);
+			compact_constant_streams(allocator, clip_context, settings.constant_rotation_threshold_angle, settings.constant_translation_threshold, settings.constant_scale_threshold);
 
 			uint32_t clip_range_data_size = 0;
 			if (settings.range_reduction != RangeReductionFlags8::None)

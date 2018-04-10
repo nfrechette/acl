@@ -334,9 +334,22 @@ namespace acl
 		return vector_all_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
 	}
 
-	inline bool quat_near_identity(const Quat_32& input, float threshold = 0.00001f)
+	inline bool quat_near_identity(const Quat_32& input, float threshold_angle = 0.00284714461f)
 	{
-		float angle = quat_get_angle(input);
-		return abs(angle) < threshold;
+		// Because of floating point precision, we cannot represent very small rotations.
+		// The closest float to 1.0 that is not 1.0 itself yields:
+		// acos(0.99999994f) * 2.0f  = 0.000690533954 rad
+		//
+		// An error threshold of 1.e-6f is used by default.
+		// acos(1.f - 1.e-6f) * 2.0f = 0.00284714461 rad
+		// acos(1.f - 1.e-7f) * 2.0f = 0.00097656250 rad
+		//
+		// We don't really care about the angle value itself, only if it's close to 0.
+		// This will happen whenever quat.w is close to 1.0.
+		// If the quat.w is close to -1.0, the angle will be near 2*PI which is close to
+		// a negative 0 rotation. By forcing quat.w to be positive, we'll end up with
+		// the shortest path.
+		const float positive_w_angle = acos(abs(quat_get_w(input))) * 2.0f;
+		return positive_w_angle < threshold_angle;
 	}
 }

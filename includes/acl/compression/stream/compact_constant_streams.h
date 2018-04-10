@@ -33,7 +33,47 @@
 
 namespace acl
 {
-	inline void compact_constant_streams(IAllocator& allocator, ClipContext& clip_context, float rotation_threshold, float translation_threshold, float scale_threshold)
+	inline bool is_rotation_track_constant(const RotationTrackStream& rotations, float threshold_angle)
+	{
+		// Calculating the average rotation and comparing every rotation in the track to it
+		// to determine if we are within the threshold seems overkill. We can't use the min/max for the range
+		// either because neither of those represents a valid rotation. Instead we grab
+		// the first rotation, and compare everything else to it.
+		auto sample_to_quat = [](const RotationTrackStream& rotations, uint32_t sample_index)
+		{
+			const Vector4_32 rotation = rotations.get_raw_sample<Vector4_32>(sample_index);
+
+			switch (rotations.get_rotation_format())
+			{
+			case RotationFormat8::Quat_128:
+				return vector_to_quat(rotation);
+			case RotationFormat8::QuatDropW_96:
+			case RotationFormat8::QuatDropW_48:
+			case RotationFormat8::QuatDropW_32:
+			case RotationFormat8::QuatDropW_Variable:
+				return quat_from_positive_w(rotation);
+			default:
+				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotations.get_rotation_format()));
+				return vector_to_quat(rotation);
+			}
+		};
+
+		const Quat_32 ref_rotation = sample_to_quat(rotations, 0);
+		const Quat_32 inv_ref_rotation = quat_conjugate(ref_rotation);
+
+		const uint32_t num_samples = rotations.get_num_samples();
+		for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
+		{
+			const Quat_32 rotation = sample_to_quat(rotations, sample_index);
+			const Quat_32 delta = quat_normalize(quat_mul(inv_ref_rotation, rotation));
+			if (!quat_near_identity(delta, threshold_angle))
+				return false;
+		}
+
+		return true;
+	}
+
+	inline void compact_constant_streams(IAllocator& allocator, ClipContext& clip_context, float rotation_threshold_angle, float translation_threshold, float scale_threshold)
 	{
 		ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];
@@ -52,7 +92,7 @@ namespace acl
 			ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(Vector4_32), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(Vector4_32));
 			ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(Vector4_32), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(Vector4_32));
 
-			if (bone_range.rotation.is_constant(rotation_threshold))
+			if (is_rotation_track_constant(bone_stream.rotations, rotation_threshold_angle))
 			{
 				RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
 				Vector4_32 rotation = bone_stream.rotations.get_raw_sample<Vector4_32>(0);
@@ -60,7 +100,7 @@ namespace acl
 
 				bone_stream.rotations = std::move(constant_stream);
 				bone_stream.is_rotation_constant = true;
-				bone_stream.is_rotation_default = quat_near_identity(vector_to_quat(rotation));
+				bone_stream.is_rotation_default = quat_near_identity(vector_to_quat(rotation), rotation_threshold_angle);
 
 				bone_range.rotation = TrackStreamRange(rotation, rotation);
 			}
@@ -73,7 +113,7 @@ namespace acl
 
 				bone_stream.translations = std::move(constant_stream);
 				bone_stream.is_translation_constant = true;
-				bone_stream.is_translation_default = vector_all_near_equal3(translation, vector_zero_32());
+				bone_stream.is_translation_default = vector_all_near_equal3(translation, vector_zero_32(), translation_threshold);
 
 				bone_range.translation = TrackStreamRange(translation, translation);
 			}
@@ -86,7 +126,7 @@ namespace acl
 
 				bone_stream.scales = std::move(constant_stream);
 				bone_stream.is_scale_constant = true;
-				bone_stream.is_scale_default = vector_all_near_equal3(scale, vector_set(1.0f));
+				bone_stream.is_scale_default = vector_all_near_equal3(scale, vector_set(1.0f), scale_threshold);
 
 				bone_range.scale = TrackStreamRange(scale, scale);
 

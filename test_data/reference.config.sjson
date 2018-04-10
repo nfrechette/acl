@@ -31,12 +31,12 @@ segmenting = {
 	scale_range_reduction = false
 }
 
-// Threshold value to use when detecting if a rotation track is constant
-// Defaults to '0.00001'
-constant_rotation_threshold = 0.00001
+// Threshold angle value to use when detecting if a rotation track is constant
+// Defaults to '0.00284714461' radians
+constant_rotation_threshold_angle = 0.00284714461
 
 // Threshold value to use when detecting if a translation track is constant
-// Defaults to '0.001'
+// Defaults to '0.001' centimeters
 constant_translation_threshold = 0.001
 
 // Threshold value to use when detecting if a scale track is constant
@@ -44,7 +44,7 @@ constant_translation_threshold = 0.001
 constant_scale_threshold = 0.00001
 
 // The error threshold used when optimizing the bit rate
-// Defaults to '0.01'
+// Defaults to '0.01' centimeters
 error_threshold = 0.01
 
 // The error threshold used when performing regression testing
