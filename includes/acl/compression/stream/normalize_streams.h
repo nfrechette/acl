@@ -47,10 +47,10 @@ namespace acl
 			const uint32_t num_samples = stream.get_num_samples();
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				const Vector4_32 rotation = stream.get_raw_sample<Vector4_32>(sample_index);
+				const Vector4_32 sample = stream.get_raw_sample<Vector4_32>(sample_index);
 
-				min = vector_min(min, rotation);
-				max = vector_max(max, rotation);
+				min = vector_min(min, sample);
+				max = vector_max(max, sample);
 			}
 
 			return TrackStreamRange(min, max);
@@ -88,7 +88,7 @@ namespace acl
 
 	inline void extract_segment_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
 	{
-		uint8_t buffer[8] = {0};
+		alignas(8) uint8_t buffer[8] = {0};
 		const Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, k_segment_range_reduction_num_bits_per_component));
 		const Vector4_32 one = vector_set(1.0f);
 		const Vector4_32 zero = vector_zero_32();
@@ -136,7 +136,7 @@ namespace acl
 		const Vector4_32 range_extent = range.get_extent();
 		const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
 
-		Vector4_32 normalized_sample = vector_div(vector_sub(sample, range_min), range_extent);
+		const Vector4_32 normalized_sample = vector_div(vector_sub(sample, range_min), range_extent);
 		return vector_blend(is_range_zero_mask, vector_zero_32(), normalized_sample);
 	}
 
