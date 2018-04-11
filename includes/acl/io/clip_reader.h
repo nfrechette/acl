@@ -247,6 +247,12 @@ namespace acl
 				if (!get_rotation_format(rotation_format.c_str(), out_settings->rotation_format))
 					goto invalid_value_error;
 
+				if (!get_vector_format(translation_format.c_str(), out_settings->translation_format))
+					goto invalid_value_error;
+
+				if (!get_vector_format(scale_format.c_str(), out_settings->scale_format))
+					goto invalid_value_error;
+
 				RangeReductionFlags8 range_reduction = RangeReductionFlags8::None;
 				if (rotation_range_reduction)
 					range_reduction |= RangeReductionFlags8::Rotations;
