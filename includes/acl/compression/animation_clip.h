@@ -31,7 +31,7 @@
 #include "acl/math/vector4_32.h"
 #include "acl/math/transform_32.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {

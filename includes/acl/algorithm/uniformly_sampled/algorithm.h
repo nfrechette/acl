@@ -45,7 +45,7 @@ namespace acl
 			m_compression_settings.range_reduction = clip_range_reduction;
 			m_compression_settings.segmenting.enabled = use_segmenting;
 			m_compression_settings.segmenting.range_reduction = segment_range_reduction;
-			m_compression_settings.error_metric = &m_error_metric;
+			m_compression_settings.error_metric = &m_default_error_metric;
 		}
 
 		UniformlySampledAlgorithm(const CompressionSettings& settings)
@@ -86,7 +86,7 @@ namespace acl
 		virtual uint32_t get_uid() const override { return m_compression_settings.hash(); }
 
 	private:
-		TransformErrorMetric m_error_metric;
+		TransformErrorMetric m_default_error_metric;
 		CompressionSettings m_compression_settings;
 	};
 }

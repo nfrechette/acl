@@ -27,7 +27,7 @@
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {

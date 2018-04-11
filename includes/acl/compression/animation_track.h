@@ -31,7 +31,7 @@
 #include "acl/math/quat_64.h"
 #include "acl/math/vector4_64.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <utility>
 
 // VS2015 sometimes dies when it attemps to compile too many inlined functions
