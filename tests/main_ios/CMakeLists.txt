@@ -32,3 +32,6 @@ file(GLOB_RECURSE ALL_MAIN_SOURCE_FILES LIST_DIRECTORIES false
 create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
 
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${ALL_TEST_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILES})
+
+# Throw on failure to allow us to catch them and recover
+add_definitions(-DACL_ON_ASSERT_THROW)

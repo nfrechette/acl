@@ -39,6 +39,9 @@ add_executable(${PROJECT_NAME} ${ALL_TEST_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILES}
 
 target_compile_options(${PROJECT_NAME} PRIVATE -fexceptions)
 
+# Throw on failure to allow us to catch them and recover
+add_definitions(-DACL_ON_ASSERT_THROW)
+
 target_include_directories(${PROJECT_NAME} PUBLIC jni)
 
 target_link_libraries(${PROJECT_NAME} m)
