@@ -106,7 +106,7 @@ namespace acl
 			: name()
 			, bone_chain(nullptr)
 			, bind_transform(transform_identity_64())
-			, vertex_distance(1.0)
+			, vertex_distance(1.0f)
 			, parent_index(k_invalid_bone_index)
 		{
 		}
@@ -141,7 +141,7 @@ namespace acl
 		const uint32_t*	bone_chain;
 
 		Transform_64	bind_transform;		// Bind transform is in parent bone local space
-		double			vertex_distance;	// Virtual vertex distance used by hierarchical error function
+		float			vertex_distance;	// Virtual vertex distance used by hierarchical error function
 		uint16_t		parent_index;		// TODO: Introduce a type for bone indices
 	};
 
