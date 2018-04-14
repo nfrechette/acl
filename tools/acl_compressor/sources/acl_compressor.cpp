@@ -129,6 +129,7 @@ struct Options
 	std::FILE*		output_stats_file;
 
 	bool			regression_testing;
+	bool			is_bind_pose_additive;
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -146,6 +147,7 @@ struct Options
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
 		, regression_testing(false)
+		, is_bind_pose_additive(false)
 	{}
 
 	Options(Options&& other)
@@ -162,6 +164,7 @@ struct Options
 		, output_stats_filename(other.output_stats_filename)
 		, output_stats_file(other.output_stats_file)
 		, regression_testing(other.regression_testing)
+		, is_bind_pose_additive(other.is_bind_pose_additive)
 	{
 		new (&other) Options();
 	}
@@ -187,6 +190,7 @@ struct Options
 		std::swap(output_stats_filename, rhs.output_stats_filename);
 		std::swap(output_stats_file, rhs.output_stats_file);
 		std::swap(regression_testing, rhs.regression_testing);
+		std::swap(is_bind_pose_additive, rhs.is_bind_pose_additive);
 		return *this;
 	}
 
@@ -212,6 +216,7 @@ constexpr const char* k_acl_input_file_option = "-acl=";
 constexpr const char* k_config_input_file_option = "-config=";
 constexpr const char* k_stats_output_option = "-stats";
 constexpr const char* k_regression_test_option = "-test";
+constexpr const char* k_bind_pose_additive_option = "-bind_add";
 
 static bool parse_options(int argc, char** argv, Options& options)
 {
@@ -270,6 +275,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_regression_test_option, option_length) == 0)
 		{
 			options.regression_testing = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_bind_pose_additive_option);
+		if (std::strncmp(argument, k_bind_pose_additive_option, option_length) == 0)
+		{
+			options.is_bind_pose_additive = true;
 			continue;
 		}
 
@@ -367,6 +379,20 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 				auto decompress_pose_impl = [&](void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)
 				{
 					algorithm.decompress_pose(*compressed_clip, context, sample_time, out_transforms, num_transforms);
+
+					if (options.is_bind_pose_additive)
+					{
+						for (uint16_t bone_index = 0; bone_index < num_transforms; ++bone_index)
+						{
+							const RigidBone& skel_bone = skeleton.get_bone(bone_index);
+							Transform_32 bind_transform = transform_cast(skel_bone.bind_transform);
+							bind_transform.rotation = quat_normalize(bind_transform.rotation);
+
+							const Transform_32& bind_local_transform = out_transforms[bone_index];
+							const Transform_32 bone_transform = transform_mul(bind_local_transform, bind_transform);
+							out_transforms[bone_index] = bone_transform;
+						}
+					}
 				};
 
 				write_decompression_stats(allocator, clip, logging, *stats_writer, allocate_context_impl, decompress_pose_impl, deallocate_context_impl);
@@ -594,7 +620,43 @@ static int safe_main_impl(int argc, char* argv[])
 	}
 
 	TransformErrorMetric default_error_metric;
-	settings.error_metric = &default_error_metric;
+	BindPoseAdditiveTransformErrorMetric bind_pose_local_error_metric;
+
+	if (options.is_bind_pose_additive)
+	{
+		// Convert the animation clip to be relative to the bind pose
+		const uint16_t num_bones = clip->get_num_bones();
+		const uint32_t num_samples = clip->get_num_samples();
+		AnimatedBone* bones = clip->get_bones();
+
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			AnimatedBone& anim_bone = bones[bone_index];
+
+			const RigidBone& skel_bone = skeleton->get_bone(bone_index);
+			const Transform_64 inv_bind_pose = transform_inverse_no_scale(skel_bone.bind_transform);
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				const Quat_64 rotation = quat_normalize(anim_bone.rotation_track.get_sample(sample_index));
+				const Vector4_64 translation = anim_bone.translation_track.get_sample(sample_index);
+				const Vector4_64 scale = anim_bone.scale_track.get_sample(sample_index);
+
+				const Transform_64 bone_transform = transform_set(rotation, translation, scale);
+				const Transform_64 bind_local_transform = transform_mul(bone_transform, inv_bind_pose);
+
+				anim_bone.rotation_track.set_sample(sample_index, bind_local_transform.rotation);
+				anim_bone.translation_track.set_sample(sample_index, bind_local_transform.translation);
+				anim_bone.scale_track.set_sample(sample_index, bind_local_transform.scale);
+			}
+		}
+
+		settings.error_metric = &bind_pose_local_error_metric;
+	}
+	else
+	{
+		settings.error_metric = &default_error_metric;
+	}
 
 	// Compress & Decompress
 	auto exec_algos = [&](sjson::ArrayWriter* runs_writer)
