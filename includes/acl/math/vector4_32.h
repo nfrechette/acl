@@ -385,12 +385,12 @@ namespace acl
 		return vector_length3(vector_sub(rhs, lhs));
 	}
 
-	inline Vector4_32 vector_normalize3(const Vector4_32& input, float threshold = 0.00000001f)
+	inline Vector4_32 vector_normalize3(const Vector4_32& input, float threshold = 1.0e-8f)
 	{
 		// Reciprocal is more accurate to normalize with
-		float inv_len = vector_length_reciprocal3(input);
-		if (inv_len >= threshold)
-			return vector_mul(input, vector_set(inv_len));
+		const float len_sq = vector_length_squared3(input);
+		if (len_sq >= threshold)
+			return vector_mul(input, vector_set(sqrt_reciprocal(len_sq)));
 		else
 			return input;
 	}

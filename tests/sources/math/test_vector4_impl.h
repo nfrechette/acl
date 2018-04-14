@@ -104,9 +104,12 @@ inline FloatType scalar_dot3(const Vector4Type& lhs, const Vector4Type& rhs)
 template<typename Vector4Type, typename FloatType>
 inline Vector4Type scalar_normalize3(const Vector4Type& input, FloatType threshold)
 {
-	FloatType inv_len = FloatType(1.0) / acl::sqrt(scalar_dot3<Vector4Type, FloatType>(input, input));
-	if (inv_len >= threshold)
+	FloatType len_sq = scalar_dot3<Vector4Type, FloatType>(input, input);
+	if (len_sq >= threshold)
+	{
+		FloatType inv_len = acl::sqrt_reciprocal(len_sq);
 		return vector_set(vector_get_x(input) * inv_len, vector_get_y(input) * inv_len, vector_get_z(input) * inv_len);
+	}
 	else
 		return input;
 }
@@ -316,6 +319,12 @@ void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const 
 	REQUIRE(scalar_near_equal(vector_get_x(vector_normalize3_result), vector_get_x(scalar_normalize3_result), threshold));
 	REQUIRE(scalar_near_equal(vector_get_y(vector_normalize3_result), vector_get_y(scalar_normalize3_result), threshold));
 	REQUIRE(scalar_near_equal(vector_get_z(vector_normalize3_result), vector_get_z(scalar_normalize3_result), threshold));
+
+	const Vector4Type scalar_normalize3_result0 = scalar_normalize3<Vector4Type, FloatType>(zero, threshold);
+	const Vector4Type vector_normalize3_result0 = vector_normalize3(zero, threshold);
+	REQUIRE(scalar_near_equal(vector_get_x(vector_normalize3_result0), vector_get_x(scalar_normalize3_result0), threshold));
+	REQUIRE(scalar_near_equal(vector_get_y(vector_normalize3_result0), vector_get_y(scalar_normalize3_result0), threshold));
+	REQUIRE(scalar_near_equal(vector_get_z(vector_normalize3_result0), vector_get_z(scalar_normalize3_result0), threshold));
 
 	REQUIRE(scalar_near_equal(vector_get_x(vector_lerp(test_value10, test_value11, FloatType(0.33))), ((test_value11_flt[0] - test_value10_flt[0]) * FloatType(0.33)) + test_value10_flt[0], threshold));
 	REQUIRE(scalar_near_equal(vector_get_y(vector_lerp(test_value10, test_value11, FloatType(0.33))), ((test_value11_flt[1] - test_value10_flt[1]) * FloatType(0.33)) + test_value10_flt[1], threshold));
