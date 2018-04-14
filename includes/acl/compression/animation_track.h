@@ -285,7 +285,7 @@ namespace acl
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");
 			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
-			ACL_ASSERT(vector_is_finite3(scale) && !vector_all_near_equal3(scale, vector_zero_64()), "Invalid scale: [%f, %f, %f]", vector_get_x(scale), vector_get_y(scale), vector_get_z(scale));
+			ACL_ASSERT(vector_is_finite3(scale), "Invalid scale: [%f, %f, %f]", vector_get_x(scale), vector_get_y(scale), vector_get_z(scale));
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ASSERT(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
