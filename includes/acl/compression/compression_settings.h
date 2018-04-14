@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
@@ -78,21 +79,21 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Checks if everything is valid and if it isn't, returns an error string.
 		// Returns nullptr if the settings are valid.
-		const char* get_error() const
+		ErrorResult is_valid() const
 		{
 			if (!enabled)
-				return nullptr;
+				return ErrorResult();
 
 			if (ideal_num_samples == 0)
-				return "ideal_num_samples cannot be 0";
+				return ErrorResult("ideal_num_samples cannot be 0");
 
 			if (max_num_samples == 0)
-				return "max_num_samples cannot be 0";
+				return ErrorResult("max_num_samples cannot be 0");
 
 			if (ideal_num_samples > max_num_samples)
-				return "ideal_num_samples must be smaller or equal to max_num_samples";
+				return ErrorResult("ideal_num_samples must be smaller or equal to max_num_samples");
 
-			return nullptr;
+			return ErrorResult();
 		}
 	};
 
@@ -187,14 +188,14 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Checks if everything is valid and if it isn't, returns an error string.
 		// Returns nullptr if the settings are valid.
-		const char* get_error() const
+		ErrorResult is_valid() const
 		{
 			if (translation_format != VectorFormat8::Vector3_96)
 			{
 				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations);
 				const bool has_segment_range_reduction = segmenting.enabled && are_any_enum_flags_set(segmenting.range_reduction, RangeReductionFlags8::Translations);
 				if (!has_clip_range_reduction && !has_segment_range_reduction)
-					return "This translation format requires range reduction to be enabled at the clip or segment level";
+					return ErrorResult("This translation format requires range reduction to be enabled at the clip or segment level");
 			}
 
 			if (scale_format != VectorFormat8::Vector3_96)
@@ -202,31 +203,31 @@ namespace acl
 				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales);
 				const bool has_segment_range_reduction = segmenting.enabled && are_any_enum_flags_set(segmenting.range_reduction, RangeReductionFlags8::Scales);
 				if (!has_clip_range_reduction && !has_segment_range_reduction)
-					return "This scale format requires range reduction to be enabled at the clip or segment level";
+					return ErrorResult("This scale format requires range reduction to be enabled at the clip or segment level");
 			}
 
 			if (segmenting.enabled && segmenting.range_reduction != RangeReductionFlags8::None)
 			{
 				if (range_reduction == RangeReductionFlags8::None)
-					return "Per segment range reduction requires per clip range reduction to be enabled";
+					return ErrorResult("Per segment range reduction requires per clip range reduction to be enabled");
 			}
 
 			if (error_metric == nullptr)
-				return "error_metric cannot be NULL";
+				return ErrorResult("error_metric cannot be NULL");
 
 			if (constant_rotation_threshold_angle < 0.0f || !is_finite(constant_rotation_threshold_angle))
-				return "Invalid constant_rotation_threshold_angle";
+				return ErrorResult("Invalid constant_rotation_threshold_angle");
 
 			if (constant_translation_threshold < 0.0f || !is_finite(constant_translation_threshold))
-				return "Invalid constant_translation_threshold";
+				return ErrorResult("Invalid constant_translation_threshold");
 
 			if (constant_scale_threshold < 0.0f || !is_finite(constant_scale_threshold))
-				return "Invalid constant_scale_threshold";
+				return ErrorResult("Invalid constant_scale_threshold");
 
 			if (error_threshold < 0.0f || !is_finite(error_threshold))
-				return "Invalid error_threshold";
+				return ErrorResult("Invalid error_threshold");
 
-			return segmenting.get_error();
+			return segmenting.is_valid();
 		}
 	};
 }

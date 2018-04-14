@@ -25,9 +25,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
-#include "acl/core/error.h"
 #include "acl/core/bitset.h"
 #include "acl/core/enum_utils.h"
+#include "acl/core/error.h"
+#include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/track_types.h"
@@ -73,20 +74,20 @@ namespace acl
 	namespace uniformly_sampled
 	{
 		// Encoder entry point
-		inline const char* compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings settings, CompressedClip*& out_compressed_clip, OutputStats& out_stats)
+		inline ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings settings, CompressedClip*& out_compressed_clip, OutputStats& out_stats)
 		{
 			using namespace impl;
 
 			const uint16_t num_bones = clip.get_num_bones();
 			if (num_bones == 0)
-				return "Clip has no bones!";
+				return ErrorResult("Clip has no bones!");
 
 			const uint32_t num_samples = clip.get_num_samples();
 			if (num_samples == 0)
-				return "Clip has no samples!";
+				return ErrorResult("Clip has no samples!");
 
-			const char* settings_error = settings.get_error();
-			if (settings_error != nullptr)
+			ErrorResult settings_error = settings.is_valid();
+			if (settings_error.any())
 				return settings_error;
 
 			ScopeProfiler compression_time;
@@ -224,7 +225,7 @@ namespace acl
 			destroy_clip_context(allocator, raw_clip_context);
 
 			out_compressed_clip = compressed_clip;
-			return nullptr;
+			return ErrorResult();
 		}
 	}
 }

@@ -26,6 +26,7 @@
 
 #include "acl/core/iallocator.h"
 #include "acl/core/compressed_clip.h"
+#include "acl/core/error_result.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/decompression/output_writer.h"
@@ -50,7 +51,7 @@ namespace acl
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Compressed the specified clip.
-		virtual const char* compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressedClip*& out_compressed_clip, OutputStats& out_stats) = 0;
+		virtual ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressedClip*& out_compressed_clip, OutputStats& out_stats) = 0;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Allocates and deallocates a decompression context.

@@ -356,11 +356,11 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 	{
 		OutputStats stats(logging, stats_writer);
 		CompressedClip* compressed_clip = nullptr;
-		const char* error_msg = algorithm.compress_clip(allocator, clip, skeleton, compressed_clip, stats);
-		(void)error_msg;
+		ErrorResult error_result = algorithm.compress_clip(allocator, clip, skeleton, compressed_clip, stats);
+		(void)error_result;
 
-		ACL_ASSERT(error_msg == nullptr, error_msg);
-		ACL_ASSERT(compressed_clip->is_valid(true), "Compressed clip is invalid");
+		ACL_ASSERT(error_result.empty(), error_result.c_str());
+		ACL_ASSERT(compressed_clip->is_valid(true).empty(), "Compressed clip is invalid");
 
 #if defined(SJSON_CPP_WRITER)
 		if (logging != StatLogging::None)

@@ -336,7 +336,7 @@ namespace acl
 			using namespace impl;
 
 			ACL_ASSERT(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
-			ACL_ASSERT(clip.is_valid(false), "Clip is invalid");
+			ACL_ASSERT(clip.is_valid(false).empty(), "Clip is invalid");
 
 			const ClipHeader& header = get_clip_header(clip);
 
@@ -368,7 +368,7 @@ namespace acl
 			using namespace impl;
 
 			ACL_ASSERT(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
-			ACL_ASSERT(clip.is_valid(false), "Clip is invalid");
+			ACL_ASSERT(clip.is_valid(false).empty(), "Clip is invalid");
 
 			const ClipHeader& header = get_clip_header(clip);
 

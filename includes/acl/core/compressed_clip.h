@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/algorithm_versions.h"
+#include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/memory_utils.h"
 #include "acl/core/ptr_offset.h"
@@ -57,32 +58,32 @@ namespace acl
 		// memory has not been corrupted.
 		//
 		// check_hash: If true, the compressed clip hash will also be compared.
-		bool is_valid(bool check_hash) const
+		ErrorResult is_valid(bool check_hash) const
 		{
 			if (!is_aligned_to(this, alignof(CompressedClip)))
-				return false;
+				return ErrorResult("Invalid alignment");
 
 			if (m_tag != k_compressed_clip_tag)
-				return false;
+				return ErrorResult("Invalid tag");
 
 			if (!is_valid_algorithm_type(m_type))
-				return false;
+				return ErrorResult("Invalid algorithm type");
 
 			if (m_version != get_algorithm_version(m_type))
-				return false;
+				return ErrorResult("Invalid algorithm version");
 
 			if (check_hash) {
 				const uint32_t hash = hash32(safe_ptr_cast<const uint8_t>(this) + k_hash_skip_size, m_size - k_hash_skip_size);
 				if (hash != m_hash)
-					return false;
+					return ErrorResult("Invalid hash");
 			}
 
-			return true;
+			return ErrorResult();
 		}
 
 	private:
 		////////////////////////////////////////////////////////////////////////////////
-		// A known tag value to distinguis compressed clips from other things.
+		// A known tag value to distinguish compressed clips from other things.
 		static constexpr uint32_t k_compressed_clip_tag = 0xac10ac10;
 
 		////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +110,7 @@ namespace acl
 		// Total size in bytes of the compressed clip. Includes 'sizeof(CompressedClip)'.
 		uint32_t		m_size;
 
-		// Hash of the compressed clip. Hashed memory starts immediatly after this.
+		// Hash of the compressed clip. Hashed memory starts immediately after this.
 		uint32_t		m_hash;
 
 		////////////////////////////////////////////////////////////////////////////////

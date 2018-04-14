@@ -52,7 +52,7 @@ namespace acl
 			: m_compression_settings(settings)
 		{}
 
-		virtual const char* compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressedClip*& out_compressed_clip, OutputStats& out_stats) override
+		virtual ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressedClip*& out_compressed_clip, OutputStats& out_stats) override
 		{
 			return uniformly_sampled::compress_clip(allocator, clip, skeleton, m_compression_settings, out_compressed_clip, out_stats);
 		}
