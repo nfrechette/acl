@@ -28,7 +28,6 @@
 #include "acl/compression/decompression_functions.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
-#include "acl/compression/utils.h"
 
 #if defined(SJSON_CPP_WRITER)
 
