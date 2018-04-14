@@ -143,6 +143,18 @@ static void test_transform_impl(const TransformType& identity, const FloatType t
 		REQUIRE(vector_all_near_equal3(identity.translation, transform_ab.translation, threshold));
 		REQUIRE(vector_all_near_equal3(identity.scale, transform_ab.scale, threshold));
 	}
+
+	{
+		Vector4Type x_axis = vector_set(FloatType(1.0), FloatType(0.0), FloatType(0.0));
+		QuatType rotation_around_z = quat_from_euler(deg2rad(FloatType(0.0)), deg2rad(FloatType(90.0)), deg2rad(FloatType(0.0)));
+		TransformType transform_a = transform_set(rotation_around_z, x_axis, vector_set(FloatType(1.0)));
+		REQUIRE(quat_is_normalized(transform_normalize(transform_a).rotation, threshold));
+
+		QuatType quat = quat_set(FloatType(-0.001138), FloatType(0.91623), FloatType(-1.624598), FloatType(0.715671));
+		TransformType transform_b = transform_set(quat, x_axis, vector_set(FloatType(1.0)));
+		REQUIRE(!quat_is_normalized(transform_b.rotation, threshold));
+		REQUIRE(quat_is_normalized(transform_normalize(transform_b).rotation, threshold));
+	}
 }
 
 TEST_CASE("transform 32 math", "[math][transform]")

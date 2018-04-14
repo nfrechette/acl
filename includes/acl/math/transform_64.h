@@ -50,30 +50,30 @@ namespace acl
 	// NOTE: When scale is present, multiplication will not properly handle skew/shear, use affine matrices instead
 	inline Transform_64 transform_mul(const Transform_64& lhs, const Transform_64& rhs)
 	{
-		Vector4_64 min_scale = vector_min(lhs.scale, rhs.scale);
-		Vector4_64 scale = vector_mul(lhs.scale, rhs.scale);
+		const Vector4_64 min_scale = vector_min(lhs.scale, rhs.scale);
+		const Vector4_64 scale = vector_mul(lhs.scale, rhs.scale);
 
 		if (vector_any_less_than3(min_scale, vector_zero_64()))
 		{
 			// If we have negative scale, we go through a matrix
-			AffineMatrix_64 lhs_mtx = matrix_from_transform(lhs);
-			AffineMatrix_64 rhs_mtx = matrix_from_transform(rhs);
+			const AffineMatrix_64 lhs_mtx = matrix_from_transform(lhs);
+			const AffineMatrix_64 rhs_mtx = matrix_from_transform(rhs);
 			AffineMatrix_64 result_mtx = matrix_mul(lhs_mtx, rhs_mtx);
 			result_mtx = matrix_remove_scale(result_mtx);
 
-			Vector4_64 sign = vector_sign(scale);
+			const Vector4_64 sign = vector_sign(scale);
 			result_mtx.x_axis = vector_mul(result_mtx.x_axis, vector_mix_xxxx(sign));
 			result_mtx.y_axis = vector_mul(result_mtx.y_axis, vector_mix_yyyy(sign));
 			result_mtx.z_axis = vector_mul(result_mtx.z_axis, vector_mix_zzzz(sign));
 
-			Quat_64 rotation = quat_from_matrix(result_mtx);
-			Vector4_64 translation = result_mtx.w_axis;
+			const Quat_64 rotation = quat_from_matrix(result_mtx);
+			const Vector4_64 translation = result_mtx.w_axis;
 			return transform_set(rotation, translation, scale);
 		}
 		else
 		{
-			Quat_64 rotation = quat_mul(lhs.rotation, rhs.rotation);
-			Vector4_64 translation = vector_add(quat_rotate(rhs.rotation, vector_mul(lhs.translation, rhs.scale)), rhs.translation);
+			const Quat_64 rotation = quat_mul(lhs.rotation, rhs.rotation);
+			const Vector4_64 translation = vector_add(quat_rotate(rhs.rotation, vector_mul(lhs.translation, rhs.scale)), rhs.translation);
 			return transform_set(rotation, translation, scale);
 		}
 	}
@@ -81,8 +81,8 @@ namespace acl
 	// Multiplication order is as follow: local_to_world = transform_mul(local_to_object, object_to_world)
 	inline Transform_64 transform_mul_no_scale(const Transform_64& lhs, const Transform_64& rhs)
 	{
-		Quat_64 rotation = quat_mul(lhs.rotation, rhs.rotation);
-		Vector4_64 translation = vector_add(quat_rotate(rhs.rotation, lhs.translation), rhs.translation);
+		const Quat_64 rotation = quat_mul(lhs.rotation, rhs.rotation);
+		const Vector4_64 translation = vector_add(quat_rotate(rhs.rotation, lhs.translation), rhs.translation);
 		return transform_set(rotation, translation, vector_set(1.0));
 	}
 
@@ -98,16 +98,22 @@ namespace acl
 
 	inline Transform_64 transform_inverse(const Transform_64& input)
 	{
-		Quat_64 inv_rotation = quat_conjugate(input.rotation);
-		Vector4_64 inv_scale = vector_reciprocal(input.scale);
-		Vector4_64 inv_translation = vector_neg(quat_rotate(inv_rotation, vector_mul(input.translation, inv_scale)));
+		const Quat_64 inv_rotation = quat_conjugate(input.rotation);
+		const Vector4_64 inv_scale = vector_reciprocal(input.scale);
+		const Vector4_64 inv_translation = vector_neg(quat_rotate(inv_rotation, vector_mul(input.translation, inv_scale)));
 		return transform_set(inv_rotation, inv_translation, inv_scale);
 	}
 
 	inline Transform_64 transform_inverse_no_scale(const Transform_64& input)
 	{
-		Quat_64 inv_rotation = quat_conjugate(input.rotation);
-		Vector4_64 inv_translation = vector_neg(quat_rotate(inv_rotation, input.translation));
+		const Quat_64 inv_rotation = quat_conjugate(input.rotation);
+		const Vector4_64 inv_translation = vector_neg(quat_rotate(inv_rotation, input.translation));
 		return transform_set(inv_rotation, inv_translation, vector_set(1.0));
+	}
+
+	inline Transform_64 transform_normalize(const Transform_64& input)
+	{
+		const Quat_64 rotation = quat_normalize(input.rotation);
+		return transform_set(rotation, input.translation, input.scale);
 	}
 }
