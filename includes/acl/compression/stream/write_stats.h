@@ -24,10 +24,11 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/memory_cache.h"
 #include "acl/compression/decompression_functions.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
-#include "acl/core/memory_cache.h"
+#include "acl/compression/utils.h"
 
 #if defined(SJSON_CPP_WRITER)
 
@@ -145,18 +146,18 @@ namespace acl
 
 	constexpr uint32_t k_num_decompression_timing_passes = 5;
 
-	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, const OutputStats& stats, sjson::ObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
+	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, StatLogging logging, sjson::ObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
 		void* contexts[], Vector4_32* cache_flush_buffer, Transform_32* lossy_pose_transforms, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
-		int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
-		double duration = clip.get_duration();
-		uint16_t num_bones = clip.get_num_bones();
+		const int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
+		const double duration = clip.get_duration();
+		const uint16_t num_bones = clip.get_num_bones();
 
 		writer[action_type] = [&](sjson::ObjectWriter& writer)
 		{
-			int32_t initial_sample_index = forward_order ? 0 : num_samples - 1;
-			int32_t sample_index_sentinel = forward_order ? num_samples : -1;
-			int32_t delta_sample_index = forward_order ? 1 : -1;
+			const int32_t initial_sample_index = forward_order ? 0 : num_samples - 1;
+			const int32_t sample_index_sentinel = forward_order ? num_samples : -1;
+			const int32_t delta_sample_index = forward_order ? 1 : -1;
 
 			double clip_max, clip_min, clip_total = 0;
 
@@ -164,7 +165,7 @@ namespace acl
 			{
 				for (int32_t sample_index = initial_sample_index; sample_index != sample_index_sentinel; sample_index += delta_sample_index)
 				{
-					float sample_time = static_cast<float>(duration * sample_index / (num_samples - 1));
+					const float sample_time = static_cast<float>(duration * sample_index / (num_samples - 1));
 
 					double decompression_time = 0;
 
@@ -189,7 +190,7 @@ namespace acl
 							decompression_time = timer.get_elapsed_seconds();
 					}
 
-					if (are_any_enum_flags_set(stats.logging, StatLogging::ExhaustiveDecompression))
+					if (are_any_enum_flags_set(logging, StatLogging::ExhaustiveDecompression))
 						writer.push(decompression_time);
 
 					if (sample_index == initial_sample_index || decompression_time > clip_max)
@@ -208,7 +209,7 @@ namespace acl
 		};
 	}
 
-	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, const OutputStats& stats, sjson::ObjectWriter& writer, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
+	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, StatLogging logging, sjson::ObjectWriter& writer, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
 	{
 		void* contexts[k_num_decompression_timing_passes];
 
@@ -217,14 +218,14 @@ namespace acl
 
 		Vector4_32* cache_flush_buffer = allocate_cache_flush_buffer(allocator);
 
-		uint16_t num_bones = clip.get_num_bones();
+		const uint16_t num_bones = clip.get_num_bones();
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
 		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& writer)
 		{
-			write_decompression_stats(allocator, clip, stats, writer, "forward_playback", true, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
-			write_decompression_stats(allocator, clip, stats, writer, "backward_playback", false, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
-			write_decompression_stats(allocator, clip, stats, writer, "initial_seek", true, true, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
+			write_decompression_stats(allocator, clip, logging, writer, "forward_playback", true, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
+			write_decompression_stats(allocator, clip, logging, writer, "backward_playback", false, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
+			write_decompression_stats(allocator, clip, logging, writer, "initial_seek", true, true, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
 		};
 
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
@@ -236,20 +237,13 @@ namespace acl
 
 	inline void write_stats(IAllocator& allocator, const AnimationClip& clip, const ClipContext& clip_context, const RigidSkeleton& skeleton,
 		const CompressedClip& compressed_clip, const CompressionSettings& settings, const ClipHeader& header, const ClipContext& raw_clip_context, const ScopeProfiler& compression_time,
-		OutputStats& stats, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
+		OutputStats& stats)
 	{
-		uint32_t raw_size = clip.get_raw_size();
-		uint32_t compressed_size = compressed_clip.get_size();
-		double compression_ratio = double(raw_size) / double(compressed_size);
-
-		// Use the compressed clip to make sure the decoder works properly
-		BoneError error = calculate_compressed_clip_error(allocator, clip, skeleton, clip_context.has_scale, *settings.error_metric, allocate_context, decompress_pose, deallocate_context);
-		stats.max_error = error.error;
-
-		if (stats.logging == StatLogging::MaxError)
-			return;		// We don't need anything else
-
 		ACL_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer");
+
+		const uint32_t raw_size = clip.get_raw_size();
+		const uint32_t compressed_size = compressed_clip.get_size();
+		const double compression_ratio = double(raw_size) / double(compressed_size);
 
 		sjson::ObjectWriter& writer = *stats.writer;
 		writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);
@@ -258,9 +252,6 @@ namespace acl
 		writer["raw_size"] = raw_size;
 		writer["compressed_size"] = compressed_size;
 		writer["compression_ratio"] = compression_ratio;
-		writer["max_error"] = error.error;
-		writer["worst_bone"] = error.index;
-		writer["worst_time"] = error.sample_time;
 		writer["compression_time"] = compression_time.get_elapsed_seconds();
 		writer["duration"] = clip.get_duration();
 		writer["num_samples"] = clip.get_num_samples();
@@ -308,9 +299,9 @@ namespace acl
 					num_animated_scale_tracks++;
 			}
 
-			uint32_t num_default_tracks = num_default_rotation_tracks + num_default_translation_tracks + num_default_scale_tracks;
-			uint32_t num_constant_tracks = num_constant_rotation_tracks + num_constant_translation_tracks + num_constant_scale_tracks;
-			uint32_t num_animated_tracks = num_animated_rotation_tracks + num_animated_translation_tracks + num_animated_scale_tracks;
+			const uint32_t num_default_tracks = num_default_rotation_tracks + num_default_translation_tracks + num_default_scale_tracks;
+			const uint32_t num_constant_tracks = num_constant_rotation_tracks + num_constant_translation_tracks + num_constant_scale_tracks;
+			const uint32_t num_animated_tracks = num_animated_rotation_tracks + num_animated_translation_tracks + num_animated_scale_tracks;
 
 			writer["num_default_rotation_tracks"] = num_default_rotation_tracks;
 			writer["num_default_translation_tracks"] = num_default_translation_tracks;
@@ -360,9 +351,6 @@ namespace acl
 				});
 			}
 		};
-
-		if (are_any_enum_flags_set(stats.logging, StatLogging::SummaryDecompression))
-			write_decompression_stats(allocator, clip, stats, writer, allocate_context, decompress_pose, deallocate_context);
 	}
 }
 

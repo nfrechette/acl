@@ -24,17 +24,11 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/compressed_clip.h"
 #include "acl/core/hash.h"
-#include "acl/core/ialgorithm.h"
-#include "acl/core/iallocator.h"
 #include "acl/math/affine_matrix_32.h"
-#include "acl/math/affine_matrix_64.h"
 #include "acl/math/transform_32.h"
 #include "acl/math/scalar_32.h"
 #include "acl/compression/skeleton.h"
-#include "acl/compression/animation_clip.h"
-#include "acl/compression/decompression_functions.h"
 
 namespace acl
 {
@@ -299,59 +293,4 @@ namespace acl
 			return max(vtx0_error, vtx1_error);
 		}
 	};
-
-	struct BoneError
-	{
-		uint16_t index;
-		float error;
-		float sample_time;
-	};
-
-	inline BoneError calculate_compressed_clip_error(IAllocator& allocator,
-		const AnimationClip& clip, const RigidSkeleton& skeleton,
-		bool has_scale, const ISkeletalErrorMetric& error_metric,
-		AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
-	{
-		const uint16_t num_bones = clip.get_num_bones();
-		const float clip_duration = clip.get_duration();
-		const float sample_rate = float(clip.get_sample_rate());
-		const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
-
-		void* context = allocate_context(allocator);
-
-		Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-
-		BoneError bone_error = { k_invalid_bone_index, 0.0f, 0.0f };
-
-		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-		{
-			const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
-
-			clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
-			decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
-
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-			{
-				float error;
-				if (has_scale)
-					error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
-				else
-					error = error_metric.calculate_object_bone_error_no_scale(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
-
-				if (error > bone_error.error)
-				{
-					bone_error.error = error;
-					bone_error.index = bone_index;
-					bone_error.sample_time = sample_time;
-				}
-			}
-		}
-
-		deallocate_type_array(allocator, raw_pose_transforms, num_bones);
-		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-		deallocate_context(allocator, context);
-
-		return bone_error;
-	}
 }

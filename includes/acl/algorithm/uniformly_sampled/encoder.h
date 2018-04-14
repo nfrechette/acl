@@ -217,24 +217,7 @@ namespace acl
 
 #if defined(SJSON_CPP_WRITER)
 			if (out_stats.logging != StatLogging::None)
-			{
-				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, out_stats,
-					[&](IAllocator& allocator)
-					{
-						DecompressionSettings settings;
-						return allocate_decompression_context(allocator, settings, *compressed_clip);
-					},
-					[&](void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)
-					{
-						DecompressionSettings settings;
-						DefaultOutputWriter writer(out_transforms, num_transforms);
-						decompress_pose(settings, *compressed_clip, context, sample_time, writer);
-					},
-					[&](IAllocator& allocator, void* context)
-					{
-						deallocate_decompression_context(allocator, context);
-					});
-			}
+				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, out_stats);
 #endif
 
 			destroy_clip_context(allocator, clip_context);

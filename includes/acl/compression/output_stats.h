@@ -33,10 +33,9 @@ namespace acl
 	enum class StatLogging
 	{
 		None						= 0x0000,
-		MaxError					= 0x0001,
-		Summary						= 0x0002 | MaxError,
-		Detailed					= 0x0004 | Summary,
-		Exhaustive					= 0x0008 | Detailed,
+		Summary						= 0x0001,
+		Detailed					= 0x0002 | Summary,
+		Exhaustive					= 0x0004 | Detailed,
 		SummaryDecompression		= 0x0010,
 		ExhaustiveDecompression		= 0x0020,
 	};
@@ -45,12 +44,10 @@ namespace acl
 
 	struct OutputStats
 	{
-		OutputStats() : logging(StatLogging::None), writer(nullptr), max_error(0.0f) {}
-		OutputStats(StatLogging logging_, sjson::ObjectWriter* writer_) : logging(logging_), writer(writer_), max_error(0.0f) {}
+		OutputStats() : logging(StatLogging::None), writer(nullptr) {}
+		OutputStats(StatLogging logging_, sjson::ObjectWriter* writer_) : logging(logging_), writer(writer_) {}
 
 		StatLogging				logging;
 		sjson::ObjectWriter*	writer;
-
-		float					max_error;
 	};
 }

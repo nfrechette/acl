@@ -42,6 +42,7 @@
 #include "acl/core/string.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/compression/utils.h"
 #include "acl/io/clip_reader.h"
 #include "acl/io/clip_writer.h"							// Included just so we compile it to test for basic errors
 #include "acl/compression/skeleton_error_metric.h"
@@ -343,11 +344,35 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 	{
 		OutputStats stats(logging, stats_writer);
 		CompressedClip* compressed_clip = nullptr;
-		const char* error = algorithm.compress_clip(allocator, clip, skeleton, compressed_clip, stats);
-		(void)error;
+		const char* error_msg = algorithm.compress_clip(allocator, clip, skeleton, compressed_clip, stats);
+		(void)error_msg;
 
-		ACL_ASSERT(error == nullptr, error);
+		ACL_ASSERT(error_msg == nullptr, error_msg);
 		ACL_ASSERT(compressed_clip->is_valid(true), "Compressed clip is invalid");
+
+#if defined(SJSON_CPP_WRITER)
+		if (logging != StatLogging::None)
+		{
+			// Use the compressed clip to make sure the decoder works properly
+			const BoneError bone_error = calculate_compressed_clip_error(allocator, clip, skeleton, *compressed_clip, algorithm);
+
+			stats_writer->insert("max_error", bone_error.error);
+			stats_writer->insert("worst_bone", bone_error.index);
+			stats_writer->insert("worst_time", bone_error.sample_time);
+
+			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
+			{
+				auto allocate_context_impl = [&](IAllocator& allocator) { return algorithm.allocate_decompression_context(allocator, *compressed_clip); };
+				auto deallocate_context_impl = [&](IAllocator& allocator, void* context) { algorithm.deallocate_decompression_context(allocator, context); };
+				auto decompress_pose_impl = [&](void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)
+				{
+					algorithm.decompress_pose(*compressed_clip, context, sample_time, out_transforms, num_transforms);
+				};
+
+				write_decompression_stats(allocator, clip, logging, *stats_writer, allocate_context_impl, decompress_pose_impl, deallocate_context_impl);
+			}
+		}
+#endif
 
 		if (options.regression_testing)
 			validate_accuracy(allocator, clip, skeleton, *compressed_clip, algorithm, regression_error_threshold);
