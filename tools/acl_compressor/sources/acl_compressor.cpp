@@ -673,7 +673,7 @@ static int safe_main_impl(int argc, char* argv[])
 		else
 		{
 			// Use defaults
-			bool use_segmenting_options[] = { false, true };
+			const bool use_segmenting_options[] = { false, true };
 			for (size_t segmenting_option_index = 0; segmenting_option_index < get_array_size(use_segmenting_options); ++segmenting_option_index)
 			{
 				bool use_segmenting = use_segmenting_options[segmenting_option_index];
@@ -696,8 +696,14 @@ static int safe_main_impl(int argc, char* argv[])
 					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales, use_segmenting),
 				};
 
-				for (UniformlySampledAlgorithm& algorithm : uniform_tests)
-					try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer, regression_error_threshold);
+				for (const UniformlySampledAlgorithm& algorithm : uniform_tests)
+				{
+					CompressionSettings tmp_settings = algorithm.get_compression_settings();
+					tmp_settings.error_metric = settings.error_metric;
+
+					UniformlySampledAlgorithm tmp_algorithm(tmp_settings);
+					try_algorithm(options, allocator, *clip.get(), *skeleton.get(), tmp_algorithm, logging, runs_writer, regression_error_threshold);
+				}
 			}
 
 			{
@@ -716,8 +722,14 @@ static int safe_main_impl(int argc, char* argv[])
 					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales),
 				};
 
-				for (UniformlySampledAlgorithm& algorithm : uniform_tests)
-					try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer, regression_error_threshold);
+				for (const UniformlySampledAlgorithm& algorithm : uniform_tests)
+				{
+					CompressionSettings tmp_settings = algorithm.get_compression_settings();
+					tmp_settings.error_metric = settings.error_metric;
+
+					UniformlySampledAlgorithm tmp_algorithm(tmp_settings);
+					try_algorithm(options, allocator, *clip.get(), *skeleton.get(), tmp_algorithm, logging, runs_writer, regression_error_threshold);
+				}
 			}
 		}
 	};
