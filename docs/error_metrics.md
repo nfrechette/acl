@@ -2,7 +2,7 @@
 
 A proper error metric is central to every animation compression algorithm and ACL is no different. The general technique implemented is the one described on this [blog post](http://nfrechette.github.io/2016/11/01/anim_compression_accuracy/) and the implementations as well as the interface live [here](../includes/acl/compression/skeleton_error_metric.h).
 
-Some care must be taken when selecting which error metric to use. If the error it calculates isn't representative of how it would be calculated in the host game engine, the resulting visual fidelity might suffer. ACL implements two similar implementations and you are free to implement and use your own.
+Some care must be taken when selecting which error metric to use. If the error it calculates isn't representative of how it would be calculated in the host game engine, the resulting visual fidelity might suffer. ACL implements a number of similar implementations and you are free to implement and use your own.
 
 ## TransformErrorMetric
 
@@ -12,8 +12,14 @@ This implementation will use `Transform_32` (which implements Vector-Quaternion-
 
 This implementation uses `Transform_32` when there is no scale in both local and object space and as well as local space when there is scale. This is generally safe because there is no skew or shear present in the transform. However, when scale is present the object space error metric will convert the transforms into `AffineMatrix_32` in order to combine them into the final object space transform for the bone. This properly handles 3D scale but due to numerical accuracy the error can accumulate to unacceptable levels when very large or very small scale is present combined with very large translations.
 
+## BindPoseAdditiveTransformErrorMetric
+
+This implementation is based on the `TransformErrorMetric` and handles bind pose additive animation clips. Such clips have the bind pose removed from every sample which leads to more default tracks being detected as well as a smaller range of values being used for translations. It can serve as an example when building your own additive error metric implementations.
+
 ## Implementing your own error metric
 
-In order to implement your own error metric you need to figure out how your host game engine combines the local space bone transforms into object space and simply do the same. Once you have that information, implement a class that derives from the `ISkeletalErrorMetric` interface. You can use the other error metrics as examples. You will then be able to provide it to the compression algorithm by providing it to the `CompressionSettings` ([code](../includes/acl/compression/compression_settings.h)).
+In order to implement your own error metric you need to figure out how your host game engine combines the local space bone transforms into object space and simply do the same. Once you have that information, implement a class that derives from the `ISkeletalErrorMetric` interface. You can use the other error metrics as examples. You will then be able to provide it to the compression algorithm by feeding it to the `CompressionSettings` ([code](../includes/acl/compression/compression_settings.h)).
 
 Fundamentally the interface requires you to implement four versions of the error metric: with and without scale, and in local or object space. The variants with no scale are only present as an optimization to avoid unnecessary computation when none is present since it is a very common scenario.
+
+Note that if you need to support additive animation clips, you will need to implement your own error metric that properly applies the base animation clip according to your own game engine logic.
