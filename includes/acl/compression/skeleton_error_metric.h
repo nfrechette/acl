@@ -297,8 +297,7 @@ namespace acl
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
-			Transform_32 bind_transform = transform_cast(bone.bind_transform);
-			bind_transform.rotation = quat_normalize(bind_transform.rotation);
+			const Transform_32 bind_transform = transform_normalize(transform_cast(bone.bind_transform));
 
 			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
 			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
@@ -322,8 +321,7 @@ namespace acl
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
-			Transform_32 bind_transform = transform_cast(bone.bind_transform);
-			bind_transform.rotation = quat_normalize(bind_transform.rotation);
+			const Transform_32 bind_transform = transform_normalize(transform_cast(bone.bind_transform));
 
 			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
 			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
@@ -359,8 +357,8 @@ namespace acl
 			{
 				const uint16_t chain_bone_index = *chain_bone_it;
 
-				const RigidBone& target_bone = skeleton.get_bone(bone_index);
-				const Transform_32 bind_transform = transform_normalize(transform_cast(target_bone.bind_transform));
+				const RigidBone& chain_bone = skeleton.get_bone(chain_bone_index);
+				const Transform_32 bind_transform = transform_normalize(transform_cast(chain_bone.bind_transform));
 
 				raw_obj_transform = transform_mul(transform_mul(raw_local_pose[chain_bone_index], bind_transform), raw_obj_transform);
 				lossy_obj_transform = transform_mul(transform_mul(lossy_local_pose[chain_bone_index], bind_transform), lossy_obj_transform);
@@ -399,8 +397,8 @@ namespace acl
 			{
 				const uint16_t chain_bone_index = *chain_bone_it;
 
-				const RigidBone& target_bone = skeleton.get_bone(bone_index);
-				const Transform_32 bind_transform = transform_normalize(transform_cast(target_bone.bind_transform));
+				const RigidBone& chain_bone = skeleton.get_bone(chain_bone_index);
+				const Transform_32 bind_transform = transform_normalize(transform_cast(chain_bone.bind_transform));
 
 				raw_obj_transform = transform_mul_no_scale(transform_mul_no_scale(raw_local_pose[chain_bone_index], bind_transform), raw_obj_transform);
 				lossy_obj_transform = transform_mul_no_scale(transform_mul_no_scale(lossy_local_pose[chain_bone_index], bind_transform), lossy_obj_transform);
