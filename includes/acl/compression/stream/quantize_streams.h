@@ -832,7 +832,7 @@ namespace acl
 			}
 		}
 
-		inline void quantize_variable_streams(QuantizationContext& context)
+		inline void find_optimal_bit_rates(QuantizationContext& context)
 		{
 			initialize_bone_bit_rates(context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
@@ -1139,9 +1139,6 @@ namespace acl
 			}
 #endif
 
-			// Quantize our streams now that we found the optimal bit rates
-			quantize_all_streams(context);
-
 			deallocate_type_array(context.allocator, bone_chain_permutation, context.num_bones);
 			deallocate_type_array(context.allocator, chain_bone_indices, context.num_bones);
 			deallocate_type_array(context.allocator, permutation_bit_rates, context.num_bones);
@@ -1167,20 +1164,10 @@ namespace acl
 			impl::QuantizationContext context(allocator, clip_context, raw_clip_context, segment, settings, skeleton);
 
 			if (is_any_variable)
-			{
-				impl::quantize_variable_streams(context);
-			}
-			else
-			{
-				for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
-				{
-					impl::quantize_fixed_rotation_stream(context, bone_index, settings.rotation_format);
-					impl::quantize_fixed_translation_stream(context, bone_index, settings.translation_format);
+				impl::find_optimal_bit_rates(context);
 
-					if (clip_context.has_scale)
-						impl::quantize_fixed_scale_stream(context, bone_index, settings.scale_format);
-				}
-			}
+			// Quantize our streams now that we found the optimal bit rates
+			impl::quantize_all_streams(context);
 		}
 	}
 }
