@@ -589,7 +589,7 @@ namespace acl
 			break;
 		default:
 			ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
-			packed_scale = vector_set(1.0f);
+			packed_scale = scale;
 			break;
 		}
 
@@ -620,7 +620,7 @@ namespace acl
 	{
 		const Quat_32 default_rotation = quat_identity_32();
 		const Vector4_32 default_translation = vector_zero_32();
-		const Vector4_32 default_scale = vector_set(1.0f);
+		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
@@ -694,7 +694,7 @@ namespace acl
 	{
 		const Quat_32 default_rotation = quat_identity_32();
 		const Vector4_32 default_translation = vector_zero_32();
-		const Vector4_32 default_scale = vector_set(1.0f);
+		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
 
 		uint16_t current_bone_index = bone_index;
 		while (current_bone_index != k_invalid_bone_index)
@@ -773,7 +773,7 @@ namespace acl
 		const bool is_scale_variable = is_vector_format_variable(scale_format);
 		const Quat_32 default_rotation = quat_identity_32();
 		const Vector4_32 default_translation = vector_zero_32();
-		const Vector4_32 default_scale = vector_set(1.0f);
+		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
@@ -895,7 +895,7 @@ namespace acl
 		const bool is_scale_variable = is_vector_format_variable(scale_format);
 		const Quat_32 default_rotation = quat_identity_32();
 		const Vector4_32 default_translation = vector_zero_32();
-		const Vector4_32 default_scale = vector_set(1.0f);
+		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
 
 		uint16_t current_bone_index = bone_index;
 		while (current_bone_index != k_invalid_bone_index)

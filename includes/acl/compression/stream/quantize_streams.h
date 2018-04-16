@@ -52,6 +52,7 @@ namespace acl
 			IAllocator& allocator;
 			ClipContext& clip;
 			const ClipContext& raw_clip;
+			const ClipContext& additive_base_clip;
 			SegmentContext& segment;
 			BoneStreams* bone_streams;
 			uint16_t num_bones;
@@ -68,17 +69,21 @@ namespace acl
 			float clip_duration;
 			float segment_duration;
 			bool has_scale;
+			bool has_additive_base;
 
 			const BoneStreams* raw_bone_streams;
 
+			Transform_32* additive_local_pose;
 			Transform_32* raw_local_pose;
 			Transform_32* lossy_local_pose;
+
 			BoneBitRate* bit_rate_per_bone;
 
-			QuantizationContext(IAllocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, SegmentContext& segment_, const CompressionSettings& settings_, const RigidSkeleton& skeleton_)
+			QuantizationContext(IAllocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, const ClipContext& additive_base_clip_, SegmentContext& segment_, const CompressionSettings& settings_, const RigidSkeleton& skeleton_)
 				: allocator(allocator_)
 				, clip(clip_)
 				, raw_clip(raw_clip_)
+				, additive_base_clip(additive_base_clip_)
 				, segment(segment_)
 				, bone_streams(segment_.bone_streams)
 				, num_bones(segment_.num_bones)
@@ -96,7 +101,9 @@ namespace acl
 				clip_duration = clip_.duration;
 				segment_duration = float(num_samples - 1) / sample_rate;
 				has_scale = segment_context_has_scale(segment_);
+				has_additive_base = clip_.has_additive_base;
 
+				additive_local_pose = clip_.has_additive_base ? allocate_type_array<Transform_32>(allocator, num_bones) : nullptr;
 				raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 				bit_rate_per_bone = allocate_type_array<BoneBitRate>(allocator, num_bones);
@@ -104,6 +111,7 @@ namespace acl
 
 			~QuantizationContext()
 			{
+				deallocate_type_array(allocator, additive_local_pose, num_bones);
 				deallocate_type_array(allocator, raw_local_pose, num_bones);
 				deallocate_type_array(allocator, lossy_local_pose, num_bones);
 				deallocate_type_array(allocator, bit_rate_per_bone, num_bones);
@@ -480,21 +488,28 @@ namespace acl
 				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, ref_sample_time, target_bone_index, context.raw_local_pose);
 				sample_streams_hierarchical(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.scale_format, context.lossy_local_pose);
 
+				if (context.has_additive_base)
+				{
+					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (ref_sample_time / context.clip_duration) : 0.0f;
+					const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
+					sample_streams_hierarchical(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
+				}
+
 				// Constant branch
 				float error;
 				if (use_local_error)
 				{
 					if (context.has_scale)
-						error = context.error_metric.calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+						error = context.error_metric.calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 					else
-						error = context.error_metric.calculate_local_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+						error = context.error_metric.calculate_local_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 				}
 				else
 				{
 					if (context.has_scale)
-						error = context.error_metric.calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+						error = context.error_metric.calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 					else
-						error = context.error_metric.calculate_object_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.lossy_local_pose, target_bone_index);
+						error = context.error_metric.calculate_object_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 				}
 
 				max_error = max(max_error, error);
@@ -1147,7 +1162,7 @@ namespace acl
 		}
 	}
 
-	inline void quantize_streams(IAllocator& allocator, ClipContext& clip_context, const CompressionSettings& settings, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context)
+	inline void quantize_streams(IAllocator& allocator, ClipContext& clip_context, const CompressionSettings& settings, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context, const ClipContext& additive_base_clip_context)
 	{
 		const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(settings.translation_format);
@@ -1161,7 +1176,7 @@ namespace acl
 #endif
 
 			// TODO: Reuse the context if we can and just update the current segment
-			impl::QuantizationContext context(allocator, clip_context, raw_clip_context, segment, settings, skeleton);
+			impl::QuantizationContext context(allocator, clip_context, raw_clip_context, additive_base_clip_context, segment, settings, skeleton);
 
 			if (is_any_variable)
 				impl::find_optimal_bit_rates(context);

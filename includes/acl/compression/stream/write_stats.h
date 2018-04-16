@@ -24,12 +24,13 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined(SJSON_CPP_WRITER)
+
+#include "acl/core/ialgorithm.h"
 #include "acl/core/memory_cache.h"
 #include "acl/compression/decompression_functions.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
-
-#if defined(SJSON_CPP_WRITER)
 
 namespace acl
 {
@@ -86,12 +87,13 @@ namespace acl
 		writer["decomp_touched_cache_lines"] = num_clip_header_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 	}
 
-	inline void write_exhaustive_segment_stats(IAllocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const RigidSkeleton& skeleton, const CompressionSettings& settings, sjson::ObjectWriter& writer)
+	inline void write_exhaustive_segment_stats(IAllocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const ClipContext& additive_base_clip_context, const RigidSkeleton& skeleton, const CompressionSettings& settings, sjson::ObjectWriter& writer)
 	{
 		const uint16_t num_bones = skeleton.get_num_bones();
 		const bool has_scale = segment_context_has_scale(segment);
 
 		Transform_32* raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
+		Transform_32* base_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 
 		const float sample_rate = float(raw_clip_context.segments[0].bone_streams[0].rotations.get_sample_rate());
@@ -111,6 +113,13 @@ namespace acl
 				sample_streams(raw_clip_context.segments[0].bone_streams, num_bones, ref_sample_time, raw_local_pose);
 				sample_streams(segment.bone_streams, num_bones, sample_time, lossy_local_pose);
 
+				if (raw_clip_context.has_additive_base)
+				{
+					const float normalized_sample_time = additive_base_clip_context.num_samples > 1 ? (ref_sample_time / ref_duration) : 0.0f;
+					const float additive_sample_time = normalized_sample_time * additive_base_clip_context.duration;
+					sample_streams(additive_base_clip_context.segments[0].bone_streams, num_bones, additive_sample_time, base_local_pose);
+				}
+
 				writer.push_newline();
 				writer.push([&](sjson::ArrayWriter& writer)
 				{
@@ -118,9 +127,9 @@ namespace acl
 					{
 						float error;
 						if (has_scale)
-							error = settings.error_metric->calculate_object_bone_error(skeleton, raw_local_pose, lossy_local_pose, bone_index);
+							error = settings.error_metric->calculate_object_bone_error(skeleton, raw_local_pose, base_local_pose, lossy_local_pose, bone_index);
 						else
-							error = settings.error_metric->calculate_object_bone_error_no_scale(skeleton, raw_local_pose, lossy_local_pose, bone_index);
+							error = settings.error_metric->calculate_object_bone_error_no_scale(skeleton, raw_local_pose, base_local_pose, lossy_local_pose, bone_index);
 
 						writer.push(error);
 
@@ -140,13 +149,15 @@ namespace acl
 		writer["worst_time"] = worst_bone_error.sample_time;
 
 		deallocate_type_array(allocator, raw_local_pose, num_bones);
+		deallocate_type_array(allocator, base_local_pose, num_bones);
 		deallocate_type_array(allocator, lossy_local_pose, num_bones);
 	}
 
 	constexpr uint32_t k_num_decompression_timing_passes = 5;
 
-	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, StatLogging logging, sjson::ObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
-		void* contexts[], Vector4_32* cache_flush_buffer, Transform_32* lossy_pose_transforms, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
+	inline void write_decompression_performance_stats(IAllocator& allocator, IAlgorithm& algorithm, const AnimationClip& clip, const CompressedClip& compressed_clip,
+		StatLogging logging, sjson::ObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
+		void* contexts[], Vector4_32* cache_flush_buffer, Transform_32* lossy_pose_transforms)
 	{
 		const int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
 		const double duration = clip.get_duration();
@@ -175,14 +186,14 @@ namespace acl
 						if (measure_upper_bound)
 						{
 							// Clearing the context ensures the decoder cannot reuse any state cached from the last sample.
-							deallocate_context(allocator, context);
-							context = allocate_context(allocator);
+							algorithm.deallocate_decompression_context(allocator, context);
+							context = algorithm.allocate_decompression_context(allocator, compressed_clip);
 						}
 
 						flush_cache(cache_flush_buffer);
 
 						ScopeProfiler timer;
-						decompress_pose(context, sample_time, lossy_pose_transforms, num_bones);
+						algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
 						timer.stop();
 
 						if (pass_index == 0 || timer.get_elapsed_seconds() < decompression_time)
@@ -208,34 +219,35 @@ namespace acl
 		};
 	}
 
-	inline void write_decompression_stats(IAllocator& allocator, const AnimationClip& clip, StatLogging logging, sjson::ObjectWriter& writer, AllocateDecompressionContext allocate_context, DecompressPose decompress_pose, DeallocateDecompressionContext deallocate_context)
+	inline void write_decompression_performance_stats(IAllocator& allocator, IAlgorithm& algorithm, const AnimationClip& raw_clip, const CompressedClip& compressed_clip, StatLogging logging, sjson::ObjectWriter& writer)
 	{
 		void* contexts[k_num_decompression_timing_passes];
 
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
-			contexts[pass_index] = allocate_context(allocator);
+			contexts[pass_index] = algorithm.allocate_decompression_context(allocator, compressed_clip);
 
 		Vector4_32* cache_flush_buffer = allocate_cache_flush_buffer(allocator);
 
-		const uint16_t num_bones = clip.get_num_bones();
+		const uint16_t num_bones = raw_clip.get_num_bones();
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
 		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& writer)
 		{
-			write_decompression_stats(allocator, clip, logging, writer, "forward_playback", true, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
-			write_decompression_stats(allocator, clip, logging, writer, "backward_playback", false, false, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
-			write_decompression_stats(allocator, clip, logging, writer, "initial_seek", true, true, contexts, cache_flush_buffer, lossy_pose_transforms, allocate_context, decompress_pose, deallocate_context);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_playback", true, false, contexts, cache_flush_buffer, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_playback", false, false, contexts, cache_flush_buffer, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "initial_seek", true, true, contexts, cache_flush_buffer, lossy_pose_transforms);
 		};
 
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
-			deallocate_context(allocator, contexts[pass_index]);
+			algorithm.deallocate_decompression_context(allocator, contexts[pass_index]);
 
 		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 		deallocate_cache_flush_buffer(allocator, cache_flush_buffer);
 	}
 
 	inline void write_stats(IAllocator& allocator, const AnimationClip& clip, const ClipContext& clip_context, const RigidSkeleton& skeleton,
-		const CompressedClip& compressed_clip, const CompressionSettings& settings, const ClipHeader& header, const ClipContext& raw_clip_context, const ScopeProfiler& compression_time,
+		const CompressedClip& compressed_clip, const CompressionSettings& settings, const ClipHeader& header, const ClipContext& raw_clip_context,
+		const ClipContext& additive_base_clip_context, const ScopeProfiler& compression_time,
 		OutputStats& stats)
 	{
 		ACL_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer");
@@ -345,7 +357,7 @@ namespace acl
 
 					if (are_all_enum_flags_set(stats.logging, StatLogging::Exhaustive))
 					{
-						write_exhaustive_segment_stats(allocator, segment, raw_clip_context, skeleton, settings, writer);
+						write_exhaustive_segment_stats(allocator, segment, raw_clip_context, additive_base_clip_context, skeleton, settings, writer);
 					}
 				});
 			}

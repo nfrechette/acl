@@ -129,7 +129,10 @@ struct Options
 	std::FILE*		output_stats_file;
 
 	bool			regression_testing;
-	bool			is_bind_pose_additive;
+
+	bool			is_bind_pose_relative;
+	bool			is_bind_pose_additive0;
+	bool			is_bind_pose_additive1;
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -147,7 +150,9 @@ struct Options
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
 		, regression_testing(false)
-		, is_bind_pose_additive(false)
+		, is_bind_pose_relative(false)
+		, is_bind_pose_additive0(false)
+		, is_bind_pose_additive1(false)
 	{}
 
 	Options(Options&& other)
@@ -164,7 +169,9 @@ struct Options
 		, output_stats_filename(other.output_stats_filename)
 		, output_stats_file(other.output_stats_file)
 		, regression_testing(other.regression_testing)
-		, is_bind_pose_additive(other.is_bind_pose_additive)
+		, is_bind_pose_relative(other.is_bind_pose_relative)
+		, is_bind_pose_additive0(other.is_bind_pose_additive0)
+		, is_bind_pose_additive1(other.is_bind_pose_additive1)
 	{
 		new (&other) Options();
 	}
@@ -190,7 +197,9 @@ struct Options
 		std::swap(output_stats_filename, rhs.output_stats_filename);
 		std::swap(output_stats_file, rhs.output_stats_file);
 		std::swap(regression_testing, rhs.regression_testing);
-		std::swap(is_bind_pose_additive, rhs.is_bind_pose_additive);
+		std::swap(is_bind_pose_relative, rhs.is_bind_pose_relative);
+		std::swap(is_bind_pose_additive0, rhs.is_bind_pose_additive0);
+		std::swap(is_bind_pose_additive1, rhs.is_bind_pose_additive1);
 		return *this;
 	}
 
@@ -216,7 +225,9 @@ constexpr const char* k_acl_input_file_option = "-acl=";
 constexpr const char* k_config_input_file_option = "-config=";
 constexpr const char* k_stats_output_option = "-stats";
 constexpr const char* k_regression_test_option = "-test";
-constexpr const char* k_bind_pose_additive_option = "-bind_add";
+constexpr const char* k_bind_pose_relative_option = "-bind_rel";
+constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
+constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 
 static bool parse_options(int argc, char** argv, Options& options)
 {
@@ -278,10 +289,24 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
-		option_length = std::strlen(k_bind_pose_additive_option);
-		if (std::strncmp(argument, k_bind_pose_additive_option, option_length) == 0)
+		option_length = std::strlen(k_bind_pose_relative_option);
+		if (std::strncmp(argument, k_bind_pose_relative_option, option_length) == 0)
 		{
-			options.is_bind_pose_additive = true;
+			options.is_bind_pose_relative = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_bind_pose_additive0_option);
+		if (std::strncmp(argument, k_bind_pose_additive0_option, option_length) == 0)
+		{
+			options.is_bind_pose_additive0 = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_bind_pose_additive1_option);
+		if (std::strncmp(argument, k_bind_pose_additive1_option, option_length) == 0)
+		{
+			options.is_bind_pose_additive1 = true;
 			continue;
 		}
 
@@ -310,7 +335,12 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
 	const ISkeletalErrorMetric& error_metric = *algorithm.get_compression_settings().error_metric;
 
+	const AnimationClip* additive_base_clip = clip.get_additive_base();
+	const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;
+	const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0f;
+
 	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+	Transform_32* base_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	void* context = algorithm.allocate_decompression_context(allocator, compressed_clip);
 
@@ -322,9 +352,16 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
 		algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
 
+		if (additive_base_clip != nullptr)
+		{
+			const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0f;
+			const float additive_sample_time = normalized_sample_time * additive_duration;
+			additive_base_clip->sample_pose(additive_sample_time, base_pose_transforms, num_bones);
+		}
+
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, lossy_pose_transforms, bone_index);
+			const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, base_pose_transforms, lossy_pose_transforms, bone_index);
 			ACL_ASSERT(is_finite(error), "Returned error is not a finite value");
 			ACL_ASSERT(error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
 		}
@@ -346,6 +383,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	}
 
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
+	deallocate_type_array(allocator, base_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 	algorithm.deallocate_decompression_context(allocator, context);
 }
@@ -373,30 +411,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			stats_writer->insert("worst_time", bone_error.sample_time);
 
 			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
-			{
-				auto allocate_context_impl = [&](IAllocator& allocator) { return algorithm.allocate_decompression_context(allocator, *compressed_clip); };
-				auto deallocate_context_impl = [&](IAllocator& allocator, void* context) { algorithm.deallocate_decompression_context(allocator, context); };
-				auto decompress_pose_impl = [&](void* context, float sample_time, Transform_32* out_transforms, uint16_t num_transforms)
-				{
-					algorithm.decompress_pose(*compressed_clip, context, sample_time, out_transforms, num_transforms);
-
-					if (options.is_bind_pose_additive)
-					{
-						for (uint16_t bone_index = 0; bone_index < num_transforms; ++bone_index)
-						{
-							const RigidBone& skel_bone = skeleton.get_bone(bone_index);
-							Transform_32 bind_transform = transform_cast(skel_bone.bind_transform);
-							bind_transform.rotation = quat_normalize(bind_transform.rotation);
-
-							const Transform_32& bind_local_transform = out_transforms[bone_index];
-							const Transform_32 bone_transform = transform_mul(bind_local_transform, bind_transform);
-							out_transforms[bone_index] = bone_transform;
-						}
-					}
-				};
-
-				write_decompression_stats(allocator, clip, logging, *stats_writer, allocate_context_impl, decompress_pose_impl, deallocate_context_impl);
-			}
+				write_decompression_performance_stats(allocator, algorithm, clip, *compressed_clip, logging, *stats_writer);
 		}
 #endif
 
@@ -620,21 +635,34 @@ static int safe_main_impl(int argc, char* argv[])
 	}
 
 	TransformErrorMetric default_error_metric;
-	BindPoseAdditiveTransformErrorMetric bind_pose_local_error_metric;
 
-	if (options.is_bind_pose_additive)
+	AdditiveTransformErrorMetric<AdditiveClipFormat8::Relative> relative_error_metric;
+	AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive0> additive0_error_metric;
+	AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive1> additive1_error_metric;
+
+	AnimationClip base_clip(allocator, *skeleton, 1, 30, String(allocator, "Base Clip"));
+	if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
 	{
 		// Convert the animation clip to be relative to the bind pose
 		const uint16_t num_bones = clip->get_num_bones();
 		const uint32_t num_samples = clip->get_num_samples();
 		AnimatedBone* bones = clip->get_bones();
 
+		AdditiveClipFormat8 additive_format = AdditiveClipFormat8::None;
+		if (options.is_bind_pose_relative)
+			additive_format = AdditiveClipFormat8::Relative;
+		else if (options.is_bind_pose_additive0)
+			additive_format = AdditiveClipFormat8::Additive0;
+		else if (options.is_bind_pose_additive1)
+			additive_format = AdditiveClipFormat8::Additive1;
+
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			AnimatedBone& anim_bone = bones[bone_index];
 
+			// Get the bind transform and make sure it has no scale
 			const RigidBone& skel_bone = skeleton->get_bone(bone_index);
-			const Transform_64 inv_bind_pose = transform_inverse_no_scale(skel_bone.bind_transform);
+			const Transform_64 bind_transform = transform_set(skel_bone.bind_transform.rotation, skel_bone.bind_transform.translation, vector_set(1.0));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -643,15 +671,34 @@ static int safe_main_impl(int argc, char* argv[])
 				const Vector4_64 scale = anim_bone.scale_track.get_sample(sample_index);
 
 				const Transform_64 bone_transform = transform_set(rotation, translation, scale);
-				const Transform_64 bind_local_transform = transform_mul(bone_transform, inv_bind_pose);
+
+				Transform_64 bind_local_transform = bone_transform;
+				if (options.is_bind_pose_relative)
+					bind_local_transform = convert_to_relative(bind_transform, bone_transform);
+				else if (options.is_bind_pose_additive0)
+					bind_local_transform = convert_to_additive0(bind_transform, bone_transform);
+				else if (options.is_bind_pose_additive1)
+					bind_local_transform = convert_to_additive1(bind_transform, bone_transform);
 
 				anim_bone.rotation_track.set_sample(sample_index, bind_local_transform.rotation);
 				anim_bone.translation_track.set_sample(sample_index, bind_local_transform.translation);
 				anim_bone.scale_track.set_sample(sample_index, bind_local_transform.scale);
 			}
+
+			AnimatedBone& base_bone = base_clip.get_bones()[bone_index];
+			base_bone.rotation_track.set_sample(0, bind_transform.rotation);
+			base_bone.translation_track.set_sample(0, bind_transform.translation);
+			base_bone.scale_track.set_sample(0, bind_transform.scale);
 		}
 
-		settings.error_metric = &bind_pose_local_error_metric;
+		if (options.is_bind_pose_relative)
+			settings.error_metric = &relative_error_metric;
+		else if (options.is_bind_pose_additive0)
+			settings.error_metric = &additive0_error_metric;
+		else if (options.is_bind_pose_additive1)
+			settings.error_metric = &additive1_error_metric;
+
+		clip->set_additive_base(&base_clip, additive_format);
 	}
 	else
 	{

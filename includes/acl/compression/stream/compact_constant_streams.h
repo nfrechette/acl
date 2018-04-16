@@ -79,6 +79,7 @@ namespace acl
 		SegmentContext& segment = clip_context.segments[0];
 
 		const uint16_t num_bones = clip_context.num_bones;
+		const Vector4_32 default_scale = get_default_scale(clip_context.additive_format);
 		uint16_t num_default_bone_scales = 0;
 
 		// When a stream is constant, we only keep the first sample
@@ -126,7 +127,7 @@ namespace acl
 
 				bone_stream.scales = std::move(constant_stream);
 				bone_stream.is_scale_constant = true;
-				bone_stream.is_scale_default = vector_all_near_equal3(scale, vector_set(1.0f), scale_threshold);
+				bone_stream.is_scale_default = vector_all_near_equal3(scale, default_scale, scale_threshold);
 
 				bone_range.scale = TrackStreamRange(scale, scale);
 

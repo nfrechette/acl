@@ -188,6 +188,9 @@ namespace acl
 		// Whether or not we have scale (bool).
 		uint8_t					has_scale;
 
+		// Whether the default scale is 0,0,0 or 1,1,1 (bool/bit).
+		uint8_t					default_scale;
+
 		// The total number of samples per track our clip contained.
 		uint32_t				num_samples;
 

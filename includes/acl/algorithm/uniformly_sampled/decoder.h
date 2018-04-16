@@ -127,10 +127,13 @@ namespace acl
 			template<class SettingsType>
 			struct ScaleDecompressionSettingsAdapter
 			{
-				ScaleDecompressionSettingsAdapter(const SettingsType& settings_) : settings(settings_) {}
+				ScaleDecompressionSettingsAdapter(const SettingsType& settings_, const ClipHeader& header)
+					: settings(settings_)
+					, default_scale(header.default_scale ? vector_set(1.0f) : vector_zero_32())
+				{}
 
 				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Scales; }
-				constexpr Vector4_32 get_default_value() const { return vector_set(1.0f); }
+				inline Vector4_32 get_default_value() const { return default_scale; }
 				constexpr VectorFormat8 get_vector_format(const ClipHeader& header) const { return settings.get_scale_format(header.scale_format); }
 				constexpr bool is_vector_format_supported(VectorFormat8 format) const { return settings.is_scale_format_supported(format); }
 
@@ -140,6 +143,7 @@ namespace acl
 				constexpr bool supports_mixed_packing() const { return settings.supports_mixed_packing(); }
 
 				SettingsType settings;
+				Vector4_32 default_scale;
 			};
 
 			template<class SettingsType>
@@ -345,7 +349,7 @@ namespace acl
 			seek(settings, header, sample_time, context);
 
 			const TranslationDecompressionSettingsAdapter<SettingsType> translation_adapter(settings);
-			const ScaleDecompressionSettingsAdapter<SettingsType> scale_adapter(settings);
+			const ScaleDecompressionSettingsAdapter<SettingsType> scale_adapter(settings, header);
 
 			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 			{
@@ -355,7 +359,7 @@ namespace acl
 				Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, context);
 				writer.write_bone_translation(bone_index, translation);
 
-				Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, context) : vector_set(1.0f);
+				Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, context) : scale_adapter.get_default_value();
 				writer.write_bone_scale(bone_index, scale);
 			}
 		}
@@ -377,7 +381,7 @@ namespace acl
 			seek(settings, header, sample_time, context);
 
 			const TranslationDecompressionSettingsAdapter<SettingsType> translation_adapter(settings);
-			const ScaleDecompressionSettingsAdapter<SettingsType> scale_adapter(settings);
+			const ScaleDecompressionSettingsAdapter<SettingsType> scale_adapter(settings, header);
 
 			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
 			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
@@ -403,7 +407,7 @@ namespace acl
 			if (out_translation != nullptr)
 				*out_translation = translation;
 
-			Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, context) : vector_set(1.0f);
+			Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, context) : scale_adapter.get_default_value();
 			if (out_scale != nullptr)
 				*out_scale = scale;
 		}

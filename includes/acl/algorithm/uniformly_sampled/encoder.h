@@ -92,6 +92,11 @@ namespace acl
 
 			ScopeProfiler compression_time;
 
+			ClipContext additive_base_clip_context;
+			const AnimationClip* additive_base_clip = clip.get_additive_base();
+			if (additive_base_clip != nullptr)
+				initialize_clip_context(allocator, *additive_base_clip, skeleton, settings, additive_base_clip_context);
+
 			ClipContext raw_clip_context;
 			initialize_clip_context(allocator, clip, skeleton, settings, raw_clip_context);
 
@@ -128,7 +133,7 @@ namespace acl
 				}
 			}
 
-			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context);
+			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context, additive_base_clip_context);
 
 			const uint32_t constant_data_size = get_constant_data_size(clip_context);
 
@@ -187,6 +192,7 @@ namespace acl
 			header.clip_range_reduction = settings.range_reduction;
 			header.segment_range_reduction = settings.segmenting.range_reduction;
 			header.has_scale = clip_context.has_scale ? 1 : 0;
+			header.default_scale = additive_base_clip == nullptr || clip.get_additive_format() != AdditiveClipFormat8::Additive1;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.segment_headers_offset = sizeof(ClipHeader);
@@ -218,11 +224,14 @@ namespace acl
 
 #if defined(SJSON_CPP_WRITER)
 			if (out_stats.logging != StatLogging::None)
-				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, compression_time, out_stats);
+				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
 #endif
 
 			destroy_clip_context(allocator, clip_context);
 			destroy_clip_context(allocator, raw_clip_context);
+
+			if (additive_base_clip != nullptr)
+				destroy_clip_context(allocator, additive_base_clip_context);
 
 			out_compressed_clip = compressed_clip;
 			return ErrorResult();

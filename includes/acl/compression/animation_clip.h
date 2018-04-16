@@ -26,6 +26,7 @@
 
 #include "acl/compression/animation_track.h"
 #include "acl/compression/skeleton.h"
+#include "acl/core/additive_utils.h"
 #include "acl/core/string.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
@@ -51,6 +52,8 @@ namespace acl
 			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
 			, m_num_bones(skeleton.get_num_bones())
+			, m_additive_base_clip(nullptr)
+			, m_additive_format(AdditiveClipFormat8::None)
 			, m_name(allocator, name)
 		{
 			m_bones = allocate_type_array<AnimatedBone>(allocator, m_num_bones);
@@ -131,6 +134,10 @@ namespace acl
 			return uint32_t(m_num_bones) * bone_sample_size * m_num_samples;
 		}
 
+		void set_additive_base(const AnimationClip* base_clip, AdditiveClipFormat8 additive_format) { m_additive_base_clip = base_clip; m_additive_format = additive_format; }
+		const AnimationClip* get_additive_base() const { return m_additive_base_clip; }
+		AdditiveClipFormat8 get_additive_format() const { return m_additive_format; }
+
 	private:
 		IAllocator&				m_allocator;
 
@@ -139,6 +146,9 @@ namespace acl
 		uint32_t				m_num_samples;
 		uint32_t				m_sample_rate;
 		uint16_t				m_num_bones;
+
+		const AnimationClip*	m_additive_base_clip;
+		AdditiveClipFormat8		m_additive_format;
 
 		String					m_name;
 	};

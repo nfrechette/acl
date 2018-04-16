@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/additive_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/compression/animation_clip.h"
@@ -50,6 +51,9 @@ namespace acl
 		bool are_translations_normalized;
 		bool are_scales_normalized;
 		bool has_scale;
+		bool has_additive_base;
+
+		AdditiveClipFormat8 additive_format;
 
 		// Stat tracking
 		uint32_t total_header_size;
@@ -76,6 +80,7 @@ namespace acl
 		const uint32_t num_samples = clip.get_num_samples();
 		const uint32_t sample_rate = clip.get_sample_rate();
 		const AnimatedBone* bones = clip.get_bones();
+		const bool has_additive_base = clip.get_additive_base() != nullptr;
 
 		ACL_ASSERT(num_bones > 0, "Clip has no bones!");
 		ACL_ASSERT(num_samples > 0, "Clip has no samples!");
@@ -91,8 +96,11 @@ namespace acl
 		out_clip_context.are_rotations_normalized = false;
 		out_clip_context.are_translations_normalized = false;
 		out_clip_context.are_scales_normalized = false;
+		out_clip_context.has_additive_base = has_additive_base;
+		out_clip_context.additive_format = clip.get_additive_format();
 
 		bool has_scale = false;
+		const Vector4_32 default_scale = get_default_scale(clip.get_additive_format());
 
 		SegmentContext& segment = out_clip_context.segments[0];
 
@@ -129,7 +137,7 @@ namespace acl
 			bone_stream.is_translation_constant = num_samples == 1;
 			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_all_near_equal3(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32(), settings.constant_translation_threshold);
 			bone_stream.is_scale_constant = num_samples == 1;
-			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_all_near_equal3(vector_cast(bone.scale_track.get_sample(0)), vector_set(1.0f), settings.constant_scale_threshold);
+			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_all_near_equal3(vector_cast(bone.scale_track.get_sample(0)), default_scale, settings.constant_scale_threshold);
 
 			has_scale |= !bone_stream.is_scale_default;
 		}
