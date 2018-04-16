@@ -55,7 +55,7 @@ namespace acl
 		Additive1			= 3,
 	};
 
-	constexpr Vector4_32 get_default_scale(AdditiveClipFormat8 additive_format)
+	inline Vector4_32 get_default_scale(AdditiveClipFormat8 additive_format)
 	{
 		return additive_format == AdditiveClipFormat8::Additive1 ? vector_zero_32() : vector_set(1.0f);
 	}
