@@ -28,7 +28,9 @@
 #include "acl/compression/skeleton.h"
 #include "acl/core/additive_utils.h"
 #include "acl/core/error_result.h"
+#include "acl/core/interpolation_utils.h"
 #include "acl/core/string.h"
+#include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/transform_32.h"
@@ -90,11 +92,7 @@ namespace acl
 		uint16_t get_num_bones() const { return m_num_bones; }
 		uint32_t get_num_samples() const { return m_num_samples; }
 		uint32_t get_sample_rate() const { return m_sample_rate; }
-		float get_duration() const
-		{
-			ACL_ASSERT(m_sample_rate > 0, "Invalid sample rate: %u", m_sample_rate);
-			return float(m_num_samples - 1) / float(m_sample_rate);
-		}
+		float get_duration() const { return calculate_duration(m_num_samples, m_sample_rate); }
 		const String& get_name() const { return m_name; }
 
 		void sample_pose(float sample_time, Transform_32* out_local_pose, uint16_t num_transforms) const
@@ -102,28 +100,28 @@ namespace acl
 			ACL_ASSERT(m_num_bones > 0, "Invalid number of bones: %u", m_num_bones);
 			ACL_ASSERT(m_num_bones == num_transforms, "Number of transforms does not match the number of bones: %u != %u", num_transforms, m_num_bones);
 
-			float clip_duration = get_duration();
+			const float clip_duration = get_duration();
 
-			uint32_t sample_frame0;
-			uint32_t sample_frame1;
+			uint32_t sample_index0;
+			uint32_t sample_index1;
 			float interpolation_alpha;
-			calculate_interpolation_keys(m_num_samples, clip_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
+			find_linear_interpolation_samples(m_num_samples, clip_duration, sample_time, SampleRoundingPolicy::None, sample_index0, sample_index1, interpolation_alpha);
 
 			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
 			{
 				const AnimatedBone& bone = m_bones[bone_index];
 
-				Quat_32 rotation0 = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_frame0)));
-				Quat_32 rotation1 = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_frame1)));
-				Quat_32 rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
+				const Quat_32 rotation0 = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index0)));
+				const Quat_32 rotation1 = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index1)));
+				const Quat_32 rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
 
-				Vector4_32 translation0 = vector_cast(bone.translation_track.get_sample(sample_frame0));
-				Vector4_32 translation1 = vector_cast(bone.translation_track.get_sample(sample_frame1));
-				Vector4_32 translation = vector_lerp(translation0, translation1, interpolation_alpha);
+				const Vector4_32 translation0 = vector_cast(bone.translation_track.get_sample(sample_index0));
+				const Vector4_32 translation1 = vector_cast(bone.translation_track.get_sample(sample_index1));
+				const Vector4_32 translation = vector_lerp(translation0, translation1, interpolation_alpha);
 
-				Vector4_32 scale0 = vector_cast(bone.scale_track.get_sample(sample_frame0));
-				Vector4_32 scale1 = vector_cast(bone.scale_track.get_sample(sample_frame1));
-				Vector4_32 scale = vector_lerp(scale0, scale1, interpolation_alpha);
+				const Vector4_32 scale0 = vector_cast(bone.scale_track.get_sample(sample_index0));
+				const Vector4_32 scale1 = vector_cast(bone.scale_track.get_sample(sample_index1));
+				const Vector4_32 scale = vector_lerp(scale0, scale1, interpolation_alpha);
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}

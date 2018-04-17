@@ -36,7 +36,7 @@
 #include "acl/compression/stream/normalize_streams.h"
 #include "acl/compression/stream/convert_rotation_streams.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
@@ -639,7 +639,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Quat_32 sample0 = get_rotation_sample(bone_stream, key0);
 				Quat_32 sample1 = get_rotation_sample(bone_stream, key1);
@@ -659,7 +659,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0 = get_translation_sample(bone_stream, key0);
 				Vector4_32 sample1 = get_translation_sample(bone_stream, key1);
@@ -679,7 +679,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
 				Vector4_32 sample1 = get_scale_sample(bone_stream, key1);
@@ -714,7 +714,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Quat_32 sample0 = get_rotation_sample(bone_stream, key0);
 				Quat_32 sample1 = get_rotation_sample(bone_stream, key1);
@@ -734,7 +734,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0 = get_translation_sample(bone_stream, key0);
 				Vector4_32 sample1 = get_translation_sample(bone_stream, key1);
@@ -754,7 +754,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
 				Vector4_32 sample1 = get_scale_sample(bone_stream, key1);
@@ -798,7 +798,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Quat_32 sample0;
 				Quat_32 sample1;
@@ -831,7 +831,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0;
 				Vector4_32 sample1;
@@ -864,7 +864,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0;
 				Vector4_32 sample1;
@@ -921,7 +921,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Quat_32 sample0;
 				Quat_32 sample1;
@@ -954,7 +954,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0;
 				Vector4_32 sample1;
@@ -987,7 +987,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				calculate_interpolation_keys(num_samples, duration, sample_time, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0;
 				Vector4_32 sample1;

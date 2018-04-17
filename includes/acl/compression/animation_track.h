@@ -26,7 +26,6 @@
 
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
-#include "acl/core/utils.h"
 #include "acl/core/track_types.h"
 #include "acl/math/quat_64.h"
 #include "acl/math/vector4_64.h"
@@ -34,7 +33,7 @@
 #include <cstdint>
 #include <utility>
 
-// VS2015 sometimes dies when it attemps to compile too many inlined functions
+// VS2015 sometimes dies when it attempts to compile too many inlined functions
 #if defined(_MSC_VER)
 #define VS2015_HACK_NO_INLINE __declspec(noinline)
 #else
@@ -173,20 +172,6 @@ namespace acl
 			return quat_unaligned_load(sample);
 		}
 
-		Quat_64 sample_track(double sample_time) const
-		{
-			const double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
-
-			uint32_t sample_frame0;
-			uint32_t sample_frame1;
-			double interpolation_alpha;
-			calculate_interpolation_keys(m_num_samples, track_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
-
-			const Quat_64 sample0 = get_sample(sample_frame0);
-			const Quat_64 sample1 = get_sample(sample_frame1);
-			return quat_lerp(sample0, sample1, interpolation_alpha);
-		}
-
 		AnimationRotationTrack(const AnimationRotationTrack&) = delete;
 		AnimationRotationTrack& operator=(const AnimationRotationTrack&) = delete;
 	};
@@ -240,20 +225,6 @@ namespace acl
 			return vector_unaligned_load3(sample);
 		}
 
-		Vector4_64 sample_track(double sample_time) const
-		{
-			const double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
-
-			uint32_t sample_frame0;
-			uint32_t sample_frame1;
-			double interpolation_alpha;
-			calculate_interpolation_keys(m_num_samples, track_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
-
-			const Vector4_64 sample0 = get_sample(sample_frame0);
-			const Vector4_64 sample1 = get_sample(sample_frame1);
-			return vector_lerp(sample0, sample1, interpolation_alpha);
-		}
-
 		AnimationTranslationTrack(const AnimationTranslationTrack&) = delete;
 		AnimationTranslationTrack& operator=(const AnimationTranslationTrack&) = delete;
 	};
@@ -305,20 +276,6 @@ namespace acl
 
 			const double* sample = &m_sample_data[sample_index * sample_size];
 			return vector_unaligned_load3(sample);
-		}
-
-		Vector4_64 sample_track(double sample_time) const
-		{
-			const double track_duration = double(m_num_samples - 1) / double(m_sample_rate);
-
-			uint32_t sample_frame0;
-			uint32_t sample_frame1;
-			double interpolation_alpha;
-			calculate_interpolation_keys(m_num_samples, track_duration, sample_time, sample_frame0, sample_frame1, interpolation_alpha);
-
-			const Vector4_64 sample0 = get_sample(sample_frame0);
-			const Vector4_64 sample1 = get_sample(sample_frame1);
-			return vector_lerp(sample0, sample1, interpolation_alpha);
 		}
 
 		AnimationScaleTrack(const AnimationScaleTrack&) = delete;

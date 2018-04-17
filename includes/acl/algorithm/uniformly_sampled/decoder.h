@@ -27,8 +27,8 @@
 #include "acl/core/bitset.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/interpolation_utils.h"
 #include "acl/core/range_reduction_types.h"
-#include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/quat_packing.h"
@@ -224,9 +224,11 @@ namespace acl
 				context.format_per_track_data_offset = 0;
 				context.segment_range_data_offset = 0;
 
+				const SampleRoundingPolicy rounding_policy = settings.get_sample_rounding_policy();
+
 				uint32_t key_frame0;
 				uint32_t key_frame1;
-				calculate_interpolation_keys(header.num_samples, context.clip_duration, sample_time, key_frame0, key_frame1, context.interpolation_alpha);
+				find_linear_interpolation_samples(header.num_samples, context.clip_duration, sample_time, rounding_policy, key_frame0, key_frame1, context.interpolation_alpha);
 
 				uint32_t segment_key_frame0 = 0;
 				uint32_t segment_key_frame1 = 0;
@@ -306,6 +308,8 @@ namespace acl
 
 			// Whether tracks must all be variable or all fixed width, or if they can be mixed and require padding
 			constexpr bool supports_mixed_packing() const { return true; }
+
+			constexpr SampleRoundingPolicy get_sample_rounding_policy() const { return SampleRoundingPolicy::None; }
 		};
 
 		template<class SettingsType>

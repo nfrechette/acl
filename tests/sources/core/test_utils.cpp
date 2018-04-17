@@ -25,41 +25,18 @@
 #include <catch.hpp>
 
 #include <acl/core/utils.h>
-#include <acl/math/scalar_32.h>
 
 using namespace acl;
 
 TEST_CASE("misc utils", "[core][utils]")
 {
-	uint32_t key0;
-	uint32_t key1;
-	float alpha;
-	calculate_interpolation_keys<float>(31, 1.0f, 0.0f, key0, key1, alpha);
-
-	REQUIRE(key0 == 0);
-	REQUIRE(key1 == 1);
-	REQUIRE(scalar_near_equal(alpha, 0.0f, 1.0e-8f));
-
-	calculate_interpolation_keys<float>(31, 1.0f, 1.0f / 30.0f, key0, key1, alpha);
-
-	REQUIRE(key0 == 1);
-	REQUIRE(key1 == 2);
-	REQUIRE(scalar_near_equal(alpha, 0.0f, 1.0e-8f));
-
-	calculate_interpolation_keys<float>(31, 1.0f, 2.5f / 30.0f, key0, key1, alpha);
-
-	REQUIRE(key0 == 2);
-	REQUIRE(key1 == 3);
-	REQUIRE(scalar_near_equal(alpha, 0.5f, 1.0e-8f));
-
-	calculate_interpolation_keys<float>(31, 1.0f, 1.0f, key0, key1, alpha);
-
-	REQUIRE(key0 == 30);
-	REQUIRE(key1 == 30);
-	REQUIRE(scalar_near_equal(alpha, 0.0f, 1.0e-8f));
-
 	REQUIRE(calculate_num_samples(0.0f, 30) == 1);
 	REQUIRE(calculate_num_samples(1.0f, 30) == 31);
 	REQUIRE(calculate_num_samples(1.0f, 24) == 25);
 	REQUIRE(calculate_num_samples(1.0f / 30.f, 30) == 2);
+
+	REQUIRE(calculate_duration(1, 30) == 0.0f);
+	REQUIRE(calculate_duration(1, 8) == 0.0f);
+	REQUIRE(scalar_near_equal(calculate_duration(31, 30), 1.0f, 1.0e-8f));
+	REQUIRE(scalar_near_equal(calculate_duration(9, 8), 1.0f, 1.0e-8f));
 }
