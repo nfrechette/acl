@@ -74,23 +74,23 @@ namespace acl
 	namespace uniformly_sampled
 	{
 		// Encoder entry point
-		inline ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings settings, CompressedClip*& out_compressed_clip, OutputStats& out_stats)
+		inline ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, CompressionSettings settings, CompressedClip*& out_compressed_clip, OutputStats& out_stats)
 		{
 			using namespace impl;
 
-			const uint16_t num_bones = clip.get_num_bones();
-			if (num_bones == 0)
-				return ErrorResult("Clip has no bones!");
+			ErrorResult error_result = clip.is_valid();
+			if (error_result.any())
+				return error_result;
 
-			const uint32_t num_samples = clip.get_num_samples();
-			if (num_samples == 0)
-				return ErrorResult("Clip has no samples!");
-
-			ErrorResult settings_error = settings.is_valid();
-			if (settings_error.any())
-				return settings_error;
+			error_result = settings.is_valid();
+			if (error_result.any())
+				return error_result;
 
 			ScopeProfiler compression_time;
+
+			const uint16_t num_bones = clip.get_num_bones();
+			const uint32_t num_samples = clip.get_num_samples();
+			const RigidSkeleton& skeleton = clip.get_skeleton();
 
 			ClipContext additive_base_clip_context;
 			const AnimationClip* additive_base_clip = clip.get_additive_base();

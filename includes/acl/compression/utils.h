@@ -43,14 +43,14 @@ namespace acl
 	};
 
 	inline BoneError calculate_compressed_clip_error(IAllocator& allocator,
-		const AnimationClip& clip, const RigidSkeleton& skeleton,
-		const CompressedClip& compressed_clip, IAlgorithm& algorithm)
+		const AnimationClip& clip, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
 	{
 		const uint16_t num_bones = clip.get_num_bones();
 		const float clip_duration = clip.get_duration();
 		const float sample_rate = float(clip.get_sample_rate());
 		const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
 		const CompressionSettings& settings = algorithm.get_compression_settings();
+		const RigidSkeleton& skeleton = clip.get_skeleton();
 
 		const AnimationClip* additive_base_clip = clip.get_additive_base();
 		const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;

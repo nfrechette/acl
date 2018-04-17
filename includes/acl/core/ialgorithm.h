@@ -51,7 +51,7 @@ namespace acl
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Compressed the specified clip.
-		virtual ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, CompressedClip*& out_compressed_clip, OutputStats& out_stats) = 0;
+		virtual ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, CompressedClip*& out_compressed_clip, OutputStats& out_stats) = 0;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Allocates and deallocates a decompression context.

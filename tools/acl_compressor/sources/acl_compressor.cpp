@@ -327,13 +327,14 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
-static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressedClip& compressed_clip, IAlgorithm& algorithm, double regression_error_threshold)
+static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, const CompressedClip& compressed_clip, IAlgorithm& algorithm, double regression_error_threshold)
 {
 	const uint16_t num_bones = clip.get_num_bones();
 	const float clip_duration = clip.get_duration();
 	const float sample_rate = float(clip.get_sample_rate());
 	const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
 	const ISkeletalErrorMetric& error_metric = *algorithm.get_compression_settings().error_metric;
+	const RigidSkeleton& skeleton = clip.get_skeleton();
 
 	const AnimationClip* additive_base_clip = clip.get_additive_base();
 	const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;
@@ -388,13 +389,13 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	algorithm.deallocate_decompression_context(allocator, context);
 }
 
-static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, IAlgorithm &algorithm, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, IAlgorithm &algorithm, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
 		OutputStats stats(logging, stats_writer);
 		CompressedClip* compressed_clip = nullptr;
-		ErrorResult error_result = algorithm.compress_clip(allocator, clip, skeleton, compressed_clip, stats);
+		ErrorResult error_result = algorithm.compress_clip(allocator, clip, compressed_clip, stats);
 		(void)error_result;
 
 		ACL_ASSERT(error_result.empty(), error_result.c_str());
@@ -404,7 +405,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 		if (logging != StatLogging::None)
 		{
 			// Use the compressed clip to make sure the decoder works properly
-			const BoneError bone_error = calculate_compressed_clip_error(allocator, clip, skeleton, *compressed_clip, algorithm);
+			const BoneError bone_error = calculate_compressed_clip_error(allocator, clip, *compressed_clip, algorithm);
 
 			stats_writer->insert("max_error", bone_error.error);
 			stats_writer->insert("worst_bone", bone_error.index);
@@ -416,7 +417,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 #endif
 
 		if (options.regression_testing)
-			validate_accuracy(allocator, clip, skeleton, *compressed_clip, algorithm, regression_error_threshold);
+			validate_accuracy(allocator, clip, *compressed_clip, algorithm, regression_error_threshold);
 
 		allocator.deallocate(compressed_clip, compressed_clip->get_size());
 	};
@@ -715,7 +716,7 @@ static int safe_main_impl(int argc, char* argv[])
 			ACL_ASSERT(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
 
 			UniformlySampledAlgorithm algorithm(settings);
-			try_algorithm(options, allocator, *clip.get(), *skeleton.get(), algorithm, logging, runs_writer, regression_error_threshold);
+			try_algorithm(options, allocator, *clip.get(), algorithm, logging, runs_writer, regression_error_threshold);
 		}
 		else
 		{
@@ -749,7 +750,7 @@ static int safe_main_impl(int argc, char* argv[])
 					tmp_settings.error_metric = settings.error_metric;
 
 					UniformlySampledAlgorithm tmp_algorithm(tmp_settings);
-					try_algorithm(options, allocator, *clip.get(), *skeleton.get(), tmp_algorithm, logging, runs_writer, regression_error_threshold);
+					try_algorithm(options, allocator, *clip.get(), tmp_algorithm, logging, runs_writer, regression_error_threshold);
 				}
 			}
 
@@ -775,7 +776,7 @@ static int safe_main_impl(int argc, char* argv[])
 					tmp_settings.error_metric = settings.error_metric;
 
 					UniformlySampledAlgorithm tmp_algorithm(tmp_settings);
-					try_algorithm(options, allocator, *clip.get(), *skeleton.get(), tmp_algorithm, logging, runs_writer, regression_error_threshold);
+					try_algorithm(options, allocator, *clip.get(), tmp_algorithm, logging, runs_writer, regression_error_threshold);
 				}
 			}
 		}

@@ -27,6 +27,7 @@
 #include "acl/compression/animation_track.h"
 #include "acl/compression/skeleton.h"
 #include "acl/core/additive_utils.h"
+#include "acl/core/error_result.h"
 #include "acl/core/string.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
@@ -48,6 +49,7 @@ namespace acl
 	public:
 		AnimationClip(IAllocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate, const String &name)
 			: m_allocator(allocator)
+			, m_skeleton(skeleton)
 			, m_bones()
 			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
@@ -73,6 +75,8 @@ namespace acl
 
 		AnimationClip(const AnimationClip&) = delete;
 		AnimationClip& operator=(const AnimationClip&) = delete;
+
+		const RigidSkeleton& get_skeleton() const { return m_skeleton; }
 
 		AnimatedBone* get_bones() { return m_bones; }
 		const AnimatedBone* get_bones() const { return m_bones; }
@@ -138,8 +142,32 @@ namespace acl
 		const AnimationClip* get_additive_base() const { return m_additive_base_clip; }
 		AdditiveClipFormat8 get_additive_format() const { return m_additive_format; }
 
+		ErrorResult is_valid() const
+		{
+			if (m_num_bones == 0)
+				return ErrorResult("Clip has no bones");
+
+			if (m_num_samples == 0)
+				return ErrorResult("Clip has no samples");
+
+			if (m_additive_base_clip != nullptr)
+			{
+				if (m_num_bones != m_additive_base_clip->get_num_bones())
+					return ErrorResult("The number of bones does not match between the clip and its additive base");
+
+				if (&m_skeleton != &m_additive_base_clip->get_skeleton())
+					return ErrorResult("The RigidSkeleton differs between the clip and its additive base");
+
+				return m_additive_base_clip->is_valid();
+			}
+
+			return ErrorResult();
+		}
+
 	private:
 		IAllocator&				m_allocator;
+
+		const RigidSkeleton&	m_skeleton;
 
 		AnimatedBone*			m_bones;
 
