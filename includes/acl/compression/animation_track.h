@@ -42,11 +42,21 @@
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// A raw animation track.
+	//
+	// This is the base class for the three track types: rotation, translation, and scale.
+	// It holds and owns the raw data.
+	//////////////////////////////////////////////////////////////////////////
 	class AnimationTrack
 	{
 	public:
+		//////////////////////////////////////////////////////////////////////////
+		// Returns if the animation track has been initialized or not
 		bool is_initialized() const { return m_allocator != nullptr; }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the number of samples in this track
 		uint32_t get_num_samples() const { return m_num_samples; }
 
 	protected:
@@ -69,6 +79,12 @@ namespace acl
 			new(&other) AnimationTrack();
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs a new track instance
+		//    - allocator: The allocator instance to use to allocate and free memory
+		//    - num_samples: The number of samples in this track
+		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
+		//    - type: The track type
 		AnimationTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate, AnimationTrackType8 type)
 			: m_allocator(&allocator)
 			, m_sample_data(allocate_type_array_aligned<double>(allocator, num_samples * get_animation_track_sample_size(type), alignof(Vector4_64)))
@@ -96,8 +112,9 @@ namespace acl
 		AnimationTrack(const AnimationTrack&) = delete;
 		AnimationTrack& operator=(const AnimationTrack&) = delete;
 
-		// TODO: constexpr
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of values per sample
+		// TODO: constexpr
 		static uint32_t get_animation_track_sample_size(AnimationTrackType8 type)
 		{
 			switch (type)
@@ -109,17 +126,27 @@ namespace acl
 			}
 		}
 
+		// The allocator instance used to allocate and free memory by this clip instance
 		IAllocator*						m_allocator;
+
+		// The raw track data. There are 'get_animation_track_sample_size(m_type)' entries.
 		double*							m_sample_data;
 
+		// The number of samples in this track
 		uint32_t						m_num_samples;
+
+		// The rate at which the samples were recorded
 		uint32_t						m_sample_rate;
 
+		// The track type
 		AnimationTrackType8				m_type;
-
-		// TODO: Support different sampling methods: linear, cubic
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// A raw rotation track.
+	//
+	// Holds a track made of 'Quat_64' entries.
+	//////////////////////////////////////////////////////////////////////////
 	class AnimationRotationTrack : public AnimationTrack
 	{
 	public:
@@ -127,6 +154,11 @@ namespace acl
 			: AnimationTrack()
 		{}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs a new rotation track instance
+		//    - allocator: The allocator instance to use to allocate and free memory
+		//    - num_samples: The number of samples in this track
+		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		AnimationRotationTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
 			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Rotation)
 		{
@@ -144,6 +176,8 @@ namespace acl
 			return *this;
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Sets a sample value at a particular index
 		VS2015_HACK_NO_INLINE void set_sample(uint32_t sample_index, const Quat_64& rotation)
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");
@@ -155,12 +189,11 @@ namespace acl
 			ACL_ASSERT(sample_size == 4, "Invalid sample size. %u != 4", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
-			sample[0] = quat_get_x(rotation);
-			sample[1] = quat_get_y(rotation);
-			sample[2] = quat_get_z(rotation);
-			sample[3] = quat_get_w(rotation);
+			quat_unaligned_write(rotation, sample);
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Retrieves a sample value at a particular index
 		Quat_64 get_sample(uint32_t sample_index) const
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");
@@ -176,6 +209,11 @@ namespace acl
 		AnimationRotationTrack& operator=(const AnimationRotationTrack&) = delete;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// A raw translation track.
+	//
+	// Holds a track made of 3x 'double' entries.
+	//////////////////////////////////////////////////////////////////////////
 	class AnimationTranslationTrack : public AnimationTrack
 	{
 	public:
@@ -183,6 +221,11 @@ namespace acl
 			: AnimationTrack()
 		{}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs a new translation track instance
+		//    - allocator: The allocator instance to use to allocate and free memory
+		//    - num_samples: The number of samples in this track
+		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		AnimationTranslationTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
 			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Translation)
 		{
@@ -199,6 +242,8 @@ namespace acl
 			return *this;
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Sets a sample value at a particular index
 		void set_sample(uint32_t sample_index, const Vector4_64& translation)
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");
@@ -209,11 +254,11 @@ namespace acl
 			ACL_ASSERT(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
-			sample[0] = vector_get_x(translation);
-			sample[1] = vector_get_y(translation);
-			sample[2] = vector_get_z(translation);
+			vector_unaligned_write3(translation, sample);
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Retrieves a sample value at a particular index
 		Vector4_64 get_sample(uint32_t sample_index) const
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");
@@ -229,6 +274,11 @@ namespace acl
 		AnimationTranslationTrack& operator=(const AnimationTranslationTrack&) = delete;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// A raw scale track.
+	//
+	// Holds a track made of 3x 'double' entries.
+	//////////////////////////////////////////////////////////////////////////
 	class AnimationScaleTrack : public AnimationTrack
 	{
 	public:
@@ -236,6 +286,11 @@ namespace acl
 			: AnimationTrack()
 		{}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs a new scale track instance
+		//    - allocator: The allocator instance to use to allocate and free memory
+		//    - num_samples: The number of samples in this track
+		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		AnimationScaleTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
 			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Scale)
 		{
@@ -252,6 +307,8 @@ namespace acl
 			return *this;
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Sets a sample value at a particular index
 		VS2015_HACK_NO_INLINE void set_sample(uint32_t sample_index, const Vector4_64& scale)
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");
@@ -262,11 +319,11 @@ namespace acl
 			ACL_ASSERT(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
 
 			double* sample = &m_sample_data[sample_index * sample_size];
-			sample[0] = vector_get_x(scale);
-			sample[1] = vector_get_y(scale);
-			sample[2] = vector_get_z(scale);
+			vector_unaligned_write3(scale, sample);
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Retrieves a sample value at a particular index
 		Vector4_64 get_sample(uint32_t sample_index) const
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");

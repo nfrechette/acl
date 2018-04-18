@@ -484,7 +484,7 @@ namespace acl
 					return false;
 				}
 
-				AnimatedBone& bone = clip.get_bones()[bone_index];
+				AnimatedBone& bone = clip.get_animated_bone(bone_index);
 
 				if (m_parser.try_array_begins("rotations"))
 				{

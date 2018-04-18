@@ -686,7 +686,7 @@ static int safe_main_impl(int argc, char* argv[])
 				anim_bone.scale_track.set_sample(sample_index, bind_local_transform.scale);
 			}
 
-			AnimatedBone& base_bone = base_clip.get_bones()[bone_index];
+			AnimatedBone& base_bone = base_clip.get_animated_bone(bone_index);
 			base_bone.rotation_track.set_sample(0, bind_transform.rotation);
 			base_bone.translation_track.set_sample(0, bind_transform.translation);
 			base_bone.scale_track.set_sample(0, bind_transform.scale);

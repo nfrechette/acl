@@ -39,6 +39,8 @@
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Small structure to wrap the three tracks a bone can own: rotation, translation and scale.
 	struct AnimatedBone
 	{
 		AnimationRotationTrack		rotation_track;
@@ -46,9 +48,30 @@ namespace acl
 		AnimationScaleTrack			scale_track;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// A raw animation clip.
+	//
+	// A clip is a collection of animated bones that map directly to a rigid skeleton.
+	// Each bone has a rotation track, a translation track, and a scale track.
+	// All tracks should have the same number of samples at a particular
+	// sample rate.
+	//
+	// A clip can also have an additive base. Such clips are deemed additive in nature
+	// and also have a corresponding additive format that dictates the mathematical
+	// operation to add it onto its base clip.
+	//
+	// Instances of this class manage and own the raw animation data within.
+	//////////////////////////////////////////////////////////////////////////
 	class AnimationClip
 	{
 	public:
+		//////////////////////////////////////////////////////////////////////////
+		// Creates an instance and initializes it.
+		//    - allocator: The allocator instance to use to allocate and free memory
+		//    - skeleton: The rigid skeleton this clip is based on
+		//    - num_samples: The number of samples per track
+		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
+		//    - name: Name of the clip (used for debugging purposes only)
 		AnimationClip(IAllocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate, const String &name)
 			: m_allocator(allocator)
 			, m_skeleton(skeleton)
@@ -78,23 +101,56 @@ namespace acl
 		AnimationClip(const AnimationClip&) = delete;
 		AnimationClip& operator=(const AnimationClip&) = delete;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the rigid skeleton this clip was created with
 		const RigidSkeleton& get_skeleton() const { return m_skeleton; }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the array of animated bone data
 		AnimatedBone* get_bones() { return m_bones; }
 		const AnimatedBone* get_bones() const { return m_bones; }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the animated bone data for the provided bone index
+		AnimatedBone& get_animated_bone(uint16_t bone_index)
+		{
+			ACL_ASSERT(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
+			return m_bones[bone_index];
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the animated bone data for the provided bone index
 		const AnimatedBone& get_animated_bone(uint16_t bone_index) const
 		{
 			ACL_ASSERT(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
 			return m_bones[bone_index];
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the number of bones in this clip
 		uint16_t get_num_bones() const { return m_num_bones; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the number of samples per track in this clip
 		uint32_t get_num_samples() const { return m_num_samples; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the sample rate of this clip
 		uint32_t get_sample_rate() const { return m_sample_rate; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the clip playback duration in seconds
 		float get_duration() const { return calculate_duration(m_num_samples, m_sample_rate); }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the clip name
 		const String& get_name() const { return m_name; }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Samples a whole pose at a particular sample time
+		//    - sample_time: The time at which to sample the clip
+		//    - out_local_pose: An array of at least 'num_transforms' to output the data in
+		//    - num_transforms: The number of transforms in the output array
 		void sample_pose(float sample_time, Transform_32* out_local_pose, uint16_t num_transforms) const
 		{
 			ACL_ASSERT(m_num_bones > 0, "Invalid number of bones: %u", m_num_bones);
@@ -127,6 +183,10 @@ namespace acl
 			}
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the raw size for this clip. Note that this differs from the actual
+		// memory used by an instance of this class. It is meant for comparison against
+		// the compressed size.
 		uint32_t get_raw_size() const
 		{
 			const uint32_t rotation_size = sizeof(float) * 4;		// Quat == Vector4
@@ -136,10 +196,20 @@ namespace acl
 			return uint32_t(m_num_bones) * bone_sample_size * m_num_samples;
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Sets the base animation clip and marks this instance as an additive clip of the provided format
 		void set_additive_base(const AnimationClip* base_clip, AdditiveClipFormat8 additive_format) { m_additive_base_clip = base_clip; m_additive_format = additive_format; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the additive base clip, if any
 		const AnimationClip* get_additive_base() const { return m_additive_base_clip; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the additive format of this clip, if any
 		AdditiveClipFormat8 get_additive_format() const { return m_additive_format; }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Checks if the instance of this clip is valid and returns an error if it isn't
 		ErrorResult is_valid() const
 		{
 			if (m_num_bones == 0)
@@ -163,19 +233,31 @@ namespace acl
 		}
 
 	private:
+		// The allocator instance used to allocate and free memory by this clip instance
 		IAllocator&				m_allocator;
 
+		// The rigid skeleton this clip is based on
 		const RigidSkeleton&	m_skeleton;
 
+		// The array of animated bone data. There are 'm_num_bones' entries
 		AnimatedBone*			m_bones;
 
+		// The number of samples per animated track
 		uint32_t				m_num_samples;
+
+		// The rate at which the samples were recorded
 		uint32_t				m_sample_rate;
+
+		// The number of bones in this clip
 		uint16_t				m_num_bones;
 
+		// The optional clip the current additive clip is based on
 		const AnimationClip*	m_additive_base_clip;
+
+		// If we have an additive base, this is the format we are in
 		AdditiveClipFormat8		m_additive_format;
 
+		// The name of the clip
 		String					m_name;
 	};
 }
