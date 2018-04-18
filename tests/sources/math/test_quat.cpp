@@ -121,6 +121,21 @@ static void test_quat_impl(const Vector4Type& zero, const QuatType& identity, co
 		REQUIRE(quat_get_w(vector_to_quat(vec)) == vector_get_w(vec));
 	}
 
+	{
+		struct alignas(16) Tmp
+		{
+			int32_t padding;
+			alignas(8) FloatType values[4];
+		};
+
+		Tmp tmp = { 0, { FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0) } };
+		quat_unaligned_write(quat_set(FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0)), &tmp.values[0]);
+		REQUIRE(tmp.values[0] == FloatType(0.0));
+		REQUIRE(tmp.values[1] == FloatType(2.34));
+		REQUIRE(tmp.values[2] == FloatType(-3.12));
+		REQUIRE(tmp.values[3] == FloatType(10000.0));
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// Arithmetic
 

@@ -109,6 +109,15 @@ namespace acl
 #endif
 	}
 
+	inline void quat_unaligned_write(const Quat_32& input, float* output)
+	{
+		ACL_ASSERT(is_aligned(output), "Invalid alignment");
+		output[0] = quat_get_x(input);
+		output[1] = quat_get_y(input);
+		output[2] = quat_get_z(input);
+		output[3] = quat_get_w(input);
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// Arithmetic
 
