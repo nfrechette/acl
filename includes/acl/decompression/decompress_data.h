@@ -184,18 +184,18 @@ namespace acl
 			bool is_rotation_constant = bitset_test(context.constant_tracks_bitset, context.bitset_desc, context.constant_track_offset);
 			if (is_rotation_constant)
 			{
-				const RotationFormat8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-
 				Quat_32 rotation;
 
-				if (packed_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
+				if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 					rotation = unpack_quat_128(context.constant_track_data + context.constant_track_data_offset);
-				else if (packed_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
+				else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
 					rotation = unpack_quat_96(context.constant_track_data + context.constant_track_data_offset);
-				else if (packed_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
+				else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
 					rotation = unpack_quat_48(context.constant_track_data + context.constant_track_data_offset);
-				else if (packed_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
+				else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
 					rotation = unpack_quat_32(context.constant_track_data + context.constant_track_data_offset);
+				else if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
+					rotation = unpack_quat_96(context.constant_track_data + context.constant_track_data_offset);
 				else
 				{
 					ACL_ASSERT(false, "Unrecognized rotation format");
@@ -205,6 +205,7 @@ namespace acl
 				out_rotations[0] = rotation;
 				out_time_series_type = TimeSeriesType8::Constant;
 
+				const RotationFormat8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
 				context.constant_track_data_offset += get_packed_rotation_size(packed_format);
 			}
 			else
