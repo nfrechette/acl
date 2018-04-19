@@ -34,10 +34,14 @@
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// We only support up to 65534 bones, we reserve 65535 for the invalid index
 	constexpr uint16_t k_invalid_bone_index = 0xFFFF;
 
 	namespace impl
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// Simple iterator utility class to allow easy looping
 		class BoneChainIterator
 		{
 		public:
@@ -84,6 +88,12 @@ namespace acl
 		};
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Simple bone chain container to allow easy looping
+	//
+	// A bone chain allows looping over all bones up to a specific bone starting
+	// at the root bone.
+	//////////////////////////////////////////////////////////////////////////
 	struct BoneChain
 	{
 		constexpr BoneChain(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index)
@@ -100,16 +110,23 @@ namespace acl
 		uint16_t			m_bone_index;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// A rigid bone description
+	//
+	// Bones are organized in a tree with a single root bone. Each bone has
+	// one or more children and every bone except the root has a single parent.
+	//////////////////////////////////////////////////////////////////////////
 	struct RigidBone
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// Default constructor, initializes a simple root bone with no name
 		RigidBone()
 			: name()
 			, bone_chain(nullptr)
 			, bind_transform(transform_identity_64())
 			, vertex_distance(1.0f)
 			, parent_index(k_invalid_bone_index)
-		{
-		}
+		{}
 
 		RigidBone(RigidBone&& other)
 			: name(std::move(other.name))
@@ -132,22 +149,48 @@ namespace acl
 			return *this;
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns whether or not this bone is the root bone
 		bool is_root() const { return parent_index == k_invalid_bone_index; }
 
+		// Name of the bone (used for debugging purposes only)
 		String			name;
 
 		// A bit set, a set bit at index X indicates the bone at index X is in the chain
 		// This can be used to iterate on the bone chain efficiently from root to the current bone
 		const uint32_t*	bone_chain;
 
-		Transform_64	bind_transform;		// Bind transform is in parent bone local space
-		float			vertex_distance;	// Virtual vertex distance used by hierarchical error function
-		uint16_t		parent_index;		// TODO: Introduce a type for bone indices
+		// The bone bind transform in local space of its parent
+		// Note that the scale is ignored and this value is only used by the additive error metrics
+		Transform_64	bind_transform;
+
+		// Virtual vertex distance used by hierarchical error function
+		// The error metric measures the error of a virtual vertex at this
+		// distance from the bone in object space
+		float			vertex_distance;
+
+		// The parent bone index or an invalid bone index for the root bone
+		// TODO: Introduce a type for bone indices
+		uint16_t		parent_index;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// A rigid skeleton made up of a tree of rigid bones
+	//
+	// This hierarchical structure is important and forms the back bone of the
+	// error metrics. When calculating the error introduced by lowering the
+	// precision of a single bone track, we will walk up the hierarchy and
+	// calculate the error relative to the skeleton root bone (object/mesh space).
+	//////////////////////////////////////////////////////////////////////////
 	class RigidSkeleton
 	{
 	public:
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs a RigidSkeleton instance and moves the data from the input
+		// 'bones' into the skeleton instance (destructive operation on the input array).
+		//    - allocator: The allocator instance to use to allocate and free memory
+		//    - bones: An array of bones to initialize the skeleton with
+		//    - num_bones: The number of input bones
 		RigidSkeleton(IAllocator& allocator, RigidBone* bones, uint16_t num_bones)
 			: m_allocator(allocator)
 			, m_bones(allocate_type_array<RigidBone>(allocator, num_bones))
@@ -172,8 +215,6 @@ namespace acl
 				ACL_ASSERT(quat_is_finite(bone.bind_transform.rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
 				ACL_ASSERT(quat_is_normalized(bone.bind_transform.rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
 				ACL_ASSERT(vector_is_finite3(bone.bind_transform.translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.translation), vector_get_y(bone.bind_transform.translation), vector_get_z(bone.bind_transform.translation));
-				ACL_ASSERT(vector_is_finite3(bone.bind_transform.scale), "Bind scale is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.scale), vector_get_y(bone.bind_transform.scale), vector_get_z(bone.bind_transform.scale));
-				ACL_ASSERT(!vector_any_near_equal3(bone.bind_transform.scale, vector_zero_64()), "Bind scale is zero: [%f, %f, %f]", vector_get_x(bone.bind_transform.scale), vector_get_y(bone.bind_transform.scale), vector_get_z(bone.bind_transform.scale));
 
 				if (!is_root)
 					bitset_set(is_leaf_bitset, bone_bitset_desc, bone.parent_index, false);
@@ -181,6 +222,9 @@ namespace acl
 					found_root = true;
 
 				m_bones[bone_index] = std::move(bone);
+
+				// Input scale is ignored and always set to [1.0, 1.0, 1.0]
+				m_bones[bone_index].bind_transform.scale = vector_set(1.0);
 			}
 
 			m_num_leaf_bones = safe_static_cast<uint16_t>(bitset_count_set_bits(is_leaf_bitset, bone_bitset_desc));
@@ -229,15 +273,24 @@ namespace acl
 		RigidSkeleton(const RigidSkeleton&) = delete;
 		RigidSkeleton& operator=(const RigidSkeleton&) = delete;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the array of bones contained in the skeleton
 		const RigidBone* get_bones() const { return m_bones; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns a specific bone from its index
 		const RigidBone& get_bone(uint16_t bone_index) const
 		{
 			ACL_ASSERT(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
 			return m_bones[bone_index];
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the number of bones in the skeleton
 		uint16_t get_num_bones() const { return m_num_bones; }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns a bone chain for a specific bone from its index
 		BoneChain get_bone_chain(uint16_t bone_index) const
 		{
 			ACL_ASSERT(bone_index < m_num_bones, "Invalid bone index: %u >= %u", bone_index, m_num_bones);
@@ -246,11 +299,19 @@ namespace acl
 		}
 
 	private:
+		// The allocator instance used to allocate and free memory by this skeleton instance
 		IAllocator&	m_allocator;
-		RigidBone*	m_bones;				// Array of RigidBone entries, contains m_num_bones entries
-		uint32_t*	m_leaf_bone_chains;		// Contiguous block of memory for the bone chains, contains m_num_leaf_bones * get_bitset_size(m_num_bones) entries
 
+		// The array of bone data for this skeleton, contains 'm_num_bones' entries
+		RigidBone*	m_bones;
+
+		// Contiguous block of memory for the bone chains, contains m_num_leaf_bones * get_bitset_size(m_num_bones) entries
+		uint32_t*	m_leaf_bone_chains;
+
+		// Number of bones contained in this skeleton
 		uint16_t	m_num_bones;
+
+		// Number of leaf bones contained in this skeleton
 		uint16_t	m_num_leaf_bones;
 	};
 }

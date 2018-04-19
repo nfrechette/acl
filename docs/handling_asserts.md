@@ -35,7 +35,7 @@ Note that the function signature is as follow: `void on_custom_assert_impl(const
 
 You can also define your own assert implementation by defining the `ACL_ASSERT` macro as well:
 
-```
+```c++
 #define ACL_ON_ASSERT_CUSTOM
 #define ACL_ASSERT(expression, format, ...) checkf(expression, ANSI_TO_TCHAR(format), #__VA_ARGS__)
 ```

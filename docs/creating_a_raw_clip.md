@@ -1,14 +1,14 @@
 # Creating a raw clip
 
-Once you have created a rigid skeleton, the next step is to create a raw clip and populate it with the data we will want to compress. Doing so is fairly straight forward and you will only need a few things:
+Once you have [created a rigid skeleton](creating_a_skeleton.md), the next step is to create a raw clip and populate it with the data we will want to compress. Doing so is fairly straight forward and you will only need a few things:
 
 *  [An allocator instance](implementing_an_allocator.md)
-*  A rigid skeleton
+*  [A rigid skeleton](creating_a_skeleton.md)
 *  The number of samples per track (each track has the same number of samples)
 *  The rate at which samples are recorded (e.g. 30 == 30 FPS)
 *  And an optional string for the clip name
 
-```
+```c++
 uint32_t num_samples_per_track = 20;
 uint32_t sample_rate = 30;
 String name(allocator, "Run Cycle");
@@ -17,7 +17,7 @@ AnimationClip clip(allocator, skeleton, num_samples_per_track, sample_rate, name
 
 Once you have created an instance, simply populate the track data. Note that for now, even if you have no scale data, you have to populate the scale track with the default scale value that your engine expects.
 
-```
+```c++
 AnimatedBone& bone = clip.get_animated_bone(bone_index);
 for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 {
