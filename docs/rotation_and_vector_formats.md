@@ -2,7 +2,7 @@ In order to save memory, quantization is used on sampled values to reduce their 
 
 # Vector formats
 
-Note that in order to be able to use some of these formats, track data needs to be within a known range, typically normalized.
+Note that in order to be able to use some of these formats, track data needs to have [range reduction](range_reduction.md) applied at least at the clip level.
 
 ### Vector3 96
 

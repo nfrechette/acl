@@ -27,5 +27,6 @@ The library aims to support a few core algorithms that will be well suited for p
 
 *  [The ACL file format](the_acl_file_format.md)
 *  [Rotation and vector formats](rotation_and_vector_formats.md)
+*  [Range reduction](range_reduction.md)
 *  [Error metrics](error_metrics.md)
 *  [Performance graph generation](graph_generation.md)
