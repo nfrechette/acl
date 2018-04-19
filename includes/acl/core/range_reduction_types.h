@@ -51,6 +51,8 @@ namespace acl
 		Translations		= 0x02,
 		Scales				= 0x04,
 		//Properties		= 0x08,		// TODO: Implement this
+
+		AllTracks			= 0x07,
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(RangeReductionFlags8)
