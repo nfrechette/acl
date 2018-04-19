@@ -31,15 +31,46 @@
 
 namespace acl
 {
-	// TODO: get an official L3 cache size
-	constexpr size_t k_cache_flush_buffer_size = 20 * 1024 * 1024;
-
-	inline Vector4_32* allocate_cache_flush_buffer(IAllocator& allocator) { return allocate_type_array<Vector4_32>(allocator, k_cache_flush_buffer_size / sizeof(Vector4_32)); }
-	inline void deallocate_cache_flush_buffer(IAllocator& allocator, Vector4_32* buffer) { deallocate_type_array(allocator, buffer, k_cache_flush_buffer_size / sizeof(Vector4_32)); }
-
-	inline void flush_cache(Vector4_32* buffer)
+	//////////////////////////////////////////////////////////////////////////
+	// Simple helper to flush the CPU cache
+	//////////////////////////////////////////////////////////////////////////
+	class CPUCacheFlusher
 	{
-		for (size_t i = 0; i < k_cache_flush_buffer_size / sizeof(Vector4_32); ++i)
-			buffer[i] = vector_add(buffer[i], vector_set(1.0f));
-	}
+	public:
+		CPUCacheFlusher() {}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Flush the buffer data from the CPU cache
+		void flush_cache(const void* buffer, size_t buffer_size)
+		{
+#if defined(ACL_SSE2_INTRINSICS)
+			constexpr size_t k_cache_line_size = 64;
+
+			const uint8_t* buffer_start = reinterpret_cast<const uint8_t*>(buffer);
+			const uint8_t* buffer_ptr = buffer_start;
+			const uint8_t* buffer_end = buffer_start + buffer_size;
+
+			while (buffer_ptr < buffer_end)
+			{
+				_mm_clflush(buffer_ptr);
+				buffer_ptr += k_cache_line_size;
+			}
+#else
+			(void)buffer;
+			(void)buffer_size;
+
+			for (size_t entry_index = 0; entry_index < k_num_buffer_entries; ++entry_index)
+				m_buffer[entry_index] = vector_add(m_buffer[entry_index], vector_set(1.0f));
+#endif
+		}
+
+	private:
+#if !defined(ACL_SSE2_INTRINSICS)
+		// TODO: get an official L3 cache size
+		static constexpr size_t k_cache_size = 20 * 1024 * 1024;
+		static constexpr size_t k_num_buffer_entries = k_cache_size / sizeof(Vector4_32);
+
+		Vector4_32		m_buffer[k_num_buffer_entries];
+#endif
+	};
 }

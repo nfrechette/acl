@@ -156,7 +156,7 @@ namespace acl
 
 	inline void write_decompression_performance_stats(IAllocator& allocator, IAlgorithm& algorithm, const AnimationClip& clip, const CompressedClip& compressed_clip,
 		StatLogging logging, sjson::ObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
-		void* contexts[], Vector4_32* cache_flush_buffer, Transform_32* lossy_pose_transforms)
+		void* contexts[], CPUCacheFlusher& cache_flusher, Transform_32* lossy_pose_transforms)
 	{
 		const int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
 		const double duration = clip.get_duration();
@@ -189,7 +189,7 @@ namespace acl
 							context = algorithm.allocate_decompression_context(allocator, compressed_clip);
 						}
 
-						flush_cache(cache_flush_buffer);
+						cache_flusher.flush_cache(&compressed_clip, compressed_clip.get_size());
 
 						ScopeProfiler timer;
 						algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
@@ -225,23 +225,23 @@ namespace acl
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
 			contexts[pass_index] = algorithm.allocate_decompression_context(allocator, compressed_clip);
 
-		Vector4_32* cache_flush_buffer = allocate_cache_flush_buffer(allocator);
+		CPUCacheFlusher* cache_flusher = allocate_type<CPUCacheFlusher>(allocator);
 
 		const uint16_t num_bones = raw_clip.get_num_bones();
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
 		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& writer)
 		{
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_playback", true, false, contexts, cache_flush_buffer, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_playback", false, false, contexts, cache_flush_buffer, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "initial_seek", true, true, contexts, cache_flush_buffer, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_playback", true, false, contexts, *cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_playback", false, false, contexts, *cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "initial_seek", true, true, contexts, *cache_flusher, lossy_pose_transforms);
 		};
 
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
 			algorithm.deallocate_decompression_context(allocator, contexts[pass_index]);
 
 		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-		deallocate_cache_flush_buffer(allocator, cache_flush_buffer);
+		deallocate_type(allocator, cache_flusher);
 	}
 
 	inline void write_stats(IAllocator& allocator, const AnimationClip& clip, const ClipContext& clip_context, const RigidSkeleton& skeleton,
