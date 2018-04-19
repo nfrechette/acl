@@ -10,7 +10,7 @@ The library aims to support a few core algorithms that will be well suited for p
 *  [Implementing an allocator](implementing_an_allocator.md)
 *  [Creating a skeleton](creating_a_skeleton.md)
 *  [Creating a raw clip](creating_a_raw_clip.md)
-*  Compressing a clip
+*  [Compressing a raw clip](compressing_a_raw_clip.md)
 *  Decompressing a clip
 
 # Performance metrics

@@ -27,7 +27,7 @@ for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_i
 }
 ```
 
-Once your raw clip has been populated with data, it is ready for compression. The data contained within the `AnimationClip` will be read-only.
+Once your raw clip has been populated with data, it is ready for [compression](compressing_a_raw_clip.md). The data contained within the `AnimationClip` will be read-only.
 
 *Note: The current API is subject to change for **v2.0**. As it stands right now, it forces you to duplicate the memory of the raw clip by copying everything within the library instance. A future API will allow the game engine to own the raw clip memory and have ACL simply reference it directly, avoiding the overhead of a copy.*
 

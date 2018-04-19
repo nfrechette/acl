@@ -55,7 +55,23 @@ namespace acl
 {
 	namespace uniformly_sampled
 	{
-		// Encoder entry point
+		//////////////////////////////////////////////////////////////////////////
+		// Compresses a raw clip with uniform sampling
+		//
+		// This compression algorithm is the simplest by far and as such it offers
+		// the fastest compression and decompression. Every sample is retained and
+		// every track has the same number of samples playing back at the same
+		// sample rate. This means that when we sample at a particular time within
+		// the clip, we can trivially calculate the offsets required to read the
+		// desired data. All the data is sorted in order to ensure all reads are
+		// as contiguous as possible for optimal cache locality during decompression.
+		//
+		//    allocator: The allocator instance to use to allocate and free memory
+		//    clip: The raw clip to compress
+		//    settings: The compression settings to use
+		//    out_compressed_clip: The resulting compressed clip. The caller owns the returned memory and must free it
+		//    out_stats: Stat output structure
+		//////////////////////////////////////////////////////////////////////////
 		inline ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, CompressionSettings settings, CompressedClip*& out_compressed_clip, OutputStats& out_stats)
 		{
 			using namespace impl;

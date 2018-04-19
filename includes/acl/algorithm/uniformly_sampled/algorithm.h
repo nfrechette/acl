@@ -33,9 +33,21 @@
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// This compression algorithm is the simplest by far and as such it offers
+	// the fastest compression and decompression. Every sample is retained and
+	// every track has the same number of samples playing back at the same
+	// sample rate. This means that when we sample at a particular time within
+	// the clip, we can trivially calculate the offsets required to read the
+	// desired data. All the data is sorted in order to ensure all reads are
+	// as contiguous as possible for optimal cache locality during decompression.
+	//////////////////////////////////////////////////////////////////////////
 	class UniformlySampledAlgorithm final : public IAlgorithm
 	{
 	public:
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs an instance of the uniform sampling algorithm
+		// See the 'CompressionSettings' structure for details on what the individual fields do
 		UniformlySampledAlgorithm(RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, RangeReductionFlags8 clip_range_reduction, bool use_segmenting = false, RangeReductionFlags8 segment_range_reduction = RangeReductionFlags8::None)
 			: m_compression_settings()
 		{
@@ -51,6 +63,10 @@ namespace acl
 		UniformlySampledAlgorithm(const CompressionSettings& settings)
 			: m_compression_settings(settings)
 		{}
+
+		//////////////////////////////////////////////////////////////////////////
+		// IAlgorithm implementation
+		//////////////////////////////////////////////////////////////////////////
 
 		virtual ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, CompressedClip*& out_compressed_clip, OutputStats& out_stats) override
 		{
@@ -86,7 +102,10 @@ namespace acl
 		virtual uint32_t get_uid() const override { return m_compression_settings.hash(); }
 
 	private:
+		// The default error metric to use if external compression settings aren't provided
 		TransformErrorMetric m_default_error_metric;
+
+		// The compression settings to use when compressing
 		CompressionSettings m_compression_settings;
 	};
 }

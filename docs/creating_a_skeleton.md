@@ -1,6 +1,6 @@
 # Creating a rigid skeleton
 
-After you have found an allocator instance to use, you will need to create a `RigidSkeleton` instance. A skeleton is tree made up of several bones. At the root lies a single bone with no parent. Each bone that follows can have any number of children but a single parent. You will only need a few things to get started:
+After you have found an [allocator instance](implementing_an_allocator.md) to use, you will need to create a `RigidSkeleton` instance. A skeleton is tree made up of several bones. At the root lies a single bone with no parent. Each bone that follows can have any number of children but a single parent. You will only need a few things to get started:
 
 *  A virtual vertex distance
 *  A parent bone index
