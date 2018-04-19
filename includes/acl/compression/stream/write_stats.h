@@ -28,7 +28,6 @@
 
 #include "acl/core/ialgorithm.h"
 #include "acl/core/memory_cache.h"
-#include "acl/compression/decompression_functions.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
 

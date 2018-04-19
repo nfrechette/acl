@@ -27,7 +27,6 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/core/error_result.h"
-#include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/decompression/output_writer.h"
 #include "acl/math/transform_32.h"

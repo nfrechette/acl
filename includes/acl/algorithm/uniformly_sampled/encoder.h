@@ -26,15 +26,12 @@
 
 #include "acl/core/iallocator.h"
 #include "acl/core/bitset.h"
-#include "acl/core/enum_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
-#include "acl/core/hash.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/scope_profiler.h"
-#include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/compression/compressed_clip_impl.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
@@ -53,21 +50,6 @@
 #include "acl/decompression/default_output_writer.h"
 
 #include <cstdint>
-#include <cstdio>
-
-//////////////////////////////////////////////////////////////////////////
-// Full Precision Encoder
-//
-// The goal of the full precision format is to be used as a reference
-// point for compression speed, compressed size, and decompression speed.
-// This will not be a raw format in that we will at least drop constant
-// or bind pose tracks. As such, it is near-raw but not quite.
-//
-// This is the highest precision encoder and the fastest to compress.
-//
-// Data format:
-//    TODO: Detail the format
-//////////////////////////////////////////////////////////////////////////
 
 namespace acl
 {
