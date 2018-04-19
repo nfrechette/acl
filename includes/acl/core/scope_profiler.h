@@ -52,6 +52,10 @@ namespace acl
 		std::chrono::nanoseconds get_elapsed_time() const { return std::chrono::duration_cast<std::chrono::nanoseconds>(m_end_time - m_start_time); }
 
 		////////////////////////////////////////////////////////////////////////////////
+		// Returns the elapsed time in microseconds since the profiler was started.
+		double get_elapsed_microseconds() const { return std::chrono::duration<double, std::chrono::microseconds::period>(get_elapsed_time()).count(); }
+
+		////////////////////////////////////////////////////////////////////////////////
 		// Returns the elapsed time in milliseconds since the profiler was started.
 		double get_elapsed_milliseconds() const { return std::chrono::duration<double, std::chrono::milliseconds::period>(get_elapsed_time()).count(); }
 
