@@ -27,7 +27,7 @@
 #include "acl/decompression/output_writer.h"
 #include "acl/math/math_types.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace acl
 {
