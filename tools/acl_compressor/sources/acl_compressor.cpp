@@ -129,6 +129,7 @@ struct Options
 	std::FILE*		output_stats_file;
 
 	bool			regression_testing;
+	bool			profile_decompression;
 
 	bool			is_bind_pose_relative;
 	bool			is_bind_pose_additive0;
@@ -150,6 +151,7 @@ struct Options
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
 		, regression_testing(false)
+		, profile_decompression(false)
 		, is_bind_pose_relative(false)
 		, is_bind_pose_additive0(false)
 		, is_bind_pose_additive1(false)
@@ -169,6 +171,7 @@ struct Options
 		, output_stats_filename(other.output_stats_filename)
 		, output_stats_file(other.output_stats_file)
 		, regression_testing(other.regression_testing)
+		, profile_decompression(other.profile_decompression)
 		, is_bind_pose_relative(other.is_bind_pose_relative)
 		, is_bind_pose_additive0(other.is_bind_pose_additive0)
 		, is_bind_pose_additive1(other.is_bind_pose_additive1)
@@ -197,6 +200,7 @@ struct Options
 		std::swap(output_stats_filename, rhs.output_stats_filename);
 		std::swap(output_stats_file, rhs.output_stats_file);
 		std::swap(regression_testing, rhs.regression_testing);
+		std::swap(profile_decompression, rhs.profile_decompression);
 		std::swap(is_bind_pose_relative, rhs.is_bind_pose_relative);
 		std::swap(is_bind_pose_additive0, rhs.is_bind_pose_additive0);
 		std::swap(is_bind_pose_additive1, rhs.is_bind_pose_additive1);
@@ -225,6 +229,7 @@ constexpr const char* k_acl_input_file_option = "-acl=";
 constexpr const char* k_config_input_file_option = "-config=";
 constexpr const char* k_stats_output_option = "-stats";
 constexpr const char* k_regression_test_option = "-test";
+constexpr const char* k_profile_decompression_option = "-decomp";
 constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
@@ -286,6 +291,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_regression_test_option, option_length) == 0)
 		{
 			options.regression_testing = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_profile_decompression_option);
+		if (std::strncmp(argument, k_profile_decompression_option, option_length) == 0)
+		{
+			options.profile_decompression = true;
 			continue;
 		}
 
@@ -411,7 +423,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			stats_writer->insert("worst_bone", bone_error.index);
 			stats_writer->insert("worst_time", bone_error.sample_time);
 
-			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
+			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression) || options.profile_decompression)
 				write_decompression_performance_stats(allocator, algorithm, clip, *compressed_clip, logging, *stats_writer);
 		}
 #endif
