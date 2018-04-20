@@ -39,12 +39,10 @@
 // and fail to free memory, leading to a crash in the allocator
 #define ACL_NO_ALLOCATOR_TRACKING
 
-// Throw when we assert in order to recover and continue
-#define ACL_ON_ASSERT_THROW
-
 #include <acl_compressor.h>
 
-// Include the CPP file manually in order to override asserts
+// TODO: Cleanup, it should no longer be necessary to manually include the cpp
+// Include the CPP file manually
 #include <acl_compressor.cpp>
 
 static int load_file(AAssetManager* asset_manager, const char* filename, void*& out_buffer, size_t& out_buffer_size)

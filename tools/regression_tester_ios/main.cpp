@@ -35,12 +35,10 @@
 // and fail to free memory, leading to a crash in the allocator
 #define ACL_NO_ALLOCATOR_TRACKING
 
-// Throw when we assert in order to recover and continue
-#define ACL_ON_ASSERT_THROW
-
 #include <acl_compressor.h>
 
-// Include the CPP file manually in order to override asserts
+// TODO: Clean this up, no longer required to be included manually
+// Include the CPP file manually
 #include <acl_compressor.cpp>
 
 static int get_bundle_resource_path(const char* resource_filename, char* out_path, size_t path_max_size)
