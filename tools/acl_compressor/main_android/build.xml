@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="acl_unit_tests" default="help">
+<project name="acl_compressor" default="help">
   <import file="${sdk.dir}/tools/ant/build.xml" />
 </project>
