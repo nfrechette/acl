@@ -35,15 +35,7 @@
 
 #include <sjson/parser.h>
 
-// Disable allocation track since if we fail a regression test, we'll throw an exception
-// and fail to free memory, leading to a crash in the allocator
-#define ACL_NO_ALLOCATOR_TRACKING
-
 #include <acl_compressor.h>
-
-// TODO: Cleanup, it should no longer be necessary to manually include the cpp
-// Include the CPP file manually
-#include <acl_compressor.cpp>
 
 static int load_file(AAssetManager* asset_manager, const char* filename, void*& out_buffer, size_t& out_buffer_size)
 {
