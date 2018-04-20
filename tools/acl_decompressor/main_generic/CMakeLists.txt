@@ -25,4 +25,7 @@ add_executable(${PROJECT_NAME} ${ALL_COMMON_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILE
 
 setup_default_compiler_flags(${PROJECT_NAME})
 
+# Disable allocation tracking
+add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
+
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
