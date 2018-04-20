@@ -28,6 +28,8 @@
 
 #include "acl/core/ialgorithm.h"
 #include "acl/core/memory_cache.h"
+#include "acl/algorithm/uniformly_sampled/decoder.h"
+#include "acl/decompression/default_output_writer.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
 
@@ -154,6 +156,21 @@ namespace acl
 
 	constexpr uint32_t k_num_decompression_timing_passes = 5;
 
+	struct UniformlySampledFastPathDecompressionSettings : public uniformly_sampled::DecompressionSettings
+	{
+		constexpr bool is_rotation_format_supported(RotationFormat8 format) const { return format == RotationFormat8::QuatDropW_Variable; }
+		constexpr bool is_translation_format_supported(VectorFormat8 format) const { return format == VectorFormat8::Vector3_Variable; }
+		constexpr bool is_scale_format_supported(VectorFormat8 format) const { return format == VectorFormat8::Vector3_Variable; }
+		constexpr RotationFormat8 get_rotation_format(RotationFormat8 format) const { return RotationFormat8::QuatDropW_Variable; }
+		constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return VectorFormat8::Vector3_Variable; }
+		constexpr VectorFormat8 get_scale_format(VectorFormat8 format) const { return VectorFormat8::Vector3_Variable; }
+
+		constexpr bool are_clip_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
+		constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return RangeReductionFlags8::AllTracks; }
+
+		constexpr bool supports_mixed_packing() const { return false; }
+	};
+
 	inline void write_decompression_performance_stats(IAllocator& allocator, IAlgorithm& algorithm, const AnimationClip& clip, const CompressedClip& compressed_clip,
 		StatLogging logging, sjson::ObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
 		void* contexts[], CPUCacheFlusher& cache_flusher, Transform_32* lossy_pose_transforms)
@@ -161,6 +178,16 @@ namespace acl
 		const int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
 		const double duration = clip.get_duration();
 		const uint16_t num_bones = clip.get_num_bones();
+
+		// If we can, we use a fast-path that simulates what a real game engine would use
+		// by disabling the things they normally wouldn't care about like deprecated formats
+		// and debugging features
+		const CompressionSettings& settings = algorithm.get_compression_settings();
+		const bool use_uniform_fast_path = settings.rotation_format == RotationFormat8::QuatDropW_Variable
+			&& settings.translation_format == VectorFormat8::Vector3_Variable
+			&& settings.scale_format == VectorFormat8::Vector3_Variable
+			&& are_all_enum_flags_set(settings.range_reduction, RangeReductionFlags8::AllTracks)
+			&& settings.segmenting.enabled;
 
 		writer[action_type] = [&](sjson::ObjectWriter& writer)
 		{
@@ -192,11 +219,19 @@ namespace acl
 						cache_flusher.flush_cache(&compressed_clip, compressed_clip.get_size());
 
 						ScopeProfiler timer;
-						algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
+						if (use_uniform_fast_path)
+						{
+							UniformlySampledFastPathDecompressionSettings decompression_settings;
+							DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
+							uniformly_sampled::decompress_pose(decompression_settings, compressed_clip, context, sample_time, pose_writer);
+						}
+						else
+							algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
 						timer.stop();
 
-						if (pass_index == 0 || timer.get_elapsed_seconds() < decompression_time)
-							decompression_time = timer.get_elapsed_seconds();
+						const double elapsed_ms = timer.get_elapsed_milliseconds();
+						if (pass_index == 0 || elapsed_ms < decompression_time)
+							decompression_time = elapsed_ms;
 					}
 
 					if (are_any_enum_flags_set(logging, StatLogging::ExhaustiveDecompression))
@@ -212,9 +247,9 @@ namespace acl
 				}
 			};
 
-			writer["max_decompression_time"] = clip_max;
-			writer["avg_decompression_time"] = clip_total / static_cast<double>(num_samples);
-			writer["min_decompression_time"] = clip_min;
+			writer["max_decompression_time_ms"] = clip_max;
+			writer["avg_decompression_time_ms"] = clip_total / static_cast<double>(num_samples);
+			writer["min_decompression_time_ms"] = clip_min;
 		};
 	}
 
