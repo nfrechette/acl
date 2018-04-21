@@ -4,7 +4,9 @@ import platform
 import queue
 import threading
 import time
+import re
 import signal
+import subprocess
 import sys
 
 # This script depends on a SJSON parsing package:
@@ -21,6 +23,7 @@ def parse_argv():
 	options['csv'] = False
 	options['refresh'] = False
 	options['num_threads'] = 1
+	options['android'] = False
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
@@ -40,6 +43,9 @@ def parse_argv():
 
 		if value == '-refresh':
 			options['refresh'] = True
+
+		if value == '-android':
+			options['android'] = True
 
 		#if value.startswith('-parallel='):
 		#	options['num_threads'] = int(value[len('-parallel='):].replace('"', ''))
@@ -169,6 +175,51 @@ def run_acl_decompressor(cmd_queue, result_queue):
 
 		os.system(cmd)
 		result_queue.put(acl_filename)
+
+def decompress_clips_android(options):
+	acl_dir = options['acl']
+	stat_dir = options['stats']
+
+	stat_files = []
+
+	for (dirpath, dirnames, filenames) in os.walk(acl_dir):
+		stat_dirname = dirpath.replace(acl_dir, stat_dir)
+
+		for filename in filenames:
+			if not filename.endswith('.acl.sjson'):
+				continue
+
+			acl_filename = os.path.join(dirpath, filename)
+			stat_filename = os.path.join(stat_dirname, filename.replace('.acl.sjson', '_stats.sjson'))
+
+			stat_files.append(stat_filename)
+
+			if not os.path.exists(stat_dirname):
+				os.makedirs(stat_dirname)
+
+	if len(stat_files) == 0:
+		print("No ACL clips found to decompress")
+		sys.exit(0)
+
+	output = str(subprocess.check_output('adb logcat -s acl -e "Stats will be written to:" -m 1'))
+	matches = re.search('Stats will be written to: ([/\.\w]+)', output)
+	if matches == None:
+		print("Failed to find Android source directory from ADB")
+		sys.exit(1)
+
+	android_src_dir = matches.group(1)
+
+	curr_dir = os.getcwd()
+	os.chdir(stat_dir)
+
+	for stat_filename in stat_files:
+		dst_filename = os.path.basename(stat_filename)
+		src_filename = os.path.join(android_src_dir, dst_filename).replace('\\', '/')
+		cmd = 'adb pull "{}" "{}"'.format(src_filename, dst_filename)
+		os.system(cmd)
+
+	os.chdir(curr_dir)
+	return stat_files
 
 def decompress_clips(options):
 	acl_dir = options['acl']
@@ -398,7 +449,10 @@ def aggregate_job_stats(agg_job_results, job_results):
 if __name__ == "__main__":
 	options = parse_argv()
 
-	stat_files = decompress_clips(options)
+	if options['android']:
+		stat_files = decompress_clips_android(options)
+	else:
+		stat_files = decompress_clips(options)
 
 	csv_data = create_csv(options)
 
