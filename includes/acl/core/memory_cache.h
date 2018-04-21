@@ -66,8 +66,15 @@ namespace acl
 
 	private:
 #if !defined(ACL_SSE2_INTRINSICS)
-		// TODO: get an official L3 cache size
-		static constexpr size_t k_cache_size = 20 * 1024 * 1024;
+		// TODO: get an official CPU cache size
+	#if defined(__ANDROID__)
+		// Nexus 5X has 2MB cache
+		static constexpr size_t k_cache_size = 3 * 1024 * 1024;
+	#else
+		// iPad Pro has 8MB cache
+		static constexpr size_t k_cache_size = 9 * 1024 * 1024;
+	#endif
+
 		static constexpr size_t k_num_buffer_entries = k_cache_size / sizeof(Vector4_32);
 
 		Vector4_32		m_buffer[k_num_buffer_entries];
