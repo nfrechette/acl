@@ -115,12 +115,19 @@ def create_csv(options):
 	csv_data = {}
 	stat_dir = options['stats']
 	if options['csv']:
-		stats_decompression_csv_filename = os.path.join(stat_dir, 'stats_decompression.csv')
-		stats_decompression_csv_file = open(stats_decompression_csv_filename, 'w')
-		csv_data['stats_decompression_csv_file'] = stats_decompression_csv_file
+		stats_decompression_cold_csv_filename = os.path.join(stat_dir, 'stats_decompression_cold.csv')
+		stats_decompression_cold_csv_file = open(stats_decompression_cold_csv_filename, 'w')
+		csv_data['stats_decompression_cold_csv_file'] = stats_decompression_cold_csv_file
 
-		print('Generating CSV file {} ...'.format(stats_decompression_csv_filename))
-		print('Clip Name, Forward Min, Forward Max, Forward Avg, Backward Min, Backward Max, Backward Avg, Random Min, Random Max, Random Avg', file = stats_decompression_csv_file)
+		print('Generating CSV file {} ...'.format(stats_decompression_cold_csv_filename))
+		print('Clip Name, Forward Min, Forward Max, Forward Avg, Backward Min, Backward Max, Backward Avg, Random Min, Random Max, Random Avg', file = stats_decompression_cold_csv_file)
+
+		stats_decompression_warm_csv_filename = os.path.join(stat_dir, 'stats_decompression_warm.csv')
+		stats_decompression_warm_csv_file = open(stats_decompression_warm_csv_filename, 'w')
+		csv_data['stats_decompression_warm_csv_file'] = stats_decompression_warm_csv_file
+
+		print('Generating CSV file {} ...'.format(stats_decompression_warm_csv_filename))
+		print('Clip Name, Forward Min, Forward Max, Forward Avg, Backward Min, Backward Max, Backward Avg, Random Min, Random Max, Random Avg', file = stats_decompression_warm_csv_file)
 
 	return csv_data
 
@@ -128,14 +135,22 @@ def close_csv(csv_data):
 	if len(csv_data) == 0:
 		return
 
-	if 'stats_decompression_csv_file' in csv_data:
-		csv_data['stats_decompression_csv_file'].close()
+	if 'stats_decompression_cold_csv_file' in csv_data:
+		csv_data['stats_decompression_cold_csv_file'].close()
+
+	if 'stats_decompression_warm_csv_file' in csv_data:
+		csv_data['stats_decompression_warm_csv_file'].close()
 
 def append_csv(csv_data, job_data):
-	if 'stats_decompression_csv_file' in csv_data:
+	if 'stats_decompression_cold_csv_file' in csv_data:
 		data = job_data['stats_summary_data']
-		for (clip_name, forward, backward, random) in data:
-			print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(clip_name, forward[0], forward[1], forward[2], backward[0], backward[1], backward[2], random[0], random[1], random[2]), file = csv_data['stats_decompression_csv_file'])
+		for (clip_name, cold_forward, cold_backward, cold_random, warm_forward, warm_backward, warm_random) in data:
+			print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(clip_name, cold_forward[0], cold_forward[1], cold_forward[2], cold_backward[0], cold_backward[1], cold_backward[2], cold_random[0], cold_random[1], cold_random[2]), file = csv_data['stats_decompression_cold_csv_file'])
+
+	if 'stats_decompression_warm_csv_file' in csv_data:
+		data = job_data['stats_summary_data']
+		for (clip_name, cold_forward, cold_backward, cold_random, warm_forward, warm_backward, warm_random) in data:
+			print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(clip_name, warm_forward[0], warm_forward[1], warm_forward[2], warm_backward[0], warm_backward[1], warm_backward[2], warm_random[0], warm_random[1], warm_random[2]), file = csv_data['stats_decompression_warm_csv_file'])
 
 def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_length = 50):
 	# Taken from https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
@@ -397,31 +412,52 @@ def run_stat_parsing(options, stat_queue, result_queue):
 
 						num_runs += 1
 
-						forward = (0.0, 0.0, 0.0)
-						backward = (0.0, 0.0, 0.0)
-						random = (0.0, 0.0, 0.0)
+						cold_forward = (0.0, 0.0, 0.0)
+						cold_backward = (0.0, 0.0, 0.0)
+						cold_random = (0.0, 0.0, 0.0)
+						warm_forward = (0.0, 0.0, 0.0)
+						warm_backward = (0.0, 0.0, 0.0)
+						warm_random = (0.0, 0.0, 0.0)
 						if 'decompression_time_per_sample' in run_stats:
-							if 'forward_playback' in run_stats['decompression_time_per_sample']:
-								forward_min = run_stats['decompression_time_per_sample']['forward_playback']['min_decompression_time_ms']
-								forward_max = run_stats['decompression_time_per_sample']['forward_playback']['max_decompression_time_ms']
-								forward_avg = run_stats['decompression_time_per_sample']['forward_playback']['avg_decompression_time_ms']
-								forward = (forward_min, forward_max, forward_avg)
+							if 'forward_playback_cold' in run_stats['decompression_time_per_sample']:
+								cold_forward_min = run_stats['decompression_time_per_sample']['forward_playback_cold']['cold_min_time_ms']
+								cold_forward_max = run_stats['decompression_time_per_sample']['forward_playback_cold']['cold_max_time_ms']
+								cold_forward_avg = run_stats['decompression_time_per_sample']['forward_playback_cold']['cold_avg_time_ms']
+								cold_forward = (cold_forward_min, cold_forward_max, cold_forward_avg)
 
-							if 'backward_playback' in run_stats['decompression_time_per_sample']:
-								backward_min = run_stats['decompression_time_per_sample']['backward_playback']['min_decompression_time_ms']
-								backward_max = run_stats['decompression_time_per_sample']['backward_playback']['max_decompression_time_ms']
-								backward_avg = run_stats['decompression_time_per_sample']['backward_playback']['avg_decompression_time_ms']
-								backward = (backward_min, backward_max, backward_avg)
+							if 'forward_playback_warm' in run_stats['decompression_time_per_sample']:
+								warm_forward_min = run_stats['decompression_time_per_sample']['forward_playback_warm']['warm_min_time_ms']
+								warm_forward_max = run_stats['decompression_time_per_sample']['forward_playback_warm']['warm_max_time_ms']
+								warm_forward_avg = run_stats['decompression_time_per_sample']['forward_playback_warm']['warm_avg_time_ms']
+								warm_forward = (warm_forward_min, warm_forward_max, warm_forward_avg)
 
-							if 'initial_seek' in run_stats['decompression_time_per_sample']:
-								random_min = run_stats['decompression_time_per_sample']['initial_seek']['min_decompression_time_ms']
-								random_max = run_stats['decompression_time_per_sample']['initial_seek']['max_decompression_time_ms']
-								random_avg = run_stats['decompression_time_per_sample']['initial_seek']['avg_decompression_time_ms']
-								random = (random_min, random_max, random_avg)
+							if 'backward_playback_cold' in run_stats['decompression_time_per_sample']:
+								cold_backward_min = run_stats['decompression_time_per_sample']['backward_playback_cold']['cold_min_time_ms']
+								cold_backward_max = run_stats['decompression_time_per_sample']['backward_playback_cold']['cold_max_time_ms']
+								cold_backward_avg = run_stats['decompression_time_per_sample']['backward_playback_cold']['cold_avg_time_ms']
+								cold_backward = (cold_backward_min, cold_backward_max, cold_backward_avg)
+
+							if 'backward_playback_warm' in run_stats['decompression_time_per_sample']:
+								warm_backward_min = run_stats['decompression_time_per_sample']['backward_playback_warm']['warm_min_time_ms']
+								warm_backward_max = run_stats['decompression_time_per_sample']['backward_playback_warm']['warm_max_time_ms']
+								warm_backward_avg = run_stats['decompression_time_per_sample']['backward_playback_warm']['warm_avg_time_ms']
+								warm_backward = (warm_backward_min, warm_backward_max, warm_backward_avg)
+
+							if 'initial_seek_cold' in run_stats['decompression_time_per_sample']:
+								cold_random_min = run_stats['decompression_time_per_sample']['initial_seek_cold']['cold_min_time_ms']
+								cold_random_max = run_stats['decompression_time_per_sample']['initial_seek_cold']['cold_max_time_ms']
+								cold_random_avg = run_stats['decompression_time_per_sample']['initial_seek_cold']['cold_avg_time_ms']
+								cold_random = (cold_random_min, cold_random_max, cold_random_avg)
+
+							if 'initial_seek_warm' in run_stats['decompression_time_per_sample']:
+								warm_random_min = run_stats['decompression_time_per_sample']['initial_seek_warm']['warm_min_time_ms']
+								warm_random_max = run_stats['decompression_time_per_sample']['initial_seek_warm']['warm_max_time_ms']
+								warm_random_avg = run_stats['decompression_time_per_sample']['initial_seek_warm']['warm_avg_time_ms']
+								warm_random = (warm_random_min, warm_random_max, warm_random_avg)
 
 						if options['csv']:
-							#(name, forward, backward, random)
-							data = (run_stats['clip_name'], forward, backward, random)
+							#(name, cold_forward, cold_backward, cold_random, warm_forward, warm_backward, warm_random)
+							data = (run_stats['clip_name'], cold_forward, cold_backward, cold_random, warm_forward, warm_backward, warm_random)
 							stats_summary_data.append(data)
 
 					result_queue.put(('progress', stat_filename))

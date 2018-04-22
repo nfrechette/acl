@@ -154,7 +154,7 @@ namespace acl
 		deallocate_type_array(allocator, lossy_local_pose, num_bones);
 	}
 
-	constexpr uint32_t k_num_decompression_timing_passes = 5;
+	constexpr uint32_t k_num_decompression_timing_passes = 3;
 
 	struct UniformlySampledFastPathDecompressionSettings : public uniformly_sampled::DecompressionSettings
 	{
@@ -173,7 +173,7 @@ namespace acl
 
 	inline void write_decompression_performance_stats(IAllocator& allocator, IAlgorithm& algorithm, const AnimationClip& clip, const CompressedClip& compressed_clip,
 		StatLogging logging, sjson::ObjectWriter& writer, const char* action_type, bool forward_order, bool measure_upper_bound,
-		void* contexts[], CPUCacheFlusher& cache_flusher, Transform_32* lossy_pose_transforms)
+		void* contexts[], CPUCacheFlusher* cache_flusher, Transform_32* lossy_pose_transforms)
 	{
 		const int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
 		const double duration = clip.get_duration();
@@ -216,7 +216,8 @@ namespace acl
 							context = algorithm.allocate_decompression_context(allocator, compressed_clip);
 						}
 
-						cache_flusher.flush_cache(&compressed_clip, compressed_clip.get_size());
+						if (cache_flusher != nullptr)
+							cache_flusher->flush_cache(&compressed_clip, compressed_clip.get_size());
 
 						ScopeProfiler timer;
 						if (use_uniform_fast_path)
@@ -247,9 +248,18 @@ namespace acl
 				}
 			};
 
-			writer["max_decompression_time_ms"] = clip_max;
-			writer["avg_decompression_time_ms"] = clip_total / static_cast<double>(num_samples);
-			writer["min_decompression_time_ms"] = clip_min;
+			if (cache_flusher != nullptr)
+			{
+				writer["cold_min_time_ms"] = clip_min;
+				writer["cold_max_time_ms"] = clip_max;
+				writer["cold_avg_time_ms"] = clip_total / double(num_samples);
+			}
+			else
+			{
+				writer["warm_min_time_ms"] = clip_min;
+				writer["warm_max_time_ms"] = clip_max;
+				writer["warm_avg_time_ms"] = clip_total / double(num_samples);
+			}
 		};
 	}
 
@@ -267,9 +277,14 @@ namespace acl
 
 		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& writer)
 		{
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_playback", true, false, contexts, *cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_playback", false, false, contexts, *cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "initial_seek", true, true, contexts, *cache_flusher, lossy_pose_transforms);
+			// Cold CPU cache
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_playback_cold", true, false, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_playback_cold", false, false, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "initial_seek_cold", true, true, contexts, cache_flusher, lossy_pose_transforms);
+			// Warm CPU cache
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_playback_warm", true, false, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_playback_warm", false, false, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "initial_seek_warm", true, true, contexts, nullptr, lossy_pose_transforms);
 		};
 
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
