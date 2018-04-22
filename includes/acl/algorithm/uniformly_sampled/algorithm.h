@@ -99,7 +99,7 @@ namespace acl
 
 		virtual const CompressionSettings& get_compression_settings() const override { return m_compression_settings; }
 
-		virtual uint32_t get_uid() const override { return m_compression_settings.hash(); }
+		virtual uint32_t get_uid() const override { return m_compression_settings.get_hash(); }
 
 	private:
 		// The default error metric to use if external compression settings aren't provided

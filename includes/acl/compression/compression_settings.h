@@ -162,7 +162,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.
-		uint32_t hash() const
+		uint32_t get_hash() const
 		{
 			uint32_t hash_value = 0;
 			hash_value = hash_combine(hash_value, hash32(rotation_format));
