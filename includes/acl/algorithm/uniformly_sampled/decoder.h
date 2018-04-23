@@ -166,19 +166,6 @@ namespace acl
 				ACL_ASSERT(settings.are_clip_range_reduction_flags_supported(clip_range_reduction), "Clip range reduction settings (%u) aren't statically supported!", clip_range_reduction);
 				ACL_ASSERT(segment_range_reduction == header.segment_range_reduction, "Statically compiled segment range reduction settings (%u) differs from the compressed settings (%u)!", segment_range_reduction, header.segment_range_reduction);
 				ACL_ASSERT(settings.are_segment_range_reduction_flags_supported(segment_range_reduction), "Segment range reduction settings (%u) aren't statically supported!", segment_range_reduction);
-				if (is_rotation_format_variable(rotation_format))
-				{
-					RotationFormat8 highest_bit_rate_format = get_highest_variant_precision(get_rotation_variant(rotation_format));
-					ACL_ASSERT(settings.is_rotation_format_supported(highest_bit_rate_format), "Variable rotation format requires the highest bit rate to be supported: %s", get_rotation_format_name(highest_bit_rate_format));
-				}
-				if (is_vector_format_variable(translation_format))
-				{
-					ACL_ASSERT(settings.is_translation_format_supported(VectorFormat8::Vector3_96), "Variable translation format requires the highest bit rate to be supported: %s", get_vector_format_name(VectorFormat8::Vector3_96));
-				}
-				if (is_vector_format_variable(scale_format))
-				{
-					ACL_ASSERT(settings.is_scale_format_supported(VectorFormat8::Vector3_96), "Variable scale format requires the highest bit rate to be supported: %s", get_vector_format_name(VectorFormat8::Vector3_96));
-				}
 #endif
 
 				context.clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
