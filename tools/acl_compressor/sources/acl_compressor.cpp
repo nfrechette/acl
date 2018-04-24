@@ -117,6 +117,7 @@ struct Options
 #if defined(__ANDROID__)
 	const char*		input_buffer;
 	size_t			input_buffer_size;
+	bool			input_buffer_binary;
 	const char*		config_buffer;
 	size_t			config_buffer_size;
 #else
@@ -127,6 +128,8 @@ struct Options
 	bool			output_stats;
 	const char*		output_stats_filename;
 	std::FILE*		output_stats_file;
+
+	const char*		output_bin_filename;
 
 	bool			regression_testing;
 	bool			profile_decompression;
@@ -141,6 +144,7 @@ struct Options
 #if defined(__ANDROID__)
 		: input_buffer(nullptr)
 		, input_buffer_size(0)
+		, input_buffer_binary(false)
 		, config_buffer(nullptr)
 		, config_buffer_size(0)
 #else
@@ -150,6 +154,7 @@ struct Options
 		, output_stats(false)
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
+		, output_bin_filename(nullptr)
 		, regression_testing(false)
 		, profile_decompression(false)
 		, is_bind_pose_relative(false)
@@ -161,6 +166,7 @@ struct Options
 #if defined(__ANDROID__)
 		: input_buffer(other.input_buffer)
 		, input_buffer_size(other.input_buffer_size)
+		, input_buffer_binary(other.input_buffer_binary)
 		, config_buffer(other.config_buffer)
 		, config_buffer_size(other.config_buffer_size)
 #else
@@ -170,6 +176,7 @@ struct Options
 		, output_stats(other.output_stats)
 		, output_stats_filename(other.output_stats_filename)
 		, output_stats_file(other.output_stats_file)
+		, output_bin_filename(other.output_bin_filename)
 		, regression_testing(other.regression_testing)
 		, profile_decompression(other.profile_decompression)
 		, is_bind_pose_relative(other.is_bind_pose_relative)
@@ -190,6 +197,7 @@ struct Options
 #if defined(__ANDROID__)
 		std::swap(input_buffer, rhs.input_buffer);
 		std::swap(input_buffer_size, rhs.input_buffer_size);
+		std::swap(input_buffer_binary, rhs.input_buffer_binary);
 		std::swap(config_buffer, rhs.config_buffer);
 		std::swap(config_buffer_size, rhs.config_buffer_size);
 #else
@@ -199,6 +207,7 @@ struct Options
 		std::swap(output_stats, rhs.output_stats);
 		std::swap(output_stats_filename, rhs.output_stats_filename);
 		std::swap(output_stats_file, rhs.output_stats_file);
+		std::swap(output_bin_filename, rhs.output_bin_filename);
 		std::swap(regression_testing, rhs.regression_testing);
 		std::swap(profile_decompression, rhs.profile_decompression);
 		std::swap(is_bind_pose_relative, rhs.is_bind_pose_relative);
@@ -228,11 +237,24 @@ struct Options
 constexpr const char* k_acl_input_file_option = "-acl=";
 constexpr const char* k_config_input_file_option = "-config=";
 constexpr const char* k_stats_output_option = "-stats";
+constexpr const char* k_bin_output_option = "-out=";
 constexpr const char* k_regression_test_option = "-test";
 constexpr const char* k_profile_decompression_option = "-decomp";
 constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
+
+bool is_acl_sjson_file(const char* filename)
+{
+	const size_t filename_len = std::strlen(filename);
+	return filename_len >= 10 && strncmp(filename + filename_len - 10, ".acl.sjson", 10) == 0;
+}
+
+bool is_acl_bin_file(const char* filename)
+{
+	const size_t filename_len = std::strlen(filename);
+	return filename_len >= 8 && strncmp(filename + filename_len - 8, ".acl.bin", 8) == 0;
+}
 
 static bool parse_options(int argc, char** argv, Options& options)
 {
@@ -245,10 +267,17 @@ static bool parse_options(int argc, char** argv, Options& options)
 		{
 #if defined(__ANDROID__)
 			unsigned int buffer_size;
-			sscanf(argument + option_length, "@%u,%p", &buffer_size, &options.input_buffer);
+			int is_acl_bin_buffer;
+			sscanf(argument + option_length, "@%u,%p,%d", &buffer_size, &options.input_buffer, &is_acl_bin_buffer);
 			options.input_buffer_size = buffer_size;
+			options.input_buffer_binary = is_acl_bin_buffer != 0;
 #else
 			options.input_filename = argument + option_length;
+			if (!is_acl_sjson_file(options.input_filename) && !is_acl_bin_file(options.input_filename))
+			{
+				printf("Input file must be an ACL SJSON file of the form: [*.acl.sjson] or a binary ACL file of the form: [*.acl.bin]\n");
+				return false;
+			}
 #endif
 			continue;
 		}
@@ -262,6 +291,12 @@ static bool parse_options(int argc, char** argv, Options& options)
 			options.config_buffer_size = buffer_size;
 #else
 			options.config_filename = argument + option_length;
+			const size_t filename_len = std::strlen(options.config_filename);
+			if (filename_len < 13 || strncmp(options.config_filename + filename_len - 13, ".config.sjson", 13) != 0)
+			{
+				printf("Configuration file must be a config SJSON file of the form: [*.config.sjson]\n");
+				return false;
+			}
 #endif
 			continue;
 		}
@@ -273,10 +308,10 @@ static bool parse_options(int argc, char** argv, Options& options)
 			if (argument[option_length] == '=')
 			{
 				options.output_stats_filename = argument + option_length + 1;
-				size_t filename_len = std::strlen(options.output_stats_filename);
+				const size_t filename_len = std::strlen(options.output_stats_filename);
 				if (filename_len < 6 || strncmp(options.output_stats_filename + filename_len - 6, ".sjson", 6) != 0)
 				{
-					printf("Stats output file must be an SJSON file.\n");
+					printf("Stats output file must be an SJSON file of the form: [*.sjson]\n");
 					return false;
 				}
 			}
@@ -284,6 +319,19 @@ static bool parse_options(int argc, char** argv, Options& options)
 				options.output_stats_filename = nullptr;
 
 			options.open_output_stats_file();
+			continue;
+		}
+
+		option_length = std::strlen(k_bin_output_option);
+		if (std::strncmp(argument, k_bin_output_option, option_length) == 0)
+		{
+			options.output_bin_filename = argument + option_length;
+			const size_t filename_len = std::strlen(options.output_bin_filename);
+			if (filename_len < 8 || strncmp(options.output_bin_filename + filename_len - 8, ".acl.bin", 8) != 0)
+			{
+				printf("Binary output file must be an ACL binary file of the form: [*.acl.bin]\n");
+				return false;
+			}
 			continue;
 		}
 
@@ -424,12 +472,19 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			stats_writer->insert("worst_time", bone_error.sample_time);
 
 			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression) || options.profile_decompression)
-				write_decompression_performance_stats(allocator, algorithm, clip, *compressed_clip, logging, *stats_writer);
+				write_decompression_performance_stats(allocator, algorithm.get_compression_settings(), *compressed_clip, logging, *stats_writer);
 		}
 #endif
 
 		if (options.regression_testing)
 			validate_accuracy(allocator, clip, *compressed_clip, algorithm, regression_error_threshold);
+
+		if (options.output_bin_filename != nullptr)
+		{
+			std::ofstream output_file_stream(options.output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+			if (output_file_stream.is_open())
+				output_file_stream.write((const char*)compressed_clip, compressed_clip->get_size());
+		}
 
 		allocator.deallocate(compressed_clip, compressed_clip->get_size());
 	};
@@ -611,6 +666,66 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 	return true;
 }
 
+static void create_additive_base_clip(IAllocator& allocator, const Options& options, AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings& out_settings, AnimationClip& out_base_clip)
+{
+	// Convert the animation clip to be relative to the bind pose
+	const uint16_t num_bones = clip.get_num_bones();
+	const uint32_t num_samples = clip.get_num_samples();
+	AnimatedBone* bones = clip.get_bones();
+
+	AdditiveClipFormat8 additive_format = AdditiveClipFormat8::None;
+	if (options.is_bind_pose_relative)
+		additive_format = AdditiveClipFormat8::Relative;
+	else if (options.is_bind_pose_additive0)
+		additive_format = AdditiveClipFormat8::Additive0;
+	else if (options.is_bind_pose_additive1)
+		additive_format = AdditiveClipFormat8::Additive1;
+
+	for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+	{
+		AnimatedBone& anim_bone = bones[bone_index];
+
+		// Get the bind transform and make sure it has no scale
+		const RigidBone& skel_bone = skeleton.get_bone(bone_index);
+		const Transform_64 bind_transform = transform_set(skel_bone.bind_transform.rotation, skel_bone.bind_transform.translation, vector_set(1.0));
+
+		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		{
+			const Quat_64 rotation = quat_normalize(anim_bone.rotation_track.get_sample(sample_index));
+			const Vector4_64 translation = anim_bone.translation_track.get_sample(sample_index);
+			const Vector4_64 scale = anim_bone.scale_track.get_sample(sample_index);
+
+			const Transform_64 bone_transform = transform_set(rotation, translation, scale);
+
+			Transform_64 bind_local_transform = bone_transform;
+			if (options.is_bind_pose_relative)
+				bind_local_transform = convert_to_relative(bind_transform, bone_transform);
+			else if (options.is_bind_pose_additive0)
+				bind_local_transform = convert_to_additive0(bind_transform, bone_transform);
+			else if (options.is_bind_pose_additive1)
+				bind_local_transform = convert_to_additive1(bind_transform, bone_transform);
+
+			anim_bone.rotation_track.set_sample(sample_index, bind_local_transform.rotation);
+			anim_bone.translation_track.set_sample(sample_index, bind_local_transform.translation);
+			anim_bone.scale_track.set_sample(sample_index, bind_local_transform.scale);
+		}
+
+		AnimatedBone& base_bone = out_base_clip.get_animated_bone(bone_index);
+		base_bone.rotation_track.set_sample(0, bind_transform.rotation);
+		base_bone.translation_track.set_sample(0, bind_transform.translation);
+		base_bone.scale_track.set_sample(0, bind_transform.scale);
+	}
+
+	if (options.is_bind_pose_relative)
+		out_settings.error_metric = allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Relative>>(allocator);
+	else if (options.is_bind_pose_additive0)
+		out_settings.error_metric = allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive0>>(allocator);
+	else if (options.is_bind_pose_additive1)
+		out_settings.error_metric = allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive1>>(allocator);
+
+	clip.set_additive_base(&out_base_clip, additive_format);
+}
+
 static int safe_main_impl(int argc, char* argv[])
 {
 	Options options;
@@ -622,11 +737,17 @@ static int safe_main_impl(int argc, char* argv[])
 	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
 	std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
 
+#if defined(__ANDROID__)
+	const bool is_input_acl_bin_file = options.input_buffer_binary;
+#else
+	const bool is_input_acl_bin_file = is_acl_bin_file(options.input_filename);
+#endif
+
 	bool use_external_config = false;
 	AlgorithmType8 algorithm_type = AlgorithmType8::UniformlySampled;
 	CompressionSettings settings;
 
-	if (!read_clip(allocator, options, clip, skeleton, use_external_config, algorithm_type, settings))
+	if (!is_input_acl_bin_file && !read_clip(allocator, options, clip, skeleton, use_external_config, algorithm_type, settings))
 		return -1;
 
 	double regression_error_threshold;
@@ -647,75 +768,16 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = true;
 	}
 
-	TransformErrorMetric default_error_metric;
+	AnimationClip* base_clip = nullptr;
 
-	AdditiveTransformErrorMetric<AdditiveClipFormat8::Relative> relative_error_metric;
-	AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive0> additive0_error_metric;
-	AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive1> additive1_error_metric;
-
-	AnimationClip base_clip(allocator, *skeleton, 1, 30, String(allocator, "Base Clip"));
-	if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
+	if (!is_input_acl_bin_file)
 	{
-		// Convert the animation clip to be relative to the bind pose
-		const uint16_t num_bones = clip->get_num_bones();
-		const uint32_t num_samples = clip->get_num_samples();
-		AnimatedBone* bones = clip->get_bones();
+		base_clip = allocate_type<AnimationClip>(allocator, allocator, *skeleton, 1, 30, String(allocator, "Base Clip"));
 
-		AdditiveClipFormat8 additive_format = AdditiveClipFormat8::None;
-		if (options.is_bind_pose_relative)
-			additive_format = AdditiveClipFormat8::Relative;
-		else if (options.is_bind_pose_additive0)
-			additive_format = AdditiveClipFormat8::Additive0;
-		else if (options.is_bind_pose_additive1)
-			additive_format = AdditiveClipFormat8::Additive1;
-
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			AnimatedBone& anim_bone = bones[bone_index];
-
-			// Get the bind transform and make sure it has no scale
-			const RigidBone& skel_bone = skeleton->get_bone(bone_index);
-			const Transform_64 bind_transform = transform_set(skel_bone.bind_transform.rotation, skel_bone.bind_transform.translation, vector_set(1.0));
-
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-			{
-				const Quat_64 rotation = quat_normalize(anim_bone.rotation_track.get_sample(sample_index));
-				const Vector4_64 translation = anim_bone.translation_track.get_sample(sample_index);
-				const Vector4_64 scale = anim_bone.scale_track.get_sample(sample_index);
-
-				const Transform_64 bone_transform = transform_set(rotation, translation, scale);
-
-				Transform_64 bind_local_transform = bone_transform;
-				if (options.is_bind_pose_relative)
-					bind_local_transform = convert_to_relative(bind_transform, bone_transform);
-				else if (options.is_bind_pose_additive0)
-					bind_local_transform = convert_to_additive0(bind_transform, bone_transform);
-				else if (options.is_bind_pose_additive1)
-					bind_local_transform = convert_to_additive1(bind_transform, bone_transform);
-
-				anim_bone.rotation_track.set_sample(sample_index, bind_local_transform.rotation);
-				anim_bone.translation_track.set_sample(sample_index, bind_local_transform.translation);
-				anim_bone.scale_track.set_sample(sample_index, bind_local_transform.scale);
-			}
-
-			AnimatedBone& base_bone = base_clip.get_animated_bone(bone_index);
-			base_bone.rotation_track.set_sample(0, bind_transform.rotation);
-			base_bone.translation_track.set_sample(0, bind_transform.translation);
-			base_bone.scale_track.set_sample(0, bind_transform.scale);
-		}
-
-		if (options.is_bind_pose_relative)
-			settings.error_metric = &relative_error_metric;
-		else if (options.is_bind_pose_additive0)
-			settings.error_metric = &additive0_error_metric;
-		else if (options.is_bind_pose_additive1)
-			settings.error_metric = &additive1_error_metric;
-
-		clip->set_additive_base(&base_clip, additive_format);
-	}
-	else
-	{
-		settings.error_metric = &default_error_metric;
+		if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
+			create_additive_base_clip(allocator, options, *clip, *skeleton, settings, *base_clip);
+		else
+			settings.error_metric = allocate_type<TransformErrorMetric>(allocator);
 	}
 
 	// Compress & Decompress
@@ -723,7 +785,52 @@ static int safe_main_impl(int argc, char* argv[])
 	{
 		StatLogging logging = options.output_stats ? StatLogging::Summary : StatLogging::None;
 
-		if (use_external_config)
+		if (is_input_acl_bin_file)
+		{
+			if (options.profile_decompression && runs_writer != nullptr)
+			{
+				// Reset settings to fast-path
+				CompressionSettings fast_path_settings;
+				fast_path_settings.rotation_format = RotationFormat8::QuatDropW_Variable;
+				fast_path_settings.translation_format = VectorFormat8::Vector3_Variable;
+				fast_path_settings.scale_format = VectorFormat8::Vector3_Variable;
+				fast_path_settings.range_reduction = RangeReductionFlags8::AllTracks;
+				fast_path_settings.segmenting.enabled = true;
+				fast_path_settings.segmenting.range_reduction = RangeReductionFlags8::AllTracks;
+
+#if defined(__ANDROID__)
+				const CompressedClip* compressed_clip = reinterpret_cast<const CompressedClip*>(options.input_buffer);
+				ACL_ASSERT(compressed_clip->is_valid(true).empty(), "Compressed clip is invalid");
+
+				runs_writer->push([&](sjson::ObjectWriter& writer)
+				{
+					write_decompression_performance_stats(allocator, fast_path_settings, *compressed_clip, logging, writer);
+				});
+#else
+				std::ifstream input_file_stream(options.input_filename, std::ios_base::in | std::ios_base::binary);
+				if (input_file_stream.is_open())
+				{
+					input_file_stream.seekg(0, input_file_stream.end);
+					const size_t buffer_size = input_file_stream.tellg();
+					input_file_stream.seekg(0, input_file_stream.beg);
+
+					char* buffer = (char*)allocator.allocate(buffer_size, alignof(CompressedClip));
+					input_file_stream.read(buffer, buffer_size);
+
+					const CompressedClip* compressed_clip = reinterpret_cast<const CompressedClip*>(buffer);
+					ACL_ASSERT(compressed_clip->is_valid(true).empty(), "Compressed clip is invalid");
+
+					runs_writer->push([&](sjson::ObjectWriter& writer)
+					{
+						write_decompression_performance_stats(allocator, fast_path_settings, *compressed_clip, logging, writer);
+					});
+
+					allocator.deallocate(buffer, buffer_size);
+				}
+#endif
+			}
+		}
+		else if (use_external_config)
 		{
 			ACL_ASSERT(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
 
@@ -805,6 +912,9 @@ static int safe_main_impl(int argc, char* argv[])
 	else
 #endif
 		exec_algos(nullptr);
+
+	deallocate_type(allocator, settings.error_metric);
+	deallocate_type(allocator, base_clip);
 
 	return 0;
 }

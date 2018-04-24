@@ -22,4 +22,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+bool is_acl_sjson_file(const char* filename);
+bool is_acl_bin_file(const char* filename);
+
 int main_impl(int argc, char* argv[]);

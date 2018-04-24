@@ -185,24 +185,43 @@ namespace acl
 		DecompressUE4,
 	};
 
-	inline void write_decompression_performance_stats(IAllocator& allocator, IAlgorithm& algorithm, const AnimationClip& clip, const CompressedClip& compressed_clip,
+	struct CompressedClipSampler
+	{
+		template<typename DecompressionSettingsImpl>
+		static void sample_pose(const DecompressionSettingsImpl& settings, DecompressionFunction8 decompression_function, const CompressedClip& compressed_clip, void* context, float sample_time, Transform_32* lossy_pose_transforms, uint16_t num_bones)
+		{
+			DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
+			switch (decompression_function)
+			{
+			case DecompressionFunction8::DecompressPose:
+				uniformly_sampled::decompress_pose(settings, compressed_clip, context, sample_time, pose_writer);
+				break;
+			case DecompressionFunction8::DecompressBone:
+				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+					uniformly_sampled::decompress_bone(settings, compressed_clip, context, sample_time, bone_index, &lossy_pose_transforms[bone_index].rotation, &lossy_pose_transforms[bone_index].translation, &lossy_pose_transforms[bone_index].scale);
+				break;
+			case DecompressionFunction8::DecompressUE4:
+				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+					uniformly_sampled::decompress_bone(settings, compressed_clip, context, sample_time, bone_index, &lossy_pose_transforms[bone_index].rotation, nullptr, nullptr);
+				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+					uniformly_sampled::decompress_bone(settings, compressed_clip, context, sample_time, bone_index, nullptr, &lossy_pose_transforms[bone_index].translation, nullptr);
+				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+					uniformly_sampled::decompress_bone(settings, compressed_clip, context, sample_time, bone_index, nullptr, nullptr, &lossy_pose_transforms[bone_index].scale);
+				break;
+			}
+		}
+	};
+
+	inline void write_decompression_performance_stats(IAllocator& allocator, bool use_uniform_fast_path, const CompressedClip& compressed_clip,
 		StatLogging logging, sjson::ObjectWriter& writer, const char* action_type,
 		PlaybackDirection8 playback_direction, DecompressionFunction8 decompression_function,
 		void* contexts[], CPUCacheFlusher* cache_flusher, Transform_32* lossy_pose_transforms)
 	{
-		const int32_t num_samples = static_cast<int32_t>(clip.get_num_samples());
-		const double duration = clip.get_duration();
-		const uint16_t num_bones = clip.get_num_bones();
-
-		// If we can, we use a fast-path that simulates what a real game engine would use
-		// by disabling the things they normally wouldn't care about like deprecated formats
-		// and debugging features
-		const CompressionSettings& settings = algorithm.get_compression_settings();
-		const bool use_uniform_fast_path = settings.rotation_format == RotationFormat8::QuatDropW_Variable
-			&& settings.translation_format == VectorFormat8::Vector3_Variable
-			&& settings.scale_format == VectorFormat8::Vector3_Variable
-			&& are_all_enum_flags_set(settings.range_reduction, RangeReductionFlags8::AllTracks)
-			&& settings.segmenting.enabled;
+		const ClipHeader& clip_header = get_clip_header(compressed_clip);
+		const int32_t num_samples = static_cast<int32_t>(clip_header.num_samples);
+		const float sample_rate = float(clip_header.sample_rate);
+		const float duration = calculate_duration(num_samples, clip_header.sample_rate);
+		const uint16_t num_bones = clip_header.num_bones;
 
 		writer[action_type] = [&](sjson::ObjectWriter& writer)
 		{
@@ -231,7 +250,7 @@ namespace acl
 			{
 				for (int32_t sample_index = initial_sample_index; sample_index != sample_index_sentinel; sample_index += delta_sample_index)
 				{
-					const float sample_time = static_cast<float>(duration * sample_index / (num_samples - 1));
+					const float sample_time = min(float(sample_index) / sample_rate, duration);
 
 					double decompression_time = 0;
 
@@ -242,8 +261,18 @@ namespace acl
 						if (playback_direction == PlaybackDirection8::Random)
 						{
 							// Clearing the context ensures the decoder cannot reuse any state cached from the last sample.
-							algorithm.deallocate_decompression_context(allocator, context);
-							context = algorithm.allocate_decompression_context(allocator, compressed_clip);
+							uniformly_sampled::deallocate_decompression_context(allocator, context);
+
+							if (use_uniform_fast_path)
+							{
+								UniformlySampledFastPathDecompressionSettings decompression_settings;
+								context = uniformly_sampled::allocate_decompression_context(allocator, decompression_settings, compressed_clip);
+							}
+							else
+							{
+								uniformly_sampled::DecompressionSettings decompression_settings;
+								context = uniformly_sampled::allocate_decompression_context(allocator, decompression_settings, compressed_clip);
+							}
 						}
 
 						if (cache_flusher != nullptr)
@@ -253,46 +282,12 @@ namespace acl
 						if (use_uniform_fast_path)
 						{
 							UniformlySampledFastPathDecompressionSettings decompression_settings;
-							DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
-							switch (decompression_function)
-							{
-							case DecompressionFunction8::DecompressPose:
-								uniformly_sampled::decompress_pose(decompression_settings, compressed_clip, context, sample_time, pose_writer);
-								break;
-							case DecompressionFunction8::DecompressBone:
-								for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-									uniformly_sampled::decompress_bone(decompression_settings, compressed_clip, context, sample_time, bone_index, &lossy_pose_transforms[bone_index].rotation, &lossy_pose_transforms[bone_index].translation, &lossy_pose_transforms[bone_index].scale);
-								break;
-							case DecompressionFunction8::DecompressUE4:
-								for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-									uniformly_sampled::decompress_bone(decompression_settings, compressed_clip, context, sample_time, bone_index, &lossy_pose_transforms[bone_index].rotation, nullptr, nullptr);
-								for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-									uniformly_sampled::decompress_bone(decompression_settings, compressed_clip, context, sample_time, bone_index, nullptr, &lossy_pose_transforms[bone_index].translation, nullptr);
-								for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-									uniformly_sampled::decompress_bone(decompression_settings, compressed_clip, context, sample_time, bone_index, nullptr, nullptr, &lossy_pose_transforms[bone_index].scale);
-								break;
-							}
+							CompressedClipSampler::sample_pose(decompression_settings, decompression_function, compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
 						}
 						else
 						{
-							switch (decompression_function)
-							{
-							case DecompressionFunction8::DecompressPose:
-								algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
-								break;
-							case DecompressionFunction8::DecompressBone:
-								for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-									algorithm.decompress_bone(compressed_clip, context, sample_time, bone_index, &lossy_pose_transforms[bone_index].rotation, &lossy_pose_transforms[bone_index].translation, &lossy_pose_transforms[bone_index].scale);
-								break;
-							case DecompressionFunction8::DecompressUE4:
-								for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-									algorithm.decompress_bone(compressed_clip, context, sample_time, bone_index, &lossy_pose_transforms[bone_index].rotation, nullptr, nullptr);
-								for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-									algorithm.decompress_bone(compressed_clip, context, sample_time, bone_index, nullptr, &lossy_pose_transforms[bone_index].translation, nullptr);
-								for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-									algorithm.decompress_bone(compressed_clip, context, sample_time, bone_index, nullptr, nullptr, &lossy_pose_transforms[bone_index].scale);
-								break;
-							}
+							uniformly_sampled::DecompressionSettings decompression_settings;
+							CompressedClipSampler::sample_pose(decompression_settings, decompression_function, compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
 						}
 						timer.stop();
 
@@ -320,50 +315,70 @@ namespace acl
 		};
 	}
 
-	inline void write_decompression_performance_stats(IAllocator& allocator, IAlgorithm& algorithm, const AnimationClip& raw_clip, const CompressedClip& compressed_clip, StatLogging logging, sjson::ObjectWriter& writer)
+	inline void write_decompression_performance_stats(IAllocator& allocator, const CompressionSettings& settings, const CompressedClip& compressed_clip, StatLogging logging, sjson::ObjectWriter& writer)
 	{
+		// If we can, we use a fast-path that simulates what a real game engine would use
+		// by disabling the things they normally wouldn't care about like deprecated formats
+		// and debugging features
+		const bool use_uniform_fast_path = settings.rotation_format == RotationFormat8::QuatDropW_Variable
+			&& settings.translation_format == VectorFormat8::Vector3_Variable
+			&& settings.scale_format == VectorFormat8::Vector3_Variable
+			&& are_all_enum_flags_set(settings.range_reduction, RangeReductionFlags8::AllTracks)
+			&& settings.segmenting.enabled;
+
 		void* contexts[k_num_decompression_timing_passes];
 
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
-			contexts[pass_index] = algorithm.allocate_decompression_context(allocator, compressed_clip);
+		{
+			if (use_uniform_fast_path)
+			{
+				UniformlySampledFastPathDecompressionSettings decompression_settings;
+				contexts[pass_index] = uniformly_sampled::allocate_decompression_context(allocator, decompression_settings, compressed_clip);
+			}
+			else
+			{
+				uniformly_sampled::DecompressionSettings decompression_settings;
+				contexts[pass_index] = uniformly_sampled::allocate_decompression_context(allocator, decompression_settings, compressed_clip);
+			}
+		}
 
 		CPUCacheFlusher* cache_flusher = allocate_type<CPUCacheFlusher>(allocator);
 
-		const uint16_t num_bones = raw_clip.get_num_bones();
-		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+		const ClipHeader& clip_header = get_clip_header(compressed_clip);
+		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, clip_header.num_bones);
 
 		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& writer)
 		{
 			// Cold CPU cache, decompress_pose
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_pose_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_pose_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "random_pose_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "forward_pose_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "backward_pose_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "random_pose_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
 			// Warm CPU cache, decompress_pose
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_pose_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_pose_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "random_pose_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "forward_pose_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "backward_pose_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "random_pose_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
 			// Cold CPU cache, decompress_bone
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_bone_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_bone_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "random_bone_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "forward_bone_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "backward_bone_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "random_bone_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
 			// Warm CPU cache, decompress_bone
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_bone_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_bone_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "random_bone_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "forward_bone_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "backward_bone_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "random_bone_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
 			// Cold CPU cache, decompress_ue4
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_ue4_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_ue4_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "random_ue4_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "forward_ue4_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "backward_ue4_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "random_ue4_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
 			// Warm CPU cache, decompress_ue4
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "forward_ue4_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "backward_ue4_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(allocator, algorithm, raw_clip, compressed_clip, logging, writer, "random_ue4_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "forward_ue4_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "backward_ue4_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "random_ue4_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
 		};
 
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
-			algorithm.deallocate_decompression_context(allocator, contexts[pass_index]);
+			uniformly_sampled::deallocate_decompression_context(allocator, contexts[pass_index]);
 
-		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
+		deallocate_type_array(allocator, lossy_pose_transforms, clip_header.num_bones);
 		deallocate_type(allocator, cache_flusher);
 	}
 

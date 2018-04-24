@@ -18,6 +18,7 @@ def parse_argv():
 	options = {}
 	options['acl'] = ""
 	options['stats'] = ""
+	options['out'] = ""
 	options['csv_summary'] = False
 	options['csv_bit_rate'] = False
 	options['csv_animated_size'] = False
@@ -37,6 +38,10 @@ def parse_argv():
 		if value.startswith('-stats='):
 			options['stats'] = value[len('-stats='):].replace('"', '')
 			options['stats'] = os.path.expanduser(options['stats'])
+
+		if value.startswith('-out='):
+			options['out'] = value[len('-out='):].replace('"', '')
+			options['out'] = os.path.expanduser(options['out'])
 
 		if value == '-csv_summary':
 			options['csv_summary'] = True
@@ -103,6 +108,7 @@ def print_help():
 	print('  At least one argument must be provided.')
 	print('  -acl=<path>: Input directory tree containing clips to compress.')
 	print('  -stats=<path>: Output directory tree for the stats to output.')
+	print('  -out=<path>: Output directory tree for the compressed binaries to output.')
 	print('  -csv_summary: Generates a basic summary CSV file with various clip information and statistics.')
 	print('  -csv_bit_rate: Generates a CSV with the bit rate usage frequency by the variable quantization algorithm. The executable must be compiled with detailed statistics enabled.')
 	print('  -csv_animated_size: Generates a CSV with statistics about the animated size of key frames. The executable must be compiled with detailed statistics enabled.')
@@ -269,6 +275,14 @@ def compress_clips(options):
 	stat_files = []
 	cmd_queue = queue.Queue()
 
+	out_dir = None
+	if len(options['out']) != 0:
+		if not os.path.exists(options['out']):
+			os.makedirs(options['out'])
+
+		if os.path.exists(options['out']) and os.path.isdir(options['out']):
+			out_dir = options['out']
+
 	for (dirpath, dirnames, filenames) in os.walk(acl_dir):
 		stat_dirname = dirpath.replace(acl_dir, stat_dir)
 
@@ -287,7 +301,12 @@ def compress_clips(options):
 			if not os.path.exists(stat_dirname):
 				os.makedirs(stat_dirname)
 
-			cmd = '{} -acl="{}" -stats="{}"'.format(compressor_exe_path, acl_filename, stat_filename)
+			if out_dir:
+				out_filename = os.path.join(options['out'], filename.replace('.acl.sjson', '.acl.bin'))
+				cmd = '{} -acl="{}" -stats="{}" -out="{}"'.format(compressor_exe_path, acl_filename, stat_filename, out_filename)
+			else:
+				cmd = '{} -acl="{}" -stats="{}"'.format(compressor_exe_path, acl_filename, stat_filename)
+
 			if platform.system() == 'Windows':
 				cmd = cmd.replace('/', '\\')
 

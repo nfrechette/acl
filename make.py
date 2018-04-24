@@ -10,6 +10,7 @@ import zipfile
 
 # The current test data version in used
 current_test_data = 'test_data_v1'
+current_decomp_data = 'decomp_data_v1'
 
 def parse_argv():
 	options = {}
@@ -361,6 +362,74 @@ def do_prepare_regression_test_data(test_data_dir, options):
 			print(']', file = metadata_file)
 			print('', file = metadata_file)
 
+def do_prepare_decompression_test_data(test_data_dir, options):
+	print('Preparing decompression test data ...')
+
+	current_data_zip = os.path.join(test_data_dir, '{}.zip'.format(current_decomp_data))
+
+	# Validate that our regression test data is present
+	if not os.path.exists(current_data_zip):
+		print('Decompression test data not found: {}'.format(current_data_zip))
+		sys.exit(1)
+
+	# If it hasn't been decompressed yet, do so now
+	current_data_dir = os.path.join(test_data_dir, current_decomp_data)
+	needs_decompression = not os.path.exists(current_data_dir)
+	if needs_decompression:
+		print('Decompressing {} ...'.format(current_data_zip))
+		with zipfile.ZipFile(current_data_zip, 'r') as zip_ref:
+			zip_ref.extractall(test_data_dir)
+
+	# Grab all the test clips
+	clips = []
+	for (dirpath, dirnames, filenames) in os.walk(current_data_dir):
+		for filename in filenames:
+			if not filename.endswith('.acl.bin'):
+				continue
+
+			clip_filename = os.path.join(dirpath, filename)
+			clips.append(clip_filename)
+
+	if len(clips) == 0:
+		print('No decompression clips found')
+		sys.exit(1)
+
+	print('Found {} decompression clips'.format(len(clips)))
+
+	# Grab all the test configurations
+	configs = []
+	config_dir = os.path.join(test_data_dir, 'configs')
+	if os.path.exists(config_dir):
+		for (dirpath, dirnames, filenames) in os.walk(config_dir):
+			for filename in filenames:
+				if not filename.endswith('.config.sjson'):
+					continue
+
+				if not filename == 'uniformly_sampled_quant_var_2.config.sjson':
+					continue
+
+				config_filename = os.path.join(dirpath, filename)
+				configs.append(config_filename)
+
+	if len(configs) == 0:
+		print('No decompression configurations found')
+		sys.exit(1)
+
+	print('Found {} decompression configurations'.format(len(configs)))
+
+	if needs_decompression:
+		with open(os.path.join(current_data_dir, 'metadata.sjson'), 'w') as metadata_file:
+			print('configs = [', file = metadata_file)
+			for config_filename in configs:
+				print('\t"{}"'.format(os.path.relpath(config_filename, config_dir)), file = metadata_file)
+			print(']', file = metadata_file)
+			print('', file = metadata_file)
+			print('clips = [', file = metadata_file)
+			for clip_filename in clips:
+				print('\t"{}"'.format(os.path.relpath(clip_filename, current_data_dir)), file = metadata_file)
+			print(']', file = metadata_file)
+			print('', file = metadata_file)
+
 def do_regression_tests(ctest_exe, test_data_dir, options):
 	print('Running regression tests ...')
 
@@ -546,8 +615,8 @@ if __name__ == "__main__":
 	if not compiler == None:
 		print('Using compiler: {}'.format(compiler))
 
-	if options['regression_test']:
-		do_prepare_regression_test_data(test_data_dir, options)
+	do_prepare_regression_test_data(test_data_dir, options)
+	do_prepare_decompression_test_data(test_data_dir, options)
 
 	do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options)
 

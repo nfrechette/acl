@@ -151,12 +151,14 @@ extern "C" jint Java_com_acl_MainActivity_nativeMain(JNIEnv* env, jobject caller
 		{
 			const std::string& clip_filename = clips[clip_index];
 
+			const int is_input_acl_bin_file = is_acl_bin_file(clip_filename.c_str()) ? 1 : 0;
+
 			void* clip_buffer;
 			size_t clip_buffer_size;
 			if (load_file(asset_manager, clip_filename.c_str(), clip_buffer, clip_buffer_size) != 0)
 				continue;
 
-			snprintf(argv_4_clip_buffer, 64, "-acl=@%u,%p", (uint32_t)clip_buffer_size, clip_buffer);
+			snprintf(argv_4_clip_buffer, 64, "-acl=@%u,%p,%d", (uint32_t)clip_buffer_size, clip_buffer, is_input_acl_bin_file);
 
 			size_t clip_base_name_length = 0;
 			while (clip_filename[clip_base_name_length] != '.')

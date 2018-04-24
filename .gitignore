@@ -7,3 +7,4 @@ build/
 # Test data rules
 test_data/*.zip
 test_data/test_data*
+test_data/decomp_data*

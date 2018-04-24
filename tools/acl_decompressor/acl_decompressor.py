@@ -18,7 +18,7 @@ import sjson
 
 def parse_argv():
 	options = {}
-	options['acl'] = ""
+	options['acl'] = os.path.join(os.getcwd(), '../../test_data/decomp_data_v1')
 	options['stats'] = ""
 	options['csv'] = False
 	options['refresh'] = False
@@ -55,11 +55,6 @@ def parse_argv():
 
 	if options['print_help']:
 		print_help()
-		sys.exit(1)
-
-	if options['acl'] == None:
-		print('ACL input directory not found')
-		print_usage()
 		sys.exit(1)
 
 	if options['stats'] == None:
@@ -217,11 +212,14 @@ def decompress_clips_android(options):
 		stat_dirname = dirpath.replace(acl_dir, stat_dir)
 
 		for filename in filenames:
-			if not filename.endswith('.acl.sjson'):
+			if not filename.endswith('.acl.sjson') and not filename.endswith('.acl.bin'):
 				continue
 
 			acl_filename = os.path.join(dirpath, filename)
-			stat_filename = os.path.join(stat_dirname, filename.replace('.acl.sjson', '_stats.sjson'))
+			if filename.endswith('.acl.sjson'):
+				stat_filename = os.path.join(stat_dirname, filename.replace('.acl.sjson', '_stats.sjson'))
+			else:
+				stat_filename = os.path.join(stat_dirname, filename.replace('.acl.bin', '_stats.sjson'))
 
 			stat_files.append(stat_filename)
 
@@ -274,11 +272,14 @@ def decompress_clips(options):
 		stat_dirname = dirpath.replace(acl_dir, stat_dir)
 
 		for filename in filenames:
-			if not filename.endswith('.acl.sjson'):
+			if not filename.endswith('.acl.sjson') and not filename.endswith('.acl.bin'):
 				continue
 
 			acl_filename = os.path.join(dirpath, filename)
-			stat_filename = os.path.join(stat_dirname, filename.replace('.acl.sjson', '_stats.sjson'))
+			if filename.endswith('.acl.sjson'):
+				stat_filename = os.path.join(stat_dirname, filename.replace('.acl.sjson', '_stats.sjson'))
+			else:
+				stat_filename = os.path.join(stat_dirname, filename.replace('.acl.bin', '_stats.sjson'))
 
 			stat_files.append(stat_filename)
 
@@ -336,64 +337,6 @@ def decompress_clips(options):
 
 	return stat_files
 
-def shorten_range_reduction(range_reduction):
-	if range_reduction == 'RangeReduction::None':
-		return 'RR:None'
-	elif range_reduction == 'RangeReduction::Rotations':
-		return 'RR:Rot'
-	elif range_reduction == 'RangeReduction::Translations':
-		return 'RR:Trans'
-	elif range_reduction == 'RangeReduction::Scales':
-		return 'RR:Scale'
-	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations':
-		return 'RR:Rot|Trans'
-	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Scales':
-		return 'RR:Rot|Scale'
-	elif range_reduction == 'RangeReduction::Translations | RangeReduction::Scales':
-		return 'RR:Trans|Scale'
-	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations | RangeReduction::Scales':
-		return 'RR:Rot|Trans|Scale'
-	else:
-		return 'RR:???'
-
-def shorten_rotation_format(format):
-	if format == 'Quat_128':
-		return 'R:Quat'
-	elif format == 'QuatDropW_96':
-		return 'R:QuatNoW96'
-	elif format == 'QuatDropW_48':
-		return 'R:QuatNoW48'
-	elif format == 'QuatDropW_32':
-		return 'R:QuatNoW32'
-	elif format == 'QuatDropW_Variable':
-		return 'R:QuatNoWVar'
-	else:
-		return 'R:???'
-
-def shorten_translation_format(format):
-	if format == 'Vector3_96':
-		return 'T:Vec3_96'
-	elif format == 'Vector3_48':
-		return 'T:Vec3_48'
-	elif format == 'Vector3_32':
-		return 'T:Vec3_32'
-	elif format == 'Vector3_Variable':
-		return 'T:Vec3Var'
-	else:
-		return 'T:???'
-
-def shorten_scale_format(format):
-	if format == 'Vector3_96':
-		return 'S:Vec3_96'
-	elif format == 'Vector3_48':
-		return 'S:Vec3_48'
-	elif format == 'Vector3_32':
-		return 'S:Vec3_32'
-	elif format == 'Vector3_Variable':
-		return 'S:Vec3Var'
-	else:
-		return 'S:???'
-
 def run_stat_parsing(options, stat_queue, result_queue):
 	#signal.signal(signal.SIGINT, signal.SIG_IGN)
 
@@ -413,20 +356,8 @@ def run_stat_parsing(options, stat_queue, result_queue):
 					file_data = sjson.loads(file.read())
 					runs = file_data['runs']
 					for run_stats in runs:
-						run_stats['range_reduction'] = shorten_range_reduction(run_stats['range_reduction'])
 						run_stats['filename'] = stat_filename
 						run_stats['clip_name'] = os.path.splitext(os.path.basename(stat_filename))[0]
-						run_stats['rotation_format'] = shorten_rotation_format(run_stats['rotation_format'])
-						run_stats['translation_format'] = shorten_translation_format(run_stats['translation_format'])
-						run_stats['scale_format'] = shorten_scale_format(run_stats['scale_format'])
-
-						if 'segmenting' in run_stats:
-							run_stats['segmenting']['range_reduction'] = shorten_range_reduction(run_stats['segmenting']['range_reduction'])
-							run_stats['desc'] = '{}|{}|{}, Clip {}, Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
-							run_stats['csv_desc'] = '{}|{}|{} Clip {} Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
-						else:
-							run_stats['desc'] = '{}|{}|{}, Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'])
-							run_stats['csv_desc'] = '{}|{}|{} Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'])
 
 						num_runs += 1
 
