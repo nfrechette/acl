@@ -227,16 +227,17 @@ def decompress_clips_android(options):
 				os.makedirs(stat_dirname)
 
 	if len(stat_files) == 0:
-		print("No ACL clips found to decompress")
+		print('No ACL clips found to decompress')
 		sys.exit(0)
 
-	output = str(subprocess.check_output('adb logcat -s acl -e "Stats will be written to:" -m 1'))
+	output = str(subprocess.check_output('adb logcat -s acl -e "Stats will be written to:" -m 1 -d'))
 	matches = re.search('Stats will be written to: ([/\.\w]+)', output)
 	if matches == None:
-		print("Failed to find Android source directory from ADB")
-		sys.exit(1)
-
-	android_src_dir = matches.group(1)
+		print('Failed to find Android source directory from ADB')
+		print('/storage/emulated/0/Android/data/com.acl/files will be used instead')
+		android_src_dir = '/storage/emulated/0/Android/data/com.acl/files'
+	else:
+		android_src_dir = matches.group(1)
 
 	curr_dir = os.getcwd()
 	os.chdir(stat_dir)
@@ -245,7 +246,7 @@ def decompress_clips_android(options):
 		dst_filename = os.path.basename(stat_filename)
 		src_filename = os.path.join(android_src_dir, dst_filename).replace('\\', '/')
 		cmd = 'adb pull "{}" "{}"'.format(src_filename, dst_filename)
-		#os.system(cmd)
+		os.system(cmd)
 
 	os.chdir(curr_dir)
 	return stat_files
