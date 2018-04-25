@@ -144,9 +144,9 @@ namespace acl
 			template<typename DestIntegralType, typename SrcEnumType>
 			static inline DestIntegralType cast(SrcEnumType input)
 			{
+#if defined(ACL_HAS_ASSERT_CHECKS)
 				typedef typename std::underlying_type<SrcEnumType>::type SrcIntegralType;
 
-#if defined(ACL_HAS_ASSERT_CHECKS)
 				const SrcIntegralType integral_input = static_cast<SrcIntegralType>(input);
 
 				const bool src_is_signed = std::numeric_limits<SrcIntegralType>::is_signed;

@@ -152,10 +152,11 @@ namespace acl
 				const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 				const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
 				const VectorFormat8 scale_format = settings.get_translation_format(header.scale_format);
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 
-#if defined(ACL_HAS_ASSERT_CHECKS)
 				ACL_ASSERT(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
 				ACL_ASSERT(settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
 				ACL_ASSERT(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));

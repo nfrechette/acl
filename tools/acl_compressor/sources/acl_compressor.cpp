@@ -423,6 +423,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, base_pose_transforms, lossy_pose_transforms, bone_index);
+			(void)error;
 			ACL_ASSERT(is_finite(error), "Returned error is not a finite value");
 			ACL_ASSERT(error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
 		}
