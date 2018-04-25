@@ -28,18 +28,12 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <sstream>
 
 #include <sjson/parser.h>
 
-// Disable allocation track since if we fail a regression test, we'll throw an exception
-// and fail to free memory, leading to a crash in the allocator
-#define ACL_NO_ALLOCATOR_TRACKING
-
 #include <acl_compressor.h>
-
-// TODO: Clean this up, no longer required to be included manually
-// Include the CPP file manually
-#include <acl_compressor.cpp>
 
 static int get_bundle_resource_path(const char* resource_filename, char* out_path, size_t path_max_size)
 {

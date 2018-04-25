@@ -35,14 +35,25 @@ else()
 	message(WARNING "Test data directory not found")
 endif()
 
+# Grab all of our common source files
+file(GLOB_RECURSE ALL_COMMON_SOURCE_FILES LIST_DIRECTORIES false
+	${PROJECT_SOURCE_DIR}/../acl_compressor/includes/*.h
+	${PROJECT_SOURCE_DIR}/../acl_compressor/sources/*.cpp)
+
+create_source_groups("${ALL_COMMON_SOURCE_FILES}" ${PROJECT_SOURCE_DIR}/..)
+
 # Grab all of our main source files
 file(GLOB_RECURSE ALL_MAIN_SOURCE_FILES LIST_DIRECTORIES false ${PROJECT_SOURCE_DIR}/*.cpp)
 
 create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
 
-add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${ALL_MAIN_SOURCE_FILES} ${ALL_TEST_DATA_RESOURCE_FILES})
+add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${ALL_MAIN_SOURCE_FILES} ${ALL_COMMON_SOURCE_FILES} ${ALL_TEST_DATA_RESOURCE_FILES})
 
 # Throw on failure to allow us to catch them and recover
 add_definitions(-DACL_ON_ASSERT_THROW)
+
+# Disable allocation track since if we fail a regression test, we'll throw an exception
+# and fail to free memory, leading to a crash in the allocator
+add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
 
 target_link_libraries(${PROJECT_NAME} "-framework CoreFoundation")
