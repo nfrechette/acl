@@ -213,8 +213,11 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
 	if not toolchain == None:
 		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE={}'.format(os.path.join(cmake_script_dir, toolchain)))
 
-	if options['regression_test']:
-		extra_switches.append('-DREGRESSION_TESTING:BOOL=true')
+	if 'test_data_dir' in options:
+		extra_switches.append('-DTEST_DATA_DIR:STRING={}'.format(options['test_data_dir']))
+
+	if 'decomp_data_dir' in options:
+		extra_switches.append('-DDECOMP_DATA_DIR:STRING={}'.format(options['decomp_data_dir']))
 
 	# Generate IDE solution
 	print('Generating build files ...')
@@ -305,7 +308,7 @@ def do_prepare_regression_test_data(test_data_dir, options):
 	# Validate that our regression test data is present
 	if not os.path.exists(current_test_data_zip):
 		print('Regression test data not found: {}'.format(current_test_data_zip))
-		sys.exit(1)
+		return
 
 	# If it hasn't been decompressed yet, do so now
 	current_test_data_dir = os.path.join(test_data_dir, current_test_data)
@@ -362,6 +365,8 @@ def do_prepare_regression_test_data(test_data_dir, options):
 			print(']', file = metadata_file)
 			print('', file = metadata_file)
 
+	options['test_data_dir'] = current_test_data_dir
+
 def do_prepare_decompression_test_data(test_data_dir, options):
 	print('Preparing decompression test data ...')
 
@@ -370,7 +375,7 @@ def do_prepare_decompression_test_data(test_data_dir, options):
 	# Validate that our regression test data is present
 	if not os.path.exists(current_data_zip):
 		print('Decompression test data not found: {}'.format(current_data_zip))
-		sys.exit(1)
+		return
 
 	# If it hasn't been decompressed yet, do so now
 	current_data_dir = os.path.join(test_data_dir, current_decomp_data)
@@ -429,6 +434,8 @@ def do_prepare_decompression_test_data(test_data_dir, options):
 				print('\t"{}"'.format(os.path.relpath(clip_filename, current_data_dir)), file = metadata_file)
 			print(']', file = metadata_file)
 			print('', file = metadata_file)
+
+	options['decomp_data_dir'] = current_data_dir
 
 def do_regression_tests(ctest_exe, test_data_dir, options):
 	print('Running regression tests ...')

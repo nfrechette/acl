@@ -9,7 +9,9 @@ include(CMakePlatforms)
 
 set(USE_AVX_INSTRUCTIONS false CACHE BOOL "Use AVX instructions")
 set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
-set(REGRESSION_TESTING false CACHE BOOL "Whether or not we are regression testing")
+
+set(TEST_DATA_DIR "" CACHE STRING "The full path of the regression test data directory")
+set(DECOMP_DATA_DIR "" CACHE STRING "The full path of the decompression data directory")
 
 # Grab all of our include files
 file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false
@@ -39,10 +41,8 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_decompressor")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
 
-if(REGRESSION_TESTING)
-	if(PLATFORM_ANDROID)
-		add_subdirectory("${PROJECT_SOURCE_DIR}/tools/regression_tester_android")
-	elseif(PLATFORM_IOS)
-		add_subdirectory("${PROJECT_SOURCE_DIR}/tools/regression_tester_ios")
-	endif()
+if(PLATFORM_ANDROID)
+	add_subdirectory("${PROJECT_SOURCE_DIR}/tools/regression_tester_android")
+elseif(PLATFORM_IOS)
+	add_subdirectory("${PROJECT_SOURCE_DIR}/tools/regression_tester_ios")
 endif()
