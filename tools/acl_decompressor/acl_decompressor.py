@@ -24,6 +24,7 @@ def parse_argv():
 	options['refresh'] = False
 	options['num_threads'] = 1
 	options['android'] = False
+	options['ios'] = False
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
@@ -46,6 +47,9 @@ def parse_argv():
 
 		if value == '-android':
 			options['android'] = True
+
+		if value == '-ios':
+			options['ios'] = True
 
 		#if value.startswith('-parallel='):
 		#	options['num_threads'] = int(value[len('-parallel='):].replace('"', ''))
@@ -94,6 +98,8 @@ def print_help():
 	print('  -stats=<path>: Output directory tree for the stats to output.')
 	print('  -csv: Generates a basic summary CSV file with various clip information and statistics.')
 	print('  -refresh: If an output stat file already exists for a particular clip, it is recompressed anyway instead of being skipped.')
+	print('  -android: Pulls the files from the android device')
+	print('  -ios: Only computes the stats')
 	#print('  -parallel=<Num Threads>: Allows multiple clips to be compressed and processed in parallel.')
 	print('  -help: Prints this help message.')
 
@@ -262,7 +268,7 @@ def decompress_clips(options):
 		decompressor_exe_path = '../../build/bin/acl_decompressor'
 
 	decompressor_exe_path = os.path.abspath(decompressor_exe_path)
-	if not os.path.exists(decompressor_exe_path):
+	if not os.path.exists(decompressor_exe_path) and not options['ios']:
 		print('Decompressor exe not found: {}'.format(decompressor_exe_path))
 		sys.exit(1)
 
@@ -285,6 +291,9 @@ def decompress_clips(options):
 			stat_files.append(stat_filename)
 
 			if os.path.exists(stat_filename) and os.path.isfile(stat_filename) and not refresh:
+				continue
+
+			if options['ios']:
 				continue
 
 			if not os.path.exists(stat_dirname):
