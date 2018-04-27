@@ -244,7 +244,9 @@ namespace acl
 				break;
 			}
 
-			double clip_max, clip_min, clip_total = 0;
+			double clip_max_ms = 0.0;
+			double clip_min_ms = 1000000.0;
+			double clip_total_ms = 0.0;
 
 			writer["data"] = [&](sjson::ArrayWriter& writer)
 			{
@@ -252,7 +254,7 @@ namespace acl
 				{
 					const float sample_time = min(float(sample_index) / sample_rate, duration);
 
-					double decompression_time = 0;
+					double decompression_time_ms = 1000000.0;
 
 					for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
 					{
@@ -306,27 +308,73 @@ namespace acl
 						timer.stop();
 
 						const double elapsed_ms = timer.get_elapsed_milliseconds();
-						if (pass_index == 0 || elapsed_ms < decompression_time)
-							decompression_time = elapsed_ms;
+						decompression_time_ms = min(decompression_time_ms, elapsed_ms);
 					}
 
 					if (are_any_enum_flags_set(logging, StatLogging::ExhaustiveDecompression))
-						writer.push(decompression_time);
+						writer.push(decompression_time_ms);
 
-					if (sample_index == initial_sample_index || decompression_time > clip_max)
-						clip_max = decompression_time;
-
-					if (sample_index == initial_sample_index || decompression_time < clip_min)
-						clip_min = decompression_time;
-
-					clip_total += decompression_time;
+					clip_max_ms = max(clip_max_ms, decompression_time_ms);
+					clip_min_ms = min(clip_min_ms, decompression_time_ms);
+					clip_total_ms += decompression_time_ms;
 				}
 			};
 
-			writer["min_time_ms"] = clip_min;
-			writer["max_time_ms"] = clip_max;
-			writer["avg_time_ms"] = clip_total / double(num_samples);
+			writer["min_time_ms"] = clip_min_ms;
+			writer["max_time_ms"] = clip_max_ms;
+			writer["avg_time_ms"] = clip_total_ms / double(num_samples);
 		};
+	}
+
+	inline void write_memcpy_performance_stats(IAllocator& allocator, sjson::ObjectWriter& writer, CPUCacheFlusher* cache_flusher, Transform_32* lossy_pose_transforms, uint16_t num_bones)
+	{
+		Transform_32* memcpy_src_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+
+		double decompression_time_ms = 1000000.0;
+		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
+		{
+			if (cache_flusher != nullptr)
+				cache_flusher->flush_cache(memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+			else
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+
+			double execution_count;
+			ScopeProfiler timer;
+			if (cache_flusher != nullptr)
+			{
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				execution_count = 1.0;
+			}
+			else
+			{
+				// Warm cache is too fast, execute multiple times and divide by the count
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				execution_count = 10.0;
+			}
+			timer.stop();
+
+			const double elapsed_ms = timer.get_elapsed_milliseconds() / execution_count;
+			decompression_time_ms = min(decompression_time_ms, elapsed_ms);
+		}
+
+		writer[cache_flusher != nullptr ? "memcpy_cold" : "memcpy_warm"] = [&](sjson::ObjectWriter& writer)
+		{
+			writer["data"] = [&](sjson::ArrayWriter& writer) {};
+			writer["min_time_ms"] = decompression_time_ms;
+			writer["max_time_ms"] = decompression_time_ms;
+			writer["avg_time_ms"] = decompression_time_ms;
+		};
+
+		deallocate_type_array(allocator, memcpy_src_transforms, num_bones);
 	}
 
 	inline void write_decompression_performance_stats(IAllocator& allocator, const CompressionSettings& settings, const CompressedClip& compressed_clip, StatLogging logging, sjson::ObjectWriter& writer)
@@ -363,6 +411,9 @@ namespace acl
 
 		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& writer)
 		{
+			// Cold/Warm CPU cache, memcpy
+			write_memcpy_performance_stats(allocator, writer, cache_flusher, lossy_pose_transforms, clip_header.num_bones);
+			write_memcpy_performance_stats(allocator, writer, nullptr, lossy_pose_transforms, clip_header.num_bones);
 			// Cold CPU cache, decompress_pose
 			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "forward_pose_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
 			write_decompression_performance_stats(allocator, use_uniform_fast_path, compressed_clip, logging, writer, "backward_pose_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
