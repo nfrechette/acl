@@ -277,6 +277,20 @@ namespace acl
 
 						if (cache_flusher != nullptr)
 							cache_flusher->flush_cache(&compressed_clip, compressed_clip.get_size());
+						else
+						{
+							// If we want the cache warm, decompress everything once to prime it
+							if (use_uniform_fast_path)
+							{
+								UniformlySampledFastPathDecompressionSettings decompression_settings;
+								CompressedClipSampler::sample_pose(decompression_settings, DecompressionFunction8::DecompressPose, compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
+							}
+							else
+							{
+								uniformly_sampled::DecompressionSettings decompression_settings;
+								CompressedClipSampler::sample_pose(decompression_settings, DecompressionFunction8::DecompressPose, compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
+							}
+						}
 
 						ScopeProfiler timer;
 						if (use_uniform_fast_path)
