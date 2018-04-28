@@ -47,7 +47,8 @@
 #include "acl/io/clip_writer.h"							// Included just so we compile it to test for basic errors
 #include "acl/compression/skeleton_error_metric.h"
 
-#include "acl/algorithm/uniformly_sampled/algorithm.h"
+#include "acl/algorithm/uniformly_sampled/encoder.h"
+#include "acl/algorithm/uniformly_sampled/decoder.h"
 
 #include <cstring>
 #include <cstdio>
@@ -387,13 +388,14 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
-static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, const CompressedClip& compressed_clip, IAlgorithm& algorithm, double regression_error_threshold)
+template<class DecompressionContextType>
+static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, DecompressionContextType& context, double regression_error_threshold)
 {
 	const uint16_t num_bones = clip.get_num_bones();
 	const float clip_duration = clip.get_duration();
 	const float sample_rate = float(clip.get_sample_rate());
 	const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
-	const ISkeletalErrorMetric& error_metric = *algorithm.get_compression_settings().error_metric;
+	const ISkeletalErrorMetric& error_metric = *settings.error_metric;
 	const RigidSkeleton& skeleton = clip.get_skeleton();
 
 	const AnimationClip* additive_base_clip = clip.get_additive_base();
@@ -403,7 +405,8 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* base_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-	void* context = algorithm.allocate_decompression_context(allocator, compressed_clip);
+
+	DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
 
 	// Regression test
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -411,7 +414,9 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
 		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
-		algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
+
+		context.seek(sample_time, SampleRoundingPolicy::None);
+		context.decompress_pose(pose_writer);
 
 		if (additive_base_clip != nullptr)
 		{
@@ -433,12 +438,13 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	{
 		// Validate that the decoder can decode a single bone at a particular time
 		// Use the last bone and last sample time to ensure we can seek properly
-		uint16_t sample_bone_index = num_bones - 1;
-		float sample_time = clip.get_duration();
+		const uint16_t sample_bone_index = num_bones - 1;
+		const float sample_time = clip.get_duration();
 		Quat_32 test_rotation;
 		Vector4_32 test_translation;
 		Vector4_32 test_scale;
-		algorithm.decompress_bone(compressed_clip, context, sample_time, sample_bone_index, &test_rotation, &test_translation, &test_scale);
+		context.seek(sample_time, SampleRoundingPolicy::None);
+		context.decompress_bone(sample_bone_index, &test_rotation, &test_translation, &test_scale);
 		ACL_ASSERT(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
 		ACL_ASSERT(vector_all_near_equal3(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
 		ACL_ASSERT(vector_all_near_equal3(test_scale, lossy_pose_transforms[sample_bone_index].scale), "Failed to sample bone index: %u", sample_bone_index);
@@ -447,17 +453,21 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 	deallocate_type_array(allocator, base_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-	algorithm.deallocate_decompression_context(allocator, context);
 }
 
-static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, IAlgorithm &algorithm, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, AlgorithmType8 algorithm_type, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
 		OutputStats stats(logging, stats_writer);
 		CompressedClip* compressed_clip = nullptr;
-		ErrorResult error_result = algorithm.compress_clip(allocator, clip, compressed_clip, stats);
-		(void)error_result;
+		ErrorResult error_result; (void)error_result;
+		switch (algorithm_type)
+		{
+		case AlgorithmType8::UniformlySampled:
+			error_result = uniformly_sampled::compress_clip(allocator, clip, settings, compressed_clip, stats);
+			break;
+		}
 
 		ACL_ASSERT(error_result.empty(), error_result.c_str());
 		ACL_ASSERT(compressed_clip->is_valid(true).empty(), "Compressed clip is invalid");
@@ -466,19 +476,42 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 		if (logging != StatLogging::None)
 		{
 			// Use the compressed clip to make sure the decoder works properly
-			const BoneError bone_error = calculate_compressed_clip_error(allocator, clip, *compressed_clip, algorithm);
+			BoneError bone_error;
+			switch (algorithm_type)
+			{
+			case AlgorithmType8::UniformlySampled:
+			{
+				uniformly_sampled::DebugDecompressionSettings decompression_settings;
+				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context(decompression_settings);
+				context.initialize(*compressed_clip);
+				bone_error = calculate_compressed_clip_error(allocator, clip, settings, context);
+				break;
+			}
+			}
 
 			stats_writer->insert("max_error", bone_error.error);
 			stats_writer->insert("worst_bone", bone_error.index);
 			stats_writer->insert("worst_time", bone_error.sample_time);
 
 			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression) || options.profile_decompression)
-				write_decompression_performance_stats(allocator, algorithm.get_compression_settings(), *compressed_clip, logging, *stats_writer);
+				write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
 		}
 #endif
 
 		if (options.regression_testing)
-			validate_accuracy(allocator, clip, *compressed_clip, algorithm, regression_error_threshold);
+		{
+			switch (algorithm_type)
+			{
+			case AlgorithmType8::UniformlySampled:
+			{
+				uniformly_sampled::DebugDecompressionSettings decompression_settings;
+				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context(decompression_settings);
+				context.initialize(*compressed_clip);
+				validate_accuracy(allocator, clip, settings, context, regression_error_threshold);
+				break;
+			}
+			}
+		}
 
 		if (options.output_bin_filename != nullptr)
 		{
@@ -727,6 +760,20 @@ static void create_additive_base_clip(IAllocator& allocator, const Options& opti
 	clip.set_additive_base(&out_base_clip, additive_format);
 }
 
+static CompressionSettings make_settings(RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format,
+	RangeReductionFlags8 clip_range_reduction,
+	bool use_segmenting = false, RangeReductionFlags8 segment_range_reduction = RangeReductionFlags8::None)
+{
+	CompressionSettings settings;
+	settings.rotation_format = rotation_format;
+	settings.translation_format = translation_format;
+	settings.scale_format = scale_format;
+	settings.range_reduction = clip_range_reduction;
+	settings.segmenting.enabled = use_segmenting;
+	settings.segmenting.range_reduction = segment_range_reduction;
+	return settings;
+}
+
 static int safe_main_impl(int argc, char* argv[])
 {
 	Options options;
@@ -834,9 +881,7 @@ static int safe_main_impl(int argc, char* argv[])
 		else if (use_external_config)
 		{
 			ACL_ASSERT(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
-
-			UniformlySampledAlgorithm algorithm(settings);
-			try_algorithm(options, allocator, *clip.get(), algorithm, logging, runs_writer, regression_error_threshold);
+			try_algorithm(options, allocator, *clip, settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 		}
 		else
 		{
@@ -844,59 +889,55 @@ static int safe_main_impl(int argc, char* argv[])
 			const bool use_segmenting_options[] = { false, true };
 			for (size_t segmenting_option_index = 0; segmenting_option_index < get_array_size(use_segmenting_options); ++segmenting_option_index)
 			{
-				bool use_segmenting = use_segmenting_options[segmenting_option_index];
+				const bool use_segmenting = use_segmenting_options[segmenting_option_index];
 
-				UniformlySampledAlgorithm uniform_tests[] =
+				CompressionSettings uniform_tests[] =
 				{
-					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
-					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
+					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
+					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, use_segmenting),
+					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, use_segmenting),
 				};
 
-				for (const UniformlySampledAlgorithm& algorithm : uniform_tests)
+				for (CompressionSettings test_settings : uniform_tests)
 				{
-					CompressionSettings tmp_settings = algorithm.get_compression_settings();
-					tmp_settings.error_metric = settings.error_metric;
+					test_settings.error_metric = settings.error_metric;
 
-					UniformlySampledAlgorithm tmp_algorithm(tmp_settings);
-					try_algorithm(options, allocator, *clip.get(), tmp_algorithm, logging, runs_writer, regression_error_threshold);
+					try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 				}
 			}
 
 			{
-				UniformlySampledAlgorithm uniform_tests[] =
+				CompressionSettings uniform_tests[] =
 				{
-					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
-					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-					UniformlySampledAlgorithm(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
+					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
 
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
+					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
 
-					UniformlySampledAlgorithm(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, true, RangeReductionFlags8::AllTracks),
+					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, true, RangeReductionFlags8::AllTracks),
 				};
 
-				for (const UniformlySampledAlgorithm& algorithm : uniform_tests)
+				for (CompressionSettings test_settings : uniform_tests)
 				{
-					CompressionSettings tmp_settings = algorithm.get_compression_settings();
-					tmp_settings.error_metric = settings.error_metric;
+					test_settings.error_metric = settings.error_metric;
 
-					UniformlySampledAlgorithm tmp_algorithm(tmp_settings);
-					try_algorithm(options, allocator, *clip.get(), tmp_algorithm, logging, runs_writer, regression_error_threshold);
+					try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 				}
 			}
 		}

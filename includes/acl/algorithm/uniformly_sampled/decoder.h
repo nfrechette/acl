@@ -69,6 +69,7 @@ namespace acl
 			struct alignas(k_cache_line_size) DecompressionContext
 			{
 				// Read-only data
+				const CompressedClip* clip;
 				const SegmentHeader* segment_headers;
 
 				const uint32_t* constant_tracks_bitset;
@@ -145,129 +146,6 @@ namespace acl
 				SettingsType settings;
 				Vector4_32 default_scale;
 			};
-
-			template<class SettingsType>
-			inline void initialize_context(const SettingsType& settings, const ClipHeader& header, DecompressionContext& context)
-			{
-				const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
-				const VectorFormat8 translation_format = settings.get_translation_format(header.translation_format);
-				const VectorFormat8 scale_format = settings.get_translation_format(header.scale_format);
-
-#if defined(ACL_HAS_ASSERT_CHECKS)
-				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
-				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
-
-				ACL_ASSERT(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
-				ACL_ASSERT(settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
-				ACL_ASSERT(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));
-				ACL_ASSERT(settings.is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
-				ACL_ASSERT(scale_format == header.scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(header.scale_format));
-				ACL_ASSERT(settings.is_scale_format_supported(scale_format), "Scale format (%s) isn't statically supported!", get_vector_format_name(scale_format));
-				ACL_ASSERT(clip_range_reduction == header.clip_range_reduction, "Statically compiled clip range reduction settings (%u) differs from the compressed settings (%u)!", clip_range_reduction, header.clip_range_reduction);
-				ACL_ASSERT(settings.are_clip_range_reduction_flags_supported(clip_range_reduction), "Clip range reduction settings (%u) aren't statically supported!", clip_range_reduction);
-				ACL_ASSERT(segment_range_reduction == header.segment_range_reduction, "Statically compiled segment range reduction settings (%u) differs from the compressed settings (%u)!", segment_range_reduction, header.segment_range_reduction);
-				ACL_ASSERT(settings.are_segment_range_reduction_flags_supported(segment_range_reduction), "Segment range reduction settings (%u) aren't statically supported!", segment_range_reduction);
-#endif
-
-				context.clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
-				context.segment_headers = header.get_segment_headers();
-				context.default_tracks_bitset = header.get_default_tracks_bitset();
-
-				context.constant_tracks_bitset = header.get_constant_tracks_bitset();
-				context.constant_track_data = header.get_constant_track_data();
-				context.clip_range_data = header.get_clip_range_data();
-
-				for (uint8_t key_frame_index = 0; key_frame_index < 2; ++key_frame_index)
-				{
-					context.format_per_track_data[key_frame_index] = nullptr;
-					context.segment_range_data[key_frame_index] = nullptr;
-					context.animated_track_data[key_frame_index] = nullptr;
-				}
-
-				const uint32_t num_tracks_per_bone = header.has_scale ? 3 : 2;
-				context.bitset_desc = BitSetDescription::make_from_num_bits(header.num_bones * num_tracks_per_bone);
-				context.num_rotation_components = rotation_format == RotationFormat8::Quat_128 ? 4 : 3;
-
-				// If all tracks are variable, no need for any extra padding except at the very end of the data
-				// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
-				const bool is_every_format_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
-				const bool is_any_format_variable = is_rotation_format_variable(rotation_format) || is_vector_format_variable(translation_format) || is_vector_format_variable(scale_format);
-				context.has_mixed_packing = !is_every_format_variable && is_any_format_variable;
-
-				context.constant_track_offset = 0;
-				context.constant_track_data_offset = 0;
-				context.default_track_offset = 0;
-				context.clip_range_data_offset = 0;
-				context.format_per_track_data_offset = 0;
-				context.segment_range_data_offset = 0;
-			}
-
-			template<class SettingsType>
-			inline void seek(const SettingsType& settings, const ClipHeader& header, float sample_time, DecompressionContext& context)
-			{
-				context.constant_track_offset = 0;
-				context.constant_track_data_offset = 0;
-				context.default_track_offset = 0;
-				context.clip_range_data_offset = 0;
-				context.format_per_track_data_offset = 0;
-				context.segment_range_data_offset = 0;
-
-				const SampleRoundingPolicy rounding_policy = settings.get_sample_rounding_policy();
-
-				uint32_t key_frame0;
-				uint32_t key_frame1;
-				find_linear_interpolation_samples(header.num_samples, context.clip_duration, sample_time, rounding_policy, key_frame0, key_frame1, context.interpolation_alpha);
-
-				uint32_t segment_key_frame0 = 0;
-				uint32_t segment_key_frame1 = 0;
-
-				// Find segments
-				// TODO: Use binary search?
-				uint32_t segment_key_frame = 0;
-				const SegmentHeader* segment_header0 = nullptr;
-				const SegmentHeader* segment_header1 = nullptr;
-				for (uint16_t segment_index = 0; segment_index < header.num_segments; ++segment_index)
-				{
-					const SegmentHeader& segment_header = context.segment_headers[segment_index];
-
-					if (key_frame0 >= segment_key_frame && key_frame0 < segment_key_frame + segment_header.num_samples)
-					{
-						segment_header0 = &segment_header;
-						segment_key_frame0 = key_frame0 - segment_key_frame;
-
-						if (key_frame1 >= segment_key_frame && key_frame1 < segment_key_frame + segment_header.num_samples)
-						{
-							segment_header1 = &segment_header;
-							segment_key_frame1 = key_frame1 - segment_key_frame;
-						}
-						else
-						{
-							ACL_ASSERT(segment_index + 1 < header.num_segments, "Invalid segment index: %u", segment_index + 1);
-							const SegmentHeader& next_segment_header = context.segment_headers[segment_index + 1];
-							segment_header1 = &next_segment_header;
-							segment_key_frame1 = key_frame1 - (segment_key_frame + segment_header.num_samples);
-						}
-
-						break;
-					}
-
-					segment_key_frame += segment_header.num_samples;
-				}
-
-				ACL_ASSERT(segment_header0 != nullptr, "Failed to find segment.");
-
-				context.format_per_track_data[0] = header.get_format_per_track_data(*segment_header0);
-				context.format_per_track_data[1] = header.get_format_per_track_data(*segment_header1);
-				context.segment_range_data[0] = header.get_segment_range_data(*segment_header0);
-				context.segment_range_data[1] = header.get_segment_range_data(*segment_header1);
-				context.animated_track_data[0] = header.get_track_data(*segment_header0);
-				context.animated_track_data[1] = header.get_track_data(*segment_header1);
-
-				context.key_frame_byte_offsets[0] = (segment_key_frame0 * segment_header0->animated_pose_bit_size) / 8;
-				context.key_frame_byte_offsets[1] = (segment_key_frame1 * segment_header1->animated_pose_bit_size) / 8;
-				context.key_frame_bit_offsets[0] = segment_key_frame0 * segment_header0->animated_pose_bit_size;
-				context.key_frame_bit_offsets[1] = segment_key_frame1 * segment_header1->animated_pose_bit_size;
-			}
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -296,84 +174,294 @@ namespace acl
 
 			// Whether tracks must all be variable or all fixed width, or if they can be mixed and require padding
 			constexpr bool supports_mixed_packing() const { return true; }
-
-			constexpr SampleRoundingPolicy get_sample_rounding_policy() const { return SampleRoundingPolicy::None; }
 		};
 
-		template<class SettingsType>
-		inline void* allocate_decompression_context(IAllocator& allocator, const SettingsType& settings, const CompressedClip& clip)
+		//////////////////////////////////////////////////////////////////////////
+		// These are debug settings, everything is enabled and nothing is stripped.
+		// It will have the worst performance but allows every feature.
+		//////////////////////////////////////////////////////////////////////////
+		struct DebugDecompressionSettings : public DecompressionSettings {};
+
+		//////////////////////////////////////////////////////////////////////////
+		// These are the default settings. Only the generally optimal settings
+		// are enabled and will offer the overall best performance.
+		//////////////////////////////////////////////////////////////////////////
+		struct DefaultDecompressionSettings : public DecompressionSettings
 		{
-			using namespace impl;
+			constexpr bool is_rotation_format_supported(RotationFormat8 format) const { return format == RotationFormat8::QuatDropW_Variable; }
+			constexpr bool is_translation_format_supported(VectorFormat8 format) const { return format == VectorFormat8::Vector3_Variable; }
+			constexpr bool is_scale_format_supported(VectorFormat8 format) const { return format == VectorFormat8::Vector3_Variable; }
+			constexpr RotationFormat8 get_rotation_format(RotationFormat8 format) const { return RotationFormat8::QuatDropW_Variable; }
+			constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return VectorFormat8::Vector3_Variable; }
+			constexpr VectorFormat8 get_scale_format(VectorFormat8 format) const { return VectorFormat8::Vector3_Variable; }
 
-			DecompressionContext* context = allocate_type<DecompressionContext>(allocator);
+			constexpr bool are_clip_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
+			constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return RangeReductionFlags8::AllTracks; }
 
-			ACL_ASSERT(is_aligned_to(&context->segment_headers, k_cache_line_size), "Read-only decompression context is misaligned");
-			ACL_ASSERT(is_aligned_to(&context->constant_track_offset, k_cache_line_size), "Read-write decompression context is misaligned");
+			constexpr bool supports_mixed_packing() const { return false; }
+		};
 
-			initialize_context(settings, get_clip_header(clip), *context);
+		//////////////////////////////////////////////////////////////////////////
+		// Decompression context for the uniformly sampled algorithm. The context
+		// allows various decompression actions to be performed in a clip.
+		//
+		// Both the constructor and destructor are public because it is safe to place
+		// instances of this context on the stack or as members variables.
+		//
+		// This compression algorithm is the simplest by far and as such it offers
+		// the fastest compression and decompression. Every sample is retained and
+		// every track has the same number of samples playing back at the same
+		// sample rate. This means that when we sample at a particular time within
+		// the clip, we can trivially calculate the offsets required to read the
+		// desired data. All the data is sorted in order to ensure all reads are
+		// as contiguous as possible for optimal cache locality during decompression.
+		//////////////////////////////////////////////////////////////////////////
+		template<class DecompressionSettingsType>
+		class DecompressionContext
+		{
+			static_assert(std::is_base_of<DecompressionSettings, DecompressionSettingsType>::value, "DecompressionSettingsType must derive from DecompressionSettings!");
 
-			return context;
+		public:
+			//////////////////////////////////////////////////////////////////////////
+			// Constructs a context instance from a set of static settings and an optional allocator instance.
+			// If an allocator is provided, it will be used in `release()` to free the context
+			inline DecompressionContext(const DecompressionSettingsType& settings, IAllocator* allocator = nullptr);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Destructs a context instance
+			inline ~DecompressionContext();
+
+			//////////////////////////////////////////////////////////////////////////
+			// Initializes the context instance to a particular compressed clip
+			inline void initialize(const CompressedClip& clip_);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Seeks within the compressed clip to a particular point in time
+			inline void seek(float sample_time, SampleRoundingPolicy rounding_policy);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Decompress a full pose at the current sample time.
+			// The OutputWriterType allows complete control over how the pose is written out
+			template<class OutputWriterType>
+			inline void decompress_pose(OutputWriterType& writer);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Decompress a single bone at the current sample time.
+			// Each track entry is optional
+			inline void decompress_bone(uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Releases the context instance if it contains an allocator reference
+			inline void release();
+
+		private:
+			DecompressionContext(const DecompressionContext& other) = delete;
+			DecompressionContext& operator=(const DecompressionContext& other) = delete;
+
+			// Internal context data
+			impl::DecompressionContext m_context;
+
+			// The static settings used to strip out code at runtime
+			DecompressionSettingsType m_settings;
+
+			// The optional allocator instance used to allocate this instance
+			IAllocator* m_allocator;
+		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// Allocates and constructs an instance of the decompression context
+		template<class DecompressionSettingsType>
+		inline DecompressionContext<DecompressionSettingsType>* make_decompression_context(IAllocator& allocator, const DecompressionSettingsType& settings)
+		{
+			return allocate_type<DecompressionContext<DecompressionSettingsType>>(allocator, settings, &allocator);
 		}
 
-		inline void deallocate_decompression_context(IAllocator& allocator, void* opaque_context)
-		{
-			using namespace impl;
+		//////////////////////////////////////////////////////////////////////////
 
-			DecompressionContext* context = safe_ptr_cast<DecompressionContext>(opaque_context);
-			deallocate_type<DecompressionContext>(allocator, context);
+		template<class DecompressionSettingsType>
+		inline DecompressionContext<DecompressionSettingsType>::DecompressionContext(const DecompressionSettingsType& settings, IAllocator* allocator)
+			: m_context()
+			, m_settings(settings)
+			, m_allocator(allocator)
+		{
+			ACL_ASSERT(is_aligned_to(&m_context, impl::k_cache_line_size), "Read-only decompression context is misaligned");
+			ACL_ASSERT(is_aligned_to(&m_context.constant_track_offset, impl::k_cache_line_size), "Read-write decompression context is misaligned");
+
+			m_context.clip = nullptr;		// Only member used to detect if we are initialized
 		}
 
-		template<class SettingsType, class OutputWriterType>
-		inline void decompress_pose(const SettingsType& settings, const CompressedClip& clip, void* opaque_context, float sample_time, OutputWriterType& writer)
+		template<class DecompressionSettingsType>
+		inline DecompressionContext<DecompressionSettingsType>::~DecompressionContext()
 		{
-			static_assert(std::is_base_of<DecompressionSettings, SettingsType>::value, "SettingsType must derive from DecompressionSettings!");
-			static_assert(std::is_base_of<OutputWriter, OutputWriterType>::value, "OutputWriterType must derive from OutputWriter!");
+			release();
+		}
 
-			using namespace impl;
+		template<class DecompressionSettingsType>
+		inline void DecompressionContext<DecompressionSettingsType>::initialize(const CompressedClip& clip_)
+		{
+			ACL_ASSERT(clip_.is_valid(false).empty(), "CompressedClip is not valid");
+			ACL_ASSERT(clip_.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip_.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
 
-			ACL_ASSERT(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
-			ACL_ASSERT(clip.is_valid(false).empty(), "Clip is invalid");
+			const ClipHeader& header = get_clip_header(clip_);
 
-			const ClipHeader& header = get_clip_header(clip);
+			const RotationFormat8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
+			const VectorFormat8 translation_format = m_settings.get_translation_format(header.translation_format);
+			const VectorFormat8 scale_format = m_settings.get_translation_format(header.scale_format);
 
-			DecompressionContext& context = *safe_ptr_cast<DecompressionContext>(opaque_context);
+#if defined(ACL_HAS_ASSERT_CHECKS)
+			const RangeReductionFlags8 clip_range_reduction = m_settings.get_clip_range_reduction(header.clip_range_reduction);
+			const RangeReductionFlags8 segment_range_reduction = m_settings.get_segment_range_reduction(header.segment_range_reduction);
 
-			seek(settings, header, sample_time, context);
+			ACL_ASSERT(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
+			ACL_ASSERT(m_settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
+			ACL_ASSERT(translation_format == header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(header.translation_format));
+			ACL_ASSERT(m_settings.is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
+			ACL_ASSERT(scale_format == header.scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(header.scale_format));
+			ACL_ASSERT(m_settings.is_scale_format_supported(scale_format), "Scale format (%s) isn't statically supported!", get_vector_format_name(scale_format));
+			ACL_ASSERT(clip_range_reduction == header.clip_range_reduction, "Statically compiled clip range reduction settings (%u) differs from the compressed settings (%u)!", clip_range_reduction, header.clip_range_reduction);
+			ACL_ASSERT(m_settings.are_clip_range_reduction_flags_supported(clip_range_reduction), "Clip range reduction settings (%u) aren't statically supported!", clip_range_reduction);
+			ACL_ASSERT(segment_range_reduction == header.segment_range_reduction, "Statically compiled segment range reduction settings (%u) differs from the compressed settings (%u)!", segment_range_reduction, header.segment_range_reduction);
+			ACL_ASSERT(m_settings.are_segment_range_reduction_flags_supported(segment_range_reduction), "Segment range reduction settings (%u) aren't statically supported!", segment_range_reduction);
+#endif
 
-			const TranslationDecompressionSettingsAdapter<SettingsType> translation_adapter(settings);
-			const ScaleDecompressionSettingsAdapter<SettingsType> scale_adapter(settings, header);
+			m_context.clip = &clip_;
+			m_context.clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
+			m_context.segment_headers = header.get_segment_headers();
+			m_context.default_tracks_bitset = header.get_default_tracks_bitset();
+
+			m_context.constant_tracks_bitset = header.get_constant_tracks_bitset();
+			m_context.constant_track_data = header.get_constant_track_data();
+			m_context.clip_range_data = header.get_clip_range_data();
+
+			for (uint8_t key_frame_index = 0; key_frame_index < 2; ++key_frame_index)
+			{
+				m_context.format_per_track_data[key_frame_index] = nullptr;
+				m_context.segment_range_data[key_frame_index] = nullptr;
+				m_context.animated_track_data[key_frame_index] = nullptr;
+			}
+
+			const uint32_t num_tracks_per_bone = header.has_scale ? 3 : 2;
+			m_context.bitset_desc = BitSetDescription::make_from_num_bits(header.num_bones * num_tracks_per_bone);
+			m_context.num_rotation_components = rotation_format == RotationFormat8::Quat_128 ? 4 : 3;
+
+			// If all tracks are variable, no need for any extra padding except at the very end of the data
+			// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
+			const bool is_every_format_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
+			const bool is_any_format_variable = is_rotation_format_variable(rotation_format) || is_vector_format_variable(translation_format) || is_vector_format_variable(scale_format);
+			m_context.has_mixed_packing = !is_every_format_variable && is_any_format_variable;
+
+			m_context.constant_track_offset = 0;
+			m_context.constant_track_data_offset = 0;
+			m_context.default_track_offset = 0;
+			m_context.clip_range_data_offset = 0;
+			m_context.format_per_track_data_offset = 0;
+			m_context.segment_range_data_offset = 0;
+		}
+
+		template<class DecompressionSettingsType>
+		inline void DecompressionContext<DecompressionSettingsType>::seek(float sample_time, SampleRoundingPolicy rounding_policy)
+		{
+			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
+
+			const ClipHeader& header = get_clip_header(*m_context.clip);
+
+			m_context.constant_track_offset = 0;
+			m_context.constant_track_data_offset = 0;
+			m_context.default_track_offset = 0;
+			m_context.clip_range_data_offset = 0;
+			m_context.format_per_track_data_offset = 0;
+			m_context.segment_range_data_offset = 0;
+
+			uint32_t key_frame0;
+			uint32_t key_frame1;
+			find_linear_interpolation_samples(header.num_samples, m_context.clip_duration, sample_time, rounding_policy, key_frame0, key_frame1, m_context.interpolation_alpha);
+
+			uint32_t segment_key_frame0 = 0;
+			uint32_t segment_key_frame1 = 0;
+
+			// Find segments
+			// TODO: Use binary search?
+			uint32_t segment_key_frame = 0;
+			const SegmentHeader* segment_header0 = nullptr;
+			const SegmentHeader* segment_header1 = nullptr;
+			for (uint16_t segment_index = 0; segment_index < header.num_segments; ++segment_index)
+			{
+				const SegmentHeader& segment_header = m_context.segment_headers[segment_index];
+
+				if (key_frame0 >= segment_key_frame && key_frame0 < segment_key_frame + segment_header.num_samples)
+				{
+					segment_header0 = &segment_header;
+					segment_key_frame0 = key_frame0 - segment_key_frame;
+
+					if (key_frame1 >= segment_key_frame && key_frame1 < segment_key_frame + segment_header.num_samples)
+					{
+						segment_header1 = &segment_header;
+						segment_key_frame1 = key_frame1 - segment_key_frame;
+					}
+					else
+					{
+						ACL_ASSERT(segment_index + 1 < header.num_segments, "Invalid segment index: %u", segment_index + 1);
+						const SegmentHeader& next_segment_header = m_context.segment_headers[segment_index + 1];
+						segment_header1 = &next_segment_header;
+						segment_key_frame1 = key_frame1 - (segment_key_frame + segment_header.num_samples);
+					}
+
+					break;
+				}
+
+				segment_key_frame += segment_header.num_samples;
+			}
+
+			ACL_ASSERT(segment_header0 != nullptr, "Failed to find segment");
+
+			m_context.format_per_track_data[0] = header.get_format_per_track_data(*segment_header0);
+			m_context.format_per_track_data[1] = header.get_format_per_track_data(*segment_header1);
+			m_context.segment_range_data[0] = header.get_segment_range_data(*segment_header0);
+			m_context.segment_range_data[1] = header.get_segment_range_data(*segment_header1);
+			m_context.animated_track_data[0] = header.get_track_data(*segment_header0);
+			m_context.animated_track_data[1] = header.get_track_data(*segment_header1);
+
+			m_context.key_frame_byte_offsets[0] = (segment_key_frame0 * segment_header0->animated_pose_bit_size) / 8;
+			m_context.key_frame_byte_offsets[1] = (segment_key_frame1 * segment_header1->animated_pose_bit_size) / 8;
+			m_context.key_frame_bit_offsets[0] = segment_key_frame0 * segment_header0->animated_pose_bit_size;
+			m_context.key_frame_bit_offsets[1] = segment_key_frame1 * segment_header1->animated_pose_bit_size;
+		}
+
+		template<class DecompressionSettingsType>
+		template<class OutputWriterType>
+		inline void DecompressionContext<DecompressionSettingsType>::decompress_pose(OutputWriterType& writer)
+		{
+			static_assert(std::is_base_of<OutputWriter, OutputWriterType>::value, "OutputWriterType must derive from OutputWriter");
+
+			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
+
+			const ClipHeader& header = get_clip_header(*m_context.clip);
+
+			const impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
+			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
 			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 			{
-				Quat_32 rotation = decompress_and_interpolate_rotation(settings, header, context);
+				const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context);
 				writer.write_bone_rotation(bone_index, rotation);
 
-				Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, context);
+				const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context);
 				writer.write_bone_translation(bone_index, translation);
 
-				Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, context) : scale_adapter.get_default_value();
+				const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context) : scale_adapter.get_default_value();
 				writer.write_bone_scale(bone_index, scale);
 			}
 		}
 
-		template<class SettingsType>
-		inline void decompress_bone(const SettingsType& settings, const CompressedClip& clip, void* opaque_context, float sample_time, uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale)
+		template<class DecompressionSettingsType>
+		inline void DecompressionContext<DecompressionSettingsType>::decompress_bone(uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale)
 		{
-			static_assert(std::is_base_of<DecompressionSettings, SettingsType>::value, "SettingsType must derive from DecompressionSettings!");
+			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
 
-			using namespace impl;
+			const ClipHeader& header = get_clip_header(*m_context.clip);
 
-			ACL_ASSERT(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
-			ACL_ASSERT(clip.is_valid(false).empty(), "Clip is invalid");
-
-			const ClipHeader& header = get_clip_header(clip);
-
-			DecompressionContext& context = *safe_ptr_cast<DecompressionContext>(opaque_context);
-
-			seek(settings, header, sample_time, context);
-
-			const TranslationDecompressionSettingsAdapter<SettingsType> translation_adapter(settings);
-			const ScaleDecompressionSettingsAdapter<SettingsType> scale_adapter(settings, header);
+			const impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
+			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
 			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
 			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
@@ -383,25 +471,36 @@ namespace acl
 				if (bone_index == sample_bone_index)
 					break;
 
-				skip_rotations_in_two_key_frames(settings, header, context);
-				skip_vectors_in_two_key_frames(translation_adapter, header, context);
+				skip_rotations_in_two_key_frames(m_settings, header, m_context);
+				skip_vectors_in_two_key_frames(translation_adapter, header, m_context);
 
 				if (header.has_scale)
-					skip_vectors_in_two_key_frames(scale_adapter, header, context);
+					skip_vectors_in_two_key_frames(scale_adapter, header, m_context);
 			}
 
 			// TODO: Skip if not interested in return value
-			Quat_32 rotation = decompress_and_interpolate_rotation(settings, header, context);
+			const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context);
 			if (out_rotation != nullptr)
 				*out_rotation = rotation;
 
-			Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, context);
+			const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context);
 			if (out_translation != nullptr)
 				*out_translation = translation;
 
-			Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, context) : scale_adapter.get_default_value();
+			const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context) : scale_adapter.get_default_value();
 			if (out_scale != nullptr)
 				*out_scale = scale;
+		}
+
+		template<class DecompressionSettingsType>
+		inline void DecompressionContext<DecompressionSettingsType>::release()
+		{
+			IAllocator* allocator = m_allocator;
+			if (allocator != nullptr)
+			{
+				m_allocator = nullptr;
+				deallocate_type<DecompressionContext>(*allocator, this);
+			}
 		}
 	}
 }

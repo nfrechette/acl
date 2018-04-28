@@ -25,7 +25,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/compressed_clip.h"
-#include "acl/core/ialgorithm.h"
 #include "acl/core/iallocator.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/skeleton.h"
@@ -37,39 +36,42 @@ namespace acl
 {
 	struct BoneError
 	{
+		BoneError() : index(k_invalid_bone_index), error(0.0f), sample_time(0.0f) {}
+
 		uint16_t index;
 		float error;
 		float sample_time;
 	};
 
+	template<class DecompressionContextType>
 	inline BoneError calculate_compressed_clip_error(IAllocator& allocator,
-		const AnimationClip& clip, const CompressedClip& compressed_clip, IAlgorithm& algorithm)
+		const AnimationClip& clip, const CompressionSettings& settings, DecompressionContextType& context)
 	{
 		const uint16_t num_bones = clip.get_num_bones();
 		const float clip_duration = clip.get_duration();
 		const float sample_rate = float(clip.get_sample_rate());
 		const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
-		const CompressionSettings& settings = algorithm.get_compression_settings();
 		const RigidSkeleton& skeleton = clip.get_skeleton();
 
 		const AnimationClip* additive_base_clip = clip.get_additive_base();
 		const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;
 		const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0f;
 
-		void* context = algorithm.allocate_decompression_context(allocator, compressed_clip);
-
 		Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* base_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
-		BoneError bone_error = { k_invalid_bone_index, 0.0f, 0.0f };
+		BoneError bone_error;
+		DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
 			const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
 			clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
-			algorithm.decompress_pose(compressed_clip, context, sample_time, lossy_pose_transforms, num_bones);
+
+			context.seek(sample_time, SampleRoundingPolicy::None);
+			context.decompress_pose(pose_writer);
 
 			if (additive_base_clip != nullptr)
 			{
@@ -95,7 +97,6 @@ namespace acl
 		deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 		deallocate_type_array(allocator, base_pose_transforms, num_bones);
 		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
-		algorithm.deallocate_decompression_context(allocator, context);
 
 		return bone_error;
 	}
