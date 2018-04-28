@@ -29,6 +29,7 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
+#include "acl/decompression/default_output_writer.h"
 
 #include <cstdint>
 

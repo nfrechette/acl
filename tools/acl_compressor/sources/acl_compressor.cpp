@@ -864,7 +864,7 @@ static int safe_main_impl(int argc, char* argv[])
 				if (input_file_stream.is_open())
 				{
 					input_file_stream.seekg(0, input_file_stream.end);
-					const size_t buffer_size = input_file_stream.tellg();
+					const size_t buffer_size = size_t(input_file_stream.tellg());
 					input_file_stream.seekg(0, input_file_stream.beg);
 
 					char* buffer = (char*)allocator.allocate(buffer_size, alignof(CompressedClip));
