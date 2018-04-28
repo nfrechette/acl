@@ -774,6 +774,18 @@ static CompressionSettings make_settings(RotationFormat8 rotation_format, Vector
 	return settings;
 }
 
+static CompressionSettings get_default_settings()
+{
+	CompressionSettings settings;
+	settings.rotation_format = RotationFormat8::QuatDropW_Variable;
+	settings.translation_format = VectorFormat8::Vector3_Variable;
+	settings.scale_format = VectorFormat8::Vector3_Variable;
+	settings.range_reduction = RangeReductionFlags8::AllTracks;
+	settings.segmenting.enabled = true;
+	settings.segmenting.range_reduction = RangeReductionFlags8::AllTracks;
+	return settings;
+}
+
 static int safe_main_impl(int argc, char* argv[])
 {
 	Options options;
@@ -837,14 +849,7 @@ static int safe_main_impl(int argc, char* argv[])
 		{
 			if (options.profile_decompression && runs_writer != nullptr)
 			{
-				// Reset settings to fast-path
-				CompressionSettings fast_path_settings;
-				fast_path_settings.rotation_format = RotationFormat8::QuatDropW_Variable;
-				fast_path_settings.translation_format = VectorFormat8::Vector3_Variable;
-				fast_path_settings.scale_format = VectorFormat8::Vector3_Variable;
-				fast_path_settings.range_reduction = RangeReductionFlags8::AllTracks;
-				fast_path_settings.segmenting.enabled = true;
-				fast_path_settings.segmenting.range_reduction = RangeReductionFlags8::AllTracks;
+				const CompressionSettings default_settings = get_default_settings();
 
 #if defined(__ANDROID__)
 				const CompressedClip* compressed_clip = reinterpret_cast<const CompressedClip*>(options.input_buffer);
@@ -852,7 +857,7 @@ static int safe_main_impl(int argc, char* argv[])
 
 				runs_writer->push([&](sjson::ObjectWriter& writer)
 				{
-					write_decompression_performance_stats(allocator, fast_path_settings, *compressed_clip, logging, writer);
+					write_decompression_performance_stats(allocator, default_settings, *compressed_clip, logging, writer);
 				});
 #else
 				std::ifstream input_file_stream(options.input_filename, std::ios_base::in | std::ios_base::binary);
@@ -870,13 +875,20 @@ static int safe_main_impl(int argc, char* argv[])
 
 					runs_writer->push([&](sjson::ObjectWriter& writer)
 					{
-						write_decompression_performance_stats(allocator, fast_path_settings, *compressed_clip, logging, writer);
+						write_decompression_performance_stats(allocator, default_settings, *compressed_clip, logging, writer);
 					});
 
 					allocator.deallocate(buffer, buffer_size);
 				}
 #endif
 			}
+		}
+		else if (options.profile_decompression)
+		{
+			CompressionSettings default_settings = get_default_settings();
+			default_settings.error_metric = settings.error_metric;
+
+			try_algorithm(options, allocator, *clip, default_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 		}
 		else if (use_external_config)
 		{
