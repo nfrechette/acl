@@ -68,7 +68,7 @@ namespace acl
 
 			struct alignas(k_cache_line_size) DecompressionContext
 			{
-				// Read-only data
+				// Clip related data
 				const CompressedClip* clip;
 				const SegmentHeader* segment_headers;
 
@@ -78,19 +78,28 @@ namespace acl
 
 				const uint8_t* clip_range_data;
 
+				float clip_duration;
+
+				BitSetDescription bitset_desc;
+
+				uint8_t num_rotation_components;
+				uint8_t has_mixed_packing;
+
+				// Seeking related data
 				const uint8_t* format_per_track_data[2];
 				const uint8_t* segment_range_data[2];
 				const uint8_t* animated_track_data[2];
 
-				BitSetDescription bitset_desc;
-				uint8_t num_rotation_components;
+				uint32_t key_frame_byte_offsets[2];
+				int32_t key_frame_bit_offsets[2];
 
-				float clip_duration;
+				float interpolation_alpha;
+				float sample_time;
+			};
 
-				bool has_mixed_packing;
-
-				// Read-write data
-				alignas(k_cache_line_size) uint32_t constant_track_offset;
+			struct alignas(k_cache_line_size) SamplingContext
+			{
+				uint32_t constant_track_offset;
 				uint32_t constant_track_data_offset;
 				uint32_t default_track_offset;
 				uint32_t clip_range_data_offset;
@@ -100,8 +109,6 @@ namespace acl
 
 				uint32_t key_frame_byte_offsets[2];
 				int32_t key_frame_bit_offsets[2];
-
-				float interpolation_alpha;
 			};
 
 			// We use adapters to wrap the DecompressionSettings
@@ -284,9 +291,6 @@ namespace acl
 			, m_settings(settings)
 			, m_allocator(allocator)
 		{
-			ACL_ASSERT(is_aligned_to(&m_context, impl::k_cache_line_size), "Read-only decompression context is misaligned");
-			ACL_ASSERT(is_aligned_to(&m_context.constant_track_offset, impl::k_cache_line_size), "Read-write decompression context is misaligned");
-
 			m_context.clip = nullptr;		// Only member used to detect if we are initialized
 		}
 
@@ -326,6 +330,7 @@ namespace acl
 
 			m_context.clip = &clip_;
 			m_context.clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
+			m_context.sample_time = -1.0f;
 			m_context.segment_headers = header.get_segment_headers();
 			m_context.default_tracks_bitset = header.get_default_tracks_bitset();
 
@@ -349,13 +354,6 @@ namespace acl
 			const bool is_every_format_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
 			const bool is_any_format_variable = is_rotation_format_variable(rotation_format) || is_vector_format_variable(translation_format) || is_vector_format_variable(scale_format);
 			m_context.has_mixed_packing = !is_every_format_variable && is_any_format_variable;
-
-			m_context.constant_track_offset = 0;
-			m_context.constant_track_data_offset = 0;
-			m_context.default_track_offset = 0;
-			m_context.clip_range_data_offset = 0;
-			m_context.format_per_track_data_offset = 0;
-			m_context.segment_range_data_offset = 0;
 		}
 
 		template<class DecompressionSettingsType>
@@ -363,14 +361,12 @@ namespace acl
 		{
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
 
-			const ClipHeader& header = get_clip_header(*m_context.clip);
+			if (m_context.sample_time == sample_time)
+				return;
 
-			m_context.constant_track_offset = 0;
-			m_context.constant_track_data_offset = 0;
-			m_context.default_track_offset = 0;
-			m_context.clip_range_data_offset = 0;
-			m_context.format_per_track_data_offset = 0;
-			m_context.segment_range_data_offset = 0;
+			m_context.sample_time = sample_time;
+
+			const ClipHeader& header = get_clip_header(*m_context.clip);
 
 			uint32_t key_frame0;
 			uint32_t key_frame1;
@@ -434,21 +430,34 @@ namespace acl
 			static_assert(std::is_base_of<OutputWriter, OutputWriterType>::value, "OutputWriterType must derive from OutputWriter");
 
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
+			ACL_ASSERT(m_context.sample_time >= 0.0f, "Context not set to a valid sample time");
 
 			const ClipHeader& header = get_clip_header(*m_context.clip);
 
 			const impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
 			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
+			impl::SamplingContext sampling_context;
+			sampling_context.constant_track_offset = 0;
+			sampling_context.constant_track_data_offset = 0;
+			sampling_context.default_track_offset = 0;
+			sampling_context.clip_range_data_offset = 0;
+			sampling_context.format_per_track_data_offset = 0;
+			sampling_context.segment_range_data_offset = 0;
+			sampling_context.key_frame_byte_offsets[0] = m_context.key_frame_byte_offsets[0];
+			sampling_context.key_frame_byte_offsets[1] = m_context.key_frame_byte_offsets[1];
+			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
+			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
+
 			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
 			{
-				const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context);
+				const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
 				writer.write_bone_rotation(bone_index, rotation);
 
-				const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context);
+				const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
 				writer.write_bone_translation(bone_index, translation);
 
-				const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context) : scale_adapter.get_default_value();
+				const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
 				writer.write_bone_scale(bone_index, scale);
 			}
 		}
@@ -457,11 +466,24 @@ namespace acl
 		inline void DecompressionContext<DecompressionSettingsType>::decompress_bone(uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale)
 		{
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
+			ACL_ASSERT(m_context.sample_time >= 0.0f, "Context not set to a valid sample time");
 
 			const ClipHeader& header = get_clip_header(*m_context.clip);
 
 			const impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
 			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
+
+			impl::SamplingContext sampling_context;
+			sampling_context.constant_track_offset = 0;
+			sampling_context.constant_track_data_offset = 0;
+			sampling_context.default_track_offset = 0;
+			sampling_context.clip_range_data_offset = 0;
+			sampling_context.format_per_track_data_offset = 0;
+			sampling_context.segment_range_data_offset = 0;
+			sampling_context.key_frame_byte_offsets[0] = m_context.key_frame_byte_offsets[0];
+			sampling_context.key_frame_byte_offsets[1] = m_context.key_frame_byte_offsets[1];
+			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
+			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
 
 			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
 			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
@@ -471,23 +493,23 @@ namespace acl
 				if (bone_index == sample_bone_index)
 					break;
 
-				skip_rotations_in_two_key_frames(m_settings, header, m_context);
-				skip_vectors_in_two_key_frames(translation_adapter, header, m_context);
+				skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);
+				skip_vectors_in_two_key_frames(translation_adapter, header, m_context, sampling_context);
 
 				if (header.has_scale)
-					skip_vectors_in_two_key_frames(scale_adapter, header, m_context);
+					skip_vectors_in_two_key_frames(scale_adapter, header, m_context, sampling_context);
 			}
 
 			// TODO: Skip if not interested in return value
-			const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context);
+			const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
 			if (out_rotation != nullptr)
 				*out_rotation = rotation;
 
-			const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context);
+			const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
 			if (out_translation != nullptr)
 				*out_translation = translation;
 
-			const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context) : scale_adapter.get_default_value();
+			const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
 			if (out_scale != nullptr)
 				*out_scale = scale;
 		}

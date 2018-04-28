@@ -246,27 +246,15 @@ namespace acl
 							break;
 						case DecompressionFunction8::DecompressBone:
 							for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-							{
-								context->seek(sample_time, SampleRoundingPolicy::None);
 								context->decompress_bone(bone_index, &lossy_pose_transforms[bone_index].rotation, &lossy_pose_transforms[bone_index].translation, &lossy_pose_transforms[bone_index].scale);
-							}
 							break;
 						case DecompressionFunction8::DecompressUE4:
 							for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-							{
-								context->seek(sample_time, SampleRoundingPolicy::None);
 								context->decompress_bone(bone_index, nullptr, &lossy_pose_transforms[bone_index].translation, nullptr);
-							}
 							for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-							{
-								context->seek(sample_time, SampleRoundingPolicy::None);
 								context->decompress_bone(bone_index, &lossy_pose_transforms[bone_index].rotation, nullptr, nullptr);
-							}
 							for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-							{
-								context->seek(sample_time, SampleRoundingPolicy::None);
 								context->decompress_bone(bone_index, nullptr, nullptr, &lossy_pose_transforms[bone_index].scale);
-							}
 							break;
 						}
 						timer.stop();
