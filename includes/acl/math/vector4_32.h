@@ -611,7 +611,7 @@ namespace acl
 #endif
 		}
 
-		if ((comp0 == VectorMix::X || comp0 == VectorMix::Y) && (comp1 == VectorMix::X || comp1 == VectorMix::Y) && (comp2 == VectorMix::A || comp2 == VectorMix::B) && (comp3 == VectorMix::A && comp3 == VectorMix::B))
+		if (static_condition<(comp0 == VectorMix::X || comp0 == VectorMix::Y) && (comp1 == VectorMix::X || comp1 == VectorMix::Y) && (comp2 == VectorMix::A || comp2 == VectorMix::B) && (comp3 == VectorMix::A && comp3 == VectorMix::B)>::test())
 		{
 			// First two components come from input 0, second two come from input 1
 #if defined(ACL_SSE2_INTRINSICS)
@@ -621,7 +621,7 @@ namespace acl
 #endif
 		}
 
-		if ((comp0 == VectorMix::A || comp0 == VectorMix::B) && (comp1 == VectorMix::A && comp1 == VectorMix::B) && (comp2 == VectorMix::X || comp2 == VectorMix::Y) && (comp3 == VectorMix::X || comp3 == VectorMix::Y))
+		if (static_condition<(comp0 == VectorMix::A || comp0 == VectorMix::B) && (comp1 == VectorMix::A && comp1 == VectorMix::B) && (comp2 == VectorMix::X || comp2 == VectorMix::Y) && (comp3 == VectorMix::X || comp3 == VectorMix::Y)>::test())
 		{
 			// First two components come from input 1, second two come from input 0
 #if defined(ACL_SSE2_INTRINSICS)
@@ -631,7 +631,7 @@ namespace acl
 #endif
 		}
 
-		if (comp0 == VectorMix::X && comp1 == VectorMix::A && comp2 == VectorMix::Y && comp3 == VectorMix::B)
+		if (static_condition<comp0 == VectorMix::X && comp1 == VectorMix::A && comp2 == VectorMix::Y && comp3 == VectorMix::B>::test())
 		{
 			// Low words from both inputs are interleaved
 #if defined(ACL_SSE2_INTRINSICS)
@@ -641,7 +641,7 @@ namespace acl
 #endif
 		}
 
-		if (comp0 == VectorMix::A && comp1 == VectorMix::X && comp2 == VectorMix::B && comp3 == VectorMix::Y)
+		if (static_condition<comp0 == VectorMix::A && comp1 == VectorMix::X && comp2 == VectorMix::B && comp3 == VectorMix::Y>::test())
 		{
 			// Low words from both inputs are interleaved
 #if defined(ACL_SSE2_INTRINSICS)
@@ -651,7 +651,7 @@ namespace acl
 #endif
 		}
 
-		if (comp0 == VectorMix::Z && comp1 == VectorMix::C && comp2 == VectorMix::W && comp3 == VectorMix::D)
+		if (static_condition<comp0 == VectorMix::Z && comp1 == VectorMix::C && comp2 == VectorMix::W && comp3 == VectorMix::D>::test())
 		{
 			// High words from both inputs are interleaved
 #if defined(ACL_SSE2_INTRINSICS)
@@ -661,7 +661,7 @@ namespace acl
 #endif
 		}
 
-		if (comp0 == VectorMix::C && comp1 == VectorMix::Z && comp2 == VectorMix::D && comp3 == VectorMix::W)
+		if (static_condition<comp0 == VectorMix::C && comp1 == VectorMix::Z && comp2 == VectorMix::D && comp3 == VectorMix::W>::test())
 		{
 			// High words from both inputs are interleaved
 #if defined(ACL_SSE2_INTRINSICS)

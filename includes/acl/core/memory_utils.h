@@ -36,6 +36,15 @@
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
+	// Allows static branching without any warnings
+
+	template<bool expression_result>
+	struct static_condition { static constexpr bool test() { return true; } };
+
+	template<>
+	struct static_condition<false> { static constexpr bool test() { return false; } };
+
+	//////////////////////////////////////////////////////////////////////////
 	// Various miscellaneous utilities related to alignment
 
 	constexpr bool is_power_of_two(size_t input)
@@ -156,17 +165,14 @@ namespace acl
 
 				const SrcIntegralType integral_input = static_cast<SrcIntegralType>(input);
 
-				const bool src_is_signed = std::numeric_limits<SrcIntegralType>::is_signed;
-				const bool dest_is_signed = std::numeric_limits<DestIntegralType>::is_signed;
+				constexpr DestIntegralType min = std::numeric_limits<DestIntegralType>::lowest();
+				constexpr DestIntegralType max = std::numeric_limits<DestIntegralType>::max();
 
-				const DestIntegralType min = std::numeric_limits<DestIntegralType>::lowest();
-				const DestIntegralType max = std::numeric_limits<DestIntegralType>::max();
-
-				if (src_is_signed && !dest_is_signed)
+				if (static_condition<std::numeric_limits<SrcIntegralType>::is_signed && !std::numeric_limits<DestIntegralType>::is_signed>::test())
 				{
 					ACL_ASSERT(0 <= integral_input && integral_input <= max, "static_cast would result in truncation");
 				}
-				else if (!src_is_signed && dest_is_signed)
+				else if (static_condition<!std::numeric_limits<SrcIntegralType>::is_signed && std::numeric_limits<DestIntegralType>::is_signed>::test())
 				{
 					ACL_ASSERT(integral_input <= max, "static_cast would result in truncation");
 				}
@@ -187,17 +193,14 @@ namespace acl
 			static inline DestNumericType cast(SrcNumericType input)
 			{
 #if defined(ACL_HAS_ASSERT_CHECKS)
-				const bool src_is_signed = std::numeric_limits<SrcNumericType>::is_signed;
-				const bool dest_is_signed = std::numeric_limits<DestNumericType>::is_signed;
+				constexpr DestNumericType min = std::numeric_limits<DestNumericType>::lowest();
+				constexpr DestNumericType max = std::numeric_limits<DestNumericType>::max();
 
-				const DestNumericType min = std::numeric_limits<DestNumericType>::lowest();
-				const DestNumericType max = std::numeric_limits<DestNumericType>::max();
-
-				if (src_is_signed && !dest_is_signed)
+				if (static_condition<std::numeric_limits<SrcNumericType>::is_signed && !std::numeric_limits<DestNumericType>::is_signed>::test())
 				{
 					ACL_ASSERT(0 <= input && input <= max, "static_cast would result in truncation");
 				}
-				else if (!src_is_signed && dest_is_signed)
+				else if (static_condition<!std::numeric_limits<SrcNumericType>::is_signed && std::numeric_limits<DestNumericType>::is_signed>::test())
 				{
 					ACL_ASSERT(input <= max, "static_cast would result in truncation");
 				}
