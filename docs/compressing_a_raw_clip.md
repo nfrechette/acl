@@ -31,3 +31,5 @@ OutputStats stats;
 CompressedClip* compressed_clip = nullptr;
 ErrorResult error_result = algorithm.compress_clip(allocator, clip, compressed_clip, stats);
 ```
+
+You can also query the current default and recommended settings with this function: `get_default_compression_settings()`.
