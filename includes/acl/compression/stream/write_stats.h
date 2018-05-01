@@ -228,7 +228,12 @@ namespace acl
 							context->initialize(compressed_clip);
 
 						if (cache_flusher != nullptr)
-							cache_flusher->flush_cache(&compressed_clip, compressed_clip.get_size());
+						{
+							cache_flusher->begin_flushing();
+							cache_flusher->flush_buffer(context, sizeof(DecompressionContextType));
+							cache_flusher->flush_buffer(&compressed_clip, compressed_clip.get_size());
+							cache_flusher->end_flushing();
+						}
 						else
 						{
 							// If we want the cache warm, decompress everything once to prime it
@@ -286,7 +291,11 @@ namespace acl
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
 		{
 			if (cache_flusher != nullptr)
-				cache_flusher->flush_cache(memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+			{
+				cache_flusher->begin_flushing();
+				cache_flusher->flush_buffer(memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				cache_flusher->end_flushing();
+			}
 			else
 				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
 

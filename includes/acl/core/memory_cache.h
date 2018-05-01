@@ -37,12 +37,26 @@ namespace acl
 	class CPUCacheFlusher
 	{
 	public:
-		CPUCacheFlusher() {}
+		CPUCacheFlusher()
+			: m_is_flushing(false)
+		{}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Marks the beginning of a cache flushing operation
+		void begin_flushing()
+		{
+			ACL_ASSERT(!m_is_flushing, "begin_flushing() already called");
+			m_is_flushing = true;
+		}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Flush the buffer data from the CPU cache
-		void flush_cache(const void* buffer, size_t buffer_size)
+		void flush_buffer(const void* buffer, size_t buffer_size)
 		{
+			ACL_ASSERT(m_is_flushing, "begin_flushing() not called");
+			(void)buffer;
+			(void)buffer_size;
+
 #if defined(ACL_SSE2_INTRINSICS)
 			constexpr size_t k_cache_line_size = 64;
 
@@ -55,16 +69,26 @@ namespace acl
 				_mm_clflush(buffer_ptr);
 				buffer_ptr += k_cache_line_size;
 			}
-#else
-			(void)buffer;
-			(void)buffer_size;
+#endif
+		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Marks the end of a cache flushing operation
+		void end_flushing()
+		{
+			ACL_ASSERT(m_is_flushing, "begin_flushing() not called");
+			m_is_flushing = false;
+
+#if !defined(ACL_SSE2_INTRINSICS)
 			for (size_t entry_index = 0; entry_index < k_num_buffer_entries; ++entry_index)
 				m_buffer[entry_index] = vector_add(m_buffer[entry_index], vector_set(1.0f));
 #endif
 		}
 
 	private:
+		CPUCacheFlusher(const CPUCacheFlusher& other) = delete;
+		CPUCacheFlusher& operator=(const CPUCacheFlusher& other) = delete;
+
 #if !defined(ACL_SSE2_INTRINSICS)
 		// TODO: get an official CPU cache size
 	#if defined(__ANDROID__)
@@ -79,5 +103,7 @@ namespace acl
 
 		Vector4_32		m_buffer[k_num_buffer_entries];
 #endif
+
+		bool	m_is_flushing;
 	};
 }
