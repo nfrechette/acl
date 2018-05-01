@@ -468,7 +468,8 @@ namespace acl
 			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
 			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
 
-			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
+			const int32_t num_bones = header.num_bones;
+			for (int32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
 				writer.write_bone_rotation(bone_index, rotation);
@@ -507,9 +508,11 @@ namespace acl
 			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
 			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
 
-			for (uint32_t bone_index = 0; bone_index < header.num_bones; ++bone_index)
+			const int32_t num_bones = header.num_bones;
+			const int32_t sample_bone_index_i32 = sample_bone_index;
+			for (int32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				if (bone_index == sample_bone_index)
+				if (bone_index == sample_bone_index_i32)
 					break;
 
 				skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);

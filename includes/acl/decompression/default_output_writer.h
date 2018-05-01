@@ -31,6 +31,10 @@
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// A simple output writer implementation that simply writes out to a
+	// Transform_32 array.
+	//////////////////////////////////////////////////////////////////////////
 	struct DefaultOutputWriter : public OutputWriter
 	{
 		DefaultOutputWriter(Transform_32* transforms, uint16_t num_transforms)
@@ -41,25 +45,25 @@ namespace acl
 			ACL_ASSERT(num_transforms != 0, "Transforms array cannot be empty");
 		}
 
-		void write_bone_rotation(uint32_t bone_index, const acl::Quat_32& rotation)
+		void write_bone_rotation(int32_t bone_index, const Quat_32& rotation)
 		{
 			ACL_ASSERT(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
 			m_transforms[bone_index].rotation = rotation;
 		}
 
-		void write_bone_translation(uint32_t bone_index, const acl::Vector4_32& translation)
+		void write_bone_translation(int32_t bone_index, const Vector4_32& translation)
 		{
 			ACL_ASSERT(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
 			m_transforms[bone_index].translation = translation;
 		}
 
-		void write_bone_scale(uint32_t bone_index, const acl::Vector4_32& scale)
+		void write_bone_scale(int32_t bone_index, const Vector4_32& scale)
 		{
 			ACL_ASSERT(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
 			m_transforms[bone_index].scale = scale;
 		}
 
 		Transform_32* m_transforms;
-		uint16_t m_num_transforms;
+		int32_t m_num_transforms;
 	};
 }

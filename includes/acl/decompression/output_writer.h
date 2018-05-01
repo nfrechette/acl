@@ -31,21 +31,23 @@
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
 	// We use a struct like this to allow an arbitrary format on the end user side.
 	// Since our decode function is templated on this type implemented by the user,
 	// the callbacks can trivially be inlined.
+	//////////////////////////////////////////////////////////////////////////
 	struct OutputWriter
 	{
-		void write_bone_rotation(uint32_t bone_index, const Quat_32& rotation)
-		{
-		}
+		//////////////////////////////////////////////////////////////////////////
+		// Called by the decoder to write out a quaternion rotation value for a specified bone index
+		void write_bone_rotation(int32_t bone_index, const Quat_32& rotation) {}
 
-		void write_bone_translation(uint32_t bone_index, const Vector4_32& translation)
-		{
-		}
+		//////////////////////////////////////////////////////////////////////////
+		// Called by the decoder to write out a translation value for a specified bone index
+		void write_bone_translation(int32_t bone_index, const Vector4_32& translation) {}
 
-		void write_bone_scale(uint32_t bone_index, const Vector4_32& scale)
-		{
-		}
+		//////////////////////////////////////////////////////////////////////////
+		// Called by the decoder to write out a scale value for a specified bone index
+		void write_bone_scale(int32_t bone_index, const Vector4_32& scale) {}
 	};
 }
