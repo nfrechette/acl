@@ -3,15 +3,11 @@ cmake_minimum_required (VERSION 3.2)
 macro(setup_default_compiler_flags _project_name)
 	if(MSVC)
 		# Replace some default compiler switches and add new ones
-		STRING(REPLACE "/GR" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})		# Disable RTTI
-		STRING(REPLACE "/W3" "/W4" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})	# Bump warnings to W4
+		STRING(REPLACE "/GR" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})			# Disable RTTI
+		STRING(REPLACE "/W3" "/W4" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})		# Bump warnings to W4
 		target_compile_options(${_project_name} PRIVATE /Zi)				# Add debug info
 		target_compile_options(${_project_name} PRIVATE /Oi)				# Generate intrinsic functions
-
-		# Disable some warnings
-		target_compile_options(${_project_name} PRIVATE /wd4100)			# unreferenced formal parameter
-		target_compile_options(${_project_name} PRIVATE /wd4324)			# structure was padded due to alignment specified
-		target_compile_options(${_project_name} PRIVATE /wd4127)			# conditional expression is constant
+		target_compile_options(${_project_name} PRIVATE /WX)				# Treat warnings as errors
 
 		if(MSVC_VERSION GREATER 1900)
 			# VS2017 and above
