@@ -134,6 +134,7 @@ struct Options
 
 	bool			regression_testing;
 	bool			profile_decompression;
+	bool			exhaustive_compression;
 
 	bool			is_bind_pose_relative;
 	bool			is_bind_pose_additive0;
@@ -158,6 +159,7 @@ struct Options
 		, output_bin_filename(nullptr)
 		, regression_testing(false)
 		, profile_decompression(false)
+		, exhaustive_compression(false)
 		, is_bind_pose_relative(false)
 		, is_bind_pose_additive0(false)
 		, is_bind_pose_additive1(false)
@@ -180,6 +182,7 @@ struct Options
 		, output_bin_filename(other.output_bin_filename)
 		, regression_testing(other.regression_testing)
 		, profile_decompression(other.profile_decompression)
+		, exhaustive_compression(other.exhaustive_compression)
 		, is_bind_pose_relative(other.is_bind_pose_relative)
 		, is_bind_pose_additive0(other.is_bind_pose_additive0)
 		, is_bind_pose_additive1(other.is_bind_pose_additive1)
@@ -193,27 +196,28 @@ struct Options
 			std::fclose(output_stats_file);
 	}
 
-	Options& operator=(Options&& rhs)
+	Options& operator=(Options&& other)
 	{
 #if defined(__ANDROID__)
-		std::swap(input_buffer, rhs.input_buffer);
-		std::swap(input_buffer_size, rhs.input_buffer_size);
-		std::swap(input_buffer_binary, rhs.input_buffer_binary);
-		std::swap(config_buffer, rhs.config_buffer);
-		std::swap(config_buffer_size, rhs.config_buffer_size);
+		std::swap(input_buffer, other.input_buffer);
+		std::swap(input_buffer_size, other.input_buffer_size);
+		std::swap(input_buffer_binary, other.input_buffer_binary);
+		std::swap(config_buffer, other.config_buffer);
+		std::swap(config_buffer_size, other.config_buffer_size);
 #else
-		std::swap(input_filename, rhs.input_filename);
-		std::swap(config_filename, rhs.config_filename);
+		std::swap(input_filename, other.input_filename);
+		std::swap(config_filename, other.config_filename);
 #endif
-		std::swap(output_stats, rhs.output_stats);
-		std::swap(output_stats_filename, rhs.output_stats_filename);
-		std::swap(output_stats_file, rhs.output_stats_file);
-		std::swap(output_bin_filename, rhs.output_bin_filename);
-		std::swap(regression_testing, rhs.regression_testing);
-		std::swap(profile_decompression, rhs.profile_decompression);
-		std::swap(is_bind_pose_relative, rhs.is_bind_pose_relative);
-		std::swap(is_bind_pose_additive0, rhs.is_bind_pose_additive0);
-		std::swap(is_bind_pose_additive1, rhs.is_bind_pose_additive1);
+		std::swap(output_stats, other.output_stats);
+		std::swap(output_stats_filename, other.output_stats_filename);
+		std::swap(output_stats_file, other.output_stats_file);
+		std::swap(output_bin_filename, other.output_bin_filename);
+		std::swap(regression_testing, other.regression_testing);
+		std::swap(profile_decompression, other.profile_decompression);
+		std::swap(exhaustive_compression, other.exhaustive_compression);
+		std::swap(is_bind_pose_relative, other.is_bind_pose_relative);
+		std::swap(is_bind_pose_additive0, other.is_bind_pose_additive0);
+		std::swap(is_bind_pose_additive1, other.is_bind_pose_additive1);
 		return *this;
 	}
 
@@ -235,15 +239,16 @@ struct Options
 	}
 };
 
-constexpr const char* k_acl_input_file_option = "-acl=";
-constexpr const char* k_config_input_file_option = "-config=";
-constexpr const char* k_stats_output_option = "-stats";
-constexpr const char* k_bin_output_option = "-out=";
-constexpr const char* k_regression_test_option = "-test";
-constexpr const char* k_profile_decompression_option = "-decomp";
-constexpr const char* k_bind_pose_relative_option = "-bind_rel";
-constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
-constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
+static constexpr const char* k_acl_input_file_option = "-acl=";
+static constexpr const char* k_config_input_file_option = "-config=";
+static constexpr const char* k_stats_output_option = "-stats";
+static constexpr const char* k_bin_output_option = "-out=";
+static constexpr const char* k_regression_test_option = "-test";
+static constexpr const char* k_profile_decompression_option = "-decomp";
+static constexpr const char* k_exhaustive_compression_option = "-exhaustive";
+static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
+static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
+static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 
 bool is_acl_sjson_file(const char* filename)
 {
@@ -350,6 +355,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
+		option_length = std::strlen(k_exhaustive_compression_option);
+		if (std::strncmp(argument, k_exhaustive_compression_option, option_length) == 0)
+		{
+			options.exhaustive_compression = true;
+			continue;
+		}
+
 		option_length = std::strlen(k_bind_pose_relative_option);
 		if (std::strncmp(argument, k_bind_pose_relative_option, option_length) == 0)
 		{
@@ -382,6 +394,12 @@ static bool parse_options(int argc, char** argv, Options& options)
 #endif
 	{
 		printf("An input file is required.\n");
+		return false;
+	}
+
+	if (options.profile_decompression && options.exhaustive_compression)
+	{
+		printf("Exhaustive compression is not supported with decompression profiling.\n");
 		return false;
 	}
 
@@ -871,21 +889,13 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 			}
 		}
-		else if (options.profile_decompression)
-		{
-			CompressionSettings default_settings = get_default_compression_settings();
-			default_settings.error_metric = settings.error_metric;
-
-			try_algorithm(options, allocator, *clip, default_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
-		}
 		else if (use_external_config)
 		{
 			ACL_ASSERT(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
 			try_algorithm(options, allocator, *clip, settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 		}
-		else
+		else if (options.exhaustive_compression)
 		{
-			// Use defaults
 			const bool use_segmenting_options[] = { false, true };
 			for (size_t segmenting_option_index = 0; segmenting_option_index < get_array_size(use_segmenting_options); ++segmenting_option_index)
 			{
@@ -940,6 +950,13 @@ static int safe_main_impl(int argc, char* argv[])
 					try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 				}
 			}
+		}
+		else
+		{
+			CompressionSettings default_settings = get_default_compression_settings();
+			default_settings.error_metric = settings.error_metric;
+
+			try_algorithm(options, allocator, *clip, default_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 		}
 	};
 
