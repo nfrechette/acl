@@ -82,6 +82,8 @@ namespace acl
 
 				BitSetDescription bitset_desc;
 
+				uint32_t clip_hash;
+
 				uint8_t num_rotation_components;
 				uint8_t has_mixed_packing;
 
@@ -242,7 +244,9 @@ namespace acl
 
 			//////////////////////////////////////////////////////////////////////////
 			// Initializes the context instance to a particular compressed clip
-			inline void initialize(const CompressedClip& clip_);
+			inline void initialize(const CompressedClip& clip);
+
+			inline bool is_dirty(const CompressedClip& clip);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Seeks within the compressed clip to a particular point in time
@@ -303,12 +307,12 @@ namespace acl
 		}
 
 		template<class DecompressionSettingsType>
-		inline void DecompressionContext<DecompressionSettingsType>::initialize(const CompressedClip& clip_)
+		inline void DecompressionContext<DecompressionSettingsType>::initialize(const CompressedClip& clip)
 		{
-			ACL_ASSERT(clip_.is_valid(false).empty(), "CompressedClip is not valid");
-			ACL_ASSERT(clip_.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip_.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
+			ACL_ASSERT(clip.is_valid(false).empty(), "CompressedClip is not valid");
+			ACL_ASSERT(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
 
-			const ClipHeader& header = get_clip_header(clip_);
+			const ClipHeader& header = get_clip_header(clip);
 
 			const RotationFormat8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
 			const VectorFormat8 translation_format = m_settings.get_translation_format(header.translation_format);
@@ -330,7 +334,8 @@ namespace acl
 			ACL_ASSERT(m_settings.are_segment_range_reduction_flags_supported(segment_range_reduction), "Segment range reduction settings (%u) aren't statically supported!", segment_range_reduction);
 #endif
 
-			m_context.clip = &clip_;
+			m_context.clip = &clip;
+			m_context.clip_hash = clip.get_hash();
 			m_context.clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
 			m_context.sample_time = -1.0f;
 			m_context.segment_headers = header.get_segment_headers();
@@ -356,6 +361,18 @@ namespace acl
 			const bool is_every_format_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
 			const bool is_any_format_variable = is_rotation_format_variable(rotation_format) || is_vector_format_variable(translation_format) || is_vector_format_variable(scale_format);
 			m_context.has_mixed_packing = !is_every_format_variable && is_any_format_variable;
+		}
+
+		template<class DecompressionSettingsType>
+		inline bool DecompressionContext<DecompressionSettingsType>::is_dirty(const CompressedClip& clip)
+		{
+			if (m_context.clip != &clip)
+				return true;
+
+			if (m_context.clip_hash != clip.get_hash())
+				return true;
+
+			return false;
 		}
 
 		template<class DecompressionSettingsType>

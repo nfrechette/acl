@@ -52,6 +52,10 @@ namespace acl
 		// Includes the 'CompressedClip' instance size.
 		uint32_t get_size() const { return m_size; }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the hash for this compressed clip.
+		uint32_t get_hash() const { return m_hash; }
+
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if a compressed clip is valid and usable.
 		// This mainly validates some invariants as well as ensuring that the
