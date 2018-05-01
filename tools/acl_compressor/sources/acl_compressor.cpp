@@ -774,18 +774,6 @@ static CompressionSettings make_settings(RotationFormat8 rotation_format, Vector
 	return settings;
 }
 
-static CompressionSettings get_default_settings()
-{
-	CompressionSettings settings;
-	settings.rotation_format = RotationFormat8::QuatDropW_Variable;
-	settings.translation_format = VectorFormat8::Vector3_Variable;
-	settings.scale_format = VectorFormat8::Vector3_Variable;
-	settings.range_reduction = RangeReductionFlags8::AllTracks;
-	settings.segmenting.enabled = true;
-	settings.segmenting.range_reduction = RangeReductionFlags8::AllTracks;
-	return settings;
-}
-
 static int safe_main_impl(int argc, char* argv[])
 {
 	Options options;
@@ -849,7 +837,7 @@ static int safe_main_impl(int argc, char* argv[])
 		{
 			if (options.profile_decompression && runs_writer != nullptr)
 			{
-				const CompressionSettings default_settings = get_default_settings();
+				const CompressionSettings default_settings = get_default_compression_settings();
 
 #if defined(__ANDROID__)
 				const CompressedClip* compressed_clip = reinterpret_cast<const CompressedClip*>(options.input_buffer);
@@ -885,7 +873,7 @@ static int safe_main_impl(int argc, char* argv[])
 		}
 		else if (options.profile_decompression)
 		{
-			CompressionSettings default_settings = get_default_settings();
+			CompressionSettings default_settings = get_default_compression_settings();
 			default_settings.error_metric = settings.error_metric;
 
 			try_algorithm(options, allocator, *clip, default_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);

@@ -192,6 +192,9 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// These are the default settings. Only the generally optimal settings
 		// are enabled and will offer the overall best performance.
+		//
+		// Note: Segment range reduction supports AllTracks or None because it can
+		// be disabled if there is a single segment.
 		//////////////////////////////////////////////////////////////////////////
 		struct DefaultDecompressionSettings : public DecompressionSettings
 		{
@@ -202,7 +205,6 @@ namespace acl
 			constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return VectorFormat8::Vector3_Variable; }
 			constexpr VectorFormat8 get_scale_format(VectorFormat8 format) const { return VectorFormat8::Vector3_Variable; }
 
-			constexpr bool are_clip_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
 			constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return RangeReductionFlags8::AllTracks; }
 
 			constexpr bool supports_mixed_packing() const { return false; }

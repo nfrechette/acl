@@ -230,4 +230,19 @@ namespace acl
 			return segmenting.is_valid();
 		}
 	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the recommended and default compression settings. These have
+	// been tested in a wide range of scenarios and perform best overall.
+	inline CompressionSettings get_default_compression_settings()
+	{
+		CompressionSettings settings;
+		settings.rotation_format = RotationFormat8::QuatDropW_Variable;
+		settings.translation_format = VectorFormat8::Vector3_Variable;
+		settings.scale_format = VectorFormat8::Vector3_Variable;
+		settings.range_reduction = RangeReductionFlags8::AllTracks;
+		settings.segmenting.enabled = true;
+		settings.segmenting.range_reduction = RangeReductionFlags8::AllTracks;
+		return settings;
+	}
 }
