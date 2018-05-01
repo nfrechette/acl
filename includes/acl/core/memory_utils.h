@@ -83,6 +83,13 @@ namespace acl
 		return static_cast<IntegralType>((static_cast<size_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
+	template<typename PreviousMemberType, typename NextMemberType>
+	constexpr size_t get_required_padding()
+	{
+		// align_to(sizeof(PreviousMemberType), alignof(NextMemberType)) - sizeof(PreviousMemberType)
+		return ((sizeof(PreviousMemberType) + (alignof(NextMemberType) - 1)) & ~(alignof(NextMemberType)- 1)) - sizeof(PreviousMemberType);
+	}
+
 	template<typename ElementType, size_t num_elements>
 	constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
 

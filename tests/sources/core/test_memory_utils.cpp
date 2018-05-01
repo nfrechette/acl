@@ -103,6 +103,11 @@ TEST_CASE("misc tests", "[core][memory]")
 	REQUIRE(align_to(ptr, 4) == (void*)0x00000004);
 	REQUIRE(align_to(ptr, 8) == (void*)0x00000008);
 
+	const size_t padding0 = get_required_padding<float, double>();
+	const size_t padding1 = get_required_padding<uint8_t, double>();
+	REQUIRE(padding0 == 4);
+	REQUIRE(padding1 == 7);
+
 	int32_t array[8];
 	REQUIRE(get_array_size(array) == (sizeof(array) / sizeof(array[0])));
 }

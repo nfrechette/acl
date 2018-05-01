@@ -69,48 +69,54 @@ namespace acl
 			struct alignas(k_cache_line_size) DecompressionContext
 			{
 				// Clip related data
-				const CompressedClip* clip;
-				const SegmentHeader* segment_headers;
+				const CompressedClip* clip;						//   4 |   8
+				const SegmentHeader* segment_headers;			//   8 |  16
 
-				const uint32_t* constant_tracks_bitset;
-				const uint8_t* constant_track_data;
-				const uint32_t* default_tracks_bitset;
+				const uint32_t* constant_tracks_bitset;			//  12 |  24
+				const uint8_t* constant_track_data;				//  16 |  32
+				const uint32_t* default_tracks_bitset;			//  20 |  40
 
-				const uint8_t* clip_range_data;
+				const uint8_t* clip_range_data;					//  24 |  48
 
-				float clip_duration;
+				float clip_duration;							//  28 |  52
 
-				BitSetDescription bitset_desc;
+				BitSetDescription bitset_desc;					//  32 |  56
 
-				uint32_t clip_hash;
+				uint32_t clip_hash;								//  36 |  60
 
-				uint8_t num_rotation_components;
-				uint8_t has_mixed_packing;
+				uint8_t num_rotation_components;				//  37 |  61
+				uint8_t has_mixed_packing;						//  38 |  62
+
+				uint8_t padding0[2];							//  40 |  64
 
 				// Seeking related data
-				const uint8_t* format_per_track_data[2];
-				const uint8_t* segment_range_data[2];
-				const uint8_t* animated_track_data[2];
+				const uint8_t* format_per_track_data[2];		//  48 |  80
+				const uint8_t* segment_range_data[2];			//  56 |  96
+				const uint8_t* animated_track_data[2];			//  64 | 112
 
-				uint32_t key_frame_byte_offsets[2];
-				int32_t key_frame_bit_offsets[2];
+				uint32_t key_frame_byte_offsets[2];				//  72 | 120
+				int32_t key_frame_bit_offsets[2];				//  80 | 128
 
-				float interpolation_alpha;
-				float sample_time;
+				float interpolation_alpha;						//  84 | 132
+				float sample_time;								//  88 | 136
+
+				uint8_t padding1[sizeof(void*) == 4 ? 40 : 56];	// 128 | 192
 			};
 
 			struct alignas(k_cache_line_size) SamplingContext
 			{
-				uint32_t constant_track_offset;
-				uint32_t constant_track_data_offset;
-				uint32_t default_track_offset;
-				uint32_t clip_range_data_offset;
+				uint32_t constant_track_offset;					//   4 |   4
+				uint32_t constant_track_data_offset;			//   8 |   8
+				uint32_t default_track_offset;					//  12 |  12
+				uint32_t clip_range_data_offset;				//  16 |  16
 
-				uint32_t format_per_track_data_offset;
-				uint32_t segment_range_data_offset;
+				uint32_t format_per_track_data_offset;			//  20 |  20
+				uint32_t segment_range_data_offset;				//  24 |  24
 
-				uint32_t key_frame_byte_offsets[2];
-				int32_t key_frame_bit_offsets[2];
+				uint32_t key_frame_byte_offsets[2];				//  32 |  32
+				int32_t key_frame_bit_offsets[2];				//  40 |  40
+
+				uint8_t padding[24];							//  64 |  64
 			};
 
 			// We use adapters to wrap the DecompressionSettings
@@ -153,6 +159,7 @@ namespace acl
 				constexpr bool supports_mixed_packing() const { return settings.supports_mixed_packing(); }
 
 				SettingsType settings;
+				uint8_t padding[get_required_padding<SettingsType, Vector4_32>()];
 				Vector4_32 default_scale;
 			};
 		}

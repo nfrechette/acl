@@ -129,11 +129,12 @@ void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const 
 {
 	struct alignas(16) Tmp
 	{
-		int32_t padding;
-		alignas(8) FloatType values[4];
+		uint8_t padding0[8];	//  8 |  8
+		FloatType values[4];	// 24 | 40
+		uint8_t padding1[8];	// 32 | 48
 	};
 
-	Tmp tmp = { 0, { FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0) } };
+	Tmp tmp = { { 0 }, { FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0) } };
 	alignas(16) uint8_t buffer[64];
 
 	const FloatType test_value0_flt[4] = { FloatType(2.0), FloatType(9.34), FloatType(-54.12), FloatType(6000.0) };
