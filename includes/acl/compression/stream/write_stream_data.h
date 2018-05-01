@@ -143,6 +143,7 @@ namespace acl
 	inline void write_constant_track_data(const ClipContext& clip_context, uint8_t* constant_data, uint32_t constant_data_size)
 	{
 		ACL_ASSERT(constant_data != nullptr, "'constant_data' cannot be null!");
+		(void)constant_data_size;
 
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
@@ -230,6 +231,7 @@ namespace acl
 	inline void write_animated_track_data(const ClipContext& clip_context, const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, uint8_t* animated_track_data, uint32_t animated_data_size)
 	{
 		ACL_ASSERT(animated_track_data != nullptr, "'animated_track_data' cannot be null!");
+		(void)animated_data_size;
 
 		uint8_t* animated_track_data_begin = animated_track_data;
 
@@ -273,6 +275,7 @@ namespace acl
 	inline void write_format_per_track_data(const ClipContext& clip_context, const SegmentContext& segment, uint8_t* format_per_track_data, uint32_t format_per_track_data_size)
 	{
 		ACL_ASSERT(format_per_track_data != nullptr, "'format_per_track_data' cannot be null!");
+		(void)format_per_track_data_size;
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint8_t* format_per_track_data_end = add_offset_to_ptr<uint8_t>(format_per_track_data, format_per_track_data_size);

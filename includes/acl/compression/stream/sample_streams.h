@@ -692,6 +692,8 @@ namespace acl
 
 	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose)
 	{
+		(void)num_bones;
+
 		const Quat_32 default_rotation = quat_identity_32();
 		const Vector4_32 default_translation = vector_zero_32();
 		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
@@ -890,6 +892,8 @@ namespace acl
 
 	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose)
 	{
+		(void)num_bones;
+
 		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
 		const bool is_scale_variable = is_vector_format_variable(scale_format);

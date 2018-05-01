@@ -409,6 +409,8 @@ static bool parse_options(int argc, char** argv, Options& options)
 template<class DecompressionContextType>
 static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, DecompressionContextType& context, double regression_error_threshold)
 {
+	(void)regression_error_threshold;
+
 	const uint16_t num_bones = clip.get_num_bones();
 	const float clip_duration = clip.get_duration();
 	const float sample_rate = float(clip.get_sample_rate());
@@ -981,8 +983,11 @@ static int safe_main_impl(int argc, char* argv[])
 #ifdef _WIN32
 static LONG WINAPI unhandled_exception_filter(EXCEPTION_POINTERS *info)
 {
+	(void)info;
+
 	if (IsDebuggerPresent())
 		return EXCEPTION_CONTINUE_SEARCH;
+
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 #endif

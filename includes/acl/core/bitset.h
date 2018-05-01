@@ -77,6 +77,7 @@ namespace acl
 	inline void bitset_set(uint32_t* bitset, BitSetDescription desc, int32_t bit_index, bool value)
 	{
 		ACL_ASSERT(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
+		(void)desc;
 
 		const int32_t offset = bit_index / 32;
 		const int32_t mask = 1 << (31 - (bit_index % 32));
@@ -105,6 +106,7 @@ namespace acl
 	inline bool bitset_test(const uint32_t* bitset, BitSetDescription desc, int32_t bit_index)
 	{
 		ACL_ASSERT(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
+		(void)desc;
 
 		const int32_t offset = bit_index / 32;
 		const int32_t mask = 1 << (31 - (bit_index % 32));

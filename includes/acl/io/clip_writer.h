@@ -67,7 +67,7 @@ namespace acl
 			writer.insert_newline();
 		}
 
-		inline void write_sjson_settings(const AnimationClip& clip, AlgorithmType8 algorithm, const CompressionSettings& settings, sjson::Writer& writer)
+		inline void write_sjson_settings(AlgorithmType8 algorithm, const CompressionSettings& settings, sjson::Writer& writer)
 		{
 			writer["settings"] = [&](sjson::ObjectWriter& writer)
 			{
@@ -256,7 +256,7 @@ namespace acl
 
 			write_sjson_clip(clip, writer);
 			if (settings != nullptr)
-				write_sjson_settings(clip, algorithm, *settings, writer);
+				write_sjson_settings(algorithm, *settings, writer);
 			write_sjson_bones(skeleton, writer);
 			write_sjson_tracks(skeleton, clip, writer);
 

@@ -39,7 +39,7 @@
 
 namespace acl
 {
-	inline uint32_t get_stream_range_data_size(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format)
+	inline uint32_t get_stream_range_data_size(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, RotationFormat8 rotation_format)
 	{
 		const uint32_t rotation_size = are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
 		const uint32_t translation_size = are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations) ? k_clip_range_reduction_vector3_range_size : 0;
@@ -100,6 +100,7 @@ namespace acl
 		uint8_t* range_data, uint32_t range_data_size)
 	{
 		ACL_ASSERT(range_data != nullptr, "'range_data' cannot be null!");
+		(void)range_data_size;
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);

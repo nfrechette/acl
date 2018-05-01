@@ -155,6 +155,7 @@ namespace acl
 		{
 			ACL_ASSERT(m_num_bones > 0, "Invalid number of bones: %u", m_num_bones);
 			ACL_ASSERT(m_num_bones == num_transforms, "Number of transforms does not match the number of bones: %u != %u", num_transforms, m_num_bones);
+			(void)num_transforms;
 
 			const float clip_duration = get_duration();
 

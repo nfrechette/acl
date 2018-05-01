@@ -130,6 +130,8 @@ namespace acl
 			if (ptr == nullptr)
 				return;
 
+			(void)size;
+
 #if defined(_WIN32)
 			_aligned_free(ptr);
 #elif defined(__ANDROID__)

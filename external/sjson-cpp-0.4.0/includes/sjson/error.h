@@ -51,6 +51,8 @@
 			{
 				inline void assert_impl(bool expression, const char* format, ...)
 				{
+					(void)format;
+
 				#if !defined(NDEBUG)
 					assert(expression);
 				#endif

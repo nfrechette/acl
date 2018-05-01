@@ -71,6 +71,10 @@
 		{
 			inline void on_assert_abort(const char* expression, int line, const char* file, const char* format, ...)
 			{
+				(void)expression;
+				(void)line;
+				(void)file;
+
 				va_list args;
 				va_start(args, format);
 
@@ -100,6 +104,10 @@
 		{
 			inline void on_assert_throw(const char* expression, int line, const char* file, const char* format, ...)
 			{
+				(void)expression;
+				(void)line;
+				(void)file;
+
 				constexpr int buffer_size = 64 * 1024;
 				char buffer[buffer_size];
 

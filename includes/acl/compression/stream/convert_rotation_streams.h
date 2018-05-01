@@ -37,6 +37,7 @@ namespace acl
 	inline Vector4_32 convert_rotation(const Vector4_32& rotation, RotationFormat8 from, RotationFormat8 to)
 	{
 		ACL_ASSERT(from == RotationFormat8::Quat_128, "Source rotation format must be a full precision quaternion");
+		(void)from;
 
 		const RotationFormat8 high_precision_format = get_rotation_variant(to) == RotationVariant8::Quat ? RotationFormat8::Quat_128 : RotationFormat8::QuatDropW_96;
 		switch (high_precision_format)

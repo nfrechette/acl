@@ -68,6 +68,8 @@ namespace sjson
 
 		virtual void write(const void* buffer, size_t buffer_size) override
 		{
+			(void)buffer_size;
+
 			fprintf(m_file, "%s", reinterpret_cast<const char*>(buffer));
 		}
 

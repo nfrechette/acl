@@ -169,15 +169,15 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		struct DecompressionSettings
 		{
-			constexpr bool is_rotation_format_supported(RotationFormat8 format) const { return true; }
-			constexpr bool is_translation_format_supported(VectorFormat8 format) const { return true; }
-			constexpr bool is_scale_format_supported(VectorFormat8 format) const { return true; }
+			constexpr bool is_rotation_format_supported(RotationFormat8 /*format*/) const { return true; }
+			constexpr bool is_translation_format_supported(VectorFormat8 /*format*/) const { return true; }
+			constexpr bool is_scale_format_supported(VectorFormat8 /*format*/) const { return true; }
 			constexpr RotationFormat8 get_rotation_format(RotationFormat8 format) const { return format; }
 			constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return format; }
 			constexpr VectorFormat8 get_scale_format(VectorFormat8 format) const { return format; }
 
-			constexpr bool are_clip_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
-			constexpr bool are_segment_range_reduction_flags_supported(RangeReductionFlags8 flags) const { return true; }
+			constexpr bool are_clip_range_reduction_flags_supported(RangeReductionFlags8 /*flags*/) const { return true; }
+			constexpr bool are_segment_range_reduction_flags_supported(RangeReductionFlags8 /*flags*/) const { return true; }
 			constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return flags; }
 			constexpr RangeReductionFlags8 get_segment_range_reduction(RangeReductionFlags8 flags) const { return flags; }
 
@@ -203,11 +203,11 @@ namespace acl
 			constexpr bool is_rotation_format_supported(RotationFormat8 format) const { return format == RotationFormat8::QuatDropW_Variable; }
 			constexpr bool is_translation_format_supported(VectorFormat8 format) const { return format == VectorFormat8::Vector3_Variable; }
 			constexpr bool is_scale_format_supported(VectorFormat8 format) const { return format == VectorFormat8::Vector3_Variable; }
-			constexpr RotationFormat8 get_rotation_format(RotationFormat8 format) const { return RotationFormat8::QuatDropW_Variable; }
-			constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return VectorFormat8::Vector3_Variable; }
-			constexpr VectorFormat8 get_scale_format(VectorFormat8 format) const { return VectorFormat8::Vector3_Variable; }
+			constexpr RotationFormat8 get_rotation_format(RotationFormat8 /*format*/) const { return RotationFormat8::QuatDropW_Variable; }
+			constexpr VectorFormat8 get_translation_format(VectorFormat8 /*format*/) const { return VectorFormat8::Vector3_Variable; }
+			constexpr VectorFormat8 get_scale_format(VectorFormat8 /*format*/) const { return VectorFormat8::Vector3_Variable; }
 
-			constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return RangeReductionFlags8::AllTracks; }
+			constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 /*flags*/) const { return RangeReductionFlags8::AllTracks; }
 
 			constexpr bool supports_mixed_packing() const { return false; }
 		};
