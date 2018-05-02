@@ -154,71 +154,37 @@ namespace acl
 
 	namespace memory_impl
 	{
-		template<bool is_enum = true>
-		struct safe_static_cast_impl
+		template<typename Type, bool is_enum = true>
+		struct safe_underlying_type { using type = typename std::underlying_type<Type>::type; };
+
+		template<typename Type>
+		struct safe_underlying_type<Type, false> { using type = Type; };
+
+		template<typename DstType, typename SrcType>
+		inline bool is_static_cast_safe(SrcType input)
 		{
-			template<typename DestIntegralType, typename SrcEnumType>
-			static inline DestIntegralType cast(SrcEnumType input)
-			{
-#if defined(ACL_HAS_ASSERT_CHECKS)
-				typedef typename std::underlying_type<SrcEnumType>::type SrcIntegralType;
+			using SrcRealType = typename safe_underlying_type<SrcType, std::is_enum<SrcType>::value>::type;
 
-				const SrcIntegralType integral_input = static_cast<SrcIntegralType>(input);
-
-				constexpr DestIntegralType min = std::numeric_limits<DestIntegralType>::lowest();
-				constexpr DestIntegralType max = std::numeric_limits<DestIntegralType>::max();
-
-				if (static_condition<std::numeric_limits<SrcIntegralType>::is_signed && !std::numeric_limits<DestIntegralType>::is_signed>::test())
-				{
-					ACL_ASSERT(0 <= integral_input && integral_input <= max, "static_cast would result in truncation");
-				}
-				else if (static_condition<!std::numeric_limits<SrcIntegralType>::is_signed && std::numeric_limits<DestIntegralType>::is_signed>::test())
-				{
-					ACL_ASSERT(integral_input <= max, "static_cast would result in truncation");
-				}
-				else
-				{
-					ACL_ASSERT(min <= integral_input && integral_input <= max, "static_cast would result in truncation");
-				}
-#endif
-
-				return static_cast<DestIntegralType>(input);
-			}
-		};
-
-		template<>
-		struct safe_static_cast_impl<false>
-		{
-			template<typename DestNumericType, typename SrcNumericType>
-			static inline DestNumericType cast(SrcNumericType input)
-			{
-#if defined(ACL_HAS_ASSERT_CHECKS)
-				constexpr DestNumericType min = std::numeric_limits<DestNumericType>::lowest();
-				constexpr DestNumericType max = std::numeric_limits<DestNumericType>::max();
-
-				if (static_condition<std::numeric_limits<SrcNumericType>::is_signed && !std::numeric_limits<DestNumericType>::is_signed>::test())
-				{
-					ACL_ASSERT(0 <= input && input <= max, "static_cast would result in truncation");
-				}
-				else if (static_condition<!std::numeric_limits<SrcNumericType>::is_signed && std::numeric_limits<DestNumericType>::is_signed>::test())
-				{
-					ACL_ASSERT(input <= max, "static_cast would result in truncation");
-				}
-				else
-				{
-					ACL_ASSERT(min <= input && input <= max, "static_cast would result in truncation");
-				}
-#endif
-
-				return static_cast<DestNumericType>(input);
-			}
-		};
+			if (static_condition<(std::is_floating_point<SrcType>::value || std::is_floating_point<DstType>::value)>::test())
+				return SrcType(DstType(input)) == input;
+			else if (static_condition<(std::is_signed<DstType>::value == std::is_signed<SrcRealType>::value)>::test())
+				return SrcType(DstType(input)) == input;
+			else if (static_condition<(std::is_signed<SrcRealType>::value)>::test())
+				return int64_t(input) >= 0 && SrcType(DstType(input)) == input;
+			else
+				return uint64_t(input) <= uint64_t(std::numeric_limits<DstType>::max());
+		}
 	}
 
-	template<typename DestIntegralType, typename SrcType>
-	inline DestIntegralType safe_static_cast(SrcType input)
+	template<typename DstType, typename SrcType>
+	inline DstType safe_static_cast(SrcType input)
 	{
-		return memory_impl::safe_static_cast_impl<std::is_enum<SrcType>::value>::template cast<DestIntegralType, SrcType>(input);
+#if defined(ACL_HAS_ASSERT_CHECKS)
+		const bool is_safe = memory_impl::is_static_cast_safe<DstType, SrcType>(input);
+		ACL_ASSERT(is_safe, "Unsafe static cast resulted in data loss");
+#endif
+
+		return static_cast<DstType>(input);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
