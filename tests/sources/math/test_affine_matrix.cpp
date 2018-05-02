@@ -199,7 +199,6 @@ static void test_affine_matrix_impl(const MatrixType& identity, const FloatType 
 		Vector4Type translation = vector_set(FloatType(1.0), FloatType(2.0), FloatType(3.0));
 		Vector4Type scale = vector_set(FloatType(4.0), FloatType(5.0), FloatType(6.0));
 		MatrixType mtx0 = matrix_set(rotation_around_z, translation, scale);
-		MatrixType mtx1 = matrix_set(rotation_around_z, translation, vector_set(FloatType(1.0)));
 		MatrixType mtx0_no_scale = matrix_remove_scale(mtx0);
 		REQUIRE(vector_all_near_equal(vector_set(FloatType(0.0), FloatType(1.0), FloatType(0.0), FloatType(0.0)), mtx0_no_scale.x_axis, threshold));
 		REQUIRE(vector_all_near_equal(vector_set(FloatType(-1.0), FloatType(0.0), FloatType(0.0), FloatType(0.0)), mtx0_no_scale.y_axis, threshold));

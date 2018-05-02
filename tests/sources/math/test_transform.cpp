@@ -119,7 +119,6 @@ static void test_transform_impl(const TransformType& identity, const FloatType t
 
 	{
 		Vector4Type x_axis = vector_set(FloatType(1.0), FloatType(0.0), FloatType(0.0));
-		Vector4Type y_axis = vector_set(FloatType(0.0), FloatType(1.0), FloatType(0.0));
 		Vector4Type test_scale = vector_set(FloatType(1.2));
 
 		QuatType rotation_around_z = quat_from_euler(deg2rad(FloatType(0.0)), deg2rad(FloatType(90.0)), deg2rad(FloatType(0.0)));
@@ -133,7 +132,6 @@ static void test_transform_impl(const TransformType& identity, const FloatType t
 
 	{
 		Vector4Type x_axis = vector_set(FloatType(1.0), FloatType(0.0), FloatType(0.0));
-		Vector4Type y_axis = vector_set(FloatType(0.0), FloatType(1.0), FloatType(0.0));
 
 		QuatType rotation_around_z = quat_from_euler(deg2rad(FloatType(0.0)), deg2rad(FloatType(90.0)), deg2rad(FloatType(0.0)));
 		TransformType transform_a = transform_set(rotation_around_z, x_axis, vector_set(FloatType(1.0)));
