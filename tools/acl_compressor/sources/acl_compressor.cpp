@@ -477,6 +477,8 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 
 static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, AlgorithmType8 algorithm_type, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
+	(void)runs_writer;
+
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
 		OutputStats stats(logging, stats_writer);
@@ -858,6 +860,7 @@ static int safe_main_impl(int argc, char* argv[])
 
 		if (is_input_acl_bin_file)
 		{
+#if defined(SJSON_CPP_WRITER)
 			if (options.profile_decompression && runs_writer != nullptr)
 			{
 				const CompressionSettings default_settings = get_default_compression_settings();
@@ -893,6 +896,7 @@ static int safe_main_impl(int argc, char* argv[])
 				}
 #endif
 			}
+#endif
 		}
 		else if (use_external_config)
 		{

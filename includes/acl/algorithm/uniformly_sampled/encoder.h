@@ -75,6 +75,7 @@ namespace acl
 		inline ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, CompressionSettings settings, CompressedClip*& out_compressed_clip, OutputStats& out_stats)
 		{
 			using namespace impl;
+			(void)out_stats;
 
 			ErrorResult error_result = clip.is_valid();
 			if (error_result.any())
