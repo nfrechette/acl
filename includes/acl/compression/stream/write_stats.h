@@ -383,6 +383,8 @@ namespace acl
 
 	inline void write_decompression_performance_stats(IAllocator& allocator, const CompressionSettings& settings, const CompressedClip& compressed_clip, StatLogging logging, sjson::ObjectWriter& writer)
 	{
+		(void)settings;
+
 		switch (compressed_clip.get_algorithm_type())
 		{
 		case AlgorithmType8::UniformlySampled:
