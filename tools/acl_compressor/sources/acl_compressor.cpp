@@ -513,7 +513,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			stats_writer->insert("worst_bone", bone_error.index);
 			stats_writer->insert("worst_time", bone_error.sample_time);
 
-			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression) || options.profile_decompression)
+			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
 				write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
 		}
 #endif
@@ -852,6 +852,9 @@ static int safe_main_impl(int argc, char* argv[])
 	auto exec_algos = [&](sjson::ArrayWriter* runs_writer)
 	{
 		StatLogging logging = options.output_stats ? StatLogging::Summary : StatLogging::None;
+
+		if (options.profile_decompression)
+			logging |= StatLogging::SummaryDecompression | StatLogging::ExhaustiveDecompression;
 
 		if (is_input_acl_bin_file)
 		{
