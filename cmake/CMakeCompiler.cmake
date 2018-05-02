@@ -37,5 +37,8 @@ macro(setup_default_compiler_flags _project_name)
 				target_compile_options(${_project_name} PRIVATE "-msse4.1")
 			endif()
 		endif()
+
+		target_compile_options(${_project_name} PRIVATE -Wall)				# Enable all warnings
+		target_compile_options(${_project_name} PRIVATE -Werror)			# Treat warnings as errors
 	endif()
 endmacro()
