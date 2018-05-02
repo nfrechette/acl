@@ -202,7 +202,10 @@ namespace acl
 			bitset_set_range(is_leaf_bitset, bone_bitset_desc, 0, num_bones, true);
 
 			// Move and validate the input data
+#if defined(ACL_HAS_ASSERT_CHECKS)
 			bool found_root = false;
+#endif
+
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				RigidBone& bone = bones[bone_index];
@@ -218,8 +221,10 @@ namespace acl
 
 				if (!is_root)
 					bitset_set(is_leaf_bitset, bone_bitset_desc, bone.parent_index, false);
+#if defined(ACL_HAS_ASSERT_CHECKS)
 				else
 					found_root = true;
+#endif
 
 				m_bones[bone_index] = std::move(bone);
 

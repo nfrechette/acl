@@ -387,6 +387,7 @@ namespace acl
 		{
 		case AlgorithmType8::UniformlySampled:
 		{
+#if defined(ACL_HAS_ASSERT_CHECKS)
 			// If we can, we use a fast-path that simulates what a real game engine would use
 			// by disabling the things they normally wouldn't care about like deprecated formats
 			// and debugging features
@@ -397,6 +398,7 @@ namespace acl
 				&& settings.segmenting.enabled;
 
 			ACL_ASSERT(use_uniform_fast_path, "We do not support profiling the debug code path");
+#endif
 
 			uniformly_sampled::DefaultDecompressionSettings decompression_settings;
 			uniformly_sampled::DecompressionContext<uniformly_sampled::DefaultDecompressionSettings>* contexts[k_num_decompression_timing_passes];
