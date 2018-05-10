@@ -10,6 +10,10 @@ The SJSON input file uses a simple and custom format that describes where the ra
 
 This script aggregates the raw data and formats the bit rate usage frequency.
 
+## gen_decomp_stats.py
+
+This script parses the decompression profiling results and outputs various CSV files.
+
 ## gen_full_error_stats.py
 
 This script reads the very large raw data files and outputs the percentiles. This reduces the amount of data so that we can actually see how it looks without manipulating millions of rows.
