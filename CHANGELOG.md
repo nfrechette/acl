@@ -1,5 +1,13 @@
 # Significant changes per release
 
+## 0.8.0
+
+*  Improved error handling
+*  Added additive clip support
+*  Added `acl_decompressor` tool to profile and test decompression
+*  Increased warning levels to highest possible
+*  Many more improvements and fixes
+
 ## 0.7.0
 
 *  Added full support for Android and iOS
