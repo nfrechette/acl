@@ -13,22 +13,21 @@ For ACL and Unreal 4, the error is measured **3cm** away from each bone to simul
 
 *  [ACL](cmu_performance.md#acl)
 *  [Unreal 4](cmu_performance.md#unreal-4)
-*  [Unity 5](cmu_performance.md#unity-5)
 *  [Results in images](cmu_performance.md#results-in-images)
 
 # ACL
 
 Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression method but only the overall best variant will be tracked here: variable bit rate with range reduction enabled. Every clip uses an error threshold of **0.01cm (0.1mm)**.
 
-*  Compressed size: **67.04 MB**
-*  Compression ratio: **21.32 : 1**
-*  Max error: **0.0479** centimeters (clip *81_18*)
-*  Compression time: **00h 51m 24.01s** (single threaded)
-*  Compression time: **00h 13m 38.96s** (multi threaded on 4 cores)
+*  Compressed size: **67.02 MB**
+*  Compression ratio: **21.33 : 1**
+*  Max error: **0.0703** centimeters (clip *122_11*)
+*  Compression time: **00h 36m 27.22s** (single threaded)
+*  Compression time: **00h 11m 03.60s** (multi threaded on 4 cores)
 
 Note that you can compress any number of clips in parallel with multiple threads but each clip uses a single thread for now.
 
-**Results from release [0.7.0](https://github.com/nfrechette/acl/releases/tag/v0.7.0)**
+**Results from release [0.8.0](https://github.com/nfrechette/acl/releases/tag/v0.8.0)**
 
 See [here](cmu_performance_history.md) for a history of performance progress across the various releases.
 
@@ -46,10 +45,6 @@ Sadly the *Unreal 4* compression logic does not *yet* support multi-threading an
 *Note: Down-sampling variants were causing issues and were disabled in the interest of keeping things fair. This speeds up the compression time considerably but does not affect the compressed size much*
 
 **Results from Unreal 4.15.0**
-
-# Unity 5
-
-Even though the data set comes from the Unity store, the Unity EULA expressly forbids the usage of the engine for competitive analysis without prior written concent.
 
 # Results in images
 

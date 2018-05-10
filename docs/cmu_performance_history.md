@@ -6,6 +6,16 @@ The error is measured **3cm** away from each bone to simulate the visual mesh sk
 
 Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression method but only the overall best variant will be tracked here. Every clip uses an error threshold of **0.01cm (0.1mm)**.
 
+## Results from release [0.8.0](https://github.com/nfrechette/acl/releases/tag/v0.8.0):
+
+*  Raw size: **1429.38 MB**
+*  Compressed size: **67.02 MB**
+*  Compression ratio: **21.33 : 1**
+*  Max error: **0.0703** centimeters (clip *122_11*)
+*  Compression time: **00h 36m 27.22s** (single threaded)
+*  Compression time: **00h 11m 03.60s** (multi threaded on 4 cores)
+*  Best variant: Segmented uniform sampling with variable bit rate and range reduction
+
 ## Results from release [0.7.0](https://github.com/nfrechette/acl/releases/tag/v0.7.0):
 
 *  Raw size: **1429.38 MB**
