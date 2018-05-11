@@ -30,4 +30,4 @@ Clips in this space have their rotations multiplied with the base, the translati
 
 `scale = (1.0 + additive_scale) * base_scale`
 
-This is the way things are done within Unreal 4.
+This is the additive mode used by Unreal 4.

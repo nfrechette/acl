@@ -1,11 +1,11 @@
 # Matinee fight scene performance
 
-To compile the statistics, the [Matinee fight scene](http://nfrechette.github.io/2017/10/05/acl_in_ue4/) is used.
+To compile these statistics, the [Matinee fight scene](http://nfrechette.github.io/2017/10/05/acl_in_ue4/) is used.
 
 *  Number of clips: **5**
 *  Sample rate: **30 FPS**
 *  Cinematic duration: **66 seconds**
-*  Main Trooper has over **550** bones
+*  *Troopers* 1-4 have **71** bones and the *Main Trooper* has **551** bones
 
 For ACL and Unreal 4, the error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 
@@ -24,7 +24,7 @@ For ACL and Unreal 4, the error is measured **3cm** away from each bone to simul
 
 # ACL
 
-Statistics for ACL are being generated with a custom integration into Unreal **4.15**. The variant profiled uses uniform sampling with variable bit rate and range reduction enabled. Every clip uses an error threshold of **0.01cm (0.1mm)**. The max error is the error reported by Unreal from their own error metric.
+Statistics for ACL are being generated with a custom integration into Unreal **4.15**. The variant profiled uses uniform sampling with the default compression settings recommended (variable bit rate and range reduction enabled). Every clip uses an error threshold of **0.01cm (0.1mm)**. The max error is the error reported by Unreal from their own error metric.
 
 | ACL v0.8              | Trooper 1 | Trooper 2 | Trooper 3 | Trooper 4 | Main Trooper | Total    |
 | --------------------- | --------- | --------- | --------- | --------- | ------------ | -------- |
@@ -38,7 +38,9 @@ Statistics for ACL are being generated with a custom integration into Unreal **4
 
 ## As packaged
 
-When you install locally the Matinee fight scene from the marketplace, it has compression settings already pre-selected. These are the numbers from those default settings.
+When you download the Matinee fight scene from the marketplace, it comes with compression settings already pre-selected for you. The numbers below use these packaged settings.
+
+In an ideal world, we would like to always use the automatic compression settings as it selects the optimal result. However, it performs extremely poorly when the number of bones grows very large as it does with the *Main Trooper*. In a real production environment, less optimal settings will often be used in order to avoid having artists wait hours when importing animation changes. As such, the packaged settings are representative of real world production settings but they do not reflect the settings we would ideally like to use.
 
 | UE 4.15               | Trooper 1 | Trooper 2 | Trooper 3 | Trooper 4 | Main Trooper | Total    |
 | --------------------- | --------- | --------- | --------- | --------- | ------------ | -------- |
@@ -50,7 +52,7 @@ When you install locally the Matinee fight scene from the marketplace, it has co
 
 ## Automatic
 
-Using the automatic compression with default settings. As described [here](http://nfrechette.github.io/2017/01/11/anim_compression_unreal4/), the automatic compression tries many algorithms and settles on the best memory footprint that is also under the desired error threshold. The default error threshold is **1.0cm**.
+As described [here](http://nfrechette.github.io/2017/01/11/anim_compression_unreal4/), the automatic compression tries many algorithms and settles on the best memory footprint that is also under the desired error threshold. Here we used the default settings along with the default error threshold of **1.0cm**.
 
 | UE 4.15               | Trooper 1 | Trooper 2 | Trooper 3 | Trooper 4 | Main Trooper | Total      |
 | --------------------- | --------- | --------- | --------- | --------- | ------------ | ---------- |

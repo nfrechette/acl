@@ -1,6 +1,6 @@
 # Supported algorithms
 
-The library aims to support a few core algorithms that will be well suited for production use and other algorithms that are interesting to compare against.
+ACL aims to support a few core algorithms that are well suited for production use and other algorithms that are interesting to compare against.
 
 *  [Uniformly sampled](algorithm_uniformly_sampled.md)
 

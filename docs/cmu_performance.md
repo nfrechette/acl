@@ -1,7 +1,7 @@
 # Carnegie-Mellon University database performance
 
 To compile the statistics, the [animation database from Carnegie-Mellon University](http://mocap.cs.cmu.edu/) is used.
-The specific drop of the database that was used to compile these statistics is in FBX form and can be found on the Unity asset store [here](https://www.assetstore.unity3d.com/en/#!/content/19991).
+The raw animation clips in FBX form can be found on the Unity asset store [here](https://www.assetstore.unity3d.com/en/#!/content/19991).
 They were converted to the [ACL file format](the_acl_file_format.md) using the [fbx2acl](../tools/fbx2acl) script. Data available upon request, it is far too large for GitHub.
 
 *  Number of clips: **2534**
@@ -17,7 +17,7 @@ For ACL and Unreal 4, the error is measured **3cm** away from each bone to simul
 
 # ACL
 
-Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression method but only the overall best variant will be tracked here: variable bit rate with range reduction enabled. Every clip uses an error threshold of **0.01cm (0.1mm)**.
+Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression methods but only the overall best variant will be tracked here: variable bit rate with range reduction enabled. Every clip uses an error threshold of **0.01cm (0.1mm)**.
 
 *  Compressed size: **67.02 MB**
 *  Compression ratio: **21.33 : 1**
@@ -42,7 +42,7 @@ In order to measure statistics in *Unreal 4*, ACL was integrated along with a sm
 
 Sadly the *Unreal 4* compression logic does not *yet* support multi-threading and must be run from the main thread.
 
-*Note: Down-sampling variants were causing issues and were disabled in the interest of keeping things fair. This speeds up the compression time considerably but does not affect the compressed size much*
+*Note: Down-sampling variants were causing issues and were disabled in the interest of keeping things fair. This speeds up the compression time considerably but does not affect the compressed size much.*
 
 **Results from Unreal 4.15.0**
 

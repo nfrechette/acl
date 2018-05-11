@@ -19,7 +19,7 @@ context.decompress_bone(bone_index, &rotation, &translation, &scale);
 
 As shown, a context must be initialized with a compressed clip instance. Some context objects such as the one used by uniform sampling can be re-used by any compressed clip and does not need to be re-created while others might require this. In order to detect when this might be required, the function `is_dirty(const CompressedClip& clip)` is provided. Some context objects cannot be created on the stack and must be dynamically allocated with an allocator instance. The function `make_decompression_context(IAllocator& allocator, const DecompressionSettingsType& settings)` is provided for this purpose.
 
-You can seek anywhere in a clip but you will need to handle looping yourself. When sampling, you must also provide a `SampleRoundingPolicy` to dictate how the interpolation is to be performed. See [here](../includes/acl/core/interpolation_utils.h) for details.
+You can seek anywhere in a clip but you will need to handle looping manually in your game engine. When seeking, you must also provide a `SampleRoundingPolicy` to dictate how the interpolation is to be performed. See [here](../includes/acl/core/interpolation_utils.h) for details.
 
 Every decompression function supported by the context is prefixed with `decompress_`. Uniform sampling supports decompressing a whole pose with a custom `OutputWriter` for optimized pose writing. You can implement your own and coerce to your own math types. The type is templated on the `decompress_pose` function in order to be easily inlined.
 
