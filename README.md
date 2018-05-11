@@ -59,6 +59,7 @@ If you would like to integrate ACL into your own game engine, follow the integra
 *  [Carnegie-Mellon University database performance](./docs/cmu_performance.md)
 *  [Paragon database performance](./docs/paragon_performance.md)
 *  [Matinee fight scene performance](./docs/fight_scene_performance.md)
+*  [Decompression performance](decompression_performance.md)
 
 ## External dependencies
 

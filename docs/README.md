@@ -18,6 +18,7 @@ ACL aims to support a few core algorithms that are well suited for production us
 *  [Carnegie-Mellon University database performance](cmu_performance.md)
 *  [Paragon database performance](paragon_performance.md)
 *  [Matinee fight scene performance](fight_scene_performance.md)
+*  [Decompression performance](decompression_performance.md)
 
 # Research
 
