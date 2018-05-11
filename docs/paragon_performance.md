@@ -30,18 +30,18 @@ The error is measured **3cm** away from each bone to simulate the visual mesh sk
 
 Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression method but only the overall best variant will be tracked here: variable bit rate with range reduction enabled. Every clip uses an error threshold of **0.01cm (0.1mm)**.
 
-*  Compressed size: **205.58 MB**
-*  Compression ratio: **20.80 : 1**
+*  Compressed size: **206.09 MB**
+*  Compression ratio: **20.75 : 1**
 *  Max error: **3.8615** centimeters
-*  Compression time: **09h 43m 41.08s** (single threaded)
-*  Compression time: **02h 37m 23.60s** (multi threaded on 4 cores)
+*  Compression time: **07h 30m 46.44s** (single threaded)
+*  Compression time: **02h 03m 17.12s** (multi threaded on 4 cores)
 
 Notes:
 
 *  You can compress any number of clips in parallel with multiple threads but each clip uses a single thread for now.
 *  The error is unusually high for **3** exotic clips
 
-**Results from release [0.7.0](https://github.com/nfrechette/acl/releases/tag/v0.7.0)**
+**Results from release [0.8.0](https://github.com/nfrechette/acl/releases/tag/v0.8.0)**
 
 See [here](paragon_performance_history.md) for a history of performance progress across the various releases.
 
