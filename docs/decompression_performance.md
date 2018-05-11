@@ -1,11 +1,11 @@
 # Decompression performance
 
-In order to measure the decompression performance, the [acl_decompressor]() tool is used to extract the relevant metrics and a [python script]() is used to parse them.
+In order to measure the decompression performance, the [acl_decompressor](../tools/acl_decompressor) tool is used to extract the relevant metrics and a [python script](../tools/graph_generation) is used to parse them.
 
 Here are the clips we measure on:
 
-*  The 42 [regression clips]() from [CMU]() database
-*  The 5 clips from the [Matinee fight]() scene
+*  The 42 [regression clips](../test_data) from [CMU](cmu_performance.md) database
+*  The 5 clips from the [Matinee fight](fight_scene_performance.md) scene
 
 Note that the data is not yet publicly available.
 
