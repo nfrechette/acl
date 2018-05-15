@@ -36,3 +36,9 @@ Once your raw clip has been populated with data, it is ready for [compression](c
 If the clip you are compressing is an additive clip, you will also need to create an instance for the base clip. Once you have both clip instances, you link them together by calling `set_additive_base(..)` on the additive clip. This will allow you to specify the clip instance that represents the base clip as well as the [format](additive_clips.md) used by the additive clip.
 
 The library assumes that the raw clip data has already been transformed to be in additive or relative space.
+
+## Re-ordering or stripping bones
+
+Sometimes it is desireable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `AnimatedBone` contained in an `AnimationClip`. The default value is the bone index. You can use `k_invalid_bone_index` to strip the bone from the final compressed output.
+
+*Note that each `output_index` needs to be unique and there can be no gaps. If **20** bones are outputted, the indices must run from **[0 .. 20)**.*

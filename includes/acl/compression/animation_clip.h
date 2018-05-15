@@ -46,6 +46,15 @@ namespace acl
 		AnimationRotationTrack		rotation_track;
 		AnimationTranslationTrack	translation_track;
 		AnimationScaleTrack			scale_track;
+
+		// The bone output index. When writing out the compressed data stream, this index
+		// will be used instead of the bone index. This allows custom reordering for things
+		// like LOD sorting or skeleton remapping. A value of 'k_invalid_bone_index' will strip the bone
+		// from the compressed data stream. Defaults to the bone index. The output index
+		// must be unique and they must be contiguous.
+		uint16_t						output_index;
+
+		bool is_stripped_from_output() const { return output_index == k_invalid_bone_index; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -90,6 +99,7 @@ namespace acl
 				m_bones[bone_index].rotation_track = AnimationRotationTrack(allocator, num_samples, sample_rate);
 				m_bones[bone_index].translation_track = AnimationTranslationTrack(allocator, num_samples, sample_rate);
 				m_bones[bone_index].scale_track = AnimationScaleTrack(allocator, num_samples, sample_rate);
+				m_bones[bone_index].output_index = bone_index;
 			}
 		}
 
@@ -219,6 +229,41 @@ namespace acl
 			if (m_num_samples == 0)
 				return ErrorResult("Clip has no samples");
 
+			uint16_t num_output_bones = 0;
+			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
+			{
+				const uint16_t output_index = m_bones[bone_index].output_index;
+				if (output_index != k_invalid_bone_index && output_index >= m_num_bones)
+					return ErrorResult("The output_index must be 'k_invalid_bone_index' or less than the number of bones");
+
+				if (output_index != k_invalid_bone_index)
+				{
+					for (uint16_t bone_index2 = bone_index + 1; bone_index2 < m_num_bones; ++bone_index2)
+					{
+						if (output_index == m_bones[bone_index2].output_index)
+							return ErrorResult("Duplicate output_index found");
+					}
+
+					num_output_bones++;
+				}
+			}
+
+			for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
+			{
+				bool found = false;
+				for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
+				{
+					if (output_index == m_bones[bone_index].output_index)
+					{
+						found = true;
+						break;
+					}
+				}
+
+				if (!found)
+					return ErrorResult("Output indices are not contiguous");
+			}
+
 			if (m_additive_base_clip != nullptr)
 			{
 				if (m_num_bones != m_additive_base_clip->get_num_bones())
@@ -261,4 +306,27 @@ namespace acl
 		// The name of the clip
 		String					m_name;
 	};
+
+	inline uint16_t* create_output_bone_mapping(IAllocator& allocator, const AnimationClip& clip, uint16_t& out_num_output_bones)
+	{
+		const uint16_t num_bones = clip.get_num_bones();
+		const AnimatedBone* bones = clip.get_bones();
+		uint16_t num_output_bones = num_bones;
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			if (bones[bone_index].is_stripped_from_output())
+				num_output_bones--;
+		}
+
+		uint16_t* output_bone_mapping = allocate_type_array<uint16_t>(allocator, num_output_bones);
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			const uint16_t output_index = bones[bone_index].output_index;
+			if (output_index != k_invalid_bone_index)
+				output_bone_mapping[output_index] = bone_index;
+		}
+
+		out_num_output_bones = num_output_bones;
+		return output_bone_mapping;
+	}
 }

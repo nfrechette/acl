@@ -95,9 +95,10 @@ namespace acl
 		}
 	}
 
-	inline void write_range_track_data(const ClipContext& clip_context, const BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones,
+	inline void write_range_track_data(const ClipContext& clip_context, const BoneStreams* bone_streams, const BoneRanges* bone_ranges,
 		RangeReductionFlags8 range_reduction, bool is_clip_range_data,
-		uint8_t* range_data, uint32_t range_data_size)
+		uint8_t* range_data, uint32_t range_data_size,
+		const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(range_data != nullptr, "'range_data' cannot be null!");
 		(void)range_data_size;
@@ -106,8 +107,9 @@ namespace acl
 		const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
 #endif
 
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 		{
+			const uint16_t bone_index = output_bone_mapping[output_index];
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 			const BoneRanges& bone_range = bone_ranges[bone_index];
 
@@ -169,16 +171,16 @@ namespace acl
 		ACL_ASSERT(range_data == range_data_end, "Invalid range data offset. Wrote too little data.");
 	}
 
-	inline void write_clip_range_data(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size)
+	inline void write_clip_range_data(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
 
-		write_range_track_data(clip_context, segment.bone_streams, clip_context.ranges, segment.num_bones, range_reduction, true, range_data, range_data_size);
+		write_range_track_data(clip_context, segment.bone_streams, clip_context.ranges, range_reduction, true, range_data, range_data_size, output_bone_mapping, num_output_bones);
 	}
 
-	inline void write_segment_range_data(const ClipContext& clip_context, const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size)
+	inline void write_segment_range_data(const ClipContext& clip_context, const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
-		write_range_track_data(clip_context, segment.bone_streams, segment.ranges, segment.num_bones, range_reduction, false, range_data, range_data_size);
+		write_range_track_data(clip_context, segment.bone_streams, segment.ranges, range_reduction, false, range_data, range_data_size, output_bone_mapping, num_output_bones);
 	}
 }

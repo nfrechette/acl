@@ -293,6 +293,7 @@ namespace acl
 		SegmentContext* segment;
 		uint16_t bone_index;
 		uint16_t parent_bone_index;
+		uint16_t output_index;
 
 		RotationTrackStream rotations;
 		TranslationTrackStream translations;
@@ -309,12 +310,15 @@ namespace acl
 		bool is_translation_animated() const { return !is_translation_constant && !is_translation_default; }
 		bool is_scale_animated() const { return !is_scale_constant && !is_scale_default; }
 
+		bool is_stripped_from_output() const { return output_index == k_invalid_bone_index; }
+
 		BoneStreams duplicate() const
 		{
 			BoneStreams copy;
 			copy.segment = segment;
 			copy.bone_index = bone_index;
 			copy.parent_bone_index = parent_bone_index;
+			copy.output_index = output_index;
 			copy.rotations = rotations.duplicate();
 			copy.translations = translations.duplicate();
 			copy.scales = scales.duplicate();

@@ -42,6 +42,7 @@ namespace acl
 
 		uint16_t num_segments;
 		uint16_t num_bones;
+		uint16_t num_output_bones;
 		uint32_t num_samples;
 		uint32_t sample_rate;
 
@@ -90,6 +91,7 @@ namespace acl
 		out_clip_context.ranges = nullptr;
 		out_clip_context.num_segments = 1;
 		out_clip_context.num_bones = num_bones;
+		out_clip_context.num_output_bones = num_bones;
 		out_clip_context.num_samples = num_samples;
 		out_clip_context.sample_rate = sample_rate;
 		out_clip_context.duration = clip.get_duration();
@@ -115,6 +117,7 @@ namespace acl
 			bone_stream.segment = &segment;
 			bone_stream.bone_index = bone_index;
 			bone_stream.parent_bone_index = skel_bone.parent_index;
+			bone_stream.output_index = bone.output_index;
 
 			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_32), sample_rate, RotationFormat8::Quat_128);
 			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
@@ -140,6 +143,9 @@ namespace acl
 			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_all_near_equal3(vector_cast(bone.scale_track.get_sample(0)), default_scale, settings.constant_scale_threshold);
 
 			has_scale |= !bone_stream.is_scale_default;
+
+			if (bone_stream.is_stripped_from_output())
+				out_clip_context.num_output_bones--;
 		}
 
 		out_clip_context.has_scale = has_scale;

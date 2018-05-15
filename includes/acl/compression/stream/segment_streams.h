@@ -106,6 +106,7 @@ namespace acl
 				segment_bone_stream.segment = &segment;
 				segment_bone_stream.bone_index = bone_index;
 				segment_bone_stream.parent_bone_index = clip_bone_stream.parent_bone_index;
+				segment_bone_stream.output_index = clip_bone_stream.output_index;
 
 				if (!clip_bone_stream.is_rotation_animated())
 				{

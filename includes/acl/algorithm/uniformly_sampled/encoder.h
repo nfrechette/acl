@@ -134,14 +134,17 @@ namespace acl
 
 			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context, additive_base_clip_context);
 
-			const uint32_t constant_data_size = get_constant_data_size(clip_context);
+			uint16_t num_output_bones = 0;
+			uint16_t* output_bone_mapping = create_output_bone_mapping(allocator, clip, num_output_bones);
 
-			calculate_animated_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
+			const uint32_t constant_data_size = get_constant_data_size(clip_context, output_bone_mapping, num_output_bones);
+
+			calculate_animated_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, output_bone_mapping, num_output_bones);
 
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
 			const uint32_t num_tracks_per_bone = clip_context.has_scale ? 3 : 2;
-			const uint32_t num_tracks = uint32_t(num_bones) * num_tracks_per_bone;
+			const uint32_t num_tracks = uint32_t(num_output_bones) * num_tracks_per_bone;
 			const BitSetDescription bitset_desc = BitSetDescription::make_from_num_bits(num_tracks);
 
 			uint32_t buffer_size = 0;
@@ -183,7 +186,7 @@ namespace acl
 			CompressedClip* compressed_clip = make_compressed_clip(buffer, buffer_size, AlgorithmType8::UniformlySampled);
 
 			ClipHeader& header = get_clip_header(*compressed_clip);
-			header.num_bones = num_bones;
+			header.num_bones = num_output_bones;
 			header.num_segments = clip_context.num_segments;
 			header.rotation_format = settings.rotation_format;
 			header.translation_format = settings.translation_format;
@@ -202,20 +205,20 @@ namespace acl
 
 			const uint16_t segment_headers_start_offset = safe_static_cast<uint16_t>(header.clip_range_data_offset + clip_range_data_size);
 			write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
-			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_desc);
-			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_desc);
+			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
+			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
 
 			if (constant_data_size > 0)
-				write_constant_track_data(clip_context, header.get_constant_track_data(), constant_data_size);
+				write_constant_track_data(clip_context, header.get_constant_track_data(), constant_data_size, output_bone_mapping, num_output_bones);
 			else
 				header.constant_track_data_offset = InvalidPtrOffset();
 
 			if (settings.range_reduction != RangeReductionFlags8::None)
-				write_clip_range_data(clip_context, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size);
+				write_clip_range_data(clip_context, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();
 
-			write_segment_data(clip_context, settings, header);
+			write_segment_data(clip_context, settings, header, output_bone_mapping, num_output_bones);
 
 			finalize_compressed_clip(*compressed_clip);
 
@@ -226,6 +229,7 @@ namespace acl
 				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
 #endif
 
+			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
 			destroy_clip_context(allocator, clip_context);
 			destroy_clip_context(allocator, raw_clip_context);
 

@@ -36,15 +36,18 @@
 
 namespace acl
 {
-	inline uint32_t get_constant_data_size(const ClipContext& clip_context)
+	inline uint32_t get_constant_data_size(const ClipContext& clip_context, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
 
 		uint32_t constant_data_size = 0;
 
-		for (const BoneStreams& bone_stream : segment.bone_iterator())
+		for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 		{
+			const uint16_t bone_index = output_bone_mapping[output_index];
+			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
 			if (!bone_stream.is_rotation_default && bone_stream.is_rotation_constant)
 				constant_data_size += bone_stream.rotations.get_packed_sample_size();
 
@@ -84,7 +87,7 @@ namespace acl
 		}
 	}
 
-	inline void calculate_animated_data_size(ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format)
+	inline void calculate_animated_data_size(ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		// If all tracks are variable, no need for any extra padding except at the very end of the data
 		// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
@@ -97,8 +100,11 @@ namespace acl
 			uint32_t num_animated_data_bits = 0;
 			uint32_t num_animated_pose_bits = 0;
 
-			for (const BoneStreams& bone_stream : segment.bone_iterator())
+			for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 			{
+				const uint16_t bone_index = output_bone_mapping[output_index];
+				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
 				if (bone_stream.is_rotation_animated())
 					calculate_animated_data_size(bone_stream.rotations, has_mixed_packing, num_animated_data_bits, num_animated_pose_bits);
 
@@ -127,6 +133,9 @@ namespace acl
 
 		for (const BoneStreams& bone_stream : segment.bone_iterator())
 		{
+			if (bone_stream.is_stripped_from_output())
+				continue;
+
 			if (bone_stream.is_rotation_animated() && is_rotation_variable)
 				format_per_track_data_size++;
 
@@ -140,7 +149,7 @@ namespace acl
 		return format_per_track_data_size;
 	}
 
-	inline void write_constant_track_data(const ClipContext& clip_context, uint8_t* constant_data, uint32_t constant_data_size)
+	inline void write_constant_track_data(const ClipContext& clip_context, uint8_t* constant_data, uint32_t constant_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(constant_data != nullptr, "'constant_data' cannot be null!");
 		(void)constant_data_size;
@@ -152,8 +161,11 @@ namespace acl
 		const uint8_t* constant_data_end = add_offset_to_ptr<uint8_t>(constant_data, constant_data_size);
 #endif
 
-		for (const BoneStreams& bone_stream : segment.bone_iterator())
+		for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 		{
+			const uint16_t bone_index = output_bone_mapping[output_index];
+			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
 			if (!bone_stream.is_rotation_default && bone_stream.is_rotation_constant)
 			{
 				const uint8_t* rotation_ptr = bone_stream.rotations.get_raw_sample_ptr(0);
@@ -228,7 +240,7 @@ namespace acl
 		}
 	}
 
-	inline void write_animated_track_data(const ClipContext& clip_context, const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, uint8_t* animated_track_data, uint32_t animated_data_size)
+	inline void write_animated_track_data(const ClipContext& clip_context, const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, uint8_t* animated_track_data, uint32_t animated_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(animated_track_data != nullptr, "'animated_track_data' cannot be null!");
 		(void)animated_data_size;
@@ -251,8 +263,11 @@ namespace acl
 		// This ensures that all bones are contiguous in memory when we sample a particular time.
 		for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 		{
-			for (const BoneStreams& bone_stream : segment.bone_iterator())
+			for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 			{
+				const uint16_t bone_index = output_bone_mapping[output_index];
+				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
 				if (bone_stream.is_rotation_animated() && !is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
 					write_animated_track_data(bone_stream.rotations, sample_index, has_mixed_packing, animated_track_data_begin, animated_track_data, bit_offset);
 
@@ -272,7 +287,7 @@ namespace acl
 		ACL_ASSERT(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
 	}
 
-	inline void write_format_per_track_data(const ClipContext& clip_context, const SegmentContext& segment, uint8_t* format_per_track_data, uint32_t format_per_track_data_size)
+	inline void write_format_per_track_data(const ClipContext& clip_context, const SegmentContext& segment, uint8_t* format_per_track_data, uint32_t format_per_track_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(format_per_track_data != nullptr, "'format_per_track_data' cannot be null!");
 		(void)format_per_track_data_size;
@@ -281,23 +296,19 @@ namespace acl
 		const uint8_t* format_per_track_data_end = add_offset_to_ptr<uint8_t>(format_per_track_data, format_per_track_data_size);
 #endif
 
-		auto write_track_format = [&](const TrackStream& track)
+		for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 		{
-			uint8_t bit_rate = track.get_bit_rate();
-			*format_per_track_data = bit_rate;
-			format_per_track_data++;
-		};
+			const uint16_t bone_index = output_bone_mapping[output_index];
+			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 
-		for (const BoneStreams& bone_stream : segment.bone_iterator())
-		{
 			if (bone_stream.is_rotation_animated() && bone_stream.rotations.is_bit_rate_variable())
-				write_track_format(bone_stream.rotations);
+				*format_per_track_data++ = bone_stream.rotations.get_bit_rate();
 
 			if (bone_stream.is_translation_animated() && bone_stream.translations.is_bit_rate_variable())
-				write_track_format(bone_stream.translations);
+				*format_per_track_data++ = bone_stream.translations.get_bit_rate();
 
 			if (clip_context.has_scale && bone_stream.is_scale_animated() && bone_stream.scales.is_bit_rate_variable())
-				write_track_format(bone_stream.scales);
+				*format_per_track_data++ = bone_stream.scales.get_bit_rate();
 
 			ACL_ASSERT(format_per_track_data <= format_per_track_data_end, "Invalid format per track data offset. Wrote too much data.");
 		}

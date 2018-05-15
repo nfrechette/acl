@@ -32,6 +32,7 @@
 #include "acl/decompression/default_output_writer.h"
 
 #include <cstdint>
+#include <algorithm>
 
 namespace acl
 {
@@ -54,16 +55,20 @@ namespace acl
 		const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
 		const RigidSkeleton& skeleton = clip.get_skeleton();
 
+		uint16_t num_output_bones = 0;
+		uint16_t* output_bone_mapping = create_output_bone_mapping(allocator, clip, num_output_bones);
+
 		const AnimationClip* additive_base_clip = clip.get_additive_base();
 		const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;
 		const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0f;
 
 		Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* base_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_output_bones);
+		Transform_32* lossy_remapped_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
 		BoneError bone_error;
-		DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
+		DefaultOutputWriter pose_writer(lossy_pose_transforms, num_output_bones);
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
@@ -81,10 +86,19 @@ namespace acl
 				additive_base_clip->sample_pose(additive_sample_time, base_pose_transforms, num_bones);
 			}
 
+			// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
+			// the data is available
+			std::copy_n(raw_pose_transforms, num_bones, lossy_remapped_pose_transforms);
+			for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
+			{
+				const uint16_t bone_index = output_bone_mapping[output_index];
+				lossy_remapped_pose_transforms[bone_index] = lossy_pose_transforms[output_index];
+			}
+
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				// Always calculate the error with scale, slower but binary exact
-				const float error = settings.error_metric->calculate_object_bone_error(skeleton, raw_pose_transforms, base_pose_transforms, lossy_pose_transforms, bone_index);
+				const float error = settings.error_metric->calculate_object_bone_error(skeleton, raw_pose_transforms, base_pose_transforms, lossy_remapped_pose_transforms, bone_index);
 
 				if (error > bone_error.error)
 				{
@@ -95,9 +109,11 @@ namespace acl
 			}
 		}
 
+		deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
 		deallocate_type_array(allocator, raw_pose_transforms, num_bones);
 		deallocate_type_array(allocator, base_pose_transforms, num_bones);
-		deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
+		deallocate_type_array(allocator, lossy_pose_transforms, num_output_bones);
+		deallocate_type_array(allocator, lossy_remapped_pose_transforms, num_bones);
 
 		return bone_error;
 	}

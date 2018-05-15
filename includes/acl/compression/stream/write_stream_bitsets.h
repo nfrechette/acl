@@ -32,7 +32,7 @@
 
 namespace acl
 {
-	inline void write_default_track_bitset(const ClipContext& clip_context, uint32_t* default_tracks_bitset, BitSetDescription bitset_desc)
+	inline void write_default_track_bitset(const ClipContext& clip_context, uint32_t* default_tracks_bitset, BitSetDescription bitset_desc, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(default_tracks_bitset != nullptr, "'default_tracks_bitset' cannot be null!");
 
@@ -43,8 +43,11 @@ namespace acl
 
 		bitset_reset(default_tracks_bitset, bitset_desc, false);
 
-		for (const BoneStreams& bone_stream : segment.bone_iterator())
+		for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 		{
+			const uint16_t bone_index = output_bone_mapping[output_index];
+			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
 			bitset_set(default_tracks_bitset, bitset_desc, default_track_offset++, bone_stream.is_rotation_default);
 			bitset_set(default_tracks_bitset, bitset_desc, default_track_offset++, bone_stream.is_translation_default);
 
@@ -55,7 +58,7 @@ namespace acl
 		ACL_ASSERT(default_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
 	}
 
-	inline void write_constant_track_bitset(const ClipContext& clip_context, uint32_t* constant_tracks_bitset, BitSetDescription bitset_desc)
+	inline void write_constant_track_bitset(const ClipContext& clip_context, uint32_t* constant_tracks_bitset, BitSetDescription bitset_desc, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(constant_tracks_bitset != nullptr, "'constant_tracks_bitset' cannot be null!");
 
@@ -66,8 +69,11 @@ namespace acl
 
 		bitset_reset(constant_tracks_bitset, bitset_desc, false);
 
-		for (const BoneStreams& bone_stream : segment.bone_iterator())
+		for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 		{
+			const uint16_t bone_index = output_bone_mapping[output_index];
+			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
 			bitset_set(constant_tracks_bitset, bitset_desc, constant_track_offset++, bone_stream.is_rotation_constant);
 			bitset_set(constant_tracks_bitset, bitset_desc, constant_track_offset++, bone_stream.is_translation_constant);
 
