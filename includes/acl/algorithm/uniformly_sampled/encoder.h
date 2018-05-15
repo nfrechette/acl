@@ -87,7 +87,6 @@ namespace acl
 
 			ScopeProfiler compression_time;
 
-			const uint16_t num_bones = clip.get_num_bones();
 			const uint32_t num_samples = clip.get_num_samples();
 			const RigidSkeleton& skeleton = clip.get_skeleton();
 

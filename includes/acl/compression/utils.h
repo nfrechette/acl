@@ -32,7 +32,7 @@
 #include "acl/decompression/default_output_writer.h"
 
 #include <cstdint>
-#include <algorithm>
+#include <cstring>
 
 namespace acl
 {
@@ -88,7 +88,7 @@ namespace acl
 
 			// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
 			// the data is available
-			std::copy_n(raw_pose_transforms, num_bones, lossy_remapped_pose_transforms);
+			std::memcpy(lossy_remapped_pose_transforms, raw_pose_transforms, sizeof(Transform_32) * num_bones);
 			for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 			{
 				const uint16_t bone_index = output_bone_mapping[output_index];
