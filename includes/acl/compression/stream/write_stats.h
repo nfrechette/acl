@@ -32,6 +32,10 @@
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
 
+#include <cstdint>
+#include <thread>
+#include <chrono>
+
 namespace acl
 {
 	inline void write_summary_segment_stats(const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, sjson::ObjectWriter& writer)
@@ -233,10 +237,19 @@ namespace acl
 							cache_flusher->flush_buffer(context, sizeof(DecompressionContextType));
 							cache_flusher->flush_buffer(&compressed_clip, compressed_clip.get_size());
 							cache_flusher->end_flushing();
+
+							// Now that the cache is cold, yield our time slice and wait for a new one
+							// This helps minimize the risk that we'll be interrupted during decompression
+							std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 						}
 						else
 						{
 							// If we want the cache warm, decompress everything once to prime it
+
+							// We yield our time slice and wait for a new one before priming the cache
+							// to help keep it warm and minimize the risk that we'll be interrupted during decompression
+							std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+
 							context->seek(sample_time, SampleRoundingPolicy::None);
 							context->decompress_pose(pose_writer);
 						}
@@ -295,9 +308,19 @@ namespace acl
 				cache_flusher->begin_flushing();
 				cache_flusher->flush_buffer(memcpy_src_transforms, sizeof(Transform_32) * num_bones);
 				cache_flusher->end_flushing();
+
+				// Now that the cache is cold, yield our time slice and wait for a new one
+				// This helps minimize the risk that we'll be interrupted during decompression
+				std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 			}
 			else
+			{
+				// We yield our time slice and wait for a new one before priming the cache
+				// to help keep it warm and minimize the risk that we'll be interrupted during decompression
+				std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+
 				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+			}
 
 			double execution_count;
 			ScopeProfiler timer;
