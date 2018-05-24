@@ -31,6 +31,7 @@
 #include "acl/decompression/default_output_writer.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/skeleton_error_metric.h"
+#include "acl/compression/utils.h"
 
 #include <cstdint>
 #include <thread>
