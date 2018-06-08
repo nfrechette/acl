@@ -169,6 +169,9 @@ namespace acl
 
 			const float clip_duration = get_duration();
 
+			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
+			sample_time = clamp(sample_time, 0.0f, clip_duration);
+
 			uint32_t sample_index0;
 			uint32_t sample_index1;
 			float interpolation_alpha;

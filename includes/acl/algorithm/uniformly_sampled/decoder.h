@@ -387,6 +387,10 @@ namespace acl
 		{
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
 
+			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
+			// TODO: Make it optional via DecompressionSettingsType?
+			sample_time = clamp(sample_time, 0.0f, m_context.clip_duration);
+
 			if (m_context.sample_time == sample_time)
 				return;
 
