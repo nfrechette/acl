@@ -503,8 +503,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			{
 			case AlgorithmType8::UniformlySampled:
 			{
-				uniformly_sampled::DebugDecompressionSettings decompression_settings;
-				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context(decompression_settings);
+				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context;
 				context.initialize(*compressed_clip);
 				bone_error = calculate_compressed_clip_error(allocator, clip, settings, context);
 				break;
@@ -526,8 +525,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			{
 			case AlgorithmType8::UniformlySampled:
 			{
-				uniformly_sampled::DebugDecompressionSettings decompression_settings;
-				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context(decompression_settings);
+				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context;
 				context.initialize(*compressed_clip);
 				validate_accuracy(allocator, clip, settings, context, regression_error_threshold);
 				break;

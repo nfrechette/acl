@@ -426,10 +426,9 @@ namespace acl
 			ACL_ASSERT(use_uniform_fast_path, "We do not support profiling the debug code path");
 #endif
 
-			uniformly_sampled::DefaultDecompressionSettings decompression_settings;
 			uniformly_sampled::DecompressionContext<uniformly_sampled::DefaultDecompressionSettings>* contexts[k_num_decompression_timing_passes];
 			for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
-				contexts[pass_index] = uniformly_sampled::make_decompression_context(allocator, decompression_settings);
+				contexts[pass_index] = uniformly_sampled::make_decompression_context<uniformly_sampled::DefaultDecompressionSettings>(allocator);
 
 			write_decompression_performance_stats(allocator, compressed_clip, contexts, logging, writer);
 

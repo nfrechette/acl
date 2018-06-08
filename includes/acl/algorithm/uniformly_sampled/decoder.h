@@ -241,6 +241,12 @@ namespace acl
 
 		public:
 			//////////////////////////////////////////////////////////////////////////
+			// Constructs a context instance with an optional allocator instance.
+			// The default constructor for the DecompressionSettingsType will be used.
+			// If an allocator is provided, it will be used in `release()` to free the context
+			inline DecompressionContext(IAllocator* allocator = nullptr);
+
+			//////////////////////////////////////////////////////////////////////////
 			// Constructs a context instance from a set of static settings and an optional allocator instance.
 			// If an allocator is provided, it will be used in `release()` to free the context
 			inline DecompressionContext(const DecompressionSettingsType& settings, IAllocator* allocator = nullptr);
@@ -291,12 +297,29 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Allocates and constructs an instance of the decompression context
 		template<class DecompressionSettingsType>
+		inline DecompressionContext<DecompressionSettingsType>* make_decompression_context(IAllocator& allocator)
+		{
+			return allocate_type<DecompressionContext<DecompressionSettingsType>>(allocator, &allocator);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Allocates and constructs an instance of the decompression context
+		template<class DecompressionSettingsType>
 		inline DecompressionContext<DecompressionSettingsType>* make_decompression_context(IAllocator& allocator, const DecompressionSettingsType& settings)
 		{
 			return allocate_type<DecompressionContext<DecompressionSettingsType>>(allocator, settings, &allocator);
 		}
 
 		//////////////////////////////////////////////////////////////////////////
+
+		template<class DecompressionSettingsType>
+		inline DecompressionContext<DecompressionSettingsType>::DecompressionContext(IAllocator* allocator)
+			: m_context()
+			, m_settings()
+			, m_allocator(allocator)
+		{
+			m_context.clip = nullptr;		// Only member used to detect if we are initialized
+		}
 
 		template<class DecompressionSettingsType>
 		inline DecompressionContext<DecompressionSettingsType>::DecompressionContext(const DecompressionSettingsType& settings, IAllocator* allocator)
