@@ -234,7 +234,7 @@ namespace acl
 				return "'acl_filename' cannot be NULL!";
 
 			const size_t filename_len = std::strlen(acl_filename);
-			if (filename_len < 6 || strncmp(acl_filename + filename_len - 6, ".acl.sjson", 6) != 0)
+			if (filename_len < 10 || strncmp(acl_filename + filename_len - 10, ".acl.sjson", 10) != 0)
 				return "'acl_filename' file must be an ACL SJSON file of the form: *.acl.sjson";
 
 			std::FILE* file = nullptr;
