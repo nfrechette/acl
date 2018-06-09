@@ -55,6 +55,54 @@ namespace acl
 		Additive1			= 3,
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+
+	// TODO: constexpr
+	inline const char* get_additive_clip_format_name(AdditiveClipFormat8 format)
+	{
+		switch (format)
+		{
+		case AdditiveClipFormat8::None:				return "None";
+		case AdditiveClipFormat8::Relative:			return "Relative";
+		case AdditiveClipFormat8::Additive0:		return "Additive0";
+		case AdditiveClipFormat8::Additive1:		return "Additive1";
+		default:									return "<Invalid>";
+		}
+	}
+
+	inline bool get_additive_clip_format(const char* format, AdditiveClipFormat8& out_format)
+	{
+		const char* none_format = "None";
+		if (std::strncmp(format, none_format, std::strlen(none_format)) == 0)
+		{
+			out_format = AdditiveClipFormat8::None;
+			return true;
+		}
+
+		const char* relative_format = "Relative";
+		if (std::strncmp(format, relative_format, std::strlen(relative_format)) == 0)
+		{
+			out_format = AdditiveClipFormat8::Relative;
+			return true;
+		}
+
+		const char* additive0_format = "Additive0";
+		if (std::strncmp(format, additive0_format, std::strlen(additive0_format)) == 0)
+		{
+			out_format = AdditiveClipFormat8::Additive0;
+			return true;
+		}
+
+		const char* additive1_format = "Additive1";
+		if (std::strncmp(format, additive1_format, std::strlen(additive1_format)) == 0)
+		{
+			out_format = AdditiveClipFormat8::Additive1;
+			return true;
+		}
+
+		return false;
+	}
+
 	inline Vector4_32 get_default_scale(AdditiveClipFormat8 additive_format)
 	{
 		return additive_format == AdditiveClipFormat8::Additive1 ? vector_zero_32() : vector_set(1.0f);
