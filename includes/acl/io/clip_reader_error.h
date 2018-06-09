@@ -39,6 +39,7 @@ namespace acl
 			NoBoneWithThatName,
 			UnsignedIntegerExpected,
 			InvalidCompressionSetting,
+			InvalidAdditiveClipFormat,
 		};
 
 		ClipReaderError()
@@ -64,6 +65,10 @@ namespace acl
 				return "The skeleton does not define a bone with this name";
 			case UnsignedIntegerExpected:
 				return "An unsigned integer is expected here";
+			case InvalidCompressionSetting:
+				return "Invalid compression settings provided";
+			case InvalidAdditiveClipFormat:
+				return "Invalid additive clip format provided";
 			default:
 				return sjson::ParserError::get_description();
 			}

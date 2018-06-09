@@ -26,6 +26,26 @@ clip =
 
 	// Clip sample rate in samples per second. All tracks must have the same sample rate.
 	sample_rate = 30
+
+	// Whether floating point values are stored in hexadecimal and thus binary exact. Optional, defaults to 'false'.
+	// Introduced in version 2.
+	is_binary_exact = true
+
+	// Additive format of base clip, if present. Optional, defaults to 'None'.
+	// Introduced in version 3.
+	additive_format = "None"
+
+	// The additive base clip name. Optional, defaults to empty string.
+	// Introduced in version 3.
+	additive_base_name = "A base clip"
+
+	// The additive base clip num samples. Optional, defaults to 0.
+	// Introduced in version 3.
+	additive_base_num_samples = 1
+
+	// The additive base clip sample rate. Optional, defaults to 1.
+	// Introduced in version 3.
+	additive_base_sample_rate = 30
 }
 
 // Optional compression settings.

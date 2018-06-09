@@ -720,7 +720,22 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 	return true;
 }
 
-static void create_additive_base_clip(IAllocator& allocator, const Options& options, AnimationClip& clip, const RigidSkeleton& skeleton, CompressionSettings& out_settings, AnimationClip& out_base_clip)
+static ISkeletalErrorMetric* create_additive_error_metric(IAllocator& allocator, AdditiveClipFormat8 format)
+{
+	switch (format)
+	{
+	case AdditiveClipFormat8::Relative:
+		return allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Relative>>(allocator);
+	case AdditiveClipFormat8::Additive0:
+		return allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive0>>(allocator);
+	case AdditiveClipFormat8::Additive1:
+		return allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive1>>(allocator);
+	default:
+		return nullptr;
+	}
+}
+
+static void create_additive_base_clip(const Options& options, AnimationClip& clip, const RigidSkeleton& skeleton, AnimationClip& out_base_clip)
 {
 	// Convert the animation clip to be relative to the bind pose
 	const uint16_t num_bones = clip.get_num_bones();
@@ -769,13 +784,6 @@ static void create_additive_base_clip(IAllocator& allocator, const Options& opti
 		base_bone.translation_track.set_sample(0, bind_transform.translation);
 		base_bone.scale_track.set_sample(0, bind_transform.scale);
 	}
-
-	if (options.is_bind_pose_relative)
-		out_settings.error_metric = allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Relative>>(allocator);
-	else if (options.is_bind_pose_additive0)
-		out_settings.error_metric = allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive0>>(allocator);
-	else if (options.is_bind_pose_additive1)
-		out_settings.error_metric = allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive1>>(allocator);
 
 	clip.set_additive_base(&out_base_clip, additive_format);
 }
@@ -836,15 +844,23 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = true;
 	}
 
-	AnimationClip* base_clip = nullptr;
+	// Grab whatever clip we might have read from the sjson file and cast the const away so we can manage the memory
+	AnimationClip* base_clip = const_cast<AnimationClip*>(clip->get_additive_base());
 
 	if (!is_input_acl_bin_file)
 	{
-		base_clip = allocate_type<AnimationClip>(allocator, allocator, *skeleton, 1, 30, String(allocator, "Base Clip"));
+		if (base_clip == nullptr)
+		{
+			base_clip = allocate_type<AnimationClip>(allocator, allocator, *skeleton, 1, 30, String(allocator, "Base Clip"));
 
-		if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
-			create_additive_base_clip(allocator, options, *clip, *skeleton, settings, *base_clip);
-		else
+			if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
+				create_additive_base_clip(options, *clip, *skeleton, *base_clip);
+		}
+
+		// First try to create an additive error metric
+		settings.error_metric = create_additive_error_metric(allocator, clip->get_additive_format());
+
+		if (settings.error_metric == nullptr)
 			settings.error_metric = allocate_type<TransformErrorMetric>(allocator);
 	}
 

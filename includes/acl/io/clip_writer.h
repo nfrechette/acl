@@ -63,6 +63,15 @@ namespace acl
 				writer["num_samples"] = clip.get_num_samples();
 				writer["sample_rate"] = clip.get_sample_rate();
 				writer["is_binary_exact"] = true;
+				writer["additive_format"] = get_additive_clip_format_name(clip.get_additive_format());
+
+				const AnimationClip* base_clip = clip.get_additive_base();
+				if (base_clip != nullptr)
+				{
+					writer["additive_base_name"] = base_clip->get_name().c_str();
+					writer["additive_base_num_samples"] = base_clip->get_num_samples();
+					writer["additive_base_sample_rate"] = base_clip->get_sample_rate();
+				}
 			};
 			writer.insert_newline();
 		}
@@ -148,11 +157,11 @@ namespace acl
 			writer.insert_newline();
 		}
 
-		inline void write_sjson_tracks(const RigidSkeleton& skeleton, const AnimationClip& clip, sjson::Writer& writer)
+		inline void write_sjson_tracks(const RigidSkeleton& skeleton, const AnimationClip& clip, bool is_base_clip, sjson::Writer& writer)
 		{
 			char buffer[32] = { 0 };
 
-			writer["tracks"] = [&](sjson::ArrayWriter& writer)
+			writer[is_base_clip ? "base_tracks" : "tracks"] = [&](sjson::ArrayWriter& writer)
 			{
 				const uint16_t num_bones = skeleton.get_num_bones();
 				if (num_bones > 0)
@@ -251,14 +260,19 @@ namespace acl
 			sjson::FileStreamWriter stream_writer(file);
 			sjson::Writer writer(stream_writer);
 
-			writer["version"] = 2;
+			writer["version"] = 3;
 			writer.insert_newline();
 
 			write_sjson_clip(clip, writer);
 			if (settings != nullptr)
 				write_sjson_settings(algorithm, *settings, writer);
 			write_sjson_bones(skeleton, writer);
-			write_sjson_tracks(skeleton, clip, writer);
+
+			const AnimationClip* base_clip = clip.get_additive_base();
+			if (base_clip != nullptr)
+				write_sjson_tracks(skeleton, *base_clip, true, writer);
+
+			write_sjson_tracks(skeleton, clip, false, writer);
 
 			std::fclose(file);
 			return nullptr;

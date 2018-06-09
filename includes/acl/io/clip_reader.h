@@ -104,6 +104,10 @@ namespace acl
 		uint32_t m_sample_rate;
 		sjson::StringView m_clip_name;
 		bool m_is_binary_exact;
+		AdditiveClipFormat8 m_additive_format;
+		sjson::StringView m_additive_base_name;
+		uint32_t m_additive_base_num_samples;
+		uint32_t m_additive_base_sample_rate;
 
 		void reset_state()
 		{
@@ -119,7 +123,7 @@ namespace acl
 				return false;
 			}
 
-			if (m_version > 2)
+			if (m_version > 3)
 			{
 				set_error(ClipReaderError::UnsupportedVersion);
 				return false;
@@ -130,6 +134,8 @@ namespace acl
 
 		bool read_clip_header()
 		{
+			sjson::StringView additive_format;
+
 			if (!m_parser.object_begins("clip"))
 				goto error;
 
@@ -141,7 +147,7 @@ namespace acl
 				goto error;
 
 			m_num_samples = static_cast<uint32_t>(num_samples);
-			if (static_cast<double>(m_num_samples) != num_samples)
+			if (static_cast<double>(m_num_samples) != num_samples || m_num_samples == 0)
 			{
 				set_error(ClipReaderError::UnsignedIntegerExpected);
 				return false;
@@ -152,7 +158,7 @@ namespace acl
 				goto error;
 
 			m_sample_rate = static_cast<uint32_t>(sample_rate);
-			if (static_cast<double>(m_sample_rate) != sample_rate)
+			if (static_cast<double>(m_sample_rate) != sample_rate || m_sample_rate == 0)
 			{
 				set_error(ClipReaderError::UnsignedIntegerExpected);
 				return false;
@@ -165,6 +171,30 @@ namespace acl
 
 			// Optional value
 			m_parser.try_read("is_binary_exact", m_is_binary_exact, false);
+
+			// Optional value
+			m_parser.try_read("additive_format", additive_format, "None");
+			if (!get_additive_clip_format(additive_format.c_str(), m_additive_format))
+			{
+				set_error(ClipReaderError::InvalidAdditiveClipFormat);
+				return false;
+			}
+
+			m_parser.try_read("additive_base_name", m_additive_base_name, "");
+			m_parser.try_read("additive_base_num_samples", num_samples, 1.0);
+			m_additive_base_num_samples = static_cast<uint32_t>(num_samples);
+			if (static_cast<double>(m_additive_base_num_samples) != num_samples || m_additive_base_num_samples == 0)
+			{
+				set_error(ClipReaderError::UnsignedIntegerExpected);
+				return false;
+			}
+			m_parser.try_read("additive_base_sample_rate", sample_rate, 30.0);
+			m_additive_base_sample_rate = static_cast<uint32_t>(sample_rate);
+			if (static_cast<double>(m_additive_base_sample_rate) != sample_rate || m_additive_base_sample_rate == 0)
+			{
+				set_error(ClipReaderError::UnsignedIntegerExpected);
+				return false;
+			}
 
 			if (!m_parser.object_ends())
 				goto error;
@@ -465,6 +495,68 @@ namespace acl
 
 		bool read_tracks(AnimationClip& clip, const RigidSkeleton& skeleton)
 		{
+			std::unique_ptr<AnimationClip, Deleter<AnimationClip>> base_clip;
+
+			if (m_parser.try_array_begins("base_tracks"))
+			{
+				base_clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_additive_base_num_samples, m_additive_base_sample_rate, String(m_allocator, m_additive_base_name.c_str(), m_additive_base_name.size()));
+
+				while (!m_parser.try_array_ends())
+				{
+					if (!m_parser.object_begins())
+						goto error;
+
+					sjson::StringView name;
+					if (!m_parser.read("name", name))
+						goto error;
+
+					const uint16_t bone_index = find_bone(skeleton.get_bones(), skeleton.get_num_bones(), name);
+					if (bone_index == k_invalid_bone_index)
+					{
+						set_error(ClipReaderError::NoBoneWithThatName);
+						return false;
+					}
+
+					AnimatedBone& bone = base_clip->get_animated_bone(bone_index);
+
+					if (m_parser.try_array_begins("rotations"))
+					{
+						if (!read_track_rotations(bone, m_additive_base_num_samples) || !m_parser.array_ends())
+							goto error;
+					}
+					else
+					{
+						for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
+							bone.rotation_track.set_sample(sample_index, quat_identity_64());
+					}
+
+					if (m_parser.try_array_begins("translations"))
+					{
+						if (!read_track_translations(bone, m_additive_base_num_samples) || !m_parser.array_ends())
+							goto error;
+					}
+					else
+					{
+						for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
+							bone.translation_track.set_sample(sample_index, vector_zero_64());
+					}
+
+					if (m_parser.try_array_begins("scales"))
+					{
+						if (!read_track_scales(bone, m_additive_base_num_samples) || !m_parser.array_ends())
+							goto error;
+					}
+					else
+					{
+						for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
+							bone.scale_track.set_sample(sample_index, vector_set(1.0));
+					}
+
+					if (!m_parser.object_ends())
+						goto error;
+				}
+			}
+
 			if (!m_parser.array_begins("tracks"))
 				goto error;
 
@@ -477,7 +569,7 @@ namespace acl
 				if (!m_parser.read("name", name))
 					goto error;
 
-				uint16_t bone_index = find_bone(skeleton.get_bones(), skeleton.get_num_bones(), name);
+				const uint16_t bone_index = find_bone(skeleton.get_bones(), skeleton.get_num_bones(), name);
 				if (bone_index == k_invalid_bone_index)
 				{
 					set_error(ClipReaderError::NoBoneWithThatName);
@@ -488,7 +580,7 @@ namespace acl
 
 				if (m_parser.try_array_begins("rotations"))
 				{
-					if (!read_track_rotations(bone) || !m_parser.array_ends())
+					if (!read_track_rotations(bone, m_num_samples) || !m_parser.array_ends())
 						goto error;
 				}
 				else
@@ -499,7 +591,7 @@ namespace acl
 
 				if (m_parser.try_array_begins("translations"))
 				{
-					if (!read_track_translations(bone) || !m_parser.array_ends())
+					if (!read_track_translations(bone, m_num_samples) || !m_parser.array_ends())
 						goto error;
 				}
 				else
@@ -510,7 +602,7 @@ namespace acl
 
 				if (m_parser.try_array_begins("scales"))
 				{
-					if (!read_track_scales(bone) || !m_parser.array_ends())
+					if (!read_track_scales(bone, m_num_samples) || !m_parser.array_ends())
 						goto error;
 				}
 				else
@@ -523,6 +615,8 @@ namespace acl
 					goto error;
 			}
 
+			clip.set_additive_base(base_clip.release(), m_additive_format);
+
 			return true;
 
 		error:
@@ -530,9 +624,9 @@ namespace acl
 			return false;
 		}
 
-		bool read_track_rotations(AnimatedBone& bone)
+		bool read_track_rotations(AnimatedBone& bone, uint32_t num_samples_expected)
 		{
-			for (uint32_t i = 0; i < m_num_samples; ++i)
+			for (uint32_t i = 0; i < num_samples_expected; ++i)
 			{
 				if (!m_parser.array_begins())
 					return false;
@@ -565,9 +659,9 @@ namespace acl
 			return true;
 		}
 
-		bool read_track_translations(AnimatedBone& bone)
+		bool read_track_translations(AnimatedBone& bone, uint32_t num_samples_expected)
 		{
-			for (uint32_t i = 0; i < m_num_samples; ++i)
+			for (uint32_t i = 0; i < num_samples_expected; ++i)
 			{
 				if (!m_parser.array_begins())
 					return false;
@@ -600,9 +694,9 @@ namespace acl
 			return true;
 		}
 
-		bool read_track_scales(AnimatedBone& bone)
+		bool read_track_scales(AnimatedBone& bone, uint32_t num_samples_expected)
 		{
-			for (uint32_t i = 0; i < m_num_samples; ++i)
+			for (uint32_t i = 0; i < num_samples_expected; ++i)
 			{
 				if (!m_parser.array_begins())
 					return false;
