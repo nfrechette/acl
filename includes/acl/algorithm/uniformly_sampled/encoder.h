@@ -130,6 +130,8 @@ namespace acl
 					normalize_segment_streams(clip_context, settings.range_reduction);
 				}
 			}
+			else
+				settings.segmenting.range_reduction = RangeReductionFlags8::None;
 
 			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context, additive_base_clip_context);
 
