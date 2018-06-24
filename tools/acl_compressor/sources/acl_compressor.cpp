@@ -844,11 +844,12 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = true;
 	}
 
-	// Grab whatever clip we might have read from the sjson file and cast the const away so we can manage the memory
-	AnimationClip* base_clip = const_cast<AnimationClip*>(clip->get_additive_base());
+	AnimationClip* base_clip = nullptr;
 
 	if (!is_input_acl_bin_file)
 	{
+		// Grab whatever clip we might have read from the sjson file and cast the const away so we can manage the memory
+		base_clip = const_cast<AnimationClip*>(clip->get_additive_base());
 		if (base_clip == nullptr)
 		{
 			base_clip = allocate_type<AnimationClip>(allocator, allocator, *skeleton, 1, 30, String(allocator, "Base Clip"));
