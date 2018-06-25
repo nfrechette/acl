@@ -590,7 +590,7 @@ if __name__ == "__main__":
 	options = parse_argv()
 	if options['print_help']:
 		print_help()
-		sys.exit(0)
+		sys.exit(1)
 
 	cmake_exe, ctest_exe = get_cmake_exes()
 	compiler = options['compiler']
@@ -635,3 +635,5 @@ if __name__ == "__main__":
 
 	if options['regression_test'] and not options['compiler'] == 'android' and not options['compiler'] == 'ios':
 		do_regression_tests(ctest_exe, test_data_dir, options)
+
+	sys.exit(0)
