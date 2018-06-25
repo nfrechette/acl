@@ -14,6 +14,12 @@ def get_platform_compilers():
 		print('Unknown platform!')
 		sys.exit(1)
 
+def get_python_exe_name():
+	if platform.system() == 'Windows':
+		return 'python'
+	else:
+		return 'python3'
+
 if __name__ == "__main__":
 	os.environ['PYTHONIOENCODING'] = 'utf_8'
 
@@ -21,13 +27,14 @@ if __name__ == "__main__":
 	archs = [ '-x86', '-x64' ]
 	compilers = get_platform_compilers()
 	avx_opts = [ '', '-avx' ]
+	python_exe = get_python_exe_name()
 
 	cmds = []
 	for config in configs:
 		for arch in archs:
 			for compiler in compilers:
 				for w_avx in avx_opts:
-					cmds.append('python make.py {} {} {} {} -build -unit_test -regression_test -clean'.format(compiler, arch, config, w_avx))
+					cmds.append('{} make.py {} {} {} {} -build -unit_test -regression_test -clean'.format(python_exe, compiler, arch, config, w_avx))
 
 	root_dir = os.path.join(os.getcwd(), '../..')
 	os.chdir(root_dir)
@@ -35,7 +42,8 @@ if __name__ == "__main__":
 	for cmd in cmds:
 		print('Running command: "{}" ...'.format(cmd))
 		try:
-			subprocess.check_output(cmd)
+			args = cmd.split(' ')
+			subprocess.check_output(args)
 		except subprocess.CalledProcessError as e:
 			print('Failed command: {}'.format(cmd))
 			print(e.output.decode(sys.stdout.encoding))
