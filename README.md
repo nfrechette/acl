@@ -48,6 +48,8 @@ Much thought was put into designing the library for it to be as flexible and pow
 
 The above supported platform list is only what is tested every release but if it compiles, it should run just fine.
 
+The [Unreal Engine](https://www.unrealengine.com/en-US/blog) is supported through a plugin found [here](https://github.com/nfrechette/acl-ue4-plugin).
+
 ## Getting started
 
 If you would like to contribute to ACL or use it for research, head on over to the [getting started](./docs/getting_started.md) section in order to setup your environment and make sure to check out the [contributing guidelines](CONTRIBUTING.md).
