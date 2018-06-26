@@ -1,5 +1,10 @@
 # Significant changes per release
 
+## 1.0.0
+
+*  Minor additions to fully support UE4
+*  Minor cleanup
+
 ## 0.8.0
 
 *  Improved error handling
