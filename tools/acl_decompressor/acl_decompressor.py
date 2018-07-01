@@ -61,8 +61,8 @@ def parse_argv():
 		print_help()
 		sys.exit(1)
 
-	if options['stats'] == None:
-		print('Stat output directory not found')
+	if options['stats'] == None or len(options['stats']) == 0:
+		print('-stats output directory is missing')
 		print_usage()
 		sys.exit(1)
 
