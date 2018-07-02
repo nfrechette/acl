@@ -140,6 +140,9 @@ struct Options
 	bool			is_bind_pose_additive0;
 	bool			is_bind_pose_additive1;
 
+	bool			stat_detailed_output;
+	bool			stat_exhaustive_output;
+
 	//////////////////////////////////////////////////////////////////////////
 
 	Options()
@@ -163,6 +166,8 @@ struct Options
 		, is_bind_pose_relative(false)
 		, is_bind_pose_additive0(false)
 		, is_bind_pose_additive1(false)
+		, stat_detailed_output(false)
+		, stat_exhaustive_output(false)
 	{}
 
 	Options(Options&& other)
@@ -186,6 +191,8 @@ struct Options
 		, is_bind_pose_relative(other.is_bind_pose_relative)
 		, is_bind_pose_additive0(other.is_bind_pose_additive0)
 		, is_bind_pose_additive1(other.is_bind_pose_additive1)
+		, stat_detailed_output(other.stat_detailed_output)
+		, stat_exhaustive_output(other.stat_exhaustive_output)
 	{
 		new (&other) Options();
 	}
@@ -218,6 +225,8 @@ struct Options
 		std::swap(is_bind_pose_relative, other.is_bind_pose_relative);
 		std::swap(is_bind_pose_additive0, other.is_bind_pose_additive0);
 		std::swap(is_bind_pose_additive1, other.is_bind_pose_additive1);
+		std::swap(stat_detailed_output, other.stat_detailed_output);
+		std::swap(stat_exhaustive_output, other.stat_exhaustive_output);
 		return *this;
 	}
 
@@ -249,6 +258,8 @@ static constexpr const char* k_exhaustive_compression_option = "-exhaustive";
 static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
+static constexpr const char* k_stat_detailed_output_option = "-stat_detailed";
+static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive";
 
 bool is_acl_sjson_file(const char* filename)
 {
@@ -380,6 +391,20 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_bind_pose_additive1_option, option_length) == 0)
 		{
 			options.is_bind_pose_additive1 = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_stat_detailed_output_option);
+		if (std::strncmp(argument, k_stat_detailed_output_option, option_length) == 0)
+		{
+			options.stat_detailed_output = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_stat_exhaustive_output_option);
+		if (std::strncmp(argument, k_stat_exhaustive_output_option, option_length) == 0)
+		{
+			options.stat_exhaustive_output = true;
 			continue;
 		}
 
@@ -869,6 +894,12 @@ static int safe_main_impl(int argc, char* argv[])
 	auto exec_algos = [&](sjson::ArrayWriter* runs_writer)
 	{
 		StatLogging logging = options.output_stats ? StatLogging::Summary : StatLogging::None;
+
+		if (options.stat_detailed_output)
+			logging |= StatLogging::Detailed;
+
+		if (options.stat_exhaustive_output)
+			logging |= StatLogging::Exhaustive;
 
 		if (options.profile_decompression)
 			logging |= StatLogging::SummaryDecompression | StatLogging::ExhaustiveDecompression;

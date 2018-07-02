@@ -26,6 +26,8 @@ def parse_argv():
 	options['refresh'] = False
 	options['num_threads'] = 1
 	options['has_progress_bar'] = True
+	options['stat_detailed'] = False
+	options['stat_exhaustive'] = False
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
@@ -61,6 +63,12 @@ def parse_argv():
 
 		if value == '-no_progress_bar':
 			options['has_progress_bar'] = False
+
+		if value == '-stat_detailed':
+			options['stat_detailed'] = True
+
+		if value == '-stat_exhaustive':
+			options['stat_exhaustive'] = True
 
 		if value.startswith('-parallel='):
 			options['num_threads'] = int(value[len('-parallel='):].replace('"', ''))
@@ -120,6 +128,8 @@ def print_help():
 	print('  -refresh: If an output stat file already exists for a particular clip, it is recompressed anyway instead of being skipped.')
 	print('  -parallel=<Num Threads>: Allows multiple clips to be compressed and processed in parallel.')
 	print('  -no_progress_bar: Suppresses the progress bar output')
+	print('  -stat_detailed: Enables detailed stat logging')
+	print('  -stat_exhaustive: Enables exhaustive stat logging')
 	print('  -help: Prints this help message.')
 
 def print_stat(stat):
@@ -311,6 +321,12 @@ def compress_clips(options):
 				cmd = '{} -acl="{}" -stats="{}" -out="{}"'.format(compressor_exe_path, acl_filename, stat_filename, out_filename)
 			else:
 				cmd = '{} -acl="{}" -stats="{}"'.format(compressor_exe_path, acl_filename, stat_filename)
+
+			if options['stat_detailed']:
+				cmd = '{} -stat_detailed'.format(cmd)
+
+			if options['stat_exhaustive']:
+				cmd = '{} -stat_exhaustive'.format(cmd)
 
 			if platform.system() == 'Windows':
 				cmd = cmd.replace('/', '\\')
