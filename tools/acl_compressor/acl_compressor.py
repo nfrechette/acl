@@ -597,14 +597,17 @@ def aggregate_job_stats(agg_job_results, job_results):
 		agg_job_results['num_runs'] += job_results['num_runs']
 		agg_job_results['total_compression_time'] += job_results['total_compression_time']
 		for key in job_results['agg_run_stats'].keys():
-			agg_job_results['agg_run_stats'][key]['total_raw_size'] += job_results['agg_run_stats'][key]['total_raw_size']
-			agg_job_results['agg_run_stats'][key]['total_compressed_size'] += job_results['agg_run_stats'][key]['total_compressed_size']
-			agg_job_results['agg_run_stats'][key]['total_compression_time'] += job_results['agg_run_stats'][key]['total_compression_time']
-			agg_job_results['agg_run_stats'][key]['total_duration'] += job_results['agg_run_stats'][key]['total_duration']
-			agg_job_results['agg_run_stats'][key]['max_error'] = max(agg_job_results['agg_run_stats'][key]['max_error'], job_results['agg_run_stats'][key]['max_error'])
-			agg_job_results['agg_run_stats'][key]['num_runs'] += job_results['agg_run_stats'][key]['num_runs']
-			for i in range(19):
-				agg_job_results['agg_run_stats'][key]['bit_rates'][i] += job_results['agg_run_stats'][key]['bit_rates'][i]
+			if not key in agg_job_results['agg_run_stats']:
+				agg_job_results['agg_run_stats'][key] = job_results['agg_run_stats'][key].copy()
+			else:
+				agg_job_results['agg_run_stats'][key]['total_raw_size'] += job_results['agg_run_stats'][key]['total_raw_size']
+				agg_job_results['agg_run_stats'][key]['total_compressed_size'] += job_results['agg_run_stats'][key]['total_compressed_size']
+				agg_job_results['agg_run_stats'][key]['total_compression_time'] += job_results['agg_run_stats'][key]['total_compression_time']
+				agg_job_results['agg_run_stats'][key]['total_duration'] += job_results['agg_run_stats'][key]['total_duration']
+				agg_job_results['agg_run_stats'][key]['max_error'] = max(agg_job_results['agg_run_stats'][key]['max_error'], job_results['agg_run_stats'][key]['max_error'])
+				agg_job_results['agg_run_stats'][key]['num_runs'] += job_results['agg_run_stats'][key]['num_runs']
+				for i in range(19):
+					agg_job_results['agg_run_stats'][key]['bit_rates'][i] += job_results['agg_run_stats'][key]['bit_rates'][i]
 
 		if job_results['best_runs']['best_error'] < agg_job_results['best_runs']['best_error']:
 			agg_job_results['best_runs']['best_error'] = job_results['best_runs']['best_error']
