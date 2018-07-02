@@ -25,6 +25,7 @@ def parse_argv():
 	options['csv_error'] = False
 	options['refresh'] = False
 	options['num_threads'] = 1
+	options['has_progress_bar'] = True
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
@@ -57,6 +58,9 @@ def parse_argv():
 
 		if value == '-refresh':
 			options['refresh'] = True
+
+		if value == '-no_progress_bar':
+			options['has_progress_bar'] = False
 
 		if value.startswith('-parallel='):
 			options['num_threads'] = int(value[len('-parallel='):].replace('"', ''))
@@ -115,6 +119,7 @@ def print_help():
 	print('  -csv_error: Generates a CSV with the error for every bone at every key frame. The executable must be compiled with exhaustive statistics enabled.')
 	print('  -refresh: If an output stat file already exists for a particular clip, it is recompressed anyway instead of being skipped.')
 	print('  -parallel=<Num Threads>: Allows multiple clips to be compressed and processed in parallel.')
+	print('  -no_progress_bar: Suppresses the progress bar output')
 	print('  -help: Prints this help message.')
 
 def print_stat(stat):
@@ -329,14 +334,16 @@ def compress_clips(options):
 			thread.daemon = True
 			thread.start()
 
-		print_progress(0, len(stat_files), 'Compressing clips:', '{} / {}'.format(0, len(stat_files)))
+		if options['has_progress_bar']:
+			print_progress(0, len(stat_files), 'Compressing clips:', '{} / {}'.format(0, len(stat_files)))
 		try:
 			while True:
 				for thread in threads:
 					thread.join(1.0)
 
 				num_processed = result_queue.qsize()
-				print_progress(num_processed, len(stat_files), 'Compressing clips:', '{} / {}'.format(num_processed, len(stat_files)))
+				if options['has_progress_bar']:
+					print_progress(num_processed, len(stat_files), 'Compressing clips:', '{} / {}'.format(num_processed, len(stat_files)))
 
 				all_threads_done = True
 				for thread in threads:
@@ -624,14 +631,16 @@ if __name__ == "__main__":
 
 	agg_job_results = {}
 	num_stat_file_processed = 0
-	print_progress(num_stat_file_processed, len(stat_files), 'Aggregating results:', '{} / {}'.format(num_stat_file_processed, len(stat_files)))
+	if options['has_progress_bar']:
+		print_progress(num_stat_file_processed, len(stat_files), 'Aggregating results:', '{} / {}'.format(num_stat_file_processed, len(stat_files)))
 	try:
 		while True:
 			try:
 				(msg, data) = result_queue.get(True, 1.0)
 				if msg == 'progress':
 					num_stat_file_processed += 1
-					print_progress(num_stat_file_processed, len(stat_files), 'Aggregating results:', '{} / {}'.format(num_stat_file_processed, len(stat_files)))
+					if options['has_progress_bar']:
+						print_progress(num_stat_file_processed, len(stat_files), 'Aggregating results:', '{} / {}'.format(num_stat_file_processed, len(stat_files)))
 				elif msg == 'done':
 					aggregate_job_stats(agg_job_results, data)
 					append_csv(csv_data, data)
