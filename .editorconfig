@@ -5,7 +5,7 @@ end_of_line = lf
 insert_final_newline = true
 
 # Matches multiple files with brace expansion notation
-[*.{cpp,h,py,txt}]
+[*.{cpp,h,py,txt,sjson}]
 charset = utf-8
 indent_style = tab
 indent_size = 4
