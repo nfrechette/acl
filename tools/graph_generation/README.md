@@ -6,6 +6,8 @@ Usage always takes the form: `python <script.py> <path/to/input_file.sjson>`
 
 The SJSON input file uses a simple and custom format that describes where the raw data lives and other associated information. You can look at the CMU files in this directory for inspiration.
 
+The `extract_stats.py` script found [here](./release_scripts/extract_stats.py) is used to generate the raw data necessary.
+
 ## gen_bit_rate_stats.py
 
 This script aggregates the raw data and formats the bit rate usage frequency.
