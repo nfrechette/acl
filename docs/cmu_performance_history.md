@@ -2,9 +2,19 @@
 
 To compile the statistics, the animation database from [Carnegie-Mellon University](http://mocap.cs.cmu.edu/) is used.
 
+ACL supports various compression methods but only the overall best variant will be tracked here (see `get_default_compression_settings()` for details).
+
 The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 
-Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression methods but only the overall best variant will be tracked here. Every clip uses an error threshold of **0.01cm (0.1mm)**.
+## Results from release [1.0.0](https://github.com/nfrechette/acl/releases/tag/v1.0.0):
+
+*  Raw size: **1429.38 MB**
+*  Compressed size: **67.02 MB**
+*  Compression ratio: **21.33 : 1**
+*  Max error: **0.0703** centimeters (clip *83_11*)
+*  Compression time: **37m 13.14s** (single threaded)
+*  Compression time: **10m 11.49s** (multi threaded on 4 cores)
+*  Best variant: Segmented uniform sampling with variable bit rate and range reduction
 
 ## Results from release [0.8.0](https://github.com/nfrechette/acl/releases/tag/v0.8.0):
 
@@ -12,8 +22,8 @@ Statistics for ACL are being generated with the `acl_compressor` tool found [her
 *  Compressed size: **67.02 MB**
 *  Compression ratio: **21.33 : 1**
 *  Max error: **0.0703** centimeters (clip *122_11*)
-*  Compression time: **00h 36m 27.22s** (single threaded)
-*  Compression time: **00h 11m 03.60s** (multi threaded on 4 cores)
+*  Compression time: **36m 27.22s** (single threaded)
+*  Compression time: **11m 03.60s** (multi threaded on 4 cores)
 *  Best variant: Segmented uniform sampling with variable bit rate and range reduction
 
 ## Results from release [0.7.0](https://github.com/nfrechette/acl/releases/tag/v0.7.0):
@@ -22,8 +32,8 @@ Statistics for ACL are being generated with the `acl_compressor` tool found [her
 *  Compressed size: **67.04 MB**
 *  Compression ratio: **21.32 : 1**
 *  Max error: **0.0479** centimeters (clip *81_18*)
-*  Compression time: **00h 51m 24.01s** (single threaded)
-*  Compression time: **00h 13m 38.96s** (multi threaded on 4 cores)
+*  Compression time: **51m 24.01s** (single threaded)
+*  Compression time: **13m 38.96s** (multi threaded on 4 cores)
 *  Best variant: Segmented uniform sampling with variable bit rate and range reduction
 
 ## Results from release [0.6.0](https://github.com/nfrechette/acl/releases/tag/v0.6.0):
@@ -32,8 +42,8 @@ Statistics for ACL are being generated with the `acl_compressor` tool found [her
 *  Compressed size: **67.04 MB**
 *  Compression ratio: **21.32 : 1**
 *  Max error: **0.0479** centimeters (clip *81_18*)
-*  Compression time: **00h 51m 40.20s** (single threaded)
-*  Compression time: **00h 13m 04.58s** (multi threaded on 4 cores)
+*  Compression time: **51m 40.20s** (single threaded)
+*  Compression time: **13m 04.58s** (multi threaded on 4 cores)
 *  Best variant: Segmented uniform sampling with variable bit rate and range reduction
 
 
@@ -55,8 +65,8 @@ Statistics for ACL are being generated with the `acl_compressor` tool found [her
 *  Compressed size: **82.25 MB**
 *  Compression ratio: **12.16 : 1**
 *  Max error: **0.0635** centimeters (clip *144_32*)
-*  Compression time: **00h 50m 38.96s** (single threaded)
-*  Compression time: **00h 05m 27.05s** (multi threaded on 11 cores)
+*  Compression time: **50m 38.96s** (single threaded)
+*  Compression time: **05m 27.05s** (multi threaded on 11 cores)
 *  Best variant: Segmented uniform sampling with variable bit rate and range reduction
 
 *Note: There was a bug in fbx2acl truncating the last sample in 0.3.0 and older versions.*
