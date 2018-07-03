@@ -1,16 +1,28 @@
 # Paragon database performance history
 
 To compile these statistics, a large number of animations from [Paragon](https://www.epicgames.com/paragon) are used.
-In October 2017 the animations were extracted manually and converted to the [ACL file format](the_acl_file_format.md) losslessly. The data is sadly **NOT** available upon request.
+
+In *October 2017* the animations were extracted manually and converted to the [ACL file format](the_acl_file_format.md) losslessly. The data is sadly **NOT** available upon request.
 Epic has permitted [Nicholas Frechette](https://github.com/nfrechette) to use them for research purposes only under a non-disclosure agreement.
 
 *  Number of clips: **6558**
 *  Total duration: **07h 00m 45.27s**
 *  Raw size: **4276.11 MB** (10x float32 * num bones * num samples)
 
+ACL supports various compression methods but only the overall best variant will be tracked here (see `get_default_compression_settings()` for details).
+
 The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 
-Statistics for ACL are being generated with the `acl_compressor` tool found [here](../tools/acl_compressor). It supports various compression methods but only the overall best variant will be tracked here. Every clip uses an error threshold of **0.01cm (0.1mm)**.
+## Results from release [1.0.0](https://github.com/nfrechette/acl/releases/tag/v1.0.0):
+
+*  Compressed size: **206.09 MB**
+*  Compression ratio: **20.75 : 1**
+*  Max error: **3.8615** centimeters
+*  Compression time: **07h 48m 52.03s** (single threaded)
+*  Compression time: **02h 06m 34.97s** (multi threaded on 4 cores)
+*  Best variant: Segmented uniform sampling with variable bit rate and range reduction
+
+*Note: The error is unusually high (above **1cm**) for **6** exotic clips.
 
 ## Results from release [0.8.0](https://github.com/nfrechette/acl/releases/tag/v0.8.0):
 
@@ -21,7 +33,7 @@ Statistics for ACL are being generated with the `acl_compressor` tool found [her
 *  Compression time: **02h 03m 17.12s** (multi threaded on 4 cores)
 *  Best variant: Segmented uniform sampling with variable bit rate and range reduction
 
-*Note: The error is unusually high for **3** exotic clips.
+*Note: The error is unusually high (above **1cm**) for **6** exotic clips.
 
 ## Results from release [0.7.0](https://github.com/nfrechette/acl/releases/tag/v0.7.0):
 
