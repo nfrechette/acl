@@ -6,58 +6,18 @@ To compile these statistics, the [Matinee fight scene](http://nfrechette.github.
 *  Sample rate: **30 FPS**
 *  Cinematic duration: **66 seconds**
 *  *Troopers* 1-4 have **71** bones and the *Main Trooper* has **551** bones
+*  Raw size: **62.38 MB** (10x float32 * num bones * num samples)
 
-For ACL and Unreal 4, the error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
+ACL supports various compression methods but only the overall best variant will be tracked here (see `get_default_compression_settings()` for details).
 
-*  [ACL](fight_scene_performance.md#acl)
-*  [Unreal 4](fight_scene_performance.md#unreal-4)
+The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 
-|                            | ACL v0.8 | UE 4.15 Automatic | UE 4.15 Packaged |
-| -------------------------- | -------- | ----------------- | ---------------- |
-| **Total compressed size** | 8.49 MB | 21.81 MB | 25.18 MB |
-| **Total raw size**       | 62.38 MB | 62.38 MB | 62.38 MB |
-| **Total compression ratio**    | 7.35 : 1 | 2.86 : 1 | 2.48 : 1 |
-| **Max error**                  | 0.217 cm | 0.399 cm | 0.369 cm |
-| **Total compression time**     | 1m 5s | 2h 49m 35s | 5m 10s |
+The performance of ACL in Unreal Engine 4 is tracked by the plugin [here](https://github.com/nfrechette/acl-ue4-plugin/blob/develop/Docs/fight_scene_performance.md).
 
+|         | ACL v1.0.0 |
+| ------- | -------- |
+| **Compressed size** | 8.66 MB |
+| **Compression ratio**    | 7.20 : 1 |
+| **Max error**                  | 0.0618 cm |
+| **Compression time**     | 02m 08.14s |
 
-
-# ACL
-
-Statistics for ACL are being generated with a custom integration into Unreal **4.15**. The variant profiled uses uniform sampling with the default compression settings recommended (variable bit rate and range reduction enabled). Every clip uses an error threshold of **0.01cm (0.1mm)**. The max error is the error reported by Unreal from their own error metric.
-
-| ACL v0.8              | Trooper 1 | Trooper 2 | Trooper 3 | Trooper 4 | Main Trooper | Total    |
-| --------------------- | --------- | --------- | --------- | --------- | ------------ | -------- |
-| **Compressed size**   | 287.05 KB | 302.89 KB | 303.12 KB | 313.85 KB | 7.31 MB      | 8.49 MB  |
-| **Raw size**          | 5508 KB   | 5353 KB   | 5430 KB   | 5508 KB   | 41.09 MB     | 62.38 MB |
-| **Compression ratio** | 19.19 : 1 | 17.67 : 1 | 17.92 : 1 | 17.55 : 1 | 5.62 : 1     | 7.35 : 1 |
-| **Max error**         | 0.187 cm  | 0.213 cm  | 0.197 cm  | 0.188 cm  | 0.217 cm     |          |
-| **Compression time**  | 5.45s     | 7.28s     | 6.61s     | 8.21s     | 36.97s       | 1m 5s    |
-
-# Unreal 4
-
-## As packaged
-
-When you download the Matinee fight scene from the marketplace, it comes with compression settings already pre-selected for you. The numbers below use these packaged settings.
-
-In an ideal world, we would like to always use the automatic compression settings as it selects the optimal result. However, it performs extremely poorly when the number of bones grows very large as it does with the *Main Trooper*. In a real production environment, less optimal settings will often be used in order to avoid having artists wait hours when importing animation changes. As such, the packaged settings are representative of real world production settings but they do not reflect the settings we would ideally like to use.
-
-| UE 4.15               | Trooper 1 | Trooper 2 | Trooper 3 | Trooper 4 | Main Trooper | Total    |
-| --------------------- | --------- | --------- | --------- | --------- | ------------ | -------- |
-| **Compressed size**   | 194.97 KB | 268.34 KB | 277.48 KB | 304.56 KB | 24.16 MB     | 25.18 MB |
-| **Raw size**          | 5508 KB   | 5353 KB   | 5430 KB   | 5508 KB   | 41.09 MB     | 62.38 MB |
-| **Compression ratio** | 28.25 : 1 | 19.95 : 1 | 19.57 : 1 | 18.09 : 1 | 1.70 : 1     | 2.48 : 1 |
-| **Max error**         | 0.369 cm  | 0.302 cm  | 0.302 cm  | 0.326 cm  | 0.353 cm     |          |
-| **Compression time**  | 6.67s     | 5.00s     | 4.57s     | 6.92s     | 4m 46s       | 5m 10s   |
-
-## Automatic
-
-As described [here](http://nfrechette.github.io/2017/01/11/anim_compression_unreal4/), the automatic compression tries many algorithms and settles on the best memory footprint that is also under the desired error threshold. Here we used the default settings along with the default error threshold of **1.0cm**.
-
-| UE 4.15               | Trooper 1 | Trooper 2 | Trooper 3 | Trooper 4 | Main Trooper | Total      |
-| --------------------- | --------- | --------- | --------- | --------- | ------------ | ---------- |
-| **Compressed size**   | 121.60 KB | 165.84 KB | 175.12 KB | 186.32 KB | 21.18 MB     | 21.81 MB   |
-| **Raw size**          | 5508 KB   | 5353 KB   | 5430 KB   | 5508 KB   | 41.09 MB     | 62.38 MB   |
-| **Compression ratio** | 45.30 : 1 | 32.28 : 1 | 31.01 : 1 | 29.56 : 1 | 1.94 : 1     | 2.86 : 1   |
-| **Max error**         | 0.345 cm  | 0.358 cm  | 0.303 cm  | 0.320 cm  | 0.399 cm     |            |
-| **Compression time**  | 6m 54s    | 5m 47s    | 5m 38s    | 6m 27s    | 2h 24m 48s   | 2h 49m 35s |
