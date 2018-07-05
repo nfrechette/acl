@@ -1,0 +1,59 @@
+inputs =
+[
+	{
+		header = "VS 2015 x64"
+		name = "vs2015-x64"
+		stats_dir = "D:\\test_animations\\decomp_stats-1.0.0\\decomp-stats-vs2015-x64-1.0.0"
+		version = "1.0"
+		source = "acl"
+	}
+	{
+		header = "VS 2015 x64"
+		name = "vs2015-x64"
+		stats_dir = "D:\\test_animations\\decomp_stats-0.8.0\\decomp-stats-vs2015-x64-0.8.0"
+		version = "0.8"
+		source = "acl"
+	}
+	{
+		header = "OS X x64"
+		name = "osx-x64"
+		stats_dir = "D:\\test_animations\\decomp_stats-1.0.0\\decomp-stats-osx-x64-1.0.0"
+		version = "1.0"
+		source = "acl"
+	}
+	{
+		header = "OS X x64"
+		name = "osx-x64"
+		stats_dir = "D:\\test_animations\\decomp_stats-0.8.0\\decomp-stats-osx-x64-0.8.0"
+		version = "0.8"
+		source = "acl"
+	}
+	{
+		header = "iOS arm64"
+		name = "ios-arm64"
+		stats_dir = "D:\\test_animations\\decomp_stats-1.0.0\\decomp-stats-ios-arm64-1.0.0"
+		version = "1.0"
+		source = "acl"
+	}
+	{
+		header = "iOS arm64"
+		name = "ios-arm64"
+		stats_dir = "D:\\test_animations\\decomp_stats-0.8.0\\decomp-stats-ios-arm64-0.8.0"
+		version = "0.8"
+		source = "acl"
+	}
+	{
+		header = "Android "
+		name = "android-armv7-a"
+		stats_dir = "D:\\test_animations\\decomp_stats-1.0.0\\decomp-stats-android-armv7-a-1.0.0"
+		version = "1.0"
+		source = "acl"
+	}
+	{
+		header = "Android "
+		name = "android-armv7-a"
+		stats_dir = "D:\\test_animations\\decomp_stats-0.8.0\\decomp-stats-android-armv7-a-0.8.0"
+		version = "0.8"
+		source = "acl"
+	}
+]
