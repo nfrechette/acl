@@ -13,6 +13,8 @@ ACL aims to support a few core algorithms that are well suited for production us
 *  [Compressing a raw clip](compressing_a_raw_clip.md)
 *  [Decompressing a clip](decompressing_a_clip.md)
 
+See how it's integrated into Unreal Engine 4 [here](https://github.com/nfrechette/acl-ue4-plugin)!
+
 # Performance metrics
 
 *  [Carnegie-Mellon University database performance](cmu_performance.md)

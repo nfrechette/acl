@@ -6,7 +6,7 @@ For now, we only implement a single algorithm: [uniformly sampled](algorithm_uni
 
 While we support various [rotation and vector quantization formats](rotation_and_vector_formats.md), the overall best performing are the *variable* variants. It is safe to use them for all your clips but if you do happen to run into issues with some exotic clips, you can easily fallback to less aggressive variants.
 
-[Segmenting](http://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/) ensures that large clips are clip into smaller segments and compressed independently to allow a smaller memory footprint as well as faster compression and decompression.
+[Segmenting](http://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/) ensures that large clips are split into smaller segments and compressed independently to allow a smaller memory footprint as well as faster compression and decompression.
 
 [Range reduction](range_reduction.md) is important and also something you will want to enable for all your tracks both at the clip and segment level.
 
@@ -29,7 +29,7 @@ settings.error_metric = &error_metric;
 UniformlySampledAlgorithm algorithm(settings);
 OutputStats stats;
 CompressedClip* compressed_clip = nullptr;
-ErrorResult error_result = algorithm.compress_clip(allocator, clip, compressed_clip, stats);
+ErrorResult error_result = uniformly_sampled::compress_clip(allocator, raw_clip, settings, compressed_clip, stats);
 ```
 
 You can also query the current default and recommended settings with this function: `get_default_compression_settings()`.
