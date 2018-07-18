@@ -68,8 +68,10 @@ namespace acl
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
+			// Note that because we have scale, we must measure all three axes
 			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
 			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = transform_position(raw_local_pose[bone_index], vtx0);
 			const Vector4_32 lossy_vtx0 = transform_position(lossy_local_pose[bone_index], vtx0);
@@ -79,7 +81,11 @@ namespace acl
 			const Vector4_32 lossy_vtx1 = transform_position(lossy_local_pose[bone_index], vtx1);
 			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
 
-			return max(vtx0_error, vtx1_error);
+			const Vector4_32 raw_vtx2 = transform_position(raw_local_pose[bone_index], vtx2);
+			const Vector4_32 lossy_vtx2 = transform_position(lossy_local_pose[bone_index], vtx2);
+			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
+
+			return max(max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
 		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
@@ -123,18 +129,23 @@ namespace acl
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
+			// Note that because we have scale, we must measure all three axes
 			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0f, 0.0f);
 			const Vector4_32 vtx1 = vector_set(0.0f, target_bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, target_bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = matrix_mul_position(raw_obj_mtx, vtx0);
 			const Vector4_32 raw_vtx1 = matrix_mul_position(raw_obj_mtx, vtx1);
+			const Vector4_32 raw_vtx2 = matrix_mul_position(raw_obj_mtx, vtx2);
 			const Vector4_32 lossy_vtx0 = matrix_mul_position(lossy_obj_mtx, vtx0);
 			const Vector4_32 lossy_vtx1 = matrix_mul_position(lossy_obj_mtx, vtx1);
+			const Vector4_32 lossy_vtx2 = matrix_mul_position(lossy_obj_mtx, vtx2);
 
 			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
 			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
 
-			return max(vtx0_error, vtx1_error);
+			return max(max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
 		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
@@ -187,8 +198,10 @@ namespace acl
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
+			// Note that because we have scale, we must measure all three axes
 			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
 			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = transform_position(raw_local_pose[bone_index], vtx0);
 			const Vector4_32 lossy_vtx0 = transform_position(lossy_local_pose[bone_index], vtx0);
@@ -198,7 +211,11 @@ namespace acl
 			const Vector4_32 lossy_vtx1 = transform_position(lossy_local_pose[bone_index], vtx1);
 			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
 
-			return max(vtx0_error, vtx1_error);
+			const Vector4_32 raw_vtx2 = transform_position(raw_local_pose[bone_index], vtx2);
+			const Vector4_32 lossy_vtx2 = transform_position(lossy_local_pose[bone_index], vtx2);
+			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
+
+			return max(max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
 		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
@@ -242,18 +259,23 @@ namespace acl
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
+			// Note that because we have scale, we must measure all three axes
 			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0f, 0.0f);
 			const Vector4_32 vtx1 = vector_set(0.0f, target_bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, target_bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = transform_position(raw_obj_transform, vtx0);
 			const Vector4_32 raw_vtx1 = transform_position(raw_obj_transform, vtx1);
+			const Vector4_32 raw_vtx2 = transform_position(raw_obj_transform, vtx2);
 			const Vector4_32 lossy_vtx0 = transform_position(lossy_obj_transform, vtx0);
 			const Vector4_32 lossy_vtx1 = transform_position(lossy_obj_transform, vtx1);
+			const Vector4_32 lossy_vtx2 = transform_position(lossy_obj_transform, vtx2);
 
 			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
 			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
 
-			return max(vtx0_error, vtx1_error);
+			return max(max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
 		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
@@ -318,8 +340,10 @@ namespace acl
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
+			// Note that because we have scale, we must measure all three axes
 			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
 			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, bone.vertex_distance);
 
 			const Transform_32 raw_transform = apply_additive_to_base(additive_format, base_local_pose[bone_index], raw_local_pose[bone_index]);
 			const Transform_32 lossy_transform = apply_additive_to_base(additive_format, base_local_pose[bone_index], lossy_local_pose[bone_index]);
@@ -332,7 +356,11 @@ namespace acl
 			const Vector4_32 lossy_vtx1 = transform_position(lossy_transform, vtx1);
 			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
 
-			return max(vtx0_error, vtx1_error);
+			const Vector4_32 raw_vtx2 = transform_position(raw_transform, vtx2);
+			const Vector4_32 lossy_vtx2 = transform_position(lossy_transform, vtx2);
+			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
+
+			return max(max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
 		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
@@ -378,18 +406,23 @@ namespace acl
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
+			// Note that because we have scale, we must measure all three axes
 			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0f, 0.0f);
 			const Vector4_32 vtx1 = vector_set(0.0f, target_bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, target_bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = transform_position(raw_obj_transform, vtx0);
 			const Vector4_32 raw_vtx1 = transform_position(raw_obj_transform, vtx1);
+			const Vector4_32 raw_vtx2 = transform_position(raw_obj_transform, vtx2);
 			const Vector4_32 lossy_vtx0 = transform_position(lossy_obj_transform, vtx0);
 			const Vector4_32 lossy_vtx1 = transform_position(lossy_obj_transform, vtx1);
+			const Vector4_32 lossy_vtx2 = transform_position(lossy_obj_transform, vtx2);
 
 			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
 			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
 
-			return max(vtx0_error, vtx1_error);
+			return max(max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
 		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
