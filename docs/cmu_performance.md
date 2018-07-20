@@ -1,5 +1,14 @@
 # Carnegie-Mellon University database performance
 
+|                        | v1.0.0     | v0.8.0     | v0.7.0     |
+| -------                | --------   | --------   | --------   |
+| **Compressed size**    | 67.02 MB   | 67.02 MB   | 67.04 MB   |
+| **Compression ratio**  | 21.33 : 1  | 21.33 : 1  | 21.32 : 1  |
+| **Max error**          | 0.0725 cm  | 0.0703 cm  | 0.0479 cm  |
+| **Compression time**   | 37m 47.76s | 36m 27.22s | 51m 24.01s |
+
+# Data and method used
+
 To compile the statistics, the [animation database from Carnegie-Mellon University](http://mocap.cs.cmu.edu/) is used.
 The raw animation clips in FBX form can be found on the Unity asset store [here](https://www.assetstore.unity3d.com/en/#!/content/19991).
 They were converted to the [ACL file format](the_acl_file_format.md) using the [fbx2acl](../tools/fbx2acl) script. Data available upon request, it is far too large for GitHub.
@@ -14,20 +23,6 @@ ACL supports various compression methods but only the overall best variant will 
 The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 
 The performance of ACL in Unreal Engine 4 is tracked by the plugin [here](https://github.com/nfrechette/acl-ue4-plugin/blob/develop/Docs/cmu_performance.md).
-
-# Summary
-
-*  Compressed size: **67.02 MB**
-*  Compression ratio: **21.33 : 1**
-*  Max error: **0.0703** centimeters (clip *83_11*)
-*  Compression time: **37m 13.14s** (single threaded)
-*  Compression time: **10m 11.49s** (multi threaded on 4 cores)
-
-Note that you can compress any number of clips in parallel with multiple threads but each clip uses a single thread for now.
-
-**Results from release [1.0.0](https://github.com/nfrechette/acl/releases/tag/v1.0.0)**
-
-See [here](cmu_performance_history.md) for a history of performance progress across the various releases.
 
 # Results in images
 

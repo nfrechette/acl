@@ -1,5 +1,19 @@
 # Paragon database performance
 
+|                       | v1.0.0        | v0.8.0        | v0.7.0        |
+| -------               | --------      | --------      | --------      |
+| **Compressed size**   | 206.57 MB     | 206.09 MB     | 205.58 MB     |
+| **Compression ratio** | 20.70 : 1     | 20.75 : 1     | 20.80 : 1     |
+| **Max error**         | 7.0159 cm     | 3.8615 cm     | 3.8615 cm     |
+| **Compression time**  | 7h 57m 41.72s | 7h 30m 46.44s | 9h 43m 41.08s |
+
+Notes:
+
+*  The error is unusually high and above **1cm** for **6** exotic clips
+*  **v1.0.0** is **NOT** less accurate, a bug was fixed that partially hid the true error with 3D scale in prior versions
+
+# Data and method used
+
 To compile these statistics, a large number of animations from [Paragon](https://www.epicgames.com/paragon) are used.
 
 In *October 2017* the animations were manually extracted and converted to the [ACL file format](the_acl_file_format.md) losslessly. The data is sadly **NOT** available upon request.
@@ -26,23 +40,6 @@ ACL supports various compression methods but only the overall best variant will 
 The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
 
 The performance of ACL in Unreal Engine 4 is tracked by the plugin [here](https://github.com/nfrechette/acl-ue4-plugin/blob/develop/Docs/paragon_performance.md).
-
-# Summary
-
-*  Compressed size: **206.09 MB**
-*  Compression ratio: **20.75 : 1**
-*  Max error: **3.8615** centimeters
-*  Compression time: **07h 48m 52.03s** (single threaded)
-*  Compression time: **02h 06m 34.97s** (multi threaded on 4 cores)
-
-Notes:
-
-*  You can compress any number of clips in parallel with multiple threads but each clip uses a single thread for now.
-*  The error is unusually high (above **1cm**) for **6** exotic clips.
-
-**Results from release [1.0.0](https://github.com/nfrechette/acl/releases/tag/v1.0.0)**
-
-See [here](paragon_performance_history.md) for a history of performance progress across the various releases.
 
 # Results in images
 
