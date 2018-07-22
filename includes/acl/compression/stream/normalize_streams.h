@@ -136,12 +136,17 @@ namespace acl
 		const Vector4_32 range_extent = range.get_extent();
 		const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
 
-		const Vector4_32 normalized_sample = vector_div(vector_sub(sample, range_min), range_extent);
+		Vector4_32 normalized_sample = vector_div(vector_sub(sample, range_min), range_extent);
+		// Clamp because the division might be imprecise
+		normalized_sample = vector_min(normalized_sample, vector_set(1.0f));
 		return vector_blend(is_range_zero_mask, vector_zero_32(), normalized_sample);
 	}
 
 	inline void normalize_rotation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 	{
+		const Vector4_32 one = vector_set(1.0f);
+		const Vector4_32 zero = vector_zero_32();
+
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			BoneStreams& bone_stream = bone_streams[bone_index];
@@ -167,19 +172,21 @@ namespace acl
 				// normalized value = (value - range min) / range extent
 				const Vector4_32 rotation = bone_stream.rotations.get_raw_sample<Vector4_32>(sample_index);
 				Vector4_32 normalized_rotation = vector_div(vector_sub(rotation, range_min), range_extent);
-				normalized_rotation = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_rotation);
+				// Clamp because the division might be imprecise
+				normalized_rotation = vector_min(normalized_rotation, one);
+				normalized_rotation = vector_blend(is_range_zero_mask, zero, normalized_rotation);
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 				switch (bone_stream.rotations.get_rotation_format())
 				{
 				case RotationFormat8::Quat_128:
-					ACL_ASSERT(vector_all_greater_equal(normalized_rotation, vector_zero_32()) && vector_all_less_equal(normalized_rotation, vector_set(1.0f)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation), vector_get_w(normalized_rotation));
+					ACL_ASSERT(vector_all_greater_equal(normalized_rotation, zero) && vector_all_less_equal(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation), vector_get_w(normalized_rotation));
 					break;
 				case RotationFormat8::QuatDropW_96:
 				case RotationFormat8::QuatDropW_48:
 				case RotationFormat8::QuatDropW_32:
 				case RotationFormat8::QuatDropW_Variable:
-					ACL_ASSERT(vector_all_greater_equal3(normalized_rotation, vector_zero_32()) && vector_all_less_equal3(normalized_rotation, vector_set(1.0f)), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation));
+					ACL_ASSERT(vector_all_greater_equal3(normalized_rotation, zero) && vector_all_less_equal3(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_rotation), vector_get_y(normalized_rotation), vector_get_z(normalized_rotation));
 					break;
 				}
 #endif
@@ -191,6 +198,9 @@ namespace acl
 
 	inline void normalize_translation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 	{
+		const Vector4_32 one = vector_set(1.0f);
+		const Vector4_32 zero = vector_zero_32();
+
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			BoneStreams& bone_stream = bone_streams[bone_index];
@@ -216,9 +226,11 @@ namespace acl
 				// normalized value = (value - range min) / range extent
 				const Vector4_32 translation = bone_stream.translations.get_raw_sample<Vector4_32>(sample_index);
 				Vector4_32 normalized_translation = vector_div(vector_sub(translation, range_min), range_extent);
-				normalized_translation = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_translation);
+				// Clamp because the division might be imprecise
+				normalized_translation = vector_min(normalized_translation, one);
+				normalized_translation = vector_blend(is_range_zero_mask, zero, normalized_translation);
 
-				ACL_ASSERT(vector_all_greater_equal3(normalized_translation, vector_zero_32()) && vector_all_less_equal3(normalized_translation, vector_set(1.0f)), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_translation), vector_get_y(normalized_translation), vector_get_z(normalized_translation));
+				ACL_ASSERT(vector_all_greater_equal3(normalized_translation, zero) && vector_all_less_equal3(normalized_translation, one), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_translation), vector_get_y(normalized_translation), vector_get_z(normalized_translation));
 
 				bone_stream.translations.set_raw_sample(sample_index, normalized_translation);
 			}
@@ -227,6 +239,9 @@ namespace acl
 
 	inline void normalize_scale_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 	{
+		const Vector4_32 one = vector_set(1.0f);
+		const Vector4_32 zero = vector_zero_32();
+
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			BoneStreams& bone_stream = bone_streams[bone_index];
@@ -252,9 +267,11 @@ namespace acl
 				// normalized value = (value - range min) / range extent
 				const Vector4_32 scale = bone_stream.scales.get_raw_sample<Vector4_32>(sample_index);
 				Vector4_32 normalized_scale = vector_div(vector_sub(scale, range_min), range_extent);
-				normalized_scale = vector_blend(is_range_zero_mask, vector_zero_32(), normalized_scale);
+				// Clamp because the division might be imprecise
+				normalized_scale = vector_min(normalized_scale, one);
+				normalized_scale = vector_blend(is_range_zero_mask, zero, normalized_scale);
 
-				ACL_ASSERT(vector_all_greater_equal3(normalized_scale, vector_zero_32()) && vector_all_less_equal3(normalized_scale, vector_set(1.0f)), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_scale), vector_get_y(normalized_scale), vector_get_z(normalized_scale));
+				ACL_ASSERT(vector_all_greater_equal3(normalized_scale, zero) && vector_all_less_equal3(normalized_scale, one), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", vector_get_x(normalized_scale), vector_get_y(normalized_scale), vector_get_z(normalized_scale));
 
 				bone_stream.scales.set_raw_sample(sample_index, normalized_scale);
 			}
