@@ -380,6 +380,11 @@ namespace acl
 		return vector_add(vector_mul(input, scale), offset);
 	}
 
+	inline Vector4_64 vector_mul_add(const Vector4_64& input, double scale, const Vector4_64& offset)
+	{
+		return vector_add(vector_mul(input, vector_set(scale)), offset);
+	}
+
 	// output = offset - (input * scale)
 	inline Vector4_64 vector_neg_mul_sub(const Vector4_64& input, const Vector4_64& scale, const Vector4_64& offset)
 	{

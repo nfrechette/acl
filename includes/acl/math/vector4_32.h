@@ -486,13 +486,30 @@ namespace acl
 	// output = (input * scale) + offset
 	inline Vector4_32 vector_mul_add(const Vector4_32& input, const Vector4_32& scale, const Vector4_32& offset)
 	{
+#if defined(ACL_NEON_INTRINSICS)
+		return vmlaq_f32(offset, input, scale);
+#else
 		return vector_add(vector_mul(input, scale), offset);
+#endif
+	}
+
+	inline Vector4_32 vector_mul_add(const Vector4_32& input, float scale, const Vector4_32& offset)
+	{
+#if defined(ACL_NEON_INTRINSICS)
+		return vmlaq_n_f32(offset, input, scale);
+#else
+		return vector_add(vector_mul(input, vector_set(scale)), offset);
+#endif
 	}
 
 	// output = offset - (input * scale)
 	inline Vector4_32 vector_neg_mul_sub(const Vector4_32& input, const Vector4_32& scale, const Vector4_32& offset)
 	{
+#if defined(ACL_NEON_INTRINSICS)
+		return vmlsq_f32(offset, input, scale);
+#else
 		return vector_sub(offset, vector_mul(input, scale));
+#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////
