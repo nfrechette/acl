@@ -37,7 +37,16 @@ namespace acl
 	inline Vector4_32 vector_set(float x, float y, float z, float w)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Vector4_32(_mm_set_ps(w, z, y, x));
+		return _mm_set_ps(w, z, y, x);
+#elif defined(ACL_NEON_INTRINSICS)
+#if 1
+		float32x2_t V0 = vcreate_f32(((uint64_t)*(const uint32_t*)&x) | ((uint64_t)(*(const uint32_t*)&y) << 32));
+		float32x2_t V1 = vcreate_f32(((uint64_t)*(const uint32_t*)&z) | ((uint64_t)(*(const uint32_t*)&w) << 32));
+		return vcombine_f32(V0, V1);
+#else
+		float __attribute__((aligned(16))) data[4] = { x, y, z, w };
+		return vld1q_f32(data);
+#endif
 #else
 		return Vector4_32{ x, y, z, w };
 #endif
@@ -46,7 +55,16 @@ namespace acl
 	inline Vector4_32 vector_set(float x, float y, float z)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Vector4_32(_mm_set_ps(0.0f, z, y, x));
+		return _mm_set_ps(0.0f, z, y, x);
+#elif defined(ACL_NEON_INTRINSICS)
+#if 1
+		float32x2_t V0 = vcreate_f32(((uint64_t)*(const uint32_t*)&x) | ((uint64_t)(*(const uint32_t*)&y) << 32));
+		float32x2_t V1 = vcreate_f32((uint64_t)*(const uint32_t*)&z);
+		return vcombine_f32(V0, V1);
+#else
+		float __attribute__((aligned(16))) data[4] = { x, y, z };
+		return vld1q_f32(data);
+#endif
 #else
 		return Vector4_32{ x, y, z, 0.0f };
 #endif
@@ -55,7 +73,9 @@ namespace acl
 	inline Vector4_32 vector_set(float xyzw)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Vector4_32(_mm_set_ps1(xyzw));
+		return _mm_set_ps1(xyzw);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vdupq_n_f32(xyzw);
 #else
 		return Vector4_32{ xyzw, xyzw, xyzw, xyzw };
 #endif
@@ -89,12 +109,16 @@ namespace acl
 
 	inline Vector4_32 vector_zero_32()
 	{
-		return vector_set(0.0f, 0.0f, 0.0f, 0.0f);
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_setzero_ps();
+#else
+		return vector_set(0.0f);
+#endif
 	}
 
 	inline Vector4_32 quat_to_vector(const Quat_32& input)
 	{
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(ACL_SSE2_INTRINSICS) || defined(ACL_NEON_INTRINSICS)
 		return input;
 #else
 		return Vector4_32{ input.x, input.y, input.z, input.w };
@@ -114,6 +138,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(input);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vgetq_lane_f32(input, 0);
 #else
 		return input.x;
 #endif
@@ -123,6 +149,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(_mm_shuffle_ps(input, input, _MM_SHUFFLE(1, 1, 1, 1)));
+#elif defined(ACL_NEON_INTRINSICS)
+		return vgetq_lane_f32(input, 1);
 #else
 		return input.y;
 #endif
@@ -132,6 +160,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(_mm_shuffle_ps(input, input, _MM_SHUFFLE(2, 2, 2, 2)));
+#elif defined(ACL_NEON_INTRINSICS)
+		return vgetq_lane_f32(input, 2);
 #else
 		return input.z;
 #endif
@@ -141,6 +171,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 3, 3, 3)));
+#elif defined(ACL_NEON_INTRINSICS)
+		return vgetq_lane_f32(input, 3);
 #else
 		return input.w;
 #endif
@@ -222,6 +254,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_add_ps(lhs, rhs);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vaddq_f32(lhs, rhs);
 #else
 		return vector_set(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w);
 #endif
@@ -231,6 +265,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_sub_ps(lhs, rhs);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vsubq_f32(lhs, rhs);
 #else
 		return vector_set(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w);
 #endif
@@ -240,6 +276,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_mul_ps(lhs, rhs);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vmulq_f32(lhs, rhs);
 #else
 		return vector_set(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w);
 #endif
@@ -254,6 +292,16 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_div_ps(lhs, rhs);
+#elif defined(ACL_NEON_INTRINSICS)
+		// Perform two passes of Newton-Raphson iteration on the hardware estimate
+		float32x4_t x0 = vrecpeq_f32(rhs);
+
+		// First iteration
+		float32x4_t x1 = vmulq_f32(x0, vrecpsq_f32(x0, rhs));
+
+		// Second iteration
+		float32x4_t x2 = vmulq_f32(x1, vrecpsq_f32(x1, rhs));
+		return vmulq_f32(lhs, x2);
 #else
 		return vector_set(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z, lhs.w / rhs.w);
 #endif
@@ -263,6 +311,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_max_ps(lhs, rhs);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vmaxq_f32(lhs, rhs);
 #else
 		return vector_set(max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z), max(lhs.w, rhs.w));
 #endif
@@ -272,6 +322,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_min_ps(lhs, rhs);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vminq_f32(lhs, rhs);
 #else
 		return vector_set(min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z), min(lhs.w, rhs.w));
 #endif
@@ -281,6 +333,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return vector_max(vector_sub(_mm_setzero_ps(), input), input);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vabsq_f32(input);
 #else
 		return vector_set(abs(input.x), abs(input.y), abs(input.z), abs(input.w));
 #endif
@@ -302,7 +356,16 @@ namespace acl
 
 		// Second iteration
 		__m128 x2 = _mm_sub_ps(_mm_add_ps(x1, x1), _mm_mul_ps(input, _mm_mul_ps(x1, x1)));
+		return x2;
+#elif defined(ACL_NEON_INTRINSICS)
+		// Perform two passes of Newton-Raphson iteration on the hardware estimate
+		float32x4_t x0 = vrecpeq_f32(input);
 
+		// First iteration
+		float32x4_t x1 = vmulq_f32(x0, vrecpsq_f32(x0, input));
+
+		// Second iteration
+		float32x4_t x2 = vmulq_f32(x1, vrecpsq_f32(x1, input));
 		return x2;
 #else
 		return vector_div(vector_set(1.0f), input);
@@ -328,6 +391,13 @@ namespace acl
 		__m128 y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
 		__m128 x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
 		return _mm_cvtss_f32(x2y2z2w2_0_0_0);
+#elif defined(ACL_NEON_INTRINSICS)
+		float32x4_t x2_y2_z2_w2 = vmulq_f32(lhs, rhs);
+		float32x2_t x2_y2 = vget_low_f32(x2_y2_z2_w2);
+		float32x2_t z2_w2 = vget_high_f32(x2_y2_z2_w2);
+		float32x2_t x2z2_y2w2 = vadd_f32(x2_y2, z2_w2);
+		float32x2_t x2y2z2w2 = vpadd_f32(x2z2_y2w2, x2z2_y2w2);
+		return vget_lane_f32(x2y2z2w2, 0);
 #else
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs)) + (vector_get_w(lhs) * vector_get_w(rhs));
 #endif
@@ -345,6 +415,14 @@ namespace acl
 		__m128 z2_0_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 0, 2));
 		__m128 x2y2z2_0_0_0 = _mm_add_ss(x2y2_0_0_0, z2_0_0_0);
 		return _mm_cvtss_f32(x2y2z2_0_0_0);
+#elif defined(ACL_NEON_INTRINSICS)
+		float32x4_t x2_y2_z2_w2 = vmulq_f32(lhs, rhs);
+		float32x2_t x2_y2 = vget_low_f32(x2_y2_z2_w2);
+		float32x2_t z2_w2 = vget_high_f32(x2_y2_z2_w2);
+		float32x2_t x2y2_x2y2 = vpadd_f32(x2_y2, x2_y2);
+		float32x2_t z2_0 = vdup_lane_f32(z2_w2, 0);
+		float32x2_t x2y2z2_x2y2z2 = vadd_f32(x2y2_x2y2, z2_0);
+		return vget_lane_f32(x2y2z2_x2y2z2, 0);
 #else
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs));
 #endif
@@ -424,6 +502,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cmplt_ps(lhs, rhs);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vcltq_f32(lhs, rhs);
 #else
 		return Vector4_32{ math_impl::get_mask_value(lhs.x < rhs.x), math_impl::get_mask_value(lhs.y < rhs.y), math_impl::get_mask_value(lhs.z < rhs.z), math_impl::get_mask_value(lhs.w < rhs.w) };
 #endif
@@ -433,6 +513,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cmpge_ps(lhs, rhs);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vcgeq_f32(lhs, rhs);
 #else
 		return Vector4_32{ math_impl::get_mask_value(lhs.x >= rhs.x), math_impl::get_mask_value(lhs.y >= rhs.y), math_impl::get_mask_value(lhs.z >= rhs.z), math_impl::get_mask_value(lhs.w >= rhs.w) };
 #endif
@@ -442,6 +524,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) == 0xF;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcltq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) == 0xFFFFFFFFu;
 #else
 		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z && lhs.w < rhs.w;
 #endif
@@ -451,6 +538,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return (_mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) & 0x7) == 0x7;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcltq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return (vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) & 0x00FFFFFFu) == 0x00FFFFFFu;
 #else
 		return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z;
 #endif
@@ -460,6 +552,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) != 0;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcltq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) != 0;
 #else
 		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z || lhs.w < rhs.w;
 #endif
@@ -469,6 +566,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return (_mm_movemask_ps(_mm_cmplt_ps(lhs, rhs)) & 0x7) != 0;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcltq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return (vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) & 0x00FFFFFFu) != 0;
 #else
 		return lhs.x < rhs.x || lhs.y < rhs.y || lhs.z < rhs.z;
 #endif
@@ -478,6 +580,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_movemask_ps(_mm_cmple_ps(lhs, rhs)) == 0xF;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcleq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) == 0xFFFFFFFFu;
 #else
 		return lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z && lhs.w <= rhs.w;
 #endif
@@ -487,6 +594,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return (_mm_movemask_ps(_mm_cmple_ps(lhs, rhs)) & 0x7) == 0x7;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcleq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return (vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) & 0x00FFFFFFu) == 0x00FFFFFFu;
 #else
 		return lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z;
 #endif
@@ -496,6 +608,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_movemask_ps(_mm_cmple_ps(lhs, rhs)) != 0;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcleq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) != 0;
 #else
 		return lhs.x <= rhs.x || lhs.y <= rhs.y || lhs.z <= rhs.z || lhs.w <= rhs.w;
 #endif
@@ -505,6 +622,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return (_mm_movemask_ps(_mm_cmple_ps(lhs, rhs)) & 0x7) != 0;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcleq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return (vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) & 0x00FFFFFFu) != 0;
 #else
 		return lhs.x <= rhs.x || lhs.y <= rhs.y || lhs.z <= rhs.z;
 #endif
@@ -514,6 +636,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_movemask_ps(_mm_cmpge_ps(lhs, rhs)) == 0xF;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcgeq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) == 0xFFFFFFFFu;
 #else
 		return lhs.x >= rhs.x && lhs.y >= rhs.y && lhs.z >= rhs.z && lhs.w >= rhs.w;
 #endif
@@ -523,6 +650,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return (_mm_movemask_ps(_mm_cmpge_ps(lhs, rhs)) & 0x7) == 0x7;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcgeq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return (vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) & 0x00FFFFFFu) == 0x00FFFFFFu;
 #else
 		return lhs.x >= rhs.x && lhs.y >= rhs.y && lhs.z >= rhs.z;
 #endif
@@ -532,6 +664,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_movemask_ps(_mm_cmpge_ps(lhs, rhs)) != 0;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcgeq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) != 0;
 #else
 		return lhs.x >= rhs.x || lhs.y >= rhs.y || lhs.z >= rhs.z || lhs.w >= rhs.w;
 #endif
@@ -541,6 +678,11 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return (_mm_movemask_ps(_mm_cmpge_ps(lhs, rhs)) & 0x7) != 0;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x4_t mask = vcgeq_f32(lhs, rhs);
+		uint8x8x2_t mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15 = vzip_u8(vget_low_u8(mask), vget_high_u8(mask));
+		uint16x4x2_t mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15 = vzip_u16(mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[0], mask_0_8_1_9_2_10_3_11_4_12_5_13_6_14_7_15.val[1]);
+		return (vget_lane_u32(mask_0_8_4_12_1_9_5_13_2_10_6_14_3_11_7_15.val[0], 0) & 0x00FFFFFFu) != 0;
 #else
 		return lhs.x >= rhs.x || lhs.y >= rhs.y || lhs.z >= rhs.z;
 #endif
@@ -583,6 +725,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_or_ps(_mm_andnot_ps(mask, if_false), _mm_and_ps(if_true, mask));
+#elif defined(ACL_NEON_INTRINSICS)
+		return vbslq_f32(mask, if_true, if_false);
 #else
 		return Vector4_32{ math_impl::select(mask.x, if_true.x, if_false.x), math_impl::select(mask.y, if_true.y, if_false.y), math_impl::select(mask.z, if_true.z, if_false.z), math_impl::select(mask.w, if_true.w, if_false.w) };
 #endif

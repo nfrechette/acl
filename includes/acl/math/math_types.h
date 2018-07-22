@@ -30,22 +30,6 @@
 
 namespace acl
 {
-#if defined(ACL_SSE2_INTRINSICS)
-	typedef __m128 Quat_32;
-	typedef __m128 Vector4_32;
-
-	struct Quat_64
-	{
-		__m128d xy;
-		__m128d zw;
-	};
-
-	struct Vector4_64
-	{
-		__m128d xy;
-		__m128d zw;
-	};
-#else
 	namespace math_impl
 	{
 		union Converter
@@ -78,6 +62,41 @@ namespace acl
 		}
 	}
 
+#if defined(ACL_SSE2_INTRINSICS)
+	typedef __m128 Quat_32;
+	typedef __m128 Vector4_32;
+
+	struct Quat_64
+	{
+		__m128d xy;
+		__m128d zw;
+	};
+
+	struct Vector4_64
+	{
+		__m128d xy;
+		__m128d zw;
+	};
+#elif defined(ACL_NEON_INTRINSICS)
+	typedef float32x4_t Quat_32;
+	typedef float32x4_t Vector4_32;
+
+	struct Quat_64
+	{
+		double x;
+		double y;
+		double z;
+		double w;
+	};
+
+	struct Vector4_64
+	{
+		double x;
+		double y;
+		double z;
+		double w;
+	};
+#else
 	struct Quat_32
 	{
 		float x;

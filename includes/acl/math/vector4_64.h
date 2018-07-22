@@ -106,6 +106,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return Vector4_64{ _mm_cvtps_pd(input), _mm_cvtps_pd(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 2, 3, 2))) };
+#elif defined(ACL_NEON_INTRINSICS)
+		return Vector4_64{ double(vgetq_lane_f32(input, 0)), double(vgetq_lane_f32(input, 1)), double(vgetq_lane_f32(input, 2)), double(vgetq_lane_f32(input, 3)) };
 #else
 		return Vector4_64{ double(input.x), double(input.y), double(input.z), double(input.w) };
 #endif

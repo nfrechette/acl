@@ -38,7 +38,16 @@ namespace acl
 	inline Quat_32 quat_set(float x, float y, float z, float w)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return Quat_32(_mm_set_ps(w, z, y, x));
+		return _mm_set_ps(w, z, y, x);
+#elif defined(ACL_NEON_INTRINSICS)
+#if 1
+		float32x2_t V0 = vcreate_f32(((uint64_t)*(const uint32_t*)&x) | ((uint64_t)(*(const uint32_t*)&y) << 32));
+		float32x2_t V1 = vcreate_f32(((uint64_t)*(const uint32_t*)&z) | ((uint64_t)(*(const uint32_t*)&w) << 32));
+		return vcombine_f32(V0, V1);
+#else
+		float __attribute__((aligned(16))) data[4] = { x, y, z, w };
+		return vld1q_f32(data);
+#endif
 #else
 		return Quat_32{ x, y, z, w };
 #endif
@@ -57,7 +66,7 @@ namespace acl
 
 	inline Quat_32 vector_to_quat(const Vector4_32& input)
 	{
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(ACL_SSE2_INTRINSICS) || defined(ACL_NEON_INTRINSICS)
 		return input;
 #else
 		return Quat_32{ input.x, input.y, input.z, input.w };
@@ -77,6 +86,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(input);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vgetq_lane_f32(input, 0);
 #else
 		return input.x;
 #endif
@@ -86,6 +97,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(_mm_shuffle_ps(input, input, _MM_SHUFFLE(1, 1, 1, 1)));
+#elif defined(ACL_NEON_INTRINSICS)
+		return vgetq_lane_f32(input, 1);
 #else
 		return input.y;
 #endif
@@ -95,6 +108,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(_mm_shuffle_ps(input, input, _MM_SHUFFLE(2, 2, 2, 2)));
+#elif defined(ACL_NEON_INTRINSICS)
+		return vgetq_lane_f32(input, 2);
 #else
 		return input.z;
 #endif
@@ -104,6 +119,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 3, 3, 3)));
+#elif defined(ACL_NEON_INTRINSICS)
+		return vgetq_lane_f32(input, 3);
 #else
 		return input.w;
 #endif
@@ -152,42 +169,58 @@ namespace acl
 		__m128 zzww = _mm_shuffle_ps(z, w, _MM_SHUFFLE(0, 0, 0, 0));
 		return _mm_shuffle_ps(xxyy, zzww, _MM_SHUFFLE(2, 0, 2, 0));
 #elif defined(ACL_SSE2_INTRINSICS)
-		constexpr __m128 ControlWZYX = { 1.0f,-1.0f, 1.0f,-1.0f };
-		constexpr __m128 ControlZWXY = { 1.0f, 1.0f,-1.0f,-1.0f };
-		constexpr __m128 ControlYXWZ = { -1.0f, 1.0f, 1.0f,-1.0f };
-		// Copy to SSE registers and use as few as possible
-		__m128 Q2X = rhs;
-		__m128 Q2Y = rhs;
-		__m128 Q2Z = rhs;
-		__m128 vResult = rhs;
-		// Splat with one instruction
-		vResult = _mm_shuffle_ps(vResult, vResult, _MM_SHUFFLE(3, 3, 3, 3));
-		Q2X = _mm_shuffle_ps(Q2X, Q2X,_MM_SHUFFLE(0, 0, 0, 0));
-		Q2Y = _mm_shuffle_ps(Q2Y, Q2Y,_MM_SHUFFLE(1, 1, 1, 1));
-		Q2Z = _mm_shuffle_ps(Q2Z, Q2Z,_MM_SHUFFLE(2, 2, 2, 2));
-		// Retire Q1 and perform Q1*Q2W
-		vResult = _mm_mul_ps(vResult, lhs);
-		__m128 Q1Shuffle = lhs;
-		// Shuffle the copies of Q1
-		Q1Shuffle = _mm_shuffle_ps(Q1Shuffle, Q1Shuffle,_MM_SHUFFLE(0, 1, 2, 3));
-		// Mul by Q1WZYX
-		Q2X = _mm_mul_ps(Q2X, Q1Shuffle);
-		Q1Shuffle = _mm_shuffle_ps(Q1Shuffle, Q1Shuffle,_MM_SHUFFLE(2, 3, 0, 1));
-		// Flip the signs on y and z
-		Q2X = _mm_mul_ps(Q2X, ControlWZYX);
-		// Mul by Q1ZWXY
-		Q2Y = _mm_mul_ps(Q2Y, Q1Shuffle);
-		Q1Shuffle = _mm_shuffle_ps(Q1Shuffle, Q1Shuffle,_MM_SHUFFLE(0, 1, 2, 3));
-		// Flip the signs on z and w
-		Q2Y = _mm_mul_ps(Q2Y, ControlZWXY);
-		// Mul by Q1YXWZ
-		Q2Z = _mm_mul_ps(Q2Z, Q1Shuffle);
-		vResult = _mm_add_ps(vResult, Q2X);
-		// Flip the signs on x and w
-		Q2Z = _mm_mul_ps(Q2Z, ControlYXWZ);
-		Q2Y = _mm_add_ps(Q2Y, Q2Z);
-		vResult = _mm_add_ps(vResult, Q2Y);
-		return vResult;
+		constexpr __m128 control_wzyx = { 1.0f,-1.0f, 1.0f,-1.0f };
+		constexpr __m128 control_zwxy = { 1.0f, 1.0f,-1.0f,-1.0f };
+		constexpr __m128 control_yxwz = { -1.0f, 1.0f, 1.0f,-1.0f };
+
+		__m128 r_xxxx = _mm_shuffle_ps(rhs, rhs, _MM_SHUFFLE(0, 0, 0, 0));
+		__m128 r_yyyy = _mm_shuffle_ps(rhs, rhs, _MM_SHUFFLE(1, 1, 1, 1));
+		__m128 r_zzzz = _mm_shuffle_ps(rhs, rhs, _MM_SHUFFLE(2, 2, 2, 2));
+		__m128 r_wwww = _mm_shuffle_ps(rhs, rhs, _MM_SHUFFLE(3, 3, 3, 3));
+
+		__m128 lxrw_lyrw_lzrw_lwrw = _mm_mul_ps(r_wwww, lhs);
+		__m128 l_wzyx = _mm_shuffle_ps(lhs, lhs,_MM_SHUFFLE(0, 1, 2, 3));
+
+		__m128 lwrx_lzrx_lyrx_lxrx = _mm_mul_ps(r_xxxx, l_wzyx);
+		__m128 l_zwxy = _mm_shuffle_ps(l_wzyx, l_wzyx,_MM_SHUFFLE(2, 3, 0, 1));
+
+		__m128 lwrx_nlzrx_lyrx_nlxrx = _mm_mul_ps(lwrx_lzrx_lyrx_lxrx, control_wzyx);
+
+		__m128 lzry_lwry_lxry_lyry = _mm_mul_ps(r_yyyy, l_zwxy);
+		__m128 l_yxwz = _mm_shuffle_ps(l_zwxy, l_zwxy,_MM_SHUFFLE(0, 1, 2, 3));
+
+		__m128 lzry_lwry_nlxry_nlyry = _mm_mul_ps(lzry_lwry_lxry_lyry, control_zwxy);
+
+		__m128 lyrz_lxrz_lwrz_lzrz = _mm_mul_ps(r_zzzz, l_yxwz);
+		__m128 result0 = _mm_add_ps(lxrw_lyrw_lzrw_lwrw, lwrx_nlzrx_lyrx_nlxrx);
+
+		__m128 nlyrz_lxrz_lwrz_wlzrz = _mm_mul_ps(lyrz_lxrz_lwrz_lzrz, control_yxwz);
+		__m128 result1 = _mm_add_ps(lzry_lwry_nlxry_nlyry, nlyrz_lxrz_lwrz_wlzrz);
+		return _mm_add_ps(result0, result1);
+#elif defined(ACL_NEON_INTRINSICS)
+		constexpr float32x4_t control_wzyx = { 1.0f,-1.0f, 1.0f,-1.0f };
+		constexpr float32x4_t control_zwxy = { 1.0f, 1.0f,-1.0f,-1.0f };
+		constexpr float32x4_t control_yxwz = { -1.0f, 1.0f, 1.0f,-1.0f };
+
+		float32x2_t r_xy = vget_low_f32(rhs);
+		float32x2_t r_zw = vget_high_f32(rhs);
+
+		float32x4_t r_xxxx = vdupq_lane_f32(r_xy, 0);
+		float32x4_t r_yyyy = vdupq_lane_f32(r_xy, 1);
+		float32x4_t r_zzzz = vdupq_lane_f32(r_zw, 0);
+		float32x4_t lxrw_lyrw_lzrw_lwrw = vmulq_lane_f32(lhs, r_zw, 1);
+
+		float32x4_t l_yxwz = vrev64q_f32(lhs);
+		float32x4_t l_wzyx = vcombine_f32(vget_high_f32(l_yxwz), vget_low_f32(l_yxwz));
+		float32x4_t lwrx_lzrx_lyrx_lxrx = vmulq_f32(r_xxxx, l_wzyx);
+		float32x4_t result0 = vmlaq_f32(lxrw_lyrw_lzrw_lwrw, lwrx_lzrx_lyrx_lxrx, control_wzyx);
+
+		float32x4_t l_zwxy = vrev64q_u32(l_wzyx);
+		float32x4_t lzry_lwry_lxry_lyry = vmulq_f32(r_yyyy, l_zwxy);
+		float32x4_t result1 = vmlaq_f32(result0, lzry_lwry_lxry_lyry, control_zwxy);
+
+		float32x4_t lyrz_lxrz_lwrz_lzrz = vmulq_f32(r_zzzz, l_yxwz);
+		return vmlaq_f32(result1, lyrz_lxrz_lwrz_lzrz, control_yxwz);
 #else
 		float lhs_x = quat_get_x(lhs);
 		float lhs_y = quat_get_y(lhs);

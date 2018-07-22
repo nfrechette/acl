@@ -48,15 +48,12 @@
 	#define ACL_SSE2_INTRINSICS
 #endif
 
-#if !defined(ACL_SSE2_INTRINSICS) && !defined(ACL_NO_INTRINSICS)
-	#if defined(_M_IX86) || defined(_M_X64)
-		#define ACL_SSE2_INTRINSICS
-	//#elif defined(_M_ARM) || defined(_M_ARM64)
-		// TODO: Implement ARM NEON
-		//#define ACL_ARM_NEON_INTRINSICS
-	#else
-		#define ACL_NO_INTRINSICS
-	#endif
+#if defined(__ARM_NEON)
+	#define ACL_NEON_INTRINSICS
+#endif
+
+#if !defined(ACL_SSE2_INTRINSICS) && !defined(ACL_NEON_INTRINSICS) && !defined(ACL_NO_INTRINSICS)
+	#define ACL_NO_INTRINSICS
 #endif
 
 #if defined(ACL_SSE2_INTRINSICS)
@@ -74,6 +71,10 @@
 
 #if defined(ACL_AVX_INTRINSICS)
 	#include <immintrin.h>
+#endif
+
+#if defined(ACL_NEON_INTRINSICS)
+	#include <arm_neon.h>
 #endif
 
 #include "acl/math/math_types.h"
