@@ -364,11 +364,6 @@ namespace acl
 			return input;
 	}
 
-	inline Vector4_64 vector_lerp(const Vector4_64& start, const Vector4_64& end, double alpha)
-	{
-		return vector_add(start, vector_mul(vector_sub(end, start), vector_set(alpha)));
-	}
-
 	inline Vector4_64 vector_fraction(const Vector4_64& input)
 	{
 		return vector_set(fraction(vector_get_x(input)), fraction(vector_get_y(input)), fraction(vector_get_z(input)), fraction(vector_get_w(input)));
@@ -389,6 +384,11 @@ namespace acl
 	inline Vector4_64 vector_neg_mul_sub(const Vector4_64& input, const Vector4_64& scale, const Vector4_64& offset)
 	{
 		return vector_sub(offset, vector_mul(input, scale));
+	}
+
+	inline Vector4_64 vector_lerp(const Vector4_64& start, const Vector4_64& end, double alpha)
+	{
+		return vector_mul_add(vector_sub(end, start), alpha, start);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
