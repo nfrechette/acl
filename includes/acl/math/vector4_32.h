@@ -296,6 +296,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_div_ps(lhs, rhs);
+#elif defined (ACL_NEON64_INTRINSICS)
+		return vdivq_f32(lhs, rhs);
 #elif defined(ACL_NEON_INTRINSICS)
 		// Perform two passes of Newton-Raphson iteration on the hardware estimate
 		float32x4_t x0 = vrecpeq_f32(rhs);
