@@ -285,7 +285,11 @@ namespace acl
 
 	inline Vector4_32 vector_mul(const Vector4_32& lhs, float rhs)
 	{
+#if defined(ACL_NEON_INTRINSICS)
+		return vmulq_n_f32(lhs, rhs);
+#else
 		return vector_mul(lhs, vector_set(rhs));
+#endif
 	}
 
 	inline Vector4_32 vector_div(const Vector4_32& lhs, const Vector4_32& rhs)
@@ -468,7 +472,7 @@ namespace acl
 		// Reciprocal is more accurate to normalize with
 		const float len_sq = vector_length_squared3(input);
 		if (len_sq >= threshold)
-			return vector_mul(input, vector_set(sqrt_reciprocal(len_sq)));
+			return vector_mul(input, sqrt_reciprocal(len_sq));
 		else
 			return input;
 	}
@@ -493,7 +497,7 @@ namespace acl
 #if defined(ACL_NEON_INTRINSICS)
 		return vmlaq_n_f32(offset, input, scale);
 #else
-		return vector_add(vector_mul(input, vector_set(scale)), offset);
+		return vector_add(vector_mul(input, scale), offset);
 #endif
 	}
 

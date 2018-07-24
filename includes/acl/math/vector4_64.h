@@ -309,13 +309,11 @@ namespace acl
 
 	inline double vector_dot(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
-		// TODO: Use dot instruction
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs)) + (vector_get_w(lhs) * vector_get_w(rhs));
 	}
 
 	inline double vector_dot3(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
-		// TODO: Use dot instruction
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs));
 	}
 
@@ -359,7 +357,7 @@ namespace acl
 		// Reciprocal is more accurate to normalize with
 		const double len_sq = vector_length_squared3(input);
 		if (len_sq >= threshold)
-			return vector_mul(input, vector_set(sqrt_reciprocal(len_sq)));
+			return vector_mul(input, sqrt_reciprocal(len_sq));
 		else
 			return input;
 	}
@@ -377,7 +375,7 @@ namespace acl
 
 	inline Vector4_64 vector_mul_add(const Vector4_64& input, double scale, const Vector4_64& offset)
 	{
-		return vector_add(vector_mul(input, vector_set(scale)), offset);
+		return vector_add(vector_mul(input, scale), offset);
 	}
 
 	// output = offset - (input * scale)

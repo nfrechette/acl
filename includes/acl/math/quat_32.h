@@ -267,7 +267,7 @@ namespace acl
 	{
 		// Reciprocal is more accurate to normalize with
 		float inv_len = quat_length_reciprocal(input);
-		return vector_to_quat(vector_mul(quat_to_vector(input), vector_set(inv_len)));
+		return vector_to_quat(vector_mul(quat_to_vector(input), inv_len));
 	}
 
 	inline Quat_32 quat_lerp(const Quat_32& start, const Quat_32& end, float alpha)
