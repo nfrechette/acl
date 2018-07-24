@@ -48,8 +48,12 @@
 	#define ACL_SSE2_INTRINSICS
 #endif
 
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && !defined(ACL_NO_INTRINSICS)
 	#define ACL_NEON_INTRINSICS
+
+	#if defined(__aarch64__)
+		#define ACL_NEON64_INTRINSICS
+	#endif
 #endif
 
 #if !defined(ACL_SSE2_INTRINSICS) && !defined(ACL_NEON_INTRINSICS) && !defined(ACL_NO_INTRINSICS)
