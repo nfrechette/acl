@@ -312,6 +312,11 @@ namespace acl
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs)) + (vector_get_w(lhs) * vector_get_w(rhs));
 	}
 
+	inline Vector4_64 vector_vdot(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+		return vector_set(vector_dot(lhs, rhs));
+	}
+
 	inline double vector_dot3(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs));

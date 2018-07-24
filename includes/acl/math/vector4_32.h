@@ -409,6 +409,30 @@ namespace acl
 #endif
 	}
 
+	inline Vector4_32 vector_vdot(const Vector4_32& lhs, const Vector4_32& rhs)
+	{
+#if defined(ACL_SSE4_INTRINSICS) && 0
+		// SSE4 dot product instruction isn't precise enough
+		return _mm_dp_ps(lhs, rhs, 0xFF);
+#elif defined(ACL_SSE2_INTRINSICS)
+		__m128 x2_y2_z2_w2 = _mm_mul_ps(lhs, rhs);
+		__m128 z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
+		__m128 x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
+		__m128 y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
+		__m128 x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
+		return _mm_shuffle_ps(x2y2z2w2_0_0_0, x2y2z2w2_0_0_0, _MM_SHUFFLE(0, 0, 0, 0));
+#elif defined(ACL_NEON_INTRINSICS)
+		float32x4_t x2_y2_z2_w2 = vmulq_f32(lhs, rhs);
+		float32x2_t x2_y2 = vget_low_f32(x2_y2_z2_w2);
+		float32x2_t z2_w2 = vget_high_f32(x2_y2_z2_w2);
+		float32x2_t x2z2_y2w2 = vadd_f32(x2_y2, z2_w2);
+		float32x2_t x2y2z2w2 = vpadd_f32(x2z2_y2w2, x2z2_y2w2);
+		return vcombine_f32(x2y2z2w2, x2y2z2w2);
+#else
+		return vector_set(vector_dot(lhs, rhs));
+#endif
+	}
+
 	inline float vector_dot3(const Vector4_32& lhs, const Vector4_32& rhs)
 	{
 #if defined(ACL_SSE4_INTRINSICS) && 0
@@ -426,8 +450,8 @@ namespace acl
 		float32x2_t x2_y2 = vget_low_f32(x2_y2_z2_w2);
 		float32x2_t z2_w2 = vget_high_f32(x2_y2_z2_w2);
 		float32x2_t x2y2_x2y2 = vpadd_f32(x2_y2, x2_y2);
-		float32x2_t z2_0 = vdup_lane_f32(z2_w2, 0);
-		float32x2_t x2y2z2_x2y2z2 = vadd_f32(x2y2_x2y2, z2_0);
+		float32x2_t z2_z2 = vdup_lane_f32(z2_w2, 0);
+		float32x2_t x2y2z2_x2y2z2 = vadd_f32(x2y2_x2y2, z2_z2);
 		return vget_lane_f32(x2y2z2_x2y2z2, 0);
 #else
 		return (vector_get_x(lhs) * vector_get_x(rhs)) + (vector_get_y(lhs) * vector_get_y(rhs)) + (vector_get_z(lhs) * vector_get_z(rhs));
