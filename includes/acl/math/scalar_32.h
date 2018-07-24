@@ -67,8 +67,8 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		// Perform two passes of Newton-Raphson iteration on the hardware estimate
-		__m128 input_v = _mm_set_ps1(input);
-		__m128 half = _mm_set_ps1(0.5f);
+		__m128 input_v = _mm_set_ss(input);
+		__m128 half = _mm_set_ss(0.5f);
 		__m128 input_half_v = _mm_mul_ss(input_v, half);
 		__m128 x0 = _mm_rsqrt_ss(input_v);
 
