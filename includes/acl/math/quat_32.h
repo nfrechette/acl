@@ -272,15 +272,108 @@ namespace acl
 
 	inline Quat_32 quat_lerp(const Quat_32& start, const Quat_32& end, float alpha)
 	{
+#if defined(ACL_SSE2_INTRINSICS)
+		// Calculate the vector4 dot product: dot(start, end)
+		__m128 x2_y2_z2_w2 = _mm_mul_ps(start, end);
+		__m128 z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
+		__m128 x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
+		__m128 y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
+		__m128 x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
+		// Shuffle the dot product to all SIMD lanes, there is no _mm_and_ss and loading
+		// the constant from memory with the 'and' instruction is faster, it uses fewer registers
+		// and fewer instructions
+		__m128 dot = _mm_shuffle_ps(x2y2z2w2_0_0_0, x2y2z2w2_0_0_0, _MM_SHUFFLE(0, 0, 0, 0));
+
+		// Calculate the bias, if the dot product is positive or zero, there is no bias
+		// but if it is negative, we want to flip the 'end' rotation XYZW components
+		__m128 bias = _mm_and_ps(dot, _mm_set_ps1(-0.0f));
+
+		// Lerp the rotation after applying the bias
+		__m128 interpolated_rotation = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(_mm_xor_ps(end, bias), start), _mm_set_ps1(alpha)), start);
+
+		// Now we need to normalize the resulting rotation. We first calculate the
+		// dot product to get the length squared: dot(interpolated_rotation, interpolated_rotation)
+		x2_y2_z2_w2 = _mm_mul_ps(interpolated_rotation, interpolated_rotation);
+		z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
+		x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
+		y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
+		x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
+
+		// Keep the dot product result as a scalar within the first lane, it is faster to
+		// calculate the reciprocal square root of a single lane VS all 4 lanes
+		dot = x2y2z2w2_0_0_0;
+
+		// Calculate the reciprocal square root to get the inverse length of our vector
+		// Perform two passes of Newton-Raphson iteration on the hardware estimate
+		__m128 half = _mm_set_ss(0.5f);
+		__m128 input_half_v = _mm_mul_ss(dot, half);
+		__m128 x0 = _mm_rsqrt_ss(dot);
+
+		// First iteration
+		__m128 x1 = _mm_mul_ss(x0, x0);
+		x1 = _mm_sub_ss(half, _mm_mul_ss(input_half_v, x1));
+		x1 = _mm_add_ss(_mm_mul_ss(x0, x1), x0);
+
+		// Second iteration
+		__m128 x2 = _mm_mul_ss(x1, x1);
+		x2 = _mm_sub_ss(half, _mm_mul_ss(input_half_v, x2));
+		x2 = _mm_add_ss(_mm_mul_ss(x1, x2), x1);
+
+		// Broadcast the vector length reciprocal to all 4 lanes in order to multiply it with the vector
+		__m128 inv_len = _mm_shuffle_ps(x2, x2, _MM_SHUFFLE(0, 0, 0, 0));
+
+		// Multiply the rotation by it's inverse length in order to normalize it
+		return _mm_mul_ps(interpolated_rotation, inv_len);
+#elif defined (ACL_NEON64_INTRINSICS)
+		// On ARM64 with NEON, we load 1.0 once and use it twice which is faster than
+		// using a AND/XOR with the bias (same number of instructions)
+		float dot = vector_dot(start, end);
+		float bias = dot >= 0.0f ? 1.0f : -1.0f;
+		Vector4_32 interpolated_rotation = vector_mul_add(vector_sub(vector_mul(end, bias), start), alpha, start);
+		// Use sqrt/div/mul to normalize because the sqrt/div are faster than rsqrt
+		float inv_len = 1.0f / sqrt(vector_length_squared(interpolated_rotation));
+		return vector_mul(interpolated_rotation, inv_len);
+#elif defined(ACL_NEON_INTRINSICS)
+		// Calculate the vector4 dot product: dot(start, end)
+		float32x4_t x2_y2_z2_w2 = vmulq_f32(start, end);
+		float32x2_t x2_y2 = vget_low_f32(x2_y2_z2_w2);
+		float32x2_t z2_w2 = vget_high_f32(x2_y2_z2_w2);
+		float32x2_t x2z2_y2w2 = vadd_f32(x2_y2, z2_w2);
+		float32x2_t x2y2z2w2 = vpadd_f32(x2z2_y2w2, x2z2_y2w2);
+
+		// Calculate the bias, if the dot product is positive or zero, there is no bias
+		// but if it is negative, we want to flip the 'end' rotation XYZW components
+		// On ARM-v7-A, the AND/XOR trick is faster than the cmp/fsel
+		uint32x2_t bias = vand_u32(vreinterpret_u32_f32(x2y2z2w2), vdup_n_u32(0x80000000));
+
+		// Lerp the rotation after applying the bias
+		float32x4_t end_biased = vreinterpretq_f32_u32(veorq_u32(vreinterpretq_u32_f32(end), vcombine_u32(bias, bias)));
+		float32x4_t interpolated_rotation = vmlaq_n_f32(start, vsubq_f32(end_biased, start), alpha);
+
+		// Now we need to normalize the resulting rotation. We first calculate the
+		// dot product to get the length squared: dot(interpolated_rotation, interpolated_rotation)
+		x2_y2_z2_w2 = vmulq_f32(interpolated_rotation, interpolated_rotation);
+		x2_y2 = vget_low_f32(x2_y2_z2_w2);
+		z2_w2 = vget_high_f32(x2_y2_z2_w2);
+		x2z2_y2w2 = vadd_f32(x2_y2, z2_w2);
+		x2y2z2w2 = vpadd_f32(x2z2_y2w2, x2z2_y2w2);
+
+		float dot = vget_lane_f32(x2y2z2w2, 0);
+
+		// Use sqrt/div/mul to normalize because the sqrt/div are faster than rsqrt
+		float inv_len = 1.0f / sqrt(dot);
+		return vector_mul(interpolated_rotation, inv_len);
+#else
 		// To ensure we take the shortest path, we apply a bias if the dot product is negative
 		Vector4_32 start_vector = quat_to_vector(start);
 		Vector4_32 end_vector = quat_to_vector(end);
 		float dot = vector_dot(start_vector, end_vector);
 		float bias = dot >= 0.0f ? 1.0f : -1.0f;
+		Vector4_32 interpolated_rotation = vector_mul_add(vector_sub(vector_mul(end_vector, bias), start_vector), alpha, start_vector);
 		// TODO: Test with this instead: Rotation = (B * Alpha) + (A * (Bias * (1.f - Alpha)));
-		Vector4_32 value = vector_add(start_vector, vector_mul(vector_sub(vector_mul(end_vector, bias), start_vector), alpha));
 		//Vector4_32 value = vector_add(vector_mul(end_vector, alpha), vector_mul(start_vector, bias * (1.0f - alpha)));
-		return quat_normalize(vector_to_quat(value));
+		return quat_normalize(vector_to_quat(interpolated_rotation));
+#endif
 	}
 
 	inline Quat_32 quat_neg(const Quat_32& input)
