@@ -265,9 +265,48 @@ namespace acl
 
 	inline Quat_32 quat_normalize(const Quat_32& input)
 	{
+#if defined(ACL_SSE2_INTRINSICS)
+		// We first calculate the dot product to get the length squared: dot(input, input)
+		__m128 x2_y2_z2_w2 = _mm_mul_ps(input, input);
+		__m128 z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
+		__m128 x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
+		__m128 y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
+		__m128 x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
+
+		// Keep the dot product result as a scalar within the first lane, it is faster to
+		// calculate the reciprocal square root of a single lane VS all 4 lanes
+		__m128 dot = x2y2z2w2_0_0_0;
+
+		// Calculate the reciprocal square root to get the inverse length of our vector
+		// Perform two passes of Newton-Raphson iteration on the hardware estimate
+		__m128 half = _mm_set_ss(0.5f);
+		__m128 input_half_v = _mm_mul_ss(dot, half);
+		__m128 x0 = _mm_rsqrt_ss(dot);
+
+		// First iteration
+		__m128 x1 = _mm_mul_ss(x0, x0);
+		x1 = _mm_sub_ss(half, _mm_mul_ss(input_half_v, x1));
+		x1 = _mm_add_ss(_mm_mul_ss(x0, x1), x0);
+
+		// Second iteration
+		__m128 x2 = _mm_mul_ss(x1, x1);
+		x2 = _mm_sub_ss(half, _mm_mul_ss(input_half_v, x2));
+		x2 = _mm_add_ss(_mm_mul_ss(x1, x2), x1);
+
+		// Broadcast the vector length reciprocal to all 4 lanes in order to multiply it with the vector
+		__m128 inv_len = _mm_shuffle_ps(x2, x2, _MM_SHUFFLE(0, 0, 0, 0));
+
+		// Multiply the rotation by it's inverse length in order to normalize it
+		return _mm_mul_ps(input, inv_len);
+#elif defined (ACL_NEON_INTRINSICS)
+		// Use sqrt/div/mul to normalize because the sqrt/div are faster than rsqrt
+		float inv_len = 1.0f / sqrt(vector_length_squared(input));
+		return vector_mul(input, inv_len);
+#else
 		// Reciprocal is more accurate to normalize with
 		float inv_len = quat_length_reciprocal(input);
 		return vector_to_quat(vector_mul(quat_to_vector(input), inv_len));
+#endif
 	}
 
 	inline Quat_32 quat_lerp(const Quat_32& start, const Quat_32& end, float alpha)
