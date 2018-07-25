@@ -249,10 +249,18 @@ static void test_quat_impl(const Vector4Type& zero, const QuatType& identity, co
 		QuatType quat0 = quat_from_euler(deg2rad(FloatType(30.0)), deg2rad(FloatType(-45.0)), deg2rad(FloatType(90.0)));
 		QuatType quat1 = quat_from_euler(deg2rad(FloatType(45.0)), deg2rad(FloatType(60.0)), deg2rad(FloatType(120.0)));
 
-		REQUIRE(scalar_near_equal(quat_get_x(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_x(scalar_lerp<QuatType, FloatType>(quat0, quat1, FloatType(0.33))), threshold));
-		REQUIRE(scalar_near_equal(quat_get_y(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_y(scalar_lerp<QuatType, FloatType>(quat0, quat1, FloatType(0.33))), threshold));
-		REQUIRE(scalar_near_equal(quat_get_z(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_z(scalar_lerp<QuatType, FloatType>(quat0, quat1, FloatType(0.33))), threshold));
-		REQUIRE(scalar_near_equal(quat_get_w(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_w(scalar_lerp<QuatType, FloatType>(quat0, quat1, FloatType(0.33))), threshold));
+		QuatType scalar_result = scalar_lerp<QuatType, FloatType>(quat0, quat1, FloatType(0.33));
+
+		REQUIRE(scalar_near_equal(quat_get_x(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_x(scalar_result), threshold));
+		REQUIRE(scalar_near_equal(quat_get_y(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_y(scalar_result), threshold));
+		REQUIRE(scalar_near_equal(quat_get_z(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_z(scalar_result), threshold));
+		REQUIRE(scalar_near_equal(quat_get_w(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_w(scalar_result), threshold));
+
+		quat1 = quat_neg(quat1);
+		REQUIRE(scalar_near_equal(quat_get_x(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_x(scalar_result), threshold));
+		REQUIRE(scalar_near_equal(quat_get_y(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_y(scalar_result), threshold));
+		REQUIRE(scalar_near_equal(quat_get_z(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_z(scalar_result), threshold));
+		REQUIRE(scalar_near_equal(quat_get_w(quat_lerp(quat0, quat1, FloatType(0.33))), quat_get_w(scalar_result), threshold));
 	}
 
 	{
