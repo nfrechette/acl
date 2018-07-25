@@ -348,7 +348,11 @@ namespace acl
 
 	inline Vector4_32 vector_neg(const Vector4_32& input)
 	{
+#if defined(ACL_NEON_INTRINSICS)
+		return vnegq_f32(input);
+#else
 		return vector_mul(input, -1.0f);
+#endif
 	}
 
 	inline Vector4_32 vector_reciprocal(const Vector4_32& input)

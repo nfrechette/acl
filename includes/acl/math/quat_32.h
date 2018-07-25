@@ -417,7 +417,11 @@ namespace acl
 
 	inline Quat_32 quat_neg(const Quat_32& input)
 	{
+#if defined(ACL_NEON_INTRINSICS)
+		return vnegq_f32(input);
+#else
 		return vector_to_quat(vector_mul(quat_to_vector(input), -1.0f));
+#endif
 	}
 
 	inline Quat_32 quat_ensure_positive_w(const Quat_32& input)
