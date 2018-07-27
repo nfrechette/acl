@@ -313,8 +313,8 @@ namespace acl
 						{
 							if (!ignore_segment_range[i])
 							{
-								const Vector4_32 segment_range_min = unpack_vector3_24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset, true);
-								const Vector4_32 segment_range_extent = unpack_vector3_24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)), true);
+								const Vector4_32 segment_range_min = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
+								const Vector4_32 segment_range_extent = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)));
 
 								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
 							}
@@ -336,8 +336,8 @@ namespace acl
 						{
 							for (size_t i = 0; i < num_key_frames; ++i)
 							{
-								const Vector4_32 segment_range_min = unpack_vector3_24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset, true);
-								const Vector4_32 segment_range_extent = unpack_vector3_24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)), true);
+								const Vector4_32 segment_range_min = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
+								const Vector4_32 segment_range_extent = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)));
 
 								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
 							}
@@ -496,8 +496,8 @@ namespace acl
 					{
 						if (format != VectorFormat8::Vector3_Variable || !settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) || !ignore_segment_range[i])
 						{
-							const Vector4_32 segment_range_min = unpack_vector3_24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset, true);
-							const Vector4_32 segment_range_extent = unpack_vector3_24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (3 * sizeof(uint8_t)), true);
+							const Vector4_32 segment_range_min = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
+							const Vector4_32 segment_range_extent = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (3 * sizeof(uint8_t)));
 
 							out_vectors[i] = vector_mul_add(out_vectors[i], segment_range_extent, segment_range_min);
 						}

@@ -200,25 +200,76 @@ namespace acl
 		return vector_set(x, y, z);
 	}
 
-	inline void pack_vector3_24(const Vector4_32& vector, bool is_unsigned, uint8_t* out_vector_data)
+	inline void pack_vector3_u24(const Vector4_32& vector, uint8_t* out_vector_data)
 	{
-		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 8) : pack_scalar_signed(vector_get_x(vector), 8);
-		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 8) : pack_scalar_signed(vector_get_y(vector), 8);
-		uint32_t vector_z = is_unsigned ? pack_scalar_unsigned(vector_get_z(vector), 8) : pack_scalar_signed(vector_get_z(vector), 8);
+		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), 8);
+		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), 8);
+		uint32_t vector_z = pack_scalar_unsigned(vector_get_z(vector), 8);
 
 		out_vector_data[0] = safe_static_cast<uint8_t>(vector_x);
 		out_vector_data[1] = safe_static_cast<uint8_t>(vector_y);
 		out_vector_data[2] = safe_static_cast<uint8_t>(vector_z);
 	}
 
-	inline Vector4_32 unpack_vector3_24(const uint8_t* vector_data, bool is_unsigned)
+	inline void pack_vector3_s24(const Vector4_32& vector, uint8_t* out_vector_data)
+	{
+		uint32_t vector_x = pack_scalar_signed(vector_get_x(vector), 8);
+		uint32_t vector_y = pack_scalar_signed(vector_get_y(vector), 8);
+		uint32_t vector_z = pack_scalar_signed(vector_get_z(vector), 8);
+
+		out_vector_data[0] = safe_static_cast<uint8_t>(vector_x);
+		out_vector_data[1] = safe_static_cast<uint8_t>(vector_y);
+		out_vector_data[2] = safe_static_cast<uint8_t>(vector_z);
+	}
+
+	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
+	inline Vector4_32 unpack_vector3_u24(const uint8_t* vector_data)
+	{
+#if defined(ACL_SSE2_INTRINSICS) && 0
+		// This implementation leverages fast fixed point coercion, it relies on the
+		// input being positive and normalized as well as fixed point (division by 256, not 255)
+		// TODO: Enable this, it's a bit faster but requires compensating with the clip range to avoid losing precision
+		__m128i zero = _mm_setzero_si128();
+		__m128i exponent = _mm_set1_epi32(0x3f800000);
+
+		__m128i x8y8z8 = _mm_loadu_si128((const __m128i*)vector_data);
+		__m128i x16y16z16 = _mm_unpacklo_epi8(x8y8z8, zero);
+		__m128i x32y32z32 = _mm_unpacklo_epi16(x16y16z16, zero);
+		__m128i segment_extent_i32 = _mm_or_si128(_mm_slli_epi32(x32y32z32, 23 - 8), exponent);
+		return _mm_sub_ps(_mm_castsi128_ps(segment_extent_i32), _mm_castsi128_ps(exponent));
+#elif defined(ACL_SSE2_INTRINSICS)
+		__m128i zero = _mm_setzero_si128();
+		__m128i x8y8z8 = _mm_loadu_si128((const __m128i*)vector_data);
+		__m128i x16y16z16 = _mm_unpacklo_epi8(x8y8z8, zero);
+		__m128i x32y32z32 = _mm_unpacklo_epi16(x16y16z16, zero);
+		__m128 value = _mm_cvtepi32_ps(x32y32z32);
+		return _mm_mul_ps(value, _mm_set_ps1(1.0f / 255.0f));
+#elif defined(ACL_NEON_INTRINSICS)
+		uint8x8_t x8y8z8 = vld1_u8(vector_data);
+		uint16x8_t x16y16z16 = vmovl_u8(x8y8z8);
+		uint32x4_t x32y32z32 = vmovl_u16(vget_low_u16(x16y16z16));
+
+		float32x4_t value = vcvtq_f32_u32(x32y32z32);
+		return vmulq_n_f32(value, 1.0f / 255.0f);
+#else
+		uint8_t x8 = vector_data[0];
+		uint8_t y8 = vector_data[1];
+		uint8_t z8 = vector_data[2];
+		float x = unpack_scalar_unsigned(x8, 8);
+		float y = unpack_scalar_unsigned(y8, 8);
+		float z = unpack_scalar_unsigned(z8, 8);
+		return vector_set(x, y, z);
+#endif
+	}
+
+	inline Vector4_32 unpack_vector3_s24(const uint8_t* vector_data)
 	{
 		uint8_t x8 = vector_data[0];
 		uint8_t y8 = vector_data[1];
 		uint8_t z8 = vector_data[2];
-		float x = is_unsigned ? unpack_scalar_unsigned(x8, 8) : unpack_scalar_signed(x8, 8);
-		float y = is_unsigned ? unpack_scalar_unsigned(y8, 8) : unpack_scalar_signed(y8, 8);
-		float z = is_unsigned ? unpack_scalar_unsigned(z8, 8) : unpack_scalar_signed(z8, 8);
+		float x = unpack_scalar_signed(x8, 8);
+		float y = unpack_scalar_signed(y8, 8);
+		float z = unpack_scalar_signed(z8, 8);
 		return vector_set(x, y, z);
 	}
 
