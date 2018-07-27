@@ -33,14 +33,14 @@ namespace acl
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns the version associated with an algorithm type.
 	// This is suitable for use by serialization to detect if a compressed clip is
-	// still supported by the library or if it must be recompressed. As such,
+	// still supported by the library or if it must be re-compressed. As such,
 	// changes to the binary format require incrementing the version number.
 	// TODO: constexpr
 	inline uint16_t get_algorithm_version(AlgorithmType8 type)
 	{
 		switch (type)
 		{
-			case AlgorithmType8::UniformlySampled:		return 2;
+			case AlgorithmType8::UniformlySampled:		return 3;
 			//case AlgorithmType8::LinearKeyReduction:	return 0;
 			//case AlgorithmType8::SplineKeyReduction:	return 0;
 			default:									return 0xFFFF;
