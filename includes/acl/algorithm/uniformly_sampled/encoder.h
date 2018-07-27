@@ -179,18 +179,11 @@ namespace acl
 				buffer_size = align_to(buffer_size, 4);							// Align animated data
 				buffer_size += segment.animated_data_size;						// Animated track data
 
-				const bool is_last_segment = segment.segment_index == uint32_t(clip_context.num_segments - 1);
-				if (is_last_segment && (buffer_size - header_end) < 16)
-				{
-					// Ensure we have sufficient padding for SIMD loads of range data
-					buffer_size = align_to(buffer_size, 16);
-				}
-
 				segment.total_header_size = header_end - header_start;
 			}
 
-			// Ensure we have sufficient padding for unaligned 64 bit loads
-			buffer_size = align_to(buffer_size, 8);
+			// Ensure we have sufficient padding for unaligned 16 byte loads
+			buffer_size += 15;
 
 			uint8_t* buffer = allocate_type_array_aligned<uint8_t>(allocator, buffer_size, 16);
 
