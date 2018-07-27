@@ -187,7 +187,7 @@ namespace acl
 
 		// Pack and unpack at our desired bit rate
 		uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-		alignas(8) uint8_t raw_data[16] = { 0 };
+		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_rotation;
 
 		if (is_constant_bit_rate(bit_rate))
@@ -202,10 +202,7 @@ namespace acl
 			packed_rotation = unpack_vector3_48(&raw_data[0], true);
 		}
 		else if (is_raw_bit_rate(bit_rate))
-		{
-			pack_vector3_96(rotation, &raw_data[0]);
-			packed_rotation = unpack_vector3_96(&raw_data[0]);
-		}
+			packed_rotation = rotation;
 		else
 		{
 			pack_vector3_n(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
@@ -350,7 +347,7 @@ namespace acl
 		ACL_ASSERT(clip_context->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
-		alignas(8) uint8_t raw_data[16] = { 0 };
+		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_translation;
 
 		if (is_constant_bit_rate(bit_rate))
@@ -364,10 +361,7 @@ namespace acl
 			packed_translation = unpack_vector3_48(&raw_data[0], true);
 		}
 		else if (is_raw_bit_rate(bit_rate))
-		{
-			pack_vector3_96(translation, &raw_data[0]);
-			packed_translation = unpack_vector3_96(&raw_data[0]);
-		}
+			packed_translation = translation;
 		else
 		{
 			const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
@@ -512,7 +506,7 @@ namespace acl
 		ACL_ASSERT(clip_context->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
-		alignas(8) uint8_t raw_data[16] = { 0 };
+		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_scale;
 
 		if (is_constant_bit_rate(bit_rate))
@@ -526,10 +520,7 @@ namespace acl
 			packed_scale = unpack_vector3_48(&raw_data[0], true);
 		}
 		else if (is_raw_bit_rate(bit_rate))
-		{
-			pack_vector3_96(scale, &raw_data[0]);
-			packed_scale = unpack_vector3_96(&raw_data[0]);
-		}
+			packed_scale = scale;
 		else
 		{
 			const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
