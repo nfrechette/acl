@@ -51,7 +51,10 @@ namespace acl
 			case RotationFormat8::QuatDropW_96:
 				return unpack_vector3_96_unsafe(ptr);
 			case RotationFormat8::QuatDropW_48:
-				return unpack_vector3_48(ptr, is_normalized);
+				if (is_normalized)
+					return unpack_vector3_u48_unsafe(ptr);
+				else
+					return unpack_vector3_s48(ptr);
 			case RotationFormat8::QuatDropW_32:
 				return unpack_vector3_32(11, 11, 10, is_normalized, ptr);
 			case RotationFormat8::QuatDropW_Variable:
@@ -59,7 +62,7 @@ namespace acl
 				if (is_constant_bit_rate(bit_rate))
 				{
 					ACL_ASSERT(is_normalized, "Cannot drop a constant track if it isn't normalized");
-					return unpack_vector3_48(ptr, true);
+					return unpack_vector3_u48_unsafe(ptr);
 				}
 				else if (is_raw_bit_rate(bit_rate))
 					return unpack_vector3_96_unsafe(ptr);
@@ -82,13 +85,13 @@ namespace acl
 			case VectorFormat8::Vector3_96:
 				return unpack_vector3_96_unsafe(ptr);
 			case VectorFormat8::Vector3_48:
-				return unpack_vector3_48(ptr, true);
+				return unpack_vector3_u48_unsafe(ptr);
 			case VectorFormat8::Vector3_32:
 				return unpack_vector3_32(11, 11, 10, true, ptr);
 			case VectorFormat8::Vector3_Variable:
 				ACL_ASSERT(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
-					return unpack_vector3_48(ptr, true);
+					return unpack_vector3_u48_unsafe(ptr);
 				else if (is_raw_bit_rate(bit_rate))
 					return unpack_vector3_96_unsafe(ptr);
 				else
@@ -198,8 +201,8 @@ namespace acl
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_rotation = normalize_sample(rotation, clip_bone_range.rotation);
 
-			pack_vector3_48(normalized_rotation, true, &raw_data[0]);
-			packed_rotation = unpack_vector3_48(&raw_data[0], true);
+			pack_vector3_u48(normalized_rotation, &raw_data[0]);
+			packed_rotation = unpack_vector3_u48_unsafe(&raw_data[0]);
 		}
 		else if (is_raw_bit_rate(bit_rate))
 			packed_rotation = rotation;
@@ -253,8 +256,16 @@ namespace acl
 			packed_rotation = rotation;
 			break;
 		case RotationFormat8::QuatDropW_48:
-			pack_vector3_48(rotation, are_rotations_normalized, &raw_data[0]);
-			packed_rotation = unpack_vector3_48(&raw_data[0], are_rotations_normalized);
+			if (are_rotations_normalized)
+			{
+				pack_vector3_u48(rotation, &raw_data[0]);
+				packed_rotation = unpack_vector3_u48_unsafe(&raw_data[0]);
+			}
+			else
+			{
+				pack_vector3_s48(rotation, &raw_data[0]);
+				packed_rotation = unpack_vector3_s48(&raw_data[0]);
+			}
 			break;
 		case RotationFormat8::QuatDropW_32:
 			pack_vector3_32(rotation, 11, 11, 10, are_rotations_normalized, &raw_data[0]);
@@ -357,8 +368,8 @@ namespace acl
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_translation = normalize_sample(translation, clip_bone_range.translation);
 
-			pack_vector3_48(normalized_translation, true, &raw_data[0]);
-			packed_translation = unpack_vector3_48(&raw_data[0], true);
+			pack_vector3_u48(normalized_translation, &raw_data[0]);
+			packed_translation = unpack_vector3_u48_unsafe(&raw_data[0]);
 		}
 		else if (is_raw_bit_rate(bit_rate))
 			packed_translation = translation;
@@ -412,8 +423,9 @@ namespace acl
 			packed_translation = translation;
 			break;
 		case VectorFormat8::Vector3_48:
-			pack_vector3_48(translation, are_translations_normalized, &raw_data[0]);
-			packed_translation = unpack_vector3_48(&raw_data[0], are_translations_normalized);
+			ACL_ASSERT(are_translations_normalized, "Translations must be normalized to support this format");
+			pack_vector3_u48(translation, &raw_data[0]);
+			packed_translation = unpack_vector3_u48_unsafe(&raw_data[0]);
 			break;
 		case VectorFormat8::Vector3_32:
 			pack_vector3_32(translation, 11, 11, 10, are_translations_normalized, &raw_data[0]);
@@ -516,8 +528,8 @@ namespace acl
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_scale = normalize_sample(scale, clip_bone_range.scale);
 
-			pack_vector3_48(normalized_scale, true, &raw_data[0]);
-			packed_scale = unpack_vector3_48(&raw_data[0], true);
+			pack_vector3_u48(normalized_scale, &raw_data[0]);
+			packed_scale = unpack_vector3_u48_unsafe(&raw_data[0]);
 		}
 		else if (is_raw_bit_rate(bit_rate))
 			packed_scale = scale;
@@ -571,8 +583,9 @@ namespace acl
 			packed_scale = scale;
 			break;
 		case VectorFormat8::Vector3_48:
-			pack_vector3_48(scale, are_scales_normalized, &raw_data[0]);
-			packed_scale = unpack_vector3_48(&raw_data[0], are_scales_normalized);
+			ACL_ASSERT(are_scales_normalized, "Scales must be normalized to support this format");
+			pack_vector3_u48(scale, &raw_data[0]);
+			packed_scale = unpack_vector3_u48_unsafe(&raw_data[0]);
 			break;
 		case VectorFormat8::Vector3_32:
 			pack_vector3_32(scale, 11, 11, 10, are_scales_normalized, &raw_data[0]);

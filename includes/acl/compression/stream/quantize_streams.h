@@ -142,7 +142,10 @@ namespace acl
 					pack_vector3_96(quat_to_vector(rotation), quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_48:
-					pack_vector3_48(quat_to_vector(rotation), are_rotations_normalized, quantized_ptr);
+					if (are_rotations_normalized)
+						pack_vector3_u48(quat_to_vector(rotation), quantized_ptr);
+					else
+						pack_vector3_s48(quat_to_vector(rotation), quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_32:
 					pack_vector3_32(quat_to_vector(rotation), 11, 11, 10, are_rotations_normalized, quantized_ptr);
@@ -191,7 +194,7 @@ namespace acl
 				const Vector4_32 normalized_rotation = normalize_sample(rotation, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
-				pack_vector3_48(normalized_rotation, true, quantized_ptr);
+				pack_vector3_u48(normalized_rotation, quantized_ptr);
 			}
 			else
 			{
@@ -263,7 +266,7 @@ namespace acl
 					pack_vector3_96(translation, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_48:
-					pack_vector3_48(translation, true, quantized_ptr);
+					pack_vector3_u48(translation, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_32:
 					pack_vector3_32(translation, 11, 11, 10, true, quantized_ptr);
@@ -311,7 +314,7 @@ namespace acl
 				const Vector4_32 normalized_translation = normalize_sample(translation, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
-				pack_vector3_48(normalized_translation, true, quantized_ptr);
+				pack_vector3_u48(normalized_translation, quantized_ptr);
 			}
 			else
 			{
@@ -380,7 +383,7 @@ namespace acl
 					pack_vector3_96(scale, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_48:
-					pack_vector3_48(scale, true, quantized_ptr);
+					pack_vector3_u48(scale, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_32:
 					pack_vector3_32(scale, 11, 11, 10, true, quantized_ptr);
@@ -428,7 +431,7 @@ namespace acl
 				const Vector4_32 normalized_scale = normalize_sample(scale, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
-				pack_vector3_48(normalized_scale, true, quantized_ptr);
+				pack_vector3_u48(normalized_scale, quantized_ptr);
 			}
 			else
 			{

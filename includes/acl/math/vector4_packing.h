@@ -145,11 +145,11 @@ namespace acl
 		return vector_set(x, y, z);
 	}
 
-	inline void pack_vector3_48(const Vector4_32& vector, bool is_unsigned , uint8_t* out_vector_data)
+	inline void pack_vector3_u48(const Vector4_32& vector, uint8_t* out_vector_data)
 	{
-		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 16) : pack_scalar_signed(vector_get_x(vector), 16);
-		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 16) : pack_scalar_signed(vector_get_y(vector), 16);
-		uint32_t vector_z = is_unsigned ? pack_scalar_unsigned(vector_get_z(vector), 16) : pack_scalar_signed(vector_get_z(vector), 16);
+		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), 16);
+		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), 16);
+		uint32_t vector_z = pack_scalar_unsigned(vector_get_z(vector), 16);
 
 		uint16_t* data = safe_ptr_cast<uint16_t>(out_vector_data);
 		data[0] = safe_static_cast<uint16_t>(vector_x);
@@ -157,15 +157,55 @@ namespace acl
 		data[2] = safe_static_cast<uint16_t>(vector_z);
 	}
 
-	inline Vector4_32 unpack_vector3_48(const uint8_t* vector_data, bool is_unsigned)
+	inline void pack_vector3_s48(const Vector4_32& vector, uint8_t* out_vector_data)
+	{
+		uint32_t vector_x = pack_scalar_signed(vector_get_x(vector), 16);
+		uint32_t vector_y = pack_scalar_signed(vector_get_y(vector), 16);
+		uint32_t vector_z = pack_scalar_signed(vector_get_z(vector), 16);
+
+		uint16_t* data = safe_ptr_cast<uint16_t>(out_vector_data);
+		data[0] = safe_static_cast<uint16_t>(vector_x);
+		data[1] = safe_static_cast<uint16_t>(vector_y);
+		data[2] = safe_static_cast<uint16_t>(vector_z);
+	}
+
+	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
+	inline Vector4_32 unpack_vector3_u48_unsafe(const uint8_t* vector_data)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128i zero = _mm_setzero_si128();
+		__m128i x16y16z16 = _mm_loadu_si128((const __m128i*)vector_data);
+		__m128i x32y32z32 = _mm_unpacklo_epi16(x16y16z16, zero);
+		__m128 value = _mm_cvtepi32_ps(x32y32z32);
+		return _mm_mul_ps(value, _mm_set_ps1(1.0f / 65535.0f));
+#elif defined(ACL_NEON_INTRINSICS)
+		uint8x8_t x8y8z8 = vld1_u8(vector_data);
+		uint16x4_t x16y16z16 = vreinterpret_u16_u8(x8y8z8);
+		uint32x4_t x32y32z32 = vmovl_u16(x16y16z16);
+
+		float32x4_t value = vcvtq_f32_u32(x32y32z32);
+		return vmulq_n_f32(value, 1.0f / 65535.0f);
+#else
+		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
+		uint16_t x16 = data_ptr_u16[0];
+		uint16_t y16 = data_ptr_u16[1];
+		uint16_t z16 = data_ptr_u16[2];
+		float x = unpack_scalar_unsigned(x16, 16);
+		float y = unpack_scalar_unsigned(y16, 16);
+		float z = unpack_scalar_unsigned(z16, 16);
+		return vector_set(x, y, z);
+#endif
+	}
+
+	inline Vector4_32 unpack_vector3_s48(const uint8_t* vector_data)
 	{
 		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
 		uint16_t x16 = data_ptr_u16[0];
 		uint16_t y16 = data_ptr_u16[1];
 		uint16_t z16 = data_ptr_u16[2];
-		float x = is_unsigned ? unpack_scalar_unsigned(x16, 16) : unpack_scalar_signed(x16, 16);
-		float y = is_unsigned ? unpack_scalar_unsigned(y16, 16) : unpack_scalar_signed(y16, 16);
-		float z = is_unsigned ? unpack_scalar_unsigned(z16, 16) : unpack_scalar_signed(z16, 16);
+		float x = unpack_scalar_signed(x16, 16);
+		float y = unpack_scalar_signed(y16, 16);
+		float z = unpack_scalar_signed(z16, 16);
 		return vector_set(x, y, z);
 	}
 

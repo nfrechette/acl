@@ -246,7 +246,7 @@ namespace acl
 
 						if (is_constant_bit_rate(bit_rate))
 						{
-							rotations[i] = unpack_vector3_48(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset, true);
+							rotations[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
 							ignore_segment_range[i] = true;
 						}
 						else if (is_raw_bit_rate(bit_rate))
@@ -286,7 +286,12 @@ namespace acl
 					else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
 					{
 						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations[i] = unpack_vector3_48(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i], are_clip_rotations_normalized);
+						{
+							if (are_clip_rotations_normalized)
+								rotations[i] = unpack_vector3_u48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+							else
+								rotations[i] = unpack_vector3_s48(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+						}
 					}
 					else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
 					{
@@ -436,7 +441,7 @@ namespace acl
 
 						if (is_constant_bit_rate(bit_rate))
 						{
-							out_vectors[i] = unpack_vector3_48(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset, true);
+							out_vectors[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
 							ignore_segment_range[i] = true;
 						}
 						else if (is_raw_bit_rate(bit_rate))
@@ -471,7 +476,7 @@ namespace acl
 					else if (format == VectorFormat8::Vector3_48 && settings.is_vector_format_supported(VectorFormat8::Vector3_48))
 					{
 						for (size_t i = 0; i < num_key_frames; ++i)
-							out_vectors[i] = unpack_vector3_48(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i], true);
+							out_vectors[i] = unpack_vector3_u48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 					}
 					else if (format == VectorFormat8::Vector3_32 && settings.is_vector_format_supported(VectorFormat8::Vector3_32))
 					{

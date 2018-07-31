@@ -62,12 +62,12 @@ namespace acl
 	inline void pack_quat_48(const Quat_32& rotation, uint8_t* out_rotation_data)
 	{
 		Vector4_32 rotation_xyz = quat_to_vector(quat_ensure_positive_w(rotation));
-		pack_vector3_48(rotation_xyz, false, out_rotation_data);
+		pack_vector3_s48(rotation_xyz, out_rotation_data);
 	}
 
 	inline Quat_32 unpack_quat_48(const uint8_t* data_ptr)
 	{
-		Vector4_32 rotation_xyz = unpack_vector3_48(data_ptr, false);
+		Vector4_32 rotation_xyz = unpack_vector3_s48(data_ptr);
 		return quat_from_positive_w(rotation_xyz);
 	}
 
