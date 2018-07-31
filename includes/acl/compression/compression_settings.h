@@ -84,11 +84,8 @@ namespace acl
 			if (!enabled)
 				return ErrorResult();
 
-			if (ideal_num_samples == 0)
-				return ErrorResult("ideal_num_samples cannot be 0");
-
-			if (max_num_samples == 0)
-				return ErrorResult("max_num_samples cannot be 0");
+			if (ideal_num_samples < 8)
+				return ErrorResult("ideal_num_samples must be greater or equal to 8");
 
 			if (ideal_num_samples > max_num_samples)
 				return ErrorResult("ideal_num_samples must be smaller or equal to max_num_samples");
