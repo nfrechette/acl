@@ -65,7 +65,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			vec0 = vector_set(value_unsigned);
 			pack_vector4_64(vec0, true, &tmp.buffer[0]);
 			vec1 = unpack_vector4_64(&tmp.buffer[0], true);
-			if (std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) != 0)
+			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -88,7 +88,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			vec0 = vector_set(value_unsigned);
 			pack_vector4_32(vec0, true, &tmp.buffer[0]);
 			vec1 = unpack_vector4_32(&tmp.buffer[0], true);
-			if (std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) != 0)
+			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -170,13 +170,13 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			Vector4_32 vec0 = vector_set(value_signed_xy, value_signed_xy, value_signed_z);
 			pack_vector3_32(vec0, 11, 11, 10, false, &tmp0.buffer[0]);
 			Vector4_32 vec1 = unpack_vector3_32(11, 11, 10, false, &tmp0.buffer[0]);
-			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned_xy, value_unsigned_xy, value_unsigned_z);
 			pack_vector3_32(vec0, 11, 11, 10, true, &tmp0.buffer[0]);
 			vec1 = unpack_vector3_32(11, 11, 10, true, &tmp0.buffer[0]);
-			if (std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) != 0)
+			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -218,7 +218,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			Vector4_32 vec0 = vector_set(value_signed, value_signed, value_signed);
 			pack_vector3_n(vec0, 16, 16, 16, false, &buffer[0]);
 			Vector4_32 vec1 = unpack_vector3_n(16, 16, 16, false, &buffer[0]);
-			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 
 			{
@@ -241,7 +241,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 
 					memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, 48);
 					vec1 = unpack_vector3_n(16, 16, 16, false, &tmp0.buffer[0], offset);
-					if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+					if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 						num_errors++;
 				}
 			}
@@ -249,7 +249,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
 			pack_vector3_n(vec0, 16, 16, 16, true, &buffer[0]);
 			vec1 = unpack_vector3_n(16, 16, 16, true, &buffer[0]);
-			if (std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) != 0)
+			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 
 			{
@@ -272,7 +272,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 
 					memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, 48);
 					vec1 = unpack_vector3_n(16, 16, 16, true, &tmp0.buffer[0], offset);
-					if (std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) != 0)
+					if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 						num_errors++;
 				}
 			}
