@@ -100,7 +100,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		Vector4_32 vec0 = vector_set(6123.123812f, 19237.01293127f, 0.913912387f);
 		pack_vector3_96(vec0, &tmp0.buffer[0]);
 		Vector4_32 vec1 = unpack_vector3_96_unsafe(&tmp0.buffer[0]);
-		REQUIRE(std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) == 0);
+		REQUIRE(vector_all_near_equal3(vec0, vec1, 1.0e-6f));
 
 		uint32_t x = unaligned_load<uint32_t>(&tmp0.buffer[0]);
 		x = byte_swap(x);
@@ -122,7 +122,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 
 			memcpy_bits(&tmp1.buffer[0], offset, &tmp0.buffer[0], 0, 96);
 			vec1 = unpack_vector3_96(&tmp1.buffer[0], offset);
-			if (std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) != 0)
+			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
