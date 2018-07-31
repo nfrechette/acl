@@ -281,7 +281,7 @@ namespace acl
 					else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
 					{
 						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations[i] = unpack_vector3_96(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+							rotations[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 					}
 					else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
 					{
@@ -465,7 +465,7 @@ namespace acl
 					if (format == VectorFormat8::Vector3_96 && settings.is_vector_format_supported(VectorFormat8::Vector3_96))
 					{
 						for (size_t i = 0; i < num_key_frames; ++i)
-							out_vectors[i] = unpack_vector3_96(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+							out_vectors[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 					}
 					else if (format == VectorFormat8::Vector3_48 && settings.is_vector_format_supported(VectorFormat8::Vector3_48))
 					{

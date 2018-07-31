@@ -49,7 +49,7 @@ namespace acl
 			case RotationFormat8::Quat_128:
 				return unpack_vector4_128(ptr);
 			case RotationFormat8::QuatDropW_96:
-				return unpack_vector3_96(ptr);
+				return unpack_vector3_96_unsafe(ptr);
 			case RotationFormat8::QuatDropW_48:
 				return unpack_vector3_48(ptr, is_normalized);
 			case RotationFormat8::QuatDropW_32:
@@ -62,7 +62,7 @@ namespace acl
 					return unpack_vector3_48(ptr, true);
 				}
 				else if (is_raw_bit_rate(bit_rate))
-					return unpack_vector3_96(ptr);
+					return unpack_vector3_96_unsafe(ptr);
 				else
 				{
 					const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
@@ -80,7 +80,7 @@ namespace acl
 			switch (format)
 			{
 			case VectorFormat8::Vector3_96:
-				return unpack_vector3_96(ptr);
+				return unpack_vector3_96_unsafe(ptr);
 			case VectorFormat8::Vector3_48:
 				return unpack_vector3_48(ptr, true);
 			case VectorFormat8::Vector3_32:
@@ -90,7 +90,7 @@ namespace acl
 				if (is_constant_bit_rate(bit_rate))
 					return unpack_vector3_48(ptr, true);
 				else if (is_raw_bit_rate(bit_rate))
-					return unpack_vector3_96(ptr);
+					return unpack_vector3_96_unsafe(ptr);
 				else
 				{
 					const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
@@ -243,7 +243,7 @@ namespace acl
 		const Vector4_32 rotation = impl::load_rotation_sample(quantized_ptr, format, k_invalid_bit_rate, are_rotations_normalized);
 
 		// Pack and unpack in our desired format
-		alignas(8) uint8_t raw_data[16] = { 0 };
+		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_rotation;
 
 		switch (desired_format)
@@ -403,7 +403,7 @@ namespace acl
 		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
 		// Pack and unpack in our desired format
-		alignas(8) uint8_t raw_data[16] = { 0 };
+		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_translation;
 
 		switch (desired_format)
@@ -562,7 +562,7 @@ namespace acl
 		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
 		// Pack and unpack in our desired format
-		alignas(8) uint8_t raw_data[16] = { 0 };
+		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_scale;
 
 		switch (desired_format)

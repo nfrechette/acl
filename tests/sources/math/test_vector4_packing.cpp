@@ -99,7 +99,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		UnalignedBuffer tmp1;
 		Vector4_32 vec0 = vector_set(6123.123812f, 19237.01293127f, 0.913912387f);
 		pack_vector3_96(vec0, &tmp0.buffer[0]);
-		Vector4_32 vec1 = unpack_vector3_96(&tmp0.buffer[0]);
+		Vector4_32 vec1 = unpack_vector3_96_unsafe(&tmp0.buffer[0]);
 		REQUIRE(std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) == 0);
 
 		uint32_t x = unaligned_load<uint32_t>(&tmp0.buffer[0]);

@@ -92,7 +92,7 @@ namespace acl
 		TrackStream(AnimationTrackType8 type, TrackFormat8 format) : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_type(type), m_format(format), m_bit_rate(0) {}
 		TrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, AnimationTrackType8 type, TrackFormat8 format, uint8_t bit_rate)
 			: m_allocator(&allocator)
-			, m_samples(reinterpret_cast<uint8_t*>(allocator.allocate(sample_size * num_samples, 16)))
+			, m_samples(reinterpret_cast<uint8_t*>(allocator.allocate(sample_size * num_samples + k_padding, 16)))
 			, m_num_samples(num_samples)
 			, m_sample_size(sample_size)
 			, m_sample_rate(sample_rate)
@@ -118,7 +118,7 @@ namespace acl
 		~TrackStream()
 		{
 			if (m_allocator != nullptr && m_num_samples != 0)
-				m_allocator->deallocate(m_samples, m_sample_size * m_num_samples);
+				m_allocator->deallocate(m_samples, m_sample_size * m_num_samples + k_padding);
 		}
 
 		TrackStream& operator=(const TrackStream&) = delete;
@@ -141,7 +141,7 @@ namespace acl
 			if (m_allocator != nullptr)
 			{
 				copy.m_allocator = m_allocator;
-				copy.m_samples = reinterpret_cast<uint8_t*>(m_allocator->allocate(m_sample_size * m_num_samples, 16));
+				copy.m_samples = reinterpret_cast<uint8_t*>(m_allocator->allocate(m_sample_size * m_num_samples + k_padding, 16));
 				copy.m_num_samples = m_num_samples;
 				copy.m_sample_size = m_sample_size;
 				copy.m_sample_rate = m_sample_rate;
@@ -151,6 +151,9 @@ namespace acl
 				std::memcpy(copy.m_samples, m_samples, m_sample_size * m_num_samples);
 			}
 		}
+
+		// In order to guarantee the safety of unaligned SIMD loads of every byte, we add some padding
+		static constexpr uint32_t k_padding = 15;
 
 		IAllocator*				m_allocator;
 		uint8_t*				m_samples;

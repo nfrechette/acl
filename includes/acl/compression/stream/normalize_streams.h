@@ -88,7 +88,7 @@ namespace acl
 
 	inline void extract_segment_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
 	{
-		alignas(8) uint8_t buffer[8] = {0};
+		alignas(16) uint8_t buffer[8] = {0};
 		const Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, k_segment_range_reduction_num_bits_per_component));
 		const Vector4_32 one = vector_set(1.0f);
 		const Vector4_32 zero = vector_zero_32();

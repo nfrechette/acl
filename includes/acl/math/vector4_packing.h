@@ -103,11 +103,6 @@ namespace acl
 		vector_unaligned_write3(vector, out_vector_data);
 	}
 
-	inline Vector4_32 unpack_vector3_96(const uint8_t* vector_data)
-	{
-		return vector_unaligned_load3_32(vector_data);
-	}
-
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
 	inline Vector4_32 unpack_vector3_96_unsafe(const uint8_t* vector_data)
 	{
