@@ -224,7 +224,7 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
-	inline Vector4_32 unpack_vector3_u24(const uint8_t* vector_data)
+	inline Vector4_32 unpack_vector3_u24_unsafe(const uint8_t* vector_data)
 	{
 #if defined(ACL_SSE2_INTRINSICS) && 0
 		// This implementation leverages fast fixed point coercion, it relies on the

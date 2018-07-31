@@ -46,7 +46,7 @@ namespace acl
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
-						uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
+						const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
 						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 						if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
@@ -62,7 +62,7 @@ namespace acl
 				}
 				else
 				{
-					uint32_t rotation_size = get_packed_rotation_size(rotation_format);
+					const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
 
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
@@ -125,7 +125,7 @@ namespace acl
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
-						uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
+						const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
 						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 						if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
@@ -241,8 +241,8 @@ namespace acl
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
-						uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+						const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
+						const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 						if (is_constant_bit_rate(bit_rate))
 						{
@@ -313,8 +313,8 @@ namespace acl
 						{
 							if (!ignore_segment_range[i])
 							{
-								const Vector4_32 segment_range_min = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
-								const Vector4_32 segment_range_extent = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)));
+								const Vector4_32 segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
+								const Vector4_32 segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)));
 
 								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
 							}
@@ -336,8 +336,8 @@ namespace acl
 						{
 							for (size_t i = 0; i < num_key_frames; ++i)
 							{
-								const Vector4_32 segment_range_min = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
-								const Vector4_32 segment_range_extent = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)));
+								const Vector4_32 segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
+								const Vector4_32 segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)));
 
 								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
 							}
@@ -431,8 +431,8 @@ namespace acl
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
-						uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-						uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+						const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
+						const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 						if (is_constant_bit_rate(bit_rate))
 						{
@@ -449,6 +449,7 @@ namespace acl
 							out_vectors[i] = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 
 						uint8_t num_bits_read = num_bits_at_bit_rate * 3;
+
 						if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
 							num_bits_read = align_to(num_bits_read, k_mixed_packing_alignment_num_bits);
 
@@ -496,8 +497,8 @@ namespace acl
 					{
 						if (format != VectorFormat8::Vector3_Variable || !settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) || !ignore_segment_range[i])
 						{
-							const Vector4_32 segment_range_min = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
-							const Vector4_32 segment_range_extent = unpack_vector3_u24(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (3 * sizeof(uint8_t)));
+							const Vector4_32 segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
+							const Vector4_32 segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (3 * sizeof(uint8_t)));
 
 							out_vectors[i] = vector_mul_add(out_vectors[i], segment_range_extent, segment_range_min);
 						}
@@ -508,8 +509,8 @@ namespace acl
 
 				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))
 				{
-					Vector4_32 clip_range_min = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
-					Vector4_32 clip_range_extent = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (3 * sizeof(float)));
+					const Vector4_32 clip_range_min = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
+					const Vector4_32 clip_range_extent = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (3 * sizeof(float)));
 
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
