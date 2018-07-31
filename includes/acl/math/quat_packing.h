@@ -52,9 +52,10 @@ namespace acl
 		pack_vector3_96(rotation_xyz, out_rotation_data);
 	}
 
+	// Assumes the 'data_ptr' is padded in order to load up to 16 bytes from it
 	inline Quat_32 unpack_quat_96(const uint8_t* data_ptr)
 	{
-		Vector4_32 rotation_xyz = unpack_vector3_96(data_ptr);
+		Vector4_32 rotation_xyz = unpack_vector3_96_unsafe(data_ptr);
 		return quat_from_positive_w(rotation_xyz);
 	}
 

@@ -95,9 +95,15 @@ namespace acl
 
 	inline Vector4_32 vector_unaligned_load_32(const uint8_t* input)
 	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_loadu_ps((const float*)input);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vreinterpretq_f32_u8(vld1q_u8(input));
+#else
 		Vector4_32 result;
 		memcpy(&result, input, sizeof(Vector4_32));
 		return result;
+#endif
 	}
 
 	inline Vector4_32 vector_unaligned_load3_32(const uint8_t* input)

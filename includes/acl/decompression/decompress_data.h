@@ -413,7 +413,7 @@ namespace acl
 			if (is_sample_constant)
 			{
 				// Constant translation tracks store the remaining sample with full precision
-				out_vectors[0] = unpack_vector3_96(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
+				out_vectors[0] = unpack_vector3_96_unsafe(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
 				out_time_series_type = TimeSeriesType8::Constant;
 
 				sampling_context.constant_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
@@ -508,8 +508,8 @@ namespace acl
 
 				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))
 				{
-					Vector4_32 clip_range_min = unpack_vector3_96(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
-					Vector4_32 clip_range_extent = unpack_vector3_96(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (3 * sizeof(float)));
+					Vector4_32 clip_range_min = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
+					Vector4_32 clip_range_extent = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (3 * sizeof(float)));
 
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
