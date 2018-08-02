@@ -33,6 +33,13 @@
 #include <memory>
 #include <algorithm>
 
+// For byte swapping intrinsics
+#if defined(_MSC_VER)
+	#include <cstdlib>
+#elif defined(__APPLE__)
+	#include <libkern/OSByteOrder.h>
+#endif
+
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
@@ -196,24 +203,48 @@ namespace acl
 		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
 	}
 
-	constexpr uint16_t byte_swap(uint16_t value)
+	inline uint16_t byte_swap(uint16_t value)
 	{
+#if defined(_MSC_VER)
+		return _byteswap_ushort(value);
+#elif defined(__APPLE__)
+		return OSSwapInt16(value);
+#elif defined(__GNUC__) || defined(__clang__)
+		return __builtin_bswap16(value);
+#else
 		return (value & 0x00FF) << 8 | (value & 0xFF00) >> 8;
+#endif
 	}
 
 	inline uint32_t byte_swap(uint32_t value)
 	{
+#if defined(_MSC_VER)
+		return _byteswap_ulong(value);
+#elif defined(__APPLE__)
+		return OSSwapInt32(value);
+#elif defined(__GNUC__) || defined(__clang__)
+		return __builtin_bswap32(value);
+#else
 		value = (value & 0x0000FFFF) << 16 | (value & 0xFFFF0000) >> 16;
 		value = (value & 0x00FF00FF) << 8 | (value & 0xFF00FF00) >> 8;
 		return value;
+#endif
 	}
 
 	inline uint64_t byte_swap(uint64_t value)
 	{
+#if defined(_MSC_VER)
+		return _byteswap_uint64(value);
+#elif defined(__APPLE__)
+		return OSSwapInt64(value);
+#elif defined(__GNUC__) || defined(__clang__)
+		return __builtin_bswap64(value);
+#else
 		value = (value & 0x00000000FFFFFFFF) << 32 | (value & 0xFFFFFFFF00000000) >> 32;
 		value = (value & 0x0000FFFF0000FFFF) << 16 | (value & 0xFFFF0000FFFF0000) >> 16;
 		value = (value & 0x00FF00FF00FF00FF) << 8 | (value & 0xFF00FF00FF00FF00) >> 8;
 		return value;
+#endif
 	}
 
 	// We copy bits assuming big-endian ordering for 'dest' and 'src'
