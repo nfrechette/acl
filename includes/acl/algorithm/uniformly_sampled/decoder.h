@@ -95,7 +95,7 @@ namespace acl
 				const uint8_t* animated_track_data[2];			//  64 | 112
 
 				uint32_t key_frame_byte_offsets[2];				//  72 | 120
-				int32_t key_frame_bit_offsets[2];				//  80 | 128
+				uint32_t key_frame_bit_offsets[2];				//  80 | 128
 
 				float interpolation_alpha;						//  84 | 132
 				float sample_time;								//  88 | 136
@@ -114,7 +114,7 @@ namespace acl
 				uint32_t segment_range_data_offset;				//  24 |  24
 
 				uint32_t key_frame_byte_offsets[2];				//  32 |  32
-				int32_t key_frame_bit_offsets[2];				//  40 |  40
+				uint32_t key_frame_bit_offsets[2];				//  40 |  40
 
 				uint8_t padding[24];							//  64 |  64
 			};
