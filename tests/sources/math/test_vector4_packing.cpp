@@ -207,71 +207,59 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 
 	{
 		UnalignedBuffer tmp0;
-		alignas(8) uint8_t buffer[64];
+		alignas(16) uint8_t buffer[64];
 
 		uint32_t num_errors = 0;
+		Vector4_32 vec0 = vector_set(unpack_scalar_signed(0, 16), unpack_scalar_signed(12355, 16), unpack_scalar_signed(43222, 16));
+		pack_vector3_sXX(vec0, 16, &buffer[0]);
+		Vector4_32 vec1 = unpack_vector3_sXX_unsafe(16, &buffer[0], 0);
+		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			num_errors++;
+
+		vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16));
+		pack_vector3_uXX(vec0, 16, &buffer[0]);
+		vec1 = unpack_vector3_uXX_unsafe(16, &buffer[0], 0);
+		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			num_errors++;
+
 		for (uint32_t value = 0; value < 65536; ++value)
 		{
 			const float value_signed = unpack_scalar_signed(value, 16);
 			const float value_unsigned = unpack_scalar_unsigned(value, 16);
 
-			Vector4_32 vec0 = vector_set(value_signed, value_signed, value_signed);
-			pack_vector3_n(vec0, 16, 16, 16, false, &buffer[0]);
-			Vector4_32 vec1 = unpack_vector3_n(16, 16, 16, false, &buffer[0]);
+			vec0 = vector_set(value_signed, value_signed, value_signed);
+			pack_vector3_sXX(vec0, 16, &buffer[0]);
+			vec1 = unpack_vector3_sXX_unsafe(16, &buffer[0], 0);
 			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 
 			{
-				uint16_t x = unaligned_load<uint16_t>(&buffer[0]);
-				x = byte_swap(x);
-				unaligned_write(x, &buffer[0]);
-
-				uint16_t y = unaligned_load<uint16_t>(&buffer[2]);
-				y = byte_swap(y);
-				unaligned_write(y, &buffer[2]);
-
-				uint16_t z = unaligned_load<uint16_t>(&buffer[4]);
-				z = byte_swap(z);
-				unaligned_write(z, &buffer[4]);
-
 				const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
 				for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
 				{
 					const uint8_t offset = offsets[offset_idx];
 
 					memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, 48);
-					vec1 = unpack_vector3_n(16, 16, 16, false, &tmp0.buffer[0], offset);
+					vec1 = unpack_vector3_sXX_unsafe(16, &tmp0.buffer[0], offset);
 					if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 						num_errors++;
 				}
 			}
 
 			vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
-			pack_vector3_n(vec0, 16, 16, 16, true, &buffer[0]);
-			vec1 = unpack_vector3_n(16, 16, 16, true, &buffer[0]);
+			pack_vector3_uXX(vec0, 16, &buffer[0]);
+			vec1 = unpack_vector3_uXX_unsafe(16, &buffer[0], 0);
 			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 
 			{
-				uint16_t x = unaligned_load<uint16_t>(&buffer[0]);
-				x = byte_swap(x);
-				unaligned_write(x, &buffer[0]);
-
-				uint16_t y = unaligned_load<uint16_t>(&buffer[2]);
-				y = byte_swap(y);
-				unaligned_write(y, &buffer[2]);
-
-				uint16_t z = unaligned_load<uint16_t>(&buffer[4]);
-				z = byte_swap(z);
-				unaligned_write(z, &buffer[4]);
-
 				const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
 				for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
 				{
 					const uint8_t offset = offsets[offset_idx];
 
 					memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, 48);
-					vec1 = unpack_vector3_n(16, 16, 16, true, &tmp0.buffer[0], offset);
+					vec1 = unpack_vector3_uXX_unsafe(16, &tmp0.buffer[0], offset);
 					if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 						num_errors++;
 				}
