@@ -350,53 +350,52 @@ namespace acl
 		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
 
 #if defined(ACL_SSE2_INTRINSICS)
-#if 0
-		// TODO: 64 bit implementation, not yet used
-		uint32_t byte_offset = bit_offset / 8;
-		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
-		vector_u64 = byte_swap(vector_u64);
+		// TODO: Pack mask and max value together, reduce likelihood that we'll have a cache miss for both, 160 bytes today
+		static constexpr float max_values[20] =
+		{
+			1.0f, 1.0f / float((1 << 1) - 1), 1.0f / float((1 << 2) - 1), 1.0f / float((1 << 3) - 1),
+			1.0f / float((1 << 4) - 1), 1.0f / float((1 << 5) - 1), 1.0f / float((1 << 6) - 1), 1.0f / float((1 << 7) - 1),
+			1.0f / float((1 << 8) - 1), 1.0f / float((1 << 9) - 1), 1.0f / float((1 << 10) - 1), 1.0f / float((1 << 11) - 1),
+			1.0f / float((1 << 12) - 1), 1.0f / float((1 << 13) - 1), 1.0f / float((1 << 14) - 1), 1.0f / float((1 << 15) - 1),
+			1.0f / float((1 << 16) - 1), 1.0f / float((1 << 17) - 1), 1.0f / float((1 << 18) - 1), 1.0f / float((1 << 19) - 1),
+		};
 
-		uint32_t value_bit_offset = 64 - (bit_offset % 8) - num_bits;
-		const uint32_t x32 = uint32_t(_bextr_u64(vector_u64, value_bit_offset, num_bits));
-		value_bit_offset -= num_bits;
-		const uint32_t y32 = uint32_t(_bextr_u64(vector_u64, value_bit_offset, num_bits));
+		static constexpr uint32_t mask_values[20] =
+		{
+			(1 << 0) - 1, (1 << 1) - 1, (1 << 2) - 1, (1 << 3) - 1,
+			(1 << 4) - 1, (1 << 5) - 1, (1 << 6) - 1, (1 << 7) - 1,
+			(1 << 8) - 1, (1 << 9) - 1, (1 << 10) - 1, (1 << 11) - 1,
+			(1 << 12) - 1, (1 << 13) - 1, (1 << 14) - 1, (1 << 15) - 1,
+			(1 << 16) - 1, (1 << 17) - 1, (1 << 18) - 1, (1 << 19) - 1,
+		};
 
-		bit_offset += num_bits * 2;
-		byte_offset = bit_offset / 8;
-		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
-		vector_u64 = byte_swap(vector_u64);
+		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
+		const uint32_t bit_shift = 32 - num_bits;
+		const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
 
-		value_bit_offset = 64 - (bit_offset % 8) - num_bits;
-		const uint32_t z32 = uint32_t(_bextr_u64(vector_u64, value_bit_offset, num_bits));
-
-		__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
-		return _mm_div_ps(value, _mm_set_ps1(float((1 << num_bits) - 1)));
-#else
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 		vector_u32 = byte_swap(vector_u32);
-		uint32_t value_bit_offset = 32 - (bit_offset % 8) - num_bits;
-		const uint32_t x32 = _bextr_u32(vector_u32, value_bit_offset, num_bits);
+		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
 		bit_offset += num_bits;
 
 		byte_offset = bit_offset / 8;
 		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 		vector_u32 = byte_swap(vector_u32);
-		value_bit_offset = 32 - (bit_offset % 8) - num_bits;
-		const uint32_t y32 = _bextr_u32(vector_u32, value_bit_offset, num_bits);
+		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
 		bit_offset += num_bits;
 
 		byte_offset = bit_offset / 8;
 		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 		vector_u32 = byte_swap(vector_u32);
-		value_bit_offset = 32 - (bit_offset % 8) - num_bits;
-		const uint32_t z32 = _bextr_u32(vector_u32, value_bit_offset, num_bits);
+		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
-		__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
-		return _mm_div_ps(value, _mm_set_ps1(float((1 << num_bits) - 1)));
-#endif
+		__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
+		int_value = _mm_and_si128(int_value, mask);
+		const __m128 value = _mm_cvtepi32_ps(int_value);
+		return _mm_mul_ps(value, inv_max_value);
 #else
 		const uint8_t num_bits_to_read = num_bits * 3;
 

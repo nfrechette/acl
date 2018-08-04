@@ -30,6 +30,104 @@
 
 using namespace acl;
 
+// We need the 4 bytes that contain our value.
+// The input is in big-endian order, byte 0 is the first byte
+// 320 bytes
+static constexpr uint8_t shuffle_values[20][16] =
+{
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 0 = num_bits
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 1
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 2
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 3
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 4
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 5
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 6
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 7
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 8
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 9
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 10
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 11
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 12
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 13
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 14
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 15
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 7, 6, 5, 4, 0x80, 0x80, 0x80, 0x80 },	// 16
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 17
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 18
+	{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 19
+};
+
+// 320 bytes
+static constexpr uint32_t shift_values[20][4] =
+{
+	{ 0, 0, 0, 0 },		// 0  = num_bits
+	{ 31, 30, 29, 0 },	// 1
+	{ 30, 28, 27, 0 },	// 2
+	{ 30, 28, 27, 0 },	// 3
+	{ 30, 28, 27, 0 },	// 4
+	{ 30, 28, 27, 0 },	// 5
+	{ 30, 28, 27, 0 },	// 6
+	{ 30, 28, 27, 0 },	// 7
+	{ 30, 28, 27, 0 },	// 8
+	{ 30, 28, 27, 0 },	// 9
+	{ 30, 28, 27, 0 },	// 10
+	{ 30, 28, 27, 0 },	// 11
+	{ 30, 28, 27, 0 },	// 12
+	{ 30, 28, 27, 0 },	// 13
+	{ 30, 28, 27, 0 },	// 14
+	{ 30, 28, 27, 0 },	// 15
+	{ 16, 0, 16, 0 },	// 16
+	{ 30, 28, 27, 0 },	// 17
+	{ 30, 28, 27, 0 },	// 18
+	{ 30, 28, 27, 0 },	// 19
+};
+
+// 80 bytes
+static constexpr uint32_t mask_values[20] =
+{
+	(1 << 0) - 1, (1 << 1) - 1, (1 << 2) - 1, (1 << 3) - 1,
+	(1 << 4) - 1, (1 << 5) - 1, (1 << 6) - 1, (1 << 7) - 1,
+	(1 << 8) - 1, (1 << 9) - 1, (1 << 10) - 1, (1 << 11) - 1,
+	(1 << 12) - 1, (1 << 13) - 1, (1 << 14) - 1, (1 << 15) - 1,
+	(1 << 16) - 1, (1 << 17) - 1, (1 << 18) - 1, (1 << 19) - 1,
+};
+
+// 80 bytes
+static constexpr float max_values[20] =
+{
+	1.0f, 1.0f / float((1 << 1) - 1), 1.0f / float((1 << 2) - 1), 1.0f / float((1 << 3) - 1),
+	1.0f / float((1 << 4) - 1), 1.0f / float((1 << 5) - 1), 1.0f / float((1 << 6) - 1), 1.0f / float((1 << 7) - 1),
+	1.0f / float((1 << 8) - 1), 1.0f / float((1 << 9) - 1), 1.0f / float((1 << 10) - 1), 1.0f / float((1 << 11) - 1),
+	1.0f / float((1 << 12) - 1), 1.0f / float((1 << 13) - 1), 1.0f / float((1 << 14) - 1), 1.0f / float((1 << 15) - 1),
+	1.0f / float((1 << 16) - 1), 1.0f / float((1 << 17) - 1), 1.0f / float((1 << 18) - 1), 1.0f / float((1 << 19) - 1),
+};
+
+Vector4_32 unpack_vector3_n_o12(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	uint32_t byte_offset = bit_offset / 8;
+	__m128i bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	// Select the bytes we need and byte swap them
+	__m128i vector_xyz = _mm_shuffle_epi8(bytes, _mm_loadu_si128((const __m128i*)(&shuffle_values[num_bits][0])));
+
+	__m128i shift_offset = _mm_sub_epi32(_mm_loadu_si128((const __m128i*)(&shift_values[num_bits][0])), _mm_set1_epi32(bit_offset % 8));
+	__m128i shift_offset_x = _mm_shuffle_epi32(shift_offset, _MM_SHUFFLE(3, 3, 3, 0));
+	__m128i shift_offset_y = _mm_shuffle_epi32(shift_offset, _MM_SHUFFLE(3, 3, 3, 1));
+	__m128i shift_offset_z = _mm_shuffle_epi32(shift_offset, _MM_SHUFFLE(3, 3, 3, 2));
+	__m128i vector_x = _mm_srl_epi32(vector_xyz, shift_offset_x);
+	__m128i vector_y = _mm_srl_epi32(vector_xyz, shift_offset_y);
+	__m128i vector_z = _mm_srl_epi32(vector_xyz, shift_offset_z);
+	__m128i vector_xxyy = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(vector_x), _mm_castsi128_ps(vector_y), _MM_SHUFFLE(1, 1, 0, 0)));
+	vector_xyz = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(vector_xxyy), _mm_castsi128_ps(vector_z), _MM_SHUFFLE(2, 2, 2, 0)));
+
+	__m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
+	vector_xyz = _mm_and_si128(vector_xyz, mask);
+
+	__m128 value = _mm_cvtepi32_ps(vector_xyz);
+	__m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+	return _mm_mul_ps(value, inv_max_value);
+}
+
 TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 {
 	struct UnalignedBuffer
@@ -222,46 +320,57 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 			num_errors++;
 
-		for (uint32_t value = 0; value < 65536; ++value)
+		// HACK
+		vec1 = unpack_vector3_n_o12(16, &buffer[0], 0);
+		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			num_errors++;
+		// HACK
+
+		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
 		{
-			const float value_signed = unpack_scalar_signed(value, 16);
-			const float value_unsigned = unpack_scalar_unsigned(value, 16);
-
-			vec0 = vector_set(value_signed, value_signed, value_signed);
-			pack_vector3_sXX(vec0, 16, &buffer[0]);
-			vec1 = unpack_vector3_sXX_unsafe(16, &buffer[0], 0);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
-				num_errors++;
-
+			uint8_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t max_value = (1 << num_bits) - 1;
+			for (uint32_t value = 0; value <= max_value; ++value)
 			{
-				const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
-				for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
-				{
-					const uint8_t offset = offsets[offset_idx];
+				const float value_signed = unpack_scalar_signed(value, num_bits);
+				const float value_unsigned = unpack_scalar_unsigned(value, num_bits);
 
-					memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, 48);
-					vec1 = unpack_vector3_sXX_unsafe(16, &tmp0.buffer[0], offset);
-					if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
-						num_errors++;
+				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+				pack_vector3_uXX(vec0, num_bits, &buffer[0]);
+				vec1 = unpack_vector3_uXX_unsafe(num_bits, &buffer[0], 0);
+				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+					num_errors++;
+
+				{
+					const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
+					for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
+					{
+						const uint8_t offset = offsets[offset_idx];
+
+						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 3);
+						vec1 = unpack_vector3_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
+						if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+							num_errors++;
+					}
 				}
-			}
 
-			vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
-			pack_vector3_uXX(vec0, 16, &buffer[0]);
-			vec1 = unpack_vector3_uXX_unsafe(16, &buffer[0], 0);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
-				num_errors++;
+				vec0 = vector_set(value_signed, value_signed, value_signed);
+				pack_vector3_sXX(vec0, num_bits, &buffer[0]);
+				vec1 = unpack_vector3_sXX_unsafe(num_bits, &buffer[0], 0);
+				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+					num_errors++;
 
-			{
-				const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
-				for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
 				{
-					const uint8_t offset = offsets[offset_idx];
+					const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
+					for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
+					{
+						const uint8_t offset = offsets[offset_idx];
 
-					memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, 48);
-					vec1 = unpack_vector3_uXX_unsafe(16, &tmp0.buffer[0], offset);
-					if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
-						num_errors++;
+						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 3);
+						vec1 = unpack_vector3_sXX_unsafe(num_bits, &tmp0.buffer[0], offset);
+						if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+							num_errors++;
+					}
 				}
 			}
 		}

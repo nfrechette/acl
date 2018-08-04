@@ -1045,6 +1045,706 @@ static LONG WINAPI unhandled_exception_filter(EXCEPTION_POINTERS *info)
 }
 #endif
 
+static Quat_32 s_temp[512];
+
+#if defined(ACL_SSE2_INTRINSICS)
+#define NOINLINE __declspec(noinline)
+#define VECTORCALL __vectorcall
+#else
+#define NOINLINE __attribute__((noinline))
+#define VECTORCALL
+#endif
+
+#if defined(__ANDROID__)
+#include <android/log.h>
+#define log_(...) __android_log_print(ANDROID_LOG_INFO, "acl", ## __VA_ARGS__)
+#else
+#define log_(...) printf(## __VA_ARGS__)
+#endif
+
+#if 0
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_24_ref(const uint8_t* vector_data)
+{
+	uint8_t x8 = vector_data[0];
+	uint8_t y8 = vector_data[1];
+	uint8_t z8 = vector_data[2];
+	float x = unpack_scalar_unsigned(x8, 8);
+	float y = unpack_scalar_unsigned(y8, 8);
+	float z = unpack_scalar_unsigned(z8, 8);
+
+	uint8_t x82 = vector_data[3];
+	uint8_t y82 = vector_data[4];
+	uint8_t z82 = vector_data[5];
+	float x2 = unpack_scalar_unsigned(x82, 8);
+	float y2 = unpack_scalar_unsigned(y82, 8);
+	float z2 = unpack_scalar_unsigned(z82, 8);
+
+	return vector_add(vector_set(x, y, z), vector_set(x2, y2, z2));
+}
+
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_24_1(const uint8_t* vector_data)
+{
+	uint8x8x2_t x8y8z8 = vld2_u8(vector_data);
+	uint16x8_t x16y16z16 = vmovl_u8(x8y8z8.val[0]);
+	uint32x4_t x32y32z32 = vmovl_u16(x16y16z16);
+
+	float32x4_t value = vcvtq_f32_u32(x32y32z32);
+	return vmulq_n_f32(value, 1.0f / 255.0f);
+}
+
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_24_2(const uint8_t* vector_data)
+{
+	__m128i zero = _mm_setzero_si128();
+	__m128i exponent = _mm_set1_epi32(0x3f800000);
+
+	__m128i x8y8z8 = _mm_loadu_si128((const __m128i*)vector_data);
+	__m128i x16y16z16 = _mm_unpacklo_epi8(x8y8z8, zero);
+	__m128i x32y32z32 = _mm_unpacklo_epi16(x16y16z16, zero);
+	__m128i segment_extent_i32 = _mm_or_si128(_mm_slli_epi32(x32y32z32, 23 - 8), exponent);
+	__m128 value = _mm_sub_ps(_mm_castsi128_ps(segment_extent_i32), _mm_castsi128_ps(exponent));
+
+	__m128i x8y8z8_2 = _mm_loadu_si128((const __m128i*)(vector_data + 3));
+	__m128i x16y16z16_2 = _mm_unpacklo_epi8(x8y8z8_2, zero);
+	__m128i x32y32z32_2 = _mm_unpacklo_epi16(x16y16z16_2, zero);
+	__m128i segment_extent_i32_2 = _mm_or_si128(_mm_slli_epi32(x32y32z32_2, 23 - 8), exponent);
+	__m128 value_2 = _mm_sub_ps(_mm_castsi128_ps(segment_extent_i32_2), _mm_castsi128_ps(exponent));
+	return _mm_add_ps(value, value_2);
+}
+#endif
+
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_ref(uint8_t XBits, uint8_t YBits, uint8_t ZBits, const uint8_t* vector_data, int32_t bit_offset)
+{
+	const uint8_t num_bits_to_read = XBits + YBits + ZBits;
+
+	int32_t byte_offset = bit_offset / 8;
+	uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+	vector_u64 <<= bit_offset % 8;
+	vector_u64 >>= 64 - num_bits_to_read;
+
+	const uint32_t x32 = safe_static_cast<uint32_t>(vector_u64 >> (YBits + ZBits));
+	const uint32_t y32 = safe_static_cast<uint32_t>((vector_u64 >> ZBits) & ((1 << YBits) - 1));
+	uint32_t z32;
+	z32 = safe_static_cast<uint32_t>(vector_u64 & ((1 << ZBits) - 1));
+
+	const float x = unpack_scalar_unsigned(x32, XBits);
+	const float y = unpack_scalar_unsigned(y32, YBits);
+	const float z = unpack_scalar_unsigned(z32, ZBits);
+	return vector_set(x, y, z);
+}
+
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o00(uint8_t XBits, uint8_t YBits, uint8_t ZBits, const uint8_t* vector_data, int32_t bit_offset)
+{
+	int32_t byte_offset = bit_offset / 8;
+	uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+	//vector_u64 <<= bit_offset % 8;
+	//vector_u64 >>= 64 - num_bits_to_read;
+
+	int32_t bit_offset2 = bit_offset % 8;
+	//const uint32_t x32 = safe_static_cast<uint32_t>(vector_u64 >> (YBits + ZBits));
+	const uint32_t x32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset2, XBits));
+	bit_offset2 += XBits;
+	//const uint32_t y32 = safe_static_cast<uint32_t>((vector_u64 >> ZBits) & ((1 << YBits) - 1));
+	const uint32_t y32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset2, YBits));
+	uint32_t z32;
+
+	bit_offset += XBits + YBits;
+	byte_offset = bit_offset / 8;
+	vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+	//z32 = safe_static_cast<uint32_t>(vector_u64 & ((1 << ZBits) - 1));
+	z32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset % 8, ZBits));
+
+	const float x = unpack_scalar_unsigned(x32, XBits);
+	const float y = unpack_scalar_unsigned(y32, YBits);
+	const float z = unpack_scalar_unsigned(z32, ZBits);
+	return vector_set(x, y, z);
+}
+
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o01(uint8_t NumBits, const uint8_t* vector_data, int32_t bit_offset)
+{
+	int32_t byte_offset = bit_offset / 8;
+	uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+
+	int32_t bit_offset2 = bit_offset % 8;
+	const uint32_t x32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset2, NumBits));
+	bit_offset2 += NumBits;
+	const uint32_t y32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset2, NumBits));
+
+	bit_offset += NumBits * 2;
+	byte_offset = bit_offset / 8;
+	vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+	const uint32_t z32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset % 8, NumBits));
+
+	const float x = unpack_scalar_unsigned(x32, NumBits);
+	const float y = unpack_scalar_unsigned(y32, NumBits);
+	const float z = unpack_scalar_unsigned(z32, NumBits);
+	return vector_set(x, y, z);
+}
+
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o02(uint8_t NumBits, const uint8_t* vector_data, int32_t bit_offset)
+{
+	int32_t byte_offset = bit_offset / 8;
+	uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+
+	int32_t bit_offset2 = bit_offset % 8;
+	const uint32_t x32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset2, NumBits));
+	bit_offset2 += NumBits;
+	const uint32_t y32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset2, NumBits));
+
+	bit_offset += NumBits * 2;
+	byte_offset = bit_offset / 8;
+	vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+	const uint32_t z32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset % 8, NumBits));
+
+	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(0, z32, y32, x32));
+	return _mm_mul_ps(value, _mm_set_ps1(1.0f / (1 << NumBits) - 1));
+}
+
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o03(uint8_t NumBits, const uint8_t* vector_data, int32_t bit_offset)
+{
+	int32_t byte_offset = bit_offset / 8;
+	uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+
+	int32_t bit_offset2 = bit_offset % 8;
+	const uint32_t x32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset2, NumBits));
+	bit_offset2 += NumBits;
+	const uint32_t y32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset2, NumBits));
+
+	bit_offset += NumBits * 2;
+	byte_offset = bit_offset / 8;
+	vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+	const uint32_t z32 = safe_static_cast<uint32_t>(_bextr_u64(vector_u64, bit_offset % 8, NumBits));
+
+	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(0, z32, y32, x32));
+	return _mm_div_ps(value, _mm_set_ps1(float((1 << NumBits) - 1)));
+}
+
+// 64 bit loads with bit extract
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o04(uint8_t NumBits, const uint8_t* vector_data, int32_t bit_offset)
+{
+	int32_t byte_offset = bit_offset / 8;
+	uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+
+	int32_t bit_offset2 = bit_offset % 8;
+	const uint32_t x32 = uint32_t(_bextr_u64(vector_u64, bit_offset2, NumBits));
+	bit_offset2 += NumBits;
+	const uint32_t y32 = uint32_t(_bextr_u64(vector_u64, bit_offset2, NumBits));
+
+	bit_offset += NumBits * 2;
+	byte_offset = bit_offset / 8;
+	vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+	const uint32_t z32 = uint32_t(_bextr_u64(vector_u64, bit_offset % 8, NumBits));
+
+	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(0, z32, y32, x32));
+	return _mm_div_ps(value, _mm_set_ps1(float((1 << NumBits) - 1)));
+}
+
+// 64 bit loads with bit extract, unsigned bit offset
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o05(uint8_t NumBits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	uint32_t byte_offset = bit_offset / 8;
+	uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+
+	uint32_t bit_offset2 = bit_offset % 8;
+	const uint32_t x32 = uint32_t(_bextr_u64(vector_u64, bit_offset2, NumBits));
+	bit_offset2 += NumBits;
+	const uint32_t y32 = uint32_t(_bextr_u64(vector_u64, bit_offset2, NumBits));
+
+	bit_offset += NumBits * 2;
+	byte_offset = bit_offset / 8;
+	vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+	const uint32_t z32 = uint32_t(_bextr_u64(vector_u64, bit_offset % 8, NumBits));
+
+	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
+	return _mm_div_ps(value, _mm_set_ps1(float((1 << NumBits) - 1)));
+}
+
+// 64 bit loads with bit extract, fixed
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o06(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	uint32_t byte_offset = bit_offset / 8;
+	uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+
+	uint32_t value_bit_offset = 64 - (bit_offset % 8) - num_bits;
+	const uint32_t x32 = uint32_t(_bextr_u64(vector_u64, value_bit_offset, num_bits));
+	value_bit_offset -= num_bits;
+	const uint32_t y32 = uint32_t(_bextr_u64(vector_u64, value_bit_offset, num_bits));
+
+	bit_offset += num_bits * 2;
+	byte_offset = bit_offset / 8;
+	vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+	vector_u64 = byte_swap(vector_u64);
+
+	value_bit_offset = 64 - (bit_offset % 8) - num_bits;
+	const uint32_t z32 = uint32_t(_bextr_u64(vector_u64, value_bit_offset, num_bits));
+
+	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
+	return _mm_div_ps(value, _mm_set_ps1(float((1 << num_bits) - 1)));
+}
+
+// 32 bit loads with bit extract
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o07(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	uint32_t value_bit_offset = 32 - (bit_offset % 8) - num_bits;
+	const uint32_t x32 = _bextr_u32(vector_u32, value_bit_offset, num_bits);
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	value_bit_offset = 32 - (bit_offset % 8) - num_bits;
+	const uint32_t y32 = _bextr_u32(vector_u32, value_bit_offset, num_bits);
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	value_bit_offset = 32 - (bit_offset % 8) - num_bits;
+	const uint32_t z32 = _bextr_u32(vector_u32, value_bit_offset, num_bits);
+
+	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
+	return _mm_div_ps(value, _mm_set_ps1(float((1 << num_bits) - 1)));
+}
+
+// try every scalar 32bit loads with >> & mask
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o08(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	uint32_t mask = (1 << num_bits) - 1;
+	uint32_t bit_shift = 32 - num_bits;
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
+	return _mm_div_ps(value, _mm_set_ps1(float((1 << num_bits) - 1)));
+}
+
+// same as 08, cleaned up
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o09(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	const uint32_t mask = (1 << num_bits) - 1;
+	const uint32_t bit_shift = 32 - num_bits;
+	const __m128 max_value = _mm_set_ps1(float(mask));
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	const __m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
+	return _mm_div_ps(value, max_value);
+}
+
+// try with loading the max value from a constant lookup
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o10(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	static constexpr float max_values[] =
+	{
+		1.0f, 1.0f / float((1 << 1) - 1), 1.0f / float((1 << 2) - 1), 1.0f / float((1 << 3) - 1),
+		1.0f / float((1 << 4) - 1), 1.0f / float((1 << 5) - 1), 1.0f / float((1 << 6) - 1), 1.0f / float((1 << 7) - 1),
+		1.0f / float((1 << 8) - 1), 1.0f / float((1 << 9) - 1), 1.0f / float((1 << 10) - 1), 1.0f / float((1 << 11) - 1),
+		1.0f / float((1 << 12) - 1), 1.0f / float((1 << 13) - 1), 1.0f / float((1 << 14) - 1), 1.0f / float((1 << 15) - 1),
+		1.0f / float((1 << 16) - 1), 1.0f / float((1 << 17) - 1), 1.0f / float((1 << 18) - 1), 1.0f / float((1 << 19) - 1),
+	};
+
+	const uint32_t mask = (1 << num_bits) - 1;
+	const uint32_t bit_shift = 32 - num_bits;
+	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	const __m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
+	return _mm_mul_ps(value, inv_max_value);
+}
+
+// try with loading the mask from a constant lookup
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o11(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	static constexpr float max_values[] =
+	{
+		1.0f, 1.0f / float((1 << 1) - 1), 1.0f / float((1 << 2) - 1), 1.0f / float((1 << 3) - 1),
+		1.0f / float((1 << 4) - 1), 1.0f / float((1 << 5) - 1), 1.0f / float((1 << 6) - 1), 1.0f / float((1 << 7) - 1),
+		1.0f / float((1 << 8) - 1), 1.0f / float((1 << 9) - 1), 1.0f / float((1 << 10) - 1), 1.0f / float((1 << 11) - 1),
+		1.0f / float((1 << 12) - 1), 1.0f / float((1 << 13) - 1), 1.0f / float((1 << 14) - 1), 1.0f / float((1 << 15) - 1),
+		1.0f / float((1 << 16) - 1), 1.0f / float((1 << 17) - 1), 1.0f / float((1 << 18) - 1), 1.0f / float((1 << 19) - 1),
+	};
+
+	static constexpr uint32_t mask_values[] =
+	{
+		(1 << 0) - 1, (1 << 1) - 1, (1 << 2) - 1, (1 << 3) - 1,
+		(1 << 4) - 1, (1 << 5) - 1, (1 << 6) - 1, (1 << 7) - 1,
+		(1 << 8) - 1, (1 << 9) - 1, (1 << 10) - 1, (1 << 11) - 1,
+		(1 << 12) - 1, (1 << 13) - 1, (1 << 14) - 1, (1 << 15) - 1,
+		(1 << 16) - 1, (1 << 17) - 1, (1 << 18) - 1, (1 << 19) - 1,
+	};
+
+	const uint32_t mask = mask_values[num_bits];
+	const uint32_t bit_shift = 32 - num_bits;
+	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+	const __m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
+	return _mm_mul_ps(value, inv_max_value);
+}
+
+// try SSE load/swap/shift/mask
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o12(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	// We need the 4 bytes that contain our value.
+	// The input is in big-endian order, byte 0 is the first byte
+	static constexpr uint8_t shuffle_values[][16] =
+	{
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 0
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 1
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 2
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 3
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 4
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 5
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 6
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 7
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 8
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 9
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 10
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 11
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 12
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 13
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 14
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 15
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 7, 6, 5, 4, 0x80, 0x80, 0x80, 0x80 },	// 16
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 17
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 18
+		{ 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 0x80, 0x80, 0x80, 0x80 },	// 19
+	};
+
+	static constexpr uint32_t shift_values[][4] =
+	{
+		{ 0, 0, 0, 0 },	// 0
+		{ 31, 30, 29, 0 },	// 1
+		{ 30, 28, 27, 0 },	// 2
+		{ 30, 28, 27, 0 },	// 3
+		{ 30, 28, 27, 0 },	// 4
+		{ 30, 28, 27, 0 },	// 5
+		{ 30, 28, 27, 0 },	// 6
+		{ 30, 28, 27, 0 },	// 7
+		{ 30, 28, 27, 0 },	// 8
+		{ 30, 28, 27, 0 },	// 9
+		{ 30, 28, 27, 0 },	// 10
+		{ 30, 28, 27, 0 },	// 11
+		{ 30, 28, 27, 0 },	// 12
+		{ 30, 28, 27, 0 },	// 13
+		{ 30, 28, 27, 0 },	// 14
+		{ 30, 28, 27, 0 },	// 15
+		{ 16, 0, 16, 0 },	// 16
+		{ 30, 28, 27, 0 },	// 17
+		{ 30, 28, 27, 0 },	// 18
+		{ 30, 28, 27, 0 },	// 19
+	};
+
+	static constexpr uint32_t mask_values[] =
+	{
+		(1 << 0) - 1, (1 << 1) - 1, (1 << 2) - 1, (1 << 3) - 1,
+		(1 << 4) - 1, (1 << 5) - 1, (1 << 6) - 1, (1 << 7) - 1,
+		(1 << 8) - 1, (1 << 9) - 1, (1 << 10) - 1, (1 << 11) - 1,
+		(1 << 12) - 1, (1 << 13) - 1, (1 << 14) - 1, (1 << 15) - 1,
+		(1 << 16) - 1, (1 << 17) - 1, (1 << 18) - 1, (1 << 19) - 1,
+	};
+
+	static constexpr float max_values[] =
+	{
+		1.0f, 1.0f / float((1 << 1) - 1), 1.0f / float((1 << 2) - 1), 1.0f / float((1 << 3) - 1),
+		1.0f / float((1 << 4) - 1), 1.0f / float((1 << 5) - 1), 1.0f / float((1 << 6) - 1), 1.0f / float((1 << 7) - 1),
+		1.0f / float((1 << 8) - 1), 1.0f / float((1 << 9) - 1), 1.0f / float((1 << 10) - 1), 1.0f / float((1 << 11) - 1),
+		1.0f / float((1 << 12) - 1), 1.0f / float((1 << 13) - 1), 1.0f / float((1 << 14) - 1), 1.0f / float((1 << 15) - 1),
+		1.0f / float((1 << 16) - 1), 1.0f / float((1 << 17) - 1), 1.0f / float((1 << 18) - 1), 1.0f / float((1 << 19) - 1),
+	};
+
+	uint32_t byte_offset = bit_offset / 8;
+	__m128i bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	// Select the bytes we need and byte swap them
+	__m128i vector_xyz = _mm_shuffle_epi8(bytes, _mm_loadu_si128((const __m128i*)(&shuffle_values[num_bits][0])));
+
+	__m128i shift_offset = _mm_sub_epi32(_mm_loadu_si128((const __m128i*)(&shift_values[num_bits][0])), _mm_set1_epi32(bit_offset % 8));
+	__m128i shift_offset_x = _mm_shuffle_epi32(shift_offset, _MM_SHUFFLE(3, 3, 3, 0));
+	__m128i shift_offset_y = _mm_shuffle_epi32(shift_offset, _MM_SHUFFLE(3, 3, 3, 1));
+	__m128i shift_offset_z = _mm_shuffle_epi32(shift_offset, _MM_SHUFFLE(3, 3, 3, 2));
+	__m128i vector_x = _mm_srl_epi32(vector_xyz, shift_offset_x);
+	__m128i vector_y = _mm_srl_epi32(vector_xyz, shift_offset_y);
+	__m128i vector_z = _mm_srl_epi32(vector_xyz, shift_offset_z);
+	__m128i vector_xxyy = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(vector_x), _mm_castsi128_ps(vector_y), _MM_SHUFFLE(1, 1, 0, 0)));
+	vector_xyz = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(vector_xxyy), _mm_castsi128_ps(vector_z), _MM_SHUFFLE(2, 2, 2, 0)));
+
+	__m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
+	vector_xyz = _mm_and_si128(vector_xyz, mask);
+
+	__m128 value = _mm_cvtepi32_ps(vector_xyz);
+	__m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+	return _mm_mul_ps(value, inv_max_value);
+}
+
+// scalar code path, try to go to SIMD sooner, perform AND mask in SIMD
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o13(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	static constexpr float max_values[20] =
+	{
+		1.0f, 1.0f / float((1 << 1) - 1), 1.0f / float((1 << 2) - 1), 1.0f / float((1 << 3) - 1),
+		1.0f / float((1 << 4) - 1), 1.0f / float((1 << 5) - 1), 1.0f / float((1 << 6) - 1), 1.0f / float((1 << 7) - 1),
+		1.0f / float((1 << 8) - 1), 1.0f / float((1 << 9) - 1), 1.0f / float((1 << 10) - 1), 1.0f / float((1 << 11) - 1),
+		1.0f / float((1 << 12) - 1), 1.0f / float((1 << 13) - 1), 1.0f / float((1 << 14) - 1), 1.0f / float((1 << 15) - 1),
+		1.0f / float((1 << 16) - 1), 1.0f / float((1 << 17) - 1), 1.0f / float((1 << 18) - 1), 1.0f / float((1 << 19) - 1),
+	};
+
+	static constexpr uint32_t mask_values[20] =
+	{
+		(1 << 0) - 1, (1 << 1) - 1, (1 << 2) - 1, (1 << 3) - 1,
+		(1 << 4) - 1, (1 << 5) - 1, (1 << 6) - 1, (1 << 7) - 1,
+		(1 << 8) - 1, (1 << 9) - 1, (1 << 10) - 1, (1 << 11) - 1,
+		(1 << 12) - 1, (1 << 13) - 1, (1 << 14) - 1, (1 << 15) - 1,
+		(1 << 16) - 1, (1 << 17) - 1, (1 << 18) - 1, (1 << 19) - 1,
+	};
+
+	const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
+	const uint32_t bit_shift = 32 - num_bits;
+	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+	__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
+	int_value = _mm_and_si128(int_value, mask);
+	const __m128 value = _mm_cvtepi32_ps(int_value);
+	return _mm_mul_ps(value, inv_max_value);
+}
+
+// try to build lookup table for shift from numbits/bitoffset
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o14(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	static constexpr float max_values[] =
+	{
+		1.0f, 1.0f / float((1 << 1) - 1), 1.0f / float((1 << 2) - 1), 1.0f / float((1 << 3) - 1),
+		1.0f / float((1 << 4) - 1), 1.0f / float((1 << 5) - 1), 1.0f / float((1 << 6) - 1), 1.0f / float((1 << 7) - 1),
+		1.0f / float((1 << 8) - 1), 1.0f / float((1 << 9) - 1), 1.0f / float((1 << 10) - 1), 1.0f / float((1 << 11) - 1),
+		1.0f / float((1 << 12) - 1), 1.0f / float((1 << 13) - 1), 1.0f / float((1 << 14) - 1), 1.0f / float((1 << 15) - 1),
+		1.0f / float((1 << 16) - 1), 1.0f / float((1 << 17) - 1), 1.0f / float((1 << 18) - 1), 1.0f / float((1 << 19) - 1),
+	};
+
+	static constexpr uint32_t mask_values[] =
+	{
+		(1 << 0) - 1, (1 << 1) - 1, (1 << 2) - 1, (1 << 3) - 1,
+		(1 << 4) - 1, (1 << 5) - 1, (1 << 6) - 1, (1 << 7) - 1,
+		(1 << 8) - 1, (1 << 9) - 1, (1 << 10) - 1, (1 << 11) - 1,
+		(1 << 12) - 1, (1 << 13) - 1, (1 << 14) - 1, (1 << 15) - 1,
+		(1 << 16) - 1, (1 << 17) - 1, (1 << 18) - 1, (1 << 19) - 1,
+	};
+
+	static constexpr uint8_t shift_values[8][19][3] =
+	{
+		{ { 32, 32, 32 }, { 31, 30, 29 }, { 28, 26, 24 }, { 23, 28, 25 }, { 24, 28, 24 }, { 23, 26, 21 }, { 20, 22, 24 }, { 23, 24, 25 }, { 24, 24, 24 }, { 23, 22, 21 }, { 20, 18, 16 }, { 15, 20, 17 }, { 16, 20, 16 }, { 15, 18, 13 }, { 12, 14, 16 }, { 15, 16, 17 }, { 16, 16, 16 }, { 15, 14, 13 }, { 12, 10, 8 } },
+		{ { 31, 31, 31 }, { 30, 29, 28 }, { 27, 25, 23 }, { 22, 27, 24 }, { 23, 27, 23 }, { 22, 25, 20 }, { 19, 21, 23 }, { 22, 23, 24 }, { 23, 23, 23 }, { 22, 21, 20 }, { 19, 17, 15 }, { 14, 19, 16 }, { 15, 19, 15 }, { 14, 17, 12 }, { 11, 13, 15 }, { 14, 15, 16 }, { 15, 15, 15 }, { 14, 13, 12 }, { 11, 9, 7 } },
+		{ { 30, 30, 30 }, { 29, 28, 27 }, { 26, 24, 30 }, { 29, 26, 23 }, { 22, 26, 22 }, { 21, 24, 27 }, { 26, 20, 22 }, { 21, 22, 23 }, { 22, 22, 22 }, { 21, 20, 19 }, { 18, 16, 22 }, { 21, 18, 15 }, { 14, 18, 14 }, { 13, 16, 19 }, { 18, 12, 14 }, { 13, 14, 15 }, { 14, 14, 14 }, { 13, 12, 11 }, { 10, 8, 14 } },
+		{ { 29, 29, 29 }, { 28, 27, 26 }, { 25, 23, 29 }, { 28, 25, 22 }, { 21, 25, 21 }, { 20, 23, 26 }, { 25, 19, 21 }, { 20, 21, 22 }, { 21, 21, 21 }, { 20, 19, 18 }, { 17, 15, 21 }, { 20, 17, 14 }, { 13, 17, 13 }, { 12, 15, 18 }, { 17, 11, 13 }, { 12, 13, 14 }, { 13, 13, 13 }, { 12, 11, 10 }, { 9, 7, 13 } },
+		{ { 28, 28, 28 }, { 27, 26, 25 }, { 24, 30, 28 }, { 27, 24, 29 }, { 28, 24, 28 }, { 27, 22, 25 }, { 24, 26, 20 }, { 19, 20, 21 }, { 20, 20, 20 }, { 19, 18, 17 }, { 16, 22, 20 }, { 19, 16, 21 }, { 20, 16, 20 }, { 19, 14, 17 }, { 16, 18, 12 }, { 11, 12, 13 }, { 12, 12, 12 }, { 11, 10, 9 }, { 8, 14, 12 } },
+		{ { 27, 27, 27 }, { 26, 25, 24 }, { 23, 29, 27 }, { 26, 23, 28 }, { 27, 23, 27 }, { 26, 21, 24 }, { 23, 25, 19 }, { 18, 19, 20 }, { 19, 19, 19 }, { 18, 17, 16 }, { 15, 21, 19 }, { 18, 15, 20 }, { 19, 15, 19 }, { 18, 13, 16 }, { 15, 17, 11 }, { 10, 11, 12 }, { 11, 11, 11 }, { 10, 9, 8 }, { 7, 13, 11 } },
+		{ { 26, 26, 26 }, { 25, 24, 31 }, { 30, 28, 26 }, { 25, 22, 27 }, { 26, 22, 26 }, { 25, 20, 23 }, { 22, 24, 26 }, { 25, 18, 19 }, { 18, 18, 18 }, { 17, 16, 23 }, { 22, 20, 18 }, { 17, 14, 19 }, { 18, 14, 18 }, { 17, 12, 15 }, { 14, 16, 18 }, { 17, 10, 11 }, { 10, 10, 10 }, { 9, 8, 15 }, { 14, 12, 10 } },
+		{ { 25, 25, 25 }, { 24, 31, 30 }, { 29, 27, 25 }, { 24, 29, 26 }, { 25, 21, 25 }, { 24, 27, 22 }, { 21, 23, 25 }, { 24, 25, 18 }, { 17, 17, 17 }, { 16, 23, 22 }, { 21, 19, 17 }, { 16, 21, 18 }, { 17, 13, 17 }, { 16, 19, 14 }, { 13, 15, 17 }, { 16, 17, 10 }, { 9, 9, 9 }, { 8, 15, 14 }, { 13, 11, 9 } },
+	};
+
+	const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
+	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t start_bit_offset = bit_offset % 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = vector_u32 >> shift_values[start_bit_offset][num_bits][0];
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = vector_u32 >> shift_values[start_bit_offset][num_bits][1];
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = vector_u32 >> shift_values[start_bit_offset][num_bits][2];
+
+	__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
+	int_value = _mm_and_si128(int_value, mask);
+	const __m128 value = _mm_cvtepi32_ps(int_value);
+	return _mm_mul_ps(value, inv_max_value);
+}
+
+// try to build lookup table for byte offsets from numbits/bitoffset
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o15(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	static constexpr float max_values[] =
+	{
+		1.0f, 1.0f / float((1 << 1) - 1), 1.0f / float((1 << 2) - 1), 1.0f / float((1 << 3) - 1),
+		1.0f / float((1 << 4) - 1), 1.0f / float((1 << 5) - 1), 1.0f / float((1 << 6) - 1), 1.0f / float((1 << 7) - 1),
+		1.0f / float((1 << 8) - 1), 1.0f / float((1 << 9) - 1), 1.0f / float((1 << 10) - 1), 1.0f / float((1 << 11) - 1),
+		1.0f / float((1 << 12) - 1), 1.0f / float((1 << 13) - 1), 1.0f / float((1 << 14) - 1), 1.0f / float((1 << 15) - 1),
+		1.0f / float((1 << 16) - 1), 1.0f / float((1 << 17) - 1), 1.0f / float((1 << 18) - 1), 1.0f / float((1 << 19) - 1),
+	};
+
+	static constexpr uint32_t mask_values[] =
+	{
+		(1 << 0) - 1, (1 << 1) - 1, (1 << 2) - 1, (1 << 3) - 1,
+		(1 << 4) - 1, (1 << 5) - 1, (1 << 6) - 1, (1 << 7) - 1,
+		(1 << 8) - 1, (1 << 9) - 1, (1 << 10) - 1, (1 << 11) - 1,
+		(1 << 12) - 1, (1 << 13) - 1, (1 << 14) - 1, (1 << 15) - 1,
+		(1 << 16) - 1, (1 << 17) - 1, (1 << 18) - 1, (1 << 19) - 1,
+	};
+
+	static constexpr uint8_t shift_values[8][19][3] =
+	{
+		{ { 32, 32, 32 },{ 31, 30, 29 },{ 28, 26, 24 },{ 23, 28, 25 },{ 24, 28, 24 },{ 23, 26, 21 },{ 20, 22, 24 },{ 23, 24, 25 },{ 24, 24, 24 },{ 23, 22, 21 },{ 20, 18, 16 },{ 15, 20, 17 },{ 16, 20, 16 },{ 15, 18, 13 },{ 12, 14, 16 },{ 15, 16, 17 },{ 16, 16, 16 },{ 15, 14, 13 },{ 12, 10, 8 } },
+		{ { 31, 31, 31 },{ 30, 29, 28 },{ 27, 25, 23 },{ 22, 27, 24 },{ 23, 27, 23 },{ 22, 25, 20 },{ 19, 21, 23 },{ 22, 23, 24 },{ 23, 23, 23 },{ 22, 21, 20 },{ 19, 17, 15 },{ 14, 19, 16 },{ 15, 19, 15 },{ 14, 17, 12 },{ 11, 13, 15 },{ 14, 15, 16 },{ 15, 15, 15 },{ 14, 13, 12 },{ 11, 9, 7 } },
+		{ { 30, 30, 30 },{ 29, 28, 27 },{ 26, 24, 30 },{ 29, 26, 23 },{ 22, 26, 22 },{ 21, 24, 27 },{ 26, 20, 22 },{ 21, 22, 23 },{ 22, 22, 22 },{ 21, 20, 19 },{ 18, 16, 22 },{ 21, 18, 15 },{ 14, 18, 14 },{ 13, 16, 19 },{ 18, 12, 14 },{ 13, 14, 15 },{ 14, 14, 14 },{ 13, 12, 11 },{ 10, 8, 14 } },
+		{ { 29, 29, 29 },{ 28, 27, 26 },{ 25, 23, 29 },{ 28, 25, 22 },{ 21, 25, 21 },{ 20, 23, 26 },{ 25, 19, 21 },{ 20, 21, 22 },{ 21, 21, 21 },{ 20, 19, 18 },{ 17, 15, 21 },{ 20, 17, 14 },{ 13, 17, 13 },{ 12, 15, 18 },{ 17, 11, 13 },{ 12, 13, 14 },{ 13, 13, 13 },{ 12, 11, 10 },{ 9, 7, 13 } },
+		{ { 28, 28, 28 },{ 27, 26, 25 },{ 24, 30, 28 },{ 27, 24, 29 },{ 28, 24, 28 },{ 27, 22, 25 },{ 24, 26, 20 },{ 19, 20, 21 },{ 20, 20, 20 },{ 19, 18, 17 },{ 16, 22, 20 },{ 19, 16, 21 },{ 20, 16, 20 },{ 19, 14, 17 },{ 16, 18, 12 },{ 11, 12, 13 },{ 12, 12, 12 },{ 11, 10, 9 },{ 8, 14, 12 } },
+		{ { 27, 27, 27 },{ 26, 25, 24 },{ 23, 29, 27 },{ 26, 23, 28 },{ 27, 23, 27 },{ 26, 21, 24 },{ 23, 25, 19 },{ 18, 19, 20 },{ 19, 19, 19 },{ 18, 17, 16 },{ 15, 21, 19 },{ 18, 15, 20 },{ 19, 15, 19 },{ 18, 13, 16 },{ 15, 17, 11 },{ 10, 11, 12 },{ 11, 11, 11 },{ 10, 9, 8 },{ 7, 13, 11 } },
+		{ { 26, 26, 26 },{ 25, 24, 31 },{ 30, 28, 26 },{ 25, 22, 27 },{ 26, 22, 26 },{ 25, 20, 23 },{ 22, 24, 26 },{ 25, 18, 19 },{ 18, 18, 18 },{ 17, 16, 23 },{ 22, 20, 18 },{ 17, 14, 19 },{ 18, 14, 18 },{ 17, 12, 15 },{ 14, 16, 18 },{ 17, 10, 11 },{ 10, 10, 10 },{ 9, 8, 15 },{ 14, 12, 10 } },
+		{ { 25, 25, 25 },{ 24, 31, 30 },{ 29, 27, 25 },{ 24, 29, 26 },{ 25, 21, 25 },{ 24, 27, 22 },{ 21, 23, 25 },{ 24, 25, 18 },{ 17, 17, 17 },{ 16, 23, 22 },{ 21, 19, 17 },{ 16, 21, 18 },{ 17, 13, 17 },{ 16, 19, 14 },{ 13, 15, 17 },{ 16, 17, 10 },{ 9, 9, 9 },{ 8, 15, 14 },{ 13, 11, 9 } },
+	};
+
+	static constexpr uint8_t byte_offset_values[8][19][2] =
+	{
+			{ { 0, 0 }, { 0, 0 }, { 0, 0 }, { 1, 1 }, { 2, 2 }, { 3, 3 }, { 4, 5 }, { 6, 7 }, { 8, 9 }, { 10, 11 }, { 12, 13 }, { 15, 16 }, { 18, 19 }, { 21, 22 }, { 24, 26 }, { 28, 30 }, { 32, 34 }, { 36, 38 }, { 40, 42 } },
+			{ { 0, 0 }, { 0, 0 }, { 0, 0 }, { 1, 1 }, { 2, 2 }, { 3, 3 }, { 4, 5 }, { 6, 7 }, { 8, 9 }, { 10, 11 }, { 12, 13 }, { 15, 16 }, { 18, 19 }, { 21, 22 }, { 24, 26 }, { 28, 30 }, { 32, 34 }, { 36, 38 }, { 40, 42 } },
+			{ { 0, 0 }, { 0, 0 }, { 0, 1 }, { 1, 1 }, { 2, 2 }, { 3, 4 }, { 4, 5 }, { 6, 7 }, { 8, 9 }, { 10, 11 }, { 12, 14 }, { 15, 16 }, { 18, 19 }, { 21, 23 }, { 24, 26 }, { 28, 30 }, { 32, 34 }, { 36, 38 }, { 40, 43 } },
+			{ { 0, 0 }, { 0, 0 }, { 0, 1 }, { 1, 1 }, { 2, 2 }, { 3, 4 }, { 4, 5 }, { 6, 7 }, { 8, 9 }, { 10, 11 }, { 12, 14 }, { 15, 16 }, { 18, 19 }, { 21, 23 }, { 24, 26 }, { 28, 30 }, { 32, 34 }, { 36, 38 }, { 40, 43 } },
+			{ { 0, 0 }, { 0, 0 }, { 1, 1 }, { 1, 2 }, { 2, 3 }, { 3, 4 }, { 5, 5 }, { 6, 7 }, { 8, 9 }, { 10, 11 }, { 13, 14 }, { 15, 17 }, { 18, 20 }, { 21, 23 }, { 25, 26 }, { 28, 30 }, { 32, 34 }, { 36, 38 }, { 41, 43 } },
+			{ { 0, 0 }, { 0, 0 }, { 1, 1 }, { 1, 2 }, { 2, 3 }, { 3, 4 }, { 5, 5 }, { 6, 7 }, { 8, 9 }, { 10, 11 }, { 13, 14 }, { 15, 17 }, { 18, 20 }, { 21, 23 }, { 25, 26 }, { 28, 30 }, { 32, 34 }, { 36, 38 }, { 41, 43 } },
+			{ { 0, 0 }, { 0, 1 }, { 1, 1 }, { 1, 2 }, { 2, 3 }, { 3, 4 }, { 5, 6 }, { 6, 7 }, { 8, 9 }, { 10, 12 }, { 13, 14 }, { 15, 17 }, { 18, 20 }, { 21, 23 }, { 25, 27 }, { 28, 30 }, { 32, 34 }, { 36, 39 }, { 41, 43 } },
+			{ { 0, 0 }, { 1, 1 }, { 1, 1 }, { 2, 2 }, { 2, 3 }, { 4, 4 }, { 5, 6 }, { 7, 7 }, { 8, 9 }, { 11, 12 }, { 13, 14 }, { 16, 17 }, { 18, 20 }, { 22, 23 }, { 25, 27 }, { 29, 30 }, { 32, 34 }, { 37, 39 }, { 41, 43 } },
+	};
+
+	const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
+	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t start_bit_offset = bit_offset % 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = vector_u32 >> shift_values[start_bit_offset][num_bits][0];
+
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset + byte_offset_values[start_bit_offset][num_bits][0]);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = vector_u32 >> shift_values[start_bit_offset][num_bits][1];
+
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset + byte_offset_values[start_bit_offset][num_bits][1]);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = vector_u32 >> shift_values[start_bit_offset][num_bits][2];
+
+	__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
+	int_value = _mm_and_si128(int_value, mask);
+	const __m128 value = _mm_cvtepi32_ps(int_value);
+	return _mm_mul_ps(value, inv_max_value);
+}
+
 int main_impl(int argc, char* argv[])
 {
 #ifdef _WIN32
@@ -1052,6 +1752,181 @@ int main_impl(int argc, char* argv[])
 	SetErrorMode(SEM_FAILCRITICALERRORS);
 	SetUnhandledExceptionFilter(&unhandled_exception_filter);
 	_set_abort_behavior(0, _CALL_REPORTFAULT);
+#endif
+
+#if 0
+	Quat_32 quat0 = quat_from_euler(deg2rad(30.0f), deg2rad(-45.0f), deg2rad(90.0f));
+	Quat_32 quat1 = quat_from_euler(deg2rad(45.0f), deg2rad(60.0f), deg2rad(120.0f));
+
+	const int32_t num_iterations = 100;
+	double iter_results[num_iterations];
+	volatile uint8_t vector_data[1024 * 4];
+
+	memset((void*)&s_temp[0], 0, sizeof(s_temp));
+	memset((void*)&iter_results[0], 0, sizeof(iter_results));
+
+	for (int32_t iter = 0; iter < num_iterations; ++iter)
+	{
+		std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+
+		ScopeProfiler perf;
+		//Quat_32 result = quat0;
+		Vector4_32 result;
+		for (int32_t i = 0; i < 1000000; ++i)
+		{
+			result = unpack_vector3_24_ref((const uint8_t*)&vector_data[i % (3 * 1024)]);
+			vector_unaligned_write(result, (float*)&vector_data[(i + 2048) % (3 * 1024)]);
+		}
+		perf.stop();
+		//quat_unaligned_write(result, (float*)&s_temp[0]);
+		vector_unaligned_write(result, (float*)&s_temp[0]);
+		iter_results[iter] = perf.get_elapsed_milliseconds();
+		//printf("quat_lerp_ref took: %.3fms\n", perf.get_elapsed_milliseconds());
+	}
+	std::sort(&iter_results[0], &iter_results[num_iterations]);
+	double median = (iter_results[(num_iterations / 2) - 1] + iter_results[num_iterations / 2]) * 0.5;
+	double* iter_min = std::min_element(&iter_results[0], &iter_results[num_iterations]);
+	log_("unpack_vector3_24_ref took: %.3fms | %.3fms\n", median, *iter_min);
+
+	for (int32_t iter = 0; iter < num_iterations; ++iter)
+	{
+		std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+
+		ScopeProfiler perf;
+		//Quat_32 result = quat0;
+		Vector4_32 result;
+		for (int32_t i = 0; i < 1000000; ++i)
+		{
+			result = unpack_vector3_24_1((const uint8_t*)&vector_data[i % (3 * 1024)]);
+			vector_unaligned_write(result, (float*)&vector_data[(i + 2048) % (3 * 1024)]);
+		}
+		perf.stop();
+		//quat_unaligned_write(result, (float*)&s_temp[0]);
+		vector_unaligned_write(result, (float*)&s_temp[0]);
+		iter_results[iter] = perf.get_elapsed_milliseconds();
+		//printf("quat_lerp_ov7 took: %.3fms\n", perf.get_elapsed_milliseconds());
+	}
+	std::sort(&iter_results[0], &iter_results[num_iterations]);
+	median = (iter_results[(num_iterations / 2) - 1] + iter_results[num_iterations / 2]) * 0.5;
+	iter_min = std::min_element(&iter_results[0], &iter_results[num_iterations]);
+	log_("unpack_vector3_24_1   took: %.3fms | %.3fms\n", median, *iter_min);
+
+	for (int32_t iter = 0; iter < num_iterations; ++iter)
+	{
+		std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+
+		ScopeProfiler perf;
+		//Quat_32 result = quat0;
+		Vector4_32 result;
+		for (int32_t i = 0; i < 1000000; ++i)
+		{
+			result = unpack_vector3_24_2((const uint8_t*)&vector_data[i % (3 * 1024)]);
+			vector_unaligned_write(result, (float*)&vector_data[(i + 2048) % (3 * 1024)]);
+		}
+		perf.stop();
+		//quat_unaligned_write(result, (float*)&s_temp[0]);
+		vector_unaligned_write(result, (float*)&s_temp[0]);
+		iter_results[iter] = perf.get_elapsed_milliseconds();
+		//printf("quat_lerp_ov7 took: %.3fms\n", perf.get_elapsed_milliseconds());
+}
+	std::sort(&iter_results[0], &iter_results[num_iterations]);
+	median = (iter_results[(num_iterations / 2) - 1] + iter_results[num_iterations / 2]) * 0.5;
+	iter_min = std::min_element(&iter_results[0], &iter_results[num_iterations]);
+	log_("unpack_vector3_24_2   took: %.3fms | %.3fms\n", median, *iter_min);
+
+#if defined(ACL_SSE2_INTRINSICS)
+	if (IsDebuggerPresent())
+	{
+		printf("Press any key to continue...\n");
+		while (_kbhit() == 0);
+		return 0;
+	}
+#else
+	return 0;
+#endif
+#endif
+
+#if 0
+	const int32_t num_iterations = 100;
+	double iter_results[num_iterations];
+	volatile uint8_t vector_data[1024 * 4];
+
+	memset((void*)&s_temp[0], 0, sizeof(s_temp));
+	memset((void*)&iter_results[0], 0, sizeof(iter_results));
+	memset((void*)&vector_data[0], 0, sizeof(vector_data));
+
+#define RUN_TESTS(fun_name) \
+	do { \
+		for (int32_t iter = 0; iter < num_iterations; ++iter) \
+		{ \
+			std::this_thread::sleep_for(std::chrono::nanoseconds(1)); \
+			ScopeProfiler perf; \
+			Vector4_32 result; \
+			for (int32_t i = 0; i < 1000000; ++i) \
+			{ \
+				result = fun_name(16, 16, 16, (const uint8_t*)&vector_data[i % (3 * 1024)], 0); \
+				vector_unaligned_write(result, (float*)&vector_data[(i + 2048) % (3 * 1024)]); \
+			} \
+			perf.stop(); \
+			vector_unaligned_write(result, (float*)&s_temp[0]); \
+			iter_results[iter] = perf.get_elapsed_milliseconds(); \
+		} \
+		std::sort(&iter_results[0], &iter_results[num_iterations]); \
+		double median = (iter_results[(num_iterations / 2) - 1] + iter_results[num_iterations / 2]) * 0.5; \
+		double* iter_min = std::min_element(&iter_results[0], &iter_results[num_iterations]); \
+		log_("%s took: %.3fms | %.3fms\n", #fun_name, median, *iter_min); \
+	} while (0)
+
+#define RUN_TESTS1(fun_name) \
+	do { \
+		for (int32_t iter = 0; iter < num_iterations; ++iter) \
+		{ \
+			std::this_thread::sleep_for(std::chrono::nanoseconds(1)); \
+			ScopeProfiler perf; \
+			Vector4_32 result; \
+			for (int32_t i = 0; i < 1000000; ++i) \
+			{ \
+				result = fun_name(16, (const uint8_t*)&vector_data[i % (3 * 1024)], 0); \
+				vector_unaligned_write(result, (float*)&vector_data[(i + 2048) % (3 * 1024)]); \
+			} \
+			perf.stop(); \
+			vector_unaligned_write(result, (float*)&s_temp[0]); \
+			iter_results[iter] = perf.get_elapsed_milliseconds(); \
+		} \
+		std::sort(&iter_results[0], &iter_results[num_iterations]); \
+		double median = (iter_results[(num_iterations / 2) - 1] + iter_results[num_iterations / 2]) * 0.5; \
+		double* iter_min = std::min_element(&iter_results[0], &iter_results[num_iterations]); \
+		log_("%s took: %.3fms | %.3fms\n", #fun_name, median, *iter_min); \
+	} while (0)
+
+	RUN_TESTS(unpack_vector3_n_ref);
+	RUN_TESTS(unpack_vector3_n_o00);
+	RUN_TESTS1(unpack_vector3_n_o01);
+	RUN_TESTS1(unpack_vector3_n_o02);
+	RUN_TESTS1(unpack_vector3_n_o03);
+	RUN_TESTS1(unpack_vector3_n_o04);
+	RUN_TESTS1(unpack_vector3_n_o05);
+	RUN_TESTS1(unpack_vector3_n_o06);
+	RUN_TESTS1(unpack_vector3_n_o07);
+	RUN_TESTS1(unpack_vector3_n_o08);
+	RUN_TESTS1(unpack_vector3_n_o09);
+	RUN_TESTS1(unpack_vector3_n_o10);
+	RUN_TESTS1(unpack_vector3_n_o11);
+	RUN_TESTS1(unpack_vector3_n_o12);
+	RUN_TESTS1(unpack_vector3_n_o13);
+	RUN_TESTS1(unpack_vector3_n_o14);
+	RUN_TESTS1(unpack_vector3_n_o15);
+
+#if defined(ACL_SSE2_INTRINSICS)
+	if (IsDebuggerPresent())
+	{
+		printf("Press any key to continue...\n");
+		while (_kbhit() == 0);
+		return 0;
+	}
+#else
+	return 0;
+#endif
 #endif
 
 	int result = -1;
