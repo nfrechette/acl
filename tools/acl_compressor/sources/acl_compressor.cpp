@@ -1133,6 +1133,7 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_ref(uint8_t XBits, uint8_t YBits
 	return vector_set(x, y, z);
 }
 
+#if defined(ACL_SSE2_INTRINSICS)
 NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o00(uint8_t XBits, uint8_t YBits, uint8_t ZBits, const uint8_t* vector_data, int32_t bit_offset)
 {
 	int32_t byte_offset = bit_offset / 8;
@@ -1294,6 +1295,17 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o06(uint8_t num_bits, const uint
 	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
 	return _mm_div_ps(value, _mm_set_ps1(float((1 << num_bits) - 1)));
 }
+#endif
+
+inline uint32_t bit_extract_u32(uint32_t src, uint32_t bit_offset, uint32_t num_bits)
+{
+#if defined(ACL_SSE2_INTRINSICS)
+	return _bextr_u32(src, bit_offset, num_bits);
+#else
+	//return _arm_ubfx(src, bit_offset, num_bits);
+	return (src >> bit_offset) & ((1 << num_bits) - 1);
+#endif
+}
 
 // 32 bit loads with bit extract
 NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o07(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
@@ -1302,7 +1314,7 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o07(uint8_t num_bits, const uint
 	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 	vector_u32 = byte_swap(vector_u32);
 	uint32_t value_bit_offset = 32 - (bit_offset % 8) - num_bits;
-	const uint32_t x32 = _bextr_u32(vector_u32, value_bit_offset, num_bits);
+	const uint32_t x32 = bit_extract_u32(vector_u32, value_bit_offset, num_bits);
 
 	bit_offset += num_bits;
 
@@ -1310,7 +1322,7 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o07(uint8_t num_bits, const uint
 	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 	vector_u32 = byte_swap(vector_u32);
 	value_bit_offset = 32 - (bit_offset % 8) - num_bits;
-	const uint32_t y32 = _bextr_u32(vector_u32, value_bit_offset, num_bits);
+	const uint32_t y32 = bit_extract_u32(vector_u32, value_bit_offset, num_bits);
 
 	bit_offset += num_bits;
 
@@ -1318,10 +1330,18 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o07(uint8_t num_bits, const uint
 	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 	vector_u32 = byte_swap(vector_u32);
 	value_bit_offset = 32 - (bit_offset % 8) - num_bits;
-	const uint32_t z32 = _bextr_u32(vector_u32, value_bit_offset, num_bits);
+	const uint32_t z32 = bit_extract_u32(vector_u32, value_bit_offset, num_bits);
 
+#if defined(ACL_SSE2_INTRINSICS)
 	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
 	return _mm_div_ps(value, _mm_set_ps1(float((1 << num_bits) - 1)));
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, 1.0f / float((1 << num_bits) - 1));
+#endif
 }
 
 // try every scalar 32bit loads with >> & mask
@@ -1349,8 +1369,16 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o08(uint8_t num_bits, const uint
 	vector_u32 = byte_swap(vector_u32);
 	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
+#if defined(ACL_SSE2_INTRINSICS)
 	__m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
 	return _mm_div_ps(value, _mm_set_ps1(float((1 << num_bits) - 1)));
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, 1.0f / float((1 << num_bits) - 1));
+#endif
 }
 
 // same as 08, cleaned up
@@ -1358,7 +1386,12 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o09(uint8_t num_bits, const uint
 {
 	const uint32_t mask = (1 << num_bits) - 1;
 	const uint32_t bit_shift = 32 - num_bits;
+
+#if defined(ACL_SSE2_INTRINSICS)
 	const __m128 max_value = _mm_set_ps1(float(mask));
+#else
+	float max_value = 1.0f / float(mask);
+#endif
 
 	uint32_t byte_offset = bit_offset / 8;
 	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
@@ -1379,8 +1412,16 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o09(uint8_t num_bits, const uint
 	vector_u32 = byte_swap(vector_u32);
 	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
+#if defined(ACL_SSE2_INTRINSICS)
 	const __m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
 	return _mm_div_ps(value, max_value);
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, max_value);
+#endif
 }
 
 // try with loading the max value from a constant lookup
@@ -1397,7 +1438,12 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o10(uint8_t num_bits, const uint
 
 	const uint32_t mask = (1 << num_bits) - 1;
 	const uint32_t bit_shift = 32 - num_bits;
+
+#if defined(ACL_SSE2_INTRINSICS)
 	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+#else
+	float inv_max_value = max_values[num_bits];
+#endif
 
 	uint32_t byte_offset = bit_offset / 8;
 	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
@@ -1418,8 +1464,16 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o10(uint8_t num_bits, const uint
 	vector_u32 = byte_swap(vector_u32);
 	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
+#if defined(ACL_SSE2_INTRINSICS)
 	const __m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
 	return _mm_mul_ps(value, inv_max_value);
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, inv_max_value);
+#endif
 }
 
 // try with loading the mask from a constant lookup
@@ -1445,7 +1499,12 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o11(uint8_t num_bits, const uint
 
 	const uint32_t mask = mask_values[num_bits];
 	const uint32_t bit_shift = 32 - num_bits;
+
+#if defined(ACL_SSE2_INTRINSICS)
 	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+#else
+	float inv_max_value = max_values[num_bits];
+#endif
 
 	uint32_t byte_offset = bit_offset / 8;
 	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
@@ -1466,11 +1525,22 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o11(uint8_t num_bits, const uint
 	vector_u32 = byte_swap(vector_u32);
 	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
+#if defined(ACL_SSE2_INTRINSICS)
 	const __m128 value = _mm_cvtepi32_ps(_mm_set_epi32(x32, z32, y32, x32));
 	return _mm_mul_ps(value, inv_max_value);
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, inv_max_value);
+#endif
 }
 
+#if defined(ACL_SSE2_INTRINSICS)
 // try SSE load/swap/shift/mask
+// fastest but requires a large lookup table, the perf hit for the table cache misses might offset the wins
+// it needs to be measured in a real game engine with real content
 NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o12(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 {
 	// We need the 4 bytes that contain our value.
@@ -1564,6 +1634,7 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o12(uint8_t num_bits, const uint
 	__m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
 	return _mm_mul_ps(value, inv_max_value);
 }
+#endif
 
 // scalar code path, try to go to SIMD sooner, perform AND mask in SIMD
 NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o13(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
@@ -1586,9 +1657,14 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o13(uint8_t num_bits, const uint
 		(1 << 16) - 1, (1 << 17) - 1, (1 << 18) - 1, (1 << 19) - 1,
 	};
 
-	const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
 	const uint32_t bit_shift = 32 - num_bits;
+#if defined(ACL_SSE2_INTRINSICS)
+	const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
 	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+#else
+	uint32x4_t mask = vdupq_n_u32(mask_values[num_bits]);
+	float inv_max_value = max_values[num_bits];
+#endif
 
 	uint32_t byte_offset = bit_offset / 8;
 	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
@@ -1609,10 +1685,19 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o13(uint8_t num_bits, const uint
 	vector_u32 = byte_swap(vector_u32);
 	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
+#if defined(ACL_SSE2_INTRINSICS)
 	__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
 	int_value = _mm_and_si128(int_value, mask);
 	const __m128 value = _mm_cvtepi32_ps(int_value);
 	return _mm_mul_ps(value, inv_max_value);
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	value_u32 = vandq_u32(value_u32, mask);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, inv_max_value);
+#endif
 }
 
 // try to build lookup table for shift from numbits/bitoffset
@@ -1648,8 +1733,13 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o14(uint8_t num_bits, const uint
 		{ { 25, 25, 25 }, { 24, 31, 30 }, { 29, 27, 25 }, { 24, 29, 26 }, { 25, 21, 25 }, { 24, 27, 22 }, { 21, 23, 25 }, { 24, 25, 18 }, { 17, 17, 17 }, { 16, 23, 22 }, { 21, 19, 17 }, { 16, 21, 18 }, { 17, 13, 17 }, { 16, 19, 14 }, { 13, 15, 17 }, { 16, 17, 10 }, { 9, 9, 9 }, { 8, 15, 14 }, { 13, 11, 9 } },
 	};
 
+#if defined(ACL_SSE2_INTRINSICS)
 	const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
 	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+#else
+	uint32x4_t mask = vdupq_n_u32(mask_values[num_bits]);
+	float inv_max_value = max_values[num_bits];
+#endif
 
 	uint32_t byte_offset = bit_offset / 8;
 	uint32_t start_bit_offset = bit_offset % 8;
@@ -1671,10 +1761,19 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o14(uint8_t num_bits, const uint
 	vector_u32 = byte_swap(vector_u32);
 	const uint32_t z32 = vector_u32 >> shift_values[start_bit_offset][num_bits][2];
 
+#if defined(ACL_SSE2_INTRINSICS)
 	__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
 	int_value = _mm_and_si128(int_value, mask);
 	const __m128 value = _mm_cvtepi32_ps(int_value);
 	return _mm_mul_ps(value, inv_max_value);
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	value_u32 = vandq_u32(value_u32, mask);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, inv_max_value);
+#endif
 }
 
 // try to build lookup table for byte offsets from numbits/bitoffset
@@ -1722,8 +1821,13 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o15(uint8_t num_bits, const uint
 			{ { 0, 0 }, { 1, 1 }, { 1, 1 }, { 2, 2 }, { 2, 3 }, { 4, 4 }, { 5, 6 }, { 7, 7 }, { 8, 9 }, { 11, 12 }, { 13, 14 }, { 16, 17 }, { 18, 20 }, { 22, 23 }, { 25, 27 }, { 29, 30 }, { 32, 34 }, { 37, 39 }, { 41, 43 } },
 	};
 
+#if defined(ACL_SSE2_INTRINSICS)
 	const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
 	const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+#else
+	uint32x4_t mask = vdupq_n_u32(mask_values[num_bits]);
+	float inv_max_value = max_values[num_bits];
+#endif
 
 	uint32_t byte_offset = bit_offset / 8;
 	uint32_t start_bit_offset = bit_offset % 8;
@@ -1739,10 +1843,177 @@ NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o15(uint8_t num_bits, const uint
 	vector_u32 = byte_swap(vector_u32);
 	const uint32_t z32 = vector_u32 >> shift_values[start_bit_offset][num_bits][2];
 
+#if defined(ACL_SSE2_INTRINSICS)
 	__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
 	int_value = _mm_and_si128(int_value, mask);
 	const __m128 value = _mm_cvtepi32_ps(int_value);
 	return _mm_mul_ps(value, inv_max_value);
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	value_u32 = vandq_u32(value_u32, mask);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, inv_max_value);
+#endif
+}
+
+// same as 13, packed/aligned table
+// wins for SSE, and some more recent ARM platforms
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o16(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	struct PackedTableEntry
+	{
+		constexpr PackedTableEntry(uint8_t num_bits)
+			: max_value(num_bits == 0 ? 1.0f : (1.0f / float((1 << num_bits) - 1)))
+			, mask((1 << num_bits) - 1)
+		{}
+
+		float max_value;
+		uint32_t mask;
+	};
+
+	alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
+	{
+		PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
+		PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
+		PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
+		PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
+		PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+	};
+
+	const uint32_t bit_shift = 32 - num_bits;
+#if defined(ACL_SSE2_INTRINSICS)
+	const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
+	const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
+#else
+	uint32x4_t mask = vdupq_n_u32(k_packed_constants[num_bits].mask);
+	float inv_max_value = k_packed_constants[num_bits].max_value;
+#endif
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+#if defined(ACL_SSE2_INTRINSICS)
+	__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
+	int_value = _mm_and_si128(int_value, mask);
+	const __m128 value = _mm_cvtepi32_ps(int_value);
+	return _mm_mul_ps(value, inv_max_value);
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	value_u32 = vandq_u32(value_u32, mask);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, inv_max_value);
+#endif
+}
+
+// same as 09, but SIMD and
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o17(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	const uint32_t mask = (1 << num_bits) - 1;
+	const uint32_t bit_shift = 32 - num_bits;
+
+#if defined(ACL_SSE2_INTRINSICS)
+	const __m128i mask_simd = _mm_set1_epi32(mask);
+	const __m128 inv_max_value = _mm_set_ps1(1.0f / float(mask));
+#else
+	float inv_max_value = 1.0f / float(mask);
+	uint32x4_t mask_simd = vdupq_n_u32(mask);
+#endif
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+#if defined(ACL_SSE2_INTRINSICS)
+	__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
+	int_value = _mm_and_si128(int_value, mask_simd);
+	const __m128 value = _mm_cvtepi32_ps(int_value);
+	return _mm_mul_ps(value, inv_max_value);
+#else
+	uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+	uint32x2_t z = vcreate_u32(uint64_t(z32));
+	uint32x4_t value_u32 = vcombine_u32(xy, z);
+	value_u32 = vandq_u32(value_u32, mask_simd);
+	float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+	return vmulq_n_f32(value_f32, inv_max_value);
+#endif
+}
+
+// same as 09, but convert to float without SIMD
+NOINLINE Vector4_32 VECTORCALL unpack_vector3_n_o18(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+{
+	const uint32_t mask = (1 << num_bits) - 1;
+	const uint32_t bit_shift = 32 - num_bits;
+
+#if defined(ACL_SSE2_INTRINSICS)
+	const __m128 max_value = _mm_set_ps1(float(mask));
+#else
+	float max_value = 1.0f / float(mask);
+#endif
+
+	uint32_t byte_offset = bit_offset / 8;
+	uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+	const float xf32 = float(x32);
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+	const float yf32 = float(y32);
+
+	bit_offset += num_bits;
+
+	byte_offset = bit_offset / 8;
+	vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+	vector_u32 = byte_swap(vector_u32);
+	const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+	const float zf32 = float(z32);
+
+#if defined(ACL_SSE2_INTRINSICS)
+	const __m128 value = _mm_set_ps(xf32, zf32, yf32, xf32);
+	return _mm_div_ps(value, max_value);
+#else
+	float32x4_t value_f32 = vector_set(xf32, yf32, zf32);
+	return vmulq_n_f32(value_f32, max_value);
+#endif
 }
 
 int main_impl(int argc, char* argv[])
@@ -1849,7 +2120,7 @@ int main_impl(int argc, char* argv[])
 #if 0
 	const int32_t num_iterations = 100;
 	double iter_results[num_iterations];
-	volatile uint8_t vector_data[1024 * 4];
+	alignas(64) volatile uint8_t vector_data[1024 * 4];
 
 	memset((void*)&s_temp[0], 0, sizeof(s_temp));
 	memset((void*)&iter_results[0], 0, sizeof(iter_results));
@@ -1865,7 +2136,7 @@ int main_impl(int argc, char* argv[])
 			for (int32_t i = 0; i < 1000000; ++i) \
 			{ \
 				result = fun_name(16, 16, 16, (const uint8_t*)&vector_data[i % (3 * 1024)], 0); \
-				vector_unaligned_write(result, (float*)&vector_data[(i + 2048) % (3 * 1024)]); \
+				vector_unaligned_write(result, (float*)&vector_data[((i * 4) + 2048) % (3 * 1024)]); \
 			} \
 			perf.stop(); \
 			vector_unaligned_write(result, (float*)&s_temp[0]); \
@@ -1887,7 +2158,7 @@ int main_impl(int argc, char* argv[])
 			for (int32_t i = 0; i < 1000000; ++i) \
 			{ \
 				result = fun_name(16, (const uint8_t*)&vector_data[i % (3 * 1024)], 0); \
-				vector_unaligned_write(result, (float*)&vector_data[(i + 2048) % (3 * 1024)]); \
+				vector_unaligned_write(result, (float*)&vector_data[((i * 4) + 2048) % (3 * 1024)]); \
 			} \
 			perf.stop(); \
 			vector_unaligned_write(result, (float*)&s_temp[0]); \
@@ -1900,6 +2171,7 @@ int main_impl(int argc, char* argv[])
 	} while (0)
 
 	RUN_TESTS(unpack_vector3_n_ref);
+#if defined(ACL_SSE2_INTRINSICS)
 	RUN_TESTS(unpack_vector3_n_o00);
 	RUN_TESTS1(unpack_vector3_n_o01);
 	RUN_TESTS1(unpack_vector3_n_o02);
@@ -1907,15 +2179,21 @@ int main_impl(int argc, char* argv[])
 	RUN_TESTS1(unpack_vector3_n_o04);
 	RUN_TESTS1(unpack_vector3_n_o05);
 	RUN_TESTS1(unpack_vector3_n_o06);
+#endif
 	RUN_TESTS1(unpack_vector3_n_o07);
 	RUN_TESTS1(unpack_vector3_n_o08);
 	RUN_TESTS1(unpack_vector3_n_o09);
 	RUN_TESTS1(unpack_vector3_n_o10);
 	RUN_TESTS1(unpack_vector3_n_o11);
+#if defined(ACL_SSE2_INTRINSICS)
 	RUN_TESTS1(unpack_vector3_n_o12);
+#endif
 	RUN_TESTS1(unpack_vector3_n_o13);
 	RUN_TESTS1(unpack_vector3_n_o14);
 	RUN_TESTS1(unpack_vector3_n_o15);
+	RUN_TESTS1(unpack_vector3_n_o16);
+	RUN_TESTS1(unpack_vector3_n_o17);
+	RUN_TESTS1(unpack_vector3_n_o18);
 
 #if defined(ACL_SSE2_INTRINSICS)
 	if (IsDebuggerPresent())

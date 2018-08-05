@@ -30,6 +30,7 @@
 
 using namespace acl;
 
+#if defined(ACL_SSE2_INTRINSICS)
 // We need the 4 bytes that contain our value.
 // The input is in big-endian order, byte 0 is the first byte
 // 320 bytes
@@ -127,6 +128,7 @@ Vector4_32 unpack_vector3_n_o12(uint8_t num_bits, const uint8_t* vector_data, ui
 	__m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
 	return _mm_mul_ps(value, inv_max_value);
 }
+#endif
 
 TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 {
@@ -320,11 +322,13 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 			num_errors++;
 
+#if defined(ACL_SSE2_INTRINSICS)
 		// HACK
 		vec1 = unpack_vector3_n_o12(16, &buffer[0], 0);
 		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 			num_errors++;
 		// HACK
+#endif
 
 		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
 		{
