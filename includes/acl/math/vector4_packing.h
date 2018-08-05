@@ -348,30 +348,33 @@ namespace acl
 	inline Vector4_32 unpack_vector3_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
+		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
+
+		struct PackedTableEntry
+		{
+			constexpr PackedTableEntry(uint8_t num_bits)
+				: max_value(num_bits == 0 ? 1.0f : (1.0f / float((1 << num_bits) - 1)))
+				, mask((1 << num_bits) - 1)
+			{}
+
+			float max_value;
+			uint32_t mask;
+		};
+
+		// TODO: We technically don't need the first 3 entries, which could save a few bytes
+		alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
+		{
+			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
+			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
+			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
+			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
+			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+		};
 
 #if defined(ACL_SSE2_INTRINSICS)
-		// TODO: Pack mask and max value together, reduce likelihood that we'll have a cache miss for both, 160 bytes today
-		static constexpr float max_values[20] =
-		{
-			1.0f, 1.0f / float((1 << 1) - 1), 1.0f / float((1 << 2) - 1), 1.0f / float((1 << 3) - 1),
-			1.0f / float((1 << 4) - 1), 1.0f / float((1 << 5) - 1), 1.0f / float((1 << 6) - 1), 1.0f / float((1 << 7) - 1),
-			1.0f / float((1 << 8) - 1), 1.0f / float((1 << 9) - 1), 1.0f / float((1 << 10) - 1), 1.0f / float((1 << 11) - 1),
-			1.0f / float((1 << 12) - 1), 1.0f / float((1 << 13) - 1), 1.0f / float((1 << 14) - 1), 1.0f / float((1 << 15) - 1),
-			1.0f / float((1 << 16) - 1), 1.0f / float((1 << 17) - 1), 1.0f / float((1 << 18) - 1), 1.0f / float((1 << 19) - 1),
-		};
-
-		static constexpr uint32_t mask_values[20] =
-		{
-			(1 << 0) - 1, (1 << 1) - 1, (1 << 2) - 1, (1 << 3) - 1,
-			(1 << 4) - 1, (1 << 5) - 1, (1 << 6) - 1, (1 << 7) - 1,
-			(1 << 8) - 1, (1 << 9) - 1, (1 << 10) - 1, (1 << 11) - 1,
-			(1 << 12) - 1, (1 << 13) - 1, (1 << 14) - 1, (1 << 15) - 1,
-			(1 << 16) - 1, (1 << 17) - 1, (1 << 18) - 1, (1 << 19) - 1,
-		};
-
-		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&mask_values[num_bits]));
 		const uint32_t bit_shift = 32 - num_bits;
-		const __m128 inv_max_value = _mm_load_ps1(&max_values[num_bits]);
+		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
+		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
 
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
@@ -396,6 +399,36 @@ namespace acl
 		int_value = _mm_and_si128(int_value, mask);
 		const __m128 value = _mm_cvtepi32_ps(int_value);
 		return _mm_mul_ps(value, inv_max_value);
+#elif defined(ACL_NEON_INTRINSICS)
+		const uint32_t bit_shift = 32 - num_bits;
+		uint32x4_t mask = vdupq_n_u32(k_packed_constants[num_bits].mask);
+		float inv_max_value = k_packed_constants[num_bits].max_value;
+
+		uint32_t byte_offset = bit_offset / 8;
+		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+		uint32x2_t z = vcreate_u32(uint64_t(z32));
+		uint32x4_t value_u32 = vcombine_u32(xy, z);
+		value_u32 = vandq_u32(value_u32, mask);
+		float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+		return vmulq_n_f32(value_f32, inv_max_value);
 #else
 		const uint8_t num_bits_to_read = num_bits * 3;
 
