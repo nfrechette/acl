@@ -294,7 +294,9 @@ namespace acl
 		AnimationScaleTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
 			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Scale)
 		{
-			std::fill(m_sample_data, m_sample_data + (num_samples * 3), 0.0);
+			Vector4_64 defaultScale = vector_set(1.0);
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+				vector_unaligned_write3(defaultScale, m_sample_data + (sample_index * 3));
 		}
 
 		AnimationScaleTrack(AnimationScaleTrack&& other)
