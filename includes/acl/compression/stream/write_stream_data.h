@@ -219,9 +219,8 @@ namespace acl
 			}
 			else
 			{
-				const uint64_t raw_sample_u64 = byte_swap(*safe_ptr_cast<const uint64_t>(raw_sample_ptr));
-				const uint64_t offset = 64 - num_bits_at_bit_rate;
-				memcpy_bits(animated_track_data_begin, out_bit_offset, &raw_sample_u64, offset, num_bits_at_bit_rate);
+				const uint64_t raw_sample_u64 = *safe_ptr_cast<const uint64_t>(raw_sample_ptr);
+				memcpy_bits(animated_track_data_begin, out_bit_offset, &raw_sample_u64, 0, num_bits_at_bit_rate);
 			}
 
 			if (has_mixed_packing)

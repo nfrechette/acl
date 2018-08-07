@@ -256,7 +256,12 @@ namespace acl
 							ignore_segment_range[i] = true;
 						}
 						else
-							rotations[i] = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_clip_rotations_normalized, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+						{
+							if (are_clip_rotations_normalized)
+								rotations[i] = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+							else
+								rotations[i] = unpack_vector3_sXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+						}
 
 						uint8_t num_bits_read = num_bits_at_bit_rate * 3;
 
@@ -451,7 +456,7 @@ namespace acl
 							ignore_segment_range[i] = true;
 						}
 						else
-							out_vectors[i] = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+							out_vectors[i] = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 
 						uint8_t num_bits_read = num_bits_at_bit_rate * 3;
 

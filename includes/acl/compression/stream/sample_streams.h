@@ -69,7 +69,10 @@ namespace acl
 				else
 				{
 					const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-					return unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, is_normalized, ptr);
+					if (is_normalized)
+						return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
+					else
+						return unpack_vector3_sXX_unsafe(num_bits_at_bit_rate, ptr, 0);
 				}
 			}
 			default:
@@ -97,7 +100,7 @@ namespace acl
 				else
 				{
 					const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-					return unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, ptr);
+					return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
 				}
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
@@ -208,8 +211,16 @@ namespace acl
 			packed_rotation = rotation;
 		else
 		{
-			pack_vector3_n(rotation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
-			packed_rotation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, are_rotations_normalized, &raw_data[0]);
+			if (are_rotations_normalized)
+			{
+				pack_vector3_uXX(rotation, num_bits_at_bit_rate, &raw_data[0]);
+				packed_rotation = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
+			}
+			else
+			{
+				pack_vector3_sXX(rotation, num_bits_at_bit_rate, &raw_data[0]);
+				packed_rotation = unpack_vector3_sXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
+			}
 		}
 
 		if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
@@ -376,8 +387,8 @@ namespace acl
 		else
 		{
 			const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			pack_vector3_n(translation, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
-			packed_translation = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
+			pack_vector3_uXX(translation, num_bits_at_bit_rate, &raw_data[0]);
+			packed_translation = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
 		}
 
 		if (segment->are_translations_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
@@ -536,8 +547,8 @@ namespace acl
 		else
 		{
 			const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			pack_vector3_n(scale, num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
-			packed_scale = unpack_vector3_n(num_bits_at_bit_rate, num_bits_at_bit_rate, num_bits_at_bit_rate, true, &raw_data[0]);
+			pack_vector3_uXX(scale, num_bits_at_bit_rate, &raw_data[0]);
+			packed_scale = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
 		}
 
 		if (segment->are_scales_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
