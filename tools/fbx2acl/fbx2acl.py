@@ -11,7 +11,6 @@ from collections import namedtuple
 
 FBXNode = namedtuple('FBXNode', 'name parent node')
 ACLClip = namedtuple('ACLClip', 'name num_samples sample_rate error_threshold duration')
-ACLBone = namedtuple('ACLBone', 'name parent vtx_distance obj_space_mtx bind_rotation bind_translation bind_scale')
 ACLTrack = namedtuple('ACLTrack', 'name rotations translations scales')
 
 ACL_FILE_FORMAT_VERSION = 1
@@ -32,20 +31,20 @@ def get_animation_stack(scene, anim_stack_name):
 			print('You must provide the -stack="<animation stack name>" option for one of these:')
 			print_animation_stacks(scene)
 			sys.exit(1)
-		
+
 		found = False
 		for i in range(scene.GetSrcObjectCount(FbxAnimStack.ClassId)):
 			anim_stack = scene.GetSrcObject(FbxAnimStack.ClassId, i)
 			if anim_stack.GetName() == anim_stack_name:
 				found = True
 				break
-	
+
 		if not found:
 			print('Could not find the animation stack named "' + anim_stack_name + '"')
 			print('Choose one of the following instead:')
 			print_animation_stacks(scene)
 			sys.exit(1)
-	
+
 	return anim_stack
 
 def get_sample_rate(scene):
@@ -94,7 +93,12 @@ def parse_hierarchy(scene):
 	return nodes
 
 def parse_hierarchy_node(parent_node, node, nodes):
-	type = (node.GetNodeAttribute().GetAttributeType())
+	nodeAttr = node.GetNodeAttribute()
+	if nodeAttr == None:
+		print('Ignoring node ' + node.GetName())
+		return
+
+	type = nodeAttr.GetAttributeType()
 	if type != FbxNodeAttribute.eSkeleton:
 		print('Ignoring node ' + node.GetName())
 		return
@@ -124,6 +128,7 @@ def parse_bind_pose(scene, nodes):
 		pose = scene.GetPose(pose_idx)
 
 		if not pose.IsBindPose():
+			print('Skipping non-bind pose: {}'.format(pose.GetName()))
 			continue
 
 		for bone_idx in range(pose.GetCount()):
@@ -136,13 +141,14 @@ def parse_bind_pose(scene, nodes):
 
 			matrix = pose.GetMatrix(bone_idx)
 
-			if bone_node.parent == "" or bone_node.parent == nodes[0].name:
+			if bone_node.parent == "" or (bone_node.parent == nodes[0].name and len(bones) == 0):
 				parent_name = ""
 				local_space_mtx = matrix
 			else:
 				parent_name = bone_node.parent
-				parent_bone = next(x for x in bones if x.name == parent_name)
-				local_space_mtx = matrix * parent_bone.obj_space_mtx.Inverse()
+				parent_bone = next(x for x in bones if x['name'] == parent_name)
+				parent_bone['num_children'] += 1
+				local_space_mtx = matrix * parent_bone['obj_space_mtx'].Inverse()
 
 			# Convert from FBX types to float arrays
 			local_space_mtx.GetElements(translation, rotation, shear, scale)
@@ -150,12 +156,46 @@ def parse_bind_pose(scene, nodes):
 			translation_array = vector3_to_array(translation)
 			scale_array = vector3_to_array(scale)
 
-			bone = ACLBone(bone_name, parent_name, vtx_distance, matrix, rotation_array, translation_array, scale_array)
+			bone = {}
+			bone['name'] = bone_name
+			bone['parent'] = parent_name
+			bone['vtx_distance'] = vtx_distance
+			bone['obj_space_mtx'] = matrix
+			bone['bind_rotation'] = rotation_array
+			bone['bind_translation'] = translation_array
+			bone['bind_scale'] = scale_array
+			bone['num_children'] = 0
+
 			bones.append(bone)
 
 		# Stop after we parsed the bind pose
 		break
 
+	if len(bones) == 0:
+		# We failed to parse the bind pose, use the nodes we had instead
+		for node in nodes:
+			print('Processing: {} ({})'.format(node.name, node.parent))
+			if node.parent == "" or (node.parent == nodes[0].name and len(bones) == 0):
+				parent_name = ""
+			else:
+				parent_name = node.parent
+				parent_bone = next(x for x in bones if x['name'] == parent_name)
+				parent_bone['num_children'] += 1
+
+			bone = {}
+			bone['name'] = node.name
+			bone['parent'] = parent_name
+			bone['vtx_distance'] = vtx_distance
+			bone['obj_space_mtx'] = None
+			bone['bind_rotation'] = [0.0, 0.0, 0.0, 1.0]
+			bone['bind_translation'] = [0.0, 0.0, 0.0]
+			bone['bind_scale'] = [1.0, 1.0, 1.0]
+			bone['num_children'] = 0
+
+			bones.append(bone)
+
+	# Filter out any root bones that have no children
+	bones = [x for x in bones if (not x['parent'] == "" or not x['num_children'] == 0)]
 	return bones
 
 def is_key_default(key, default_value, error_threshold = 0.000001):
@@ -196,7 +236,7 @@ def parse_tracks(scene, anim_stack, clip, bones, nodes, start_time):
 	default_scale = [ 1.0, 1.0, 1.0 ]
 
 	for bone in bones:
-		bone_node = next(x for x in nodes if x.name == bone.name)
+		bone_node = next(x for x in nodes if x.name == bone['name'])
 
 		# Extract all our local space transforms
 		rotations = []
@@ -230,7 +270,7 @@ def parse_tracks(scene, anim_stack, clip, bones, nodes, start_time):
 		if is_track_default(scales, default_scale):
 			scales = []
 
-		track = ACLTrack(bone.name, rotations, translations, scales)
+		track = ACLTrack(bone['name'], rotations, translations, scales)
 		tracks.append(track)
 
 	return tracks
@@ -254,18 +294,21 @@ def print_bones(file, bones):
 	print('[', file = file)
 	for bone in bones:
 		print('\t{', file = file)
-		print('\t\tname = "{}"'.format(bone.name), file = file)
-		print('\t\tparent = "{}"'.format(bone.parent), file = file)
-		print('\t\tvertex_distance = {}'.format(bone.vtx_distance), file = file)
+		print('\t\tname = "{}"'.format(bone['name']), file = file)
+		print('\t\tparent = "{}"'.format(bone['parent']), file = file)
+		print('\t\tvertex_distance = {}'.format(bone['vtx_distance']), file = file)
 
-		if not is_key_default(bone.bind_rotation, default_rotation):
-			print('\t\tbind_rotation = [ {}, {}, {}, {} ]'.format(bone.bind_rotation[0], bone.bind_rotation[1], bone.bind_rotation[2], bone.bind_rotation[3]), file = file)
+		bind_rotation = bone['bind_rotation']
+		if not is_key_default(bind_rotation, default_rotation):
+			print('\t\tbind_rotation = [ {}, {}, {}, {} ]'.format(bind_rotation[0], bind_rotation[1], bind_rotation[2], bind_rotation[3]), file = file)
 
-		if not is_key_default(bone.bind_translation, default_translation):
-			print('\t\tbind_translation = [ {}, {}, {} ]'.format(bone.bind_translation[0], bone.bind_translation[1], bone.bind_translation[2]), file = file)
+		bind_translation = bone['bind_translation']
+		if not is_key_default(bind_translation, default_translation):
+			print('\t\tbind_translation = [ {}, {}, {} ]'.format(bind_translation[0], bind_translation[1], bind_translation[2]), file = file)
 
-		if not is_key_default(bone.bind_scale, default_scale):
-			print('\t\tbind_scale = [ {}, {}, {} ]'.format(bone.bind_scale[0], bone.bind_scale[1], bone.bind_scale[2]), file = file)
+		bind_scale = bone['bind_scale']
+		if not is_key_default(bind_scale, default_scale):
+			print('\t\tbind_scale = [ {}, {}, {} ]'.format(bind_scale[0], bind_scale[1], bind_scale[2]), file = file)
 
 		print('\t}', file = file)
 	print(']', file = file)
@@ -352,10 +395,10 @@ def convert_file(fbx_filename, anim_stack_name, start_time, end_time, acl_filena
 		print('Parsing FBX...')
 		# TODO: Ensure we only have 1 anim layer
 		anim_stack = get_animation_stack(scene, anim_stack_name)
-		
+
 		start_time = snap_start_time_to_sample(scene, anim_stack, start_time)
 		window_duration = get_window_duration(anim_stack, start_time, end_time)
-		
+
 		clip = parse_clip(scene, anim_stack, window_duration)
 		nodes = parse_hierarchy(scene)
 		bones = parse_bind_pose(scene, nodes)
