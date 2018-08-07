@@ -174,7 +174,6 @@ def parse_bind_pose(scene, nodes):
 	if len(bones) == 0:
 		# We failed to parse the bind pose, use the nodes we had instead
 		for node in nodes:
-			print('Processing: {} ({})'.format(node.name, node.parent))
 			if node.parent == "" or (node.parent == nodes[0].name and len(bones) == 0):
 				parent_name = ""
 			else:
@@ -225,7 +224,7 @@ def parse_tracks(scene, anim_stack, clip, bones, nodes, start_time):
 	tracks = []
 
 	scene.SetCurrentAnimationStack(anim_stack)
-	
+
 	root_node = scene.GetRootNode()
 	anim_evaluator = scene.GetAnimationEvaluator()
 
