@@ -1045,9 +1045,9 @@ static LONG WINAPI unhandled_exception_filter(EXCEPTION_POINTERS *info)
 }
 #endif
 
-static Quat_32 s_temp[512];
+//static Quat_32 s_temp[512];
 
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(_MSC_VER)
 #define NOINLINE __declspec(noinline)
 #define VECTORCALL __vectorcall
 #else
@@ -1059,7 +1059,7 @@ static Quat_32 s_temp[512];
 #include <android/log.h>
 #define log_(...) __android_log_print(ANDROID_LOG_INFO, "acl", ## __VA_ARGS__)
 #else
-#define log_(...) printf(## __VA_ARGS__)
+#define log_(...) printf(__VA_ARGS__)
 #endif
 
 #if 0
@@ -2121,6 +2121,7 @@ int main_impl(int argc, char* argv[])
 	const int32_t num_iterations = 100;
 	double iter_results[num_iterations];
 	alignas(64) volatile uint8_t vector_data[1024 * 4];
+	Quat_32 s_temp[512];
 
 	memset((void*)&s_temp[0], 0, sizeof(s_temp));
 	memset((void*)&iter_results[0], 0, sizeof(iter_results));
@@ -2195,7 +2196,7 @@ int main_impl(int argc, char* argv[])
 	RUN_TESTS1(unpack_vector3_n_o17);
 	RUN_TESTS1(unpack_vector3_n_o18);
 
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(_MSC_VER)
 	if (IsDebuggerPresent())
 	{
 		printf("Press any key to continue...\n");
