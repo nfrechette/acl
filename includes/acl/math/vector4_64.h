@@ -64,13 +64,13 @@ namespace acl
 
 	inline Vector4_64 vector_unaligned_load(const double* input)
 	{
-		ACL_ASSERT(is_aligned(input), "Invalid alignment");
+		ACL_ASSERT(is_aligned_to(input, 4), "Invalid alignment");
 		return vector_set(input[0], input[1], input[2], input[3]);
 	}
 
 	inline Vector4_64 vector_unaligned_load3(const double* input)
 	{
-		ACL_ASSERT(is_aligned(input), "Invalid alignment");
+		ACL_ASSERT(is_aligned_to(input, 4), "Invalid alignment");
 		return vector_set(input[0], input[1], input[2], 0.0);
 	}
 
@@ -193,7 +193,7 @@ namespace acl
 
 	inline void vector_unaligned_write(const Vector4_64& input, double* output)
 	{
-		ACL_ASSERT(is_aligned(output), "Invalid alignment");
+		ACL_ASSERT(is_aligned_to(output, 4), "Invalid alignment");
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
@@ -202,7 +202,7 @@ namespace acl
 
 	inline void vector_unaligned_write3(const Vector4_64& input, double* output)
 	{
-		ACL_ASSERT(is_aligned(output), "Invalid alignment");
+		ACL_ASSERT(is_aligned_to(output, 4), "Invalid alignment");
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
