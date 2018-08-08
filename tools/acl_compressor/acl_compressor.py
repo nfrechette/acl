@@ -172,7 +172,7 @@ def create_csv(options):
 		csv_data['stats_animated_size_csv_file'] = stats_animated_size_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_animated_size_csv_filename))
-		print('Algorithm Name, Segment Index, Animated Size', file = stats_animated_size_csv_file)
+		print('Algorithm Name, Segment Index, Animated Size, Num Animated Tracks', file = stats_animated_size_csv_file)
 
 	if options['csv_error']:
 		stats_error_csv_filename = os.path.join(stat_dir, 'stats_error.csv')
@@ -208,8 +208,8 @@ def append_csv(csv_data, job_data):
 
 	if 'stats_animated_size_csv_file' in csv_data:
 		size_data = job_data['stats_animated_size']
-		for (name, segment_index, size) in size_data:
-			print('{}, {}, {}'.format(name, segment_index, size), file = csv_data['stats_animated_size_csv_file'])
+		for (name, segment_index, animated_size, num_animated) in size_data:
+			print('{}, {}, {}, {}'.format(name, segment_index, animated_size, num_animated), file = csv_data['stats_animated_size_csv_file'])
 
 	if 'stats_error_csv_file' in csv_data:
 		error_data = job_data['stats_error_data']
@@ -544,7 +544,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 							segment_index = 0
 							for segment in run_stats['segments']:
 								if 'animated_frame_size' in segment and options['csv_animated_size']:
-									stats_animated_size.append((run_stats['clip_name'], segment_index, segment['animated_frame_size']))
+									stats_animated_size.append((run_stats['clip_name'], segment_index, segment['animated_frame_size'], run_stats['num_animated_tracks']))
 
 								if 'error_per_frame_and_bone' in segment and len(segment['error_per_frame_and_bone']) > 0:
 									# Convert to array https://docs.python.org/3/library/array.html
