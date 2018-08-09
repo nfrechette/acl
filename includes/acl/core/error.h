@@ -146,7 +146,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Allow deprecation support
-#if defined(__has_cpp_attribute)
+#if defined(__has_cpp_attribute) && __cplusplus >= 201402L
 	#if __has_cpp_attribute(deprecated)
 		#define ACL_DEPRECATED(msg) [[deprecated(msg)]]
 	#endif
