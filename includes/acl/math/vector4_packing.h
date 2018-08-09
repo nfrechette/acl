@@ -109,10 +109,98 @@ namespace acl
 		return vector_unaligned_load_32(vector_data);
 	}
 
-	// Assumes the 'vector_data' is in big-endian order
-	inline Vector4_32 unpack_vector3_96(const uint8_t* vector_data, uint64_t bit_offset)
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 16 bytes from it
+	inline Vector4_32 unpack_vector3_96_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
 	{
-		uint64_t byte_offset = bit_offset / 8;
+#if defined(ACL_SSE2_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint32_t x32 = uint32_t(vector_u64);
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint32_t y32 = uint32_t(vector_u64);
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint32_t z32 = uint32_t(vector_u64);
+
+		return _mm_castsi128_ps(_mm_set_epi32(x32, z32, y32, x32));
+#elif defined(ACL_NEON_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t x64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+
+		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ull);
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t z64 = vector_u64;
+
+		const uint32x2_t xy = vcreate_u32(x64 | y64);
+		const uint32x2_t z = vcreate_u32(z64);
+		const uint32x4_t value_u32 = vcombine_u32(xy, z);
+		return vreinterpretq_f32_u32(value_u32);
+#else
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t x64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t y64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t z64 = vector_u64;
+
+		const float x = aligned_load<float>(&x64);
+		const float y = aligned_load<float>(&y64);
+		const float z = aligned_load<float>(&z64);
+
+		return vector_set(x, y, z);
+#endif
+	}
+
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 16 bytes from it
+	ACL_DEPRECATED("Use unpack_vector3_96_unsafe instead, to be removed in v2.0")
+	inline Vector4_32 unpack_vector3_96(const uint8_t* vector_data, uint32_t bit_offset)
+	{
+		uint32_t byte_offset = bit_offset / 8;
 		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= bit_offset % 8;

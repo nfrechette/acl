@@ -121,7 +121,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			const uint8_t offset = offsets[offset_idx];
 
 			memcpy_bits(&tmp1.buffer[0], offset, &tmp0.buffer[0], 0, 96);
-			vec1 = unpack_vector3_96(&tmp1.buffer[0], offset);
+			vec1 = unpack_vector3_96_unsafe(&tmp1.buffer[0], offset);
 			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 		}

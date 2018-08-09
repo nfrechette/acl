@@ -251,7 +251,7 @@ namespace acl
 						}
 						else if (is_raw_bit_rate(bit_rate))
 						{
-							rotations[i] = unpack_vector3_96(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+							rotations[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 							ignore_clip_range[i] = true;
 							ignore_segment_range[i] = true;
 						}
@@ -451,7 +451,7 @@ namespace acl
 						}
 						else if (is_raw_bit_rate(bit_rate))
 						{
-							out_vectors[i] = unpack_vector3_96(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+							out_vectors[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 							ignore_clip_range[i] = true;
 							ignore_segment_range[i] = true;
 						}
