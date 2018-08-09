@@ -53,7 +53,7 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_96(quat0, &tmp0.buffer[0]);
-		Quat_32 quat1 = unpack_quat_96(&tmp0.buffer[0]);
+		Quat_32 quat1 = unpack_quat_96_unsafe(&tmp0.buffer[0]);
 		REQUIRE(quat_get_x(quat0) == quat_get_x(quat1));
 		REQUIRE(quat_get_y(quat0) == quat_get_y(quat1));
 		REQUIRE(quat_get_z(quat0) == quat_get_z(quat1));

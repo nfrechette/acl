@@ -143,9 +143,9 @@ namespace acl
 					break;
 				case RotationFormat8::QuatDropW_48:
 					if (are_rotations_normalized)
-						pack_vector3_u48(quat_to_vector(rotation), quantized_ptr);
+						pack_vector3_u48_unsafe(quat_to_vector(rotation), quantized_ptr);
 					else
-						pack_vector3_s48(quat_to_vector(rotation), quantized_ptr);
+						pack_vector3_s48_unsafe(quat_to_vector(rotation), quantized_ptr);
 					break;
 				case RotationFormat8::QuatDropW_32:
 					pack_vector3_32(quat_to_vector(rotation), 11, 11, 10, are_rotations_normalized, quantized_ptr);
@@ -194,7 +194,7 @@ namespace acl
 				const Vector4_32 normalized_rotation = normalize_sample(rotation, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
-				pack_vector3_u48(normalized_rotation, quantized_ptr);
+				pack_vector3_u48_unsafe(normalized_rotation, quantized_ptr);
 			}
 			else
 			{
@@ -214,9 +214,9 @@ namespace acl
 					{
 						const Quat_32 rotation = raw_segment_stream.get_raw_sample<Quat_32>(sample_index);
 						if (are_rotations_normalized)
-							pack_vector3_uXX(quat_to_vector(rotation), num_bits_at_bit_rate, quantized_ptr);
+							pack_vector3_uXX_unsafe(quat_to_vector(rotation), num_bits_at_bit_rate, quantized_ptr);
 						else
-							pack_vector3_sXX(quat_to_vector(rotation), num_bits_at_bit_rate, quantized_ptr);
+							pack_vector3_sXX_unsafe(quat_to_vector(rotation), num_bits_at_bit_rate, quantized_ptr);
 					}
 				}
 			}
@@ -269,7 +269,7 @@ namespace acl
 					pack_vector3_96(translation, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_48:
-					pack_vector3_u48(translation, quantized_ptr);
+					pack_vector3_u48_unsafe(translation, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_32:
 					pack_vector3_32(translation, 11, 11, 10, true, quantized_ptr);
@@ -317,7 +317,7 @@ namespace acl
 				const Vector4_32 normalized_translation = normalize_sample(translation, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
-				pack_vector3_u48(normalized_translation, quantized_ptr);
+				pack_vector3_u48_unsafe(normalized_translation, quantized_ptr);
 			}
 			else
 			{
@@ -335,7 +335,7 @@ namespace acl
 					else
 					{
 						const Vector4_32 translation = raw_segment_stream.get_raw_sample<Vector4_32>(sample_index);
-						pack_vector3_uXX(translation, num_bits_at_bit_rate, quantized_ptr);
+						pack_vector3_uXX_unsafe(translation, num_bits_at_bit_rate, quantized_ptr);
 					}
 				}
 			}
@@ -386,7 +386,7 @@ namespace acl
 					pack_vector3_96(scale, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_48:
-					pack_vector3_u48(scale, quantized_ptr);
+					pack_vector3_u48_unsafe(scale, quantized_ptr);
 					break;
 				case VectorFormat8::Vector3_32:
 					pack_vector3_32(scale, 11, 11, 10, true, quantized_ptr);
@@ -434,7 +434,7 @@ namespace acl
 				const Vector4_32 normalized_scale = normalize_sample(scale, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
-				pack_vector3_u48(normalized_scale, quantized_ptr);
+				pack_vector3_u48_unsafe(normalized_scale, quantized_ptr);
 			}
 			else
 			{
@@ -452,7 +452,7 @@ namespace acl
 					else
 					{
 						const Vector4_32 scale = raw_segment_stream.get_raw_sample<Vector4_32>(sample_index);
-						pack_vector3_uXX(scale, num_bits_at_bit_rate, quantized_ptr);
+						pack_vector3_uXX_unsafe(scale, num_bits_at_bit_rate, quantized_ptr);
 					}
 				}
 			}

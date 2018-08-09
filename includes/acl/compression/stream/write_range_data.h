@@ -87,9 +87,9 @@ namespace acl
 			}
 			else
 			{
-				pack_vector3_u24(range_min, out_range_data);
+				pack_vector3_u24_unsafe(range_min, out_range_data);
 				out_range_data += sizeof(uint8_t) * 3;
-				pack_vector3_u24(range_extent, out_range_data);
+				pack_vector3_u24_unsafe(range_extent, out_range_data);
 				out_range_data += sizeof(uint8_t) * 3;
 			}
 		}
@@ -150,9 +150,9 @@ namespace acl
 						}
 						else
 						{
-							pack_vector3_u24(range_min, range_data);
+							pack_vector3_u24_unsafe(range_min, range_data);
 							range_data += sizeof(uint8_t) * 3;
-							pack_vector3_u24(range_extent, range_data);
+							pack_vector3_u24_unsafe(range_extent, range_data);
 							range_data += sizeof(uint8_t) * 3;
 						}
 					}

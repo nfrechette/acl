@@ -145,7 +145,14 @@ namespace acl
 		return vector_set(x, y, z);
 	}
 
-	inline void pack_vector3_u48(const Vector4_32& vector, uint8_t* out_vector_data)
+	ACL_DEPRECATED("Use unpack_vector3_96_unsafe instead, to be removed in v2.0")
+	inline Vector4_32 unpack_vector3_96(const uint8_t* vector_data)
+	{
+		return vector_unaligned_load3_32(vector_data);
+	}
+
+	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
+	inline void pack_vector3_u48_unsafe(const Vector4_32& vector, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), 16);
 		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), 16);
@@ -157,11 +164,25 @@ namespace acl
 		data[2] = safe_static_cast<uint16_t>(vector_z);
 	}
 
-	inline void pack_vector3_s48(const Vector4_32& vector, uint8_t* out_vector_data)
+	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
+	inline void pack_vector3_s48_unsafe(const Vector4_32& vector, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_signed(vector_get_x(vector), 16);
 		uint32_t vector_y = pack_scalar_signed(vector_get_y(vector), 16);
 		uint32_t vector_z = pack_scalar_signed(vector_get_z(vector), 16);
+
+		uint16_t* data = safe_ptr_cast<uint16_t>(out_vector_data);
+		data[0] = safe_static_cast<uint16_t>(vector_x);
+		data[1] = safe_static_cast<uint16_t>(vector_y);
+		data[2] = safe_static_cast<uint16_t>(vector_z);
+	}
+
+	ACL_DEPRECATED("Use pack_vector3_u48_unsafe and pack_vector3_s48_unsafe instead, to be removed in v2.0")
+	inline void pack_vector3_48(const Vector4_32& vector, bool is_unsigned, uint8_t* out_vector_data)
+	{
+		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 16) : pack_scalar_signed(vector_get_x(vector), 16);
+		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 16) : pack_scalar_signed(vector_get_y(vector), 16);
+		uint32_t vector_z = is_unsigned ? pack_scalar_unsigned(vector_get_z(vector), 16) : pack_scalar_signed(vector_get_z(vector), 16);
 
 		uint16_t* data = safe_ptr_cast<uint16_t>(out_vector_data);
 		data[0] = safe_static_cast<uint16_t>(vector_x);
@@ -197,7 +218,8 @@ namespace acl
 #endif
 	}
 
-	inline Vector4_32 unpack_vector3_s48(const uint8_t* vector_data)
+	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
+	inline Vector4_32 unpack_vector3_s48_unsafe(const uint8_t* vector_data)
 	{
 		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
 		uint16_t x16 = data_ptr_u16[0];
@@ -206,6 +228,19 @@ namespace acl
 		float x = unpack_scalar_signed(x16, 16);
 		float y = unpack_scalar_signed(y16, 16);
 		float z = unpack_scalar_signed(z16, 16);
+		return vector_set(x, y, z);
+	}
+
+	ACL_DEPRECATED("Use unpack_vector3_u48_unsafe and unpack_vector3_s48_unsafe instead, to be removed in v2.0")
+	inline Vector4_32 unpack_vector3_48(const uint8_t* vector_data, bool is_unsigned)
+	{
+		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
+		uint16_t x16 = data_ptr_u16[0];
+		uint16_t y16 = data_ptr_u16[1];
+		uint16_t z16 = data_ptr_u16[2];
+		float x = is_unsigned ? unpack_scalar_unsigned(x16, 16) : unpack_scalar_signed(x16, 16);
+		float y = is_unsigned ? unpack_scalar_unsigned(y16, 16) : unpack_scalar_signed(y16, 16);
+		float z = is_unsigned ? unpack_scalar_unsigned(z16, 16) : unpack_scalar_signed(z16, 16);
 		return vector_set(x, y, z);
 	}
 
@@ -241,7 +276,8 @@ namespace acl
 		return vector_set(x, y, z);
 	}
 
-	inline void pack_vector3_u24(const Vector4_32& vector, uint8_t* out_vector_data)
+	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
+	inline void pack_vector3_u24_unsafe(const Vector4_32& vector, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), 8);
 		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), 8);
@@ -252,11 +288,24 @@ namespace acl
 		out_vector_data[2] = safe_static_cast<uint8_t>(vector_z);
 	}
 
-	inline void pack_vector3_s24(const Vector4_32& vector, uint8_t* out_vector_data)
+	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
+	inline void pack_vector3_s24_unsafe(const Vector4_32& vector, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_signed(vector_get_x(vector), 8);
 		uint32_t vector_y = pack_scalar_signed(vector_get_y(vector), 8);
 		uint32_t vector_z = pack_scalar_signed(vector_get_z(vector), 8);
+
+		out_vector_data[0] = safe_static_cast<uint8_t>(vector_x);
+		out_vector_data[1] = safe_static_cast<uint8_t>(vector_y);
+		out_vector_data[2] = safe_static_cast<uint8_t>(vector_z);
+	}
+
+	ACL_DEPRECATED("Use pack_vector3_u24_unsafe and pack_vector3_s24_unsafe instead, to be removed in v2.0")
+	inline void pack_vector3_24(const Vector4_32& vector, bool is_unsigned, uint8_t* out_vector_data)
+	{
+		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 8) : pack_scalar_signed(vector_get_x(vector), 8);
+		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 8) : pack_scalar_signed(vector_get_y(vector), 8);
+		uint32_t vector_z = is_unsigned ? pack_scalar_unsigned(vector_get_z(vector), 8) : pack_scalar_signed(vector_get_z(vector), 8);
 
 		out_vector_data[0] = safe_static_cast<uint8_t>(vector_x);
 		out_vector_data[1] = safe_static_cast<uint8_t>(vector_y);
@@ -303,7 +352,8 @@ namespace acl
 #endif
 	}
 
-	inline Vector4_32 unpack_vector3_s24(const uint8_t* vector_data)
+	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
+	inline Vector4_32 unpack_vector3_s24_unsafe(const uint8_t* vector_data)
 	{
 		uint8_t x8 = vector_data[0];
 		uint8_t y8 = vector_data[1];
@@ -314,8 +364,20 @@ namespace acl
 		return vector_set(x, y, z);
 	}
 
-	// Packs data in big-endian order
-	inline void pack_vector3_uXX(const Vector4_32& vector, uint8_t num_bits, uint8_t* out_vector_data)
+	ACL_DEPRECATED("Use unpack_vector3_u24_unsafe and unpack_vector3_s24_unsafe instead, to be removed in v2.0")
+	inline Vector4_32 unpack_vector3_24(const uint8_t* vector_data, bool is_unsigned)
+	{
+		uint8_t x8 = vector_data[0];
+		uint8_t y8 = vector_data[1];
+		uint8_t z8 = vector_data[2];
+		float x = is_unsigned ? unpack_scalar_unsigned(x8, 8) : unpack_scalar_signed(x8, 8);
+		float y = is_unsigned ? unpack_scalar_unsigned(y8, 8) : unpack_scalar_signed(y8, 8);
+		float z = is_unsigned ? unpack_scalar_unsigned(z8, 8) : unpack_scalar_signed(z8, 8);
+		return vector_set(x, y, z);
+	}
+
+	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
+	inline void pack_vector3_uXX_unsafe(const Vector4_32& vector, uint8_t num_bits, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), num_bits);
 		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), num_bits);
@@ -329,8 +391,8 @@ namespace acl
 		unaligned_write(vector_u64, out_vector_data);
 	}
 
-	// Packs data in big-endian order
-	inline void pack_vector3_sXX(const Vector4_32& vector, uint8_t num_bits, uint8_t* out_vector_data)
+	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
+	inline void pack_vector3_sXX_unsafe(const Vector4_32& vector, uint8_t num_bits, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_signed(vector_get_x(vector), num_bits);
 		uint32_t vector_y = pack_scalar_signed(vector_get_y(vector), num_bits);
@@ -344,7 +406,20 @@ namespace acl
 		unaligned_write(vector_u64, out_vector_data);
 	}
 
-	// Assumes the 'vector_data' is in big-endian order
+	// Assumes the 'out_vector_data' is padded in order to write up to 8 bytes to it
+	ACL_DEPRECATED("Use pack_vector3_uXX_unsafe and pack_vector3_sXX_unsafe instead, to be removed in v2.0")
+	inline void pack_vector3_n(const Vector4_32& vector, uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, uint8_t* out_vector_data)
+	{
+		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), XBits) : pack_scalar_signed(vector_get_x(vector), XBits);
+		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), YBits) : pack_scalar_signed(vector_get_y(vector), YBits);
+		uint32_t vector_z = is_unsigned ? pack_scalar_unsigned(vector_get_z(vector), ZBits) : pack_scalar_signed(vector_get_z(vector), ZBits);
+
+		uint64_t vector_u64 = (static_cast<uint64_t>(vector_x) << (YBits + ZBits)) | (static_cast<uint64_t>(vector_y) << ZBits) | static_cast<uint64_t>(vector_z);
+
+		unaligned_write(vector_u64, out_vector_data);
+	}
+
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline Vector4_32 unpack_vector3_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
@@ -463,13 +538,63 @@ namespace acl
 #endif
 	}
 
-	// Assumes the 'vector_data' is in big-endian order
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline Vector4_32 unpack_vector3_sXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
 
 		Vector4_32 unsigned_value = unpack_vector3_uXX_unsafe(num_bits, vector_data, bit_offset);
 		return vector_sub(vector_mul(unsigned_value, 2.0f), vector_set(1.0f));
+	}
+
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 8 bytes from it
+	ACL_DEPRECATED("Use unpack_vector3_uXX_unsafe and unpack_vector3_sXX_unsafe instead, to be removed in v2.0")
+	inline Vector4_32 unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data)
+	{
+		uint64_t vector_u64 = *safe_ptr_cast<const uint64_t>(vector_data);
+		uint32_t x64 = safe_static_cast<uint32_t>(vector_u64 >> (YBits + ZBits));
+		uint32_t y64 = safe_static_cast<uint32_t>((vector_u64 >> ZBits) & ((1 << YBits) - 1));
+		uint32_t z64 = safe_static_cast<uint32_t>(vector_u64 & ((1 << ZBits) - 1));
+		float x = is_unsigned ? unpack_scalar_unsigned(x64, XBits) : unpack_scalar_signed(x64, XBits);
+		float y = is_unsigned ? unpack_scalar_unsigned(y64, YBits) : unpack_scalar_signed(y64, YBits);
+		float z = is_unsigned ? unpack_scalar_unsigned(z64, ZBits) : unpack_scalar_signed(z64, ZBits);
+		return vector_set(x, y, z);
+	}
+
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 12 bytes from it
+	ACL_DEPRECATED("Use unpack_vector3_uXX_unsafe and unpack_vector3_sXX_unsafe instead, to be removed in v2.0")
+	inline Vector4_32 unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data, int32_t bit_offset)
+	{
+		uint8_t num_bits_to_read = XBits + YBits + ZBits;
+
+		int32_t byte_offset = bit_offset / 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= bit_offset % 8;
+		vector_u64 >>= 64 - num_bits_to_read;
+
+		const uint32_t x32 = safe_static_cast<uint32_t>(vector_u64 >> (YBits + ZBits));
+		const uint32_t y32 = safe_static_cast<uint32_t>((vector_u64 >> ZBits) & ((1 << YBits) - 1));
+		uint32_t z32;
+
+		if (num_bits_to_read + (bit_offset % 8) > 64)
+		{
+			// Larger values can be split over 2x u64 entries
+			bit_offset += XBits + YBits;
+			byte_offset = bit_offset / 8;
+			vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
+			vector_u64 = byte_swap(vector_u64);
+			vector_u64 <<= bit_offset % 8;
+			vector_u64 >>= 64 - ZBits;
+			z32 = safe_static_cast<uint32_t>(vector_u64);
+		}
+		else
+			z32 = safe_static_cast<uint32_t>(vector_u64 & ((1 << ZBits) - 1));
+
+		const float x = is_unsigned ? unpack_scalar_unsigned(x32, XBits) : unpack_scalar_signed(x32, XBits);
+		const float y = is_unsigned ? unpack_scalar_unsigned(y32, YBits) : unpack_scalar_signed(y32, YBits);
+		const float z = is_unsigned ? unpack_scalar_unsigned(z32, ZBits) : unpack_scalar_signed(z32, ZBits);
+		return vector_set(x, y, z);
 	}
 
 	//////////////////////////////////////////////////////////////////////////

@@ -54,7 +54,7 @@ namespace acl
 				if (is_normalized)
 					return unpack_vector3_u48_unsafe(ptr);
 				else
-					return unpack_vector3_s48(ptr);
+					return unpack_vector3_s48_unsafe(ptr);
 			case RotationFormat8::QuatDropW_32:
 				return unpack_vector3_32(11, 11, 10, is_normalized, ptr);
 			case RotationFormat8::QuatDropW_Variable:
@@ -204,7 +204,7 @@ namespace acl
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_rotation = normalize_sample(rotation, clip_bone_range.rotation);
 
-			pack_vector3_u48(normalized_rotation, &raw_data[0]);
+			pack_vector3_u48_unsafe(normalized_rotation, &raw_data[0]);
 			packed_rotation = unpack_vector3_u48_unsafe(&raw_data[0]);
 		}
 		else if (is_raw_bit_rate(bit_rate))
@@ -213,12 +213,12 @@ namespace acl
 		{
 			if (are_rotations_normalized)
 			{
-				pack_vector3_uXX(rotation, num_bits_at_bit_rate, &raw_data[0]);
+				pack_vector3_uXX_unsafe(rotation, num_bits_at_bit_rate, &raw_data[0]);
 				packed_rotation = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
 			}
 			else
 			{
-				pack_vector3_sXX(rotation, num_bits_at_bit_rate, &raw_data[0]);
+				pack_vector3_sXX_unsafe(rotation, num_bits_at_bit_rate, &raw_data[0]);
 				packed_rotation = unpack_vector3_sXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
 			}
 		}
@@ -269,13 +269,13 @@ namespace acl
 		case RotationFormat8::QuatDropW_48:
 			if (are_rotations_normalized)
 			{
-				pack_vector3_u48(rotation, &raw_data[0]);
+				pack_vector3_u48_unsafe(rotation, &raw_data[0]);
 				packed_rotation = unpack_vector3_u48_unsafe(&raw_data[0]);
 			}
 			else
 			{
-				pack_vector3_s48(rotation, &raw_data[0]);
-				packed_rotation = unpack_vector3_s48(&raw_data[0]);
+				pack_vector3_s48_unsafe(rotation, &raw_data[0]);
+				packed_rotation = unpack_vector3_s48_unsafe(&raw_data[0]);
 			}
 			break;
 		case RotationFormat8::QuatDropW_32:
@@ -379,7 +379,7 @@ namespace acl
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_translation = normalize_sample(translation, clip_bone_range.translation);
 
-			pack_vector3_u48(normalized_translation, &raw_data[0]);
+			pack_vector3_u48_unsafe(normalized_translation, &raw_data[0]);
 			packed_translation = unpack_vector3_u48_unsafe(&raw_data[0]);
 		}
 		else if (is_raw_bit_rate(bit_rate))
@@ -387,7 +387,7 @@ namespace acl
 		else
 		{
 			const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			pack_vector3_uXX(translation, num_bits_at_bit_rate, &raw_data[0]);
+			pack_vector3_uXX_unsafe(translation, num_bits_at_bit_rate, &raw_data[0]);
 			packed_translation = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
 		}
 
@@ -435,7 +435,7 @@ namespace acl
 			break;
 		case VectorFormat8::Vector3_48:
 			ACL_ASSERT(are_translations_normalized, "Translations must be normalized to support this format");
-			pack_vector3_u48(translation, &raw_data[0]);
+			pack_vector3_u48_unsafe(translation, &raw_data[0]);
 			packed_translation = unpack_vector3_u48_unsafe(&raw_data[0]);
 			break;
 		case VectorFormat8::Vector3_32:
@@ -539,7 +539,7 @@ namespace acl
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_scale = normalize_sample(scale, clip_bone_range.scale);
 
-			pack_vector3_u48(normalized_scale, &raw_data[0]);
+			pack_vector3_u48_unsafe(normalized_scale, &raw_data[0]);
 			packed_scale = unpack_vector3_u48_unsafe(&raw_data[0]);
 		}
 		else if (is_raw_bit_rate(bit_rate))
@@ -547,7 +547,7 @@ namespace acl
 		else
 		{
 			const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			pack_vector3_uXX(scale, num_bits_at_bit_rate, &raw_data[0]);
+			pack_vector3_uXX_unsafe(scale, num_bits_at_bit_rate, &raw_data[0]);
 			packed_scale = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
 		}
 
@@ -595,7 +595,7 @@ namespace acl
 			break;
 		case VectorFormat8::Vector3_48:
 			ACL_ASSERT(are_scales_normalized, "Scales must be normalized to support this format");
-			pack_vector3_u48(scale, &raw_data[0]);
+			pack_vector3_u48_unsafe(scale, &raw_data[0]);
 			packed_scale = unpack_vector3_u48_unsafe(&raw_data[0]);
 			break;
 		case VectorFormat8::Vector3_32:

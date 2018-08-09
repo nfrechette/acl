@@ -137,13 +137,13 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			const float value_unsigned = unpack_scalar_unsigned(value, 16);
 
 			Vector4_32 vec0 = vector_set(value_signed, value_signed, value_signed);
-			pack_vector3_s48(vec0, &tmp0.buffer[0]);
-			Vector4_32 vec1 = unpack_vector3_s48(&tmp0.buffer[0]);
+			pack_vector3_s48_unsafe(vec0, &tmp0.buffer[0]);
+			Vector4_32 vec1 = unpack_vector3_s48_unsafe(&tmp0.buffer[0]);
 			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
-			pack_vector3_u48(vec0, &tmp0.buffer[0]);
+			pack_vector3_u48_unsafe(vec0, &tmp0.buffer[0]);
 			vec1 = unpack_vector3_u48_unsafe(&tmp0.buffer[0]);
 			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
@@ -191,13 +191,13 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 			const float value_unsigned = unpack_scalar_unsigned(value, 8);
 
 			Vector4_32 vec0 = vector_set(value_signed, value_signed, value_signed);
-			pack_vector3_s24(vec0, &tmp0.buffer[0]);
-			Vector4_32 vec1 = unpack_vector3_s24(&tmp0.buffer[0]);
+			pack_vector3_s24_unsafe(vec0, &tmp0.buffer[0]);
+			Vector4_32 vec1 = unpack_vector3_s24_unsafe(&tmp0.buffer[0]);
 			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
-			pack_vector3_u24(vec0, &tmp0.buffer[0]);
+			pack_vector3_u24_unsafe(vec0, &tmp0.buffer[0]);
 			vec1 = unpack_vector3_u24_unsafe(&tmp0.buffer[0]);
 			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 				num_errors++;
@@ -211,13 +211,13 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 
 		uint32_t num_errors = 0;
 		Vector4_32 vec0 = vector_set(unpack_scalar_signed(0, 16), unpack_scalar_signed(12355, 16), unpack_scalar_signed(43222, 16));
-		pack_vector3_sXX(vec0, 16, &buffer[0]);
+		pack_vector3_sXX_unsafe(vec0, 16, &buffer[0]);
 		Vector4_32 vec1 = unpack_vector3_sXX_unsafe(16, &buffer[0], 0);
 		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 			num_errors++;
 
 		vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16));
-		pack_vector3_uXX(vec0, 16, &buffer[0]);
+		pack_vector3_uXX_unsafe(vec0, 16, &buffer[0]);
 		vec1 = unpack_vector3_uXX_unsafe(16, &buffer[0], 0);
 		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 			num_errors++;
@@ -232,7 +232,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 				const float value_unsigned = unpack_scalar_unsigned(value, num_bits);
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
-				pack_vector3_uXX(vec0, num_bits, &buffer[0]);
+				pack_vector3_uXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector3_uXX_unsafe(num_bits, &buffer[0], 0);
 				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 					num_errors++;
@@ -251,7 +251,7 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 				}
 
 				vec0 = vector_set(value_signed, value_signed, value_signed);
-				pack_vector3_sXX(vec0, num_bits, &buffer[0]);
+				pack_vector3_sXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector3_sXX_unsafe(num_bits, &buffer[0], 0);
 				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
 					num_errors++;

@@ -53,21 +53,28 @@ namespace acl
 	}
 
 	// Assumes the 'data_ptr' is padded in order to load up to 16 bytes from it
-	inline Quat_32 unpack_quat_96(const uint8_t* data_ptr)
+	inline Quat_32 unpack_quat_96_unsafe(const uint8_t* data_ptr)
 	{
 		Vector4_32 rotation_xyz = unpack_vector3_96_unsafe(data_ptr);
+		return quat_from_positive_w(rotation_xyz);
+	}
+
+	ACL_DEPRECATED("Use unpack_quat_96_unsafe instead, to be removed in v2.0")
+	inline Quat_32 unpack_quat_96(const uint8_t* data_ptr)
+	{
+		Vector4_32 rotation_xyz = vector_unaligned_load3_32(data_ptr);
 		return quat_from_positive_w(rotation_xyz);
 	}
 
 	inline void pack_quat_48(const Quat_32& rotation, uint8_t* out_rotation_data)
 	{
 		Vector4_32 rotation_xyz = quat_to_vector(quat_ensure_positive_w(rotation));
-		pack_vector3_s48(rotation_xyz, out_rotation_data);
+		pack_vector3_s48_unsafe(rotation_xyz, out_rotation_data);
 	}
 
 	inline Quat_32 unpack_quat_48(const uint8_t* data_ptr)
 	{
-		Vector4_32 rotation_xyz = unpack_vector3_s48(data_ptr);
+		Vector4_32 rotation_xyz = unpack_vector3_s48_unsafe(data_ptr);
 		return quat_from_positive_w(rotation_xyz);
 	}
 

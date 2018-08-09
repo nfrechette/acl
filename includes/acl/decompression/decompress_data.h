@@ -207,13 +207,13 @@ namespace acl
 				if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 					rotation = unpack_quat_128(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
 				else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
-					rotation = unpack_quat_96(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
+					rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
 				else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
 					rotation = unpack_quat_48(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
 				else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
 					rotation = unpack_quat_32(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
 				else if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
-					rotation = unpack_quat_96(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
+					rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
 				else
 				{
 					ACL_ASSERT(false, "Unrecognized rotation format");
@@ -295,7 +295,7 @@ namespace acl
 							if (are_clip_rotations_normalized)
 								rotations[i] = unpack_vector3_u48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 							else
-								rotations[i] = unpack_vector3_s48(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+								rotations[i] = unpack_vector3_s48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 						}
 					}
 					else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
