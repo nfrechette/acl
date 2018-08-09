@@ -142,3 +142,22 @@
 	#define ACL_ASSERT(expression, format, ...) ((void)0)
 
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+
+// Allow deprecation support
+#if defined(__has_cpp_attribute)
+	#if __has_cpp_attribute(deprecated)
+		#define ACL_DEPRECATED(msg) [[deprecated(msg)]]
+	#endif
+#endif
+
+#if !defined(ACL_DEPRECATED)
+	#if defined(__GNUC__) || defined(__clang__)
+		#define ACL_DEPRECATED(msg) __attribute__((deprecated))
+	#elif defined(_MSC_VER)
+		#define ACL_DEPRECATED(msg) __declspec(deprecated)
+	#else
+		#define ACL_DEPRECATED(msg)
+	#endif
+#endif
