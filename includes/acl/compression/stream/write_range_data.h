@@ -171,6 +171,7 @@ namespace acl
 		ACL_ASSERT(range_data == range_data_end, "Invalid range data offset. Wrote too little data.");
 	}
 
+	ACL_DEPRECATED("Use write_clip_track_data and interleave the constant/range track data instead, to be removed in v2.0")
 	inline void write_clip_range_data(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		// Only use the first segment, it contains the necessary information
@@ -182,5 +183,94 @@ namespace acl
 	inline void write_segment_range_data(const ClipContext& clip_context, const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		write_range_track_data(clip_context, segment.bone_streams, segment.ranges, range_reduction, false, range_data, range_data_size, output_bone_mapping, num_output_bones);
+	}
+
+	// Writes out the constant and range track data into a single interleaved stream
+	inline void write_clip_track_data(const ClipContext& clip_context, RangeReductionFlags8 range_reduction, uint8_t* out_track_data, uint32_t track_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
+	{
+		ACL_ASSERT(out_track_data != nullptr, "'out_range_data' cannot be null!");
+		(void)track_data_size;
+
+		// Only use the first segment, it contains the necessary information
+		const SegmentContext& segment = clip_context.segments[0];
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
+		const uint8_t* track_data_end = add_offset_to_ptr<uint8_t>(out_track_data, track_data_size);
+#endif
+
+		auto write_range_data = [](const TrackStreamRange& range, uint32_t range_member_size, uint8_t*& out_range_data)
+		{
+			const Vector4_32 range_min = range.get_min();
+			const Vector4_32 range_extent = range.get_extent();
+
+			memcpy(out_range_data, vector_as_float_ptr(range_min), range_member_size);
+			out_range_data += range_member_size;
+			memcpy(out_range_data, vector_as_float_ptr(range_extent), range_member_size);
+			out_range_data += range_member_size;
+		};
+
+		// Tracks can be one of these:
+		//    - default and have no constant or range data
+		//    - constant and have a constant value (3 or 4 floats)
+		//    - animated and have range data (6 or 8 floats)
+
+		for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
+		{
+			const uint16_t bone_index = output_bone_mapping[output_index];
+			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			const BoneRanges& bone_range = clip_context.ranges[bone_index];
+
+			if (!bone_stream.is_rotation_default)
+			{
+				if (bone_stream.is_rotation_constant)
+				{
+					const uint8_t* rotation_ptr = bone_stream.rotations.get_raw_sample_ptr(0);
+					uint32_t sample_size = bone_stream.rotations.get_sample_size();
+					memcpy(out_track_data, rotation_ptr, sample_size);
+					out_track_data += sample_size;
+				}
+				else if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) && bone_stream.is_rotation_animated())
+				{
+					const uint32_t range_member_size = bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128 ? (sizeof(float) * 4) : (sizeof(float) * 3);
+					write_range_data(bone_range.rotation, range_member_size, out_track_data);
+				}
+			}
+
+			if (!bone_stream.is_translation_default)
+			{
+				if (bone_stream.is_translation_constant)
+				{
+					const uint8_t* translation_ptr = bone_stream.translations.get_raw_sample_ptr(0);
+					uint32_t sample_size = bone_stream.translations.get_sample_size();
+					memcpy(out_track_data, translation_ptr, sample_size);
+					out_track_data += sample_size;
+				}
+				else if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations) && bone_stream.is_translation_animated())
+				{
+					const uint32_t range_member_size = sizeof(float) * 3;
+					write_range_data(bone_range.translation, range_member_size, out_track_data);
+				}
+			}
+
+			if (clip_context.has_scale && !bone_stream.is_scale_default)
+			{
+				if (bone_stream.is_scale_constant)
+				{
+					const uint8_t* scale_ptr = bone_stream.scales.get_raw_sample_ptr(0);
+					uint32_t sample_size = bone_stream.scales.get_sample_size();
+					memcpy(out_track_data, scale_ptr, sample_size);
+					out_track_data += sample_size;
+				}
+				else if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales) && bone_stream.is_scale_animated())
+				{
+					const uint32_t range_member_size = sizeof(float) * 3;
+					write_range_data(bone_range.scale, range_member_size, out_track_data);
+				}
+			}
+
+			ACL_ASSERT(out_track_data <= track_data_end, "Invalid constant data offset. Wrote too much data.");
+		}
+
+		ACL_ASSERT(out_track_data == track_data_end, "Invalid constant data offset. Wrote too little data.");
 	}
 }

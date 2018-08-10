@@ -149,6 +149,7 @@ namespace acl
 		return format_per_track_data_size;
 	}
 
+	ACL_DEPRECATED("Use write_clip_track_data and interleave the constant/range track data instead, to be removed in v2.0")
 	inline void write_constant_track_data(const ClipContext& clip_context, uint8_t* constant_data, uint32_t constant_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(constant_data != nullptr, "'constant_data' cannot be null!");

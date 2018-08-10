@@ -69,54 +69,56 @@ namespace acl
 			struct alignas(k_cache_line_size) DecompressionContext
 			{
 				// Clip related data
-				const CompressedClip* clip;						//   4 |   8
-				const SegmentHeader* segment_headers;			//   8 |  16
+				const CompressedClip* clip;						//   0 |   0
+				const SegmentHeader* segment_headers;			//   4 |   8
 
-				const uint32_t* constant_tracks_bitset;			//  12 |  24
-				const uint8_t* constant_track_data;				//  16 |  32
-				const uint32_t* default_tracks_bitset;			//  20 |  40
+				const uint32_t* constant_tracks_bitset;			//   8 |  16
+				const uint32_t* default_tracks_bitset;			//  12 |  24
 
-				const uint8_t* clip_range_data;					//  24 |  48
+				const uint8_t* clip_track_data;					//  16 |  32
 
-				float clip_duration;							//  28 |  52
+				float clip_duration;							//  20 |  40
 
-				BitSetDescription bitset_desc;					//  32 |  56
+				BitSetDescription bitset_desc;					//  24 |  44
 
-				uint32_t clip_hash;								//  36 |  60
+				uint32_t clip_hash;								//  28 |  48
 
-				uint8_t num_rotation_components;				//  37 |  61
-				uint8_t has_mixed_packing;						//  38 |  62
+				uint8_t num_rotation_components;				//  32 |  52
+				uint8_t has_mixed_packing;						//  33 |  53
 
-				uint8_t padding0[2];							//  40 |  64
+				uint8_t padding0[2];							//  34 |  54
 
 				// Seeking related data
-				const uint8_t* format_per_track_data[2];		//  48 |  80
-				const uint8_t* segment_range_data[2];			//  56 |  96
-				const uint8_t* animated_track_data[2];			//  64 | 112
+				const uint8_t* format_per_track_data[2];		//  36 |  56
+				const uint8_t* segment_range_data[2];			//  44 |  72
+				const uint8_t* animated_track_data[2];			//  52 |  88
 
-				uint32_t key_frame_byte_offsets[2];				//  72 | 120
-				uint32_t key_frame_bit_offsets[2];				//  80 | 128
+				uint32_t key_frame_byte_offsets[2];				//  60 | 104
+				uint32_t key_frame_bit_offsets[2];				//  68 | 112
 
-				float interpolation_alpha;						//  84 | 132
-				float sample_time;								//  88 | 136
+				float interpolation_alpha;						//  76 | 120
+				float sample_time;								//  80 | 124
 
-				uint8_t padding1[sizeof(void*) == 4 ? 40 : 56];	// 128 | 192
+				uint8_t padding1[sizeof(void*) == 4 ? 44 : 64];	//  84 | 128
+
+				//									Total size:    128 | 192
 			};
 
 			struct alignas(k_cache_line_size) SamplingContext
 			{
-				uint32_t constant_track_offset;					//   4 |   4
-				uint32_t constant_track_data_offset;			//   8 |   8
-				uint32_t default_track_offset;					//  12 |  12
-				uint32_t clip_range_data_offset;				//  16 |  16
+				uint32_t constant_track_bit_offset;				//   0 |   0
+				uint32_t default_track_bit_offset;				//   4 |   4
+				uint32_t clip_track_data_offset;				//   8 |   8
 
-				uint32_t format_per_track_data_offset;			//  20 |  20
-				uint32_t segment_range_data_offset;				//  24 |  24
+				uint32_t format_per_track_data_offset;			//  12 |  12
+				uint32_t segment_range_data_offset;				//  16 |  16
 
-				uint32_t key_frame_byte_offsets[2];				//  32 |  32
-				uint32_t key_frame_bit_offsets[2];				//  40 |  40
+				uint32_t key_frame_byte_offsets[2];				//  20 |  20
+				uint32_t key_frame_bit_offsets[2];				//  28 |  28
 
-				uint8_t padding[24];							//  64 |  64
+				uint8_t padding[28];							//  36 |  36
+
+				//									Total size:     64 |  64
 			};
 
 			// We use adapters to wrap the DecompressionSettings
@@ -370,10 +372,8 @@ namespace acl
 			m_context.sample_time = -1.0f;
 			m_context.segment_headers = header.get_segment_headers();
 			m_context.default_tracks_bitset = header.get_default_tracks_bitset();
-
 			m_context.constant_tracks_bitset = header.get_constant_tracks_bitset();
-			m_context.constant_track_data = header.get_constant_track_data();
-			m_context.clip_range_data = header.get_clip_range_data();
+			m_context.clip_track_data = header.get_clip_track_data();
 
 			for (uint8_t key_frame_index = 0; key_frame_index < 2; ++key_frame_index)
 			{
@@ -491,10 +491,9 @@ namespace acl
 			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
 			impl::SamplingContext sampling_context;
-			sampling_context.constant_track_offset = 0;
-			sampling_context.constant_track_data_offset = 0;
-			sampling_context.default_track_offset = 0;
-			sampling_context.clip_range_data_offset = 0;
+			sampling_context.constant_track_bit_offset = 0;
+			sampling_context.default_track_bit_offset = 0;
+			sampling_context.clip_track_data_offset = 0;
 			sampling_context.format_per_track_data_offset = 0;
 			sampling_context.segment_range_data_offset = 0;
 			sampling_context.key_frame_byte_offsets[0] = m_context.key_frame_byte_offsets[0];
@@ -528,10 +527,9 @@ namespace acl
 			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
 			impl::SamplingContext sampling_context;
-			sampling_context.constant_track_offset = 0;
-			sampling_context.constant_track_data_offset = 0;
-			sampling_context.default_track_offset = 0;
-			sampling_context.clip_range_data_offset = 0;
+			sampling_context.constant_track_bit_offset = 0;
+			sampling_context.default_track_bit_offset = 0;
+			sampling_context.clip_track_data_offset = 0;
 			sampling_context.format_per_track_data_offset = 0;
 			sampling_context.segment_range_data_offset = 0;
 			sampling_context.key_frame_byte_offsets[0] = m_context.key_frame_byte_offsets[0];

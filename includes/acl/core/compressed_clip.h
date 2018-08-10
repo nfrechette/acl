@@ -208,11 +208,8 @@ namespace acl
 		PtrOffset16<uint32_t>		default_tracks_bitset_offset;
 		PtrOffset16<uint32_t>		constant_tracks_bitset_offset;
 
-		// Offset to the constant tracks data.
-		PtrOffset16<uint8_t>		constant_track_data_offset;
-
-		// Offset to the clip range data.
-		PtrOffset16<uint8_t>		clip_range_data_offset;					// TODO: Make this offset optional? Only present if normalized
+		// Offset to the clip per track constant/range data
+		PtrOffset16<uint8_t>		clip_track_data_offset;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Utility functions that return pointers from their respective offsets.
@@ -226,14 +223,11 @@ namespace acl
 		uint32_t*		get_constant_tracks_bitset()		{ return constant_tracks_bitset_offset.add_to(this); }
 		const uint32_t*	get_constant_tracks_bitset() const	{ return constant_tracks_bitset_offset.add_to(this); }
 
-		uint8_t*		get_constant_track_data()			{ return constant_track_data_offset.safe_add_to(this); }
-		const uint8_t*	get_constant_track_data() const		{ return constant_track_data_offset.safe_add_to(this); }
+		uint8_t*		get_clip_track_data()				{ return clip_track_data_offset.safe_add_to(this); }
+		const uint8_t*	get_clip_track_data() const			{ return clip_track_data_offset.safe_add_to(this); }
 
 		uint8_t*		get_format_per_track_data(const SegmentHeader& header)			{ return header.format_per_track_data_offset.safe_add_to(this); }
 		const uint8_t*	get_format_per_track_data(const SegmentHeader& header) const	{ return header.format_per_track_data_offset.safe_add_to(this); }
-
-		uint8_t*		get_clip_range_data()				{ return clip_range_data_offset.safe_add_to(this); }
-		const uint8_t*	get_clip_range_data() const			{ return clip_range_data_offset.safe_add_to(this); }
 
 		uint8_t*		get_track_data(const SegmentHeader& header)			{ return header.track_data_offset.safe_add_to(this); }
 		const uint8_t*	get_track_data(const SegmentHeader& header) const	{ return header.track_data_offset.safe_add_to(this); }

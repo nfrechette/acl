@@ -139,6 +139,7 @@ namespace acl
 			uint16_t* output_bone_mapping = create_output_bone_mapping(allocator, clip, num_output_bones);
 
 			const uint32_t constant_data_size = get_constant_data_size(clip_context, output_bone_mapping, num_output_bones);
+			const uint32_t clip_track_data_size = constant_data_size + clip_range_data_size;
 
 			calculate_animated_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, output_bone_mapping, num_output_bones);
 
@@ -156,10 +157,8 @@ namespace acl
 			buffer_size = align_to(buffer_size, 4);								// Align bitsets
 			buffer_size += bitset_desc.get_num_bytes();							// Default tracks bitset
 			buffer_size += bitset_desc.get_num_bytes();							// Constant tracks bitset
-			buffer_size = align_to(buffer_size, 4);								// Align constant track data
-			buffer_size += constant_data_size;									// Constant track data
-			buffer_size = align_to(buffer_size, 4);								// Align range data
-			buffer_size += clip_range_data_size;								// Range data
+			buffer_size = align_to(buffer_size, 4);								// Align constant/range track data
+			buffer_size += clip_track_data_size;								// Constant/range track data
 
 			clip_context.total_header_size = buffer_size;
 
@@ -183,6 +182,7 @@ namespace acl
 			}
 
 			// Ensure we have sufficient padding for unaligned 16 byte loads
+			// TODO: We could maybe remove this if some data was moved to the end of the clip
 			buffer_size += 15;
 
 			uint8_t* buffer = allocate_type_array_aligned<uint8_t>(allocator, buffer_size, 16);
@@ -204,23 +204,17 @@ namespace acl
 			header.segment_headers_offset = sizeof(ClipHeader);
 			header.default_tracks_bitset_offset = align_to(header.segment_headers_offset + (sizeof(SegmentHeader) * clip_context.num_segments), 4);
 			header.constant_tracks_bitset_offset = header.default_tracks_bitset_offset + bitset_desc.get_num_bytes();
-			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
-			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);
+			header.clip_track_data_offset = align_to(header.constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
 
-			const uint16_t segment_headers_start_offset = safe_static_cast<uint16_t>(header.clip_range_data_offset + clip_range_data_size);
+			const uint16_t segment_headers_start_offset = safe_static_cast<uint16_t>(header.clip_track_data_offset + clip_track_data_size);
 			write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
 			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
 			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
 
-			if (constant_data_size > 0)
-				write_constant_track_data(clip_context, header.get_constant_track_data(), constant_data_size, output_bone_mapping, num_output_bones);
+			if (clip_track_data_size != 0)
+				write_clip_track_data(clip_context, settings.range_reduction, header.get_clip_track_data(), clip_track_data_size, output_bone_mapping, num_output_bones);
 			else
-				header.constant_track_data_offset = InvalidPtrOffset();
-
-			if (settings.range_reduction != RangeReductionFlags8::None)
-				write_clip_range_data(clip_context, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
-			else
-				header.clip_range_data_offset = InvalidPtrOffset();
+				header.clip_track_data_offset = InvalidPtrOffset();
 
 			write_segment_data(clip_context, settings, header, output_bone_mapping, num_output_bones);
 

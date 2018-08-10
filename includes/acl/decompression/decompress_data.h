@@ -29,16 +29,16 @@ namespace acl
 	template<size_t num_key_frames, class SettingsType, class DecompressionContextType, class SamplingContextType>
 	inline void skip_rotations(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
-		bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_offset);
+		bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_bit_offset);
 		if (!is_rotation_default)
 		{
 			const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 
-			bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_offset);
+			bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_bit_offset);
 			if (is_rotation_constant)
 			{
 				const RotationFormat8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-				sampling_context.constant_track_data_offset += get_packed_rotation_size(packed_format);
+				sampling_context.clip_track_data_offset += get_packed_rotation_size(packed_format);
 			}
 			else
 			{
@@ -75,7 +75,7 @@ namespace acl
 
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 				if (are_any_enum_flags_set(clip_range_reduction, RangeReductionFlags8::Rotations))
-					sampling_context.clip_range_data_offset += decomp_context.num_rotation_components * sizeof(float) * 2;
+					sampling_context.clip_track_data_offset += decomp_context.num_rotation_components * sizeof(float) * 2;
 
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 				if (are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Rotations))
@@ -83,8 +83,8 @@ namespace acl
 			}
 		}
 
-		++sampling_context.default_track_offset;
-		++sampling_context.constant_track_offset;
+		++sampling_context.default_track_bit_offset;
+		++sampling_context.constant_track_bit_offset;
 	}
 
 	template<class SettingsType, class DecompressionContextType, class SamplingContextType>
@@ -108,14 +108,14 @@ namespace acl
 	template<size_t num_key_frames, class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
 	inline void skip_vectors(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
-		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_offset);
+		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_bit_offset);
 		if (!is_sample_default)
 		{
-			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_offset);
+			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_bit_offset);
 			if (is_sample_constant)
 			{
 				// Constant Vector3 tracks store the remaining sample with full precision
-				sampling_context.constant_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
+				sampling_context.clip_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
 			}
 			else
 			{
@@ -156,7 +156,7 @@ namespace acl
 
 				const RangeReductionFlags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
 				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))
-					sampling_context.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
+					sampling_context.clip_track_data_offset += k_clip_range_reduction_vector3_range_size;
 
 				const RangeReductionFlags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 				if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flag))
@@ -164,8 +164,8 @@ namespace acl
 			}
 		}
 
-		++sampling_context.default_track_offset;
-		++sampling_context.constant_track_offset;
+		++sampling_context.default_track_bit_offset;
+		++sampling_context.constant_track_bit_offset;
 	}
 
 	template<class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
@@ -189,7 +189,7 @@ namespace acl
 	template<size_t num_key_frames, class SettingsType, class DecompressionContextType, class SamplingContextType>
 	inline void decompress_rotations(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type)
 	{
-		bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_offset);
+		bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_bit_offset);
 		if (is_rotation_default)
 		{
 			out_rotations[0] = quat_identity_32();
@@ -199,21 +199,21 @@ namespace acl
 		{
 			const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 
-			bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_offset);
+			bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_bit_offset);
 			if (is_rotation_constant)
 			{
 				Quat_32 rotation;
 
 				if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
-					rotation = unpack_quat_128(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
+					rotation = unpack_quat_128(decomp_context.clip_track_data + sampling_context.clip_track_data_offset);
 				else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
-					rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
+					rotation = unpack_quat_96_unsafe(decomp_context.clip_track_data + sampling_context.clip_track_data_offset);
 				else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
-					rotation = unpack_quat_48(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
+					rotation = unpack_quat_48(decomp_context.clip_track_data + sampling_context.clip_track_data_offset);
 				else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
-					rotation = unpack_quat_32(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
+					rotation = unpack_quat_32(decomp_context.clip_track_data + sampling_context.clip_track_data_offset);
 				else if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
-					rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
+					rotation = unpack_quat_96_unsafe(decomp_context.clip_track_data + sampling_context.clip_track_data_offset);
 				else
 				{
 					ACL_ASSERT(false, "Unrecognized rotation format");
@@ -224,7 +224,7 @@ namespace acl
 				out_time_series_type = TimeSeriesType8::Constant;
 
 				const RotationFormat8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-				sampling_context.constant_track_data_offset += get_packed_rotation_size(packed_format);
+				sampling_context.clip_track_data_offset += get_packed_rotation_size(packed_format);
 			}
 			else
 			{
@@ -359,8 +359,8 @@ namespace acl
 
 				if (are_clip_rotations_normalized)
 				{
-					const Vector4_32 clip_range_min = vector_unaligned_load_32(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
-					const Vector4_32 clip_range_extent = vector_unaligned_load_32(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (decomp_context.num_rotation_components * sizeof(float)));
+					const Vector4_32 clip_range_min = vector_unaligned_load_32(decomp_context.clip_track_data + sampling_context.clip_track_data_offset);
+					const Vector4_32 clip_range_extent = vector_unaligned_load_32(decomp_context.clip_track_data + sampling_context.clip_track_data_offset + (decomp_context.num_rotation_components * sizeof(float)));
 
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
@@ -368,7 +368,7 @@ namespace acl
 							rotations[i] = vector_mul_add(rotations[i], clip_range_extent, clip_range_min);
 					}
 
-					sampling_context.clip_range_data_offset += decomp_context.num_rotation_components * sizeof(float) * 2;
+					sampling_context.clip_track_data_offset += decomp_context.num_rotation_components * sizeof(float) * 2;
 				}
 
 				if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
@@ -386,8 +386,8 @@ namespace acl
 			}
 		}
 
-		++sampling_context.default_track_offset;
-		++sampling_context.constant_track_offset;
+		++sampling_context.default_track_bit_offset;
+		++sampling_context.constant_track_bit_offset;
 	}
 
 	template<class SettingsType, class DecompressionContextType, class SamplingContextType>
@@ -411,7 +411,7 @@ namespace acl
 	template<size_t num_key_frames, class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
 	inline void decompress_vectors(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type)
 	{
-		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_offset);
+		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_bit_offset);
 		if (is_sample_default)
 		{
 			out_vectors[0] = settings.get_default_value();
@@ -419,14 +419,14 @@ namespace acl
 		}
 		else
 		{
-			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_offset);
+			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_bit_offset);
 			if (is_sample_constant)
 			{
 				// Constant translation tracks store the remaining sample with full precision
-				out_vectors[0] = unpack_vector3_96_unsafe(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
+				out_vectors[0] = unpack_vector3_96_unsafe(decomp_context.clip_track_data + sampling_context.clip_track_data_offset);
 				out_time_series_type = TimeSeriesType8::Constant;
 
-				sampling_context.constant_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
+				sampling_context.clip_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
 			}
 			else
 			{
@@ -519,8 +519,8 @@ namespace acl
 
 				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))
 				{
-					const Vector4_32 clip_range_min = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
-					const Vector4_32 clip_range_extent = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (3 * sizeof(float)));
+					const Vector4_32 clip_range_min = unpack_vector3_96_unsafe(decomp_context.clip_track_data + sampling_context.clip_track_data_offset);
+					const Vector4_32 clip_range_extent = unpack_vector3_96_unsafe(decomp_context.clip_track_data + sampling_context.clip_track_data_offset + (3 * sizeof(float)));
 
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
@@ -528,15 +528,15 @@ namespace acl
 							out_vectors[i] = vector_mul_add(out_vectors[i], clip_range_extent, clip_range_min);
 					}
 
-					sampling_context.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
+					sampling_context.clip_track_data_offset += k_clip_range_reduction_vector3_range_size;
 				}
 
 				out_time_series_type = TimeSeriesType8::Varying;
 			}
 		}
 
-		sampling_context.default_track_offset++;
-		sampling_context.constant_track_offset++;
+		sampling_context.default_track_bit_offset++;
+		sampling_context.constant_track_bit_offset++;
 	}
 
 	template<class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
