@@ -37,7 +37,11 @@ set(ANDROID_FILES AndroidManifest.xml)
 
 add_executable(${PROJECT_NAME} ${ALL_TEST_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILES} ${JAVA_FILES} ${RESOURCE_FILES} ${ANDROID_FILES})
 
+# Enable exceptions
 target_compile_options(${PROJECT_NAME} PRIVATE -fexceptions)
+
+# Enable debug symbols
+target_compile_options(${PROJECT_NAME} PRIVATE -g)
 
 # Throw on failure to allow us to catch them and recover
 add_definitions(-DACL_ON_ASSERT_THROW)

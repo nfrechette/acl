@@ -55,7 +55,11 @@ set(ANDROID_FILES "${PROJECT_BINARY_DIR}/AndroidManifest.xml")
 
 add_executable(${PROJECT_NAME} ${ALL_COMMON_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILES} ${JAVA_FILES} ${RESOURCE_FILES} ${ANDROID_FILES})
 
+# Enable exceptions
 target_compile_options(${PROJECT_NAME} PRIVATE -fexceptions)
+
+# Enable debug symbols
+target_compile_options(${PROJECT_NAME} PRIVATE -g)
 
 # Disable allocation tracking
 add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
