@@ -61,6 +61,11 @@ namespace acl
 		uint32_t		m_size;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// A bit set index reference is created from a bit set description and a bit index.
+	// It holds the bit set word offset as well as the bit mask required.
+	// This is useful if you sample multiple bit sets at the same index.
+	//////////////////////////////////////////////////////////////////////////
 	struct BitSetIndexRef
 	{
 		BitSetIndexRef(BitSetDescription desc_, uint32_t bit_index)
