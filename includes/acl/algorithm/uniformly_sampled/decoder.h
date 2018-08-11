@@ -108,18 +108,17 @@ namespace acl
 			struct alignas(k_cache_line_size) SamplingContext
 			{
 				//												//   offsets
-				uint32_t constant_track_offset;					//   0 |   0
+				uint32_t track_index;							//   0 |   0
 				uint32_t constant_track_data_offset;			//   4 |   4
-				uint32_t default_track_offset;					//   8 |   8
-				uint32_t clip_range_data_offset;				//  12 |  12
+				uint32_t clip_range_data_offset;				//   8 |   8
 
-				uint32_t format_per_track_data_offset;			//  16 |  16
-				uint32_t segment_range_data_offset;				//  20 |  20
+				uint32_t format_per_track_data_offset;			//  12 |  12
+				uint32_t segment_range_data_offset;				//  16 |  16
 
-				uint32_t key_frame_byte_offsets[2];				//  24 |  24
-				uint32_t key_frame_bit_offsets[2];				//  32 |  32
+				uint32_t key_frame_byte_offsets[2];				//  20 |  20
+				uint32_t key_frame_bit_offsets[2];				//  28 |  28
 
-				uint8_t padding[24];							//  40 |  40
+				uint8_t padding[28];							//  36 |  36
 
 				//									Total size:	    64 |  64
 			};
@@ -496,9 +495,8 @@ namespace acl
 			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
 			impl::SamplingContext sampling_context;
-			sampling_context.constant_track_offset = 0;
+			sampling_context.track_index = 0;
 			sampling_context.constant_track_data_offset = 0;
-			sampling_context.default_track_offset = 0;
 			sampling_context.clip_range_data_offset = 0;
 			sampling_context.format_per_track_data_offset = 0;
 			sampling_context.segment_range_data_offset = 0;
@@ -507,8 +505,8 @@ namespace acl
 			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
 			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
 
-			const int32_t num_bones = header.num_bones;
-			for (int32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			const uint16_t num_bones = header.num_bones;
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
 				writer.write_bone_rotation(bone_index, rotation);
@@ -533,9 +531,8 @@ namespace acl
 			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
 			impl::SamplingContext sampling_context;
-			sampling_context.constant_track_offset = 0;
+			sampling_context.track_index = 0;
 			sampling_context.constant_track_data_offset = 0;
-			sampling_context.default_track_offset = 0;
 			sampling_context.clip_range_data_offset = 0;
 			sampling_context.format_per_track_data_offset = 0;
 			sampling_context.segment_range_data_offset = 0;
@@ -547,13 +544,8 @@ namespace acl
 			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
 			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
 
-			const int32_t num_bones = header.num_bones;
-			const int32_t sample_bone_index_i32 = sample_bone_index;
-			for (int32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (uint16_t bone_index = 0; bone_index < sample_bone_index; ++bone_index)
 			{
-				if (bone_index == sample_bone_index_i32)
-					break;
-
 				skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);
 				skip_vectors_in_two_key_frames(translation_adapter, header, m_context, sampling_context);
 

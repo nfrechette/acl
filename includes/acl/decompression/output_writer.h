@@ -40,7 +40,7 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a quaternion rotation value for a specified bone index
-		void write_bone_rotation(int32_t bone_index, const Quat_32& rotation)
+		void write_bone_rotation(uint16_t bone_index, const Quat_32& rotation)
 		{
 			(void)bone_index;
 			(void)rotation;
@@ -48,7 +48,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a translation value for a specified bone index
-		void write_bone_translation(int32_t bone_index, const Vector4_32& translation)
+		void write_bone_translation(uint16_t bone_index, const Vector4_32& translation)
 		{
 			(void)bone_index;
 			(void)translation;
@@ -56,7 +56,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a scale value for a specified bone index
-		void write_bone_scale(int32_t bone_index, const Vector4_32& scale)
+		void write_bone_scale(uint16_t bone_index, const Vector4_32& scale)
 		{
 			(void)bone_index;
 			(void)scale;

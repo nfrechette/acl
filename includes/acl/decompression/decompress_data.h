@@ -29,12 +29,13 @@ namespace acl
 	template<size_t num_key_frames, class SettingsType, class DecompressionContextType, class SamplingContextType>
 	inline void skip_rotations(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
-		bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_offset);
+		const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context.track_index);
+		const bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 		if (!is_rotation_default)
 		{
 			const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 
-			bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_offset);
+			const bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 			if (is_rotation_constant)
 			{
 				const RotationFormat8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
@@ -58,7 +59,7 @@ namespace acl
 							sampling_context.key_frame_byte_offsets[i] = decomp_context.key_frame_bit_offsets[i] / 8;
 					}
 
-					++sampling_context.format_per_track_data_offset;
+					sampling_context.format_per_track_data_offset++;
 				}
 				else
 				{
@@ -83,8 +84,7 @@ namespace acl
 			}
 		}
 
-		++sampling_context.default_track_offset;
-		++sampling_context.constant_track_offset;
+		sampling_context.track_index++;
 	}
 
 	template<class SettingsType, class DecompressionContextType, class SamplingContextType>
@@ -108,10 +108,11 @@ namespace acl
 	template<size_t num_key_frames, class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
 	inline void skip_vectors(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
-		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_offset);
+		const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context.track_index);
+		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 		if (!is_sample_default)
 		{
-			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_offset);
+			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 			if (is_sample_constant)
 			{
 				// Constant Vector3 tracks store the remaining sample with full precision
@@ -137,7 +138,7 @@ namespace acl
 							sampling_context.key_frame_byte_offsets[i] = sampling_context.key_frame_bit_offsets[i] / 8;
 					}
 
-					++sampling_context.format_per_track_data_offset;
+					sampling_context.format_per_track_data_offset++;
 				}
 				else
 				{
@@ -164,8 +165,7 @@ namespace acl
 			}
 		}
 
-		++sampling_context.default_track_offset;
-		++sampling_context.constant_track_offset;
+		sampling_context.track_index++;
 	}
 
 	template<class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
@@ -187,19 +187,21 @@ namespace acl
 	}
 
 	template<size_t num_key_frames, class SettingsType, class DecompressionContextType, class SamplingContextType>
-	inline void decompress_rotations(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type)
+	inline TimeSeriesType8 decompress_rotations(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Quat_32* out_rotations)
 	{
-		bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_offset);
+		TimeSeriesType8 time_series_type;
+
+		const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context.track_index);
+		const bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 		if (is_rotation_default)
 		{
 			out_rotations[0] = quat_identity_32();
-			out_time_series_type = TimeSeriesType8::ConstantDefault;
+			time_series_type = TimeSeriesType8::ConstantDefault;
 		}
 		else
 		{
 			const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
-
-			bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_offset);
+			const bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 			if (is_rotation_constant)
 			{
 				Quat_32 rotation;
@@ -221,7 +223,7 @@ namespace acl
 				}
 
 				out_rotations[0] = rotation;
-				out_time_series_type = TimeSeriesType8::Constant;
+				time_series_type = TimeSeriesType8::Constant;
 
 				const RotationFormat8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
 				sampling_context.constant_track_data_offset += get_packed_rotation_size(packed_format);
@@ -382,49 +384,52 @@ namespace acl
 						out_rotations[i] = quat_from_positive_w(rotations[i]);
 				}
 
-				out_time_series_type = TimeSeriesType8::Varying;
+				time_series_type = TimeSeriesType8::Varying;
 			}
 		}
 
-		++sampling_context.default_track_offset;
-		++sampling_context.constant_track_offset;
+		sampling_context.track_index++;
+		return time_series_type;
 	}
 
 	template<class SettingsType, class DecompressionContextType, class SamplingContextType>
-	inline void decompress_rotation(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type)
+	inline TimeSeriesType8 decompress_rotation(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Quat_32* out_rotations)
 	{
-		decompress_rotations<1>(settings, header, decomp_context, sampling_context, out_rotations, out_time_series_type);
+		return decompress_rotations<1>(settings, header, decomp_context, sampling_context, out_rotations);
 	}
 
 	template<class SettingsType, class DecompressionContextType, class SamplingContextType>
-	inline void decompress_rotations_in_two_key_frames(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type)
+	inline TimeSeriesType8 decompress_rotations_in_two_key_frames(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Quat_32* out_rotations)
 	{
-		decompress_rotations<2>(settings, header, decomp_context, sampling_context, out_rotations, out_time_series_type);
+		return decompress_rotations<2>(settings, header, decomp_context, sampling_context, out_rotations);
 	}
 
 	template<class SettingsType, class DecompressionContextType, class SamplingContextType>
-	inline void decompress_rotations_in_four_key_frames(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Quat_32* out_rotations, TimeSeriesType8& out_time_series_type)
+	inline TimeSeriesType8 decompress_rotations_in_four_key_frames(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Quat_32* out_rotations)
 	{
-		decompress_rotations<4>(settings, header, decomp_context, sampling_context, out_rotations, out_time_series_type);
+		return decompress_rotations<4>(settings, header, decomp_context, sampling_context, out_rotations);
 	}
 
 	template<size_t num_key_frames, class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
-	inline void decompress_vectors(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type)
+	inline TimeSeriesType8 decompress_vectors(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Vector4_32* out_vectors)
 	{
-		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, decomp_context.bitset_desc, sampling_context.default_track_offset);
+		TimeSeriesType8 time_series_type;
+
+		const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context.track_index);
+		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 		if (is_sample_default)
 		{
 			out_vectors[0] = settings.get_default_value();
-			out_time_series_type = TimeSeriesType8::ConstantDefault;
+			time_series_type = TimeSeriesType8::ConstantDefault;
 		}
 		else
 		{
-			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, decomp_context.bitset_desc, sampling_context.constant_track_offset);
+			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 			if (is_sample_constant)
 			{
 				// Constant translation tracks store the remaining sample with full precision
 				out_vectors[0] = unpack_vector3_96_unsafe(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
-				out_time_series_type = TimeSeriesType8::Constant;
+				time_series_type = TimeSeriesType8::Constant;
 
 				sampling_context.constant_track_data_offset += get_packed_vector_size(VectorFormat8::Vector3_96);
 			}
@@ -531,41 +536,39 @@ namespace acl
 					sampling_context.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
 				}
 
-				out_time_series_type = TimeSeriesType8::Varying;
+				time_series_type = TimeSeriesType8::Varying;
 			}
 		}
 
-		sampling_context.default_track_offset++;
-		sampling_context.constant_track_offset++;
+		sampling_context.track_index++;
+		return time_series_type;
 	}
 
 	template<class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
-	inline void decompress_vector(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type)
+	inline TimeSeriesType8 decompress_vector(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Vector4_32* out_vectors)
 	{
-		decompress_vectors<1>(settings, header, decomp_context, sampling_context, out_vectors, out_time_series_type);
+		return decompress_vectors<1>(settings, header, decomp_context, sampling_context, out_vectors);
 	}
 
 	template<class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
-	inline void decompress_vectors_in_two_key_frames(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type)
+	inline TimeSeriesType8 decompress_vectors_in_two_key_frames(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Vector4_32* out_vectors)
 	{
-		decompress_vectors<2>(settings, header, decomp_context, sampling_context, out_vectors, out_time_series_type);
+		return decompress_vectors<2>(settings, header, decomp_context, sampling_context, out_vectors);
 	}
 
 	template<class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
-	inline void decompress_vectors_in_four_key_frames(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Vector4_32* out_vectors, TimeSeriesType8& out_time_series_type)
+	inline TimeSeriesType8 decompress_vectors_in_four_key_frames(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context, Vector4_32* out_vectors)
 	{
-		decompress_vectors<4>(settings, header, decomp_context, sampling_context, out_vectors, out_time_series_type);
+		return decompress_vectors<4>(settings, header, decomp_context, sampling_context, out_vectors);
 	}
 
 	template <class SettingsType, class DecompressionContextType, class SamplingContextType>
 	inline Quat_32 decompress_and_interpolate_rotation(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
 		Quat_32 rotations[2];
-		TimeSeriesType8 time_series_type;
-
 		ACL_ASSERT(get_array_size(decomp_context.key_frame_byte_offsets) == get_array_size(rotations), "Interpolation requires exactly two keyframes.");
 
-		decompress_rotations_in_two_key_frames(settings, header, decomp_context, sampling_context, rotations, time_series_type);
+		const TimeSeriesType8 time_series_type = decompress_rotations_in_two_key_frames(settings, header, decomp_context, sampling_context, rotations);
 
 		Quat_32 result;
 		switch (time_series_type)
@@ -599,11 +602,9 @@ namespace acl
 	inline Vector4_32 decompress_and_interpolate_vector(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
 		Vector4_32 vectors[2];
-		TimeSeriesType8 time_series_type;
-
 		ACL_ASSERT(get_array_size(decomp_context.key_frame_byte_offsets) == get_array_size(vectors), "Interpolation requires exactly two keyframes.");
 
-		decompress_vectors_in_two_key_frames(settings, header, decomp_context, sampling_context, vectors, time_series_type);
+		const TimeSeriesType8 time_series_type = decompress_vectors_in_two_key_frames(settings, header, decomp_context, sampling_context, vectors);
 
 		Vector4_32 result;
 		switch (time_series_type)

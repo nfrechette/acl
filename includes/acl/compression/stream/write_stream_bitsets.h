@@ -39,7 +39,7 @@ namespace acl
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
 
-		int32_t default_track_offset = 0;
+		uint32_t default_track_offset = 0;
 
 		bitset_reset(default_tracks_bitset, bitset_desc, false);
 
@@ -65,7 +65,7 @@ namespace acl
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
 
-		int32_t constant_track_offset = 0;
+		uint32_t constant_track_offset = 0;
 
 		bitset_reset(constant_tracks_bitset, bitset_desc, false);
 
