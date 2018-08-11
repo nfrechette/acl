@@ -49,7 +49,7 @@ namespace acl
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the index is valid within the bit set.
-		constexpr bool is_bit_index_valid(uint32_t index) const { return index >= 0 && index < get_num_bits(); }
+		constexpr bool is_bit_index_valid(uint32_t index) const { return index < get_num_bits(); }
 
 	private:
 		////////////////////////////////////////////////////////////////////////////////
