@@ -26,38 +26,40 @@
 
 //#define ACL_NO_INTRINSICS
 
-#if defined(__AVX__) && !defined(ACL_NO_INTRINSICS)
-	#define ACL_AVX_INTRINSICS
-	#define ACL_SSE4_INTRINSICS
-	#define ACL_SSE3_INTRINSICS
-	#define ACL_SSE2_INTRINSICS
-#endif
-
-#if defined(__SSE4_1__) && !defined(ACL_NO_INTRINSICS)
-	#define ACL_SSE4_INTRINSICS
-	#define ACL_SSE3_INTRINSICS
-	#define ACL_SSE2_INTRINSICS
-#endif
-
-#if defined(__SSSE3__) && !defined(ACL_NO_INTRINSICS)
-	#define ACL_SSE3_INTRINSICS
-	#define ACL_SSE2_INTRINSICS
-#endif
-
-#if defined(__SSE2__) && !defined(ACL_NO_INTRINSICS)
-	#define ACL_SSE2_INTRINSICS
-#endif
-
-#if defined(__ARM_NEON) && !defined(ACL_NO_INTRINSICS)
-	#define ACL_NEON_INTRINSICS
-
-	#if defined(__aarch64__)
-		#define ACL_NEON64_INTRINSICS
+#if !defined(ACL_NO_INTRINSICS)
+	#if defined(__AVX__)
+		#define ACL_AVX_INTRINSICS
+		#define ACL_SSE4_INTRINSICS
+		#define ACL_SSE3_INTRINSICS
+		#define ACL_SSE2_INTRINSICS
 	#endif
-#endif
 
-#if !defined(ACL_SSE2_INTRINSICS) && !defined(ACL_NEON_INTRINSICS) && !defined(ACL_NO_INTRINSICS)
-	#define ACL_NO_INTRINSICS
+	#if defined(__SSE4_1__)
+		#define ACL_SSE4_INTRINSICS
+		#define ACL_SSE3_INTRINSICS
+		#define ACL_SSE2_INTRINSICS
+	#endif
+
+	#if defined(__SSSE3__)
+		#define ACL_SSE3_INTRINSICS
+		#define ACL_SSE2_INTRINSICS
+	#endif
+
+	#if defined(__SSE2__) || defined(_M_IX86) || defined(_M_X64)
+		#define ACL_SSE2_INTRINSICS
+	#endif
+
+	#if defined(__ARM_NEON)
+		#define ACL_NEON_INTRINSICS
+
+		#if defined(__aarch64__)
+			#define ACL_NEON64_INTRINSICS
+		#endif
+	#endif
+
+	#if !defined(ACL_SSE2_INTRINSICS) && !defined(ACL_NEON_INTRINSICS)
+		#define ACL_NO_INTRINSICS
+	#endif
 #endif
 
 #if defined(ACL_SSE2_INTRINSICS)
