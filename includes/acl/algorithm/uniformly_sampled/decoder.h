@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/bitset.h"
+#include "acl/core/bit_manip_utils.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/interpolation_utils.h"
@@ -94,8 +95,8 @@ namespace acl
 				const uint8_t* segment_range_data[2];			//  48 |  80
 				const uint8_t* animated_track_data[2];			//  56 |  96
 
-				uint32_t key_frame_byte_offsets[2];				//  64 | 112
-				uint32_t key_frame_bit_offsets[2];				//  72 | 120
+				uint32_t key_frame_byte_offsets[2];				//  64 | 112	// Fixed quantization
+				uint32_t key_frame_bit_offsets[2];				//  72 | 120	// Variable quantization
 
 				float interpolation_alpha;						//  80 | 128
 				float sample_time;								//  84 | 132
@@ -115,8 +116,8 @@ namespace acl
 				uint32_t format_per_track_data_offset;			//  12 |  12
 				uint32_t segment_range_data_offset;				//  16 |  16
 
-				uint32_t key_frame_byte_offsets[2];				//  20 |  20
-				uint32_t key_frame_bit_offsets[2];				//  28 |  28
+				uint32_t key_frame_byte_offsets[2];				//  20 |  20	// Fixed quantization
+				uint32_t key_frame_bit_offsets[2];				//  28 |  28	// Variable quantization
 
 				uint8_t padding[28];							//  36 |  36
 
@@ -531,40 +532,193 @@ namespace acl
 			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
 			impl::SamplingContext sampling_context;
-			sampling_context.track_index = 0;
-			sampling_context.constant_track_data_offset = 0;
-			sampling_context.clip_range_data_offset = 0;
-			sampling_context.format_per_track_data_offset = 0;
-			sampling_context.segment_range_data_offset = 0;
 			sampling_context.key_frame_byte_offsets[0] = m_context.key_frame_byte_offsets[0];
 			sampling_context.key_frame_byte_offsets[1] = m_context.key_frame_byte_offsets[1];
 			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
 			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
 
-			// TODO: Optimize this by counting the number of bits set, we can use the pop-count instruction on
-			// architectures that support it (e.g. xb1/ps4). This would entirely avoid looping here.
+			const RotationFormat8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
+			const VectorFormat8 translation_format = m_settings.get_translation_format(header.translation_format);
+			const VectorFormat8 scale_format = m_settings.get_translation_format(header.scale_format);
 
-			for (uint16_t bone_index = 0; bone_index < sample_bone_index; ++bone_index)
+			const bool are_all_tracks_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
+			const bool has_mixed_padding_or_fixed_quantization = (m_settings.supports_mixed_packing() && m_context.has_mixed_packing) || !are_all_tracks_variable;
+			if (has_mixed_padding_or_fixed_quantization)
 			{
-				skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);
-				skip_vectors_in_two_key_frames(translation_adapter, header, m_context, sampling_context);
+				// Slow path, not optimized yet because it's more complex and shouldn't be used in production anyway
+				sampling_context.track_index = 0;
+				sampling_context.constant_track_data_offset = 0;
+				sampling_context.clip_range_data_offset = 0;
+				sampling_context.format_per_track_data_offset = 0;
+				sampling_context.segment_range_data_offset = 0;
+
+				for (uint16_t bone_index = 0; bone_index < sample_bone_index; ++bone_index)
+				{
+					skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);
+					skip_vectors_in_two_key_frames(translation_adapter, header, m_context, sampling_context);
+
+					if (header.has_scale)
+						skip_vectors_in_two_key_frames(scale_adapter, header, m_context, sampling_context);
+				}
+			}
+			else
+			{
+				const uint32_t num_tracks_per_bone = header.has_scale ? 3 : 2;
+				const uint32_t track_index = sample_bone_index * num_tracks_per_bone;
+				uint32_t num_default_rotations = 0;
+				uint32_t num_default_translations = 0;
+				uint32_t num_default_scales = 0;
+				uint32_t num_constant_rotations = 0;
+				uint32_t num_constant_translations = 0;
+				uint32_t num_constant_scales = 0;
 
 				if (header.has_scale)
-					skip_vectors_in_two_key_frames(scale_adapter, header, m_context, sampling_context);
+				{
+					uint32_t rotation_track_bit_mask = 0x92492492;		// b100100100..
+					uint32_t translation_track_bit_mask = 0x49249249;	// b010010010..
+					uint32_t scale_track_bit_mask = 0x24924924;			// b001001001..
+
+					const uint32_t last_offset = track_index / 32;
+					uint32_t offset = 0;
+					for (; offset < last_offset; ++offset)
+					{
+						const uint32_t default_value = m_context.default_tracks_bitset[offset];
+						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
+						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
+						num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
+
+						const uint32_t constant_value = m_context.constant_tracks_bitset[offset];
+						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
+						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
+						num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
+
+						// Because the number of tracks in a 32bit word isn't a multiple of the number of tracks we have (3),
+						// we have to rotate the masks left
+						rotation_track_bit_mask = rotate_bits_left(rotation_track_bit_mask, 2);
+						translation_track_bit_mask = rotate_bits_left(translation_track_bit_mask, 2);
+						scale_track_bit_mask = rotate_bits_left(scale_track_bit_mask, 2);
+					}
+
+					const uint32_t remaining_tracks = track_index % 32;
+					if (remaining_tracks != 0)
+					{
+						const uint32_t up_to_track_mask = ~((1 << (32 - remaining_tracks)) - 1);
+						const uint32_t default_value = m_context.default_tracks_bitset[offset] & up_to_track_mask;
+						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
+						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
+						num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
+
+						const uint32_t constant_value = m_context.constant_tracks_bitset[offset] & up_to_track_mask;
+						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
+						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
+						num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
+					}
+				}
+				else
+				{
+					const uint32_t rotation_track_bit_mask = 0xAAAAAAAA;		// b10101010..
+					const uint32_t translation_track_bit_mask = 0x55555555;		// b01010101..
+
+					const uint32_t last_offset = track_index / 32;
+					uint32_t offset = 0;
+					for (; offset < last_offset; ++offset)
+					{
+						const uint32_t default_value = m_context.default_tracks_bitset[offset];
+						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
+						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
+
+						const uint32_t constant_value = m_context.constant_tracks_bitset[offset];
+						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
+						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
+					}
+
+					const uint32_t remaining_tracks = track_index % 32;
+					if (remaining_tracks != 0)
+					{
+						const uint32_t up_to_track_mask = ~((1 << (32 - remaining_tracks)) - 1);
+						const uint32_t default_value = m_context.default_tracks_bitset[offset] & up_to_track_mask;
+						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
+						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
+
+						const uint32_t constant_value = m_context.constant_tracks_bitset[offset] & up_to_track_mask;
+						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
+						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
+					}
+				}
+
+				// Tracks that are default are also constant
+				const uint32_t num_animated_rotations = sample_bone_index - num_constant_rotations;
+				const uint32_t num_animated_translations = sample_bone_index - num_constant_translations;
+
+				const RotationFormat8 packed_rotation_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
+				const uint32_t packed_rotation_size = get_packed_rotation_size(packed_rotation_format);
+
+				uint32_t constant_track_data_offset = (num_constant_rotations - num_default_rotations) * packed_rotation_size;
+				constant_track_data_offset += (num_constant_translations - num_default_translations) * get_packed_vector_size(VectorFormat8::Vector3_96);
+
+				uint32_t clip_range_data_offset = 0;
+				uint32_t segment_range_data_offset = 0;
+
+				const RangeReductionFlags8 clip_range_reduction = m_settings.get_clip_range_reduction(header.clip_range_reduction);
+				const RangeReductionFlags8 segment_range_reduction = m_settings.get_segment_range_reduction(header.segment_range_reduction);
+				if (are_any_enum_flags_set(clip_range_reduction, RangeReductionFlags8::Rotations))
+					clip_range_data_offset += m_context.num_rotation_components * sizeof(float) * 2 * num_animated_rotations;
+
+				if (are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Rotations))
+					segment_range_data_offset += m_context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_rotations;
+
+				if (are_any_enum_flags_set(clip_range_reduction, RangeReductionFlags8::Translations))
+					clip_range_data_offset += k_clip_range_reduction_vector3_range_size * num_animated_translations;
+
+				if (are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Translations))
+					segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_translations;
+
+				uint32_t num_animated_tracks = num_animated_rotations + num_animated_translations;
+				if (header.has_scale)
+				{
+					const uint32_t num_animated_scales = sample_bone_index - num_constant_scales;
+					num_animated_tracks += num_animated_scales;
+
+					constant_track_data_offset += (num_constant_scales - num_default_scales) * get_packed_vector_size(VectorFormat8::Vector3_96);
+
+					if (are_any_enum_flags_set(clip_range_reduction, RangeReductionFlags8::Scales))
+						clip_range_data_offset += k_clip_range_reduction_vector3_range_size * num_animated_scales;
+
+					if (are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Scales))
+						segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_scales;
+				}
+
+				sampling_context.track_index = track_index;
+				sampling_context.constant_track_data_offset = constant_track_data_offset;
+				sampling_context.clip_range_data_offset = clip_range_data_offset;
+				sampling_context.segment_range_data_offset = segment_range_data_offset;
+				sampling_context.format_per_track_data_offset = num_animated_tracks;
+
+				for (uint32_t animated_track_index = 0; animated_track_index < num_animated_tracks; ++animated_track_index)
+				{
+					for (size_t i = 0; i < 2; ++i)
+					{
+						const uint8_t bit_rate = m_context.format_per_track_data[i][animated_track_index];
+						const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+
+						sampling_context.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
+					}
+				}
 			}
 
-			// TODO: Skip if not interested in return value
-			const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
 			if (out_rotation != nullptr)
-				*out_rotation = rotation;
+				*out_rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
+			else
+				skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);
 
-			const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
 			if (out_translation != nullptr)
-				*out_translation = translation;
+				*out_translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
+			else
+				skip_vectors_in_two_key_frames(translation_adapter, header, m_context, sampling_context);
 
-			const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
 			if (out_scale != nullptr)
-				*out_scale = scale;
+				*out_scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
+			// No need to skip our last scale, we don't care anymore
 		}
 
 		template<class DecompressionSettingsType>
