@@ -474,7 +474,7 @@ namespace acl
 							sampling_context.key_frame_byte_offsets[i] = sampling_context.key_frame_bit_offsets[i] / 8;
 					}
 
-					++sampling_context.format_per_track_data_offset;
+					sampling_context.format_per_track_data_offset++;
 				}
 				else
 				{
