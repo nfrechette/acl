@@ -18,6 +18,10 @@ macro(setup_default_compiler_flags _project_name)
 			target_compile_options(${_project_name} PRIVATE "/arch:AVX")
 		endif()
 
+		if(USE_POPCNT_INSTRUCTIONS)
+			add_definitions(-DACL_USE_POPCOUNT)
+		endif()
+
 		# Add linker flags
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG")
 	else()
@@ -33,9 +37,13 @@ macro(setup_default_compiler_flags _project_name)
 		if(CPU_INSTRUCTION_SET MATCHES "x86" OR CPU_INSTRUCTION_SET MATCHES "x64")
 			if(USE_AVX_INSTRUCTIONS)
 				target_compile_options(${_project_name} PRIVATE "-mavx")
-                target_compile_options(${_project_name} PRIVATE "-mbmi")
+				target_compile_options(${_project_name} PRIVATE "-mbmi")
 			else()
 				target_compile_options(${_project_name} PRIVATE "-msse4.1")
+			endif()
+
+			if(USE_POPCNT_INSTRUCTIONS)
+				target_compile_options(${_project_name} PRIVATE "-mpopcnt")
 			endif()
 		endif()
 

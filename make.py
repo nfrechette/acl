@@ -19,6 +19,7 @@ def parse_argv():
 	options['unit_test'] = False
 	options['regression_test'] = False
 	options['use_avx'] = False
+	options['use_popcnt'] = False
 	options['compiler'] = None
 	options['config'] = 'Release'
 	options['cpu'] = 'x64'
@@ -46,6 +47,9 @@ def parse_argv():
 
 		if value == '-avx':
 			options['use_avx'] = True
+
+		if value == '-pop':
+			options['use_popcnt'] = True
 
 		# TODO: Refactor to use the form: -compiler=vs2015
 		if value == '-vs2015':
@@ -205,6 +209,10 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
 	if options['use_avx']:
 		print('Enabling AVX usage')
 		extra_switches.append('-DUSE_AVX_INSTRUCTIONS:BOOL=true')
+
+	if options['use_popcnt']:
+		print('Enabling POPCOUNT usage')
+		extra_switches.append('-DUSE_POPCNT_INSTRUCTIONS:BOOL=true')
 
 	if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
 		extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))

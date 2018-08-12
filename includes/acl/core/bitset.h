@@ -1,6 +1,31 @@
 #pragma once
 
+////////////////////////////////////////////////////////////////////////////////
+// The MIT License (MIT)
+//
+// Copyright (c) 2018 Nicholas Frechette & Animation Compression Library contributors
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+////////////////////////////////////////////////////////////////////////////////
+
 #include "acl/core/error.h"
+#include "acl/core/bit_manip_utils.h"
 
 #include <cstdint>
 
@@ -157,15 +182,9 @@ namespace acl
 	{
 		const uint32_t size = desc.get_size();
 
-		// TODO: Use popcount instruction if available
 		uint32_t num_set_bits = 0;
 		for (uint32_t offset = 0; offset < size; ++offset)
-		{
-			uint32_t value = bitset[offset];
-			value = value - ((value >> 1) & 0x55555555);
-			value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
-			num_set_bits += (((value + (value >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-		}
+			num_set_bits += count_set_bits(bitset[offset]);
 
 		return num_set_bits;
 	}
