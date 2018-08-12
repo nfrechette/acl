@@ -602,13 +602,13 @@ namespace acl
 					const uint32_t remaining_tracks = track_index % 32;
 					if (remaining_tracks != 0)
 					{
-						const uint32_t up_to_track_mask = ~((1 << (32 - remaining_tracks)) - 1);
-						const uint32_t default_value = m_context.default_tracks_bitset[offset] & up_to_track_mask;
+						const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
+						const uint32_t default_value = and_not(not_up_to_track_mask, m_context.default_tracks_bitset[offset]);
 						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
 						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
 						num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
 
-						const uint32_t constant_value = m_context.constant_tracks_bitset[offset] & up_to_track_mask;
+						const uint32_t constant_value = and_not(not_up_to_track_mask, m_context.constant_tracks_bitset[offset]);
 						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
 						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
 						num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
@@ -635,12 +635,12 @@ namespace acl
 					const uint32_t remaining_tracks = track_index % 32;
 					if (remaining_tracks != 0)
 					{
-						const uint32_t up_to_track_mask = ~((1 << (32 - remaining_tracks)) - 1);
-						const uint32_t default_value = m_context.default_tracks_bitset[offset] & up_to_track_mask;
+						const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
+						const uint32_t default_value = and_not(not_up_to_track_mask, m_context.default_tracks_bitset[offset]);
 						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
 						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
 
-						const uint32_t constant_value = m_context.constant_tracks_bitset[offset] & up_to_track_mask;
+						const uint32_t constant_value = and_not(not_up_to_track_mask, m_context.constant_tracks_bitset[offset]);
 						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
 						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
 					}

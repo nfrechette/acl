@@ -34,6 +34,11 @@
 	#endif
 #endif
 
+#if defined(ACL_AVX_INTRINSICS)
+	// Use BMI
+	#include <immintrin.h>
+#endif
+
 namespace acl
 {
 	inline uint8_t count_set_bits(uint8_t value)
@@ -95,5 +100,15 @@ namespace acl
 		const uint32_t mask = 32 - 1;
 		num_bits &= mask;
 		return (value << num_bits) | (value >> ((-num_bits) & mask));
+	}
+
+	inline uint32_t and_not(uint32_t not_value, uint32_t and_value)
+	{
+#if defined(ACL_AVX_INTRINSICS)
+		// Use BMI
+		return _andn_u32(not_value, and_value);
+#else
+		return ~not_value & and_value;
+#endif
 	}
 }

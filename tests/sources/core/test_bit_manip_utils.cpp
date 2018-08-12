@@ -57,4 +57,6 @@ TEST_CASE("bit_manip_utils", "[core][utils]")
 	REQUIRE(rotate_bits_left(0x10000010, 2) == 0x40000040);
 	REQUIRE(rotate_bits_left(0x10000010, 3) == 0x80000080);
 	REQUIRE(rotate_bits_left(0x10000010, 4) == 0x00000101);
+
+	REQUIRE(and_not(0x00000010, 0x10101011) == 0x10101001);
 }
