@@ -201,6 +201,7 @@ namespace acl
 			{
 			case PlaybackDirection8::Forward:
 			case PlaybackDirection8::Random:
+			default:
 				initial_sample_index = 0;
 				sample_index_sentinel = num_samples;
 				delta_sample_index = 1;
