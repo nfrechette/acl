@@ -470,6 +470,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 			additive_base_clip->sample_pose(additive_sample_time, base_pose_transforms, num_bones);
 		}
 
+		// Validate decompress_pose
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, base_pose_transforms, lossy_pose_transforms, bone_index);
@@ -477,22 +478,42 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 			ACL_ASSERT(is_finite(error), "Returned error is not a finite value");
 			ACL_ASSERT(error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
 		}
-	}
 
-	// Unit test
-	{
-		// Validate that the decoder can decode a single bone at a particular time
-		// Use the last bone and last sample time to ensure we can seek properly
-		const uint16_t sample_bone_index = num_bones - 1;
-		const float sample_time = clip.get_duration();
-		Quat_32 test_rotation;
-		Vector4_32 test_translation;
-		Vector4_32 test_scale;
-		context.seek(sample_time, SampleRoundingPolicy::None);
-		context.decompress_bone(sample_bone_index, &test_rotation, &test_translation, &test_scale);
-		ACL_ASSERT(quat_near_equal(test_rotation, lossy_pose_transforms[sample_bone_index].rotation), "Failed to sample bone index: %u", sample_bone_index);
-		ACL_ASSERT(vector_all_near_equal3(test_translation, lossy_pose_transforms[sample_bone_index].translation), "Failed to sample bone index: %u", sample_bone_index);
-		ACL_ASSERT(vector_all_near_equal3(test_scale, lossy_pose_transforms[sample_bone_index].scale), "Failed to sample bone index: %u", sample_bone_index);
+		// Validate decompress_bone for rotations only
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			Quat_32 rotation;
+			context.decompress_bone(bone_index, &rotation, nullptr, nullptr);
+			ACL_ASSERT(quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
+		}
+
+		// Validate decompress_bone for translations only
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			Vector4_32 translation;
+			context.decompress_bone(bone_index, nullptr, &translation, nullptr);
+			ACL_ASSERT(vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
+		}
+
+		// Validate decompress_bone for scales only
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			Vector4_32 scale;
+			context.decompress_bone(bone_index, nullptr, nullptr, &scale);
+			ACL_ASSERT(vector_all_near_equal3(scale, lossy_pose_transforms[bone_index].scale), "Failed to sample bone index: %u", bone_index);
+		}
+
+		// Validate decompress_bone
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			Quat_32 rotation;
+			Vector4_32 translation;
+			Vector4_32 scale;
+			context.decompress_bone(bone_index, &rotation, &translation, &scale);
+			ACL_ASSERT(quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(vector_all_near_equal3(scale, lossy_pose_transforms[bone_index].scale), "Failed to sample bone index: %u", bone_index);
+		}
 	}
 
 	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
@@ -851,7 +872,7 @@ static int safe_main_impl(int argc, char* argv[])
 	if (!is_input_acl_bin_file && !read_clip(allocator, options, clip, skeleton, use_external_config, algorithm_type, settings))
 		return -1;
 
-	double regression_error_threshold;
+	double regression_error_threshold = 0.1;
 
 #if defined(__ANDROID__)
 	if (options.config_buffer != nullptr && options.config_buffer_size != 0)
