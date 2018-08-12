@@ -30,13 +30,13 @@ namespace acl
 	inline void skip_rotations(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
 		const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context.track_index);
-		const bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
-		if (!is_rotation_default)
+		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
+		if (!is_sample_default)
 		{
 			const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
 
-			const bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
-			if (is_rotation_constant)
+			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
+			if (is_sample_constant)
 			{
 				const RotationFormat8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
 				sampling_context.constant_track_data_offset += get_packed_rotation_size(packed_format);
@@ -192,8 +192,8 @@ namespace acl
 		TimeSeriesType8 time_series_type;
 
 		const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context.track_index);
-		const bool is_rotation_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
-		if (is_rotation_default)
+		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
+		if (is_sample_default)
 		{
 			out_rotations[0] = quat_identity_32();
 			time_series_type = TimeSeriesType8::ConstantDefault;
@@ -201,8 +201,8 @@ namespace acl
 		else
 		{
 			const RotationFormat8 rotation_format = settings.get_rotation_format(header.rotation_format);
-			const bool is_rotation_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
-			if (is_rotation_constant)
+			const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
+			if (is_sample_constant)
 			{
 				Quat_32 rotation;
 
