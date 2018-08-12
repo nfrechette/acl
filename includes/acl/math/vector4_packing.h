@@ -515,9 +515,9 @@ namespace acl
 
 		struct PackedTableEntry
 		{
-			constexpr PackedTableEntry(uint8_t num_bits)
-				: max_value(num_bits == 0 ? 1.0f : (1.0f / float((1 << num_bits) - 1)))
-				, mask((1 << num_bits) - 1)
+			constexpr PackedTableEntry(uint8_t num_bits_)
+				: max_value(num_bits_ == 0 ? 1.0f : (1.0f / float((1 << num_bits_) - 1)))
+				, mask((1 << num_bits_) - 1)
 			{}
 
 			float max_value;
