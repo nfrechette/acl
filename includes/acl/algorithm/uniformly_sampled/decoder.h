@@ -509,14 +509,32 @@ namespace acl
 			const uint16_t num_bones = header.num_bones;
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
-				writer.write_bone_rotation(bone_index, rotation);
+				if (writer.skip_all_bone_rotations() || writer.skip_bone_rotation(bone_index))
+					skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);
+				else
+				{
+					const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
+					writer.write_bone_rotation(bone_index, rotation);
+				}
 
-				const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
-				writer.write_bone_translation(bone_index, translation);
+				if (writer.skip_all_bone_translations() || writer.skip_bone_translation(bone_index))
+					skip_vectors_in_two_key_frames(translation_adapter, header, m_context, sampling_context);
+				else
+				{
+					const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
+					writer.write_bone_translation(bone_index, translation);
+				}
 
-				const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
-				writer.write_bone_scale(bone_index, scale);
+				if (writer.skip_all_bone_scales() || writer.skip_bone_scale(bone_index))
+				{
+					if (header.has_scale)
+						skip_vectors_in_two_key_frames(scale_adapter, header, m_context, sampling_context);
+				}
+				else
+				{
+					const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
+					writer.write_bone_scale(bone_index, scale);
+				}
 			}
 		}
 

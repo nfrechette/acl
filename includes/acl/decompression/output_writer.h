@@ -34,12 +34,26 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// We use a struct like this to allow an arbitrary format on the end user side.
 	// Since our decode function is templated on this type implemented by the user,
-	// the callbacks can trivially be inlined.
+	// the callbacks can trivially be inlined and customized.
 	//////////////////////////////////////////////////////////////////////////
 	struct OutputWriter
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// Called by the decoder to write out a quaternion rotation value for a specified bone index
+		// These allow the caller of decompress_pose to control which track types they are interested in.
+		// This information allows the codecs to avoid unpacking values that are not needed.
+		constexpr bool skip_all_bone_rotations() const { return false; }
+		constexpr bool skip_all_bone_translations() const { return false; }
+		constexpr bool skip_all_bone_scales() const { return false; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// These allow the caller of decompress_pose to control which tracks they are interested in.
+		// This information allows the codecs to avoid unpacking values that are not needed.
+		constexpr bool skip_bone_rotation(uint16_t bone_index) const { return (void)bone_index, false; }
+		constexpr bool skip_bone_translation(uint16_t bone_index) const { return (void)bone_index, false; }
+		constexpr bool skip_bone_scale(uint16_t bone_index) const { return (void)bone_index, false; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Called by the decoder to write out a quaternion rotation value for a specified bone index.
 		void write_bone_rotation(uint16_t bone_index, const Quat_32& rotation)
 		{
 			(void)bone_index;
@@ -47,7 +61,7 @@ namespace acl
 		}
 
 		//////////////////////////////////////////////////////////////////////////
-		// Called by the decoder to write out a translation value for a specified bone index
+		// Called by the decoder to write out a translation value for a specified bone index.
 		void write_bone_translation(uint16_t bone_index, const Vector4_32& translation)
 		{
 			(void)bone_index;
@@ -55,7 +69,7 @@ namespace acl
 		}
 
 		//////////////////////////////////////////////////////////////////////////
-		// Called by the decoder to write out a scale value for a specified bone index
+		// Called by the decoder to write out a scale value for a specified bone index.
 		void write_bone_scale(uint16_t bone_index, const Vector4_32& scale)
 		{
 			(void)bone_index;
