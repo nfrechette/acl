@@ -42,7 +42,7 @@ namespace acl
 {
 	namespace impl
 	{
-		inline Vector4_32 load_rotation_sample(const uint8_t* ptr, RotationFormat8 format, uint8_t bit_rate, bool is_normalized)
+		inline Vector4_32 ACL_SIMD_CALL load_rotation_sample(const uint8_t* ptr, RotationFormat8 format, uint8_t bit_rate, bool is_normalized)
 		{
 			switch (format)
 			{
@@ -81,7 +81,7 @@ namespace acl
 			}
 		}
 
-		inline Vector4_32 load_vector_sample(const uint8_t* ptr, VectorFormat8 format, uint8_t bit_rate)
+		inline Vector4_32 ACL_SIMD_CALL load_vector_sample(const uint8_t* ptr, VectorFormat8 format, uint8_t bit_rate)
 		{
 			switch (format)
 			{
@@ -108,7 +108,7 @@ namespace acl
 			}
 		}
 
-		inline Quat_32 rotation_to_quat_32(const Vector4_32& rotation, RotationFormat8 format)
+		inline Quat_32 ACL_SIMD_CALL rotation_to_quat_32(Vector4_32Arg0 rotation, RotationFormat8 format)
 		{
 			switch (format)
 			{
@@ -126,7 +126,7 @@ namespace acl
 		}
 	}
 
-	inline Quat_32 get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
+	inline Quat_32 ACL_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
@@ -165,7 +165,7 @@ namespace acl
 		return impl::rotation_to_quat_32(packed_rotation, format);
 	}
 
-	inline Quat_32 get_rotation_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
+	inline Quat_32 ACL_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
@@ -246,7 +246,7 @@ namespace acl
 		return impl::rotation_to_quat_32(packed_rotation, format);
 	}
 
-	inline Quat_32 get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index, RotationFormat8 desired_format)
+	inline Quat_32 ACL_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index, RotationFormat8 desired_format)
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
@@ -311,7 +311,7 @@ namespace acl
 		return impl::rotation_to_quat_32(packed_rotation, format);
 	}
 
-	inline Vector4_32 get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
+	inline Vector4_32 ACL_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
@@ -350,7 +350,7 @@ namespace acl
 		return packed_translation;
 	}
 
-	inline Vector4_32 get_translation_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
+	inline Vector4_32 ACL_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
@@ -414,7 +414,7 @@ namespace acl
 		return packed_translation;
 	}
 
-	inline Vector4_32 get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
+	inline Vector4_32 ACL_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
@@ -471,7 +471,7 @@ namespace acl
 		return packed_translation;
 	}
 
-	inline Vector4_32 get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index)
+	inline Vector4_32 ACL_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
@@ -510,7 +510,7 @@ namespace acl
 		return packed_scale;
 	}
 
-	inline Vector4_32 get_scale_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
+	inline Vector4_32 ACL_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;
@@ -574,7 +574,7 @@ namespace acl
 		return packed_scale;
 	}
 
-	inline Vector4_32 get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
+	inline Vector4_32 ACL_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
 	{
 		const SegmentContext* segment = bone_steams.segment;
 		const ClipContext* clip_context = segment->clip;

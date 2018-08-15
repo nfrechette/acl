@@ -130,7 +130,7 @@ namespace acl
 		}
 	}
 
-	inline Vector4_32 normalize_sample(const Vector4_32& sample, const TrackStreamRange& range)
+	inline Vector4_32 ACL_SIMD_CALL normalize_sample(Vector4_32Arg0 sample, const TrackStreamRange& range)
 	{
 		const Vector4_32 range_min = range.get_min();
 		const Vector4_32 range_extent = range.get_extent();

@@ -54,14 +54,14 @@ namespace acl
 		}
 
 		template<typename SampleType>
-		SampleType get_raw_sample(uint32_t sample_index) const
+		SampleType ACL_SIMD_CALL get_raw_sample(uint32_t sample_index) const
 		{
 			const uint8_t* ptr = get_raw_sample_ptr(sample_index);
 			return *safe_ptr_cast<const SampleType>(ptr);
 		}
 
 		template<typename SampleType>
-		void set_raw_sample(uint32_t sample_index, const SampleType& sample)
+		void ACL_SIMD_CALL set_raw_sample(uint32_t sample_index, SampleType sample)
 		{
 			ACL_ASSERT(m_sample_size == sizeof(SampleType), "Unexpected sample size. %u != %u", m_sample_size, sizeof(SampleType));
 			uint8_t* ptr = get_raw_sample_ptr(sample_index);
@@ -269,11 +269,11 @@ namespace acl
 			, m_max(max)
 		{}
 
-		Vector4_32 get_min() const { return m_min; }
-		Vector4_32 get_max() const { return m_max; }
+		Vector4_32 ACL_SIMD_CALL get_min() const { return m_min; }
+		Vector4_32 ACL_SIMD_CALL get_max() const { return m_max; }
 
-		Vector4_32 get_center() const { return vector_mul(vector_add(m_max, m_min), 0.5f); }
-		Vector4_32 get_extent() const { return vector_sub(m_max, m_min); }
+		Vector4_32 ACL_SIMD_CALL get_center() const { return vector_mul(vector_add(m_max, m_min), 0.5f); }
+		Vector4_32 ACL_SIMD_CALL get_extent() const { return vector_sub(m_max, m_min); }
 
 		bool is_constant(float threshold) const { return vector_all_less_than(vector_abs(vector_sub(m_max, m_min)), vector_set(threshold)); }
 

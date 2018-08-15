@@ -34,7 +34,7 @@
 
 namespace acl
 {
-	inline Vector4_32 convert_rotation(const Vector4_32& rotation, RotationFormat8 from, RotationFormat8 to)
+	inline Vector4_32 ACL_SIMD_CALL convert_rotation(Vector4_32Arg0 rotation, RotationFormat8 from, RotationFormat8 to)
 	{
 		ACL_ASSERT(from == RotationFormat8::Quat_128, "Source rotation format must be a full precision quaternion");
 		(void)from;

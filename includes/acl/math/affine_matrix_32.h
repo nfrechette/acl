@@ -43,7 +43,7 @@ namespace acl
 	// Z axis == up
 	//////////////////////////////////////////////////////////////////////////
 
-	inline AffineMatrix_32 matrix_set(const Vector4_32& x_axis, const Vector4_32& y_axis, const Vector4_32& z_axis, const Vector4_32& w_axis)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_set(Vector4_32Arg0 x_axis, Vector4_32Arg1 y_axis, Vector4_32Arg2 z_axis, Vector4_32Arg3 w_axis)
 	{
 		ACL_ASSERT(vector_get_w(x_axis) == 0.0f, "X axis does not have a W component == 0.0");
 		ACL_ASSERT(vector_get_w(y_axis) == 0.0f, "Y axis does not have a W component == 0.0");
@@ -52,7 +52,7 @@ namespace acl
 		return AffineMatrix_32{x_axis, y_axis, z_axis, w_axis};
 	}
 
-	inline AffineMatrix_32 matrix_set(const Quat_32& quat, const Vector4_32& translation, const Vector4_32& scale)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_set(Quat_32Arg0 quat, Vector4_32Arg1 translation, Vector4_32Arg2 scale)
 	{
 		ACL_ASSERT(quat_is_normalized(quat), "Quaternion is not normalized");
 
@@ -76,17 +76,17 @@ namespace acl
 		return matrix_set(x_axis, y_axis, z_axis, w_axis);
 	}
 
-	inline AffineMatrix_32 matrix_identity_32()
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_identity_32()
 	{
 		return matrix_set(vector_set(1.0f, 0.0f, 0.0f, 0.0f), vector_set(0.0f, 1.0f, 0.0f, 0.0f), vector_set(0.0f, 0.0f, 1.0f, 0.0f), vector_set(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 
-	inline AffineMatrix_32 matrix_cast(const AffineMatrix_64& input)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_cast(const AffineMatrix_64& input)
 	{
 		return matrix_set(vector_cast(input.x_axis), vector_cast(input.y_axis), vector_cast(input.z_axis), vector_cast(input.w_axis));
 	}
 
-	inline AffineMatrix_32 matrix_from_quat(const Quat_32& quat)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_from_quat(Quat_32Arg0 quat)
 	{
 		ACL_ASSERT(quat_is_normalized(quat), "Quaternion is not normalized");
 
@@ -110,18 +110,18 @@ namespace acl
 		return matrix_set(x_axis, y_axis, z_axis, w_axis);
 	}
 
-	inline AffineMatrix_32 matrix_from_translation(const Vector4_32& translation)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_from_translation(Vector4_32Arg0 translation)
 	{
 		return matrix_set(vector_set(1.0f, 0.0f, 0.0f, 0.0f), vector_set(0.0f, 1.0f, 0.0f, 0.0f), vector_set(0.0f, 0.0f, 1.0f, 0.0f), vector_set(vector_get_x(translation), vector_get_y(translation), vector_get_z(translation), 1.0f));
 	}
 
-	inline AffineMatrix_32 matrix_from_scale(const Vector4_32& scale)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_from_scale(Vector4_32Arg0 scale)
 	{
 		ACL_ASSERT(!vector_any_near_equal3(scale, vector_zero_32()), "Scale cannot be zero");
 		return matrix_set(vector_set(vector_get_x(scale), 0.0f, 0.0f, 0.0f), vector_set(0.0f, vector_get_y(scale), 0.0f, 0.0f), vector_set(0.0f, 0.0f, vector_get_z(scale), 0.0f), vector_set(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 
-	inline AffineMatrix_32 matrix_from_transform(const Transform_32& transform)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_from_transform(Transform_32Arg0 transform)
 	{
 		return matrix_set(transform.rotation, transform.translation, transform.scale);
 	}
@@ -154,7 +154,7 @@ namespace acl
 		}
 	}
 
-	inline Quat_32 quat_from_matrix(const AffineMatrix_32& input)
+	inline Quat_32 ACL_SIMD_CALL quat_from_matrix(AffineMatrix_32Arg0 input)
 	{
 		if (vector_all_near_equal3(input.x_axis, vector_zero_32()) || vector_all_near_equal3(input.y_axis, vector_zero_32()) || vector_all_near_equal3(input.z_axis, vector_zero_32()))
 		{
@@ -211,7 +211,7 @@ namespace acl
 	}
 
 	// Multiplication order is as follow: local_to_world = matrix_mul(local_to_object, object_to_world)
-	inline AffineMatrix_32 matrix_mul(const AffineMatrix_32& lhs, const AffineMatrix_32& rhs)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_mul(AffineMatrix_32Arg0 lhs, AffineMatrix_32ArgN rhs)
 	{
 		Vector4_32 tmp = vector_mul(vector_mix_xxxx(lhs.x_axis), rhs.x_axis);
 		tmp = vector_mul_add(vector_mix_yyyy(lhs.x_axis), rhs.y_axis, tmp);
@@ -235,7 +235,7 @@ namespace acl
 		return matrix_set(x_axis, y_axis, z_axis, w_axis);
 	}
 
-	inline Vector4_32 matrix_mul_position(const AffineMatrix_32& lhs, const Vector4_32& rhs)
+	inline Vector4_32 ACL_SIMD_CALL matrix_mul_position(AffineMatrix_32Arg0 lhs, Vector4_32Arg4 rhs)
 	{
 		Vector4_32 tmp0;
 		Vector4_32 tmp1;
@@ -251,7 +251,7 @@ namespace acl
 	{
 		// Note: This is a generic matrix 4x4 transpose, the resulting matrix is no longer
 		// affine because the last column is no longer [0,0,0,1]
-		inline AffineMatrix_32 matrix_transpose(const AffineMatrix_32& input)
+		inline AffineMatrix_32 ACL_SIMD_CALL matrix_transpose(AffineMatrix_32Arg0 input)
 		{
 			Vector4_32 tmp0 = vector_mix_xyab(input.x_axis, input.y_axis);
 			Vector4_32 tmp1 = vector_mix_zwcd(input.x_axis, input.y_axis);
@@ -266,7 +266,7 @@ namespace acl
 		}
 	}
 
-	inline AffineMatrix_32 matrix_inverse(const AffineMatrix_32& input)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_inverse(AffineMatrix_32Arg0 input)
 	{
 		// TODO: This is a generic matrix inverse function, implement the affine version?
 		AffineMatrix_32 input_transposed = math_impl::matrix_transpose(input);
@@ -354,7 +354,7 @@ namespace acl
 		return matrix_set(x_axis, y_axis, z_axis, w_axis);
 	}
 
-	inline AffineMatrix_32 matrix_remove_scale(const AffineMatrix_32& input)
+	inline AffineMatrix_32 ACL_SIMD_CALL matrix_remove_scale(AffineMatrix_32Arg0 input)
 	{
 		AffineMatrix_32 result;
 		result.x_axis = vector_normalize3(input.x_axis);

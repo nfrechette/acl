@@ -103,12 +103,12 @@ namespace acl
 		return false;
 	}
 
-	inline Vector4_32 get_default_scale(AdditiveClipFormat8 additive_format)
+	inline Vector4_32 ACL_SIMD_CALL get_default_scale(AdditiveClipFormat8 additive_format)
 	{
 		return additive_format == AdditiveClipFormat8::Additive1 ? vector_zero_32() : vector_set(1.0f);
 	}
 
-	inline Transform_32 transform_add0(const Transform_32& base, const Transform_32& additive)
+	inline Transform_32 ACL_SIMD_CALL transform_add0(Transform_32Arg0 base, Transform_32Arg1 additive)
 	{
 		const Quat_32 rotation = quat_mul(additive.rotation, base.rotation);
 		const Vector4_32 translation = vector_add(additive.translation, base.translation);
@@ -116,7 +116,7 @@ namespace acl
 		return transform_set(rotation, translation, scale);
 	}
 
-	inline Transform_32 transform_add1(const Transform_32& base, const Transform_32& additive)
+	inline Transform_32 ACL_SIMD_CALL transform_add1(Transform_32Arg0 base, Transform_32Arg1 additive)
 	{
 		const Quat_32 rotation = quat_mul(additive.rotation, base.rotation);
 		const Vector4_32 translation = vector_add(additive.translation, base.translation);
@@ -124,14 +124,14 @@ namespace acl
 		return transform_set(rotation, translation, scale);
 	}
 
-	inline Transform_32 transform_add_no_scale(const Transform_32& base, const Transform_32& additive)
+	inline Transform_32 ACL_SIMD_CALL transform_add_no_scale(Transform_32Arg0 base, Transform_32Arg1 additive)
 	{
 		const Quat_32 rotation = quat_mul(additive.rotation, base.rotation);
 		const Vector4_32 translation = vector_add(additive.translation, base.translation);
 		return transform_set(rotation, translation, vector_set(1.0f));
 	}
 
-	inline Transform_32 apply_additive_to_base(AdditiveClipFormat8 additive_format, const Transform_32& base, const Transform_32& additive)
+	inline Transform_32 ACL_SIMD_CALL apply_additive_to_base(AdditiveClipFormat8 additive_format, Transform_32Arg1 base, Transform_32ArgN additive)
 	{
 		switch (additive_format)
 		{
@@ -143,7 +143,7 @@ namespace acl
 		}
 	}
 
-	inline Transform_32 apply_additive_to_base_no_scale(AdditiveClipFormat8 additive_format, const Transform_32& base, const Transform_32& additive)
+	inline Transform_32 ACL_SIMD_CALL apply_additive_to_base_no_scale(AdditiveClipFormat8 additive_format, Transform_32Arg1 base, Transform_32ArgN additive)
 	{
 		switch (additive_format)
 		{

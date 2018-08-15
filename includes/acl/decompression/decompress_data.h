@@ -563,7 +563,7 @@ namespace acl
 	}
 
 	template <class SettingsType, class DecompressionContextType, class SamplingContextType>
-	inline Quat_32 decompress_and_interpolate_rotation(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
+	inline Quat_32 ACL_SIMD_CALL decompress_and_interpolate_rotation(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
 		Quat_32 rotations[2];
 		ACL_ASSERT(get_array_size(decomp_context.key_frame_byte_offsets) == get_array_size(rotations), "Interpolation requires exactly two keyframes.");
@@ -599,7 +599,7 @@ namespace acl
 	}
 
 	template<class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
-	inline Vector4_32 decompress_and_interpolate_vector(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
+	inline Vector4_32 ACL_SIMD_CALL decompress_and_interpolate_vector(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
 		Vector4_32 vectors[2];
 		ACL_ASSERT(get_array_size(decomp_context.key_frame_byte_offsets) == get_array_size(vectors), "Interpolation requires exactly two keyframes.");

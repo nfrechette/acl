@@ -35,7 +35,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Setters, getters, and casts
 
-	inline Quat_32 quat_set(float x, float y, float z, float w)
+	inline Quat_32 ACL_SIMD_CALL quat_set(float x, float y, float z, float w)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_set_ps(w, z, y, x);
@@ -53,18 +53,18 @@ namespace acl
 #endif
 	}
 
-	inline Quat_32 quat_unaligned_load(const float* input)
+	inline Quat_32 ACL_SIMD_CALL quat_unaligned_load(const float* input)
 	{
 		ACL_ASSERT(is_aligned(input), "Invalid alignment");
 		return quat_set(input[0], input[1], input[2], input[3]);
 	}
 
-	inline Quat_32 quat_identity_32()
+	inline Quat_32 ACL_SIMD_CALL quat_identity_32()
 	{
 		return quat_set(0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
-	inline Quat_32 vector_to_quat(const Vector4_32& input)
+	inline Quat_32 ACL_SIMD_CALL vector_to_quat(Vector4_32Arg0 input)
 	{
 #if defined(ACL_SSE2_INTRINSICS) || defined(ACL_NEON_INTRINSICS)
 		return input;
@@ -73,7 +73,7 @@ namespace acl
 #endif
 	}
 
-	inline Quat_32 quat_cast(const Quat_64& input)
+	inline Quat_32 ACL_SIMD_CALL quat_cast(const Quat_64& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_shuffle_ps(_mm_cvtpd_ps(input.xy), _mm_cvtpd_ps(input.zw), _MM_SHUFFLE(1, 0, 1, 0));
@@ -82,7 +82,7 @@ namespace acl
 #endif
 	}
 
-	inline float quat_get_x(const Quat_32& input)
+	inline float ACL_SIMD_CALL quat_get_x(Quat_32Arg0 input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(input);
@@ -93,7 +93,7 @@ namespace acl
 #endif
 	}
 
-	inline float quat_get_y(const Quat_32& input)
+	inline float ACL_SIMD_CALL quat_get_y(Quat_32Arg0 input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(_mm_shuffle_ps(input, input, _MM_SHUFFLE(1, 1, 1, 1)));
@@ -104,7 +104,7 @@ namespace acl
 #endif
 	}
 
-	inline float quat_get_z(const Quat_32& input)
+	inline float ACL_SIMD_CALL quat_get_z(Quat_32Arg0 input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(_mm_shuffle_ps(input, input, _MM_SHUFFLE(2, 2, 2, 2)));
@@ -115,7 +115,7 @@ namespace acl
 #endif
 	}
 
-	inline float quat_get_w(const Quat_32& input)
+	inline float ACL_SIMD_CALL quat_get_w(Quat_32Arg0 input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_cvtss_f32(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 3, 3, 3)));
@@ -126,7 +126,7 @@ namespace acl
 #endif
 	}
 
-	inline void quat_unaligned_write(const Quat_32& input, float* output)
+	inline void ACL_SIMD_CALL quat_unaligned_write(Quat_32Arg0 input, float* output)
 	{
 		ACL_ASSERT(is_aligned(output), "Invalid alignment");
 		output[0] = quat_get_x(input);
@@ -138,13 +138,13 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Arithmetic
 
-	inline Quat_32 quat_conjugate(const Quat_32& input)
+	inline Quat_32 ACL_SIMD_CALL quat_conjugate(Quat_32Arg0 input)
 	{
 		return quat_set(-quat_get_x(input), -quat_get_y(input), -quat_get_z(input), quat_get_w(input));
 	}
 
 	// Multiplication order is as follow: local_to_world = quat_mul(local_to_object, object_to_world)
-	inline Quat_32 quat_mul(const Quat_32& lhs, const Quat_32& rhs)
+	inline Quat_32 ACL_SIMD_CALL quat_mul(Quat_32Arg0 lhs, Quat_32Arg1 rhs)
 	{
 #if defined(ACL_SSE4_INTRINSICS) && 0
 		// TODO: Profile this, the accuracy is the same as with SSE2, should be binary exact
@@ -241,29 +241,29 @@ namespace acl
 #endif
 	}
 
-	inline Vector4_32 quat_rotate(const Quat_32& rotation, const Vector4_32& vector)
+	inline Vector4_32 ACL_SIMD_CALL quat_rotate(Quat_32Arg0 rotation, Vector4_32Arg1 vector)
 	{
 		Quat_32 vector_quat = quat_set(vector_get_x(vector), vector_get_y(vector), vector_get_z(vector), 0.0f);
 		Quat_32 inv_rotation = quat_conjugate(rotation);
 		return quat_to_vector(quat_mul(quat_mul(inv_rotation, vector_quat), rotation));
 	}
 
-	inline float quat_length_squared(const Quat_32& input)
+	inline float ACL_SIMD_CALL quat_length_squared(Quat_32Arg0 input)
 	{
 		return vector_length_squared(quat_to_vector(input));
 	}
 
-	inline float quat_length(const Quat_32& input)
+	inline float ACL_SIMD_CALL quat_length(Quat_32Arg0 input)
 	{
 		return vector_length(quat_to_vector(input));
 	}
 
-	inline float quat_length_reciprocal(const Quat_32& input)
+	inline float ACL_SIMD_CALL quat_length_reciprocal(Quat_32Arg0 input)
 	{
 		return vector_length_reciprocal(quat_to_vector(input));
 	}
 
-	inline Quat_32 quat_normalize(const Quat_32& input)
+	inline Quat_32 ACL_SIMD_CALL quat_normalize(Quat_32Arg0 input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		// We first calculate the dot product to get the length squared: dot(input, input)
@@ -309,7 +309,7 @@ namespace acl
 #endif
 	}
 
-	inline Quat_32 quat_lerp(const Quat_32& start, const Quat_32& end, float alpha)
+	inline Quat_32 ACL_SIMD_CALL quat_lerp(Quat_32Arg0 start, Quat_32Arg1 end, float alpha)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		// Calculate the vector4 dot product: dot(start, end)
@@ -415,7 +415,7 @@ namespace acl
 #endif
 	}
 
-	inline Quat_32 quat_neg(const Quat_32& input)
+	inline Quat_32 ACL_SIMD_CALL quat_neg(Quat_32Arg0 input)
 	{
 #if defined(ACL_NEON_INTRINSICS)
 		return vnegq_f32(input);
@@ -424,12 +424,12 @@ namespace acl
 #endif
 	}
 
-	inline Quat_32 quat_ensure_positive_w(const Quat_32& input)
+	inline Quat_32 ACL_SIMD_CALL quat_ensure_positive_w(Quat_32Arg0 input)
 	{
 		return quat_get_w(input) >= 0.f ? input : quat_neg(input);
 	}
 
-	inline Quat_32 quat_from_positive_w(const Vector4_32& input)
+	inline Quat_32 ACL_SIMD_CALL quat_from_positive_w(Vector4_32Arg0 input)
 	{
 #if defined(ACL_SSE4_INTRINSICS)
 		__m128 x2y2z2 = _mm_mul_ps(input, input);
@@ -467,7 +467,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Conversion to/from axis/angle/euler
 
-	inline void quat_to_axis_angle(const Quat_32& input, Vector4_32& out_axis, float& out_angle)
+	inline void ACL_SIMD_CALL quat_to_axis_angle(Quat_32Arg0 input, Vector4_32& out_axis, float& out_angle)
 	{
 		constexpr float epsilon = 1.0e-8f;
 		constexpr float epsilon_squared = epsilon * epsilon;
@@ -478,7 +478,7 @@ namespace acl
 		out_axis = scale_sq >= epsilon_squared ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0f, 0.0f, 0.0f);
 	}
 
-	inline Vector4_32 quat_get_axis(const Quat_32& input)
+	inline Vector4_32 ACL_SIMD_CALL quat_get_axis(Quat_32Arg0 input)
 	{
 		constexpr float epsilon = 1.0e-8f;
 		constexpr float epsilon_squared = epsilon * epsilon;
@@ -487,12 +487,12 @@ namespace acl
 		return scale_sq >= epsilon_squared ? vector_div(vector_set(quat_get_x(input), quat_get_y(input), quat_get_z(input)), vector_set(sqrt(scale_sq))) : vector_set(1.0f, 0.0f, 0.0f);
 	}
 
-	inline float quat_get_angle(const Quat_32& input)
+	inline float ACL_SIMD_CALL quat_get_angle(Quat_32Arg0 input)
 	{
 		return acos(quat_get_w(input)) * 2.0f;
 	}
 
-	inline Quat_32 quat_from_axis_angle(const Vector4_32& axis, float angle)
+	inline Quat_32 ACL_SIMD_CALL quat_from_axis_angle(Vector4_32Arg0 axis, float angle)
 	{
 		float s, c;
 		sincos(0.5f * angle, s, c);
@@ -503,7 +503,7 @@ namespace acl
 	// Pitch is around the Y axis (right)
 	// Yaw is around the Z axis (up)
 	// Roll is around the X axis (forward)
-	inline Quat_32 quat_from_euler(float pitch, float yaw, float roll)
+	inline Quat_32 ACL_SIMD_CALL quat_from_euler(float pitch, float yaw, float roll)
 	{
 		float sp, sy, sr;
 		float cp, cy, cr;
@@ -521,23 +521,23 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Comparisons and masking
 
-	inline bool quat_is_finite(const Quat_32& input)
+	inline bool ACL_SIMD_CALL quat_is_finite(Quat_32Arg0 input)
 	{
 		return is_finite(quat_get_x(input)) && is_finite(quat_get_y(input)) && is_finite(quat_get_z(input)) && is_finite(quat_get_w(input));
 	}
 
-	inline bool quat_is_normalized(const Quat_32& input, float threshold = 0.00001f)
+	inline bool ACL_SIMD_CALL quat_is_normalized(Quat_32Arg0 input, float threshold = 0.00001f)
 	{
 		float length_squared = quat_length_squared(input);
 		return abs(length_squared - 1.0f) < threshold;
 	}
 
-	inline bool quat_near_equal(const Quat_32& lhs, const Quat_32& rhs, float threshold = 0.00001f)
+	inline bool ACL_SIMD_CALL quat_near_equal(Quat_32Arg0 lhs, Quat_32Arg1 rhs, float threshold = 0.00001f)
 	{
 		return vector_all_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
 	}
 
-	inline bool quat_near_identity(const Quat_32& input, float threshold_angle = 0.00284714461f)
+	inline bool ACL_SIMD_CALL quat_near_identity(Quat_32Arg0 input, float threshold_angle = 0.00284714461f)
 	{
 		// Because of floating point precision, we cannot represent very small rotations.
 		// The closest float to 1.0 that is not 1.0 itself yields:

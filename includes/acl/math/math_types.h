@@ -194,4 +194,81 @@ namespace acl
 		constexpr bool is_vector_mix_arg_abcd(VectorMix arg) { return int32_t(arg) >= int32_t(VectorMix::A) && int32_t(arg) <= int32_t(VectorMix::D); }
 		constexpr int8_t get_vector_mix_component_index(VectorMix arg) { return is_vector_mix_arg_xyzw(arg) ? int8_t(arg) : (int8_t(arg) - 4); }
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+
+#if defined(ACL_USE_VECTORCALL)
+	// On x64 with __vectorcall, the first 6x vector4 arguments can be passed by value in a register, everything else afterwards is passed by const&
+	using Vector4_32Arg0 = const Vector4_32;
+	using Vector4_32Arg1 = const Vector4_32;
+	using Vector4_32Arg2 = const Vector4_32;
+	using Vector4_32Arg3 = const Vector4_32;
+	using Vector4_32Arg4 = const Vector4_32;
+	using Vector4_32Arg5 = const Vector4_32;
+	using Vector4_32ArgN = const Vector4_32&;
+
+	using Quat_32Arg0 = const Quat_32;
+	using Quat_32Arg1 = const Quat_32;
+	using Quat_32Arg2 = const Quat_32;
+	using Quat_32Arg3 = const Quat_32;
+	using Quat_32Arg4 = const Quat_32;
+	using Quat_32Arg5 = const Quat_32;
+	using Quat_32ArgN = const Quat_32&;
+
+	// With __vectorcall, vector aggregates are also passed by register
+	using Transform_32Arg0 = const Transform_32;
+	using Transform_32Arg1 = const Transform_32;
+	using Transform_32ArgN = const Transform_32&;
+
+	using AffineMatrix_32Arg0 = const AffineMatrix_32;
+	using AffineMatrix_32ArgN = const AffineMatrix_32&;
+#elif defined(ACL_NEON_INTRINSICS)
+	// On ARM NEON, the first 4x vector4 arguments can be passed by value in a register, everything else afterwards is passed by const&
+	using Vector4_32Arg0 = const Vector4_32;
+	using Vector4_32Arg1 = const Vector4_32;
+	using Vector4_32Arg2 = const Vector4_32;
+	using Vector4_32Arg3 = const Vector4_32;
+	using Vector4_32Arg4 = const Vector4_32&;
+	using Vector4_32Arg5 = const Vector4_32&;
+	using Vector4_32ArgN = const Vector4_32&;
+
+	using Quat_32Arg0 = const Quat_32;
+	using Quat_32Arg1 = const Quat_32;
+	using Quat_32Arg2 = const Quat_32;
+	using Quat_32Arg3 = const Quat_32;
+	using Quat_32Arg4 = const Quat_32&;
+	using Quat_32Arg5 = const Quat_32&;
+	using Quat_32ArgN = const Quat_32&;
+
+	using Transform_32Arg0 = const Transform_32&;
+	using Transform_32Arg1 = const Transform_32&;
+	using Transform_32ArgN = const Transform_32&;
+
+	using AffineMatrix_32Arg0 = const AffineMatrix_32&;
+	using AffineMatrix_32ArgN = const AffineMatrix_32&;
+#else
+	// On every other platform, everything is passed by const&
+	using Vector4_32Arg0 = const Vector4_32&;
+	using Vector4_32Arg1 = const Vector4_32&;
+	using Vector4_32Arg2 = const Vector4_32&;
+	using Vector4_32Arg3 = const Vector4_32&;
+	using Vector4_32Arg4 = const Vector4_32&;
+	using Vector4_32Arg5 = const Vector4_32&;
+	using Vector4_32ArgN = const Vector4_32&;
+
+	using Quat_32Arg0 = const Quat_32&;
+	using Quat_32Arg1 = const Quat_32&;
+	using Quat_32Arg2 = const Quat_32&;
+	using Quat_32Arg3 = const Quat_32&;
+	using Quat_32Arg4 = const Quat_32&;
+	using Quat_32Arg5 = const Quat_32&;
+	using Quat_32ArgN = const Quat_32&;
+
+	using Transform_32Arg0 = const Transform_32&;
+	using Transform_32Arg1 = const Transform_32&;
+	using Transform_32ArgN = const Transform_32&;
+
+	using AffineMatrix_32Arg0 = const AffineMatrix_32&;
+	using AffineMatrix_32ArgN = const AffineMatrix_32&;
+#endif
 }

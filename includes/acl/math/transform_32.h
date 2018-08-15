@@ -31,24 +31,24 @@
 
 namespace acl
 {
-	constexpr Transform_32 transform_set(const Quat_32& rotation, const Vector4_32& translation, const Vector4_32& scale)
+	constexpr Transform_32 ACL_SIMD_CALL transform_set(Quat_32Arg0 rotation, Vector4_32Arg1 translation, Vector4_32Arg2 scale)
 	{
 		return Transform_32{ rotation, translation, scale };
 	}
 
-	inline Transform_32 transform_identity_32()
+	inline Transform_32 ACL_SIMD_CALL transform_identity_32()
 	{
 		return transform_set(quat_identity_32(), vector_zero_32(), vector_set(1.0f));
 	}
 
-	inline Transform_32 transform_cast(const Transform_64& input)
+	inline Transform_32 ACL_SIMD_CALL transform_cast(const Transform_64& input)
 	{
 		return Transform_32{ quat_cast(input.rotation), vector_cast(input.translation), vector_cast(input.scale) };
 	}
 
 	// Multiplication order is as follow: local_to_world = transform_mul(local_to_object, object_to_world)
 	// NOTE: When scale is present, multiplication will not properly handle skew/shear, use affine matrices instead
-	inline Transform_32 transform_mul(const Transform_32& lhs, const Transform_32& rhs)
+	inline Transform_32 ACL_SIMD_CALL transform_mul(Transform_32Arg0 lhs, Transform_32Arg1 rhs)
 	{
 		const Vector4_32 min_scale = vector_min(lhs.scale, rhs.scale);
 		const Vector4_32 scale = vector_mul(lhs.scale, rhs.scale);
@@ -79,24 +79,24 @@ namespace acl
 	}
 
 	// Multiplication order is as follow: local_to_world = transform_mul(local_to_object, object_to_world)
-	inline Transform_32 transform_mul_no_scale(const Transform_32& lhs, const Transform_32& rhs)
+	inline Transform_32 ACL_SIMD_CALL transform_mul_no_scale(Transform_32Arg0 lhs, Transform_32Arg1 rhs)
 	{
 		const Quat_32 rotation = quat_mul(lhs.rotation, rhs.rotation);
 		const Vector4_32 translation = vector_add(quat_rotate(rhs.rotation, lhs.translation), rhs.translation);
 		return transform_set(rotation, translation, vector_set(1.0f));
 	}
 
-	inline Vector4_32 transform_position(const Transform_32& lhs, const Vector4_32& rhs)
+	inline Vector4_32 ACL_SIMD_CALL transform_position(Transform_32Arg0 lhs, Vector4_32Arg1 rhs)
 	{
 		return vector_add(quat_rotate(lhs.rotation, vector_mul(lhs.scale, rhs)), lhs.translation);
 	}
 
-	inline Vector4_32 transform_position_no_scale(const Transform_32& lhs, const Vector4_32& rhs)
+	inline Vector4_32 ACL_SIMD_CALL transform_position_no_scale(Transform_32Arg0 lhs, Vector4_32Arg1 rhs)
 	{
 		return vector_add(quat_rotate(lhs.rotation, rhs), lhs.translation);
 	}
 
-	inline Transform_32 transform_inverse(const Transform_32& input)
+	inline Transform_32 ACL_SIMD_CALL transform_inverse(Transform_32Arg0 input)
 	{
 		const Quat_32 inv_rotation = quat_conjugate(input.rotation);
 		const Vector4_32 inv_scale = vector_reciprocal(input.scale);
@@ -104,14 +104,14 @@ namespace acl
 		return transform_set(inv_rotation, inv_translation, inv_scale);
 	}
 
-	inline Transform_32 transform_inverse_no_scale(const Transform_32& input)
+	inline Transform_32 ACL_SIMD_CALL transform_inverse_no_scale(Transform_32Arg0 input)
 	{
 		const Quat_32 inv_rotation = quat_conjugate(input.rotation);
 		const Vector4_32 inv_translation = vector_neg(quat_rotate(inv_rotation, input.translation));
 		return transform_set(inv_rotation, inv_translation, vector_set(1.0f));
 	}
 
-	inline Transform_32 transform_normalize(const Transform_32& input)
+	inline Transform_32 ACL_SIMD_CALL transform_normalize(Transform_32Arg0 input)
 	{
 		const Quat_32 rotation = quat_normalize(input.rotation);
 		return transform_set(rotation, input.translation, input.scale);

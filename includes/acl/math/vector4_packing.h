@@ -34,17 +34,17 @@
 
 namespace acl
 {
-	inline void pack_vector4_128(const Vector4_32& vector, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector4_128(Vector4_32Arg0 vector, uint8_t* out_vector_data)
 	{
 		vector_unaligned_write(vector, out_vector_data);
 	}
 
-	inline Vector4_32 unpack_vector4_128(const uint8_t* vector_data)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector4_128(const uint8_t* vector_data)
 	{
 		return vector_unaligned_load_32(vector_data);
 	}
 
-	inline void pack_vector4_64(const Vector4_32& vector, bool is_unsigned, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector4_64(Vector4_32Arg0 vector, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 16) : pack_scalar_signed(vector_get_x(vector), 16);
 		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 16) : pack_scalar_signed(vector_get_y(vector), 16);
@@ -58,7 +58,7 @@ namespace acl
 		data[3] = safe_static_cast<uint16_t>(vector_w);
 	}
 
-	inline Vector4_32 unpack_vector4_64(const uint8_t* vector_data, bool is_unsigned)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector4_64(const uint8_t* vector_data, bool is_unsigned)
 	{
 		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
 		uint16_t x16 = data_ptr_u16[0];
@@ -72,7 +72,7 @@ namespace acl
 		return vector_set(x, y, z, w);
 	}
 
-	inline void pack_vector4_32(const Vector4_32& vector, bool is_unsigned, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector4_32(Vector4_32Arg0 vector, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 8) : pack_scalar_signed(vector_get_x(vector), 8);
 		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 8) : pack_scalar_signed(vector_get_y(vector), 8);
@@ -85,7 +85,7 @@ namespace acl
 		out_vector_data[3] = safe_static_cast<uint8_t>(vector_w);
 	}
 
-	inline Vector4_32 unpack_vector4_32(const uint8_t* vector_data, bool is_unsigned)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector4_32(const uint8_t* vector_data, bool is_unsigned)
 	{
 		uint8_t x8 = vector_data[0];
 		uint8_t y8 = vector_data[1];
@@ -98,19 +98,19 @@ namespace acl
 		return vector_set(x, y, z, w);
 	}
 
-	inline void pack_vector3_96(const Vector4_32& vector, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_96(Vector4_32Arg0 vector, uint8_t* out_vector_data)
 	{
 		vector_unaligned_write3(vector, out_vector_data);
 	}
 
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
-	inline Vector4_32 unpack_vector3_96_unsafe(const uint8_t* vector_data)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_96_unsafe(const uint8_t* vector_data)
 	{
 		return vector_unaligned_load_32(vector_data);
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 16 bytes from it
-	inline Vector4_32 unpack_vector3_96_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_96_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		const uint32_t byte_offset = bit_offset / 8;
@@ -198,7 +198,7 @@ namespace acl
 
 	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 16 bytes from it
 	ACL_DEPRECATED("Use unpack_vector3_96_unsafe instead, to be removed in v2.0")
-	inline Vector4_32 unpack_vector3_96(const uint8_t* vector_data, uint32_t bit_offset)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_96(const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		uint32_t byte_offset = bit_offset / 8;
 		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
@@ -234,13 +234,13 @@ namespace acl
 	}
 
 	ACL_DEPRECATED("Use unpack_vector3_96_unsafe instead, to be removed in v2.0")
-	inline Vector4_32 unpack_vector3_96(const uint8_t* vector_data)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_96(const uint8_t* vector_data)
 	{
 		return vector_unaligned_load3_32(vector_data);
 	}
 
 	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
-	inline void pack_vector3_u48_unsafe(const Vector4_32& vector, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_u48_unsafe(Vector4_32Arg0 vector, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), 16);
 		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), 16);
@@ -253,7 +253,7 @@ namespace acl
 	}
 
 	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
-	inline void pack_vector3_s48_unsafe(const Vector4_32& vector, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_s48_unsafe(Vector4_32Arg0 vector, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_signed(vector_get_x(vector), 16);
 		uint32_t vector_y = pack_scalar_signed(vector_get_y(vector), 16);
@@ -266,7 +266,7 @@ namespace acl
 	}
 
 	ACL_DEPRECATED("Use pack_vector3_u48_unsafe and pack_vector3_s48_unsafe instead, to be removed in v2.0")
-	inline void pack_vector3_48(const Vector4_32& vector, bool is_unsigned, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_48(Vector4_32Arg0 vector, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 16) : pack_scalar_signed(vector_get_x(vector), 16);
 		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 16) : pack_scalar_signed(vector_get_y(vector), 16);
@@ -279,7 +279,7 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
-	inline Vector4_32 unpack_vector3_u48_unsafe(const uint8_t* vector_data)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_u48_unsafe(const uint8_t* vector_data)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		__m128i zero = _mm_setzero_si128();
@@ -307,7 +307,7 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
-	inline Vector4_32 unpack_vector3_s48_unsafe(const uint8_t* vector_data)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_s48_unsafe(const uint8_t* vector_data)
 	{
 		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
 		uint16_t x16 = data_ptr_u16[0];
@@ -320,7 +320,7 @@ namespace acl
 	}
 
 	ACL_DEPRECATED("Use unpack_vector3_u48_unsafe and unpack_vector3_s48_unsafe instead, to be removed in v2.0")
-	inline Vector4_32 unpack_vector3_48(const uint8_t* vector_data, bool is_unsigned)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_48(const uint8_t* vector_data, bool is_unsigned)
 	{
 		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
 		uint16_t x16 = data_ptr_u16[0];
@@ -332,7 +332,7 @@ namespace acl
 		return vector_set(x, y, z);
 	}
 
-	inline void pack_vector3_32(const Vector4_32& vector, uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_32(Vector4_32Arg0 vector, uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
 
@@ -348,7 +348,7 @@ namespace acl
 		data[1] = safe_static_cast<uint16_t>(vector_u32 & 0xFFFF);
 	}
 
-	inline Vector4_32 unpack_vector3_32(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_32(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data)
 	{
 		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
 
@@ -365,7 +365,7 @@ namespace acl
 	}
 
 	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
-	inline void pack_vector3_u24_unsafe(const Vector4_32& vector, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_u24_unsafe(Vector4_32Arg0 vector, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), 8);
 		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), 8);
@@ -377,7 +377,7 @@ namespace acl
 	}
 
 	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
-	inline void pack_vector3_s24_unsafe(const Vector4_32& vector, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_s24_unsafe(Vector4_32Arg0 vector, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_signed(vector_get_x(vector), 8);
 		uint32_t vector_y = pack_scalar_signed(vector_get_y(vector), 8);
@@ -389,7 +389,7 @@ namespace acl
 	}
 
 	ACL_DEPRECATED("Use pack_vector3_u24_unsafe and pack_vector3_s24_unsafe instead, to be removed in v2.0")
-	inline void pack_vector3_24(const Vector4_32& vector, bool is_unsigned, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_24(Vector4_32Arg0 vector, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 8) : pack_scalar_signed(vector_get_x(vector), 8);
 		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), 8) : pack_scalar_signed(vector_get_y(vector), 8);
@@ -401,7 +401,7 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
-	inline Vector4_32 unpack_vector3_u24_unsafe(const uint8_t* vector_data)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_u24_unsafe(const uint8_t* vector_data)
 	{
 #if defined(ACL_SSE2_INTRINSICS) && 0
 		// This implementation leverages fast fixed point coercion, it relies on the
@@ -441,7 +441,7 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
-	inline Vector4_32 unpack_vector3_s24_unsafe(const uint8_t* vector_data)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_s24_unsafe(const uint8_t* vector_data)
 	{
 		uint8_t x8 = vector_data[0];
 		uint8_t y8 = vector_data[1];
@@ -453,7 +453,7 @@ namespace acl
 	}
 
 	ACL_DEPRECATED("Use unpack_vector3_u24_unsafe and unpack_vector3_s24_unsafe instead, to be removed in v2.0")
-	inline Vector4_32 unpack_vector3_24(const uint8_t* vector_data, bool is_unsigned)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_24(const uint8_t* vector_data, bool is_unsigned)
 	{
 		uint8_t x8 = vector_data[0];
 		uint8_t y8 = vector_data[1];
@@ -465,7 +465,7 @@ namespace acl
 	}
 
 	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
-	inline void pack_vector3_uXX_unsafe(const Vector4_32& vector, uint8_t num_bits, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_uXX_unsafe(Vector4_32Arg0 vector, uint8_t num_bits, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), num_bits);
 		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), num_bits);
@@ -480,7 +480,7 @@ namespace acl
 	}
 
 	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
-	inline void pack_vector3_sXX_unsafe(const Vector4_32& vector, uint8_t num_bits, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_sXX_unsafe(Vector4_32Arg0 vector, uint8_t num_bits, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_signed(vector_get_x(vector), num_bits);
 		uint32_t vector_y = pack_scalar_signed(vector_get_y(vector), num_bits);
@@ -496,7 +496,7 @@ namespace acl
 
 	// Assumes the 'out_vector_data' is padded in order to write up to 8 bytes to it
 	ACL_DEPRECATED("Use pack_vector3_uXX_unsafe and pack_vector3_sXX_unsafe instead, to be removed in v2.0")
-	inline void pack_vector3_n(const Vector4_32& vector, uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, uint8_t* out_vector_data)
+	inline void ACL_SIMD_CALL pack_vector3_n(Vector4_32Arg0 vector, uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), XBits) : pack_scalar_signed(vector_get_x(vector), XBits);
 		uint32_t vector_y = is_unsigned ? pack_scalar_unsigned(vector_get_y(vector), YBits) : pack_scalar_signed(vector_get_y(vector), YBits);
@@ -508,7 +508,7 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
-	inline Vector4_32 unpack_vector3_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
 		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
@@ -627,7 +627,7 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
-	inline Vector4_32 unpack_vector3_sXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_sXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
 
@@ -637,7 +637,7 @@ namespace acl
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 8 bytes from it
 	ACL_DEPRECATED("Use unpack_vector3_uXX_unsafe and unpack_vector3_sXX_unsafe instead, to be removed in v2.0")
-	inline Vector4_32 unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data)
 	{
 		uint64_t vector_u64 = *safe_ptr_cast<const uint64_t>(vector_data);
 		uint32_t x64 = safe_static_cast<uint32_t>(vector_u64 >> (YBits + ZBits));
@@ -651,7 +651,7 @@ namespace acl
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 12 bytes from it
 	ACL_DEPRECATED("Use unpack_vector3_uXX_unsafe and unpack_vector3_sXX_unsafe instead, to be removed in v2.0")
-	inline Vector4_32 unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data, uint32_t bit_offset)
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_n(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		uint8_t num_bits_to_read = XBits + YBits + ZBits;
 

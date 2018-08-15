@@ -133,7 +133,7 @@ namespace acl
 				TranslationDecompressionSettingsAdapter(const SettingsType& settings_) : settings(settings_) {}
 
 				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Translations; }
-				constexpr Vector4_32 get_default_value() const { return vector_zero_32(); }
+				inline Vector4_32 ACL_SIMD_CALL get_default_value() const { return vector_zero_32(); }
 				constexpr VectorFormat8 get_vector_format(const ClipHeader& header) const { return settings.get_translation_format(header.translation_format); }
 				constexpr bool is_vector_format_supported(VectorFormat8 format) const { return settings.is_translation_format_supported(format); }
 
@@ -154,7 +154,7 @@ namespace acl
 				{}
 
 				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Scales; }
-				inline Vector4_32 get_default_value() const { return default_scale; }
+				inline Vector4_32 ACL_SIMD_CALL get_default_value() const { return default_scale; }
 				constexpr VectorFormat8 get_vector_format(const ClipHeader& header) const { return settings.get_scale_format(header.scale_format); }
 				constexpr bool is_vector_format_supported(VectorFormat8 format) const { return settings.is_scale_format_supported(format); }
 
