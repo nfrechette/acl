@@ -1,5 +1,0 @@
-# Temporary data rules
-build/
-*.suo
-**/__pycache__/
-.vscode/
