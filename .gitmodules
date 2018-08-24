@@ -1,0 +1,4 @@
+[submodule "external/sjson-cpp"]
+	path = external/sjson-cpp
+	url = https://github.com/nfrechette/sjson-cpp
+	branch = develop

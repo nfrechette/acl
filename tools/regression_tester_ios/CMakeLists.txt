@@ -18,7 +18,7 @@ set(MACOSX_BUNDLE_BUNDLE_NAME "acl-regression-tester")
 include_directories("${PROJECT_SOURCE_DIR}/../../includes")
 include_directories("${PROJECT_SOURCE_DIR}/../acl_compressor/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../acl_compressor/sources")
-include_directories("${PROJECT_SOURCE_DIR}/../../external/sjson-cpp-0.4.0/includes")
+include_directories("${PROJECT_SOURCE_DIR}/../../external/sjson-cpp/includes")
 
 # Setup resources
 if(EXISTS ${TEST_DATA_DIR})

@@ -17,7 +17,7 @@ set(CMAKE_ANDROID_JAVA_SOURCE_DIR "${PROJECT_SOURCE_DIR}/java")
 include_directories("${PROJECT_SOURCE_DIR}/../../includes")
 include_directories("${PROJECT_SOURCE_DIR}/../acl_compressor/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../acl_compressor/sources")
-include_directories("${PROJECT_SOURCE_DIR}/../../external/sjson-cpp-0.4.0/includes")
+include_directories("${PROJECT_SOURCE_DIR}/../../external/sjson-cpp/includes")
 
 # Setup resources
 set(PROJECT_RESOURCE_DIR "${PROJECT_BINARY_DIR}/res")
