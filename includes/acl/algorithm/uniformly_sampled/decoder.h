@@ -108,6 +108,18 @@ namespace acl
 
 			struct alignas(k_cache_line_size) SamplingContext
 			{
+				static constexpr size_t k_num_samples_to_interpolate = 2;
+
+				inline static Quat_32 interpolate_rotation(const Quat_32 rotations[k_num_samples_to_interpolate], float interpolation_alpha)
+				{
+					return quat_lerp(rotations[0], rotations[1], interpolation_alpha);
+				}
+
+				inline static Vector4_32 interpolate_vector4(const Vector4_32 vectors[k_num_samples_to_interpolate], float interpolation_alpha)
+				{
+					return vector_lerp(vectors[0], vectors[1], interpolation_alpha);
+				}
+
 				//												//   offsets
 				uint32_t track_index;							//   0 |   0
 				uint32_t constant_track_data_offset;			//   4 |   4
@@ -510,7 +522,7 @@ namespace acl
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				if (writer.skip_all_bone_rotations() || writer.skip_bone_rotation(bone_index))
-					skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);
+					skip_over_rotation(m_settings, header, m_context, sampling_context);
 				else
 				{
 					const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
@@ -518,7 +530,7 @@ namespace acl
 				}
 
 				if (writer.skip_all_bone_translations() || writer.skip_bone_translation(bone_index))
-					skip_vectors_in_two_key_frames(translation_adapter, header, m_context, sampling_context);
+					skip_over_vector(translation_adapter, header, m_context, sampling_context);
 				else
 				{
 					const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
@@ -528,7 +540,7 @@ namespace acl
 				if (writer.skip_all_bone_scales() || writer.skip_bone_scale(bone_index))
 				{
 					if (header.has_scale)
-						skip_vectors_in_two_key_frames(scale_adapter, header, m_context, sampling_context);
+						skip_over_vector(scale_adapter, header, m_context, sampling_context);
 				}
 				else
 				{
@@ -572,11 +584,11 @@ namespace acl
 
 				for (uint16_t bone_index = 0; bone_index < sample_bone_index; ++bone_index)
 				{
-					skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);
-					skip_vectors_in_two_key_frames(translation_adapter, header, m_context, sampling_context);
+					skip_over_rotation(m_settings, header, m_context, sampling_context);
+					skip_over_vector(translation_adapter, header, m_context, sampling_context);
 
 					if (header.has_scale)
-						skip_vectors_in_two_key_frames(scale_adapter, header, m_context, sampling_context);
+						skip_over_vector(scale_adapter, header, m_context, sampling_context);
 				}
 			}
 			else
@@ -727,12 +739,15 @@ namespace acl
 			if (out_rotation != nullptr)
 				*out_rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
 			else
-				skip_rotations_in_two_key_frames(m_settings, header, m_context, sampling_context);
+				skip_over_rotation(m_settings, header, m_context, sampling_context);
 
 			if (out_translation != nullptr)
 				*out_translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
-			else
-				skip_vectors_in_two_key_frames(translation_adapter, header, m_context, sampling_context);
+			else if (out_scale != nullptr && header.has_scale)
+			{
+				// We'll need to read the scale value that follows, skip the translation we don't need
+				skip_over_vector(translation_adapter, header, m_context, sampling_context);
+			}
 
 			if (out_scale != nullptr)
 				*out_scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
