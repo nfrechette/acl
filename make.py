@@ -468,7 +468,7 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 				continue
 
 			clip_filename = os.path.join(dirpath, filename)
-			regression_clips.append(clip_filename)
+			regression_clips.append((clip_filename, os.path.getsize(clip_filename)))
 
 	# Grab all the test configurations
 	test_configs = []
@@ -482,6 +482,9 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 				config_filename = os.path.join(dirpath, filename)
 				test_configs.append(config_filename)
 
+	# Sort clips by size to test larger clips first, it parallelizes better
+	regression_clips.sort(key=lambda entry: entry[1], reverse=True)
+
 	# Iterate over every clip and configuration and perform the regression testing
 	for config_filename in test_configs:
 		print('Performing regression tests for configuration: {}'.format(os.path.basename(config_filename)))
@@ -491,7 +494,7 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 		completed_queue = queue.Queue()
 		failed_queue = queue.Queue()
 		failure_lock = threading.Lock()
-		for clip_filename in regression_clips:
+		for clip_filename, _ in regression_clips:
 			cmd = '{} -acl="{}" -test -config="{}"'.format(compressor_exe_path, clip_filename, config_filename)
 			if platform.system() == 'Windows':
 				cmd = cmd.replace('/', '\\')
