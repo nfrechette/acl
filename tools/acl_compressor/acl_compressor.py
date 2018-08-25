@@ -133,7 +133,7 @@ def print_help():
 	print('  -help: Prints this help message.')
 
 def print_stat(stat):
-	print('Algorithm: {}, Format: [{}], Ratio: {:.2f}, Error: {}'.format(stat['algorithm_name'], stat['desc'], stat['compression_ratio'], stat['max_error']))
+	print('Algorithm: {}, Format: [{}], Ratio: {:.2f}, Error: {:.4f}'.format(stat['algorithm_name'], stat['desc'], stat['compression_ratio'], stat['max_error']))
 	print('')
 
 def bytes_to_mb(size_in_bytes):
