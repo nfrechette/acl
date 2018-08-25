@@ -51,6 +51,7 @@ add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${ALL_MAIN_SOURCE_FILES} ${ALL_COMM
 
 # Throw on failure to allow us to catch them and recover
 add_definitions(-DACL_ON_ASSERT_THROW)
+add_definitions(-DSJSON_CPP_ON_ASSERT_THROW)
 
 # Disable allocation track since if we fail a regression test, we'll throw an exception
 # and fail to free memory, leading to a crash in the allocator
