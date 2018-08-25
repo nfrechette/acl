@@ -334,7 +334,7 @@ def do_prepare_regression_test_data(test_data_dir, options):
 				continue
 
 			clip_filename = os.path.join(dirpath, filename)
-			regression_clips.append(clip_filename)
+			regression_clips.append((clip_filename, os.path.getsize(clip_filename)))
 
 	if len(regression_clips) == 0:
 		print('No regression clips found')
@@ -352,7 +352,7 @@ def do_prepare_regression_test_data(test_data_dir, options):
 					continue
 
 				config_filename = os.path.join(dirpath, filename)
-				test_configs.append(config_filename)
+				test_configs.append((config_filename, filename))
 
 	if len(test_configs) == 0:
 		print('No regression configurations found')
@@ -361,14 +361,20 @@ def do_prepare_regression_test_data(test_data_dir, options):
 	print('Found {} regression configurations'.format(len(test_configs)))
 
 	if needs_decompression:
+		# Sort the configs by name for consistency
+		test_configs.sort(key=lambda entry: entry[1])
+
+		# Sort clips by size to test larger clips first, it parallelizes better
+		regression_clips.sort(key=lambda entry: entry[1], reverse=True)
+
 		with open(os.path.join(current_test_data_dir, 'metadata.sjson'), 'w') as metadata_file:
 			print('configs = [', file = metadata_file)
-			for config_filename in test_configs:
+			for config_filename, _ in test_configs:
 				print('\t"{}"'.format(os.path.relpath(config_filename, test_config_dir)), file = metadata_file)
 			print(']', file = metadata_file)
 			print('', file = metadata_file)
 			print('clips = [', file = metadata_file)
-			for clip_filename in regression_clips:
+			for clip_filename, _ in regression_clips:
 				print('\t"{}"'.format(os.path.relpath(clip_filename, current_test_data_dir)), file = metadata_file)
 			print(']', file = metadata_file)
 			print('', file = metadata_file)
@@ -480,13 +486,16 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 					continue
 
 				config_filename = os.path.join(dirpath, filename)
-				test_configs.append(config_filename)
+				test_configs.append((config_filename, filename))
+
+	# Sort the configs by name for consistency
+	test_configs.sort(key=lambda entry: entry[1])
 
 	# Sort clips by size to test larger clips first, it parallelizes better
 	regression_clips.sort(key=lambda entry: entry[1], reverse=True)
 
 	# Iterate over every clip and configuration and perform the regression testing
-	for config_filename in test_configs:
+	for config_filename, _ in test_configs:
 		print('Performing regression tests for configuration: {}'.format(os.path.basename(config_filename)))
 		regression_start_time = time.clock()
 
