@@ -68,7 +68,7 @@
 
 	// With MSVC and SSE2, we can use the __vectorcall calling convention to pass vector types and aggregates by value through registers
 	// for improved code generation
-	#if defined(_MSC_VER) && !defined(_M_ARM) && (!_MANAGED) && (!_M_CEE) && (!defined(_M_IX86_FP) || (_M_IX86_FP > 1)) && !defined(ACL_SIMD_CALL)
+	#if defined(_MSC_VER) && !defined(_M_ARM) && !defined(_MANAGED) && !defined(_M_CEE) && (!defined(_M_IX86_FP) || (_M_IX86_FP > 1)) && !defined(ACL_SIMD_CALL)
 		#if ((_MSC_FULL_VER >= 170065501) && (_MSC_VER < 1800)) || (_MSC_FULL_VER >= 180020418)
 			#define ACL_USE_VECTORCALL
 		#endif
