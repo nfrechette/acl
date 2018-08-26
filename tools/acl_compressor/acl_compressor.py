@@ -80,12 +80,12 @@ def parse_argv():
 		print_help()
 		sys.exit(1)
 
-	if options['acl'] == None:
+	if len(options['acl']) == 0:
 		print('ACL input directory not found')
 		print_usage()
 		sys.exit(1)
 
-	if options['stats'] == None:
+	if len(options['stats']) == 0:
 		print('Stat output directory not found')
 		print_usage()
 		sys.exit(1)
