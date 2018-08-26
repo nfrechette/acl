@@ -371,6 +371,9 @@ namespace acl
 		const ClipHeader& clip_header = get_clip_header(compressed_clip);
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, clip_header.num_bones);
 
+		const uint32_t num_bytes_per_bone = (4 + 3 + 3) * sizeof(float);	// Rotation, Translation, Scale
+		writer["pose_size"] = uint32_t(clip_header.num_bones) * num_bytes_per_bone;
+
 		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& writer)
 		{
 			// Cold/Warm CPU cache, memcpy
