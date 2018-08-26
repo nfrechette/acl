@@ -58,8 +58,7 @@
 #include <string>
 #include <memory>
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 	// The below excludes some other unused services from the windows headers -- see windows.h for details.
 	#define NOGDICAPMASKS            // CC_*, LC_*, PC_*, CP_*, TC_*, RC_
 	#define NOVIRTUALKEYCODES        // VK_*
@@ -854,6 +853,14 @@ static int safe_main_impl(int argc, char* argv[])
 
 	if (!parse_options(argc, argv, options))
 		return -1;
+
+	if (options.profile_decompression)
+	{
+#if defined(_WIN32)
+		// Set the process affinity to core 2, we'll use core 0 for the python script
+		SetProcessAffinityMask(GetCurrentProcess(), 1 << 2);
+#endif
+	}
 
 	ANSIAllocator allocator;
 	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;

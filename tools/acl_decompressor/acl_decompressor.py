@@ -1,6 +1,7 @@
 import multiprocessing
 import os
 import platform
+import psutil
 import queue
 import threading
 import time
@@ -409,8 +410,15 @@ def aggregate_job_stats(agg_job_results, job_results):
 	else:
 		agg_job_results['num_runs'] += job_results['num_runs']
 
+def set_process_affinity(affinity):
+	p = psutil.Process()
+	p.cpu_affinity([affinity])
+
 if __name__ == "__main__":
 	options = parse_argv()
+
+	# Set the affinity to core 0, on platforms that support it, core 2 will be used to decompress
+	set_process_affinity(0)
 
 	if options['android']:
 		stat_files = decompress_clips_android(options)
