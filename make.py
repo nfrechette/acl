@@ -10,7 +10,7 @@ import zipfile
 
 # The current test data version in used
 current_test_data = 'test_data_v1'
-current_decomp_data = 'decomp_data_v1'
+current_decomp_data = 'decomp_data_v2'
 
 def parse_argv():
 	options = {}
