@@ -396,13 +396,13 @@ namespace acl
 			write_decompression_performance_stats(compressed_clip, logging, writer, "backward_bone_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
 			write_decompression_performance_stats(compressed_clip, logging, writer, "random_bone_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
 			// Cold CPU cache, decompress_ue4
-			write_decompression_performance_stats(compressed_clip, logging, writer, "forward_ue4_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "backward_ue4_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "random_ue4_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, writer, "forward_ue4_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, writer, "backward_ue4_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, writer, "random_ue4_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
 			// Warm CPU cache, decompress_ue4
-			write_decompression_performance_stats(compressed_clip, logging, writer, "forward_ue4_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "backward_ue4_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "random_ue4_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, writer, "forward_ue4_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, writer, "backward_ue4_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, writer, "random_ue4_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
 		};
 
 		deallocate_type_array(allocator, lossy_pose_transforms, clip_header.num_bones);
