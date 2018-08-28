@@ -753,7 +753,7 @@ namespace acl
 
 				constexpr size_t num_key_frames = SamplingContextType::k_num_samples_to_interpolate;
 
-				Vector4_32 rotations[num_key_frames];
+				Vector4_32 rotations_as_vec[num_key_frames];
 				bool ignore_clip_range[num_key_frames] = { false };
 				bool ignore_segment_range[num_key_frames] = { false };
 
@@ -766,21 +766,21 @@ namespace acl
 
 						if (is_constant_bit_rate(bit_rate))
 						{
-							rotations[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
+							rotations_as_vec[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
 							ignore_segment_range[i] = true;
 						}
 						else if (is_raw_bit_rate(bit_rate))
 						{
-							rotations[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+							rotations_as_vec[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 							ignore_clip_range[i] = true;
 							ignore_segment_range[i] = true;
 						}
 						else
 						{
 							if (are_clip_rotations_normalized)
-								rotations[i] = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+								rotations_as_vec[i] = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 							else
-								rotations[i] = unpack_vector3_sXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+								rotations_as_vec[i] = unpack_vector3_sXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 						}
 
 						uint8_t num_bits_read = num_bits_at_bit_rate * 3;
@@ -801,27 +801,27 @@ namespace acl
 					if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 					{
 						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations[i] = unpack_vector4_128(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+							rotations_as_vec[i] = unpack_vector4_128(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 					}
 					else if (rotation_format == RotationFormat8::QuatDropW_96 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_96))
 					{
 						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+							rotations_as_vec[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 					}
 					else if (rotation_format == RotationFormat8::QuatDropW_48 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_48))
 					{
 						for (size_t i = 0; i < num_key_frames; ++i)
 						{
 							if (are_clip_rotations_normalized)
-								rotations[i] = unpack_vector3_u48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+								rotations_as_vec[i] = unpack_vector3_u48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 							else
-								rotations[i] = unpack_vector3_s48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+								rotations_as_vec[i] = unpack_vector3_s48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 						}
 					}
 					else if (rotation_format == RotationFormat8::QuatDropW_32 && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_32))
 					{
 						for (size_t i = 0; i < num_key_frames; ++i)
-							rotations[i] = unpack_vector3_32(11, 11, 10, are_clip_rotations_normalized, decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+							rotations_as_vec[i] = unpack_vector3_32(11, 11, 10, are_clip_rotations_normalized, decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 					}
 
 					const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
@@ -846,7 +846,7 @@ namespace acl
 								const Vector4_32 segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
 								const Vector4_32 segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)));
 
-								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
+								rotations_as_vec[i] = vector_mul_add(rotations_as_vec[i], segment_range_extent, segment_range_min);
 							}
 						}
 					}
@@ -859,7 +859,7 @@ namespace acl
 								const Vector4_32 segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset, true);
 								const Vector4_32 segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)), true);
 
-								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
+								rotations_as_vec[i] = vector_mul_add(rotations_as_vec[i], segment_range_extent, segment_range_min);
 							}
 						}
 						else
@@ -869,7 +869,7 @@ namespace acl
 								const Vector4_32 segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
 								const Vector4_32 segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)));
 
-								rotations[i] = vector_mul_add(rotations[i], segment_range_extent, segment_range_min);
+								rotations_as_vec[i] = vector_mul_add(rotations_as_vec[i], segment_range_extent, segment_range_min);
 							}
 						}
 					}
@@ -885,21 +885,22 @@ namespace acl
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
 						if (!ignore_clip_range[i])
-							rotations[i] = vector_mul_add(rotations[i], clip_range_extent, clip_range_min);
+							rotations_as_vec[i] = vector_mul_add(rotations_as_vec[i], clip_range_extent, clip_range_min);
 					}
 
 					sampling_context.clip_range_data_offset += decomp_context.num_rotation_components * sizeof(float) * 2;
 				}
 
+				Quat_32 rotations[num_key_frames];
 				if (rotation_format == RotationFormat8::Quat_128 && settings.is_rotation_format_supported(RotationFormat8::Quat_128))
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
-						rotations[i] = vector_to_quat(rotations[i]);
+						rotations[i] = vector_to_quat(rotations_as_vec[i]);
 				}
 				else
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
-						rotations[i] = quat_from_positive_w(rotations[i]);
+						rotations[i] = quat_from_positive_w(rotations_as_vec[i]);
 				}
 
 				interpolated_rotation = SamplingContextType::interpolate_rotation(rotations, decomp_context.interpolation_alpha);
