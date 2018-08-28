@@ -593,36 +593,30 @@ namespace acl
 		float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
 		return vmulq_n_f32(value_f32, inv_max_value);
 #else
-		const uint8_t num_bits_to_read = num_bits * 3;
+		const uint32_t bit_shift = 32 - num_bits;
+		const uint32_t mask = k_packed_constants[num_bits].mask;
+		const float inv_max_value = k_packed_constants[num_bits].max_value;
 
 		uint32_t byte_offset = bit_offset / 8;
-		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
-		vector_u64 = byte_swap(vector_u64);
-		vector_u64 <<= bit_offset % 8;
-		vector_u64 >>= 64 - num_bits_to_read;
+		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
-		const uint32_t x32 = safe_static_cast<uint32_t>(vector_u64 >> (num_bits * 2));
-		const uint32_t y32 = safe_static_cast<uint32_t>((vector_u64 >> num_bits) & ((1 << num_bits) - 1));
-		uint32_t z32;
+		bit_offset += num_bits;
 
-		if (num_bits_to_read + (bit_offset % 8) > 64)
-		{
-			// Larger values can be split over 2x u64 entries
-			bit_offset += num_bits * 2;
-			byte_offset = bit_offset / 8;
-			vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset);
-			vector_u64 = byte_swap(vector_u64);
-			vector_u64 <<= bit_offset % 8;
-			vector_u64 >>= 64 - num_bits;
-			z32 = safe_static_cast<uint32_t>(vector_u64);
-		}
-		else
-			z32 = safe_static_cast<uint32_t>(vector_u64 & ((1 << num_bits) - 1));
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
-		const float x = unpack_scalar_unsigned(x32, num_bits);
-		const float y = unpack_scalar_unsigned(y32, num_bits);
-		const float z = unpack_scalar_unsigned(z32, num_bits);
-		return vector_set(x, y, z);
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+		return vector_mul(vector_set(float(x32), float(y32), float(z32)), inv_max_value);
 #endif
 	}
 
