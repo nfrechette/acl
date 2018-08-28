@@ -9,6 +9,7 @@ include(CMakePlatforms)
 
 set(USE_AVX_INSTRUCTIONS false CACHE BOOL "Use AVX instructions")
 set(USE_POPCNT_INSTRUCTIONS false CACHE BOOL "Use POPCOUNT instructions")
+set(USE_SIMD_INSTRUCTIONS true CACHE BOOL "Use SIMD instructions")
 set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
 
 set(TEST_DATA_DIR "" CACHE STRING "The full path of the regression test data directory")
