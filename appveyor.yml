@@ -22,3 +22,5 @@ build_script:
     %PYTHON%\\python.exe make.py -clean -build -unit_test -%COMPILER% -Debug -x64
 
     %PYTHON%\\python.exe make.py -clean -build -unit_test -%COMPILER% -Release -x64
+
+    %PYTHON%\\python.exe make.py -clean -build -unit_test -%COMPILER% -Release -x64 -nosimd
