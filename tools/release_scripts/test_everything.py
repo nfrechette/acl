@@ -26,15 +26,15 @@ if __name__ == "__main__":
 	configs = [ '-debug', '-release' ]
 	archs = [ '-x86', '-x64' ]
 	compilers = get_platform_compilers()
-	avx_opts = [ '', '-avx' ]
+	simd_opts = [ '', '-avx', '-nosimd' ]
 	python_exe = get_python_exe_name()
 
 	cmds = []
 	for config in configs:
 		for arch in archs:
 			for compiler in compilers:
-				for w_avx in avx_opts:
-					cmds.append('{} make.py {} {} {} {} -build -unit_test -regression_test -clean'.format(python_exe, compiler, arch, config, w_avx))
+				for simd in simd_opts:
+					cmds.append('{} make.py {} {} {} {} -build -unit_test -regression_test -clean'.format(python_exe, compiler, arch, config, simd))
 
 	root_dir = os.path.join(os.getcwd(), '../..')
 	os.chdir(root_dir)
