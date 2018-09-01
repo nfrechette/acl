@@ -65,8 +65,8 @@ If you would like to integrate ACL into your own game engine, follow the integra
 
 ## External dependencies
 
-There are none! You don't need anything else to get started: everything is self contained.
-See [here](./external) for details on the ones we do include.
+You don't need anything else to get started: everything is self contained.
+See [here](./external) for details.
 
 ## License, copyright, and code of conduct
 
