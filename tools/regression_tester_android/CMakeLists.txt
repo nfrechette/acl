@@ -65,6 +65,11 @@ target_compile_options(${PROJECT_NAME} PRIVATE -g)
 add_definitions(-DACL_ON_ASSERT_THROW)
 add_definitions(-DSJSON_CPP_ON_ASSERT_THROW)
 
+# Disable SIMD if not needed
+if(NOT USE_SIMD_INSTRUCTIONS)
+	add_definitions(-DACL_NO_INTRINSICS)
+endif()
+
 # Disable allocation track since if we fail a regression test, we'll throw an exception
 # and fail to free memory, leading to a crash in the allocator
 add_definitions(-DACL_NO_ALLOCATOR_TRACKING)

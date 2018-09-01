@@ -46,6 +46,11 @@ target_compile_options(${PROJECT_NAME} PRIVATE -g)
 # Throw on failure to allow us to catch them and recover
 add_definitions(-DACL_ON_ASSERT_THROW)
 
+# Disable SIMD if not needed
+if(NOT USE_SIMD_INSTRUCTIONS)
+	add_definitions(-DACL_NO_INTRINSICS)
+endif()
+
 target_include_directories(${PROJECT_NAME} PUBLIC jni)
 
 target_link_libraries(${PROJECT_NAME} m)
