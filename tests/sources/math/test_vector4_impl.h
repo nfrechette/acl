@@ -248,7 +248,8 @@ void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const 
 	REQUIRE(scalar_near_equal(vector_get_x(vector_mul(test_value0, test_value1)), test_value0_flt[0] * test_value1_flt[0], threshold));
 	REQUIRE(scalar_near_equal(vector_get_y(vector_mul(test_value0, test_value1)), test_value0_flt[1] * test_value1_flt[1], threshold));
 	REQUIRE(scalar_near_equal(vector_get_z(vector_mul(test_value0, test_value1)), test_value0_flt[2] * test_value1_flt[2], threshold));
-	REQUIRE(scalar_near_equal(vector_get_w(vector_mul(test_value0, test_value1)), test_value0_flt[3] * test_value1_flt[3], threshold));
+	// We have a strange codegen bug with gcc5, use the Catch near equal impl instead
+	REQUIRE(vector_get_w(vector_mul(test_value0, test_value1)) == Approx(test_value0_flt[3] * test_value1_flt[3]).margin(threshold));
 
 	REQUIRE(scalar_near_equal(vector_get_x(vector_mul(test_value0, FloatType(2.34))), test_value0_flt[0] * FloatType(2.34), threshold));
 	REQUIRE(scalar_near_equal(vector_get_y(vector_mul(test_value0, FloatType(2.34))), test_value0_flt[1] * FloatType(2.34), threshold));

@@ -26,7 +26,13 @@
 
 TEST_CASE("vector4 32 math", "[math][vector4]")
 {
-	test_vector4_impl<Vector4_32, Quat_32, float>(vector_zero_32(), quat_identity_32(), 1.0e-6f);
+#if defined(ACL_NO_INTRINSICS)
+	const float threshold = 1.0e-4f;
+#else
+	const float threshold = 1.0e-5f;
+#endif
+
+	test_vector4_impl<Vector4_32, Quat_32, float>(vector_zero_32(), quat_identity_32(), threshold);
 
 	const Vector4_32 src = vector_set(-2.65f, 2.996113f, 0.68123521f, -5.9182f);
 	const Vector4_64 dst = vector_cast(src);
