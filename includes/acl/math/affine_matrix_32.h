@@ -351,6 +351,11 @@ namespace acl
 		y_axis = vector_mul(y_axis, inv_det);
 		z_axis = vector_mul(z_axis, inv_det);
 		w_axis = vector_mul(w_axis, inv_det);
+
+#if defined(ACL_NO_INTRINSICS)
+		w_axis = vector_set(vector_get_x(w_axis), vector_get_y(w_axis), vector_get_z(w_axis), 1.0f);
+#endif
+
 		return matrix_set(x_axis, y_axis, z_axis, w_axis);
 	}
 
