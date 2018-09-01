@@ -81,7 +81,7 @@ namespace acl
 	typedef float32x4_t Quat_32;
 	typedef float32x4_t Vector4_32;
 
-	struct Quat_64
+	struct alignas(16) Quat_64
 	{
 		double x;
 		double y;
@@ -89,7 +89,7 @@ namespace acl
 		double w;
 	};
 
-	struct Vector4_64
+	struct alignas(16) Vector4_64
 	{
 		double x;
 		double y;
@@ -97,7 +97,7 @@ namespace acl
 		double w;
 	};
 #else
-	struct Quat_32
+	struct alignas(16) Quat_32
 	{
 		float x;
 		float y;
@@ -105,7 +105,7 @@ namespace acl
 		float w;
 	};
 
-	struct Vector4_32
+	struct alignas(16) Vector4_32
 	{
 		float x;
 		float y;
@@ -113,7 +113,7 @@ namespace acl
 		float w;
 	};
 
-	struct Quat_64
+	struct alignas(16) Quat_64
 	{
 		double x;
 		double y;
@@ -121,7 +121,7 @@ namespace acl
 		double w;
 	};
 
-	struct Vector4_64
+	struct alignas(16) Vector4_64
 	{
 		double x;
 		double y;
