@@ -411,8 +411,9 @@ def aggregate_job_stats(agg_job_results, job_results):
 		agg_job_results['num_runs'] += job_results['num_runs']
 
 def set_process_affinity(affinity):
-	p = psutil.Process()
-	p.cpu_affinity([affinity])
+	if platform.system() == 'Windows':
+		p = psutil.Process()
+		p.cpu_affinity([affinity])
 
 if __name__ == "__main__":
 	options = parse_argv()
