@@ -53,6 +53,11 @@ add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${ALL_COMMON_SOURCE_FILES} ${ALL_MA
 # Disable allocation tracking
 add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
 
+# Disable SIMD if not needed
+if(NOT USE_SIMD_INSTRUCTIONS)
+	add_definitions(-DACL_NO_INTRINSICS)
+endif()
+
 target_link_libraries(${PROJECT_NAME} "-framework CoreFoundation")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/Info.plist.in)

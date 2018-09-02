@@ -57,4 +57,9 @@ add_definitions(-DSJSON_CPP_ON_ASSERT_THROW)
 # and fail to free memory, leading to a crash in the allocator
 add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
 
+# Disable SIMD if not needed
+if(NOT USE_SIMD_INSTRUCTIONS)
+	add_definitions(-DACL_NO_INTRINSICS)
+endif()
+
 target_link_libraries(${PROJECT_NAME} "-framework CoreFoundation")

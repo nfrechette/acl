@@ -44,6 +44,11 @@ target_compile_options(${PROJECT_NAME} PRIVATE -fexceptions)
 # Enable debug symbols
 target_compile_options(${PROJECT_NAME} PRIVATE -g)
 
+# Disable SIMD if not needed
+if(NOT USE_SIMD_INSTRUCTIONS)
+	add_definitions(-DACL_NO_INTRINSICS)
+endif()
+
 target_include_directories(${PROJECT_NAME} PUBLIC jni)
 
 target_link_libraries(${PROJECT_NAME} m) # test linking to library by name
