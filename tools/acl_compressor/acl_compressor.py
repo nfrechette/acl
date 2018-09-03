@@ -1,4 +1,5 @@
 import multiprocessing
+import numpy
 import os
 import platform
 import queue
@@ -138,6 +139,9 @@ def print_stat(stat):
 
 def bytes_to_mb(size_in_bytes):
 	return size_in_bytes / (1024.0 * 1024.0)
+
+def bytes_to_kb(size_in_bytes):
+	return size_in_bytes / 1024.0
 
 def format_elapsed_time(elapsed_time):
 	hours, rem = divmod(elapsed_time, 3600)
@@ -501,6 +505,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 		stats_summary_data = []
 		stats_error_data = []
 		stats_animated_size = []
+		bone_error_values = []
 
 		while True:
 			stat_filename = stat_queue.get()
@@ -547,13 +552,14 @@ def run_stat_parsing(options, stat_queue, result_queue):
 									stats_animated_size.append((run_stats['clip_name'], segment_index, segment['animated_frame_size'], run_stats['num_animated_tracks']))
 
 								if 'error_per_frame_and_bone' in segment and len(segment['error_per_frame_and_bone']) > 0:
-									# Convert to array https://docs.python.org/3/library/array.html
-									# Lower memory footprint and more efficient
-									# Drop the data if we don't write the csv files, otherwise aggregate it
+									# Convert to array, lower memory footprint and more efficient
 									if options['csv_error']:
 										#(name, segment_index, data)
 										data = (run_stats['clip_name'], segment_index, segment['error_per_frame_and_bone'])
 										stats_error_data.append(data)
+
+									for frame_error_values in segment['error_per_frame_and_bone']:
+										bone_error_values.extend([float(v) for v in frame_error_values])
 
 									# Data isn't needed anymore, discard it
 									segment['error_per_frame_and_bone'] = []
@@ -574,6 +580,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 		results['stats_summary_data'] = stats_summary_data
 		results['stats_error_data'] = stats_error_data
 		results['stats_animated_size'] = stats_animated_size
+		results['bone_error_values'] = bone_error_values
 
 		result_queue.put(('done', results))
 	except KeyboardInterrupt:
@@ -592,6 +599,10 @@ def aggregate_job_stats(agg_job_results, job_results):
 		return
 
 	if len(agg_job_results) == 0:
+		# Convert array to numpy array
+		bone_error_values = numpy.array(job_results['bone_error_values'])
+		job_results['bone_error_values'] = bone_error_values
+
 		agg_job_results.update(job_results)
 	else:
 		agg_job_results['num_runs'] += job_results['num_runs']
@@ -624,6 +635,8 @@ def aggregate_job_stats(agg_job_results, job_results):
 		if job_results['worst_runs']['worst_ratio'] < agg_job_results['worst_runs']['worst_ratio']:
 			agg_job_results['worst_runs']['worst_ratio'] = job_results['worst_runs']['worst_ratio']
 			agg_job_results['worst_runs']['worst_ratio_entry'] = job_results['worst_runs']['worst_ratio_entry']
+
+		agg_job_results['bone_error_values'] = numpy.append(agg_job_results['bone_error_values'], job_results['bone_error_values'])
 
 if __name__ == "__main__":
 	options = parse_argv()
@@ -709,6 +722,9 @@ if __name__ == "__main__":
 	print('Sum of clip durations: {}'.format(format_elapsed_time(total_duration)))
 	print('Total compression time: {}'.format(format_elapsed_time(total_wall_compression_time)))
 	print('Total raw size: {:.2f} MB'.format(bytes_to_mb(total_raw_size)))
+	print('Compression speed: {:.2f} KB/sec'.format(bytes_to_kb(total_raw_size) / total_compression_time))
+	if len(agg_job_results['bone_error_values']) > 0:
+		print('Bone error 99th percentile: {:.4f}'.format(numpy.percentile(agg_job_results['bone_error_values'], 99.0)))
 	print()
 
 	print('Most accurate: {}'.format(best_runs['best_error_entry']['filename']))
