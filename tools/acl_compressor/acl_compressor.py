@@ -638,6 +638,9 @@ def aggregate_job_stats(agg_job_results, job_results):
 
 		agg_job_results['bone_error_values'] = numpy.append(agg_job_results['bone_error_values'], job_results['bone_error_values'])
 
+def percentile_rank(values, value):
+	return (values < value).mean() * 100.0
+
 if __name__ == "__main__":
 	options = parse_argv()
 
@@ -725,6 +728,7 @@ if __name__ == "__main__":
 	print('Compression speed: {:.2f} KB/sec'.format(bytes_to_kb(total_raw_size) / total_compression_time))
 	if len(agg_job_results['bone_error_values']) > 0:
 		print('Bone error 99th percentile: {:.4f}'.format(numpy.percentile(agg_job_results['bone_error_values'], 99.0)))
+		print('Error threshold percentile rank: {:.2f} (0.01)'.format(percentile_rank(agg_job_results['bone_error_values'], 0.01)))
 	print()
 
 	print('Most accurate: {}'.format(best_runs['best_error_entry']['filename']))
