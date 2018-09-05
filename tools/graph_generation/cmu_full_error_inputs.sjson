@@ -1,15 +1,15 @@
 inputs =
 [
 	{
-		header = "ACL v1.0 @ 0.01cm"
-		file = "D:\\test_animations\\carnegie-mellon-acl-raw-1.0.0-error\\stats_error.csv"
-		version = 1.0
+		header = "ACL v1.1 @ 0.01cm"
+		file = "D:\\test_animations\\carnegie-mellon-acl-raw-1.1.0-error\\stats_error.csv"
+		version = 1.1
 		source = "acl"
 	}
 	{
-		header = "ACL v0.8 @ 0.01cm"
-		file = "D:\\test_animations\\cmu-acl-stats-0.8.0-error\\stats_error.csv"
-		version = 0.8
+		header = "ACL v1.0 @ 0.01cm"
+		file = "D:\\test_animations\\carnegie-mellon-acl-raw-1.0.0-error\\stats_error.csv"
+		version = 1.0
 		source = "acl"
 	}
 ]

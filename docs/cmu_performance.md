@@ -1,11 +1,14 @@
 # Carnegie-Mellon University database performance
 
-|                        | v1.0.0     | v0.8.0     | v0.7.0     |
-| -------                | --------   | --------   | --------   |
-| **Compressed size**    | 67.02 MB   | 67.02 MB   | 67.04 MB   |
-| **Compression ratio**  | 21.33 : 1  | 21.33 : 1  | 21.32 : 1  |
-| **Max error**          | 0.0725 cm  | 0.0703 cm  | 0.0479 cm  |
-| **Compression time**   | 37m 47.76s | 36m 27.22s | 51m 24.01s |
+|                       | v1.1.0     | v1.0.0     | v0.8.0     |
+| --------------------- | ---------- | ---------- | ---------- |
+| **Compressed size**   | 67.06 MB   | 67.02 MB   | 67.02 MB   |
+| **Compression ratio** | 21.31 : 1  | 21.33 : 1  | 21.33 : 1  |
+| **Compression time**  | 35m 19.96s | 37m 47.76s | 36m 27.22s |
+| **Compression speed**  | 690.43 KB/sec | 645.43 KB/sec | 669.20 KB/sec |
+| **Max error**         | 0.0725 cm  | 0.0725 cm  | 0.0703 cm  |
+| **Error 99<sup>th</sup> percentile** | 0.0090 cm | 0.0090 cm | 0.0090 cm |
+| **Samples below error threshold** | 99.83 % | 99.83 % | 99.83 % |
 
 # Data and method used
 
@@ -20,7 +23,7 @@ They were converted to the [ACL file format](the_acl_file_format.md) using the [
 
 ACL supports various compression methods but only the overall best variant will be tracked here (see `get_default_compression_settings()` for details).
 
-The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md).
+The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md) with the default error threshold of **0.01cm**. The **99th** percentile and the number of samples below the error threshold are calculated by measuring the error on every bone at every sample.
 
 The performance of ACL in Unreal Engine 4 is tracked by the plugin [here](https://github.com/nfrechette/acl-ue4-plugin/blob/develop/Docs/cmu_performance.md).
 
