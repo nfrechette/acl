@@ -1,5 +1,12 @@
 # Significant changes per release
 
+## 1.1.0
+
+*  Added proper ARM NEON support
+*  Properly detect SSE2 with MSVC if AVX isn't used
+*  Lots of decompression performance optimizations
+*  Minor fixes and cleanup
+
 ## 1.0.0
 
 *  Minor additions to fully support UE4
