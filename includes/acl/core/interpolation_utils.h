@@ -73,7 +73,7 @@ namespace acl
 		const uint32_t sample_index0 = uint32_t(floor(sample_index));
 		const uint32_t sample_index1 = std::min(sample_index0 + 1, num_samples - 1);
 		const float interpolation_alpha = sample_index - float(sample_index0);
-		ACL_ASSERT(sample_index0 >= 0 && sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
+		ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
 		ACL_ASSERT(interpolation_alpha >= 0.0f && interpolation_alpha <= 1.0f, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
 
 		out_sample_index0 = sample_index0;

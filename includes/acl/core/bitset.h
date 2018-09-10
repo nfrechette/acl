@@ -148,7 +148,6 @@ namespace acl
 	inline void bitset_set_range(uint32_t* bitset, BitSetDescription desc, uint32_t start_bit_index, uint32_t num_bits, bool value)
 	{
 		ACL_ASSERT(desc.is_bit_index_valid(start_bit_index), "Invalid start bit index: %d", start_bit_index);
-		ACL_ASSERT(num_bits >= 0, "Invalid num bits: %d", num_bits);
 		ACL_ASSERT(start_bit_index + num_bits <= desc.get_num_bits(), "Invalid num bits: %d > %d", start_bit_index + num_bits, desc.get_num_bits());
 
 		const uint32_t end_bit_offset = start_bit_index + num_bits;
