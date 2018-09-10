@@ -107,7 +107,7 @@ static void test_quat_impl(const Vector4Type& zero, const QuatType& identity, co
 			uint8_t padding1[8];	// 32 | 48
 		};
 
-		Tmp tmp = { { 0 }, { FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0) } };
+		Tmp tmp = { { 0 }, { FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0) }, {} };
 		REQUIRE(quat_get_x(quat_unaligned_load(&tmp.values[0])) == tmp.values[0]);
 		REQUIRE(quat_get_y(quat_unaligned_load(&tmp.values[0])) == tmp.values[1]);
 		REQUIRE(quat_get_z(quat_unaligned_load(&tmp.values[0])) == tmp.values[2]);
@@ -130,7 +130,7 @@ static void test_quat_impl(const Vector4Type& zero, const QuatType& identity, co
 			uint8_t padding1[8];	// 32 | 48
 		};
 
-		Tmp tmp = { { 0 }, { FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0) } };
+		Tmp tmp = { { 0 }, { FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0) }, {} };
 		quat_unaligned_write(quat_set(FloatType(0.0), FloatType(2.34), FloatType(-3.12), FloatType(10000.0)), &tmp.values[0]);
 		REQUIRE(tmp.values[0] == FloatType(0.0));
 		REQUIRE(tmp.values[1] == FloatType(2.34));
