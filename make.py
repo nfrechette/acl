@@ -80,6 +80,9 @@ def parse_argv():
 		if value == '-gcc7':
 			options['compiler'] = 'gcc7'
 
+		if value == '-gcc8':
+			options['compiler'] = 'gcc8'
+
 		if value == '-osx':
 			options['compiler'] = 'osx'
 
@@ -197,6 +200,9 @@ def set_compiler_env(compiler, options):
 		elif compiler == 'gcc7':
 			os.environ['CC'] = 'gcc-7'
 			os.environ['CXX'] = 'g++-7'
+		elif compiler == 'gcc8':
+			os.environ['CC'] = 'gcc-8'
+			os.environ['CXX'] = 'g++-8'
 		else:
 			print('Unknown compiler: {}'.format(compiler))
 			print('See help with: python make.py -help')
@@ -603,6 +609,7 @@ def print_help():
 	print('  -gcc5: Uses GCC 5.')
 	print('  -gcc6: Uses GCC 6.')
 	print('  -gcc7: Uses GCC 7.')
+	print('  -gcc8: Uses GCC 8.')
 	print('  -clang4: Uses clang 4.')
 	print('  -clang5: Uses clang 5.')
 	print('  -android: Uses NVIDIA CodeWorks.')

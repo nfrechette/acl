@@ -17,6 +17,10 @@ matrix:
     - os: linux
       env: COMPILER=gcc7 PACKAGES="g++-7 g++-7-multilib g++-multilib"
 
+    # Linux gcc8
+    - os: linux
+      env: COMPILER=gcc8 PACKAGES="g++-8 g++-8-multilib g++-multilib"
+
     # Linux clang4
     - os: linux
       env: COMPILER=clang4 PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
