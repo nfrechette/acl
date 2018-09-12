@@ -90,6 +90,18 @@ namespace acl
 
 		virtual void* allocate(size_t size, size_t alignment = k_default_alignment) override
 		{
+			/*
+			 * This is a common requirement for many of the aligned allocators, see
+			 * http://pubs.opengroup.org/onlinepubs/9699919799/functions/posix_memalign.html
+			 * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc?view=vs-2017
+			 */
+			ACL_ASSERT(is_power_of_two(alignment), "The alignment must be power of two.");
+			/*
+			 * Another common requirement is for size to be an integral multiple of alignment,
+			 * i.e. aligned to alignment. As this interface here is supposed to help the user out,
+			 * just silently align it for them, while keeping the tracked size intact.
+			 */
+			size_t aligned_size = align_to(size, alignment);
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 			m_allocation_count.fetch_add(1, std::memory_order_relaxed);
 #endif
@@ -97,11 +109,13 @@ namespace acl
 			void* ptr;
 
 #if defined(_WIN32)
-			ptr = _aligned_malloc(size, alignment);
+			ptr = _aligned_malloc(aligned_size, alignment);
 #elif defined(__APPLE__)
 			ptr = nullptr;
-			posix_memalign(&ptr, std::max<size_t>(alignment, sizeof(void*)), size);
+			posix_memalign(&ptr, std::max<size_t>(alignment, sizeof(void*)), aligned_size);
 #elif defined(__ANDROID__)
+			// Don't bother using aligned_size here, as we're doing custom alignment, just mark the var as unused.
+			(void)aligned_size;
 			alignment = std::max<size_t>(std::max<size_t>(alignment, sizeof(void*)), sizeof(size_t));
 			const size_t padded_size = size + alignment + sizeof(size_t);
 			ptr = malloc(padded_size);
@@ -115,7 +129,7 @@ namespace acl
 				*padding_size_ptr = padding_size;
 			}
 #else
-			ptr = aligned_alloc(alignment, size);
+			ptr = aligned_alloc(alignment, aligned_size);
 #endif
 
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
