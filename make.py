@@ -71,6 +71,9 @@ def parse_argv():
 		if value == '-clang5':
 			options['compiler'] = 'clang5'
 
+		if value == '-clang6':
+			options['compiler'] = 'clang6'
+
 		if value == '-gcc5':
 			options['compiler'] = 'gcc5'
 
@@ -191,6 +194,9 @@ def set_compiler_env(compiler, options):
 		elif compiler == 'clang5':
 			os.environ['CC'] = 'clang-5.0'
 			os.environ['CXX'] = 'clang++-5.0'
+		elif compiler == 'clang6':
+			os.environ['CC'] = 'clang-6.0'
+			os.environ['CXX'] = 'clang++-6.0'
 		elif compiler == 'gcc5':
 			os.environ['CC'] = 'gcc-5'
 			os.environ['CXX'] = 'g++-5'
@@ -612,6 +618,7 @@ def print_help():
 	print('  -gcc8: Uses GCC 8.')
 	print('  -clang4: Uses clang 4.')
 	print('  -clang5: Uses clang 5.')
+	print('  -clang6: Uses clang 6.')
 	print('  -android: Uses NVIDIA CodeWorks.')
 	print('  -ios: Uses X Code for iOS.')
 	print()
