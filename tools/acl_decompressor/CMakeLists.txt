@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.2)
-project(acl_decompressor_root)
+project(acl_decompressor_root CXX)
 
 if(PLATFORM_ANDROID)
 	add_subdirectory("${PROJECT_SOURCE_DIR}/main_android")
