@@ -41,10 +41,10 @@ Much thought was put into designing the library for it to be as flexible and pow
 ## Supported platforms
 
 *  Windows (VS2015, VS2017) x86 and x64
-*  Linux (gcc5, gcc6, gcc7, clang4, clang5) x86 and x64
-*  OS X (Xcode 8.3, Xcode 9.2) x86 and x64
+*  Linux (gcc5, gcc6, gcc7, gcc8, clang4, clang5, clang6) x86 and x64
+*  OS X (Xcode 8.3, Xcode 9.4, Xcode 10) x86 and x64
 *  Android (NVIDIA CodeWorks) ARMv7-A
-*  iOS (Xcode 8.3, Xcode 9.2) ARM64
+*  iOS (Xcode 8.3, Xcode 9.4, Xcode 10) ARM64
 
 The above supported platform list is only what is tested every release but if it compiles, it should run just fine.
 

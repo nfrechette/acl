@@ -43,6 +43,11 @@ matrix:
       osx_image: xcode9.4
       env: COMPILER=osx
 
+    # OS X xcode10
+    - os: osx
+      osx_image: xcode10
+      env: COMPILER=osx
+
 before_install:
     - if [ "$COMPILER" = "clang4" ]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
     - if [ "$COMPILER" = "clang4" ]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
@@ -53,7 +58,7 @@ before_install:
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test" ; fi
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-get -yq update ; fi
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install ${PACKAGES} ; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade python ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade python || true ; fi
 
 script:
     - python3 make.py -clean -build -unit_test -${COMPILER} -Debug -x86
