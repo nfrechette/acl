@@ -125,7 +125,7 @@ namespace acl
 	inline double vector_get_y(const Vector4_64& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return _mm_cvtsd_f64(_mm_shuffle_pd(input.xy, input.xy, _MM_SHUFFLE(1, 1, 1, 1)));
+		return _mm_cvtsd_f64(_mm_shuffle_pd(input.xy, input.xy, 1));
 #else
 		return input.y;
 #endif
@@ -143,7 +143,7 @@ namespace acl
 	inline double vector_get_w(const Vector4_64& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
-		return _mm_cvtsd_f64(_mm_shuffle_pd(input.zw, input.zw, _MM_SHUFFLE(1, 1, 1, 1)));
+		return _mm_cvtsd_f64(_mm_shuffle_pd(input.zw, input.zw, 1));
 #else
 		return input.w;
 #endif
