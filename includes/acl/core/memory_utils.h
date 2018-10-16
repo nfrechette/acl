@@ -167,19 +167,36 @@ namespace acl
 		template<typename Type>
 		struct safe_underlying_type<Type, false> { using type = Type; };
 
+		template<typename DstType, typename SrcType, bool is_floating_point = false>
+		struct is_static_cast_safe_s
+		{
+			static bool test(SrcType input)
+			{
+				using SrcRealType = typename safe_underlying_type<SrcType, std::is_enum<SrcType>::value>::type;
+
+				if (static_condition<(std::is_signed<DstType>::value == std::is_signed<SrcRealType>::value)>::test())
+					return SrcType(DstType(input)) == input;
+				else if (static_condition<(std::is_signed<SrcRealType>::value)>::test())
+					return int64_t(input) >= 0 && SrcType(DstType(input)) == input;
+				else
+					return uint64_t(input) <= uint64_t(std::numeric_limits<DstType>::max());
+			};
+		};
+
+		template<typename DstType, typename SrcType>
+		struct is_static_cast_safe_s<DstType, SrcType, true>
+		{
+			static bool test(SrcType input)
+			{
+				return SrcType(DstType(input)) == input;
+			}
+		};
+
 		template<typename DstType, typename SrcType>
 		inline bool is_static_cast_safe(SrcType input)
 		{
-			using SrcRealType = typename safe_underlying_type<SrcType, std::is_enum<SrcType>::value>::type;
-
-			if (static_condition<(std::is_floating_point<SrcType>::value || std::is_floating_point<DstType>::value)>::test())
-				return SrcType(DstType(input)) == input;
-			else if (static_condition<(std::is_signed<DstType>::value == std::is_signed<SrcRealType>::value)>::test())
-				return SrcType(DstType(input)) == input;
-			else if (static_condition<(std::is_signed<SrcRealType>::value)>::test())
-				return int64_t(input) >= 0 && SrcType(DstType(input)) == input;
-			else
-				return uint64_t(input) <= uint64_t(std::numeric_limits<DstType>::max());
+			// TODO: In C++17 this should be folded to constexpr if
+			return is_static_cast_safe_s<DstType, SrcType, static_condition<(std::is_floating_point<SrcType>::value || std::is_floating_point<DstType>::value)>::test()>::test(input);
 		}
 	}
 
