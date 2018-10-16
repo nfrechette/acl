@@ -4,7 +4,7 @@ project(acl_unit_tests CXX)
 set(CMAKE_CXX_STANDARD 11)
 
 include_directories("${PROJECT_SOURCE_DIR}/../../includes")
-include_directories("${PROJECT_SOURCE_DIR}/../../external/catch-1.9.6")
+include_directories("${PROJECT_SOURCE_DIR}/../../external/catch-2.4.0")
 
 # Grab all of our test source files
 file(GLOB_RECURSE ALL_TEST_SOURCE_FILES LIST_DIRECTORIES false
