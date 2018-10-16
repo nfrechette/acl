@@ -34,8 +34,7 @@ extern "C" jint Java_com_acl_MainActivity_getNumUnitTestCases(JNIEnv* env, jobje
 
 extern "C" jint Java_com_acl_MainActivity_runUnitTests(JNIEnv* env, jobject caller)
 {
-	char* argv[1] = { nullptr };
-	int result = Catch::Session().run(0, argv);
+	int result = Catch::Session().run();
 
 	return (result < 0xff ? result : 0xff);
 }
