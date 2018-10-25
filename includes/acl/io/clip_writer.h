@@ -47,7 +47,7 @@ namespace acl
 				uint64_t u64;
 				double dbl;
 
-				constexpr explicit DoubleToUInt64(double value) : dbl(value) {}
+				constexpr explicit DoubleToUInt64(double dbl_value) : dbl(dbl_value) {}
 			};
 
 			snprintf(buffer, buffer_size, "%" PRIX64, DoubleToUInt64(value).u64);
