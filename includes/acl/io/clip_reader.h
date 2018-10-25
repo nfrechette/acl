@@ -368,7 +368,7 @@ namespace acl
 				uint64_t u64;
 				double dbl;
 
-				constexpr explicit UInt64ToDouble(uint64_t value) : u64(value) {}
+				constexpr explicit UInt64ToDouble(uint64_t u64_value) : u64(u64_value) {}
 			};
 
 			ACL_ASSERT(value.size() <= 16, "Invalid binary exact double value");
