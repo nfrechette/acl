@@ -27,7 +27,7 @@ def parse_argv():
 		print_usage()
 		sys.exit(1)
 
-	if options['version'] == None or len(options['version']) == 0:
+	if options['version'] is None or len(options['version']) == 0:
 		print('-version missing')
 		sys.exit(1)
 
