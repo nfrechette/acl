@@ -116,7 +116,7 @@ namespace acl
 				{
 					uint32_t sample_size = clip_bone_stream.rotations.get_sample_size();
 					RotationTrackStream rotations(allocator, num_samples_in_segment, sample_size, clip_bone_stream.rotations.get_sample_rate(), clip_bone_stream.rotations.get_rotation_format(), clip_bone_stream.rotations.get_bit_rate());
-					memcpy(rotations.get_raw_sample_ptr(0), clip_bone_stream.rotations.get_raw_sample_ptr(clip_sample_index), num_samples_in_segment * sample_size);
+					memcpy(rotations.get_raw_sample_ptr(0), clip_bone_stream.rotations.get_raw_sample_ptr(clip_sample_index), size_t(num_samples_in_segment) * sample_size);
 
 					segment_bone_stream.rotations = std::move(rotations);
 				}
@@ -129,7 +129,7 @@ namespace acl
 				{
 					uint32_t sample_size = clip_bone_stream.translations.get_sample_size();
 					TranslationTrackStream translations(allocator, num_samples_in_segment, sample_size, clip_bone_stream.translations.get_sample_rate(), clip_bone_stream.translations.get_vector_format(), clip_bone_stream.translations.get_bit_rate());
-					memcpy(translations.get_raw_sample_ptr(0), clip_bone_stream.translations.get_raw_sample_ptr(clip_sample_index), num_samples_in_segment * sample_size);
+					memcpy(translations.get_raw_sample_ptr(0), clip_bone_stream.translations.get_raw_sample_ptr(clip_sample_index), size_t(num_samples_in_segment) * sample_size);
 
 					segment_bone_stream.translations = std::move(translations);
 				}
@@ -142,7 +142,7 @@ namespace acl
 				{
 					uint32_t sample_size = clip_bone_stream.scales.get_sample_size();
 					ScaleTrackStream scales(allocator, num_samples_in_segment, sample_size, clip_bone_stream.scales.get_sample_rate(), clip_bone_stream.scales.get_vector_format(), clip_bone_stream.scales.get_bit_rate());
-					memcpy(scales.get_raw_sample_ptr(0), clip_bone_stream.scales.get_raw_sample_ptr(clip_sample_index), num_samples_in_segment * sample_size);
+					memcpy(scales.get_raw_sample_ptr(0), clip_bone_stream.scales.get_raw_sample_ptr(clip_sample_index), size_t(num_samples_in_segment) * sample_size);
 
 					segment_bone_stream.scales = std::move(scales);
 				}

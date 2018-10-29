@@ -234,7 +234,7 @@ namespace acl
 
 			m_num_leaf_bones = safe_static_cast<uint16_t>(bitset_count_set_bits(is_leaf_bitset, bone_bitset_desc));
 
-			m_leaf_bone_chains = allocate_type_array<uint32_t>(allocator, m_num_leaf_bones * bone_bitset_desc.get_size());
+			m_leaf_bone_chains = allocate_type_array<uint32_t>(allocator, size_t(m_num_leaf_bones) * bone_bitset_desc.get_size());
 
 			uint16_t leaf_index = 0;
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -272,7 +272,7 @@ namespace acl
 			deallocate_type_array(m_allocator, m_bones, m_num_bones);
 
 			BitSetDescription bone_bitset_desc = BitSetDescription::make_from_num_bits(m_num_bones);
-			deallocate_type_array(m_allocator, m_leaf_bone_chains, m_num_leaf_bones * bone_bitset_desc.get_size());
+			deallocate_type_array(m_allocator, m_leaf_bone_chains, size_t(m_num_leaf_bones) * bone_bitset_desc.get_size());
 		}
 
 		RigidSkeleton(const RigidSkeleton&) = delete;
