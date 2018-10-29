@@ -148,7 +148,7 @@ namespace acl
 				copy.m_format = m_format;
 				copy.m_bit_rate = m_bit_rate;
 
-				std::memcpy(copy.m_samples, m_samples, m_sample_size * m_num_samples);
+				std::memcpy(copy.m_samples, m_samples, (size_t)m_sample_size * m_num_samples);
 			}
 		}
 

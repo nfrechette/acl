@@ -87,7 +87,7 @@ namespace acl
 		//    - type: The track type
 		AnimationTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate, AnimationTrackType8 type)
 			: m_allocator(&allocator)
-			, m_sample_data(allocate_type_array_aligned<double>(allocator, num_samples * get_animation_track_sample_size(type), alignof(Vector4_64)))
+			, m_sample_data(allocate_type_array_aligned<double>(allocator, size_t(num_samples) * get_animation_track_sample_size(type), alignof(Vector4_64)))
 			, m_num_samples(num_samples)
 			, m_sample_rate(sample_rate)
 			, m_type(type)
@@ -96,7 +96,7 @@ namespace acl
 		~AnimationTrack()
 		{
 			if (is_initialized())
-				deallocate_type_array(*m_allocator, m_sample_data, m_num_samples * get_animation_track_sample_size(m_type));
+				deallocate_type_array(*m_allocator, m_sample_data, size_t(m_num_samples) * get_animation_track_sample_size(m_type));
 		}
 
 		AnimationTrack& operator=(AnimationTrack&& track)
