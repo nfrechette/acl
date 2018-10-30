@@ -1,5 +1,4 @@
 import glob
-import os
 import sys
 
 # Note: This script depends on Pillow
