@@ -232,6 +232,9 @@ namespace acl
 			if (m_num_samples == 0)
 				return ErrorResult("Clip has no samples");
 
+			if (m_sample_rate == 0)
+				return ErrorResult("Clip has no sample rate");
+
 			uint16_t num_output_bones = 0;
 			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
 			{
