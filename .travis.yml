@@ -74,7 +74,8 @@ script:
       python3 make.py -clean -build -ios -Release;
       python3 make.py -clean -build -ios -Release -nosimd;
       fi'
-    - 'if [[ "$SONARCLOUD" == "1" ]]; then
+    # Only run sonarcloud on non-PRs
+    - 'if [[ "$SONARCLOUD" == "1" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
       python3 make.py -clean -${COMPILER} -Release -x64;
       build-wrapper-linux-x86-64 --out-dir bw_output python3 make.py -build -${COMPILER} -Release -x64;
       sonar-scanner;
