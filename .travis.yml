@@ -64,19 +64,19 @@ before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade python || true ; fi
 
 script:
-    - python3 make.py -clean -build -unit_test -${COMPILER} -Debug -x86
-    - python3 make.py -clean -build -unit_test -${COMPILER} -Release -x86
-    - python3 make.py -clean -build -unit_test -${COMPILER} -Debug -x64
-    - python3 make.py -clean -build -unit_test -${COMPILER} -Release -x64
-    - python3 make.py -clean -build -unit_test -${COMPILER} -Release -x64 -nosimd
+    - python3 make.py -clean -build -unit_test -compiler ${COMPILER} -config Debug -cpu x86
+    - python3 make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x86
+    - python3 make.py -clean -build -unit_test -compiler ${COMPILER} -config Debug -cpu x64
+    - python3 make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x64
+    - python3 make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x64 -nosimd
     - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      python3 make.py -clean -build -ios -Debug;
-      python3 make.py -clean -build -ios -Release;
-      python3 make.py -clean -build -ios -Release -nosimd;
+      python3 make.py -clean -build -compiler ios -config Debug;
+      python3 make.py -clean -build -compiler ios -config Release;
+      python3 make.py -clean -build -compiler ios -config Release -nosimd;
       fi'
     # Only run sonarcloud on non-PRs
     - 'if [[ "$SONARCLOUD" == "1" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
-      python3 make.py -clean -${COMPILER} -Release -x64;
-      build-wrapper-linux-x86-64 --out-dir bw_output python3 make.py -build -${COMPILER} -Release -x64;
+      python3 make.py -clean -compiler ${COMPILER} -config Release -cpu x64;
+      build-wrapper-linux-x86-64 --out-dir bw_output python3 make.py -build -compiler ${COMPILER} -config Release -cpu x64;
       sonar-scanner;
       fi'

@@ -1,3 +1,4 @@
+import argparse
 import os
 import platform
 import queue
@@ -13,135 +14,67 @@ current_test_data = 'test_data_v1'
 current_decomp_data = 'decomp_data_v2'
 
 def parse_argv():
-	options = {}
-	options['build'] = False
-	options['clean'] = False
-	options['unit_test'] = False
-	options['regression_test'] = False
-	options['use_avx'] = False
-	options['use_popcnt'] = False
-	options['use_simd'] = True
-	options['compiler'] = None
-	options['config'] = 'Release'
-	options['cpu'] = 'x64'
-	options['num_threads'] = 4
-	options['print_help'] = False
+	parser = argparse.ArgumentParser(add_help=False)
 
-	for i in range(1, len(sys.argv)):
-		value = sys.argv[i]
-		value_upper = value.upper()
+	actions = parser.add_argument_group(title='Actions', description='If no action is specified, on Windows, OS X, and Linux the solution/make files are generated.  Multiple actions can be used simultaneously.')
+	actions.add_argument('-build', action='store_true')
+	actions.add_argument('-clean', action='store_true')
+	actions.add_argument('-unit_test', action='store_true')
+	actions.add_argument('-regression_test', action='store_true')
 
-		if value == '-build':
-			options['build'] = True
+	target = parser.add_argument_group(title='Target')
+	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'android', 'clang4', 'clang5', 'clang6', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'osx', 'ios'], help='Defaults to the host system\'s default compiler')
+	target.add_argument('-config', choices=['Debug', 'Release'], type=str.capitalize)
+	target.add_argument('-cpu', choices=['x86', 'x64'], help='Only supported for Windows, OS X, and Linux; defaults to the host system\'s architecture')
 
-		if value == '-clean':
-			options['clean'] = True
+	misc = parser.add_argument_group(title='Miscellaneous')
+	misc.add_argument('-avx', dest='use_avx', action='store_true', help='Compile using AVX instructions on Windows, OS X, and Linux')
+	misc.add_argument('-pop', dest='use_popcnt', action='store_true', help='Compile using the POPCNT instruction')
+	misc.add_argument('-nosimd', dest='use_simd', action='store_false', help='Compile without SIMD instructions')
+	misc.add_argument('-num_threads', help='No. to use while compiling and regressing')
+	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
+	misc.add_argument('-help', action='help', help='Display this usage information')
 
-		if value == '-unit_test':
-			options['unit_test'] = True
+	parser.set_defaults(build=False, clean=False, unit_test=False, regression_test=False, compiler=None, config='Release', cpu='x64', use_avx=False, use_popcnt=False, use_simd=True, num_threads=4, tests_matching='')
 
-		if value == '-regression_test':
-			options['regression_test'] = True
-
-		if value == '-help':
-			options['print_help'] = True
-
-		if value == '-avx':
-			options['use_avx'] = True
-
-		if value == '-pop':
-			options['use_popcnt'] = True
-
-		if value == '-nosimd':
-			options['use_simd'] = False
-
-		# TODO: Refactor to use the form: -compiler=vs2015
-		if value == '-vs2015':
-			options['compiler'] = 'vs2015'
-
-		if value == '-vs2017':
-			options['compiler'] = 'vs2017'
-
-		if value == '-android':
-			options['compiler'] = 'android'
-
-		if value == '-clang4':
-			options['compiler'] = 'clang4'
-
-		if value == '-clang5':
-			options['compiler'] = 'clang5'
-
-		if value == '-clang6':
-			options['compiler'] = 'clang6'
-
-		if value == '-gcc5':
-			options['compiler'] = 'gcc5'
-
-		if value == '-gcc6':
-			options['compiler'] = 'gcc6'
-
-		if value == '-gcc7':
-			options['compiler'] = 'gcc7'
-
-		if value == '-gcc8':
-			options['compiler'] = 'gcc8'
-
-		if value == '-osx':
-			options['compiler'] = 'osx'
-
-		if value == '-ios':
-			options['compiler'] = 'ios'
-
-		# TODO: Refactor to use the form: -config=Release
-		if value_upper == '-DEBUG':
-			options['config'] = 'Debug'
-
-		if value_upper == '-RELEASE':
-			options['config'] = 'Release'
-
-		# TODO: Refactor to use the form: -cpu=x86
-		if value == '-x86':
-			options['cpu'] = 'x86'
-
-		if value == '-x64':
-			options['cpu'] = 'x64'
+	args = parser.parse_args()
 
 	# Sanitize and validate our options
-	if options['use_avx'] and not options['use_simd']:
-		print('SIMD is explicitly disabled, AVX will not be used')
-		options['use_avx'] = False
+	if args.use_avx and not args.use_simd:
+		print('SIMD is disabled; AVX cannot be used')
+		args.use_avx = False
 
-	if options['compiler'] == 'android':
-		options['cpu'] = 'armv7-a'
+	if args.compiler == 'android':
+		args.cpu = 'armv7-a'
 
 		if not platform.system() == 'Windows':
 			print('Android is only supported on Windows')
 			sys.exit(1)
 
-		if options['use_avx']:
+		if args.use_avx:
 			print('AVX is not supported on Android')
 			sys.exit(1)
 
-		if options['unit_test']:
+		if args.unit_test:
 			print('Unit tests cannot run from the command line on Android')
 			sys.exit(1)
 
-	if options['compiler'] == 'ios':
-		options['cpu'] = 'arm64'
+	if args.compiler == 'ios':
+		args.cpu = 'arm64'
 
 		if not platform.system() == 'Darwin':
 			print('iOS is only supported on OS X')
 			sys.exit(1)
 
-		if options['use_avx']:
+		if args.use_avx:
 			print('AVX is not supported on iOS')
 			sys.exit(1)
 
-		if options['unit_test']:
+		if args.unit_test:
 			print('Unit tests cannot run from the command line on iOS')
 			sys.exit(1)
 
-	return options
+	return args
 
 def get_cmake_exes():
 	if platform.system() == 'Windows':
@@ -185,9 +118,9 @@ def get_toolchain(compiler):
 	# No toolchain
 	return None
 
-def set_compiler_env(compiler, options):
+def set_compiler_env(compiler, args):
 	if platform.system() == 'Linux':
-		os.environ['MAKEFLAGS'] = '-j{}'.format(options['num_threads'])
+		os.environ['MAKEFLAGS'] = '-j{}'.format(args.num_threads)
 		if compiler == 'clang4':
 			os.environ['CC'] = 'clang-4.0'
 			os.environ['CXX'] = 'clang++-4.0'
@@ -214,27 +147,27 @@ def set_compiler_env(compiler, options):
 			print('See help with: python make.py -help')
 			sys.exit(1)
 
-def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
-	compiler = options['compiler']
-	cpu = options['cpu']
-	config = options['config']
+def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, test_data_dir, decomp_data_dir, args):
+	compiler = args.compiler
+	cpu = args.cpu
+	config = args.config
 
 	if not compiler == None:
-		set_compiler_env(compiler, options)
+		set_compiler_env(compiler, args)
 
 	extra_switches = ['--no-warn-unused-cli']
 	if not platform.system() == 'Windows':
 		extra_switches.append('-DCPU_INSTRUCTION_SET:STRING={}'.format(cpu))
 
-	if options['use_avx']:
+	if args.use_avx:
 		print('Enabling AVX usage')
 		extra_switches.append('-DUSE_AVX_INSTRUCTIONS:BOOL=true')
 
-	if options['use_popcnt']:
+	if args.use_popcnt:
 		print('Enabling POPCOUNT usage')
 		extra_switches.append('-DUSE_POPCNT_INSTRUCTIONS:BOOL=true')
 
-	if not options['use_simd']:
+	if not args.use_simd:
 		print('Disabling SIMD instruction usage')
 		extra_switches.append('-DUSE_SIMD_INSTRUCTIONS:BOOL=false')
 
@@ -243,13 +176,13 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
 
 	toolchain = get_toolchain(compiler)
 	if not toolchain == None:
-		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE={}'.format(os.path.join(cmake_script_dir, toolchain)))
+		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE="{}"'.format(os.path.join(cmake_script_dir, toolchain)))
 
-	if 'test_data_dir' in options:
-		extra_switches.append('-DTEST_DATA_DIR:STRING={}'.format(options['test_data_dir']))
+	if test_data_dir:
+		extra_switches.append('-DTEST_DATA_DIR:STRING="{}"'.format(test_data_dir))
 
-	if 'decomp_data_dir' in options:
-		extra_switches.append('-DDECOMP_DATA_DIR:STRING={}'.format(options['decomp_data_dir']))
+	if decomp_data_dir:
+		extra_switches.append('-DDECOMP_DATA_DIR:STRING="{}"'.format(decomp_data_dir))
 
 	# Generate IDE solution
 	print('Generating build files ...')
@@ -265,18 +198,18 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options):
 	if result != 0:
 		sys.exit(result)
 
-def do_build(cmake_exe, options):
-	config = options['config']
+def do_build(cmake_exe, args):
+	config = args.config
 
 	print('Building ...')
 	cmake_cmd = '"{}" --build .'.format(cmake_exe)
 	if platform.system() == 'Windows':
-		if options['compiler'] == 'android':
+		if args.compiler == 'android':
 			cmake_cmd += ' --config {}'.format(config)
 		else:
 			cmake_cmd += ' --config {} --target INSTALL'.format(config)
 	elif platform.system() == 'Darwin':
-		if options['compiler'] == 'ios':
+		if args.compiler == 'ios':
 			cmake_cmd += ' --config {}'.format(config)
 		else:
 			cmake_cmd += ' --config {} --target install'.format(config)
@@ -287,13 +220,17 @@ def do_build(cmake_exe, options):
 	if result != 0:
 		sys.exit(result)
 
-def do_tests(ctest_exe, options):
-	config = options['config']
+def do_tests(ctest_exe, args):
+	config = args.config
 
 	print('Running unit tests ...')
 	ctest_cmd = '"{}" --output-on-failure'.format(ctest_exe)
+
 	if platform.system() == 'Windows' or platform.system() == 'Darwin':
 		ctest_cmd += ' -C {}'.format(config)
+
+	if args.tests_matching:
+		ctest_cmd += ' --tests-regex {}'.format(args.tests_matching)
 
 	result = subprocess.call(ctest_cmd, shell=True)
 	if result != 0:
@@ -332,7 +269,7 @@ def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_len
 
 	sys.stdout.flush()
 
-def do_prepare_regression_test_data(test_data_dir, options):
+def do_prepare_regression_test_data(test_data_dir, args):
 	print('Preparing regression test data ...')
 
 	current_test_data_zip = os.path.join(test_data_dir, '{}.zip'.format(current_test_data))
@@ -403,9 +340,9 @@ def do_prepare_regression_test_data(test_data_dir, options):
 			print(']', file = metadata_file)
 			print('', file = metadata_file)
 
-	options['test_data_dir'] = current_test_data_dir
+	return current_test_data_dir
 
-def do_prepare_decompression_test_data(test_data_dir, options):
+def do_prepare_decompression_test_data(test_data_dir, args):
 	print('Preparing decompression test data ...')
 
 	current_data_zip = os.path.join(test_data_dir, '{}.zip'.format(current_decomp_data))
@@ -473,9 +410,9 @@ def do_prepare_decompression_test_data(test_data_dir, options):
 			print(']', file = metadata_file)
 			print('', file = metadata_file)
 
-	options['decomp_data_dir'] = current_data_dir
+	return current_data_dir
 
-def do_regression_tests(ctest_exe, test_data_dir, options):
+def do_regression_tests(ctest_exe, test_data_dir, args):
 	print('Running regression tests ...')
 
 	# Validate that our regression testing tool is present
@@ -535,7 +472,7 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 			cmd_queue.put((clip_filename, cmd))
 
 		# Add a marker to terminate the threads
-		for i in range(options['num_threads']):
+		for i in range(args.num_threads):
 			cmd_queue.put(None)
 
 		def run_clip_regression_test(cmd_queue, completed_queue, failed_queue, failure_lock):
@@ -557,7 +494,7 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 
 				completed_queue.put(clip_filename)
 
-		threads = [ threading.Thread(target = run_clip_regression_test, args = (cmd_queue, completed_queue, failed_queue, failure_lock)) for _i in range(options['num_threads']) ]
+		threads = [ threading.Thread(target = run_clip_regression_test, args = (cmd_queue, completed_queue, failed_queue, failure_lock)) for _i in range(args.num_threads) ]
 		for thread in threads:
 			thread.daemon = True
 			thread.start()
@@ -589,59 +526,13 @@ def do_regression_tests(ctest_exe, test_data_dir, options):
 		if regression_testing_failed:
 			sys.exit(1)
 
-def print_help():
-	print('Usage: python make.py [actions] [cpu arch] [compiler] [config] [misc]')
-	print()
-	print('Actions:')
-	print('  If no action is specified, on Windows, OS X, and Linux the solution/make files are generated.')
-	print('  Multiple actions can be used simultaneously.')
-	print('  -build: Builds the solution.')
-	print('  -clean: Cleans the build directory.')
-	print('  -unit_test: Runs the unit tests.')
-	print('  -regression_test: Runs the regression tests.')
-	print()
-	print('CPU Architecture:')
-	print('  Only supported for Windows, OS X, and Linux. Defaults to the host system architecture.')
-	print('  Only a single architecture argument must be used.')
-	print('  -x86: Builds an x86 executable.')
-	print('  -x64: Builds an x64 executable.')
-	print()
-	print('Compiler:')
-	print('  Defaults to the host system\'s default compiler.')
-	print('  Only a single compiler argument must be used.')
-	print('  -vs2015: Uses Visual Studio 2015.')
-	print('  -vs2017: Uses Visual Studio 2017.')
-	print('  -osx: Uses X Code for OS X.')
-	print('  -gcc5: Uses GCC 5.')
-	print('  -gcc6: Uses GCC 6.')
-	print('  -gcc7: Uses GCC 7.')
-	print('  -gcc8: Uses GCC 8.')
-	print('  -clang4: Uses clang 4.')
-	print('  -clang5: Uses clang 5.')
-	print('  -clang6: Uses clang 6.')
-	print('  -android: Uses NVIDIA CodeWorks.')
-	print('  -ios: Uses X Code for iOS.')
-	print()
-	print('Config:')
-	print('  Defaults to Release.')
-	print('  Only a single config argument mus tbe used.')
-	print('  -debug: Uses the Debug configuration to build and test.')
-	print('  -release: Uses the Release configuration to build and test.')
-	print()
-	print('Miscelanous:')
-	print('  -avx: On Windows, OS X, and Linux AVX support will be enabled.')
-	print('  -help: Prints this help message.')
-
 if __name__ == "__main__":
-	options = parse_argv()
-	if options['print_help']:
-		print_help()
-		sys.exit(1)
+	args = parse_argv()
 
 	cmake_exe, ctest_exe = get_cmake_exes()
-	compiler = options['compiler']
-	cpu = options['cpu']
-	config = options['config']
+	compiler = args.compiler
+	cpu = args.cpu
+	config = args.config
 
 	# Set the ACL_CMAKE_HOME environment variable to point to CMake
 	# otherwise we assume it is already in the user PATH
@@ -654,7 +545,7 @@ if __name__ == "__main__":
 	test_data_dir = os.path.join(os.getcwd(), 'test_data')
 	cmake_script_dir = os.path.join(os.getcwd(), 'cmake')
 
-	if options['clean'] and os.path.exists(build_dir):
+	if args.clean and os.path.exists(build_dir):
 		print('Cleaning previous build ...')
 		shutil.rmtree(build_dir)
 
@@ -668,18 +559,18 @@ if __name__ == "__main__":
 	if not compiler == None:
 		print('Using compiler: {}'.format(compiler))
 
-	do_prepare_regression_test_data(test_data_dir, options)
-	do_prepare_decompression_test_data(test_data_dir, options)
+	regression_data_dir = do_prepare_regression_test_data(test_data_dir, args)
+	decomp_data_dir = do_prepare_decompression_test_data(test_data_dir, args)
 
-	do_generate_solution(cmake_exe, build_dir, cmake_script_dir, options)
+	do_generate_solution(cmake_exe, build_dir, cmake_script_dir, regression_data_dir, decomp_data_dir, args)
 
-	if options['build']:
-		do_build(cmake_exe, options)
+	if args.build:
+		do_build(cmake_exe, args)
 
-	if options['unit_test']:
-		do_tests(ctest_exe, options)
+	if args.unit_test:
+		do_tests(ctest_exe, args)
 
-	if options['regression_test'] and not options['compiler'] == 'android' and not options['compiler'] == 'ios':
-		do_regression_tests(ctest_exe, test_data_dir, options)
+	if args.regression_test and not args.compiler == 'android' and not args.compiler == 'ios':
+		do_regression_tests(ctest_exe, test_data_dir, args)
 
 	sys.exit(0)
