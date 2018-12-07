@@ -15,12 +15,12 @@ build_script:
 - cmd: >-
     IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2015" (SET COMPILER=vs2015) ELSE (SET COMPILER=vs2017)
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -%COMPILER% -Debug -x86
+    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Debug -cpu x86
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -%COMPILER% -Release -x86
+    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Release -cpu x86
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -%COMPILER% -Debug -x64
+    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Debug -cpu x64
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -%COMPILER% -Release -x64
+    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Release -cpu x64
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -%COMPILER% -Release -x64 -nosimd
+    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Release -cpu x64 -nosimd
