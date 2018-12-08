@@ -221,14 +221,11 @@ def do_build(cmake_exe, args):
 		sys.exit(result)
 
 def do_tests(ctest_exe, args):
-	config = args.config
-
 	print('Running unit tests ...')
+
 	ctest_cmd = '"{}" --output-on-failure'.format(ctest_exe)
-
 	if platform.system() == 'Windows' or platform.system() == 'Darwin':
-		ctest_cmd += ' -C {}'.format(config)
-
+		ctest_cmd += ' -C {}'.format(args.config)
 	if args.tests_matching:
 		ctest_cmd += ' --tests-regex {}'.format(args.tests_matching)
 
@@ -530,9 +527,6 @@ if __name__ == "__main__":
 	args = parse_argv()
 
 	cmake_exe, ctest_exe = get_cmake_exes()
-	compiler = args.compiler
-	cpu = args.cpu
-	config = args.config
 
 	# Set the ACL_CMAKE_HOME environment variable to point to CMake
 	# otherwise we assume it is already in the user PATH
@@ -554,10 +548,10 @@ if __name__ == "__main__":
 
 	os.chdir(build_dir)
 
-	print('Using config: {}'.format(config))
-	print('Using cpu: {}'.format(cpu))
-	if not compiler == None:
-		print('Using compiler: {}'.format(compiler))
+	print('Using config: {}'.format(args.config))
+	print('Using cpu: {}'.format(args.cpu))
+	if not args.compiler == None:
+		print('Using compiler: {}'.format(args.compiler))
 
 	regression_data_dir = do_prepare_regression_test_data(test_data_dir, args)
 	decomp_data_dir = do_prepare_decompression_test_data(test_data_dir, args)
