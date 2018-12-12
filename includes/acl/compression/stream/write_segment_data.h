@@ -59,7 +59,7 @@ namespace acl
 	ACL_DEPRECATED("Use write_segment_headers with a uint32_t segment_headers_start_offset instead, to be removed in v2.0")
 	inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint16_t segment_headers_start_offset)
 	{
-		write_segment_headers(clip_context, settings, segment_headers, segment_headers_start_offset);
+		write_segment_headers(clip_context, settings, segment_headers, (uint32_t)segment_headers_start_offset);
 	}
 
 	inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, ClipHeader& header, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
