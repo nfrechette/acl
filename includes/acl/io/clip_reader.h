@@ -31,32 +31,15 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/skeleton.h"
 #include "acl/core/algorithm_types.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/string.h"
 #include "acl/core/unique_ptr.h"
 
 #include <cstdint>
 
-#if defined(__ANDROID__)
-	#include <stdlib.h>
-#else
-	#include <cstdlib>
-#endif
-
 namespace acl
 {
-	namespace impl
-	{
-		inline unsigned long long int strtoull(const char* str, char** endptr, int base)
-		{
-#if defined(__ANDROID__)
-			return ::strtoull(str, endptr, base);
-#else
-			return std::strtoull(str, endptr, base);
-#endif
-		}
-	}
-
 	class ClipReader
 	{
 	public:
@@ -372,7 +355,7 @@ namespace acl
 			};
 
 			ACL_ASSERT(value.size() <= 16, "Invalid binary exact double value");
-			uint64_t value_u64 = impl::strtoull(value.c_str(), nullptr, 16);
+			uint64_t value_u64 = acl_impl::strtoull(value.c_str(), nullptr, 16);
 			return UInt64ToDouble(value_u64).dbl;
 		}
 

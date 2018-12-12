@@ -26,10 +26,16 @@
 
 #include <type_traits>
 
+#if !defined(__GNUG__) || defined(_LIBCPP_VERSION) || defined(_GLIBCXX_USE_CXX11_ABI)
+	#include <cstdlib>
+#else
+	#include <stdlib.h>
+#endif
+
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
-	// The version of the STL shipped with versions of GCC older than 5.1 are missing a number of type traits,
+	// The version of the STL shipped with versions of GCC older than 5.1 are missing a number of type traits and functions,
 	// such as std::is_trivially_default_constructible.
 	// In this case, we polyfill the proper standard names using the deprecated std::has_trivial_default_constructor.
 	// This must also be done when the compiler is clang when it makes use of the GCC implementation of the STL,
@@ -37,11 +43,18 @@ namespace acl
 	// be done with the __GNUC__  macro, which are overridden by clang. Instead, we check for the definition
 	// of the macro ``_GLIBCXX_USE_CXX11_ABI`` which is only defined with GCC versions greater than 5.
 	//////////////////////////////////////////////////////////////////////////
+	namespace acl_impl
+	{
 #if !defined(__GNUG__) || defined(_LIBCPP_VERSION) || defined(_GLIBCXX_USE_CXX11_ABI)
-	template <class Type>
-	using is_trivially_default_constructible = std::is_trivially_default_constructible<Type>;
+		using std::strtoull;
+
+		template <class Type>
+		using is_trivially_default_constructible = std::is_trivially_default_constructible<Type>;
 #else
-	template <class Type>
-	using is_trivially_default_constructible = std::has_trivial_default_constructor<Type>;
+		using ::strtoull;
+
+		template <class Type>
+		using is_trivially_default_constructible = std::has_trivial_default_constructor<Type>;
 #endif
+	}
 }

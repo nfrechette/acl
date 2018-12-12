@@ -75,7 +75,7 @@ namespace acl
 	AllocatedType* allocate_type(IAllocator& allocator, Args&&... args)
 	{
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignof(AllocatedType)));
-		if (is_trivially_default_constructible<AllocatedType>::value)
+		if (acl_impl::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
 		return new(ptr) AllocatedType(std::forward<Args>(args)...);
 	}
@@ -85,7 +85,7 @@ namespace acl
 	{
 		ACL_ASSERT(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignment));
-		if (is_trivially_default_constructible<AllocatedType>::value)
+		if (acl_impl::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
 		return new(ptr) AllocatedType(std::forward<Args>(args)...);
 	}
@@ -106,7 +106,7 @@ namespace acl
 	AllocatedType* allocate_type_array(IAllocator& allocator, size_t num_elements, Args&&... args)
 	{
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignof(AllocatedType)));
-		if (is_trivially_default_constructible<AllocatedType>::value)
+		if (acl_impl::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
 		for (size_t element_index = 0; element_index < num_elements; ++element_index)
 			new(&ptr[element_index]) AllocatedType(std::forward<Args>(args)...);
@@ -118,7 +118,7 @@ namespace acl
 	{
 		ACL_ASSERT(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
 		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignment));
-		if (is_trivially_default_constructible<AllocatedType>::value)
+		if (acl_impl::is_trivially_default_constructible<AllocatedType>::value)
 			return ptr;
 		for (size_t element_index = 0; element_index < num_elements; ++element_index)
 			new(&ptr[element_index]) AllocatedType(std::forward<Args>(args)...);
