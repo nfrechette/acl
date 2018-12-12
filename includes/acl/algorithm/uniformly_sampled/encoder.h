@@ -207,7 +207,7 @@ namespace acl
 			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
 			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);
 
-			const uint16_t segment_headers_start_offset = safe_static_cast<uint16_t>(header.clip_range_data_offset + clip_range_data_size);
+			const uint32_t segment_headers_start_offset = header.clip_range_data_offset + clip_range_data_size;
 			write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
 			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
 			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);

@@ -36,7 +36,7 @@
 
 namespace acl
 {
-	inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint16_t segment_headers_start_offset)
+	inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint32_t segment_headers_start_offset)
 	{
 		const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
@@ -54,6 +54,12 @@ namespace acl
 
 			data_offset = header.track_data_offset + segment.animated_data_size;
 		}
+	}
+
+	ACL_DEPRECATED("Use write_segment_headers with a uint32_t segment_headers_start_offset instead, to be removed in v2.0")
+	inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint16_t segment_headers_start_offset)
+	{
+		write_segment_headers(clip_context, settings, segment_headers, segment_headers_start_offset);
 	}
 
 	inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, ClipHeader& header, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
