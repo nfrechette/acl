@@ -607,15 +607,56 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 					  AlgorithmType8& out_algorithm_type,
 					  CompressionSettings& out_settings)
 {
+	char* sjson_file_buffer = nullptr;
+
 #if defined(__ANDROID__)
 	ClipReader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
 #else
-	std::ifstream t(options.input_filename);
-	std::stringstream buffer;
-	buffer << t.rdbuf();
-	std::string str = buffer.str();
+	// Use the raw C API with a large buffer to ensure this is as fast as possible
+	std::FILE* file = nullptr;
 
-	ClipReader reader(allocator, str.c_str(), str.length());
+#ifdef _WIN32
+	char path[64 * 1024] = { 0 };
+	snprintf(path, get_array_size(path), "\\\\?\\%s", options.input_filename);
+	fopen_s(&file, path, "rb");
+#else
+	file = fopen64(output_stats_filename, "rb");
+#endif
+
+	if (file == nullptr)
+		return false;
+
+	// Make sure to enable buffering with a large buffer
+	const int setvbuf_result = setvbuf(file, NULL, _IOFBF, 1 * 1024 * 1024);
+	if (setvbuf_result != 0)
+		return false;
+
+	const int fseek_result = fseek(file, 0, SEEK_END);
+	if (fseek_result != 0)
+		return false;
+
+#ifdef _WIN32
+	const size_t file_size = static_cast<size_t>(_ftelli64(file));
+#else
+	const size_t file_size = static_cast<size_t>(ftello64(file));
+#endif
+
+	if (file_size == -1L)
+		return false;
+
+	rewind(file);
+
+	sjson_file_buffer = allocate_type_array<char>(allocator, file_size);
+	const size_t result = fread(sjson_file_buffer, 1, file_size, file);
+	fclose(file);
+
+	if (result != file_size)
+	{
+		deallocate_type_array(allocator, sjson_file_buffer, file_size);
+		return false;
+	}
+
+	ClipReader reader(allocator, sjson_file_buffer, file_size - 1);
 #endif
 
 	if (!reader.read_settings(has_settings, out_algorithm_type, out_settings)
@@ -624,9 +665,11 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 	{
 		ClipReaderError err = reader.get_error();
 		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
+		deallocate_type_array(allocator, sjson_file_buffer, file_size);
 		return false;
 	}
 
+	deallocate_type_array(allocator, sjson_file_buffer, file_size);
 	return true;
 }
 
