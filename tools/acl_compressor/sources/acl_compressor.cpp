@@ -28,6 +28,11 @@
 // Defaults to being enabled
 #define ACL_ENABLE_STAT_WRITING		1
 
+// Enable 64 bit file IO
+#ifndef _WIN32
+	#define _FILE_OFFSET_BITS 64
+#endif
+
 #if ACL_ENABLE_STAT_WRITING
 	#include <sjson/writer.h>
 #else
@@ -620,7 +625,7 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 	snprintf(path, get_array_size(path), "\\\\?\\%s", options.input_filename);
 	fopen_s(&file, path, "rb");
 #else
-	file = fopen64(options.input_filename, "rb");
+	file = fopen(options.input_filename, "rb");
 #endif
 
 	if (file == nullptr)
@@ -638,7 +643,7 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 #ifdef _WIN32
 	const size_t file_size = static_cast<size_t>(_ftelli64(file));
 #else
-	const size_t file_size = static_cast<size_t>(ftello64(file));
+	const size_t file_size = static_cast<size_t>(ftello(file));
 #endif
 
 	if (file_size == static_cast<size_t>(-1L))
