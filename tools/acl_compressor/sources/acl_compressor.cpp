@@ -238,11 +238,15 @@ struct Options
 		if (output_stats_filename != nullptr)
 		{
 #ifdef _WIN32
-			fopen_s(&file, output_stats_filename, "w");
+			char path[64 * 1024] = { 0 };
+			snprintf(path, get_array_size(path), "\\\\?\\%s", output_stats_filename);
+			fopen_s(&file, path, "w");
 #else
 			file = fopen(output_stats_filename, "w");
 #endif
+			ACL_ASSERT(file != nullptr, "Failed to open output stats file: ", output_stats_filename);
 		}
+
 		output_stats_file = file != nullptr ? file : stdout;
 	}
 };

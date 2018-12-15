@@ -249,7 +249,9 @@ namespace acl
 			std::FILE* file = nullptr;
 
 #ifdef _WIN32
-			fopen_s(&file, acl_filename, "w");
+			char path[64 * 1024] = { 0 };
+			snprintf(path, get_array_size(path), "\\\\?\\%s", acl_filename);
+			fopen_s(&file, path, "w");
 #else
 			file = fopen(acl_filename, "w");
 #endif
