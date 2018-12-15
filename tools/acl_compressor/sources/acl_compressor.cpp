@@ -620,7 +620,7 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 	snprintf(path, get_array_size(path), "\\\\?\\%s", options.input_filename);
 	fopen_s(&file, path, "rb");
 #else
-	file = fopen64(output_stats_filename, "rb");
+	file = fopen64(options.input_filename, "rb");
 #endif
 
 	if (file == nullptr)
@@ -641,7 +641,7 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 	const size_t file_size = static_cast<size_t>(ftello64(file));
 #endif
 
-	if (file_size == -1L)
+	if (file_size == static_cast<size_t>(-1L))
 		return false;
 
 	rewind(file);
