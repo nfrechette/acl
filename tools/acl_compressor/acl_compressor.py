@@ -273,12 +273,16 @@ def run_acl_compressor(cmd_queue, result_queue):
 
 		(acl_filename, cmd) = entry
 
-		os.system(cmd)
+		result = os.system(cmd)
+		if result != 0:
+			print('Failed to execute cmd: {}'.format(cmd))
 		result_queue.put(acl_filename)
 
 def compress_clips(options):
 	acl_dir = options['acl']
 	stat_dir = options['stats']
+	if platform.system() == 'Windows':
+		stat_dir = '\\\\?\\{}'.format(stat_dir)
 	refresh = options['refresh']
 
 	if platform.system() == 'Windows':
@@ -516,9 +520,13 @@ def run_stat_parsing(options, stat_queue, result_queue):
 				try:
 					file_data = sjson.loads(file.read())
 					runs = file_data['runs']
+
 					for run_stats in runs:
+						if len(run_stats) == 0:
+							continue
+
 						run_stats['range_reduction'] = shorten_range_reduction(run_stats['range_reduction'])
-						run_stats['filename'] = stat_filename
+						run_stats['filename'] = stat_filename.replace('\\\\?\\', '')
 						run_stats['clip_name'] = os.path.splitext(os.path.basename(stat_filename))[0]
 						run_stats['rotation_format'] = shorten_rotation_format(run_stats['rotation_format'])
 						run_stats['translation_format'] = shorten_translation_format(run_stats['translation_format'])
