@@ -535,6 +535,9 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
+		if (clip.get_num_samples() == 0)
+			return;
+
 		OutputStats stats(logging, stats_writer);
 		CompressedClip* compressed_clip = nullptr;
 		ErrorResult error_result; (void)error_result;

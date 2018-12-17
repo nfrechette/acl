@@ -130,7 +130,7 @@ namespace acl
 				goto error;
 
 			m_num_samples = static_cast<uint32_t>(num_samples);
-			if (static_cast<double>(m_num_samples) != num_samples || m_num_samples == 0)
+			if (static_cast<double>(m_num_samples) != num_samples)
 			{
 				set_error(ClipReaderError::UnsignedIntegerExpected);
 				return false;
