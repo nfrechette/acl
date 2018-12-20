@@ -37,16 +37,15 @@ TEST_CASE("scalar packing math", "[math][scalar][packing]")
 	{
 		const uint32_t max_value = (1 << num_bits) - 1;
 
-		REQUIRE(pack_scalar_unsigned(0.0f, num_bits) == 0);
-		REQUIRE(pack_scalar_unsigned(1.0f, num_bits) == max_value);
-		REQUIRE(unpack_scalar_unsigned(0, num_bits) == 0.0f);
-		REQUIRE(unpack_scalar_unsigned(max_value, num_bits) == 1.0f);
+		CHECK(pack_scalar_unsigned(0.0f, num_bits) == 0);
+		CHECK(pack_scalar_unsigned(1.0f, num_bits) == max_value);
+		CHECK(unpack_scalar_unsigned(0, num_bits) == 0.0f);
+		CHECK(unpack_scalar_unsigned(max_value, num_bits) == 1.0f);
 
-		REQUIRE(pack_scalar_signed(-1.0f, num_bits) == 0);
-		REQUIRE(pack_scalar_signed(1.0f, num_bits) == max_value);
-		REQUIRE(unpack_scalar_signed(0, num_bits) == -1.0f);
-		REQUIRE(unpack_scalar_signed(max_value, num_bits) <= 1.0f);
-		REQUIRE(scalar_near_equal(unpack_scalar_signed(max_value, num_bits), 1.0f, threshold));
+		CHECK(pack_scalar_signed(-1.0f, num_bits) == 0);
+		CHECK(pack_scalar_signed(1.0f, num_bits) == max_value);
+		CHECK(unpack_scalar_signed(0, num_bits) == -1.0f);
+		CHECK(scalar_near_equal(unpack_scalar_signed(max_value, num_bits), 1.0f, threshold));
 
 		uint32_t num_errors = 0;
 		for (uint32_t value = 0; value < max_value; ++value)
@@ -61,6 +60,6 @@ TEST_CASE("scalar packing math", "[math][scalar][packing]")
 			if (packed1 != value || unpacked1 < -1.0f || unpacked1 > 1.0f)
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
