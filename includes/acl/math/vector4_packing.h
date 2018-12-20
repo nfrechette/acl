@@ -309,14 +309,8 @@ namespace acl
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_s48_unsafe(const uint8_t* vector_data)
 	{
-		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
-		uint16_t x16 = data_ptr_u16[0];
-		uint16_t y16 = data_ptr_u16[1];
-		uint16_t z16 = data_ptr_u16[2];
-		float x = unpack_scalar_signed(x16, 16);
-		float y = unpack_scalar_signed(y16, 16);
-		float z = unpack_scalar_signed(z16, 16);
-		return vector_set(x, y, z);
+		Vector4_32 unsigned_value = unpack_vector3_u48_unsafe(vector_data);
+		return vector_sub(vector_mul(unsigned_value, 2.0f), vector_set(1.0f));
 	}
 
 	ACL_DEPRECATED("Use unpack_vector3_u48_unsafe and unpack_vector3_s48_unsafe instead, to be removed in v2.0")
@@ -443,13 +437,8 @@ namespace acl
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_s24_unsafe(const uint8_t* vector_data)
 	{
-		uint8_t x8 = vector_data[0];
-		uint8_t y8 = vector_data[1];
-		uint8_t z8 = vector_data[2];
-		float x = unpack_scalar_signed(x8, 8);
-		float y = unpack_scalar_signed(y8, 8);
-		float z = unpack_scalar_signed(z8, 8);
-		return vector_set(x, y, z);
+		Vector4_32 unsigned_value = unpack_vector3_u24_unsafe(vector_data);
+		return vector_sub(vector_mul(unsigned_value, 2.0f), vector_set(1.0f));
 	}
 
 	ACL_DEPRECATED("Use unpack_vector3_u24_unsafe and unpack_vector3_s24_unsafe instead, to be removed in v2.0")
