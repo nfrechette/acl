@@ -259,27 +259,39 @@ namespace acl
 	class TrackStreamRange
 	{
 	public:
+		static TrackStreamRange ACL_SIMD_CALL from_min_max(Vector4_32Arg0 min, Vector4_32Arg1 max)
+		{
+			return TrackStreamRange(min, vector_sub(max, min));
+		}
+
+		static TrackStreamRange ACL_SIMD_CALL from_min_extent(Vector4_32Arg0 min, Vector4_32Arg1 extent)
+		{
+			return TrackStreamRange(min, extent);
+		}
+
 		TrackStreamRange()
-			: m_min(vector_set(0.0f))
-			, m_max(vector_set(0.0f))
+			: m_min(vector_zero_32())
+			, m_extent(vector_zero_32())
 		{}
 
-		TrackStreamRange(const Vector4_32& min, const Vector4_32& max)
-			: m_min(min)
-			, m_max(max)
-		{}
+
 
 		Vector4_32 ACL_SIMD_CALL get_min() const { return m_min; }
-		Vector4_32 ACL_SIMD_CALL get_max() const { return m_max; }
+		Vector4_32 ACL_SIMD_CALL get_max() const { return vector_add(m_min, m_extent); }
 
-		Vector4_32 ACL_SIMD_CALL get_center() const { return vector_mul(vector_add(m_max, m_min), 0.5f); }
-		Vector4_32 ACL_SIMD_CALL get_extent() const { return vector_sub(m_max, m_min); }
+		Vector4_32 ACL_SIMD_CALL get_center() const { return vector_add(m_min, vector_mul(m_extent, 0.5f)); }
+		Vector4_32 ACL_SIMD_CALL get_extent() const { return m_extent; }
 
-		bool is_constant(float threshold) const { return vector_all_less_than(vector_abs(vector_sub(m_max, m_min)), vector_set(threshold)); }
+		bool is_constant(float threshold) const { return vector_all_less_than(vector_abs(m_extent), vector_set(threshold)); }
 
 	private:
+		TrackStreamRange(const Vector4_32& min, const Vector4_32& extent)
+			: m_min(min)
+			, m_extent(extent)
+		{}
+
 		Vector4_32	m_min;
-		Vector4_32	m_max;
+		Vector4_32	m_extent;
 	};
 
 	struct BoneRanges

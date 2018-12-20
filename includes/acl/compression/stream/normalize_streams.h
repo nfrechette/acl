@@ -53,7 +53,7 @@ namespace acl
 				max = vector_max(max, sample);
 			}
 
-			return TrackStreamRange(min, max);
+			return TrackStreamRange::from_min_max(min, max);
 		}
 
 		inline void extract_bone_ranges_impl(SegmentContext& segment, BoneRanges* bone_ranges)
@@ -88,23 +88,53 @@ namespace acl
 
 	inline void extract_segment_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
 	{
-		alignas(16) uint8_t buffer[8] = {0};
-		const Vector4_32 padding = vector_set(unpack_scalar_unsigned(1, k_segment_range_reduction_num_bits_per_component));
 		const Vector4_32 one = vector_set(1.0f);
 		const Vector4_32 zero = vector_zero_32();
+		const float max_range_value_flt = float((1 << k_segment_range_reduction_num_bits_per_component) - 1);
+		const Vector4_32 max_range_value = vector_set(max_range_value_flt);
+		const Vector4_32 inv_max_range_value = vector_set(1.0f / max_range_value_flt);
 		const bool has_scale = clip_context.has_scale;
+
+		// Segment ranges are always normalized and live between [0.0 ... 1.0]
 
 		auto fixup_range = [&](const TrackStreamRange& range)
 		{
-			Vector4_32 padded_range_min = vector_max(vector_sub(range.get_min(), padding), zero);
-			Vector4_32 padded_range_max = vector_min(vector_add(range.get_max(), padding), one);
+			// In our compressed format, we store the minimum value of the track range quantized on 8 bits.
+			// To get the best accuracy, we pick the value closest to the true minimum that is slightly lower.
+			// This is to ensure that we encompass the lowest value even after quantization.
+			const Vector4_32 range_min = range.get_min();
+			const Vector4_32 scaled_min = vector_mul(range_min, max_range_value);
+			const Vector4_32 quantized_min0 = vector_clamp(vector_floor(scaled_min), zero, max_range_value);
+			const Vector4_32 quantized_min1 = vector_max(vector_sub(quantized_min0, one), zero);
 
-			pack_vector4_32(padded_range_min, true, &buffer[0]);
-			padded_range_min = unpack_vector4_32(&buffer[0], true);
-			pack_vector4_32(padded_range_max, true, &buffer[0]);
-			padded_range_max = unpack_vector4_32(&buffer[0], true);
+			const Vector4_32 padded_range_min0 = vector_mul(quantized_min0, inv_max_range_value);
+			const Vector4_32 padded_range_min1 = vector_mul(quantized_min1, inv_max_range_value);
 
-			return TrackStreamRange(padded_range_min, padded_range_max);
+			// Check if min0 is below or equal to our original range minimum value, if it is, it is good
+			// enough to use otherwise min1 is guaranteed to be lower.
+			const Vector4_32 is_min0_lower_mask = vector_less_equal(padded_range_min0, range_min);
+			const Vector4_32 padded_range_min = vector_blend(is_min0_lower_mask, padded_range_min0, padded_range_min1);
+
+			// The story is different for the extent. We do not store the max, instead we use the extent
+			// for performance reasons: a single mul/add is required to reconstruct the original value.
+			// Now that our minimum value changed, our extent also changed.
+			// We want to pick the extent value that brings us closest to our original max value while
+			// being slightly larger to encompass it.
+			const Vector4_32 range_max = range.get_max();
+			const Vector4_32 range_extent = vector_sub(range_max, padded_range_min);
+			const Vector4_32 scaled_extent = vector_mul(range_extent, max_range_value);
+			const Vector4_32 quantized_extent0 = vector_clamp(vector_ceil(scaled_extent), zero, max_range_value);
+			const Vector4_32 quantized_extent1 = vector_min(vector_add(quantized_extent0, one), max_range_value);
+
+			const Vector4_32 padded_range_extent0 = vector_mul(quantized_extent0, inv_max_range_value);
+			const Vector4_32 padded_range_extent1 = vector_mul(quantized_extent1, inv_max_range_value);
+
+			// Check if extent0 is above or equal to our original range maximum value, if it is, it is good
+			// enough to use otherwise extent1 is guaranteed to be higher.
+			const Vector4_32 is_extent0_higher_mask = vector_greater_equal(padded_range_extent0, range_max);
+			const Vector4_32 padded_range_extent = vector_blend(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
+
+			return TrackStreamRange::from_min_extent(padded_range_min, padded_range_extent);
 		};
 
 		for (SegmentContext& segment : clip_context.segment_iterator())

@@ -103,7 +103,7 @@ namespace acl
 				bone_stream.is_rotation_constant = true;
 				bone_stream.is_rotation_default = quat_near_identity(vector_to_quat(rotation), rotation_threshold_angle);
 
-				bone_range.rotation = TrackStreamRange(rotation, rotation);
+				bone_range.rotation = TrackStreamRange::from_min_extent(rotation, vector_zero_32());
 			}
 
 			if (bone_range.translation.is_constant(translation_threshold))
@@ -116,7 +116,7 @@ namespace acl
 				bone_stream.is_translation_constant = true;
 				bone_stream.is_translation_default = vector_all_near_equal3(translation, vector_zero_32(), translation_threshold);
 
-				bone_range.translation = TrackStreamRange(translation, translation);
+				bone_range.translation = TrackStreamRange::from_min_extent(translation, vector_zero_32());
 			}
 
 			if (bone_range.scale.is_constant(scale_threshold))
@@ -129,7 +129,7 @@ namespace acl
 				bone_stream.is_scale_constant = true;
 				bone_stream.is_scale_default = vector_all_near_equal3(scale, default_scale, scale_threshold);
 
-				bone_range.scale = TrackStreamRange(scale, scale);
+				bone_range.scale = TrackStreamRange::from_min_extent(scale, vector_zero_32());
 
 				num_default_bone_scales += bone_stream.is_scale_default ? 1 : 0;
 			}
