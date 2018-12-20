@@ -280,6 +280,11 @@ namespace acl
 #endif
 	}
 
+	inline Vector4_64 vector_clamp(const Vector4_64& input, const Vector4_64& min, const Vector4_64& max)
+	{
+		return vector_min(max, vector_max(min, input));
+	}
+
 	inline Vector4_64 vector_abs(const Vector4_64& input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -298,6 +303,16 @@ namespace acl
 	inline Vector4_64 vector_reciprocal(const Vector4_64& input)
 	{
 		return vector_div(vector_set(1.0), input);
+	}
+
+	inline Vector4_64 vector_ceil(const Vector4_64& input)
+	{
+		return vector_set(ceil(vector_get_x(input)), ceil(vector_get_y(input)), ceil(vector_get_z(input)), ceil(vector_get_w(input)));
+	}
+
+	inline Vector4_64 vector_floor(const Vector4_64& input)
+	{
+		return vector_set(floor(vector_get_x(input)), floor(vector_get_y(input)), floor(vector_get_z(input)), floor(vector_get_w(input)));
 	}
 
 	inline Vector4_64 vector_cross3(const Vector4_64& lhs, const Vector4_64& rhs)
@@ -405,6 +420,17 @@ namespace acl
 		return Vector4_64{xy_lt_pd, zw_lt_pd};
 #else
 		return Vector4_64{math_impl::get_mask_value(lhs.x < rhs.x), math_impl::get_mask_value(lhs.y < rhs.y), math_impl::get_mask_value(lhs.z < rhs.z), math_impl::get_mask_value(lhs.w < rhs.w)};
+#endif
+	}
+
+	inline Vector4_64 vector_less_equal(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_lt_pd = _mm_cmple_pd(lhs.xy, rhs.xy);
+		__m128d zw_lt_pd = _mm_cmple_pd(lhs.zw, rhs.zw);
+		return Vector4_64{ xy_lt_pd, zw_lt_pd };
+#else
+		return Vector4_64{ math_impl::get_mask_value(lhs.x <= rhs.x), math_impl::get_mask_value(lhs.y <= rhs.y), math_impl::get_mask_value(lhs.z <= rhs.z), math_impl::get_mask_value(lhs.w <= rhs.w) };
 #endif
 	}
 

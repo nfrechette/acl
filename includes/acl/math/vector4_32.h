@@ -341,6 +341,11 @@ namespace acl
 #endif
 	}
 
+	inline Vector4_32 ACL_SIMD_CALL vector_clamp(Vector4_32Arg0 input, Vector4_32Arg1 min, Vector4_32Arg2 max)
+	{
+		return vector_min(max, vector_max(min, input));
+	}
+
 	inline Vector4_32 ACL_SIMD_CALL vector_abs(Vector4_32Arg0 input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -385,6 +390,24 @@ namespace acl
 		return x2;
 #else
 		return vector_div(vector_set(1.0f), input);
+#endif
+	}
+
+	inline Vector4_32 ACL_SIMD_CALL vector_ceil(Vector4_32Arg0 input)
+	{
+#if defined(ACL_SSE4_INTRINSICS)
+		return _mm_ceil_ps(input);
+#else
+		return vector_set(ceil(vector_get_x(input)), ceil(vector_get_y(input)), ceil(vector_get_z(input)), ceil(vector_get_w(input)));
+#endif
+	}
+
+	inline Vector4_32 ACL_SIMD_CALL vector_floor(Vector4_32Arg0 input)
+	{
+#if defined(ACL_SSE4_INTRINSICS)
+		return _mm_floor_ps(input);
+#else
+		return vector_set(floor(vector_get_x(input)), floor(vector_get_y(input)), floor(vector_get_z(input)), floor(vector_get_w(input)));
 #endif
 	}
 
@@ -563,6 +586,17 @@ namespace acl
 		return vcltq_f32(lhs, rhs);
 #else
 		return Vector4_32{ math_impl::get_mask_value(lhs.x < rhs.x), math_impl::get_mask_value(lhs.y < rhs.y), math_impl::get_mask_value(lhs.z < rhs.z), math_impl::get_mask_value(lhs.w < rhs.w) };
+#endif
+	}
+
+	inline Vector4_32 ACL_SIMD_CALL vector_less_equal(Vector4_32Arg0 lhs, Vector4_32Arg1 rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return _mm_cmple_ps(lhs, rhs);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vcleq_f32(lhs, rhs);
+#else
+		return Vector4_32{ math_impl::get_mask_value(lhs.x <= rhs.x), math_impl::get_mask_value(lhs.y <= rhs.y), math_impl::get_mask_value(lhs.z <= rhs.z), math_impl::get_mask_value(lhs.w <= rhs.w) };
 #endif
 	}
 
