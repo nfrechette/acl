@@ -30,6 +30,8 @@ using namespace acl;
 
 TEST_CASE("scalar packing math", "[math][scalar][packing]")
 {
+	const float threshold = 1.0e-6f;
+
 	const uint8_t max_num_bits = 23;
 	for (uint8_t num_bits = 1; num_bits < max_num_bits; ++num_bits)
 	{
@@ -43,7 +45,8 @@ TEST_CASE("scalar packing math", "[math][scalar][packing]")
 		REQUIRE(pack_scalar_signed(-1.0f, num_bits) == 0);
 		REQUIRE(pack_scalar_signed(1.0f, num_bits) == max_value);
 		REQUIRE(unpack_scalar_signed(0, num_bits) == -1.0f);
-		REQUIRE(unpack_scalar_signed(max_value, num_bits) == 1.0f);
+		REQUIRE(unpack_scalar_signed(max_value, num_bits) <= 1.0f);
+		REQUIRE(scalar_near_equal(unpack_scalar_signed(max_value, num_bits), 1.0f, threshold));
 
 		uint32_t num_errors = 0;
 		for (uint32_t value = 0; value < max_value; ++value)
