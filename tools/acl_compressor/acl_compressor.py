@@ -324,6 +324,8 @@ def compress_clips(options):
 			if not os.path.exists(stat_dirname):
 				os.makedirs(stat_dirname)
 
+			stat_filename = stat_filename.replace('\\\\?\\', '')
+
 			if out_dir:
 				out_filename = os.path.join(options['out'], filename.replace('.acl.sjson', '.acl.bin'))
 				cmd = '{} -acl="{}" -stats="{}" -out="{}"'.format(compressor_exe_path, acl_filename, stat_filename, out_filename)
