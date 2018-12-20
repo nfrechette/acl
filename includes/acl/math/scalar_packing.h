@@ -44,7 +44,9 @@ namespace acl
 		ACL_ASSERT(num_bits < 31, "Attempting to unpack from too many bits");
 		const uint32_t max_value = (1 << num_bits) - 1;
 		ACL_ASSERT(input <= max_value, "Input value too large: %ull", input);
-		return safe_to_float(input) / safe_to_float(max_value);
+		// For performance reasons, unpacking is faster when multiplying with the reciprocal
+		const float inv_max_value = 1.0f / safe_to_float(max_value);
+		return safe_to_float(input) * inv_max_value;
 	}
 
 	inline uint32_t pack_scalar_signed(float input, uint8_t num_bits)
