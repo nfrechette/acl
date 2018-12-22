@@ -6,7 +6,7 @@ In order to contribute to ACL and use the various tools provided for development
 
 ### Windows, Linux, and OS X
 
-1. Install *CMake 3.2* or higher, *Python 3*, and the proper compiler for your platform
+1. Install *CMake 3.2* or higher (*3.10* is required on OS X with *Xcode 10*), *Python 3*, and the proper compiler for your platform
 2. Generate the IDE solution with: `python make.py`  
    The solution is generated under `./build`  
    Note that if you do not have CMake in your `PATH`, you should define the `ACL_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
