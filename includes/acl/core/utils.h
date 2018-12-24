@@ -41,8 +41,7 @@ namespace acl
 
 	inline float calculate_duration(uint32_t num_samples, uint32_t sample_rate)
 	{
-		ACL_ASSERT(num_samples > 0, "Invalid number of samples: %u", num_samples);
 		ACL_ASSERT(sample_rate > 0, "Invalid sample rate: %u", sample_rate);
-		return float(num_samples - 1) / float(sample_rate);
+		return num_samples != 0 ? (float(num_samples - 1) / float(sample_rate)) : 0.0f;
 	}
 }

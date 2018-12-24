@@ -35,6 +35,7 @@ TEST_CASE("misc utils", "[core][utils]")
 	REQUIRE(calculate_num_samples(1.0f, 24) == 25);
 	REQUIRE(calculate_num_samples(1.0f / 30.f, 30) == 2);
 
+	REQUIRE(calculate_duration(0, 30) == 0.0f);
 	REQUIRE(calculate_duration(1, 30) == 0.0f);
 	REQUIRE(calculate_duration(1, 8) == 0.0f);
 	REQUIRE(scalar_near_equal(calculate_duration(31, 30), 1.0f, 1.0e-8f));
