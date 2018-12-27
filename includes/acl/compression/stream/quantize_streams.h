@@ -1075,7 +1075,8 @@ namespace acl
 					memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 				}
 
-				// Last ditch effort if our error remains too high, this should be rare
+				// Our error remains too high, this should be rare.
+				// Attempt to increase the bit rate as much as we can while still back tracking if it doesn't help.
 				error = calculate_max_error_at_bit_rate(context, bone_index, false, true);
 				while (error >= context.error_threshold)
 				{
@@ -1147,6 +1148,32 @@ namespace acl
 						break;
 
 					// TODO: Try to lower the bit rate again in the reverse direction?
+				}
+
+				// Despite our best efforts, we failed to meet the threshold with our heuristics.
+				// No longer attempt to find what is best for size, max out the bit rates until we meet the threshold.
+				// Only do this if the rotation format is full precision quaternions. This last step is not guaranteed
+				// to reach the error threshold but it will very likely increase the memory footprint. Even if we do
+				// reach the error threshold for the given bone, another sibling bone already processed might now
+				// have an error higher than it used to if quantization caused its error to compensate. More often than
+				// not, sibling bones will remain fairly close in their error. Some packed rotation formats, namely
+				// drop W component can have a high error even with raw values, it is assumed that if such a format
+				// is used then a best effort approach to reach the error threshold is entirely fine.
+				if (error >= context.error_threshold && context.rotation_format == RotationFormat8::Quat_128)
+				{
+					// From child to parent, max out the bit rate
+					for (int16_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)
+					{
+						const uint16_t chain_bone_index = chain_bone_indices[chain_link_index];
+						BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
+						bone_bit_rate.rotation = std::max<uint8_t>(bone_bit_rate.rotation, k_highest_bit_rate);
+						bone_bit_rate.translation = std::max<uint8_t>(bone_bit_rate.translation, k_highest_bit_rate);
+						bone_bit_rate.scale = std::max<uint8_t>(bone_bit_rate.scale, k_highest_bit_rate);
+
+						error = calculate_max_error_at_bit_rate(context, bone_index, false, true);
+						if (error < context.error_threshold)
+							break;
+					}
 				}
 			}
 
