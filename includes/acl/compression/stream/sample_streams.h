@@ -705,7 +705,7 @@ namespace acl
 		}
 	}
 
-	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose)
+	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, SampleRoundingPolicy rounding, Transform_32* out_local_pose)
 	{
 		(void)num_bones;
 
@@ -731,7 +731,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, rounding, key0, key1, interpolation_alpha);
 
 				Quat_32 sample0 = get_rotation_sample(bone_stream, key0);
 				Quat_32 sample1 = get_rotation_sample(bone_stream, key1);
@@ -751,7 +751,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, rounding, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0 = get_translation_sample(bone_stream, key0);
 				Vector4_32 sample1 = get_translation_sample(bone_stream, key1);
@@ -771,7 +771,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, rounding, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
 				Vector4_32 sample1 = get_scale_sample(bone_stream, key1);
@@ -905,7 +905,7 @@ namespace acl
 		}
 	}
 
-	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose)
+	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, SampleRoundingPolicy rounding, Transform_32* out_local_pose)
 	{
 		(void)num_bones;
 
@@ -940,7 +940,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, rounding, key0, key1, interpolation_alpha);
 
 				Quat_32 sample0;
 				Quat_32 sample1;
@@ -973,7 +973,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, rounding, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0;
 				Vector4_32 sample1;
@@ -1006,7 +1006,7 @@ namespace acl
 				uint32_t key0;
 				uint32_t key1;
 				float interpolation_alpha;
-				find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+				find_linear_interpolation_samples(num_samples, duration, sample_time, rounding, key0, key1, interpolation_alpha);
 
 				Vector4_32 sample0;
 				Vector4_32 sample1;
