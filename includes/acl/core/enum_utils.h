@@ -24,7 +24,11 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
+
 #include <type_traits>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 // This macro defines common operators for manipulating bit flags
 
@@ -92,3 +96,5 @@ namespace acl
 		return static_cast<IntegralType>(flags & flags_to_test) == static_cast<IntegralType>(flags_to_test);
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

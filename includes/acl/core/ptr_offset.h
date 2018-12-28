@@ -24,9 +24,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/memory_utils.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -114,3 +117,5 @@ namespace acl
 	template<typename DataType>
 	using PtrOffset32 = PtrOffset<DataType, uint32_t>;
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

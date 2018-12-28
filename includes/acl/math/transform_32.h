@@ -24,10 +24,13 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/math/math.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/affine_matrix_32.h"
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -117,3 +120,5 @@ namespace acl
 		return transform_set(rotation, input.translation, input.scale);
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

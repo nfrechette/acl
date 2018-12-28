@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/algorithm_versions.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/memory_utils.h"
@@ -33,6 +34,8 @@
 #include "acl/core/track_types.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -254,3 +257,5 @@ namespace acl
 		return *add_offset_to_ptr<const ClipHeader>(&clip, sizeof(CompressedClip));
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

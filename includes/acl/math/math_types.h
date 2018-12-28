@@ -24,9 +24,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/math/math.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -272,3 +275,5 @@ namespace acl
 	using AffineMatrix_32ArgN = const AffineMatrix_32&;
 #endif
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

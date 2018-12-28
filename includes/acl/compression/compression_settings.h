@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/track_types.h"
@@ -32,6 +33,8 @@
 #include "acl/math/scalar_32.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -243,3 +246,5 @@ namespace acl
 		return settings;
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

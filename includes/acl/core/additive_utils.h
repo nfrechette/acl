@@ -24,10 +24,13 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/math/transform_32.h"
 #include "acl/math/transform_64.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -176,3 +179,5 @@ namespace acl
 		return transform_set(rotation, translation, scale);
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

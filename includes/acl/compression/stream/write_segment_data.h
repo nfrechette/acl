@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/stream/clip_context.h"
@@ -33,6 +34,8 @@
 #include "acl/compression/stream/write_stream_data.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -89,3 +92,5 @@ namespace acl
 		}
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

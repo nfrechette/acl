@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
@@ -42,6 +43,8 @@
 
 // 0 = no debug info, 1 = basic info, 2 = verbose
 #define ACL_DEBUG_VARIABLE_QUANTIZATION		0
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -1219,3 +1222,5 @@ namespace acl
 		}
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

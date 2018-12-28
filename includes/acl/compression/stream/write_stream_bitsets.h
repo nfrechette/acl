@@ -26,9 +26,12 @@
 
 #include "acl/core/error.h"
 #include "acl/core/bitset.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/compression/stream/clip_context.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -84,3 +87,5 @@ namespace acl
 		ACL_ASSERT(constant_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/core/track_types.h"
@@ -35,10 +36,12 @@
 
 // VS2015 sometimes dies when it attempts to compile too many inlined functions
 #if defined(_MSC_VER)
-#define VS2015_HACK_NO_INLINE __declspec(noinline)
+	#define VS2015_HACK_NO_INLINE __declspec(noinline)
 #else
-#define VS2015_HACK_NO_INLINE
+	#define VS2015_HACK_NO_INLINE
 #endif
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -341,3 +344,5 @@ namespace acl
 		AnimationScaleTrack& operator=(const AnimationScaleTrack&) = delete;
 	};
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

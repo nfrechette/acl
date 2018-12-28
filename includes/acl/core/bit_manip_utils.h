@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 
 #include <cstdint>
@@ -38,6 +39,8 @@
 	// Use BMI
 	#include <immintrin.h>
 #endif
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -112,3 +115,5 @@ namespace acl
 #endif
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

@@ -25,11 +25,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/stream/clip_context.h"
 
-#include <stdint.h>
+#include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -163,3 +166,5 @@ namespace acl
 		deallocate_type_array(allocator, clip_segment, 1);
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

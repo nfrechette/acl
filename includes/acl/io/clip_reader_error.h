@@ -26,7 +26,11 @@
 
 #if defined(SJSON_CPP_PARSER)
 
+#include "acl/core/compiler_utils.h"
+
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -75,5 +79,7 @@ namespace acl
 		}
 	};
 }
+
+ACL_IMPL_FILE_PRAGMA_POP
 
 #endif	// #if defined(SJSON_CPP_PARSER)

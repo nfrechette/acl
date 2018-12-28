@@ -24,11 +24,14 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
 #include "acl/math/scalar_32.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -45,3 +48,5 @@ namespace acl
 		return num_samples != 0 ? (float(num_samples - 1) / float(sample_rate)) : 0.0f;
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

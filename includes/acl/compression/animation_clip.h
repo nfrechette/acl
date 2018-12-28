@@ -27,6 +27,7 @@
 #include "acl/compression/animation_track.h"
 #include "acl/compression/skeleton.h"
 #include "acl/core/additive_utils.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error_result.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/string.h"
@@ -36,6 +37,8 @@
 #include "acl/math/transform_32.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -336,3 +339,5 @@ namespace acl
 		return output_bone_mapping;
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

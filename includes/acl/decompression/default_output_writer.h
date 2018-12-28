@@ -24,10 +24,13 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/decompression/output_writer.h"
 #include "acl/math/math_types.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -67,3 +70,5 @@ namespace acl
 		uint16_t m_num_transforms;
 	};
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

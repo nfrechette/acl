@@ -24,10 +24,13 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/math/math.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/quat_32.h"
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -369,3 +372,5 @@ namespace acl
 		return result;
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

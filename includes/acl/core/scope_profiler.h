@@ -24,8 +24,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
+
 #include <chrono>
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -93,3 +97,5 @@ namespace acl
 			m_end_time = std::chrono::high_resolution_clock::now();
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

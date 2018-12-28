@@ -38,6 +38,8 @@
 
 #include <cstdint>
 
+ACL_IMPL_FILE_PRAGMA_PUSH
+
 namespace acl
 {
 	class ClipReader
@@ -730,5 +732,7 @@ namespace acl
 		}
 	};
 }
+
+ACL_IMPL_FILE_PRAGMA_POP
 
 #endif	// #if defined(SJSON_CPP_PARSER)

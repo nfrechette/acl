@@ -29,12 +29,15 @@
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/skeleton.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 
 #include <cstdint>
 #include <cinttypes>
 #include <cstdio>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -301,5 +304,7 @@ namespace acl
 		return impl::write_acl_clip(skeleton, clip, algorithm, &settings, acl_filename);
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP
 
 #endif	// #if defined(SJSON_CPP_WRITER)

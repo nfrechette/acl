@@ -24,7 +24,10 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/compressed_clip.h"
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -40,3 +43,5 @@ namespace acl
 		new(&compressed_clip) CompressedClip(compressed_clip.get_size(), compressed_clip.get_algorithm_type());
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

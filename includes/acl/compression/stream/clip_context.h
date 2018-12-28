@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/additive_utils.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/compression/animation_clip.h"
@@ -32,6 +33,8 @@
 #include "acl/compression/stream/segment_context.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -180,3 +183,5 @@ namespace acl
 	constexpr bool segment_context_has_scale(const SegmentContext& segment) { return segment.clip->has_scale; }
 	constexpr bool bone_streams_has_scale(const BoneStreams& bone_streams) { return segment_context_has_scale(*bone_streams.segment); }
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

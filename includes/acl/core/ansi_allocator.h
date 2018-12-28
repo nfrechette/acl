@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 
@@ -48,6 +49,8 @@
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
 #include <unordered_map>
 #endif
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -189,3 +192,5 @@ namespace acl
 #endif
 	};
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

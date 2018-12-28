@@ -24,8 +24,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
+
 #include <cstdint>
 #include <cstring>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -293,3 +297,5 @@ namespace acl
 		return format == VectorFormat8::Vector3_Variable;
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

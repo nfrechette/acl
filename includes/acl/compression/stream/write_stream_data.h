@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/core/compressed_clip.h"
@@ -33,6 +34,8 @@
 #include "acl/compression/stream/clip_context.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -315,3 +318,5 @@ namespace acl
 		ACL_ASSERT(format_per_track_data == format_per_track_data_end, "Invalid format per track data offset. Wrote too little data.");
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

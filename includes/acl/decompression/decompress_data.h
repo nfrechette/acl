@@ -24,6 +24,10 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
+
+ACL_IMPL_FILE_PRAGMA_PUSH
+
 namespace acl
 {
 	template<class SettingsType, class DecompressionContextType, class SamplingContextType>
@@ -1050,3 +1054,5 @@ namespace acl
 		return interpolated_vector;
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

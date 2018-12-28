@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/core/iallocator.h"
 #include "acl/compression/compression_settings.h"
@@ -33,6 +34,8 @@
 
 #include <cstdint>
 #include <cstring>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -118,3 +121,5 @@ namespace acl
 		return bone_error;
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

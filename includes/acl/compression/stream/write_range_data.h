@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/enum_utils.h"
 #include "acl/core/track_types.h"
@@ -36,6 +37,8 @@
 #include "acl/compression/stream/clip_context.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -184,3 +187,5 @@ namespace acl
 		write_range_track_data(clip_context, segment.bone_streams, segment.ranges, range_reduction, false, range_data, range_data_size, output_bone_mapping, num_output_bones);
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

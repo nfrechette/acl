@@ -24,10 +24,13 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/math/vector4_32.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -107,3 +110,5 @@ namespace acl
 		bool	m_is_flushing;
 	};
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

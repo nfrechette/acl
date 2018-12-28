@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 
 #include <cstdint>
@@ -39,6 +40,8 @@
 #elif defined(__APPLE__)
 	#include <libkern/OSByteOrder.h>
 #endif
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -324,3 +327,5 @@ namespace acl
 		memcpy(output, &input, sizeof(DataType));
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

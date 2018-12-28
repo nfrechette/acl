@@ -24,9 +24,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/enum_utils.h"
 
 namespace sjson { class ObjectWriter; }
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -51,3 +54,5 @@ namespace acl
 		sjson::ObjectWriter*	writer;
 	};
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

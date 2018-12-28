@@ -32,6 +32,24 @@
 	#include <stdlib.h>
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+// Because this library is made entirely of headers, we have no control over the
+// compilation flags used. However, in some cases, certain options must be forced.
+// To do this, every header is wrapped in two macros to push and pop the necessary
+// pragmas.
+//////////////////////////////////////////////////////////////////////////
+#if defined(_MSC_VER)
+	#define ACL_IMPL_FILE_PRAGMA_PUSH \
+		/* Disable fast math, it can hurt precision for little to no performance gain due to the high level of hand tuned optimizations. */ \
+		__pragma(float_control(precise, on, push))
+
+	#define ACL_IMPL_FILE_PRAGMA_POP \
+		__pragma(float_control(pop))
+#else
+	#define ACL_IMPL_FILE_PRAGMA_PUSH
+	#define ACL_IMPL_FILE_PRAGMA_POP
+#endif
+
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////

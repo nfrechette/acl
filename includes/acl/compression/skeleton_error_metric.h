@@ -25,11 +25,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/additive_utils.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/hash.h"
 #include "acl/math/affine_matrix_32.h"
 #include "acl/math/transform_32.h"
 #include "acl/math/scalar_32.h"
 #include "acl/compression/skeleton.h"
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -460,3 +463,5 @@ namespace acl
 		}
 	};
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

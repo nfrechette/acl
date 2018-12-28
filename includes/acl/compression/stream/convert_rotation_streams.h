@@ -25,12 +25,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/compression/stream/clip_context.h"
 
-#include <stdint.h>
+#include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -99,3 +102,5 @@ namespace acl
 			convert_rotation_streams(allocator, segment, rotation_format);
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

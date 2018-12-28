@@ -26,6 +26,7 @@
 
 #include "acl/core/bitset.h"
 #include "acl/core/bit_manip_utils.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/interpolation_utils.h"
@@ -37,6 +38,8 @@
 #include "acl/decompression/output_writer.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 //////////////////////////////////////////////////////////////////////////
 // See encoder for details
@@ -766,3 +769,5 @@ namespace acl
 		}
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

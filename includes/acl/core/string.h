@@ -24,10 +24,13 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 
 #include <memory>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -115,3 +118,5 @@ namespace acl
 		char* m_c_str;
 	};
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

@@ -32,6 +32,8 @@
 #include <utility>
 #include <cstdint>
 
+ACL_IMPL_FILE_PRAGMA_PUSH
+
 namespace acl
 {
 	////////////////////////////////////////////////////////////////////////////////
@@ -140,3 +142,5 @@ namespace acl
 		allocator.deallocate(elements, sizeof(AllocatedType) * num_elements);
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

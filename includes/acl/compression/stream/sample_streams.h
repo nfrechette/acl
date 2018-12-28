@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
@@ -37,6 +38,8 @@
 #include "acl/compression/stream/convert_rotation_streams.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -1050,3 +1053,5 @@ namespace acl
 		}
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

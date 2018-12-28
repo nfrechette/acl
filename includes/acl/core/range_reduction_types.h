@@ -24,9 +24,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/enum_utils.h"
 
 #include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -85,3 +88,5 @@ namespace acl
 			return "<Invalid>";
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

@@ -25,12 +25,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
+#include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/hash.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/stream/track_stream.h"
 
-#include <stdint.h>
+#include <cstdint>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -80,3 +83,5 @@ namespace acl
 		deallocate_type_array(allocator, segment.ranges, segment.num_bones);
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP

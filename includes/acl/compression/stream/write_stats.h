@@ -26,6 +26,7 @@
 
 #if defined(SJSON_CPP_WRITER)
 
+#include "acl/core/compiler_utils.h"
 #include "acl/core/memory_cache.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/decompression/default_output_writer.h"
@@ -36,6 +37,8 @@
 #include <cstdint>
 #include <thread>
 #include <chrono>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -562,5 +565,7 @@ namespace acl
 		};
 	}
 }
+
+ACL_IMPL_FILE_PRAGMA_POP
 
 #endif	// #if defined(SJSON_CPP_WRITER)
