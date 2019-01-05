@@ -616,6 +616,7 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 					  CompressionSettings& out_settings)
 {
 	char* sjson_file_buffer = nullptr;
+	size_t file_size = 0;
 
 #if defined(__ANDROID__)
 	ClipReader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
@@ -644,9 +645,9 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 		return false;
 
 #ifdef _WIN32
-	const size_t file_size = static_cast<size_t>(_ftelli64(file));
+	file_size = static_cast<size_t>(_ftelli64(file));
 #else
-	const size_t file_size = static_cast<size_t>(ftello(file));
+	file_size = static_cast<size_t>(ftello(file));
 #endif
 
 	if (file_size == static_cast<size_t>(-1L))
