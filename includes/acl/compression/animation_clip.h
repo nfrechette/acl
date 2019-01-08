@@ -162,9 +162,10 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Samples a whole pose at a particular sample time
 		//    - sample_time: The time at which to sample the clip
+		//    - rounding_policy: The rounding policy to use when sampling
 		//    - out_local_pose: An array of at least 'num_transforms' to output the data in
 		//    - num_transforms: The number of transforms in the output array
-		void sample_pose(float sample_time, Transform_32* out_local_pose, uint16_t num_transforms) const
+		void sample_pose(float sample_time, SampleRoundingPolicy rounding_policy, Transform_32* out_local_pose, uint16_t num_transforms) const
 		{
 			ACL_ASSERT(m_num_bones > 0, "Invalid number of bones: %u", m_num_bones);
 			ACL_ASSERT(m_num_bones == num_transforms, "Number of transforms does not match the number of bones: %u != %u", num_transforms, m_num_bones);
@@ -178,7 +179,7 @@ namespace acl
 			uint32_t sample_index0;
 			uint32_t sample_index1;
 			float interpolation_alpha;
-			find_linear_interpolation_samples(m_num_samples, clip_duration, sample_time, SampleRoundingPolicy::None, sample_index0, sample_index1, interpolation_alpha);
+			find_linear_interpolation_samples(m_num_samples, clip_duration, sample_time, rounding_policy, sample_index0, sample_index1, interpolation_alpha);
 
 			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
 			{
@@ -198,6 +199,16 @@ namespace acl
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Samples a whole pose at a particular sample time
+		//    - sample_time: The time at which to sample the clip
+		//    - out_local_pose: An array of at least 'num_transforms' to output the data in
+		//    - num_transforms: The number of transforms in the output array
+		void sample_pose(float sample_time, Transform_32* out_local_pose, uint16_t num_transforms) const
+		{
+			sample_pose(sample_time, SampleRoundingPolicy::None, out_local_pose, num_transforms);
 		}
 
 		//////////////////////////////////////////////////////////////////////////
