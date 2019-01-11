@@ -128,13 +128,13 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_32 rotation = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index)));
+				const Quat_32 rotation = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index)));
 				bone_stream.rotations.set_raw_sample(sample_index, rotation);
 
-				Vector4_32 translation = vector_cast(bone.translation_track.get_sample(sample_index));
+				const Vector4_32 translation = vector_cast(bone.translation_track.get_sample(sample_index));
 				bone_stream.translations.set_raw_sample(sample_index, translation);
 
-				Vector4_32 scale = vector_cast(bone.scale_track.get_sample(sample_index));
+				const Vector4_32 scale = vector_cast(bone.scale_track.get_sample(sample_index));
 				bone_stream.scales.set_raw_sample(sample_index, scale);
 			}
 
@@ -161,6 +161,7 @@ namespace acl
 		segment.num_bones = num_bones;
 		segment.clip_sample_offset = 0;
 		segment.segment_index = 0;
+		segment.distribution = SampleDistribution8::Uniform;
 		segment.are_rotations_normalized = false;
 		segment.are_translations_normalized = false;
 		segment.are_scales_normalized = false;

@@ -39,6 +39,18 @@ namespace acl
 {
 	struct ClipContext;
 
+	//////////////////////////////////////////////////////////////////////////
+	// The sample distribution.
+	//////////////////////////////////////////////////////////////////////////
+	enum class SampleDistribution8 : uint8_t
+	{
+		// Samples are uniform, use the whole clip to determine the interpolation alpha.
+		Uniform,
+
+		// Samples are not uniform, use each track to determine the interpolation alpha.
+		Variable,
+	};
+
 	struct SegmentContext
 	{
 		ClipContext* clip;
@@ -50,6 +62,8 @@ namespace acl
 
 		uint32_t clip_sample_offset;
 		uint32_t segment_index;
+
+		SampleDistribution8 distribution;
 
 		bool are_rotations_normalized;
 		bool are_translations_normalized;

@@ -491,17 +491,17 @@ namespace acl
 			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
 				// Sample our streams and calculate the error
-				const float sample_time = min(float(sample_index) / context.sample_rate, context.segment_duration);
-				const float ref_sample_time = min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration);
+				// The sample time is calculated from the full clip duration to be consistent with decompression
+				const float sample_time = min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration);
 
-				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, ref_sample_time, target_bone_index, SampleRoundingPolicy::Nearest, context.raw_local_pose);
-				sample_streams_hierarchical(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.scale_format, SampleRoundingPolicy::Nearest, context.lossy_local_pose);
+				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
+				sample_streams_hierarchical(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.scale_format, context.lossy_local_pose);
 
 				if (context.has_additive_base)
 				{
-					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (ref_sample_time / context.clip_duration) : 0.0f;
+					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0f;
 					const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
-					sample_streams_hierarchical(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, SampleRoundingPolicy::Nearest, context.additive_local_pose);
+					sample_streams_hierarchical(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
 				}
 
 				// Constant branch

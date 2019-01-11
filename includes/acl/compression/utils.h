@@ -77,9 +77,10 @@ namespace acl
 		{
 			const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
-			clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
+			// We use the nearest sample to accurately measure the loss that happened, if any
+			clip.sample_pose(sample_time, SampleRoundingPolicy::Nearest, raw_pose_transforms, num_bones);
 
-			context.seek(sample_time, SampleRoundingPolicy::None);
+			context.seek(sample_time, SampleRoundingPolicy::Nearest);
 			context.decompress_pose(pose_writer);
 
 			if (additive_base_clip != nullptr)
