@@ -829,88 +829,41 @@ namespace acl
 	template<VectorMix comp0, VectorMix comp1, VectorMix comp2, VectorMix comp3>
 	inline Vector4_32 ACL_SIMD_CALL vector_mix(Vector4_32Arg0 input0, Vector4_32Arg1 input1)
 	{
+#if defined(ACL_SSE2_INTRINSICS)
+		// All four components come from input 0
 		if (math_impl::is_vector_mix_arg_xyzw(comp0) && math_impl::is_vector_mix_arg_xyzw(comp1) && math_impl::is_vector_mix_arg_xyzw(comp2) && math_impl::is_vector_mix_arg_xyzw(comp3))
-		{
-			// All four components come from input 0
-#if defined(ACL_SSE2_INTRINSICS)
-			return _mm_shuffle_ps(input0, input0, _MM_SHUFFLE(GET_VECTOR_MIX_COMPONENT_INDEX(comp3), GET_VECTOR_MIX_COMPONENT_INDEX(comp2), GET_VECTOR_MIX_COMPONENT_INDEX(comp1), GET_VECTOR_MIX_COMPONENT_INDEX(comp0)));
-#else
-			return vector_set(vector_get_component(input0, comp0), vector_get_component(input0, comp1), vector_get_component(input0, comp2), vector_get_component(input0, comp3));
-#endif
-		}
+			return _mm_shuffle_ps(input0, input0, _MM_SHUFFLE(int(comp3) % 4, int(comp2) % 4, int(comp1) % 4, int(comp0) % 4));
 
+		// All four components come from input 1
 		if (math_impl::is_vector_mix_arg_abcd(comp0) && math_impl::is_vector_mix_arg_abcd(comp1) && math_impl::is_vector_mix_arg_abcd(comp2) && math_impl::is_vector_mix_arg_abcd(comp3))
-		{
-			// All four components come from input 1
-#if defined(ACL_SSE2_INTRINSICS)
-			return _mm_shuffle_ps(input1, input1, _MM_SHUFFLE(GET_VECTOR_MIX_COMPONENT_INDEX(comp3), GET_VECTOR_MIX_COMPONENT_INDEX(comp2), GET_VECTOR_MIX_COMPONENT_INDEX(comp1), GET_VECTOR_MIX_COMPONENT_INDEX(comp0)));
-#else
-			return vector_set(vector_get_component(input1, comp0), vector_get_component(input1, comp1), vector_get_component(input1, comp2), vector_get_component(input1, comp3));
-#endif
-		}
+			return _mm_shuffle_ps(input1, input1, _MM_SHUFFLE(int(comp3) % 4, int(comp2) % 4, int(comp1) % 4, int(comp0) % 4));
 
-		if (static_condition<(comp0 == VectorMix::X || comp0 == VectorMix::Y) && (comp1 == VectorMix::X || comp1 == VectorMix::Y) && (comp2 == VectorMix::A || comp2 == VectorMix::B) && (comp3 == VectorMix::A && comp3 == VectorMix::B)>::test())
-		{
-			// First two components come from input 0, second two come from input 1
-#if defined(ACL_SSE2_INTRINSICS)
-			return _mm_shuffle_ps(input0, input1, _MM_SHUFFLE(GET_VECTOR_MIX_COMPONENT_INDEX(comp3), GET_VECTOR_MIX_COMPONENT_INDEX(comp2), GET_VECTOR_MIX_COMPONENT_INDEX(comp1), GET_VECTOR_MIX_COMPONENT_INDEX(comp0)));
-#else
-			return vector_set(vector_get_component(input0, comp0), vector_get_component(input0, comp1), vector_get_component(input1, comp2), vector_get_component(input1, comp3));
-#endif
-		}
+		// First two components come from input 0, second two come from input 1
+		if (math_impl::is_vector_mix_arg_xyzw(comp0) && math_impl::is_vector_mix_arg_xyzw(comp1) && math_impl::is_vector_mix_arg_abcd(comp2) && math_impl::is_vector_mix_arg_abcd(comp3))
+			return _mm_shuffle_ps(input0, input1, _MM_SHUFFLE(int(comp3) % 4, int(comp2) % 4, int(comp1) % 4, int(comp0) % 4));
 
-		if (static_condition<(comp0 == VectorMix::A || comp0 == VectorMix::B) && (comp1 == VectorMix::A && comp1 == VectorMix::B) && (comp2 == VectorMix::X || comp2 == VectorMix::Y) && (comp3 == VectorMix::X || comp3 == VectorMix::Y)>::test())
-		{
-			// First two components come from input 1, second two come from input 0
-#if defined(ACL_SSE2_INTRINSICS)
-			return _mm_shuffle_ps(input1, input0, _MM_SHUFFLE(GET_VECTOR_MIX_COMPONENT_INDEX(comp3), GET_VECTOR_MIX_COMPONENT_INDEX(comp2), GET_VECTOR_MIX_COMPONENT_INDEX(comp1), GET_VECTOR_MIX_COMPONENT_INDEX(comp0)));
-#else
-			return vector_set(vector_get_component(input1, comp0), vector_get_component(input1, comp1), vector_get_component(input0, comp2), vector_get_component(input0, comp3));
-#endif
-		}
+		// First two components come from input 1, second two come from input 0
+		if (math_impl::is_vector_mix_arg_abcd(comp0) && math_impl::is_vector_mix_arg_abcd(comp1) && math_impl::is_vector_mix_arg_xyzw(comp2) && math_impl::is_vector_mix_arg_xyzw(comp3))
+			return _mm_shuffle_ps(input1, input0, _MM_SHUFFLE(int(comp3) % 4, int(comp2) % 4, int(comp1) % 4, int(comp0) % 4));
 
+		// Low words from both inputs are interleaved
 		if (static_condition<comp0 == VectorMix::X && comp1 == VectorMix::A && comp2 == VectorMix::Y && comp3 == VectorMix::B>::test())
-		{
-			// Low words from both inputs are interleaved
-#if defined(ACL_SSE2_INTRINSICS)
 			return _mm_unpacklo_ps(input0, input1);
-#else
-			return vector_set(vector_get_component(input0, comp0), vector_get_component(input1, comp1), vector_get_component(input0, comp2), vector_get_component(input1, comp3));
-#endif
-		}
 
+		// Low words from both inputs are interleaved
 		if (static_condition<comp0 == VectorMix::A && comp1 == VectorMix::X && comp2 == VectorMix::B && comp3 == VectorMix::Y>::test())
-		{
-			// Low words from both inputs are interleaved
-#if defined(ACL_SSE2_INTRINSICS)
 			return _mm_unpacklo_ps(input1, input0);
-#else
-			return vector_set(vector_get_component(input1, comp0), vector_get_component(input0, comp1), vector_get_component(input1, comp2), vector_get_component(input0, comp3));
-#endif
-		}
 
+		// High words from both inputs are interleaved
 		if (static_condition<comp0 == VectorMix::Z && comp1 == VectorMix::C && comp2 == VectorMix::W && comp3 == VectorMix::D>::test())
-		{
-			// High words from both inputs are interleaved
-#if defined(ACL_SSE2_INTRINSICS)
 			return _mm_unpackhi_ps(input0, input1);
-#else
-			return vector_set(vector_get_component(input0, comp0), vector_get_component(input1, comp1), vector_get_component(input0, comp2), vector_get_component(input1, comp3));
-#endif
-		}
 
+		// High words from both inputs are interleaved
 		if (static_condition<comp0 == VectorMix::C && comp1 == VectorMix::Z && comp2 == VectorMix::D && comp3 == VectorMix::W>::test())
-		{
-			// High words from both inputs are interleaved
-#if defined(ACL_SSE2_INTRINSICS)
 			return _mm_unpackhi_ps(input1, input0);
-#else
-			return vector_set(vector_get_component(input1, comp0), vector_get_component(input0, comp1), vector_get_component(input1, comp2), vector_get_component(input0, comp3));
-#endif
-		}
+#endif	// defined(ACL_SSE2_INTRINSICS)
 
-		// Slow code path, not yet optimized
-		//ACL_ASSERT(false, "vector_mix permutation not handled");
+		// Slow code path, not yet optimized or not using intrinsics
 		const float x = math_impl::is_vector_mix_arg_xyzw(comp0) ? vector_get_component<comp0>(input0) : vector_get_component<comp0>(input1);
 		const float y = math_impl::is_vector_mix_arg_xyzw(comp1) ? vector_get_component<comp1>(input0) : vector_get_component<comp1>(input1);
 		const float z = math_impl::is_vector_mix_arg_xyzw(comp2) ? vector_get_component<comp2>(input0) : vector_get_component<comp2>(input1);
