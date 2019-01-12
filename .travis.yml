@@ -61,7 +61,10 @@ before_install:
       sudo -E apt-get -yq update;
       sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install ${PACKAGES};
       fi'
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade python || true ; fi
+    - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update || true;
+      brew upgrade python || true;
+      fi'
 
 script:
     - python3 make.py -clean -build -unit_test -compiler ${COMPILER} -config Debug -cpu x86
