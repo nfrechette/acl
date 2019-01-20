@@ -31,6 +31,8 @@ using namespace acl;
 
 TEST_CASE("interpolation utils", "[core][utils]")
 {
+	const float error_threshold = 1.0e-6f;
+
 	uint32_t key0;
 	uint32_t key1;
 	float alpha;
@@ -38,47 +40,47 @@ TEST_CASE("interpolation utils", "[core][utils]")
 
 	REQUIRE(key0 == 0);
 	REQUIRE(key1 == 1);
-	REQUIRE(scalar_near_equal(alpha, 0.0f, 1.0e-8f));
+	REQUIRE(scalar_near_equal(alpha, 0.0f, error_threshold));
 
 	find_linear_interpolation_samples(31, 1.0f, 1.0f / 30.0f, SampleRoundingPolicy::None, key0, key1, alpha);
 
 	REQUIRE(key0 == 1);
 	REQUIRE(key1 == 2);
-	REQUIRE(scalar_near_equal(alpha, 0.0f, 1.0e-8f));
+	REQUIRE(scalar_near_equal(alpha, 0.0f, error_threshold));
 
 	find_linear_interpolation_samples(31, 1.0f, 2.5f / 30.0f, SampleRoundingPolicy::None, key0, key1, alpha);
 
 	REQUIRE(key0 == 2);
 	REQUIRE(key1 == 3);
-	REQUIRE(scalar_near_equal(alpha, 0.5f, 1.0e-8f));
+	REQUIRE(scalar_near_equal(alpha, 0.5f, error_threshold));
 
 	find_linear_interpolation_samples(31, 1.0f, 1.0f, SampleRoundingPolicy::None, key0, key1, alpha);
 
 	REQUIRE(key0 == 30);
 	REQUIRE(key1 == 30);
-	REQUIRE(scalar_near_equal(alpha, 0.0f, 1.0e-8f));
+	REQUIRE(scalar_near_equal(alpha, 0.0f, error_threshold));
 
 	find_linear_interpolation_samples(31, 1.0f, 2.5f / 30.0f, SampleRoundingPolicy::Floor, key0, key1, alpha);
 
 	REQUIRE(key0 == 2);
 	REQUIRE(key1 == 3);
-	REQUIRE(scalar_near_equal(alpha, 0.0f, 1.0e-8f));
+	REQUIRE(scalar_near_equal(alpha, 0.0f, error_threshold));
 
 	find_linear_interpolation_samples(31, 1.0f, 2.5f / 30.0f, SampleRoundingPolicy::Ceil, key0, key1, alpha);
 
 	REQUIRE(key0 == 2);
 	REQUIRE(key1 == 3);
-	REQUIRE(scalar_near_equal(alpha, 1.0f, 1.0e-8f));
+	REQUIRE(scalar_near_equal(alpha, 1.0f, error_threshold));
 
 	find_linear_interpolation_samples(31, 1.0f, 2.4f / 30.0f, SampleRoundingPolicy::Nearest, key0, key1, alpha);
 
 	REQUIRE(key0 == 2);
 	REQUIRE(key1 == 3);
-	REQUIRE(scalar_near_equal(alpha, 0.0f, 1.0e-8f));
+	REQUIRE(scalar_near_equal(alpha, 0.0f, error_threshold));
 
 	find_linear_interpolation_samples(31, 1.0f, 2.6f / 30.0f, SampleRoundingPolicy::Nearest, key0, key1, alpha);
 
 	REQUIRE(key0 == 2);
 	REQUIRE(key1 == 3);
-	REQUIRE(scalar_near_equal(alpha, 1.0f, 1.0e-8f));
+	REQUIRE(scalar_near_equal(alpha, 1.0f, error_threshold));
 }
