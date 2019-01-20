@@ -76,7 +76,7 @@ namespace acl
 		ACL_ASSERT(sample_rate >= 0.0f && is_finite(sample_rate), "Invalid sample_rate: %f", sample_rate);
 
 		const float sample_index = sample_time * sample_rate;
-		const uint32_t sample_index0 = uint32_t(floor(sample_index));
+		const uint32_t sample_index0 = static_cast<uint32_t>(sample_index);
 		const uint32_t sample_index1 = std::min(sample_index0 + 1, num_samples - 1);
 		ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
 
