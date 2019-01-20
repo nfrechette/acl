@@ -316,15 +316,30 @@ namespace acl
 	{
 #if defined(ACL_SSE2_INTRINSICS)
 		// Calculate the vector4 dot product: dot(start, end)
-		__m128 x2_y2_z2_w2 = _mm_mul_ps(start, end);
-		__m128 z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
-		__m128 x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
-		__m128 y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
-		__m128 x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
-		// Shuffle the dot product to all SIMD lanes, there is no _mm_and_ss and loading
-		// the constant from memory with the 'and' instruction is faster, it uses fewer registers
-		// and fewer instructions
-		__m128 dot = _mm_shuffle_ps(x2y2z2w2_0_0_0, x2y2z2w2_0_0_0, _MM_SHUFFLE(0, 0, 0, 0));
+		__m128 dot;
+#if defined(ACL_SSE4_INTRINSICS)
+		// The dpps instruction isn't as accurate but we don't care here, we only need the sign of the
+		// dot product. If both rotations are on opposite ends of the hypersphere, the result will be
+		// very negative. If we are on the edge, the rotations are nearly opposite but not quite which
+		// means that the linear interpolation here will have terrible accuracy to begin with. It is designed
+		// for interpolating rotations that are reasonably close together. The bias check is mainly necessary
+		// because the W component is often kept positive which flips the sign.
+		// Using the dpps instruction reduces the number of registers that we need and helps the function get
+		// inlined.
+		dot = _mm_dp_ps(start, end, 0xFF);
+#else
+		{
+			__m128 x2_y2_z2_w2 = _mm_mul_ps(start, end);
+			__m128 z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
+			__m128 x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
+			__m128 y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
+			__m128 x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
+			// Shuffle the dot product to all SIMD lanes, there is no _mm_and_ss and loading
+			// the constant from memory with the 'and' instruction is faster, it uses fewer registers
+			// and fewer instructions
+			dot = _mm_shuffle_ps(x2y2z2w2_0_0_0, x2y2z2w2_0_0_0, _MM_SHUFFLE(0, 0, 0, 0));
+		}
+#endif
 
 		// Calculate the bias, if the dot product is positive or zero, there is no bias
 		// but if it is negative, we want to flip the 'end' rotation XYZW components
@@ -335,11 +350,11 @@ namespace acl
 
 		// Now we need to normalize the resulting rotation. We first calculate the
 		// dot product to get the length squared: dot(interpolated_rotation, interpolated_rotation)
-		x2_y2_z2_w2 = _mm_mul_ps(interpolated_rotation, interpolated_rotation);
-		z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
-		x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
-		y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
-		x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
+		__m128 x2_y2_z2_w2 = _mm_mul_ps(interpolated_rotation, interpolated_rotation);
+		__m128 z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
+		__m128 x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
+		__m128 y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
+		__m128 x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
 
 		// Keep the dot product result as a scalar within the first lane, it is faster to
 		// calculate the reciprocal square root of a single lane VS all 4 lanes
