@@ -56,6 +56,7 @@ macro(setup_default_compiler_flags _project_name)
 		endif()
 
 		target_compile_options(${_project_name} PRIVATE -Wall -Wextra)		# Enable all warnings
+		target_compile_options(${_project_name} PRIVATE -Wshadow)			# Enable shadowing warnings
 		target_compile_options(${_project_name} PRIVATE -Werror)			# Treat warnings as errors
 
 		target_compile_options(${_project_name} PRIVATE -g)					# Enable debug symbols
