@@ -1105,7 +1105,7 @@ static int safe_main_impl(int argc, char* argv[])
 		sjson::FileStreamWriter stream_writer(options.output_stats_file);
 		sjson::Writer writer(stream_writer);
 
-		writer["runs"] = [&](sjson::ArrayWriter& writer) { exec_algos(&writer); };
+		writer["runs"] = [&](sjson::ArrayWriter& runs_writer) { exec_algos(&runs_writer); };
 	}
 	else
 #endif

@@ -79,10 +79,10 @@ namespace acl
 				bit_rate_counts[scale_bit_rate]++;
 		}
 
-		writer["bit_rate_counts"] = [&](sjson::ArrayWriter& writer)
+		writer["bit_rate_counts"] = [&](sjson::ArrayWriter& bitrate_writer)
 		{
 			for (uint8_t bit_rate = 0; bit_rate < k_num_bit_rates; ++bit_rate)
-				writer.push(bit_rate_counts[bit_rate]);
+				bitrate_writer.push(bit_rate_counts[bit_rate]);
 		};
 
 		// We assume that we always interpolate between 2 poses
@@ -111,7 +111,7 @@ namespace acl
 
 		BoneError worst_bone_error;
 
-		writer["error_per_frame_and_bone"] = [&](sjson::ArrayWriter& writer)
+		writer["error_per_frame_and_bone"] = [&](sjson::ArrayWriter& frames_writer)
 		{
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
@@ -128,8 +128,8 @@ namespace acl
 					sample_streams(additive_base_clip_context.segments[0].bone_streams, num_bones, additive_sample_time, base_local_pose);
 				}
 
-				writer.push_newline();
-				writer.push([&](sjson::ArrayWriter& writer)
+				frames_writer.push_newline();
+				frames_writer.push([&](sjson::ArrayWriter& frame_writer)
 				{
 					for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 					{
@@ -139,7 +139,7 @@ namespace acl
 						else
 							error = settings.error_metric->calculate_object_bone_error_no_scale(skeleton, raw_local_pose, base_local_pose, lossy_local_pose, bone_index);
 
-						writer.push(error);
+						frame_writer.push(error);
 
 						if (error > worst_bone_error.error)
 						{
@@ -194,7 +194,7 @@ namespace acl
 		for (uint32_t pass_index = 0; pass_index < k_num_decompression_timing_passes; ++pass_index)
 			contexts[pass_index]->initialize(compressed_clip);
 
-		writer[action_type] = [&](sjson::ObjectWriter& writer)
+		writer[action_type] = [&](sjson::ObjectWriter& action_writer)
 		{
 			int32_t initial_sample_index;
 			int32_t sample_index_sentinel;
@@ -220,7 +220,7 @@ namespace acl
 			double clip_min_ms = 1000000.0;
 			double clip_total_ms = 0.0;
 
-			writer["data"] = [&](sjson::ArrayWriter& writer)
+			action_writer["data"] = [&](sjson::ArrayWriter& data_writer)
 			{
 				for (int32_t sample_index = initial_sample_index; sample_index != sample_index_sentinel; sample_index += delta_sample_index)
 				{
@@ -287,7 +287,7 @@ namespace acl
 					}
 
 					if (are_any_enum_flags_set(logging, StatLogging::ExhaustiveDecompression))
-						writer.push(decompression_time_ms);
+						data_writer.push(decompression_time_ms);
 
 					clip_max_ms = max(clip_max_ms, decompression_time_ms);
 					clip_min_ms = min(clip_min_ms, decompression_time_ms);
@@ -295,9 +295,9 @@ namespace acl
 				}
 			};
 
-			writer["min_time_ms"] = clip_min_ms;
-			writer["max_time_ms"] = clip_max_ms;
-			writer["avg_time_ms"] = clip_total_ms / double(num_samples);
+			action_writer["min_time_ms"] = clip_min_ms;
+			action_writer["max_time_ms"] = clip_max_ms;
+			action_writer["avg_time_ms"] = clip_total_ms / double(num_samples);
 		};
 	}
 
@@ -355,12 +355,12 @@ namespace acl
 			decompression_time_ms = min(decompression_time_ms, elapsed_ms);
 		}
 
-		writer[cache_flusher != nullptr ? "memcpy_cold" : "memcpy_warm"] = [&](sjson::ObjectWriter& writer)
+		writer[cache_flusher != nullptr ? "memcpy_cold" : "memcpy_warm"] = [&](sjson::ObjectWriter& memcpy_writer)
 		{
-			writer["data"] = [&](sjson::ArrayWriter&) {};
-			writer["min_time_ms"] = decompression_time_ms;
-			writer["max_time_ms"] = decompression_time_ms;
-			writer["avg_time_ms"] = decompression_time_ms;
+			memcpy_writer["data"] = [&](sjson::ArrayWriter&) {};
+			memcpy_writer["min_time_ms"] = decompression_time_ms;
+			memcpy_writer["max_time_ms"] = decompression_time_ms;
+			memcpy_writer["avg_time_ms"] = decompression_time_ms;
 		};
 
 		deallocate_type_array(allocator, memcpy_src_transforms, num_bones);
@@ -377,35 +377,35 @@ namespace acl
 		const uint32_t num_bytes_per_bone = (4 + 3 + 3) * sizeof(float);	// Rotation, Translation, Scale
 		writer["pose_size"] = uint32_t(clip_header.num_bones) * num_bytes_per_bone;
 
-		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& writer)
+		writer["decompression_time_per_sample"] = [&](sjson::ObjectWriter& per_sample_writer)
 		{
 			// Cold/Warm CPU cache, memcpy
-			write_memcpy_performance_stats(allocator, writer, cache_flusher, lossy_pose_transforms, clip_header.num_bones);
-			write_memcpy_performance_stats(allocator, writer, nullptr, lossy_pose_transforms, clip_header.num_bones);
+			write_memcpy_performance_stats(allocator, per_sample_writer, cache_flusher, lossy_pose_transforms, clip_header.num_bones);
+			write_memcpy_performance_stats(allocator, per_sample_writer, nullptr, lossy_pose_transforms, clip_header.num_bones);
 			// Cold CPU cache, decompress_pose
-			write_decompression_performance_stats(compressed_clip, logging, writer, "forward_pose_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "backward_pose_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "random_pose_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "forward_pose_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "backward_pose_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "random_pose_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressPose, contexts, cache_flusher, lossy_pose_transforms);
 			// Warm CPU cache, decompress_pose
-			write_decompression_performance_stats(compressed_clip, logging, writer, "forward_pose_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "backward_pose_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "random_pose_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "forward_pose_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "backward_pose_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "random_pose_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressPose, contexts, nullptr, lossy_pose_transforms);
 			// Cold CPU cache, decompress_bone
-			write_decompression_performance_stats(compressed_clip, logging, writer, "forward_bone_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "backward_bone_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "random_bone_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "forward_bone_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "backward_bone_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "random_bone_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressBone, contexts, cache_flusher, lossy_pose_transforms);
 			// Warm CPU cache, decompress_bone
-			write_decompression_performance_stats(compressed_clip, logging, writer, "forward_bone_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "backward_bone_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
-			write_decompression_performance_stats(compressed_clip, logging, writer, "random_bone_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "forward_bone_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "backward_bone_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
+			write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "random_bone_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressBone, contexts, nullptr, lossy_pose_transforms);
 			// Cold CPU cache, decompress_ue4
-			//write_decompression_performance_stats(compressed_clip, logging, writer, "forward_ue4_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
-			//write_decompression_performance_stats(compressed_clip, logging, writer, "backward_ue4_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
-			//write_decompression_performance_stats(compressed_clip, logging, writer, "random_ue4_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "forward_ue4_cold", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "backward_ue4_cold", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "random_ue4_cold", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, cache_flusher, lossy_pose_transforms);
 			// Warm CPU cache, decompress_ue4
-			//write_decompression_performance_stats(compressed_clip, logging, writer, "forward_ue4_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
-			//write_decompression_performance_stats(compressed_clip, logging, writer, "backward_ue4_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
-			//write_decompression_performance_stats(compressed_clip, logging, writer, "random_ue4_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "forward_ue4_warm", PlaybackDirection8::Forward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "backward_ue4_warm", PlaybackDirection8::Backward, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
+			//write_decompression_performance_stats(compressed_clip, logging, per_sample_writer, "random_ue4_warm", PlaybackDirection8::Random, DecompressionFunction8::DecompressUE4, contexts, nullptr, lossy_pose_transforms);
 		};
 
 		deallocate_type_array(allocator, lossy_pose_transforms, clip_header.num_bones);
@@ -534,32 +534,28 @@ namespace acl
 
 		if (settings.segmenting.enabled)
 		{
-			writer["segmenting"] = [&](sjson::ObjectWriter& writer)
+			writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
 			{
-				writer["num_segments"] = header.num_segments;
-				writer["range_reduction"] = get_range_reduction_name(settings.segmenting.range_reduction);
-				writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
-				writer["max_num_samples"] = settings.segmenting.max_num_samples;
+				segmenting_writer["num_segments"] = header.num_segments;
+				segmenting_writer["range_reduction"] = get_range_reduction_name(settings.segmenting.range_reduction);
+				segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
+				segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
 			};
 		}
 
-		writer["segments"] = [&](sjson::ArrayWriter& writer)
+		writer["segments"] = [&](sjson::ArrayWriter& segments_writer)
 		{
 			for (const SegmentContext& segment : clip_context.segment_iterator())
 			{
-				writer.push([&](sjson::ObjectWriter& writer)
+				segments_writer.push([&](sjson::ObjectWriter& segment_writer)
 				{
-					write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, writer);
+					write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, segment_writer);
 
 					if (are_all_enum_flags_set(stats.logging, StatLogging::Detailed))
-					{
-						write_detailed_segment_stats(segment, writer);
-					}
+						write_detailed_segment_stats(segment, segment_writer);
 
 					if (are_all_enum_flags_set(stats.logging, StatLogging::Exhaustive))
-					{
-						write_exhaustive_segment_stats(allocator, segment, raw_clip_context, additive_base_clip_context, skeleton, settings, writer);
-					}
+						write_exhaustive_segment_stats(allocator, segment, raw_clip_context, additive_base_clip_context, skeleton, settings, segment_writer);
 				});
 			}
 		};

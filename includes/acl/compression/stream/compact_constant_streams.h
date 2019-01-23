@@ -42,11 +42,11 @@ namespace acl
 		// to determine if we are within the threshold seems overkill. We can't use the min/max for the range
 		// either because neither of those represents a valid rotation. Instead we grab
 		// the first rotation, and compare everything else to it.
-		auto sample_to_quat = [](const RotationTrackStream& rotations, uint32_t sample_index)
+		auto sample_to_quat = [](const RotationTrackStream& track, uint32_t sample_index)
 		{
-			const Vector4_32 rotation = rotations.get_raw_sample<Vector4_32>(sample_index);
+			const Vector4_32 rotation = track.get_raw_sample<Vector4_32>(sample_index);
 
-			switch (rotations.get_rotation_format())
+			switch (track.get_rotation_format())
 			{
 			case RotationFormat8::Quat_128:
 				return vector_to_quat(rotation);
@@ -56,7 +56,7 @@ namespace acl
 			case RotationFormat8::QuatDropW_Variable:
 				return quat_from_positive_w(rotation);
 			default:
-				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotations.get_rotation_format()));
+				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(track.get_rotation_format()));
 				return vector_to_quat(rotation);
 			}
 		};

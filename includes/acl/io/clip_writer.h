@@ -60,20 +60,20 @@ namespace acl
 
 		inline void write_sjson_clip(const AnimationClip& clip, sjson::Writer& writer)
 		{
-			writer["clip"] = [&](sjson::ObjectWriter& writer)
+			writer["clip"] = [&](sjson::ObjectWriter& clip_writer)
 			{
-				writer["name"] = clip.get_name().c_str();
-				writer["num_samples"] = clip.get_num_samples();
-				writer["sample_rate"] = clip.get_sample_rate();
-				writer["is_binary_exact"] = true;
-				writer["additive_format"] = get_additive_clip_format_name(clip.get_additive_format());
+				clip_writer["name"] = clip.get_name().c_str();
+				clip_writer["num_samples"] = clip.get_num_samples();
+				clip_writer["sample_rate"] = clip.get_sample_rate();
+				clip_writer["is_binary_exact"] = true;
+				clip_writer["additive_format"] = get_additive_clip_format_name(clip.get_additive_format());
 
 				const AnimationClip* base_clip = clip.get_additive_base();
 				if (base_clip != nullptr)
 				{
-					writer["additive_base_name"] = base_clip->get_name().c_str();
-					writer["additive_base_num_samples"] = base_clip->get_num_samples();
-					writer["additive_base_sample_rate"] = base_clip->get_sample_rate();
+					clip_writer["additive_base_name"] = base_clip->get_name().c_str();
+					clip_writer["additive_base_num_samples"] = base_clip->get_num_samples();
+					clip_writer["additive_base_sample_rate"] = base_clip->get_sample_rate();
 				}
 			};
 			writer.insert_newline();
@@ -81,30 +81,30 @@ namespace acl
 
 		inline void write_sjson_settings(AlgorithmType8 algorithm, const CompressionSettings& settings, sjson::Writer& writer)
 		{
-			writer["settings"] = [&](sjson::ObjectWriter& writer)
+			writer["settings"] = [&](sjson::ObjectWriter& settings_writer)
 			{
-				writer["algorithm_name"] = get_algorithm_name(algorithm);
-				writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
-				writer["translation_format"] = get_vector_format_name(settings.translation_format);
-				writer["scale_format"] = get_vector_format_name(settings.scale_format);
-				writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Rotations);
-				writer["translation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Translations);
-				writer["scale_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Scales);
+				settings_writer["algorithm_name"] = get_algorithm_name(algorithm);
+				settings_writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
+				settings_writer["translation_format"] = get_vector_format_name(settings.translation_format);
+				settings_writer["scale_format"] = get_vector_format_name(settings.scale_format);
+				settings_writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Rotations);
+				settings_writer["translation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Translations);
+				settings_writer["scale_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Scales);
 
-				writer["segmenting"] = [&](sjson::ObjectWriter& writer)
+				settings_writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
 				{
-					writer["enabled"] = settings.segmenting.enabled;
-					writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
-					writer["max_num_samples"] = settings.segmenting.max_num_samples;
-					writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Rotations);
-					writer["translation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
-					writer["scale_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Scales);
+					segmenting_writer["enabled"] = settings.segmenting.enabled;
+					segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
+					segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
+					segmenting_writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Rotations);
+					segmenting_writer["translation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
+					segmenting_writer["scale_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Scales);
 				};
 
-				writer["constant_rotation_threshold_angle"] = settings.constant_rotation_threshold_angle;
-				writer["constant_translation_threshold"] = settings.constant_translation_threshold;
-				writer["constant_scale_threshold"] = settings.constant_scale_threshold;
-				writer["error_threshold"] = settings.error_threshold;
+				settings_writer["constant_rotation_threshold_angle"] = settings.constant_rotation_threshold_angle;
+				settings_writer["constant_translation_threshold"] = settings.constant_translation_threshold;
+				settings_writer["constant_scale_threshold"] = settings.constant_scale_threshold;
+				settings_writer["error_threshold"] = settings.error_threshold;
 			};
 			writer.insert_newline();
 		}
@@ -113,47 +113,53 @@ namespace acl
 		{
 			char buffer[32] = { 0 };
 
-			writer["bones"] = [&](sjson::ArrayWriter& writer)
+			writer["bones"] = [&](sjson::ArrayWriter& bones_writer)
 			{
 				const uint16_t num_bones = skeleton.get_num_bones();
 				if (num_bones > 0)
-					writer.push_newline();
+					bones_writer.push_newline();
 
 				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 				{
 					const RigidBone& bone = skeleton.get_bone(bone_index);
 					const RigidBone& parent_bone = bone.is_root() ? bone : skeleton.get_bone(bone.parent_index);
 
-					writer.push([&](sjson::ObjectWriter& writer)
+					bones_writer.push([&](sjson::ObjectWriter& bone_writer)
 					{
-						writer["name"] = bone.name.c_str();
-						writer["parent"] = bone.is_root() ? "" : parent_bone.name.c_str();
-						writer["vertex_distance"] = bone.vertex_distance;
+						bone_writer["name"] = bone.name.c_str();
+						bone_writer["parent"] = bone.is_root() ? "" : parent_bone.name.c_str();
+						bone_writer["vertex_distance"] = bone.vertex_distance;
 
 						if (!quat_near_identity(bone.bind_transform.rotation))
-							writer["bind_rotation"] = [&](sjson::ArrayWriter& writer)
 						{
-							writer.push(format_hex_double(quat_get_x(bone.bind_transform.rotation), buffer, sizeof(buffer)));
-							writer.push(format_hex_double(quat_get_y(bone.bind_transform.rotation), buffer, sizeof(buffer)));
-							writer.push(format_hex_double(quat_get_z(bone.bind_transform.rotation), buffer, sizeof(buffer)));
-							writer.push(format_hex_double(quat_get_w(bone.bind_transform.rotation), buffer, sizeof(buffer)));
-						};
+							bone_writer["bind_rotation"] = [&](sjson::ArrayWriter& rot_writer)
+							{
+								rot_writer.push(format_hex_double(quat_get_x(bone.bind_transform.rotation), buffer, sizeof(buffer)));
+								rot_writer.push(format_hex_double(quat_get_y(bone.bind_transform.rotation), buffer, sizeof(buffer)));
+								rot_writer.push(format_hex_double(quat_get_z(bone.bind_transform.rotation), buffer, sizeof(buffer)));
+								rot_writer.push(format_hex_double(quat_get_w(bone.bind_transform.rotation), buffer, sizeof(buffer)));
+							};
+						}
 
 						if (!vector_all_near_equal3(bone.bind_transform.translation, vector_zero_64()))
-							writer["bind_translation"] = [&](sjson::ArrayWriter& writer)
 						{
-							writer.push(format_hex_double(vector_get_x(bone.bind_transform.translation), buffer, sizeof(buffer)));
-							writer.push(format_hex_double(vector_get_y(bone.bind_transform.translation), buffer, sizeof(buffer)));
-							writer.push(format_hex_double(vector_get_z(bone.bind_transform.translation), buffer, sizeof(buffer)));
-						};
+							bone_writer["bind_translation"] = [&](sjson::ArrayWriter& trans_writer)
+							{
+								trans_writer.push(format_hex_double(vector_get_x(bone.bind_transform.translation), buffer, sizeof(buffer)));
+								trans_writer.push(format_hex_double(vector_get_y(bone.bind_transform.translation), buffer, sizeof(buffer)));
+								trans_writer.push(format_hex_double(vector_get_z(bone.bind_transform.translation), buffer, sizeof(buffer)));
+							};
+						}
 
 						if (!vector_all_near_equal3(bone.bind_transform.scale, vector_set(1.0)))
-							writer["bind_scale"] = [&](sjson::ArrayWriter& writer)
 						{
-							writer.push(format_hex_double(vector_get_x(bone.bind_transform.scale), buffer, sizeof(buffer)));
-							writer.push(format_hex_double(vector_get_y(bone.bind_transform.scale), buffer, sizeof(buffer)));
-							writer.push(format_hex_double(vector_get_z(bone.bind_transform.scale), buffer, sizeof(buffer)));
-						};
+							bone_writer["bind_scale"] = [&](sjson::ArrayWriter& scale_writer)
+							{
+								scale_writer.push(format_hex_double(vector_get_x(bone.bind_transform.scale), buffer, sizeof(buffer)));
+								scale_writer.push(format_hex_double(vector_get_y(bone.bind_transform.scale), buffer, sizeof(buffer)));
+								scale_writer.push(format_hex_double(vector_get_z(bone.bind_transform.scale), buffer, sizeof(buffer)));
+							};
+						}
 					});
 				}
 			};
@@ -164,75 +170,75 @@ namespace acl
 		{
 			char buffer[32] = { 0 };
 
-			writer[is_base_clip ? "base_tracks" : "tracks"] = [&](sjson::ArrayWriter& writer)
+			writer[is_base_clip ? "base_tracks" : "tracks"] = [&](sjson::ArrayWriter& tracks_writer)
 			{
 				const uint16_t num_bones = skeleton.get_num_bones();
 				if (num_bones > 0)
-					writer.push_newline();
+					tracks_writer.push_newline();
 
 				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 				{
 					const RigidBone& rigid_bone = skeleton.get_bone(bone_index);
 					const AnimatedBone& bone = clip.get_animated_bone(bone_index);
 
-					writer.push([&](sjson::ObjectWriter& writer)
+					tracks_writer.push([&](sjson::ObjectWriter& track_writer)
 					{
-						writer["name"] = rigid_bone.name.c_str();
-						writer["rotations"] = [&](sjson::ArrayWriter& writer)
+						track_writer["name"] = rigid_bone.name.c_str();
+						track_writer["rotations"] = [&](sjson::ArrayWriter& rotations_writer)
 						{
 							const uint32_t num_rotation_samples = bone.rotation_track.get_num_samples();
 							if (num_rotation_samples > 0)
-								writer.push_newline();
+								rotations_writer.push_newline();
 
 							for (uint32_t sample_index = 0; sample_index < num_rotation_samples; ++sample_index)
 							{
 								const Quat_64 rotation = bone.rotation_track.get_sample(sample_index);
-								writer.push([&](sjson::ArrayWriter& writer)
+								rotations_writer.push([&](sjson::ArrayWriter& rot_writer)
 								{
-									writer.push(format_hex_double(quat_get_x(rotation), buffer, sizeof(buffer)));
-									writer.push(format_hex_double(quat_get_y(rotation), buffer, sizeof(buffer)));
-									writer.push(format_hex_double(quat_get_z(rotation), buffer, sizeof(buffer)));
-									writer.push(format_hex_double(quat_get_w(rotation), buffer, sizeof(buffer)));
+									rot_writer.push(format_hex_double(quat_get_x(rotation), buffer, sizeof(buffer)));
+									rot_writer.push(format_hex_double(quat_get_y(rotation), buffer, sizeof(buffer)));
+									rot_writer.push(format_hex_double(quat_get_z(rotation), buffer, sizeof(buffer)));
+									rot_writer.push(format_hex_double(quat_get_w(rotation), buffer, sizeof(buffer)));
 								});
-								writer.push_newline();
+								rotations_writer.push_newline();
 							}
 						};
 
-						writer["translations"] = [&](sjson::ArrayWriter& writer)
+						track_writer["translations"] = [&](sjson::ArrayWriter& translations_writer)
 						{
 							const uint32_t num_translation_samples = bone.translation_track.get_num_samples();
 							if (num_translation_samples > 0)
-								writer.push_newline();
+								translations_writer.push_newline();
 
 							for (uint32_t sample_index = 0; sample_index < num_translation_samples; ++sample_index)
 							{
 								const Vector4_64 translation = bone.translation_track.get_sample(sample_index);
-								writer.push([&](sjson::ArrayWriter& writer)
+								translations_writer.push([&](sjson::ArrayWriter& trans_writer)
 								{
-									writer.push(format_hex_double(vector_get_x(translation), buffer, sizeof(buffer)));
-									writer.push(format_hex_double(vector_get_y(translation), buffer, sizeof(buffer)));
-									writer.push(format_hex_double(vector_get_z(translation), buffer, sizeof(buffer)));
+									trans_writer.push(format_hex_double(vector_get_x(translation), buffer, sizeof(buffer)));
+									trans_writer.push(format_hex_double(vector_get_y(translation), buffer, sizeof(buffer)));
+									trans_writer.push(format_hex_double(vector_get_z(translation), buffer, sizeof(buffer)));
 								});
-								writer.push_newline();
+								translations_writer.push_newline();
 							}
 						};
 
-						writer["scales"] = [&](sjson::ArrayWriter& writer)
+						track_writer["scales"] = [&](sjson::ArrayWriter& scales_writer)
 						{
 							const uint32_t num_scale_samples = bone.scale_track.get_num_samples();
 							if (num_scale_samples > 0)
-								writer.push_newline();
+								scales_writer.push_newline();
 
 							for (uint32_t sample_index = 0; sample_index < num_scale_samples; ++sample_index)
 							{
 								const Vector4_64 scale = bone.scale_track.get_sample(sample_index);
-								writer.push([&](sjson::ArrayWriter& writer)
+								scales_writer.push([&](sjson::ArrayWriter& scale_writer)
 								{
-									writer.push(format_hex_double(vector_get_x(scale), buffer, sizeof(buffer)));
-									writer.push(format_hex_double(vector_get_y(scale), buffer, sizeof(buffer)));
-									writer.push(format_hex_double(vector_get_z(scale), buffer, sizeof(buffer)));
+									scale_writer.push(format_hex_double(vector_get_x(scale), buffer, sizeof(buffer)));
+									scale_writer.push(format_hex_double(vector_get_y(scale), buffer, sizeof(buffer)));
+									scale_writer.push(format_hex_double(vector_get_z(scale), buffer, sizeof(buffer)));
 								});
-								writer.push_newline();
+								scales_writer.push_newline();
 							}
 						};
 					});
