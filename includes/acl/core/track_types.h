@@ -114,7 +114,9 @@ namespace acl
 	inline uint8_t get_num_bits_at_bit_rate(uint8_t bit_rate)
 	{
 		ACL_ASSERT(bit_rate <= k_highest_bit_rate, "Invalid bit rate: %u", bit_rate);
-		return k_bit_rate_num_bits[bit_rate];
+		// By default ACL_ASSERT will be stripped at compile time. If the check is stripped, don't
+		// introduce undefined behaviour.
+		return k_bit_rate_num_bits[std::min(bit_rate, k_highest_bit_rate)];
 	}
 
 	// Track is constant, our constant sample is stored in the range information
