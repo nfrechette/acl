@@ -462,7 +462,7 @@ def do_regression_tests(ctest_exe, test_data_dir, args):
 		failed_queue = queue.Queue()
 		failure_lock = threading.Lock()
 		for clip_filename, _ in regression_clips:
-			cmd = '{} -acl="{}" -test -config="{}"'.format(compressor_exe_path, clip_filename, config_filename)
+			cmd = '"{}" -acl="{}" -test -config="{}"'.format(compressor_exe_path, clip_filename, config_filename)
 			if platform.system() == 'Windows':
 				cmd = cmd.replace('/', '\\')
 
@@ -480,7 +480,7 @@ def do_regression_tests(ctest_exe, test_data_dir, args):
 
 				(clip_filename, cmd) = entry
 
-				result = os.system(cmd)
+				result = subprocess.call(cmd, shell=True)
 
 				if result != 0:
 					failed_queue.put((clip_filename, cmd))
