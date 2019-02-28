@@ -27,6 +27,7 @@
 #include "acl/core/additive_utils.h"
 #include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/iterator.h"
 #include "acl/core/error.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/compression_settings.h"
@@ -64,18 +65,8 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 
-		struct SegmentIterator
-		{
-			constexpr SegmentIterator(SegmentContext* segments_, uint16_t num_segments_) : segments(segments_), num_segments(num_segments_) {}
-
-			SegmentContext* begin() { return segments; }
-			SegmentContext* end() { return segments + num_segments; }
-
-			SegmentContext* segments;
-			uint16_t num_segments;
-		};
-
-		constexpr SegmentIterator segment_iterator() const { return SegmentIterator(segments, num_segments); }
+		Iterator<SegmentContext> segment_iterator() { return Iterator<SegmentContext>(segments, num_segments); }
+		ConstIterator<SegmentContext> const_segment_iterator() const { return ConstIterator<SegmentContext>(segments, num_segments); }
 	};
 
 	inline void initialize_clip_context(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressionSettings& settings, ClipContext& out_clip_context)

@@ -28,6 +28,7 @@
 #include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/hash.h"
+#include "acl/core/iterator.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/stream/track_stream.h"
 
@@ -76,19 +77,8 @@ namespace acl
 		uint32_t total_header_size;
 
 		//////////////////////////////////////////////////////////////////////////
-
-		struct BoneIterator
-		{
-			constexpr BoneIterator(BoneStreams* bone_streams_, uint16_t num_bones_) : bone_streams(bone_streams_), num_bones(num_bones_) {}
-
-			BoneStreams* begin() { return bone_streams; }
-			BoneStreams* end() { return bone_streams + num_bones; }
-
-			BoneStreams* bone_streams;
-			uint16_t num_bones;
-		};
-
-		constexpr BoneIterator bone_iterator() const { return BoneIterator(bone_streams, num_bones); }
+		Iterator<BoneStreams> bone_iterator() { return Iterator<BoneStreams>(bone_streams, num_bones); }
+		ConstIterator<BoneStreams> const_bone_iterator() const { return ConstIterator<BoneStreams>(bone_streams, num_bones); }
 	};
 
 	inline void destroy_segment_context(IAllocator& allocator, SegmentContext& segment)
