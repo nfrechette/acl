@@ -24,8 +24,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compiler_utils.h"
+
 #include <cstdint>
 #include <type_traits>
+
+ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
@@ -36,10 +40,10 @@ namespace acl
 		{
 			typedef typename std::conditional<is_const, const ItemType*, ItemType*>::type ItemPtr;
 
-			Iterator(ItemPtr items_, uint32_t num_items_) : items(items_), num_items(num_items_) {}
+			constexpr Iterator(ItemPtr items_, uint32_t num_items_) : items(items_), num_items(num_items_) {}
 
-			ItemPtr begin() { return items; }
-			ItemPtr end() { return items + num_items; }
+			constexpr ItemPtr begin() { return items; }
+			constexpr ItemPtr end() { return items + num_items; }
 
 			ItemPtr items;
 			uint32_t num_items;
@@ -52,3 +56,5 @@ namespace acl
 	template <class ItemType>
 	using ConstIterator = impl::Iterator<ItemType, true>;
 }
+
+ACL_IMPL_FILE_PRAGMA_POP
