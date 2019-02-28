@@ -42,8 +42,8 @@ namespace acl
 
 			constexpr Iterator(ItemPtr items_, uint32_t num_items_) : items(items_), num_items(num_items_) {}
 
-			constexpr ItemPtr begin() { return items; }
-			constexpr ItemPtr end() { return items + num_items; }
+			constexpr ItemPtr begin() const { return items; }
+			constexpr ItemPtr end() const { return items + num_items; }
 
 			ItemPtr items;
 			uint32_t num_items;
