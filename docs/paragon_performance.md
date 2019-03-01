@@ -25,7 +25,7 @@ Epic has permitted [Nicholas Frechette](https://github.com/nfrechette) to use th
 **Note: Epic has since released Paragon assets publicly in early 2018, once I get around to it, it will be extracted along with updated stats.**
 
 *  Number of clips: **6558**
-*  Total duration: **07h 00m 45.27s**
+*  Total duration: **7h 00m 45.27s**
 *  Raw size: **4276.11 MB** (10x float32 * num bones * num samples)
 
 The data set contains among other things:

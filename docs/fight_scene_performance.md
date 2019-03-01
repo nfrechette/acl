@@ -4,7 +4,7 @@
 | --------------------- | --------- | --------- | -------- |
 | **Compressed size**   | 8.66 MB   | 8.66 MB   | 8.66 MB  |
 | **Compression ratio** | 7.20 : 1  | 7.20 : 1  | 7.20 : 1 |
-| **Compression time**  | 1m 02.62s | 1m 13.49s | 1m 4.53s |
+| **Compression time**  | 1m 2.62s | 1m 13.49s | 1m 4.53s |
 | **Compression speed**  | 1020.06 KB/sec | 869.19 KB/sec | 989.88 KB/sec |
 | **Max error**         | 0.0620 cm | 0.0618 cm | 0.217 cm |
 | **Error 99<sup>th</sup> percentile** | 0.0255 cm | 0.0255 cm |  |

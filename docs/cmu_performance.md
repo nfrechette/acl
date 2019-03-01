@@ -18,7 +18,7 @@ They were converted to the [ACL file format](the_acl_file_format.md) using the [
 
 *  Number of clips: **2534**
 *  Sample rate: **24 FPS**
-*  Total duration: **09h 49m 37.58s**
+*  Total duration: **9h 49m 37.58s**
 *  Raw size: **1429.38 MB** (10x float32 * num bones * num samples)
 
 ACL supports various compression methods but only the overall best variant will be tracked here (see `get_default_compression_settings()` for details).
