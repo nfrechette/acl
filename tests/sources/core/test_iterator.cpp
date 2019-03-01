@@ -33,8 +33,8 @@ using namespace acl;
 
 TEST_CASE("iterator", "[core][iterator]")
 {
-	uint32_t items[] = { 1, 2, 3 };
-	uint32_t num_items = get_array_size(items);
+	constexpr uint32_t num_items = 3;
+	uint32_t items[num_items];
 
 	auto i = Iterator<uint32_t>(items, num_items);
 
