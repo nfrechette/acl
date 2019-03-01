@@ -64,7 +64,7 @@ namespace acl
 	{
 		uint32_t bit_rate_counts[k_num_bit_rates] = {0};
 
-		for (const BoneStreams& bone_stream : segment.bone_iterator())
+		for (const BoneStreams& bone_stream : segment.const_bone_iterator())
 		{
 			const uint8_t rotation_bit_rate = bone_stream.rotations.get_bit_rate();
 			if (rotation_bit_rate != k_invalid_bit_rate)
@@ -545,7 +545,7 @@ namespace acl
 
 		writer["segments"] = [&](sjson::ArrayWriter& segments_writer)
 		{
-			for (const SegmentContext& segment : clip_context.segment_iterator())
+			for (const SegmentContext& segment : clip_context.const_segment_iterator())
 			{
 				segments_writer.push([&](sjson::ObjectWriter& segment_writer)
 				{

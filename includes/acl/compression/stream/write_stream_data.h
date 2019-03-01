@@ -134,7 +134,7 @@ namespace acl
 
 		uint32_t format_per_track_data_size = 0;
 
-		for (const BoneStreams& bone_stream : segment.bone_iterator())
+		for (const BoneStreams& bone_stream : segment.const_bone_iterator())
 		{
 			if (bone_stream.is_stripped_from_output())
 				continue;

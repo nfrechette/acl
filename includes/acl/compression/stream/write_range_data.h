@@ -51,7 +51,7 @@ namespace acl
 
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
-		for (const BoneStreams& bone_stream : segment.bone_iterator())
+		for (const BoneStreams& bone_stream : segment.const_bone_iterator())
 		{
 			if (bone_stream.is_rotation_animated())
 				range_data_size += rotation_size;
