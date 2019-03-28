@@ -174,67 +174,15 @@ struct Options
 		, stat_exhaustive_output(false)
 	{}
 
-	Options(Options&& other)
-#if defined(__ANDROID__)
-		: input_buffer(other.input_buffer)
-		, input_buffer_size(other.input_buffer_size)
-		, input_buffer_binary(other.input_buffer_binary)
-		, config_buffer(other.config_buffer)
-		, config_buffer_size(other.config_buffer_size)
-#else
-		: input_filename(other.input_filename)
-		, config_filename(other.config_filename)
-#endif
-		, output_stats(other.output_stats)
-		, output_stats_filename(other.output_stats_filename)
-		, output_stats_file(other.output_stats_file)
-		, output_bin_filename(other.output_bin_filename)
-		, regression_testing(other.regression_testing)
-		, profile_decompression(other.profile_decompression)
-		, exhaustive_compression(other.exhaustive_compression)
-		, is_bind_pose_relative(other.is_bind_pose_relative)
-		, is_bind_pose_additive0(other.is_bind_pose_additive0)
-		, is_bind_pose_additive1(other.is_bind_pose_additive1)
-		, stat_detailed_output(other.stat_detailed_output)
-		, stat_exhaustive_output(other.stat_exhaustive_output)
-	{
-		new (&other) Options();
-	}
-
 	~Options()
 	{
 		if (output_stats_file != nullptr && output_stats_file != stdout)
 			std::fclose(output_stats_file);
 	}
 
-	Options& operator=(Options&& other)
-	{
-#if defined(__ANDROID__)
-		std::swap(input_buffer, other.input_buffer);
-		std::swap(input_buffer_size, other.input_buffer_size);
-		std::swap(input_buffer_binary, other.input_buffer_binary);
-		std::swap(config_buffer, other.config_buffer);
-		std::swap(config_buffer_size, other.config_buffer_size);
-#else
-		std::swap(input_filename, other.input_filename);
-		std::swap(config_filename, other.config_filename);
-#endif
-		std::swap(output_stats, other.output_stats);
-		std::swap(output_stats_filename, other.output_stats_filename);
-		std::swap(output_stats_file, other.output_stats_file);
-		std::swap(output_bin_filename, other.output_bin_filename);
-		std::swap(regression_testing, other.regression_testing);
-		std::swap(profile_decompression, other.profile_decompression);
-		std::swap(exhaustive_compression, other.exhaustive_compression);
-		std::swap(is_bind_pose_relative, other.is_bind_pose_relative);
-		std::swap(is_bind_pose_additive0, other.is_bind_pose_additive0);
-		std::swap(is_bind_pose_additive1, other.is_bind_pose_additive1);
-		std::swap(stat_detailed_output, other.stat_detailed_output);
-		std::swap(stat_exhaustive_output, other.stat_exhaustive_output);
-		return *this;
-	}
-
+	Options(Options&& other) = default;
 	Options(const Options&) = delete;
+	Options& operator=(Options&& other) = default;
 	Options& operator=(const Options&) = delete;
 
 	void open_output_stats_file()
