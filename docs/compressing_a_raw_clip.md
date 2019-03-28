@@ -4,6 +4,8 @@ Once you have created a [raw animation clip instance](creating_a_raw_clip.md), y
 
 For now, we only implement a single algorithm: [uniformly sampled](algorithm_uniformly_sampled.md). This is a simple and excellent algorithm to use for everyday animation clips.
 
+The compression level used will dictate how much time to spend optimizing the variable bit rates. Lower levels are faster but produced a larger compresses size.
+
 While we support various [rotation and vector quantization formats](rotation_and_vector_formats.md), the overall best performing are the *variable* variants. It is safe to use them for all your clips but if you do happen to run into issues with some exotic clips, you can easily fallback to less aggressive variants.
 
 [Segmenting](http://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/) ensures that large clips are split into smaller segments and compressed independently to allow a smaller memory footprint as well as faster compression and decompression.
@@ -16,6 +18,7 @@ The last important setting to choose is the `error_threshold`. This is used in c
 
 ```c++
 CompressionSettings settings;
+settings.level = CompressionLevel8::Highest;
 settings.rotation_format = RotationFormat8::QuatDropW_Variable;
 settings.translation_format = VectorFormat8::Vector3_Variable;
 settings.scale_format = VectorFormat8::Vector3_Variable;
