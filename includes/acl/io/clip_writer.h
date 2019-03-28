@@ -84,6 +84,7 @@ namespace acl
 			writer["settings"] = [&](sjson::ObjectWriter& settings_writer)
 			{
 				settings_writer["algorithm_name"] = get_algorithm_name(algorithm);
+				settings_writer["level"] = get_compression_level_name(settings.level);
 				settings_writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 				settings_writer["translation_format"] = get_vector_format_name(settings.translation_format);
 				settings_writer["scale_format"] = get_vector_format_name(settings.scale_format);

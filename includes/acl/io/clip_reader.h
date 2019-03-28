@@ -205,6 +205,7 @@ namespace acl
 			CompressionSettings default_settings;
 
 			sjson::StringView algorithm_name;
+			sjson::StringView compression_level;
 			sjson::StringView rotation_format;
 			sjson::StringView translation_format;
 			sjson::StringView scale_format;
@@ -224,6 +225,7 @@ namespace acl
 			bool segmenting_scale_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Scales);
 
 			m_parser.try_read("algorithm_name", algorithm_name, get_algorithm_name(AlgorithmType8::UniformlySampled));
+			m_parser.try_read("level", compression_level, get_compression_level_name(default_settings.level));
 			m_parser.try_read("rotation_format", rotation_format, get_rotation_format_name(default_settings.rotation_format));
 			m_parser.try_read("translation_format", translation_format, get_vector_format_name(default_settings.translation_format));
 			m_parser.try_read("scale_format", scale_format, get_vector_format_name(default_settings.scale_format));
@@ -257,6 +259,9 @@ namespace acl
 				*out_has_settings = true;
 
 				if (!get_algorithm_type(algorithm_name.c_str(), *out_algorithm_type))
+					goto invalid_value_error;
+
+				if (!get_compression_level(compression_level.c_str(), out_settings->level))
 					goto invalid_value_error;
 
 				if (!get_rotation_format(rotation_format.c_str(), out_settings->rotation_format))

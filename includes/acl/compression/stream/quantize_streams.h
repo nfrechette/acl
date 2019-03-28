@@ -59,16 +59,12 @@ namespace acl
 			SegmentContext& segment;
 			BoneStreams* bone_streams;
 			uint16_t num_bones;
-			RotationFormat8 rotation_format;
-			VectorFormat8 translation_format;
-			VectorFormat8 scale_format;
 			const RigidSkeleton& skeleton;
-			const ISkeletalErrorMetric& error_metric;
+			const CompressionSettings& settings;
 
 			uint32_t num_samples;
 			uint32_t segment_sample_start_index;
 			float sample_rate;
-			float error_threshold;
 			float clip_duration;
 			float segment_duration;
 			bool has_scale;
@@ -90,17 +86,13 @@ namespace acl
 				, segment(segment_)
 				, bone_streams(segment_.bone_streams)
 				, num_bones(segment_.num_bones)
-				, rotation_format(settings_.rotation_format)
-				, translation_format(settings_.translation_format)
-				, scale_format(settings_.scale_format)
 				, skeleton(skeleton_)
-				, error_metric(*settings_.error_metric)
+				, settings(settings_)
 				, raw_bone_streams(raw_clip_.segments[0].bone_streams)
 			{
 				num_samples = segment_.num_samples;
 				segment_sample_start_index = segment_.clip_sample_offset;
 				sample_rate = float(segment.bone_streams[0].rotations.get_sample_rate());
-				error_threshold = settings_.error_threshold;
 				clip_duration = clip_.duration;
 				segment_duration = float(num_samples - 1) / sample_rate;
 				has_scale = segment_context_has_scale(segment_);
@@ -486,6 +478,9 @@ namespace acl
 
 		inline float calculate_max_error_at_bit_rate(QuantizationContext& context, uint16_t target_bone_index, bool use_local_error, bool scan_whole_clip = false)
 		{
+			const CompressionSettings& settings = context.settings;
+			const ISkeletalErrorMetric& error_metric = *settings.error_metric;
+
 			float max_error = 0.0f;
 
 			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
@@ -495,7 +490,7 @@ namespace acl
 				const float sample_time = min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration);
 
 				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
-				sample_streams_hierarchical(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, context.rotation_format, context.translation_format, context.scale_format, context.lossy_local_pose);
+				sample_streams_hierarchical(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, settings.rotation_format, settings.translation_format, settings.scale_format, context.lossy_local_pose);
 
 				if (context.has_additive_base)
 				{
@@ -509,20 +504,20 @@ namespace acl
 				if (use_local_error)
 				{
 					if (context.has_scale)
-						error = context.error_metric.calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
+						error = error_metric.calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 					else
-						error = context.error_metric.calculate_local_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
+						error = error_metric.calculate_local_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 				}
 				else
 				{
 					if (context.has_scale)
-						error = context.error_metric.calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
+						error = error_metric.calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 					else
-						error = context.error_metric.calculate_object_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
+						error = error_metric.calculate_object_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 				}
 
 				max_error = max(max_error, error);
-				if (!scan_whole_clip && error >= context.error_threshold)
+				if (!scan_whole_clip && error >= settings.error_threshold)
 					break;
 			}
 
@@ -543,6 +538,9 @@ namespace acl
 			// rot + 3 trans + 5 (24), rot + 4 trans + 4 (24), rot + 5 trans + 3 (24)
 			// rot + 4 trans + 5 (27), rot + 5 trans + 4 (27)
 			// rot + 5 trans + 5 (30)
+
+			const CompressionSettings& settings = context.settings;
+
 			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
 				const BoneBitRate bone_bit_rates = context.bit_rate_per_bone[bone_index];
@@ -557,7 +555,7 @@ namespace acl
 
 				BoneBitRate best_bit_rates = BoneBitRate{ std::max<uint8_t>(bone_bit_rates.rotation, k_highest_bit_rate), std::max<uint8_t>(bone_bit_rates.translation, k_highest_bit_rate), std::max<uint8_t>(bone_bit_rates.scale, k_highest_bit_rate) };
 				uint8_t best_size = 0xFF;
-				float best_error = context.error_threshold;
+				float best_error = settings.error_threshold;
 
 				uint8_t num_iterations = k_num_bit_rates - 1;
 				for (uint8_t iteration = 1; iteration <= num_iterations; ++iteration)
@@ -740,6 +738,8 @@ namespace acl
 
 		inline float calculate_bone_permutation_error(QuantizationContext& context, BoneBitRate* permutation_bit_rates, uint8_t* bone_chain_permutation, const uint16_t* chain_bone_indices, uint16_t num_bones_in_chain, uint16_t bone_index, BoneBitRate* best_bit_rates, float old_error)
 		{
+			const CompressionSettings& settings = context.settings;
+
 			float best_error = old_error;
 
 			do
@@ -776,7 +776,7 @@ namespace acl
 					best_error = permutation_error;
 					memcpy(best_bit_rates, permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
-					if (permutation_error < context.error_threshold)
+					if (permutation_error < settings.error_threshold)
 						break;
 				}
 			} while (std::next_permutation(bone_chain_permutation, bone_chain_permutation + num_bones_in_chain));
@@ -828,9 +828,11 @@ namespace acl
 
 		inline void quantize_all_streams(QuantizationContext& context)
 		{
-			const bool is_rotation_variable = is_rotation_format_variable(context.rotation_format);
-			const bool is_translation_variable = is_vector_format_variable(context.translation_format);
-			const bool is_scale_variable = is_vector_format_variable(context.scale_format);
+			const CompressionSettings& settings = context.settings;
+
+			const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
+			const bool is_translation_variable = is_vector_format_variable(settings.translation_format);
+			const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
 
 			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
@@ -839,26 +841,28 @@ namespace acl
 				if (is_rotation_variable)
 					quantize_variable_rotation_stream(context, bone_index, bone_bit_rate.rotation);
 				else
-					quantize_fixed_rotation_stream(context, bone_index, context.rotation_format);
+					quantize_fixed_rotation_stream(context, bone_index, settings.rotation_format);
 
 				if (is_translation_variable)
 					quantize_variable_translation_stream(context, bone_index, bone_bit_rate.translation);
 				else
-					quantize_fixed_translation_stream(context, bone_index, context.translation_format);
+					quantize_fixed_translation_stream(context, bone_index, settings.translation_format);
 
 				if (context.has_scale)
 				{
 					if (is_scale_variable)
 						quantize_variable_scale_stream(context, bone_index, bone_bit_rate.scale);
 					else
-						quantize_fixed_scale_stream(context, bone_index, context.scale_format);
+						quantize_fixed_scale_stream(context, bone_index, settings.scale_format);
 				}
 			}
 		}
 
 		inline void find_optimal_bit_rates(QuantizationContext& context)
 		{
-			initialize_bone_bit_rates(context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
+			const CompressionSettings& settings = context.settings;
+
+			initialize_bone_bit_rates(context.segment, settings.rotation_format, settings.translation_format, settings.scale_format, context.bit_rate_per_bone);
 
 			// First iterate over all bones and find the optimal bit rate for each track using the local space error.
 			// We use the local space error to prime the algorithm. If each parent bone has infinite precision,
@@ -917,7 +921,7 @@ namespace acl
 			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
 				float error = calculate_max_error_at_bit_rate(context, bone_index, false);
-				if (error < context.error_threshold)
+				if (error < settings.error_threshold)
 					continue;
 
 				if (context.bit_rate_per_bone[bone_index].rotation >= k_highest_bit_rate && context.bit_rate_per_bone[bone_index].translation >= k_highest_bit_rate && context.bit_rate_per_bone[bone_index].scale >= k_highest_bit_rate)
@@ -925,7 +929,7 @@ namespace acl
 					// Our bone already has the highest precision possible locally, if the local error already exceeds our threshold,
 					// there is nothing we can do, bail out
 					const float local_error = calculate_max_error_at_bit_rate(context, bone_index, true);
-					if (local_error >= context.error_threshold)
+					if (local_error >= settings.error_threshold)
 						continue;
 				}
 
@@ -933,7 +937,7 @@ namespace acl
 
 				const float initial_error = error;
 
-				while (error >= context.error_threshold)
+				while (error >= settings.error_threshold)
 				{
 					// Generate permutations for up to 3 bit rate increments
 					// Perform an exhaustive search of the permutations and pick the best result
@@ -950,71 +954,28 @@ namespace acl
 						best_error = error;
 						memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
-						if (error < context.error_threshold)
+						if (error < settings.error_threshold)
 							break;
 					}
 
-					// The second permutation increases the bit rate of 2 track/bones
-					std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
-					bone_chain_permutation[num_bones_in_chain - 1] = 2;
-					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
-					if (error < best_error)
+					if (settings.level >= CompressionLevel8::High)
 					{
-						best_error = error;
-						memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
-
-						if (error < context.error_threshold)
-							break;
-					}
-
-					if (num_bones_in_chain > 1)
-					{
+						// The second permutation increases the bit rate of 2 track/bones
 						std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
-						bone_chain_permutation[num_bones_in_chain - 2] = 1;
-						bone_chain_permutation[num_bones_in_chain - 1] = 1;
+						bone_chain_permutation[num_bones_in_chain - 1] = 2;
 						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
 						if (error < best_error)
 						{
 							best_error = error;
 							memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
-							if (error < context.error_threshold)
-								break;
-						}
-					}
-
-					// The third permutation increases the bit rate of 3 track/bones
-					std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
-					bone_chain_permutation[num_bones_in_chain - 1] = 3;
-					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
-					if (error < best_error)
-					{
-						best_error = error;
-						memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
-
-						if (error < context.error_threshold)
-							break;
-					}
-
-					if (num_bones_in_chain > 1)
-					{
-						std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
-						bone_chain_permutation[num_bones_in_chain - 2] = 2;
-						bone_chain_permutation[num_bones_in_chain - 1] = 1;
-						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
-						if (error < best_error)
-						{
-							best_error = error;
-							memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
-
-							if (error < context.error_threshold)
+							if (error < settings.error_threshold)
 								break;
 						}
 
-						if (num_bones_in_chain > 2)
+						if (num_bones_in_chain > 1)
 						{
 							std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
-							bone_chain_permutation[num_bones_in_chain - 3] = 1;
 							bone_chain_permutation[num_bones_in_chain - 2] = 1;
 							bone_chain_permutation[num_bones_in_chain - 1] = 1;
 							error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
@@ -1023,8 +984,57 @@ namespace acl
 								best_error = error;
 								memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
-								if (error < context.error_threshold)
+								if (error < settings.error_threshold)
 									break;
+							}
+						}
+					}
+
+					if (settings.level >= CompressionLevel8::Highest)
+					{
+						// The third permutation increases the bit rate of 3 track/bones
+						std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
+						bone_chain_permutation[num_bones_in_chain - 1] = 3;
+						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
+						if (error < best_error)
+						{
+							best_error = error;
+							memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+
+							if (error < settings.error_threshold)
+								break;
+						}
+
+						if (num_bones_in_chain > 1)
+						{
+							std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
+							bone_chain_permutation[num_bones_in_chain - 2] = 2;
+							bone_chain_permutation[num_bones_in_chain - 1] = 1;
+							error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
+							if (error < best_error)
+							{
+								best_error = error;
+								memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+
+								if (error < settings.error_threshold)
+									break;
+							}
+
+							if (num_bones_in_chain > 2)
+							{
+								std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
+								bone_chain_permutation[num_bones_in_chain - 3] = 1;
+								bone_chain_permutation[num_bones_in_chain - 2] = 1;
+								bone_chain_permutation[num_bones_in_chain - 1] = 1;
+								error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
+								if (error < best_error)
+								{
+									best_error = error;
+									memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+
+									if (error < settings.error_threshold)
+										break;
+								}
 							}
 						}
 					}
@@ -1081,7 +1091,7 @@ namespace acl
 				// Our error remains too high, this should be rare.
 				// Attempt to increase the bit rate as much as we can while still back tracking if it doesn't help.
 				error = calculate_max_error_at_bit_rate(context, bone_index, false, true);
-				while (error >= context.error_threshold)
+				while (error >= settings.error_threshold)
 				{
 					// From child to parent, increase the bit rate indiscriminately
 					uint16_t num_maxed_out = 0;
@@ -1099,7 +1109,7 @@ namespace acl
 						BoneBitRate best_bone_bit_rate = bone_bit_rate;
 						float best_bit_rate_error = error;
 
-						while (error >= context.error_threshold)
+						while (error >= settings.error_threshold)
 						{
 							static_assert(offsetof(BoneBitRate, rotation) == 0 && offsetof(BoneBitRate, scale) == sizeof(BoneBitRate) - 1, "Invalid BoneBitRate offsets");
 							uint8_t& smallest_bit_rate = *std::min_element<uint8_t*>(&bone_bit_rate.rotation, &bone_bit_rate.scale + 1);
@@ -1143,7 +1153,7 @@ namespace acl
 						bone_bit_rate = best_bone_bit_rate;
 						error = best_bit_rate_error;
 
-						if (error < context.error_threshold)
+						if (error < settings.error_threshold)
 							break;
 					}
 
@@ -1162,7 +1172,7 @@ namespace acl
 				// not, sibling bones will remain fairly close in their error. Some packed rotation formats, namely
 				// drop W component can have a high error even with raw values, it is assumed that if such a format
 				// is used then a best effort approach to reach the error threshold is entirely fine.
-				if (error >= context.error_threshold && context.rotation_format == RotationFormat8::Quat_128)
+				if (error >= settings.error_threshold && context.settings.rotation_format == RotationFormat8::Quat_128)
 				{
 					// From child to parent, max out the bit rate
 					for (int16_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)
@@ -1174,7 +1184,7 @@ namespace acl
 						bone_bit_rate.scale = std::max<uint8_t>(bone_bit_rate.scale, k_highest_bit_rate);
 
 						error = calculate_max_error_at_bit_rate(context, bone_index, false, true);
-						if (error < context.error_threshold)
+						if (error < settings.error_threshold)
 							break;
 					}
 				}

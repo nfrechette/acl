@@ -29,6 +29,7 @@
 #include "acl/core/hash.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
+#include "acl/compression/compression_level.h"
 #include "acl/compression/skeleton_error_metric.h"
 #include "acl/math/scalar_32.h"
 
@@ -38,6 +39,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Encapsulates all the compression settings related to segmenting.
 	struct SegmentingSettings
 	{
 		//////////////////////////////////////////////////////////////////////////
@@ -97,8 +100,16 @@ namespace acl
 		}
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// Encapsulates all the compression settings.
 	struct CompressionSettings
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// The compression level determines how aggressively we attempt to reduce the memory
+		// footprint. Higher levels will try more permutations and bit rates. The higher
+		// the level, the slower the compression but the smaller the memory footprint.
+		CompressionLevel8 level;
+
 		//////////////////////////////////////////////////////////////////////////
 		// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
 		// Defaults to raw: 'Quat_128' and 'Vector3_96'
@@ -147,8 +158,11 @@ namespace acl
 		// Defaults to '0.01' centimeters
 		float error_threshold;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Default constructor sets things up to perform no compression and to leave things raw.
 		CompressionSettings()
-			: rotation_format(RotationFormat8::Quat_128)
+			: level(CompressionLevel8::Low)
+			, rotation_format(RotationFormat8::Quat_128)
 			, translation_format(VectorFormat8::Vector3_96)
 			, scale_format(VectorFormat8::Vector3_96)
 			, range_reduction(RangeReductionFlags8::None)
@@ -165,6 +179,7 @@ namespace acl
 		uint32_t get_hash() const
 		{
 			uint32_t hash_value = 0;
+			hash_value = hash_combine(hash_value, hash32(level));
 			hash_value = hash_combine(hash_value, hash32(rotation_format));
 			hash_value = hash_combine(hash_value, hash32(translation_format));
 			hash_value = hash_combine(hash_value, hash32(scale_format));
@@ -232,11 +247,20 @@ namespace acl
 	};
 
 	//////////////////////////////////////////////////////////////////////////
+	// Returns raw compression settings. No compression is performed and
+	// samples are all retained with full precision.
+	inline CompressionSettings get_raw_compression_settings()
+	{
+		return CompressionSettings();
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	// Returns the recommended and default compression settings. These have
 	// been tested in a wide range of scenarios and perform best overall.
 	inline CompressionSettings get_default_compression_settings()
 	{
 		CompressionSettings settings;
+		settings.level = CompressionLevel8::Highest;
 		settings.rotation_format = RotationFormat8::QuatDropW_Variable;
 		settings.translation_format = VectorFormat8::Vector3_Variable;
 		settings.scale_format = VectorFormat8::Vector3_Variable;

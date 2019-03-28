@@ -136,6 +136,9 @@ struct Options
 
 	const char*		output_bin_filename;
 
+	CompressionLevel8	compression_level;
+	bool			compression_level_specified;
+
 	bool			regression_testing;
 	bool			profile_decompression;
 	bool			exhaustive_compression;
@@ -164,6 +167,8 @@ struct Options
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
 		, output_bin_filename(nullptr)
+		, compression_level(CompressionLevel8::Lowest)
+		, compression_level_specified(false)
 		, regression_testing(false)
 		, profile_decompression(false)
 		, exhaustive_compression(false)
@@ -208,6 +213,7 @@ static constexpr const char* k_acl_input_file_option = "-acl=";
 static constexpr const char* k_config_input_file_option = "-config=";
 static constexpr const char* k_stats_output_option = "-stats";
 static constexpr const char* k_bin_output_option = "-out=";
+static constexpr const char* k_compression_level_option = "-level=";
 static constexpr const char* k_regression_test_option = "-test";
 static constexpr const char* k_profile_decompression_option = "-decomp";
 static constexpr const char* k_exhaustive_compression_option = "-exhaustive";
@@ -305,6 +311,19 @@ static bool parse_options(int argc, char** argv, Options& options)
 				printf("Binary output file must be an ACL binary file of the form: [*.acl.bin]\n");
 				return false;
 			}
+			continue;
+		}
+
+		option_length = std::strlen(k_compression_level_option);
+		if (std::strncmp(argument, k_compression_level_option, option_length) == 0)
+		{
+			const char* level_name = argument + option_length;
+			if (!get_compression_level(level_name, options.compression_level))
+			{
+				printf("Invalid compression level name specified: %s\n", level_name);
+				return false;
+			}
+			options.compression_level_specified = true;
 			continue;
 		}
 
@@ -677,6 +696,14 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 
 	CompressionSettings default_settings;
 
+	sjson::StringView compression_level;
+	parser.try_read("level", compression_level, get_compression_level_name(default_settings.level));
+	if (!get_compression_level(compression_level.c_str(), out_settings.level))
+	{
+		printf("Invalid compression level: %s\n", String(allocator, compression_level.c_str(), compression_level.size()).c_str());
+		return false;
+	}
+
 	sjson::StringView rotation_format;
 	parser.try_read("rotation_format", rotation_format, get_rotation_format_name(default_settings.rotation_format));
 	if (!get_rotation_format(rotation_format.c_str(), out_settings.rotation_format))
@@ -979,6 +1006,10 @@ static int safe_main_impl(int argc, char* argv[])
 		else if (use_external_config)
 		{
 			ACL_ASSERT(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
+
+			if (options.compression_level_specified)
+				settings.level = options.compression_level;
+
 			try_algorithm(options, allocator, *clip, settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 		}
 		else if (options.exhaustive_compression)
@@ -1034,6 +1065,9 @@ static int safe_main_impl(int argc, char* argv[])
 				{
 					test_settings.error_metric = settings.error_metric;
 
+					if (options.compression_level_specified)
+						test_settings.level = options.compression_level;
+
 					try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 				}
 			}
@@ -1042,6 +1076,9 @@ static int safe_main_impl(int argc, char* argv[])
 		{
 			CompressionSettings default_settings = get_default_compression_settings();
 			default_settings.error_metric = settings.error_metric;
+
+			if (options.compression_level_specified)
+				default_settings.level = options.compression_level;
 
 			try_algorithm(options, allocator, *clip, default_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 		}

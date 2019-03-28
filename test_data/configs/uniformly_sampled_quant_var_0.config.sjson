@@ -2,6 +2,8 @@ version = 1
 
 algorithm_name = "UniformlySampled"
 
+level = "Highest"
+
 rotation_format = "QuatDropW_Variable"
 translation_format = "Vector3_Variable"
 scale_format = "Vector3_Variable"

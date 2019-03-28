@@ -29,6 +29,7 @@ def parse_argv():
 	options['has_progress_bar'] = True
 	options['stat_detailed'] = False
 	options['stat_exhaustive'] = False
+	options['level'] = 'Highest'
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
@@ -73,6 +74,9 @@ def parse_argv():
 
 		if value.startswith('-parallel='):
 			options['num_threads'] = int(value[len('-parallel='):].replace('"', ''))
+
+		if value.startswith('-level='):
+			options['level'] = value[len('-level='):].replace('"', '').capitalize()
 
 		if value == '-help':
 			options['print_help'] = True
@@ -326,11 +330,11 @@ def compress_clips(options):
 
 			stat_filename = stat_filename.replace('\\\\?\\', '')
 
+			cmd = '{} -acl="{}" -stats="{}" -level={}'.format(compressor_exe_path, acl_filename, stat_filename, options['level'])
+
 			if out_dir:
 				out_filename = os.path.join(options['out'], filename.replace('.acl.sjson', '.acl.bin'))
-				cmd = '{} -acl="{}" -stats="{}" -out="{}"'.format(compressor_exe_path, acl_filename, stat_filename, out_filename)
-			else:
-				cmd = '{} -acl="{}" -stats="{}"'.format(compressor_exe_path, acl_filename, stat_filename)
+				cmd = '{} -out="{}"'.format(cmd, out_filename)
 
 			if options['stat_detailed']:
 				cmd = '{} -stat_detailed'.format(cmd)
