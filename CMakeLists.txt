@@ -29,6 +29,11 @@ file(GLOB ACL_ROOT_FILES LIST_DIRECTORIES false
 	${PROJECT_SOURCE_DIR}/*.py)
 
 # Create a dummy target so they show up in the IDE
+if(MSVC)
+	# The Visual Studio IDE underlines symbols in the include-only project with red squiggles unless it knows where they are declared.
+	include_directories("${PROJECT_SOURCE_DIR}/includes")
+endif()
+
 add_custom_target(${PROJECT_NAME} SOURCES ${ACL_INCLUDE_FILES} ${ACL_ROOT_FILES})
 
 if(CMAKE_CONFIGURATION_TYPES)
