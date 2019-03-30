@@ -126,17 +126,19 @@ namespace acl
 		RigidBone()
 			: name()
 			, bone_chain(nullptr)
-			, bind_transform(transform_identity_64())
 			, vertex_distance(1.0f)
 			, parent_index(k_invalid_bone_index)
-		{}
+			, bind_transform(transform_identity_64())
+		{
+			(void)padding;
+		}
 
 		RigidBone(RigidBone&& other)
 			: name(std::move(other.name))
 			, bone_chain(other.bone_chain)
-			, bind_transform(other.bind_transform)
 			, vertex_distance(other.vertex_distance)
 			, parent_index(other.parent_index)
+			, bind_transform(other.bind_transform)
 		{
 			new(&other) RigidBone();
 		}
@@ -145,9 +147,9 @@ namespace acl
 		{
 			std::swap(name, other.name);
 			std::swap(bone_chain, other.bone_chain);
-			std::swap(bind_transform, other.bind_transform);
 			std::swap(vertex_distance, other.vertex_distance);
 			std::swap(parent_index, other.parent_index);
+			std::swap(bind_transform, other.bind_transform);
 
 			return *this;
 		}
@@ -175,7 +177,7 @@ namespace acl
 		// Unused memory left as padding
 		uint8_t			padding[2];
 
-		// The bone bind transform in local space of its parent
+		// The bind transform is in its parent's local space
 		// Note that the scale is ignored and this value is only used by the additive error metrics
 		Transform_64	bind_transform;
 	};

@@ -42,7 +42,9 @@ namespace acl
 	public:
 		CPUCacheFlusher()
 			: m_is_flushing(false)
-		{}
+		{
+			(void)m_padding;
+		}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Marks the beginning of a cache flushing operation
