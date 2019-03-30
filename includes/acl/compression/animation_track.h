@@ -88,15 +88,6 @@ namespace acl
 		//    - num_samples: The number of samples in this track
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		//    - type: The track type
-		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-		AnimationTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate, AnimationTrackType8 type)
-			: m_allocator(&allocator)
-			, m_sample_data(allocate_type_array_aligned<double>(allocator, size_t(num_samples) * get_animation_track_sample_size(type), alignof(Vector4_64)))
-			, m_num_samples(num_samples)
-			, m_sample_rate(float(sample_rate))
-			, m_type(type)
-		{}
-
 		AnimationTrack(IAllocator& allocator, uint32_t num_samples, float sample_rate, AnimationTrackType8 type)
 			: m_allocator(&allocator)
 			, m_sample_data(allocate_type_array_aligned<double>(allocator, size_t(num_samples) * get_animation_track_sample_size(type), alignof(Vector4_64)))
@@ -173,7 +164,7 @@ namespace acl
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
 		AnimationRotationTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
-			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Rotation)
+			: AnimationTrack(allocator, num_samples, float(sample_rate), AnimationTrackType8::Rotation)
 		{
 			Quat_64* samples = safe_ptr_cast<Quat_64>(&m_sample_data[0]);
 			std::fill(samples, samples + num_samples, quat_identity_64());
@@ -248,7 +239,7 @@ namespace acl
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
 		AnimationTranslationTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
-			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Translation)
+			: AnimationTrack(allocator, num_samples, float(sample_rate), AnimationTrackType8::Translation)
 		{
 			std::fill(m_sample_data, m_sample_data + (num_samples * 3), 0.0);
 		}
@@ -320,7 +311,7 @@ namespace acl
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
 		AnimationScaleTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
-			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Scale)
+			: AnimationTrack(allocator, num_samples, float(sample_rate), AnimationTrackType8::Scale)
 		{
 			Vector4_64 defaultScale = vector_set(1.0);
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)

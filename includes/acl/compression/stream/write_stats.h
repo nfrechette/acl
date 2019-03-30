@@ -108,8 +108,6 @@ namespace acl
 		const float sample_rate = raw_clip_context.sample_rate;
 		const float ref_duration = calculate_duration(raw_clip_context.num_samples, sample_rate);
 
-		const float segment_duration = calculate_duration(segment.num_samples, sample_rate);
-
 		BoneError worst_bone_error;
 
 		writer["error_per_frame_and_bone"] = [&](sjson::ArrayWriter& frames_writer)
