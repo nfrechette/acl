@@ -115,15 +115,14 @@ namespace acl
 		{
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
-				const float sample_time = min(float(sample_index) / sample_rate, segment_duration);
-				const float ref_sample_time = min(float(segment.clip_sample_offset + sample_index) / sample_rate, ref_duration);
+				const float sample_time = min(float(segment.clip_sample_offset + sample_index) / sample_rate, ref_duration);
 
-				sample_streams(raw_clip_context.segments[0].bone_streams, num_bones, ref_sample_time, raw_local_pose);
+				sample_streams(raw_clip_context.segments[0].bone_streams, num_bones, sample_time, raw_local_pose);
 				sample_streams(segment.bone_streams, num_bones, sample_time, lossy_local_pose);
 
 				if (raw_clip_context.has_additive_base)
 				{
-					const float normalized_sample_time = additive_base_clip_context.num_samples > 1 ? (ref_sample_time / ref_duration) : 0.0f;
+					const float normalized_sample_time = additive_base_clip_context.num_samples > 1 ? (sample_time / ref_duration) : 0.0f;
 					const float additive_sample_time = normalized_sample_time * additive_base_clip_context.duration;
 					sample_streams(additive_base_clip_context.segments[0].bone_streams, num_bones, additive_sample_time, base_local_pose);
 				}
