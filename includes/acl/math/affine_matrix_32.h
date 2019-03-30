@@ -157,6 +157,11 @@ namespace acl
 		}
 	}
 
+	constexpr Vector4_32 ACL_SIMD_CALL matrix_get_axis(Vector4_32Arg0 x_axis, Vector4_32Arg1 y_axis, Vector4_32Arg2 z_axis, Vector4_32Arg3 w_axis, MatrixAxis axis)
+	{
+		return axis == MatrixAxis::X ? x_axis : (axis == MatrixAxis::Y ? y_axis : (axis == MatrixAxis::Z ? z_axis : w_axis));
+	}
+
 	inline Quat_32 ACL_SIMD_CALL quat_from_matrix(AffineMatrix_32Arg0 input)
 	{
 		if (vector_all_near_equal3(input.x_axis, vector_zero_32()) || vector_all_near_equal3(input.y_axis, vector_zero_32()) || vector_all_near_equal3(input.z_axis, vector_zero_32()))
@@ -183,16 +188,16 @@ namespace acl
 			int8_t best_axis = 0;
 			if (vector_get_y(input.y_axis) > vector_get_x(input.x_axis))
 				best_axis = 1;
-			if (vector_get_z(input.z_axis) > vector_get_component(matrix_get_axis(input, MatrixAxis(best_axis)), VectorMix(best_axis)))
+			if (vector_get_z(input.z_axis) > vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(best_axis)), VectorMix(best_axis)))
 				best_axis = 2;
 
 			const int8_t next_best_axis = (best_axis + 1) % 3;
 			const int8_t next_next_best_axis = (next_best_axis + 1) % 3;
 
 			const float mtx_pseudo_trace = 1.0f +
-				vector_get_component(matrix_get_axis(input, MatrixAxis(best_axis)), VectorMix(best_axis)) -
-				vector_get_component(matrix_get_axis(input, MatrixAxis(next_best_axis)), VectorMix(next_best_axis)) -
-				vector_get_component(matrix_get_axis(input, MatrixAxis(next_next_best_axis)), VectorMix(next_next_best_axis));
+				vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(best_axis)), VectorMix(best_axis)) -
+				vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(next_best_axis)), VectorMix(next_best_axis)) -
+				vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(next_next_best_axis)), VectorMix(next_next_best_axis));
 
 			const float inv_pseudo_trace = sqrt_reciprocal(mtx_pseudo_trace);
 			const float half_inv_pseudo_trace = inv_pseudo_trace * 0.5f;
@@ -200,14 +205,14 @@ namespace acl
 			float quat_values[4];
 			quat_values[best_axis] = reciprocal(inv_pseudo_trace) * 0.5f;
 			quat_values[next_best_axis] = half_inv_pseudo_trace *
-				(vector_get_component(matrix_get_axis(input, MatrixAxis(best_axis)), VectorMix(next_best_axis)) +
-					vector_get_component(matrix_get_axis(input, MatrixAxis(next_best_axis)), VectorMix(best_axis)));
+				(vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(best_axis)), VectorMix(next_best_axis)) +
+					vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(next_best_axis)), VectorMix(best_axis)));
 			quat_values[next_next_best_axis] = half_inv_pseudo_trace *
-				(vector_get_component(matrix_get_axis(input, MatrixAxis(best_axis)), VectorMix(next_next_best_axis)) +
-					vector_get_component(matrix_get_axis(input, MatrixAxis(next_next_best_axis)), VectorMix(best_axis)));
+				(vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(best_axis)), VectorMix(next_next_best_axis)) +
+					vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(next_next_best_axis)), VectorMix(best_axis)));
 			quat_values[3] = half_inv_pseudo_trace *
-				(vector_get_component(matrix_get_axis(input, MatrixAxis(next_best_axis)), VectorMix(next_next_best_axis)) -
-					vector_get_component(matrix_get_axis(input, MatrixAxis(next_next_best_axis)), VectorMix(next_best_axis)));
+				(vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(next_best_axis)), VectorMix(next_next_best_axis)) -
+					vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(next_next_best_axis)), VectorMix(next_best_axis)));
 
 			return quat_normalize(quat_unaligned_load(&quat_values[0]));
 		}

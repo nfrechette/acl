@@ -4,7 +4,7 @@ In order to contribute to ACL and use the various tools provided for development
 
 ## Setting up your environment
 
-### Windows, Linux, and OS X
+### Windows, Linux, and OS X for x86 and x64
 
 1. Install *CMake 3.2* or higher (*3.10* is required on OS X with *Xcode 10*), *Python 3*, and the proper compiler for your platform.
 2. Execute `git submodule update --init` to get the files of thirdparty submodules (e.g. Catch2).
@@ -16,6 +16,10 @@ In order to contribute to ACL and use the various tools provided for development
 6. Run the regression tests with: `python make.py -regression_test`
 
 On all three platforms, *AVX* support can be enabled by using the `-avx` switch.
+
+### Windows ARM64
+
+For *Windows on ARM64*, the steps are identical to *x86 and x64* but you will need *CMake 3.13 or higher* and you must provide the architecture on the command line: `python make.py -compiler vs2017 -cpu arm64`
 
 ### Android
 

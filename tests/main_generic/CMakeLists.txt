@@ -28,6 +28,13 @@ ParseAndAddCatchTests(${PROJECT_NAME})
 
 setup_default_compiler_flags(${PROJECT_NAME})
 
+if(MSVC)
+	if(CPU_INSTRUCTION_SET MATCHES "arm64")
+		# Exceptions are not enabled by default for ARM targets, enable them
+		target_compile_options(${PROJECT_NAME} PRIVATE /EHsc)
+	endif()
+endif()
+
 # Throw on failure to allow us to catch them and recover
 add_definitions(-DACL_ON_ASSERT_THROW)
 

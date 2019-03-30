@@ -81,7 +81,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_shuffle_ps(_mm_cvtpd_ps(input.xy), _mm_cvtpd_ps(input.zw), _MM_SHUFFLE(1, 0, 1, 0));
 #else
-		return Quat_32{ float(input.x), float(input.y), float(input.z), float(input.w) };
+		return quat_set(float(input.x), float(input.y), float(input.z), float(input.w));
 #endif
 	}
 
@@ -201,9 +201,9 @@ namespace acl
 		__m128 result1 = _mm_add_ps(lzry_lwry_nlxry_nlyry, nlyrz_lxrz_lwrz_wlzrz);
 		return _mm_add_ps(result0, result1);
 #elif defined(ACL_NEON_INTRINSICS)
-		constexpr float32x4_t control_wzyx = { 1.0f,-1.0f, 1.0f,-1.0f };
-		constexpr float32x4_t control_zwxy = { 1.0f, 1.0f,-1.0f,-1.0f };
-		constexpr float32x4_t control_yxwz = { -1.0f, 1.0f, 1.0f,-1.0f };
+		constexpr float32x4_t control_wzyx = ACL_INIT_VECTOR4F(1.0f, -1.0f, 1.0f, -1.0f);
+		constexpr float32x4_t control_zwxy = ACL_INIT_VECTOR4F(1.0f, 1.0f, -1.0f, -1.0f);
+		constexpr float32x4_t control_yxwz = ACL_INIT_VECTOR4F(-1.0f, 1.0f, 1.0f, -1.0f);
 
 		float32x2_t r_xy = vget_low_f32(rhs);
 		float32x2_t r_zw = vget_high_f32(rhs);

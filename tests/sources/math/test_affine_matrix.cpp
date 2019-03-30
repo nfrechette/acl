@@ -125,6 +125,11 @@ static void test_affine_matrix_impl(const MatrixType& identity, const FloatType 
 		REQUIRE(vector_all_near_equal(matrix_get_axis(mtx2, MatrixAxis::Y), mtx2.y_axis, threshold));
 		REQUIRE(vector_all_near_equal(matrix_get_axis(mtx2, MatrixAxis::Z), mtx2.z_axis, threshold));
 		REQUIRE(vector_all_near_equal(matrix_get_axis(mtx2, MatrixAxis::W), mtx2.w_axis, threshold));
+
+		REQUIRE(vector_all_near_equal(matrix_get_axis(mtx.x_axis, mtx.y_axis, mtx.z_axis, mtx.w_axis, MatrixAxis::X), mtx.x_axis, threshold));
+		REQUIRE(vector_all_near_equal(matrix_get_axis(mtx.x_axis, mtx.y_axis, mtx.z_axis, mtx.w_axis, MatrixAxis::Y), mtx.y_axis, threshold));
+		REQUIRE(vector_all_near_equal(matrix_get_axis(mtx.x_axis, mtx.y_axis, mtx.z_axis, mtx.w_axis, MatrixAxis::Z), mtx.z_axis, threshold));
+		REQUIRE(vector_all_near_equal(matrix_get_axis(mtx.x_axis, mtx.y_axis, mtx.z_axis, mtx.w_axis, MatrixAxis::W), mtx.w_axis, threshold));
 	}
 
 	{

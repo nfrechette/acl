@@ -119,7 +119,7 @@ namespace acl
 	// Bones are organized in a tree with a single root bone. Each bone has
 	// one or more children and every bone except the root has a single parent.
 	//////////////////////////////////////////////////////////////////////////
-	struct RigidBone
+	struct alignas(16) RigidBone
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Default constructor, initializes a simple root bone with no name
@@ -163,10 +163,6 @@ namespace acl
 		// This can be used to iterate on the bone chain efficiently from root to the current bone
 		const uint32_t*	bone_chain;
 
-		// The bone bind transform in local space of its parent
-		// Note that the scale is ignored and this value is only used by the additive error metrics
-		Transform_64	bind_transform;
-
 		// Virtual vertex distance used by hierarchical error function
 		// The error metric measures the error of a virtual vertex at this
 		// distance from the bone in object space
@@ -175,6 +171,13 @@ namespace acl
 		// The parent bone index or an invalid bone index for the root bone
 		// TODO: Introduce a type for bone indices
 		uint16_t		parent_index;
+
+		// Unused memory left as padding
+		uint8_t			padding[2];
+
+		// The bone bind transform in local space of its parent
+		// Note that the scale is ignored and this value is only used by the additive error metrics
+		Transform_64	bind_transform;
 	};
 
 	//////////////////////////////////////////////////////////////////////////

@@ -25,6 +25,13 @@ add_executable(${PROJECT_NAME} ${ALL_COMMON_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILE
 
 setup_default_compiler_flags(${PROJECT_NAME})
 
+if(MSVC)
+	if(CPU_INSTRUCTION_SET MATCHES "arm64")
+		# Exceptions are not enabled by default for ARM targets, enable them
+		target_compile_options(${PROJECT_NAME} PRIVATE /EHsc)
+	endif()
+endif()
+
 # Disable allocation tracking
 add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
 

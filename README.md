@@ -41,7 +41,7 @@ Much thought was put into designing the library for it to be as flexible and pow
 
 ## Supported platforms
 
-*  Windows (VS2015, VS2017) x86 and x64
+*  Windows VS2015 x86 and x64, VS2017 x86, x64, and ARM64*
 *  Linux (gcc5, gcc6, gcc7, gcc8, clang4, clang5, clang6) x86 and x64
 *  OS X (Xcode 8.3, Xcode 9.4, Xcode 10.1) x86 and x64
 *  Android (NVIDIA CodeWorks) ARMv7-A
@@ -49,11 +49,13 @@ Much thought was put into designing the library for it to be as flexible and pow
 
 The above supported platform list is only what is tested every release but if it compiles, it should run just fine.
 
+Note: *VS2017* compiles with *ARM64* on *AppVeyor* but I have no device to test it with.
+
 The [Unreal Engine](https://www.unrealengine.com/en-US/blog) is supported through a plugin found [here](https://github.com/nfrechette/acl-ue4-plugin).
 
 ## Getting started
 
-If you would like to contribute to ACL or use it for research, head on over to the [getting started](./docs/getting_started.md) section in order to setup your environment and make sure to check out the [contributing guidelines](CONTRIBUTING.md).
+This library is **100%** headers as such you just need to include them in your own project to start using it. However, if you wish to run the unit tests, regression tests, to contribute to ACL or use it for research, head on over to the [getting started](./docs/getting_started.md) section in order to setup your environment and make sure to check out the [contributing guidelines](CONTRIBUTING.md).
 
 If you would like to integrate ACL into your own game engine, follow the integration instructions [here](./docs#how-to-integrate-the-library).
 

@@ -49,10 +49,10 @@
 		#define ACL_SSE2_INTRINSICS
 	#endif
 
-	#if defined(__ARM_NEON)
+	#if defined(__ARM_NEON) || defined(_M_ARM) || defined(_M_ARM64)
 		#define ACL_NEON_INTRINSICS
 
-		#if defined(__aarch64__)
+		#if defined(__aarch64__) || defined(_M_ARM64)
 			#define ACL_NEON64_INTRINSICS
 		#endif
 	#endif
@@ -87,7 +87,10 @@
 	#include <immintrin.h>
 #endif
 
-#if defined(ACL_NEON_INTRINSICS)
+#if defined(ACL_NEON64_INTRINSICS) && defined(_M_ARM64)
+	// MSVC specific header
+	#include <arm64_neon.h>
+#elif defined(ACL_NEON_INTRINSICS)
 	#include <arm_neon.h>
 #endif
 

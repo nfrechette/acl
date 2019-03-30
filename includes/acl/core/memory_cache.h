@@ -37,7 +37,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Simple helper to flush the CPU cache
 	//////////////////////////////////////////////////////////////////////////
-	class CPUCacheFlusher
+	class alignas(16) CPUCacheFlusher
 	{
 	public:
 		CPUCacheFlusher()
@@ -108,6 +108,9 @@ namespace acl
 #endif
 
 		bool	m_is_flushing;
+
+		// Unused memory left as padding
+		uint8_t	m_padding[15];
 	};
 }
 

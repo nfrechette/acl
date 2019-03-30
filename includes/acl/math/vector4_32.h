@@ -32,6 +32,19 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+//////////////////////////////////////////////////////////////////////////
+// Initializes statically a vector4.
+//////////////////////////////////////////////////////////////////////////
+#if defined(ACL_NEON_INTRINSICS)
+	#if defined(_MSC_VER)
+		#define ACL_INIT_VECTOR4F(x, y, z, w) { (uint64_t(x) | (uint64_t(y) << 32)), (uint64_t(z) | (uint64_t(w) << 32)) }
+	#else
+		#define ACL_INIT_VECTOR4F(x, y, z, w) { (x), (y), (z), (w) }
+	#endif
+#else
+	#define ACL_INIT_VECTOR4F(x, y, z, w) { (x), (y), (z), (w) }
+#endif
+
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
@@ -139,7 +152,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 		return _mm_shuffle_ps(_mm_cvtpd_ps(input.xy), _mm_cvtpd_ps(input.zw), _MM_SHUFFLE(1, 0, 1, 0));
 #else
-		return Vector4_32{ float(input.x), float(input.y), float(input.z), float(input.w) };
+		return vector_set(float(input.x), float(input.y), float(input.z), float(input.w));
 #endif
 	}
 
