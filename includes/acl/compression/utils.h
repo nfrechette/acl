@@ -54,8 +54,8 @@ namespace acl
 	{
 		const uint16_t num_bones = clip.get_num_bones();
 		const float clip_duration = clip.get_duration();
-		const float sample_rate = float(clip.get_sample_rate());
-		const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
+		const float sample_rate = clip.get_sample_rate();
+		const uint32_t num_samples = clip.get_num_samples();;
 		const RigidSkeleton& skeleton = clip.get_skeleton();
 
 		uint16_t num_output_bones = 0;

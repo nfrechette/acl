@@ -51,7 +51,7 @@ namespace acl
 			, m_error()
 			, m_version(0)
 			, m_num_samples(0)
-			, m_sample_rate(0)
+			, m_sample_rate(0.0f)
 			, m_is_binary_exact(false)
 		{
 		}
@@ -86,13 +86,13 @@ namespace acl
 
 		uint32_t m_version;
 		uint32_t m_num_samples;
-		uint32_t m_sample_rate;
+		float m_sample_rate;
 		sjson::StringView m_clip_name;
 		bool m_is_binary_exact;
 		AdditiveClipFormat8 m_additive_format;
 		sjson::StringView m_additive_base_name;
 		uint32_t m_additive_base_num_samples;
-		uint32_t m_additive_base_sample_rate;
+		float m_additive_base_sample_rate;
 
 		void reset_state()
 		{
@@ -142,10 +142,10 @@ namespace acl
 			if (!m_parser.read("sample_rate", sample_rate))
 				goto error;
 
-			m_sample_rate = static_cast<uint32_t>(sample_rate);
-			if (static_cast<double>(m_sample_rate) != sample_rate || m_sample_rate == 0)
+			m_sample_rate = static_cast<float>(sample_rate);
+			if (m_sample_rate <= 0.0f)
 			{
-				set_error(ClipReaderError::UnsignedIntegerExpected);
+				set_error(ClipReaderError::PositiveValueExpected);
 				return false;
 			}
 
@@ -174,10 +174,10 @@ namespace acl
 				return false;
 			}
 			m_parser.try_read("additive_base_sample_rate", sample_rate, 30.0);
-			m_additive_base_sample_rate = static_cast<uint32_t>(sample_rate);
-			if (static_cast<double>(m_additive_base_sample_rate) != sample_rate || m_additive_base_sample_rate == 0)
+			m_additive_base_sample_rate = static_cast<float>(sample_rate);
+			if (m_additive_base_sample_rate <= 0.0f)
 			{
-				set_error(ClipReaderError::UnsignedIntegerExpected);
+				set_error(ClipReaderError::PositiveValueExpected);
 				return false;
 			}
 

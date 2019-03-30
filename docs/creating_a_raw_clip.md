@@ -10,7 +10,7 @@ Once you have [created a rigid skeleton](creating_a_skeleton.md), the next step 
 
 ```c++
 uint32_t num_samples_per_track = 20;
-uint32_t sample_rate = 30;
+float sample_rate = 30.0f;
 String name(allocator, "Run Cycle");
 AnimationClip clip(allocator, skeleton, num_samples_per_track, sample_rate, name);
 ```

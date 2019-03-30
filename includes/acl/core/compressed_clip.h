@@ -202,7 +202,7 @@ namespace acl
 		uint32_t				num_samples;
 
 		// The clip sample rate.
-		uint32_t				sample_rate;								// TODO: Store duration as float instead
+		float					sample_rate;								// TODO: Store duration as float instead
 
 		// Offset to the segment headers data.
 		PtrOffset16<SegmentHeader>	segment_headers_offset;

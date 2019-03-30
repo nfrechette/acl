@@ -28,6 +28,7 @@
 
 #include "acl/core/compiler_utils.h"
 #include "acl/core/memory_cache.h"
+#include "acl/core/utils.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/decompression/default_output_writer.h"
 #include "acl/compression/stream/clip_context.h"
@@ -104,10 +105,10 @@ namespace acl
 		Transform_32* base_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 
-		const float sample_rate = float(raw_clip_context.segments[0].bone_streams[0].rotations.get_sample_rate());
-		const float ref_duration = float(raw_clip_context.num_samples - 1) / sample_rate;
+		const float sample_rate = raw_clip_context.sample_rate;
+		const float ref_duration = calculate_duration(raw_clip_context.num_samples, sample_rate);
 
-		const float segment_duration = float(segment.num_samples - 1) / sample_rate;
+		const float segment_duration = calculate_duration(segment.num_samples, sample_rate);
 
 		BoneError worst_bone_error;
 
@@ -184,7 +185,7 @@ namespace acl
 	{
 		const ClipHeader& clip_header = get_clip_header(compressed_clip);
 		const int32_t num_samples = static_cast<int32_t>(clip_header.num_samples);
-		const float sample_rate = float(clip_header.sample_rate);
+		const float sample_rate = clip_header.sample_rate;
 		const float duration = calculate_duration(num_samples, clip_header.sample_rate);
 		const uint16_t num_bones = clip_header.num_bones;
 

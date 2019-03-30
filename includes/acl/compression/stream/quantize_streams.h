@@ -27,6 +27,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
+#include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_32.h"
@@ -92,9 +93,9 @@ namespace acl
 			{
 				num_samples = segment_.num_samples;
 				segment_sample_start_index = segment_.clip_sample_offset;
-				sample_rate = float(segment.bone_streams[0].rotations.get_sample_rate());
+				sample_rate = segment.bone_streams[0].rotations.get_sample_rate();
 				clip_duration = clip_.duration;
-				segment_duration = float(num_samples - 1) / sample_rate;
+				segment_duration = calculate_duration(num_samples, sample_rate);
 				has_scale = segment_context_has_scale(segment_);
 				has_additive_base = clip_.has_additive_base;
 
@@ -120,7 +121,7 @@ namespace acl
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t rotation_sample_size = get_packed_rotation_size(rotation_format);
-			const uint32_t sample_rate = raw_stream.get_sample_rate();
+			const float sample_rate = raw_stream.get_sample_rate();
 			RotationTrackStream quantized_stream(allocator, num_samples, rotation_sample_size, sample_rate, rotation_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -176,7 +177,7 @@ namespace acl
 
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
-			const uint32_t sample_rate = raw_segment_stream.get_sample_rate();
+			const float sample_rate = raw_segment_stream.get_sample_rate();
 			RotationTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, RotationFormat8::QuatDropW_Variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
@@ -250,7 +251,7 @@ namespace acl
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t sample_size = get_packed_vector_size(translation_format);
-			const uint32_t sample_rate = raw_stream.get_sample_rate();
+			const float sample_rate = raw_stream.get_sample_rate();
 			TranslationTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, translation_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -303,7 +304,7 @@ namespace acl
 
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
-			const uint32_t sample_rate = raw_segment_stream.get_sample_rate();
+			const float sample_rate = raw_segment_stream.get_sample_rate();
 			TranslationTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
@@ -367,7 +368,7 @@ namespace acl
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t sample_size = get_packed_vector_size(scale_format);
-			const uint32_t sample_rate = raw_stream.get_sample_rate();
+			const float sample_rate = raw_stream.get_sample_rate();
 			ScaleTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, scale_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -420,7 +421,7 @@ namespace acl
 
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
-			const uint32_t sample_rate = raw_segment_stream.get_sample_rate();
+			const float sample_rate = raw_segment_stream.get_sample_rate();
 			ScaleTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))

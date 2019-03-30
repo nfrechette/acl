@@ -413,7 +413,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 
 	const uint16_t num_bones = clip.get_num_bones();
 	const float clip_duration = clip.get_duration();
-	const float sample_rate = float(clip.get_sample_rate());
+	const float sample_rate = clip.get_sample_rate();
 	const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
 	const ISkeletalErrorMetric& error_metric = *settings.error_metric;
 	const RigidSkeleton& skeleton = clip.get_skeleton();
@@ -936,7 +936,7 @@ static int safe_main_impl(int argc, char* argv[])
 		base_clip = const_cast<AnimationClip*>(clip->get_additive_base());
 		if (base_clip == nullptr)
 		{
-			base_clip = allocate_type<AnimationClip>(allocator, allocator, *skeleton, 1, 30, String(allocator, "Base Clip"));
+			base_clip = allocate_type<AnimationClip>(allocator, allocator, *skeleton, 1, 30.0f, String(allocator, "Base Clip"));
 
 			if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
 				create_additive_base_clip(options, *clip, *skeleton, *base_clip);

@@ -44,6 +44,7 @@ namespace acl
 			UnsignedIntegerExpected,
 			InvalidCompressionSetting,
 			InvalidAdditiveClipFormat,
+			PositiveValueExpected,
 		};
 
 		ClipReaderError()
@@ -73,6 +74,8 @@ namespace acl
 				return "Invalid compression settings provided";
 			case InvalidAdditiveClipFormat:
 				return "Invalid additive clip format provided";
+			case PositiveValueExpected:
+				return "A positive value is expected here";
 			default:
 				return sjson::ParserError::get_description();
 			}

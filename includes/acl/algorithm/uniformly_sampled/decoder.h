@@ -31,6 +31,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/range_reduction_types.h"
+#include "acl/core/utils.h"
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/quat_packing.h"
@@ -386,7 +387,7 @@ namespace acl
 
 			m_context.clip = &clip;
 			m_context.clip_hash = clip.get_hash();
-			m_context.clip_duration = float(header.num_samples - 1) / float(header.sample_rate);
+			m_context.clip_duration = calculate_duration(header.num_samples, header.sample_rate);
 			m_context.sample_time = -1.0f;
 			m_context.segment_headers = header.get_segment_headers();
 			m_context.default_tracks_bitset = header.get_default_tracks_bitset();
@@ -443,7 +444,7 @@ namespace acl
 
 			uint32_t key_frame0;
 			uint32_t key_frame1;
-			find_linear_interpolation_samples(header.num_samples, m_context.clip_duration, sample_time, rounding_policy, key_frame0, key_frame1, m_context.interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, key_frame0, key_frame1, m_context.interpolation_alpha);
 
 			uint32_t segment_key_frame0 = 0;
 			uint32_t segment_key_frame1 = 0;

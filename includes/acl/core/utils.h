@@ -35,6 +35,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
 	inline uint32_t calculate_num_samples(float duration, uint32_t sample_rate)
 	{
 		ACL_ASSERT(duration >= 0.0f, "Invalid duration: %f", duration);
@@ -42,10 +43,24 @@ namespace acl
 		return safe_static_cast<uint32_t>(floor((duration * float(sample_rate)) + 0.5f)) + 1;
 	}
 
+	inline uint32_t calculate_num_samples(float duration, float sample_rate)
+	{
+		ACL_ASSERT(duration >= 0.0f, "Invalid duration: %f", duration);
+		ACL_ASSERT(sample_rate > 0.0f, "Invalid sample rate: %f", sample_rate);
+		return safe_static_cast<uint32_t>(floor((duration * sample_rate) + 0.5f)) + 1;
+	}
+
+	ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
 	inline float calculate_duration(uint32_t num_samples, uint32_t sample_rate)
 	{
 		ACL_ASSERT(sample_rate > 0, "Invalid sample rate: %u", sample_rate);
 		return num_samples != 0 ? (float(num_samples - 1) / float(sample_rate)) : 0.0f;
+	}
+
+	inline float calculate_duration(uint32_t num_samples, float sample_rate)
+	{
+		ACL_ASSERT(sample_rate > 0.0f, "Invalid sample rate: %f", sample_rate);
+		return num_samples != 0 ? (float(num_samples - 1) / sample_rate) : 0.0f;
 	}
 }
 

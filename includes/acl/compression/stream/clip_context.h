@@ -48,7 +48,7 @@ namespace acl
 		uint16_t num_bones;
 		uint16_t num_output_bones;
 		uint32_t num_samples;
-		uint32_t sample_rate;
+		float sample_rate;
 
 		float duration;
 
@@ -73,7 +73,7 @@ namespace acl
 	{
 		const uint16_t num_bones = clip.get_num_bones();
 		const uint32_t num_samples = clip.get_num_samples();
-		const uint32_t sample_rate = clip.get_sample_rate();
+		const float sample_rate = clip.get_sample_rate();
 		const AnimatedBone* bones = clip.get_bones();
 		const bool has_additive_base = clip.get_additive_base() != nullptr;
 

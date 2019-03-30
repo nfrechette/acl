@@ -84,7 +84,37 @@ namespace acl
 		//    - num_samples: The number of samples per track
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		//    - name: Name of the clip (used for debugging purposes only)
+		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
 		AnimationClip(IAllocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, uint32_t sample_rate, const String &name)
+			: m_allocator(allocator)
+			, m_skeleton(skeleton)
+			, m_bones()
+			, m_num_samples(num_samples)
+			, m_sample_rate(float(sample_rate))
+			, m_num_bones(skeleton.get_num_bones())
+			, m_additive_base_clip(nullptr)
+			, m_additive_format(AdditiveClipFormat8::None)
+			, m_name(allocator, name)
+		{
+			m_bones = allocate_type_array<AnimatedBone>(allocator, m_num_bones);
+
+			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
+			{
+				m_bones[bone_index].rotation_track = AnimationRotationTrack(allocator, num_samples, m_sample_rate);
+				m_bones[bone_index].translation_track = AnimationTranslationTrack(allocator, num_samples, m_sample_rate);
+				m_bones[bone_index].scale_track = AnimationScaleTrack(allocator, num_samples, m_sample_rate);
+				m_bones[bone_index].output_index = bone_index;
+			}
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Creates an instance and initializes it.
+		//    - allocator: The allocator instance to use to allocate and free memory
+		//    - skeleton: The rigid skeleton this clip is based on
+		//    - num_samples: The number of samples per track
+		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
+		//    - name: Name of the clip (used for debugging purposes only)
+		AnimationClip(IAllocator& allocator, const RigidSkeleton& skeleton, uint32_t num_samples, float sample_rate, const String &name)
 			: m_allocator(allocator)
 			, m_skeleton(skeleton)
 			, m_bones()
@@ -149,7 +179,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the sample rate of this clip
-		uint32_t get_sample_rate() const { return m_sample_rate; }
+		float get_sample_rate() const { return m_sample_rate; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the clip playback duration in seconds
@@ -179,7 +209,7 @@ namespace acl
 			uint32_t sample_index0;
 			uint32_t sample_index1;
 			float interpolation_alpha;
-			find_linear_interpolation_samples(m_num_samples, clip_duration, sample_time, rounding_policy, sample_index0, sample_index1, interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(m_num_samples, m_sample_rate, sample_time, rounding_policy, sample_index0, sample_index1, interpolation_alpha);
 
 			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
 			{
@@ -246,8 +276,8 @@ namespace acl
 			if (m_num_samples == 0)
 				return ErrorResult("Clip has no samples");
 
-			if (m_sample_rate == 0)
-				return ErrorResult("Clip has no sample rate");
+			if (m_sample_rate <= 0.0f)
+				return ErrorResult("Clip has an invalid sample rate");
 
 			uint16_t num_output_bones = 0;
 			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
@@ -312,7 +342,7 @@ namespace acl
 		uint32_t				m_num_samples;
 
 		// The rate at which the samples were recorded
-		uint32_t				m_sample_rate;
+		float					m_sample_rate;
 
 		// The number of bones in this clip
 		uint16_t				m_num_bones;

@@ -649,7 +649,7 @@ namespace acl
 		{
 			// Our samples are uniform, grab the nearest samples
 			const ClipContext* clip_context = segment_context->clip;
-			find_linear_interpolation_samples(clip_context->num_samples, clip_context->duration, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(clip_context->num_samples, clip_context->sample_rate, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
 
 			// Offset for the current segment and clamp
 			key0 = key0 - segment_context->clip_sample_offset;
@@ -681,9 +681,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.rotations.get_num_samples();
-					const float duration = bone_stream.rotations.get_duration();
+					const float sample_rate = bone_stream.rotations.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				const Quat_32 sample0 = get_rotation_sample(bone_stream, key0);
@@ -701,9 +701,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.translations.get_num_samples();
-					const float duration = bone_stream.translations.get_duration();
+					const float sample_rate = bone_stream.translations.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				const Vector4_32 sample0 = get_translation_sample(bone_stream, key0);
@@ -721,9 +721,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.scales.get_num_samples();
-					const float duration = bone_stream.scales.get_duration();
+					const float sample_rate = bone_stream.scales.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				const Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
@@ -752,7 +752,7 @@ namespace acl
 		{
 			// Our samples are uniform, grab the nearest samples
 			const ClipContext* clip_context = segment_context->clip;
-			find_linear_interpolation_samples(clip_context->num_samples, clip_context->duration, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(clip_context->num_samples, clip_context->sample_rate, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
 
 			// Offset for the current segment and clamp
 			key0 = key0 - segment_context->clip_sample_offset;
@@ -785,9 +785,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.rotations.get_num_samples();
-					const float duration = bone_stream.rotations.get_duration();
+					const float sample_rate = bone_stream.rotations.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				const Quat_32 sample0 = get_rotation_sample(bone_stream, key0);
@@ -805,9 +805,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.translations.get_num_samples();
-					const float duration = bone_stream.translations.get_duration();
+					const float sample_rate = bone_stream.translations.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				const Vector4_32 sample0 = get_translation_sample(bone_stream, key0);
@@ -825,9 +825,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.scales.get_num_samples();
-					const float duration = bone_stream.scales.get_duration();
+					const float sample_rate = bone_stream.scales.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				const Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
@@ -858,7 +858,7 @@ namespace acl
 		{
 			// Our samples are uniform, grab the nearest samples
 			const ClipContext* clip_context = segment_context->clip;
-			find_linear_interpolation_samples(clip_context->num_samples, clip_context->duration, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(clip_context->num_samples, clip_context->sample_rate, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
 
 			// Offset for the current segment and clamp
 			key0 = key0 - segment_context->clip_sample_offset;
@@ -896,9 +896,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.rotations.get_num_samples();
-					const float duration = bone_stream.rotations.get_duration();
+					const float sample_rate = bone_stream.rotations.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				Quat_32 sample0;
@@ -929,9 +929,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.translations.get_num_samples();
-					const float duration = bone_stream.translations.get_duration();
+					const float sample_rate = bone_stream.translations.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				Vector4_32 sample0;
@@ -962,9 +962,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.scales.get_num_samples();
-					const float duration = bone_stream.scales.get_duration();
+					const float sample_rate = bone_stream.scales.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				Vector4_32 sample0;
@@ -1009,7 +1009,7 @@ namespace acl
 		{
 			// Our samples are uniform, grab the nearest samples
 			const ClipContext* clip_context = segment_context->clip;
-			find_linear_interpolation_samples(clip_context->num_samples, clip_context->duration, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(clip_context->num_samples, clip_context->sample_rate, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
 
 			// Offset for the current segment and clamp
 			key0 = key0 - segment_context->clip_sample_offset;
@@ -1048,9 +1048,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.rotations.get_num_samples();
-					const float duration = bone_stream.rotations.get_duration();
+					const float sample_rate = bone_stream.rotations.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				Quat_32 sample0;
@@ -1081,9 +1081,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.translations.get_num_samples();
-					const float duration = bone_stream.translations.get_duration();
+					const float sample_rate = bone_stream.translations.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				Vector4_32 sample0;
@@ -1114,9 +1114,9 @@ namespace acl
 				if (segment_context->distribution == SampleDistribution8::Variable)
 				{
 					const uint32_t num_samples = bone_stream.scales.get_num_samples();
-					const float duration = bone_stream.scales.get_duration();
+					const float sample_rate = bone_stream.scales.get_sample_rate();
 
-					find_linear_interpolation_samples(num_samples, duration, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
 				}
 
 				Vector4_32 sample0;
