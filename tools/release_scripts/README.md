@@ -4,7 +4,7 @@ Validating a release requires a lot of work and to that end, a few scripts were 
 
 ## test_everything.py
 
-This script runs the regression tests on every platform except **iOS** and **Android**. It will run every permutation possible.
+This script runs the regression tests on every platform except **iOS**, **Android**, and **Windows ARM64**. It will run every permutation possible.
 
 ## extract_stats.py
 

@@ -37,6 +37,19 @@ if __name__ == "__main__":
 					args = [python_exe, 'make.py', '-compiler', compiler, '-cpu', arch, '-config', config, simd, '-build', '-unit_test', '-regression_test', '-clean']
 					cmd_args.append([x for x in args if x])
 
+	if platform.system() == 'Windows':
+		for config in configs:
+			args = [python_exe, 'make.py', '-compiler', 'vs2017', '-cpu', 'arm64', '-config', config, '-build', '-clean']
+			cmd_args.append([x for x in args if x])
+			args = [python_exe, 'make.py', '-compiler', 'vs2017', '-cpu', 'arm64', '-config', config, '-build', '-clean', '-nosimd']
+			cmd_args.append([x for x in args if x])
+	elif platform.system() == 'Darwin':
+		for config in configs:
+			args = [python_exe, 'make.py', '-compiler', 'ios', '-config', config, '-build', '-clean']
+			cmd_args.append([x for x in args if x])
+			args = [python_exe, 'make.py', '-compiler', 'ios', '-config', config, '-build', '-clean', '-nosimd']
+			cmd_args.append([x for x in args if x])
+
 	root_dir = os.path.join(os.getcwd(), '../..')
 	os.chdir(root_dir)
 
