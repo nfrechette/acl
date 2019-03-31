@@ -260,7 +260,7 @@ namespace acl
 	inline CompressionSettings get_default_compression_settings()
 	{
 		CompressionSettings settings;
-		settings.level = CompressionLevel8::Highest;
+		settings.level = CompressionLevel8::Medium;
 		settings.rotation_format = RotationFormat8::QuatDropW_Variable;
 		settings.translation_format = VectorFormat8::Vector3_Variable;
 		settings.scale_format = VectorFormat8::Vector3_Variable;

@@ -29,7 +29,7 @@ def parse_argv():
 	options['has_progress_bar'] = True
 	options['stat_detailed'] = False
 	options['stat_exhaustive'] = False
-	options['level'] = 'Highest'
+	options['level'] = 'Medium'
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
