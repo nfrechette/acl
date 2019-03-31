@@ -1,0 +1,23 @@
+version = 1
+
+algorithm_name = "UniformlySampled"
+
+level = "Medium"
+
+rotation_format = "QuatDropW_Variable"
+translation_format = "Vector3_Variable"
+scale_format = "Vector3_Variable"
+
+rotation_range_reduction = true
+translation_range_reduction = true
+scale_range_reduction = true
+
+segmenting = {
+	enabled = true
+
+	rotation_range_reduction = true
+	translation_range_reduction = true
+	scale_range_reduction = true
+}
+
+regression_error_threshold = 0.075
