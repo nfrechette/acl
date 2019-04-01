@@ -64,7 +64,7 @@ namespace acl
 			return *safe_ptr_cast<const SampleType>(ptr);
 		}
 
-#if ACL_NO_INTRINSICS
+#if defined(ACL_NO_INTRINSICS)
 		template<typename SampleType>
 		void ACL_SIMD_CALL set_raw_sample(uint32_t sample_index, const SampleType& sample)
 #else
