@@ -201,9 +201,13 @@ namespace acl
 		__m128 result1 = _mm_add_ps(lzry_lwry_nlxry_nlyry, nlyrz_lxrz_lwrz_wlzrz);
 		return _mm_add_ps(result0, result1);
 #elif defined(ACL_NEON_INTRINSICS)
-		constexpr float32x4_t control_wzyx = ACL_INIT_VECTOR4F(1.0f, -1.0f, 1.0f, -1.0f);
-		constexpr float32x4_t control_zwxy = ACL_INIT_VECTOR4F(1.0f, 1.0f, -1.0f, -1.0f);
-		constexpr float32x4_t control_yxwz = ACL_INIT_VECTOR4F(-1.0f, 1.0f, 1.0f, -1.0f);
+		alignas(16) constexpr float control_wzyx_f[4] = { 1.0f, -1.0f, 1.0f, -1.0f };
+		alignas(16) constexpr float control_zwxy_f[4] = { 1.0f, 1.0f, -1.0f, -1.0f };
+		alignas(16) constexpr float control_yxwz_f[4] = { -1.0f, 1.0f, 1.0f, -1.0f };
+
+		const float32x4_t control_wzyx = *reinterpret_cast<const float32x4_t*>(&control_wzyx_f[0]);
+		const float32x4_t control_zwxy = *reinterpret_cast<const float32x4_t*>(&control_zwxy_f[0]);
+		const float32x4_t control_yxwz = *reinterpret_cast<const float32x4_t*>(&control_yxwz_f[0]);
 
 		float32x2_t r_xy = vget_low_f32(rhs);
 		float32x2_t r_zw = vget_high_f32(rhs);
