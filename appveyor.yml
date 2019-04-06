@@ -7,6 +7,10 @@ image:
 - Visual Studio 2015
 - Visual Studio 2017
 
+configuration:
+  - Debug
+  - Release
+
 install:
 - cmd: >-
     git submodule update --init --recursive
@@ -17,20 +21,20 @@ build_script:
 
     IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" (SET COMPILER=vs2017)
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Debug -cpu x86
+    %PYTHON%\\python.exe make.py -clean
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Release -cpu x86
+    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x86
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Release -cpu x86 -nosimd
+    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x86 -nosimd
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Debug -cpu x64
+    %PYTHON%\\python.exe make.py -clean
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Release -cpu x64
+    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x64
 
-    %PYTHON%\\python.exe make.py -clean -build -unit_test -compiler %COMPILER% -config Release -cpu x64 -nosimd
+    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x64 -nosimd
 
-    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -clean -build -compiler %COMPILER% -config Debug -cpu arm64
+    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -clean
 
-    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -clean -build -compiler %COMPILER% -config Release -cpu arm64
+    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -build -compiler %COMPILER% -config %configuration% -cpu arm64
 
-    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -clean -build -compiler %COMPILER% -config Release -cpu arm64 -nosimd
+    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -build -compiler %COMPILER% -config %configuration% -cpu arm64 -nosimd
