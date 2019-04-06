@@ -9,9 +9,9 @@ import threading
 import time
 import zipfile
 
-# The current test data version in used
+# The current test/decompression data version in use
 current_test_data = 'test_data_v1'
-current_decomp_data = 'decomp_data_v2'
+current_decomp_data = 'decomp_data_v3'
 
 def parse_argv():
 	parser = argparse.ArgumentParser(add_help=False)
