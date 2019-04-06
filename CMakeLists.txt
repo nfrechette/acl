@@ -28,12 +28,15 @@ file(GLOB ACL_ROOT_FILES LIST_DIRECTORIES false
 	${PROJECT_SOURCE_DIR}/*.md
 	${PROJECT_SOURCE_DIR}/*.py)
 
-# Create a dummy target so they show up in the IDE
 if(MSVC)
-	# The Visual Studio IDE underlines symbols in the include-only project with red squiggles unless it knows where they are declared.
+	# With MSVC, the custom target creates a Utility project. Even though it isn't a proper C++ project
+	# that compiles into something, MSVC will still parses the code and report intellisense information.
+	# A utility project doesn't have an editable field in its properties to add an include directory
+	# but adding anyway like this is enough to make sure the headers are found by intellisense.
 	include_directories("${PROJECT_SOURCE_DIR}/includes")
 endif()
 
+# Create a dummy target so they show up in the IDE
 add_custom_target(${PROJECT_NAME} SOURCES ${ACL_INCLUDE_FILES} ${ACL_ROOT_FILES})
 
 if(CMAKE_CONFIGURATION_TYPES)
