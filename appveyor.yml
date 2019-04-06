@@ -21,20 +21,14 @@ build_script:
 
     IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" (SET COMPILER=vs2017)
 
-    %PYTHON%\\python.exe make.py -clean
-
-    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x86
+    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x86 -clean
 
     %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x86 -nosimd
 
-    %PYTHON%\\python.exe make.py -clean
-
-    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x64
+    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x64 -clean
 
     %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x64 -nosimd
 
-    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -clean
-
-    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -build -compiler %COMPILER% -config %configuration% -cpu arm64
+    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -build -compiler %COMPILER% -config %configuration% -cpu arm64 -clean
 
     IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -build -compiler %COMPILER% -config %configuration% -cpu arm64 -nosimd
