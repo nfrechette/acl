@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
 		return result;
 
 	// Only decompress with a single configuration for now
-	configs.erase(std::remove_if(configs.begin(), configs.end(), [](const std::string& config_filename) { return config_filename != "uniformly_sampled_quant_var_2.config.sjson"; }), configs.end());
+	configs.erase(std::remove_if(configs.begin(), configs.end(), [](const std::string& config_filename) { return config_filename != "uniformly_sampled_quant_var_2_medium.config.sjson"; }), configs.end());
 
 	char output_directory[1024];
 	std::strcpy(output_directory, getenv("HOME"));
