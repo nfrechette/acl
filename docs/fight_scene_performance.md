@@ -1,14 +1,14 @@
 # Matinee fight scene performance
 
-|                       | v1.1.0    | v1.0.0    | v0.8.0   |
-| --------------------- | --------- | --------- | -------- |
-| **Compressed size**   | 8.66 MB   | 8.66 MB   | 8.66 MB  |
-| **Compression ratio** | 7.20 : 1  | 7.20 : 1  | 7.20 : 1 |
-| **Compression time**  | 1m 2.62s | 1m 13.49s | 1m 4.53s |
-| **Compression speed**  | 1020.06 KB/sec | 869.19 KB/sec | 989.88 KB/sec |
-| **Max error**         | 0.0620 cm | 0.0618 cm | 0.217 cm |
-| **Error 99<sup>th</sup> percentile** | 0.0255 cm | 0.0255 cm |  |
-| **Samples below error threshold** | 95.03 % | 95.03 % |  |
+|                       | v1.2.0 | v1.1.0    | v1.0.0    |
+| --------------------- | --------- | --------- | --------- |
+| **Compressed size**   | 8.77 MB | 8.66 MB   | 8.66 MB   |
+| **Compression ratio** | 7.11 : 1 | 7.20 : 1  | 7.20 : 1  |
+| **Compression time**  | 20.27s | 1m 2.62s | 1m 13.49s |
+| **Compression speed**  | 3150.43 KB/sec | 1020.06 KB/sec | 869.19 KB/sec |
+| **Max error**         | 0.0591 cm | 0.0620 cm | 0.0618 cm |
+| **Error 99<sup>th</sup> percentile** | 0.0382 cm | 0.0255 cm | 0.0255 cm |
+| **Samples below error threshold** | 94.61 % | 95.03 % | 95.03 % |
 
 # Data and method used
 
