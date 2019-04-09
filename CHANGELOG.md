@@ -1,5 +1,13 @@
 # Significant changes per release
 
+## 1.2.0
+
+*  Added support for GCC 8, clang 6, Xcode 10, and Windows ARM64
+*  Updated catch2 and sjson-cpp
+*  Integrated SonarCloud
+*  Added a compression level setting and changed default to *Medium*
+*  Various bug fixes, minor optimizations, and cleanup
+
 ## 1.1.0
 
 *  Added proper ARM NEON support
