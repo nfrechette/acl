@@ -1,14 +1,14 @@
 # Carnegie-Mellon University database performance
 
-|                       | v1.1.0     | v1.0.0     | v0.8.0     |
+|                       | v1.2.0 | v1.1.0     | v1.0.0     |
 | --------------------- | ---------- | ---------- | ---------- |
-| **Compressed size**   | 67.06 MB   | 67.02 MB   | 67.02 MB   |
-| **Compression ratio** | 21.31 : 1  | 21.33 : 1  | 21.33 : 1  |
-| **Compression time**  | 35m 19.96s | 37m 47.76s | 36m 27.22s |
-| **Compression speed**  | 690.43 KB/sec | 645.43 KB/sec | 669.20 KB/sec |
-| **Max error**         | 0.0725 cm  | 0.0725 cm  | 0.0703 cm  |
-| **Error 99<sup>th</sup> percentile** | 0.0090 cm | 0.0090 cm | 0.0090 cm |
-| **Samples below error threshold** | 99.83 % | 99.83 % | 99.83 % |
+| **Compressed size**   | 71.01 MB | 67.06 MB   | 67.02 MB   |
+| **Compression ratio** | 20.13 : 1 | 21.31 : 1  | 21.33 : 1  |
+| **Compression time**  | 6m 9.71s | 35m 19.96s | 37m 47.76s |
+| **Compression speed**  | 3958.99 KB/sec | 690.43 KB/sec | 645.43 KB/sec |
+| **Max error**         | 0.0725 cm | 0.0725 cm  | 0.0725 cm  |
+| **Error 99<sup>th</sup> percentile** | 0.0089 cm | 0.0090 cm | 0.0090 cm |
+| **Samples below error threshold** | 99.86 % | 99.83 % | 99.83 % |
 
 # Data and method used
 
@@ -31,20 +31,12 @@ The performance of ACL in Unreal Engine 4 is tracked by the plugin [here](https:
 
 ![Compression ratio VS max error per clip](images/acl_cmu_compression_ratio_vs_max_error.png)
 
-
-![Compression ratio by clip duration](images/acl_cmu_compression_ratio_by_duration.png)
-![Compression ratio by clip duration (shortest 100)](images/acl_cmu_compression_ratio_by_duration_shortest_100.png)
 ![Compression ratio distribution](images/acl_cmu_compression_ratio_distribution.png)
-![Compression ratio distribution (bottom 10%)](images/acl_cmu_compression_ratio_distribution_bottom_10.png)
-![Compression ratio histogram](images/acl_cmu_compression_ratio_histogram.png)
 
-
-![Max error by clip duration](images/acl_cmu_max_clip_error_by_duration.png)
 ![Max error distribution](images/acl_cmu_max_error_distribution.png)
-![Max error per clip histogram](images/acl_cmu_max_error_histogram.png)
-
 
 ![Distribution of the error for every bone at every key frame](images/acl_cmu_exhaustive_error.png)
+
 ![Distribution of the error for every bone at every key frame (top 10%)](images/acl_cmu_exhaustive_error_top_10.png)
 
 ![Distribution of clip durations](images/acl_cmu_clip_durations.png)
