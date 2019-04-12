@@ -10,7 +10,7 @@ This implementation will use `Transform_32` (which implements Vector-Quaternion-
 
 ## TransformMatrixErrorMetric
 
-This implementation uses `Transform_32` when there is no scale in both local and object space and as well as local space when there is scale. This is generally safe because there is no skew or shear present in the transform. However, when scale is present the object space error metric will convert the transforms into `AffineMatrix_32` in order to combine them into the final object space transform for the bone. This properly handles 3D scale but due to numerical accuracy the error can accumulate to unacceptable levels when very large or very small scale is present combined with very large translations.
+This implementation uses `Transform_32` when there is no scale in both local and object space and as well as local space when there is scale. This is generally safe because there is no skew or shear present in the transform. However, when scale is present the object space error metric will convert the transforms into `AffineMatrix_32` in order to combine them into the final object space transform for the bone. This properly handles 3D scale but due to numerical accuracy constraints the error can accumulate to unacceptable levels when very large or very small scale is present and combined with very large translations.
 
 ## AdditiveTransformErrorMetric
 

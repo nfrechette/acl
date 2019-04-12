@@ -6,7 +6,7 @@ Once you have [created a rigid skeleton](creating_a_skeleton.md), the next step 
 *  [A rigid skeleton](creating_a_skeleton.md)
 *  The number of samples per track (each track has the same number of samples)
 *  The rate at which samples are recorded (e.g. 30 == 30 FPS)
-*  And an optional string for the clip name
+*  An optional string for the clip name
 
 ```c++
 uint32_t num_samples_per_track = 20;
@@ -39,6 +39,6 @@ The library assumes that the raw clip data has already been transformed to be in
 
 ## Re-ordering or stripping bones
 
-Sometimes it is desireable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `AnimatedBone` contained in an `AnimationClip`. The default value is the bone index. You can use `k_invalid_bone_index` to strip the bone from the final compressed output.
+Sometimes it is desirable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `AnimatedBone` contained in an `AnimationClip`. The default value is the bone index. You can use `k_invalid_bone_index` to strip the bone from the final compressed output.
 
 *Note that each `output_index` needs to be unique and there can be no gaps. If **20** bones are outputted, the indices must run from **[0 .. 20)**.*
