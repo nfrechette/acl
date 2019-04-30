@@ -47,18 +47,31 @@ namespace acl
 		if (clip_context.num_samples <= settings.max_num_samples)
 			return;
 
-		uint32_t num_segments = (clip_context.num_samples + settings.ideal_num_samples - 1) / settings.ideal_num_samples;
-		uint32_t max_num_samples = num_segments * settings.ideal_num_samples;
+		//////////////////////////////////////////////////////////////////////////
+		// This algorithm is simple in nature. Its primary aim is to avoid having
+		// the last segment being partial if multiple segments are present.
+		// The extra samples from the last segment will be redistributed evenly
+		// starting with the first segment.
+		// As such, in order to quickly find which segment contains a particular sample
+		// you can simply divide the number of samples by the number of segments to get
+		// the floored value of number of samples per segment. This guarantees an accurate estimate.
+		// You can then query the segment start index by dividing the desired sample index
+		// with the floored value. If the sample isn't in the current segment, it will live in one of its neighbors.
+		// TODO: Can we provide a tighter guarantee?
+		//////////////////////////////////////////////////////////////////////////
 
-		uint32_t original_num_segments = num_segments;
+		uint32_t num_segments = (clip_context.num_samples + settings.ideal_num_samples - 1) / settings.ideal_num_samples;
+		const uint32_t max_num_samples = num_segments * settings.ideal_num_samples;
+
+		const uint32_t original_num_segments = num_segments;
 		uint32_t* num_samples_per_segment = allocate_type_array<uint32_t>(allocator, num_segments);
 		std::fill(num_samples_per_segment, num_samples_per_segment + num_segments, settings.ideal_num_samples);
 
-		uint32_t num_leftover_samples = settings.ideal_num_samples - (max_num_samples - clip_context.num_samples);
+		const uint32_t num_leftover_samples = settings.ideal_num_samples - (max_num_samples - clip_context.num_samples);
 		if (num_leftover_samples != 0)
 			num_samples_per_segment[num_segments - 1] = num_leftover_samples;
 
-		uint32_t slack = settings.max_num_samples - settings.ideal_num_samples;
+		const uint32_t slack = settings.max_num_samples - settings.ideal_num_samples;
 		if ((num_segments - 1) * slack >= num_leftover_samples)
 		{
 			// Enough segments to distribute the leftover samples of the last segment
@@ -83,7 +96,7 @@ namespace acl
 		uint32_t clip_sample_index = 0;
 		for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 		{
-			uint32_t num_samples_in_segment = num_samples_per_segment[segment_index];
+			const uint32_t num_samples_in_segment = num_samples_per_segment[segment_index];
 
 			SegmentContext& segment = clip_context.segments[segment_index];
 			segment.clip = &clip_context;
@@ -118,7 +131,7 @@ namespace acl
 				}
 				else
 				{
-					uint32_t sample_size = clip_bone_stream.rotations.get_sample_size();
+					const uint32_t sample_size = clip_bone_stream.rotations.get_sample_size();
 					RotationTrackStream rotations(allocator, num_samples_in_segment, sample_size, clip_bone_stream.rotations.get_sample_rate(), clip_bone_stream.rotations.get_rotation_format(), clip_bone_stream.rotations.get_bit_rate());
 					memcpy(rotations.get_raw_sample_ptr(0), clip_bone_stream.rotations.get_raw_sample_ptr(clip_sample_index), size_t(num_samples_in_segment) * sample_size);
 
@@ -131,7 +144,7 @@ namespace acl
 				}
 				else
 				{
-					uint32_t sample_size = clip_bone_stream.translations.get_sample_size();
+					const uint32_t sample_size = clip_bone_stream.translations.get_sample_size();
 					TranslationTrackStream translations(allocator, num_samples_in_segment, sample_size, clip_bone_stream.translations.get_sample_rate(), clip_bone_stream.translations.get_vector_format(), clip_bone_stream.translations.get_bit_rate());
 					memcpy(translations.get_raw_sample_ptr(0), clip_bone_stream.translations.get_raw_sample_ptr(clip_sample_index), size_t(num_samples_in_segment) * sample_size);
 
@@ -144,7 +157,7 @@ namespace acl
 				}
 				else
 				{
-					uint32_t sample_size = clip_bone_stream.scales.get_sample_size();
+					const uint32_t sample_size = clip_bone_stream.scales.get_sample_size();
 					ScaleTrackStream scales(allocator, num_samples_in_segment, sample_size, clip_bone_stream.scales.get_sample_rate(), clip_bone_stream.scales.get_vector_format(), clip_bone_stream.scales.get_bit_rate());
 					memcpy(scales.get_raw_sample_ptr(0), clip_bone_stream.scales.get_raw_sample_ptr(clip_sample_index), size_t(num_samples_in_segment) * sample_size);
 
