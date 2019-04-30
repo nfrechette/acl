@@ -64,6 +64,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the sample indices and the interpolation required to linearly
 	// interpolate when the samples are uniform.
+	// The returned sample indices are clamped and do not loop.
 	// If the sample rate is available, prefer using find_linear_interpolation_samples_with_sample_rate
 	// instead. It is faster and more accurate.
 	inline void find_linear_interpolation_samples_with_duration(uint32_t num_samples, float duration, float sample_time, SampleRoundingPolicy rounding_policy,
@@ -116,6 +117,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the sample indices and the interpolation required to linearly
 	// interpolate when the samples are uniform.
+	// The returned sample indices are clamped and do not loop.
 	inline void find_linear_interpolation_samples_with_sample_rate(uint32_t num_samples, float sample_rate, float sample_time, SampleRoundingPolicy rounding_policy,
 		uint32_t& out_sample_index0, uint32_t& out_sample_index1, float& out_interpolation_alpha)
 	{
