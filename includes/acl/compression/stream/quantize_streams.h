@@ -1197,7 +1197,7 @@ namespace acl
 			{
 				float error = calculate_max_error_at_bit_rate(context, i, false, true);
 				const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[i];
-				printf("%u: %u | %u | %u => %f %s\n", i, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error, error >= context.error_threshold ? "!" : "");
+				printf("%u: %u | %u | %u => %f %s\n", i, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error, error >= settings.error_threshold ? "!" : "");
 			}
 #endif
 
