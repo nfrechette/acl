@@ -46,6 +46,10 @@ In order to run these manually:
 
 Note that *iOS* builds have never been tested on an emulator.
 
+## Commit message format
+
+This library uses the [angular.js message format](https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#commits) and it is enforced with commit linting through every pull request.
+
 ## Generating the stats and graphs
 
 See [here](graph_generation.md) to find out how the various statistics and graphs we track are generated.
