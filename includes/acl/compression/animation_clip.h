@@ -276,6 +276,9 @@ namespace acl
 			if (m_num_samples == 0)
 				return ErrorResult("Clip has no samples");
 
+			if (m_num_samples == 0xFFFFFFFFu)
+				return ErrorResult("Clip has too many samples");
+
 			if (m_sample_rate <= 0.0f)
 				return ErrorResult("Clip has an invalid sample rate");
 

@@ -75,40 +75,41 @@ namespace acl
 			{
 				// Clip related data							//   offsets
 				const CompressedClip* clip;						//   0 |   0
-				const SegmentHeader* segment_headers;			//   4 |   8
 
-				const uint32_t* constant_tracks_bitset;			//   8 |  16
-				const uint8_t* constant_track_data;				//  12 |  24
-				const uint32_t* default_tracks_bitset;			//  16 |  32
+				const uint32_t* constant_tracks_bitset;			//   4 |   8
+				const uint8_t* constant_track_data;				//   8 |  16
+				const uint32_t* default_tracks_bitset;			//  12 |  24
 
-				const uint8_t* clip_range_data;					//  20 |  40
+				const uint8_t* clip_range_data;					//  16 |  32
 
-				float clip_duration;							//  24 |  48
+				float clip_duration;							//  20 |  40
 
-				BitSetDescription bitset_desc;					//  28 |  52
+				BitSetDescription bitset_desc;					//  24 |  44
 
-				uint32_t clip_hash;								//  32 |  56
+				uint32_t clip_hash;								//  28 |  48
 
-				uint8_t num_rotation_components;				//  36 |  60
-				uint8_t has_mixed_packing;						//  37 |  61
+				uint8_t num_rotation_components;				//  32 |  52
+				uint8_t has_mixed_packing;						//  33 |  53
 
-				uint8_t padding0[2];							//  38 |  62
+				uint8_t padding0[2];							//  34 |  54
 
 				// Seeking related data
-				const uint8_t* format_per_track_data[2];		//  40 |  64
-				const uint8_t* segment_range_data[2];			//  48 |  80
-				const uint8_t* animated_track_data[2];			//  56 |  96
+				const uint8_t* format_per_track_data[2];		//  36 |  56
+				const uint8_t* segment_range_data[2];			//  44 |  72
+				const uint8_t* animated_track_data[2];			//  52 |  88
 
-				uint32_t key_frame_byte_offsets[2];				//  64 | 112	// Fixed quantization
-				uint32_t key_frame_bit_offsets[2];				//  72 | 120	// Variable quantization
+				uint32_t key_frame_byte_offsets[2];				//  60 | 104	// Fixed quantization
+				uint32_t key_frame_bit_offsets[2];				//  68 | 112	// Variable quantization
 
-				float interpolation_alpha;						//  80 | 128
-				float sample_time;								//  84 | 132
+				float interpolation_alpha;						//  76 | 120
+				float sample_time;								//  80 | 124
 
-				uint8_t padding1[sizeof(void*) == 4 ? 40 : 56];	//  88 | 136
+				uint8_t padding1[sizeof(void*) == 4 ? 44 : 64];	//  84 | 128	// 64 bit has a full cache line of padding, can't have 0 length array
 
 				//									Total size:	   128 | 192
 			};
+
+			static_assert(sizeof(DecompressionContext) == (sizeof(void*) == 4 ? 128 : 192), "Unexpected size");
 
 			struct alignas(k_cache_line_size) SamplingContext
 			{
@@ -139,6 +140,8 @@ namespace acl
 
 				//									Total size:	    64 |  64
 			};
+
+			static_assert(sizeof(SamplingContext) == 64, "Unexpected size");
 
 			// We use adapters to wrap the DecompressionSettings
 			// This allows us to re-use the code for skipping and decompressing Vector3 samples
@@ -389,7 +392,6 @@ namespace acl
 			m_context.clip_hash = clip.get_hash();
 			m_context.clip_duration = calculate_duration(header.num_samples, header.sample_rate);
 			m_context.sample_time = -1.0f;
-			m_context.segment_headers = header.get_segment_headers();
 			m_context.default_tracks_bitset = header.get_default_tracks_bitset();
 
 			m_context.constant_tracks_bitset = header.get_constant_tracks_bitset();
@@ -446,43 +448,61 @@ namespace acl
 			uint32_t key_frame1;
 			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, key_frame0, key_frame1, m_context.interpolation_alpha);
 
-			uint32_t segment_key_frame0 = 0;
-			uint32_t segment_key_frame1 = 0;
+			uint32_t segment_key_frame0;
+			uint32_t segment_key_frame1;
 
-			// Find segments
-			// TODO: Use binary search?
-			uint32_t segment_key_frame = 0;
-			const SegmentHeader* segment_header0 = nullptr;
-			const SegmentHeader* segment_header1 = nullptr;
-			for (uint16_t segment_index = 0; segment_index < header.num_segments; ++segment_index)
+			const SegmentHeader* segment_header0;
+			const SegmentHeader* segment_header1;
+
+			const SegmentHeader* segment_headers = header.get_segment_headers();
+			const uint32_t num_segments = header.num_segments;
+
+			if (num_segments == 1)
 			{
-				const SegmentHeader& segment_header = m_context.segment_headers[segment_index];
+				// Key frame 0 and 1 are in the only segment present
+				// This is a really common case and when it happens, we don't store the segment start index (zero)
+				segment_header0 = segment_headers;
+				segment_key_frame0 = key_frame0;
 
-				if (key_frame0 >= segment_key_frame && key_frame0 < segment_key_frame + segment_header.num_samples)
+				segment_header1 = segment_headers;
+				segment_key_frame1 = key_frame1;
+			}
+			else
+			{
+				const uint32_t* segment_start_indices = header.get_segment_start_indices();
+
+				// See segment_streams(..) for implementation details. This implementation is directly tied to it.
+				const uint32_t approx_num_samples_per_segment = header.num_samples / num_segments;	// TODO: Store in header?
+				const uint32_t approx_segment_index = key_frame0 / approx_num_samples_per_segment;
+
+				uint32_t segment_index0 = 0;
+				uint32_t segment_index1 = 0;
+
+				// Our approximate segment guess is just that, a guess. The actual segments we need could be just before or after.
+				// We start looking one segment earlier and up to 2 after. If we have too few segments after, we will hit the
+				// sentinel value of 0xFFFFFFFF and exit the loop.
+				// TODO: Can we do this with SIMD? Load all 4 values, set key_frame0, compare, move mask, count leading zeroes
+				const uint32_t start_segment_index = approx_segment_index > 0 ? (approx_segment_index - 1) : 0;
+				const uint32_t end_segment_index = start_segment_index + 4;
+
+				for (uint32_t segment_index = start_segment_index; segment_index < end_segment_index; ++segment_index)
 				{
-					segment_header0 = &segment_header;
-					segment_key_frame0 = key_frame0 - segment_key_frame;
-
-					if (key_frame1 >= segment_key_frame && key_frame1 < segment_key_frame + segment_header.num_samples)
+					if (key_frame0 < segment_start_indices[segment_index])
 					{
-						segment_header1 = &segment_header;
-						segment_key_frame1 = key_frame1 - segment_key_frame;
+						// We went too far, use previous segment
+						ACL_ASSERT(segment_index > 0, "Invalid segment index: %u", segment_index);
+						segment_index0 = segment_index - 1;
+						segment_index1 = key_frame1 < segment_start_indices[segment_index] ? segment_index0 : segment_index;
+						break;
 					}
-					else
-					{
-						ACL_ASSERT(segment_index + 1 < header.num_segments, "Invalid segment index: %u", segment_index + 1);
-						const SegmentHeader& next_segment_header = m_context.segment_headers[segment_index + 1];
-						segment_header1 = &next_segment_header;
-						segment_key_frame1 = key_frame1 - (segment_key_frame + segment_header.num_samples);
-					}
-
-					break;
 				}
 
-				segment_key_frame += segment_header.num_samples;
-			}
+				segment_header0 = segment_headers + segment_index0;
+				segment_header1 = segment_headers + segment_index1;
 
-			ACL_ASSERT(segment_header0 != nullptr, "Failed to find segment");
+				segment_key_frame0 = key_frame0 - segment_start_indices[segment_index0];
+				segment_key_frame1 = key_frame1 - segment_start_indices[segment_index1];
+			}
 
 			m_context.format_per_track_data[0] = header.get_format_per_track_data(*segment_header0);
 			m_context.format_per_track_data[1] = header.get_format_per_track_data(*segment_header1);

@@ -61,7 +61,8 @@ namespace acl
 		AdditiveClipFormat8 additive_format;
 
 		// Stat tracking
-		uint32_t total_header_size;
+		uint32_t decomp_touched_bytes;
+		uint32_t decomp_touched_cache_lines;
 
 		//////////////////////////////////////////////////////////////////////////
 
@@ -143,7 +144,8 @@ namespace acl
 		}
 
 		out_clip_context.has_scale = has_scale;
-		out_clip_context.total_header_size = 0;
+		out_clip_context.decomp_touched_bytes = 0;
+		out_clip_context.decomp_touched_cache_lines = 0;
 
 		segment.bone_streams = bone_streams;
 		segment.clip = &out_clip_context;

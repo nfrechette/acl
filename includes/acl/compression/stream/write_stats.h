@@ -89,11 +89,11 @@ namespace acl
 		// We assume that we always interpolate between 2 poses
 		const uint32_t animated_pose_byte_size = align_to(segment.animated_pose_bit_size * 2, 8) / 8;
 		constexpr uint32_t k_cache_line_byte_size = 64;
-		const uint32_t num_clip_header_cache_lines = align_to(segment.clip->total_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
+
 		const uint32_t num_segment_header_cache_lines = align_to(segment.total_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
 		const uint32_t num_animated_pose_cache_lines = align_to(animated_pose_byte_size, k_cache_line_byte_size) / k_cache_line_byte_size;
-		writer["decomp_touched_bytes"] = segment.clip->total_header_size + segment.total_header_size + animated_pose_byte_size;
-		writer["decomp_touched_cache_lines"] = num_clip_header_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
+		writer["decomp_touched_bytes"] = segment.clip->decomp_touched_bytes + segment.total_header_size + animated_pose_byte_size;
+		writer["decomp_touched_cache_lines"] = segment.clip->decomp_touched_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 	}
 
 	inline void write_exhaustive_segment_stats(IAllocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const ClipContext& additive_base_clip_context, const RigidSkeleton& skeleton, const CompressionSettings& settings, sjson::ObjectWriter& writer)
