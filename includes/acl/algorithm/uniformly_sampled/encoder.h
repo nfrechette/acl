@@ -151,12 +151,23 @@ namespace acl
 			const uint32_t num_tracks = uint32_t(num_output_bones) * num_tracks_per_bone;
 			const BitSetDescription bitset_desc = BitSetDescription::make_from_num_bits(num_tracks);
 
+			// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
+			const uint32_t segment_start_indices_size = clip_context.num_segments > 1 ? (sizeof(uint32_t) * (clip_context.num_segments + 1)) : 0;
+
 			uint32_t buffer_size = 0;
 			// Per clip data
 			buffer_size += sizeof(CompressedClip);
 			buffer_size += sizeof(ClipHeader);
+
+			const uint32_t clip_header_size = buffer_size;
+
+			buffer_size += segment_start_indices_size;							// Segment start indices
+			buffer_size = align_to(buffer_size, 4);								// Align segment headers
 			buffer_size += sizeof(SegmentHeader) * clip_context.num_segments;	// Segment headers
 			buffer_size = align_to(buffer_size, 4);								// Align bitsets
+
+			const uint32_t clip_segment_header_size = buffer_size - clip_header_size;
+
 			buffer_size += bitset_desc.get_num_bytes();							// Default tracks bitset
 			buffer_size += bitset_desc.get_num_bytes();							// Constant tracks bitset
 			buffer_size = align_to(buffer_size, 4);								// Align constant track data
@@ -164,7 +175,19 @@ namespace acl
 			buffer_size = align_to(buffer_size, 4);								// Align range data
 			buffer_size += clip_range_data_size;								// Range data
 
-			clip_context.total_header_size = buffer_size;
+			const uint32_t clip_data_size = buffer_size - clip_segment_header_size - clip_header_size;
+
+			if (are_all_enum_flags_set(out_stats.logging, StatLogging::Detailed))
+			{
+				constexpr uint32_t k_cache_line_byte_size = 64;
+				clip_context.decomp_touched_bytes = clip_header_size + clip_data_size;
+				clip_context.decomp_touched_bytes += sizeof(uint32_t) * 4;			// We touch at most 4 segment start indices
+				clip_context.decomp_touched_bytes += sizeof(SegmentHeader) * 2;		// We touch at most 2 segment headers
+				clip_context.decomp_touched_cache_lines = align_to(clip_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
+				clip_context.decomp_touched_cache_lines += align_to(clip_data_size, k_cache_line_byte_size) / k_cache_line_byte_size;
+				clip_context.decomp_touched_cache_lines += 1;						// All 4 segment start indices should fit in a cache line
+				clip_context.decomp_touched_cache_lines += 1;						// Both segment headers should fit in a cache line
+			}
 
 			// Per segment data
 			for (SegmentContext& segment : clip_context.segment_iterator())
@@ -204,14 +227,20 @@ namespace acl
 			header.default_scale = additive_base_clip == nullptr || clip.get_additive_format() != AdditiveClipFormat8::Additive1;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
-			header.segment_headers_offset = sizeof(ClipHeader);
+			header.segment_start_indices_offset = sizeof(ClipHeader);
+			header.segment_headers_offset = align_to(header.segment_start_indices_offset + segment_start_indices_size, 4);
 			header.default_tracks_bitset_offset = align_to(header.segment_headers_offset + (sizeof(SegmentHeader) * clip_context.num_segments), 4);
 			header.constant_tracks_bitset_offset = header.default_tracks_bitset_offset + bitset_desc.get_num_bytes();
 			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
 			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);
 
-			const uint32_t segment_headers_start_offset = header.clip_range_data_offset + clip_range_data_size;
-			write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_headers_start_offset);
+			if (clip_context.num_segments > 1)
+				write_segment_start_indices(clip_context, header.get_segment_start_indices());
+			else
+				header.segment_start_indices_offset = InvalidPtrOffset();
+
+			const uint32_t segment_data_start_offset = header.clip_range_data_offset + clip_range_data_size;
+			write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_data_start_offset);
 			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
 			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
 

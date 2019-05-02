@@ -39,23 +39,34 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint32_t segment_headers_start_offset)
+	inline void write_segment_start_indices(const ClipContext& clip_context, uint32_t* segment_start_indices)
+	{
+		for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
+		{
+			const SegmentContext& segment = clip_context.segments[segment_index];
+			segment_start_indices[segment_index] = segment.clip_sample_offset;
+		}
+
+		// Write our sentinel value
+		segment_start_indices[clip_context.num_segments] = 0xFFFFFFFFu;
+	}
+
+	inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint32_t segment_data_start_offset)
 	{
 		const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
-		uint32_t data_offset = segment_headers_start_offset;
+		uint32_t segment_data_offset = segment_data_start_offset;
 		for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
 		{
 			const SegmentContext& segment = clip_context.segments[segment_index];
 			SegmentHeader& header = segment_headers[segment_index];
 
-			header.num_samples = segment.num_samples;
 			header.animated_pose_bit_size = segment.animated_pose_bit_size;
-			header.format_per_track_data_offset = data_offset;
+			header.format_per_track_data_offset = segment_data_offset;
 			header.range_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
 			header.track_data_offset = align_to(header.range_data_offset + segment.range_data_size, 4);						// Aligned to 4 bytes
 
-			data_offset = header.track_data_offset + segment.animated_data_size;
+			segment_data_offset = header.track_data_offset + segment.animated_data_size;
 		}
 	}
 

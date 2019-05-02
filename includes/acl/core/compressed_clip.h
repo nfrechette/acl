@@ -155,9 +155,6 @@ namespace acl
 	////////////////////////////////////////////////////////////////////////////////
 	struct SegmentHeader
 	{
-		// Number of samples the segment was constructed from per track.
-		uint32_t				num_samples;
-
 		// Number of bits used by a fully animated pose (excludes default/constant tracks).
 		uint32_t				animated_pose_bit_size;						// TODO: Calculate from bitsets and formats?
 
@@ -198,6 +195,8 @@ namespace acl
 		// Whether the default scale is 0,0,0 or 1,1,1 (bool/bit).
 		uint8_t					default_scale;
 
+		uint8_t padding[1];
+
 		// The total number of samples per track our clip contained.
 		uint32_t				num_samples;
 
@@ -205,6 +204,7 @@ namespace acl
 		float					sample_rate;								// TODO: Store duration as float instead
 
 		// Offset to the segment headers data.
+		PtrOffset16<uint32_t>		segment_start_indices_offset;
 		PtrOffset16<SegmentHeader>	segment_headers_offset;
 
 		// Offsets to the default/constant tracks bitsets.
@@ -219,6 +219,9 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Utility functions that return pointers from their respective offsets.
+
+		uint32_t*		get_segment_start_indices()			{ return segment_start_indices_offset.safe_add_to(this); }
+		const uint32_t*	get_segment_start_indices() const	{ return segment_start_indices_offset.safe_add_to(this); }
 
 		SegmentHeader*			get_segment_headers()		{ return segment_headers_offset.add_to(this); }
 		const SegmentHeader*	get_segment_headers() const	{ return segment_headers_offset.add_to(this); }
