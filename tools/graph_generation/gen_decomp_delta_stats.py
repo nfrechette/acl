@@ -39,8 +39,8 @@ def bytes_to_mb(num_bytes):
 	return num_bytes / (1024 * 1024)
 
 if __name__ == "__main__":
-	if len(sys.argv) != 2:
-		print('Usage: python gen_decomp_delta_stats.py <path/to/input_file.sjson>')
+	if len(sys.argv) != 2 and len(sys.argv) != 3:
+		print('Usage: python gen_decomp_delta_stats.py <path/to/input_file.sjson> [-warm]')
 		sys.exit(1)
 
 	input_sjson_file = sys.argv[1]
@@ -56,9 +56,13 @@ if __name__ == "__main__":
 		input_sjson_data = sjson.loads(file.read())
 
 	clip_names = []
+	if len(sys.argv) == 3 and sys.argv[2] == '-warm':
+		label = 'warm'
+	else:
+		label = 'cold'
 
-	decomp_delta_cold_us_csv_file = open('decomp_delta_cold_forward_stats_us.csv', 'w')
-	decomp_delta_cold_mbsec_csv_file = open('decomp_delta_cold_forward_stats_mbsec.csv', 'w')
+	decomp_delta_us_csv_file = open('decomp_delta_{}_forward_stats_us.csv'.format(label), 'w')
+	decomp_delta_mbsec_csv_file = open('decomp_delta_{}_forward_stats_mbsec.csv'.format(label), 'w')
 
 	pose_size_per_clip = {}
 	per_entry_data = []
@@ -68,11 +72,11 @@ if __name__ == "__main__":
 
 		if len(clip_names) == 0:
 			clip_names = get_clip_names(entry['stats_dir'])
-			print('Variants,Config,Version,{}'.format(','.join(clip_names)), file = decomp_delta_cold_us_csv_file)
-			print('Variants,Config,Version,{}'.format(','.join(clip_names)), file = decomp_delta_cold_mbsec_csv_file)
+			print('Variants,Config,Version,{}'.format(','.join(clip_names)), file = decomp_delta_us_csv_file)
+			print('Variants,Config,Version,{}'.format(','.join(clip_names)), file = decomp_delta_mbsec_csv_file)
 
-		pose_cold_medians_ms = {}
-		bone_cold_medians_ms = {}
+		pose_medians_ms = {}
+		bone_medians_ms = {}
 		clip_names = []
 
 		stat_files = get_clip_stat_files(entry['stats_dir'])
@@ -86,11 +90,11 @@ if __name__ == "__main__":
 
 			run_data = clip_sjson_data['runs'][0]['decompression_time_per_sample']
 
-			forward_data_pose_cold = run_data['forward_pose_cold']['data']
-			forward_data_bone_cold = run_data['forward_bone_cold']['data']
+			forward_data_pose = run_data['forward_pose_{}'.format(label)]['data']
+			forward_data_bone = run_data['forward_bone_{}'.format(label)]['data']
 
-			pose_cold_medians_ms[clip_name] = numpy.median(forward_data_pose_cold)
-			bone_cold_medians_ms[clip_name] = numpy.median(forward_data_bone_cold)
+			pose_medians_ms[clip_name] = numpy.median(forward_data_pose)
+			bone_medians_ms[clip_name] = numpy.median(forward_data_bone)
 
 			if 'pose_size' in clip_sjson_data['runs'][0]:
 				pose_size = clip_sjson_data['runs'][0]['pose_size']
@@ -99,39 +103,39 @@ if __name__ == "__main__":
 		data = {}
 		data['name'] = entry['name']
 		data['version'] = entry['version']
-		data['pose_cold_medians_ms'] = pose_cold_medians_ms
-		data['bone_cold_medians_ms'] = bone_cold_medians_ms
+		data['pose_medians_ms'] = pose_medians_ms
+		data['bone_medians_ms'] = bone_medians_ms
 		data['clip_names'] = clip_names
 		per_entry_data.append(data)
 
 	for data in per_entry_data:
-		pose_cold_medians_ms = data['pose_cold_medians_ms']
-		bone_cold_medians_ms = data['bone_cold_medians_ms']
+		pose_medians_ms = data['pose_medians_ms']
+		bone_medians_ms = data['bone_medians_ms']
 		clip_names = data['clip_names']
 
-		pose_cold_medians_us = []
-		bone_cold_medians_us = []
-		pose_cold_medians_mbsec = []
-		bone_cold_medians_mbsec = []
+		pose_medians_us = []
+		bone_medians_us = []
+		pose_medians_mbsec = []
+		bone_medians_mbsec = []
 
 		for clip_name in clip_names:
 			pose_size = pose_size_per_clip[clip_name]
-			pose_cold_median_ms = pose_cold_medians_ms[clip_name]
-			bone_cold_median_ms = bone_cold_medians_ms[clip_name]
+			pose_cold_median_ms = pose_medians_ms[clip_name]
+			bone_cold_median_ms = bone_medians_ms[clip_name]
 
 			# Convert the elapsed time from milliseconds into microseconds
-			pose_cold_medians_us.append(str(ms_to_us(pose_cold_median_ms)))
-			bone_cold_medians_us.append(str(ms_to_us(bone_cold_median_ms)))
+			pose_medians_us.append(str(ms_to_us(pose_cold_median_ms)))
+			bone_medians_us.append(str(ms_to_us(bone_cold_median_ms)))
 
 			# Convert the speed into MB/sec
-			pose_cold_medians_mbsec.append(str(bytes_to_mb(pose_size) / ms_to_s(pose_cold_median_ms)))
-			bone_cold_medians_mbsec.append(str(bytes_to_mb(pose_size) / ms_to_s(bone_cold_median_ms)))
+			pose_medians_mbsec.append(str(bytes_to_mb(pose_size) / ms_to_s(pose_cold_median_ms)))
+			bone_medians_mbsec.append(str(bytes_to_mb(pose_size) / ms_to_s(bone_cold_median_ms)))
 
-		print('decompress_pose,{},{},{}'.format(data['name'], data['version'], ','.join(pose_cold_medians_us)), file = decomp_delta_cold_us_csv_file)
-		print('decompress_bone,{},{},{}'.format(data['name'], data['version'], ','.join(bone_cold_medians_us)), file = decomp_delta_cold_us_csv_file)
+		print('decompress_pose,{},{},{}'.format(data['name'], data['version'], ','.join(pose_medians_us)), file = decomp_delta_us_csv_file)
+		print('decompress_bone,{},{},{}'.format(data['name'], data['version'], ','.join(bone_medians_us)), file = decomp_delta_us_csv_file)
 
-		print('decompress_pose,{},{},{}'.format(data['name'], data['version'], ','.join(pose_cold_medians_mbsec)), file = decomp_delta_cold_mbsec_csv_file)
-		print('decompress_bone,{},{},{}'.format(data['name'], data['version'], ','.join(bone_cold_medians_mbsec)), file = decomp_delta_cold_mbsec_csv_file)
+		print('decompress_pose,{},{},{}'.format(data['name'], data['version'], ','.join(pose_medians_mbsec)), file = decomp_delta_mbsec_csv_file)
+		print('decompress_bone,{},{},{}'.format(data['name'], data['version'], ','.join(bone_medians_mbsec)), file = decomp_delta_mbsec_csv_file)
 
-	decomp_delta_cold_us_csv_file.close()
-	decomp_delta_cold_mbsec_csv_file.close()
+	decomp_delta_us_csv_file.close()
+	decomp_delta_mbsec_csv_file.close()
