@@ -220,14 +220,29 @@ namespace acl
 		float32x4_t l_yxwz = vrev64q_f32(lhs);
 		float32x4_t l_wzyx = vcombine_f32(vget_high_f32(l_yxwz), vget_low_f32(l_yxwz));
 		float32x4_t lwrx_lzrx_lyrx_lxrx = vmulq_f32(r_xxxx, l_wzyx);
+
+#if defined(ACL_NEON64_INTRINSICS)
+		float32x4_t result0 = vfmaq_f32(lxrw_lyrw_lzrw_lwrw, lwrx_lzrx_lyrx_lxrx, control_wzyx);
+#else
 		float32x4_t result0 = vmlaq_f32(lxrw_lyrw_lzrw_lwrw, lwrx_lzrx_lyrx_lxrx, control_wzyx);
+#endif
 
 		float32x4_t l_zwxy = vrev64q_u32(l_wzyx);
 		float32x4_t lzry_lwry_lxry_lyry = vmulq_f32(r_yyyy, l_zwxy);
+
+#if defined(ACL_NEON64_INTRINSICS)
+		float32x4_t result1 = vfmaq_f32(result0, lzry_lwry_lxry_lyry, control_zwxy);
+#else
 		float32x4_t result1 = vmlaq_f32(result0, lzry_lwry_lxry_lyry, control_zwxy);
+#endif
 
 		float32x4_t lyrz_lxrz_lwrz_lzrz = vmulq_f32(r_zzzz, l_yxwz);
+
+#if defined(ACL_NEON64_INTRINSICS)
+		return vfmaq_f32(result1, lyrz_lxrz_lwrz_lzrz, control_yxwz);
+#else
 		return vmlaq_f32(result1, lyrz_lxrz_lwrz_lzrz, control_yxwz);
+#endif
 #else
 		float lhs_x = quat_get_x(lhs);
 		float lhs_y = quat_get_y(lhs);
