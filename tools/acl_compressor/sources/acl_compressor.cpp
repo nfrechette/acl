@@ -51,6 +51,7 @@
 #include "acl/io/clip_reader.h"
 #include "acl/io/clip_writer.h"							// Included just so we compile it to test for basic errors
 #include "acl/compression/skeleton_error_metric.h"
+#include "acl/compression/stream/write_decompression_stats.h"
 
 #include "acl/algorithm/uniformly_sampled/encoder.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
