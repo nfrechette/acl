@@ -130,7 +130,9 @@ namespace acl
 							cache_flusher->flush_buffer(compressed_clips[clip_index], compressed_clips[clip_index]->get_size());
 						}
 						cache_flusher->end_flushing();
-
+					}
+					else
+					{
 						// If we want the cache warm, decompress everything once to prime it
 						DecompressionContextType* context = contexts[0];
 						context->seek(sample_time, SampleRoundingPolicy::None);
