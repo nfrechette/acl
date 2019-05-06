@@ -579,6 +579,17 @@ namespace acl
 #endif
 	}
 
+	inline Vector4_32 ACL_SIMD_CALL vector_neg_mul_sub(Vector4_32Arg0 input, float scale, Vector4_32Arg2 offset)
+	{
+#if defined(ACL_NEON64_INTRINSICS)
+		return vfmsq_n_f32(offset, input, scale);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vmlsq_n_f32(offset, input, scale);
+#else
+		return vector_sub(offset, vector_mul(input, scale));
+#endif
+	}
+
 	inline Vector4_32 ACL_SIMD_CALL vector_lerp(Vector4_32Arg0 start, Vector4_32Arg1 end, float alpha)
 	{
 		return vector_mul_add(vector_sub(end, start), alpha, start);
