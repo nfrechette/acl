@@ -405,7 +405,7 @@ namespace acl
 		// using a AND/XOR with the bias (same number of instructions)
 		float dot = vector_dot(start, end);
 		float bias = dot >= 0.0f ? 1.0f : -1.0f;
-		Vector4_32 interpolated_rotation = vector_mul_add(vector_sub(vector_mul(end, bias), start), alpha, start);
+		Vector4_32 interpolated_rotation = vector_neg_mul_sub(vector_neg_mul_sub(end, bias, start), alpha, start);
 		// Use sqrt/div/mul to normalize because the sqrt/div are faster than rsqrt
 		float inv_len = 1.0f / sqrt(vector_length_squared(interpolated_rotation));
 		return vector_mul(interpolated_rotation, inv_len);
@@ -445,7 +445,7 @@ namespace acl
 		Vector4_32 end_vector = quat_to_vector(end);
 		float dot = vector_dot(start_vector, end_vector);
 		float bias = dot >= 0.0f ? 1.0f : -1.0f;
-		Vector4_32 interpolated_rotation = vector_mul_add(vector_sub(vector_mul(end_vector, bias), start_vector), alpha, start_vector);
+		Vector4_32 interpolated_rotation = vector_neg_mul_sub(vector_neg_mul_sub(end_vector, bias, start_vector), alpha, start_vector);
 		// TODO: Test with this instead: Rotation = (B * Alpha) + (A * (Bias * (1.f - Alpha)));
 		//Vector4_32 value = vector_add(vector_mul(end_vector, alpha), vector_mul(start_vector, bias * (1.0f - alpha)));
 		return quat_normalize(vector_to_quat(interpolated_rotation));
