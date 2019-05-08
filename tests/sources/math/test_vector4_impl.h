@@ -350,14 +350,19 @@ void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const 
 	REQUIRE(scalar_near_equal(vector_get_w(vector_mul_add(test_value10, test_value11, test_value2)), (test_value10_flt[3] * test_value11_flt[3]) + test_value2_flt[3], threshold));
 
 	REQUIRE(scalar_near_equal(vector_get_x(vector_mul_add(test_value10, test_value11_flt[0], test_value2)), (test_value10_flt[0] * test_value11_flt[0]) + test_value2_flt[0], threshold));
-	REQUIRE(scalar_near_equal(vector_get_y(vector_mul_add(test_value10, test_value11_flt[1], test_value2)), (test_value10_flt[1] * test_value11_flt[1]) + test_value2_flt[1], threshold));
-	REQUIRE(scalar_near_equal(vector_get_z(vector_mul_add(test_value10, test_value11_flt[2], test_value2)), (test_value10_flt[2] * test_value11_flt[2]) + test_value2_flt[2], threshold));
-	REQUIRE(scalar_near_equal(vector_get_w(vector_mul_add(test_value10, test_value11_flt[3], test_value2)), (test_value10_flt[3] * test_value11_flt[3]) + test_value2_flt[3], threshold));
+	REQUIRE(scalar_near_equal(vector_get_y(vector_mul_add(test_value10, test_value11_flt[0], test_value2)), (test_value10_flt[1] * test_value11_flt[0]) + test_value2_flt[1], threshold));
+	REQUIRE(scalar_near_equal(vector_get_z(vector_mul_add(test_value10, test_value11_flt[0], test_value2)), (test_value10_flt[2] * test_value11_flt[0]) + test_value2_flt[2], threshold));
+	REQUIRE(scalar_near_equal(vector_get_w(vector_mul_add(test_value10, test_value11_flt[0], test_value2)), (test_value10_flt[3] * test_value11_flt[0]) + test_value2_flt[3], threshold));
 
 	REQUIRE(scalar_near_equal(vector_get_x(vector_neg_mul_sub(test_value10, test_value11, test_value2)), (test_value10_flt[0] * -test_value11_flt[0]) + test_value2_flt[0], threshold));
 	REQUIRE(scalar_near_equal(vector_get_y(vector_neg_mul_sub(test_value10, test_value11, test_value2)), (test_value10_flt[1] * -test_value11_flt[1]) + test_value2_flt[1], threshold));
 	REQUIRE(scalar_near_equal(vector_get_z(vector_neg_mul_sub(test_value10, test_value11, test_value2)), (test_value10_flt[2] * -test_value11_flt[2]) + test_value2_flt[2], threshold));
 	REQUIRE(scalar_near_equal(vector_get_w(vector_neg_mul_sub(test_value10, test_value11, test_value2)), (test_value10_flt[3] * -test_value11_flt[3]) + test_value2_flt[3], threshold));
+
+	REQUIRE(scalar_near_equal(vector_get_x(vector_neg_mul_sub(test_value10, test_value11_flt[0], test_value2)), (test_value10_flt[0] * -test_value11_flt[0]) + test_value2_flt[0], threshold));
+	REQUIRE(scalar_near_equal(vector_get_y(vector_neg_mul_sub(test_value10, test_value11_flt[0], test_value2)), (test_value10_flt[1] * -test_value11_flt[0]) + test_value2_flt[1], threshold));
+	REQUIRE(scalar_near_equal(vector_get_z(vector_neg_mul_sub(test_value10, test_value11_flt[0], test_value2)), (test_value10_flt[2] * -test_value11_flt[0]) + test_value2_flt[2], threshold));
+	REQUIRE(scalar_near_equal(vector_get_w(vector_neg_mul_sub(test_value10, test_value11_flt[0], test_value2)), (test_value10_flt[3] * -test_value11_flt[0]) + test_value2_flt[3], threshold));
 
 	//////////////////////////////////////////////////////////////////////////
 	// Comparisons and masking

@@ -407,6 +407,11 @@ namespace acl
 		return vector_sub(offset, vector_mul(input, scale));
 	}
 
+	inline Vector4_64 vector_neg_mul_sub(const Vector4_64& input, double scale, const Vector4_64& offset)
+	{
+		return vector_sub(offset, vector_mul(input, scale));
+	}
+
 	inline Vector4_64 vector_lerp(const Vector4_64& start, const Vector4_64& end, double alpha)
 	{
 		return vector_mul_add(vector_sub(end, start), alpha, start);
