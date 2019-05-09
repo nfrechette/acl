@@ -758,26 +758,29 @@ namespace acl
 				constexpr size_t num_key_frames = SamplingContextType::k_num_samples_to_interpolate;
 
 				Vector4_32 rotations_as_vec[num_key_frames];
-				bool ignore_clip_range[num_key_frames] = { false };
-				bool ignore_segment_range[num_key_frames] = { false };
+
+				// Range ignore flags are used to skip range normalization at the clip and/or segment levels
+				// Each sample has two bits like so: sample 0 clip, sample 0 segment, sample 1 clip, sample 1 segment, etc
+				uint32_t range_ignore_flags = 0;
 
 				if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
+						range_ignore_flags <<= 2;
+
 						const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
 						const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 						if (is_constant_bit_rate(bit_rate))
 						{
 							rotations_as_vec[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
-							ignore_segment_range[i] = true;
+							range_ignore_flags |= 0x00000001u;	// Skip segment only
 						}
 						else if (is_raw_bit_rate(bit_rate))
 						{
 							rotations_as_vec[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
-							ignore_clip_range[i] = true;
-							ignore_segment_range[i] = true;
+							range_ignore_flags |= 0x00000003u;	// Skip clip and segment
 						}
 						else
 						{
@@ -843,15 +846,18 @@ namespace acl
 				{
 					if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
 					{
+						uint32_t ignore_bit_mask = 0x00000001u << ((num_key_frames - 1) * 2);
 						for (size_t i = 0; i < num_key_frames; ++i)
 						{
-							if (!ignore_segment_range[i])
+							if ((range_ignore_flags & ignore_bit_mask) == 0)
 							{
 								const Vector4_32 segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
 								const Vector4_32 segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (decomp_context.num_rotation_components * sizeof(uint8_t)));
 
 								rotations_as_vec[i] = vector_mul_add(rotations_as_vec[i], segment_range_extent, segment_range_min);
 							}
+
+							ignore_bit_mask >>= 2;
 						}
 					}
 					else
@@ -886,10 +892,13 @@ namespace acl
 					const Vector4_32 clip_range_min = vector_unaligned_load_32(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
 					const Vector4_32 clip_range_extent = vector_unaligned_load_32(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (decomp_context.num_rotation_components * sizeof(float)));
 
+					uint32_t ignore_bit_mask = 0x00000002u << ((num_key_frames - 1) * 2);
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
-						if (!ignore_clip_range[i])
+						if ((range_ignore_flags & ignore_bit_mask) == 0)
 							rotations_as_vec[i] = vector_mul_add(rotations_as_vec[i], clip_range_extent, clip_range_min);
+
+						ignore_bit_mask >>= 2;
 					}
 
 					sampling_context.clip_range_data_offset += decomp_context.num_rotation_components * sizeof(float) * 2;
@@ -948,26 +957,29 @@ namespace acl
 				constexpr size_t num_key_frames = SamplingContextType::k_num_samples_to_interpolate;
 
 				Vector4_32 vectors[num_key_frames];
-				bool ignore_clip_range[num_key_frames] = { false };
-				bool ignore_segment_range[num_key_frames] = { false };
+
+				// Range ignore flags are used to skip range normalization at the clip and/or segment levels
+				// Each sample has two bits like so: sample 0 clip, sample 0 segment, sample 1 clip, sample 1 segment, etc
+				uint32_t range_ignore_flags = 0;
 
 				if (format == VectorFormat8::Vector3_Variable && settings.is_vector_format_supported(VectorFormat8::Vector3_Variable))
 				{
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
+						range_ignore_flags <<= 2;
+
 						const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
 						const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 						if (is_constant_bit_rate(bit_rate))
 						{
 							vectors[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
-							ignore_segment_range[i] = true;
+							range_ignore_flags |= 0x00000001u;	// Skip segment only
 						}
 						else if (is_raw_bit_rate(bit_rate))
 						{
 							vectors[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
-							ignore_clip_range[i] = true;
-							ignore_segment_range[i] = true;
+							range_ignore_flags |= 0x00000003u;	// Skip clip and segment
 						}
 						else
 							vectors[i] = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
@@ -1017,15 +1029,18 @@ namespace acl
 				const RangeReductionFlags8 range_reduction_flag = settings.get_range_reduction_flag();
 				if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flag))
 				{
+					uint32_t ignore_bit_mask = 0x00000001u << ((num_key_frames - 1) * 2);
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
-						if (format != VectorFormat8::Vector3_Variable || !settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) || !ignore_segment_range[i])
+						if (format != VectorFormat8::Vector3_Variable || !settings.is_vector_format_supported(VectorFormat8::Vector3_Variable) || (range_ignore_flags & ignore_bit_mask) == 0)
 						{
 							const Vector4_32 segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
 							const Vector4_32 segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset + (3 * sizeof(uint8_t)));
 
 							vectors[i] = vector_mul_add(vectors[i], segment_range_extent, segment_range_min);
 						}
+
+						ignore_bit_mask >>= 2;
 					}
 
 					sampling_context.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
@@ -1036,10 +1051,13 @@ namespace acl
 					const Vector4_32 clip_range_min = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
 					const Vector4_32 clip_range_extent = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (3 * sizeof(float)));
 
+					uint32_t ignore_bit_mask = 0x00000002u << ((num_key_frames - 1) * 2);
 					for (size_t i = 0; i < num_key_frames; ++i)
 					{
-						if (!ignore_clip_range[i])
+						if ((range_ignore_flags & ignore_bit_mask) == 0)
 							vectors[i] = vector_mul_add(vectors[i], clip_range_extent, clip_range_min);
+
+						ignore_bit_mask >>= 2;
 					}
 
 					sampling_context.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
