@@ -770,7 +770,9 @@ namespace acl
 						range_ignore_flags <<= 2;
 
 						const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-						const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+
+						// Promote to 32bit to avoid zero extending instructions on x64
+						const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 						if (is_constant_bit_rate(bit_rate))
 						{
@@ -785,12 +787,12 @@ namespace acl
 						else
 						{
 							if (are_clip_rotations_normalized)
-								rotations_as_vec[i] = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+								rotations_as_vec[i] = unpack_vector3_uXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 							else
-								rotations_as_vec[i] = unpack_vector3_sXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+								rotations_as_vec[i] = unpack_vector3_sXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 						}
 
-						uint8_t num_bits_read = num_bits_at_bit_rate * 3;
+						uint32_t num_bits_read = num_bits_at_bit_rate * 3;
 
 						if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
 							num_bits_read = align_to(num_bits_read, k_mixed_packing_alignment_num_bits);
@@ -969,7 +971,9 @@ namespace acl
 						range_ignore_flags <<= 2;
 
 						const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-						const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+
+						// Promote to 32bit to avoid zero extending instructions on x64
+						const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 						if (is_constant_bit_rate(bit_rate))
 						{
@@ -982,9 +986,9 @@ namespace acl
 							range_ignore_flags |= 0x00000003u;	// Skip clip and segment
 						}
 						else
-							vectors[i] = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+							vectors[i] = unpack_vector3_uXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 
-						uint8_t num_bits_read = num_bits_at_bit_rate * 3;
+						uint32_t num_bits_read = num_bits_at_bit_rate * 3;
 
 						if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
 							num_bits_read = align_to(num_bits_read, k_mixed_packing_alignment_num_bits);
