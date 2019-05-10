@@ -115,33 +115,54 @@ namespace acl
 			{
 				static constexpr size_t k_num_samples_to_interpolate = 2;
 
-				inline static Quat_32 interpolate_rotation(const Quat_32 rotations[k_num_samples_to_interpolate], float interpolation_alpha)
+				inline static Quat_32 ACL_SIMD_CALL interpolate_rotation(Quat_32Arg0 rotation0, Quat_32Arg1 rotation1, float interpolation_alpha)
 				{
-					return quat_lerp(rotations[0], rotations[1], interpolation_alpha);
+					return quat_lerp(rotation0, rotation1, interpolation_alpha);
 				}
 
-				inline static Vector4_32 interpolate_vector4(const Vector4_32 vectors[k_num_samples_to_interpolate], float interpolation_alpha)
+				inline static Quat_32 ACL_SIMD_CALL interpolate_rotation(Quat_32Arg0 rotation0, Quat_32Arg1 rotation1, Quat_32Arg2 rotation2, Quat_32Arg3 rotation3, float interpolation_alpha)
 				{
-					return vector_lerp(vectors[0], vectors[1], interpolation_alpha);
+					(void)rotation1;
+					(void)rotation2;
+					(void)rotation3;
+					(void)interpolation_alpha;
+					return rotation0;	// Not implemented, we use linear interpolation
 				}
 
-				//												//   offsets
-				uint32_t track_index;							//   0 |   0
-				uint32_t constant_track_data_offset;			//   4 |   4
-				uint32_t clip_range_data_offset;				//   8 |   8
+				inline static Vector4_32 ACL_SIMD_CALL interpolate_vector4(Vector4_32Arg0 vector0, Vector4_32Arg1 vector1, float interpolation_alpha)
+				{
+					return vector_lerp(vector0, vector1, interpolation_alpha);
+				}
 
-				uint32_t format_per_track_data_offset;			//  12 |  12
-				uint32_t segment_range_data_offset;				//  16 |  16
+				inline static Vector4_32 ACL_SIMD_CALL interpolate_vector4(Vector4_32Arg0 vector0, Vector4_32Arg1 vector1, Vector4_32Arg2 vector2, Vector4_32Arg3 vector3, float interpolation_alpha)
+				{
+					(void)vector1;
+					(void)vector2;
+					(void)vector3;
+					(void)interpolation_alpha;
+					return vector0;		// Not implemented, we use linear interpolation
+				}
 
-				uint32_t key_frame_byte_offsets[2];				//  20 |  20	// Fixed quantization
-				uint32_t key_frame_bit_offsets[2];				//  28 |  28	// Variable quantization
+				//													//   offsets
+				uint32_t track_index;								//   0 |   0
+				uint32_t constant_track_data_offset;				//   4 |   4
+				uint32_t clip_range_data_offset;					//   8 |   8
 
-				uint8_t padding[28];							//  36 |  36
+				uint32_t format_per_track_data_offset;				//  12 |  12
+				uint32_t segment_range_data_offset;					//  16 |  16
 
-				//									Total size:	    64 |  64
+				uint32_t key_frame_byte_offsets[2];					//  20 |  20	// Fixed quantization
+				uint32_t key_frame_bit_offsets[2];					//  28 |  28	// Variable quantization
+
+				uint8_t padding[28];								//  36 |  36
+
+				Vector4_32 vectors[k_num_samples_to_interpolate];	//  64 |  64
+				Vector4_32 padding0[2];								//  96 |  96
+
+				//										Total size:	   128 | 128
 			};
 
-			static_assert(sizeof(SamplingContext) == 64, "Unexpected size");
+			static_assert(sizeof(SamplingContext) == 128, "Unexpected size");
 
 			// We use adapters to wrap the DecompressionSettings
 			// This allows us to re-use the code for skipping and decompressing Vector3 samples
