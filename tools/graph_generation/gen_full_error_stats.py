@@ -46,9 +46,9 @@ if __name__ == "__main__":
 
 	for entry in input_sjson_data['inputs']:
 		print('Parsing {} ...'.format(entry['header']))
-		parsing_start_time = time.clock();
+		parsing_start_time = time.perf_counter();
 		csv_data = numpy.loadtxt(entry['file'], delimiter=',', dtype=input_data_type_def, skiprows=1, usecols=columns_to_extract)
-		parsing_end_time = time.clock();
+		parsing_end_time = time.perf_counter();
 		print('Parsed {} ({}) rows in {}'.format(entry['header'], len(csv_data['errors']), format_elapsed_time(parsing_end_time - parsing_start_time)))
 
 		percentiles = numpy.percentile(csv_data['errors'], desired_percentiles)

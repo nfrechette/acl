@@ -480,7 +480,7 @@ def do_regression_tests(ctest_exe, test_data_dir, args):
 	# Iterate over every clip and configuration and perform the regression testing
 	for config_filename, _ in test_configs:
 		print('Performing regression tests for configuration: {}'.format(os.path.basename(config_filename)))
-		regression_start_time = time.clock()
+		regression_start_time = time.perf_counter()
 
 		cmd_queue = queue.Queue()
 		completed_queue = queue.Queue()
@@ -542,7 +542,7 @@ def do_regression_tests(ctest_exe, test_data_dir, args):
 
 		regression_testing_failed = not failed_queue.empty()
 
-		regression_end_time = time.clock()
+		regression_end_time = time.perf_counter()
 		print('Done in {}'.format(format_elapsed_time(regression_end_time - regression_start_time)))
 
 		if regression_testing_failed:
