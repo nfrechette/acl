@@ -1,4 +1,5 @@
 cmake_minimum_required (VERSION 3.2)
+include(ProcessorCount)
 
 set(CMAKE_SYSTEM_NAME Android)
 
@@ -6,4 +7,4 @@ set(CMAKE_SYSTEM_NAME Android)
 set(CMAKE_GENERATOR_TOOLSET DefaultClang)
 
 # Make sure we use all our processors when building
-set(CMAKE_ANDROID_PROCESS_MAX $ENV{NUMBER_OF_PROCESSORS})
+ProcessorCount(CMAKE_ANDROID_PROCESS_MAX)
