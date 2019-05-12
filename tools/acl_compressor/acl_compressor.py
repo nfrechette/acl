@@ -737,7 +737,7 @@ if __name__ == "__main__":
 	total_duration = sum([x['total_duration'] for x in agg_run_stats.values()])
 
 	print('Sum of clip durations: {}'.format(format_elapsed_time(total_duration)))
-	print('Total compression time: {}'.format(format_elapsed_time(total_wall_compression_time)))
+	print('Total compression time: {} ({:.3f} seconds)'.format(format_elapsed_time(total_wall_compression_time), total_wall_compression_time))
 	print('Total raw size: {:.2f} MB'.format(bytes_to_mb(total_raw_size)))
 	print('Compression speed: {:.2f} KB/sec'.format(bytes_to_kb(total_raw_size) / total_compression_time))
 	if len(agg_job_results['bone_error_values']) > 0:
