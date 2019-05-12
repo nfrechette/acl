@@ -17,7 +17,9 @@ create_source_groups("${ALL_COMMON_SOURCE_FILES}" ${PROJECT_SOURCE_DIR}/..)
 
 # Grab all of our main source files
 file(GLOB_RECURSE ALL_MAIN_SOURCE_FILES LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/*.cpp)
+	${PROJECT_SOURCE_DIR}/*.cpp
+	${PROJECT_SOURCE_DIR}/../*.py
+	${PROJECT_SOURCE_DIR}/../*.md)
 
 create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
 

@@ -10,7 +10,9 @@ include_directories("${PROJECT_SOURCE_DIR}/../includes")
 # Grab all of our common source files
 file(GLOB_RECURSE ALL_COMMON_SOURCE_FILES LIST_DIRECTORIES false
 	${PROJECT_SOURCE_DIR}/../includes/*.h
-	${PROJECT_SOURCE_DIR}/../sources/*.cpp)
+	${PROJECT_SOURCE_DIR}/../sources/*.cpp
+	${PROJECT_SOURCE_DIR}/../*.py
+	${PROJECT_SOURCE_DIR}/../*.md)
 
 create_source_groups("${ALL_COMMON_SOURCE_FILES}" ${PROJECT_SOURCE_DIR}/..)
 
