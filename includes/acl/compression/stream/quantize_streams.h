@@ -57,7 +57,7 @@ namespace acl
 			ClipContext& clip;
 			const ClipContext& raw_clip;
 			const ClipContext& additive_base_clip;
-			SegmentContext& segment;
+			SegmentContext* segment;
 			BoneStreams* bone_streams;
 			uint16_t num_bones;
 			const RigidSkeleton& skeleton;
@@ -79,26 +79,25 @@ namespace acl
 
 			BoneBitRate* bit_rate_per_bone;
 
-			QuantizationContext(IAllocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, const ClipContext& additive_base_clip_, SegmentContext& segment_, const CompressionSettings& settings_, const RigidSkeleton& skeleton_)
+			QuantizationContext(IAllocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, const ClipContext& additive_base_clip_, const CompressionSettings& settings_, const RigidSkeleton& skeleton_)
 				: allocator(allocator_)
 				, clip(clip_)
 				, raw_clip(raw_clip_)
 				, additive_base_clip(additive_base_clip_)
-				, segment(segment_)
-				, bone_streams(segment_.bone_streams)
-				, num_bones(segment_.num_bones)
+				, segment(nullptr)
+				, bone_streams(nullptr)
+				, num_bones(clip_.num_bones)
 				, skeleton(skeleton_)
 				, settings(settings_)
+				, num_samples(~0u)
+				, segment_sample_start_index(~0u)
+				, sample_rate(clip_.sample_rate)
+				, clip_duration(clip_.duration)
+				, segment_duration(0.0f)
+				, has_scale(clip_.has_scale)
+				, has_additive_base(clip_.has_additive_base)
 				, raw_bone_streams(raw_clip_.segments[0].bone_streams)
 			{
-				num_samples = segment_.num_samples;
-				segment_sample_start_index = segment_.clip_sample_offset;
-				sample_rate = segment.bone_streams[0].rotations.get_sample_rate();
-				clip_duration = clip_.duration;
-				segment_duration = calculate_duration(num_samples, sample_rate);
-				has_scale = segment_context_has_scale(segment_);
-				has_additive_base = clip_.has_additive_base;
-
 				additive_local_pose = clip_.has_additive_base ? allocate_type_array<Transform_32>(allocator, num_bones) : nullptr;
 				raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
@@ -112,6 +111,17 @@ namespace acl
 				deallocate_type_array(allocator, lossy_local_pose, num_bones);
 				deallocate_type_array(allocator, bit_rate_per_bone, num_bones);
 			}
+
+			void set_segment(SegmentContext& segment_)
+			{
+				segment = &segment_;
+				bone_streams = segment_.bone_streams;
+				num_samples = segment_.num_samples;
+				segment_sample_start_index = segment_.clip_sample_offset;
+				segment_duration = calculate_duration(num_samples, sample_rate);
+			}
+
+			bool is_valid() const { return segment != nullptr; }
 		};
 
 		inline void quantize_fixed_rotation_stream(IAllocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
@@ -829,6 +839,8 @@ namespace acl
 
 		inline void quantize_all_streams(QuantizationContext& context)
 		{
+			ACL_ASSERT(context.is_valid(), "QuantizationContext isn't valid");
+
 			const CompressionSettings& settings = context.settings;
 
 			const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
@@ -861,9 +873,11 @@ namespace acl
 
 		inline void find_optimal_bit_rates(QuantizationContext& context)
 		{
+			ACL_ASSERT(context.is_valid(), "QuantizationContext isn't valid");
+
 			const CompressionSettings& settings = context.settings;
 
-			initialize_bone_bit_rates(context.segment, settings.rotation_format, settings.translation_format, settings.scale_format, context.bit_rate_per_bone);
+			initialize_bone_bit_rates(*context.segment, settings.rotation_format, settings.translation_format, settings.scale_format, context.bit_rate_per_bone);
 
 			// First iterate over all bones and find the optimal bit rate for each track using the local space error.
 			// We use the local space error to prime the algorithm. If each parent bone has infinite precision,
@@ -1216,14 +1230,15 @@ namespace acl
 		const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
 		const bool is_any_variable = is_rotation_variable || is_translation_variable || is_scale_variable;
 
+		impl::QuantizationContext context(allocator, clip_context, raw_clip_context, additive_base_clip_context, settings, skeleton);
+
 		for (SegmentContext& segment : clip_context.segment_iterator())
 		{
 #if ACL_DEBUG_VARIABLE_QUANTIZATION
 			printf("Quantizing segment %u...\n", segment.segment_index);
 #endif
 
-			// TODO: Reuse the context if we can and just update the current segment
-			impl::QuantizationContext context(allocator, clip_context, raw_clip_context, additive_base_clip_context, segment, settings, skeleton);
+			context.set_segment(segment);
 
 			if (is_any_variable)
 				impl::find_optimal_bit_rates(context);
