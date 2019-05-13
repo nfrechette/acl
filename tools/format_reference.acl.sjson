@@ -117,7 +117,7 @@ bones =
 		// Bone name
 		name = "root"
 
-		// Parent bone. An empty string denotes the root bone, there can be only one root bone
+		// Parent bone. An empty string denotes the root bone, there can be multiple root bones
 		// There must be a root bone
 		// Parent bones must be listed before their children
 		parent = ""

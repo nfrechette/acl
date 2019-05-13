@@ -10,7 +10,7 @@ import time
 import zipfile
 
 # The current test/decompression data version in use
-current_test_data = 'test_data_v1'
+current_test_data = 'test_data_v2'
 current_decomp_data = 'decomp_data_v4'
 
 def parse_argv():
