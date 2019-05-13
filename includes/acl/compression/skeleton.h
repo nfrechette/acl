@@ -48,8 +48,7 @@ namespace acl
 		class BoneChainIterator
 		{
 		public:
-			// Root bone is always part of the current chain, default offset is our root bone
-			BoneChainIterator(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index, uint16_t offset = 0)
+			BoneChainIterator(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index, uint16_t offset)
 				: m_bone_chain(bone_chain)
 				, m_bone_chain_desc(bone_chain_desc)
 				, m_bone_index(bone_index)
@@ -99,17 +98,26 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	struct BoneChain
 	{
-		constexpr BoneChain(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index)
+		BoneChain(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index)
 			: m_bone_chain(bone_chain)
 			, m_bone_chain_desc(bone_chain_desc)
 			, m_bone_index(bone_index)
-		{}
+		{
+			// We don't know where this bone chain starts, find the root bone
+			// TODO: Use clz or similar to find the next set bit starting at the current index
+			uint16_t root_index = 0;
+			while (!bitset_test(bone_chain, bone_chain_desc, root_index))
+				root_index++;
 
-		impl::BoneChainIterator begin() const { return impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index); }
+			m_root_index = root_index;
+		}
+
+		impl::BoneChainIterator begin() const { return impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_root_index); }
 		impl::BoneChainIterator end() const { return impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_bone_index + 1); }
 
 		const uint32_t*		m_bone_chain;
 		BitSetDescription	m_bone_chain_desc;
+		uint16_t			m_root_index;
 		uint16_t			m_bone_index;
 	};
 
@@ -155,7 +163,7 @@ namespace acl
 		}
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns whether or not this bone is the root bone
+		// Returns whether or not this bone is a root bone
 		bool is_root() const { return parent_index == k_invalid_bone_index; }
 
 		// Name of the bone (used for debugging purposes only)
@@ -188,7 +196,7 @@ namespace acl
 	// This hierarchical structure is important and forms the back bone of the
 	// error metrics. When calculating the error introduced by lowering the
 	// precision of a single bone track, we will walk up the hierarchy and
-	// calculate the error relative to the skeleton root bone (object/mesh space).
+	// calculate the error relative to the root bones (object/mesh space).
 	//////////////////////////////////////////////////////////////////////////
 	class RigidSkeleton
 	{
@@ -204,16 +212,19 @@ namespace acl
 			, m_bones(allocate_type_array<RigidBone>(allocator, num_bones))
 			, m_num_bones(num_bones)
 		{
+			// Calculate which bones are leaf bones that have no children
 			BitSetDescription bone_bitset_desc = BitSetDescription::make_from_num_bits(num_bones);
 			uint32_t* is_leaf_bitset = allocate_type_array<uint32_t>(allocator, bone_bitset_desc.get_size());
 			bitset_reset(is_leaf_bitset, bone_bitset_desc, false);
+
+			// By default  and if we find a child, we'll mark it as non-leaf
 			bitset_set_range(is_leaf_bitset, bone_bitset_desc, 0, num_bones, true);
 
-			// Move and validate the input data
 #if defined(ACL_HAS_ASSERT_CHECKS)
-			bool found_root = false;
+			uint32_t num_root_bones = 0;
 #endif
 
+			// Move and validate the input data
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				RigidBone& bone = bones[bone_index];
@@ -222,16 +233,17 @@ namespace acl
 
 				ACL_ASSERT(bone.bone_chain == nullptr, "Bone chain should be calculated internally");
 				ACL_ASSERT(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
-				ACL_ASSERT((is_root && !found_root) || !is_root, "Multiple root bones found");
 				ACL_ASSERT(quat_is_finite(bone.bind_transform.rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
 				ACL_ASSERT(quat_is_normalized(bone.bind_transform.rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
 				ACL_ASSERT(vector_is_finite3(bone.bind_transform.translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.translation), vector_get_y(bone.bind_transform.translation), vector_get_z(bone.bind_transform.translation));
 
+				// If we have a parent, mark it as not being a leaf bone (it has at least one child)
 				if (!is_root)
 					bitset_set(is_leaf_bitset, bone_bitset_desc, bone.parent_index, false);
+
 #if defined(ACL_HAS_ASSERT_CHECKS)
-				else
-					found_root = true;
+				if (is_root)
+					num_root_bones++;
 #endif
 
 				m_bones[bone_index] = std::move(bone);
@@ -270,7 +282,7 @@ namespace acl
 				leaf_index++;
 			}
 
-			ACL_ASSERT(found_root, "No root bone found. The root bone must have a parent index = 0xFFFF");
+			ACL_ASSERT(num_root_bones > 0, "No root bone found. The root bones must have a parent index = 0xFFFF");
 			ACL_ASSERT(leaf_index == m_num_leaf_bones, "Invalid number of leaf bone found");
 			deallocate_type_array(m_allocator, is_leaf_bitset, bone_bitset_desc.get_size());
 		}
