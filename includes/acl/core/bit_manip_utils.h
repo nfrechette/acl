@@ -29,6 +29,17 @@
 
 #include <cstdint>
 
+#if !defined(ACL_USE_POPCOUNT)
+	#if defined(ACL_NEON_INTRINSICS)
+		// Enable pop-count type instructions on ARM NEON
+		#define ACL_USE_POPCOUNT
+	#elif defined(_DURANGO) || defined(_XBOX_ONE)
+		// Enable pop-count type instructions on Xbox One
+		#define ACL_USE_POPCOUNT
+	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
+	#endif
+#endif
+
 #if defined(ACL_USE_POPCOUNT)
 	#if defined(_MSC_VER)
 		#include <nmmintrin.h>
