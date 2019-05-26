@@ -87,7 +87,7 @@ namespace acl
 			{
 				const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0f;
 				const float additive_sample_time = normalized_sample_time * additive_duration;
-				additive_base_clip->sample_pose(additive_sample_time, base_pose_transforms, num_bones);
+				additive_base_clip->sample_pose(additive_sample_time, SampleRoundingPolicy::Nearest, base_pose_transforms, num_bones);
 			}
 
 			// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
