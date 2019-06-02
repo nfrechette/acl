@@ -270,8 +270,9 @@ def format_elapsed_time(elapsed_time):
 	minutes, seconds = divmod(rem, 60)
 	return '{:0>2}h {:0>2}m {:05.2f}s'.format(int(hours), int(minutes), seconds)
 
-def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_length = 50):
+def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_length = 40):
 	# Taken from https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
+	# With minor tweaks
 	"""
 	Call in a loop to create terminal progress bar
 	@params:
@@ -287,16 +288,17 @@ def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_len
 	filled_length = int(round(bar_length * iteration / float(total)))
 	bar = '█' * filled_length + '-' * (bar_length - filled_length)
 
-	if platform.system() == 'Darwin':
-		# On OS X, \r doesn't appear to work properly in the terminal
-		print('{}{} |{}| {}{} {}'.format('\b' * 100, prefix, bar, percents, '%', suffix), end='')
-	else:
-		sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+	# We need to clear any previous line we might have to ensure we have no visual artifacts
+	# Note that if this function is called too quickly, the text might flicker
+	terminal_width = 80
+	sys.stdout.write('{}\r'.format(' ' * terminal_width))
+	sys.stdout.flush()
+
+	sys.stdout.write('%s |%s| %s%s %s\r' % (prefix, bar, percents, '%', suffix)),
+	sys.stdout.flush()
 
 	if iteration == total:
-		print('')
-
-	sys.stdout.flush()
+		sys.stdout.write('\n')
 
 def do_prepare_regression_test_data(test_data_dir, args):
 	print('Preparing regression test data ...')
