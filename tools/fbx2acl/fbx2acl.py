@@ -4,6 +4,7 @@
 import io
 import math
 import os
+import re
 import sys
 import zipfile
 
@@ -481,11 +482,11 @@ if __name__ == "__main__":
 			acl_dirname = dirpath.replace(fbx_dir, acl_dir)
 
 			for filename in filenames:
-				if not filename.endswith('.fbx'):
+				if not filename.lower().endswith('.fbx'):
 					continue
 
 				fbx_filename = os.path.join(dirpath, filename)
-				acl_filename = os.path.join(acl_dirname, filename.replace('.fbx', '.acl.sjson'))
+				acl_filename = os.path.join(acl_dirname, re.sub(r"\.fbx$", '.acl.sjson', filename, flags=re.IGNORECASE))
 
 				if not os.path.exists(acl_dirname):
 					os.makedirs(acl_dirname)
@@ -497,7 +498,7 @@ if __name__ == "__main__":
 		sys.exit(0)
 
 	# Convert a single file
-	if not acl_filename.endswith('.acl.sjson'):
+	if not acl_filename.lower().endswith('.acl.sjson'):
 		print('Invalid ACL filename, it should be of the form *.acl.sjson')
 		sys.exit(1)
 
