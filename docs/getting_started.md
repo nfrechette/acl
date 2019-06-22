@@ -6,7 +6,7 @@ In order to contribute to ACL and use the various tools provided for development
 
 ### Windows, Linux, and OS X for x86 and x64
 
-1. Install *CMake 3.2* or higher (*3.10* is required on OS X with *Xcode 10*), *Python 3*, and the proper compiler for your platform.
+1. Install *CMake 3.2* or higher (*3.14* for Visual Studio 2019, or *3.10* on OS X with *Xcode 10*), *Python 3*, and the proper compiler for your platform.
 2. Execute `git submodule update --init` to get the files of thirdparty submodules (e.g. Catch2).
 3. Generate the IDE solution with: `python make.py`  
    The solution is generated under `./build`  

@@ -114,16 +114,6 @@ inline Vector4Type scalar_normalize3(const Vector4Type& input, FloatType thresho
 		return input;
 }
 
-template<typename Vector4Type, VectorMix comp0, VectorMix comp1, VectorMix comp2, VectorMix comp3>
-inline Vector4Type scalar_mix(const Vector4Type& input0, const Vector4Type& input1)
-{
-	const auto x = math_impl::is_vector_mix_arg_xyzw(comp0) ? vector_get_component<comp0>(input0) : vector_get_component<comp0>(input1);
-	const auto y = math_impl::is_vector_mix_arg_xyzw(comp1) ? vector_get_component<comp1>(input0) : vector_get_component<comp1>(input1);
-	const auto z = math_impl::is_vector_mix_arg_xyzw(comp2) ? vector_get_component<comp2>(input0) : vector_get_component<comp2>(input1);
-	const auto w = math_impl::is_vector_mix_arg_xyzw(comp3) ? vector_get_component<comp3>(input0) : vector_get_component<comp3>(input1);
-	return vector_set(x, y, z, w);
-}
-
 template<typename Vector4Type, typename QuatType, typename FloatType>
 void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const FloatType threshold)
 {
@@ -563,59 +553,68 @@ void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const 
 template<typename Vector4Type, typename FloatType, VectorMix XArg>
 void test_vector4_vector_mix_impl(const FloatType threshold)
 {
-#define ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, comp2) \
-	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::X] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::X>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::X>(input0, input1), threshold); \
-	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::Y] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::Y>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::Y>(input0, input1), threshold); \
-	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::Z] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::Z>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::Z>(input0, input1), threshold); \
-	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::W] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::W>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::W>(input0, input1), threshold); \
-	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::A] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::A>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::A>(input0, input1), threshold); \
-	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::B] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::B>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::B>(input0, input1), threshold); \
-	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::C] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::C>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::C>(input0, input1), threshold); \
-	results[(int)comp0][(int)comp1][(int)comp2][(int)VectorMix::D] = vector_all_near_equal(vector_mix<comp0, comp1, comp2, VectorMix::D>(input0, input1), scalar_mix<Vector4Type, comp0, comp1, comp2, VectorMix::D>(input0, input1), threshold)
-
-#define ACL_TEST_MIX_XY(results, input0, input1, comp0, comp1) \
-	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::X); \
-	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::Y); \
-	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::Z); \
-	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::W); \
-	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::A); \
-	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::B); \
-	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::C); \
-	ACL_TEST_MIX_XYZ(results, input0, input1, comp0, comp1, VectorMix::D)
-
-#define ACL_TEST_MIX_X(results, input0, input1, comp0) \
-	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::X); \
-	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::Y); \
-	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::Z); \
-	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::W); \
-	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::A); \
-	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::B); \
-	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::C); \
-	ACL_TEST_MIX_XY(results, input0, input1, comp0, VectorMix::D)
-
-	// This generates 8*8*8*8 = 4096 unit tests... it takes a while to compile and uses a lot of stack space
-	// Disabled by default to reduce the build time
-	bool vector_mix_results[8][8][8][8];
-
 	const FloatType test_value0_flt[4] = { FloatType(2.0), FloatType(9.34), FloatType(-54.12), FloatType(6000.0) };
 	const FloatType test_value1_flt[4] = { FloatType(0.75), FloatType(-4.52), FloatType(44.68), FloatType(-54225.0) };
+
 	const Vector4Type test_value0 = vector_set(test_value0_flt[0], test_value0_flt[1], test_value0_flt[2], test_value0_flt[3]);
 	const Vector4Type test_value1 = vector_set(test_value1_flt[0], test_value1_flt[1], test_value1_flt[2], test_value1_flt[3]);
 
-	ACL_TEST_MIX_X(vector_mix_results, test_value0, test_value1, XArg);
+	Vector4Type results[8 * 8 * 8];
+	uint32_t index = 0;
+
+#define ACL_TEST_MIX_XYZ(comp0, comp1, comp2) \
+	results[index++] = vector_mix<comp0, comp1, comp2, VectorMix::X>(test_value0, test_value1); \
+	results[index++] = vector_mix<comp0, comp1, comp2, VectorMix::Y>(test_value0, test_value1); \
+	results[index++] = vector_mix<comp0, comp1, comp2, VectorMix::Z>(test_value0, test_value1); \
+	results[index++] = vector_mix<comp0, comp1, comp2, VectorMix::W>(test_value0, test_value1); \
+	results[index++] = vector_mix<comp0, comp1, comp2, VectorMix::A>(test_value0, test_value1); \
+	results[index++] = vector_mix<comp0, comp1, comp2, VectorMix::B>(test_value0, test_value1); \
+	results[index++] = vector_mix<comp0, comp1, comp2, VectorMix::C>(test_value0, test_value1); \
+	results[index++] = vector_mix<comp0, comp1, comp2, VectorMix::D>(test_value0, test_value1)
+
+#define ACL_TEST_MIX_XY(comp0, comp1) \
+	ACL_TEST_MIX_XYZ(comp0, comp1, VectorMix::X); \
+	ACL_TEST_MIX_XYZ(comp0, comp1, VectorMix::Y); \
+	ACL_TEST_MIX_XYZ(comp0, comp1, VectorMix::Z); \
+	ACL_TEST_MIX_XYZ(comp0, comp1, VectorMix::W); \
+	ACL_TEST_MIX_XYZ(comp0, comp1, VectorMix::A); \
+	ACL_TEST_MIX_XYZ(comp0, comp1, VectorMix::B); \
+	ACL_TEST_MIX_XYZ(comp0, comp1, VectorMix::C); \
+	ACL_TEST_MIX_XYZ(comp0, comp1, VectorMix::D)
+
+#define ACL_TEST_MIX_X(comp0) \
+	ACL_TEST_MIX_XY(comp0, VectorMix::X); \
+	ACL_TEST_MIX_XY(comp0, VectorMix::Y); \
+	ACL_TEST_MIX_XY(comp0, VectorMix::Z); \
+	ACL_TEST_MIX_XY(comp0, VectorMix::W); \
+	ACL_TEST_MIX_XY(comp0, VectorMix::A); \
+	ACL_TEST_MIX_XY(comp0, VectorMix::B); \
+	ACL_TEST_MIX_XY(comp0, VectorMix::C); \
+	ACL_TEST_MIX_XY(comp0, VectorMix::D)
+
+	// This generates 8*8*8 = 512 unit tests... it takes a while to compile and uses a lot of stack space
+	ACL_TEST_MIX_X(XArg);
+
+	auto verify_mix = [&](int comp0, int comp1, int comp2, int comp3, const Vector4Type& actual)
+	{
+		INFO("vector_mix<" << comp0 << ", " << comp1 << ", " << comp2 << ", " << comp3 << ">");
+
+		const Vector4Type expected = vector_set(
+			math_impl::is_vector_mix_arg_xyzw((VectorMix)comp0) ? test_value0_flt[comp0 - (int)VectorMix::X] : test_value1_flt[comp0 - (int)VectorMix::A],
+			math_impl::is_vector_mix_arg_xyzw((VectorMix)comp1) ? test_value0_flt[comp1 - (int)VectorMix::X] : test_value1_flt[comp1 - (int)VectorMix::A],
+			math_impl::is_vector_mix_arg_xyzw((VectorMix)comp2) ? test_value0_flt[comp2 - (int)VectorMix::X] : test_value1_flt[comp2 - (int)VectorMix::A],
+			math_impl::is_vector_mix_arg_xyzw((VectorMix)comp3) ? test_value0_flt[comp3 - (int)VectorMix::X] : test_value1_flt[comp3 - (int)VectorMix::A]);
+
+		REQUIRE(vector_all_near_equal(expected, actual, threshold));
+	};
+
+	index = 0;
 
 	const int comp0 = (int)XArg;
 	for (int comp1 = 0; comp1 < 8; ++comp1)
-	{
 		for (int comp2 = 0; comp2 < 8; ++comp2)
-		{
 			for (int comp3 = 0; comp3 < 8; ++comp3)
-			{
-				INFO("vector_mix<" << comp0 << ", " << comp1 << ", " << comp2 << ", " << comp3 << ">");
-				REQUIRE(vector_mix_results[comp0][comp1][comp2][comp3] == true);
-			}
-		}
-	}
+				verify_mix(comp0, comp1, comp2, comp3, results[index++]);
 
 #undef ACL_TEST_MIX_X
 #undef ACL_TEST_MIX_XY
