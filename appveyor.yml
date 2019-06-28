@@ -6,10 +6,21 @@ environment:
 image:
 - Visual Studio 2015
 - Visual Studio 2017
+- Visual Studio 2019
 
 configuration:
   - Debug
   - Release
+
+platform:
+  - x86
+  - x64
+  - arm64
+
+matrix:
+  exclude:
+    - image: Visual Studio 2015
+      platform: arm64
 
 install:
 - cmd: >-
@@ -21,14 +32,12 @@ build_script:
 
     IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" (SET COMPILER=vs2017)
 
-    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x86 -clean
+    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2019" (SET COMPILER=vs2019)
 
-    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x86 -nosimd
+    SET UNIT_TEST_FLAG=-unit_test
 
-    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x64 -clean
+    IF "%platform%"=="arm64" (SET "UNIT_TEST_FLAG= ")
 
-    %PYTHON%\\python.exe make.py -build -unit_test -compiler %COMPILER% -config %configuration% -cpu x64 -nosimd
+    %PYTHON%\\python.exe make.py -build %UNIT_TEST_FLAG% -compiler %COMPILER% -config %configuration% -cpu %platform% -clean
 
-    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -build -compiler %COMPILER% -config %configuration% -cpu arm64 -clean
-
-    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" %PYTHON%\\python.exe make.py -build -compiler %COMPILER% -config %configuration% -cpu arm64 -nosimd
+    %PYTHON%\\python.exe make.py -build %UNIT_TEST_FLAG% -compiler %COMPILER% -config %configuration% -cpu %platform% -nosimd

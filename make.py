@@ -23,7 +23,7 @@ def parse_argv():
 	actions.add_argument('-regression_test', action='store_true')
 
 	target = parser.add_argument_group(title='Target')
-	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'android', 'clang4', 'clang5', 'clang6', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'osx', 'ios'], help='Defaults to the host system\'s default compiler')
+	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'android', 'clang4', 'clang5', 'clang6', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'osx', 'ios'], help='Defaults to the host system\'s default compiler')
 	target.add_argument('-config', choices=['Debug', 'Release'], type=str.capitalize)
 	target.add_argument('-cpu', choices=['x86', 'x64', 'arm64'], help='Only supported for Windows, OS X, and Linux; defaults to the host system\'s architecture')
 
@@ -75,8 +75,8 @@ def parse_argv():
 			sys.exit(1)
 
 	if args.cpu == 'arm64':
-		if not args.compiler in ['vs2017', 'ios']:
-			print('ARM64 is only supported with VS2017 and iOS')
+		if not args.compiler in ['vs2017', 'vs2019', 'ios']:
+			print('ARM64 is only supported with VS2017, VS2019, and iOS')
 			sys.exit(1)
 
 	return args
@@ -106,6 +106,8 @@ def get_generator(compiler, cpu):
 				# VS2017 ARM/ARM64 support only works with cmake 3.13 and up and the architecture must be specified with
 				# the -A cmake switch
 				return 'Visual Studio 15 2017'
+		elif compiler == 'vs2019':
+			return 'Visual Studio 16 2019'
 		elif compiler == 'android':
 			return 'Visual Studio 14'
 	elif platform.system() == 'Darwin':
@@ -126,6 +128,11 @@ def get_architecture(compiler, cpu):
 		if compiler == 'vs2017':
 			if cpu == 'arm64':
 				return 'ARM64'
+		elif compiler == 'vs2019':
+			if cpu == 'x86':
+				return 'Win32'
+			else:
+				return cpu
 
 	# This compiler/cpu pair does not need the architecture switch
 	return None
