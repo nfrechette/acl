@@ -52,7 +52,7 @@ namespace acl
 			{
 #if defined(ACL_HAS_ASSERT_CHECKS) && !defined(NDEBUG)
 				for (size_t i = 0; i < length; ++i)
-					ACL_ASSERT(c_str[i] != '\0', "StringView cannot contain NULL terminators");
+					ACL_ASSERT(c_str[i] != '\0', "String cannot contain NULL terminators");
 #endif
 
 				m_c_str = allocate_type_array<char>(allocator, length + 1);

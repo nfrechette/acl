@@ -34,10 +34,6 @@
     <DisplayString>({xy.m128d_f64[0]}, {xy.m128d_f64[1]}, {zw.m128d_f64[0]}, {zw.m128d_f64[1]})</DisplayString>
   </Type>
 
-  <Type Name="acl::StringView">
-    <DisplayString>{m_c_str,[m_length]s8}</DisplayString>
-  </Type>
-
   <Type Name="acl::String">
     <DisplayString>{m_c_str,s8}</DisplayString>
   </Type>
