@@ -20,13 +20,17 @@ file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false
 	${PROJECT_SOURCE_DIR}/includes/*.h
 	${PROJECT_SOURCE_DIR}/docs/*.md
 	${PROJECT_SOURCE_DIR}/cmake/*.cmake
-	${PROJECT_SOURCE_DIR}/tools/vs_visualizers/*.natvis)
+	)
 
 create_source_groups("${ACL_INCLUDE_FILES}" ${PROJECT_SOURCE_DIR})
 
 file(GLOB ACL_ROOT_FILES LIST_DIRECTORIES false
 	${PROJECT_SOURCE_DIR}/*.md
 	${PROJECT_SOURCE_DIR}/*.py)
+
+# Add every natvis file
+file(GLOB_RECURSE NATVIS_FILES LIST_DIRECTORIES false
+	${PROJECT_SOURCE_DIR}/*.natvis)
 
 if(MSVC)
 	# With MSVC, the custom target creates a Utility project. Even though it isn't a proper C++ project
@@ -37,7 +41,7 @@ if(MSVC)
 endif()
 
 # Create a dummy target so they show up in the IDE
-add_custom_target(${PROJECT_NAME} SOURCES ${ACL_INCLUDE_FILES} ${ACL_ROOT_FILES})
+add_custom_target(${PROJECT_NAME} SOURCES ${ACL_INCLUDE_FILES} ${ACL_ROOT_FILES} ${NATVIS_FILES})
 
 if(CMAKE_CONFIGURATION_TYPES)
 	set(CMAKE_CONFIGURATION_TYPES Debug Release)
