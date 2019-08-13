@@ -434,7 +434,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	{
 		const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
-		clip.sample_pose(sample_time, raw_pose_transforms, num_bones);
+		clip.sample_pose(sample_time, SampleRoundingPolicy::None, raw_pose_transforms, num_bones);
 
 		context.seek(sample_time, SampleRoundingPolicy::None);
 		context.decompress_pose(pose_writer);
