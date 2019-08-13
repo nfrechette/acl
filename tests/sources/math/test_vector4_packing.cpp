@@ -156,7 +156,6 @@ TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
-				const float value_signed = clamp(unpack_scalar_signed(value, num_bits), -1.0f, 1.0f);
 				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0f, 1.0f);
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
@@ -427,7 +426,6 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
-				const float value_signed = clamp(unpack_scalar_signed(value, num_bits), -1.0f, 1.0f);
 				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0f, 1.0f);
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
