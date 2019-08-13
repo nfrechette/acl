@@ -27,6 +27,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/bitset.h"
 #include "acl/core/compiler_utils.h"
+#include "acl/core/compressed_clip.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
 #include "acl/core/algorithm_types.h"
