@@ -303,8 +303,6 @@ namespace acl
 			, m_extent(vector_zero_32())
 		{}
 
-
-
 		Vector4_32 ACL_SIMD_CALL get_min() const { return m_min; }
 		Vector4_32 ACL_SIMD_CALL get_max() const { return vector_add(m_min, m_extent); }
 
