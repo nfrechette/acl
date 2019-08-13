@@ -530,7 +530,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			{
 				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context;
 				context.initialize(*compressed_clip);
-				bone_error = calculate_compressed_clip_error(allocator, clip, settings, context);
+				bone_error = calculate_compressed_clip_error(allocator, clip, *settings.error_metric, context);
 				break;
 			}
 			}
