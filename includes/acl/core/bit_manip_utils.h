@@ -30,13 +30,14 @@
 #include <cstdint>
 
 #if !defined(ACL_USE_POPCOUNT)
-	#if defined(ACL_NEON_INTRINSICS)
+	#if defined(ACL_NEON_INTRINSICS) && !defined(_MSC_VER)
 		// Enable pop-count type instructions on ARM NEON
 		#define ACL_USE_POPCOUNT
 	#elif defined(_DURANGO) || defined(_XBOX_ONE)
 		// Enable pop-count type instructions on Xbox One
 		#define ACL_USE_POPCOUNT
 	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
+	// TODO: Enable this for Windows ARM as well, what is the include and intrinsic to use?
 	#endif
 #endif
 
@@ -49,6 +50,7 @@
 #if defined(ACL_AVX_INTRINSICS)
 	// Use BMI
 	#include <immintrin.h>
+	#include <ammintrin.h>
 #endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH
