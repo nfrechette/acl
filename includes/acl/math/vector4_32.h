@@ -701,6 +701,18 @@ namespace acl
 #endif
 	}
 
+	inline bool ACL_SIMD_CALL vector_all_less_equal2(Vector4_32Arg0 lhs, Vector4_32Arg1 rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		return (_mm_movemask_ps(_mm_cmple_ps(lhs, rhs)) & 0x3) == 0x3;
+#elif defined(ACL_NEON_INTRINSICS)
+		uint32x2_t mask = vcle_f32(vget_low_f32(lhs), vget_low_f32(rhs));
+		return vget_lane_u64(mask, 0) == 0xFFFFFFFFFFFFFFFFu;
+#else
+		return lhs.x <= rhs.x && lhs.y <= rhs.y;
+#endif
+	}
+
 	inline bool ACL_SIMD_CALL vector_all_less_equal3(Vector4_32Arg0 lhs, Vector4_32Arg1 rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -802,6 +814,11 @@ namespace acl
 	inline bool ACL_SIMD_CALL vector_all_near_equal(Vector4_32Arg0 lhs, Vector4_32Arg1 rhs, float threshold = 0.00001f)
 	{
 		return vector_all_less_equal(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+	}
+
+	inline bool ACL_SIMD_CALL vector_all_near_equal2(Vector4_32Arg0 lhs, Vector4_32Arg1 rhs, float threshold = 0.00001f)
+	{
+		return vector_all_less_equal2(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
 	inline bool ACL_SIMD_CALL vector_all_near_equal3(Vector4_32Arg0 lhs, Vector4_32Arg1 rhs, float threshold = 0.00001f)
