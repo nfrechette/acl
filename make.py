@@ -261,7 +261,7 @@ def do_build(cmake_exe, args):
 def do_tests(ctest_exe, args):
 	print('Running unit tests ...')
 
-	ctest_cmd = '"{}" --output-on-failure'.format(ctest_exe)
+	ctest_cmd = '"{}" --output-on-failure --parallel {}'.format(ctest_exe, args.num_threads)
 	if platform.system() == 'Windows' or platform.system() == 'Darwin':
 		ctest_cmd += ' -C {}'.format(args.config)
 	if args.tests_matching:
