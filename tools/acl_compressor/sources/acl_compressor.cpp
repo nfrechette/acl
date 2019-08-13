@@ -562,7 +562,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 		{
 			std::ofstream output_file_stream(options.output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 			if (output_file_stream.is_open())
-				output_file_stream.write((const char*)compressed_clip, compressed_clip->get_size());
+				output_file_stream.write(reinterpret_cast<const char*>(compressed_clip), compressed_clip->get_size());
 		}
 
 		allocator.deallocate(compressed_clip, compressed_clip->get_size());
