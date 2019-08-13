@@ -592,7 +592,7 @@ namespace acl
 								}
 
 								context.bit_rate_per_bone[bone_index] = BoneBitRate{ rotation_bit_rate, translation_bit_rate, scale_bit_rate };
-								float error = calculate_max_error_at_bit_rate(context, bone_index, true);
+								const float error = calculate_max_error_at_bit_rate(context, bone_index, true);
 
 #if ACL_DEBUG_VARIABLE_QUANTIZATION > 1
 								printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, scale_bit_rate, target_sum, error);
@@ -648,7 +648,7 @@ namespace acl
 									}
 
 									context.bit_rate_per_bone[bone_index] = BoneBitRate{ rotation_bit_rate, translation_bit_rate, scale_bit_rate };
-									float error = calculate_max_error_at_bit_rate(context, bone_index, true);
+									const float error = calculate_max_error_at_bit_rate(context, bone_index, true);
 
 #if ACL_DEBUG_VARIABLE_QUANTIZATION > 1
 									printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, scale_bit_rate, target_sum, error);
