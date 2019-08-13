@@ -50,7 +50,7 @@ namespace acl
 
 	template<class DecompressionContextType>
 	inline BoneError calculate_compressed_clip_error(IAllocator& allocator,
-		const AnimationClip& clip, const CompressionSettings& settings, DecompressionContextType& context)
+		const AnimationClip& clip, const ISkeletalErrorMetric& error_metric, DecompressionContextType& context)
 	{
 		const uint16_t num_bones = clip.get_num_bones();
 		const float clip_duration = clip.get_duration();
@@ -102,7 +102,7 @@ namespace acl
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				// Always calculate the error with scale, slower but binary exact
-				const float error = settings.error_metric->calculate_object_bone_error(skeleton, raw_pose_transforms, base_pose_transforms, lossy_remapped_pose_transforms, bone_index);
+				const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, base_pose_transforms, lossy_remapped_pose_transforms, bone_index);
 
 				if (error > bone_error.error)
 				{
@@ -120,6 +120,15 @@ namespace acl
 		deallocate_type_array(allocator, lossy_remapped_pose_transforms, num_bones);
 
 		return bone_error;
+	}
+
+	template<class DecompressionContextType>
+	ACL_DEPRECATED("Use a calculate_compressed_clip_error(..) with an explicit error metric instead, to be removed in v2.0")
+	inline BoneError calculate_compressed_clip_error(IAllocator& allocator,
+		const AnimationClip& clip, const CompressionSettings& settings, DecompressionContextType& context)
+	{
+		ACL_ASSERT(settings.error_metric != nullptr, "Error metric cannot be null");
+		return calculate_compressed_clip_error(allocator, clip, *settings.error_metric, context);
 	}
 }
 
