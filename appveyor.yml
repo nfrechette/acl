@@ -1,7 +1,7 @@
 version: 1.2.0.{build}
 
 environment:
-  PYTHON: "C:\\Python33-x64"
+  PYTHON: "C:\\Python36-x64"
 
 image:
 - Visual Studio 2015

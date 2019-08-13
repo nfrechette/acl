@@ -35,7 +35,13 @@ def parse_argv():
 	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
 	misc.add_argument('-help', action='help', help='Display this usage information')
 
-	parser.set_defaults(build=False, clean=False, unit_test=False, regression_test=False, compiler=None, config='Release', cpu='x64', use_avx=False, use_popcnt=False, use_simd=True, num_threads=4, tests_matching='')
+	num_threads = os.cpu_count()
+	if platform.system() == 'Linux':
+		num_threads = len(os.sched_getaffinity(0))
+	if not num_threads or num_threads == 0:
+		num_threads = 4
+
+	parser.set_defaults(build=False, clean=False, unit_test=False, regression_test=False, compiler=None, config='Release', cpu='x64', use_avx=False, use_popcnt=False, use_simd=True, num_threads=num_threads, tests_matching='')
 
 	args = parser.parse_args()
 
@@ -586,6 +592,7 @@ if __name__ == "__main__":
 	print('Using cpu: {}'.format(args.cpu))
 	if not args.compiler == None:
 		print('Using compiler: {}'.format(args.compiler))
+	print('Using {} threads'.format(args.num_threads))
 
 	regression_data_dir = do_prepare_regression_test_data(test_data_dir, args)
 	decomp_data_dir = do_prepare_decompression_test_data(test_data_dir, args)
