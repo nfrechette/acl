@@ -38,4 +38,13 @@
     <DisplayString>{m_c_str,s8}</DisplayString>
   </Type>
 
+  <Type Name="acl::ErrorResult">
+    <DisplayString Condition="m_error == nullptr">no error</DisplayString>
+    <DisplayString Condition="m_error != nullptr">{m_error,s8}</DisplayString>
+  </Type>
+
+  <Type Name="acl::BitSetDescription">
+    <DisplayString>size={m_size}, num_bits={m_size * 32}</DisplayString>
+  </Type>
+
 </AutoVisualizer>
