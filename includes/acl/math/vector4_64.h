@@ -508,6 +508,16 @@ namespace acl
 #endif
 	}
 
+	inline bool vector_all_less_equal2(const Vector4_64& lhs, const Vector4_64& rhs)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		__m128d xy_le_pd = _mm_cmple_pd(lhs.xy, rhs.xy);
+		return _mm_movemask_pd(xy_le_pd) == 3;
+#else
+		return lhs.x <= rhs.x && lhs.y <= rhs.y;
+#endif
+	}
+
 	inline bool vector_all_less_equal3(const Vector4_64& lhs, const Vector4_64& rhs)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -588,6 +598,11 @@ namespace acl
 	inline bool vector_all_near_equal(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
 	{
 		return vector_all_less_equal(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
+	}
+
+	inline bool vector_all_near_equal2(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
+	{
+		return vector_all_less_equal2(vector_abs(vector_sub(lhs, rhs)), vector_set(threshold));
 	}
 
 	inline bool vector_all_near_equal3(const Vector4_64& lhs, const Vector4_64& rhs, double threshold = 0.00001)
