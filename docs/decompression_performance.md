@@ -30,7 +30,7 @@ The uniformly sampled algorithm offers consistent performance regardless of the 
 | Trooper_1    | 3.916 us  | 4.083 us  | 3.917 us  |
 | Trooper_Main | 40.000 us | 40.250 us | 40.000 us |
 
-As can be seen, the performance is consistent regardless of the playback direction.
+As can be seen, the performance is consistent regardless of the playback direction. It also remains consistent regardless of the clip sample rate and the clip playback rate.
 
 ### decompress_pose
 
