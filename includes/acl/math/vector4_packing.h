@@ -47,6 +47,114 @@ namespace acl
 		return vector_unaligned_load_32(vector_data);
 	}
 
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 16 bytes from it
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector4_128_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint32_t x32 = uint32_t(vector_u64);
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint32_t y32 = uint32_t(vector_u64);
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint32_t z32 = uint32_t(vector_u64);
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 12);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint32_t w32 = uint32_t(vector_u64);
+
+		return _mm_castsi128_ps(_mm_set_epi32(w32, z32, y32, x32));
+#elif defined(ACL_NEON_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t x64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+
+		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ull);
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t z64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 12);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+
+		const uint64_t w64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ull);
+
+		const uint32x2_t xy = vcreate_u32(x64 | y64);
+		const uint32x2_t zw = vcreate_u32(z64 | w64);
+		const uint32x4_t value_u32 = vcombine_u32(xy, zw);
+		return vreinterpretq_f32_u32(value_u32);
+#else
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t x64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t y64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t z64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 12);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t w64 = vector_u64;
+
+		const float x = aligned_load<float>(&x64);
+		const float y = aligned_load<float>(&y64);
+		const float z = aligned_load<float>(&z64);
+		const float w = aligned_load<float>(&w64);
+
+		return vector_set(x, y, z, w);
+#endif
+	}
+
 	inline void ACL_SIMD_CALL pack_vector4_64(Vector4_32Arg0 vector, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(vector_get_x(vector), 16) : pack_scalar_signed(vector_get_x(vector), 16);
@@ -99,6 +207,71 @@ namespace acl
 		float z = is_unsigned ? unpack_scalar_unsigned(z8, 8) : unpack_scalar_signed(z8, 8);
 		float w = is_unsigned ? unpack_scalar_unsigned(w8, 8) : unpack_scalar_signed(w8, 8);
 		return vector_set(x, y, z, w);
+	}
+
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 16 bytes from it
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector2_64_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
+	{
+#if defined(ACL_SSE2_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint32_t x32 = uint32_t(vector_u64);
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint32_t y32 = uint32_t(vector_u64);
+
+		// TODO: Convert to u64 first before set1_epi64 or equivalent?
+		return _mm_castsi128_ps(_mm_set_epi32(y32, x32, y32, x32));
+#elif defined(ACL_NEON_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t x64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+
+		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ull);
+
+		const uint32x2_t xy = vcreate_u32(x64 | y64);
+		const uint32x4_t value_u32 = vcombine_u32(xy, xy);
+		return vreinterpretq_f32_u32(value_u32);
+#else
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t x64 = vector_u64;
+
+		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
+		vector_u64 = byte_swap(vector_u64);
+		vector_u64 <<= shift_offset;
+		vector_u64 >>= 32;
+
+		const uint64_t y64 = vector_u64;
+
+		const float x = aligned_load<float>(&x64);
+		const float y = aligned_load<float>(&y64);
+
+		return vector_set(x, y, x, y);
+#endif
 	}
 
 	inline void ACL_SIMD_CALL pack_vector3_96(Vector4_32Arg0 vector, uint8_t* out_vector_data)
@@ -457,6 +630,19 @@ namespace acl
 	}
 
 	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
+	inline void ACL_SIMD_CALL pack_vector2_uXX_unsafe(Vector4_32Arg0 vector, uint8_t num_bits, uint8_t* out_vector_data)
+	{
+		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), num_bits);
+		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), num_bits);
+
+		uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
+		vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
+		vector_u64 = byte_swap(vector_u64);
+
+		unaligned_write(vector_u64, out_vector_data);
+	}
+
+	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
 	inline void ACL_SIMD_CALL pack_vector3_uXX_unsafe(Vector4_32Arg0 vector, uint8_t num_bits, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), num_bits);
@@ -469,6 +655,26 @@ namespace acl
 		vector_u64 = byte_swap(vector_u64);
 
 		unaligned_write(vector_u64, out_vector_data);
+	}
+
+	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
+	inline void ACL_SIMD_CALL pack_vector4_uXX_unsafe(Vector4_32Arg0 vector, uint8_t num_bits, uint8_t* out_vector_data)
+	{
+		uint32_t vector_x = pack_scalar_unsigned(vector_get_x(vector), num_bits);
+		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), num_bits);
+		uint32_t vector_z = pack_scalar_unsigned(vector_get_z(vector), num_bits);
+		uint32_t vector_w = pack_scalar_unsigned(vector_get_w(vector), num_bits);
+
+		uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
+		vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
+		vector_u64 |= static_cast<uint64_t>(vector_z) << (64 - num_bits * 3);
+		vector_u64 = byte_swap(vector_u64);
+
+		unaligned_write(vector_u64, out_vector_data);
+
+		uint32_t vector_u32 = vector_w << (32 - num_bits);
+		vector_u32 = byte_swap(vector_u32);
+		memcpy_bits(out_vector_data, num_bits * 3, &vector_u32, 0, num_bits);
 	}
 
 	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
@@ -500,9 +706,98 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector2_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+	{
+		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
+
+		struct PackedTableEntry
+		{
+			constexpr PackedTableEntry(uint8_t num_bits_)
+				: max_value(num_bits_ == 0 ? 1.0f : (1.0f / float((1 << num_bits_) - 1)))
+				, mask((1 << num_bits_) - 1)
+			{}
+
+			float max_value;
+			uint32_t mask;
+		};
+
+		// TODO: We technically don't need the first 3 entries, which could save a few bytes
+		alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
+		{
+			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
+			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
+			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
+			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
+			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+		};
+
+#if defined(ACL_SSE2_INTRINSICS)
+		const uint32_t bit_shift = 32 - num_bits;
+		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
+		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
+
+		uint32_t byte_offset = bit_offset / 8;
+		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		__m128i int_value = _mm_set_epi32(y32, x32, y32, x32);
+		int_value = _mm_and_si128(int_value, mask);
+		const __m128 value = _mm_cvtepi32_ps(int_value);
+		return _mm_mul_ps(value, inv_max_value);
+#elif defined(ACL_NEON_INTRINSICS)
+		const uint32_t bit_shift = 32 - num_bits;
+		uint32x2_t mask = vdup_n_u32(k_packed_constants[num_bits].mask);
+		float inv_max_value = k_packed_constants[num_bits].max_value;
+
+		uint32_t byte_offset = bit_offset / 8;
+		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+		xy = vand_u32(xy, mask);
+		float32x2_t value_f32 = vcvt_f32_u32(xy);
+		float32x2_t result = vmul_n_f32(value_f32, inv_max_value);
+		return vcombine_f32(result, result);
+#else
+		const uint32_t bit_shift = 32 - num_bits;
+		const uint32_t mask = k_packed_constants[num_bits].mask;
+		const float inv_max_value = k_packed_constants[num_bits].max_value;
+
+		uint32_t byte_offset = bit_offset / 8;
+		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+		return vector_mul(vector_set(float(x32), float(y32), 0.0f, 0.0f), inv_max_value);
+#endif
+	}
+
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
-		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
 		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
 
 		struct PackedTableEntry
@@ -609,6 +904,139 @@ namespace acl
 		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
 		return vector_mul(vector_set(float(x32), float(y32), float(z32)), inv_max_value);
+#endif
+	}
+
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
+	inline Vector4_32 ACL_SIMD_CALL unpack_vector4_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+	{
+		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
+
+		struct PackedTableEntry
+		{
+			constexpr PackedTableEntry(uint8_t num_bits_)
+				: max_value(num_bits_ == 0 ? 1.0f : (1.0f / float((1 << num_bits_) - 1)))
+				, mask((1 << num_bits_) - 1)
+			{}
+
+			float max_value;
+			uint32_t mask;
+		};
+
+		// TODO: We technically don't need the first 3 entries, which could save a few bytes
+		alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
+		{
+			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
+			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
+			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
+			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
+			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+		};
+
+#if defined(ACL_SSE2_INTRINSICS)
+		const uint32_t bit_shift = 32 - num_bits;
+		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
+		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
+
+		uint32_t byte_offset = bit_offset / 8;
+		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t w32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		__m128i int_value = _mm_set_epi32(w32, z32, y32, x32);
+		int_value = _mm_and_si128(int_value, mask);
+		const __m128 value = _mm_cvtepi32_ps(int_value);
+		return _mm_mul_ps(value, inv_max_value);
+#elif defined(ACL_NEON_INTRINSICS)
+		const uint32_t bit_shift = 32 - num_bits;
+		uint32x4_t mask = vdupq_n_u32(k_packed_constants[num_bits].mask);
+		float inv_max_value = k_packed_constants[num_bits].max_value;
+
+		uint32_t byte_offset = bit_offset / 8;
+		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t w32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
+
+		uint32x2_t xy = vcreate_u32(uint64_t(x32) | (uint64_t(y32) << 32));
+		uint32x2_t zw = vcreate_u32(uint64_t(z32) | (uint64_t(w32) << 32));
+		uint32x4_t value_u32 = vcombine_u32(xy, zw);
+		value_u32 = vandq_u32(value_u32, mask);
+		float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
+		return vmulq_n_f32(value_f32, inv_max_value);
+#else
+		const uint32_t bit_shift = 32 - num_bits;
+		const uint32_t mask = k_packed_constants[num_bits].mask;
+		const float inv_max_value = k_packed_constants[num_bits].max_value;
+
+		uint32_t byte_offset = bit_offset / 8;
+		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+		bit_offset += num_bits;
+
+		byte_offset = bit_offset / 8;
+		vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
+		vector_u32 = byte_swap(vector_u32);
+		const uint32_t w32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
+
+		return vector_mul(vector_set(float(x32), float(y32), float(z32), float(w32)), inv_max_value);
 #endif
 	}
 

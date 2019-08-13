@@ -47,6 +47,42 @@ TEST_CASE("pack_vector4_128", "[math][vector4][packing]")
 		Vector4_32 vec1 = unpack_vector4_128(&tmp.buffer[0]);
 		REQUIRE(std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) == 0);
 	}
+
+	{
+		UnalignedBuffer tmp0;
+		UnalignedBuffer tmp1;
+		Vector4_32 vec0 = vector_set(6123.123812f, 19237.01293127f, 1891.019231829f, 0.913912387f);
+		pack_vector4_128(vec0, &tmp0.buffer[0]);
+
+		uint32_t x = unaligned_load<uint32_t>(&tmp0.buffer[0]);
+		x = byte_swap(x);
+		unaligned_write(x, &tmp0.buffer[0]);
+
+		uint32_t y = unaligned_load<uint32_t>(&tmp0.buffer[4]);
+		y = byte_swap(y);
+		unaligned_write(y, &tmp0.buffer[4]);
+
+		uint32_t z = unaligned_load<uint32_t>(&tmp0.buffer[8]);
+		z = byte_swap(z);
+		unaligned_write(z, &tmp0.buffer[8]);
+
+		uint32_t w = unaligned_load<uint32_t>(&tmp0.buffer[12]);
+		w = byte_swap(w);
+		unaligned_write(w, &tmp0.buffer[12]);
+
+		const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
+		uint32_t num_errors = 0;
+		for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
+		{
+			const uint8_t offset = offsets[offset_idx];
+
+			memcpy_bits(&tmp1.buffer[0], offset, &tmp0.buffer[0], 0, 128);
+			Vector4_32 vec1 = unpack_vector4_128_unsafe(&tmp1.buffer[0], offset);
+			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+				num_errors++;
+		}
+		REQUIRE(num_errors == 0);
+	}
 }
 
 TEST_CASE("pack_vector4_64", "[math][vector4][packing]")
@@ -96,6 +132,52 @@ TEST_CASE("pack_vector4_32", "[math][vector4][packing]")
 			vec1 = unpack_vector4_32(&tmp.buffer[0], true);
 			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
 				num_errors++;
+		}
+		REQUIRE(num_errors == 0);
+	}
+}
+
+TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
+{
+	{
+		UnalignedBuffer tmp0;
+		alignas(16) uint8_t buffer[64];
+
+		uint32_t num_errors = 0;
+		Vector4_32 vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16), unpack_scalar_unsigned(54432, 16));
+		pack_vector4_uXX_unsafe(vec0, 16, &buffer[0]);
+		Vector4_32 vec1 = unpack_vector4_uXX_unsafe(16, &buffer[0], 0);
+		if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+			num_errors++;
+
+		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
+		{
+			uint8_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t max_value = (1 << num_bits) - 1;
+			for (uint32_t value = 0; value <= max_value; ++value)
+			{
+				const float value_signed = clamp(unpack_scalar_signed(value, num_bits), -1.0f, 1.0f);
+				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0f, 1.0f);
+
+				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+				pack_vector4_uXX_unsafe(vec0, num_bits, &buffer[0]);
+				vec1 = unpack_vector4_uXX_unsafe(num_bits, &buffer[0], 0);
+				if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+					num_errors++;
+
+				{
+					const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
+					for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
+					{
+						const uint8_t offset = offsets[offset_idx];
+
+						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 4);
+						vec1 = unpack_vector4_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
+						if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+							num_errors++;
+					}
+				}
+			}
 		}
 		REQUIRE(num_errors == 0);
 	}
@@ -286,6 +368,83 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 3);
 						vec1 = unpack_vector3_sXX_unsafe(num_bits, &tmp0.buffer[0], offset);
 						if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+							num_errors++;
+					}
+				}
+			}
+		}
+		REQUIRE(num_errors == 0);
+	}
+}
+
+TEST_CASE("pack_vector2_64", "[math][vector4][packing]")
+{
+	{
+		UnalignedBuffer tmp0;
+		UnalignedBuffer tmp1;
+		Vector4_32 vec0 = vector_set(6123.123812f, 19237.01293127f, 0.913912387f, 0.1816253f);
+		pack_vector4_128(vec0, &tmp0.buffer[0]);
+
+		uint32_t x = unaligned_load<uint32_t>(&tmp0.buffer[0]);
+		x = byte_swap(x);
+		unaligned_write(x, &tmp0.buffer[0]);
+
+		uint32_t y = unaligned_load<uint32_t>(&tmp0.buffer[4]);
+		y = byte_swap(y);
+		unaligned_write(y, &tmp0.buffer[4]);
+
+		const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
+		uint32_t num_errors = 0;
+		for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
+		{
+			const uint8_t offset = offsets[offset_idx];
+
+			memcpy_bits(&tmp1.buffer[0], offset, &tmp0.buffer[0], 0, 64);
+			Vector4_32 vec1 = unpack_vector2_64_unsafe(&tmp1.buffer[0], offset);
+			if (!vector_all_near_equal2(vec0, vec1, 1.0e-6f))
+				num_errors++;
+		}
+		REQUIRE(num_errors == 0);
+	}
+}
+
+TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
+{
+	{
+		UnalignedBuffer tmp0;
+		alignas(16) uint8_t buffer[64];
+
+		uint32_t num_errors = 0;
+		Vector4_32 vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16), unpack_scalar_unsigned(54432, 16));
+		pack_vector2_uXX_unsafe(vec0, 16, &buffer[0]);
+		Vector4_32 vec1 = unpack_vector2_uXX_unsafe(16, &buffer[0], 0);
+		if (!vector_all_near_equal2(vec0, vec1, 1.0e-6f))
+			num_errors++;
+
+		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
+		{
+			uint8_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t max_value = (1 << num_bits) - 1;
+			for (uint32_t value = 0; value <= max_value; ++value)
+			{
+				const float value_signed = clamp(unpack_scalar_signed(value, num_bits), -1.0f, 1.0f);
+				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0f, 1.0f);
+
+				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+				pack_vector2_uXX_unsafe(vec0, num_bits, &buffer[0]);
+				vec1 = unpack_vector2_uXX_unsafe(num_bits, &buffer[0], 0);
+				if (!vector_all_near_equal2(vec0, vec1, 1.0e-6f))
+					num_errors++;
+
+				{
+					const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
+					for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
+					{
+						const uint8_t offset = offsets[offset_idx];
+
+						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 4);
+						vec1 = unpack_vector2_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
+						if (!vector_all_near_equal2(vec0, vec1, 1.0e-6f))
 							num_errors++;
 					}
 				}
