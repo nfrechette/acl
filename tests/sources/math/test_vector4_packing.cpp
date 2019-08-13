@@ -30,16 +30,16 @@
 
 using namespace acl;
 
-TEST_CASE("vector4 packing math", "[math][vector4][packing]")
+struct UnalignedBuffer
 {
-	struct UnalignedBuffer
-	{
-		uint32_t padding0;
-		uint16_t padding1;
-		uint8_t buffer[250];
-	};
-	static_assert((offsetof(UnalignedBuffer, buffer) % 2) == 0, "Minimum packing alignment is 2");
+	uint32_t padding0;
+	uint16_t padding1;
+	uint8_t buffer[250];
+};
+static_assert((offsetof(UnalignedBuffer, buffer) % 2) == 0, "Minimum packing alignment is 2");
 
+TEST_CASE("pack_vector4_128", "[math][vector4][packing]")
+{
 	{
 		UnalignedBuffer tmp;
 		Vector4_32 vec0 = vector_set(6123.123812f, 19237.01293127f, 1891.019231829f, 0.913912387f);
@@ -47,7 +47,10 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		Vector4_32 vec1 = unpack_vector4_128(&tmp.buffer[0]);
 		REQUIRE(std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) == 0);
 	}
+}
 
+TEST_CASE("pack_vector4_64", "[math][vector4][packing]")
+{
 	{
 		UnalignedBuffer tmp;
 		uint32_t num_errors = 0;
@@ -70,7 +73,10 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		}
 		REQUIRE(num_errors == 0);
 	}
+}
 
+TEST_CASE("pack_vector4_32", "[math][vector4][packing]")
+{
 	{
 		UnalignedBuffer tmp;
 		uint32_t num_errors = 0;
@@ -93,7 +99,10 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		}
 		REQUIRE(num_errors == 0);
 	}
+}
 
+TEST_CASE("pack_vector3_96", "[math][vector4][packing]")
+{
 	{
 		UnalignedBuffer tmp0;
 		UnalignedBuffer tmp1;
@@ -127,7 +136,10 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		}
 		REQUIRE(num_errors == 0);
 	}
+}
 
+TEST_CASE("pack_vector3_48", "[math][vector4][packing]")
+{
 	{
 		UnalignedBuffer tmp0;
 		uint32_t num_errors = 0;
@@ -150,7 +162,10 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		}
 		REQUIRE(num_errors == 0);
 	}
+}
 
+TEST_CASE("pack_vector3_32", "[math][vector4][packing]")
+{
 	{
 		const uint8_t num_bits_xy = 11;
 		const uint8_t num_bits_z = 10;
@@ -181,7 +196,10 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		}
 		REQUIRE(num_errors == 0);
 	}
+}
 
+TEST_CASE("pack_vector3_24", "[math][vector4][packing]")
+{
 	{
 		UnalignedBuffer tmp0;
 		uint32_t num_errors = 0;
@@ -204,7 +222,10 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		}
 		REQUIRE(num_errors == 0);
 	}
+}
 
+TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
+{
 	{
 		UnalignedBuffer tmp0;
 		alignas(16) uint8_t buffer[64];
@@ -272,9 +293,11 @@ TEST_CASE("vector4 packing math", "[math][vector4][packing]")
 		}
 		REQUIRE(num_errors == 0);
 	}
+}
 
+TEST_CASE("misc vector4 packing", "[math][vector4][packing]")
+{
 	REQUIRE(get_packed_vector_size(VectorFormat8::Vector3_96) == 12);
 	REQUIRE(get_packed_vector_size(VectorFormat8::Vector3_48) == 6);
 	REQUIRE(get_packed_vector_size(VectorFormat8::Vector3_32) == 4);
-
 }
