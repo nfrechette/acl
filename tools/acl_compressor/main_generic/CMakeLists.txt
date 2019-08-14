@@ -4,6 +4,7 @@ project(acl_compressor CXX)
 set(CMAKE_CXX_STANDARD 11)
 
 include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
+include_directories("${PROJECT_SOURCE_DIR}/../../../external/rtm/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../includes")
 
@@ -35,6 +36,7 @@ endif()
 
 # Abort on failure, easier to debug issues this way
 add_definitions(-DACL_ON_ASSERT_ABORT)
+add_definitions(-DRTM_ON_ASSERT_ABORT)
 add_definitions(-DSJSON_CPP_ON_ASSERT_ABORT)
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

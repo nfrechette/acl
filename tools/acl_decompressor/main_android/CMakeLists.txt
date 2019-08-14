@@ -17,6 +17,7 @@ set(CMAKE_ANDROID_JAVA_SOURCE_DIR "${PROJECT_SOURCE_DIR}/java")
 include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../acl_compressor/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../acl_compressor/sources")
+include_directories("${PROJECT_SOURCE_DIR}/../../../external/rtm/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp/includes")
 
 # Setup resources
@@ -67,6 +68,7 @@ add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
 # Disable SIMD if not needed
 if(NOT USE_SIMD_INSTRUCTIONS)
 	add_definitions(-DACL_NO_INTRINSICS)
+	add_definitions(-DRTM_NO_INTRINSICS)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC jni)
