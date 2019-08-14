@@ -24,6 +24,7 @@
 
 #include <catch.hpp>
 
+#include <acl/math/scalar_32.h>
 #include <acl/math/vector4_packing.h>
 
 #include <cstring>
@@ -118,8 +119,8 @@ TEST_CASE("pack_vector4_32", "[math][vector4][packing]")
 		uint32_t num_errors = 0;
 		for (uint32_t value = 0; value < 256; ++value)
 		{
-			const float value_signed = unpack_scalar_signed(value, 8);
-			const float value_unsigned = unpack_scalar_unsigned(value, 8);
+			const float value_signed = min(unpack_scalar_signed(value, 8), 1.0f);
+			const float value_unsigned = min(unpack_scalar_unsigned(value, 8), 1.0f);
 
 			Vector4_32 vec0 = vector_set(value_signed);
 			pack_vector4_32(vec0, false, &tmp.buffer[0]);
@@ -286,8 +287,8 @@ TEST_CASE("pack_vector3_24", "[math][vector4][packing]")
 		uint32_t num_errors = 0;
 		for (uint32_t value = 0; value < 256; ++value)
 		{
-			const float value_signed = unpack_scalar_signed(value, 8);
-			const float value_unsigned = unpack_scalar_unsigned(value, 8);
+			const float value_signed = min(unpack_scalar_signed(value, 8), 1.0f);
+			const float value_unsigned = min(unpack_scalar_unsigned(value, 8), 1.0f);
 
 			Vector4_32 vec0 = vector_set(value_signed, value_signed, value_signed);
 			pack_vector3_s24_unsafe(vec0, &tmp0.buffer[0]);
