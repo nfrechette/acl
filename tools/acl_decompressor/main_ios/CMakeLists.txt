@@ -18,6 +18,7 @@ set(MACOSX_BUNDLE_BUNDLE_NAME "acl-decompressor")
 include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../acl_compressor/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../acl_compressor/sources")
+include_directories("${PROJECT_SOURCE_DIR}/../../../external/rtm/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp/includes")
 
 # Setup resources
@@ -56,6 +57,7 @@ add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
 # Disable SIMD if not needed
 if(NOT USE_SIMD_INSTRUCTIONS)
 	add_definitions(-DACL_NO_INTRINSICS)
+	add_definitions(-DRTM_NO_INTRINSICS)
 endif()
 
 target_link_libraries(${PROJECT_NAME} "-framework CoreFoundation")

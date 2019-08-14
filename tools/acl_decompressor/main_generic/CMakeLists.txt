@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 11)
 include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../acl_compressor/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../acl_compressor/sources")
+include_directories("${PROJECT_SOURCE_DIR}/../../../external/rtm/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp/includes")
 
 # Grab all of our common source files
