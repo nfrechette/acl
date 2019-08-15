@@ -540,6 +540,9 @@ def run_stat_parsing(options, stat_queue, result_queue):
 						run_stats['translation_format'] = shorten_translation_format(run_stats['translation_format'])
 						run_stats['scale_format'] = shorten_scale_format(run_stats['scale_format'])
 
+						if isinstance(run_stats['duration'], str):
+							run_stats['duration'] = 0.0
+
 						if 'segmenting' in run_stats:
 							run_stats['segmenting']['range_reduction'] = shorten_range_reduction(run_stats['segmenting']['range_reduction'])
 							run_stats['desc'] = '{}|{}|{}, Clip {}, Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
