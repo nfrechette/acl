@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // The MIT License (MIT)
 //
-// Copyright (c) 2017 Nicholas Frechette & Animation Compression Library contributors
+// Copyright (c) 2019 Nicholas Frechette & Animation Compression Library contributors
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,11 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#if defined(SJSON_CPP_PARSER)
-
 #include "acl/core/compiler_utils.h"
+#include "acl/core/iallocator.h"
+#include "acl/compression/impl/track_list_context.h"
+
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -34,58 +36,51 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	struct ClipReaderError : sjson::ParserError
+	namespace acl_impl
 	{
-		enum : uint32_t
+		inline scalarf_range extract_scalarf_range(const track& track)
 		{
-			UnsupportedVersion = sjson::ParserError::Last,
-			NoParentBoneWithThatName,
-			NoBoneWithThatName,
-			UnsignedIntegerExpected,
-			InvalidCompressionSetting,
-			InvalidAdditiveClipFormat,
-			PositiveValueExpected,
-			InvalidTrackType,
-		};
+			using namespace rtm;
 
-		ClipReaderError()
-		{
-		}
+			vector4f min = rtm::vector_set(1e10f);
+			vector4f max = rtm::vector_set(-1e10f);
 
-		ClipReaderError(const sjson::ParserError& e)
-		{
-			error = e.error;
-			line = e.line;
-			column = e.column;
-		}
-
-		virtual const char* get_description() const override
-		{
-			switch (error)
+			const uint32_t num_samples = track.get_num_samples();
+			const track_vector4f& typed_track = track_cast<const track_vector4f>(track);
+			
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-			case UnsupportedVersion:
-				return "This library does not support this version of animation file";
-			case NoParentBoneWithThatName:
-				return "There is no parent bone with this name";
-			case NoBoneWithThatName:
-				return "The skeleton does not define a bone with this name";
-			case UnsignedIntegerExpected:
-				return "An unsigned integer is expected here";
-			case InvalidCompressionSetting:
-				return "Invalid compression settings provided";
-			case InvalidAdditiveClipFormat:
-				return "Invalid additive clip format provided";
-			case PositiveValueExpected:
-				return "A positive value is expected here";
-			case InvalidTrackType:
-				return "Invalid raw track type";
-			default:
-				return sjson::ParserError::get_description();
+				const vector4f sample = typed_track[sample_index];
+
+				min = vector_min(min, sample);
+				max = vector_max(max, sample);
+			}
+
+			return scalarf_range::from_min_max(min, max);
+		}
+
+		inline void extract_track_ranges(track_list_context& context)
+		{
+			ACL_ASSERT(context.is_valid(), "Invalid context");
+
+			context.range_list = allocate_type_array<track_range>(*context.allocator, context.num_tracks);
+
+			for (uint32_t track_index = 0; track_index < context.num_tracks; ++track_index)
+			{
+				const track& track = context.track_list[track_index];
+
+				switch (track.get_category())
+				{
+				case track_category8::scalarf:
+					context.range_list[track_index] = extract_scalarf_range(track);
+					break;
+				default:
+					ACL_ASSERT(false, "Invalid track category");
+					break;
+				}
 			}
 		}
-	};
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
-
-#endif	// #if defined(SJSON_CPP_PARSER)

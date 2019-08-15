@@ -4,12 +4,18 @@
 // Compressed clip filenames should have the form: *.acl.zip
 // Note: a compressed clip is just a zipped raw clip.
 
-// Each clip file contains the information of a single clip.
+// Each file contains the information of a single clip or track list (but not both).
 
 // The ACL file format version
-version = 123
+// version = 1		// Initial version
+// version = 2		// Introduced clip compression settings
+//version = 3		// Introduced additive clip related data
+version = 4			// Introduced track list related data
 
-// Clip general information
+// BEGIN CLIP RELATED DATA
+
+// Clip general information.
+// Optional, if present clip settings, bones, and tracks must be present as well.
 // Must come first, before settings, bones, and tracks
 clip =
 {
@@ -48,7 +54,7 @@ clip =
 	additive_base_sample_rate = 30
 }
 
-// Optional compression settings.
+// Optional clip compression settings.
 // Must come before bones
 settings =
 {
@@ -107,7 +113,7 @@ settings =
 	error_threshold = 0.01
 }
 
-// Reference skeleton, list of bones (any order)
+// Reference clip skeleton, list of bones (any order)
 // Must come before tracks
 bones =
 [
@@ -138,7 +144,7 @@ bones =
 	}
 ]
 
-// Animation data, list of tracks (any order)
+// Animation data, list of clip tracks (any order)
 tracks =
 [
 	{
@@ -175,3 +181,74 @@ tracks =
 		]
 	}
 ]
+
+// END CLIP RELATED DATA
+// BEGIN TRACK LIST RELATED DATA
+
+// List general information.
+// Optional, if present clip settings and tracks must be present as well.
+// Must come first, before settings and tracks
+track_list =
+{
+	// Track list properties can come in any order
+
+	// List name, handy for debugging. Optional, filename will be used if missing.
+	name = "A clip"
+
+	// Number of samples per track. All tracks must have the same number of samples.
+	// List duration in seconds = (num_samples - 1) / sample_rate
+	// Regardless of sample_rate, if we have a single sample, we have a 0.0 duration
+	// and thus represent a static snapshot.
+	num_samples = 73
+
+	// List sample rate in samples per second. All tracks must have the same sample rate.
+	sample_rate = 30
+
+	// Whether floating point values are stored in hexadecimal and thus binary exact. Optional, defaults to 'false'.
+	is_binary_exact = true
+}
+
+// Optional list compression settings.
+// Must come before tracks
+settings =
+{
+}
+
+// List of raw tracks
+tracks =
+[
+	{
+		// Track properties can come in any order
+
+		// Track name, optional
+		name = "Right Hand IK"
+
+		// Track type (float1f, float2f, float3f, float4f)
+		type = float4f
+
+		// The precision target used when optimizing the bit rate
+		// Defaults to '0.0001' units
+		precision = 0.0001
+
+		// The constant track detection threshold
+		// Defaults to '0.00001' units
+		constant_threshold = 0.00001
+
+		// The track output index. When writing out the compressed data stream, this index
+		// will be used instead of the track index. This allows custom reordering for things
+		// like LOD sorting or skeleton remapping. A value of 'k_invalid_track_index' (0xFFFFFFFF) will strip the track
+		// from the compressed data stream. Output indices must be unique and contiguous.
+		// Defaults to the track index
+		output_index = 12
+
+		// Track data
+		data =
+		[
+			[ 0.0, 0.0, 0.0, 1.0 ]
+			[ 1.0, 0.0, 0.0, 0.0 ]
+			// The number of samples here must match num_samples
+		]
+	}
+]
+
+// END TRACK LIST RELATED DATA

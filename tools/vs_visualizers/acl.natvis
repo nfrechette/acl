@@ -47,4 +47,51 @@
     <DisplayString>size={m_size}, num_bits={m_size * 32}</DisplayString>
   </Type>
 
+  <Type Name="acl::track">
+    <DisplayString>num_samples={m_num_samples}, type={m_type}</DisplayString>
+    <Expand>
+      <Item Name="num_samples">m_num_samples</Item>
+      <Item Name="stride">m_stride</Item>
+      <Item Name="type">m_type</Item>
+      <Item Name="precision" Condition="m_type == acl::track_type8::float1f">m_desc.scalar.precision</Item>
+      <Item Name="precision" Condition="m_type == acl::track_type8::float2f">m_desc.scalar.precision</Item>
+      <Item Name="precision" Condition="m_type == acl::track_type8::float3f">m_desc.scalar.precision</Item>
+      <Item Name="precision" Condition="m_type == acl::track_type8::float4f">m_desc.scalar.precision</Item>
+      <Item Name="precision" Condition="m_type == acl::track_type8::vector4f">m_desc.scalar.precision</Item>
+      <Item Name="is_ref">m_allocator == nullptr</Item>
+      <ArrayItems>
+        <Size>m_num_samples</Size>
+        <ValuePointer Condition="m_type == acl::track_type8::float1f">(float*)m_data</ValuePointer>
+        <ValuePointer Condition="m_type == acl::track_type8::float2f">(rtm::float2f*)m_data</ValuePointer>
+        <ValuePointer Condition="m_type == acl::track_type8::float3f">(rtm::float3f*)m_data</ValuePointer>
+        <ValuePointer Condition="m_type == acl::track_type8::float4f">(rtm::float4f*)m_data</ValuePointer>
+        <ValuePointer Condition="m_type == acl::track_type8::vector4f">(rtm::vector4f*)m_data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <Type Name="acl::track_array">
+    <DisplayString>num_tracks={m_num_tracks}</DisplayString>
+    <Expand>
+      <Item Name="num_tracks">m_num_tracks</Item>
+      <ArrayItems>
+        <Size>m_num_tracks</Size>
+        <ValuePointer>m_tracks</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <Type Name="acl::acl_impl::scalarf_range">
+    <DisplayString>min={m_min}, extent={m_extent}</DisplayString>
+  </Type>
+
+  <Type Name="acl::acl_impl::track_range">
+    <DisplayString Condition="category == acl::track_category8::scalarf">{range.scalarf}</DisplayString>
+    <Expand>
+      <Item Name="category">category</Item>
+      <Item Name="min" Condition="category == acl::track_category8::scalarf">range.scalarf.m_min</Item>
+      <Item Name="extent" Condition="category == acl::track_category8::scalarf">range.scalarf.m_extent</Item>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>

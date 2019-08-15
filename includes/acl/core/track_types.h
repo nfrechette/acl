@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/compiler_utils.h"
+#include "acl/core/memory_utils.h"
 
 #include <cstdint>
 #include <cstring>
@@ -94,6 +95,132 @@ namespace acl
 		ConstantDefault,
 		Varying,
 	};
+
+	//////////////////////////////////////////////////////////////////////////
+
+	//////////////////////////////////////////////////////////////////////////
+	// We only support up to 4294967295 tracks. We reserve 4294967295 for the invalid index
+	constexpr uint32_t k_invalid_track_index = 0xFFFFFFFFu;
+
+	//////////////////////////////////////////////////////////////////////////
+	// The various supported track types.
+	// Note: be careful when changing values here as they might be serialized.
+	enum class track_type8 : uint8_t
+	{
+		float1f		= 0,
+		float2f		= 1,
+		float3f		= 2,
+		float4f		= 3,
+		vector4f	= 4,
+
+		//float1d	= 5,
+		//float2d	= 6,
+		//float3d	= 7,
+		//float4d	= 8,
+		//vector4d	= 9,
+
+		//quatf		= 10,
+		//quatd		= 11,
+
+		//qvvf		= 12,
+		//qvvd		= 13,
+
+		//int1i		= 14,
+		//int2i		= 15,
+		//int3i		= 16,
+		//int4i		= 17,
+		//vector4i	= 18,
+
+		//int1q		= 19,
+		//int2q		= 20,
+		//int3q		= 21,
+		//int4q		= 22,
+		//vector4q	= 23,
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// The categories of track types.
+	enum class track_category8 : uint8_t
+	{
+		scalarf		= 0,
+		//scalard	= 1,
+		//scalari	= 2,
+		//scalarq	= 3,
+		//transformf = 4,
+		//transformd = 5,
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// This structure describes the various settings for floating point scalar tracks.
+	// Used by: float1f, float2f, float3f, float4f, vector4f
+	struct track_desc_scalarf
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// The track category for this description.
+		static constexpr track_category8 category = track_category8::scalarf;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The track output index. When writing out the compressed data stream, this index
+		// will be used instead of the track index. This allows custom reordering for things
+		// like LOD sorting or skeleton remapping. A value of 'k_invalid_track_index' will strip the track
+		// from the compressed data stream. Output indices must be unique and contiguous.
+		uint32_t output_index;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The per component precision threshold to try and attain when optimizing the bit rate.
+		// If the error is below the precision threshold, we will remove bits until we reach it without
+		// exceeding it. If the error is above the precision threshold, we will add more bits until
+		// we lower it underneath.
+		float precision;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The per component precision threshold used to detect constant tracks.
+		// A constant track is a track that has a single repeating value across every sample.
+		// TODO: Use the precision?
+		float constant_threshold;
+	};
+
+#if 0	// TODO: Add support for this
+	//////////////////////////////////////////////////////////////////////////
+	// This structure describes the various settings for transform tracks.
+	// Used by: quatf, qvvf
+	struct track_desc_transformf
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// The track category for this description.
+		static constexpr track_category8 category = track_category8::transformf;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The track output index. When writing out the compressed data stream, this index
+		// will be used instead of the track index. This allows custom reordering for things
+		// like LOD sorting or skeleton remapping. A value of 'k_invalid_track_index' will strip the track
+		// from the compressed data stream. Output indices must be unique and contiguous.
+		uint32_t output_index;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The index of the parent transform track or `k_invalid_track_index` if it has no parent.
+		uint32_t parent_index;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The shell precision threshold to try and attain when optimizing the bit rate.
+		// If the error is below the precision threshold, we will remove bits until we reach it without
+		// exceeding it. If the error is above the precision threshold, we will add more bits until
+		// we lower it underneath.
+		float precision;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The error is measured on a rigidly deformed shell around every transform at the specified distance.
+		float shell_distance;
+
+		//////////////////////////////////////////////////////////////////////////
+		// TODO: Use the precision and shell distance?
+		float constant_rotation_threshold;
+		float constant_translation_threshold;
+		float constant_scale_threshold;
+	};
+#endif
+
+	// TODO: Add transform description?
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -295,6 +422,92 @@ namespace acl
 	constexpr bool is_vector_format_variable(VectorFormat8 format)
 	{
 		return format == VectorFormat8::Vector3_Variable;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the string representation for the provided track type.
+	// TODO: constexpr
+	inline const char* get_track_type_name(track_type8 type)
+	{
+		switch (type)
+		{
+		case track_type8::float1f:			return "float1f";
+		case track_type8::float2f:			return "float2f";
+		case track_type8::float3f:			return "float3f";
+		case track_type8::float4f:			return "float4f";
+		case track_type8::vector4f:			return "vector4f";
+		default:							return "<Invalid>";
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the track type from its string representation.
+	// Returns true on success, false otherwise.
+	inline bool get_track_type(const char* type, track_type8& out_type)
+	{
+		// Entries in the same order as the enum integral value
+		static const char* k_track_type_names[] =
+		{
+			"float1f",
+			"float2f",
+			"float3f",
+			"float4f",
+			"vector4f",
+		};
+
+		static_assert(get_array_size(k_track_type_names) == (size_t)track_type8::vector4f + 1, "Unexpected array size");
+
+		for (size_t type_index = 0; type_index < get_array_size(k_track_type_names); ++type_index)
+		{
+			const char* type_name = k_track_type_names[type_index];
+			if (std::strncmp(type, type_name, std::strlen(type_name)) == 0)
+			{
+				out_type = safe_static_cast<track_type8>(type_index);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the track category for the provided track type.
+	inline track_category8 get_track_category(track_type8 type)
+	{
+		// Entries in the same order as the enum integral value
+		static constexpr track_category8 k_track_type_to_category[]
+		{
+			track_category8::scalarf,	// float1f
+			track_category8::scalarf,	// float2f
+			track_category8::scalarf,	// float3f
+			track_category8::scalarf,	// float4f
+			track_category8::scalarf,	// vector4f
+		};
+
+		static_assert(get_array_size(k_track_type_to_category) == (size_t)track_type8::vector4f + 1, "Unexpected array size");
+
+		ACL_ASSERT(type <= track_type8::vector4f, "Unexpected track type");
+		return type <= track_type8::vector4f ? k_track_type_to_category[static_cast<uint32_t>(type)] : track_category8::scalarf;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the num of elements within a sample for the provided track type.
+	inline uint32_t get_track_num_sample_elements(track_type8 type)
+	{
+		// Entries in the same order as the enum integral value
+		static constexpr uint32_t k_track_type_to_num_elements[]
+		{
+			1,	// float1f
+			2,	// float2f
+			3,	// float3f
+			4,	// float4f
+			4,	// vector4f
+		};
+
+		static_assert(get_array_size(k_track_type_to_num_elements) == (size_t)track_type8::vector4f + 1, "Unexpected array size");
+
+		ACL_ASSERT(type <= track_type8::vector4f, "Unexpected track type");
+		return type <= track_type8::vector4f ? k_track_type_to_num_elements[static_cast<uint32_t>(type)] : 0;
 	}
 }
 
