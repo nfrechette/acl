@@ -29,6 +29,7 @@
 #include "acl/io/clip_reader_error.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/compression_settings.h"
+#include "acl/compression/track_array.h"
 #include "acl/compression/skeleton.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/compiler_utils.h"
@@ -42,6 +43,36 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Enum to describe each type of raw content that an SJSON ACL file might contain.
+	enum class sjson_file_type
+	{
+		unknown,
+		raw_clip,
+		raw_track_list,
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// A raw clip with transform tracks
+	struct sjson_raw_clip
+	{
+		std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
+		std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
+
+		bool has_settings;
+		AlgorithmType8 algorithm_type;
+		CompressionSettings settings;
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// A raw track list
+	struct sjson_raw_track_list
+	{
+		track_array track_list;
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// An SJSON ACL file reader.
 	class ClipReader
 	{
 	public:
@@ -56,28 +87,94 @@ namespace acl
 		{
 		}
 
+		ACL_DEPRECATED("Use get_file_type() and read_raw_clip(..) instead, to be removed in v2.0")
 		bool read_settings(bool& out_has_settings, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings)
 		{
 			reset_state();
 
-			return read_version() && read_clip_header() && read_settings(&out_has_settings, &out_algorithm_type, &out_settings);
+			return read_version() && read_raw_clip_header() && read_settings(&out_has_settings, &out_algorithm_type, &out_settings);
 		}
 
+		ACL_DEPRECATED("Use get_file_type() and read_raw_clip(..) instead, to be removed in v2.0")
 		bool read_skeleton(std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
 		{
 			reset_state();
 
-			return read_version() && read_clip_header() && read_settings(nullptr, nullptr, nullptr) && create_skeleton(skeleton);
+			return read_version() && read_raw_clip_header() && read_settings(nullptr, nullptr, nullptr) && create_skeleton(skeleton);
 		}
 
+		ACL_DEPRECATED("Use get_file_type() and read_raw_clip(..) instead, to be removed in v2.0")
 		bool read_clip(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
 		{
 			reset_state();
 
-			return read_version() && read_clip_header() && read_settings(nullptr, nullptr, nullptr) && read_skeleton() && create_clip(clip, skeleton) && read_tracks(*clip, skeleton) && nothing_follows();
+			return read_version() && read_raw_clip_header() && read_settings(nullptr, nullptr, nullptr) && read_skeleton() && create_clip(clip, skeleton) && read_tracks(*clip, skeleton) && nothing_follows();
 		}
 
-		ClipReaderError get_error() { return m_error; }
+		sjson_file_type get_file_type()
+		{
+			reset_state();
+
+			if (!read_version())
+				return sjson_file_type::unknown;
+
+			if (m_parser.object_begins("clip"))
+				return sjson_file_type::raw_clip;
+
+			if (m_parser.object_begins("track_list"))
+				return sjson_file_type::raw_track_list;
+
+			return sjson_file_type::unknown;
+		}
+
+		bool read_raw_clip(sjson_raw_clip& out_data)
+		{
+			reset_state();
+
+			if (!read_version())
+				return false;
+
+			if (!read_raw_clip_header())
+				return false;
+
+			if (!read_settings(&out_data.has_settings, &out_data.algorithm_type, &out_data.settings))
+				return false;
+
+			if (!create_skeleton(out_data.skeleton))
+				return false;
+
+			if (!create_clip(out_data.clip, *out_data.skeleton))
+				return false;
+
+			if (!read_tracks(*out_data.clip, *out_data.skeleton))
+				return false;
+
+			return nothing_follows();
+		}
+
+		bool read_raw_track_list(sjson_raw_track_list& out_data)
+		{
+			reset_state();
+
+			if (!read_version())
+				return false;
+
+			if (!read_raw_track_list_header())
+				return false;
+
+			bool has_settings;				// Not used
+			AlgorithmType8 algorithm_type;	// Not used
+			CompressionSettings settings;	// Not used
+			if (!read_settings(&has_settings, &algorithm_type, &settings))
+				return false;
+
+			if (!create_track_list(out_data.track_list))
+				return false;
+
+			return nothing_follows();
+		}
+
+		ClipReaderError get_error() const { return m_error; }
 
 	private:
 		IAllocator& m_allocator;
@@ -108,7 +205,7 @@ namespace acl
 				return false;
 			}
 
-			if (m_version > 3)
+			if (m_version > 4)
 			{
 				set_error(ClipReaderError::UnsupportedVersion);
 				return false;
@@ -117,7 +214,7 @@ namespace acl
 			return true;
 		}
 
-		bool read_clip_header()
+		bool read_raw_clip_header()
 		{
 			sjson::StringView additive_format;
 
@@ -180,6 +277,49 @@ namespace acl
 				set_error(ClipReaderError::PositiveValueExpected);
 				return false;
 			}
+
+			if (!m_parser.object_ends())
+				goto error;
+
+			return true;
+
+		error:
+			m_error = m_parser.get_error();
+			return false;
+		}
+
+		bool read_raw_track_list_header()
+		{
+			if (!m_parser.object_begins("track_list"))
+				goto error;
+
+			if (!m_parser.read("name", m_clip_name))
+				goto error;
+
+			double num_samples;
+			if (!m_parser.read("num_samples", num_samples))
+				goto error;
+
+			m_num_samples = static_cast<uint32_t>(num_samples);
+			if (static_cast<double>(m_num_samples) != num_samples)
+			{
+				set_error(ClipReaderError::UnsignedIntegerExpected);
+				return false;
+			}
+
+			double sample_rate;
+			if (!m_parser.read("sample_rate", sample_rate))
+				goto error;
+
+			m_sample_rate = static_cast<float>(sample_rate);
+			if (m_sample_rate <= 0.0f)
+			{
+				set_error(ClipReaderError::PositiveValueExpected);
+				return false;
+			}
+
+			// Optional value
+			m_parser.try_read("is_binary_exact", m_is_binary_exact, false);
 
 			if (!m_parser.object_ends())
 				goto error;
@@ -366,6 +506,21 @@ namespace acl
 			return UInt64ToDouble(value_u64).dbl;
 		}
 
+		static float hex_to_float(const sjson::StringView& value)
+		{
+			union UInt32ToFloat
+			{
+				uint32_t u32;
+				float flt;
+
+				constexpr explicit UInt32ToFloat(uint32_t u32_value) : u32(u32_value) {}
+			};
+
+			ACL_ASSERT(value.size() <= 16, "Invalid binary exact double value");
+			uint32_t value_u32 = std::strtoul(value.c_str(), nullptr, 16);
+			return UInt32ToFloat(value_u32).flt;
+		}
+
 		static Quat_64 hex_to_quat(const sjson::StringView values[4])
 		{
 			return quat_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]), hex_to_double(values[3]));
@@ -374,6 +529,19 @@ namespace acl
 		static Vector4_64 hex_to_vector3(const sjson::StringView values[3])
 		{
 			return vector_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]));
+		}
+
+		static rtm::float4f hex_to_float4f(const sjson::StringView values[4], uint32_t num_components)
+		{
+			ACL_ASSERT(num_components <= 4, "Invalid number of components");
+
+			rtm::float4f result = { 0.0f, 0.0f, 0.0f, 0.0f };
+			float* result_ptr = &result.x;
+
+			for (uint32_t component_index = 0; component_index < num_components; ++num_components)
+				result_ptr[component_index] = hex_to_float(values[component_index]);
+
+			return result;
 		}
 
 		bool process_each_bone(RigidBone* bones, uint16_t& num_bones)
@@ -480,6 +648,267 @@ namespace acl
 		bool create_clip(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
 		{
 			clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_num_samples, m_sample_rate, String(m_allocator, m_clip_name.c_str(), m_clip_name.size()));
+			return true;
+		}
+
+		bool process_track_list(track* tracks, uint32_t& num_tracks)
+		{
+			const bool counting = tracks == nullptr;
+			track dummy;
+			track_type8 track_list_type = track_type8::float1f;
+
+			num_tracks = 0;
+
+			if (!m_parser.array_begins("tracks"))
+				goto error;
+
+			for (uint32_t i = 0; !m_parser.try_array_ends(); ++i)
+			{
+				track& track_ = counting ? dummy : tracks[i];
+
+				if (!m_parser.object_begins())
+					goto error;
+
+				sjson::StringView name;
+				if (!m_parser.read("name", name))
+					goto error;
+
+				// TODO: Store track name somewhere for debugging purposes
+
+				sjson::StringView type;
+				if (!m_parser.read("type", type))
+					goto error;
+
+				track_type8 track_type;
+				if (!get_track_type(type.c_str(), track_type))
+				{
+					m_error.error = ClipReaderError::InvalidTrackType;
+					return false;
+				}
+
+				if (num_tracks == 0)
+					track_list_type = track_type;
+				else if (track_type != track_list_type)
+				{
+					m_error.error = ClipReaderError::InvalidTrackType;
+					return false;
+				}
+
+				const uint32_t num_components = get_track_num_sample_elements(track_type);
+				ACL_ASSERT(num_components > 0 && num_components <= 4, "Cannot have 0 or more than 4 components");
+
+				float precision;
+				m_parser.try_read("precision", precision, 0.0001f);
+
+				float constant_threshold;
+				m_parser.try_read("constant_threshold", constant_threshold, 0.00001f);
+
+				uint32_t output_index;
+				m_parser.try_read("output_index", output_index, i);
+
+				track_desc_scalarf scalar_desc;
+				scalar_desc.output_index = output_index;
+				scalar_desc.precision = precision;
+				scalar_desc.constant_threshold = constant_threshold;
+
+				if (!m_parser.array_begins("data"))
+					goto error;
+
+				union track_samples_ptr_union
+				{
+					void*			any;
+					float*			float1f;
+					rtm::float2f*	float2f;
+					rtm::float3f*	float3f;
+					rtm::float4f*	float4f;
+					rtm::vector4f*	vector4f;
+				};
+				track_samples_ptr_union track_samples_typed = { nullptr };
+
+				switch (track_type)
+				{
+				case track_type8::float1f:
+					track_samples_typed.float1f = allocate_type_array<float>(m_allocator, m_num_samples);
+					break;
+				case track_type8::float2f:
+					track_samples_typed.float2f = allocate_type_array<rtm::float2f>(m_allocator, m_num_samples);
+					break;
+				case track_type8::float3f:
+					track_samples_typed.float3f = allocate_type_array<rtm::float3f>(m_allocator, m_num_samples);
+					break;
+				case track_type8::float4f:
+					track_samples_typed.float4f = allocate_type_array<rtm::float4f>(m_allocator, m_num_samples);
+					break;
+				case track_type8::vector4f:
+					track_samples_typed.vector4f = allocate_type_array<rtm::vector4f>(m_allocator, m_num_samples);
+					break;
+				default:
+					ACL_ASSERT(false, "Unsupported track type");
+					break;
+				}
+
+				bool has_error = false;
+				for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
+				{
+					if (!m_parser.array_begins())
+					{
+						has_error = true;
+						break;
+					}
+
+					if (m_is_binary_exact)
+					{
+						// TODO: Add test that uses this
+						sjson::StringView values[4];
+						if (m_parser.read(values, num_components))
+						{
+							switch (track_type)
+							{
+							case track_type8::float1f:
+							case track_type8::float2f:
+							case track_type8::float3f:
+							case track_type8::float4f:
+							case track_type8::vector4f:
+							{
+								const rtm::float4f value = hex_to_float4f(values, num_components);
+								std::memcpy(track_samples_typed.float1f + (sample_index * num_components), &value, sizeof(float) * num_components);
+								break;
+							}
+							default:
+								ACL_ASSERT(false, "Unsupported track type");
+								break;
+							}
+						}
+						else
+						{
+							has_error = true;
+							break;
+						}
+					}
+					else
+					{
+						double values[4];
+						if (m_parser.read(values, num_components))
+						{
+							switch (track_type)
+							{
+							case track_type8::float1f:
+							case track_type8::float2f:
+							case track_type8::float3f:
+							case track_type8::float4f:
+							case track_type8::vector4f:
+							{
+								const rtm::float4f value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3])};
+								std::memcpy(track_samples_typed.float1f + (sample_index * num_components), &value, sizeof(float) * num_components);
+								break;
+							}
+							default:
+								ACL_ASSERT(false, "Unsupported track type");
+								break;
+							}
+						}
+						else
+						{
+							has_error = true;
+							break;
+						}
+					}
+
+					if (!has_error && !m_parser.array_ends())
+					{
+						has_error = true;
+						break;
+					}
+				}
+
+				if (!has_error && !m_parser.array_ends())
+				{
+					has_error = true;
+					break;
+				}
+
+				if (!has_error && !m_parser.object_ends())
+				{
+					has_error = true;
+					break;
+				}
+
+				if (has_error)
+				{
+					switch (track_type)
+					{
+					case track_type8::float1f:
+						deallocate_type_array<float>(m_allocator, track_samples_typed.float1f, m_num_samples);
+						break;
+					case track_type8::float2f:
+						deallocate_type_array<rtm::float2f>(m_allocator, track_samples_typed.float2f, m_num_samples);
+						break;
+					case track_type8::float3f:
+						deallocate_type_array<rtm::float3f>(m_allocator, track_samples_typed.float3f, m_num_samples);
+						break;
+					case track_type8::float4f:
+						deallocate_type_array<rtm::float4f>(m_allocator, track_samples_typed.float4f, m_num_samples);
+						break;
+					case track_type8::vector4f:
+						deallocate_type_array<rtm::vector4f>(m_allocator, track_samples_typed.vector4f, m_num_samples);
+						break;
+					default:
+						ACL_ASSERT(false, "Unsupported track type");
+						break;
+					}
+				}
+				else
+				{
+					switch (track_type)
+					{
+					case track_type8::float1f:
+						track_ = track_float1f::make_owner(scalar_desc, m_allocator, track_samples_typed.float1f, m_num_samples, m_sample_rate);
+						break;
+					case track_type8::float2f:
+						track_ = track_float2f::make_owner(scalar_desc, m_allocator, track_samples_typed.float2f, m_num_samples, m_sample_rate);
+						break;
+					case track_type8::float3f:
+						track_ = track_float3f::make_owner(scalar_desc, m_allocator, track_samples_typed.float3f, m_num_samples, m_sample_rate);
+						break;
+					case track_type8::float4f:
+						track_ = track_float4f::make_owner(scalar_desc, m_allocator, track_samples_typed.float4f, m_num_samples, m_sample_rate);
+						break;
+					case track_type8::vector4f:
+						track_ = track_vector4f::make_owner(scalar_desc, m_allocator, track_samples_typed.vector4f, m_num_samples, m_sample_rate);
+						break;
+					default:
+						ACL_ASSERT(false, "Unsupported track type");
+						break;
+					}
+				}
+
+				num_tracks++;
+			}
+
+			return true;
+
+		error:
+			m_error = m_parser.get_error();
+			return false;
+		}
+
+		bool create_track_list(track_array& track_list)
+		{
+			const sjson::ParserState before_tracks = m_parser.save_state();
+
+			uint32_t num_tracks;
+			if (!process_track_list(nullptr, num_tracks))
+				return false;
+
+			m_parser.restore_state(before_tracks);
+
+			track_list = track_array(m_allocator, num_tracks);
+
+			if (!process_track_list(track_list.begin(), num_tracks))
+				return false;
+
+			ACL_ASSERT(num_tracks == track_list.get_num_tracks(), "Number of tracks read mismatch");
+
 			return true;
 		}
 

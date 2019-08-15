@@ -269,7 +269,7 @@ namespace acl
 		// allows various decompression actions to be performed in a clip.
 		//
 		// Both the constructor and destructor are public because it is safe to place
-		// instances of this context on the stack or as members variables.
+		// instances of this context on the stack or as member variables.
 		//
 		// This compression algorithm is the simplest by far and as such it offers
 		// the fastest compression and decompression. Every sample is retained and

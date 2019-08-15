@@ -45,13 +45,17 @@
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/ansi_allocator.h"
 #include "acl/core/string.h"
-#include "acl/compression/skeleton.h"
+#include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/animation_clip.h"
-#include "acl/compression/utils.h"
-#include "acl/io/clip_reader.h"
-#include "acl/io/clip_writer.h"							// Included just so we compile it to test for basic errors
+#include "acl/compression/compress.h"
+#include "acl/compression/skeleton.h"
 #include "acl/compression/skeleton_error_metric.h"
 #include "acl/compression/stream/write_decompression_stats.h"
+#include "acl/compression/track_error.h"
+#include "acl/compression/utils.h"
+#include "acl/decompression/decompress.h"
+#include "acl/io/clip_reader.h"
+#include "acl/io/clip_writer.h"							// Included just so we compile it to test for basic errors
 
 #include "acl/algorithm/uniformly_sampled/encoder.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
@@ -497,6 +501,188 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 }
 
+static void validate_accuracy(IAllocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold)
+{
+	(void)allocator;
+	(void)raw_tracks;
+	(void)tracks;
+	(void)regression_error_threshold;
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
+	using namespace acl_impl;
+
+	const float regression_error_thresholdf = static_cast<float>(regression_error_threshold);
+	const rtm::vector4f regression_error_thresholdv = rtm::vector_set(regression_error_thresholdf);
+	(void)regression_error_thresholdf;
+	(void)regression_error_thresholdv;
+
+	const float duration = tracks.get_duration();
+	const float sample_rate = tracks.get_sample_rate();
+	const uint32_t num_tracks = tracks.get_num_tracks();
+	const uint32_t num_samples = tracks.get_num_samples_per_track();
+	const track_type8 track_type = raw_tracks.get_track_type();
+
+	ACL_ASSERT(duration == raw_tracks.get_duration(), "Duration mismatch");
+	ACL_ASSERT(sample_rate == raw_tracks.get_sample_rate(), "Sample rate mismatch");
+	ACL_ASSERT(num_tracks <= raw_tracks.get_num_tracks(), "Num tracks mismatch");
+	ACL_ASSERT(num_samples == raw_tracks.get_num_samples_per_track(), "Num samples mismatch");
+
+	decompression_context<debug_decompression_settings> context;
+	context.initialize(tracks);
+
+	debug_track_writer raw_tracks_writer(allocator, track_type, num_tracks);
+	debug_track_writer raw_track_writer(allocator, track_type, num_tracks);
+	debug_track_writer lossy_tracks_writer(allocator, track_type, num_tracks);
+	debug_track_writer lossy_track_writer(allocator, track_type, num_tracks);
+
+	const rtm::vector4f zero = rtm::vector_zero();
+
+	// Regression test
+	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+	{
+		const float sample_time = min(float(sample_index) / sample_rate, duration);
+
+		raw_tracks.sample_tracks(sample_time, SampleRoundingPolicy::None, raw_tracks_writer);
+
+		context.seek(sample_time, SampleRoundingPolicy::None);
+		context.decompress_tracks(lossy_tracks_writer);
+
+		// Validate decompress_tracks
+		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+		{
+			const track& track_ = raw_tracks[track_index];
+			const uint32_t output_index = track_.get_output_index();
+			if (output_index == k_invalid_track_index)
+				continue;	// Track is being stripped, ignore it
+
+			rtm::vector4f error = zero;
+
+			switch (track_type)
+			{
+			case track_type8::float1f:
+			{
+				const float raw_value = raw_tracks_writer.read_float1(track_index);
+				const float lossy_value = lossy_tracks_writer.read_float1(output_index);
+				error = rtm::vector_set(rtm::scalar_abs(raw_value - lossy_value));
+				break;
+			}
+			case track_type8::float2f:
+			{
+				const rtm::vector4f raw_value = raw_tracks_writer.read_float2(track_index);
+				const rtm::vector4f lossy_value = lossy_tracks_writer.read_float2(output_index);
+				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
+				error = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::c, rtm::mix4::d>(error, zero);
+				break;
+			}
+			case track_type8::float3f:
+			{
+				const rtm::vector4f raw_value = raw_tracks_writer.read_float3(track_index);
+				const rtm::vector4f lossy_value = lossy_tracks_writer.read_float3(output_index);
+				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
+				error = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::z, rtm::mix4::d>(error, zero);
+				break;
+			}
+			case track_type8::float4f:
+			{
+				const rtm::vector4f raw_value = raw_tracks_writer.read_float4(track_index);
+				const rtm::vector4f lossy_value = lossy_tracks_writer.read_float4(output_index);
+				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
+				break;
+			}
+			case track_type8::vector4f:
+			{
+				const rtm::vector4f raw_value = raw_tracks_writer.read_vector4(track_index);
+				const rtm::vector4f lossy_value = lossy_tracks_writer.read_vector4(output_index);
+				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
+				break;
+			}
+			default:
+				ACL_ASSERT(false, "Unsupported track type");
+				break;
+			}
+
+			(void)error;
+			ACL_ASSERT(rtm::vector_is_finite(error), "Returned error is not a finite value");
+			ACL_ASSERT(rtm::vector_all_less_than(error, regression_error_thresholdv), "Error too high for track %u at time %f", track_index, sample_time);
+		}
+
+		// Validate decompress_track
+		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+		{
+			const track& track_ = raw_tracks[track_index];
+			const uint32_t output_index = track_.get_output_index();
+			if (output_index == k_invalid_track_index)
+				continue;	// Track is being stripped, ignore it
+
+			raw_tracks.sample_track(track_index, sample_time, SampleRoundingPolicy::None, raw_track_writer);
+			context.decompress_track(output_index, lossy_track_writer);
+
+			switch (track_type)
+			{
+			case track_type8::float1f:
+			{
+				const float raw_value_ = raw_tracks_writer.read_float1(track_index);
+				const float lossy_value_ = lossy_tracks_writer.read_float1(output_index);
+				const float raw_value = raw_track_writer.read_float1(track_index);
+				const float lossy_value = lossy_track_writer.read_float1(output_index);
+				ACL_ASSERT(rtm::scalar_near_equal(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::scalar_near_equal(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::scalar_near_equal(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				break;
+			}
+			case track_type8::float2f:
+			{
+				const rtm::vector4f raw_value_ = raw_tracks_writer.read_float2(track_index);
+				const rtm::vector4f lossy_value_ = lossy_tracks_writer.read_float2(output_index);
+				const rtm::vector4f raw_value = raw_track_writer.read_float2(track_index);
+				const rtm::vector4f lossy_value = lossy_track_writer.read_float2(output_index);
+				ACL_ASSERT(rtm::vector_all_near_equal2(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal2(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal2(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				break;
+			}
+			case track_type8::float3f:
+			{
+				const rtm::vector4f raw_value_ = raw_tracks_writer.read_float3(track_index);
+				const rtm::vector4f lossy_value_ = lossy_tracks_writer.read_float3(output_index);
+				const rtm::vector4f raw_value = raw_track_writer.read_float3(track_index);
+				const rtm::vector4f lossy_value = lossy_track_writer.read_float3(output_index);
+				ACL_ASSERT(rtm::vector_all_near_equal3(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal3(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal3(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				break;
+			}
+			case track_type8::float4f:
+			{
+				const rtm::vector4f raw_value_ = raw_tracks_writer.read_float4(track_index);
+				const rtm::vector4f lossy_value_ = lossy_tracks_writer.read_float4(output_index);
+				const rtm::vector4f raw_value = raw_track_writer.read_float4(track_index);
+				const rtm::vector4f lossy_value = lossy_track_writer.read_float4(output_index);
+				ACL_ASSERT(rtm::vector_all_near_equal(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				break;
+			}
+			case track_type8::vector4f:
+			{
+				const rtm::vector4f raw_value_ = raw_tracks_writer.read_vector4(track_index);
+				const rtm::vector4f lossy_value_ = lossy_tracks_writer.read_vector4(output_index);
+				const rtm::vector4f raw_value = raw_track_writer.read_vector4(track_index);
+				const rtm::vector4f lossy_value = lossy_track_writer.read_vector4(output_index);
+				ACL_ASSERT(rtm::vector_all_near_equal(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				break;
+			}
+			default:
+				ACL_ASSERT(false, "Unsupported track type");
+				break;
+			}
+		}
+	}
+#endif	// defined(ACL_HAS_ASSERT_CHECKS)
+}
+
 static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, AlgorithmType8 algorithm_type, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
@@ -576,12 +762,64 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 		try_algorithm_impl(nullptr);
 }
 
-static bool read_clip(IAllocator& allocator, const Options& options,
-					  std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& out_clip,
-					  std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& out_skeleton,
-					  bool& has_settings,
-					  AlgorithmType8& out_algorithm_type,
-					  CompressionSettings& out_settings)
+static void try_algorithm(const Options& options, IAllocator& allocator, const track_array& track_list, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+{
+	(void)runs_writer;
+
+	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
+	{
+		if (track_list.get_num_tracks() == 0)
+			return;
+
+		compression_settings settings;
+
+		OutputStats stats(logging, stats_writer);
+		compressed_tracks* compressed_tracks_ = nullptr;
+		const ErrorResult error_result = compress_track_list(allocator, track_list, settings, compressed_tracks_, stats);
+
+		ACL_ASSERT(error_result.empty(), error_result.c_str()); (void)error_result;
+		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
+
+#if defined(SJSON_CPP_WRITER)
+		if (logging != StatLogging::None)
+		{
+			const track_error error = calculate_compression_error(allocator, track_list, *compressed_tracks_);
+
+			stats_writer->insert("max_error", error.error);
+			stats_writer->insert("worst_track", error.index);
+			stats_writer->insert("worst_time", error.sample_time);
+
+			// TODO: measure decompression performance
+			//if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
+				//write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
+		}
+#endif
+
+		if (options.regression_testing)
+			validate_accuracy(allocator, track_list, *compressed_tracks_, regression_error_threshold);
+
+		if (options.output_bin_filename != nullptr)
+		{
+			std::ofstream output_file_stream(options.output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+			if (output_file_stream.is_open())
+				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
+		}
+
+		allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
+	};
+
+#if defined(SJSON_CPP_WRITER)
+	if (runs_writer != nullptr)
+		runs_writer->push([&](sjson::ObjectWriter& writer) { try_algorithm_impl(&writer); });
+	else
+#endif
+		try_algorithm_impl(nullptr);
+}
+
+static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
+	sjson_file_type& out_file_type,
+	sjson_raw_clip& out_raw_clip,
+	sjson_raw_track_list& out_raw_track_list)
 {
 	char* sjson_file_buffer = nullptr;
 	size_t file_size = 0;
@@ -636,18 +874,33 @@ static bool read_clip(IAllocator& allocator, const Options& options,
 	ClipReader reader(allocator, sjson_file_buffer, file_size - 1);
 #endif
 
-	if (!reader.read_settings(has_settings, out_algorithm_type, out_settings)
-		|| !reader.read_skeleton(out_skeleton)
-		|| !reader.read_clip(out_clip, *out_skeleton))
+	const sjson_file_type ftype = reader.get_file_type();
+	out_file_type = ftype;
+
+	bool success = false;
+	switch (ftype)
 	{
-		ClipReaderError err = reader.get_error();
-		printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
-		deallocate_type_array(allocator, sjson_file_buffer, file_size);
-		return false;
+	case sjson_file_type::unknown:
+	default:
+		printf("\nUnknown file type\n");
+		break;
+	case sjson_file_type::raw_clip:
+		success = reader.read_raw_clip(out_raw_clip);
+		break;
+	case sjson_file_type::raw_track_list:
+		success = reader.read_raw_track_list(out_raw_track_list);
+		break;
+	}
+
+	if (!success)
+	{
+		const ClipReaderError err = reader.get_error();
+		if (err.error != ClipReaderError::None)
+			printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
 	}
 
 	deallocate_type_array(allocator, sjson_file_buffer, file_size);
-	return true;
+	return success;
 }
 
 static bool read_config(IAllocator& allocator, const Options& options, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings, double& out_regression_error_threshold)
@@ -908,8 +1161,21 @@ static int safe_main_impl(int argc, char* argv[])
 	AlgorithmType8 algorithm_type = AlgorithmType8::UniformlySampled;
 	CompressionSettings settings;
 
-	if (!is_input_acl_bin_file && !read_clip(allocator, options, clip, skeleton, use_external_config, algorithm_type, settings))
-		return -1;
+	sjson_file_type sjson_type = sjson_file_type::unknown;
+	sjson_raw_clip sjson_clip;
+	sjson_raw_track_list sjson_track_list;
+
+	if (!is_input_acl_bin_file)
+	{
+		if (!read_acl_sjson_file(allocator, options, sjson_type, sjson_clip, sjson_track_list))
+			return -1;
+
+		clip = std::move(sjson_clip.clip);
+		skeleton = std::move(sjson_clip.skeleton);
+		use_external_config = sjson_clip.has_settings;
+		algorithm_type = sjson_clip.algorithm_type;
+		settings = sjson_clip.settings;
+	}
 
 	double regression_error_threshold = 0.1;
 
@@ -919,7 +1185,7 @@ static int safe_main_impl(int argc, char* argv[])
 	if (options.config_filename != nullptr && std::strlen(options.config_filename) != 0)
 #endif
 	{
-		// Override whatever the ACL clip might have contained
+		// Override whatever the ACL SJSON file might have contained
 		algorithm_type = AlgorithmType8::UniformlySampled;
 		settings = CompressionSettings();
 
@@ -929,9 +1195,10 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = true;
 	}
 
+	// TODO: Make a unique_ptr
 	AnimationClip* base_clip = nullptr;
 
-	if (!is_input_acl_bin_file)
+	if (!is_input_acl_bin_file && sjson_type == sjson_file_type::raw_clip)
 	{
 		// Grab whatever clip we might have read from the sjson file and cast the const away so we can manage the memory
 		base_clip = const_cast<AnimationClip*>(clip->get_additive_base());
@@ -1004,84 +1271,91 @@ static int safe_main_impl(int argc, char* argv[])
 			}
 #endif
 		}
-		else if (use_external_config)
+		else if (sjson_type == sjson_file_type::raw_clip)
 		{
-			ACL_ASSERT(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
-
-			if (options.compression_level_specified)
-				settings.level = options.compression_level;
-
-			try_algorithm(options, allocator, *clip, settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
-		}
-		else if (options.exhaustive_compression)
-		{
-			const bool use_segmenting_options[] = { false, true };
-			for (size_t segmenting_option_index = 0; segmenting_option_index < get_array_size(use_segmenting_options); ++segmenting_option_index)
+			if (use_external_config)
 			{
-				const bool use_segmenting = use_segmenting_options[segmenting_option_index];
+				ACL_ASSERT(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
 
-				CompressionSettings uniform_tests[] =
+				if (options.compression_level_specified)
+					settings.level = options.compression_level;
+
+				try_algorithm(options, allocator, *clip, settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
+			}
+			else if (options.exhaustive_compression)
+			{
+				const bool use_segmenting_options[] = { false, true };
+				for (size_t segmenting_option_index = 0; segmenting_option_index < get_array_size(use_segmenting_options); ++segmenting_option_index)
 				{
-					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
-					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+					const bool use_segmenting = use_segmenting_options[segmenting_option_index];
 
-					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
-					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+					CompressionSettings uniform_tests[] =
+					{
+						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
+						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
+						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
+						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, use_segmenting),
-				};
+						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
+						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
 
-				for (CompressionSettings test_settings : uniform_tests)
+						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, use_segmenting),
+					};
+
+					for (CompressionSettings test_settings : uniform_tests)
+					{
+						test_settings.error_metric = settings.error_metric;
+
+						try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
+					}
+				}
+
 				{
-					test_settings.error_metric = settings.error_metric;
+					CompressionSettings uniform_tests[] =
+					{
+						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
+						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
 
-					try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
+						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
+						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
+						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+
+						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, true, RangeReductionFlags8::AllTracks),
+					};
+
+					for (CompressionSettings test_settings : uniform_tests)
+					{
+						test_settings.error_metric = settings.error_metric;
+
+						if (options.compression_level_specified)
+							test_settings.level = options.compression_level;
+
+						try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
+					}
 				}
 			}
-
+			else
 			{
-				CompressionSettings uniform_tests[] =
-				{
-					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
-					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-					make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+				CompressionSettings default_settings = get_default_compression_settings();
+				default_settings.error_metric = settings.error_metric;
 
-					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
-					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-					make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+				if (options.compression_level_specified)
+					default_settings.level = options.compression_level;
 
-					make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, true, RangeReductionFlags8::AllTracks),
-				};
-
-				for (CompressionSettings test_settings : uniform_tests)
-				{
-					test_settings.error_metric = settings.error_metric;
-
-					if (options.compression_level_specified)
-						test_settings.level = options.compression_level;
-
-					try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
-				}
+				try_algorithm(options, allocator, *clip, default_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
 			}
 		}
-		else
+		else if (sjson_type == sjson_file_type::raw_track_list)
 		{
-			CompressionSettings default_settings = get_default_compression_settings();
-			default_settings.error_metric = settings.error_metric;
-
-			if (options.compression_level_specified)
-				default_settings.level = options.compression_level;
-
-			try_algorithm(options, allocator, *clip, default_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
+			try_algorithm(options, allocator, sjson_track_list.track_list, logging, runs_writer, regression_error_threshold);
 		}
 	};
 

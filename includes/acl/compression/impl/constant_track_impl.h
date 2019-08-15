@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // The MIT License (MIT)
 //
-// Copyright (c) 2017 Nicholas Frechette & Animation Compression Library contributors
+// Copyright (c) 2019 Nicholas Frechette & Animation Compression Library contributors
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,10 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#if defined(SJSON_CPP_PARSER)
-
+#include "acl/core/bitset.h"
 #include "acl/core/compiler_utils.h"
+#include "acl/core/iallocator.h"
+#include "acl/compression/impl/track_list_context.h"
 
 #include <cstdint>
 
@@ -34,58 +35,43 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	struct ClipReaderError : sjson::ParserError
+	namespace acl_impl
 	{
-		enum : uint32_t
+		inline bool is_scalarf_track_constant(const track& track_, const track_range& range)
 		{
-			UnsupportedVersion = sjson::ParserError::Last,
-			NoParentBoneWithThatName,
-			NoBoneWithThatName,
-			UnsignedIntegerExpected,
-			InvalidCompressionSetting,
-			InvalidAdditiveClipFormat,
-			PositiveValueExpected,
-			InvalidTrackType,
-		};
-
-		ClipReaderError()
-		{
+			const track_desc_scalarf& desc = track_.get_description<track_desc_scalarf>();
+			return range.is_constant(desc.constant_threshold);
 		}
 
-		ClipReaderError(const sjson::ParserError& e)
+		inline void extract_constant_tracks(track_list_context& context)
 		{
-			error = e.error;
-			line = e.line;
-			column = e.column;
-		}
+			ACL_ASSERT(context.is_valid(), "Invalid context");
 
-		virtual const char* get_description() const override
-		{
-			switch (error)
+			const BitSetDescription bitset_desc = BitSetDescription::make_from_num_bits(context.num_tracks);
+
+			context.constant_tracks_bitset = allocate_type_array<uint32_t>(*context.allocator, bitset_desc.get_size());
+			bitset_reset(context.constant_tracks_bitset, bitset_desc, false);
+
+			for (uint32_t track_index = 0; track_index < context.num_tracks; ++track_index)
 			{
-			case UnsupportedVersion:
-				return "This library does not support this version of animation file";
-			case NoParentBoneWithThatName:
-				return "There is no parent bone with this name";
-			case NoBoneWithThatName:
-				return "The skeleton does not define a bone with this name";
-			case UnsignedIntegerExpected:
-				return "An unsigned integer is expected here";
-			case InvalidCompressionSetting:
-				return "Invalid compression settings provided";
-			case InvalidAdditiveClipFormat:
-				return "Invalid additive clip format provided";
-			case PositiveValueExpected:
-				return "A positive value is expected here";
-			case InvalidTrackType:
-				return "Invalid raw track type";
-			default:
-				return sjson::ParserError::get_description();
+				const track& mut_track = context.track_list[track_index];
+				const track_range& range = context.range_list[track_index];
+
+				bool is_constant = false;
+				switch (range.category)
+				{
+				case track_category8::scalarf:
+					is_constant = is_scalarf_track_constant(mut_track, range);
+					break;
+				default:
+					ACL_ASSERT(false, "Invalid track category");
+					break;
+				}
+
+				bitset_set(context.constant_tracks_bitset, bitset_desc, track_index, is_constant);
 			}
 		}
-	};
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
-
-#endif	// #if defined(SJSON_CPP_PARSER)
