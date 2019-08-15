@@ -735,6 +735,106 @@ namespace acl
 		}
 	}
 
+	inline void sample_stream(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose)
+	{
+		(void)num_bones;
+
+		const Quat_32 default_rotation = quat_identity_32();
+		const Vector4_32 default_translation = vector_zero_32();
+		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
+
+		const SegmentContext* segment_context = bone_streams->segment;
+
+		uint32_t key0 = 0;
+		uint32_t key1 = 0;
+		float interpolation_alpha = 0.0f;
+		if (segment_context->distribution == SampleDistribution8::Uniform)
+		{
+			// Our samples are uniform, grab the nearest samples
+			const ClipContext* clip_context = segment_context->clip;
+			find_linear_interpolation_samples_with_sample_rate(clip_context->num_samples, clip_context->sample_rate, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
+
+			// Offset for the current segment and clamp
+			key0 = key0 - segment_context->clip_sample_offset;
+			if (key0 >= segment_context->num_samples)
+			{
+				key0 = 0;
+				interpolation_alpha = 1.0f;
+			}
+
+			key1 = key1 - segment_context->clip_sample_offset;
+			if (key1 >= segment_context->num_samples)
+			{
+				key1 = segment_context->num_samples - 1;
+				interpolation_alpha = 0.0f;
+			}
+		}
+
+		const BoneStreams& bone_stream = bone_streams[bone_index];
+
+		Quat_32 rotation;
+		if (bone_stream.is_rotation_default)
+			rotation = default_rotation;
+		else if (bone_stream.is_rotation_constant)
+			rotation = get_rotation_sample(bone_stream, 0);
+		else
+		{
+			if (segment_context->distribution == SampleDistribution8::Variable)
+			{
+				const uint32_t num_samples = bone_stream.rotations.get_num_samples();
+				const float sample_rate = bone_stream.rotations.get_sample_rate();
+
+				find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+			}
+
+			const Quat_32 sample0 = get_rotation_sample(bone_stream, key0);
+			const Quat_32 sample1 = get_rotation_sample(bone_stream, key1);
+			rotation = quat_lerp(sample0, sample1, interpolation_alpha);
+		}
+
+		Vector4_32 translation;
+		if (bone_stream.is_translation_default)
+			translation = default_translation;
+		else if (bone_stream.is_translation_constant)
+			translation = get_translation_sample(bone_stream, 0);
+		else
+		{
+			if (segment_context->distribution == SampleDistribution8::Variable)
+			{
+				const uint32_t num_samples = bone_stream.translations.get_num_samples();
+				const float sample_rate = bone_stream.translations.get_sample_rate();
+
+				find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+			}
+
+			const Vector4_32 sample0 = get_translation_sample(bone_stream, key0);
+			const Vector4_32 sample1 = get_translation_sample(bone_stream, key1);
+			translation = vector_lerp(sample0, sample1, interpolation_alpha);
+		}
+
+		Vector4_32 scale;
+		if (bone_stream.is_scale_default)
+			scale = default_scale;
+		else if (bone_stream.is_scale_constant)
+			scale = get_scale_sample(bone_stream, 0);
+		else
+		{
+			if (segment_context->distribution == SampleDistribution8::Variable)
+			{
+				const uint32_t num_samples = bone_stream.scales.get_num_samples();
+				const float sample_rate = bone_stream.scales.get_sample_rate();
+
+				find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+			}
+
+			const Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
+			const Vector4_32 sample1 = get_scale_sample(bone_stream, key1);
+			scale = vector_lerp(sample0, sample1, interpolation_alpha);
+		}
+
+		out_local_pose[bone_index] = transform_set(rotation, translation, scale);
+	}
+
 	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose)
 	{
 		(void)num_bones;
@@ -987,6 +1087,154 @@ namespace acl
 
 			out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 		}
+	}
+
+	inline void sample_stream(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose)
+	{
+		(void)num_bones;
+
+		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
+		const bool is_translation_variable = is_vector_format_variable(translation_format);
+		const bool is_scale_variable = is_vector_format_variable(scale_format);
+		const Quat_32 default_rotation = quat_identity_32();
+		const Vector4_32 default_translation = vector_zero_32();
+		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
+
+		const SegmentContext* segment_context = bone_streams->segment;
+
+		uint32_t key0 = 0;
+		uint32_t key1 = 0;
+		float interpolation_alpha = 0.0f;
+		if (segment_context->distribution == SampleDistribution8::Uniform)
+		{
+			// Our samples are uniform, grab the nearest samples
+			const ClipContext* clip_context = segment_context->clip;
+			find_linear_interpolation_samples_with_sample_rate(clip_context->num_samples, clip_context->sample_rate, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
+
+			// Offset for the current segment and clamp
+			key0 = key0 - segment_context->clip_sample_offset;
+			if (key0 >= segment_context->num_samples)
+			{
+				key0 = 0;
+				interpolation_alpha = 1.0f;
+			}
+
+			key1 = key1 - segment_context->clip_sample_offset;
+			if (key1 >= segment_context->num_samples)
+			{
+				key1 = segment_context->num_samples - 1;
+				interpolation_alpha = 0.0f;
+			}
+		}
+
+		const BoneStreams& bone_stream = bone_streams[bone_index];
+		const BoneStreams& raw_bone_stream = raw_bone_steams[bone_index];
+
+		Quat_32 rotation;
+		if (bone_stream.is_rotation_default)
+			rotation = default_rotation;
+		else if (bone_stream.is_rotation_constant)
+		{
+			if (is_rotation_variable)
+				rotation = get_rotation_sample(bone_stream, 0);
+			else
+				rotation = get_rotation_sample(bone_stream, 0, rotation_format);
+		}
+		else
+		{
+			if (segment_context->distribution == SampleDistribution8::Variable)
+			{
+				const uint32_t num_samples = bone_stream.rotations.get_num_samples();
+				const float sample_rate = bone_stream.rotations.get_sample_rate();
+
+				find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+			}
+
+			Quat_32 sample0;
+			Quat_32 sample1;
+			if (is_rotation_variable)
+			{
+				const uint8_t bit_rate = bit_rates[bone_index].rotation;
+
+				sample0 = get_rotation_sample(bone_stream, raw_bone_stream, key0, bit_rate);
+				sample1 = get_rotation_sample(bone_stream, raw_bone_stream, key1, bit_rate);
+			}
+			else
+			{
+				sample0 = get_rotation_sample(bone_stream, key0, rotation_format);
+				sample1 = get_rotation_sample(bone_stream, key1, rotation_format);
+			}
+
+			rotation = quat_lerp(sample0, sample1, interpolation_alpha);
+		}
+
+		Vector4_32 translation;
+		if (bone_stream.is_translation_default)
+			translation = default_translation;
+		else if (bone_stream.is_translation_constant)
+			translation = get_translation_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+		else
+		{
+			if (segment_context->distribution == SampleDistribution8::Variable)
+			{
+				const uint32_t num_samples = bone_stream.translations.get_num_samples();
+				const float sample_rate = bone_stream.translations.get_sample_rate();
+
+				find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+			}
+
+			Vector4_32 sample0;
+			Vector4_32 sample1;
+			if (is_translation_variable)
+			{
+				const uint8_t bit_rate = bit_rates[bone_index].translation;
+
+				sample0 = get_translation_sample(bone_stream, raw_bone_stream, key0, bit_rate);
+				sample1 = get_translation_sample(bone_stream, raw_bone_stream, key1, bit_rate);
+			}
+			else
+			{
+				sample0 = get_translation_sample(bone_stream, key0, translation_format);
+				sample1 = get_translation_sample(bone_stream, key1, translation_format);
+			}
+
+			translation = vector_lerp(sample0, sample1, interpolation_alpha);
+		}
+
+		Vector4_32 scale;
+		if (bone_stream.is_scale_default)
+			scale = default_scale;
+		else if (bone_stream.is_scale_constant)
+			scale = get_scale_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+		else
+		{
+			if (segment_context->distribution == SampleDistribution8::Variable)
+			{
+				const uint32_t num_samples = bone_stream.scales.get_num_samples();
+				const float sample_rate = bone_stream.scales.get_sample_rate();
+
+				find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+			}
+
+			Vector4_32 sample0;
+			Vector4_32 sample1;
+			if (is_scale_variable)
+			{
+				const uint8_t bit_rate = bit_rates[bone_index].scale;
+
+				sample0 = get_scale_sample(bone_stream, raw_bone_stream, key0, bit_rate);
+				sample1 = get_scale_sample(bone_stream, raw_bone_stream, key1, bit_rate);
+			}
+			else
+			{
+				sample0 = get_scale_sample(bone_stream, key0, scale_format);
+				sample1 = get_scale_sample(bone_stream, key1, scale_format);
+			}
+
+			scale = vector_lerp(sample0, sample1, interpolation_alpha);
+		}
+
+		out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 	}
 
 	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose)
