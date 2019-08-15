@@ -500,20 +500,19 @@ namespace acl
 				// The sample time is calculated from the full clip duration to be consistent with decompression
 				const float sample_time = min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration);
 
-				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
-				sample_streams_hierarchical(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, settings.rotation_format, settings.translation_format, settings.scale_format, context.lossy_local_pose);
-
-				if (context.has_additive_base)
-				{
-					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0f;
-					const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
-					sample_streams_hierarchical(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
-				}
-
-				// Constant branch
 				float error;
-				if (use_local_error)
+				if (use_local_error)	// Constant branch
 				{
+					sample_stream(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
+					sample_stream(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, settings.rotation_format, settings.translation_format, settings.scale_format, context.lossy_local_pose);
+
+					if (context.has_additive_base)
+					{
+						const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0f;
+						const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
+						sample_stream(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
+					}
+
 					if (context.has_scale)
 						error = error_metric.calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 					else
@@ -521,6 +520,16 @@ namespace acl
 				}
 				else
 				{
+					sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
+					sample_streams_hierarchical(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, settings.rotation_format, settings.translation_format, settings.scale_format, context.lossy_local_pose);
+
+					if (context.has_additive_base)
+					{
+						const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0f;
+						const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
+						sample_streams_hierarchical(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
+					}
+
 					if (context.has_scale)
 						error = error_metric.calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 					else
