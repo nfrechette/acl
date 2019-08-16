@@ -746,6 +746,22 @@ namespace acl
 		Vector4_64 mask = vector_greater_equal(input, vector_zero_64());
 		return vector_blend(mask, vector_set(1.0), vector_set(-1.0));
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns per component the rounded input using a symmetric algorithm.
+	// symmetric_round(1.5) = 2.0
+	// symmetric_round(1.2) = 1.0
+	// symmetric_round(-1.5) = -2.0
+	// symmetric_round(-1.2) = -1.0
+	//////////////////////////////////////////////////////////////////////////
+	inline Vector4_64 vector_symmetric_round(const Vector4_64& input)
+	{
+		const Vector4_64 half = vector_set(0.5);
+		const Vector4_64 floored = vector_floor(vector_add(input, half));
+		const Vector4_64 ceiled = vector_ceil(vector_sub(input, half));
+		const Vector4_64 is_greater_equal = vector_greater_equal(input, vector_zero_64());
+		return vector_blend(is_greater_equal, floored, ceiled);
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

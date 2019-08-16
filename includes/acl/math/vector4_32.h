@@ -947,6 +947,22 @@ namespace acl
 		Vector4_32 mask = vector_greater_equal(input, vector_zero_32());
 		return vector_blend(mask, vector_set(1.0f), vector_set(-1.0f));
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns per component the rounded input using a symmetric algorithm.
+	// symmetric_round(1.5) = 2.0
+	// symmetric_round(1.2) = 1.0
+	// symmetric_round(-1.5) = -2.0
+	// symmetric_round(-1.2) = -1.0
+	//////////////////////////////////////////////////////////////////////////
+	inline Vector4_32 ACL_SIMD_CALL vector_symmetric_round(Vector4_32Arg0 input)
+	{
+		const Vector4_32 half = vector_set(0.5f);
+		const Vector4_32 floored = vector_floor(vector_add(input, half));
+		const Vector4_32 ceiled = vector_ceil(vector_sub(input, half));
+		const Vector4_32 is_greater_equal = vector_greater_equal(input, vector_zero_32());
+		return vector_blend(is_greater_equal, floored, ceiled);
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
