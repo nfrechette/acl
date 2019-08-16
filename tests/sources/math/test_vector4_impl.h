@@ -562,6 +562,29 @@ void test_vector4_impl(const Vector4Type& zero, const QuatType& identity, const 
 	REQUIRE(vector_get_y(vector_sign(test_value0)) == scalar_sign(test_value0_flt[1]));
 	REQUIRE(vector_get_z(vector_sign(test_value0)) == scalar_sign(test_value0_flt[2]));
 	REQUIRE(vector_get_w(vector_sign(test_value0)) == scalar_sign(test_value0_flt[3]));
+
+	{
+		const Vector4Type input0 = vector_set(FloatType(-1.75), FloatType(-1.5), FloatType(-1.4999), FloatType(-0.5));
+		const Vector4Type input1 = vector_set(FloatType(-0.4999), FloatType(0.0), FloatType(0.4999), FloatType(0.5));
+		const Vector4Type input2 = vector_set(FloatType(1.4999), FloatType(1.5), FloatType(1.75), FloatType(0.0));
+
+		const Vector4Type result0 = vector_symmetric_round(input0);
+		const Vector4Type result1 = vector_symmetric_round(input1);
+		const Vector4Type result2 = vector_symmetric_round(input2);
+
+		REQUIRE(vector_get_x(result0) == symmetric_round(vector_get_x(input0)));
+		REQUIRE(vector_get_y(result0) == symmetric_round(vector_get_y(input0)));
+		REQUIRE(vector_get_z(result0) == symmetric_round(vector_get_z(input0)));
+		REQUIRE(vector_get_w(result0) == symmetric_round(vector_get_w(input0)));
+		REQUIRE(vector_get_x(result1) == symmetric_round(vector_get_x(input1)));
+		REQUIRE(vector_get_y(result1) == symmetric_round(vector_get_y(input1)));
+		REQUIRE(vector_get_z(result1) == symmetric_round(vector_get_z(input1)));
+		REQUIRE(vector_get_w(result1) == symmetric_round(vector_get_w(input1)));
+		REQUIRE(vector_get_x(result2) == symmetric_round(vector_get_x(input2)));
+		REQUIRE(vector_get_y(result2) == symmetric_round(vector_get_y(input2)));
+		REQUIRE(vector_get_z(result2) == symmetric_round(vector_get_z(input2)));
+		REQUIRE(vector_get_w(result2) == symmetric_round(vector_get_w(input2)));
+	}
 }
 
 template<typename Vector4Type, typename FloatType, VectorMix XArg>
