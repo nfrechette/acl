@@ -246,6 +246,29 @@ TEST_CASE("pack_vector3_48", "[math][vector4][packing]")
 	}
 }
 
+TEST_CASE("decay_vector3_48", "[math][vector4][decay]")
+{
+	{
+		uint32_t num_errors = 0;
+		for (uint32_t value = 0; value < 65536; ++value)
+		{
+			const float value_signed = unpack_scalar_signed(value, 16);
+			const float value_unsigned = unpack_scalar_unsigned(value, 16);
+
+			Vector4_32 vec0 = vector_set(value_signed, value_signed, value_signed);
+			Vector4_32 vec1 = decay_vector3_s48(vec0);
+			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+				num_errors++;
+
+			vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+			vec1 = decay_vector3_u48(vec0);
+			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+				num_errors++;
+		}
+		REQUIRE(num_errors == 0);
+	}
+}
+
 TEST_CASE("pack_vector3_32", "[math][vector4][packing]")
 {
 	{
@@ -373,6 +396,46 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 				}
 			}
 		}
+		REQUIRE(num_errors == 0);
+	}
+}
+
+TEST_CASE("decay_vector3_XX", "[math][vector4][decay]")
+{
+	{
+		uint32_t num_errors = 0;
+
+		Vector4_32 vec0 = vector_set(unpack_scalar_signed(0, 16), unpack_scalar_signed(12355, 16), unpack_scalar_signed(43222, 16));
+		Vector4_32 vec1 = decay_vector3_sXX(vec0, 16);
+		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			num_errors++;
+
+		vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16));
+		vec1 = decay_vector3_uXX(vec0, 16);
+		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			num_errors++;
+
+		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
+		{
+			uint8_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t max_value = (1 << num_bits) - 1;
+			for (uint32_t value = 0; value <= max_value; ++value)
+			{
+				const float value_signed = clamp(unpack_scalar_signed(value, num_bits), -1.0f, 1.0f);
+				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0f, 1.0f);
+
+				vec0 = vector_set(value_signed, value_signed, value_signed);
+				vec1 = decay_vector3_sXX(vec0, num_bits);
+				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+					num_errors++;
+
+				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+				vec1 = decay_vector3_uXX(vec0, num_bits);
+				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+					num_errors++;
+			}
+		}
+
 		REQUIRE(num_errors == 0);
 	}
 }
