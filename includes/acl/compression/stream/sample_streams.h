@@ -195,8 +195,7 @@ namespace acl
 		}
 
 		// Pack and unpack at our desired bit rate
-		uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-		alignas(16) uint8_t raw_data[16] = { 0 };
+		const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 		Vector4_32 packed_rotation;
 
 		if (is_constant_bit_rate(bit_rate))
@@ -207,24 +206,14 @@ namespace acl
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_rotation = normalize_sample(rotation, clip_bone_range.rotation);
 
-			pack_vector3_u48_unsafe(normalized_rotation, &raw_data[0]);
-			packed_rotation = unpack_vector3_u48_unsafe(&raw_data[0]);
+			packed_rotation = decay_vector3_u48(normalized_rotation);
 		}
 		else if (is_raw_bit_rate(bit_rate))
 			packed_rotation = rotation;
+		else if (are_rotations_normalized)
+			packed_rotation = decay_vector3_uXX(rotation, num_bits_at_bit_rate);
 		else
-		{
-			if (are_rotations_normalized)
-			{
-				pack_vector3_uXX_unsafe(rotation, num_bits_at_bit_rate, &raw_data[0]);
-				packed_rotation = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
-			}
-			else
-			{
-				pack_vector3_sXX_unsafe(rotation, num_bits_at_bit_rate, &raw_data[0]);
-				packed_rotation = unpack_vector3_sXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
-			}
-		}
+			packed_rotation = decay_vector3_sXX(rotation, num_bits_at_bit_rate);
 
 		if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
 		{
@@ -271,15 +260,9 @@ namespace acl
 			break;
 		case RotationFormat8::QuatDropW_48:
 			if (are_rotations_normalized)
-			{
-				pack_vector3_u48_unsafe(rotation, &raw_data[0]);
-				packed_rotation = unpack_vector3_u48_unsafe(&raw_data[0]);
-			}
+				packed_rotation = decay_vector3_u48(rotation);
 			else
-			{
-				pack_vector3_s48_unsafe(rotation, &raw_data[0]);
-				packed_rotation = unpack_vector3_s48_unsafe(&raw_data[0]);
-			}
+				packed_rotation = decay_vector3_s48(rotation);
 			break;
 		case RotationFormat8::QuatDropW_32:
 			pack_vector3_32(rotation, 11, 11, 10, are_rotations_normalized, &raw_data[0]);
@@ -372,7 +355,6 @@ namespace acl
 		ACL_ASSERT(clip_context->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
-		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_translation;
 
 		if (is_constant_bit_rate(bit_rate))
@@ -382,16 +364,14 @@ namespace acl
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_translation = normalize_sample(translation, clip_bone_range.translation);
 
-			pack_vector3_u48_unsafe(normalized_translation, &raw_data[0]);
-			packed_translation = unpack_vector3_u48_unsafe(&raw_data[0]);
+			packed_translation = decay_vector3_u48(normalized_translation);
 		}
 		else if (is_raw_bit_rate(bit_rate))
 			packed_translation = translation;
 		else
 		{
-			const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			pack_vector3_uXX_unsafe(translation, num_bits_at_bit_rate, &raw_data[0]);
-			packed_translation = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
+			const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+			packed_translation = decay_vector3_uXX(translation, num_bits_at_bit_rate);
 		}
 
 		if (segment->are_translations_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
@@ -438,8 +418,7 @@ namespace acl
 			break;
 		case VectorFormat8::Vector3_48:
 			ACL_ASSERT(are_translations_normalized, "Translations must be normalized to support this format");
-			pack_vector3_u48_unsafe(translation, &raw_data[0]);
-			packed_translation = unpack_vector3_u48_unsafe(&raw_data[0]);
+			packed_translation = decay_vector3_u48(translation);
 			break;
 		case VectorFormat8::Vector3_32:
 			pack_vector3_32(translation, 11, 11, 10, are_translations_normalized, &raw_data[0]);
@@ -532,7 +511,6 @@ namespace acl
 		ACL_ASSERT(clip_context->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
 
 		// Pack and unpack at our desired bit rate
-		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_scale;
 
 		if (is_constant_bit_rate(bit_rate))
@@ -542,16 +520,14 @@ namespace acl
 			const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 			const Vector4_32 normalized_scale = normalize_sample(scale, clip_bone_range.scale);
 
-			pack_vector3_u48_unsafe(normalized_scale, &raw_data[0]);
-			packed_scale = unpack_vector3_u48_unsafe(&raw_data[0]);
+			packed_scale = decay_vector3_u48(normalized_scale);
 		}
 		else if (is_raw_bit_rate(bit_rate))
 			packed_scale = scale;
 		else
 		{
-			const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-			pack_vector3_uXX_unsafe(scale, num_bits_at_bit_rate, &raw_data[0]);
-			packed_scale = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, &raw_data[0], 0);
+			const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+			packed_scale = decay_vector3_uXX(scale, num_bits_at_bit_rate);
 		}
 
 		if (segment->are_scales_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
@@ -598,8 +574,7 @@ namespace acl
 			break;
 		case VectorFormat8::Vector3_48:
 			ACL_ASSERT(are_scales_normalized, "Scales must be normalized to support this format");
-			pack_vector3_u48_unsafe(scale, &raw_data[0]);
-			packed_scale = unpack_vector3_u48_unsafe(&raw_data[0]);
+			packed_scale = decay_vector3_u48(scale);
 			break;
 		case VectorFormat8::Vector3_32:
 			pack_vector3_32(scale, 11, 11, 10, are_scales_normalized, &raw_data[0]);
