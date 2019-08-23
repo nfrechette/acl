@@ -50,6 +50,17 @@
 	#define ACL_IMPL_FILE_PRAGMA_POP
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+// Force inline macros for when it is necessary.
+//////////////////////////////////////////////////////////////////////////
+#if defined(_MSC_VER)
+	#define ACL_FORCE_INLINE __forceinline
+#elif defined(__GNUG__) || defined(__clang__)
+	#define ACL_FORCE_INLINE __attribute__((always_inline)) inline
+#else
+	#define ACL_FORCE_INLINE inline
+#endif
+
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
