@@ -96,6 +96,12 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	struct BitSetIndexRef
 	{
+		BitSetIndexRef()
+			: desc()
+			, offset(0)
+			, mask(0)
+		{}
+
 		BitSetIndexRef(BitSetDescription desc_, uint32_t bit_index)
 			: desc(desc_)
 			, offset(bit_index / 32)
