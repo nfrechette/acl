@@ -32,7 +32,7 @@
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
-#include "acl/compression/impl/track_database.h"
+#include "acl/compression/impl/track_bit_rate_database.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/stream/sample_streams.h"
 #include "acl/compression/stream/normalize_streams.h"
@@ -67,7 +67,7 @@ namespace acl
 			const RigidSkeleton& skeleton;
 			const CompressionSettings& settings;
 
-			acl_impl::track_database database;
+			acl_impl::track_bit_rate_database database;
 			acl_impl::single_track_query local_query;
 			acl_impl::hierarchical_track_query object_query;
 
