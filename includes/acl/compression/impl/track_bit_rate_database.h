@@ -40,7 +40,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		class track_database;
+		class track_bit_rate_database;
 
 		class hierarchical_track_query
 		{
@@ -59,7 +59,7 @@ namespace acl
 				deallocate_type_array(m_allocator, m_indices, m_num_transforms);
 			}
 
-			inline void bind(track_database& database);
+			inline void bind(track_bit_rate_database& database);
 			inline void build(uint32_t track_index, const BoneBitRate* bit_rates, const BoneStreams* bone_streams);
 
 		private:
@@ -71,13 +71,13 @@ namespace acl
 			};
 
 			IAllocator&			m_allocator;
-			track_database*		m_database;
+			track_bit_rate_database*		m_database;
 			uint32_t			m_track_index;
 			const BoneBitRate*	m_bit_rates;
 			transform_indices*	m_indices;
 			uint32_t			m_num_transforms;
 
-			friend track_database;
+			friend track_bit_rate_database;
 		};
 
 		class single_track_query
@@ -95,11 +95,11 @@ namespace acl
 			inline uint32_t get_track_index() const { return m_track_index; }
 			inline const BoneBitRate& get_bit_rates() const { return m_bit_rates; }
 
-			inline void bind(track_database& database);
+			inline void bind(track_bit_rate_database& database);
 			inline void build(uint32_t track_index, const BoneBitRate& bit_rates);
 
 		private:
-			track_database*		m_database;
+			track_bit_rate_database*		m_database;
 			uint32_t			m_track_index;
 			BoneBitRate			m_bit_rates;
 
@@ -107,7 +107,7 @@ namespace acl
 			uint32_t			m_translation_cache_index;
 			uint32_t			m_scale_cache_index;
 
-			friend track_database;
+			friend track_bit_rate_database;
 		};
 
 		union bit_rates_union
@@ -123,11 +123,15 @@ namespace acl
 			inline bool operator!=(bit_rates_union other) const { return value != other.value; }
 		};
 
-		class track_database
+		//////////////////////////////////////////////////////////////////////////
+		// This class manages bit rate queries against tracks.
+		// It will cache recently requested bit rates to speed up repeating queries.
+		//////////////////////////////////////////////////////////////////////////
+		class track_bit_rate_database
 		{
 		public:
-			inline track_database(IAllocator& allocator, const CompressionSettings& settings, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
-			inline ~track_database();
+			inline track_bit_rate_database(IAllocator& allocator, const CompressionSettings& settings, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
+			inline ~track_bit_rate_database();
 
 			inline void set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
 
@@ -135,10 +139,10 @@ namespace acl
 			inline void sample(const hierarchical_track_query& query, float sample_time, Transform_32* out_transforms, uint32_t num_transforms);
 
 		private:
-			track_database(const track_database&) = delete;
-			track_database(track_database&&) = delete;
-			track_database& operator=(const track_database&) = delete;
-			track_database& operator=(track_database&&) = delete;
+			track_bit_rate_database(const track_bit_rate_database&) = delete;
+			track_bit_rate_database(track_bit_rate_database&&) = delete;
+			track_bit_rate_database& operator=(const track_bit_rate_database&) = delete;
+			track_bit_rate_database& operator=(track_bit_rate_database&&) = delete;
 
 			inline void find_cache_entries(uint32_t track_index, const BoneBitRate& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index);
 
@@ -155,7 +159,7 @@ namespace acl
 			{
 				// Each transform has a rotation/translation/scale.
 				// We cache up to 4 different bit rates for each.
-				// We also keep an access count to determine the least recently used bit rates to evict from the cache.
+				// We also keep a generation id to determine the least recently used bit rates to evict from the cache.
 
 				bit_rates_union		rotation_bit_rates;
 				uint32_t			rotation_generation_ids[4];
@@ -219,7 +223,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Implementation
 
-		inline void hierarchical_track_query::bind(track_database& database)
+		inline void hierarchical_track_query::bind(track_bit_rate_database& database)
 		{
 			ACL_ASSERT(m_database == nullptr, "Query already bound");
 			m_database = &database;
@@ -249,7 +253,7 @@ namespace acl
 			}
 		}
 
-		inline void single_track_query::bind(track_database& database)
+		inline void single_track_query::bind(track_bit_rate_database& database)
 		{
 			ACL_ASSERT(m_database == nullptr, "Query already bound");
 			m_database = &database;
@@ -265,7 +269,7 @@ namespace acl
 			m_database->find_cache_entries(track_index, bit_rates, m_rotation_cache_index, m_translation_cache_index, m_scale_cache_index);
 		}
 
-		inline int32_t track_database::transform_cache_entry::find_bit_rate_index(const bit_rates_union& bit_rates, uint32_t search_bit_rate)
+		inline int32_t track_bit_rate_database::transform_cache_entry::find_bit_rate_index(const bit_rates_union& bit_rates, uint32_t search_bit_rate)
 		{
 			for (int32_t i = 0; i < 4; ++i)
 			{
@@ -276,7 +280,7 @@ namespace acl
 			return -1;
 		}
 
-		inline track_database::track_database(IAllocator& allocator, const CompressionSettings& settings, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track)
+		inline track_bit_rate_database::track_bit_rate_database(IAllocator& allocator, const CompressionSettings& settings, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track)
 			: m_allocator(allocator)
 			, m_mutable_bone_streams(bone_streams)
 			, m_raw_bone_streams(raw_bone_steams)
@@ -322,14 +326,14 @@ namespace acl
 			m_num_cached_tracks = num_cached_tracks;
 		}
 
-		inline track_database::~track_database()
+		inline track_bit_rate_database::~track_bit_rate_database()
 		{
 			deallocate_type_array(m_allocator, m_transforms, m_num_transforms);
 			deallocate_type_array(m_allocator, m_track_entry_bitsets, m_track_bitsets_size);
 			m_allocator.deallocate(m_data, m_data_size);
 		}
 
-		inline void track_database::set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track)
+		inline void track_bit_rate_database::set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track)
 		{
 			ACL_ASSERT(bone_streams != nullptr, "Bone streams cannot be null");
 			ACL_ASSERT(num_transforms == m_num_transforms, "The number of transforms isn't consistent, we will corrupt the heap");
@@ -349,7 +353,7 @@ namespace acl
 #endif
 		}
 
-		inline void track_database::find_cache_entries(uint32_t track_index, const BoneBitRate& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index)
+		inline void track_bit_rate_database::find_cache_entries(uint32_t track_index, const BoneBitRate& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index)
 		{
 			// Memory layout:
 			//    track 0
@@ -557,7 +561,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE Quat_32 ACL_SIMD_CALL track_database::sample_rotation(const sample_context& context, uint32_t rotation_cache_index)
+		ACL_FORCE_INLINE Quat_32 ACL_SIMD_CALL track_bit_rate_database::sample_rotation(const sample_context& context, uint32_t rotation_cache_index)
 		{
 			const uint32_t track_index = context.track_index;
 			const BoneStreams& bone_stream = m_mutable_bone_streams[track_index];
@@ -696,7 +700,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE Vector4_32 ACL_SIMD_CALL track_database::sample_translation(const sample_context& context, uint32_t translation_cache_index)
+		ACL_FORCE_INLINE Vector4_32 ACL_SIMD_CALL track_bit_rate_database::sample_translation(const sample_context& context, uint32_t translation_cache_index)
 		{
 			const uint32_t track_index = context.track_index;
 			const BoneStreams& bone_stream = m_mutable_bone_streams[track_index];
@@ -824,7 +828,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE Vector4_32 ACL_SIMD_CALL track_database::sample_scale(const sample_context& context, uint32_t scale_cache_index)
+		ACL_FORCE_INLINE Vector4_32 ACL_SIMD_CALL track_bit_rate_database::sample_scale(const sample_context& context, uint32_t scale_cache_index)
 		{
 			const uint32_t track_index = context.track_index;
 			const BoneStreams& bone_stream = m_mutable_bone_streams[track_index];
@@ -951,7 +955,7 @@ namespace acl
 			return scale;
 		}
 
-		inline void track_database::sample(const single_track_query& query, float sample_time, Transform_32* out_local_pose, uint32_t num_transforms)
+		inline void track_bit_rate_database::sample(const single_track_query& query, float sample_time, Transform_32* out_local_pose, uint32_t num_transforms)
 		{
 			ACL_ASSERT(query.m_database == this, "Query has not been built for this database");
 			ACL_ASSERT(out_local_pose != nullptr, "Cannot write to null output local pose");
@@ -991,7 +995,7 @@ namespace acl
 			out_local_pose[query.m_track_index] = transform_set(rotation, translation, scale);
 		}
 
-		inline void track_database::sample(const hierarchical_track_query& query, float sample_time, Transform_32* out_local_pose, uint32_t num_transforms)
+		inline void track_bit_rate_database::sample(const hierarchical_track_query& query, float sample_time, Transform_32* out_local_pose, uint32_t num_transforms)
 		{
 			ACL_ASSERT(out_local_pose != nullptr, "Cannot write to null output local pose");
 			ACL_ASSERT(num_transforms > 0, "Cannot write to empty output local pose");
