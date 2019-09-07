@@ -41,9 +41,10 @@
 
 #include <sjson/parser.h>
 
+#include "acl/core/ansi_allocator.h"
+#include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/range_reduction_types.h"
-#include "acl/core/ansi_allocator.h"
 #include "acl/core/string.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
@@ -521,6 +522,9 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 #if defined(SJSON_CPP_WRITER)
 		if (logging != StatLogging::None)
 		{
+			// Disable floating point exceptions since decompression assumes it
+			scope_disable_fp_exceptions fp_off;
+
 			// Use the compressed clip to make sure the decoder works properly
 			BoneError bone_error;
 			switch (algorithm_type)
@@ -545,6 +549,9 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 
 		if (options.regression_testing)
 		{
+			// Disable floating point exceptions since decompression assumes it
+			scope_disable_fp_exceptions fp_off;
+
 			switch (algorithm_type)
 			{
 			case AlgorithmType8::UniformlySampled:
@@ -1122,6 +1129,9 @@ int main_impl(int argc, char* argv[])
 	SetUnhandledExceptionFilter(&unhandled_exception_filter);
 	_set_abort_behavior(0, _CALL_REPORTFAULT);
 #endif
+
+	// Enable floating point exceptions when possible to detect errors when regression testing
+	scope_enable_fp_exceptions fp_on;
 
 	int result = -1;
 	try
