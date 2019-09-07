@@ -24,16 +24,17 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/iallocator.h"
+#include "acl/core/algorithm_types.h"
 #include "acl/core/bitset.h"
 #include "acl/core/compiler_utils.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
-#include "acl/core/algorithm_types.h"
-#include "acl/core/track_types.h"
+#include "acl/core/floating_point_exceptions.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/scope_profiler.h"
+#include "acl/core/track_types.h"
 #include "acl/compression/compressed_clip_impl.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
@@ -88,6 +89,10 @@ namespace acl
 			error_result = settings.is_valid();
 			if (error_result.any())
 				return error_result;
+
+			// Disable floating point exceptions during compression because we leverage all SIMD lanes
+			// and we might intentionally divide by zero, etc.
+			scope_disable_fp_exceptions fp_off;
 
 			ScopeProfiler compression_time;
 

@@ -28,6 +28,7 @@
 #include "acl/core/bit_manip_utils.h"
 #include "acl/core/compiler_utils.h"
 #include "acl/core/compressed_clip.h"
+#include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/range_reduction_types.h"
@@ -233,8 +234,14 @@ namespace acl
 			constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return flags; }
 			constexpr RangeReductionFlags8 get_segment_range_reduction(RangeReductionFlags8 flags) const { return flags; }
 
-			// Whether tracks must all be variable or all fixed width, or if they can be mixed and require padding
+			// Whether tracks must all be variable or all fixed width, or if they can be mixed and require padding.
 			constexpr bool supports_mixed_packing() const { return true; }
+
+			// Whether to explicitly disable floating point exceptions during decompression.
+			// This has a cost, exceptions are usually disabled globally and do not need to be
+			// explicitly disabled during decompression.
+			// We assume that floating point exceptions are already disabled by the caller.
+			constexpr bool disable_fp_exeptions() const { return false; }
 		};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -547,6 +554,12 @@ namespace acl
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
 			ACL_ASSERT(m_context.sample_time >= 0.0f, "Context not set to a valid sample time");
 
+			// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
+			// Disable floating point exceptions to avoid issues.
+			fp_environment fp_env;
+			if (m_settings.disable_fp_exeptions())
+				disable_fp_exceptions(fp_env);
+
 			const ClipHeader& header = get_clip_header(*m_context.clip);
 
 			const impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
@@ -593,6 +606,9 @@ namespace acl
 					writer.write_bone_scale(bone_index, scale);
 				}
 			}
+
+			if (m_settings.disable_fp_exeptions())
+				restore_fp_exceptions(fp_env);
 		}
 
 		template<class DecompressionSettingsType>
@@ -600,6 +616,12 @@ namespace acl
 		{
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
 			ACL_ASSERT(m_context.sample_time >= 0.0f, "Context not set to a valid sample time");
+
+			// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
+			// Disable floating point exceptions to avoid issues.
+			fp_environment fp_env;
+			if (m_settings.disable_fp_exeptions())
+				disable_fp_exceptions(fp_env);
 
 			const ClipHeader& header = get_clip_header(*m_context.clip);
 
@@ -797,6 +819,9 @@ namespace acl
 			if (out_scale != nullptr)
 				*out_scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
 			// No need to skip our last scale, we don't care anymore
+
+			if (m_settings.disable_fp_exeptions())
+				restore_fp_exceptions(fp_env);
 		}
 
 		template<class DecompressionSettingsType>

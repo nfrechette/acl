@@ -27,3 +27,7 @@ Transform_32* transforms = new Transform_32[num_bones];
 DefaultOutputWriter pose_writer(transforms, num_bones);
 context.decompress_pose(pose_writer);
 ```
+
+## Floating point exceptions
+
+For performance reasons, the decompression code assumes that the caller has already disabled all floating point exceptions. This avoids the need to save/restore them with every call. ACL provides helpers in [acl/core/floating_point_exceptions.h](..\includes\acl\core\floating_point_exceptions.h) to assist and optionally this behavior can be controlled by overriding `DecompressionSettings::disable_fp_exeptions()`.
