@@ -135,7 +135,7 @@ namespace acl
 				if (settings.segmenting.range_reduction != RangeReductionFlags8::None)
 				{
 					extract_segment_bone_ranges(allocator, clip_context);
-					normalize_segment_streams(clip_context, settings.range_reduction);
+					normalize_segment_streams(clip_context, settings.segmenting.range_reduction);
 				}
 			}
 			else
