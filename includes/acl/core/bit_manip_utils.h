@@ -37,7 +37,10 @@
 
 #if defined(ACL_AVX_INTRINSICS)
 	// Use BMI
-	#include <immintrin.h>
+	#include <ammintrin.h>		// MSVC uses this header for _andn_u32 BMI intrinsic
+	#include <immintrin.h>		// Intel documentation says _andn_u32 and others are here
+
+	#define ACL_BMI_INTRINSICS
 #endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -107,9 +110,13 @@ namespace acl
 
 	inline uint32_t and_not(uint32_t not_value, uint32_t and_value)
 	{
-#if defined(ACL_AVX_INTRINSICS)
+#if defined(ACL_BMI_INTRINSICS)
 		// Use BMI
+#if defined(__GNUC__) && !defined(__clang__) && !defined(_andn_u32)
+		return __andn_u32(not_value, and_value);	// GCC doesn't define the right intrinsic symbol
+#else
 		return _andn_u32(not_value, and_value);
+#endif
 #else
 		return ~not_value & and_value;
 #endif
