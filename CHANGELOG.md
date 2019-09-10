@@ -1,5 +1,10 @@
 # Significant changes per release
 
+## 1.2.1
+
+*  Silence SSE floating point exceptions during compression
+*  Minor fixes
+
 ## 1.2.0
 
 *  Added support for GCC 8, clang 6, Xcode 10, and Windows ARM64
