@@ -28,6 +28,7 @@
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
+#include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/compression/compression_settings.h"
@@ -73,6 +74,10 @@ namespace acl
 		ErrorResult error_result = track_list.is_valid();
 		if (error_result.any())
 			return error_result;
+
+		// Disable floating point exceptions during compression because we leverage all SIMD lanes
+		// and we might intentionally divide by zero, etc.
+		scope_disable_fp_exceptions fp_off;
 
 		ScopeProfiler compression_time;
 

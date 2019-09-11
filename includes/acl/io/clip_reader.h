@@ -608,15 +608,15 @@ namespace acl
 				}
 				else
 				{
-					double rotation[4];
+					double rotation[4] = { 0.0, 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_rotation", rotation, 4, 0.0) && !counting)
 						bone.bind_transform.rotation = quat_unaligned_load(&rotation[0]);
 
-					double translation[3];
+					double translation[3] = { 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_translation", translation, 3, 0.0) && !counting)
 						bone.bind_transform.translation = vector_unaligned_load3(&translation[0]);
 
-					double scale[3];
+					double scale[3] = { 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_scale", scale, 3, 0.0) && !counting)
 						bone.bind_transform.scale = vector_unaligned_load3(&scale[0]);
 				}
@@ -787,7 +787,7 @@ namespace acl
 					}
 					else
 					{
-						double values[4];
+						double values[4] = { 0.0, 0.0, 0.0, 0.0 };
 						if (m_parser.read(values, num_components))
 						{
 							switch (track_type)
@@ -1062,7 +1062,7 @@ namespace acl
 				}
 				else
 				{
-					double values[4];
+					double values[4] = { 0.0, 0.0, 0.0, 0.0 };
 					if (!m_parser.read(values, 4))
 						return false;
 
