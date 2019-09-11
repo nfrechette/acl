@@ -27,6 +27,7 @@
 #include "acl/core/compiler_utils.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error.h"
+#include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/track_traits.h"
@@ -67,6 +68,12 @@ namespace acl
 		// If a track type is statically known not to be supported, the compiler can strip
 		// the associated code.
 		constexpr bool is_track_type_supported(track_type8 /*type*/) const { return true; }
+
+		// Whether to explicitly disable floating point exceptions during decompression.
+		// This has a cost, exceptions are usually disabled globally and do not need to be
+		// explicitly disabled during decompression.
+		// We assume that floating point exceptions are already disabled by the caller.
+		constexpr bool disable_fp_exeptions() const { return false; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -257,6 +264,12 @@ namespace acl
 	{
 		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
+
+		// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
+		// Disable floating point exceptions to avoid issues.
+		fp_environment fp_env;
+		if (m_settings.disable_fp_exeptions())
+			disable_fp_exceptions(fp_env);
 
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*m_context.tracks);
 
@@ -465,6 +478,9 @@ namespace acl
 				writer.write_vector4(track_index, value);
 			}
 		}
+
+		if (m_settings.disable_fp_exeptions())
+			restore_fp_exceptions(fp_env);
 	}
 
 	template<class decompression_settings_type>
@@ -474,6 +490,12 @@ namespace acl
 		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
 		ACL_ASSERT(track_index < m_context.tracks->get_num_tracks(), "Invalid track index");
+
+		// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
+		// Disable floating point exceptions to avoid issues.
+		fp_environment fp_env;
+		if (m_settings.disable_fp_exeptions())
+			disable_fp_exceptions(fp_env);
 
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*m_context.tracks);
 
@@ -653,6 +675,9 @@ namespace acl
 
 			writer.write_vector4(track_index, value);
 		}
+
+		if (m_settings.disable_fp_exeptions())
+			restore_fp_exceptions(fp_env);
 	}
 
 	template<class decompression_settings_type>
