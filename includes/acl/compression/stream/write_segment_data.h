@@ -92,7 +92,7 @@ namespace acl
 				segment_header.format_per_track_data_offset = InvalidPtrOffset();
 
 			if (segment.range_data_size > 0)
-				write_segment_range_data(clip_context, segment, settings.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size, output_bone_mapping, num_output_bones);
+				write_segment_range_data(clip_context, segment, settings.segmenting.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size, output_bone_mapping, num_output_bones);
 			else
 				segment_header.range_data_offset = InvalidPtrOffset();
 
