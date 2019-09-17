@@ -790,6 +790,9 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const t
 #if defined(SJSON_CPP_WRITER)
 		if (logging != StatLogging::None)
 		{
+			// Disable floating point exceptions since decompression assumes it
+			scope_disable_fp_exceptions fp_off;
+
 			const track_error error = calculate_compression_error(allocator, track_list, *compressed_tracks_);
 
 			stats_writer->insert("max_error", error.error);
@@ -803,7 +806,12 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const t
 #endif
 
 		if (options.regression_testing)
+		{
+			// Disable floating point exceptions since decompression assumes it
+			scope_disable_fp_exceptions fp_off;
+
 			validate_accuracy(allocator, track_list, *compressed_tracks_, regression_error_threshold);
+		}
 
 		if (options.output_bin_filename != nullptr)
 		{
