@@ -1,7 +1,11 @@
+# coding: utf-8
+
+from __future__ import print_function
+
 import argparse
+import multiprocessing
 import os
 import platform
-import queue
 import shutil
 import subprocess
 import sys
@@ -35,8 +39,8 @@ def parse_argv():
 	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
 	misc.add_argument('-help', action='help', help='Display this usage information')
 
-	num_threads = os.cpu_count()
-	if platform.system() == 'Linux':
+	num_threads = multiprocessing.cpu_count()
+	if platform.system() == 'Linux' and sys.version_info >= (3, 4):
 		num_threads = len(os.sched_getaffinity(0))
 	if not num_threads or num_threads == 0:
 		num_threads = 4
@@ -450,7 +454,12 @@ def do_prepare_decompression_test_data(test_data_dir, args):
 	return current_data_dir
 
 def do_regression_tests(ctest_exe, test_data_dir, args):
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run regression tests')
+		sys.exit(1)
+
 	print('Running regression tests ...')
+	import queue
 
 	# Validate that our regression testing tool is present
 	if platform.system() == 'Windows':
