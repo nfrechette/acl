@@ -172,9 +172,9 @@ namespace acl
 		__m128 zzww = _mm_shuffle_ps(z, w, _MM_SHUFFLE(0, 0, 0, 0));
 		return _mm_shuffle_ps(xxyy, zzww, _MM_SHUFFLE(2, 0, 2, 0));
 #elif defined(ACL_SSE2_INTRINSICS)
-		constexpr __m128 control_wzyx = { 1.0f,-1.0f, 1.0f,-1.0f };
-		constexpr __m128 control_zwxy = { 1.0f, 1.0f,-1.0f,-1.0f };
-		constexpr __m128 control_yxwz = { -1.0f, 1.0f, 1.0f,-1.0f };
+		constexpr __m128 control_wzyx = { 0.0f,-0.0f, 0.0f,-0.0f };
+		constexpr __m128 control_zwxy = { 0.0f, 0.0f,-0.0f,-0.0f };
+		constexpr __m128 control_yxwz = { -0.0f, 0.0f, 0.0f,-0.0f };
 
 		__m128 r_xxxx = _mm_shuffle_ps(rhs, rhs, _MM_SHUFFLE(0, 0, 0, 0));
 		__m128 r_yyyy = _mm_shuffle_ps(rhs, rhs, _MM_SHUFFLE(1, 1, 1, 1));
@@ -182,22 +182,22 @@ namespace acl
 		__m128 r_wwww = _mm_shuffle_ps(rhs, rhs, _MM_SHUFFLE(3, 3, 3, 3));
 
 		__m128 lxrw_lyrw_lzrw_lwrw = _mm_mul_ps(r_wwww, lhs);
-		__m128 l_wzyx = _mm_shuffle_ps(lhs, lhs,_MM_SHUFFLE(0, 1, 2, 3));
+		__m128 l_wzyx = _mm_shuffle_ps(lhs, lhs, _MM_SHUFFLE(0, 1, 2, 3));
 
 		__m128 lwrx_lzrx_lyrx_lxrx = _mm_mul_ps(r_xxxx, l_wzyx);
-		__m128 l_zwxy = _mm_shuffle_ps(l_wzyx, l_wzyx,_MM_SHUFFLE(2, 3, 0, 1));
+		__m128 l_zwxy = _mm_shuffle_ps(l_wzyx, l_wzyx, _MM_SHUFFLE(2, 3, 0, 1));
 
-		__m128 lwrx_nlzrx_lyrx_nlxrx = _mm_mul_ps(lwrx_lzrx_lyrx_lxrx, control_wzyx);
+		__m128 lwrx_nlzrx_lyrx_nlxrx = _mm_xor_ps(lwrx_lzrx_lyrx_lxrx, control_wzyx);
 
 		__m128 lzry_lwry_lxry_lyry = _mm_mul_ps(r_yyyy, l_zwxy);
-		__m128 l_yxwz = _mm_shuffle_ps(l_zwxy, l_zwxy,_MM_SHUFFLE(0, 1, 2, 3));
+		__m128 l_yxwz = _mm_shuffle_ps(l_zwxy, l_zwxy, _MM_SHUFFLE(0, 1, 2, 3));
 
-		__m128 lzry_lwry_nlxry_nlyry = _mm_mul_ps(lzry_lwry_lxry_lyry, control_zwxy);
+		__m128 lzry_lwry_nlxry_nlyry = _mm_xor_ps(lzry_lwry_lxry_lyry, control_zwxy);
 
 		__m128 lyrz_lxrz_lwrz_lzrz = _mm_mul_ps(r_zzzz, l_yxwz);
 		__m128 result0 = _mm_add_ps(lxrw_lyrw_lzrw_lwrw, lwrx_nlzrx_lyrx_nlxrx);
 
-		__m128 nlyrz_lxrz_lwrz_wlzrz = _mm_mul_ps(lyrz_lxrz_lwrz_lzrz, control_yxwz);
+		__m128 nlyrz_lxrz_lwrz_wlzrz = _mm_xor_ps(lyrz_lxrz_lwrz_lzrz, control_yxwz);
 		__m128 result1 = _mm_add_ps(lzry_lwry_nlxry_nlyry, nlyrz_lxrz_lwrz_wlzrz);
 		return _mm_add_ps(result0, result1);
 #elif defined(ACL_NEON_INTRINSICS)
@@ -212,33 +212,30 @@ namespace acl
 		float32x2_t r_xy = vget_low_f32(rhs);
 		float32x2_t r_zw = vget_high_f32(rhs);
 
-		float32x4_t r_xxxx = vdupq_lane_f32(r_xy, 0);
-		float32x4_t r_yyyy = vdupq_lane_f32(r_xy, 1);
-		float32x4_t r_zzzz = vdupq_lane_f32(r_zw, 0);
 		float32x4_t lxrw_lyrw_lzrw_lwrw = vmulq_lane_f32(lhs, r_zw, 1);
 
 		float32x4_t l_yxwz = vrev64q_f32(lhs);
 		float32x4_t l_wzyx = vcombine_f32(vget_high_f32(l_yxwz), vget_low_f32(l_yxwz));
-		float32x4_t lwrx_lzrx_lyrx_lxrx = vmulq_f32(r_xxxx, l_wzyx);
+		float32x4_t lwrx_lzrx_lyrx_lxrx = vmulq_lane_f32(l_wzyx, r_xy, 0);
 
-#if defined(ACL_NEON64_INTRINSICS)
+#if defined(RTM_NEON64_INTRINSICS)
 		float32x4_t result0 = vfmaq_f32(lxrw_lyrw_lzrw_lwrw, lwrx_lzrx_lyrx_lxrx, control_wzyx);
 #else
 		float32x4_t result0 = vmlaq_f32(lxrw_lyrw_lzrw_lwrw, lwrx_lzrx_lyrx_lxrx, control_wzyx);
 #endif
 
-		float32x4_t l_zwxy = vrev64q_u32(l_wzyx);
-		float32x4_t lzry_lwry_lxry_lyry = vmulq_f32(r_yyyy, l_zwxy);
+		float32x4_t l_zwxy = vrev64q_f32(l_wzyx);
+		float32x4_t lzry_lwry_lxry_lyry = vmulq_lane_f32(l_zwxy, r_xy, 1);
 
-#if defined(ACL_NEON64_INTRINSICS)
+#if defined(RTM_NEON64_INTRINSICS)
 		float32x4_t result1 = vfmaq_f32(result0, lzry_lwry_lxry_lyry, control_zwxy);
 #else
 		float32x4_t result1 = vmlaq_f32(result0, lzry_lwry_lxry_lyry, control_zwxy);
 #endif
 
-		float32x4_t lyrz_lxrz_lwrz_lzrz = vmulq_f32(r_zzzz, l_yxwz);
+		float32x4_t lyrz_lxrz_lwrz_lzrz = vmulq_lane_f32(l_yxwz, r_zw, 0);
 
-#if defined(ACL_NEON64_INTRINSICS)
+#if defined(RTM_NEON64_INTRINSICS)
 		return vfmaq_f32(result1, lyrz_lxrz_lwrz_lzrz, control_yxwz);
 #else
 		return vmlaq_f32(result1, lyrz_lxrz_lwrz_lzrz, control_yxwz);
