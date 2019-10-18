@@ -81,6 +81,11 @@ namespace acl
 #endif
 	}
 
+#if _MSC_VER >= 1920 && defined(_M_X64) && defined(ACL_SSE2_INTRINSICS) && !defined(ACL_AVX_INTRINSICS)
+	// HACK!!! Visual Studio 2019 has a code generation bug triggered by the code below, disable optimizations for now
+	// Bug only happens with x64 SSE2, not with AVX nor with x86
+	#pragma optimize("", off)
+#endif
 	inline float sqrt_reciprocal(float input)
 	{
 #if defined(ACL_SSE2_INTRINSICS)
@@ -105,6 +110,10 @@ namespace acl
 		return 1.0f / sqrt(input);
 #endif
 	}
+#if _MSC_VER >= 1920 && defined(_M_X64) && defined(ACL_SSE2_INTRINSICS) && !defined(ACL_AVX_INTRINSICS)
+	// HACK!!! See comment above
+	#pragma optimize("", on)
+#endif
 
 	inline float reciprocal(float input)
 	{
