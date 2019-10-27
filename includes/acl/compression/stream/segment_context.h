@@ -86,6 +86,89 @@ namespace acl
 		deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
 		deallocate_type_array(allocator, segment.ranges, segment.num_bones);
 	}
+
+	namespace acl_impl
+	{
+		class track_database;
+
+		struct qvvf_ranges
+		{
+			Vector4_32 rotation_min;
+			Vector4_32 rotation_max;
+			Vector4_32 rotation_extent;
+
+			Vector4_32 translation_min;
+			Vector4_32 translation_max;
+			Vector4_32 translation_extent;
+
+			Vector4_32 scale_min;
+			Vector4_32 scale_max;
+			Vector4_32 scale_extent;
+
+			bool is_rotation_constant;
+			bool is_rotation_default;
+
+			bool is_translation_constant;
+			bool is_translation_default;
+
+			bool is_scale_constant;
+			bool is_scale_default;
+
+			bool are_rotations_normalized;
+			bool are_translations_normalized;
+			bool are_scales_normalized;
+		};
+
+		struct segment_context
+		{
+			qvvf_ranges* ranges;						// Range information for every track in this segment
+			BoneBitRate* bit_rates;						// Quantization bit rates for every track in this segment
+
+			uint32_t index;								// Which segment this is
+			uint32_t num_transforms;					// Number of transforms (same in every segment)
+
+			uint32_t start_offset;						// The offset of the first sample in the parent clip
+			uint32_t num_samples_per_track;				// How many samples are in this segment per track
+
+			uint32_t num_simd_samples_per_track;		// The number of samples per track rounded up to padded SIMD width
+			uint32_t num_soa_entries;					// Number of SOA vector entries per component (num simd samples per track / simd width)
+			uint32_t soa_size;							// The size in bytes of the segment data in SOA form
+			uint32_t soa_start_offset;					// The start offset in bytes of the segment data in SOA form relative to the start of the contiguous buffer
+			uint32_t soa_transform_size;				// Size in bytes of each transform track in SOA form
+
+			// Offset to each transform track's data
+			uint32_t rotations_offset;					// Always zero, here for symmetry but can be ignored
+			uint32_t translations_offset;
+			uint32_t scales_offset;
+
+			// Offset of each component within a track, fixed for all tracks since they each have the same number of samples and component size
+			uint32_t samples_offset_x;					// Always zero, here for symmetry but can be ignored
+			uint32_t samples_offset_y;
+			uint32_t samples_offset_z;
+			uint32_t samples_offset_w;
+
+			SampleDistribution8 distribution;
+
+			uint32_t format_per_track_data_size;
+			uint32_t range_data_size;
+			uint32_t animated_data_size;
+			uint32_t animated_pose_bit_size;
+			uint32_t total_header_size;					// Size of the segment header: metadata + range info
+			uint32_t total_size;						// Size of the segment
+		};
+
+		inline void destroy_segments(IAllocator& allocator, segment_context* segments, uint32_t num_segments)
+		{
+			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
+			{
+				segment_context& segment = segments[segment_index];
+				deallocate_type_array(allocator, segment.ranges, segment.num_transforms);
+				deallocate_type_array(allocator, segment.bit_rates, segment.num_transforms);
+			}
+
+			deallocate_type_array(allocator, segments, num_segments);
+		}
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

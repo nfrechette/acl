@@ -86,6 +86,59 @@ namespace acl
 
 		ACL_ASSERT(constant_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
 	}
+
+	namespace acl_impl
+	{
+		inline void write_default_track_bitset(const track_database& mutable_database, const uint16_t* output_transform_mapping, uint16_t num_output_transforms, uint32_t* out_default_tracks_bitset, BitSetDescription bitset_desc)
+		{
+			ACL_ASSERT(out_default_tracks_bitset != nullptr, "'out_default_tracks_bitset' cannot be null!");
+
+			const bool has_scale = mutable_database.has_scale();
+
+			uint32_t default_track_offset = 0;
+
+			bitset_reset(out_default_tracks_bitset, bitset_desc, false);
+
+			for (uint16_t output_index = 0; output_index < num_output_transforms; ++output_index)
+			{
+				const uint32_t transform_index = output_transform_mapping[output_index];
+				const qvvf_ranges& transform_range = mutable_database.get_range(transform_index);
+
+				bitset_set(out_default_tracks_bitset, bitset_desc, default_track_offset++, transform_range.is_rotation_default);
+				bitset_set(out_default_tracks_bitset, bitset_desc, default_track_offset++, transform_range.is_translation_default);
+
+				if (has_scale)
+					bitset_set(out_default_tracks_bitset, bitset_desc, default_track_offset++, transform_range.is_scale_default);
+			}
+
+			ACL_ASSERT(default_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
+		}
+
+		inline void write_constant_track_bitset(const track_database& mutable_database, const uint16_t* output_transform_mapping, uint16_t num_output_transforms, uint32_t* out_constant_tracks_bitset, BitSetDescription bitset_desc)
+		{
+			ACL_ASSERT(out_constant_tracks_bitset != nullptr, "'out_constant_tracks_bitset' cannot be null!");
+
+			const bool has_scale = mutable_database.has_scale();
+
+			uint32_t constant_track_offset = 0;
+
+			bitset_reset(out_constant_tracks_bitset, bitset_desc, false);
+
+			for (uint16_t output_index = 0; output_index < num_output_transforms; ++output_index)
+			{
+				const uint32_t transform_index = output_transform_mapping[output_index];
+				const qvvf_ranges& transform_range = mutable_database.get_range(transform_index);
+
+				bitset_set(out_constant_tracks_bitset, bitset_desc, constant_track_offset++, transform_range.is_rotation_constant);
+				bitset_set(out_constant_tracks_bitset, bitset_desc, constant_track_offset++, transform_range.is_translation_constant);
+
+				if (has_scale)
+					bitset_set(out_constant_tracks_bitset, bitset_desc, constant_track_offset++, transform_range.is_scale_constant);
+			}
+
+			ACL_ASSERT(constant_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
+		}
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

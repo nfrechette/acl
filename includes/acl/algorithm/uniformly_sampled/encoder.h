@@ -39,6 +39,7 @@
 #include "acl/compression/skeleton.h"
 #include "acl/compression/animation_clip.h"
 #include "acl/compression/output_stats.h"
+#include "acl/compression/impl/track_database.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/stream/track_stream.h"
 #include "acl/compression/stream/convert_rotation_streams.h"
@@ -80,6 +81,7 @@ namespace acl
 		inline ErrorResult compress_clip(IAllocator& allocator, const AnimationClip& clip, CompressionSettings settings, CompressedClip*& out_compressed_clip, OutputStats& out_stats)
 		{
 			using namespace impl;
+			using namespace acl_impl;
 			(void)out_stats;
 
 			ErrorResult error_result = clip.is_valid();
@@ -97,68 +99,93 @@ namespace acl
 			ScopeProfiler compression_time;
 
 			const uint32_t num_samples = clip.get_num_samples();
+			const uint32_t num_transforms = clip.get_num_bones();
 			const RigidSkeleton& skeleton = clip.get_skeleton();
-
-			ClipContext additive_base_clip_context;
 			const AnimationClip* additive_base_clip = clip.get_additive_base();
-			if (additive_base_clip != nullptr)
-				initialize_clip_context(allocator, *additive_base_clip, skeleton, settings, additive_base_clip_context);
 
-			ClipContext raw_clip_context;
-			initialize_clip_context(allocator, clip, skeleton, settings, raw_clip_context);
+			const bool has_scale = clip.has_scale(settings.constant_scale_threshold);
 
-			ClipContext clip_context;
-			initialize_clip_context(allocator, clip, skeleton, settings, clip_context);
+			uint32_t num_segments;
+			segment_context* segments = partition_into_segments(allocator, num_samples, num_transforms, has_scale, settings.segmenting, num_segments);
 
-			convert_rotation_streams(allocator, clip_context, settings.rotation_format);
-
-			// Extract our clip ranges now, we need it for compacting the constant streams
-			extract_clip_bone_ranges(allocator, clip_context);
-
-			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, clip_context, settings.constant_rotation_threshold_angle, settings.constant_translation_threshold, settings.constant_scale_threshold);
-
-			uint32_t clip_range_data_size = 0;
-			if (settings.range_reduction != RangeReductionFlags8::None)
-			{
-				normalize_clip_streams(clip_context, settings.range_reduction);
-				clip_range_data_size = get_stream_range_data_size(clip_context, settings.range_reduction, settings.rotation_format);
-			}
-
-			if (settings.segmenting.enabled)
-			{
-				segment_streams(allocator, clip_context, settings.segmenting);
-
-				// If we have a single segment, disable range reduction since it won't help
-				if (clip_context.num_segments == 1)
-					settings.segmenting.range_reduction = RangeReductionFlags8::None;
-
-				if (settings.segmenting.range_reduction != RangeReductionFlags8::None)
-				{
-					extract_segment_bone_ranges(allocator, clip_context);
-					normalize_segment_streams(clip_context, settings.segmenting.range_reduction);
-				}
-			}
-			else
+			// If we have a single segment or segmenting is disabled, disable range reduction since it won't help
+			if (!settings.segmenting.enabled || num_segments == 1)
 				settings.segmenting.range_reduction = RangeReductionFlags8::None;
 
-			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context, additive_base_clip_context);
+			track_database raw_track_database(allocator, clip, skeleton, settings, segments, num_segments);
+			track_database mutable_track_database(allocator, clip, skeleton, settings, segments, num_segments);
 
+			track_database* additive_base_track_database = nullptr;
+			if (additive_base_clip != nullptr)
+				additive_base_track_database = allocate_type<track_database>(allocator, allocator, *additive_base_clip, skeleton, settings, segments, num_segments);
+
+			// TODO: If our segment size is too large and doesn't fit in the L1 or L2 too comfortably, iterating per pass instead
+			// of per segment might be faster since that way the code can at least remain in the L1. Doesn't matter as much if
+			// we process segments in parallel but it still might if each thread processes more than 1 segment.
+			// CPU decoding is often optimized for short loops.
+
+			// Process every segment, this could be done in parallel
+			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
+			{
+				segment_context& segment = segments[segment_index];
+
+				// Populate the database from our raw clip
+				raw_track_database.populate_data(segment, clip);
+
+				// Just copy the data from the raw database since it's now nicely formatted for us
+				mutable_track_database.copy_data(segment, raw_track_database);
+				if (additive_base_track_database != nullptr)
+					additive_base_track_database->copy_data(segment, raw_track_database);	// TODO: Copy with streaming writes to bypass the CPU cache, won't be needed again soon
+
+				// TODO: Should we also convert the raw databases? It seems to make sense because we always convert it when quantizing at the end anyway, does it matter?
+				convert_rotations(mutable_track_database, segment, settings.rotation_format);
+
+				// Extract segment ranges, we'll merge them after the loop
+				extract_database_transform_ranges_per_segment(mutable_track_database, segment);
+			}
+
+			// Allocate and process while waiting for parallel tasks to finish
 			uint16_t num_output_bones = 0;
 			uint16_t* output_bone_mapping = create_output_bone_mapping(allocator, clip, num_output_bones);
 
-			const uint32_t constant_data_size = get_constant_data_size(clip_context, output_bone_mapping, num_output_bones);
+			merge_database_transform_ranges_from_segments(mutable_track_database, segments, num_segments);
+			detect_constant_tracks(mutable_track_database, segments, num_segments, settings.constant_rotation_threshold_angle, settings.constant_translation_threshold, settings.constant_scale_threshold);
 
-			calculate_animated_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, output_bone_mapping, num_output_bones);
+			// Process every segment, this could be done in parallel
+			acl::impl::quantization_context quant_context(allocator, mutable_track_database, raw_track_database, additive_base_track_database, settings, skeleton, segments[0]);
+			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
+			{
+				segment_context& segment = segments[segment_index];
 
-			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
+				detect_segment_constant_tracks(mutable_track_database, segment);
 
-			const uint32_t num_tracks_per_bone = clip_context.has_scale ? 3 : 2;
+				if (settings.range_reduction != RangeReductionFlags8::None)
+					normalize_with_database_ranges(mutable_track_database, segment, settings.range_reduction);
+
+				// After this point, if the rotation quat W component is dropped, it is no longer meaningful
+
+				if (settings.segmenting.enabled && settings.segmenting.range_reduction != RangeReductionFlags8::None)
+				{
+					extract_segment_ranges(mutable_track_database, segment);
+					normalize_with_segment_ranges(mutable_track_database, segment, settings.segmenting.range_reduction);
+				}
+
+				quantize_tracks(quant_context, segment, settings);
+
+				segment.format_per_track_data_size = acl_impl::write_format_per_track_data(mutable_track_database, segment, output_bone_mapping, num_output_bones, nullptr);
+				segment.range_data_size = acl_impl::write_segment_range_data(mutable_track_database, segment, settings.segmenting.range_reduction, output_bone_mapping, num_output_bones, nullptr);
+				segment.animated_data_size = acl_impl::write_animated_track_data(mutable_track_database, segment, output_bone_mapping, num_output_bones, &segment.animated_pose_bit_size, nullptr);
+			}
+
+			const uint32_t constant_data_size = acl_impl::write_track_constant_values(mutable_track_database, segments, num_segments, output_bone_mapping, num_output_bones, nullptr);
+			const uint32_t clip_range_data_size = acl_impl::write_clip_range_data(mutable_track_database, settings.range_reduction, output_bone_mapping, num_output_bones, nullptr);
+
+			const uint32_t num_tracks_per_bone = has_scale ? 3 : 2;
 			const uint32_t num_tracks = uint32_t(num_output_bones) * num_tracks_per_bone;
 			const BitSetDescription bitset_desc = BitSetDescription::make_from_num_bits(num_tracks);
 
 			// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
-			const uint32_t segment_start_indices_size = clip_context.num_segments > 1 ? (sizeof(uint32_t) * (clip_context.num_segments + 1)) : 0;
+			const uint32_t segment_start_indices_size = num_segments > 1 ? (sizeof(uint32_t) * (num_segments + 1)) : 0;
 
 			uint32_t buffer_size = 0;
 			// Per clip data
@@ -169,7 +196,7 @@ namespace acl
 
 			buffer_size += segment_start_indices_size;							// Segment start indices
 			buffer_size = align_to(buffer_size, 4);								// Align segment headers
-			buffer_size += sizeof(SegmentHeader) * clip_context.num_segments;	// Segment headers
+			buffer_size += sizeof(SegmentHeader) * num_segments;				// Segment headers
 			buffer_size = align_to(buffer_size, 4);								// Align bitsets
 
 			const uint32_t clip_segment_header_size = buffer_size - clip_header_size;
@@ -183,24 +210,14 @@ namespace acl
 
 			const uint32_t clip_data_size = buffer_size - clip_segment_header_size - clip_header_size;
 
-			if (are_all_enum_flags_set(out_stats.logging, StatLogging::Detailed))
-			{
-				constexpr uint32_t k_cache_line_byte_size = 64;
-				clip_context.decomp_touched_bytes = clip_header_size + clip_data_size;
-				clip_context.decomp_touched_bytes += sizeof(uint32_t) * 4;			// We touch at most 4 segment start indices
-				clip_context.decomp_touched_bytes += sizeof(SegmentHeader) * 2;		// We touch at most 2 segment headers
-				clip_context.decomp_touched_cache_lines = align_to(clip_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
-				clip_context.decomp_touched_cache_lines += align_to(clip_data_size, k_cache_line_byte_size) / k_cache_line_byte_size;
-				clip_context.decomp_touched_cache_lines += 1;						// All 4 segment start indices should fit in a cache line
-				clip_context.decomp_touched_cache_lines += 1;						// Both segment headers should fit in a cache line
-			}
-
 			// Per segment data
-			for (SegmentContext& segment : clip_context.segment_iterator())
+			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 			{
+				segment_context& segment = segments[segment_index];
+
 				const uint32_t header_start = buffer_size;
 
-				buffer_size += format_per_track_data_size;						// Format per track data
+				buffer_size += segment.format_per_track_data_size;				// Format per track data
 				// TODO: Alignment only necessary with 16bit per component
 				buffer_size = align_to(buffer_size, 2);							// Align range data
 				buffer_size += segment.range_data_size;							// Range data
@@ -212,6 +229,7 @@ namespace acl
 				buffer_size += segment.animated_data_size;						// Animated track data
 
 				segment.total_header_size = header_end - header_start;
+				segment.total_size = buffer_size - header_start;
 			}
 
 			// Ensure we have sufficient padding for unaligned 16 byte loads
@@ -223,44 +241,44 @@ namespace acl
 
 			ClipHeader& header = get_clip_header(*compressed_clip);
 			header.num_bones = num_output_bones;
-			header.num_segments = clip_context.num_segments;
+			header.num_segments = safe_static_cast<uint16_t>(num_segments);
 			header.rotation_format = settings.rotation_format;
 			header.translation_format = settings.translation_format;
 			header.scale_format = settings.scale_format;
 			header.clip_range_reduction = settings.range_reduction;
 			header.segment_range_reduction = settings.segmenting.range_reduction;
-			header.has_scale = clip_context.has_scale ? 1 : 0;
+			header.has_scale = has_scale ? 1 : 0;
 			header.default_scale = additive_base_clip == nullptr || clip.get_additive_format() != AdditiveClipFormat8::Additive1;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.segment_start_indices_offset = sizeof(ClipHeader);
 			header.segment_headers_offset = align_to(header.segment_start_indices_offset + segment_start_indices_size, 4);
-			header.default_tracks_bitset_offset = align_to(header.segment_headers_offset + (sizeof(SegmentHeader) * clip_context.num_segments), 4);
+			header.default_tracks_bitset_offset = align_to(header.segment_headers_offset + (sizeof(SegmentHeader) * num_segments), 4);
 			header.constant_tracks_bitset_offset = header.default_tracks_bitset_offset + bitset_desc.get_num_bytes();
 			header.constant_track_data_offset = align_to(header.constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
 			header.clip_range_data_offset = align_to(header.constant_track_data_offset + constant_data_size, 4);
 
-			if (clip_context.num_segments > 1)
-				write_segment_start_indices(clip_context, header.get_segment_start_indices());
+			if (num_segments > 1)
+				acl_impl::write_segment_start_indices(segments, num_segments, header.get_segment_start_indices());
 			else
 				header.segment_start_indices_offset = InvalidPtrOffset();
 
 			const uint32_t segment_data_start_offset = header.clip_range_data_offset + clip_range_data_size;
-			write_segment_headers(clip_context, settings, header.get_segment_headers(), segment_data_start_offset);
-			write_default_track_bitset(clip_context, header.get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
-			write_constant_track_bitset(clip_context, header.get_constant_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
+			acl_impl::write_segment_headers(segments, num_segments, segment_data_start_offset, header.get_segment_headers());
+			acl_impl::write_default_track_bitset(mutable_track_database, output_bone_mapping, num_output_bones, header.get_default_tracks_bitset(), bitset_desc);
+			acl_impl::write_constant_track_bitset(mutable_track_database, output_bone_mapping, num_output_bones, header.get_constant_tracks_bitset(), bitset_desc);
 
-			if (constant_data_size > 0)
-				write_constant_track_data(clip_context, header.get_constant_track_data(), constant_data_size, output_bone_mapping, num_output_bones);
+			if (constant_data_size != 0)
+				acl_impl::write_track_constant_values(mutable_track_database, segments, num_segments, output_bone_mapping, num_output_bones, header.get_constant_track_data());
 			else
 				header.constant_track_data_offset = InvalidPtrOffset();
 
 			if (settings.range_reduction != RangeReductionFlags8::None)
-				write_clip_range_data(clip_context, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
+				acl_impl::write_clip_range_data(mutable_track_database, settings.range_reduction, output_bone_mapping, num_output_bones, header.get_clip_range_data());
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();
 
-			write_segment_data(clip_context, settings, header, output_bone_mapping, num_output_bones);
+			acl_impl::write_segment_data(mutable_track_database, segments, num_segments, settings.segmenting.range_reduction, header, output_bone_mapping, num_output_bones);
 
 			finalize_compressed_clip(*compressed_clip);
 
@@ -268,15 +286,14 @@ namespace acl
 
 #if defined(SJSON_CPP_WRITER)
 			if (out_stats.logging != StatLogging::None)
-				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
+				acl_impl::write_stats(allocator, clip, skeleton, settings,
+					mutable_track_database, raw_track_database, additive_base_track_database,
+					segments, num_segments, *compressed_clip, header, compression_time, clip_header_size, clip_data_size, out_stats);
 #endif
 
 			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
-			destroy_clip_context(allocator, clip_context);
-			destroy_clip_context(allocator, raw_clip_context);
-
-			if (additive_base_clip != nullptr)
-				destroy_clip_context(allocator, additive_base_clip_context);
+			destroy_segments(allocator, segments, num_segments);
+			deallocate_type(allocator, additive_base_track_database);
 
 			out_compressed_clip = compressed_clip;
 			return ErrorResult();

@@ -29,6 +29,7 @@
 #include "acl/core/error.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/stream/clip_context.h"
+#include "acl/compression/impl/track_database.h"
 
 #include <cstdint>
 
@@ -178,6 +179,165 @@ namespace acl
 		deallocate_type_array(allocator, num_samples_per_segment, original_num_segments);
 		destroy_segment_context(allocator, *clip_segment);
 		deallocate_type_array(allocator, clip_segment, 1);
+	}
+
+	namespace acl_impl
+	{
+		inline segment_context* partition_into_segments(IAllocator& allocator, uint32_t num_samples_per_track, uint32_t num_transforms, bool has_scale, const SegmentingSettings& settings, uint32_t& out_num_segments)
+		{
+			const uint32_t num_components_per_transform = get_num_components_per_transform(has_scale);
+
+			if (!settings.enabled || num_samples_per_track <= settings.max_num_samples)
+			{
+				// We have a single segment
+				segment_context* segments = allocate_type_array<segment_context>(allocator, 1);
+				segment_context& segment = segments[0];
+
+				segment.ranges = allocate_type_array<qvvf_ranges>(allocator, num_transforms);
+				std::memset(segment.ranges, 0, sizeof(qvvf_ranges) * num_transforms);
+
+				segment.bit_rates = allocate_type_array<BoneBitRate>(allocator, num_transforms);
+
+				segment.index = 0;
+				segment.num_transforms = num_transforms;
+
+				segment.start_offset = 0;
+				segment.num_samples_per_track = num_samples_per_track;
+
+				const uint32_t num_simd_samples_per_track = align_to(num_samples_per_track, k_simd_width);
+				const uint32_t component_size = sizeof(float) * num_simd_samples_per_track;
+				const uint32_t transform_size = component_size * num_components_per_transform;
+				const uint32_t segment_size = transform_size * num_transforms;
+
+				segment.num_simd_samples_per_track = num_simd_samples_per_track;
+				segment.num_soa_entries = num_simd_samples_per_track / k_simd_width;
+				segment.soa_size = segment_size;
+				segment.soa_start_offset = 0;
+				segment.soa_transform_size = transform_size;
+
+				segment.rotations_offset = 0;
+				segment.translations_offset = component_size * 4;
+				segment.scales_offset = component_size * 7;
+
+				segment.samples_offset_x = component_size * 0;	// Always 0
+				segment.samples_offset_y = component_size * 1;
+				segment.samples_offset_z = component_size * 2;
+				segment.samples_offset_w = component_size * 3;
+
+				segment.distribution = SampleDistribution8::Uniform;
+
+				segment.format_per_track_data_size = 0;
+				segment.range_data_size = 0;
+				segment.animated_data_size = 0;
+				segment.animated_pose_bit_size = 0;
+				segment.total_header_size = 0;
+				segment.total_size = 0;
+
+				out_num_segments = 1;
+				return segments;
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// This algorithm is simple in nature. Its primary aim is to avoid having
+			// the last segment being partial if multiple segments are present.
+			// The extra samples from the last segment will be redistributed evenly
+			// starting with the first segment.
+			// As such, in order to quickly find which segment contains a particular sample
+			// you can simply divide the number of samples by the number of segments to get
+			// the floored value of number of samples per segment. This guarantees an accurate estimate.
+			// You can then query the segment start index by dividing the desired sample index
+			// with the floored value. If the sample isn't in the current segment, it will live in one of its neighbors.
+			// TODO: Can we provide a tighter guarantee?
+			//////////////////////////////////////////////////////////////////////////
+
+			uint32_t num_segments = (num_samples_per_track + settings.ideal_num_samples - 1) / settings.ideal_num_samples;
+			const uint32_t max_num_samples = num_segments * settings.ideal_num_samples;
+
+			const uint32_t original_num_segments = num_segments;
+			uint32_t* num_samples_per_segment = allocate_type_array<uint32_t>(allocator, num_segments);
+			std::fill(num_samples_per_segment, num_samples_per_segment + num_segments, settings.ideal_num_samples);
+
+			const uint32_t num_leftover_samples = settings.ideal_num_samples - (max_num_samples - num_samples_per_track);
+			if (num_leftover_samples != 0)
+				num_samples_per_segment[num_segments - 1] = num_leftover_samples;
+
+			const uint32_t slack = settings.max_num_samples - settings.ideal_num_samples;
+			if ((num_segments - 1) * slack >= num_leftover_samples)
+			{
+				// Enough segments to distribute the leftover samples of the last segment
+				while (num_samples_per_segment[num_segments - 1] != 0)
+				{
+					for (uint32_t segment_index = 0; segment_index < num_segments - 1 && num_samples_per_segment[num_segments - 1] != 0; ++segment_index)
+					{
+						num_samples_per_segment[segment_index]++;
+						num_samples_per_segment[num_segments - 1]--;
+					}
+				}
+
+				num_segments--;
+			}
+
+			ACL_ASSERT(num_segments != 1, "Expected a number of segments greater than 1.");
+
+			segment_context* segments = allocate_type_array<segment_context>(allocator, num_segments);
+
+			uint32_t start_offset = 0;
+			uint32_t soa_start_offset = 0;
+			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
+			{
+				const uint32_t num_samples_in_segment = num_samples_per_segment[segment_index];
+
+				segment_context& segment = segments[segment_index];
+
+				segment.ranges = allocate_type_array<qvvf_ranges>(allocator, num_transforms);
+				std::memset(segment.ranges, 0, sizeof(qvvf_ranges) * num_transforms);
+
+				segment.bit_rates = allocate_type_array<BoneBitRate>(allocator, num_transforms);
+
+				segment.index = segment_index;
+				segment.num_transforms = num_transforms;
+
+				segment.start_offset = start_offset;
+				segment.num_samples_per_track = num_samples_in_segment;
+
+				const uint32_t num_simd_samples_per_track = align_to(num_samples_in_segment, k_simd_width);
+				const uint32_t component_size = sizeof(float) * num_simd_samples_per_track;
+				const uint32_t transform_size = component_size * num_components_per_transform;
+				const uint32_t segment_size = align_to(transform_size * num_transforms, 64);	// Align to cache line to avoid false sharing with next segment
+
+				segment.num_simd_samples_per_track = num_simd_samples_per_track;
+				segment.num_soa_entries = num_simd_samples_per_track / k_simd_width;
+				segment.soa_size = segment_size;
+				segment.soa_start_offset = soa_start_offset;
+				segment.soa_transform_size = transform_size;
+
+				segment.rotations_offset = 0;
+				segment.translations_offset = component_size * 4;
+				segment.scales_offset = component_size * 7;
+
+				segment.samples_offset_x = component_size * 0;	// Always 0
+				segment.samples_offset_y = component_size * 1;
+				segment.samples_offset_z = component_size * 2;
+				segment.samples_offset_w = component_size * 3;
+
+				segment.distribution = SampleDistribution8::Uniform;
+
+				segment.format_per_track_data_size = 0;
+				segment.range_data_size = 0;
+				segment.animated_data_size = 0;
+				segment.animated_pose_bit_size = 0;
+				segment.total_header_size = 0;
+				segment.total_size = 0;
+
+				start_offset += num_samples_in_segment;
+				soa_start_offset += segment_size;
+			}
+
+			deallocate_type_array(allocator, num_samples_per_segment, original_num_segments);
+
+			out_num_segments = num_segments;
+			return segments;
+		}
 	}
 }
 

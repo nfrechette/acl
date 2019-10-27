@@ -319,6 +319,466 @@ namespace acl
 
 		ACL_ASSERT(format_per_track_data == format_per_track_data_end, "Invalid format per track data offset. Wrote too little data.");
 	}
+
+	namespace acl_impl
+	{
+		inline uint32_t write_track_constant_values(const track_database& mutable_database, const segment_context* segments, uint32_t num_segments, const uint16_t* output_transform_mapping, uint16_t num_output_transforms, uint8_t* out_constant_values)
+		{
+			(void)num_segments;
+
+			RotationFormat8 rotation_format = mutable_database.get_rotation_format();
+			if (rotation_format == RotationFormat8::QuatDropW_Variable)
+				rotation_format = RotationFormat8::QuatDropW_96;
+
+			const bool has_scale = mutable_database.has_scale();
+			const uint32_t packed_rotation_size = get_packed_rotation_size(rotation_format);
+			const segment_context& segment = segments[0];	// Only use the first segment, it contains the necessary information
+
+			uint8_t* output_buffer = out_constant_values;
+			const uint8_t* output_buffer_start = output_buffer;
+
+			for (uint16_t output_index = 0; output_index < num_output_transforms; ++output_index)
+			{
+				const uint32_t transform_index = output_transform_mapping[output_index];
+				const qvvf_ranges& transform_range = mutable_database.get_range(transform_index);
+
+				if (!transform_range.is_rotation_default && transform_range.is_rotation_constant)
+				{
+					if (out_constant_values != nullptr)
+					{
+						const Vector4_32 sample = mutable_database.get_rotation(segment, transform_index, 0);
+						switch (rotation_format)
+						{
+						case RotationFormat8::Quat_128:
+							vector_unaligned_write(sample, output_buffer);
+							break;
+						case RotationFormat8::QuatDropW_96:
+							vector_unaligned_write3(sample, output_buffer);
+							break;
+						case RotationFormat8::QuatDropW_48:
+						{
+							const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+							uint16_t* data = safe_ptr_cast<uint16_t>(output_buffer);
+							data[0] = safe_static_cast<uint16_t>(sample_u32[0]);
+							data[1] = safe_static_cast<uint16_t>(sample_u32[1]);
+							data[2] = safe_static_cast<uint16_t>(sample_u32[2]);
+							break;
+						}
+						case RotationFormat8::QuatDropW_32:
+						{
+							const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+							const uint32_t packed_u32 = (sample_u32[0] << (11 + 10)) | (sample_u32[1] << 10) | sample_u32[2];
+
+							// Written 2 bytes at a time to ensure safe alignment
+							uint16_t* data = safe_ptr_cast<uint16_t>(output_buffer);
+							data[0] = safe_static_cast<uint16_t>(packed_u32 >> 16);
+							data[1] = safe_static_cast<uint16_t>(packed_u32 & 0xFFFF);
+							break;
+						}
+						default:
+							ACL_ASSERT(false, "Invalid rotation format");
+							break;
+						}
+					}
+
+					output_buffer += packed_rotation_size;
+				}
+
+				if (!transform_range.is_translation_default && transform_range.is_translation_constant)
+				{
+					if (out_constant_values != nullptr)
+					{
+						const Vector4_32 sample = mutable_database.get_translation(segment, transform_index, 0);
+						vector_unaligned_write3(sample, output_buffer);
+					}
+
+					output_buffer += sizeof(float) * 3;
+				}
+
+				if (has_scale && !transform_range.is_scale_default && transform_range.is_scale_constant)
+				{
+					if (out_constant_values != nullptr)
+					{
+						const Vector4_32 sample = mutable_database.get_scale(segment, transform_index, 0);
+						vector_unaligned_write3(sample, output_buffer);
+					}
+
+					output_buffer += sizeof(float) * 3;
+				}
+			}
+
+			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
+		}
+
+		inline uint32_t write_format_per_track_data(const track_database& mutable_database, const segment_context& segment, const uint16_t* output_transform_mapping, uint16_t num_output_transforms, uint8_t* out_format_per_track_data)
+		{
+			uint8_t* output_buffer = out_format_per_track_data;
+			const uint8_t* output_buffer_start = output_buffer;
+
+			for (uint16_t output_index = 0; output_index < num_output_transforms; ++output_index)
+			{
+				const uint32_t transform_index = output_transform_mapping[output_index];
+				const qvvf_ranges& transform_range = mutable_database.get_range(transform_index);
+				const BoneBitRate& bit_rate = segment.bit_rates[transform_index];
+
+				if (!transform_range.is_rotation_constant && bit_rate.rotation != k_invalid_bit_rate)
+				{
+					if (out_format_per_track_data != nullptr)
+						*output_buffer = bit_rate.rotation;
+
+					output_buffer++;
+				}
+
+				if (!transform_range.is_translation_constant && bit_rate.translation != k_invalid_bit_rate)
+				{
+					if (out_format_per_track_data != nullptr)
+						*output_buffer = bit_rate.translation;
+
+					output_buffer++;
+				}
+
+				if (!transform_range.is_scale_constant && bit_rate.scale != k_invalid_bit_rate)
+				{
+					if (out_format_per_track_data != nullptr)
+						*output_buffer = bit_rate.scale;
+
+					output_buffer++;
+				}
+			}
+
+			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
+		}
+
+		inline uint32_t write_animated_track_data(const track_database& mutable_database, const segment_context& segment, const uint16_t* output_transform_mapping, uint16_t num_output_transforms, uint32_t* out_animated_pose_bit_size, uint8_t* out_animated_track_data)
+		{
+			const RotationFormat8 rotation_format = mutable_database.get_rotation_format();
+			const VectorFormat8 translation_format = mutable_database.get_translation_format();
+			const VectorFormat8 scale_format = mutable_database.get_scale_format();
+
+			// If all tracks are variable, no need for any extra padding except at the very end of the data
+			// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
+			const bool is_every_format_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
+			const bool is_any_format_variable = is_rotation_format_variable(rotation_format) || is_vector_format_variable(translation_format) || is_vector_format_variable(scale_format);
+			const bool has_mixed_packing = !is_every_format_variable && is_any_format_variable;
+
+			uint8_t* output_buffer = out_animated_track_data;
+			const uint8_t* output_buffer_start = output_buffer;
+
+			uint64_t bit_offset = 0;
+			uint64_t pose_bit_size = 0;
+
+			// Data is sorted first by time, second by bone.
+			// This ensures that all bones are contiguous in memory when we sample a particular time.
+			for (uint32_t sample_index = 0; sample_index < segment.num_samples_per_track; ++sample_index)
+			{
+				for (uint16_t output_index = 0; output_index < num_output_transforms; ++output_index)
+				{
+					const uint32_t transform_index = output_transform_mapping[output_index];
+					const qvvf_ranges& transform_range = mutable_database.get_range(transform_index);
+					const BoneBitRate& bit_rate = segment.bit_rates[transform_index];
+
+					if (!transform_range.is_rotation_constant && !is_constant_bit_rate(bit_rate.rotation))
+					{
+						if (bit_rate.rotation != k_invalid_bit_rate)
+						{
+							const uint8_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate.rotation);
+							uint64_t num_bits_at_bit_rate = num_bits_per_component * 3;	// 3 components
+
+							if (out_animated_track_data != nullptr)
+							{
+								const Vector4_32 sample = mutable_database.get_rotation(segment, transform_index, sample_index);
+								const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+								if (is_raw_bit_rate(bit_rate.rotation))
+								{
+									const uint32_t x = byte_swap(sample_u32[0]);
+									const uint32_t y = byte_swap(sample_u32[1]);
+									const uint32_t z = byte_swap(sample_u32[2]);
+
+									memcpy_bits(out_animated_track_data, bit_offset + 0, &x, 0, 32);
+									memcpy_bits(out_animated_track_data, bit_offset + 32, &y, 0, 32);
+									memcpy_bits(out_animated_track_data, bit_offset + 64, &z, 0, 32);
+								}
+								else
+								{
+									uint64_t vector_u64 = static_cast<uint64_t>(sample_u32[0]) << (64 - num_bits_per_component * 1);
+									vector_u64 |= static_cast<uint64_t>(sample_u32[1]) << (64 - num_bits_per_component * 2);
+									vector_u64 |= static_cast<uint64_t>(sample_u32[2]) << (64 - num_bits_per_component * 3);
+									vector_u64 = byte_swap(vector_u64);
+
+									memcpy_bits(out_animated_track_data, bit_offset, &vector_u64, 0, num_bits_at_bit_rate);
+								}
+							}
+
+							if (has_mixed_packing)
+								num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
+
+							bit_offset += num_bits_at_bit_rate;
+							output_buffer = out_animated_track_data + (bit_offset / 8);
+						}
+						else
+						{
+							switch (rotation_format)
+							{
+							case RotationFormat8::Quat_128:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_rotation(segment, transform_index, sample_index);
+									vector_unaligned_write(sample, output_buffer);
+								}
+
+								output_buffer += sizeof(float) * 4;
+								bit_offset += sizeof(float) * 4 * 8;
+								break;
+							case RotationFormat8::QuatDropW_96:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_rotation(segment, transform_index, sample_index);
+									vector_unaligned_write3(sample, output_buffer);
+								}
+
+								output_buffer += sizeof(float) * 3;
+								bit_offset += sizeof(float) * 3 * 8;
+								break;
+							case RotationFormat8::QuatDropW_48:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_rotation(segment, transform_index, sample_index);
+									const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+									uint16_t* data = safe_ptr_cast<uint16_t>(output_buffer);
+									data[0] = safe_static_cast<uint16_t>(sample_u32[0]);
+									data[1] = safe_static_cast<uint16_t>(sample_u32[1]);
+									data[2] = safe_static_cast<uint16_t>(sample_u32[2]);
+								}
+
+								output_buffer += sizeof(uint16_t) * 3;
+								bit_offset += sizeof(uint16_t) * 3 * 8;
+								break;
+							case RotationFormat8::QuatDropW_32:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_rotation(segment, transform_index, sample_index);
+									const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+									const uint32_t packed_u32 = (sample_u32[0] << (11 + 10)) | (sample_u32[1] << 10) | sample_u32[2];
+
+									// Written 2 bytes at a time to ensure safe alignment
+									uint16_t* data = safe_ptr_cast<uint16_t>(output_buffer);
+									data[0] = safe_static_cast<uint16_t>(packed_u32 >> 16);
+									data[1] = safe_static_cast<uint16_t>(packed_u32 & 0xFFFF);
+								}
+
+								output_buffer += sizeof(uint32_t);
+								bit_offset += sizeof(uint32_t) * 8;
+								break;
+							default:
+								ACL_ASSERT(false, "Invalid rotation format");
+								break;
+							}
+						}
+					}
+
+					if (!transform_range.is_translation_constant && !is_constant_bit_rate(bit_rate.translation))
+					{
+						if (bit_rate.translation != k_invalid_bit_rate)
+						{
+							const uint8_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate.translation);
+							uint64_t num_bits_at_bit_rate = num_bits_per_component * 3;	// 3 components
+
+							if (out_animated_track_data != nullptr)
+							{
+								const Vector4_32 sample = mutable_database.get_translation(segment, transform_index, sample_index);
+								const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+								if (is_raw_bit_rate(bit_rate.translation))
+								{
+									const uint32_t x = byte_swap(sample_u32[0]);
+									const uint32_t y = byte_swap(sample_u32[1]);
+									const uint32_t z = byte_swap(sample_u32[2]);
+
+									memcpy_bits(out_animated_track_data, bit_offset + 0, &x, 0, 32);
+									memcpy_bits(out_animated_track_data, bit_offset + 32, &y, 0, 32);
+									memcpy_bits(out_animated_track_data, bit_offset + 64, &z, 0, 32);
+								}
+								else
+								{
+									uint64_t vector_u64 = static_cast<uint64_t>(sample_u32[0]) << (64 - num_bits_per_component * 1);
+									vector_u64 |= static_cast<uint64_t>(sample_u32[1]) << (64 - num_bits_per_component * 2);
+									vector_u64 |= static_cast<uint64_t>(sample_u32[2]) << (64 - num_bits_per_component * 3);
+									vector_u64 = byte_swap(vector_u64);
+
+									memcpy_bits(out_animated_track_data, bit_offset, &vector_u64, 0, num_bits_at_bit_rate);
+								}
+							}
+
+							if (has_mixed_packing)
+								num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
+
+							bit_offset += num_bits_at_bit_rate;
+							output_buffer = out_animated_track_data + (bit_offset / 8);
+						}
+						else
+						{
+							switch (translation_format)
+							{
+							case VectorFormat8::Vector3_96:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_translation(segment, transform_index, sample_index);
+									vector_unaligned_write3(sample, output_buffer);
+								}
+
+								output_buffer += sizeof(float) * 3;
+								bit_offset += sizeof(float) * 3 * 8;
+								break;
+							case VectorFormat8::Vector3_48:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_translation(segment, transform_index, sample_index);
+									const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+									uint16_t* data = safe_ptr_cast<uint16_t>(output_buffer);
+									data[0] = safe_static_cast<uint16_t>(sample_u32[0]);
+									data[1] = safe_static_cast<uint16_t>(sample_u32[1]);
+									data[2] = safe_static_cast<uint16_t>(sample_u32[2]);
+								}
+
+								output_buffer += sizeof(uint16_t) * 3;
+								bit_offset += sizeof(uint16_t) * 3 * 8;
+								break;
+							case VectorFormat8::Vector3_32:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_translation(segment, transform_index, sample_index);
+									const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+									const uint32_t packed_u32 = (sample_u32[0] << (11 + 10)) | (sample_u32[1] << 10) | sample_u32[2];
+
+									// Written 2 bytes at a time to ensure safe alignment
+									uint16_t* data = safe_ptr_cast<uint16_t>(output_buffer);
+									data[0] = safe_static_cast<uint16_t>(packed_u32 >> 16);
+									data[1] = safe_static_cast<uint16_t>(packed_u32 & 0xFFFF);
+								}
+
+								output_buffer += sizeof(uint32_t);
+								bit_offset += sizeof(uint32_t) * 8;
+								break;
+							default:
+								ACL_ASSERT(false, "Invalid translation format");
+								break;
+							}
+						}
+					}
+
+					if (!transform_range.is_scale_constant && !is_constant_bit_rate(bit_rate.scale))
+					{
+						if (bit_rate.scale != k_invalid_bit_rate)
+						{
+							const uint8_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate.scale);
+							uint64_t num_bits_at_bit_rate = num_bits_per_component * 3;	// 3 components
+
+							if (out_animated_track_data != nullptr)
+							{
+								const Vector4_32 sample = mutable_database.get_scale(segment, transform_index, sample_index);
+								const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+								if (is_raw_bit_rate(bit_rate.scale))
+								{
+									const uint32_t x = byte_swap(sample_u32[0]);
+									const uint32_t y = byte_swap(sample_u32[1]);
+									const uint32_t z = byte_swap(sample_u32[2]);
+
+									memcpy_bits(out_animated_track_data, bit_offset + 0, &x, 0, 32);
+									memcpy_bits(out_animated_track_data, bit_offset + 32, &y, 0, 32);
+									memcpy_bits(out_animated_track_data, bit_offset + 64, &z, 0, 32);
+								}
+								else
+								{
+									uint64_t vector_u64 = static_cast<uint64_t>(sample_u32[0]) << (64 - num_bits_per_component * 1);
+									vector_u64 |= static_cast<uint64_t>(sample_u32[1]) << (64 - num_bits_per_component * 2);
+									vector_u64 |= static_cast<uint64_t>(sample_u32[2]) << (64 - num_bits_per_component * 3);
+									vector_u64 = byte_swap(vector_u64);
+
+									memcpy_bits(out_animated_track_data, bit_offset, &vector_u64, 0, num_bits_at_bit_rate);
+								}
+							}
+
+							if (has_mixed_packing)
+								num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
+
+							bit_offset += num_bits_at_bit_rate;
+							output_buffer = out_animated_track_data + (bit_offset / 8);
+						}
+						else
+						{
+							switch (translation_format)
+							{
+							case VectorFormat8::Vector3_96:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_scale(segment, transform_index, sample_index);
+									vector_unaligned_write3(sample, output_buffer);
+								}
+
+								output_buffer += sizeof(float) * 3;
+								bit_offset += sizeof(float) * 3 * 8;
+								break;
+							case VectorFormat8::Vector3_48:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_scale(segment, transform_index, sample_index);
+									const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+									uint16_t* data = safe_ptr_cast<uint16_t>(output_buffer);
+									data[0] = safe_static_cast<uint16_t>(sample_u32[0]);
+									data[1] = safe_static_cast<uint16_t>(sample_u32[1]);
+									data[2] = safe_static_cast<uint16_t>(sample_u32[2]);
+								}
+
+								output_buffer += sizeof(uint16_t) * 3;
+								bit_offset += sizeof(uint16_t) * 3 * 8;
+								break;
+							case VectorFormat8::Vector3_32:
+								if (out_animated_track_data != nullptr)
+								{
+									const Vector4_32 sample = mutable_database.get_scale(segment, transform_index, sample_index);
+									const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(vector_as_float_ptr(sample));
+
+									const uint32_t packed_u32 = (sample_u32[0] << (11 + 10)) | (sample_u32[1] << 10) | sample_u32[2];
+
+									// Written 2 bytes at a time to ensure safe alignment
+									uint16_t* data = safe_ptr_cast<uint16_t>(output_buffer);
+									data[0] = safe_static_cast<uint16_t>(packed_u32 >> 16);
+									data[1] = safe_static_cast<uint16_t>(packed_u32 & 0xFFFF);
+								}
+
+								output_buffer += sizeof(uint32_t);
+								bit_offset += sizeof(uint32_t) * 8;
+								break;
+							default:
+								ACL_ASSERT(false, "Invalid scale format");
+								break;
+							}
+						}
+					}
+				}
+
+				if (sample_index == 0)
+					pose_bit_size = bit_offset;
+			}
+
+			if (bit_offset != 0)
+				output_buffer = out_animated_track_data + (align_to(bit_offset, 8) / 8);
+
+			if (out_animated_pose_bit_size != nullptr)
+				*out_animated_pose_bit_size = safe_static_cast<uint32_t>(pose_bit_size);
+
+			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
+		}
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

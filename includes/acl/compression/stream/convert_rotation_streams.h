@@ -30,6 +30,7 @@
 #include "acl/math/quat_32.h"
 #include "acl/math/vector4_32.h"
 #include "acl/compression/stream/clip_context.h"
+#include "acl/compression/impl/track_database.h"
 
 #include <cstdint>
 
@@ -100,6 +101,70 @@ namespace acl
 	{
 		for (SegmentContext& segment : clip_context.segment_iterator())
 			convert_rotation_streams(allocator, segment, rotation_format);
+	}
+
+	namespace acl_impl
+	{
+		inline void quat_ensure_positive_w_soa(Vector4_32& rotations_x, Vector4_32& rotations_y, Vector4_32& rotations_z, Vector4_32& rotations_w)
+		{
+			// result =  quat_get_w(input) >= 0.f ? input : quat_neg(input);
+
+			// Avoid aliasing
+			const Vector4_32 xxxx = rotations_x;
+			const Vector4_32 yyyy = rotations_y;
+			const Vector4_32 zzzz = rotations_z;
+			const Vector4_32 wwww = rotations_w;
+
+			const Vector4_32 w_positive_mask = vector_greater_equal(wwww, vector_zero_32());
+			rotations_x = vector_blend(w_positive_mask, xxxx, vector_neg(xxxx));
+			rotations_y = vector_blend(w_positive_mask, yyyy, vector_neg(yyyy));
+			rotations_z = vector_blend(w_positive_mask, zzzz, vector_neg(zzzz));
+			rotations_w = vector_blend(w_positive_mask, wwww, vector_neg(wwww));
+		}
+
+		inline void convert_drop_w_track(Vector4_32* inputs_x, Vector4_32* inputs_y, Vector4_32* inputs_z, Vector4_32* inputs_w, uint32_t num_soa_entries)
+		{
+			// Process two entries at a time to allow the compiler to re-order things to hide instruction latency
+			// TODO: Trivial AVX or ISPC conversion
+			uint32_t entry_index;
+			for (entry_index = 0; entry_index < (num_soa_entries & 0xFFFFFFFEU); ++entry_index)
+			{
+				// Drop W, we just ensure it is positive and write it back, the W component can be ignored and trivially reconstructed afterwards
+				quat_ensure_positive_w_soa(inputs_x[entry_index], inputs_y[entry_index], inputs_z[entry_index], inputs_w[entry_index]);
+
+				entry_index++;
+				quat_ensure_positive_w_soa(inputs_x[entry_index], inputs_y[entry_index], inputs_z[entry_index], inputs_w[entry_index]);
+			}
+
+			if (entry_index < num_soa_entries)
+				quat_ensure_positive_w_soa(inputs_x[entry_index], inputs_y[entry_index], inputs_z[entry_index], inputs_w[entry_index]);
+		}
+
+		inline void convert_rotations(track_database& database, const segment_context& segment, RotationFormat8 rotation_format)
+		{
+			// We convert our rotations in place. We assume that the original format is RotationFormat8::Quat_128 stored as Quat_32
+			const RotationVariant8 rotation_variant = get_rotation_variant(rotation_format);
+			if (rotation_variant == RotationVariant8::Quat)
+				return;	// Nothing to do
+
+			ACL_ASSERT(rotation_variant == RotationVariant8::QuatDropW, "Unexpected variant");
+
+			const uint32_t num_transforms = database.get_num_transforms();
+			const uint32_t num_soa_entries = segment.num_soa_entries;
+			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+			{
+				Vector4_32* rotations_x;
+				Vector4_32* rotations_y;
+				Vector4_32* rotations_z;
+				Vector4_32* rotations_w;
+				database.get_rotations(segment, transform_index, rotations_x, rotations_y, rotations_z, rotations_w);
+
+				convert_drop_w_track(rotations_x, rotations_y, rotations_z, rotations_w, num_soa_entries);
+			}
+
+			const RotationFormat8 highest_bit_rate = get_highest_variant_precision(rotation_variant);
+			database.set_rotation_format(highest_bit_rate);
+		}
 	}
 }
 

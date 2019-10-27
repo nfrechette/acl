@@ -102,6 +102,64 @@ namespace acl
 				segment_header.track_data_offset = InvalidPtrOffset();
 		}
 	}
+
+	namespace acl_impl
+	{
+		inline void write_segment_start_indices(const segment_context* segments, uint32_t num_segments, uint32_t* out_segment_start_indices)
+		{
+			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
+			{
+				const segment_context& segment = segments[segment_index];
+				out_segment_start_indices[segment_index] = segment.start_offset;
+			}
+
+			// Write our sentinel value
+			out_segment_start_indices[num_segments] = 0xFFFFFFFFu;
+		}
+
+		inline void write_segment_headers(const segment_context* segments, uint32_t num_segments, uint32_t segment_data_start_offset, SegmentHeader* out_segment_headers)
+		{
+			uint32_t segment_data_offset = segment_data_start_offset;
+			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
+			{
+				const segment_context& segment = segments[segment_index];
+				SegmentHeader& header = out_segment_headers[segment_index];
+
+				header.animated_pose_bit_size = segment.animated_pose_bit_size;
+				header.format_per_track_data_offset = segment_data_offset;
+				header.range_data_offset = align_to(header.format_per_track_data_offset + segment.format_per_track_data_size, 2);		// Aligned to 2 bytes
+				header.track_data_offset = align_to(header.range_data_offset + segment.range_data_size, 4);								// Aligned to 4 bytes
+
+				segment_data_offset = header.track_data_offset + segment.animated_data_size;
+			}
+		}
+
+		inline void write_segment_data(const track_database& mutable_database, const segment_context* segments, uint32_t num_segments, RangeReductionFlags8 range_reduction, ClipHeader& header, const uint16_t* output_transform_mapping, uint16_t num_output_transforms)
+		{
+			SegmentHeader* segment_headers = header.get_segment_headers();
+
+			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
+			{
+				const segment_context& segment = segments[segment_index];
+				SegmentHeader& segment_header = segment_headers[segment_index];
+
+				if (segment.format_per_track_data_size != 0)
+					write_format_per_track_data(mutable_database, segment, output_transform_mapping, num_output_transforms, header.get_format_per_track_data(segment_header));
+				else
+					segment_header.format_per_track_data_offset = InvalidPtrOffset();
+
+				if (segment.range_data_size != 0)
+					write_segment_range_data(mutable_database, segment, range_reduction, output_transform_mapping, num_output_transforms, header.get_segment_range_data(segment_header));
+				else
+					segment_header.range_data_offset = InvalidPtrOffset();
+
+				if (segment.animated_data_size != 0)
+					write_animated_track_data(mutable_database, segment, output_transform_mapping, num_output_transforms, nullptr, header.get_track_data(segment_header));
+				else
+					segment_header.track_data_offset = InvalidPtrOffset();
+			}
+		}
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
