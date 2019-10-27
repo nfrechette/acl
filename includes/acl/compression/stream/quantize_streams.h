@@ -75,7 +75,6 @@ namespace acl
 			uint32_t segment_sample_start_index;
 			float sample_rate;
 			float clip_duration;
-			float segment_duration;
 			bool has_scale;
 			bool has_additive_base;
 
@@ -104,7 +103,6 @@ namespace acl
 				, segment_sample_start_index(~0u)
 				, sample_rate(clip_.sample_rate)
 				, clip_duration(clip_.duration)
-				, segment_duration(0.0f)
 				, has_scale(clip_.has_scale)
 				, has_additive_base(clip_.has_additive_base)
 				, raw_bone_streams(raw_clip_.segments[0].bone_streams)
@@ -132,7 +130,6 @@ namespace acl
 				bone_streams = segment_.bone_streams;
 				num_samples = segment_.num_samples;
 				segment_sample_start_index = segment_.clip_sample_offset;
-				segment_duration = calculate_duration(num_samples, sample_rate);
 				database.set_segment(segment_.bone_streams, segment_.num_bones, segment_.num_samples);
 			}
 
