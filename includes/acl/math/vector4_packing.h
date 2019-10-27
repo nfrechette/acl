@@ -485,8 +485,8 @@ namespace acl
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_s48_unsafe(const uint8_t* vector_data)
 	{
-		Vector4_32 unsigned_value = unpack_vector3_u48_unsafe(vector_data);
-		return vector_sub(vector_mul(unsigned_value, 2.0f), vector_set(1.0f));
+		const Vector4_32 unsigned_value = unpack_vector3_u48_unsafe(vector_data);
+		return vector_neg_mul_sub(unsigned_value, -2.0f, vector_set(-1.0f));
 	}
 
 	ACL_DEPRECATED("Use unpack_vector3_u48_unsafe and unpack_vector3_s48_unsafe instead, to be removed in v2.0")
@@ -504,9 +504,9 @@ namespace acl
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_u48(Vector4_32Arg0 input)
 	{
-		ACL_ASSERT(vector_all_greater_equal(input, vector_zero_32()) && vector_all_less_equal(input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
+		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal3(input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
 
-		const float max_value = safe_to_float((1 << 16) - 1);
+		const float max_value = float((1 << 16) - 1);
 		const float inv_max_value = 1.0f / max_value;
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(input, max_value));
@@ -517,16 +517,16 @@ namespace acl
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_s48(Vector4_32Arg0 input)
 	{
 		const Vector4_32 half = vector_set(0.5f);
-		const Vector4_32 unsigned_input = vector_add(vector_mul(input, half), half);
+		const Vector4_32 unsigned_input = vector_mul_add(input, half, half);
 
-		ACL_ASSERT(vector_all_greater_equal(unsigned_input, vector_zero_32()) && vector_all_less_equal(unsigned_input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
+		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal3(unsigned_input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
 
 		const float max_value = safe_to_float((1 << 16) - 1);
 		const float inv_max_value = 1.0f / max_value;
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(unsigned_input, max_value));
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
-		return vector_sub(vector_mul(decayed, vector_set(2.0f)), vector_set(1.0f));
+		return vector_neg_mul_sub(decayed, -2.0f, vector_set(-1.0f));
 	}
 
 	inline void ACL_SIMD_CALL pack_vector3_32(Vector4_32Arg0 vector, uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, uint8_t* out_vector_data)
@@ -640,8 +640,8 @@ namespace acl
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_s24_unsafe(const uint8_t* vector_data)
 	{
-		Vector4_32 unsigned_value = unpack_vector3_u24_unsafe(vector_data);
-		return vector_sub(vector_mul(unsigned_value, 2.0f), vector_set(1.0f));
+		const Vector4_32 unsigned_value = unpack_vector3_u24_unsafe(vector_data);
+		return vector_neg_mul_sub(unsigned_value, -2.0f, vector_set(-1.0f));
 	}
 
 	ACL_DEPRECATED("Use unpack_vector3_u24_unsafe and unpack_vector3_s24_unsafe instead, to be removed in v2.0")
@@ -734,7 +734,7 @@ namespace acl
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_uXX(Vector4_32Arg0 input, uint32_t num_bits)
 	{
-		ACL_ASSERT(vector_all_greater_equal(input, vector_zero_32()) && vector_all_less_equal(input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
+		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal3(input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
 
 		const float max_value = safe_to_float((1 << num_bits) - 1);
 		const float inv_max_value = 1.0f / max_value;
@@ -747,9 +747,9 @@ namespace acl
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_sXX(Vector4_32Arg0 input, uint32_t num_bits)
 	{
 		const Vector4_32 half = vector_set(0.5f);
-		const Vector4_32 unsigned_input = vector_add(vector_mul(input, half), half);
+		const Vector4_32 unsigned_input = vector_mul_add(input, half, half);
 
-		ACL_ASSERT(vector_all_greater_equal(unsigned_input, vector_zero_32()) && vector_all_less_equal(unsigned_input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
+		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal3(unsigned_input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
 
 		const float max_value = safe_to_float((1 << num_bits) - 1);
 		const float inv_max_value = 1.0f / max_value;
