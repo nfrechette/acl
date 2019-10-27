@@ -622,10 +622,10 @@ namespace acl
 				uint8_t best_size = 0xFF;
 				float best_error = settings.error_threshold;
 
-				uint8_t num_iterations = k_num_bit_rates - 1;
+				const uint8_t num_iterations = k_num_bit_rates - 1;
 				for (uint8_t iteration = 1; iteration <= num_iterations; ++iteration)
 				{
-					uint8_t target_sum = 3 * iteration;
+					const uint8_t target_sum = 3 * iteration;
 
 					for (uint8_t rotation_bit_rate = bone_bit_rates.rotation; true; ++rotation_bit_rate)
 					{
@@ -633,10 +633,10 @@ namespace acl
 						{
 							for (uint8_t scale_bit_rate = bone_bit_rates.scale; true; ++scale_bit_rate)
 							{
-								uint8_t rotation_increment = rotation_bit_rate - bone_bit_rates.rotation;
-								uint8_t translation_increment = translation_bit_rate - bone_bit_rates.translation;
-								uint8_t scale_increment = scale_bit_rate - bone_bit_rates.scale;
-								uint8_t current_sum = rotation_increment * 3 + translation_increment * 3 + scale_increment * 3;
+								const uint8_t rotation_increment = rotation_bit_rate - bone_bit_rates.rotation;
+								const uint8_t translation_increment = translation_bit_rate - bone_bit_rates.translation;
+								const uint8_t scale_increment = scale_bit_rate - bone_bit_rates.scale;
+								const uint8_t current_sum = rotation_increment * 3 + translation_increment * 3 + scale_increment * 3;
 								if (current_sum != target_sum)
 								{
 									if (scale_bit_rate >= k_highest_bit_rate)
@@ -681,7 +681,7 @@ namespace acl
 				{
 					for (uint8_t iteration = 1; iteration <= num_iterations; ++iteration)
 					{
-						uint8_t target_sum = 3 * iteration + (3 * num_iterations);
+						const uint8_t target_sum = 3 * iteration + (3 * num_iterations);
 
 						for (uint8_t rotation_bit_rate = bone_bit_rates.rotation; true; ++rotation_bit_rate)
 						{
@@ -689,10 +689,10 @@ namespace acl
 							{
 								for (uint8_t scale_bit_rate = bone_bit_rates.scale; true; ++scale_bit_rate)
 								{
-									uint8_t rotation_increment = rotation_bit_rate - bone_bit_rates.rotation;
-									uint8_t translation_increment = translation_bit_rate - bone_bit_rates.translation;
-									uint8_t scale_increment = scale_bit_rate - bone_bit_rates.scale;
-									uint8_t current_sum = rotation_increment * 3 + translation_increment * 3 + scale_increment * 3;
+									const uint8_t rotation_increment = rotation_bit_rate - bone_bit_rates.rotation;
+									const uint8_t translation_increment = translation_bit_rate - bone_bit_rates.translation;
+									const uint8_t scale_increment = scale_bit_rate - bone_bit_rates.scale;
+									const uint8_t current_sum = rotation_increment * 3 + translation_increment * 3 + scale_increment * 3;
 									if (current_sum != target_sum)
 									{
 										if (scale_bit_rate >= k_highest_bit_rate)
@@ -756,15 +756,15 @@ namespace acl
 
 			for (uint8_t rotation_increment = 0; rotation_increment <= num_increments; ++rotation_increment)
 			{
-				uint8_t rotation_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.rotation, rotation_increment);
+				const uint8_t rotation_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.rotation, rotation_increment);
 
 				for (uint8_t translation_increment = 0; translation_increment <= num_increments; ++translation_increment)
 				{
-					uint8_t translation_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.translation, translation_increment);
+					const uint8_t translation_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.translation, translation_increment);
 
 					for (uint8_t scale_increment = 0; scale_increment <= num_scale_increments; ++scale_increment)
 					{
-						uint8_t scale_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.scale, scale_increment);
+						const uint8_t scale_bit_rate = increment_and_clamp_bit_rate(bone_bit_rates.scale, scale_increment);
 
 						if (rotation_increment + translation_increment + scale_increment != num_increments)
 						{
