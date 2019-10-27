@@ -931,9 +931,9 @@ namespace acl
 
 	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, Transform_32* out_local_pose)
 	{
-		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
-
 		const SegmentContext* segment_context = bone_streams->segment;
+		const Vector4_32 default_scale = get_default_scale(segment_context->clip->additive_format);
+		const bool has_scale = segment_context->clip->has_scale;
 
 		uint32_t sample_key;
 		if (segment_context->distribution == SampleDistribution8::Uniform)
@@ -955,7 +955,7 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream);
-				const Vector4_32 scale = acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale);
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale) : default_scale;
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
@@ -970,7 +970,7 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream);
-				const Vector4_32 scale = acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale);
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale) : default_scale;
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
@@ -981,9 +981,9 @@ namespace acl
 	{
 		(void)num_bones;
 
-		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
-
 		const SegmentContext* segment_context = bone_streams->segment;
+		const Vector4_32 default_scale = get_default_scale(segment_context->clip->additive_format);
+		const bool has_scale = segment_context->clip->has_scale;
 
 		uint32_t sample_key;
 		if (segment_context->distribution == SampleDistribution8::Uniform)
@@ -1005,13 +1005,13 @@ namespace acl
 		{
 			rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream);
 			translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream);
-			scale = acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale);
+			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale) : default_scale;
 		}
 		else
 		{
 			rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream);
 			translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream);
-			scale = acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale);
+			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale) : default_scale;
 		}
 
 		out_local_pose[bone_index] = transform_set(rotation, translation, scale);
@@ -1021,9 +1021,9 @@ namespace acl
 	{
 		(void)num_bones;
 
-		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
-
 		const SegmentContext* segment_context = bone_streams->segment;
+		const Vector4_32 default_scale = get_default_scale(segment_context->clip->additive_format);
+		const bool has_scale = segment_context->clip->has_scale;
 
 		uint32_t sample_key;
 		if (segment_context->distribution == SampleDistribution8::Uniform)
@@ -1046,7 +1046,7 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream);
-				const Vector4_32 scale = acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale);
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale) : default_scale;
 
 				out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;
@@ -1063,7 +1063,7 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream);
-				const Vector4_32 scale = acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale);
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale) : default_scale;
 
 				out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;
@@ -1077,9 +1077,9 @@ namespace acl
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
 		const bool is_scale_variable = is_vector_format_variable(scale_format);
 
-		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
-
 		const SegmentContext* segment_context = bone_streams->segment;
+		const Vector4_32 default_scale = get_default_scale(segment_context->clip->additive_format);
+		const bool has_scale = segment_context->clip->has_scale;
 
 		uint32_t sample_key;
 		if (segment_context->distribution == SampleDistribution8::Uniform)
@@ -1103,7 +1103,7 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_steam, is_rotation_variable, rotation_format);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_steam, is_translation_variable, translation_format);
-				const Vector4_32 scale = acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale);
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale) : default_scale;
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
@@ -1120,7 +1120,7 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_steam, is_rotation_variable, rotation_format);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_steam, is_translation_variable, translation_format);
-				const Vector4_32 scale = acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale);
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale) : default_scale;
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
@@ -1135,9 +1135,9 @@ namespace acl
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
 		const bool is_scale_variable = is_vector_format_variable(scale_format);
 
-		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
-
 		const SegmentContext* segment_context = bone_streams->segment;
+		const Vector4_32 default_scale = get_default_scale(segment_context->clip->additive_format);
+		const bool has_scale = segment_context->clip->has_scale;
 
 		uint32_t sample_key;
 		if (segment_context->distribution == SampleDistribution8::Uniform)
@@ -1161,13 +1161,13 @@ namespace acl
 		{
 			rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 			translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-			scale = acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale);
+			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
 		}
 		else
 		{
 			rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 			translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-			scale = acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale);
+			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
 		}
 
 		out_local_pose[bone_index] = transform_set(rotation, translation, scale);
@@ -1181,9 +1181,9 @@ namespace acl
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
 		const bool is_scale_variable = is_vector_format_variable(scale_format);
 
-		const Vector4_32 default_scale = get_default_scale(bone_streams[0].segment->clip->additive_format);
-
 		const SegmentContext* segment_context = bone_streams->segment;
+		const Vector4_32 default_scale = get_default_scale(segment_context->clip->additive_format);
+		const bool has_scale = segment_context->clip->has_scale;
 
 		uint32_t sample_key;
 		if (segment_context->distribution == SampleDistribution8::Uniform)
@@ -1208,7 +1208,7 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-				const Vector4_32 scale = acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale);
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
 
 				out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;
@@ -1227,7 +1227,7 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-				const Vector4_32 scale = acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale);
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
 
 				out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;
