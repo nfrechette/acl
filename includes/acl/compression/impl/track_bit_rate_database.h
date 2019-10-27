@@ -587,9 +587,9 @@ namespace acl
 				{
 					// Not cached
 					if (m_is_rotation_variable)
-						rotation = get_rotation_sample(bone_stream, 0);
+						rotation = get_rotation_sample(m_raw_bone_streams[track_index], 0);
 					else
-						rotation = get_rotation_sample(bone_stream, 0, m_rotation_format);
+						rotation = get_rotation_sample(m_raw_bone_streams[track_index], 0, m_rotation_format);
 
 					// If we are uniform, normalize now. Variable will interpolate and normalize after.
 					if (static_condition<distribution == SampleDistribution8::Uniform>::test())
@@ -725,7 +725,7 @@ namespace acl
 				else
 				{
 					// Not cached
-					translation = get_translation_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+					translation = get_translation_sample(m_raw_bone_streams[track_index], 0, VectorFormat8::Vector3_96);
 
 					cached_samples[0] = translation;
 					bitset_set(validity_bitset, m_bitref_constant, true);
@@ -853,7 +853,7 @@ namespace acl
 				else
 				{
 					// Not cached
-					scale = get_scale_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+					scale = get_scale_sample(m_raw_bone_streams[track_index], 0, VectorFormat8::Vector3_96);
 
 					cached_samples[0] = scale;
 					bitset_set(validity_bitset, m_bitref_constant, true);
