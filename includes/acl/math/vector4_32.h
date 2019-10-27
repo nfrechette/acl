@@ -86,13 +86,11 @@ namespace acl
 
 	inline Vector4_32 ACL_SIMD_CALL vector_unaligned_load(const float* input)
 	{
-		ACL_ASSERT(is_aligned(input), "Invalid alignment");
 		return vector_set(input[0], input[1], input[2], input[3]);
 	}
 
 	inline Vector4_32 ACL_SIMD_CALL vector_unaligned_load3(const float* input)
 	{
-		ACL_ASSERT(is_aligned(input), "Invalid alignment");
 		return vector_set(input[0], input[1], input[2], 0.0f);
 	}
 
@@ -231,7 +229,6 @@ namespace acl
 
 	inline void ACL_SIMD_CALL vector_unaligned_write(Vector4_32Arg0 input, float* output)
 	{
-		ACL_ASSERT(is_aligned(output), "Invalid alignment");
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
@@ -240,7 +237,6 @@ namespace acl
 
 	inline void ACL_SIMD_CALL vector_unaligned_write3(Vector4_32Arg0 input, float* output)
 	{
-		ACL_ASSERT(is_aligned(output), "Invalid alignment");
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
