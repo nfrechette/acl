@@ -142,18 +142,18 @@ namespace acl
 
 		Vector4_32 packed_rotation = impl::load_rotation_sample(quantized_ptr, format, bit_rate, are_rotations_normalized);
 
-		if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
-		{
-			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
-
-			const Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
-			const Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
-
-			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
-		}
-
 		if (are_rotations_normalized && !is_raw_bit_rate(bit_rate))
 		{
+			if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate))
+			{
+				const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+				const Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
+				const Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+
+				packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
+			}
+
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
 			const Vector4_32 clip_range_min = clip_bone_range.rotation.get_min();
@@ -212,18 +212,18 @@ namespace acl
 		else
 			packed_rotation = decay_vector3_sXX(rotation, num_bits_at_bit_rate);
 
-		if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
-		{
-			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
-
-			const Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
-			const Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
-
-			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
-		}
-
 		if (are_rotations_normalized && !is_raw_bit_rate(bit_rate))
 		{
+			if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate))
+			{
+				const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+				const Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
+				const Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+
+				packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
+			}
+
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
 			const Vector4_32 clip_range_min = clip_bone_range.rotation.get_min();
@@ -266,18 +266,18 @@ namespace acl
 			break;
 		}
 
-		if (segment->are_rotations_normalized)
-		{
-			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
-
-			const Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
-			const Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
-
-			packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
-		}
-
 		if (are_rotations_normalized)
 		{
+			if (segment->are_rotations_normalized)
+			{
+				const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+				const Vector4_32 segment_range_min = segment_bone_range.rotation.get_min();
+				const Vector4_32 segment_range_extent = segment_bone_range.rotation.get_extent();
+
+				packed_rotation = vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
+			}
+
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
 			const Vector4_32 clip_range_min = clip_bone_range.rotation.get_min();
@@ -305,18 +305,18 @@ namespace acl
 
 		Vector4_32 packed_translation = impl::load_vector_sample(quantized_ptr, format, bit_rate);
 
-		if (segment->are_translations_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
-		{
-			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
-
-			const Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
-			const Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
-
-			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
-		}
-
 		if (are_translations_normalized && !is_raw_bit_rate(bit_rate))
 		{
+			if (segment->are_translations_normalized && !is_constant_bit_rate(bit_rate))
+			{
+				const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+				const Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
+				const Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+
+				packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
+			}
+
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
 			const Vector4_32 clip_range_min = clip_bone_range.translation.get_min();
@@ -366,18 +366,18 @@ namespace acl
 			packed_translation = decay_vector3_uXX(translation, num_bits_at_bit_rate);
 		}
 
-		if (segment->are_translations_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
-		{
-			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
-
-			const Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
-			const Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
-
-			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
-		}
-
 		if (!is_raw_bit_rate(bit_rate))
 		{
+			if (segment->are_translations_normalized && !is_constant_bit_rate(bit_rate))
+			{
+				const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+				const Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
+				const Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+
+				packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
+			}
+
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
 			const Vector4_32 clip_range_min = clip_bone_range.translation.get_min();
@@ -421,18 +421,18 @@ namespace acl
 			break;
 		}
 
-		if (segment->are_translations_normalized)
-		{
-			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
-
-			Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
-
-			packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
-		}
-
 		if (are_translations_normalized)
 		{
+			if (segment->are_translations_normalized)
+			{
+				const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+				Vector4_32 segment_range_min = segment_bone_range.translation.get_min();
+				Vector4_32 segment_range_extent = segment_bone_range.translation.get_extent();
+
+				packed_translation = vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
+			}
+
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
 			Vector4_32 clip_range_min = clip_bone_range.translation.get_min();
@@ -460,18 +460,18 @@ namespace acl
 
 		Vector4_32 packed_scale = impl::load_vector_sample(quantized_ptr, format, bit_rate);
 
-		if (segment->are_scales_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
-		{
-			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
-
-			const Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
-			const Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
-
-			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
-		}
-
 		if (are_scales_normalized && !is_raw_bit_rate(bit_rate))
 		{
+			if (segment->are_scales_normalized && !is_constant_bit_rate(bit_rate))
+			{
+				const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+				const Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
+				const Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+
+				packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
+			}
+
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
 			const Vector4_32 clip_range_min = clip_bone_range.scale.get_min();
@@ -521,18 +521,18 @@ namespace acl
 			packed_scale = decay_vector3_uXX(scale, num_bits_at_bit_rate);
 		}
 
-		if (segment->are_scales_normalized && !is_constant_bit_rate(bit_rate) && !is_raw_bit_rate(bit_rate))
-		{
-			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
-
-			const Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
-			const Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
-
-			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
-		}
-
 		if (!is_raw_bit_rate(bit_rate))
 		{
+			if (segment->are_scales_normalized && !is_constant_bit_rate(bit_rate))
+			{
+				const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+				const Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
+				const Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+
+				packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
+			}
+
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
 			const Vector4_32 clip_range_min = clip_bone_range.scale.get_min();
@@ -576,18 +576,18 @@ namespace acl
 			break;
 		}
 
-		if (segment->are_scales_normalized)
-		{
-			const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
-
-			Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
-			Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
-
-			packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
-		}
-
 		if (are_scales_normalized)
 		{
+			if (segment->are_scales_normalized)
+			{
+				const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+
+				Vector4_32 segment_range_min = segment_bone_range.scale.get_min();
+				Vector4_32 segment_range_extent = segment_bone_range.scale.get_extent();
+
+				packed_scale = vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
+			}
+
 			const BoneRanges& clip_bone_range = clip_context->ranges[bone_steams.bone_index];
 
 			Vector4_32 clip_range_min = clip_bone_range.scale.get_min();
