@@ -173,7 +173,7 @@ namespace acl
 			{
 				const uint8_t* rotation_ptr = bone_stream.rotations.get_raw_sample_ptr(0);
 				uint32_t sample_size = bone_stream.rotations.get_sample_size();
-				memcpy(constant_data, rotation_ptr, sample_size);
+				std::memcpy(constant_data, rotation_ptr, sample_size);
 				constant_data += sample_size;
 			}
 
@@ -181,7 +181,7 @@ namespace acl
 			{
 				const uint8_t* translation_ptr = bone_stream.translations.get_raw_sample_ptr(0);
 				uint32_t sample_size = bone_stream.translations.get_sample_size();
-				memcpy(constant_data, translation_ptr, sample_size);
+				std::memcpy(constant_data, translation_ptr, sample_size);
 				constant_data += sample_size;
 			}
 
@@ -189,7 +189,7 @@ namespace acl
 			{
 				const uint8_t* scale_ptr = bone_stream.scales.get_raw_sample_ptr(0);
 				uint32_t sample_size = bone_stream.scales.get_sample_size();
-				memcpy(constant_data, scale_ptr, sample_size);
+				std::memcpy(constant_data, scale_ptr, sample_size);
 				constant_data += sample_size;
 			}
 
@@ -236,7 +236,7 @@ namespace acl
 		{
 			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 			const uint32_t sample_size = track_stream.get_packed_sample_size();
-			memcpy(out_animated_track_data, raw_sample_ptr, sample_size);
+			std::memcpy(out_animated_track_data, raw_sample_ptr, sample_size);
 			out_animated_track_data += sample_size;
 			out_bit_offset = (out_animated_track_data - animated_track_data_begin) * 8;
 		}

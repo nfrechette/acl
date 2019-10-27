@@ -311,7 +311,7 @@ namespace acl
 	inline DataType unaligned_load(const void* input)
 	{
 		DataType result;
-		memcpy(&result, input, sizeof(DataType));
+		std::memcpy(&result, input, sizeof(DataType));
 		return result;
 	}
 
@@ -324,7 +324,7 @@ namespace acl
 	template<typename DataType>
 	inline void unaligned_write(DataType input, void* output)
 	{
-		memcpy(output, &input, sizeof(DataType));
+		std::memcpy(output, &input, sizeof(DataType));
 	}
 }
 

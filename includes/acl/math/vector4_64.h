@@ -80,14 +80,14 @@ namespace acl
 	inline Vector4_64 vector_unaligned_load_64(const uint8_t* input)
 	{
 		Vector4_64 result;
-		memcpy(&result, input, sizeof(Vector4_64));
+		std::memcpy(&result, input, sizeof(Vector4_64));
 		return result;
 	}
 
 	inline Vector4_64 vector_unaligned_load3_64(const uint8_t* input)
 	{
 		double input_f[3];
-		memcpy(&input_f[0], input, sizeof(double) * 3);
+		std::memcpy(&input_f[0], input, sizeof(double) * 3);
 		return vector_set(input_f[0], input_f[1], input_f[2], 0.0);
 	}
 
@@ -213,12 +213,12 @@ namespace acl
 
 	inline void vector_unaligned_write(const Vector4_64& input, uint8_t* output)
 	{
-		memcpy(output, &input, sizeof(Vector4_64));
+		std::memcpy(output, &input, sizeof(Vector4_64));
 	}
 
 	inline void vector_unaligned_write3(const Vector4_64& input, uint8_t* output)
 	{
-		memcpy(output, &input, sizeof(double) * 3);
+		std::memcpy(output, &input, sizeof(double) * 3);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
