@@ -229,10 +229,14 @@ namespace acl
 
 	inline void ACL_SIMD_CALL vector_unaligned_write(Vector4_32Arg0 input, float* output)
 	{
+#if defined(ACL_SSE2_INTRINSICS)
+		_mm_storeu_ps(output, input);
+#else
 		output[0] = vector_get_x(input);
 		output[1] = vector_get_y(input);
 		output[2] = vector_get_z(input);
 		output[3] = vector_get_w(input);
+#endif
 	}
 
 	inline void ACL_SIMD_CALL vector_unaligned_write3(Vector4_32Arg0 input, float* output)
