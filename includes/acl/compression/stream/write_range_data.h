@@ -75,9 +75,9 @@ namespace acl
 		{
 			const uint32_t range_member_size = sizeof(float) * 3;
 
-			memcpy(out_range_data, vector_as_float_ptr(range_min), range_member_size);
+			std::memcpy(out_range_data, vector_as_float_ptr(range_min), range_member_size);
 			out_range_data += range_member_size;
-			memcpy(out_range_data, vector_as_float_ptr(range_extent), range_member_size);
+			std::memcpy(out_range_data, vector_as_float_ptr(range_extent), range_member_size);
 			out_range_data += range_member_size;
 		}
 		else
@@ -85,7 +85,7 @@ namespace acl
 			if (is_constant_bit_rate(track.get_bit_rate()))
 			{
 				const uint8_t* sample_ptr = track.get_raw_sample_ptr(0);
-				memcpy(out_range_data, sample_ptr, sizeof(uint16_t) * 3);
+				std::memcpy(out_range_data, sample_ptr, sizeof(uint16_t) * 3);
 				out_range_data += sizeof(uint16_t) * 3;
 			}
 			else
@@ -129,9 +129,9 @@ namespace acl
 				{
 					const uint32_t range_member_size = bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128 ? (sizeof(float) * 4) : (sizeof(float) * 3);
 
-					memcpy(range_data, vector_as_float_ptr(range_min), range_member_size);
+					std::memcpy(range_data, vector_as_float_ptr(range_min), range_member_size);
 					range_data += range_member_size;
-					memcpy(range_data, vector_as_float_ptr(range_extent), range_member_size);
+					std::memcpy(range_data, vector_as_float_ptr(range_extent), range_member_size);
 					range_data += range_member_size;
 				}
 				else
@@ -148,7 +148,7 @@ namespace acl
 						if (is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
 						{
 							const uint8_t* rotation = bone_stream.rotations.get_raw_sample_ptr(0);
-							memcpy(range_data, rotation, sizeof(uint16_t) * 3);
+							std::memcpy(range_data, rotation, sizeof(uint16_t) * 3);
 							range_data += sizeof(uint16_t) * 3;
 						}
 						else

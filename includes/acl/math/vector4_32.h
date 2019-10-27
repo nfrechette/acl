@@ -102,7 +102,7 @@ namespace acl
 		return vreinterpretq_f32_u8(vld1q_u8(input));
 #else
 		Vector4_32 result;
-		memcpy(&result, input, sizeof(Vector4_32));
+		std::memcpy(&result, input, sizeof(Vector4_32));
 		return result;
 #endif
 	}
@@ -110,7 +110,7 @@ namespace acl
 	inline Vector4_32 ACL_SIMD_CALL vector_unaligned_load3_32(const uint8_t* input)
 	{
 		float input_f[3];
-		memcpy(&input_f[0], input, sizeof(float) * 3);
+		std::memcpy(&input_f[0], input, sizeof(float) * 3);
 		return vector_set(input_f[0], input_f[1], input_f[2], 0.0f);
 	}
 
@@ -244,12 +244,12 @@ namespace acl
 
 	inline void ACL_SIMD_CALL vector_unaligned_write(Vector4_32Arg0 input, uint8_t* output)
 	{
-		memcpy(output, &input, sizeof(Vector4_32));
+		std::memcpy(output, &input, sizeof(Vector4_32));
 	}
 
 	inline void ACL_SIMD_CALL vector_unaligned_write3(Vector4_32Arg0 input, uint8_t* output)
 	{
-		memcpy(output, &input, sizeof(float) * 3);
+		std::memcpy(output, &input, sizeof(float) * 3);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
