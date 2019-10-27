@@ -499,7 +499,9 @@ namespace acl
 				quantize_variable_scale_stream(context, raw_bone_stream.scales, bone_stream.scales, bone_range, bit_rate, bone_stream.scales);
 		}
 
-		inline float calculate_max_error_at_bit_rate_local(QuantizationContext& context, uint16_t target_bone_index, bool scan_whole_clip = false)
+		enum class error_scan_stop_condition { until_error_too_high, until_end_of_segment };
+
+		inline float calculate_max_error_at_bit_rate_local(QuantizationContext& context, uint16_t target_bone_index, error_scan_stop_condition stop_condition)
 		{
 			const CompressionSettings& settings = context.settings;
 			const ISkeletalErrorMetric& error_metric = *settings.error_metric;
@@ -536,14 +538,14 @@ namespace acl
 					error = error_metric.calculate_local_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 
 				max_error = max(max_error, error);
-				if (!scan_whole_clip && error >= settings.error_threshold)
+				if (stop_condition == error_scan_stop_condition::until_error_too_high && error >= settings.error_threshold)
 					break;
 			}
 
 			return max_error;
 		}
 
-		inline float calculate_max_error_at_bit_rate_object(QuantizationContext& context, uint16_t target_bone_index, bool scan_whole_clip = false)
+		inline float calculate_max_error_at_bit_rate_object(QuantizationContext& context, uint16_t target_bone_index, error_scan_stop_condition stop_condition)
 		{
 			const CompressionSettings& settings = context.settings;
 			const ISkeletalErrorMetric& error_metric = *settings.error_metric;
@@ -580,7 +582,7 @@ namespace acl
 					error = error_metric.calculate_object_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
 
 				max_error = max(max_error, error);
-				if (!scan_whole_clip && error >= settings.error_threshold)
+				if (stop_condition == error_scan_stop_condition::until_error_too_high && error >= settings.error_threshold)
 					break;
 			}
 
@@ -644,7 +646,7 @@ namespace acl
 								}
 
 								context.bit_rate_per_bone[bone_index] = BoneBitRate{ rotation_bit_rate, translation_bit_rate, scale_bit_rate };
-								const float error = calculate_max_error_at_bit_rate_local(context, bone_index);
+								const float error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION > 1
 								printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, scale_bit_rate, target_sum, error);
@@ -700,7 +702,7 @@ namespace acl
 									}
 
 									context.bit_rate_per_bone[bone_index] = BoneBitRate{ rotation_bit_rate, translation_bit_rate, scale_bit_rate };
-									const float error = calculate_max_error_at_bit_rate_local(context, bone_index);
+									const float error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION > 1
 									printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, scale_bit_rate, target_sum, error);
@@ -773,7 +775,7 @@ namespace acl
 						}
 
 						context.bit_rate_per_bone[bone_index] = BoneBitRate{ rotation_bit_rate, translation_bit_rate, scale_bit_rate };
-						float error = calculate_max_error_at_bit_rate_object(context, bone_index);
+						const float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_error_too_high);
 
 						if (error < best_error)
 						{
@@ -831,7 +833,7 @@ namespace acl
 
 				// Measure error
 				std::swap(context.bit_rate_per_bone, permutation_bit_rates);
-				float permutation_error = calculate_max_error_at_bit_rate_object(context, bone_index);
+				const float permutation_error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_error_too_high);
 				std::swap(context.bit_rate_per_bone, permutation_bit_rates);
 
 				if (permutation_error < best_error)
@@ -987,7 +989,7 @@ namespace acl
 
 			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
-				float error = calculate_max_error_at_bit_rate_object(context, bone_index);
+				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_error_too_high);
 				if (error < settings.error_threshold)
 					continue;
 
@@ -995,7 +997,7 @@ namespace acl
 				{
 					// Our bone already has the highest precision possible locally, if the local error already exceeds our threshold,
 					// there is nothing we can do, bail out
-					const float local_error = calculate_max_error_at_bit_rate_local(context, bone_index);
+					const float local_error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
 					if (local_error >= settings.error_threshold)
 						continue;
 				}
@@ -1114,7 +1116,7 @@ namespace acl
 					{
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
 						std::swap(context.bit_rate_per_bone, best_bit_rates);
-						float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, true);
+						float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 						std::swap(context.bit_rate_per_bone, best_bit_rates);
 
 						for (uint16_t i = 0; i < context.num_bones; ++i)
@@ -1137,7 +1139,7 @@ namespace acl
 				{
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
 					std::swap(context.bit_rate_per_bone, best_bit_rates);
-					float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, true);
+					float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 					std::swap(context.bit_rate_per_bone, best_bit_rates);
 
 					for (uint16_t i = 0; i < context.num_bones; ++i)
@@ -1157,7 +1159,7 @@ namespace acl
 
 				// Our error remains too high, this should be rare.
 				// Attempt to increase the bit rate as much as we can while still back tracking if it doesn't help.
-				error = calculate_max_error_at_bit_rate_object(context, bone_index, true);
+				error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 				while (error >= settings.error_threshold)
 				{
 					// From child to parent, increase the bit rate indiscriminately
@@ -1197,7 +1199,7 @@ namespace acl
 
 							ACL_ASSERT((bone_bit_rate.rotation <= k_highest_bit_rate || bone_bit_rate.rotation == k_invalid_bit_rate) && (bone_bit_rate.translation <= k_highest_bit_rate || bone_bit_rate.translation == k_invalid_bit_rate) && (bone_bit_rate.scale <= k_highest_bit_rate || bone_bit_rate.scale == k_invalid_bit_rate), "Invalid bit rate! [%u, %u, %u]", bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale);
 
-							error = calculate_max_error_at_bit_rate_object(context, bone_index, true);
+							error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 
 							if (error < best_bit_rate_error)
 							{
@@ -1209,7 +1211,7 @@ namespace acl
 								for (uint16_t i = chain_link_index + 1; i < num_bones_in_chain; ++i)
 								{
 									const uint16_t chain_bone_index2 = chain_bone_indices[chain_link_index];
-									float error2 = calculate_max_error_at_bit_rate_object(context, chain_bone_index2, true);
+									float error2 = calculate_max_error_at_bit_rate_object(context, chain_bone_index2, error_scan_stop_condition::until_end_of_segment);
 									printf("  %u: => (%f)\n", i, error2);
 								}
 #endif
@@ -1250,7 +1252,7 @@ namespace acl
 						bone_bit_rate.translation = std::max<uint8_t>(bone_bit_rate.translation, k_highest_bit_rate);
 						bone_bit_rate.scale = std::max<uint8_t>(bone_bit_rate.scale, k_highest_bit_rate);
 
-						error = calculate_max_error_at_bit_rate_object(context, bone_index, true);
+						error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 						if (error < settings.error_threshold)
 							break;
 					}
@@ -1261,7 +1263,7 @@ namespace acl
 			printf("Variable quantization optimization results:\n");
 			for (uint16_t i = 0; i < context.num_bones; ++i)
 			{
-				float error = calculate_max_error_at_bit_rate_object(context, i, true);
+				float error = calculate_max_error_at_bit_rate_object(context, i, error_scan_stop_condition::until_end_of_segment);
 				const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[i];
 				printf("%u: %u | %u | %u => %f %s\n", i, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error, error >= settings.error_threshold ? "!" : "");
 			}
