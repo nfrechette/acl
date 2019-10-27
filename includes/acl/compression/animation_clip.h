@@ -331,6 +331,47 @@ namespace acl
 			return ErrorResult();
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns whether this clip has scale or not. A clip has scale if at least one
+		// bone has a scale sample that isn't equivalent to the default scale.
+		bool has_scale(float threshold) const
+		{
+			const Vector4_32 default_scale = get_default_scale(m_additive_format);
+
+			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
+			{
+				const AnimatedBone& bone = m_bones[bone_index];
+				const uint32_t num_samples = bone.scale_track.get_num_samples();
+				if (num_samples != 0)
+				{
+					const Vector4_32 scale = vector_cast(bone.scale_track.get_sample(0));
+
+					Vector4_32 min = scale;
+					Vector4_32 max = scale;
+
+					for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
+					{
+						const Vector4_32 sample = vector_cast(bone.scale_track.get_sample(sample_index));
+
+						min = vector_min(min, sample);
+						max = vector_max(max, sample);
+					}
+
+					const Vector4_32 extent = vector_sub(max, min);
+					const bool is_constant = vector_all_less_than3(vector_abs(extent), vector_set(threshold));
+					if (!is_constant)
+						return true;	// Not constant means we have scale
+
+					const bool is_default = vector_all_near_equal3(scale, default_scale, threshold);
+					if (!is_default)
+						return true;	// Constant but not default means we have scale
+				}
+			}
+
+			// We have no tracks with non-default scale
+			return false;
+		}
+
 	private:
 		// The allocator instance used to allocate and free memory by this clip instance
 		IAllocator&				m_allocator;
