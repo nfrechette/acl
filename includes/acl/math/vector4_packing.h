@@ -545,6 +545,41 @@ namespace acl
 		data[1] = safe_static_cast<uint16_t>(vector_u32 & 0xFFFF);
 	}
 
+	inline Vector4_32 ACL_SIMD_CALL decay_vector3_u32(Vector4_32Arg0 input, uint8_t XBits, uint8_t YBits, uint8_t ZBits)
+	{
+		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
+		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal(input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
+
+		const float max_value_x = float((1 << XBits) - 1);
+		const float max_value_y = float((1 << YBits) - 1);
+		const float max_value_z = float((1 << ZBits) - 1);
+		const Vector4_32 max_value = vector_set(max_value_x, max_value_y, max_value_z);
+		const Vector4_32 inv_max_value = vector_reciprocal(max_value);
+
+		const Vector4_32 packed = vector_symmetric_round(vector_mul(input, max_value));
+		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
+		return decayed;
+	}
+
+	inline Vector4_32 ACL_SIMD_CALL decay_vector3_s32(Vector4_32Arg0 input, uint8_t XBits, uint8_t YBits, uint8_t ZBits)
+	{
+		const Vector4_32 half = vector_set(0.5f);
+		const Vector4_32 unsigned_input = vector_mul_add(input, half, half);
+
+		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
+		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal(unsigned_input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
+
+		const float max_value_x = float((1 << XBits) - 1);
+		const float max_value_y = float((1 << YBits) - 1);
+		const float max_value_z = float((1 << ZBits) - 1);
+		const Vector4_32 max_value = vector_set(max_value_x, max_value_y, max_value_z);
+		const Vector4_32 inv_max_value = vector_reciprocal(max_value);
+
+		const Vector4_32 packed = vector_symmetric_round(vector_mul(unsigned_input, max_value));
+		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
+		return vector_neg_mul_sub(decayed, -2.0f, vector_set(-1.0f));
+	}
+
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_32(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data)
 	{
 		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");

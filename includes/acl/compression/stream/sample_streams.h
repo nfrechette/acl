@@ -54,10 +54,7 @@ namespace acl
 			case RotationFormat8::QuatDropW_96:
 				return unpack_vector3_96_unsafe(ptr);
 			case RotationFormat8::QuatDropW_48:
-				if (is_normalized)
-					return unpack_vector3_u48_unsafe(ptr);
-				else
-					return unpack_vector3_s48_unsafe(ptr);
+				return is_normalized ? unpack_vector3_u48_unsafe(ptr) : unpack_vector3_s48_unsafe(ptr);
 			case RotationFormat8::QuatDropW_32:
 				return unpack_vector3_32(11, 11, 10, is_normalized, ptr);
 			case RotationFormat8::QuatDropW_Variable:
@@ -249,7 +246,6 @@ namespace acl
 		const Vector4_32 rotation = impl::load_rotation_sample(quantized_ptr, format, k_invalid_bit_rate, are_rotations_normalized);
 
 		// Pack and unpack in our desired format
-		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_rotation;
 
 		switch (desired_format)
@@ -259,14 +255,10 @@ namespace acl
 			packed_rotation = rotation;
 			break;
 		case RotationFormat8::QuatDropW_48:
-			if (are_rotations_normalized)
-				packed_rotation = decay_vector3_u48(rotation);
-			else
-				packed_rotation = decay_vector3_s48(rotation);
+			packed_rotation = are_rotations_normalized ? decay_vector3_u48(rotation) : decay_vector3_s48(rotation);
 			break;
 		case RotationFormat8::QuatDropW_32:
-			pack_vector3_32(rotation, 11, 11, 10, are_rotations_normalized, &raw_data[0]);
-			packed_rotation = unpack_vector3_32(11, 11, 10, are_rotations_normalized, &raw_data[0]);
+			packed_rotation = are_rotations_normalized ? decay_vector3_u32(rotation, 11, 11, 10) : decay_vector3_s32(rotation, 11, 11, 10);
 			break;
 		default:
 			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(desired_format));
@@ -408,7 +400,6 @@ namespace acl
 		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
 		// Pack and unpack in our desired format
-		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_translation;
 
 		switch (desired_format)
@@ -421,8 +412,8 @@ namespace acl
 			packed_translation = decay_vector3_u48(translation);
 			break;
 		case VectorFormat8::Vector3_32:
-			pack_vector3_32(translation, 11, 11, 10, are_translations_normalized, &raw_data[0]);
-			packed_translation = unpack_vector3_32(11, 11, 10, are_translations_normalized, &raw_data[0]);
+			ACL_ASSERT(are_translations_normalized, "Translations must be normalized to support this format");
+			packed_translation = decay_vector3_u32(translation, 11, 11, 10);
 			break;
 		default:
 			ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
@@ -564,7 +555,6 @@ namespace acl
 		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
 
 		// Pack and unpack in our desired format
-		alignas(16) uint8_t raw_data[16] = { 0 };
 		Vector4_32 packed_scale;
 
 		switch (desired_format)
@@ -577,8 +567,8 @@ namespace acl
 			packed_scale = decay_vector3_u48(scale);
 			break;
 		case VectorFormat8::Vector3_32:
-			pack_vector3_32(scale, 11, 11, 10, are_scales_normalized, &raw_data[0]);
-			packed_scale = unpack_vector3_32(11, 11, 10, are_scales_normalized, &raw_data[0]);
+			ACL_ASSERT(are_scales_normalized, "Scales must be normalized to support this format");
+			packed_scale = decay_vector3_u32(scale, 11, 11, 10);
 			break;
 		default:
 			ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
