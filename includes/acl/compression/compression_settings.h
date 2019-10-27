@@ -223,7 +223,7 @@ namespace acl
 
 			if (segmenting.enabled && segmenting.range_reduction != RangeReductionFlags8::None)
 			{
-				if (range_reduction == RangeReductionFlags8::None)
+				if ((range_reduction & segmenting.range_reduction) != segmenting.range_reduction)
 					return ErrorResult("Per segment range reduction requires per clip range reduction to be enabled");
 			}
 
