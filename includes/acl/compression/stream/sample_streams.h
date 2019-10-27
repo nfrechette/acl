@@ -691,9 +691,9 @@ namespace acl
 			else if (bone_stream.is_rotation_constant)
 			{
 				if (is_rotation_variable)
-					rotation = get_rotation_sample(bone_stream, 0);
+					rotation = get_rotation_sample(raw_bone_stream, 0);
 				else
-					rotation = get_rotation_sample(bone_stream, 0, rotation_format);
+					rotation = get_rotation_sample(raw_bone_stream, 0, rotation_format);
 			}
 			else
 			{
@@ -788,7 +788,7 @@ namespace acl
 			if (bone_stream.is_translation_default)
 				translation = vector_zero_32();
 			else if (bone_stream.is_translation_constant)
-				translation = get_translation_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+				translation = get_translation_sample(raw_bone_stream, 0, VectorFormat8::Vector3_96);
 			else
 			{
 				uint32_t key0;
@@ -882,7 +882,7 @@ namespace acl
 			if (bone_stream.is_scale_default)
 				scale = default_scale;
 			else if (bone_stream.is_scale_constant)
-				scale = get_scale_sample(bone_stream, 0, VectorFormat8::Vector3_96);
+				scale = get_scale_sample(raw_bone_stream, 0, VectorFormat8::Vector3_96);
 			else
 			{
 				uint32_t key0;
