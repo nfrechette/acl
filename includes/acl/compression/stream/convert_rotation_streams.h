@@ -63,7 +63,7 @@ namespace acl
 
 		for (BoneStreams& bone_stream : segment.bone_iterator())
 		{
-			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored at Quat_32
+			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored as Quat_32
 			// For all other formats, we keep the same sample size and either keep Quat_32 or use Vector4_32
 			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
 
