@@ -348,10 +348,6 @@ namespace acl
 		bool is_scale_constant;
 		bool is_scale_default;
 
-		bool is_rotation_animated() const { return !is_rotation_constant && !is_rotation_default; }
-		bool is_translation_animated() const { return !is_translation_constant && !is_translation_default; }
-		bool is_scale_animated() const { return !is_scale_constant && !is_scale_default; }
-
 		bool is_stripped_from_output() const { return output_index == k_invalid_bone_index; }
 
 		BoneStreams duplicate() const

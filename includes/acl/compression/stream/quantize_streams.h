@@ -864,27 +864,26 @@ namespace acl
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
-			const bool is_scale_variable = is_vector_format_variable(scale_format);
-			const bool has_scale = segment_context_has_scale(segment);
+			const bool is_scale_variable = segment_context_has_scale(segment) && is_vector_format_variable(scale_format);
 
 			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 			{
 				BoneBitRate& bone_bit_rate = out_bit_rate_per_bone[bone_index];
 
 				const bool rotation_supports_constant_tracks = segment.are_rotations_normalized;
-				if (is_rotation_variable && segment.bone_streams[bone_index].is_rotation_animated())
+				if (is_rotation_variable && !segment.bone_streams[bone_index].is_rotation_constant)
 					bone_bit_rate.rotation = rotation_supports_constant_tracks ? 0 : k_lowest_bit_rate;
 				else
 					bone_bit_rate.rotation = k_invalid_bit_rate;
 
 				const bool translation_supports_constant_tracks = segment.are_translations_normalized;
-				if (is_translation_variable && segment.bone_streams[bone_index].is_translation_animated())
+				if (is_translation_variable && !segment.bone_streams[bone_index].is_translation_constant)
 					bone_bit_rate.translation = translation_supports_constant_tracks ? 0 : k_lowest_bit_rate;
 				else
 					bone_bit_rate.translation = k_invalid_bit_rate;
 
 				const bool scale_supports_constant_tracks = segment.are_scales_normalized;
-				if (has_scale && is_scale_variable && segment.bone_streams[bone_index].is_scale_animated())
+				if (is_scale_variable && !segment.bone_streams[bone_index].is_scale_constant)
 					bone_bit_rate.scale = scale_supports_constant_tracks ? 0 : k_lowest_bit_rate;
 				else
 					bone_bit_rate.scale = k_invalid_bit_rate;
