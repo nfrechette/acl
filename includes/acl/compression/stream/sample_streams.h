@@ -1241,13 +1241,13 @@ namespace acl
 		{
 			const BoneStreams& bone_stream = bone_streams[bone_index];
 
-			const uint32_t rotation_sample_index = bone_stream.is_rotation_animated() ? sample_index : 0;
+			const uint32_t rotation_sample_index = !bone_stream.is_rotation_constant ? sample_index : 0;
 			const Quat_32 rotation = get_rotation_sample(bone_stream, rotation_sample_index);
 
-			const uint32_t translation_sample_index = bone_stream.is_translation_animated() ? sample_index : 0;
+			const uint32_t translation_sample_index = !bone_stream.is_translation_constant ? sample_index : 0;
 			const Vector4_32 translation = get_translation_sample(bone_stream, translation_sample_index);
 
-			const uint32_t scale_sample_index = bone_stream.is_scale_animated() ? sample_index : 0;
+			const uint32_t scale_sample_index = !bone_stream.is_scale_constant ? sample_index : 0;
 			const Vector4_32 scale = get_scale_sample(bone_stream, scale_sample_index);
 
 			out_local_pose[bone_index] = transform_set(rotation, translation, scale);

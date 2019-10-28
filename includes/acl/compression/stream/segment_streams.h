@@ -125,7 +125,7 @@ namespace acl
 				segment_bone_stream.parent_bone_index = clip_bone_stream.parent_bone_index;
 				segment_bone_stream.output_index = clip_bone_stream.output_index;
 
-				if (!clip_bone_stream.is_rotation_animated())
+				if (clip_bone_stream.is_rotation_constant)
 				{
 					segment_bone_stream.rotations = clip_bone_stream.rotations.duplicate();
 				}
@@ -138,7 +138,7 @@ namespace acl
 					segment_bone_stream.rotations = std::move(rotations);
 				}
 
-				if (!clip_bone_stream.is_translation_animated())
+				if (clip_bone_stream.is_translation_constant)
 				{
 					segment_bone_stream.translations = clip_bone_stream.translations.duplicate();
 				}
@@ -151,7 +151,7 @@ namespace acl
 					segment_bone_stream.translations = std::move(translations);
 				}
 
-				if (!clip_bone_stream.is_scale_animated())
+				if (clip_bone_stream.is_scale_constant)
 				{
 					segment_bone_stream.scales = clip_bone_stream.scales.duplicate();
 				}
