@@ -712,7 +712,7 @@ namespace acl
 		const float max_value_x = float((1 << XBits) - 1);
 		const float max_value_y = float((1 << YBits) - 1);
 		const float max_value_z = float((1 << ZBits) - 1);
-		const Vector4_32 max_value = vector_set(max_value_x, max_value_y, max_value_z);
+		const Vector4_32 max_value = vector_set(max_value_x, max_value_y, max_value_z, max_value_z);
 		const Vector4_32 inv_max_value = vector_reciprocal(max_value);
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(input, max_value));
@@ -731,7 +731,7 @@ namespace acl
 		const float max_value_x = float((1 << XBits) - 1);
 		const float max_value_y = float((1 << YBits) - 1);
 		const float max_value_z = float((1 << ZBits) - 1);
-		const Vector4_32 max_value = vector_set(max_value_x, max_value_y, max_value_z);
+		const Vector4_32 max_value = vector_set(max_value_x, max_value_y, max_value_z, max_value_z);
 		const Vector4_32 inv_max_value = vector_reciprocal(max_value);
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(unsigned_input, max_value));
