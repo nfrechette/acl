@@ -810,7 +810,7 @@ namespace acl
 			do
 			{
 				// Copy our current bit rates to the permutation rates
-				memcpy(permutation_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * context.num_bones);
+				std::memcpy(permutation_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * context.num_bones);
 
 				bool is_permutation_valid = false;
 				for (uint16_t chain_link_index = 0; chain_link_index < num_bones_in_chain; ++chain_link_index)
@@ -839,7 +839,7 @@ namespace acl
 				if (permutation_error < best_error)
 				{
 					best_error = permutation_error;
-					memcpy(best_bit_rates, permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+					std::memcpy(best_bit_rates, permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
 					if (permutation_error < settings.error_threshold)
 						break;
@@ -985,7 +985,7 @@ namespace acl
 			BoneBitRate* permutation_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
 			BoneBitRate* best_permutation_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
 			BoneBitRate* best_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
-			memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * context.num_bones);
+			std::memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * context.num_bones);
 
 			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
@@ -1021,7 +1021,7 @@ namespace acl
 					if (error < best_error)
 					{
 						best_error = error;
-						memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+						std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
 						if (error < settings.error_threshold)
 							break;
@@ -1036,7 +1036,7 @@ namespace acl
 						if (error < best_error)
 						{
 							best_error = error;
-							memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+							std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
 							if (error < settings.error_threshold)
 								break;
@@ -1051,7 +1051,7 @@ namespace acl
 							if (error < best_error)
 							{
 								best_error = error;
-								memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+								std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
 								if (error < settings.error_threshold)
 									break;
@@ -1068,7 +1068,7 @@ namespace acl
 						if (error < best_error)
 						{
 							best_error = error;
-							memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+							std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
 							if (error < settings.error_threshold)
 								break;
@@ -1083,7 +1083,7 @@ namespace acl
 							if (error < best_error)
 							{
 								best_error = error;
-								memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+								std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
 								if (error < settings.error_threshold)
 									break;
@@ -1099,7 +1099,7 @@ namespace acl
 								if (error < best_error)
 								{
 									best_error = error;
-									memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+									std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 
 									if (error < settings.error_threshold)
 										break;
@@ -1131,7 +1131,7 @@ namespace acl
 						}
 #endif
 
-						memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+						std::memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 					}
 				}
 
@@ -1154,7 +1154,7 @@ namespace acl
 					}
 #endif
 
-					memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+					std::memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(BoneBitRate) * context.num_bones);
 				}
 
 				// Our error remains too high, this should be rare.
