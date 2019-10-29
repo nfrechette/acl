@@ -33,6 +33,7 @@
 #include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/impl/track_bit_rate_database.h"
+#include "acl/compression/impl/transform_bit_rate_permutations.h"
 #include "acl/compression/stream/clip_context.h"
 #include "acl/compression/stream/sample_streams.h"
 #include "acl/compression/stream/normalize_streams.h"
@@ -591,23 +592,19 @@ namespace acl
 
 		inline void calculate_local_space_bit_rates(QuantizationContext& context)
 		{
-			// Here is how an exhaustive search to minimize the total bit rate works out for a single bone with 2 tracks
-			// rot + 1 trans + 0 ( 3), rot + 0 trans + 1 ( 3)
-			// rot + 2 trans + 0 ( 6), rot + 1 trans + 1 ( 6), rot + 0 trans + 2 ( 6)
-			// rot + 3 trans + 0 ( 9), rot + 2 trans + 1 ( 9), rot + 1 trans + 2 ( 9), rot + 0 trans + 3 ( 9)
-			// rot + 4 trans + 0 (12), rot + 3 trans + 1 (12), rot + 2 trans + 2 (12), rot + 1 trans + 3 (12), rot + 0 trans + 4 (12)
-			// rot + 5 trans + 0 (15), rot + 4 trans + 1 (15), rot + 3 trans + 2 (15), rot + 2 trans + 3 (15), rot + 1 trans + 4 (15), rot + 0 trans + 5 (15)
-
-			// rot + 1 trans + 5 (18), rot + 2 trans + 4 (18), rot + 3 trans + 3 (18), rot + 4 trans + 2 (18), rot + 5 trans + 1 (18)
-			// rot + 2 trans + 5 (21), rot + 3 trans + 4 (21), rot + 4 trans + 3 (21), rot + 5 trans + 2 (21)
-			// rot + 3 trans + 5 (24), rot + 4 trans + 4 (24), rot + 5 trans + 3 (24)
-			// rot + 4 trans + 5 (27), rot + 5 trans + 4 (27)
-			// rot + 5 trans + 5 (30)
+			// To minimize the bit rate, we first start by trying every permutation in local space
+			// until our error is acceptable.
+			// We try permutations from the lowest memory footprint to the highest.
 
 			const CompressionSettings& settings = context.settings;
+			const float error_threshold = settings.error_threshold;
 
 			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
+				// Bit rates at this point are one of three value:
+				// 0: if the segment track is normalized, it can be constant within the segment
+				// 1: if the segment track isn't normalized, it starts at the lowest bit rate
+				// 255: if the track is constant/default for the whole clip
 				const BoneBitRate bone_bit_rates = context.bit_rate_per_bone[bone_index];
 
 				if (bone_bit_rates.rotation == k_invalid_bit_rate && bone_bit_rates.translation == k_invalid_bit_rate && bone_bit_rates.scale == k_invalid_bit_rate)
@@ -615,128 +612,145 @@ namespace acl
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
 					printf("%u: Best bit rates: %u | %u | %u\n", bone_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale);
 #endif
-					continue;
+					continue;	// Every track bit rate is constant/default, nothing else to do
 				}
 
-				BoneBitRate best_bit_rates = BoneBitRate{ std::max<uint8_t>(bone_bit_rates.rotation, k_highest_bit_rate), std::max<uint8_t>(bone_bit_rates.translation, k_highest_bit_rate), std::max<uint8_t>(bone_bit_rates.scale, k_highest_bit_rate) };
-				uint8_t best_size = 0xFF;
-				float best_error = settings.error_threshold;
+				BoneBitRate best_bit_rates = bone_bit_rates;
+				float best_error = 1.0E10f;
+				int32_t prev_transform_size = -1;
+				bool is_error_good_enough = false;
 
-				const uint8_t num_iterations = k_num_bit_rates - 1;
-				for (uint8_t iteration = 1; iteration <= num_iterations; ++iteration)
+				if (context.has_scale)
 				{
-					const uint8_t target_sum = 3 * iteration;
-
-					for (uint8_t rotation_bit_rate = bone_bit_rates.rotation; true; ++rotation_bit_rate)
+					const size_t num_permutations = get_array_size(acl_impl::k_local_bit_rate_permutations);
+					for (size_t permutation_index = 0; permutation_index < num_permutations; ++permutation_index)
 					{
-						for (uint8_t translation_bit_rate = bone_bit_rates.translation; true; ++translation_bit_rate)
+						const uint8_t rotation_bit_rate = acl_impl::k_local_bit_rate_permutations[permutation_index][0];
+						if (bone_bit_rates.rotation == 1)
 						{
-							for (uint8_t scale_bit_rate = bone_bit_rates.scale; true; ++scale_bit_rate)
-							{
-								const uint8_t rotation_increment = rotation_bit_rate - bone_bit_rates.rotation;
-								const uint8_t translation_increment = translation_bit_rate - bone_bit_rates.translation;
-								const uint8_t scale_increment = scale_bit_rate - bone_bit_rates.scale;
-								const uint8_t current_sum = rotation_increment * 3 + translation_increment * 3 + scale_increment * 3;
-								if (current_sum != target_sum)
-								{
-									if (scale_bit_rate >= k_highest_bit_rate)
-										break;
-									else
-										continue;
-								}
-
-								context.bit_rate_per_bone[bone_index] = BoneBitRate{ rotation_bit_rate, translation_bit_rate, scale_bit_rate };
-								const float error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
-
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION > 1
-								printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, scale_bit_rate, target_sum, error);
-#endif
-
-								if (error < best_error && target_sum <= best_size)
-								{
-									best_size = target_sum;
-									best_error = error;
-									best_bit_rates = context.bit_rate_per_bone[bone_index];
-								}
-
-								context.bit_rate_per_bone[bone_index] = bone_bit_rates;
-
-								if (scale_bit_rate >= k_highest_bit_rate)
-									break;
-							}
-
-							if (translation_bit_rate >= k_highest_bit_rate)
-								break;
+							if (rotation_bit_rate == 0)
+								continue;	// Skip permutations we aren't interested in
+						}
+						else if (bone_bit_rates.rotation == k_invalid_bit_rate)
+						{
+							if (rotation_bit_rate != 0)
+								continue;	// Skip permutations we aren't interested in
 						}
 
-						if (rotation_bit_rate >= k_highest_bit_rate)
-							break;
-					}
-
-					if (best_size != 0xFF)
-						break;
-				}
-
-				if (best_size == 0xFF)
-				{
-					for (uint8_t iteration = 1; iteration <= num_iterations; ++iteration)
-					{
-						const uint8_t target_sum = 3 * iteration + (3 * num_iterations);
-
-						for (uint8_t rotation_bit_rate = bone_bit_rates.rotation; true; ++rotation_bit_rate)
+						const uint8_t translation_bit_rate = acl_impl::k_local_bit_rate_permutations[permutation_index][1];
+						if (bone_bit_rates.translation == 1)
 						{
-							for (uint8_t translation_bit_rate = bone_bit_rates.translation; true; ++translation_bit_rate)
-							{
-								for (uint8_t scale_bit_rate = bone_bit_rates.scale; true; ++scale_bit_rate)
-								{
-									const uint8_t rotation_increment = rotation_bit_rate - bone_bit_rates.rotation;
-									const uint8_t translation_increment = translation_bit_rate - bone_bit_rates.translation;
-									const uint8_t scale_increment = scale_bit_rate - bone_bit_rates.scale;
-									const uint8_t current_sum = rotation_increment * 3 + translation_increment * 3 + scale_increment * 3;
-									if (current_sum != target_sum)
-									{
-										if (scale_bit_rate >= k_highest_bit_rate)
-											break;
-										else
-											continue;
-									}
-
-									context.bit_rate_per_bone[bone_index] = BoneBitRate{ rotation_bit_rate, translation_bit_rate, scale_bit_rate };
-									const float error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
-
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION > 1
-									printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, scale_bit_rate, target_sum, error);
-#endif
-
-									if (error < best_error && target_sum <= best_size)
-									{
-										best_size = target_sum;
-										best_error = error;
-										best_bit_rates = context.bit_rate_per_bone[bone_index];
-									}
-
-									context.bit_rate_per_bone[bone_index] = bone_bit_rates;
-
-									if (scale_bit_rate >= k_highest_bit_rate)
-										break;
-								}
-
-								if (translation_bit_rate >= k_highest_bit_rate)
-									break;
-							}
-
-							if (rotation_bit_rate >= k_highest_bit_rate)
-								break;
+							if (translation_bit_rate == 0)
+								continue;	// Skip permutations we aren't interested in
+						}
+						else if (bone_bit_rates.translation == k_invalid_bit_rate)
+						{
+							if (translation_bit_rate != 0)
+								continue;	// Skip permutations we aren't interested in
 						}
 
-						if (best_size != 0xFF)
+						const uint8_t scale_bit_rate = acl_impl::k_local_bit_rate_permutations[permutation_index][2];
+						if (bone_bit_rates.scale == 1)
+						{
+							if (scale_bit_rate == 0)
+								continue;	// Skip permutations we aren't interested in
+						}
+						else if (bone_bit_rates.scale == k_invalid_bit_rate)
+						{
+							if (scale_bit_rate != 0)
+								continue;	// Skip permutations we aren't interested in
+						}
+
+						const int32_t rotation_size = get_num_bits_at_bit_rate(rotation_bit_rate);
+						const int32_t translation_size = get_num_bits_at_bit_rate(translation_bit_rate);
+						const int32_t scale_size = get_num_bits_at_bit_rate(scale_bit_rate);
+						const int32_t transform_size = rotation_size + translation_size + scale_size;
+
+						if (transform_size != prev_transform_size && is_error_good_enough)
+						{
+							// We already found the lowest transform size and we tried every permutation with that same size
 							break;
+						}
+
+						prev_transform_size = transform_size;
+
+						context.bit_rate_per_bone[bone_index].rotation = bone_bit_rates.rotation != k_invalid_bit_rate ? rotation_bit_rate : k_invalid_bit_rate;
+						context.bit_rate_per_bone[bone_index].translation = bone_bit_rates.translation != k_invalid_bit_rate ? translation_bit_rate : k_invalid_bit_rate;
+						context.bit_rate_per_bone[bone_index].scale = bone_bit_rates.scale != k_invalid_bit_rate ? scale_bit_rate : k_invalid_bit_rate;
+
+						const float error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
+
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION > 1
+						printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, scale_bit_rate, transform_size, error);
+#endif
+
+						if (error < best_error)
+						{
+							best_error = error;
+							best_bit_rates = context.bit_rate_per_bone[bone_index];
+							is_error_good_enough = error < error_threshold;
+						}
+					}
+				}
+				else
+				{
+					const size_t num_permutations = get_array_size(acl_impl::k_local_bit_rate_permutations_no_scale);
+					for (size_t permutation_index = 0; permutation_index < num_permutations; ++permutation_index)
+					{
+						const uint8_t rotation_bit_rate = acl_impl::k_local_bit_rate_permutations_no_scale[permutation_index][0];
+						if (bone_bit_rates.rotation == 1)
+						{
+							if (rotation_bit_rate == 0)
+								continue;	// Skip permutations we aren't interested in
+						}
+						else if (bone_bit_rates.rotation == k_invalid_bit_rate)
+						{
+							if (rotation_bit_rate != 0)
+								continue;	// Skip permutations we aren't interested in
+						}
+
+						const uint8_t translation_bit_rate = acl_impl::k_local_bit_rate_permutations_no_scale[permutation_index][1];
+						if (bone_bit_rates.translation == 1)
+						{
+							if (translation_bit_rate == 0)
+								continue;	// Skip permutations we aren't interested in
+						}
+						else if (bone_bit_rates.translation == k_invalid_bit_rate)
+						{
+							if (translation_bit_rate != 0)
+								continue;	// Skip permutations we aren't interested in
+						}
+
+						const int32_t rotation_size = get_num_bits_at_bit_rate(rotation_bit_rate);
+						const int32_t translation_size = get_num_bits_at_bit_rate(translation_bit_rate);
+						const int32_t transform_size = rotation_size + translation_size;
+
+						if (transform_size != prev_transform_size && is_error_good_enough)
+						{
+							// We already found the lowest transform size and we tried every permutation with that same size
+							break;
+						}
+
+						prev_transform_size = transform_size;
+
+						context.bit_rate_per_bone[bone_index].rotation = bone_bit_rates.rotation != k_invalid_bit_rate ? rotation_bit_rate : k_invalid_bit_rate;
+						context.bit_rate_per_bone[bone_index].translation = bone_bit_rates.translation != k_invalid_bit_rate ? translation_bit_rate : k_invalid_bit_rate;
+
+						const float error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
+
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION > 1
+						printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, k_invalid_bit_rate, transform_size, error);
+#endif
+
+						if (error < best_error)
+						{
+							best_error = error;
+							best_bit_rates = context.bit_rate_per_bone[bone_index];
+							is_error_good_enough = error < error_threshold;
+						}
 					}
 				}
 
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
-				printf("%u: Best bit rates: %u | %u | %u (%u) = %f\n", bone_index, best_bit_rates.rotation, best_bit_rates.translation, best_bit_rates.scale, best_size, best_error);
-#endif
 				context.bit_rate_per_bone[bone_index] = best_bit_rates;
 			}
 		}
