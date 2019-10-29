@@ -648,7 +648,7 @@ namespace acl
 			if (bone_stream.is_rotation_default)
 				rotation = quat_identity_32();
 			else if (bone_stream.is_rotation_constant)
-				rotation = get_rotation_sample(bone_stream, 0);
+				rotation = quat_normalize(get_rotation_sample(bone_stream, 0));
 			else
 			{
 				uint32_t key0;
@@ -694,6 +694,8 @@ namespace acl
 					rotation = get_rotation_sample(raw_bone_stream, 0);
 				else
 					rotation = get_rotation_sample(raw_bone_stream, 0, rotation_format);
+
+				rotation = quat_normalize(rotation);
 			}
 			else
 			{
