@@ -26,8 +26,6 @@
 
 #include <acl/core/bit_manip_utils.h>
 
-//#include <cstring>
-
 using namespace acl;
 
 TEST_CASE("bit_manip_utils", "[core][utils]")
@@ -40,16 +38,19 @@ TEST_CASE("bit_manip_utils", "[core][utils]")
 	REQUIRE(count_set_bits(uint16_t(0x0000)) == 0);
 	REQUIRE(count_set_bits(uint16_t(0x0001)) == 1);
 	REQUIRE(count_set_bits(uint16_t(0x1000)) == 1);
+	REQUIRE(count_set_bits(uint16_t(0x1001)) == 2);
 	REQUIRE(count_set_bits(uint16_t(0xFFFF)) == 16);
 
 	REQUIRE(count_set_bits(uint32_t(0x00000000)) == 0);
 	REQUIRE(count_set_bits(uint32_t(0x00000001)) == 1);
 	REQUIRE(count_set_bits(uint32_t(0x10000000)) == 1);
+	REQUIRE(count_set_bits(uint32_t(0x10101001)) == 4);
 	REQUIRE(count_set_bits(uint32_t(0xFFFFFFFF)) == 32);
 
 	REQUIRE(count_set_bits(uint64_t(0x0000000000000000ull)) == 0);
 	REQUIRE(count_set_bits(uint64_t(0x0000000000000001ull)) == 1);
 	REQUIRE(count_set_bits(uint64_t(0x1000000000000000ull)) == 1);
+	REQUIRE(count_set_bits(uint64_t(0x1000100001010101ull)) == 6);
 	REQUIRE(count_set_bits(uint64_t(0xFFFFFFFFFFFFFFFFull)) == 64);
 
 	REQUIRE(rotate_bits_left(0x00000010, 0) == 0x00000010);

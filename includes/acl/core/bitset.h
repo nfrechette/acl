@@ -190,6 +190,8 @@ namespace acl
 	{
 		const uint32_t size = desc.get_size();
 
+		// TODO: Optimize for NEON by using the intrinsic directly and unrolling the loop to
+		// reduce the number of pairwise add instructions.
 		uint32_t num_set_bits = 0;
 		for (uint32_t offset = 0; offset < size; ++offset)
 			num_set_bits += count_set_bits(bitset[offset]);
