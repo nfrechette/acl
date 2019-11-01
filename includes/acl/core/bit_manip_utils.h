@@ -26,25 +26,20 @@
 
 #include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
+#include "acl/math/math.h"
 
 #include <cstdint>
 
 #if !defined(ACL_USE_POPCOUNT)
-	#if defined(ACL_NEON_INTRINSICS) && !defined(_MSC_VER)
-		// Enable pop-count type instructions on ARM NEON
-		#define ACL_USE_POPCOUNT
-	#elif defined(_DURANGO) || defined(_XBOX_ONE)
+	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
+	#if defined(_DURANGO) || defined(_XBOX_ONE)
 		// Enable pop-count type instructions on Xbox One
 		#define ACL_USE_POPCOUNT
-	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
-	// TODO: Enable this for Windows ARM as well, what is the include and intrinsic to use?
 	#endif
 #endif
 
 #if defined(ACL_USE_POPCOUNT)
-	#if defined(_MSC_VER)
-		#include <nmmintrin.h>
-	#endif
+	#include <nmmintrin.h>
 #endif
 
 #if defined(ACL_AVX_INTRINSICS)
@@ -61,10 +56,10 @@ namespace acl
 {
 	inline uint8_t count_set_bits(uint8_t value)
 	{
-#if defined(ACL_USE_POPCOUNT) && defined(_MSC_VER)
+#if defined(ACL_USE_POPCOUNT)
 		return (uint8_t)_mm_popcnt_u32(value);
-#elif defined(ACL_USE_POPCOUNT) && (defined(__GNUC__) || defined(__clang__))
-		return (uint8_t)__builtin_popcount(value);
+#elif defined(ACL_NEON_INTRINSICS)
+		return (uint8_t)vget_lane_u64(vcnt_u8(vcreate_u8(value)), 0);
 #else
 		value = value - ((value >> 1) & 0x55);
 		value = (value & 0x33) + ((value >> 2) & 0x33);
@@ -74,10 +69,10 @@ namespace acl
 
 	inline uint16_t count_set_bits(uint16_t value)
 	{
-#if defined(ACL_USE_POPCOUNT) && defined(_MSC_VER)
+#if defined(ACL_USE_POPCOUNT)
 		return (uint16_t)_mm_popcnt_u32(value);
-#elif defined(ACL_USE_POPCOUNT) && (defined(__GNUC__) || defined(__clang__))
-		return (uint16_t)__builtin_popcount(value);
+#elif defined(ACL_NEON_INTRINSICS)
+		return (uint16_t)vget_lane_u64(vpaddl_u8(vcnt_u8(vcreate_u8(value))), 0);
 #else
 		value = value - ((value >> 1) & 0x5555);
 		value = (value & 0x3333) + ((value >> 2) & 0x3333);
@@ -87,10 +82,10 @@ namespace acl
 
 	inline uint32_t count_set_bits(uint32_t value)
 	{
-#if defined(ACL_USE_POPCOUNT) && defined(_MSC_VER)
+#if defined(ACL_USE_POPCOUNT)
 		return _mm_popcnt_u32(value);
-#elif defined(ACL_USE_POPCOUNT) && (defined(__GNUC__) || defined(__clang__))
-		return __builtin_popcount(value);
+#elif defined(ACL_NEON_INTRINSICS)
+		return (uint32_t)vget_lane_u64(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value)))), 0);
 #else
 		value = value - ((value >> 1) & 0x55555555);
 		value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
@@ -100,10 +95,10 @@ namespace acl
 
 	inline uint64_t count_set_bits(uint64_t value)
 	{
-#if defined(ACL_USE_POPCOUNT) && defined(_MSC_VER)
+#if defined(ACL_USE_POPCOUNT)
 		return _mm_popcnt_u64(value);
-#elif defined(ACL_USE_POPCOUNT) && (defined(__GNUC__) || defined(__clang__))
-		return __builtin_popcountll(value);
+#elif defined(ACL_NEON_INTRINSICS)
+		return vget_lane_u64(vpaddl_u32(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value))))), 0);
 #else
 		value = value - ((value >> 1) & 0x5555555555555555ull);
 		value = (value & 0x3333333333333333ull) + ((value >> 2) & 0x3333333333333333ull);
