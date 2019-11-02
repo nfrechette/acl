@@ -863,7 +863,10 @@ static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
 
 	const int fseek_result = fseek(file, 0, SEEK_END);
 	if (fseek_result != 0)
+	{
+		fclose(file);
 		return false;
+	}
 
 #ifdef _WIN32
 	file_size = static_cast<size_t>(_ftelli64(file));
@@ -872,7 +875,10 @@ static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
 #endif
 
 	if (file_size == static_cast<size_t>(-1L))
+	{
+		fclose(file);
 		return false;
+	}
 
 	rewind(file);
 
