@@ -303,6 +303,37 @@ TEST_CASE("pack_vector3_32", "[math][vector4][packing]")
 	}
 }
 
+TEST_CASE("decay_vector3_32", "[math][vector4][decay]")
+{
+	{
+		const uint8_t num_bits_xy = 11;
+		const uint8_t num_bits_z = 10;
+		const uint32_t max_value_xy = (1 << num_bits_xy) - 1;
+
+		uint32_t num_errors = 0;
+		for (uint32_t value = 0; value < max_value_xy; ++value)
+		{
+			const uint32_t value_xy = value;
+			const uint32_t value_z = value % (1 << num_bits_z);
+			const float value_signed_xy = unpack_scalar_signed(value_xy, num_bits_xy);
+			const float value_signed_z = unpack_scalar_signed(value_z, num_bits_z);
+			const float value_unsigned_xy = unpack_scalar_unsigned(value_xy, num_bits_xy);
+			const float value_unsigned_z = unpack_scalar_unsigned(value_z, num_bits_z);
+
+			Vector4_32 vec0 = vector_set(value_signed_xy, value_signed_xy, value_signed_z);
+			Vector4_32 vec1 = decay_vector3_s32(vec0, num_bits_xy, num_bits_xy, num_bits_z);
+			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+				num_errors++;
+
+			vec0 = vector_set(value_unsigned_xy, value_unsigned_xy, value_unsigned_z);
+			vec1 = decay_vector3_u32(vec0, num_bits_xy, num_bits_xy, num_bits_z);
+			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+				num_errors++;
+		}
+		REQUIRE(num_errors == 0);
+	}
+}
+
 TEST_CASE("pack_vector3_24", "[math][vector4][packing]")
 {
 	{
