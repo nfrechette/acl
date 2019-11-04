@@ -537,7 +537,7 @@ namespace acl
 			rtm::float4f result = { 0.0f, 0.0f, 0.0f, 0.0f };
 			float* result_ptr = &result.x;
 
-			for (uint32_t component_index = 0; component_index < num_components; ++num_components)
+			for (uint32_t component_index = 0; component_index < num_components; ++component_index)
 				result_ptr[component_index] = hex_to_float(values[component_index]);
 
 			return result;
@@ -756,7 +756,6 @@ namespace acl
 
 					if (m_is_binary_exact)
 					{
-						// TODO: Add test that uses this
 						sjson::StringView values[4];
 						if (m_parser.read(values, num_components))
 						{
