@@ -56,7 +56,6 @@
 #include "acl/compression/utils.h"
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
-#include "acl/io/clip_writer.h"							// Included just so we compile it to test for basic errors
 
 #include "acl/algorithm/uniformly_sampled/encoder.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"
