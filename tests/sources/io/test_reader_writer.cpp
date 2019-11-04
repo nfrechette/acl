@@ -37,8 +37,10 @@
 #include <acl/math/math.h>
 #include <acl/math/scalar_32.h>
 
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <thread>
 
 #if defined(_WIN32)
 	// The below excludes some other unused services from the windows headers -- see windows.h for details.
@@ -93,7 +95,40 @@
 
 using namespace acl;
 
-TEST_CASE("sjson_reader_writer", "[io]")
+#if defined(ACL_SSE2_INTRINSICS)
+#ifdef _WIN32
+constexpr uint32_t k_max_filename_size = MAX_PATH;
+#else
+constexpr uint32_t k_max_filename_size = 1024;
+#endif
+
+static void get_temporary_filename(char* filename, uint32_t filename_size, const char* prefix)
+{
+#ifdef _WIN32
+	DWORD result = GetTempPathA(filename_size, filename);
+	REQUIRE(result != 0);
+
+	char id[1024];
+	snprintf(id, get_array_size(id), "%u", std::rand());
+
+	strcat_s(filename, filename_size, prefix);
+	strcat_s(filename, filename_size, id);
+	strcat_s(filename, filename_size, ".acl.sjson");
+#else
+	(void)filename_size;
+	
+	char id[1024];
+	snprintf(id, get_array_size(id), "%u", std::rand());
+
+	std::strcat(filename, "/tmp/");
+	std::strcat(filename, prefix);
+	std::strcat(filename, id);
+	std::strcat(filename, ".acl.sjson");
+#endif
+}
+#endif
+
+TEST_CASE("sjson_clip_reader_writer", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
 #if defined(ACL_SSE2_INTRINSICS)
@@ -179,46 +214,45 @@ TEST_CASE("sjson_reader_writer", "[io]")
 	settings.segmenting.max_num_samples = 123;
 	settings.segmenting.range_reduction = RangeReductionFlags8::Translations;
 
-#ifdef _WIN32
-	const uint32_t clip_filename_size = MAX_PATH;
-	char clip_filename[clip_filename_size] = { 0 };
+	const uint32_t filename_size = k_max_filename_size;
+	char filename[filename_size] = { 0 };
 
-	DWORD result = GetTempPathA(clip_filename_size, clip_filename);
-	REQUIRE(result != 0);
+	const char* error = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+		get_temporary_filename(filename, filename_size, "clip_");
 
-	char id[1024];
-	snprintf(id, get_array_size(id), "%u", std::rand());
-	strcat_s(clip_filename, clip_filename_size, id);
-	strcat_s(clip_filename, clip_filename_size, ".acl.sjson");
-#else
-	const uint32_t clip_filename_size = 1024;
-	char clip_filename[clip_filename_size] = { 0 };
-	std::strcat(clip_filename, "/tmp/");
-	char id[1024];
-	snprintf(id, get_array_size(id), "%u", std::rand());
-	std::strcat(clip_filename, id);
-	std::strcat(clip_filename, ".acl.sjson");
-#endif
+		// Write the clip to a temporary file
+		error = write_acl_clip(skeleton, clip, AlgorithmType8::UniformlySampled, settings, filename);
 
-	// Write the clip to a temporary file
-	const char* error = write_acl_clip(skeleton, clip, AlgorithmType8::UniformlySampled, settings, clip_filename);
+		if (error == nullptr)
+			break;	// Everything worked, stop trying
+	}
 	REQUIRE(error == nullptr);
 
 	std::FILE* file = nullptr;
 
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
 #ifdef _WIN32
-	fopen_s(&file, clip_filename, "rb");
+		fopen_s(&file, filename, "rb");
 #else
-	file = fopen(clip_filename, "rb");
+		file = fopen(filename, "rb");
 #endif
 
+		if (file != nullptr)
+			break;	// File is open, all good
+
+		// Sleep a bit before tring again
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
 	REQUIRE(file != nullptr);
 
 	char sjson_file_buffer[256 * 1024];
 	const size_t clip_size = fread(sjson_file_buffer, 1, get_array_size(sjson_file_buffer), file);
 	fclose(file);
 
-	std::remove(clip_filename);
+	std::remove(filename);
 
 	// Read back the clip
 	ClipReader reader(allocator, sjson_file_buffer, clip_size - 1);
@@ -259,6 +293,566 @@ TEST_CASE("sjson_reader_writer", "[io]")
 			CHECK(quat_near_equal(src_animated_bone.rotation_track.get_sample(sample_index), file_animated_bone.rotation_track.get_sample(sample_index), 0.0));
 			CHECK(vector_all_near_equal3(src_animated_bone.translation_track.get_sample(sample_index), file_animated_bone.translation_track.get_sample(sample_index), 0.0));
 			CHECK(vector_all_near_equal3(src_animated_bone.scale_track.get_sample(sample_index), file_animated_bone.scale_track.get_sample(sample_index), 0.0));
+		}
+	}
+#endif
+}
+
+TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
+{
+	// Only test the reader/writer on non-mobile platforms
+#if defined(ACL_SSE2_INTRINSICS)
+	ANSIAllocator allocator;
+
+	const uint32_t num_tracks = 3;
+	const uint32_t num_samples = 4;
+	track_array track_list(allocator, num_tracks);
+
+	track_desc_scalarf desc0;
+	desc0.output_index = 0;
+	desc0.precision = 0.001F;
+	desc0.constant_threshold = 0.123F;
+	track_float1f track0 = track_float1f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track0[0] = 1.0F;
+	track0[1] = 2.333F;
+	track0[2] = 3.123F;
+	track0[3] = 4.5F;
+	track_list[0] = track0.get_ref();
+	track_float1f track1 = track_float1f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track1[0] = 12.0F;
+	track1[1] = 21.1231F;
+	track1[2] = 3.1444123F;
+	track1[3] = 421.5156F;
+	track_list[1] = track1.get_ref();
+	track_float1f track2 = track_float1f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track2[0] = 11.61F;
+	track2[1] = 23313.367F;
+	track2[2] = 313.7876F;
+	track2[3] = 4441.514F;
+	track_list[2] = track2.get_ref();
+
+	const uint32_t filename_size = k_max_filename_size;
+	char filename[filename_size] = { 0 };
+
+	const char* error = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+		get_temporary_filename(filename, filename_size, "list_float1f_");
+
+		// Write the clip to a temporary file
+		error = write_track_list(track_list, filename);
+
+		if (error == nullptr)
+			break;	// Everything worked, stop trying
+	}
+	REQUIRE(error == nullptr);
+
+	std::FILE* file = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+#ifdef _WIN32
+		fopen_s(&file, filename, "rb");
+#else
+		file = fopen(filename, "rb");
+#endif
+
+		if (file != nullptr)
+			break;	// File is open, all good
+
+		// Sleep a bit before tring again
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+	REQUIRE(file != nullptr);
+
+	char sjson_file_buffer[256 * 1024];
+	const size_t buffer_size = fread(sjson_file_buffer, 1, get_array_size(sjson_file_buffer), file);
+	fclose(file);
+
+	std::remove(filename);
+
+	// Read back the clip
+	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+
+	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
+
+	sjson_raw_track_list file_track_list;
+	const bool success = reader.read_raw_track_list(file_track_list);
+	REQUIRE(success);
+
+	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
+	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
+	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
+	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
+	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
+
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track_float1f& ref_track = track_cast<track_float1f>(track_list[track_index]);
+		const track_float1f& file_track = track_cast<track_float1f>(file_track_list.track_list[track_index]);
+
+		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
+		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
+		CHECK(file_track.get_output_index() == ref_track.get_output_index());
+		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
+		CHECK(file_track.get_type() == ref_track.get_type());
+		CHECK(file_track.get_category() == ref_track.get_category());
+
+		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		{
+			const float ref_sample = ref_track[sample_index];
+			const float file_sample = file_track[sample_index];
+			CHECK(rtm::scalar_near_equal(ref_sample, file_sample, 1.0E-8F));
+		}
+	}
+#endif
+}
+
+TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
+{
+	// Only test the reader/writer on non-mobile platforms
+#if defined(ACL_SSE2_INTRINSICS)
+	ANSIAllocator allocator;
+
+	const uint32_t num_tracks = 3;
+	const uint32_t num_samples = 4;
+	track_array track_list(allocator, num_tracks);
+
+	track_desc_scalarf desc0;
+	desc0.output_index = 0;
+	desc0.precision = 0.001F;
+	desc0.constant_threshold = 0.123F;
+	track_float2f track0 = track_float2f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track0[0] = rtm::float2f{ 1.0F, 3123.0F };
+	track0[1] = rtm::float2f{ 2.333F, 321.13F };
+	track0[2] = rtm::float2f{ 3.123F, 81.0F };
+	track0[3] = rtm::float2f{ 4.5F, 91.13F };
+	track_list[0] = track0.get_ref();
+	track_float2f track1 = track_float2f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track1[0] = rtm::float2f{ 12.0F, 91.013F };
+	track1[1] = rtm::float2f{ 21.1231F, 911.14F };
+	track1[2] = rtm::float2f{ 3.1444123F, 113.44F };
+	track1[3] = rtm::float2f{ 421.5156F, 913901.0F };
+	track_list[1] = track1.get_ref();
+	track_float2f track2 = track_float2f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track2[0] = rtm::float2f{ 11.61F, 90.13F };
+	track2[1] = rtm::float2f{ 23313.367F, 13.3F };
+	track2[2] = rtm::float2f{ 313.7876F, 931.2F };
+	track2[3] = rtm::float2f{ 4441.514F, 913.56F };
+	track_list[2] = track2.get_ref();
+
+	const uint32_t filename_size = k_max_filename_size;
+	char filename[filename_size] = { 0 };
+
+	const char* error = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+		get_temporary_filename(filename, filename_size, "list_float2f_");
+
+		// Write the clip to a temporary file
+		error = write_track_list(track_list, filename);
+
+		if (error == nullptr)
+			break;	// Everything worked, stop trying
+	}
+	REQUIRE(error == nullptr);
+
+	std::FILE* file = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+#ifdef _WIN32
+		fopen_s(&file, filename, "rb");
+#else
+		file = fopen(filename, "rb");
+#endif
+
+		if (file != nullptr)
+			break;	// File is open, all good
+
+		// Sleep a bit before tring again
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+	REQUIRE(file != nullptr);
+
+	char sjson_file_buffer[256 * 1024];
+	const size_t buffer_size = fread(sjson_file_buffer, 1, get_array_size(sjson_file_buffer), file);
+	fclose(file);
+
+	std::remove(filename);
+
+	// Read back the clip
+	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+
+	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
+
+	sjson_raw_track_list file_track_list;
+	const bool success = reader.read_raw_track_list(file_track_list);
+	REQUIRE(success);
+
+	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
+	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
+	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
+	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
+	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
+
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track_float2f& ref_track = track_cast<track_float2f>(track_list[track_index]);
+		const track_float2f& file_track = track_cast<track_float2f>(file_track_list.track_list[track_index]);
+
+		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
+		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
+		CHECK(file_track.get_output_index() == ref_track.get_output_index());
+		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
+		CHECK(file_track.get_type() == ref_track.get_type());
+		CHECK(file_track.get_category() == ref_track.get_category());
+
+		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		{
+			const rtm::float2f& ref_sample = ref_track[sample_index];
+			const rtm::float2f& file_sample = file_track[sample_index];
+			CHECK(rtm::vector_all_near_equal2(rtm::vector_load2(&ref_sample), rtm::vector_load2(&file_sample), 1.0E-8F));
+		}
+	}
+#endif
+}
+
+TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
+{
+	// Only test the reader/writer on non-mobile platforms
+#if defined(ACL_SSE2_INTRINSICS)
+	ANSIAllocator allocator;
+
+	const uint32_t num_tracks = 3;
+	const uint32_t num_samples = 4;
+	track_array track_list(allocator, num_tracks);
+
+	track_desc_scalarf desc0;
+	desc0.output_index = 0;
+	desc0.precision = 0.001F;
+	desc0.constant_threshold = 0.123F;
+	track_float3f track0 = track_float3f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track0[0] = rtm::float3f{ 1.0F, 3123.0F, 315.13F };
+	track0[1] = rtm::float3f{ 2.333F, 321.13F, 31.66F };
+	track0[2] = rtm::float3f{ 3.123F, 81.0F, 913.13F };
+	track0[3] = rtm::float3f{ 4.5F, 91.13F, 41.135F };
+	track_list[0] = track0.get_ref();
+	track_float3f track1 = track_float3f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track1[0] = rtm::float3f{ 12.0F, 91.013F, 9991.13F };
+	track1[1] = rtm::float3f{ 21.1231F, 911.14F, 825.12351F };
+	track1[2] = rtm::float3f{ 3.1444123F, 113.44F, 913.51F };
+	track1[3] = rtm::float3f{ 421.5156F, 913901.0F, 184.6981F };
+	track_list[1] = track1.get_ref();
+	track_float3f track2 = track_float3f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track2[0] = rtm::float3f{ 11.61F, 90.13F, 918.011F };
+	track2[1] = rtm::float3f{ 23313.367F, 13.3F, 913.813F };
+	track2[2] = rtm::float3f{ 313.7876F, 931.2F, 8123.123F };
+	track2[3] = rtm::float3f{ 4441.514F, 913.56F, 813.61F };
+	track_list[2] = track2.get_ref();
+
+	const uint32_t filename_size = k_max_filename_size;
+	char filename[filename_size] = { 0 };
+
+	const char* error = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+		get_temporary_filename(filename, filename_size, "list_float3f_");
+
+		// Write the clip to a temporary file
+		error = write_track_list(track_list, filename);
+
+		if (error == nullptr)
+			break;	// Everything worked, stop trying
+	}
+	REQUIRE(error == nullptr);
+
+	std::FILE* file = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+#ifdef _WIN32
+		fopen_s(&file, filename, "rb");
+#else
+		file = fopen(filename, "rb");
+#endif
+
+		if (file != nullptr)
+			break;	// File is open, all good
+
+		// Sleep a bit before tring again
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+	REQUIRE(file != nullptr);
+
+	char sjson_file_buffer[256 * 1024];
+	const size_t buffer_size = fread(sjson_file_buffer, 1, get_array_size(sjson_file_buffer), file);
+	fclose(file);
+
+	std::remove(filename);
+
+	// Read back the clip
+	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+
+	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
+
+	sjson_raw_track_list file_track_list;
+	const bool success = reader.read_raw_track_list(file_track_list);
+	REQUIRE(success);
+
+	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
+	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
+	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
+	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
+	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
+
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track_float3f& ref_track = track_cast<track_float3f>(track_list[track_index]);
+		const track_float3f& file_track = track_cast<track_float3f>(file_track_list.track_list[track_index]);
+
+		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
+		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
+		CHECK(file_track.get_output_index() == ref_track.get_output_index());
+		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
+		CHECK(file_track.get_type() == ref_track.get_type());
+		CHECK(file_track.get_category() == ref_track.get_category());
+
+		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		{
+			const rtm::float3f& ref_sample = ref_track[sample_index];
+			const rtm::float3f& file_sample = file_track[sample_index];
+			CHECK(rtm::vector_all_near_equal3(rtm::vector_load3(&ref_sample), rtm::vector_load3(&file_sample), 1.0E-8F));
+		}
+	}
+#endif
+}
+
+TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
+{
+	// Only test the reader/writer on non-mobile platforms
+#if defined(ACL_SSE2_INTRINSICS)
+	ANSIAllocator allocator;
+
+	const uint32_t num_tracks = 3;
+	const uint32_t num_samples = 4;
+	track_array track_list(allocator, num_tracks);
+
+	track_desc_scalarf desc0;
+	desc0.output_index = 0;
+	desc0.precision = 0.001F;
+	desc0.constant_threshold = 0.123F;
+	track_float4f track0 = track_float4f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track0[0] = rtm::float4f{ 1.0F, 3123.0F, 315.13F, 123.31F };
+	track0[1] = rtm::float4f{ 2.333F, 321.13F, 31.66F, 7154.1F };
+	track0[2] = rtm::float4f{ 3.123F, 81.0F, 913.13F, 9817.8135F };
+	track0[3] = rtm::float4f{ 4.5F, 91.13F, 41.135F, 755.12345F };
+	track_list[0] = track0.get_ref();
+	track_float4f track1 = track_float4f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track1[0] = rtm::float4f{ 12.0F, 91.013F, 9991.13F, 813.97F };
+	track1[1] = rtm::float4f{ 21.1231F, 911.14F, 825.12351F, 321.517F };
+	track1[2] = rtm::float4f{ 3.1444123F, 113.44F, 913.51F, 6136.613F };
+	track1[3] = rtm::float4f{ 421.5156F, 913901.0F, 184.6981F, 41.1254F };
+	track_list[1] = track1.get_ref();
+	track_float4f track2 = track_float4f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track2[0] = rtm::float4f{ 11.61F, 90.13F, 918.011F, 31.13F };
+	track2[1] = rtm::float4f{ 23313.367F, 13.3F, 913.813F, 8997.1F };
+	track2[2] = rtm::float4f{ 313.7876F, 931.2F, 8123.123F, 813.76F };
+	track2[3] = rtm::float4f{ 4441.514F, 913.56F, 813.61F, 873.612F };
+	track_list[2] = track2.get_ref();
+
+	const uint32_t filename_size = k_max_filename_size;
+	char filename[filename_size] = { 0 };
+
+	const char* error = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+		get_temporary_filename(filename, filename_size, "list_float4f_");
+
+		// Write the clip to a temporary file
+		error = write_track_list(track_list, filename);
+
+		if (error == nullptr)
+			break;	// Everything worked, stop trying
+	}
+	REQUIRE(error == nullptr);
+
+	std::FILE* file = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+#ifdef _WIN32
+		fopen_s(&file, filename, "rb");
+#else
+		file = fopen(filename, "rb");
+#endif
+
+		if (file != nullptr)
+			break;	// File is open, all good
+
+		// Sleep a bit before tring again
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+	REQUIRE(file != nullptr);
+
+	char sjson_file_buffer[256 * 1024];
+	const size_t buffer_size = fread(sjson_file_buffer, 1, get_array_size(sjson_file_buffer), file);
+	fclose(file);
+
+	std::remove(filename);
+
+	// Read back the clip
+	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+
+	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
+
+	sjson_raw_track_list file_track_list;
+	const bool success = reader.read_raw_track_list(file_track_list);
+	REQUIRE(success);
+
+	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
+	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
+	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
+	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
+	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
+
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track_float4f& ref_track = track_cast<track_float4f>(track_list[track_index]);
+		const track_float4f& file_track = track_cast<track_float4f>(file_track_list.track_list[track_index]);
+
+		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
+		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
+		CHECK(file_track.get_output_index() == ref_track.get_output_index());
+		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
+		CHECK(file_track.get_type() == ref_track.get_type());
+		CHECK(file_track.get_category() == ref_track.get_category());
+
+		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		{
+			const rtm::float4f& ref_sample = ref_track[sample_index];
+			const rtm::float4f& file_sample = file_track[sample_index];
+			CHECK(rtm::vector_all_near_equal(rtm::vector_load(&ref_sample), rtm::vector_load(&file_sample), 1.0E-8F));
+		}
+	}
+#endif
+}
+
+TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
+{
+	// Only test the reader/writer on non-mobile platforms
+#if defined(ACL_SSE2_INTRINSICS)
+	ANSIAllocator allocator;
+
+	const uint32_t num_tracks = 3;
+	const uint32_t num_samples = 4;
+	track_array track_list(allocator, num_tracks);
+
+	track_desc_scalarf desc0;
+	desc0.output_index = 0;
+	desc0.precision = 0.001F;
+	desc0.constant_threshold = 0.123F;
+	track_vector4f track0 = track_vector4f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track0[0] = rtm::vector_set(1.0F, 3123.0F, 315.13F, 123.31F);
+	track0[1] = rtm::vector_set(2.333F, 321.13F, 31.66F, 7154.1F);
+	track0[2] = rtm::vector_set(3.123F, 81.0F, 913.13F, 9817.8135F);
+	track0[3] = rtm::vector_set(4.5F, 91.13F, 41.135F, 755.12345F);
+	track_list[0] = track0.get_ref();
+	track_vector4f track1 = track_vector4f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track1[0] = rtm::vector_set(12.0F, 91.013F, 9991.13F, 813.97F);
+	track1[1] = rtm::vector_set(21.1231F, 911.14F, 825.12351F, 321.517F);
+	track1[2] = rtm::vector_set(3.1444123F, 113.44F, 913.51F, 6136.613F);
+	track1[3] = rtm::vector_set(421.5156F, 913901.0F, 184.6981F, 41.1254F);
+	track_list[1] = track1.get_ref();
+	track_vector4f track2 = track_vector4f::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track2[0] = rtm::vector_set(11.61F, 90.13F, 918.011F, 31.13F);
+	track2[1] = rtm::vector_set(23313.367F, 13.3F, 913.813F, 8997.1F);
+	track2[2] = rtm::vector_set(313.7876F, 931.2F, 8123.123F, 813.76F);
+	track2[3] = rtm::vector_set(4441.514F, 913.56F, 813.61F, 873.612F);
+	track_list[2] = track2.get_ref();
+
+	const uint32_t filename_size = k_max_filename_size;
+	char filename[filename_size] = { 0 };
+
+	const char* error = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+		get_temporary_filename(filename, filename_size, "list_vector4f_");
+
+		// Write the clip to a temporary file
+		error = write_track_list(track_list, filename);
+
+		if (error == nullptr)
+			break;	// Everything worked, stop trying
+	}
+	REQUIRE(error == nullptr);
+
+	std::FILE* file = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+#ifdef _WIN32
+		fopen_s(&file, filename, "rb");
+#else
+		file = fopen(filename, "rb");
+#endif
+
+		if (file != nullptr)
+			break;	// File is open, all good
+
+		// Sleep a bit before tring again
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+	REQUIRE(file != nullptr);
+
+	char sjson_file_buffer[256 * 1024];
+	const size_t buffer_size = fread(sjson_file_buffer, 1, get_array_size(sjson_file_buffer), file);
+	fclose(file);
+
+	std::remove(filename);
+
+	// Read back the clip
+	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+
+	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
+
+	sjson_raw_track_list file_track_list;
+	const bool success = reader.read_raw_track_list(file_track_list);
+	REQUIRE(success);
+
+	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
+	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
+	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
+	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
+	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
+
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track_vector4f& ref_track = track_cast<track_vector4f>(track_list[track_index]);
+		const track_vector4f& file_track = track_cast<track_vector4f>(file_track_list.track_list[track_index]);
+
+		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
+		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
+		CHECK(file_track.get_output_index() == ref_track.get_output_index());
+		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
+		CHECK(file_track.get_type() == ref_track.get_type());
+		CHECK(file_track.get_category() == ref_track.get_category());
+
+		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		{
+			const rtm::vector4f& ref_sample = ref_track[sample_index];
+			const rtm::vector4f& file_sample = file_track[sample_index];
+			CHECK(rtm::vector_all_near_equal(ref_sample, file_sample, 1.0E-8F));
 		}
 	}
 #endif
