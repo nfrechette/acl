@@ -293,8 +293,7 @@ namespace acl
 			if (!m_parser.object_begins("track_list"))
 				goto error;
 
-			if (!m_parser.read("name", m_clip_name))
-				goto error;
+			m_parser.try_read("name", m_clip_name, "");
 
 			double num_samples;
 			if (!m_parser.read("num_samples", num_samples))
@@ -670,8 +669,7 @@ namespace acl
 					goto error;
 
 				sjson::StringView name;
-				if (!m_parser.read("name", name))
-					goto error;
+				m_parser.try_read("name", name, "");
 
 				// TODO: Store track name somewhere for debugging purposes
 
