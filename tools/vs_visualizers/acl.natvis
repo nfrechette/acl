@@ -51,6 +51,7 @@
     <DisplayString>num_samples={m_num_samples}, type={m_type}</DisplayString>
     <Expand>
       <Item Name="num_samples">m_num_samples</Item>
+      <Item Name="sample_rate">m_sample_rate</Item>
       <Item Name="stride">m_stride</Item>
       <Item Name="type">m_type</Item>
       <Item Name="precision" Condition="m_type == acl::track_type8::float1f">m_desc.scalar.precision</Item>
