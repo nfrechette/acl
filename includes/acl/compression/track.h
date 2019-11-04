@@ -209,6 +209,7 @@ namespace acl
 			track_.m_num_samples = m_num_samples;
 			track_.m_stride = m_stride;
 			track_.m_data_size = m_data_size;
+			track_.m_sample_rate = m_sample_rate;
 			track_.m_type = m_type;
 			track_.m_category = m_category;
 			track_.m_desc = m_desc;
@@ -228,6 +229,7 @@ namespace acl
 			track_.m_num_samples = m_num_samples;
 			track_.m_stride = m_stride;
 			track_.m_data_size = m_data_size;
+			track_.m_sample_rate = m_sample_rate;
 			track_.m_type = m_type;
 			track_.m_category = m_category;
 			track_.m_desc = m_desc;
