@@ -35,6 +35,7 @@ def parse_argv():
 	misc.add_argument('-avx', dest='use_avx', action='store_true', help='Compile using AVX instructions on Windows, OS X, and Linux')
 	misc.add_argument('-pop', dest='use_popcnt', action='store_true', help='Compile using the POPCNT instruction')
 	misc.add_argument('-nosimd', dest='use_simd', action='store_false', help='Compile without SIMD instructions')
+	misc.add_argument('-nosjson', dest='use_sjson', action='store_false', help='Compile without SJSON support')
 	misc.add_argument('-num_threads', help='No. to use while compiling and regressing')
 	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
 	misc.add_argument('-help', action='help', help='Display this usage information')
@@ -45,7 +46,7 @@ def parse_argv():
 	if not num_threads or num_threads == 0:
 		num_threads = 4
 
-	parser.set_defaults(build=False, clean=False, unit_test=False, regression_test=False, compiler=None, config='Release', cpu='x64', use_avx=False, use_popcnt=False, use_simd=True, num_threads=num_threads, tests_matching='')
+	parser.set_defaults(build=False, clean=False, unit_test=False, regression_test=False, compiler=None, config='Release', cpu='x64', use_avx=False, use_popcnt=False, use_simd=True, use_sjson=True, num_threads=num_threads, tests_matching='')
 
 	args = parser.parse_args()
 
@@ -207,6 +208,10 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, test_data_dir, 
 	if not args.use_simd:
 		print('Disabling SIMD instruction usage')
 		extra_switches.append('-DUSE_SIMD_INSTRUCTIONS:BOOL=false')
+
+	if not args.use_sjson:
+		print('Disabling SJSON support')
+		extra_switches.append('-DUSE_SJSON:BOOL=false')
 
 	if not platform.system() == 'Windows' and not platform.system() == 'Darwin':
 		extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))

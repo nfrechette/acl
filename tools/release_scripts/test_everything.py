@@ -26,7 +26,7 @@ if __name__ == "__main__":
 	configs = [ 'debug', 'release' ]
 	archs = [ 'x86', 'x64' ]
 	compilers = get_platform_compilers()
-	simd_opts = [ '', '-avx', '-nosimd' ]
+	simd_opts = [ '', '-avx', '-nosimd', '-nosjson' ]
 	python_exe = get_python_exe_name()
 
 	cmd_args = []
