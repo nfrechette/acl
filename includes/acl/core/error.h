@@ -104,6 +104,13 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 	namespace acl
 	{
+		class runtime_assert final : public std::runtime_error
+		{
+		public:
+			explicit runtime_assert(const std::string& message) : std::runtime_error(message.c_str()) {}
+			explicit runtime_assert(const char* message) : std::runtime_error(message) {}
+		};
+
 		namespace error_impl
 		{
 			inline void on_assert_throw(const char* expression, int line, const char* file, const char* format, ...)
@@ -123,9 +130,9 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 				va_end(args);
 
 				if (count >= 0 && count < buffer_size)
-					throw std::runtime_error(std::string(&buffer[0], count));
+					throw runtime_assert(std::string(&buffer[0], count));
 				else
-					throw std::runtime_error("Failed to format assert message!\n");
+					throw runtime_assert("Failed to format assert message!\n");
 			}
 		}
 	}
