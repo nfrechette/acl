@@ -115,7 +115,6 @@ namespace acl
 
 	inline void quat_unaligned_write(const Quat_64& input, double* output)
 	{
-		ACL_ASSERT(is_aligned(output), "Invalid alignment");
 		output[0] = quat_get_x(input);
 		output[1] = quat_get_y(input);
 		output[2] = quat_get_z(input);
@@ -249,7 +248,8 @@ namespace acl
 
 	inline Quat_64 quat_from_axis_angle(const Vector4_64& axis, double angle)
 	{
-		double s, c;
+		double s;
+		double c;
 		sincos(0.5 * angle, s, c);
 
 		return quat_set(s * vector_get_x(axis), s * vector_get_y(axis), s * vector_get_z(axis), c);
@@ -260,8 +260,12 @@ namespace acl
 	// Roll is around the X axis (forward)
 	inline Quat_64 quat_from_euler(double pitch, double yaw, double roll)
 	{
-		double sp, sy, sr;
-		double cp, cy, cr;
+		double sp;
+		double sy;
+		double sr;
+		double cp;
+		double cy;
+		double cr;
 
 		sincos(pitch * 0.5, sp, cp);
 		sincos(yaw * 0.5, sy, cy);

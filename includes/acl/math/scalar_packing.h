@@ -37,7 +37,7 @@ namespace acl
 	inline uint32_t pack_scalar_unsigned(float input, uint8_t num_bits)
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to pack on too many bits");
-		ACL_ASSERT(input >= 0.0f && input <= 1.0f, "Expected normalized unsigned input value: %f", input);
+		ACL_ASSERT(input >= 0.0F && input <= 1.0F, "Expected normalized unsigned input value: %f", input);
 		const uint32_t max_value = (1 << num_bits) - 1;
 		return static_cast<uint32_t>(symmetric_round(input * safe_to_float(max_value)));
 	}
@@ -48,18 +48,18 @@ namespace acl
 		const uint32_t max_value = (1 << num_bits) - 1;
 		ACL_ASSERT(input <= max_value, "Input value too large: %ull", input);
 		// For performance reasons, unpacking is faster when multiplying with the reciprocal
-		const float inv_max_value = 1.0f / safe_to_float(max_value);
+		const float inv_max_value = 1.0F / safe_to_float(max_value);
 		return safe_to_float(input) * inv_max_value;
 	}
 
 	inline uint32_t pack_scalar_signed(float input, uint8_t num_bits)
 	{
-		return pack_scalar_unsigned((input * 0.5f) + 0.5f, num_bits);
+		return pack_scalar_unsigned((input * 0.5F) + 0.5F, num_bits);
 	}
 
 	inline float unpack_scalar_signed(uint32_t input, uint8_t num_bits)
 	{
-		return (unpack_scalar_unsigned(input, num_bits) * 2.0f) - 1.0f;
+		return (unpack_scalar_unsigned(input, num_bits) * 2.0F) - 1.0F;
 	}
 }
 

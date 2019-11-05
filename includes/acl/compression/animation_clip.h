@@ -204,7 +204,7 @@ namespace acl
 			const float clip_duration = get_duration();
 
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
-			sample_time = clamp(sample_time, 0.0f, clip_duration);
+			sample_time = clamp(sample_time, 0.0F, clip_duration);
 
 			uint32_t sample_index0;
 			uint32_t sample_index1;
@@ -276,10 +276,10 @@ namespace acl
 			if (m_num_samples == 0)
 				return ErrorResult("Clip has no samples");
 
-			if (m_num_samples == 0xFFFFFFFFu)
+			if (m_num_samples == 0xFFFFFFFFU)
 				return ErrorResult("Clip has too many samples");
 
-			if (m_sample_rate <= 0.0f)
+			if (m_sample_rate <= 0.0F)
 				return ErrorResult("Clip has an invalid sample rate");
 
 			uint16_t num_output_bones = 0;

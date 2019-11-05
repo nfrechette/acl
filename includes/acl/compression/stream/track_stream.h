@@ -94,7 +94,7 @@ namespace acl
 		}
 
 	protected:
-		TrackStream(AnimationTrackType8 type, TrackFormat8 format) : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_sample_rate(0.0f), m_type(type), m_format(format), m_bit_rate(0) {}
+		TrackStream(AnimationTrackType8 type, TrackFormat8 format) : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_sample_rate(0.0F), m_type(type), m_format(format), m_bit_rate(0) {}
 		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
 		TrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, AnimationTrackType8 type, TrackFormat8 format, uint8_t bit_rate)
 			: m_allocator(&allocator)
@@ -183,7 +183,7 @@ namespace acl
 		uint8_t					m_bit_rate;
 	};
 
-	class RotationTrackStream : public TrackStream
+	class RotationTrackStream final : public TrackStream
 	{
 	public:
 		RotationTrackStream() : TrackStream(AnimationTrackType8::Rotation, TrackFormat8(RotationFormat8::Quat_128)) {}
@@ -198,6 +198,7 @@ namespace acl
 		RotationTrackStream(RotationTrackStream&& other)
 			: TrackStream(std::forward<TrackStream>(other))
 		{}
+		~RotationTrackStream() = default;
 
 		RotationTrackStream& operator=(const RotationTrackStream&) = delete;
 		RotationTrackStream& operator=(RotationTrackStream&& rhs)
@@ -216,7 +217,7 @@ namespace acl
 		RotationFormat8 get_rotation_format() const { return m_format.rotation; }
 	};
 
-	class TranslationTrackStream : public TrackStream
+	class TranslationTrackStream final : public TrackStream
 	{
 	public:
 		TranslationTrackStream() : TrackStream(AnimationTrackType8::Translation, TrackFormat8(VectorFormat8::Vector3_96)) {}
@@ -231,6 +232,7 @@ namespace acl
 		TranslationTrackStream(TranslationTrackStream&& other)
 			: TrackStream(std::forward<TrackStream>(other))
 		{}
+		~TranslationTrackStream() = default;
 
 		TranslationTrackStream& operator=(const TranslationTrackStream&) = delete;
 		TranslationTrackStream& operator=(TranslationTrackStream&& rhs)
@@ -249,7 +251,7 @@ namespace acl
 		VectorFormat8 get_vector_format() const { return m_format.vector; }
 	};
 
-	class ScaleTrackStream : public TrackStream
+	class ScaleTrackStream final : public TrackStream
 	{
 	public:
 		ScaleTrackStream() : TrackStream(AnimationTrackType8::Scale, TrackFormat8(VectorFormat8::Vector3_96)) {}
@@ -264,6 +266,7 @@ namespace acl
 		ScaleTrackStream(ScaleTrackStream&& other)
 			: TrackStream(std::forward<TrackStream>(other))
 		{}
+		~ScaleTrackStream() = default;
 
 		ScaleTrackStream& operator=(const ScaleTrackStream&) = delete;
 		ScaleTrackStream& operator=(ScaleTrackStream&& rhs)
@@ -306,7 +309,7 @@ namespace acl
 		Vector4_32 ACL_SIMD_CALL get_min() const { return m_min; }
 		Vector4_32 ACL_SIMD_CALL get_max() const { return vector_add(m_min, m_extent); }
 
-		Vector4_32 ACL_SIMD_CALL get_center() const { return vector_add(m_min, vector_mul(m_extent, 0.5f)); }
+		Vector4_32 ACL_SIMD_CALL get_center() const { return vector_add(m_min, vector_mul(m_extent, 0.5F)); }
 		Vector4_32 ACL_SIMD_CALL get_extent() const { return m_extent; }
 
 		bool is_constant(float threshold) const { return vector_all_less_than(vector_abs(m_extent), vector_set(threshold)); }

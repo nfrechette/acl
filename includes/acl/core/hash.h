@@ -80,11 +80,11 @@ namespace acl
 
 	////////////////////////////////////////////////////////////////////////////////
 	// A 32 bit hash instance type
-	using fnv1a_32 = hash_impl::fnv1a_impl<uint32_t, 2166136261u, 16777619u>;
+	using fnv1a_32 = hash_impl::fnv1a_impl<uint32_t, 2166136261U, 16777619U>;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// A 64 bit hash instance type
-	using fnv1a_64 = hash_impl::fnv1a_impl<uint64_t, 14695981039346656037ull, 1099511628211ull>;
+	using fnv1a_64 = hash_impl::fnv1a_impl<uint64_t, 14695981039346656037ULL, 1099511628211ULL>;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns the 32 bit hash of the provided buffer and size in bytes.
@@ -126,8 +126,8 @@ namespace acl
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Combines two hashes into a new one.
-	inline uint32_t hash_combine(uint32_t hash_a, uint32_t hash_b) { return (hash_a ^ hash_b) * 16777619u; }
-	inline uint64_t hash_combine(uint64_t hash_a, uint64_t hash_b) { return (hash_a ^ hash_b) * 1099511628211ull; }
+	inline uint32_t hash_combine(uint32_t hash_a, uint32_t hash_b) { return (hash_a ^ hash_b) * 16777619U; }
+	inline uint64_t hash_combine(uint64_t hash_a, uint64_t hash_b) { return (hash_a ^ hash_b) * 1099511628211ULL; }
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

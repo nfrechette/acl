@@ -45,10 +45,10 @@ namespace acl
 		class hierarchical_track_query
 		{
 		public:
-			hierarchical_track_query(IAllocator& allocator)
+			explicit hierarchical_track_query(IAllocator& allocator)
 				: m_allocator(allocator)
 				, m_database(nullptr)
-				, m_track_index(0xFFFFFFFFu)
+				, m_track_index(0xFFFFFFFFU)
 				, m_bit_rates(nullptr)
 				, m_indices(nullptr)
 				, m_num_transforms(0)
@@ -59,10 +59,15 @@ namespace acl
 				deallocate_type_array(m_allocator, m_indices, m_num_transforms);
 			}
 
-			inline void bind(track_bit_rate_database& database);
-			inline void build(uint32_t track_index, const BoneBitRate* bit_rates, const BoneStreams* bone_streams);
+			void bind(track_bit_rate_database& database);
+			void build(uint32_t track_index, const BoneBitRate* bit_rates, const BoneStreams* bone_streams);
 
 		private:
+			hierarchical_track_query(const hierarchical_track_query&) = delete;
+			hierarchical_track_query(hierarchical_track_query&&) = delete;
+			hierarchical_track_query& operator=(const hierarchical_track_query&) = delete;
+			hierarchical_track_query& operator=(hierarchical_track_query&&) = delete;
+
 			struct transform_indices
 			{
 				uint32_t	rotation_cache_index;
@@ -70,12 +75,12 @@ namespace acl
 				uint32_t	scale_cache_index;
 			};
 
-			IAllocator&			m_allocator;
+			IAllocator&						m_allocator;
 			track_bit_rate_database*		m_database;
-			uint32_t			m_track_index;
-			const BoneBitRate*	m_bit_rates;
-			transform_indices*	m_indices;
-			uint32_t			m_num_transforms;
+			uint32_t						m_track_index;
+			const BoneBitRate*				m_bit_rates;
+			transform_indices*				m_indices;
+			uint32_t						m_num_transforms;
 
 			friend track_bit_rate_database;
 		};
@@ -85,27 +90,32 @@ namespace acl
 		public:
 			single_track_query()
 				: m_database(nullptr)
-				, m_track_index(0xFFFFFFFFu)
+				, m_track_index(0xFFFFFFFFU)
 				, m_bit_rates()
-				, m_rotation_cache_index(0xFFFFFFFFu)
-				, m_translation_cache_index(0xFFFFFFFFu)
-				, m_scale_cache_index(0xFFFFFFFFu)
+				, m_rotation_cache_index(0xFFFFFFFFU)
+				, m_translation_cache_index(0xFFFFFFFFU)
+				, m_scale_cache_index(0xFFFFFFFFU)
 			{}
 
 			inline uint32_t get_track_index() const { return m_track_index; }
 			inline const BoneBitRate& get_bit_rates() const { return m_bit_rates; }
 
-			inline void bind(track_bit_rate_database& database);
-			inline void build(uint32_t track_index, const BoneBitRate& bit_rates);
+			void bind(track_bit_rate_database& database);
+			void build(uint32_t track_index, const BoneBitRate& bit_rates);
 
 		private:
-			track_bit_rate_database*		m_database;
-			uint32_t			m_track_index;
-			BoneBitRate			m_bit_rates;
+			single_track_query(const single_track_query&) = delete;
+			single_track_query(single_track_query&&) = delete;
+			single_track_query& operator=(const single_track_query&) = delete;
+			single_track_query& operator=(single_track_query&&) = delete;
 
-			uint32_t			m_rotation_cache_index;
-			uint32_t			m_translation_cache_index;
-			uint32_t			m_scale_cache_index;
+			track_bit_rate_database*		m_database;
+			uint32_t						m_track_index;
+			BoneBitRate						m_bit_rates;
+
+			uint32_t						m_rotation_cache_index;
+			uint32_t						m_translation_cache_index;
+			uint32_t						m_scale_cache_index;
 
 			friend track_bit_rate_database;
 		};
@@ -116,7 +126,7 @@ namespace acl
 			uint32_t value;
 			uint8_t bit_rates[4];
 
-			bit_rates_union() : value(0xFFFFFFFFu) {}
+			bit_rates_union() : value(0xFFFFFFFFU) {}
 			bit_rates_union(const BoneBitRate& input) : bit_rates{ input.rotation, input.translation, input.scale, 0 } {}
 
 			inline bool operator==(bit_rates_union other) const { return value == other.value; }
@@ -130,13 +140,13 @@ namespace acl
 		class track_bit_rate_database
 		{
 		public:
-			inline track_bit_rate_database(IAllocator& allocator, const CompressionSettings& settings, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
-			inline ~track_bit_rate_database();
+			track_bit_rate_database(IAllocator& allocator, const CompressionSettings& settings, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
+			~track_bit_rate_database();
 
-			inline void set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
+			void set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
 
-			inline void sample(const single_track_query& query, float sample_time, Transform_32* out_transforms, uint32_t num_transforms);
-			inline void sample(const hierarchical_track_query& query, float sample_time, Transform_32* out_transforms, uint32_t num_transforms);
+			void sample(const single_track_query& query, float sample_time, Transform_32* out_transforms, uint32_t num_transforms);
+			void sample(const hierarchical_track_query& query, float sample_time, Transform_32* out_transforms, uint32_t num_transforms);
 
 		private:
 			track_bit_rate_database(const track_bit_rate_database&) = delete;
@@ -144,7 +154,7 @@ namespace acl
 			track_bit_rate_database& operator=(const track_bit_rate_database&) = delete;
 			track_bit_rate_database& operator=(track_bit_rate_database&&) = delete;
 
-			inline void find_cache_entries(uint32_t track_index, const BoneBitRate& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index);
+			void find_cache_entries(uint32_t track_index, const BoneBitRate& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index);
 
 			template<SampleDistribution8 distribution>
 			ACL_FORCE_INLINE Quat_32 ACL_SIMD_CALL sample_rotation(const sample_context& context, uint32_t rotation_cache_index);
@@ -179,7 +189,7 @@ namespace acl
 					, scale_generation_ids{ 0, 0, 0, 0 }
 				{}
 
-				inline static int32_t find_bit_rate_index(const bit_rates_union& bit_rates, uint32_t search_bit_rate);
+				static int32_t find_bit_rate_index(const bit_rates_union& bit_rates, uint32_t search_bit_rate);
 			};
 
 			Vector4_32			m_default_scale;
@@ -496,7 +506,7 @@ namespace acl
 
 			uint32_t scale_cache_index;
 			if (!m_has_scale)
-				scale_cache_index = 0xFFFFFFFFu;
+				scale_cache_index = 0xFFFFFFFFU;
 			else
 			{
 				const uint32_t base_scale_offset = base_track_offset + (2 * k_num_bit_rates_cached_per_track);
@@ -557,7 +567,7 @@ namespace acl
 
 			out_scale_cache_index = scale_cache_index;
 
-			ACL_ASSERT(m_generation_id < (0xFFFFFFFFu - 8), "Generation ID is about to wrap, bad things will happen");
+			ACL_ASSERT(m_generation_id < (0xFFFFFFFFU - 8), "Generation ID is about to wrap, bad things will happen");
 		}
 
 		template<SampleDistribution8 distribution>
@@ -756,7 +766,7 @@ namespace acl
 				{
 					key0 = context.sample_key;
 					key1 = 0;
-					interpolation_alpha = 0.0f;
+					interpolation_alpha = 0.0F;
 				}
 
 				Vector4_32 sample0;
@@ -884,7 +894,7 @@ namespace acl
 				{
 					key0 = context.sample_key;
 					key1 = 0;
-					interpolation_alpha = 0.0f;
+					interpolation_alpha = 0.0F;
 				}
 
 				Vector4_32 sample0;

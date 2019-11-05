@@ -40,7 +40,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		struct debug_track_writer final : public track_writer
+		struct debug_track_writer final : track_writer
 		{
 			debug_track_writer(IAllocator& allocator_, track_type8 type_, uint32_t num_tracks_)
 				: allocator(allocator_)

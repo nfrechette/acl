@@ -171,7 +171,7 @@ namespace acl
 			template<class SettingsType>
 			struct TranslationDecompressionSettingsAdapter
 			{
-				TranslationDecompressionSettingsAdapter(const SettingsType& settings_) : settings(settings_) {}
+				explicit TranslationDecompressionSettingsAdapter(const SettingsType& settings_) : settings(settings_) {}
 
 				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Translations; }
 				inline Vector4_32 ACL_SIMD_CALL get_default_value() const { return vector_zero_32(); }
@@ -189,9 +189,9 @@ namespace acl
 			template<class SettingsType>
 			struct ScaleDecompressionSettingsAdapter
 			{
-				ScaleDecompressionSettingsAdapter(const SettingsType& settings_, const ClipHeader& header)
+				explicit ScaleDecompressionSettingsAdapter(const SettingsType& settings_, const ClipHeader& header)
 					: settings(settings_)
-					, default_scale(header.default_scale ? vector_set(1.0f) : vector_zero_32())
+					, default_scale(header.default_scale ? vector_set(1.0F) : vector_zero_32())
 				{}
 
 				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Scales; }
@@ -248,7 +248,7 @@ namespace acl
 		// These are debug settings, everything is enabled and nothing is stripped.
 		// It will have the worst performance but allows every feature.
 		//////////////////////////////////////////////////////////////////////////
-		struct DebugDecompressionSettings : public DecompressionSettings {};
+		struct DebugDecompressionSettings : DecompressionSettings {};
 
 		//////////////////////////////////////////////////////////////////////////
 		// These are the default settings. Only the generally optimal settings
@@ -257,7 +257,7 @@ namespace acl
 		// Note: Segment range reduction supports AllTracks or None because it can
 		// be disabled if there is a single segment.
 		//////////////////////////////////////////////////////////////////////////
-		struct DefaultDecompressionSettings : public DecompressionSettings
+		struct DefaultDecompressionSettings : DecompressionSettings
 		{
 			constexpr bool is_rotation_format_supported(RotationFormat8 format) const { return format == RotationFormat8::QuatDropW_Variable; }
 			constexpr bool is_translation_format_supported(VectorFormat8 format) const { return format == VectorFormat8::Vector3_Variable; }
@@ -296,41 +296,41 @@ namespace acl
 			// Constructs a context instance with an optional allocator instance.
 			// The default constructor for the DecompressionSettingsType will be used.
 			// If an allocator is provided, it will be used in `release()` to free the context
-			inline DecompressionContext(IAllocator* allocator = nullptr);
+			explicit DecompressionContext(IAllocator* allocator = nullptr);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Constructs a context instance from a set of static settings and an optional allocator instance.
 			// If an allocator is provided, it will be used in `release()` to free the context
-			inline DecompressionContext(const DecompressionSettingsType& settings, IAllocator* allocator = nullptr);
+			DecompressionContext(const DecompressionSettingsType& settings, IAllocator* allocator = nullptr);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Destructs a context instance
-			inline ~DecompressionContext();
+			~DecompressionContext();
 
 			//////////////////////////////////////////////////////////////////////////
 			// Initializes the context instance to a particular compressed clip
-			inline void initialize(const CompressedClip& clip);
+			void initialize(const CompressedClip& clip);
 
-			inline bool is_dirty(const CompressedClip& clip);
+			bool is_dirty(const CompressedClip& clip);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Seeks within the compressed clip to a particular point in time
-			inline void seek(float sample_time, SampleRoundingPolicy rounding_policy);
+			void seek(float sample_time, SampleRoundingPolicy rounding_policy);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Decompress a full pose at the current sample time.
 			// The OutputWriterType allows complete control over how the pose is written out
 			template<class OutputWriterType>
-			inline void decompress_pose(OutputWriterType& writer);
+			void decompress_pose(OutputWriterType& writer);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Decompress a single bone at the current sample time.
 			// Each track entry is optional
-			inline void decompress_bone(uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale);
+			void decompress_bone(uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Releases the context instance if it contains an allocator reference
-			inline void release();
+			void release();
 
 		private:
 			DecompressionContext(const DecompressionContext& other) = delete;
@@ -419,7 +419,7 @@ namespace acl
 			m_context.clip = &clip;
 			m_context.clip_hash = clip.get_hash();
 			m_context.clip_duration = calculate_duration(header.num_samples, header.sample_rate);
-			m_context.sample_time = -1.0f;
+			m_context.sample_time = -1.0F;
 			m_context.default_tracks_bitset = header.get_default_tracks_bitset();
 
 			m_context.constant_tracks_bitset = header.get_constant_tracks_bitset();
@@ -463,7 +463,7 @@ namespace acl
 
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			// TODO: Make it optional via DecompressionSettingsType?
-			sample_time = clamp(sample_time, 0.0f, m_context.clip_duration);
+			sample_time = clamp(sample_time, 0.0F, m_context.clip_duration);
 
 			if (m_context.sample_time == sample_time)
 				return;

@@ -30,34 +30,34 @@ using namespace acl;
 
 TEST_CASE("scalar packing math", "[math][scalar][packing]")
 {
-	const float threshold = 1.0e-6f;
+	const float threshold = 1.0E-6F;
 
 	const uint8_t max_num_bits = 23;
 	for (uint8_t num_bits = 1; num_bits < max_num_bits; ++num_bits)
 	{
 		const uint32_t max_value = (1 << num_bits) - 1;
 
-		CHECK(pack_scalar_unsigned(0.0f, num_bits) == 0);
-		CHECK(pack_scalar_unsigned(1.0f, num_bits) == max_value);
-		CHECK(unpack_scalar_unsigned(0, num_bits) == 0.0f);
-		CHECK(unpack_scalar_unsigned(max_value, num_bits) == 1.0f);
+		CHECK(pack_scalar_unsigned(0.0F, num_bits) == 0);
+		CHECK(pack_scalar_unsigned(1.0F, num_bits) == max_value);
+		CHECK(unpack_scalar_unsigned(0, num_bits) == 0.0F);
+		CHECK(unpack_scalar_unsigned(max_value, num_bits) == 1.0F);
 
-		CHECK(pack_scalar_signed(-1.0f, num_bits) == 0);
-		CHECK(pack_scalar_signed(1.0f, num_bits) == max_value);
-		CHECK(unpack_scalar_signed(0, num_bits) == -1.0f);
-		CHECK(scalar_near_equal(unpack_scalar_signed(max_value, num_bits), 1.0f, threshold));
+		CHECK(pack_scalar_signed(-1.0F, num_bits) == 0);
+		CHECK(pack_scalar_signed(1.0F, num_bits) == max_value);
+		CHECK(unpack_scalar_signed(0, num_bits) == -1.0F);
+		CHECK(scalar_near_equal(unpack_scalar_signed(max_value, num_bits), 1.0F, threshold));
 
 		uint32_t num_errors = 0;
 		for (uint32_t value = 0; value < max_value; ++value)
 		{
 			const float unpacked0 = unpack_scalar_unsigned(value, num_bits);
 			const uint32_t packed0 = pack_scalar_unsigned(unpacked0, num_bits);
-			if (packed0 != value || unpacked0 < 0.0f || unpacked0 > 1.0f)
+			if (packed0 != value || unpacked0 < 0.0F || unpacked0 > 1.0F)
 				num_errors++;
 
 			const float unpacked1 = unpack_scalar_signed(value, num_bits);
 			const uint32_t packed1 = pack_scalar_signed(unpacked1, num_bits);
-			if (packed1 != value || unpacked1 < -1.0f || unpacked1 > 1.0f)
+			if (packed1 != value || unpacked1 < -1.0F || unpacked1 > 1.0F)
 				num_errors++;
 		}
 		CHECK(num_errors == 0);

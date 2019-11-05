@@ -44,7 +44,7 @@ namespace acl
 
 			using namespace rtm;
 
-			const vector4f one = rtm::vector_set(1.0f);
+			const vector4f one = rtm::vector_set(1.0F);
 			const vector4f zero = vector_zero();
 
 			track_vector4f& typed_track = track_cast<track_vector4f>(mut_track);
@@ -53,7 +53,7 @@ namespace acl
 
 			const vector4f range_min = range.get_min();
 			const vector4f range_extent = range.get_extent();
-			const mask4i is_range_zero_mask = vector_less_than(range_extent, rtm::vector_set(0.000000001f));
+			const mask4i is_range_zero_mask = vector_less_than(range_extent, rtm::vector_set(0.000000001F));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{

@@ -134,12 +134,14 @@ namespace acl
 		RigidBone()
 			: name()
 			, bone_chain(nullptr)
-			, vertex_distance(1.0f)
+			, vertex_distance(1.0F)
 			, parent_index(k_invalid_bone_index)
 			, bind_transform(transform_identity_64())
 		{
 			(void)padding;
 		}
+
+		~RigidBone() = default;
 
 		RigidBone(RigidBone&& other)
 			: name(std::move(other.name))

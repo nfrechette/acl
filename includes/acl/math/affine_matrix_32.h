@@ -48,10 +48,10 @@ namespace acl
 
 	inline AffineMatrix_32 ACL_SIMD_CALL matrix_set(Vector4_32Arg0 x_axis, Vector4_32Arg1 y_axis, Vector4_32Arg2 z_axis, Vector4_32Arg3 w_axis)
 	{
-		ACL_ASSERT(vector_get_w(x_axis) == 0.0f, "X axis does not have a W component == 0.0");
-		ACL_ASSERT(vector_get_w(y_axis) == 0.0f, "Y axis does not have a W component == 0.0");
-		ACL_ASSERT(vector_get_w(z_axis) == 0.0f, "Z axis does not have a W component == 0.0");
-		ACL_ASSERT(vector_get_w(w_axis) == 1.0f, "W axis does not have a W component == 1.0");
+		ACL_ASSERT(vector_get_w(x_axis) == 0.0F, "X axis does not have a W component == 0.0");
+		ACL_ASSERT(vector_get_w(y_axis) == 0.0F, "Y axis does not have a W component == 0.0");
+		ACL_ASSERT(vector_get_w(z_axis) == 0.0F, "Z axis does not have a W component == 0.0");
+		ACL_ASSERT(vector_get_w(w_axis) == 1.0F, "W axis does not have a W component == 1.0");
 		return AffineMatrix_32{x_axis, y_axis, z_axis, w_axis};
 	}
 
@@ -72,16 +72,16 @@ namespace acl
 		const float wy = quat_get_w(quat) * y2;
 		const float wz = quat_get_w(quat) * z2;
 
-		Vector4_32 x_axis = vector_mul(vector_set(1.0f - (yy + zz), xy + wz, xz - wy, 0.0f), vector_get_x(scale));
-		Vector4_32 y_axis = vector_mul(vector_set(xy - wz, 1.0f - (xx + zz), yz + wx, 0.0f), vector_get_y(scale));
-		Vector4_32 z_axis = vector_mul(vector_set(xz + wy, yz - wx, 1.0f - (xx + yy), 0.0f), vector_get_z(scale));
-		Vector4_32 w_axis = vector_set(vector_get_x(translation), vector_get_y(translation), vector_get_z(translation), 1.0f);
+		Vector4_32 x_axis = vector_mul(vector_set(1.0F - (yy + zz), xy + wz, xz - wy, 0.0F), vector_get_x(scale));
+		Vector4_32 y_axis = vector_mul(vector_set(xy - wz, 1.0F - (xx + zz), yz + wx, 0.0F), vector_get_y(scale));
+		Vector4_32 z_axis = vector_mul(vector_set(xz + wy, yz - wx, 1.0F - (xx + yy), 0.0F), vector_get_z(scale));
+		Vector4_32 w_axis = vector_set(vector_get_x(translation), vector_get_y(translation), vector_get_z(translation), 1.0F);
 		return matrix_set(x_axis, y_axis, z_axis, w_axis);
 	}
 
 	inline AffineMatrix_32 ACL_SIMD_CALL matrix_identity_32()
 	{
-		return matrix_set(vector_set(1.0f, 0.0f, 0.0f, 0.0f), vector_set(0.0f, 1.0f, 0.0f, 0.0f), vector_set(0.0f, 0.0f, 1.0f, 0.0f), vector_set(0.0f, 0.0f, 0.0f, 1.0f));
+		return matrix_set(vector_set(1.0F, 0.0F, 0.0F, 0.0F), vector_set(0.0F, 1.0F, 0.0F, 0.0F), vector_set(0.0F, 0.0F, 1.0F, 0.0F), vector_set(0.0F, 0.0F, 0.0F, 1.0F));
 	}
 
 	inline AffineMatrix_32 ACL_SIMD_CALL matrix_cast(const AffineMatrix_64& input)
@@ -106,22 +106,21 @@ namespace acl
 		const float wy = quat_get_w(quat) * y2;
 		const float wz = quat_get_w(quat) * z2;
 
-		Vector4_32 x_axis = vector_set(1.0f - (yy + zz), xy + wz, xz - wy, 0.0f);
-		Vector4_32 y_axis = vector_set(xy - wz, 1.0f - (xx + zz), yz + wx, 0.0f);
-		Vector4_32 z_axis = vector_set(xz + wy, yz - wx, 1.0f - (xx + yy), 0.0f);
-		Vector4_32 w_axis = vector_set(0.0f, 0.0f, 0.0f, 1.0f);
+		Vector4_32 x_axis = vector_set(1.0F - (yy + zz), xy + wz, xz - wy, 0.0F);
+		Vector4_32 y_axis = vector_set(xy - wz, 1.0F - (xx + zz), yz + wx, 0.0F);
+		Vector4_32 z_axis = vector_set(xz + wy, yz - wx, 1.0F - (xx + yy), 0.0F);
+		Vector4_32 w_axis = vector_set(0.0F, 0.0F, 0.0F, 1.0F);
 		return matrix_set(x_axis, y_axis, z_axis, w_axis);
 	}
 
 	inline AffineMatrix_32 ACL_SIMD_CALL matrix_from_translation(Vector4_32Arg0 translation)
 	{
-		return matrix_set(vector_set(1.0f, 0.0f, 0.0f, 0.0f), vector_set(0.0f, 1.0f, 0.0f, 0.0f), vector_set(0.0f, 0.0f, 1.0f, 0.0f), vector_set(vector_get_x(translation), vector_get_y(translation), vector_get_z(translation), 1.0f));
+		return matrix_set(vector_set(1.0F, 0.0F, 0.0F, 0.0F), vector_set(0.0F, 1.0F, 0.0F, 0.0F), vector_set(0.0F, 0.0F, 1.0F, 0.0F), vector_set(vector_get_x(translation), vector_get_y(translation), vector_get_z(translation), 1.0F));
 	}
 
 	inline AffineMatrix_32 ACL_SIMD_CALL matrix_from_scale(Vector4_32Arg0 scale)
 	{
-		ACL_ASSERT(!vector_any_near_equal3(scale, vector_zero_32()), "Scale cannot be zero");
-		return matrix_set(vector_set(vector_get_x(scale), 0.0f, 0.0f, 0.0f), vector_set(0.0f, vector_get_y(scale), 0.0f, 0.0f), vector_set(0.0f, 0.0f, vector_get_z(scale), 0.0f), vector_set(0.0f, 0.0f, 0.0f, 1.0f));
+		return matrix_set(vector_set(vector_get_x(scale), 0.0F, 0.0F, 0.0F), vector_set(0.0F, vector_get_y(scale), 0.0F, 0.0F), vector_set(0.0F, 0.0F, vector_get_z(scale), 0.0F), vector_set(0.0F, 0.0F, 0.0F, 1.0F));
 	}
 
 	inline AffineMatrix_32 ACL_SIMD_CALL matrix_from_transform(Transform_32Arg0 transform)
@@ -171,15 +170,15 @@ namespace acl
 		}
 
 		const float mtx_trace = vector_get_x(input.x_axis) + vector_get_y(input.y_axis) + vector_get_z(input.z_axis);
-		if (mtx_trace > 0.0f)
+		if (mtx_trace > 0.0F)
 		{
-			const float inv_trace = sqrt_reciprocal(mtx_trace + 1.0f);
-			const float half_inv_trace = inv_trace * 0.5f;
+			const float inv_trace = sqrt_reciprocal(mtx_trace + 1.0F);
+			const float half_inv_trace = inv_trace * 0.5F;
 
 			const float x = (vector_get_z(input.y_axis) - vector_get_y(input.z_axis)) * half_inv_trace;
 			const float y = (vector_get_x(input.z_axis) - vector_get_z(input.x_axis)) * half_inv_trace;
 			const float z = (vector_get_y(input.x_axis) - vector_get_x(input.y_axis)) * half_inv_trace;
-			const float w = reciprocal(inv_trace) * 0.5f;
+			const float w = reciprocal(inv_trace) * 0.5F;
 
 			return quat_normalize(quat_set(x, y, z, w));
 		}
@@ -194,16 +193,16 @@ namespace acl
 			const int8_t next_best_axis = (best_axis + 1) % 3;
 			const int8_t next_next_best_axis = (next_best_axis + 1) % 3;
 
-			const float mtx_pseudo_trace = 1.0f +
+			const float mtx_pseudo_trace = 1.0F +
 				vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(best_axis)), VectorMix(best_axis)) -
 				vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(next_best_axis)), VectorMix(next_best_axis)) -
 				vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(next_next_best_axis)), VectorMix(next_next_best_axis));
 
 			const float inv_pseudo_trace = sqrt_reciprocal(mtx_pseudo_trace);
-			const float half_inv_pseudo_trace = inv_pseudo_trace * 0.5f;
+			const float half_inv_pseudo_trace = inv_pseudo_trace * 0.5F;
 
 			float quat_values[4];
-			quat_values[best_axis] = reciprocal(inv_pseudo_trace) * 0.5f;
+			quat_values[best_axis] = reciprocal(inv_pseudo_trace) * 0.5F;
 			quat_values[next_best_axis] = half_inv_pseudo_trace *
 				(vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(best_axis)), VectorMix(next_best_axis)) +
 					vector_get_component(matrix_get_axis(input.x_axis, input.y_axis, input.z_axis, input.w_axis, MatrixAxis(next_best_axis)), VectorMix(best_axis)));

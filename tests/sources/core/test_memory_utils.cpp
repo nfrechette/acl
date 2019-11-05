@@ -130,8 +130,8 @@ TEST_CASE("raw memory support", "[core][memory]")
 	uint32_t value32 = 0x04FE78AB;
 	REQUIRE(byte_swap(value32) == 0xAB78FE04);
 
-	uint64_t value64 = uint64_t(0x04FE78AB0098DC56ull);
-	REQUIRE(byte_swap(value64) == uint64_t(0x56DC9800AB78FE04ull));
+	uint64_t value64 = uint64_t(0x04FE78AB0098DC56ULL);
+	REQUIRE(byte_swap(value64) == uint64_t(0x56DC9800AB78FE04ULL));
 
 	uint8_t unaligned_value_buffer[5] = { 0x00, 0x00, 0x00, 0x00, 0x00 };
 	std::memcpy(&unaligned_value_buffer[1], &value32, sizeof(uint32_t));
@@ -140,31 +140,31 @@ TEST_CASE("raw memory support", "[core][memory]")
 
 TEST_CASE("memcpy_bits", "[core][memory]")
 {
-	uint64_t dest = uint64_t(~0ull);
-	uint64_t src = byte_swap(uint64_t(0x5555555555555555ull));
+	uint64_t dest = uint64_t(~0ULL);
+	uint64_t src = byte_swap(uint64_t(0x5555555555555555ULL));
 	memcpy_bits(&dest, 1, &src, 0, 64 - 3);
-	REQUIRE(dest == byte_swap(uint64_t(0xAAAAAAAAAAAAAAABull)));
+	REQUIRE(dest == byte_swap(uint64_t(0xAAAAAAAAAAAAAAABULL)));
 
-	dest = byte_swap(uint64_t(0x0F00FF0000000000ull));
-	src = byte_swap(uint64_t(0x3800000000000000ull));
+	dest = byte_swap(uint64_t(0x0F00FF0000000000ULL));
+	src = byte_swap(uint64_t(0x3800000000000000ULL));
 	memcpy_bits(&dest, 0, &src, 2, 5);
-	REQUIRE(dest == byte_swap(uint64_t(0xE700FF0000000000ull)));
+	REQUIRE(dest == byte_swap(uint64_t(0xE700FF0000000000ULL)));
 
-	dest = byte_swap(uint64_t(0x0F00FF0000000000ull));
-	src = byte_swap(uint64_t(0x3800000000000000ull));
+	dest = byte_swap(uint64_t(0x0F00FF0000000000ULL));
+	src = byte_swap(uint64_t(0x3800000000000000ULL));
 	memcpy_bits(&dest, 1, &src, 2, 5);
-	REQUIRE(dest == byte_swap(uint64_t(0x7300FF0000000000ull)));
+	REQUIRE(dest == byte_swap(uint64_t(0x7300FF0000000000ULL)));
 
 	dest = 0;
-	src = uint64_t(~0ull);
+	src = uint64_t(~0ULL);
 	memcpy_bits(&dest, 1, &src, 0, 7);
-	REQUIRE(dest == byte_swap(uint64_t(0x7F00000000000000ull)));
+	REQUIRE(dest == byte_swap(uint64_t(0x7F00000000000000ULL)));
 
 	memcpy_bits(&dest, 8, &src, 0, 8);
-	REQUIRE(dest == byte_swap(uint64_t(0x7FFF000000000000ull)));
+	REQUIRE(dest == byte_swap(uint64_t(0x7FFF000000000000ULL)));
 
 	memcpy_bits(&dest, 0, &src, 0, 64);
-	REQUIRE(dest == uint64_t(~0ull));
+	REQUIRE(dest == uint64_t(~0ULL));
 }
 
 enum class UnsignedEnum : uint32_t

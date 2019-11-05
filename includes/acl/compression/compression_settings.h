@@ -168,10 +168,10 @@ namespace acl
 			, range_reduction(RangeReductionFlags8::None)
 			, segmenting()
 			, error_metric(nullptr)
-			, constant_rotation_threshold_angle(0.00284714461f)
-			, constant_translation_threshold(0.001f)
-			, constant_scale_threshold(0.00001f)
-			, error_threshold(0.01f)
+			, constant_rotation_threshold_angle(0.00284714461F)
+			, constant_translation_threshold(0.001F)
+			, constant_scale_threshold(0.00001F)
+			, error_threshold(0.01F)
 		{}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -230,16 +230,16 @@ namespace acl
 			if (error_metric == nullptr)
 				return ErrorResult("error_metric cannot be NULL");
 
-			if (constant_rotation_threshold_angle < 0.0f || !is_finite(constant_rotation_threshold_angle))
+			if (constant_rotation_threshold_angle < 0.0F || !is_finite(constant_rotation_threshold_angle))
 				return ErrorResult("Invalid constant_rotation_threshold_angle");
 
-			if (constant_translation_threshold < 0.0f || !is_finite(constant_translation_threshold))
+			if (constant_translation_threshold < 0.0F || !is_finite(constant_translation_threshold))
 				return ErrorResult("Invalid constant_translation_threshold");
 
-			if (constant_scale_threshold < 0.0f || !is_finite(constant_scale_threshold))
+			if (constant_scale_threshold < 0.0F || !is_finite(constant_scale_threshold))
 				return ErrorResult("Invalid constant_scale_threshold");
 
-			if (error_threshold < 0.0f || !is_finite(error_threshold))
+			if (error_threshold < 0.0F || !is_finite(error_threshold))
 				return ErrorResult("Invalid error_threshold");
 
 			return segmenting.is_valid();

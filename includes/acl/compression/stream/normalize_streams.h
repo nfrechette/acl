@@ -44,8 +44,8 @@ namespace acl
 	{
 		inline TrackStreamRange calculate_track_range(const TrackStream& stream)
 		{
-			Vector4_32 min = vector_set(1e10f);
-			Vector4_32 max = vector_set(-1e10f);
+			Vector4_32 min = vector_set(1e10F);
+			Vector4_32 max = vector_set(-1e10F);
 
 			const uint32_t num_samples = stream.get_num_samples();
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -91,11 +91,11 @@ namespace acl
 
 	inline void extract_segment_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
 	{
-		const Vector4_32 one = vector_set(1.0f);
+		const Vector4_32 one = vector_set(1.0F);
 		const Vector4_32 zero = vector_zero_32();
 		const float max_range_value_flt = float((1 << k_segment_range_reduction_num_bits_per_component) - 1);
 		const Vector4_32 max_range_value = vector_set(max_range_value_flt);
-		const Vector4_32 inv_max_range_value = vector_set(1.0f / max_range_value_flt);
+		const Vector4_32 inv_max_range_value = vector_set(1.0F / max_range_value_flt);
 
 		// Segment ranges are always normalized and live between [0.0 ... 1.0]
 
@@ -166,11 +166,11 @@ namespace acl
 	{
 		const Vector4_32 range_min = range.get_min();
 		const Vector4_32 range_extent = range.get_extent();
-		const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
+		const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001F));
 
 		Vector4_32 normalized_sample = vector_div(vector_sub(sample, range_min), range_extent);
 		// Clamp because the division might be imprecise
-		normalized_sample = vector_min(normalized_sample, vector_set(1.0f));
+		normalized_sample = vector_min(normalized_sample, vector_set(1.0F));
 		return vector_blend(is_range_zero_mask, vector_zero_32(), normalized_sample);
 	}
 
@@ -195,7 +195,7 @@ namespace acl
 
 			const Vector4_32 range_min = bone_range.rotation.get_min();
 			const Vector4_32 range_extent = bone_range.rotation.get_extent();
-			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
+			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001F));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -249,7 +249,7 @@ namespace acl
 
 			const Vector4_32 range_min = bone_range.translation.get_min();
 			const Vector4_32 range_extent = bone_range.translation.get_extent();
-			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
+			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001F));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -290,7 +290,7 @@ namespace acl
 
 			const Vector4_32 range_min = bone_range.scale.get_min();
 			const Vector4_32 range_extent = bone_range.scale.get_extent();
-			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001f));
+			const Vector4_32 is_range_zero_mask = vector_less_than(range_extent, vector_set(0.000000001F));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{

@@ -47,7 +47,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	struct track_error
 	{
-		track_error() : index(k_invalid_track_index), error(0.0f), sample_time(0.0f) {}
+		track_error() : index(k_invalid_track_index), error(0.0F), sample_time(0.0F) {}
 
 		//////////////////////////////////////////////////////////////////////////
 		// The raw track index with the worst error.

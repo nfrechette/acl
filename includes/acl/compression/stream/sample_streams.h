@@ -615,7 +615,7 @@ namespace acl
 		{
 			uint32_t key0 = 0;
 			uint32_t key1 = 0;
-			float interpolation_alpha = 0.0f;
+			float interpolation_alpha = 0.0F;
 
 			// Our samples are uniform, grab the nearest samples
 			const ClipContext* clip_context = segment.clip;
@@ -626,19 +626,19 @@ namespace acl
 			if (key0 >= segment.num_samples)
 			{
 				key0 = 0;
-				interpolation_alpha = 1.0f;
+				interpolation_alpha = 1.0F;
 			}
 
 			key1 = key1 - segment.clip_sample_offset;
 			if (key1 >= segment.num_samples)
 			{
 				key1 = segment.num_samples - 1;
-				interpolation_alpha = 0.0f;
+				interpolation_alpha = 0.0F;
 			}
 
 			// When we sample uniformly, we always round to the nearest sample.
 			// As such, we don't need to interpolate.
-			return interpolation_alpha == 0.0f ? key0 : key1;
+			return interpolation_alpha == 0.0F ? key0 : key1;
 		}
 
 		template<SampleDistribution8 distribution>
@@ -665,7 +665,7 @@ namespace acl
 				{
 					key0 = context.sample_key;
 					key1 = 0;
-					interpolation_alpha = 0.0f;
+					interpolation_alpha = 0.0F;
 				}
 
 				const Quat_32 sample0 = get_rotation_sample(bone_stream, key0);
@@ -713,7 +713,7 @@ namespace acl
 				{
 					key0 = context.sample_key;
 					key1 = 0;
-					interpolation_alpha = 0.0f;
+					interpolation_alpha = 0.0F;
 				}
 
 				Quat_32 sample0;
@@ -766,7 +766,7 @@ namespace acl
 				{
 					key0 = context.sample_key;
 					key1 = 0;
-					interpolation_alpha = 0.0f;
+					interpolation_alpha = 0.0F;
 				}
 
 				const Vector4_32 sample0 = get_translation_sample(bone_stream, key0);
@@ -807,7 +807,7 @@ namespace acl
 				{
 					key0 = context.sample_key;
 					key1 = 0;
-					interpolation_alpha = 0.0f;
+					interpolation_alpha = 0.0F;
 				}
 
 				Vector4_32 sample0;
@@ -860,7 +860,7 @@ namespace acl
 				{
 					key0 = context.sample_key;
 					key1 = 0;
-					interpolation_alpha = 0.0f;
+					interpolation_alpha = 0.0F;
 				}
 
 				const Vector4_32 sample0 = get_scale_sample(bone_stream, key0);
@@ -901,7 +901,7 @@ namespace acl
 				{
 					key0 = context.sample_key;
 					key1 = 0;
-					interpolation_alpha = 0.0f;
+					interpolation_alpha = 0.0F;
 				}
 
 				Vector4_32 sample0;

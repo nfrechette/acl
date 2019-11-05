@@ -97,8 +97,8 @@ namespace acl
 				, database(allocator_, settings_, clip_.segments->bone_streams, raw_clip_.segments->bone_streams, clip_.num_bones, clip_.segments->num_samples)
 				, local_query()
 				, object_query(allocator_)
-				, num_samples(~0u)
-				, segment_sample_start_index(~0u)
+				, num_samples(~0U)
+				, segment_sample_start_index(~0U)
 				, sample_rate(clip_.sample_rate)
 				, clip_duration(clip_.duration)
 				, has_scale(clip_.has_scale)
@@ -132,6 +132,11 @@ namespace acl
 			}
 
 			bool is_valid() const { return segment != nullptr; }
+
+			QuantizationContext(const QuantizationContext&) = delete;
+			QuantizationContext(QuantizationContext&&) = delete;
+			QuantizationContext& operator=(const QuantizationContext&) = delete;
+			QuantizationContext& operator=(QuantizationContext&&) = delete;
 		};
 
 		inline void quantize_fixed_rotation_stream(IAllocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
@@ -506,7 +511,7 @@ namespace acl
 
 			context.local_query.build(target_bone_index, context.bit_rate_per_bone[target_bone_index]);
 
-			float max_error = 0.0f;
+			float max_error = 0.0F;
 
 			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
@@ -520,7 +525,7 @@ namespace acl
 
 				if (context.has_additive_base)
 				{
-					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0f;
+					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0F;
 					const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
 					sample_stream(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
 				}
@@ -546,7 +551,7 @@ namespace acl
 
 			context.object_query.build(target_bone_index, context.bit_rate_per_bone, context.bone_streams);
 
-			float max_error = 0.0f;
+			float max_error = 0.0F;
 
 			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
@@ -560,7 +565,7 @@ namespace acl
 
 				if (context.has_additive_base)
 				{
-					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0f;
+					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0F;
 					const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
 					sample_streams_hierarchical(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
 				}
@@ -605,7 +610,7 @@ namespace acl
 				}
 
 				BoneBitRate best_bit_rates = bone_bit_rates;
-				float best_error = 1.0E10f;
+				float best_error = 1.0E10F;
 				int32_t prev_transform_size = -1;
 				bool is_error_good_enough = false;
 

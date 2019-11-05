@@ -108,7 +108,7 @@ namespace acl
 
 	inline Vector4_32 ACL_SIMD_CALL get_default_scale(AdditiveClipFormat8 additive_format)
 	{
-		return additive_format == AdditiveClipFormat8::Additive1 ? vector_zero_32() : vector_set(1.0f);
+		return additive_format == AdditiveClipFormat8::Additive1 ? vector_zero_32() : vector_set(1.0F);
 	}
 
 	inline Transform_32 ACL_SIMD_CALL transform_add0(Transform_32Arg0 base, Transform_32Arg1 additive)
@@ -123,7 +123,7 @@ namespace acl
 	{
 		const Quat_32 rotation = quat_mul(additive.rotation, base.rotation);
 		const Vector4_32 translation = vector_add(additive.translation, base.translation);
-		const Vector4_32 scale = vector_mul(vector_add(vector_set(1.0f), additive.scale), base.scale);
+		const Vector4_32 scale = vector_mul(vector_add(vector_set(1.0F), additive.scale), base.scale);
 		return transform_set(rotation, translation, scale);
 	}
 
@@ -131,7 +131,7 @@ namespace acl
 	{
 		const Quat_32 rotation = quat_mul(additive.rotation, base.rotation);
 		const Vector4_32 translation = vector_add(additive.translation, base.translation);
-		return transform_set(rotation, translation, vector_set(1.0f));
+		return transform_set(rotation, translation, vector_set(1.0F));
 	}
 
 	inline Transform_32 ACL_SIMD_CALL apply_additive_to_base(AdditiveClipFormat8 additive_format, Transform_32Arg1 base, Transform_32ArgN additive)

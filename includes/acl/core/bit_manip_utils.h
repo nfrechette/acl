@@ -100,9 +100,9 @@ namespace acl
 #elif defined(ACL_NEON_INTRINSICS)
 		return vget_lane_u64(vpaddl_u32(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value))))), 0);
 #else
-		value = value - ((value >> 1) & 0x5555555555555555ull);
-		value = (value & 0x3333333333333333ull) + ((value >> 2) & 0x3333333333333333ull);
-		return (((value + (value >> 4)) & 0x0F0F0F0F0F0F0F0Full) * 0x0101010101010101ull) >> 56;
+		value = value - ((value >> 1) & 0x5555555555555555ULL);
+		value = (value & 0x3333333333333333ULL) + ((value >> 2) & 0x3333333333333333ULL);
+		return (((value + (value >> 4)) & 0x0F0F0F0F0F0F0F0FULL) * 0x0101010101010101ULL) >> 56;
 #endif
 	}
 

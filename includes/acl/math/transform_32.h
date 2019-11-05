@@ -41,7 +41,7 @@ namespace acl
 
 	inline Transform_32 ACL_SIMD_CALL transform_identity_32()
 	{
-		return transform_set(quat_identity_32(), vector_zero_32(), vector_set(1.0f));
+		return transform_set(quat_identity_32(), vector_zero_32(), vector_set(1.0F));
 	}
 
 	inline Transform_32 ACL_SIMD_CALL transform_cast(const Transform_64& input)
@@ -86,7 +86,7 @@ namespace acl
 	{
 		const Quat_32 rotation = quat_mul(lhs.rotation, rhs.rotation);
 		const Vector4_32 translation = vector_add(quat_rotate(rhs.rotation, lhs.translation), rhs.translation);
-		return transform_set(rotation, translation, vector_set(1.0f));
+		return transform_set(rotation, translation, vector_set(1.0F));
 	}
 
 	inline Vector4_32 ACL_SIMD_CALL transform_position(Transform_32Arg0 lhs, Vector4_32Arg1 rhs)
@@ -111,7 +111,7 @@ namespace acl
 	{
 		const Quat_32 inv_rotation = quat_conjugate(input.rotation);
 		const Vector4_32 inv_translation = vector_neg(quat_rotate(inv_rotation, input.translation));
-		return transform_set(inv_rotation, inv_translation, vector_set(1.0f));
+		return transform_set(inv_rotation, inv_translation, vector_set(1.0F));
 	}
 
 	inline Transform_32 ACL_SIMD_CALL transform_normalize(Transform_32Arg0 input)

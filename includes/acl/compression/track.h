@@ -54,7 +54,7 @@ namespace acl
 			, m_num_samples(0)
 			, m_stride(0)
 			, m_data_size(0)
-			, m_sample_rate(0.0f)
+			, m_sample_rate(0.0F)
 			, m_type(track_type8::float1f)
 			, m_category(track_category8::scalarf)
 			, m_sample_size(0)
@@ -251,7 +251,7 @@ namespace acl
 			, m_num_samples(0)
 			, m_stride(0)
 			, m_data_size(0)
-			, m_sample_rate(0.0f)
+			, m_sample_rate(0.0F)
 			, m_type(type)
 			, m_category(category)
 			, m_sample_size(0)
@@ -295,7 +295,7 @@ namespace acl
 			// TODO: Add other description types here
 
 			desc_union() : scalar() {}
-			desc_union(const track_desc_scalarf& desc) : scalar(desc) {}
+			explicit desc_union(const track_desc_scalarf& desc) : scalar(desc) {}
 		};
 
 		desc_union				m_desc;				// The track description
@@ -327,6 +327,10 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs an empty typed track.
 		track_typed() : track(type, category) { static_assert(sizeof(track_typed) == sizeof(track), "You cannot add member variables to this class"); }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Destroys the track and potentially frees any memory it might own.
+		~track_typed() = default;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track.
@@ -436,7 +440,7 @@ namespace acl
 		track_typed(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const desc_type& desc)
 			: track(allocator, data, num_samples, stride, data_size, sample_rate, type, category, sizeof(sample_type))
 		{
-			m_desc = desc;
+			m_desc = desc_union(desc);
 		}
 	};
 

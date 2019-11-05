@@ -26,5 +26,5 @@
 
 TEST_CASE("Vector4_32 vector_mix<W * * *>", "[math][vector4]")
 {
-	test_vector4_vector_mix_impl<Vector4_32, float, VectorMix::W>(1.0e-6f);
+	test_vector4_vector_mix_impl<Vector4_32, float, VectorMix::W>(1.0E-6F);
 }

@@ -424,7 +424,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 
 	const AnimationClip* additive_base_clip = clip.get_additive_base();
 	const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;
-	const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0f;
+	const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0F;
 
 	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* base_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
@@ -444,7 +444,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 
 		if (additive_base_clip != nullptr)
 		{
-			const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0f;
+			const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
 			const float additive_sample_time = normalized_sample_time * additive_duration;
 			additive_base_clip->sample_pose(additive_sample_time, base_pose_transforms, num_bones);
 		}
@@ -938,7 +938,8 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 	double version = 0.0;
 	if (!parser.read("version", version))
 	{
-		uint32_t line, column;
+		uint32_t line;
+		uint32_t column;
 		parser.get_position(line, column);
 
 		printf("Error on line %d column %d: Missing config version\n", line, column);
@@ -954,7 +955,8 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 	sjson::StringView algorithm_name;
 	if (!parser.read("algorithm_name", algorithm_name))
 	{
-		uint32_t line, column;
+		uint32_t line;
+		uint32_t column;
 		parser.get_position(line, column);
 
 		printf("Error on line %d column %d: Missing algorithm name\n", line, column);
@@ -1042,7 +1044,8 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 
 		if (!parser.object_ends())
 		{
-			uint32_t line, column;
+			uint32_t line;
+			uint32_t column;
 			parser.get_position(line, column);
 
 			printf("Error on line %d column %d: Expected segmenting object to end\n", line, column);
@@ -1059,7 +1062,8 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 
 	if (!parser.is_valid() || !parser.remainder_is_comments_and_whitespace())
 	{
-		uint32_t line, column;
+		uint32_t line;
+		uint32_t column;
 		parser.get_position(line, column);
 
 		printf("Error on line %d column %d: Expected end of file\n", line, column);
@@ -1225,7 +1229,7 @@ static int safe_main_impl(int argc, char* argv[])
 		base_clip = const_cast<AnimationClip*>(clip->get_additive_base());
 		if (base_clip == nullptr)
 		{
-			base_clip = allocate_type<AnimationClip>(allocator, allocator, *skeleton, 1, 30.0f, String(allocator, "Base Clip"));
+			base_clip = allocate_type<AnimationClip>(allocator, allocator, *skeleton, 1, 30.0F, String(allocator, "Base Clip"));
 
 			if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
 				create_additive_base_clip(options, *clip, *skeleton, *base_clip);
@@ -1271,9 +1275,9 @@ static int safe_main_impl(int argc, char* argv[])
 				std::ifstream input_file_stream(options.input_filename, std::ios_base::in | std::ios_base::binary);
 				if (input_file_stream.is_open())
 				{
-					input_file_stream.seekg(0, input_file_stream.end);
+					input_file_stream.seekg(0, std::ios_base::end);
 					const size_t buffer_size = size_t(input_file_stream.tellg());
-					input_file_stream.seekg(0, input_file_stream.beg);
+					input_file_stream.seekg(0, std::ios_base::beg);
 
 					char* buffer = (char*)allocator.allocate(buffer_size, alignof(CompressedClip));
 					input_file_stream.read(buffer, buffer_size);

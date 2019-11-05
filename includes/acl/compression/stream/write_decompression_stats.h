@@ -77,7 +77,7 @@ namespace acl
 		for (uint32_t sample_index = 0; sample_index < k_num_decompression_samples; ++sample_index)
 		{
 			const float normalized_sample_time = float(sample_index) / float(k_num_decompression_samples - 1);
-			sample_times[sample_index] = clamp(normalized_sample_time, 0.0f, 1.0f) * duration;
+			sample_times[sample_index] = clamp(normalized_sample_time, 0.0F, 1.0F) * duration;
 		}
 
 		switch (playback_direction)

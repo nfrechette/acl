@@ -41,9 +41,9 @@ namespace acl
 			uint64_t u64;
 			float flt[2];
 
-			constexpr Converter(uint64_t value) : u64(value) {}
-			constexpr Converter(double value) : dbl(value) {}
-			constexpr Converter(float value) : flt{value, value} {}
+			explicit constexpr Converter(uint64_t value) : u64(value) {}
+			explicit constexpr Converter(double value) : dbl(value) {}
+			explicit constexpr Converter(float value) : flt{value, value} {}
 
 			constexpr operator double() const { return dbl; }
 			constexpr operator float() const { return flt[0]; }
@@ -51,7 +51,7 @@ namespace acl
 
 		constexpr Converter get_mask_value(bool is_true)
 		{
-			return Converter(is_true ? uint64_t(0xFFFFFFFFFFFFFFFFull) : uint64_t(0));
+			return Converter(is_true ? uint64_t(0xFFFFFFFFFFFFFFFFULL) : uint64_t(0));
 		}
 
 		constexpr double select(double mask, double if_true, double if_false)

@@ -121,7 +121,7 @@ namespace acl
 
 				if (raw_clip_context.has_additive_base)
 				{
-					const float normalized_sample_time = additive_base_clip_context.num_samples > 1 ? (sample_time / ref_duration) : 0.0f;
+					const float normalized_sample_time = additive_base_clip_context.num_samples > 1 ? (sample_time / ref_duration) : 0.0F;
 					const float additive_sample_time = normalized_sample_time * additive_base_clip_context.duration;
 					sample_streams(additive_base_clip_context.segments[0].bone_streams, num_bones, additive_sample_time, base_local_pose);
 				}
@@ -187,7 +187,7 @@ namespace acl
 		else if (std::isfinite(duration))
 			writer["duration"] = duration;
 		else
-			writer["duration"] = duration >= 0.0f ? "+inf" : "-inf";
+			writer["duration"] = duration >= 0.0F ? "+inf" : "-inf";
 
 		writer["num_samples"] = clip.get_num_samples();
 		writer["num_bones"] = clip.get_num_bones();

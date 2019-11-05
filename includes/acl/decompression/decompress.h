@@ -81,13 +81,13 @@ namespace acl
 	// These are debug settings, everything is enabled and nothing is stripped.
 	// It will have the worst performance but allows every feature.
 	//////////////////////////////////////////////////////////////////////////
-	struct debug_decompression_settings : public decompression_settings {};
+	struct debug_decompression_settings : decompression_settings {};
 
 	//////////////////////////////////////////////////////////////////////////
 	// These are the default settings. Only the generally optimal settings
 	// are enabled and will offer the overall best performance.
 	//////////////////////////////////////////////////////////////////////////
-	struct default_decompression_settings : public decompression_settings {};
+	struct default_decompression_settings : decompression_settings {};
 
 	//////////////////////////////////////////////////////////////////////////
 	// Decompression context for the uniformly sampled algorithm. The context
@@ -112,43 +112,43 @@ namespace acl
 		// Constructs a context instance with an optional allocator instance.
 		// The default constructor for the `decompression_settings_type` will be used.
 		// If an allocator is provided, it will be used in `release()` to free the context.
-		inline decompression_context(IAllocator* allocator = nullptr);
+		explicit decompression_context(IAllocator* allocator = nullptr);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs a context instance from a set of static settings and an optional allocator instance.
 		// If an allocator is provided, it will be used in `release()` to free the context.
-		inline decompression_context(const decompression_settings_type& settings, IAllocator* allocator = nullptr);
+		decompression_context(const decompression_settings_type& settings, IAllocator* allocator = nullptr);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Destructs a context instance.
-		inline ~decompression_context();
+		~decompression_context();
 
 		//////////////////////////////////////////////////////////////////////////
 		// Initializes the context instance to a particular compressed tracks instance.
-		inline void initialize(const compressed_tracks& tracks);
+		void initialize(const compressed_tracks& tracks);
 
-		inline bool is_dirty(const compressed_tracks& tracks);
+		bool is_dirty(const compressed_tracks& tracks);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Seeks within the compressed tracks to a particular point in time with the
 		// desired rounding policy.
-		inline void seek(float sample_time, SampleRoundingPolicy rounding_policy);
+		void seek(float sample_time, SampleRoundingPolicy rounding_policy);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Decompress every track at the current sample time.
 		// The track_writer_type allows complete control over how the tracks are written out.
 		template<class track_writer_type>
-		inline void decompress_tracks(track_writer_type& writer);
+		void decompress_tracks(track_writer_type& writer);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Decompress a single track at the current sample time.
 		// The track_writer_type allows complete control over how the track is written out.
 		template<class track_writer_type>
-		inline void decompress_track(uint32_t track_index, track_writer_type& writer);
+		void decompress_track(uint32_t track_index, track_writer_type& writer);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Releases the context instance if it contains an allocator reference.
-		inline void release();
+		void release();
 
 	private:
 		decompression_context(const decompression_context& other) = delete;
@@ -218,7 +218,7 @@ namespace acl
 		m_context.tracks = &tracks;
 		m_context.tracks_hash = tracks.get_hash();
 		m_context.duration = tracks.get_duration();
-		m_context.sample_time = -1.0f;
+		m_context.sample_time = -1.0F;
 		m_context.interpolation_alpha = 0.0;
 	}
 
@@ -242,7 +242,7 @@ namespace acl
 
 		// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 		if (m_settings.clamp_sample_time())
-			sample_time = rtm::scalar_clamp(sample_time, 0.0f, m_context.duration);
+			sample_time = rtm::scalar_clamp(sample_time, 0.0F, m_context.duration);
 
 		if (m_context.sample_time == sample_time)
 			return;

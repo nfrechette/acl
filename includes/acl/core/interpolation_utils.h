@@ -71,12 +71,12 @@ namespace acl
 		uint32_t& out_sample_index0, uint32_t& out_sample_index1, float& out_interpolation_alpha)
 	{
 		// Samples are evenly spaced, trivially calculate the indices that we need
-		ACL_ASSERT(duration >= 0.0f, "Invalid duration: %f", duration);
-		ACL_ASSERT(sample_time >= 0.0f && sample_time <= duration, "Invalid sample time: 0.0 <= %f <= %f", sample_time, duration);
+		ACL_ASSERT(duration >= 0.0F, "Invalid duration: %f", duration);
+		ACL_ASSERT(sample_time >= 0.0F && sample_time <= duration, "Invalid sample time: 0.0 <= %f <= %f", sample_time, duration);
 		ACL_ASSERT(num_samples > 0, "Invalid num_samples: %u", num_samples);
 
-		const float sample_rate = duration == 0.0f ? 0.0f : (float(num_samples - 1) / duration);
-		ACL_ASSERT(sample_rate >= 0.0f && is_finite(sample_rate), "Invalid sample_rate: %f", sample_rate);
+		const float sample_rate = duration == 0.0F ? 0.0F : (float(num_samples - 1) / duration);
+		ACL_ASSERT(sample_rate >= 0.0F && is_finite(sample_rate), "Invalid sample_rate: %f", sample_rate);
 
 		const float sample_index = sample_time * sample_rate;
 		const uint32_t sample_index0 = static_cast<uint32_t>(sample_index);
@@ -84,7 +84,7 @@ namespace acl
 		ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
 
 		const float interpolation_alpha = sample_index - float(sample_index0);
-		ACL_ASSERT(interpolation_alpha >= 0.0f && interpolation_alpha <= 1.0f, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
+		ACL_ASSERT(interpolation_alpha >= 0.0F && interpolation_alpha <= 1.0F, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
 
 		out_sample_index0 = sample_index0;
 		out_sample_index1 = sample_index1;
@@ -96,13 +96,13 @@ namespace acl
 			out_interpolation_alpha = interpolation_alpha;
 			break;
 		case SampleRoundingPolicy::Floor:
-			out_interpolation_alpha = 0.0f;
+			out_interpolation_alpha = 0.0F;
 			break;
 		case SampleRoundingPolicy::Ceil:
-			out_interpolation_alpha = 1.0f;
+			out_interpolation_alpha = 1.0F;
 			break;
 		case SampleRoundingPolicy::Nearest:
-			out_interpolation_alpha = floor(interpolation_alpha + 0.5f);
+			out_interpolation_alpha = floor(interpolation_alpha + 0.5F);
 			break;
 		}
 	}
@@ -122,7 +122,7 @@ namespace acl
 		uint32_t& out_sample_index0, uint32_t& out_sample_index1, float& out_interpolation_alpha)
 	{
 		// Samples are evenly spaced, trivially calculate the indices that we need
-		ACL_ASSERT(sample_rate >= 0.0f, "Invalid sample rate: %f", sample_rate);
+		ACL_ASSERT(sample_rate >= 0.0F, "Invalid sample rate: %f", sample_rate);
 		ACL_ASSERT(num_samples > 0, "Invalid num_samples: %u", num_samples);
 
 		// TODO: Would it be faster to do the index calculation entirely with floating point?
@@ -137,7 +137,7 @@ namespace acl
 		ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
 
 		const float interpolation_alpha = sample_index - float(sample_index0);
-		ACL_ASSERT(interpolation_alpha >= 0.0f && interpolation_alpha <= 1.0f, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
+		ACL_ASSERT(interpolation_alpha >= 0.0F && interpolation_alpha <= 1.0F, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
 
 		out_sample_index0 = sample_index0;
 		out_sample_index1 = sample_index1;
@@ -149,13 +149,13 @@ namespace acl
 			out_interpolation_alpha = interpolation_alpha;
 			break;
 		case SampleRoundingPolicy::Floor:
-			out_interpolation_alpha = 0.0f;
+			out_interpolation_alpha = 0.0F;
 			break;
 		case SampleRoundingPolicy::Ceil:
-			out_interpolation_alpha = 1.0f;
+			out_interpolation_alpha = 1.0F;
 			break;
 		case SampleRoundingPolicy::Nearest:
-			out_interpolation_alpha = floor(interpolation_alpha + 0.5f);
+			out_interpolation_alpha = floor(interpolation_alpha + 0.5F);
 			break;
 		}
 	}
