@@ -70,6 +70,7 @@ namespace acl
 		using namespace acl_impl;
 
 		(void)settings;	// todo?
+		(void)out_stats;
 
 		ErrorResult error_result = track_list.is_valid();
 		if (error_result.any())
