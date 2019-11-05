@@ -30,7 +30,7 @@
 
 #include <cstdint>
 
-#if !defined(ACL_USE_POPCOUNT)
+#if !defined(ACL_USE_POPCOUNT) && !defined(ACL_NO_INTRINSICS)
 	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
 	#if defined(_DURANGO) || defined(_XBOX_ONE)
 		// Enable pop-count type instructions on Xbox One
