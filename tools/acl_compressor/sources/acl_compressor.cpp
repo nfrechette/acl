@@ -24,22 +24,20 @@
 
 #include "acl_compressor.h"
 
-// Used to debug and validate that we compile without sjson-cpp
-// Defaults to being enabled
-#define ACL_ENABLE_STAT_WRITING		1
 
 // Enable 64 bit file IO
 #ifndef _WIN32
 	#define _FILE_OFFSET_BITS 64
 #endif
 
-#if ACL_ENABLE_STAT_WRITING
+// Used to debug and validate that we compile without sjson-cpp
+// Defaults to being enabled
+#if defined(ACL_USE_SJSON)
 	#include <sjson/writer.h>
+	#include <sjson/parser.h>
 #else
 	namespace sjson { class ArrayWriter; }
 #endif
-
-#include <sjson/parser.h>
 
 #include "acl/core/ansi_allocator.h"
 #include "acl/core/floating_point_exceptions.h"
@@ -411,6 +409,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
+#if defined(ACL_USE_SJSON)
 template<class DecompressionContextType>
 static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, DecompressionContextType& context, double regression_error_threshold)
 {
@@ -1151,6 +1150,7 @@ static CompressionSettings make_settings(RotationFormat8 rotation_format, Vector
 	settings.segmenting.range_reduction = segment_range_reduction;
 	return settings;
 }
+#endif	// defined(ACL_USE_SJSON)
 
 static int safe_main_impl(int argc, char* argv[])
 {
@@ -1167,6 +1167,7 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 	}
 
+#if defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
 	std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
@@ -1393,6 +1394,7 @@ static int safe_main_impl(int argc, char* argv[])
 
 	deallocate_type(allocator, settings.error_metric);
 	deallocate_type(allocator, base_clip);
+#endif	// defined(ACL_USE_SJSON)
 
 	return 0;
 }

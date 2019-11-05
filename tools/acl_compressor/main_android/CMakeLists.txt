@@ -16,8 +16,11 @@ set(CMAKE_ANDROID_JAVA_SOURCE_DIR "${PROJECT_SOURCE_DIR}/java")
 
 include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../../external/rtm/includes")
-include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../includes")
+
+if(USE_SJSON)
+	include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp/includes")
+endif()
 
 # Grab all of our common source files
 file(GLOB_RECURSE ALL_COMMON_SOURCE_FILES LIST_DIRECTORIES false
@@ -49,6 +52,11 @@ target_compile_options(${PROJECT_NAME} PRIVATE -g)
 if(NOT USE_SIMD_INSTRUCTIONS)
 	add_definitions(-DACL_NO_INTRINSICS)
 	add_definitions(-DRTM_NO_INTRINSICS)
+endif()
+
+# Enable SJSON when needed
+if(USE_SJSON)
+	add_definitions(-DACL_USE_SJSON)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC jni)
