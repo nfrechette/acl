@@ -47,9 +47,6 @@
 // 0 = no debug info, 1 = basic info, 2 = verbose
 #define ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION		0
 
-// 0 = disabled, 1 = enabled
-#define ACL_IMPL_USE_DATABASE						1
-
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
@@ -519,11 +516,7 @@ namespace acl
 
 				sample_stream(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
 
-#if ACL_IMPL_USE_DATABASE
 				context.database.sample(context.local_query, sample_time, context.lossy_local_pose, context.num_bones);
-#else
-				sample_stream(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, settings.rotation_format, settings.translation_format, settings.scale_format, context.lossy_local_pose);
-#endif
 
 				if (context.has_additive_base)
 				{
@@ -563,11 +556,7 @@ namespace acl
 
 				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
 
-#if ACL_IMPL_USE_DATABASE
 				context.database.sample(context.object_query, sample_time, context.lossy_local_pose, context.num_bones);
-#else
-				sample_streams_hierarchical(context.bone_streams, context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.bit_rate_per_bone, settings.rotation_format, settings.translation_format, settings.scale_format, context.lossy_local_pose);
-#endif
 
 				if (context.has_additive_base)
 				{
