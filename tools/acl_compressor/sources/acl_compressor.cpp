@@ -1428,20 +1428,26 @@ int main_impl(int argc, char* argv[])
 	scope_enable_fp_exceptions fp_on;
 
 	int result = -1;
+#if defined(ACL_ON_ASSERT_THROW) || defined(SJSON_CPP_ON_ASSERT_THROW)
 	try
+#endif
 	{
 		result = safe_main_impl(argc, argv);
 	}
-	catch (const std::runtime_error& exception)
+#if defined(ACL_ON_ASSERT_THROW)
+	catch (const runtime_assert& exception)
 	{
-		printf("Exception occurred: %s\n", exception.what());
+		printf("Assert occurred: %s\n", exception.what());
 		result = -1;
 	}
-	catch (...)
+#endif
+#if defined(SJSON_CPP_ON_ASSERT_THROW)
+	catch (const sjson::runtime_assert& exception)
 	{
-		printf("Unknown exception occurred\n");
+		printf("Assert occurred: %s\n", exception.what());
 		result = -1;
 	}
+#endif
 
 #ifdef _WIN32
 	if (IsDebuggerPresent())
