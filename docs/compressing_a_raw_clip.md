@@ -1,6 +1,6 @@
 # Compressing a raw clip
 
-Once you have created a [raw animation clip instance](creating_a_raw_clip.md), you are ready to compress it. In order to do so, you simply have to pick the algorithm you will use and a set of compression settings.
+Once you have created a [raw animation clip instance](creating_a_raw_clip.md) and an [allocator instance](implementing_an_allocator.md), you are ready to compress it. In order to do so, you simply have to pick the algorithm you will use and a set of compression settings.
 
 For now, we only implement a single algorithm: [uniformly sampled](algorithm_uniformly_sampled.md). This is a simple and excellent algorithm to use for everyday animation clips.
 
@@ -17,6 +17,10 @@ Selecting the right [error metric](error_metrics.md) is important and you will w
 The last important setting to choose is the `error_threshold`. This is used in conjunction with the error metric and the virtual vertex distance from the [skeleton](creating_a_skeleton.md) in order to guarantee that a certain quality is maintained. A default value of **0.01cm** is safe to use and it most likely should never be changed unless the units you are using differ. If you do run into issues where compression artifacts are visible, in all likelihood the virtual vertex distance used on the problematic bones is not conservative enough.
 
 ```c++
+#include <acl/algorithm/uniformly_sampled/encoder.h>
+
+using namespace acl;
+
 CompressionSettings settings;
 settings.level = CompressionLevel8::Medium;
 settings.rotation_format = RotationFormat8::QuatDropW_Variable;
@@ -29,7 +33,6 @@ settings.segmenting.range_reduction = RangeReductionFlags8::AllTracks;
 TransformErrorMetric error_metric;
 settings.error_metric = &error_metric;
 
-UniformlySampledAlgorithm algorithm(settings);
 OutputStats stats;
 CompressedClip* compressed_clip = nullptr;
 ErrorResult error_result = uniformly_sampled::compress_clip(allocator, raw_clip, settings, compressed_clip, stats);
