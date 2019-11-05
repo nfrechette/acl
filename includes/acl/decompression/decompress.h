@@ -35,6 +35,7 @@
 #include "acl/core/track_writer.h"
 #include "acl/decompression/impl/track_sampling_impl.h"
 #include "acl/math/rtm_casts.h"
+#include "acl/math/vector4_packing.h"
 
 #include <rtm/types.h>
 #include <rtm/scalarf.h>
