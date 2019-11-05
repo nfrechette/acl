@@ -515,8 +515,8 @@ namespace acl
 				constexpr explicit UInt32ToFloat(uint32_t u32_value) : u32(u32_value) {}
 			};
 
-			ACL_ASSERT(value.size() <= 16, "Invalid binary exact double value");
-			uint32_t value_u32 = std::strtoul(value.c_str(), nullptr, 16);
+			ACL_ASSERT(value.size() <= 8, "Invalid binary exact float value");
+			uint32_t value_u32 = safe_static_cast<uint32_t>(std::strtoul(value.c_str(), nullptr, 16));
 			return UInt32ToFloat(value_u32).flt;
 		}
 
