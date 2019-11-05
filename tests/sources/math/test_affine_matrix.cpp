@@ -214,24 +214,24 @@ static void test_affine_matrix_impl(const MatrixType& identity, const FloatType 
 
 TEST_CASE("affine matrix 32 math", "[math][affinematrix]")
 {
-	test_affine_matrix_impl<AffineMatrix_32, Transform_32, float>(matrix_identity_32(), 1.0e-4f);
+	test_affine_matrix_impl<AffineMatrix_32, Transform_32, float>(matrix_identity_32(), 1.0E-4F);
 
 	{
-		Quat_32 rotation_around_z = quat_from_euler(deg2rad(0.0f), deg2rad(90.0f), deg2rad(0.0f));
-		Vector4_32 translation = vector_set(1.0f, 2.0f, 3.0f);
-		Vector4_32 scale = vector_set(4.0f, 5.0f, 6.0f);
+		Quat_32 rotation_around_z = quat_from_euler(deg2rad(0.0F), deg2rad(90.0F), deg2rad(0.0F));
+		Vector4_32 translation = vector_set(1.0F, 2.0F, 3.0F);
+		Vector4_32 scale = vector_set(4.0F, 5.0F, 6.0F);
 		AffineMatrix_32 src = matrix_set(rotation_around_z, translation, scale);
 		AffineMatrix_64 dst = matrix_cast(src);
-		REQUIRE(vector_all_near_equal(vector_cast(src.x_axis), dst.x_axis, 1.0e-4));
-		REQUIRE(vector_all_near_equal(vector_cast(src.y_axis), dst.y_axis, 1.0e-4));
-		REQUIRE(vector_all_near_equal(vector_cast(src.z_axis), dst.z_axis, 1.0e-4));
-		REQUIRE(vector_all_near_equal(vector_cast(src.w_axis), dst.w_axis, 1.0e-4));
+		REQUIRE(vector_all_near_equal(vector_cast(src.x_axis), dst.x_axis, 1.0E-4));
+		REQUIRE(vector_all_near_equal(vector_cast(src.y_axis), dst.y_axis, 1.0E-4));
+		REQUIRE(vector_all_near_equal(vector_cast(src.z_axis), dst.z_axis, 1.0E-4));
+		REQUIRE(vector_all_near_equal(vector_cast(src.w_axis), dst.w_axis, 1.0E-4));
 	}
 }
 
 TEST_CASE("affine matrix 64 math", "[math][affinematrix]")
 {
-	test_affine_matrix_impl<AffineMatrix_64, Transform_64, double>(matrix_identity_64(), 1.0e-4);
+	test_affine_matrix_impl<AffineMatrix_64, Transform_64, double>(matrix_identity_64(), 1.0E-4);
 
 	{
 		Quat_64 rotation_around_z = quat_from_euler(deg2rad(0.0), deg2rad(90.0), deg2rad(0.0));
@@ -239,9 +239,9 @@ TEST_CASE("affine matrix 64 math", "[math][affinematrix]")
 		Vector4_64 scale = vector_set(4.0, 5.0, 6.0);
 		AffineMatrix_64 src = matrix_set(rotation_around_z, translation, scale);
 		AffineMatrix_32 dst = matrix_cast(src);
-		REQUIRE(vector_all_near_equal(vector_cast(src.x_axis), dst.x_axis, 1.0e-4f));
-		REQUIRE(vector_all_near_equal(vector_cast(src.y_axis), dst.y_axis, 1.0e-4f));
-		REQUIRE(vector_all_near_equal(vector_cast(src.z_axis), dst.z_axis, 1.0e-4f));
-		REQUIRE(vector_all_near_equal(vector_cast(src.w_axis), dst.w_axis, 1.0e-4f));
+		REQUIRE(vector_all_near_equal(vector_cast(src.x_axis), dst.x_axis, 1.0E-4f));
+		REQUIRE(vector_all_near_equal(vector_cast(src.y_axis), dst.y_axis, 1.0E-4f));
+		REQUIRE(vector_all_near_equal(vector_cast(src.z_axis), dst.z_axis, 1.0E-4f));
+		REQUIRE(vector_all_near_equal(vector_cast(src.w_axis), dst.w_axis, 1.0E-4f));
 	}
 }

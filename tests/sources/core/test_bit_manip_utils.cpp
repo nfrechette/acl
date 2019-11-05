@@ -47,11 +47,11 @@ TEST_CASE("bit_manip_utils", "[core][utils]")
 	REQUIRE(count_set_bits(uint32_t(0x10101001)) == 4);
 	REQUIRE(count_set_bits(uint32_t(0xFFFFFFFF)) == 32);
 
-	REQUIRE(count_set_bits(uint64_t(0x0000000000000000ull)) == 0);
-	REQUIRE(count_set_bits(uint64_t(0x0000000000000001ull)) == 1);
-	REQUIRE(count_set_bits(uint64_t(0x1000000000000000ull)) == 1);
-	REQUIRE(count_set_bits(uint64_t(0x1000100001010101ull)) == 6);
-	REQUIRE(count_set_bits(uint64_t(0xFFFFFFFFFFFFFFFFull)) == 64);
+	REQUIRE(count_set_bits(uint64_t(0x0000000000000000ULL)) == 0);
+	REQUIRE(count_set_bits(uint64_t(0x0000000000000001ULL)) == 1);
+	REQUIRE(count_set_bits(uint64_t(0x1000000000000000ULL)) == 1);
+	REQUIRE(count_set_bits(uint64_t(0x1000100001010101ULL)) == 6);
+	REQUIRE(count_set_bits(uint64_t(0xFFFFFFFFFFFFFFFFULL)) == 64);
 
 	REQUIRE(rotate_bits_left(0x00000010, 0) == 0x00000010);
 	REQUIRE(rotate_bits_left(0x10000010, 1) == 0x20000020);

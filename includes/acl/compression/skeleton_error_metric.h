@@ -72,9 +72,9 @@ namespace acl
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
-			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, bone.vertex_distance);
+			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
+			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = transform_position(raw_local_pose[bone_index], vtx0);
 			const Vector4_32 lossy_vtx0 = transform_position(lossy_local_pose[bone_index], vtx0);
@@ -98,8 +98,8 @@ namespace acl
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
 
 			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_local_pose[bone_index], vtx0);
 			const Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_local_pose[bone_index], vtx0);
@@ -133,9 +133,9 @@ namespace acl
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, target_bone.vertex_distance, 0.0f);
-			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, target_bone.vertex_distance);
+			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
+			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, target_bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = matrix_mul_position(raw_obj_mtx, vtx0);
 			const Vector4_32 raw_vtx1 = matrix_mul_position(raw_obj_mtx, vtx1);
@@ -171,8 +171,8 @@ namespace acl
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, target_bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
 
 			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_obj_transform, vtx0);
 			const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_obj_transform, vtx1);
@@ -202,9 +202,9 @@ namespace acl
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
-			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, bone.vertex_distance);
+			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
+			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = transform_position(raw_local_pose[bone_index], vtx0);
 			const Vector4_32 lossy_vtx0 = transform_position(lossy_local_pose[bone_index], vtx0);
@@ -228,8 +228,8 @@ namespace acl
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
 
 			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_local_pose[bone_index], vtx0);
 			const Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_local_pose[bone_index], vtx0);
@@ -263,9 +263,9 @@ namespace acl
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, target_bone.vertex_distance, 0.0f);
-			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, target_bone.vertex_distance);
+			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
+			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, target_bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = transform_position(raw_obj_transform, vtx0);
 			const Vector4_32 raw_vtx1 = transform_position(raw_obj_transform, vtx1);
@@ -301,8 +301,8 @@ namespace acl
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, target_bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
 
 			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_obj_transform, vtx0);
 			const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_obj_transform, vtx1);
@@ -344,9 +344,9 @@ namespace acl
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
-			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, bone.vertex_distance);
+			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
+			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, bone.vertex_distance);
 
 			const Transform_32 raw_transform = apply_additive_to_base(additive_format, base_local_pose[bone_index], raw_local_pose[bone_index]);
 			const Transform_32 lossy_transform = apply_additive_to_base(additive_format, base_local_pose[bone_index], lossy_local_pose[bone_index]);
@@ -372,8 +372,8 @@ namespace acl
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
 
 			const Transform_32 raw_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[bone_index], raw_local_pose[bone_index]);
 			const Transform_32 lossy_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[bone_index], lossy_local_pose[bone_index]);
@@ -410,9 +410,9 @@ namespace acl
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, target_bone.vertex_distance, 0.0f);
-			const Vector4_32 vtx2 = vector_set(0.0f, 0.0f, target_bone.vertex_distance);
+			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
+			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, target_bone.vertex_distance);
 
 			const Vector4_32 raw_vtx0 = transform_position(raw_obj_transform, vtx0);
 			const Vector4_32 raw_vtx1 = transform_position(raw_obj_transform, vtx1);
@@ -448,8 +448,8 @@ namespace acl
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0f, 0.0f);
-			const Vector4_32 vtx1 = vector_set(0.0f, target_bone.vertex_distance, 0.0f);
+			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
 
 			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_obj_transform, vtx0);
 			const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_obj_transform, vtx1);

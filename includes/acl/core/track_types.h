@@ -69,8 +69,8 @@ namespace acl
 		VectorFormat8 vector;
 
 		TrackFormat8() {}
-		TrackFormat8(RotationFormat8 format) : rotation(format) {}
-		TrackFormat8(VectorFormat8 format) : vector(format) {}
+		explicit TrackFormat8(RotationFormat8 format) : rotation(format) {}
+		explicit TrackFormat8(VectorFormat8 format) : vector(format) {}
 	};
 
 	enum class AnimationTrackType8 : uint8_t
@@ -100,7 +100,7 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 	// We only support up to 4294967295 tracks. We reserve 4294967295 for the invalid index
-	constexpr uint32_t k_invalid_track_index = 0xFFFFFFFFu;
+	constexpr uint32_t k_invalid_track_index = 0xFFFFFFFFU;
 
 	//////////////////////////////////////////////////////////////////////////
 	// The various supported track types.

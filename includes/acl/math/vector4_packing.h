@@ -99,7 +99,7 @@ namespace acl
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= shift_offset;
 
-		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ull);
+		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ULL);
 
 		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
 		vector_u64 = byte_swap(vector_u64);
@@ -112,7 +112,7 @@ namespace acl
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= shift_offset;
 
-		const uint64_t w64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ull);
+		const uint64_t w64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ULL);
 
 		const uint32x2_t xy = vcreate_u32(x64 | y64);
 		const uint32x2_t zw = vcreate_u32(z64 | w64);
@@ -239,8 +239,8 @@ namespace acl
 
 		struct PackedTableEntry
 		{
-			constexpr PackedTableEntry(uint8_t num_bits_)
-				: max_value(num_bits_ == 0 ? 1.0f : (1.0f / float((1 << num_bits_) - 1)))
+			explicit constexpr PackedTableEntry(uint8_t num_bits_)
+				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
 				, mask((1 << num_bits_) - 1)
 			{}
 
@@ -401,7 +401,7 @@ namespace acl
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= shift_offset;
 
-		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ull);
+		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ULL);
 
 		const uint32x2_t xy = vcreate_u32(x64 | y64);
 		const uint32x4_t value_u32 = vcombine_u32(xy, xy);
@@ -486,7 +486,7 @@ namespace acl
 		vector_u64 = byte_swap(vector_u64);
 		vector_u64 <<= shift_offset;
 
-		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ull);
+		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ULL);
 
 		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
 		vector_u64 = byte_swap(vector_u64);
@@ -621,14 +621,14 @@ namespace acl
 		__m128i x16y16z16 = _mm_loadu_si128((const __m128i*)vector_data);
 		__m128i x32y32z32 = _mm_unpacklo_epi16(x16y16z16, zero);
 		__m128 value = _mm_cvtepi32_ps(x32y32z32);
-		return _mm_mul_ps(value, _mm_set_ps1(1.0f / 65535.0f));
+		return _mm_mul_ps(value, _mm_set_ps1(1.0F / 65535.0F));
 #elif defined(ACL_NEON_INTRINSICS)
 		uint8x8_t x8y8z8 = vld1_u8(vector_data);
 		uint16x4_t x16y16z16 = vreinterpret_u16_u8(x8y8z8);
 		uint32x4_t x32y32z32 = vmovl_u16(x16y16z16);
 
 		float32x4_t value = vcvtq_f32_u32(x32y32z32);
-		return vmulq_n_f32(value, 1.0f / 65535.0f);
+		return vmulq_n_f32(value, 1.0F / 65535.0F);
 #else
 		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
 		uint16_t x16 = data_ptr_u16[0];
@@ -645,7 +645,7 @@ namespace acl
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_s48_unsafe(const uint8_t* vector_data)
 	{
 		const Vector4_32 unsigned_value = unpack_vector3_u48_unsafe(vector_data);
-		return vector_neg_mul_sub(unsigned_value, -2.0f, vector_set(-1.0f));
+		return vector_neg_mul_sub(unsigned_value, -2.0F, vector_set(-1.0F));
 	}
 
 	ACL_DEPRECATED("Use unpack_vector3_u48_unsafe and unpack_vector3_s48_unsafe instead, to be removed in v2.0")
@@ -663,10 +663,10 @@ namespace acl
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_u48(Vector4_32Arg0 input)
 	{
-		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal3(input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
+		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal3(input, vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
 
 		const float max_value = float((1 << 16) - 1);
-		const float inv_max_value = 1.0f / max_value;
+		const float inv_max_value = 1.0F / max_value;
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(input, max_value));
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
@@ -675,17 +675,17 @@ namespace acl
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_s48(Vector4_32Arg0 input)
 	{
-		const Vector4_32 half = vector_set(0.5f);
+		const Vector4_32 half = vector_set(0.5F);
 		const Vector4_32 unsigned_input = vector_mul_add(input, half, half);
 
-		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal3(unsigned_input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
+		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal3(unsigned_input, vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
 
 		const float max_value = safe_to_float((1 << 16) - 1);
-		const float inv_max_value = 1.0f / max_value;
+		const float inv_max_value = 1.0F / max_value;
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(unsigned_input, max_value));
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
-		return vector_neg_mul_sub(decayed, -2.0f, vector_set(-1.0f));
+		return vector_neg_mul_sub(decayed, -2.0F, vector_set(-1.0F));
 	}
 
 	inline void ACL_SIMD_CALL pack_vector3_32(Vector4_32Arg0 vector, uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, uint8_t* out_vector_data)
@@ -707,7 +707,7 @@ namespace acl
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_u32(Vector4_32Arg0 input, uint8_t XBits, uint8_t YBits, uint8_t ZBits)
 	{
 		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
-		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal(input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
+		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal(input, vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
 
 		const float max_value_x = float((1 << XBits) - 1);
 		const float max_value_y = float((1 << YBits) - 1);
@@ -722,11 +722,11 @@ namespace acl
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_s32(Vector4_32Arg0 input, uint8_t XBits, uint8_t YBits, uint8_t ZBits)
 	{
-		const Vector4_32 half = vector_set(0.5f);
+		const Vector4_32 half = vector_set(0.5F);
 		const Vector4_32 unsigned_input = vector_mul_add(input, half, half);
 
 		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
-		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal(unsigned_input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
+		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal(unsigned_input, vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
 
 		const float max_value_x = float((1 << XBits) - 1);
 		const float max_value_y = float((1 << YBits) - 1);
@@ -736,7 +736,7 @@ namespace acl
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(unsigned_input, max_value));
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
-		return vector_neg_mul_sub(decayed, -2.0f, vector_set(-1.0f));
+		return vector_neg_mul_sub(decayed, -2.0F, vector_set(-1.0F));
 	}
 
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_32(uint8_t XBits, uint8_t YBits, uint8_t ZBits, bool is_unsigned, const uint8_t* vector_data)
@@ -812,14 +812,14 @@ namespace acl
 		__m128i x16y16z16 = _mm_unpacklo_epi8(x8y8z8, zero);
 		__m128i x32y32z32 = _mm_unpacklo_epi16(x16y16z16, zero);
 		__m128 value = _mm_cvtepi32_ps(x32y32z32);
-		return _mm_mul_ps(value, _mm_set_ps1(1.0f / 255.0f));
+		return _mm_mul_ps(value, _mm_set_ps1(1.0F / 255.0F));
 #elif defined(ACL_NEON_INTRINSICS)
 		uint8x8_t x8y8z8 = vld1_u8(vector_data);
 		uint16x8_t x16y16z16 = vmovl_u8(x8y8z8);
 		uint32x4_t x32y32z32 = vmovl_u16(vget_low_u16(x16y16z16));
 
 		float32x4_t value = vcvtq_f32_u32(x32y32z32);
-		return vmulq_n_f32(value, 1.0f / 255.0f);
+		return vmulq_n_f32(value, 1.0F / 255.0F);
 #else
 		uint8_t x8 = vector_data[0];
 		uint8_t y8 = vector_data[1];
@@ -835,7 +835,7 @@ namespace acl
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_s24_unsafe(const uint8_t* vector_data)
 	{
 		const Vector4_32 unsigned_value = unpack_vector3_u24_unsafe(vector_data);
-		return vector_neg_mul_sub(unsigned_value, -2.0f, vector_set(-1.0f));
+		return vector_neg_mul_sub(unsigned_value, -2.0F, vector_set(-1.0F));
 	}
 
 	ACL_DEPRECATED("Use unpack_vector3_u24_unsafe and unpack_vector3_s24_unsafe instead, to be removed in v2.0")
@@ -895,10 +895,10 @@ namespace acl
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_uXX(Vector4_32Arg0 input, uint32_t num_bits)
 	{
-		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal3(input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
+		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal3(input, vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
 
 		const float max_value = safe_to_float((1 << num_bits) - 1);
-		const float inv_max_value = 1.0f / max_value;
+		const float inv_max_value = 1.0F / max_value;
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(input, max_value));
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
@@ -907,17 +907,17 @@ namespace acl
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_sXX(Vector4_32Arg0 input, uint32_t num_bits)
 	{
-		const Vector4_32 half = vector_set(0.5f);
+		const Vector4_32 half = vector_set(0.5F);
 		const Vector4_32 unsigned_input = vector_mul_add(input, half, half);
 
-		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal3(unsigned_input, vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
+		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal3(unsigned_input, vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
 
 		const float max_value = safe_to_float((1 << num_bits) - 1);
-		const float inv_max_value = 1.0f / max_value;
+		const float inv_max_value = 1.0F / max_value;
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(unsigned_input, max_value));
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
-		return vector_neg_mul_sub(decayed, -2.0f, vector_set(-1.0f));
+		return vector_neg_mul_sub(decayed, -2.0F, vector_set(-1.0F));
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
@@ -927,8 +927,8 @@ namespace acl
 
 		struct PackedTableEntry
 		{
-			constexpr PackedTableEntry(uint8_t num_bits_)
-				: max_value(num_bits_ == 0 ? 1.0f : (1.0f / float((1 << num_bits_) - 1)))
+			explicit constexpr PackedTableEntry(uint8_t num_bits_)
+				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
 				, mask((1 << num_bits_) - 1)
 			{}
 
@@ -1038,7 +1038,7 @@ namespace acl
 		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
 
 		const Vector4_32 unsigned_value = unpack_vector3_uXX_unsafe(num_bits, vector_data, bit_offset);
-		return vector_neg_mul_sub(unsigned_value, -2.0f, vector_set(-1.0f));
+		return vector_neg_mul_sub(unsigned_value, -2.0F, vector_set(-1.0F));
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 8 bytes from it
@@ -1114,8 +1114,8 @@ namespace acl
 
 		struct PackedTableEntry
 		{
-			constexpr PackedTableEntry(uint8_t num_bits_)
-				: max_value(num_bits_ == 0 ? 1.0f : (1.0f / float((1 << num_bits_) - 1)))
+			explicit constexpr PackedTableEntry(uint8_t num_bits_)
+				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
 				, mask((1 << num_bits_) - 1)
 			{}
 
@@ -1193,7 +1193,7 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
-		return vector_mul(vector_set(float(x32), float(y32), 0.0f, 0.0f), inv_max_value);
+		return vector_mul(vector_set(float(x32), float(y32), 0.0F, 0.0F), inv_max_value);
 #endif
 	}
 

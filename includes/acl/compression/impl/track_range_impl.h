@@ -42,8 +42,8 @@ namespace acl
 		{
 			using namespace rtm;
 
-			vector4f min = rtm::vector_set(1e10f);
-			vector4f max = rtm::vector_set(-1e10f);
+			vector4f min = rtm::vector_set(1e10F);
+			vector4f max = rtm::vector_set(-1e10F);
 
 			const uint32_t num_samples = track.get_num_samples();
 			const track_vector4f& typed_track = track_cast<const track_vector4f>(track);
@@ -72,7 +72,7 @@ namespace acl
 				switch (track.get_category())
 				{
 				case track_category8::scalarf:
-					context.range_list[track_index] = extract_scalarf_range(track);
+					context.range_list[track_index] = track_range(extract_scalarf_range(track));
 					break;
 				default:
 					ACL_ASSERT(false, "Invalid track category");

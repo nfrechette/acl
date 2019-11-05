@@ -43,7 +43,7 @@ TEST_CASE("pack_vector4_128", "[math][vector4][packing]")
 {
 	{
 		UnalignedBuffer tmp;
-		Vector4_32 vec0 = vector_set(6123.123812f, 19237.01293127f, 1891.019231829f, 0.913912387f);
+		Vector4_32 vec0 = vector_set(6123.123812F, 19237.01293127F, 1891.019231829F, 0.913912387F);
 		pack_vector4_128(vec0, &tmp.buffer[0]);
 		Vector4_32 vec1 = unpack_vector4_128(&tmp.buffer[0]);
 		REQUIRE(std::memcmp(&vec0, &vec1, sizeof(Vector4_32)) == 0);
@@ -52,7 +52,7 @@ TEST_CASE("pack_vector4_128", "[math][vector4][packing]")
 	{
 		UnalignedBuffer tmp0;
 		UnalignedBuffer tmp1;
-		Vector4_32 vec0 = vector_set(6123.123812f, 19237.01293127f, 1891.019231829f, 0.913912387f);
+		Vector4_32 vec0 = vector_set(6123.123812F, 19237.01293127F, 1891.019231829F, 0.913912387F);
 		pack_vector4_128(vec0, &tmp0.buffer[0]);
 
 		uint32_t x = unaligned_load<uint32_t>(&tmp0.buffer[0]);
@@ -79,7 +79,7 @@ TEST_CASE("pack_vector4_128", "[math][vector4][packing]")
 
 			memcpy_bits(&tmp1.buffer[0], offset, &tmp0.buffer[0], 0, 128);
 			Vector4_32 vec1 = unpack_vector4_128_unsafe(&tmp1.buffer[0], offset);
-			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -99,13 +99,13 @@ TEST_CASE("pack_vector4_64", "[math][vector4][packing]")
 			Vector4_32 vec0 = vector_set(value_signed);
 			pack_vector4_64(vec0, false, &tmp.buffer[0]);
 			Vector4_32 vec1 = unpack_vector4_64(&tmp.buffer[0], false);
-			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned);
 			pack_vector4_64(vec0, true, &tmp.buffer[0]);
 			vec1 = unpack_vector4_64(&tmp.buffer[0], true);
-			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -119,19 +119,19 @@ TEST_CASE("pack_vector4_32", "[math][vector4][packing]")
 		uint32_t num_errors = 0;
 		for (uint32_t value = 0; value < 256; ++value)
 		{
-			const float value_signed = min(unpack_scalar_signed(value, 8), 1.0f);
-			const float value_unsigned = min(unpack_scalar_unsigned(value, 8), 1.0f);
+			const float value_signed = min(unpack_scalar_signed(value, 8), 1.0F);
+			const float value_unsigned = min(unpack_scalar_unsigned(value, 8), 1.0F);
 
 			Vector4_32 vec0 = vector_set(value_signed);
 			pack_vector4_32(vec0, false, &tmp.buffer[0]);
 			Vector4_32 vec1 = unpack_vector4_32(&tmp.buffer[0], false);
-			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned);
 			pack_vector4_32(vec0, true, &tmp.buffer[0]);
 			vec1 = unpack_vector4_32(&tmp.buffer[0], true);
-			if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -148,7 +148,7 @@ TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
 		Vector4_32 vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16), unpack_scalar_unsigned(54432, 16));
 		pack_vector4_uXX_unsafe(vec0, 16, &buffer[0]);
 		Vector4_32 vec1 = unpack_vector4_uXX_unsafe(16, &buffer[0], 0);
-		if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+		if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
 		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
@@ -157,12 +157,12 @@ TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
-				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0f, 1.0f);
+				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
 				pack_vector4_uXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector4_uXX_unsafe(num_bits, &buffer[0], 0);
-				if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+				if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 					num_errors++;
 
 				{
@@ -173,7 +173,7 @@ TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
 
 						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 4);
 						vec1 = unpack_vector4_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
-						if (!vector_all_near_equal(vec0, vec1, 1.0e-6f))
+						if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 							num_errors++;
 					}
 				}
@@ -188,10 +188,10 @@ TEST_CASE("pack_vector3_96", "[math][vector4][packing]")
 	{
 		UnalignedBuffer tmp0;
 		UnalignedBuffer tmp1;
-		Vector4_32 vec0 = vector_set(6123.123812f, 19237.01293127f, 0.913912387f);
+		Vector4_32 vec0 = vector_set(6123.123812F, 19237.01293127F, 0.913912387F);
 		pack_vector3_96(vec0, &tmp0.buffer[0]);
 		Vector4_32 vec1 = unpack_vector3_96_unsafe(&tmp0.buffer[0]);
-		REQUIRE(vector_all_near_equal3(vec0, vec1, 1.0e-6f));
+		REQUIRE(vector_all_near_equal3(vec0, vec1, 1.0E-6F));
 
 		uint32_t x = unaligned_load<uint32_t>(&tmp0.buffer[0]);
 		x = byte_swap(x);
@@ -213,7 +213,7 @@ TEST_CASE("pack_vector3_96", "[math][vector4][packing]")
 
 			memcpy_bits(&tmp1.buffer[0], offset, &tmp0.buffer[0], 0, 96);
 			vec1 = unpack_vector3_96_unsafe(&tmp1.buffer[0], offset);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -233,13 +233,13 @@ TEST_CASE("pack_vector3_48", "[math][vector4][packing]")
 			Vector4_32 vec0 = vector_set(value_signed, value_signed, value_signed);
 			pack_vector3_s48_unsafe(vec0, &tmp0.buffer[0]);
 			Vector4_32 vec1 = unpack_vector3_s48_unsafe(&tmp0.buffer[0]);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
 			pack_vector3_u48_unsafe(vec0, &tmp0.buffer[0]);
 			vec1 = unpack_vector3_u48_unsafe(&tmp0.buffer[0]);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -257,12 +257,12 @@ TEST_CASE("decay_vector3_48", "[math][vector4][decay]")
 
 			Vector4_32 vec0 = vector_set(value_signed, value_signed, value_signed);
 			Vector4_32 vec1 = decay_vector3_s48(vec0);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
 			vec1 = decay_vector3_u48(vec0);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -290,13 +290,13 @@ TEST_CASE("pack_vector3_32", "[math][vector4][packing]")
 			Vector4_32 vec0 = vector_set(value_signed_xy, value_signed_xy, value_signed_z);
 			pack_vector3_32(vec0, 11, 11, 10, false, &tmp0.buffer[0]);
 			Vector4_32 vec1 = unpack_vector3_32(11, 11, 10, false, &tmp0.buffer[0]);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned_xy, value_unsigned_xy, value_unsigned_z);
 			pack_vector3_32(vec0, 11, 11, 10, true, &tmp0.buffer[0]);
 			vec1 = unpack_vector3_32(11, 11, 10, true, &tmp0.buffer[0]);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -322,12 +322,12 @@ TEST_CASE("decay_vector3_32", "[math][vector4][decay]")
 
 			Vector4_32 vec0 = vector_set(value_signed_xy, value_signed_xy, value_signed_z);
 			Vector4_32 vec1 = decay_vector3_s32(vec0, num_bits_xy, num_bits_xy, num_bits_z);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned_xy, value_unsigned_xy, value_unsigned_z);
 			vec1 = decay_vector3_u32(vec0, num_bits_xy, num_bits_xy, num_bits_z);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -341,19 +341,19 @@ TEST_CASE("pack_vector3_24", "[math][vector4][packing]")
 		uint32_t num_errors = 0;
 		for (uint32_t value = 0; value < 256; ++value)
 		{
-			const float value_signed = min(unpack_scalar_signed(value, 8), 1.0f);
-			const float value_unsigned = min(unpack_scalar_unsigned(value, 8), 1.0f);
+			const float value_signed = min(unpack_scalar_signed(value, 8), 1.0F);
+			const float value_unsigned = min(unpack_scalar_unsigned(value, 8), 1.0F);
 
 			Vector4_32 vec0 = vector_set(value_signed, value_signed, value_signed);
 			pack_vector3_s24_unsafe(vec0, &tmp0.buffer[0]);
 			Vector4_32 vec1 = unpack_vector3_s24_unsafe(&tmp0.buffer[0]);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 
 			vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
 			pack_vector3_u24_unsafe(vec0, &tmp0.buffer[0]);
 			vec1 = unpack_vector3_u24_unsafe(&tmp0.buffer[0]);
-			if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -370,13 +370,13 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 		Vector4_32 vec0 = vector_set(unpack_scalar_signed(0, 16), unpack_scalar_signed(12355, 16), unpack_scalar_signed(43222, 16));
 		pack_vector3_sXX_unsafe(vec0, 16, &buffer[0]);
 		Vector4_32 vec1 = unpack_vector3_sXX_unsafe(16, &buffer[0], 0);
-		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+		if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
 		vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16));
 		pack_vector3_uXX_unsafe(vec0, 16, &buffer[0]);
 		vec1 = unpack_vector3_uXX_unsafe(16, &buffer[0], 0);
-		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+		if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
 		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
@@ -385,13 +385,13 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
-				const float value_signed = clamp(unpack_scalar_signed(value, num_bits), -1.0f, 1.0f);
-				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0f, 1.0f);
+				const float value_signed = clamp(unpack_scalar_signed(value, num_bits), -1.0F, 1.0F);
+				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
 				pack_vector3_uXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector3_uXX_unsafe(num_bits, &buffer[0], 0);
-				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+				if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 					num_errors++;
 
 				{
@@ -402,7 +402,7 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 
 						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 3);
 						vec1 = unpack_vector3_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
-						if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+						if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 							num_errors++;
 					}
 				}
@@ -410,7 +410,7 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 				vec0 = vector_set(value_signed, value_signed, value_signed);
 				pack_vector3_sXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector3_sXX_unsafe(num_bits, &buffer[0], 0);
-				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+				if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 					num_errors++;
 
 				{
@@ -421,7 +421,7 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 
 						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 3);
 						vec1 = unpack_vector3_sXX_unsafe(num_bits, &tmp0.buffer[0], offset);
-						if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+						if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 							num_errors++;
 					}
 				}
@@ -438,12 +438,12 @@ TEST_CASE("decay_vector3_XX", "[math][vector4][decay]")
 
 		Vector4_32 vec0 = vector_set(unpack_scalar_signed(0, 16), unpack_scalar_signed(12355, 16), unpack_scalar_signed(43222, 16));
 		Vector4_32 vec1 = decay_vector3_sXX(vec0, 16);
-		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+		if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
 		vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16));
 		vec1 = decay_vector3_uXX(vec0, 16);
-		if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+		if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
 		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
@@ -452,17 +452,17 @@ TEST_CASE("decay_vector3_XX", "[math][vector4][decay]")
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
-				const float value_signed = clamp(unpack_scalar_signed(value, num_bits), -1.0f, 1.0f);
-				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0f, 1.0f);
+				const float value_signed = clamp(unpack_scalar_signed(value, num_bits), -1.0F, 1.0F);
+				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
 
 				vec0 = vector_set(value_signed, value_signed, value_signed);
 				vec1 = decay_vector3_sXX(vec0, num_bits);
-				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+				if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 					num_errors++;
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
 				vec1 = decay_vector3_uXX(vec0, num_bits);
-				if (!vector_all_near_equal3(vec0, vec1, 1.0e-6f))
+				if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 					num_errors++;
 			}
 		}
@@ -476,7 +476,7 @@ TEST_CASE("pack_vector2_64", "[math][vector4][packing]")
 	{
 		UnalignedBuffer tmp0;
 		UnalignedBuffer tmp1;
-		Vector4_32 vec0 = vector_set(6123.123812f, 19237.01293127f, 0.913912387f, 0.1816253f);
+		Vector4_32 vec0 = vector_set(6123.123812F, 19237.01293127F, 0.913912387F, 0.1816253F);
 		pack_vector4_128(vec0, &tmp0.buffer[0]);
 
 		uint32_t x = unaligned_load<uint32_t>(&tmp0.buffer[0]);
@@ -495,7 +495,7 @@ TEST_CASE("pack_vector2_64", "[math][vector4][packing]")
 
 			memcpy_bits(&tmp1.buffer[0], offset, &tmp0.buffer[0], 0, 64);
 			Vector4_32 vec1 = unpack_vector2_64_unsafe(&tmp1.buffer[0], offset);
-			if (!vector_all_near_equal2(vec0, vec1, 1.0e-6f))
+			if (!vector_all_near_equal2(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
 		REQUIRE(num_errors == 0);
@@ -512,7 +512,7 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 		Vector4_32 vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16), unpack_scalar_unsigned(54432, 16));
 		pack_vector2_uXX_unsafe(vec0, 16, &buffer[0]);
 		Vector4_32 vec1 = unpack_vector2_uXX_unsafe(16, &buffer[0], 0);
-		if (!vector_all_near_equal2(vec0, vec1, 1.0e-6f))
+		if (!vector_all_near_equal2(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
 		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
@@ -521,12 +521,12 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
-				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0f, 1.0f);
+				const float value_unsigned = clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
 				pack_vector2_uXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector2_uXX_unsafe(num_bits, &buffer[0], 0);
-				if (!vector_all_near_equal2(vec0, vec1, 1.0e-6f))
+				if (!vector_all_near_equal2(vec0, vec1, 1.0E-6F))
 					num_errors++;
 
 				{
@@ -537,7 +537,7 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 
 						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 4);
 						vec1 = unpack_vector2_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
-						if (!vector_all_near_equal2(vec0, vec1, 1.0e-6f))
+						if (!vector_all_near_equal2(vec0, vec1, 1.0E-6F))
 							num_errors++;
 					}
 				}

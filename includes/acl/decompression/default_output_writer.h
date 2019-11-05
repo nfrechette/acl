@@ -38,7 +38,7 @@ namespace acl
 	// A simple output writer implementation that simply writes out to a
 	// Transform_32 array.
 	//////////////////////////////////////////////////////////////////////////
-	struct DefaultOutputWriter : public OutputWriter
+	struct DefaultOutputWriter : OutputWriter
 	{
 		DefaultOutputWriter(Transform_32* transforms, uint16_t num_transforms)
 			: m_transforms(transforms)

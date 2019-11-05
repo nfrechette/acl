@@ -82,7 +82,7 @@ namespace acl
 			, m_error()
 			, m_version(0)
 			, m_num_samples(0)
-			, m_sample_rate(0.0f)
+			, m_sample_rate(0.0F)
 			, m_is_binary_exact(false)
 		{
 		}
@@ -240,7 +240,7 @@ namespace acl
 				goto error;
 
 			m_sample_rate = static_cast<float>(sample_rate);
-			if (m_sample_rate <= 0.0f)
+			if (m_sample_rate <= 0.0F)
 			{
 				set_error(ClipReaderError::PositiveValueExpected);
 				return false;
@@ -272,7 +272,7 @@ namespace acl
 			}
 			m_parser.try_read("additive_base_sample_rate", sample_rate, 30.0);
 			m_additive_base_sample_rate = static_cast<float>(sample_rate);
-			if (m_additive_base_sample_rate <= 0.0f)
+			if (m_additive_base_sample_rate <= 0.0F)
 			{
 				set_error(ClipReaderError::PositiveValueExpected);
 				return false;
@@ -311,7 +311,7 @@ namespace acl
 				goto error;
 
 			m_sample_rate = static_cast<float>(sample_rate);
-			if (m_sample_rate <= 0.0f)
+			if (m_sample_rate <= 0.0F)
 			{
 				set_error(ClipReaderError::PositiveValueExpected);
 				return false;
@@ -534,7 +534,7 @@ namespace acl
 		{
 			ACL_ASSERT(num_components <= 4, "Invalid number of components");
 
-			rtm::float4f result = { 0.0f, 0.0f, 0.0f, 0.0f };
+			rtm::float4f result = { 0.0F, 0.0F, 0.0F, 0.0F };
 			float* result_ptr = &result.x;
 
 			for (uint32_t component_index = 0; component_index < num_components; ++component_index)
@@ -696,10 +696,10 @@ namespace acl
 				ACL_ASSERT(num_components > 0 && num_components <= 4, "Cannot have 0 or more than 4 components");
 
 				float precision;
-				m_parser.try_read("precision", precision, 0.0001f);
+				m_parser.try_read("precision", precision, 0.0001F);
 
 				float constant_threshold;
-				m_parser.try_read("constant_threshold", constant_threshold, 0.00001f);
+				m_parser.try_read("constant_threshold", constant_threshold, 0.00001F);
 
 				uint32_t output_index;
 				m_parser.try_read("output_index", output_index, i);

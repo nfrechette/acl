@@ -112,11 +112,11 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the sample rate for tracks in this array.
-		float get_sample_rate() const { return m_allocator != nullptr && m_num_tracks > 0 ? m_tracks->get_sample_rate() : 0.0f; }
+		float get_sample_rate() const { return m_allocator != nullptr && m_num_tracks > 0 ? m_tracks->get_sample_rate() : 0.0F; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the duration for tracks in this array.
-		float get_duration() const { return m_allocator != nullptr && m_num_tracks > 0 ? calculate_duration(uint32_t(m_tracks->get_num_samples()), m_tracks->get_sample_rate()) : 0.0f; }
+		float get_duration() const { return m_allocator != nullptr && m_num_tracks > 0 ? calculate_duration(uint32_t(m_tracks->get_num_samples()), m_tracks->get_sample_rate()) : 0.0F; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track at the specified index.
@@ -174,13 +174,13 @@ namespace acl
 		// Sample all tracks within this array at the specified sample time and
 		// desired rounding policy. Track samples are written out using the `track_writer` provided.
 		template<class track_writer_type>
-		inline void sample_tracks(float sample_time, SampleRoundingPolicy rounding_policy, track_writer_type& writer) const;
+		void sample_tracks(float sample_time, SampleRoundingPolicy rounding_policy, track_writer_type& writer) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Sample a single track within this array at the specified sample time and
 		// desired rounding policy. The track sample is written out using the `track_writer` provided.
 		template<class track_writer_type>
-		inline void sample_track(uint32_t track_index, float sample_time, SampleRoundingPolicy rounding_policy, track_writer_type& writer) const;
+		void sample_track(uint32_t track_index, float sample_time, SampleRoundingPolicy rounding_policy, track_writer_type& writer) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the raw size for this track array. Note that this differs from the actual

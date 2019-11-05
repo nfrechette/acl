@@ -44,14 +44,14 @@ namespace acl
 			rtm::vector4f max_value;
 			rtm::vector4f inv_max_value;
 
-			quantization_scales(uint32_t num_bits)
+			explicit quantization_scales(uint32_t num_bits)
 			{
 				ACL_ASSERT(num_bits > 0, "Cannot decay with 0 bits");
 				ACL_ASSERT(num_bits < 31, "Attempting to decay on too many bits");
 
 				const float max_value_ = safe_to_float((1 << num_bits) - 1);
 				max_value = rtm::vector_set(max_value_);
-				inv_max_value = rtm::vector_set(1.0f / max_value_);
+				inv_max_value = rtm::vector_set(1.0F / max_value_);
 			}
 		};
 
@@ -60,7 +60,7 @@ namespace acl
 		{
 			using namespace rtm;
 
-			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f, %f", vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value));
+			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value));
 
 			const vector4f packed_value = vector_symmetric_round(vector_mul(value, scales.max_value));
 			const vector4f decayed_value = vector_mul(packed_value, scales.inv_max_value);
@@ -72,7 +72,7 @@ namespace acl
 		{
 			using namespace rtm;
 
-			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0f)), "Expected normalized unsigned input value: %f, %f, %f, %f", vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value));
+			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value));
 
 			return vector_symmetric_round(vector_mul(value, scales.max_value));
 		}

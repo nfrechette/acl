@@ -88,8 +88,8 @@ namespace acl
 				, num_tracks(0)
 				, num_output_tracks(0)
 				, num_samples(0)
-				, sample_rate(0.0f)
-				, duration(0.0f)
+				, sample_rate(0.0F)
+				, duration(0.0F)
 			{}
 
 			~track_list_context()
@@ -109,6 +109,11 @@ namespace acl
 
 			bool is_valid() const { return allocator != nullptr; }
 			bool is_constant(uint32_t track_index) const { return bitset_test(constant_tracks_bitset, BitSetDescription::make_from_num_bits(num_tracks), track_index); }
+
+			track_list_context(const track_list_context&) = delete;
+			track_list_context(track_list_context&&) = delete;
+			track_list_context& operator=(const track_list_context&) = delete;
+			track_list_context& operator=(track_list_context&&) = delete;
 		};
 
 		// Promote scalar tracks to vector tracks for SIMD alignment and padding

@@ -41,7 +41,7 @@ namespace acl
 {
 	struct BoneError
 	{
-		BoneError() : index(k_invalid_bone_index), error(0.0f), sample_time(0.0f) {}
+		BoneError() : index(k_invalid_bone_index), error(0.0F), sample_time(0.0F) {}
 
 		uint16_t index;
 		float error;
@@ -63,7 +63,7 @@ namespace acl
 
 		const AnimationClip* additive_base_clip = clip.get_additive_base();
 		const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;
-		const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0f;
+		const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0F;
 
 		Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* base_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
@@ -85,7 +85,7 @@ namespace acl
 
 			if (additive_base_clip != nullptr)
 			{
-				const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0f;
+				const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
 				const float additive_sample_time = normalized_sample_time * additive_duration;
 				additive_base_clip->sample_pose(additive_sample_time, SampleRoundingPolicy::Nearest, base_pose_transforms, num_bones);
 			}

@@ -155,10 +155,10 @@ static void test_scalar_impl(const FloatType pi, const FloatType threshold)
 
 TEST_CASE("scalar 32 math", "[math][scalar]")
 {
-	test_scalar_impl<float>(acl::k_pi_32, 1.0e-6f);
+	test_scalar_impl<float>(acl::k_pi_32, 1.0E-6F);
 }
 
 TEST_CASE("scalar 64 math", "[math][scalar]")
 {
-	test_scalar_impl<double>(acl::k_pi_64, 1.0e-9);
+	test_scalar_impl<double>(acl::k_pi_64, 1.0E-9);
 }

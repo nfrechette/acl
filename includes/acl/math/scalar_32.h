@@ -36,7 +36,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 namespace acl
 {
 	// TODO: Get a higher precision number
-	constexpr float k_pi_32 = 3.141592654f;
+	constexpr float k_pi_32 = 3.141592654F;
 
 	inline float floor(float input)
 	{
@@ -91,7 +91,7 @@ namespace acl
 #if defined(ACL_SSE2_INTRINSICS)
 		// Perform two passes of Newton-Raphson iteration on the hardware estimate
 		__m128 input_v = _mm_set_ss(input);
-		__m128 half = _mm_set_ss(0.5f);
+		__m128 half = _mm_set_ss(0.5F);
 		__m128 input_half_v = _mm_mul_ss(input_v, half);
 		__m128 x0 = _mm_rsqrt_ss(input_v);
 
@@ -107,7 +107,7 @@ namespace acl
 
 		return _mm_cvtss_f32(x2);
 #else
-		return 1.0f / sqrt(input);
+		return 1.0F / sqrt(input);
 #endif
 	}
 #if _MSC_VER >= 1920 && defined(_M_X64) && defined(ACL_SSE2_INTRINSICS) && !defined(ACL_AVX_INTRINSICS)
@@ -130,7 +130,7 @@ namespace acl
 
 		return _mm_cvtss_f32(x2);
 #else
-		return 1.0f / input;
+		return 1.0F / input;
 #endif
 	}
 
@@ -180,7 +180,7 @@ namespace acl
 
 	constexpr float deg2rad(float deg)
 	{
-		return (deg / 180.0f) * k_pi_32;
+		return (deg / 180.0F) * k_pi_32;
 	}
 
 	inline bool scalar_near_equal(float lhs, float rhs, float threshold)
@@ -195,7 +195,7 @@ namespace acl
 
 	inline float symmetric_round(float input)
 	{
-		return input >= 0.0f ? floor(input + 0.5f) : ceil(input - 0.5f);
+		return input >= 0.0F ? floor(input + 0.5F) : ceil(input - 0.5F);
 	}
 
 	inline float fraction(float value)

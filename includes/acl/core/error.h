@@ -92,7 +92,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 		}
 	}
 
-	#define ACL_ASSERT(expression, format, ...) if (!(expression)) acl::error_impl::on_assert_abort(#expression, __LINE__, __FILE__, format, ## __VA_ARGS__)
+	#define ACL_ASSERT(expression, format, ...) if (!(expression)) acl::error_impl::on_assert_abort(#expression, __LINE__, __FILE__, (format), ## __VA_ARGS__)
 	#define ACL_HAS_ASSERT_CHECKS
 
 #elif defined(ACL_ON_ASSERT_THROW)
@@ -137,13 +137,13 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 		}
 	}
 
-	#define ACL_ASSERT(expression, format, ...) if (!(expression)) acl::error_impl::on_assert_throw(#expression, __LINE__, __FILE__, format, ## __VA_ARGS__)
+	#define ACL_ASSERT(expression, format, ...) if (!(expression)) acl::error_impl::on_assert_throw(#expression, __LINE__, __FILE__, (format), ## __VA_ARGS__)
 	#define ACL_HAS_ASSERT_CHECKS
 
 #elif defined(ACL_ON_ASSERT_CUSTOM)
 
 	#if !defined(ACL_ASSERT)
-		#define ACL_ASSERT(expression, format, ...) if (!(expression)) ACL_ON_ASSERT_CUSTOM(#expression, __LINE__, __FILE__, format, ## __VA_ARGS__)
+		#define ACL_ASSERT(expression, format, ...) if (!(expression)) ACL_ON_ASSERT_CUSTOM(#expression, __LINE__, __FILE__, (format), ## __VA_ARGS__)
 	#endif
 
 	#define ACL_HAS_ASSERT_CHECKS

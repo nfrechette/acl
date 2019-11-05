@@ -150,12 +150,11 @@ namespace acl
 	//
 	// Holds a track made of 'Quat_64' entries.
 	//////////////////////////////////////////////////////////////////////////
-	class AnimationRotationTrack : public AnimationTrack
+	class AnimationRotationTrack final : public AnimationTrack
 	{
 	public:
-		AnimationRotationTrack()
-			: AnimationTrack()
-		{}
+		AnimationRotationTrack() : AnimationTrack() {}
+		~AnimationRotationTrack() = default;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs a new rotation track instance
@@ -225,12 +224,11 @@ namespace acl
 	//
 	// Holds a track made of 3x 'double' entries.
 	//////////////////////////////////////////////////////////////////////////
-	class AnimationTranslationTrack : public AnimationTrack
+	class AnimationTranslationTrack final : public AnimationTrack
 	{
 	public:
-		AnimationTranslationTrack()
-			: AnimationTrack()
-		{}
+		AnimationTranslationTrack() : AnimationTrack() {}
+		~AnimationTranslationTrack() = default;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs a new translation track instance
@@ -297,12 +295,11 @@ namespace acl
 	//
 	// Holds a track made of 3x 'double' entries.
 	//////////////////////////////////////////////////////////////////////////
-	class AnimationScaleTrack : public AnimationTrack
+	class AnimationScaleTrack final : public AnimationTrack
 	{
 	public:
-		AnimationScaleTrack()
-			: AnimationTrack()
-		{}
+		AnimationScaleTrack() : AnimationTrack() {}
+		~AnimationScaleTrack() = default;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs a new scale track instance

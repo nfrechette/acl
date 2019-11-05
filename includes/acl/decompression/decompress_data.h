@@ -782,12 +782,12 @@ namespace acl
 						if (is_constant_bit_rate(bit_rate))
 						{
 							rotations_as_vec[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
-							range_ignore_flags |= 0x00000001u;	// Skip segment only
+							range_ignore_flags |= 0x00000001U;	// Skip segment only
 						}
 						else if (is_raw_bit_rate(bit_rate))
 						{
 							rotations_as_vec[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
-							range_ignore_flags |= 0x00000003u;	// Skip clip and segment
+							range_ignore_flags |= 0x00000003U;	// Skip clip and segment
 						}
 						else
 						{
@@ -878,7 +878,7 @@ namespace acl
 
 					if (rotation_format == RotationFormat8::QuatDropW_Variable && settings.is_rotation_format_supported(RotationFormat8::QuatDropW_Variable))
 					{
-						constexpr uint32_t ignore_mask = 0x00000001u << ((num_key_frames - 1) * 2);
+						constexpr uint32_t ignore_mask = 0x00000001U << ((num_key_frames - 1) * 2);
 						if ((range_ignore_flags & (ignore_mask >> 0)) == 0)
 						{
 							const Vector4_32 segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
@@ -992,7 +992,7 @@ namespace acl
 					const Vector4_32 clip_range_min = vector_unaligned_load_32(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
 					const Vector4_32 clip_range_extent = vector_unaligned_load_32(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (num_rotation_components * sizeof(float)));
 
-					constexpr uint32_t ignore_mask = 0x00000002u << ((num_key_frames - 1) * 2);
+					constexpr uint32_t ignore_mask = 0x00000002U << ((num_key_frames - 1) * 2);
 					if ((range_ignore_flags & (ignore_mask >> 0)) == 0)
 						rotation_as_vec0 = vector_mul_add(rotation_as_vec0, clip_range_extent, clip_range_min);
 
@@ -1098,12 +1098,12 @@ namespace acl
 						if (is_constant_bit_rate(bit_rate))
 						{
 							vectors[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context.segment_range_data_offset);
-							range_ignore_flags |= 0x00000001u;	// Skip segment only
+							range_ignore_flags |= 0x00000001U;	// Skip segment only
 						}
 						else if (is_raw_bit_rate(bit_rate))
 						{
 							vectors[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
-							range_ignore_flags |= 0x00000003u;	// Skip clip and segment
+							range_ignore_flags |= 0x00000003U;	// Skip clip and segment
 						}
 						else
 							vectors[i] = unpack_vector3_uXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
@@ -1176,7 +1176,7 @@ namespace acl
 					const uint32_t segment_range_min_offset = sampling_context.segment_range_data_offset;
 					const uint32_t segment_range_extent_offset = sampling_context.segment_range_data_offset + (3 * sizeof(uint8_t));
 
-					constexpr uint32_t ignore_mask = 0x00000001u << ((num_key_frames - 1) * 2);
+					constexpr uint32_t ignore_mask = 0x00000001U << ((num_key_frames - 1) * 2);
 					if ((range_ignore_flags & (ignore_mask >> 0)) == 0)
 					{
 						const Vector4_32 segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
@@ -1220,7 +1220,7 @@ namespace acl
 					const Vector4_32 clip_range_min = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
 					const Vector4_32 clip_range_extent = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (3 * sizeof(float)));
 
-					constexpr uint32_t ignore_mask = 0x00000002u << ((num_key_frames - 1) * 2);
+					constexpr uint32_t ignore_mask = 0x00000002U << ((num_key_frames - 1) * 2);
 					if ((range_ignore_flags & (ignore_mask >> 0)) == 0)
 						vector0 = vector_mul_add(vector0, clip_range_extent, clip_range_min);
 

@@ -48,7 +48,7 @@ namespace acl
 		}
 
 		// Write our sentinel value
-		segment_start_indices[clip_context.num_segments] = 0xFFFFFFFFu;
+		segment_start_indices[clip_context.num_segments] = 0xFFFFFFFFU;
 	}
 
 	inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint32_t segment_data_start_offset)

@@ -52,7 +52,7 @@ namespace acl
 			rtm::vector4f RTM_SIMD_CALL get_min() const { return m_min; }
 			rtm::vector4f RTM_SIMD_CALL get_max() const { return rtm::vector_add(m_min, m_extent); }
 
-			rtm::vector4f RTM_SIMD_CALL get_center() const { return rtm::vector_add(m_min, rtm::vector_mul(m_extent, 0.5f)); }
+			rtm::vector4f RTM_SIMD_CALL get_center() const { return rtm::vector_add(m_min, rtm::vector_mul(m_extent, 0.5F)); }
 			rtm::vector4f RTM_SIMD_CALL get_extent() const { return m_extent; }
 
 			bool is_constant(float threshold) const { return rtm::vector_all_less_than(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
@@ -65,7 +65,7 @@ namespace acl
 		struct track_range
 		{
 			track_range() : range(), category(track_category8::scalarf) {}
-			track_range(const scalarf_range& range_) : range(range_), category(track_category8::scalarf) {}
+			explicit track_range(const scalarf_range& range_) : range(range_), category(track_category8::scalarf) {}
 
 			bool is_constant(float threshold) const
 			{
@@ -84,7 +84,7 @@ namespace acl
 				// TODO: Add qvv range and scalard/i/q ranges
 
 				range_union() : scalarf(scalarf_range::from_min_extent(rtm::vector_zero(), rtm::vector_zero())) {}
-				range_union(const scalarf_range& range) : scalarf(range) {}
+				explicit range_union(const scalarf_range& range) : scalarf(range) {}
 			};
 
 			range_union			range;
