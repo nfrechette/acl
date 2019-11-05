@@ -101,6 +101,9 @@ namespace acl
 			if (this_length != other_length)
 				return false;
 
+			if (this_length == 0)
+				return true;
+
 			return std::memcmp(m_c_str, c_str, other_length) == 0;
 		}
 
