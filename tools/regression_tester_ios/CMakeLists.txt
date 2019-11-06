@@ -65,4 +65,7 @@ if(NOT USE_SIMD_INSTRUCTIONS)
 	add_definitions(-DRTM_NO_INTRINSICS)
 endif()
 
+# Enable SJSON
+add_definitions(-DACL_USE_SJSON)
+
 target_link_libraries(${PROJECT_NAME} "-framework CoreFoundation")

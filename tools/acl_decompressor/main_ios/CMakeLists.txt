@@ -60,6 +60,9 @@ if(NOT USE_SIMD_INSTRUCTIONS)
 	add_definitions(-DRTM_NO_INTRINSICS)
 endif()
 
+# Enable SJSON
+add_definitions(-DACL_USE_SJSON)
+
 target_link_libraries(${PROJECT_NAME} "-framework CoreFoundation")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/Info.plist.in)

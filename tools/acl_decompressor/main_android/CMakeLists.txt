@@ -71,6 +71,9 @@ if(NOT USE_SIMD_INSTRUCTIONS)
 	add_definitions(-DRTM_NO_INTRINSICS)
 endif()
 
+# Enable SJSON
+add_definitions(-DACL_USE_SJSON)
+
 target_include_directories(${PROJECT_NAME} PUBLIC jni)
 
 target_link_libraries(${PROJECT_NAME} m log android)

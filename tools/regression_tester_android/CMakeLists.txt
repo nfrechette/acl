@@ -77,6 +77,9 @@ endif()
 # and fail to free memory, leading to a crash in the allocator
 add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
 
+# Enable SJSON
+add_definitions(-DACL_USE_SJSON)
+
 target_include_directories(${PROJECT_NAME} PUBLIC jni)
 
 target_link_libraries(${PROJECT_NAME} m log android)

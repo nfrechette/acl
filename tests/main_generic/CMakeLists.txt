@@ -42,4 +42,6 @@ add_definitions(-DACL_ON_ASSERT_THROW)
 add_definitions(-DRTM_ON_ASSERT_THROW)
 add_definitions(-DSJSON_CPP_ON_ASSERT_THROW)
 
+add_definitions(-DACL_USE_SJSON)
+
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

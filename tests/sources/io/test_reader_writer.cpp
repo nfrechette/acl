@@ -28,8 +28,10 @@
 #define ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS
 #define ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS
 
-#include <sjson/parser.h>
-#include <sjson/writer.h>
+#if defined(ACL_USE_SJSON)
+	#include <sjson/parser.h>
+	#include <sjson/writer.h>
+#endif
 
 #include <acl/core/ansi_allocator.h>
 #include <acl/io/clip_reader.h>
@@ -95,11 +97,11 @@
 
 using namespace acl;
 
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 #ifdef _WIN32
-constexpr uint32_t k_max_filename_size = MAX_PATH;
+	constexpr uint32_t k_max_filename_size = MAX_PATH;
 #else
-constexpr uint32_t k_max_filename_size = 1024;
+	constexpr uint32_t k_max_filename_size = 1024;
 #endif
 
 static void get_temporary_filename(char* filename, uint32_t filename_size, const char* prefix)
@@ -131,7 +133,7 @@ static void get_temporary_filename(char* filename, uint32_t filename_size, const
 TEST_CASE("sjson_clip_reader_writer", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint16_t num_bones = 3;
@@ -301,7 +303,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -413,7 +415,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -525,7 +527,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -637,7 +639,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -749,7 +751,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;
