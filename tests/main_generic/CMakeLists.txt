@@ -39,5 +39,7 @@ endif()
 
 # Throw on failure to allow us to catch them and recover
 add_definitions(-DACL_ON_ASSERT_THROW)
+add_definitions(-DRTM_ON_ASSERT_THROW)
+add_definitions(-DSJSON_CPP_ON_ASSERT_THROW)
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
