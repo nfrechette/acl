@@ -16,7 +16,7 @@ using namespace acl;
 uint32_t num_tracks = 4;
 uint32_t num_samples_per_track = 20;
 float sample_rate = 30.0f;
-track_array raw_track_list(allocator, num_tracks);
+track_array_float3f raw_track_list(allocator, num_tracks);
 ```
 
 Once you have created an instance, simply populate the track data. Note that at the moment, tracks contained in the array are untyped but they must all have the same track type (e.g. `float2f`), the same number of samples per track, and the same sample rate.
@@ -50,7 +50,7 @@ raw_track0[1] = rtm::float3f{ 2.333F, 321.13F, 31.66F };
 raw_track0[2] = rtm::float3f{ 3.123F, 81.0F, 913.13F };
 raw_track0[3] = rtm::float3f{ 4.5F, 91.13F, 41.135F };
 // ...
-raw_track_list[0] = track0.get_ref();
+raw_track_list[0] = std::move(raw_track0);
 ```
 
 Once your raw track list has been populated with data, it is ready for [compression](compressing_scalar_tracks.md). The data contained within the `track_array` will be read-only.

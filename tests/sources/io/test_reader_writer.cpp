@@ -308,7 +308,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
-	track_array track_list(allocator, num_tracks);
+	track_array_float1f track_list(allocator, num_tracks);
 
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
@@ -420,7 +420,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
-	track_array track_list(allocator, num_tracks);
+	track_array_float2f track_list(allocator, num_tracks);
 
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
@@ -532,7 +532,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
-	track_array track_list(allocator, num_tracks);
+	track_array_float3f track_list(allocator, num_tracks);
 
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
@@ -644,7 +644,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
-	track_array track_list(allocator, num_tracks);
+	track_array_float4f track_list(allocator, num_tracks);
 
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
@@ -756,7 +756,7 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
-	track_array track_list(allocator, num_tracks);
+	track_array_vector4f track_list(allocator, num_tracks);
 
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
