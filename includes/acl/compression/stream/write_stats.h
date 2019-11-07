@@ -178,17 +178,7 @@ namespace acl
 		writer["compressed_size"] = compressed_size;
 		writer["compression_ratio"] = compression_ratio;
 		writer["compression_time"] = compression_time.get_elapsed_seconds();
-
-		// todo sjson-cpp properly handle infinity values
-		//writer["duration"] = clip.get_duration();
-		const float duration = clip.get_duration();
-		if (std::isnan(duration))
-			writer["duration"] = "nan";
-		else if (std::isfinite(duration))
-			writer["duration"] = duration;
-		else
-			writer["duration"] = duration >= 0.0F ? "+inf" : "-inf";
-
+		writer["duration"] = clip.get_duration();
 		writer["num_samples"] = clip.get_num_samples();
 		writer["num_bones"] = clip.get_num_bones();
 		writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
