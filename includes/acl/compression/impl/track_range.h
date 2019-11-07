@@ -26,7 +26,7 @@
 
 #include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
-#include "acl/compression/track_array.h"
+#include "acl/core/track_types.h"
 
 #include <rtm/vector4f.h>
 
