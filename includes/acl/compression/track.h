@@ -499,7 +499,7 @@ namespace acl
 	template<typename track_type>
 	inline track_type* track_cast(track* track_)
 	{
-		if (track_ == nullptr || (track_type::type != track_->get_type() && track_.get_num_samples() != 0))
+		if (track_ == nullptr || (track_type::type != track_->get_type() && track_->get_num_samples() != 0))
 			return nullptr;
 
 		return static_cast<track_type*>(track_);
@@ -511,7 +511,7 @@ namespace acl
 	template<typename track_type>
 	inline const track_type* track_cast(const track* track_)
 	{
-		if (track_ == nullptr || (track_type::type != track_->get_type() && track_.get_num_samples() != 0))
+		if (track_ == nullptr || (track_type::type != track_->get_type() && track_->get_num_samples() != 0))
 			return nullptr;
 
 		return static_cast<const track_type*>(track_);
