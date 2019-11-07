@@ -34,6 +34,8 @@ if __name__ == "__main__":
 		for arch in archs:
 			for compiler in compilers:
 				for simd in simd_opts:
+					if compiler == 'clang7' and simd == '-nosimd':
+						continue	# Hack to avoid compiler issue
 					args = [python_exe, 'make.py', '-compiler', compiler, '-cpu', arch, '-config', config, simd, '-build', '-unit_test', '-regression_test', '-clean']
 					cmd_args.append([x for x in args if x])
 
