@@ -521,7 +521,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 	const uint32_t num_samples = tracks.get_num_samples_per_track();
 	const track_type8 track_type = raw_tracks.get_track_type();
 
-	ACL_ASSERT(duration == raw_tracks.get_duration(), "Duration mismatch");
+	ACL_ASSERT(scalar_near_equal(duration, raw_tracks.get_duration(), 1.0E-7F), "Duration mismatch");
 	ACL_ASSERT(sample_rate == raw_tracks.get_sample_rate(), "Sample rate mismatch");
 	ACL_ASSERT(num_tracks <= raw_tracks.get_num_tracks(), "Num tracks mismatch");
 	ACL_ASSERT(num_samples == raw_tracks.get_num_samples_per_track(), "Num samples mismatch");
