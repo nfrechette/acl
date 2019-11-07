@@ -351,7 +351,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track.
-		track_typed& operator=(track_typed&& other) { return track::operator=(std::forward<track>(other)); }
+		track_typed& operator=(track_typed&& other) { return static_cast<track_typed&>(track::operator=(std::forward<track>(other))); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the sample at the specified index.
