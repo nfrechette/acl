@@ -188,7 +188,7 @@ namespace acl
 		// the compressed size.
 		uint32_t get_raw_size() const;
 
-	private:
+	protected:
 		//////////////////////////////////////////////////////////////////////////
 		// We prohibit copying
 		track_array(const track_array&) = delete;
@@ -198,6 +198,129 @@ namespace acl
 		track*			m_tracks;			// The track list
 		uint32_t		m_num_tracks;		// The number of tracks
 	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// A typed track array. See `track_array` for details.
+	//////////////////////////////////////////////////////////////////////////
+	template<track_type8 track_type_>
+	class track_array_typed final : public track_array
+	{
+	public:
+		//////////////////////////////////////////////////////////////////////////
+		// The track type.
+		static constexpr track_type8 type = track_type_;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The track category.
+		static constexpr track_category8 category = track_traits<track_type_>::category;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The track member type.
+		using track_member_type = track_typed<track_type_>;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs an empty track array.
+		track_array_typed() : track_array() { static_assert(sizeof(track_array_typed) == sizeof(track_array), "You cannot add member variables to this class"); }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs an array with the specified number of tracks.
+		// Tracks will be empty and untyped by default.
+		track_array_typed(IAllocator& allocator, uint32_t num_tracks) : track_array(allocator, num_tracks) {}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Move constructor for a track array.
+		track_array_typed(track_array_typed&& other) : track_array(std::forward<track_array>(other)) {}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Destroys a track array.
+		~track_array_typed() = default;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Move assignment for a track array.
+		track_array_typed& operator=(track_array_typed&& other) { return static_cast<track_array_typed&>(track_array::operator=(std::forward<track_array>(other))); }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the track type for tracks in this array.
+		track_type8 get_track_type() const { return type; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the track category for tracks in this array.
+		track_category8 get_track_category() const { return category; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the track at the specified index.
+		track_member_type& operator[](uint32_t index)
+		{
+			ACL_ASSERT(index < m_num_tracks, "Invalid track index. %u >= %u", index, m_num_tracks);
+			return track_cast<track_member_type>(m_tracks[index]);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the track at the specified index.
+		const track_member_type& operator[](uint32_t index) const
+		{
+			ACL_ASSERT(index < m_num_tracks, "Invalid track index. %u >= %u", index, m_num_tracks);
+			return track_cast<track_member_type>(m_tracks[index]);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Iterator begin() and end() implementations.
+		track_member_type* begin() { return track_cast<track_member_type>(m_tracks); }
+		const track_member_type* begin() const { return track_cast<track_member_type>(m_tracks); }
+		const track_member_type* end() { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
+		const track_member_type* end() const { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// Casts an untyped track array into the desired track array type while asserting for safety.
+	template<typename track_array_type>
+	inline track_array_type& track_array_cast(track_array& track_array_)
+	{
+		ACL_ASSERT(track_array_type::type == track_array_.get_track_type() || track_array_.get_num_tracks() == 0, "Unexpected track type");
+		return static_cast<track_array_type&>(track_array_);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Casts an untyped track array into the desired track array type while asserting for safety.
+	template<typename track_array_type>
+	inline const track_array_type& track_array_cast(const track_array& track_array_)
+	{
+		ACL_ASSERT(track_array_type::type == track_array_.get_track_type() || track_array_.get_num_tracks() == 0, "Unexpected track type");
+		return static_cast<const track_array_type&>(track_array_);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Casts an untyped track array into the desired track array type. Returns nullptr if the types
+	// are not compatible or if the input is nullptr.
+	template<typename track_array_type>
+	inline track_array_type* track_array_cast(track_array* track_array_)
+	{
+		if (track_array_ == nullptr || (track_array_type::type != track_array_->get_track_type() && track_array_->get_num_tracks() != 0))
+			return nullptr;
+
+		return static_cast<track_array_type*>(track_array_);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Casts an untyped track array into the desired track array type. Returns nullptr if the types
+	// are not compatible or if the input is nullptr.
+	template<typename track_array_type>
+	inline const track_array_type* track_array_cast(const track_array* track_array_)
+	{
+		if (track_array_ == nullptr || (track_array_type::type != track_array_->get_track_type() && track_array_->get_num_tracks() != 0))
+			return nullptr;
+
+		return static_cast<const track_array_type*>(track_array_);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Create aliases for the various typed track array types.
+
+	using track_array_float1f = track_array_typed<track_type8::float1f>;
+	using track_array_float2f = track_array_typed<track_type8::float2f>;
+	using track_array_float3f = track_array_typed<track_type8::float3f>;
+	using track_array_float4f = track_array_typed<track_type8::float4f>;
+	using track_array_vector4f = track_array_typed<track_type8::vector4f>;
 
 	//////////////////////////////////////////////////////////////////////////
 
