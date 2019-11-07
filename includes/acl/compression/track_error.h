@@ -92,9 +92,10 @@ namespace acl
 		{
 			const float sample_time = min(float(sample_index) / sample_rate, duration);
 
-			raw_tracks.sample_tracks(sample_time, SampleRoundingPolicy::None, raw_tracks_writer);
+			// We use the nearest sample to accurately measure the loss that happened, if any
+			raw_tracks.sample_tracks(sample_time, SampleRoundingPolicy::Nearest, raw_tracks_writer);
 
-			context.seek(sample_time, SampleRoundingPolicy::None);
+			context.seek(sample_time, SampleRoundingPolicy::Nearest);
 			context.decompress_tracks(lossy_tracks_writer);
 
 			// Validate decompress_tracks
