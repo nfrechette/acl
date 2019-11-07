@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: required
 
 language: cpp
@@ -21,6 +21,10 @@ matrix:
     - os: linux
       env: COMPILER=gcc8 TOOLCHAIN=gcc PACKAGES="g++-8 g++-8-multilib g++-multilib"
 
+    # Linux gcc9
+    - os: linux
+      env: COMPILER=gcc9 TOOLCHAIN=gcc PACKAGES="g++-9 g++-9-multilib g++-multilib"
+
     # Linux clang4
     - os: linux
       env: COMPILER=clang4 TOOLCHAIN=clang PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
@@ -35,6 +39,10 @@ matrix:
     # Linux clang6
     - os: linux
       env: COMPILER=clang6 TOOLCHAIN=clang PACKAGES="clang-6.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+
+    # Linux clang7
+    - os: linux
+      env: COMPILER=clang7 TOOLCHAIN=clang PACKAGES="clang-7 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
 
     # OS X xcode8
     - os: osx
@@ -53,9 +61,10 @@ matrix:
 
 before_install:
     - if [[ "$TOOLCHAIN" == "clang" ]]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
-    - if [[ "$COMPILER" == "clang4" ]]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
-    - if [[ "$COMPILER" == "clang5" ]]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
-    - if [[ "$COMPILER" == "clang6" ]]; then echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-6.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang4" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang5" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-5.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang6" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang7" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
     - 'if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test";
       sudo -E apt-get -yq update;
@@ -67,7 +76,10 @@ script:
     - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x86
     - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Debug -cpu x64
     - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x64
-    - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x64 -nosimd
+    # Hack to avoid trying nosimd with clang7, it never terminates or takes forever
+    - 'if [[ "$COMPILER" != "clang7" ]]; then
+      python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x64 -nosimd;
+      fi'
     - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       python make.py -clean -build -compiler ios -config Debug;
       python make.py -clean -build -compiler ios -config Release;
