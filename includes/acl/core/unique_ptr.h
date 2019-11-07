@@ -37,7 +37,11 @@ namespace acl
 	public:
 		Deleter() : m_allocator(nullptr) {}
 		explicit Deleter(IAllocator& allocator) : m_allocator(&allocator) {}
-		Deleter(const Deleter& deleter) : m_allocator(deleter.m_allocator) {}
+		Deleter(const Deleter&) = default;
+		Deleter(Deleter&&) = default;
+		~Deleter() = default;
+		Deleter& operator=(const Deleter&) = default;
+		Deleter& operator=(Deleter&&) = default;
 
 		void operator()(AllocatedType* ptr)
 		{

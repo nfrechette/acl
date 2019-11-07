@@ -60,7 +60,7 @@ TEST_CASE("interpolation utils", "[core][utils]")
 	REQUIRE(key1 == 30);
 	REQUIRE(scalar_near_equal(alpha, 0.0F, error_threshold));
 
-	find_linear_interpolation_samples_with_duration(31, 1.0f, 2.5F / 30.0F, SampleRoundingPolicy::Floor, key0, key1, alpha);
+	find_linear_interpolation_samples_with_duration(31, 1.0F, 2.5F / 30.0F, SampleRoundingPolicy::Floor, key0, key1, alpha);
 
 	REQUIRE(key0 == 2);
 	REQUIRE(key1 == 3);

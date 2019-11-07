@@ -67,7 +67,7 @@ namespace acl
 			: m_allocator(nullptr)
 			, m_sample_data(nullptr)
 			, m_num_samples(0)
-			, m_sample_rate(0.0f)
+			, m_sample_rate(0.0F)
 			, m_type(AnimationTrackType8::Rotation)
 		{}
 

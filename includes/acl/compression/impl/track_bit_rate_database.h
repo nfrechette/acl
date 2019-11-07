@@ -127,7 +127,7 @@ namespace acl
 			uint8_t bit_rates[4];
 
 			bit_rates_union() : value(0xFFFFFFFFU) {}
-			bit_rates_union(const BoneBitRate& input) : bit_rates{ input.rotation, input.translation, input.scale, 0 } {}
+			explicit bit_rates_union(const BoneBitRate& input) : bit_rates{ input.rotation, input.translation, input.scale, 0 } {}
 
 			inline bool operator==(bit_rates_union other) const { return value == other.value; }
 			inline bool operator!=(bit_rates_union other) const { return value != other.value; }
@@ -634,7 +634,7 @@ namespace acl
 				{
 					key0 = context.sample_key;
 					key1 = 0;
-					interpolation_alpha = 0.0f;
+					interpolation_alpha = 0.0F;
 				}
 
 				Quat_32 sample0;

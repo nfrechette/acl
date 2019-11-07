@@ -45,7 +45,7 @@ namespace acl
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Destroys a scope profiler and automatically stops it.
-		~ScopeProfiler();
+		~ScopeProfiler() = default;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Manually stops the profiler.
@@ -83,12 +83,6 @@ namespace acl
 	inline ScopeProfiler::ScopeProfiler()
 	{
 		m_start_time = m_end_time = std::chrono::high_resolution_clock::now();
-	}
-
-	inline ScopeProfiler::~ScopeProfiler()
-	{
-		// Nothing to do, really
-		//stop();
 	}
 
 	inline void ScopeProfiler::stop()
