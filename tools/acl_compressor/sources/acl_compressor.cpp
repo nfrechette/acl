@@ -437,16 +437,17 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	{
 		const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
 
-		clip.sample_pose(sample_time, SampleRoundingPolicy::None, raw_pose_transforms, num_bones);
+		// We use the nearest sample to accurately measure the loss that happened, if any
+		clip.sample_pose(sample_time, SampleRoundingPolicy::Nearest, raw_pose_transforms, num_bones);
 
-		context.seek(sample_time, SampleRoundingPolicy::None);
+		context.seek(sample_time, SampleRoundingPolicy::Nearest);
 		context.decompress_pose(pose_writer);
 
 		if (additive_base_clip != nullptr)
 		{
 			const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
 			const float additive_sample_time = normalized_sample_time * additive_duration;
-			additive_base_clip->sample_pose(additive_sample_time, base_pose_transforms, num_bones);
+			additive_base_clip->sample_pose(additive_sample_time, SampleRoundingPolicy::Nearest, base_pose_transforms, num_bones);
 		}
 
 		// Validate decompress_pose
@@ -541,9 +542,10 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 	{
 		const float sample_time = min(float(sample_index) / sample_rate, duration);
 
-		raw_tracks.sample_tracks(sample_time, SampleRoundingPolicy::None, raw_tracks_writer);
+		// We use the nearest sample to accurately measure the loss that happened, if any
+		raw_tracks.sample_tracks(sample_time, SampleRoundingPolicy::Nearest, raw_tracks_writer);
 
-		context.seek(sample_time, SampleRoundingPolicy::None);
+		context.seek(sample_time, SampleRoundingPolicy::Nearest);
 		context.decompress_tracks(lossy_tracks_writer);
 
 		// Validate decompress_tracks
@@ -613,7 +615,8 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 			if (output_index == k_invalid_track_index)
 				continue;	// Track is being stripped, ignore it
 
-			raw_tracks.sample_track(track_index, sample_time, SampleRoundingPolicy::None, raw_track_writer);
+			// We use the nearest sample to accurately measure the loss that happened, if any
+			raw_tracks.sample_track(track_index, sample_time, SampleRoundingPolicy::Nearest, raw_track_writer);
 			context.decompress_track(output_index, lossy_track_writer);
 
 			switch (track_type)
