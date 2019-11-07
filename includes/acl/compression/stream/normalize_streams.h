@@ -176,7 +176,7 @@ namespace acl
 
 	inline void normalize_rotation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 	{
-		const Vector4_32 one = vector_set(1.0f);
+		const Vector4_32 one = vector_set(1.0F);
 		const Vector4_32 zero = vector_zero_32();
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -230,7 +230,7 @@ namespace acl
 
 	inline void normalize_translation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 	{
-		const Vector4_32 one = vector_set(1.0f);
+		const Vector4_32 one = vector_set(1.0F);
 		const Vector4_32 zero = vector_zero_32();
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -271,7 +271,7 @@ namespace acl
 
 	inline void normalize_scale_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 	{
-		const Vector4_32 one = vector_set(1.0f);
+		const Vector4_32 one = vector_set(1.0F);
 		const Vector4_32 zero = vector_zero_32();
 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)

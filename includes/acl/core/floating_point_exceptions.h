@@ -98,8 +98,9 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Enables floating point exceptions in the parent scope for invalid operations, division by zero, and overflow.
 	//////////////////////////////////////////////////////////////////////////
-	struct scope_enable_fp_exceptions
+	class scope_enable_fp_exceptions
 	{
+	public:
 		scope_enable_fp_exceptions()
 		{
 			enable_fp_exceptions(env);
@@ -110,6 +111,7 @@ namespace acl
 			restore_fp_exceptions(env);
 		}
 
+	private:
 		// Prevent copy or move
 		scope_enable_fp_exceptions(const scope_enable_fp_exceptions&) = delete;
 		scope_enable_fp_exceptions(scope_enable_fp_exceptions&&) = delete;
@@ -122,8 +124,9 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Disables all floating point exceptions in the parent scope.
 	//////////////////////////////////////////////////////////////////////////
-	struct scope_disable_fp_exceptions
+	class scope_disable_fp_exceptions
 	{
+	public:
 		scope_disable_fp_exceptions()
 		{
 			disable_fp_exceptions(env);
@@ -134,6 +137,7 @@ namespace acl
 			restore_fp_exceptions(env);
 		}
 
+	private:
 		// Prevent copy or move
 		scope_disable_fp_exceptions(const scope_disable_fp_exceptions&) = delete;
 		scope_disable_fp_exceptions(scope_disable_fp_exceptions&&) = delete;
