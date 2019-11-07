@@ -204,18 +204,7 @@ namespace acl
 		track get_copy(IAllocator& allocator) const
 		{
 			track track_;
-			track_.m_allocator = &allocator;
-			track_.m_data = reinterpret_cast<uint8_t*>(allocator.allocate(m_data_size));
-			track_.m_num_samples = m_num_samples;
-			track_.m_stride = m_stride;
-			track_.m_data_size = m_data_size;
-			track_.m_sample_rate = m_sample_rate;
-			track_.m_type = m_type;
-			track_.m_category = m_category;
-			track_.m_desc = m_desc;
-
-			std::memcpy(track_.m_data, m_data, m_data_size);
-
+			get_copy_impl(allocator, track_);
 			return track_;
 		}
 
@@ -224,15 +213,7 @@ namespace acl
 		track get_ref() const
 		{
 			track track_;
-			track_.m_allocator = nullptr;
-			track_.m_data = m_data;
-			track_.m_num_samples = m_num_samples;
-			track_.m_stride = m_stride;
-			track_.m_data_size = m_data_size;
-			track_.m_sample_rate = m_sample_rate;
-			track_.m_type = m_type;
-			track_.m_category = m_category;
-			track_.m_desc = m_desc;
+			get_ref_impl(track_);
 			return track_;
 		}
 
@@ -272,6 +253,38 @@ namespace acl
 			, m_sample_size(sample_size)
 			, m_desc()
 		{}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Internal helper.
+		void get_copy_impl(IAllocator& allocator, track& out_track) const
+		{
+			out_track.m_allocator = &allocator;
+			out_track.m_data = reinterpret_cast<uint8_t*>(allocator.allocate(m_data_size));
+			out_track.m_num_samples = m_num_samples;
+			out_track.m_stride = m_stride;
+			out_track.m_data_size = m_data_size;
+			out_track.m_sample_rate = m_sample_rate;
+			out_track.m_type = m_type;
+			out_track.m_category = m_category;
+			out_track.m_desc = m_desc;
+
+			std::memcpy(out_track.m_data, m_data, m_data_size);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Internal helper.
+		void get_ref_impl(track& out_track) const
+		{
+			out_track.m_allocator = nullptr;
+			out_track.m_data = m_data;
+			out_track.m_num_samples = m_num_samples;
+			out_track.m_stride = m_stride;
+			out_track.m_data_size = m_data_size;
+			out_track.m_sample_rate = m_sample_rate;
+			out_track.m_type = m_type;
+			out_track.m_category = m_category;
+			out_track.m_desc = m_desc;
+		}
 
 		IAllocator*				m_allocator;		// Optional allocator that owns the memory
 		uint8_t*				m_data;				// Pointer to the samples
@@ -389,6 +402,24 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track category.
 		track_category8 get_category() const { return category; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns a copy of the track where the memory will be owned by the copy.
+		track_typed get_copy(IAllocator& allocator) const
+		{
+			track_typed track_;
+			track::get_copy_impl(allocator, track_);
+			return track_;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns a reference to the track where the memory isn't owned.
+		track_typed get_ref() const
+		{
+			track_typed track_;
+			track::get_ref_impl(track_);
+			return track_;
+		}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track that copies the data and owns the memory.
