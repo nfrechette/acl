@@ -38,4 +38,7 @@ endif()
 # Disable allocation tracking
 add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
 
+# Enable SJSON
+add_definitions(-DACL_USE_SJSON)
+
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
