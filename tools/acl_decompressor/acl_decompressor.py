@@ -128,13 +128,6 @@ def get_decomp_categories():
 	categories.append(('forward_bone_warm', 'forward', 'bone', 'warm'))
 	categories.append(('backward_bone_warm', 'backward', 'bone', 'warm'))
 	categories.append(('random_bone_warm', 'random', 'bone', 'warm'))
-
-	categories.append(('forward_ue4_cold', 'forward', 'ue4', 'cold'))
-	categories.append(('backward_ue4_cold', 'backward', 'ue4', 'cold'))
-	categories.append(('random_ue4_cold', 'random', 'ue4', 'cold'))
-	categories.append(('forward_ue4_warm', 'forward', 'ue4', 'warm'))
-	categories.append(('backward_ue4_warm', 'backward', 'ue4', 'warm'))
-	categories.append(('random_ue4_warm', 'random', 'ue4', 'warm'))
 	return categories
 
 def create_csv(options):
