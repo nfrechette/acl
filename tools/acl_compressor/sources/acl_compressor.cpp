@@ -1264,6 +1264,9 @@ static int safe_main_impl(int argc, char* argv[])
 #if defined(SJSON_CPP_WRITER)
 			if (options.profile_decompression && runs_writer != nullptr)
 			{
+				// Disable floating point exceptions since decompression assumes it
+				scope_disable_fp_exceptions fp_off;
+
 				const CompressionSettings default_settings = get_default_compression_settings();
 
 #if defined(__ANDROID__)
