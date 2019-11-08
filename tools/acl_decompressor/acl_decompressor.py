@@ -19,7 +19,7 @@ import sjson
 
 def parse_argv():
 	options = {}
-	options['acl'] = os.path.join(os.getcwd(), '../../test_data/decomp_data_v4')
+	options['acl'] = os.path.join(os.getcwd(), '../../test_data/decomp_data_v5')
 	options['stats'] = ""
 	options['csv'] = False
 	options['refresh'] = False
