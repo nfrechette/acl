@@ -45,6 +45,10 @@ if __name__ == "__main__":
 			cmd_args.append([x for x in args if x])
 			args = [python_exe, 'make.py', '-compiler', 'vs2017', '-cpu', 'arm64', '-config', config, '-build', '-clean', '-nosimd']
 			cmd_args.append([x for x in args if x])
+			args = [python_exe, 'make.py', '-compiler', 'vs2019', '-cpu', 'arm64', '-config', config, '-build', '-clean']
+			cmd_args.append([x for x in args if x])
+			args = [python_exe, 'make.py', '-compiler', 'vs2019', '-cpu', 'arm64', '-config', config, '-build', '-clean', '-nosimd']
+			cmd_args.append([x for x in args if x])
 	elif platform.system() == 'Darwin':
 		for config in configs:
 			args = [python_exe, 'make.py', '-compiler', 'ios', '-config', config, '-build', '-clean']
