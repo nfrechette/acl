@@ -472,15 +472,34 @@ namespace acl
 		const uint32_t z32 = uint32_t(vector_u64);
 
 		return _mm_castsi128_ps(_mm_set_epi32(x32, z32, y32, x32));
-#elif defined(ACL_NEON_INTRINSICS)
+#elif defined(ACL_NEON64_INTRINSICS) && defined(__clang__) && __clang_major__ == 3 && __clang_minor__ == 8
+		// Clang 3.8 has a bug in its codegen and we have to use a slightly slower impl to avoid it
+		// This is a pretty old version but UE 4.23 still uses it on android
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		uint8x16_t x64y64_u8 = vrev64q_u8(vld1q_u8(vector_data + byte_offset + 0));
+		uint64x2_t x64_tmp = vreinterpretq_u64_u8(x64y64_u8);
+		uint64x2_t tmp_y64 = vreinterpretq_u64_u8(vextq_u8(x64y64_u8, x64y64_u8, 4));
+
+		const uint64x2_t shift_offset64 = vdupq_n_u64(shift_offset);
+		x64_tmp = vshlq_u64(x64_tmp, shift_offset64);
+		tmp_y64 = vshlq_u64(tmp_y64, shift_offset64);
+		uint32x2_t xy32 = vreinterpret_u32_u64(vsri_n_u64(vget_high_u32(tmp_y64), vget_low_u64(x64_tmp), 32));
+
+		uint8x8_t z64_u8 = vrev64_u8(vld1_u8(vector_data + byte_offset + 8));
+		uint64x1_t z64 = vreinterpret_u64_u8(z64_u8);
+		z64 = vshl_u64(z64, vdup_n_u64(shift_offset - 32));
+
+		const uint32x4_t xyz32 = vcombine_u32(xy32, vreinterpret_u32_u64(z64));
+		return vreinterpretq_f32_u32(xyz32);
+#elif defined(ACL_NEON64_INTRINSICS)
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
 		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
 		vector_u64 = byte_swap(vector_u64);
-		vector_u64 <<= shift_offset;
-		vector_u64 >>= 32;
 
-		const uint64_t x64 = vector_u64;
+		const uint64_t x64 = (vector_u64 >> (32 - shift_offset)) & uint64_t(0x00000000FFFFFFFFULL);
 
 		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
 		vector_u64 = byte_swap(vector_u64);
@@ -490,15 +509,32 @@ namespace acl
 
 		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
 		vector_u64 = byte_swap(vector_u64);
-		vector_u64 <<= shift_offset;
-		vector_u64 >>= 32;
 
-		const uint64_t z64 = vector_u64;
+		const uint64_t z64 = vector_u64 >> (32 - shift_offset);
 
 		const uint32x2_t xy = vcreate_u32(x64 | y64);
 		const uint32x2_t z = vcreate_u32(z64);
 		const uint32x4_t value_u32 = vcombine_u32(xy, z);
 		return vreinterpretq_f32_u32(value_u32);
+#elif defined(ACL_NEON_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		uint8x16_t x64y64_u8 = vrev64q_u8(vld1q_u8(vector_data + byte_offset + 0));
+		uint64x2_t x64_tmp = vreinterpretq_u64_u8(x64y64_u8);
+		uint64x2_t tmp_y64 = vreinterpretq_u64_u8(vextq_u8(x64y64_u8, x64y64_u8, 4));
+
+		const uint64x2_t shift_offset64 = vdupq_n_u64(shift_offset);
+		x64_tmp = vshlq_u64(x64_tmp, shift_offset64);
+		tmp_y64 = vshlq_u64(tmp_y64, shift_offset64);
+		uint32x2_t xy32 = vreinterpret_u32_u64(vsri_n_u64(vget_high_u32(tmp_y64), vget_low_u64(x64_tmp), 32));
+
+		uint8x8_t z64_u8 = vrev64_u8(vld1_u8(vector_data + byte_offset + 8));
+		uint64x1_t z64 = vreinterpret_u64_u8(z64_u8);
+		z64 = vshl_u64(z64, vdup_n_u64(shift_offset));
+
+		const uint32x4_t xyz32 = vcombine_u32(xy32, vrev64_u32(vreinterpret_u32_u64(z64)));
+		return vreinterpretq_f32_u32(xyz32);
 #else
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
