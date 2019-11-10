@@ -188,7 +188,7 @@ namespace acl
 		else
 		{
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
-			rotation = impl::load_rotation_sample(quantized_ptr, format, k_invalid_bit_rate, are_rotations_normalized);
+			rotation = impl::load_rotation_sample(quantized_ptr, format, 0, are_rotations_normalized);
 		}
 
 		// Pack and unpack at our desired bit rate
@@ -243,7 +243,7 @@ namespace acl
 		const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 		const RotationFormat8 format = bone_steams.rotations.get_rotation_format();
 
-		const Vector4_32 rotation = impl::load_rotation_sample(quantized_ptr, format, k_invalid_bit_rate, are_rotations_normalized);
+		const Vector4_32 rotation = impl::load_rotation_sample(quantized_ptr, format, 0, are_rotations_normalized);
 
 		// Pack and unpack in our desired format
 		Vector4_32 packed_rotation;
@@ -342,7 +342,7 @@ namespace acl
 		else
 			quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 
-		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
+		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, 0);
 
 		ACL_ASSERT(clip_context->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
@@ -397,7 +397,7 @@ namespace acl
 		const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
 		const VectorFormat8 format = bone_steams.translations.get_vector_format();
 
-		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
+		const Vector4_32 translation = impl::load_vector_sample(quantized_ptr, format, 0);
 
 		// Pack and unpack in our desired format
 		Vector4_32 packed_translation;
@@ -497,7 +497,7 @@ namespace acl
 		else
 			quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
 
-		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
+		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, 0);
 
 		ACL_ASSERT(clip_context->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
 
@@ -552,7 +552,7 @@ namespace acl
 		const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
 		const VectorFormat8 format = bone_steams.scales.get_vector_format();
 
-		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, k_invalid_bit_rate);
+		const Vector4_32 scale = impl::load_vector_sample(quantized_ptr, format, 0);
 
 		// Pack and unpack in our desired format
 		Vector4_32 packed_scale;
