@@ -91,7 +91,7 @@ def parse_argv():
 			sys.exit(1)
 
 	if platform.system() == 'Darwin' and args.cpu == 'x86':
-		result = subprocess.check_output(['xcodebuild', '-version'])
+		result = subprocess.check_output(['xcodebuild', '-version']).decode("utf-8")
 		if 'Xcode 11' in result:
 			print('Versions of Xcode 11 and up no longer support x86')
 			sys.exit(1)
