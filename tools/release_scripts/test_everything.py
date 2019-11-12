@@ -36,7 +36,10 @@ if __name__ == "__main__":
 				for simd in simd_opts:
 					if compiler == 'clang7' and simd == '-nosimd':
 						continue	# Hack to avoid compiler issue
-					args = [python_exe, 'make.py', '-compiler', compiler, '-cpu', arch, '-config', config, simd, '-build', '-unit_test', '-regression_test', '-clean']
+					args = [python_exe, 'make.py', '-compiler', compiler, '-cpu', arch, '-config', config, simd, '-build', '-unit_test', '-clean']
+					if config != 'debug':
+						# Regression testing is too slow in debug and not really necessary
+						args.append('-regression_test')
 					cmd_args.append([x for x in args if x])
 
 	if platform.system() == 'Windows':
