@@ -59,6 +59,11 @@ matrix:
       osx_image: xcode10.3
       env: COMPILER=osx TOOLCHAIN=xcode
 
+    # OS X xcode11
+    - os: osx
+      osx_image: xcode11.2
+      env: COMPILER=osx TOOLCHAIN=xcode NOX86=1
+
 before_install:
     - if [[ "$TOOLCHAIN" == "clang" ]]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
     - if [[ "$COMPILER" == "clang4" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
@@ -72,8 +77,10 @@ before_install:
       fi'
 
 script:
-    - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Debug -cpu x86
-    - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x86
+    - 'if [[ "$NOX86" != "1" ]]; then
+      python make.py -clean -build -unit_test -compiler ${COMPILER} -config Debug -cpu x86;
+      python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x86;
+      fi'
     - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Debug -cpu x64
     - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x64
     # Hack to avoid trying nosimd with clang7, it never terminates or takes forever
