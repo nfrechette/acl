@@ -518,6 +518,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 		stats_error_data = []
 		stats_animated_size = []
 		bone_error_values = []
+		compression_times = []
 
 		while True:
 			stat_filename = stat_queue.get()
@@ -557,6 +558,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 
 						num_runs += 1
 						total_compression_time += run_stats['compression_time']
+						compression_times.append(run_stats['compression_time'])
 
 						if options['csv_summary']:
 							#(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error)
@@ -600,6 +602,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 		results['stats_error_data'] = stats_error_data
 		results['stats_animated_size'] = stats_animated_size
 		results['bone_error_values'] = bone_error_values
+		results['compression_times'] = compression_times
 
 		result_queue.put(('done', results))
 	except KeyboardInterrupt:
@@ -619,8 +622,8 @@ def aggregate_job_stats(agg_job_results, job_results):
 
 	if len(agg_job_results) == 0:
 		# Convert array to numpy array
-		bone_error_values = numpy.array(job_results['bone_error_values'])
-		job_results['bone_error_values'] = bone_error_values
+		job_results['bone_error_values'] = numpy.array(job_results['bone_error_values'])
+		job_results['compression_times'] = numpy.array(job_results['compression_times'])
 
 		agg_job_results.update(job_results)
 	else:
@@ -656,6 +659,7 @@ def aggregate_job_stats(agg_job_results, job_results):
 			agg_job_results['worst_runs']['worst_ratio_entry'] = job_results['worst_runs']['worst_ratio_entry']
 
 		agg_job_results['bone_error_values'] = numpy.append(agg_job_results['bone_error_values'], job_results['bone_error_values'])
+		agg_job_results['compression_times'] = numpy.append(agg_job_results['compression_times'], job_results['compression_times'])
 
 def percentile_rank(values, value):
 	return (values < value).mean() * 100.0
@@ -713,7 +717,6 @@ if __name__ == "__main__":
 	best_runs = agg_job_results['best_runs']
 	worst_runs = agg_job_results['worst_runs']
 	num_runs = agg_job_results['num_runs']
-	total_wall_compression_time = agg_job_results['total_compression_time']
 
 	write_csv(csv_data, agg_run_stats)
 
@@ -742,9 +745,10 @@ if __name__ == "__main__":
 	total_duration = sum([x['total_duration'] for x in agg_run_stats.values()])
 
 	print('Sum of clip durations: {}'.format(format_elapsed_time(total_duration)))
-	print('Total compression time: {} ({:.3f} seconds)'.format(format_elapsed_time(total_wall_compression_time), total_wall_compression_time))
+	print('Total compression time: {} ({:.3f} seconds)'.format(format_elapsed_time(total_compression_time), total_compression_time))
 	print('Total raw size: {:.2f} MB'.format(bytes_to_mb(total_raw_size)))
 	print('Compression speed: {:.2f} KB/sec'.format(bytes_to_kb(total_raw_size) / total_compression_time))
+	print('Compression time 50, 85, 99th percentile: {:.3f}, {:.3f}, {:.3f} seconds'.format(numpy.percentile(agg_job_results['compression_times'], 50.0), numpy.percentile(agg_job_results['compression_times'], 85.0), numpy.percentile(agg_job_results['compression_times'], 99.0)))
 	if len(agg_job_results['bone_error_values']) > 0:
 		print('Bone error 99th percentile: {:.4f}'.format(numpy.percentile(agg_job_results['bone_error_values'], 99.0)))
 		print('Error threshold percentile rank: {:.2f} (0.01)'.format(percentile_rank(agg_job_results['bone_error_values'], 0.01)))
