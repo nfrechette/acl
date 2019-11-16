@@ -1,18 +1,19 @@
 # Paragon database performance
 
-|                       | v1.2.0  | v1.1.0        | v1.0.0        |
+|                       | v1.3.0 | v1.2.0  | v1.1.0        |
 | --------------------- | ------------- | ------------- | ------------- |
-| **Compressed size**   | 218.58 MB | 206.65 MB     | 206.57 MB     |
-| **Compression ratio** | 19.56 : 1 | 20.69 : 1     | 20.70 : 1     |
-| **Compression time**  | 28m 56.48s | 7h 14m 54.53s | 7h 57m 41.72s |
-| **Compression speed**  | 2521.62 KB/sec | 167.80 KB/sec | 152.77 KB/sec |
-| **Max error**         | 4.0184 cm | 7.0175 cm     | 7.0159 cm     |
-| **Error 99<sup>th</sup> percentile** | 0.0116 cm | 0.0116 cm | 0.0116 cm |
-| **Samples below error threshold** | 98.85 % | 98.81 % | 98.81 % |
+| **Compressed size**   | 208.32 MB | 218.58 MB | 206.65 MB     |
+| **Compression ratio** | 20.53 : 1 | 19.56 : 1 | 20.69 : 1     |
+| **Compression time**  | 10m 23.05s | 28m 56.48s | 7h 14m 54.53s |
+| **Compression speed**  | 7027.87 KB/sec | 2521.62 KB/sec | 167.80 KB/sec |
+| **Max error**         | 2.8669 cm | 4.0184 cm | 7.0175 cm     |
+| **Error 99<sup>th</sup> percentile** | 0.0099 cm | 0.0116 cm | 0.0116 cm |
+| **Samples below error threshold** | 99.04 % | 98.85 % | 98.81 % |
 
 Notes:
 
 *  The error is unusually high and above **1 cm** for **4** exotic clips
+*  Starting with v1.3.0 measurements have been made with a Ryzen 2950X CPU while prior versions used an Intel i7 6850K.
 
 # Data and method used
 
