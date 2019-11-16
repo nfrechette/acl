@@ -1,5 +1,14 @@
 # Significant changes per release
 
+## 1.3.0
+
+*  Added support for VS2019, GCC 9, clang7, and Xcode 11
+*  Updated sjson-cpp and added a dependency on Realtime Math (RTM)
+*  Optimized compression and decompression significantly
+*  Added support for multiple root bones
+*  Added support for scalar track compression
+*  Many bug fixes and improvements
+
 ## 1.2.1
 
 *  Silence SSE floating point exceptions during compression
