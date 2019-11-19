@@ -1,4 +1,4 @@
-package com.acl;
+package com.acl.decompressor;
 
 import android.app.Activity;
 import android.content.res.AssetManager;

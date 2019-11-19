@@ -102,7 +102,7 @@ static int read_metadata(AAssetManager* asset_manager, std::vector<std::string>&
 	return result;
 }
 
-extern "C" jint Java_com_acl_MainActivity_nativeMain(JNIEnv* env, jobject caller, jobject java_asset_manager)
+extern "C" jint Java_com_acl_regression_1tests_MainActivity_nativeMain(JNIEnv* env, jobject caller, jobject java_asset_manager)
 {
 	AAssetManager* asset_manager = AAssetManager_fromJava(env, java_asset_manager);
 
