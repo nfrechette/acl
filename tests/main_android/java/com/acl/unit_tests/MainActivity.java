@@ -1,4 +1,4 @@
-package com.acl;
+package com.acl.unit_tests;
 
 import android.app.Activity;
 import android.widget.TextView;

@@ -26,7 +26,7 @@
 
 #include <jni.h>
 
-extern "C" jint Java_com_acl_MainActivity_nativeMain(JNIEnv* env, jobject caller)
+extern "C" jint Java_com_acl_compressor_MainActivity_nativeMain(JNIEnv* env, jobject caller)
 {
 	char* argv[1] = { nullptr };
 	return main_impl(0, argv);

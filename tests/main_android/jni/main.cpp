@@ -27,12 +27,12 @@
 
 #include <jni.h>
 
-extern "C" jint Java_com_acl_MainActivity_getNumUnitTestCases(JNIEnv* env, jobject caller)
+extern "C" jint Java_com_acl_unit_1tests_MainActivity_getNumUnitTestCases(JNIEnv* env, jobject caller)
 {
 	return Catch::getRegistryHub().getTestCaseRegistry().getAllTests().size();
 }
 
-extern "C" jint Java_com_acl_MainActivity_runUnitTests(JNIEnv* env, jobject caller)
+extern "C" jint Java_com_acl_unit_1tests_MainActivity_runUnitTests(JNIEnv* env, jobject caller)
 {
 	int result = Catch::Session().run();
 
