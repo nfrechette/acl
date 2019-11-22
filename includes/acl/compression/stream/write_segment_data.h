@@ -70,12 +70,6 @@ namespace acl
 		}
 	}
 
-	ACL_DEPRECATED("Use write_segment_headers with a uint32_t segment_headers_start_offset instead, to be removed in v2.0")
-	inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint16_t segment_headers_start_offset)
-	{
-		write_segment_headers(clip_context, settings, segment_headers, (uint32_t)segment_headers_start_offset);
-	}
-
 	inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, ClipHeader& header, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		SegmentHeader* segment_headers = header.get_segment_headers();
@@ -87,17 +81,17 @@ namespace acl
 			SegmentHeader& segment_header = segment_headers[segment_index];
 
 			if (format_per_track_data_size > 0)
-				write_format_per_track_data(clip_context, segment, header.get_format_per_track_data(segment_header), format_per_track_data_size, output_bone_mapping, num_output_bones);
+				write_format_per_track_data(segment, header.get_format_per_track_data(segment_header), format_per_track_data_size, output_bone_mapping, num_output_bones);
 			else
 				segment_header.format_per_track_data_offset = InvalidPtrOffset();
 
 			if (segment.range_data_size > 0)
-				write_segment_range_data(clip_context, segment, settings.segmenting.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size, output_bone_mapping, num_output_bones);
+				write_segment_range_data(segment, settings.segmenting.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size, output_bone_mapping, num_output_bones);
 			else
 				segment_header.range_data_offset = InvalidPtrOffset();
 
 			if (segment.animated_data_size > 0)
-				write_animated_track_data(clip_context, segment, settings.rotation_format, settings.translation_format, settings.scale_format, header.get_track_data(segment_header), segment.animated_data_size, output_bone_mapping, num_output_bones);
+				write_animated_track_data(segment, settings.rotation_format, settings.translation_format, settings.scale_format, header.get_track_data(segment_header), segment.animated_data_size, output_bone_mapping, num_output_bones);
 			else
 				segment_header.track_data_offset = InvalidPtrOffset();
 		}

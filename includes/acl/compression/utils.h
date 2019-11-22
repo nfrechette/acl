@@ -121,15 +121,6 @@ namespace acl
 
 		return bone_error;
 	}
-
-	template<class DecompressionContextType>
-	ACL_DEPRECATED("Use a calculate_compressed_clip_error(..) with an explicit error metric instead, to be removed in v2.0")
-	inline BoneError calculate_compressed_clip_error(IAllocator& allocator,
-		const AnimationClip& clip, const CompressionSettings& settings, DecompressionContextType& context)
-	{
-		ACL_ASSERT(settings.error_metric != nullptr, "Error metric cannot be null");
-		return calculate_compressed_clip_error(allocator, clip, *settings.error_metric, context);
-	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

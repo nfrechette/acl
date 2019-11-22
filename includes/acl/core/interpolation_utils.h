@@ -108,13 +108,6 @@ namespace acl
 		}
 	}
 
-	ACL_DEPRECATED("Use find_linear_interpolation_samples_with_duration instead, to be removed in v2.0")
-	inline void find_linear_interpolation_samples(uint32_t num_samples, float duration, float sample_time, SampleRoundingPolicy rounding_policy,
-		uint32_t& out_sample_index0, uint32_t& out_sample_index1, float& out_interpolation_alpha)
-	{
-		find_linear_interpolation_samples_with_duration(num_samples, duration, sample_time, rounding_policy, out_sample_index0, out_sample_index1, out_interpolation_alpha);
-	}
-
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the sample indices and the interpolation required to linearly
 	// interpolate when the samples are uniform.

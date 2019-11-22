@@ -88,14 +88,6 @@ namespace acl
 		//QuatLog,
 	};
 
-	//ACL_DEPRECATED("No longer used by decompression functions, to be removed in v2.0")
-	enum class TimeSeriesType8 : uint8_t
-	{
-		Constant,
-		ConstantDefault,
-		Varying,
-	};
-
 	//////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////

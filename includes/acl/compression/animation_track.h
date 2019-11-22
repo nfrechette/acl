@@ -162,14 +162,6 @@ namespace acl
 		//    - allocator: The allocator instance to use to allocate and free memory
 		//    - num_samples: The number of samples in this track
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
-		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-		AnimationRotationTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
-			: AnimationTrack(allocator, num_samples, float(sample_rate), AnimationTrackType8::Rotation)
-		{
-			rtm::quatd* samples = safe_ptr_cast<rtm::quatd>(&m_sample_data[0]);
-			std::fill(samples, samples + num_samples, rtm::quat_identity());
-		}
-
 		AnimationRotationTrack(IAllocator& allocator, uint32_t num_samples, float sample_rate)
 			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Rotation)
 		{
@@ -236,13 +228,6 @@ namespace acl
 		//    - allocator: The allocator instance to use to allocate and free memory
 		//    - num_samples: The number of samples in this track
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
-		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-		AnimationTranslationTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
-			: AnimationTrack(allocator, num_samples, float(sample_rate), AnimationTrackType8::Translation)
-		{
-			std::fill(m_sample_data, m_sample_data + (num_samples * 3), 0.0);
-		}
-
 		AnimationTranslationTrack(IAllocator& allocator, uint32_t num_samples, float sample_rate)
 			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Translation)
 		{
@@ -307,15 +292,6 @@ namespace acl
 		//    - allocator: The allocator instance to use to allocate and free memory
 		//    - num_samples: The number of samples in this track
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
-		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-		AnimationScaleTrack(IAllocator& allocator, uint32_t num_samples, uint32_t sample_rate)
-			: AnimationTrack(allocator, num_samples, float(sample_rate), AnimationTrackType8::Scale)
-		{
-			rtm::vector4d defaultScale = rtm::vector_set(1.0);
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-				rtm::vector_store3(defaultScale, m_sample_data + (sample_index * 3));
-		}
-
 		AnimationScaleTrack(IAllocator& allocator, uint32_t num_samples, float sample_rate)
 			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Scale)
 		{

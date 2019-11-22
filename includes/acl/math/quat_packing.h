@@ -64,13 +64,6 @@ namespace acl
 		return rtm::quat_from_positive_w(rotation_xyz);
 	}
 
-	ACL_DEPRECATED("Use unpack_quat_96_unsafe instead, to be removed in v2.0")
-	inline rtm::quatf RTM_SIMD_CALL unpack_quat_96(const uint8_t* data_ptr)
-	{
-		rtm::vector4f rotation_xyz = rtm::vector_load3(data_ptr);
-		return rtm::quat_from_positive_w(rotation_xyz);
-	}
-
 	inline void RTM_SIMD_CALL pack_quat_48(rtm::quatf_arg0 rotation, uint8_t* out_rotation_data)
 	{
 		rtm::vector4f rotation_xyz = rtm::quat_to_vector(rtm::quat_ensure_positive_w(rotation));

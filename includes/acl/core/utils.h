@@ -45,29 +45,6 @@ namespace acl
 	// We consider a 0.0 duration as having no samples, an infinite duration as
 	// having 1 sample, and otherwise having at least 1 sample.
 	//////////////////////////////////////////////////////////////////////////
-	ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-	inline uint32_t calculate_num_samples(float duration, uint32_t sample_rate)
-	{
-		ACL_ASSERT(duration >= 0.0F, "Invalid duration: %f", duration);
-		ACL_ASSERT(sample_rate > 0, "Invalid sample rate: %u", sample_rate);
-		if (duration == 0.0F)
-			return 0;	// No duration whatsoever, we have no samples
-
-		if (duration == std::numeric_limits<float>::infinity())
-			return 1;	// An infinite duration, we have a single sample (static pose)
-
-		// Otherwise we have at least 1 sample
-		return safe_static_cast<uint32_t>(rtm::scalar_floor((duration * float(sample_rate)) + 0.5F)) + 1;
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// Calculate the number of samples present from a duration and sample rate.
-	// Conceptually, a clip with 1 sample at any sample rate has a single static
-	// pose and as such no definite duration. A clip with 2 samples at 30 FPS
-	// has a sample at time 0.0 and another at time 1/30s for a duration of 1/30s.
-	// We consider a 0.0 duration as having no samples, an infinite duration as
-	// having 1 sample, and otherwise having at least 1 sample.
-	//////////////////////////////////////////////////////////////////////////
 	inline uint32_t calculate_num_samples(float duration, float sample_rate)
 	{
 		ACL_ASSERT(duration >= 0.0F, "Invalid duration: %f", duration);
@@ -80,28 +57,6 @@ namespace acl
 
 		// Otherwise we have at least 1 sample
 		return safe_static_cast<uint32_t>(rtm::scalar_floor((duration * sample_rate) + 0.5F)) + 1;
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// Calculate a clip duration from its number of samples and sample rate.
-	// Conceptually, a clip with 1 sample at any sample rate has a single static
-	// pose and as such no definite duration. A clip with 2 samples at 30 FPS
-	// has a sample at time 0.0 and another at time 1/30s for a duration of 1/30s.
-	// We consider a 0.0 duration as having no samples, an infinite duration as
-	// having 1 sample, and otherwise having at least 1 sample.
-	//////////////////////////////////////////////////////////////////////////
-	ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-	inline float calculate_duration(uint32_t num_samples, uint32_t sample_rate)
-	{
-		ACL_ASSERT(sample_rate > 0, "Invalid sample rate: %u", sample_rate);
-		if (num_samples == 0)
-			return 0.0F;	// No samples means we have no duration
-
-		if (num_samples == 1)
-			return std::numeric_limits<float>::infinity();	// A single sample means we have an indefinite duration (static pose)
-
-		// Otherwise we have some duration
-		return float(num_samples - 1) / float(sample_rate);
 	}
 
 	//////////////////////////////////////////////////////////////////////////

@@ -96,17 +96,6 @@ namespace acl
 
 	protected:
 		TrackStream(AnimationTrackType8 type, TrackFormat8 format) : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_sample_rate(0.0F), m_type(type), m_format(format), m_bit_rate(0) {}
-		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-		TrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, AnimationTrackType8 type, TrackFormat8 format, uint8_t bit_rate)
-			: m_allocator(&allocator)
-			, m_samples(reinterpret_cast<uint8_t*>(allocator.allocate(sample_size * num_samples + k_padding, 16)))
-			, m_num_samples(num_samples)
-			, m_sample_size(sample_size)
-			, m_sample_rate(float(sample_rate))
-			, m_type(type)
-			, m_format(format)
-			, m_bit_rate(bit_rate)
-		{}
 
 		TrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, AnimationTrackType8 type, TrackFormat8 format, uint8_t bit_rate)
 			: m_allocator(&allocator)
@@ -188,10 +177,6 @@ namespace acl
 	{
 	public:
 		RotationTrackStream() : TrackStream(AnimationTrackType8::Rotation, TrackFormat8(RotationFormat8::Quat_128)) {}
-		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-		RotationTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, RotationFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
-			: TrackStream(allocator, num_samples, sample_size, float(sample_rate), AnimationTrackType8::Rotation, TrackFormat8(format), bit_rate)
-		{}
 		RotationTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, RotationFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
 			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Rotation, TrackFormat8(format), bit_rate)
 		{}
@@ -222,10 +207,6 @@ namespace acl
 	{
 	public:
 		TranslationTrackStream() : TrackStream(AnimationTrackType8::Translation, TrackFormat8(VectorFormat8::Vector3_96)) {}
-		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-		TranslationTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, VectorFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
-			: TrackStream(allocator, num_samples, sample_size, float(sample_rate), AnimationTrackType8::Translation, TrackFormat8(format), bit_rate)
-		{}
 		TranslationTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, VectorFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
 			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Translation, TrackFormat8(format), bit_rate)
 		{}
@@ -256,10 +237,6 @@ namespace acl
 	{
 	public:
 		ScaleTrackStream() : TrackStream(AnimationTrackType8::Scale, TrackFormat8(VectorFormat8::Vector3_96)) {}
-		ACL_DEPRECATED("Use a floating point sample rate instead, to be removed in v2.0")
-		ScaleTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, uint32_t sample_rate, VectorFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
-			: TrackStream(allocator, num_samples, sample_size, float(sample_rate), AnimationTrackType8::Scale, TrackFormat8(format), bit_rate)
-		{}
 		ScaleTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, VectorFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
 			: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Scale, TrackFormat8(format), bit_rate)
 		{}
