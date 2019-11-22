@@ -29,10 +29,11 @@
 #include "acl/core/error.h"
 #include "acl/core/track_types.h"
 #include "acl/core/utils.h"
-#include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
-#include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
+
+#include <rtm/quatf.h>
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -58,18 +59,18 @@ namespace acl
 		}
 
 		template<typename SampleType>
-		SampleType ACL_SIMD_CALL get_raw_sample(uint32_t sample_index) const
+		SampleType RTM_SIMD_CALL get_raw_sample(uint32_t sample_index) const
 		{
 			const uint8_t* ptr = get_raw_sample_ptr(sample_index);
 			return *safe_ptr_cast<const SampleType>(ptr);
 		}
 
-#if defined(ACL_NO_INTRINSICS)
+#if defined(RTM_NO_INTRINSICS)
 		template<typename SampleType>
-		void ACL_SIMD_CALL set_raw_sample(uint32_t sample_index, const SampleType& sample)
+		void RTM_SIMD_CALL set_raw_sample(uint32_t sample_index, const SampleType& sample)
 #else
 		template<typename SampleType>
-		void ACL_SIMD_CALL set_raw_sample(uint32_t sample_index, SampleType sample)
+		void RTM_SIMD_CALL set_raw_sample(uint32_t sample_index, SampleType sample)
 #endif
 		{
 			ACL_ASSERT(m_sample_size == sizeof(SampleType), "Unexpected sample size. %u != %u", m_sample_size, sizeof(SampleType));
@@ -291,37 +292,37 @@ namespace acl
 	class TrackStreamRange
 	{
 	public:
-		static TrackStreamRange ACL_SIMD_CALL from_min_max(Vector4_32Arg0 min, Vector4_32Arg1 max)
+		static TrackStreamRange RTM_SIMD_CALL from_min_max(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max)
 		{
-			return TrackStreamRange(min, vector_sub(max, min));
+			return TrackStreamRange(min, rtm::vector_sub(max, min));
 		}
 
-		static TrackStreamRange ACL_SIMD_CALL from_min_extent(Vector4_32Arg0 min, Vector4_32Arg1 extent)
+		static TrackStreamRange RTM_SIMD_CALL from_min_extent(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
 		{
 			return TrackStreamRange(min, extent);
 		}
 
 		TrackStreamRange()
-			: m_min(vector_zero_32())
-			, m_extent(vector_zero_32())
+			: m_min(rtm::vector_zero())
+			, m_extent(rtm::vector_zero())
 		{}
 
-		Vector4_32 ACL_SIMD_CALL get_min() const { return m_min; }
-		Vector4_32 ACL_SIMD_CALL get_max() const { return vector_add(m_min, m_extent); }
+		rtm::vector4f RTM_SIMD_CALL get_min() const { return m_min; }
+		rtm::vector4f RTM_SIMD_CALL get_max() const { return rtm::vector_add(m_min, m_extent); }
 
-		Vector4_32 ACL_SIMD_CALL get_center() const { return vector_add(m_min, vector_mul(m_extent, 0.5F)); }
-		Vector4_32 ACL_SIMD_CALL get_extent() const { return m_extent; }
+		rtm::vector4f RTM_SIMD_CALL get_center() const { return rtm::vector_add(m_min, rtm::vector_mul(m_extent, 0.5F)); }
+		rtm::vector4f RTM_SIMD_CALL get_extent() const { return m_extent; }
 
-		bool is_constant(float threshold) const { return vector_all_less_than(vector_abs(m_extent), vector_set(threshold)); }
+		bool is_constant(float threshold) const { return rtm::vector_all_less_than(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
 
 	private:
-		TrackStreamRange(const Vector4_32& min, const Vector4_32& extent)
+		TrackStreamRange(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
 			: m_min(min)
 			, m_extent(extent)
 		{}
 
-		Vector4_32	m_min;
-		Vector4_32	m_extent;
+		rtm::vector4f	m_min;
+		rtm::vector4f	m_extent;
 	};
 
 	struct BoneRanges

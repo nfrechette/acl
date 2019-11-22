@@ -34,6 +34,9 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 
+#include <rtm/quatd.h>
+#include <rtm/vector4d.h>
+
 #include <cstdint>
 #include <cinttypes>
 #include <cstdio>
@@ -118,7 +121,7 @@ namespace acl
 					segmenting_writer["scale_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Scales);
 				};
 
-				settings_writer["constant_rotation_threshold_angle"] = settings.constant_rotation_threshold_angle;
+				settings_writer["constant_rotation_threshold_angle"] = settings.constant_rotation_threshold_angle.as_radians();
 				settings_writer["constant_translation_threshold"] = settings.constant_translation_threshold;
 				settings_writer["constant_scale_threshold"] = settings.constant_scale_threshold;
 				settings_writer["error_threshold"] = settings.error_threshold;
@@ -147,34 +150,34 @@ namespace acl
 						bone_writer["parent"] = bone.is_root() ? "" : parent_bone.name.c_str();
 						bone_writer["vertex_distance"] = bone.vertex_distance;
 
-						if (!quat_near_identity(bone.bind_transform.rotation))
+						if (!rtm::quat_near_identity(bone.bind_transform.rotation))
 						{
 							bone_writer["bind_rotation"] = [&](sjson::ArrayWriter& rot_writer)
 							{
-								rot_writer.push(format_hex_double(quat_get_x(bone.bind_transform.rotation), buffer, sizeof(buffer)));
-								rot_writer.push(format_hex_double(quat_get_y(bone.bind_transform.rotation), buffer, sizeof(buffer)));
-								rot_writer.push(format_hex_double(quat_get_z(bone.bind_transform.rotation), buffer, sizeof(buffer)));
-								rot_writer.push(format_hex_double(quat_get_w(bone.bind_transform.rotation), buffer, sizeof(buffer)));
+								rot_writer.push(format_hex_double(rtm::quat_get_x(bone.bind_transform.rotation), buffer, sizeof(buffer)));
+								rot_writer.push(format_hex_double(rtm::quat_get_y(bone.bind_transform.rotation), buffer, sizeof(buffer)));
+								rot_writer.push(format_hex_double(rtm::quat_get_z(bone.bind_transform.rotation), buffer, sizeof(buffer)));
+								rot_writer.push(format_hex_double(rtm::quat_get_w(bone.bind_transform.rotation), buffer, sizeof(buffer)));
 							};
 						}
 
-						if (!vector_all_near_equal3(bone.bind_transform.translation, vector_zero_64()))
+						if (!rtm::vector_all_near_equal3(bone.bind_transform.translation, rtm::vector_zero()))
 						{
 							bone_writer["bind_translation"] = [&](sjson::ArrayWriter& trans_writer)
 							{
-								trans_writer.push(format_hex_double(vector_get_x(bone.bind_transform.translation), buffer, sizeof(buffer)));
-								trans_writer.push(format_hex_double(vector_get_y(bone.bind_transform.translation), buffer, sizeof(buffer)));
-								trans_writer.push(format_hex_double(vector_get_z(bone.bind_transform.translation), buffer, sizeof(buffer)));
+								trans_writer.push(format_hex_double(rtm::vector_get_x(bone.bind_transform.translation), buffer, sizeof(buffer)));
+								trans_writer.push(format_hex_double(rtm::vector_get_y(bone.bind_transform.translation), buffer, sizeof(buffer)));
+								trans_writer.push(format_hex_double(rtm::vector_get_z(bone.bind_transform.translation), buffer, sizeof(buffer)));
 							};
 						}
 
-						if (!vector_all_near_equal3(bone.bind_transform.scale, vector_set(1.0)))
+						if (!rtm::vector_all_near_equal3(bone.bind_transform.scale, rtm::vector_set(1.0)))
 						{
 							bone_writer["bind_scale"] = [&](sjson::ArrayWriter& scale_writer)
 							{
-								scale_writer.push(format_hex_double(vector_get_x(bone.bind_transform.scale), buffer, sizeof(buffer)));
-								scale_writer.push(format_hex_double(vector_get_y(bone.bind_transform.scale), buffer, sizeof(buffer)));
-								scale_writer.push(format_hex_double(vector_get_z(bone.bind_transform.scale), buffer, sizeof(buffer)));
+								scale_writer.push(format_hex_double(rtm::vector_get_x(bone.bind_transform.scale), buffer, sizeof(buffer)));
+								scale_writer.push(format_hex_double(rtm::vector_get_y(bone.bind_transform.scale), buffer, sizeof(buffer)));
+								scale_writer.push(format_hex_double(rtm::vector_get_z(bone.bind_transform.scale), buffer, sizeof(buffer)));
 							};
 						}
 					});
@@ -209,13 +212,13 @@ namespace acl
 
 							for (uint32_t sample_index = 0; sample_index < num_rotation_samples; ++sample_index)
 							{
-								const Quat_64 rotation = bone.rotation_track.get_sample(sample_index);
+								const rtm::quatd rotation = bone.rotation_track.get_sample(sample_index);
 								rotations_writer.push([&](sjson::ArrayWriter& rot_writer)
 								{
-									rot_writer.push(format_hex_double(quat_get_x(rotation), buffer, sizeof(buffer)));
-									rot_writer.push(format_hex_double(quat_get_y(rotation), buffer, sizeof(buffer)));
-									rot_writer.push(format_hex_double(quat_get_z(rotation), buffer, sizeof(buffer)));
-									rot_writer.push(format_hex_double(quat_get_w(rotation), buffer, sizeof(buffer)));
+									rot_writer.push(format_hex_double(rtm::quat_get_x(rotation), buffer, sizeof(buffer)));
+									rot_writer.push(format_hex_double(rtm::quat_get_y(rotation), buffer, sizeof(buffer)));
+									rot_writer.push(format_hex_double(rtm::quat_get_z(rotation), buffer, sizeof(buffer)));
+									rot_writer.push(format_hex_double(rtm::quat_get_w(rotation), buffer, sizeof(buffer)));
 								});
 								rotations_writer.push_newline();
 							}
@@ -229,12 +232,12 @@ namespace acl
 
 							for (uint32_t sample_index = 0; sample_index < num_translation_samples; ++sample_index)
 							{
-								const Vector4_64 translation = bone.translation_track.get_sample(sample_index);
+								const rtm::vector4d translation = bone.translation_track.get_sample(sample_index);
 								translations_writer.push([&](sjson::ArrayWriter& trans_writer)
 								{
-									trans_writer.push(format_hex_double(vector_get_x(translation), buffer, sizeof(buffer)));
-									trans_writer.push(format_hex_double(vector_get_y(translation), buffer, sizeof(buffer)));
-									trans_writer.push(format_hex_double(vector_get_z(translation), buffer, sizeof(buffer)));
+									trans_writer.push(format_hex_double(rtm::vector_get_x(translation), buffer, sizeof(buffer)));
+									trans_writer.push(format_hex_double(rtm::vector_get_y(translation), buffer, sizeof(buffer)));
+									trans_writer.push(format_hex_double(rtm::vector_get_z(translation), buffer, sizeof(buffer)));
 								});
 								translations_writer.push_newline();
 							}
@@ -248,12 +251,12 @@ namespace acl
 
 							for (uint32_t sample_index = 0; sample_index < num_scale_samples; ++sample_index)
 							{
-								const Vector4_64 scale = bone.scale_track.get_sample(sample_index);
+								const rtm::vector4d scale = bone.scale_track.get_sample(sample_index);
 								scales_writer.push([&](sjson::ArrayWriter& scale_writer)
 								{
-									scale_writer.push(format_hex_double(vector_get_x(scale), buffer, sizeof(buffer)));
-									scale_writer.push(format_hex_double(vector_get_y(scale), buffer, sizeof(buffer)));
-									scale_writer.push(format_hex_double(vector_get_z(scale), buffer, sizeof(buffer)));
+									scale_writer.push(format_hex_double(rtm::vector_get_x(scale), buffer, sizeof(buffer)));
+									scale_writer.push(format_hex_double(rtm::vector_get_y(scale), buffer, sizeof(buffer)));
+									scale_writer.push(format_hex_double(rtm::vector_get_z(scale), buffer, sizeof(buffer)));
 								});
 								scales_writer.push_newline();
 							}

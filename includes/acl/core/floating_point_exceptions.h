@@ -25,7 +25,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/compiler_utils.h"
-#include "acl/math/math.h"
+
+#include <rtm/math.h>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -36,9 +37,9 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	struct fp_environment
 	{
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(RTM_SSE2_INTRINSICS)
 		unsigned int exception_mask;
-#elif defined(ACL_NEON_INTRINSICS)
+#elif defined(RTM_NEON_INTRINSICS)
 		// TODO: Implement on ARM. API to do this is not consistent across Android, Windows ARM, and iOS
 		// and on top of it, most ARM CPUs out there do not raise the SIGFPE trap so they are silent
 #endif
@@ -49,7 +50,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	inline void enable_fp_exceptions(fp_environment& out_old_env)
 	{
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(RTM_SSE2_INTRINSICS)
 		// We only care about SSE and not x87
 		// Clear any exceptions that might have been raised already
 		_MM_SET_EXCEPTION_STATE(0);
@@ -68,7 +69,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	inline void disable_fp_exceptions(fp_environment& out_old_env)
 	{
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(RTM_SSE2_INTRINSICS)
 		// We only care about SSE and not x87
 		// Cache the exception mask we had so we can restore it later
 		out_old_env.exception_mask = _MM_GET_EXCEPTION_MASK();
@@ -84,7 +85,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	inline void restore_fp_exceptions(const fp_environment& env)
 	{
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(RTM_SSE2_INTRINSICS)
 		// We only care about SSE and not x87
 		// Clear any exceptions that might have been raised already
 		_MM_SET_EXCEPTION_STATE(0);

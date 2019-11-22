@@ -34,6 +34,8 @@
 #include "acl/compression/output_stats.h"
 #include "acl/decompression/default_output_writer.h"
 
+#include <rtm/scalard.h>
+
 #include <algorithm>
 #include <thread>
 #include <chrono>
@@ -66,7 +68,7 @@ namespace acl
 		PlaybackDirection playback_direction, DecompressionFunction decompression_function,
 		CompressedClip* compressed_clips[k_num_decompression_evaluations],
 		DecompressionContextType* contexts[k_num_decompression_evaluations],
-		CPUCacheFlusher* cache_flusher, Transform_32* lossy_pose_transforms)
+		CPUCacheFlusher* cache_flusher, rtm::qvvf* lossy_pose_transforms)
 	{
 		const ClipHeader& clip_header = get_clip_header(*compressed_clips[0]);
 		const float duration = calculate_duration(clip_header.num_samples, clip_header.sample_rate);
@@ -77,7 +79,7 @@ namespace acl
 		for (uint32_t sample_index = 0; sample_index < k_num_decompression_samples; ++sample_index)
 		{
 			const float normalized_sample_time = float(sample_index) / float(k_num_decompression_samples - 1);
-			sample_times[sample_index] = clamp(normalized_sample_time, 0.0F, 1.0F) * duration;
+			sample_times[sample_index] = rtm::scalar_clamp(normalized_sample_time, 0.0F, 1.0F) * duration;
 		}
 
 		switch (playback_direction)
@@ -171,8 +173,8 @@ namespace acl
 					if (are_any_enum_flags_set(logging, StatLogging::ExhaustiveDecompression))
 						data_writer.push(elapsed_ms);
 
-					clip_min_ms = min(clip_min_ms, elapsed_ms);
-					clip_max_ms = max(clip_max_ms, elapsed_ms);
+					clip_min_ms = rtm::scalar_min(clip_min_ms, elapsed_ms);
+					clip_max_ms = rtm::scalar_max(clip_max_ms, elapsed_ms);
 					clip_total_ms += elapsed_ms;
 					clip_time_ms[sample_index] = elapsed_ms;
 				}
@@ -187,9 +189,9 @@ namespace acl
 		};
 	}
 
-	inline void write_memcpy_performance_stats(IAllocator& allocator, sjson::ObjectWriter& writer, CPUCacheFlusher* cache_flusher, Transform_32* lossy_pose_transforms, uint16_t num_bones)
+	inline void write_memcpy_performance_stats(IAllocator& allocator, sjson::ObjectWriter& writer, CPUCacheFlusher* cache_flusher, rtm::qvvf* lossy_pose_transforms, uint16_t num_bones)
 	{
-		Transform_32* memcpy_src_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+		rtm::qvvf* memcpy_src_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 
 		double decompression_time_ms = 1000000.0;
 		for (uint32_t pass_index = 0; pass_index < 3; ++pass_index)
@@ -197,7 +199,7 @@ namespace acl
 			if (cache_flusher != nullptr)
 			{
 				cache_flusher->begin_flushing();
-				cache_flusher->flush_buffer(memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				cache_flusher->flush_buffer(memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
 				cache_flusher->end_flushing();
 
 				// Now that the cache is cold, yield our time slice and wait for a new one
@@ -210,35 +212,35 @@ namespace acl
 				// to help keep it warm and minimize the risk that we'll be interrupted during decompression
 				std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
 			}
 
 			double execution_count;
 			ScopeProfiler timer;
 			if (cache_flusher != nullptr)
 			{
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
 				execution_count = 1.0;
 			}
 			else
 			{
 				// Warm cache is too fast, execute multiple times and divide by the count
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
-				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(Transform_32) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
+				std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
 				execution_count = 10.0;
 			}
 			timer.stop();
 
 			const double elapsed_ms = timer.get_elapsed_milliseconds() / execution_count;
-			decompression_time_ms = min(decompression_time_ms, elapsed_ms);
+			decompression_time_ms = rtm::scalar_min(decompression_time_ms, elapsed_ms);
 		}
 
 		writer[cache_flusher != nullptr ? "memcpy_cold" : "memcpy_warm"] = [&](sjson::ObjectWriter& memcpy_writer)
@@ -258,7 +260,7 @@ namespace acl
 		CPUCacheFlusher* cache_flusher = allocate_type<CPUCacheFlusher>(allocator);
 
 		const ClipHeader& clip_header = get_clip_header(*compressed_clips[0]);
-		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, clip_header.num_bones);
+		rtm::qvvf* lossy_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, clip_header.num_bones);
 
 		const uint32_t num_bytes_per_bone = (4 + 3 + 3) * sizeof(float);	// Rotation, Translation, Scale
 		writer["pose_size"] = uint32_t(clip_header.num_bones) * num_bytes_per_bone;

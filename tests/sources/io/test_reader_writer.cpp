@@ -36,8 +36,10 @@
 #include <acl/core/ansi_allocator.h>
 #include <acl/io/clip_reader.h>
 #include <acl/io/clip_writer.h>
-#include <acl/math/math.h>
-#include <acl/math/scalar_32.h>
+
+#include <rtm/angled.h>
+#include <rtm/qvvd.h>
+#include <rtm/scalarf.h>
 
 #include <chrono>
 #include <cstdio>
@@ -97,7 +99,7 @@
 
 using namespace acl;
 
-#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 #ifdef _WIN32
 	constexpr uint32_t k_max_filename_size = MAX_PATH;
 #else
@@ -133,7 +135,7 @@ static void get_temporary_filename(char* filename, uint32_t filename_size, const
 TEST_CASE("sjson_clip_reader_writer", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint16_t num_bones = 3;
@@ -141,17 +143,17 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	bones[0].name = String(allocator, "root");
 	bones[0].vertex_distance = 4.0F;
 	bones[0].parent_index = k_invalid_bone_index;
-	bones[0].bind_transform = transform_identity_64();
+	bones[0].bind_transform = rtm::qvv_identity();
 
 	bones[1].name = String(allocator, "bone1");
 	bones[1].vertex_distance = 3.0F;
 	bones[1].parent_index = 0;
-	bones[1].bind_transform = transform_set(quat_from_axis_angle(vector_set(0.0, 1.0, 0.0), k_pi_64 * 0.5), vector_set(3.2, 8.2, 5.1), vector_set(1.0));
+	bones[1].bind_transform = rtm::qvv_set(rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.5), rtm::vector_set(3.2, 8.2, 5.1), rtm::vector_set(1.0));
 
 	bones[2].name = String(allocator, "bone2");
 	bones[2].vertex_distance = 2.0F;
 	bones[2].parent_index = 1;
-	bones[2].bind_transform = transform_set(quat_from_axis_angle(vector_set(0.0, 0.0, 1.0), k_pi_64 * 0.25), vector_set(6.3, 9.4, 1.5), vector_set(1.0));
+	bones[2].bind_transform = rtm::qvv_set(rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.25), rtm::vector_set(6.3, 9.4, 1.5), rtm::vector_set(1.0));
 
 	RigidSkeleton skeleton(allocator, bones, num_bones);
 
@@ -160,49 +162,49 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 
 	AnimatedBone* animated_bones = clip.get_bones();
 	animated_bones[0].output_index = 0;
-	animated_bones[0].rotation_track.set_sample(0, quat_from_axis_angle(vector_set(0.0, 1.0, 0.0), k_pi_64 * 0.1));
-	animated_bones[0].rotation_track.set_sample(1, quat_from_axis_angle(vector_set(0.0, 1.0, 0.0), k_pi_64 * 0.2));
-	animated_bones[0].rotation_track.set_sample(2, quat_from_axis_angle(vector_set(0.0, 1.0, 0.0), k_pi_64 * 0.3));
-	animated_bones[0].rotation_track.set_sample(3, quat_from_axis_angle(vector_set(0.0, 1.0, 0.0), k_pi_64 * 0.4));
-	animated_bones[0].translation_track.set_sample(0, vector_set(3.2, 1.4, 9.4));
-	animated_bones[0].translation_track.set_sample(1, vector_set(3.3, 1.5, 9.5));
-	animated_bones[0].translation_track.set_sample(2, vector_set(3.4, 1.6, 9.6));
-	animated_bones[0].translation_track.set_sample(3, vector_set(3.5, 1.7, 9.7));
-	animated_bones[0].scale_track.set_sample(0, vector_set(1.0, 1.5, 1.1));
-	animated_bones[0].scale_track.set_sample(1, vector_set(1.1, 1.6, 1.2));
-	animated_bones[0].scale_track.set_sample(2, vector_set(1.2, 1.7, 1.3));
-	animated_bones[0].scale_track.set_sample(3, vector_set(1.3, 1.8, 1.4));
+	animated_bones[0].rotation_track.set_sample(0, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.1));
+	animated_bones[0].rotation_track.set_sample(1, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.2));
+	animated_bones[0].rotation_track.set_sample(2, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.3));
+	animated_bones[0].rotation_track.set_sample(3, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.4));
+	animated_bones[0].translation_track.set_sample(0, rtm::vector_set(3.2, 1.4, 9.4));
+	animated_bones[0].translation_track.set_sample(1, rtm::vector_set(3.3, 1.5, 9.5));
+	animated_bones[0].translation_track.set_sample(2, rtm::vector_set(3.4, 1.6, 9.6));
+	animated_bones[0].translation_track.set_sample(3, rtm::vector_set(3.5, 1.7, 9.7));
+	animated_bones[0].scale_track.set_sample(0, rtm::vector_set(1.0, 1.5, 1.1));
+	animated_bones[0].scale_track.set_sample(1, rtm::vector_set(1.1, 1.6, 1.2));
+	animated_bones[0].scale_track.set_sample(2, rtm::vector_set(1.2, 1.7, 1.3));
+	animated_bones[0].scale_track.set_sample(3, rtm::vector_set(1.3, 1.8, 1.4));
 
 	animated_bones[1].output_index = 2;
-	animated_bones[1].rotation_track.set_sample(0, quat_from_axis_angle(vector_set(0.0, 1.0, 0.0), k_pi_64 * 1.1));
-	animated_bones[1].rotation_track.set_sample(1, quat_from_axis_angle(vector_set(0.0, 1.0, 0.0), k_pi_64 * 1.2));
-	animated_bones[1].rotation_track.set_sample(2, quat_from_axis_angle(vector_set(0.0, 1.0, 0.0), k_pi_64 * 1.3));
-	animated_bones[1].rotation_track.set_sample(3, quat_from_axis_angle(vector_set(0.0, 1.0, 0.0), k_pi_64 * 1.4));
-	animated_bones[1].translation_track.set_sample(0, vector_set(5.2, 2.4, 13.4));
-	animated_bones[1].translation_track.set_sample(1, vector_set(5.3, 2.5, 13.5));
-	animated_bones[1].translation_track.set_sample(2, vector_set(5.4, 2.6, 13.6));
-	animated_bones[1].translation_track.set_sample(3, vector_set(5.5, 2.7, 13.7));
-	animated_bones[1].scale_track.set_sample(0, vector_set(2.0, 0.5, 4.1));
-	animated_bones[1].scale_track.set_sample(1, vector_set(2.1, 0.6, 4.2));
-	animated_bones[1].scale_track.set_sample(2, vector_set(2.2, 0.7, 4.3));
-	animated_bones[1].scale_track.set_sample(3, vector_set(2.3, 0.8, 4.4));
+	animated_bones[1].rotation_track.set_sample(0, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 1.1));
+	animated_bones[1].rotation_track.set_sample(1, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 1.2));
+	animated_bones[1].rotation_track.set_sample(2, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 1.3));
+	animated_bones[1].rotation_track.set_sample(3, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 1.4));
+	animated_bones[1].translation_track.set_sample(0, rtm::vector_set(5.2, 2.4, 13.4));
+	animated_bones[1].translation_track.set_sample(1, rtm::vector_set(5.3, 2.5, 13.5));
+	animated_bones[1].translation_track.set_sample(2, rtm::vector_set(5.4, 2.6, 13.6));
+	animated_bones[1].translation_track.set_sample(3, rtm::vector_set(5.5, 2.7, 13.7));
+	animated_bones[1].scale_track.set_sample(0, rtm::vector_set(2.0, 0.5, 4.1));
+	animated_bones[1].scale_track.set_sample(1, rtm::vector_set(2.1, 0.6, 4.2));
+	animated_bones[1].scale_track.set_sample(2, rtm::vector_set(2.2, 0.7, 4.3));
+	animated_bones[1].scale_track.set_sample(3, rtm::vector_set(2.3, 0.8, 4.4));
 
 	animated_bones[2].output_index = 1;
-	animated_bones[2].rotation_track.set_sample(0, quat_from_axis_angle(vector_set(0.0, 0.0, 1.0), k_pi_64 * 0.7));
-	animated_bones[2].rotation_track.set_sample(1, quat_from_axis_angle(vector_set(0.0, 0.0, 1.0), k_pi_64 * 0.8));
-	animated_bones[2].rotation_track.set_sample(2, quat_from_axis_angle(vector_set(0.0, 0.0, 1.0), k_pi_64 * 0.9));
-	animated_bones[2].rotation_track.set_sample(3, quat_from_axis_angle(vector_set(0.0, 0.0, 1.0), k_pi_64 * 0.4));
-	animated_bones[2].translation_track.set_sample(0, vector_set(1.2, 123.4, 11.4));
-	animated_bones[2].translation_track.set_sample(1, vector_set(1.3, 123.5, 11.5));
-	animated_bones[2].translation_track.set_sample(2, vector_set(1.4, 123.6, 11.6));
-	animated_bones[2].translation_track.set_sample(3, vector_set(1.5, 123.7, 11.7));
-	animated_bones[2].scale_track.set_sample(0, vector_set(4.0, 2.5, 3.1));
-	animated_bones[2].scale_track.set_sample(1, vector_set(4.1, 2.6, 3.2));
-	animated_bones[2].scale_track.set_sample(2, vector_set(4.2, 2.7, 3.3));
-	animated_bones[2].scale_track.set_sample(3, vector_set(4.3, 2.8, 3.4));
+	animated_bones[2].rotation_track.set_sample(0, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.7));
+	animated_bones[2].rotation_track.set_sample(1, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.8));
+	animated_bones[2].rotation_track.set_sample(2, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.9));
+	animated_bones[2].rotation_track.set_sample(3, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.4));
+	animated_bones[2].translation_track.set_sample(0, rtm::vector_set(1.2, 123.4, 11.4));
+	animated_bones[2].translation_track.set_sample(1, rtm::vector_set(1.3, 123.5, 11.5));
+	animated_bones[2].translation_track.set_sample(2, rtm::vector_set(1.4, 123.6, 11.6));
+	animated_bones[2].translation_track.set_sample(3, rtm::vector_set(1.5, 123.7, 11.7));
+	animated_bones[2].scale_track.set_sample(0, rtm::vector_set(4.0, 2.5, 3.1));
+	animated_bones[2].scale_track.set_sample(1, rtm::vector_set(4.1, 2.6, 3.2));
+	animated_bones[2].scale_track.set_sample(2, rtm::vector_set(4.2, 2.7, 3.3));
+	animated_bones[2].scale_track.set_sample(3, rtm::vector_set(4.3, 2.8, 3.4));
 
 	CompressionSettings settings;
-	settings.constant_rotation_threshold_angle = 32.23F;
+	settings.constant_rotation_threshold_angle = rtm::radians(32.23F);
 	settings.constant_scale_threshold = 1.123F;
 	settings.constant_translation_threshold = 0.124F;
 	settings.error_threshold = 0.23F;
@@ -271,7 +273,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	CHECK(file_clip.skeleton->get_num_bones() == num_bones);
 	CHECK(file_clip.clip->get_num_bones() == num_bones);
 	CHECK(file_clip.clip->get_name() == clip.get_name());
-	CHECK(scalar_near_equal(file_clip.clip->get_duration(), clip.get_duration(), 1.0E-8F));
+	CHECK(rtm::scalar_near_equal(file_clip.clip->get_duration(), clip.get_duration(), 1.0E-8F));
 	CHECK(file_clip.clip->get_num_samples() == clip.get_num_samples());
 	CHECK(file_clip.clip->get_sample_rate() == clip.get_sample_rate());
 
@@ -282,9 +284,9 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 		CHECK(src_bone.name == file_bone.name);
 		CHECK(src_bone.vertex_distance == file_bone.vertex_distance);
 		CHECK(src_bone.parent_index == file_bone.parent_index);
-		CHECK(quat_near_equal(src_bone.bind_transform.rotation, file_bone.bind_transform.rotation, 0.0));
-		CHECK(vector_all_near_equal3(src_bone.bind_transform.translation, file_bone.bind_transform.translation, 0.0));
-		CHECK(vector_all_near_equal3(src_bone.bind_transform.scale, file_bone.bind_transform.scale, 0.0));
+		CHECK(rtm::quat_near_equal(src_bone.bind_transform.rotation, file_bone.bind_transform.rotation, 0.0));
+		CHECK(rtm::vector_all_near_equal3(src_bone.bind_transform.translation, file_bone.bind_transform.translation, 0.0));
+		CHECK(rtm::vector_all_near_equal3(src_bone.bind_transform.scale, file_bone.bind_transform.scale, 0.0));
 
 		const AnimatedBone& src_animated_bone = clip.get_animated_bone(bone_index);
 		const AnimatedBone& file_animated_bone = file_clip.clip->get_animated_bone(bone_index);
@@ -292,9 +294,9 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			CHECK(quat_near_equal(src_animated_bone.rotation_track.get_sample(sample_index), file_animated_bone.rotation_track.get_sample(sample_index), 0.0));
-			CHECK(vector_all_near_equal3(src_animated_bone.translation_track.get_sample(sample_index), file_animated_bone.translation_track.get_sample(sample_index), 0.0));
-			CHECK(vector_all_near_equal3(src_animated_bone.scale_track.get_sample(sample_index), file_animated_bone.scale_track.get_sample(sample_index), 0.0));
+			CHECK(rtm::quat_near_equal(src_animated_bone.rotation_track.get_sample(sample_index), file_animated_bone.rotation_track.get_sample(sample_index), 0.0));
+			CHECK(rtm::vector_all_near_equal3(src_animated_bone.translation_track.get_sample(sample_index), file_animated_bone.translation_track.get_sample(sample_index), 0.0));
+			CHECK(rtm::vector_all_near_equal3(src_animated_bone.scale_track.get_sample(sample_index), file_animated_bone.scale_track.get_sample(sample_index), 0.0));
 		}
 	}
 #endif
@@ -303,7 +305,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -415,7 +417,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -527,7 +529,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -639,7 +641,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -751,7 +753,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
-#if defined(ACL_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
 	const uint32_t num_tracks = 3;

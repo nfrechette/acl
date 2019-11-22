@@ -27,6 +27,7 @@
 #include <acl/math/quat_packing.h>
 
 using namespace acl;
+using namespace rtm;
 
 TEST_CASE("quat packing math", "[math][quat][packing]")
 {
@@ -38,12 +39,12 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 	};
 	static_assert((offsetof(UnalignedBuffer, buffer) % 2) == 0, "Minimum packing alignment is 2");
 
-	const Quat_32 quat0 = quat_set(0.39564531008956383F, 0.044254239301713752F, 0.22768840967675355F, 0.88863059760894492F);
+	const quatf quat0 = quat_set(0.39564531008956383F, 0.044254239301713752F, 0.22768840967675355F, 0.88863059760894492F);
 
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_128(quat0, &tmp0.buffer[0]);
-		Quat_32 quat1 = unpack_quat_128(&tmp0.buffer[0]);
+		quatf quat1 = unpack_quat_128(&tmp0.buffer[0]);
 		REQUIRE(quat_get_x(quat0) == quat_get_x(quat1));
 		REQUIRE(quat_get_y(quat0) == quat_get_y(quat1));
 		REQUIRE(quat_get_z(quat0) == quat_get_z(quat1));
@@ -53,7 +54,7 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_96(quat0, &tmp0.buffer[0]);
-		Quat_32 quat1 = unpack_quat_96_unsafe(&tmp0.buffer[0]);
+		quatf quat1 = unpack_quat_96_unsafe(&tmp0.buffer[0]);
 		REQUIRE(quat_get_x(quat0) == quat_get_x(quat1));
 		REQUIRE(quat_get_y(quat0) == quat_get_y(quat1));
 		REQUIRE(quat_get_z(quat0) == quat_get_z(quat1));
@@ -63,7 +64,7 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_48(quat0, &tmp0.buffer[0]);
-		Quat_32 quat1 = unpack_quat_48(&tmp0.buffer[0]);
+		quatf quat1 = unpack_quat_48(&tmp0.buffer[0]);
 		REQUIRE(scalar_near_equal(quat_get_x(quat0), quat_get_x(quat1), 1.0E-4F));
 		REQUIRE(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-4F));
 		REQUIRE(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-4F));
@@ -73,7 +74,7 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_32(quat0, &tmp0.buffer[0]);
-		Quat_32 quat1 = unpack_quat_32(&tmp0.buffer[0]);
+		quatf quat1 = unpack_quat_32(&tmp0.buffer[0]);
 		REQUIRE(scalar_near_equal(quat_get_x(quat0), quat_get_x(quat1), 1.0E-3F));
 		REQUIRE(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-3F));
 		REQUIRE(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-3F));

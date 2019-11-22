@@ -33,11 +33,12 @@
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/utils.h"
-#include "acl/math/quat_32.h"
-#include "acl/math/vector4_32.h"
 #include "acl/math/quat_packing.h"
 #include "acl/decompression/decompress_data.h"
 #include "acl/decompression/output_writer.h"
+
+#include <rtm/quatf.h>
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -116,12 +117,12 @@ namespace acl
 			{
 				static constexpr size_t k_num_samples_to_interpolate = 2;
 
-				inline static Quat_32 ACL_SIMD_CALL interpolate_rotation(Quat_32Arg0 rotation0, Quat_32Arg1 rotation1, float interpolation_alpha)
+				inline static rtm::quatf RTM_SIMD_CALL interpolate_rotation(rtm::quatf_arg0 rotation0, rtm::quatf_arg1 rotation1, float interpolation_alpha)
 				{
-					return quat_lerp(rotation0, rotation1, interpolation_alpha);
+					return rtm::quat_lerp(rotation0, rotation1, interpolation_alpha);
 				}
 
-				inline static Quat_32 ACL_SIMD_CALL interpolate_rotation(Quat_32Arg0 rotation0, Quat_32Arg1 rotation1, Quat_32Arg2 rotation2, Quat_32Arg3 rotation3, float interpolation_alpha)
+				inline static rtm::quatf RTM_SIMD_CALL interpolate_rotation(rtm::quatf_arg0 rotation0, rtm::quatf_arg1 rotation1, rtm::quatf_arg2 rotation2, rtm::quatf_arg3 rotation3, float interpolation_alpha)
 				{
 					(void)rotation1;
 					(void)rotation2;
@@ -130,12 +131,12 @@ namespace acl
 					return rotation0;	// Not implemented, we use linear interpolation
 				}
 
-				inline static Vector4_32 ACL_SIMD_CALL interpolate_vector4(Vector4_32Arg0 vector0, Vector4_32Arg1 vector1, float interpolation_alpha)
+				inline static rtm::vector4f RTM_SIMD_CALL interpolate_vector4(rtm::vector4f_arg0 vector0, rtm::vector4f_arg1 vector1, float interpolation_alpha)
 				{
-					return vector_lerp(vector0, vector1, interpolation_alpha);
+					return rtm::vector_lerp(vector0, vector1, interpolation_alpha);
 				}
 
-				inline static Vector4_32 ACL_SIMD_CALL interpolate_vector4(Vector4_32Arg0 vector0, Vector4_32Arg1 vector1, Vector4_32Arg2 vector2, Vector4_32Arg3 vector3, float interpolation_alpha)
+				inline static rtm::vector4f RTM_SIMD_CALL interpolate_vector4(rtm::vector4f_arg0 vector0, rtm::vector4f_arg1 vector1, rtm::vector4f_arg2 vector2, rtm::vector4f_arg3 vector3, float interpolation_alpha)
 				{
 					(void)vector1;
 					(void)vector2;
@@ -144,23 +145,23 @@ namespace acl
 					return vector0;		// Not implemented, we use linear interpolation
 				}
 
-				//													//   offsets
-				uint32_t track_index;								//   0 |   0
-				uint32_t constant_track_data_offset;				//   4 |   4
-				uint32_t clip_range_data_offset;					//   8 |   8
+				//														//   offsets
+				uint32_t track_index;									//   0 |   0
+				uint32_t constant_track_data_offset;					//   4 |   4
+				uint32_t clip_range_data_offset;						//   8 |   8
 
-				uint32_t format_per_track_data_offset;				//  12 |  12
-				uint32_t segment_range_data_offset;					//  16 |  16
+				uint32_t format_per_track_data_offset;					//  12 |  12
+				uint32_t segment_range_data_offset;						//  16 |  16
 
-				uint32_t key_frame_byte_offsets[2];					//  20 |  20	// Fixed quantization
-				uint32_t key_frame_bit_offsets[2];					//  28 |  28	// Variable quantization
+				uint32_t key_frame_byte_offsets[2];						//  20 |  20	// Fixed quantization
+				uint32_t key_frame_bit_offsets[2];						//  28 |  28	// Variable quantization
 
-				uint8_t padding[28];								//  36 |  36
+				uint8_t padding[28];									//  36 |  36
 
-				Vector4_32 vectors[k_num_samples_to_interpolate];	//  64 |  64
-				Vector4_32 padding0[2];								//  96 |  96
+				rtm::vector4f vectors[k_num_samples_to_interpolate];	//  64 |  64
+				rtm::vector4f padding0[2];								//  96 |  96
 
-				//										Total size:	   128 | 128
+				//											Total size:	   128 | 128
 			};
 
 			static_assert(sizeof(SamplingContext) == 128, "Unexpected size");
@@ -174,7 +175,7 @@ namespace acl
 				explicit TranslationDecompressionSettingsAdapter(const SettingsType& settings_) : settings(settings_) {}
 
 				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Translations; }
-				inline Vector4_32 ACL_SIMD_CALL get_default_value() const { return vector_zero_32(); }
+				inline rtm::vector4f RTM_SIMD_CALL get_default_value() const { return rtm::vector_zero(); }
 				constexpr VectorFormat8 get_vector_format(const ClipHeader& header) const { return settings.get_translation_format(header.translation_format); }
 				constexpr bool is_vector_format_supported(VectorFormat8 format) const { return settings.is_translation_format_supported(format); }
 
@@ -191,11 +192,11 @@ namespace acl
 			{
 				explicit ScaleDecompressionSettingsAdapter(const SettingsType& settings_, const ClipHeader& header)
 					: settings(settings_)
-					, default_scale(header.default_scale ? vector_set(1.0F) : vector_zero_32())
+					, default_scale(header.default_scale ? rtm::vector_set(1.0F) : rtm::vector_zero())
 				{}
 
 				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Scales; }
-				inline Vector4_32 ACL_SIMD_CALL get_default_value() const { return default_scale; }
+				inline rtm::vector4f RTM_SIMD_CALL get_default_value() const { return default_scale; }
 				constexpr VectorFormat8 get_vector_format(const ClipHeader& header) const { return settings.get_scale_format(header.scale_format); }
 				constexpr bool is_vector_format_supported(VectorFormat8 format) const { return settings.is_scale_format_supported(format); }
 
@@ -205,8 +206,8 @@ namespace acl
 				constexpr bool supports_mixed_packing() const { return settings.supports_mixed_packing(); }
 
 				SettingsType settings;
-				uint8_t padding[get_required_padding<SettingsType, Vector4_32>()];
-				Vector4_32 default_scale;
+				uint8_t padding[get_required_padding<SettingsType, rtm::vector4f>()];
+				rtm::vector4f default_scale;
 			};
 		}
 
@@ -326,7 +327,7 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// Decompress a single bone at the current sample time.
 			// Each track entry is optional
-			void decompress_bone(uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale);
+			void decompress_bone(uint16_t sample_bone_index, rtm::quatf* out_rotation, rtm::vector4f* out_translation, rtm::vector4f* out_scale);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Releases the context instance if it contains an allocator reference
@@ -463,7 +464,7 @@ namespace acl
 
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			// TODO: Make it optional via DecompressionSettingsType?
-			sample_time = clamp(sample_time, 0.0F, m_context.clip_duration);
+			sample_time = rtm::scalar_clamp(sample_time, 0.0F, m_context.clip_duration);
 
 			if (m_context.sample_time == sample_time)
 				return;
@@ -583,7 +584,7 @@ namespace acl
 					skip_over_rotation(m_settings, header, m_context, sampling_context);
 				else
 				{
-					const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
+					const rtm::quatf rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
 					writer.write_bone_rotation(bone_index, rotation);
 				}
 
@@ -591,7 +592,7 @@ namespace acl
 					skip_over_vector(translation_adapter, header, m_context, sampling_context);
 				else
 				{
-					const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
+					const rtm::vector4f translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
 					writer.write_bone_translation(bone_index, translation);
 				}
 
@@ -602,7 +603,7 @@ namespace acl
 				}
 				else
 				{
-					const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
+					const rtm::vector4f scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
 					writer.write_bone_scale(bone_index, scale);
 				}
 			}
@@ -612,7 +613,7 @@ namespace acl
 		}
 
 		template<class DecompressionSettingsType>
-		inline void DecompressionContext<DecompressionSettingsType>::decompress_bone(uint16_t sample_bone_index, Quat_32* out_rotation, Vector4_32* out_translation, Vector4_32* out_scale)
+		inline void DecompressionContext<DecompressionSettingsType>::decompress_bone(uint16_t sample_bone_index, rtm::quatf* out_rotation, rtm::vector4f* out_translation, rtm::vector4f* out_scale)
 		{
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
 			ACL_ASSERT(m_context.sample_time >= 0.0f, "Context not set to a valid sample time");

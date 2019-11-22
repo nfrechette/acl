@@ -25,11 +25,12 @@
 #include <catch.hpp>
 
 #include <acl/core/utils.h>
-#include <acl/math/scalar_32.h>
+#include <rtm/scalarf.h>
 
 #include <limits>
 
 using namespace acl;
+using namespace rtm;
 
 TEST_CASE("misc utils", "[core][utils]")
 {

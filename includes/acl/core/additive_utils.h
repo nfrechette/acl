@@ -25,8 +25,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/compiler_utils.h"
-#include "acl/math/transform_32.h"
-#include "acl/math/transform_64.h"
+
+#include <rtm/qvvd.h>
+#include <rtm/qvvf.h>
 
 #include <cstdint>
 
@@ -106,77 +107,77 @@ namespace acl
 		return false;
 	}
 
-	inline Vector4_32 ACL_SIMD_CALL get_default_scale(AdditiveClipFormat8 additive_format)
+	inline rtm::vector4f RTM_SIMD_CALL get_default_scale(AdditiveClipFormat8 additive_format)
 	{
-		return additive_format == AdditiveClipFormat8::Additive1 ? vector_zero_32() : vector_set(1.0F);
+		return additive_format == AdditiveClipFormat8::Additive1 ? rtm::vector_zero() : rtm::vector_set(1.0F);
 	}
 
-	inline Transform_32 ACL_SIMD_CALL transform_add0(Transform_32Arg0 base, Transform_32Arg1 additive)
+	inline rtm::qvvf RTM_SIMD_CALL transform_add0(rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
 	{
-		const Quat_32 rotation = quat_mul(additive.rotation, base.rotation);
-		const Vector4_32 translation = vector_add(additive.translation, base.translation);
-		const Vector4_32 scale = vector_mul(additive.scale, base.scale);
-		return transform_set(rotation, translation, scale);
+		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);
+		const rtm::vector4f translation = rtm::vector_add(additive.translation, base.translation);
+		const rtm::vector4f scale = rtm::vector_mul(additive.scale, base.scale);
+		return rtm::qvv_set(rotation, translation, scale);
 	}
 
-	inline Transform_32 ACL_SIMD_CALL transform_add1(Transform_32Arg0 base, Transform_32Arg1 additive)
+	inline rtm::qvvf RTM_SIMD_CALL transform_add1(rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
 	{
-		const Quat_32 rotation = quat_mul(additive.rotation, base.rotation);
-		const Vector4_32 translation = vector_add(additive.translation, base.translation);
-		const Vector4_32 scale = vector_mul(vector_add(vector_set(1.0F), additive.scale), base.scale);
-		return transform_set(rotation, translation, scale);
+		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);
+		const rtm::vector4f translation = rtm::vector_add(additive.translation, base.translation);
+		const rtm::vector4f scale = rtm::vector_mul(rtm::vector_add(rtm::vector_set(1.0F), additive.scale), base.scale);
+		return rtm::qvv_set(rotation, translation, scale);
 	}
 
-	inline Transform_32 ACL_SIMD_CALL transform_add_no_scale(Transform_32Arg0 base, Transform_32Arg1 additive)
+	inline rtm::qvvf RTM_SIMD_CALL transform_add_no_scale(rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
 	{
-		const Quat_32 rotation = quat_mul(additive.rotation, base.rotation);
-		const Vector4_32 translation = vector_add(additive.translation, base.translation);
-		return transform_set(rotation, translation, vector_set(1.0F));
+		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);
+		const rtm::vector4f translation = rtm::vector_add(additive.translation, base.translation);
+		return rtm::qvv_set(rotation, translation, rtm::vector_set(1.0F));
 	}
 
-	inline Transform_32 ACL_SIMD_CALL apply_additive_to_base(AdditiveClipFormat8 additive_format, Transform_32Arg1 base, Transform_32ArgN additive)
+	inline rtm::qvvf RTM_SIMD_CALL apply_additive_to_base(AdditiveClipFormat8 additive_format, rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
 	{
 		switch (additive_format)
 		{
 		default:
 		case AdditiveClipFormat8::None:			return additive;
-		case AdditiveClipFormat8::Relative:		return transform_mul(additive, base);
+		case AdditiveClipFormat8::Relative:		return rtm::qvv_mul(additive, base);
 		case AdditiveClipFormat8::Additive0:	return transform_add0(base, additive);
 		case AdditiveClipFormat8::Additive1:	return transform_add1(base, additive);
 		}
 	}
 
-	inline Transform_32 ACL_SIMD_CALL apply_additive_to_base_no_scale(AdditiveClipFormat8 additive_format, Transform_32Arg1 base, Transform_32ArgN additive)
+	inline rtm::qvvf RTM_SIMD_CALL apply_additive_to_base_no_scale(AdditiveClipFormat8 additive_format, rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
 	{
 		switch (additive_format)
 		{
 		default:
 		case AdditiveClipFormat8::None:			return additive;
-		case AdditiveClipFormat8::Relative:		return transform_mul_no_scale(additive, base);
+		case AdditiveClipFormat8::Relative:		return rtm::qvv_mul_no_scale(additive, base);
 		case AdditiveClipFormat8::Additive0:	return transform_add_no_scale(base, additive);
 		case AdditiveClipFormat8::Additive1:	return transform_add_no_scale(base, additive);
 		}
 	}
 
-	inline Transform_64 convert_to_relative(const Transform_64& base, const Transform_64& transform)
+	inline rtm::qvvd convert_to_relative(const rtm::qvvd& base, const rtm::qvvd& transform)
 	{
-		return transform_mul(transform, transform_inverse(base));
+		return rtm::qvv_mul(transform, rtm::qvv_inverse(base));
 	}
 
-	inline Transform_64 convert_to_additive0(const Transform_64& base, const Transform_64& transform)
+	inline rtm::qvvd convert_to_additive0(const rtm::qvvd& base, const rtm::qvvd& transform)
 	{
-		const Quat_64 rotation = quat_mul(transform.rotation, quat_conjugate(base.rotation));
-		const Vector4_64 translation = vector_sub(transform.translation, base.translation);
-		const Vector4_64 scale = vector_div(transform.scale, base.scale);
-		return transform_set(rotation, translation, scale);
+		const rtm::quatd rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));
+		const rtm::vector4d translation = rtm::vector_sub(transform.translation, base.translation);
+		const rtm::vector4d scale = rtm::vector_div(transform.scale, base.scale);
+		return rtm::qvv_set(rotation, translation, scale);
 	}
 
-	inline Transform_64 convert_to_additive1(const Transform_64& base, const Transform_64& transform)
+	inline rtm::qvvd convert_to_additive1(const rtm::qvvd& base, const rtm::qvvd& transform)
 	{
-		const Quat_64 rotation = quat_mul(transform.rotation, quat_conjugate(base.rotation));
-		const Vector4_64 translation = vector_sub(transform.translation, base.translation);
-		const Vector4_64 scale = vector_sub(vector_mul(transform.scale, vector_reciprocal(base.scale)), vector_set(1.0));
-		return transform_set(rotation, translation, scale);
+		const rtm::quatd rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));
+		const rtm::vector4d translation = rtm::vector_sub(transform.translation, base.translation);
+		const rtm::vector4d scale = rtm::vector_sub(rtm::vector_mul(transform.scale, rtm::vector_reciprocal(base.scale)), rtm::vector_set(1.0));
+		return rtm::qvv_set(rotation, translation, scale);
 	}
 }
 

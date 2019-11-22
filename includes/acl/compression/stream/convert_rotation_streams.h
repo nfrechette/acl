@@ -27,9 +27,10 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
-#include "acl/math/quat_32.h"
-#include "acl/math/vector4_32.h"
 #include "acl/compression/stream/clip_context.h"
+
+#include <rtm/quatf.h>
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -37,7 +38,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	inline Vector4_32 ACL_SIMD_CALL convert_rotation(Vector4_32Arg0 rotation, RotationFormat8 from, RotationFormat8 to)
+	inline rtm::vector4f RTM_SIMD_CALL convert_rotation(rtm::vector4f_arg0 rotation, RotationFormat8 from, RotationFormat8 to)
 	{
 		ACL_ASSERT(from == RotationFormat8::Quat_128, "Source rotation format must be a full precision quaternion");
 		(void)from;
@@ -50,7 +51,7 @@ namespace acl
 			return rotation;
 		case RotationFormat8::QuatDropW_96:
 			// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
-			return quat_to_vector(quat_ensure_positive_w(vector_to_quat(rotation)));
+			return rtm::quat_to_vector(rtm::quat_ensure_positive_w(rtm::vector_to_quat(rotation)));
 		default:
 			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(to));
 			return rotation;
@@ -63,17 +64,17 @@ namespace acl
 
 		for (BoneStreams& bone_stream : segment.bone_iterator())
 		{
-			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored as Quat_32
-			// For all other formats, we keep the same sample size and either keep Quat_32 or use Vector4_32
-			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
+			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored as rtm::quatf
+			// For all other formats, we keep the same sample size and either keep Quat_32 or use rtm::vector4f
+			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::quatf), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(rtm::quatf));
 
 			const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 			const float sample_rate = bone_stream.rotations.get_sample_rate();
-			RotationTrackStream converted_stream(allocator, num_samples, sizeof(Quat_32), sample_rate, high_precision_format);
+			RotationTrackStream converted_stream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, high_precision_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				Quat_32 rotation = bone_stream.rotations.get_raw_sample<Quat_32>(sample_index);
+				rtm::quatf rotation = bone_stream.rotations.get_raw_sample<rtm::quatf>(sample_index);
 
 				switch (high_precision_format)
 				{
@@ -82,7 +83,7 @@ namespace acl
 					break;
 				case RotationFormat8::QuatDropW_96:
 					// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
-					rotation = quat_ensure_positive_w(rotation);
+					rotation = rtm::quat_ensure_positive_w(rotation);
 					break;
 				default:
 					ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(high_precision_format));

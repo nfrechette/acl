@@ -61,7 +61,6 @@ add_definitions(-DACL_NO_ALLOCATOR_TRACKING)
 
 # Disable SIMD if not needed
 if(NOT USE_SIMD_INSTRUCTIONS)
-	add_definitions(-DACL_NO_INTRINSICS)
 	add_definitions(-DRTM_NO_INTRINSICS)
 endif()
 

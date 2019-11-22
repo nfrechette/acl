@@ -30,11 +30,11 @@
 #include "acl/core/enum_utils.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
-#include "acl/math/quat_32.h"
 #include "acl/math/quat_packing.h"
-#include "acl/math/vector4_32.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/stream/clip_context.h"
+
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -68,16 +68,16 @@ namespace acl
 
 	inline void write_range_track_data_impl(const TrackStream& track, const TrackStreamRange& range, bool is_clip_range_data, uint8_t*& out_range_data)
 	{
-		const Vector4_32 range_min = range.get_min();
-		const Vector4_32 range_extent = range.get_extent();
+		const rtm::vector4f range_min = range.get_min();
+		const rtm::vector4f range_extent = range.get_extent();
 
 		if (is_clip_range_data)
 		{
 			const uint32_t range_member_size = sizeof(float) * 3;
 
-			std::memcpy(out_range_data, vector_as_float_ptr(range_min), range_member_size);
+			std::memcpy(out_range_data, &range_min, range_member_size);
 			out_range_data += range_member_size;
-			std::memcpy(out_range_data, vector_as_float_ptr(range_extent), range_member_size);
+			std::memcpy(out_range_data, &range_extent, range_member_size);
 			out_range_data += range_member_size;
 		}
 		else
@@ -123,16 +123,16 @@ namespace acl
 
 			if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) && !bone_stream.is_rotation_constant)
 			{
-				const Vector4_32 range_min = bone_range.rotation.get_min();
-				const Vector4_32 range_extent = bone_range.rotation.get_extent();
+				const rtm::vector4f range_min = bone_range.rotation.get_min();
+				const rtm::vector4f range_extent = bone_range.rotation.get_extent();
 
 				if (is_clip_range_data)
 				{
 					const uint32_t range_member_size = bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128 ? (sizeof(float) * 4) : (sizeof(float) * 3);
 
-					std::memcpy(range_data, vector_as_float_ptr(range_min), range_member_size);
+					std::memcpy(range_data, &range_min, range_member_size);
 					range_data += range_member_size;
-					std::memcpy(range_data, vector_as_float_ptr(range_extent), range_member_size);
+					std::memcpy(range_data, &range_extent, range_member_size);
 					range_data += range_member_size;
 				}
 				else

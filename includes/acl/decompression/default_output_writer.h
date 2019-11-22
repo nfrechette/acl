@@ -26,7 +26,8 @@
 
 #include "acl/core/compiler_utils.h"
 #include "acl/decompression/output_writer.h"
-#include "acl/math/math_types.h"
+
+#include <rtm/types.h>
 
 #include <cstdint>
 
@@ -40,7 +41,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	struct DefaultOutputWriter : OutputWriter
 	{
-		DefaultOutputWriter(Transform_32* transforms, uint16_t num_transforms)
+		DefaultOutputWriter(rtm::qvvf* transforms, uint16_t num_transforms)
 			: m_transforms(transforms)
 			, m_num_transforms(num_transforms)
 		{
@@ -48,25 +49,25 @@ namespace acl
 			ACL_ASSERT(num_transforms != 0, "Transforms array cannot be empty");
 		}
 
-		void write_bone_rotation(uint16_t bone_index, const Quat_32& rotation)
+		void RTM_SIMD_CALL write_bone_rotation(uint16_t bone_index, rtm::quatf_arg0 rotation)
 		{
 			ACL_ASSERT(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
 			m_transforms[bone_index].rotation = rotation;
 		}
 
-		void write_bone_translation(uint16_t bone_index, const Vector4_32& translation)
+		void RTM_SIMD_CALL write_bone_translation(uint16_t bone_index, rtm::vector4f_arg0 translation)
 		{
 			ACL_ASSERT(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
 			m_transforms[bone_index].translation = translation;
 		}
 
-		void write_bone_scale(uint16_t bone_index, const Vector4_32& scale)
+		void RTM_SIMD_CALL write_bone_scale(uint16_t bone_index, rtm::vector4f_arg0 scale)
 		{
 			ACL_ASSERT(bone_index < m_num_transforms, "Invalid bone index. %u >= %u", bone_index, m_num_transforms);
 			m_transforms[bone_index].scale = scale;
 		}
 
-		Transform_32* m_transforms;
+		rtm::qvvf* m_transforms;
 		uint16_t m_num_transforms;
 	};
 }

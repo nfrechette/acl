@@ -27,7 +27,8 @@
 #include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
-#include "acl/math/scalar_32.h"
+
+#include <rtm/scalarf.h>
 
 #include <cstdint>
 #include <limits>
@@ -56,7 +57,7 @@ namespace acl
 			return 1;	// An infinite duration, we have a single sample (static pose)
 
 		// Otherwise we have at least 1 sample
-		return safe_static_cast<uint32_t>(floor((duration * float(sample_rate)) + 0.5F)) + 1;
+		return safe_static_cast<uint32_t>(rtm::scalar_floor((duration * float(sample_rate)) + 0.5F)) + 1;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -78,7 +79,7 @@ namespace acl
 			return 1;	// An infinite duration, we have a single sample (static pose)
 
 		// Otherwise we have at least 1 sample
-		return safe_static_cast<uint32_t>(floor((duration * sample_rate) + 0.5F)) + 1;
+		return safe_static_cast<uint32_t>(rtm::scalar_floor((duration * sample_rate) + 0.5F)) + 1;
 	}
 
 	//////////////////////////////////////////////////////////////////////////

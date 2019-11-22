@@ -31,7 +31,9 @@
 #include "acl/core/range_reduction_types.h"
 #include "acl/compression/compression_level.h"
 #include "acl/compression/skeleton_error_metric.h"
-#include "acl/math/scalar_32.h"
+
+#include <rtm/anglef.h>
+#include <rtm/scalarf.h>
 
 #include <cstdint>
 
@@ -137,7 +139,7 @@ namespace acl
 		// was chosen. You will typically NEVER need to change this, the value has been
 		// selected to be as safe as possible and is independent of game engine units.
 		// Defaults to '0.00284714461' radians
-		float constant_rotation_threshold_angle;
+		rtm::anglef constant_rotation_threshold_angle;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Threshold value to use when detecting if translation tracks are constant or default.
@@ -168,7 +170,7 @@ namespace acl
 			, range_reduction(RangeReductionFlags8::None)
 			, segmenting()
 			, error_metric(nullptr)
-			, constant_rotation_threshold_angle(0.00284714461F)
+			, constant_rotation_threshold_angle(rtm::radians(0.00284714461F))
 			, constant_translation_threshold(0.001F)
 			, constant_scale_threshold(0.00001F)
 			, error_threshold(0.01F)
@@ -230,16 +232,17 @@ namespace acl
 			if (error_metric == nullptr)
 				return ErrorResult("error_metric cannot be NULL");
 
-			if (constant_rotation_threshold_angle < 0.0F || !is_finite(constant_rotation_threshold_angle))
+			const float rotation_threshold_angle = constant_rotation_threshold_angle.as_radians();
+			if (rotation_threshold_angle < 0.0F || !rtm::scalar_is_finite(rotation_threshold_angle))
 				return ErrorResult("Invalid constant_rotation_threshold_angle");
 
-			if (constant_translation_threshold < 0.0F || !is_finite(constant_translation_threshold))
+			if (constant_translation_threshold < 0.0F || !rtm::scalar_is_finite(constant_translation_threshold))
 				return ErrorResult("Invalid constant_translation_threshold");
 
-			if (constant_scale_threshold < 0.0F || !is_finite(constant_scale_threshold))
+			if (constant_scale_threshold < 0.0F || !rtm::scalar_is_finite(constant_scale_threshold))
 				return ErrorResult("Invalid constant_scale_threshold");
 
-			if (error_threshold < 0.0F || !is_finite(error_threshold))
+			if (error_threshold < 0.0F || !rtm::scalar_is_finite(error_threshold))
 				return ErrorResult("Invalid error_threshold");
 
 			return segmenting.is_valid();

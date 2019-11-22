@@ -25,9 +25,10 @@
 #include <catch.hpp>
 
 #include <acl/core/interpolation_utils.h>
-#include <acl/math/scalar_32.h>
+#include <rtm/scalarf.h>
 
 using namespace acl;
+using namespace rtm;
 
 TEST_CASE("interpolation utils", "[core][utils]")
 {

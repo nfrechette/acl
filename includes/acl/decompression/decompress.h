@@ -34,7 +34,6 @@
 #include "acl/core/track_types.h"
 #include "acl/core/track_writer.h"
 #include "acl/decompression/impl/track_sampling_impl.h"
-#include "acl/math/rtm_casts.h"
 #include "acl/math/vector4_packing.h"
 
 #include <rtm/types.h>
@@ -340,13 +339,13 @@ namespace acl
 					rtm::vector4f value1;
 					if (is_raw_bit_rate(bit_rate))
 					{
-						value0 = vector_acl2rtm(unpack_vector2_64_unsafe(animated_values, track_bit_offset0));
-						value1 = vector_acl2rtm(unpack_vector2_64_unsafe(animated_values, track_bit_offset1));
+						value0 = unpack_vector2_64_unsafe(animated_values, track_bit_offset0);
+						value1 = unpack_vector2_64_unsafe(animated_values, track_bit_offset1);
 					}
 					else
 					{
-						value0 = vector_acl2rtm(unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0));
-						value1 = vector_acl2rtm(unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1));
+						value0 = unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+						value1 = unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
 						const rtm::vector4f range_min = rtm::vector_load(range_values);
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + 2);
@@ -378,13 +377,13 @@ namespace acl
 					rtm::vector4f value1;
 					if (is_raw_bit_rate(bit_rate))
 					{
-						value0 = vector_acl2rtm(unpack_vector3_96_unsafe(animated_values, track_bit_offset0));
-						value1 = vector_acl2rtm(unpack_vector3_96_unsafe(animated_values, track_bit_offset1));
+						value0 = unpack_vector3_96_unsafe(animated_values, track_bit_offset0);
+						value1 = unpack_vector3_96_unsafe(animated_values, track_bit_offset1);
 					}
 					else
 					{
-						value0 = vector_acl2rtm(unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0));
-						value1 = vector_acl2rtm(unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1));
+						value0 = unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+						value1 = unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
 						const rtm::vector4f range_min = rtm::vector_load(range_values);
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + 3);
@@ -416,13 +415,13 @@ namespace acl
 					rtm::vector4f value1;
 					if (is_raw_bit_rate(bit_rate))
 					{
-						value0 = vector_acl2rtm(unpack_vector4_128_unsafe(animated_values, track_bit_offset0));
-						value1 = vector_acl2rtm(unpack_vector4_128_unsafe(animated_values, track_bit_offset1));
+						value0 = unpack_vector4_128_unsafe(animated_values, track_bit_offset0);
+						value1 = unpack_vector4_128_unsafe(animated_values, track_bit_offset1);
 					}
 					else
 					{
-						value0 = vector_acl2rtm(unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0));
-						value1 = vector_acl2rtm(unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1));
+						value0 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+						value1 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
 						const rtm::vector4f range_min = rtm::vector_load(range_values);
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + 4);
@@ -454,13 +453,13 @@ namespace acl
 					rtm::vector4f value1;
 					if (is_raw_bit_rate(bit_rate))
 					{
-						value0 = vector_acl2rtm(unpack_vector4_128_unsafe(animated_values, track_bit_offset0));
-						value1 = vector_acl2rtm(unpack_vector4_128_unsafe(animated_values, track_bit_offset1));
+						value0 = unpack_vector4_128_unsafe(animated_values, track_bit_offset0);
+						value1 = unpack_vector4_128_unsafe(animated_values, track_bit_offset1);
 					}
 					else
 					{
-						value0 = vector_acl2rtm(unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0));
-						value1 = vector_acl2rtm(unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1));
+						value0 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+						value1 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
 						const rtm::vector4f range_min = rtm::vector_load(range_values);
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + 4);
@@ -567,13 +566,13 @@ namespace acl
 				rtm::vector4f value1;
 				if (is_raw_bit_rate(bit_rate))
 				{
-					value0 = vector_acl2rtm(unpack_vector2_64_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset));
-					value1 = vector_acl2rtm(unpack_vector2_64_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset));
+					value0 = unpack_vector2_64_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_vector2_64_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 				}
 				else
 				{
-					value0 = vector_acl2rtm(unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset));
-					value1 = vector_acl2rtm(unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset));
+					value0 = unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 
 					const rtm::vector4f range_min = rtm::vector_load(range_values);
 					const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
@@ -597,13 +596,13 @@ namespace acl
 				rtm::vector4f value1;
 				if (is_raw_bit_rate(bit_rate))
 				{
-					value0 = vector_acl2rtm(unpack_vector3_96_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset));
-					value1 = vector_acl2rtm(unpack_vector3_96_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset));
+					value0 = unpack_vector3_96_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_vector3_96_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 				}
 				else
 				{
-					value0 = vector_acl2rtm(unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset));
-					value1 = vector_acl2rtm(unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset));
+					value0 = unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 
 					const rtm::vector4f range_min = rtm::vector_load(range_values);
 					const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
@@ -627,13 +626,13 @@ namespace acl
 				rtm::vector4f value1;
 				if (is_raw_bit_rate(bit_rate))
 				{
-					value0 = vector_acl2rtm(unpack_vector4_128_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset));
-					value1 = vector_acl2rtm(unpack_vector4_128_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset));
+					value0 = unpack_vector4_128_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_vector4_128_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 				}
 				else
 				{
-					value0 = vector_acl2rtm(unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset));
-					value1 = vector_acl2rtm(unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset));
+					value0 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 
 					const rtm::vector4f range_min = rtm::vector_load(range_values);
 					const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
@@ -657,13 +656,13 @@ namespace acl
 				rtm::vector4f value1;
 				if (is_raw_bit_rate(bit_rate))
 				{
-					value0 = vector_acl2rtm(unpack_vector4_128_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset));
-					value1 = vector_acl2rtm(unpack_vector4_128_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset));
+					value0 = unpack_vector4_128_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_vector4_128_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 				}
 				else
 				{
-					value0 = vector_acl2rtm(unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset));
-					value1 = vector_acl2rtm(unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset));
+					value0 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 
 					const rtm::vector4f range_min = rtm::vector_load(range_values);
 					const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);

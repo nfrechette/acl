@@ -32,9 +32,10 @@
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/string.h"
 #include "acl/core/utils.h"
-#include "acl/math/quat_32.h"
-#include "acl/math/vector4_32.h"
-#include "acl/math/transform_32.h"
+
+#include <rtm/quatf.h>
+#include <rtm/qvvf.h>
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -195,7 +196,7 @@ namespace acl
 		//    - rounding_policy: The rounding policy to use when sampling
 		//    - out_local_pose: An array of at least 'num_transforms' to output the data in
 		//    - num_transforms: The number of transforms in the output array
-		void sample_pose(float sample_time, SampleRoundingPolicy rounding_policy, Transform_32* out_local_pose, uint16_t num_transforms) const
+		void sample_pose(float sample_time, SampleRoundingPolicy rounding_policy, rtm::qvvf* out_local_pose, uint16_t num_transforms) const
 		{
 			ACL_ASSERT(m_num_bones > 0, "Invalid number of bones: %u", m_num_bones);
 			ACL_ASSERT(m_num_bones == num_transforms, "Number of transforms does not match the number of bones: %u != %u", num_transforms, m_num_bones);
@@ -204,7 +205,7 @@ namespace acl
 			const float clip_duration = get_duration();
 
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
-			sample_time = clamp(sample_time, 0.0F, clip_duration);
+			sample_time = rtm::scalar_clamp(sample_time, 0.0F, clip_duration);
 
 			uint32_t sample_index0;
 			uint32_t sample_index1;
@@ -215,19 +216,19 @@ namespace acl
 			{
 				const AnimatedBone& bone = m_bones[bone_index];
 
-				const Quat_32 rotation0 = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index0)));
-				const Quat_32 rotation1 = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index1)));
-				const Quat_32 rotation = quat_lerp(rotation0, rotation1, interpolation_alpha);
+				const rtm::quatf rotation0 = rtm::quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index0)));
+				const rtm::quatf rotation1 = rtm::quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index1)));
+				const rtm::quatf rotation = rtm::quat_lerp(rotation0, rotation1, interpolation_alpha);
 
-				const Vector4_32 translation0 = vector_cast(bone.translation_track.get_sample(sample_index0));
-				const Vector4_32 translation1 = vector_cast(bone.translation_track.get_sample(sample_index1));
-				const Vector4_32 translation = vector_lerp(translation0, translation1, interpolation_alpha);
+				const rtm::vector4f translation0 = rtm::vector_cast(bone.translation_track.get_sample(sample_index0));
+				const rtm::vector4f translation1 = rtm::vector_cast(bone.translation_track.get_sample(sample_index1));
+				const rtm::vector4f translation = rtm::vector_lerp(translation0, translation1, interpolation_alpha);
 
-				const Vector4_32 scale0 = vector_cast(bone.scale_track.get_sample(sample_index0));
-				const Vector4_32 scale1 = vector_cast(bone.scale_track.get_sample(sample_index1));
-				const Vector4_32 scale = vector_lerp(scale0, scale1, interpolation_alpha);
+				const rtm::vector4f scale0 = rtm::vector_cast(bone.scale_track.get_sample(sample_index0));
+				const rtm::vector4f scale1 = rtm::vector_cast(bone.scale_track.get_sample(sample_index1));
+				const rtm::vector4f scale = rtm::vector_lerp(scale0, scale1, interpolation_alpha);
 
-				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
+				out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
 			}
 		}
 
@@ -236,7 +237,7 @@ namespace acl
 		//    - sample_time: The time at which to sample the clip
 		//    - out_local_pose: An array of at least 'num_transforms' to output the data in
 		//    - num_transforms: The number of transforms in the output array
-		void sample_pose(float sample_time, Transform_32* out_local_pose, uint16_t num_transforms) const
+		void sample_pose(float sample_time, rtm::qvvf* out_local_pose, uint16_t num_transforms) const
 		{
 			sample_pose(sample_time, SampleRoundingPolicy::None, out_local_pose, num_transforms);
 		}
@@ -336,7 +337,7 @@ namespace acl
 		// bone has a scale sample that isn't equivalent to the default scale.
 		bool has_scale(float threshold) const
 		{
-			const Vector4_32 default_scale = get_default_scale(m_additive_format);
+			const rtm::vector4f default_scale = get_default_scale(m_additive_format);
 
 			for (uint16_t bone_index = 0; bone_index < m_num_bones; ++bone_index)
 			{
@@ -344,25 +345,25 @@ namespace acl
 				const uint32_t num_samples = bone.scale_track.get_num_samples();
 				if (num_samples != 0)
 				{
-					const Vector4_32 scale = vector_cast(bone.scale_track.get_sample(0));
+					const rtm::vector4f scale = rtm::vector_cast(bone.scale_track.get_sample(0));
 
-					Vector4_32 min = scale;
-					Vector4_32 max = scale;
+					rtm::vector4f min = scale;
+					rtm::vector4f max = scale;
 
 					for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
 					{
-						const Vector4_32 sample = vector_cast(bone.scale_track.get_sample(sample_index));
+						const rtm::vector4f sample = rtm::vector_cast(bone.scale_track.get_sample(sample_index));
 
-						min = vector_min(min, sample);
-						max = vector_max(max, sample);
+						min = rtm::vector_min(min, sample);
+						max = rtm::vector_max(max, sample);
 					}
 
-					const Vector4_32 extent = vector_sub(max, min);
-					const bool is_constant = vector_all_less_than3(vector_abs(extent), vector_set(threshold));
+					const rtm::vector4f extent = rtm::vector_sub(max, min);
+					const bool is_constant = rtm::vector_all_less_than3(rtm::vector_abs(extent), rtm::vector_set(threshold));
 					if (!is_constant)
 						return true;	// Not constant means we have scale
 
-					const bool is_default = vector_all_near_equal3(scale, default_scale, threshold);
+					const bool is_default = rtm::vector_all_near_equal3(scale, default_scale, threshold);
 					if (!is_default)
 						return true;	// Constant but not default means we have scale
 				}

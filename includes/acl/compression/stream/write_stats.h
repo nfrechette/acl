@@ -101,9 +101,9 @@ namespace acl
 		const uint16_t num_bones = skeleton.get_num_bones();
 		const bool has_scale = segment_context_has_scale(segment);
 
-		Transform_32* raw_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
-		Transform_32* base_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
-		Transform_32* lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
+		rtm::qvvf* raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+		rtm::qvvf* base_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+		rtm::qvvf* lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 
 		const float sample_rate = raw_clip_context.sample_rate;
 		const float ref_duration = calculate_duration(raw_clip_context.num_samples, sample_rate);
@@ -114,7 +114,7 @@ namespace acl
 		{
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
-				const float sample_time = min(float(segment.clip_sample_offset + sample_index) / sample_rate, ref_duration);
+				const float sample_time = rtm::scalar_min(float(segment.clip_sample_offset + sample_index) / sample_rate, ref_duration);
 
 				sample_streams(raw_clip_context.segments[0].bone_streams, num_bones, sample_time, raw_local_pose);
 				sample_streams(segment.bone_streams, num_bones, sample_time, lossy_local_pose);

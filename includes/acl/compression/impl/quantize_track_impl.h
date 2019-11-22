@@ -49,7 +49,7 @@ namespace acl
 				ACL_ASSERT(num_bits > 0, "Cannot decay with 0 bits");
 				ACL_ASSERT(num_bits < 31, "Attempting to decay on too many bits");
 
-				const float max_value_ = safe_to_float((1 << num_bits) - 1);
+				const float max_value_ = rtm::scalar_safe_to_float((1 << num_bits) - 1);
 				max_value = rtm::vector_set(max_value_);
 				inv_max_value = rtm::vector_set(1.0F / max_value_);
 			}
