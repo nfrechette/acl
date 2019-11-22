@@ -4,7 +4,7 @@
 
 ### Realtime Math
 
-[Reamtime Math v1.1.0](https://github.com/nfrechette/rtm/releases/tag/v1.1.0) (MIT License) is used for some math types and functions. Its usage is currently limited but a full transition to use it exclusively will occur for ACL v2.0. Needed only by the SJSON IO reader/writer and the scalar track compression/decompression API.
+[Reamtime Math v1.1.0-develop](https://github.com/nfrechette/rtm/releases/tag/v1.1.0) (MIT License) is used for some math types and functions. Its usage is currently limited but a full transition to use it exclusively will occur for ACL v2.0. Needed only by the SJSON IO reader/writer and the scalar track compression/decompression API.
 
 ## Development dependencies
 
