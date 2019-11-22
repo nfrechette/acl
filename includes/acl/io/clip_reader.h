@@ -90,30 +90,6 @@ namespace acl
 		{
 		}
 
-		ACL_DEPRECATED("Use get_file_type() and read_raw_clip(..) instead, to be removed in v2.0")
-		bool read_settings(bool& out_has_settings, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings)
-		{
-			reset_state();
-
-			return read_version() && read_raw_clip_header() && read_settings(&out_has_settings, &out_algorithm_type, &out_settings);
-		}
-
-		ACL_DEPRECATED("Use get_file_type() and read_raw_clip(..) instead, to be removed in v2.0")
-		bool read_skeleton(std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton)
-		{
-			reset_state();
-
-			return read_version() && read_raw_clip_header() && read_settings(nullptr, nullptr, nullptr) && create_skeleton(skeleton);
-		}
-
-		ACL_DEPRECATED("Use get_file_type() and read_raw_clip(..) instead, to be removed in v2.0")
-		bool read_clip(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
-		{
-			reset_state();
-
-			return read_version() && read_raw_clip_header() && read_settings(nullptr, nullptr, nullptr) && read_skeleton() && create_clip(clip, skeleton) && read_tracks(*clip, skeleton) && nothing_follows();
-		}
-
 		sjson_file_type get_file_type()
 		{
 			reset_state();

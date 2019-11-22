@@ -239,11 +239,10 @@ namespace acl
 		}
 	}
 
-	inline void write_animated_track_data(const ClipContext& clip_context, const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, uint8_t* animated_track_data, uint32_t animated_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
+	inline void write_animated_track_data(const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, uint8_t* animated_track_data, uint32_t animated_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(animated_track_data != nullptr, "'animated_track_data' cannot be null!");
 		(void)animated_data_size;
-		(void)clip_context;	// TODO: Remove in 2.0
 
 		uint8_t* animated_track_data_begin = animated_track_data;
 
@@ -287,11 +286,10 @@ namespace acl
 		ACL_ASSERT(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
 	}
 
-	inline void write_format_per_track_data(const ClipContext& clip_context, const SegmentContext& segment, uint8_t* format_per_track_data, uint32_t format_per_track_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
+	inline void write_format_per_track_data(const SegmentContext& segment, uint8_t* format_per_track_data, uint32_t format_per_track_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(format_per_track_data != nullptr, "'format_per_track_data' cannot be null!");
 		(void)format_per_track_data_size;
-		(void)clip_context;	// TODO: Remove in 2.0
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint8_t* format_per_track_data_end = add_offset_to_ptr<uint8_t>(format_per_track_data, format_per_track_data_size);

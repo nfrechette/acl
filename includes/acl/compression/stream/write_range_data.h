@@ -98,14 +98,13 @@ namespace acl
 		}
 	}
 
-	inline void write_range_track_data(const ClipContext& clip_context, const BoneStreams* bone_streams, const BoneRanges* bone_ranges,
+	inline void write_range_track_data(const BoneStreams* bone_streams, const BoneRanges* bone_ranges,
 		RangeReductionFlags8 range_reduction, bool is_clip_range_data,
 		uint8_t* range_data, uint32_t range_data_size,
 		const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
 		ACL_ASSERT(range_data != nullptr, "'range_data' cannot be null!");
 		(void)range_data_size;
-		(void)clip_context;	// TODO: Remove in 2.0
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
@@ -180,12 +179,12 @@ namespace acl
 		// Only use the first segment, it contains the necessary information
 		const SegmentContext& segment = clip_context.segments[0];
 
-		write_range_track_data(clip_context, segment.bone_streams, clip_context.ranges, range_reduction, true, range_data, range_data_size, output_bone_mapping, num_output_bones);
+		write_range_track_data(segment.bone_streams, clip_context.ranges, range_reduction, true, range_data, range_data_size, output_bone_mapping, num_output_bones);
 	}
 
-	inline void write_segment_range_data(const ClipContext& clip_context, const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
+	inline void write_segment_range_data(const SegmentContext& segment, RangeReductionFlags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 	{
-		write_range_track_data(clip_context, segment.bone_streams, segment.ranges, range_reduction, false, range_data, range_data_size, output_bone_mapping, num_output_bones);
+		write_range_track_data(segment.bone_streams, segment.ranges, range_reduction, false, range_data, range_data_size, output_bone_mapping, num_output_bones);
 	}
 }
 
