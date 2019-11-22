@@ -426,16 +426,16 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;
 	const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0F;
 
-	Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-	Transform_32* base_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+	rtm::qvvf* raw_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+	rtm::qvvf* base_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+	rtm::qvvf* lossy_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 
 	DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
 
 	// Regression test
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
-		const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
+		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, clip_duration);
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
 		clip.sample_pose(sample_time, SampleRoundingPolicy::Nearest, raw_pose_transforms, num_bones);
@@ -455,44 +455,44 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		{
 			const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, base_pose_transforms, lossy_pose_transforms, bone_index);
 			(void)error;
-			ACL_ASSERT(is_finite(error), "Returned error is not a finite value");
+			ACL_ASSERT(rtm::scalar_is_finite(error), "Returned error is not a finite value");
 			ACL_ASSERT(error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
 		}
 
 		// Validate decompress_bone for rotations only
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			Quat_32 rotation;
+			rtm::quatf rotation;
 			context.decompress_bone(bone_index, &rotation, nullptr, nullptr);
-			ACL_ASSERT(quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
 		}
 
 		// Validate decompress_bone for translations only
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			Vector4_32 translation;
+			rtm::vector4f translation;
 			context.decompress_bone(bone_index, nullptr, &translation, nullptr);
-			ACL_ASSERT(vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
 		}
 
 		// Validate decompress_bone for scales only
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			Vector4_32 scale;
+			rtm::vector4f scale;
 			context.decompress_bone(bone_index, nullptr, nullptr, &scale);
-			ACL_ASSERT(vector_all_near_equal3(scale, lossy_pose_transforms[bone_index].scale), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(scale, lossy_pose_transforms[bone_index].scale), "Failed to sample bone index: %u", bone_index);
 		}
 
 		// Validate decompress_bone
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			Quat_32 rotation;
-			Vector4_32 translation;
-			Vector4_32 scale;
+			rtm::quatf rotation;
+			rtm::vector4f translation;
+			rtm::vector4f scale;
 			context.decompress_bone(bone_index, &rotation, &translation, &scale);
-			ACL_ASSERT(quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(vector_all_near_equal3(scale, lossy_pose_transforms[bone_index].scale), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(scale, lossy_pose_transforms[bone_index].scale), "Failed to sample bone index: %u", bone_index);
 		}
 	}
 
@@ -522,7 +522,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 	const uint32_t num_samples = tracks.get_num_samples_per_track();
 	const track_type8 track_type = raw_tracks.get_track_type();
 
-	ACL_ASSERT(scalar_near_equal(duration, raw_tracks.get_duration(), 1.0E-7F), "Duration mismatch");
+	ACL_ASSERT(rtm::scalar_near_equal(duration, raw_tracks.get_duration(), 1.0E-7F), "Duration mismatch");
 	ACL_ASSERT(sample_rate == raw_tracks.get_sample_rate(), "Sample rate mismatch");
 	ACL_ASSERT(num_tracks <= raw_tracks.get_num_tracks(), "Num tracks mismatch");
 	ACL_ASSERT(num_samples == raw_tracks.get_num_samples_per_track(), "Num samples mismatch");
@@ -540,7 +540,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 	// Regression test
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
-		const float sample_time = min(float(sample_index) / sample_rate, duration);
+		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
 		raw_tracks.sample_tracks(sample_time, SampleRoundingPolicy::Nearest, raw_tracks_writer);
@@ -1056,7 +1056,10 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 		}
 	}
 
-	parser.try_read("constant_rotation_threshold_angle", out_settings.constant_rotation_threshold_angle, default_settings.constant_rotation_threshold_angle);
+	double constant_rotation_threshold_angle;
+	parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, default_settings.constant_rotation_threshold_angle.as_radians());
+	out_settings.constant_rotation_threshold_angle = rtm::radians(float(constant_rotation_threshold_angle));
+
 	parser.try_read("constant_translation_threshold", out_settings.constant_translation_threshold, default_settings.constant_translation_threshold);
 	parser.try_read("constant_scale_threshold", out_settings.constant_scale_threshold, default_settings.constant_scale_threshold);
 	parser.try_read("error_threshold", out_settings.error_threshold, default_settings.error_threshold);
@@ -1112,17 +1115,17 @@ static void create_additive_base_clip(const Options& options, AnimationClip& cli
 
 		// Get the bind transform and make sure it has no scale
 		const RigidBone& skel_bone = skeleton.get_bone(bone_index);
-		const Transform_64 bind_transform = transform_set(skel_bone.bind_transform.rotation, skel_bone.bind_transform.translation, vector_set(1.0));
+		const rtm::qvvd bind_transform = rtm::qvv_set(skel_bone.bind_transform.rotation, skel_bone.bind_transform.translation, rtm::vector_set(1.0));
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			const Quat_64 rotation = quat_normalize(anim_bone.rotation_track.get_sample(sample_index));
-			const Vector4_64 translation = anim_bone.translation_track.get_sample(sample_index);
-			const Vector4_64 scale = anim_bone.scale_track.get_sample(sample_index);
+			const rtm::quatd rotation = rtm::quat_normalize(anim_bone.rotation_track.get_sample(sample_index));
+			const rtm::vector4d translation = anim_bone.translation_track.get_sample(sample_index);
+			const rtm::vector4d scale = anim_bone.scale_track.get_sample(sample_index);
 
-			const Transform_64 bone_transform = transform_set(rotation, translation, scale);
+			const rtm::qvvd bone_transform = rtm::qvv_set(rotation, translation, scale);
 
-			Transform_64 bind_local_transform = bone_transform;
+			rtm::qvvd bind_local_transform = bone_transform;
 			if (options.is_bind_pose_relative)
 				bind_local_transform = convert_to_relative(bind_transform, bone_transform);
 			else if (options.is_bind_pose_additive0)

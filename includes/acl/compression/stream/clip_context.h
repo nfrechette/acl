@@ -33,6 +33,9 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/stream/segment_context.h"
 
+#include <rtm/quatf.h>
+#include <rtm/vector4f.h>
+
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -97,7 +100,7 @@ namespace acl
 		out_clip_context.additive_format = clip.get_additive_format();
 
 		bool has_scale = false;
-		const Vector4_32 default_scale = get_default_scale(clip.get_additive_format());
+		const rtm::vector4f default_scale = get_default_scale(clip.get_additive_format());
 
 		SegmentContext& segment = out_clip_context.segments[0];
 
@@ -114,28 +117,28 @@ namespace acl
 			bone_stream.parent_bone_index = skel_bone.parent_index;
 			bone_stream.output_index = bone.output_index;
 
-			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(Quat_32), sample_rate, RotationFormat8::Quat_128);
-			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
-			bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(Vector4_32), sample_rate, VectorFormat8::Vector3_96);
+			bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, RotationFormat8::Quat_128);
+			bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, VectorFormat8::Vector3_96);
+			bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, VectorFormat8::Vector3_96);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				const Quat_32 rotation = quat_normalize(quat_cast(bone.rotation_track.get_sample(sample_index)));
+				const rtm::quatf rotation = rtm::quat_normalize(rtm::quat_cast(bone.rotation_track.get_sample(sample_index)));
 				bone_stream.rotations.set_raw_sample(sample_index, rotation);
 
-				const Vector4_32 translation = vector_cast(bone.translation_track.get_sample(sample_index));
+				const rtm::vector4f translation = rtm::vector_cast(bone.translation_track.get_sample(sample_index));
 				bone_stream.translations.set_raw_sample(sample_index, translation);
 
-				const Vector4_32 scale = vector_cast(bone.scale_track.get_sample(sample_index));
+				const rtm::vector4f scale = rtm::vector_cast(bone.scale_track.get_sample(sample_index));
 				bone_stream.scales.set_raw_sample(sample_index, scale);
 			}
 
 			bone_stream.is_rotation_constant = num_samples == 1;
-			bone_stream.is_rotation_default = bone_stream.is_rotation_constant && quat_near_identity(quat_cast(bone.rotation_track.get_sample(0)), settings.constant_rotation_threshold_angle);
+			bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(rtm::quat_cast(bone.rotation_track.get_sample(0)), settings.constant_rotation_threshold_angle);
 			bone_stream.is_translation_constant = num_samples == 1;
-			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_all_near_equal3(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32(), settings.constant_translation_threshold);
+			bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(rtm::vector_cast(bone.translation_track.get_sample(0)), rtm::vector_zero(), settings.constant_translation_threshold);
 			bone_stream.is_scale_constant = num_samples == 1;
-			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_all_near_equal3(vector_cast(bone.scale_track.get_sample(0)), default_scale, settings.constant_scale_threshold);
+			bone_stream.is_scale_default = bone_stream.is_scale_constant && rtm::vector_all_near_equal3(rtm::vector_cast(bone.scale_track.get_sample(0)), default_scale, settings.constant_scale_threshold);
 
 			has_scale |= !bone_stream.is_scale_default;
 

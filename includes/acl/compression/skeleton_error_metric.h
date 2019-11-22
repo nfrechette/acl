@@ -27,10 +27,11 @@
 #include "acl/core/additive_utils.h"
 #include "acl/core/compiler_utils.h"
 #include "acl/core/hash.h"
-#include "acl/math/affine_matrix_32.h"
-#include "acl/math/transform_32.h"
-#include "acl/math/scalar_32.h"
 #include "acl/compression/skeleton.h"
+
+#include <rtm/matrix3x4f.h>
+#include <rtm/qvvf.h>
+#include <rtm/scalarf.h>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -45,11 +46,11 @@ namespace acl
 		virtual const char* get_name() const = 0;
 		virtual uint32_t get_hash() const = 0;
 
-		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const = 0;
-		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const = 0;
+		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const = 0;
+		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const = 0;
 
-		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const = 0;
-		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const = 0;
+		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const = 0;
+		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const = 0;
 	};
 
 	// Uses a mix of Transform_32 and AffineMatrix_32 arithmetic.
@@ -64,7 +65,7 @@ namespace acl
 		virtual const char* get_name() const override { return "TransformMatrixErrorMetric"; }
 		virtual uint32_t get_hash() const override { return hash32("TransformMatrixErrorMetric"); }
 
-		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 			(void)base_local_pose;
@@ -72,53 +73,53 @@ namespace acl
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
-			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, bone.vertex_distance);
+			const rtm::vector4f vtx0 = rtm::vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx2 = rtm::vector_set(0.0F, 0.0F, bone.vertex_distance);
 
-			const Vector4_32 raw_vtx0 = transform_position(raw_local_pose[bone_index], vtx0);
-			const Vector4_32 lossy_vtx0 = transform_position(lossy_local_pose[bone_index], vtx0);
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3(vtx0, lossy_local_pose[bone_index]);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
 
-			const Vector4_32 raw_vtx1 = transform_position(raw_local_pose[bone_index], vtx1);
-			const Vector4_32 lossy_vtx1 = transform_position(lossy_local_pose[bone_index], vtx1);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3(vtx1, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3(vtx1, lossy_local_pose[bone_index]);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
 
-			const Vector4_32 raw_vtx2 = transform_position(raw_local_pose[bone_index], vtx2);
-			const Vector4_32 lossy_vtx2 = transform_position(lossy_local_pose[bone_index], vtx2);
-			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
+			const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3(vtx2, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3(vtx2, lossy_local_pose[bone_index]);
+			const float vtx2_error = rtm::vector_distance3(raw_vtx2, lossy_vtx2);
 
-			return max(max(vtx0_error, vtx1_error), vtx2_error);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
-		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 			(void)base_local_pose;
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx0 = rtm::vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, bone.vertex_distance, 0.0F);
 
-			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_local_pose[bone_index], vtx0);
-			const Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_local_pose[bone_index], vtx0);
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, lossy_local_pose[bone_index]);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
 
-			const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_local_pose[bone_index], vtx1);
-			const Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_local_pose[bone_index], vtx1);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, lossy_local_pose[bone_index]);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
 
-			return max(vtx0_error, vtx1_error);
+			return rtm::scalar_max(vtx0_error, vtx1_error);
 		}
 
-		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 			(void)base_local_pose;
 
-			AffineMatrix_32 raw_obj_mtx = matrix_from_transform(raw_local_pose[0]);
-			AffineMatrix_32 lossy_obj_mtx = matrix_from_transform(lossy_local_pose[0]);
+			rtm::matrix3x4f raw_obj_mtx = rtm::matrix_from_qvv(raw_local_pose[0]);
+			rtm::matrix3x4f lossy_obj_mtx = rtm::matrix_from_qvv(lossy_local_pose[0]);
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
 			auto chain_bone_it = ++bone_chain.begin();	// Skip root bone
@@ -126,38 +127,38 @@ namespace acl
 			for (; chain_bone_it != chain_bone_end; ++chain_bone_it)
 			{
 				const uint16_t chain_bone_index = *chain_bone_it;
-				raw_obj_mtx = matrix_mul(matrix_from_transform(raw_local_pose[chain_bone_index]), raw_obj_mtx);
-				lossy_obj_mtx = matrix_mul(matrix_from_transform(lossy_local_pose[chain_bone_index]), lossy_obj_mtx);
+				raw_obj_mtx = rtm::matrix_mul(rtm::matrix_from_qvv(raw_local_pose[chain_bone_index]), raw_obj_mtx);
+				lossy_obj_mtx = rtm::matrix_mul(rtm::matrix_from_qvv(lossy_local_pose[chain_bone_index]), lossy_obj_mtx);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
-			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, target_bone.vertex_distance);
+			const rtm::vector4f vtx0 = rtm::vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, target_bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx2 = rtm::vector_set(0.0F, 0.0F, target_bone.vertex_distance);
 
-			const Vector4_32 raw_vtx0 = matrix_mul_position(raw_obj_mtx, vtx0);
-			const Vector4_32 raw_vtx1 = matrix_mul_position(raw_obj_mtx, vtx1);
-			const Vector4_32 raw_vtx2 = matrix_mul_position(raw_obj_mtx, vtx2);
-			const Vector4_32 lossy_vtx0 = matrix_mul_position(lossy_obj_mtx, vtx0);
-			const Vector4_32 lossy_vtx1 = matrix_mul_position(lossy_obj_mtx, vtx1);
-			const Vector4_32 lossy_vtx2 = matrix_mul_position(lossy_obj_mtx, vtx2);
+			const rtm::vector4f raw_vtx0 = rtm::matrix_mul_point3(vtx0, raw_obj_mtx);
+			const rtm::vector4f raw_vtx1 = rtm::matrix_mul_point3(vtx1, raw_obj_mtx);
+			const rtm::vector4f raw_vtx2 = rtm::matrix_mul_point3(vtx2, raw_obj_mtx);
+			const rtm::vector4f lossy_vtx0 = rtm::matrix_mul_point3(vtx0, lossy_obj_mtx);
+			const rtm::vector4f lossy_vtx1 = rtm::matrix_mul_point3(vtx1, lossy_obj_mtx);
+			const rtm::vector4f lossy_vtx2 = rtm::matrix_mul_point3(vtx2, lossy_obj_mtx);
 
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
-			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
+			const float vtx2_error = rtm::vector_distance3(raw_vtx2, lossy_vtx2);
 
-			return max(max(vtx0_error, vtx1_error), vtx2_error);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
-		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 			(void)base_local_pose;
 
-			Transform_32 raw_obj_transform = raw_local_pose[0];
-			Transform_32 lossy_obj_transform = lossy_local_pose[0];
+			rtm::qvvf raw_obj_transform = raw_local_pose[0];
+			rtm::qvvf lossy_obj_transform = lossy_local_pose[0];
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
 			auto chain_bone_it = ++bone_chain.begin();	// Skip root bone
@@ -165,24 +166,24 @@ namespace acl
 			for (; chain_bone_it != chain_bone_end; ++chain_bone_it)
 			{
 				const uint16_t chain_bone_index = *chain_bone_it;
-				raw_obj_transform = transform_mul_no_scale(raw_local_pose[chain_bone_index], raw_obj_transform);
-				lossy_obj_transform = transform_mul_no_scale(lossy_local_pose[chain_bone_index], lossy_obj_transform);
+				raw_obj_transform = rtm::qvv_mul_no_scale(raw_local_pose[chain_bone_index], raw_obj_transform);
+				lossy_obj_transform = rtm::qvv_mul_no_scale(lossy_local_pose[chain_bone_index], lossy_obj_transform);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx0 = rtm::vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, target_bone.vertex_distance, 0.0F);
 
-			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_obj_transform, vtx0);
-			const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_obj_transform, vtx1);
-			const Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_obj_transform, vtx0);
-			const Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_obj_transform, vtx1);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, raw_obj_transform);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, raw_obj_transform);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, lossy_obj_transform);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, lossy_obj_transform);
 
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
 
-			return max(vtx0_error, vtx1_error);
+			return rtm::scalar_max(vtx0_error, vtx1_error);
 		}
 	};
 
@@ -194,7 +195,7 @@ namespace acl
 		virtual const char* get_name() const override { return "TransformErrorMetric"; }
 		virtual uint32_t get_hash() const override { return hash32("TransformErrorMetric"); }
 
-		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 			(void)base_local_pose;
@@ -202,53 +203,53 @@ namespace acl
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
-			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, bone.vertex_distance);
+			const rtm::vector4f vtx0 = rtm::vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx2 = rtm::vector_set(0.0F, 0.0F, bone.vertex_distance);
 
-			const Vector4_32 raw_vtx0 = transform_position(raw_local_pose[bone_index], vtx0);
-			const Vector4_32 lossy_vtx0 = transform_position(lossy_local_pose[bone_index], vtx0);
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3(vtx0, lossy_local_pose[bone_index]);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
 
-			const Vector4_32 raw_vtx1 = transform_position(raw_local_pose[bone_index], vtx1);
-			const Vector4_32 lossy_vtx1 = transform_position(lossy_local_pose[bone_index], vtx1);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3(vtx1, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3(vtx1, lossy_local_pose[bone_index]);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
 
-			const Vector4_32 raw_vtx2 = transform_position(raw_local_pose[bone_index], vtx2);
-			const Vector4_32 lossy_vtx2 = transform_position(lossy_local_pose[bone_index], vtx2);
-			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
+			const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3(vtx2, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3(vtx2, lossy_local_pose[bone_index]);
+			const float vtx2_error = rtm::vector_distance3(raw_vtx2, lossy_vtx2);
 
-			return max(max(vtx0_error, vtx1_error), vtx2_error);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
-		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 			(void)base_local_pose;
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx0 = rtm::vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, bone.vertex_distance, 0.0F);
 
-			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_local_pose[bone_index], vtx0);
-			const Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_local_pose[bone_index], vtx0);
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, lossy_local_pose[bone_index]);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
 
-			const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_local_pose[bone_index], vtx1);
-			const Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_local_pose[bone_index], vtx1);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, raw_local_pose[bone_index]);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, lossy_local_pose[bone_index]);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
 
-			return max(vtx0_error, vtx1_error);
+			return rtm::scalar_max(vtx0_error, vtx1_error);
 		}
 
-		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 			(void)base_local_pose;
 
-			Transform_32 raw_obj_transform = raw_local_pose[0];
-			Transform_32 lossy_obj_transform = lossy_local_pose[0];
+			rtm::qvvf raw_obj_transform = raw_local_pose[0];
+			rtm::qvvf lossy_obj_transform = lossy_local_pose[0];
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
 			auto chain_bone_it = ++bone_chain.begin();	// Skip root bone
@@ -256,38 +257,38 @@ namespace acl
 			for (; chain_bone_it != chain_bone_end; ++chain_bone_it)
 			{
 				const uint16_t chain_bone_index = *chain_bone_it;
-				raw_obj_transform = transform_mul(raw_local_pose[chain_bone_index], raw_obj_transform);
-				lossy_obj_transform = transform_mul(lossy_local_pose[chain_bone_index], lossy_obj_transform);
+				raw_obj_transform = rtm::qvv_mul(raw_local_pose[chain_bone_index], raw_obj_transform);
+				lossy_obj_transform = rtm::qvv_mul(lossy_local_pose[chain_bone_index], lossy_obj_transform);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
-			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, target_bone.vertex_distance);
+			const rtm::vector4f vtx0 = rtm::vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, target_bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx2 = rtm::vector_set(0.0F, 0.0F, target_bone.vertex_distance);
 
-			const Vector4_32 raw_vtx0 = transform_position(raw_obj_transform, vtx0);
-			const Vector4_32 raw_vtx1 = transform_position(raw_obj_transform, vtx1);
-			const Vector4_32 raw_vtx2 = transform_position(raw_obj_transform, vtx2);
-			const Vector4_32 lossy_vtx0 = transform_position(lossy_obj_transform, vtx0);
-			const Vector4_32 lossy_vtx1 = transform_position(lossy_obj_transform, vtx1);
-			const Vector4_32 lossy_vtx2 = transform_position(lossy_obj_transform, vtx2);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_obj_transform);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3(vtx1, raw_obj_transform);
+			const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3(vtx2, raw_obj_transform);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3(vtx0, lossy_obj_transform);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3(vtx1, lossy_obj_transform);
+			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3(vtx2, lossy_obj_transform);
 
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
-			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
+			const float vtx2_error = rtm::vector_distance3(raw_vtx2, lossy_vtx2);
 
-			return max(max(vtx0_error, vtx1_error), vtx2_error);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
-		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 			(void)base_local_pose;
 
-			Transform_32 raw_obj_transform = raw_local_pose[0];
-			Transform_32 lossy_obj_transform = lossy_local_pose[0];
+			rtm::qvvf raw_obj_transform = raw_local_pose[0];
+			rtm::qvvf lossy_obj_transform = lossy_local_pose[0];
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
 			auto chain_bone_it = ++bone_chain.begin();	// Skip root bone
@@ -295,24 +296,24 @@ namespace acl
 			for (; chain_bone_it != chain_bone_end; ++chain_bone_it)
 			{
 				const uint16_t chain_bone_index = *chain_bone_it;
-				raw_obj_transform = transform_mul_no_scale(raw_local_pose[chain_bone_index], raw_obj_transform);
-				lossy_obj_transform = transform_mul_no_scale(lossy_local_pose[chain_bone_index], lossy_obj_transform);
+				raw_obj_transform = rtm::qvv_mul_no_scale(raw_local_pose[chain_bone_index], raw_obj_transform);
+				lossy_obj_transform = rtm::qvv_mul_no_scale(lossy_local_pose[chain_bone_index], lossy_obj_transform);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx0 = rtm::vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, target_bone.vertex_distance, 0.0F);
 
-			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_obj_transform, vtx0);
-			const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_obj_transform, vtx1);
-			const Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_obj_transform, vtx0);
-			const Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_obj_transform, vtx1);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, raw_obj_transform);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, raw_obj_transform);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, lossy_obj_transform);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, lossy_obj_transform);
 
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
 
-			return max(vtx0_error, vtx1_error);
+			return rtm::scalar_max(vtx0_error, vtx1_error);
 		}
 	};
 
@@ -337,64 +338,64 @@ namespace acl
 
 		virtual uint32_t get_hash() const override { return hash32(get_name()); }
 
-		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_local_bone_error(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
-			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, bone.vertex_distance);
+			const rtm::vector4f vtx0 = rtm::vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx2 = rtm::vector_set(0.0F, 0.0F, bone.vertex_distance);
 
-			const Transform_32 raw_transform = apply_additive_to_base(additive_format, base_local_pose[bone_index], raw_local_pose[bone_index]);
-			const Transform_32 lossy_transform = apply_additive_to_base(additive_format, base_local_pose[bone_index], lossy_local_pose[bone_index]);
+			const rtm::qvvf raw_transform = apply_additive_to_base(additive_format, base_local_pose[bone_index], raw_local_pose[bone_index]);
+			const rtm::qvvf lossy_transform = apply_additive_to_base(additive_format, base_local_pose[bone_index], lossy_local_pose[bone_index]);
 
-			const Vector4_32 raw_vtx0 = transform_position(raw_transform, vtx0);
-			const Vector4_32 lossy_vtx0 = transform_position(lossy_transform, vtx0);
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_transform);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3(vtx0, lossy_transform);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
 
-			const Vector4_32 raw_vtx1 = transform_position(raw_transform, vtx1);
-			const Vector4_32 lossy_vtx1 = transform_position(lossy_transform, vtx1);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3(vtx1, raw_transform);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3(vtx1, lossy_transform);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
 
-			const Vector4_32 raw_vtx2 = transform_position(raw_transform, vtx2);
-			const Vector4_32 lossy_vtx2 = transform_position(lossy_transform, vtx2);
-			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
+			const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3(vtx2, raw_transform);
+			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3(vtx2, lossy_transform);
+			const float vtx2_error = rtm::vector_distance3(raw_vtx2, lossy_vtx2);
 
-			return max(max(vtx0_error, vtx1_error), vtx2_error);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
-		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_local_bone_error_no_scale(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
 			const RigidBone& bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx0 = rtm::vector_set(bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, bone.vertex_distance, 0.0F);
 
-			const Transform_32 raw_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[bone_index], raw_local_pose[bone_index]);
-			const Transform_32 lossy_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[bone_index], lossy_local_pose[bone_index]);
+			const rtm::qvvf raw_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[bone_index], raw_local_pose[bone_index]);
+			const rtm::qvvf lossy_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[bone_index], lossy_local_pose[bone_index]);
 
-			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_transform, vtx0);
-			const Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_transform, vtx0);
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, raw_transform);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, lossy_transform);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
 
-			const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_transform, vtx1);
-			const Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_transform, vtx1);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, raw_transform);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, lossy_transform);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
 
-			return max(vtx0_error, vtx1_error);
+			return rtm::scalar_max(vtx0_error, vtx1_error);
 		}
 
-		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_object_bone_error(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
-			Transform_32 raw_obj_transform = apply_additive_to_base(additive_format, base_local_pose[0], raw_local_pose[0]);
-			Transform_32 lossy_obj_transform = apply_additive_to_base(additive_format, base_local_pose[0], lossy_local_pose[0]);
+			rtm::qvvf raw_obj_transform = apply_additive_to_base(additive_format, base_local_pose[0], raw_local_pose[0]);
+			rtm::qvvf lossy_obj_transform = apply_additive_to_base(additive_format, base_local_pose[0], lossy_local_pose[0]);
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
 			auto chain_bone_it = ++bone_chain.begin();	// Skip root bone
@@ -403,37 +404,37 @@ namespace acl
 			{
 				const uint16_t chain_bone_index = *chain_bone_it;
 
-				raw_obj_transform = transform_mul(apply_additive_to_base(additive_format, base_local_pose[chain_bone_index], raw_local_pose[chain_bone_index]), raw_obj_transform);
-				lossy_obj_transform = transform_mul(apply_additive_to_base(additive_format, base_local_pose[chain_bone_index], lossy_local_pose[chain_bone_index]), lossy_obj_transform);
+				raw_obj_transform = rtm::qvv_mul(apply_additive_to_base(additive_format, base_local_pose[chain_bone_index], raw_local_pose[chain_bone_index]), raw_obj_transform);
+				lossy_obj_transform = rtm::qvv_mul(apply_additive_to_base(additive_format, base_local_pose[chain_bone_index], lossy_local_pose[chain_bone_index]), lossy_obj_transform);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
 			// Note that because we have scale, we must measure all three axes
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
-			const Vector4_32 vtx2 = vector_set(0.0F, 0.0F, target_bone.vertex_distance);
+			const rtm::vector4f vtx0 = rtm::vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, target_bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx2 = rtm::vector_set(0.0F, 0.0F, target_bone.vertex_distance);
 
-			const Vector4_32 raw_vtx0 = transform_position(raw_obj_transform, vtx0);
-			const Vector4_32 raw_vtx1 = transform_position(raw_obj_transform, vtx1);
-			const Vector4_32 raw_vtx2 = transform_position(raw_obj_transform, vtx2);
-			const Vector4_32 lossy_vtx0 = transform_position(lossy_obj_transform, vtx0);
-			const Vector4_32 lossy_vtx1 = transform_position(lossy_obj_transform, vtx1);
-			const Vector4_32 lossy_vtx2 = transform_position(lossy_obj_transform, vtx2);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_obj_transform);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3(vtx1, raw_obj_transform);
+			const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3(vtx2, raw_obj_transform);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3(vtx0, lossy_obj_transform);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3(vtx1, lossy_obj_transform);
+			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3(vtx2, lossy_obj_transform);
 
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
-			const float vtx2_error = vector_distance3(raw_vtx2, lossy_vtx2);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
+			const float vtx2_error = rtm::vector_distance3(raw_vtx2, lossy_vtx2);
 
-			return max(max(vtx0_error, vtx1_error), vtx2_error);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
-		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const Transform_32* raw_local_pose, const Transform_32* base_local_pose, const Transform_32* lossy_local_pose, uint16_t bone_index) const override
+		virtual float calculate_object_bone_error_no_scale(const RigidSkeleton& skeleton, const rtm::qvvf* raw_local_pose, const rtm::qvvf* base_local_pose, const rtm::qvvf* lossy_local_pose, uint16_t bone_index) const override
 		{
 			ACL_ASSERT(bone_index < skeleton.get_num_bones(), "Invalid bone index: %u", bone_index);
 
-			Transform_32 raw_obj_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[0], raw_local_pose[0]);
-			Transform_32 lossy_obj_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[0], lossy_local_pose[0]);
+			rtm::qvvf raw_obj_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[0], raw_local_pose[0]);
+			rtm::qvvf lossy_obj_transform = apply_additive_to_base_no_scale(additive_format, base_local_pose[0], lossy_local_pose[0]);
 
 			const BoneChain bone_chain = skeleton.get_bone_chain(bone_index);
 			auto chain_bone_it = ++bone_chain.begin();	// Skip root bone
@@ -442,24 +443,24 @@ namespace acl
 			{
 				const uint16_t chain_bone_index = *chain_bone_it;
 
-				raw_obj_transform = transform_mul_no_scale(apply_additive_to_base_no_scale(additive_format, base_local_pose[chain_bone_index], raw_local_pose[chain_bone_index]), raw_obj_transform);
-				lossy_obj_transform = transform_mul_no_scale(apply_additive_to_base_no_scale(additive_format, base_local_pose[chain_bone_index], lossy_local_pose[chain_bone_index]), lossy_obj_transform);
+				raw_obj_transform = rtm::qvv_mul_no_scale(apply_additive_to_base_no_scale(additive_format, base_local_pose[chain_bone_index], raw_local_pose[chain_bone_index]), raw_obj_transform);
+				lossy_obj_transform = rtm::qvv_mul_no_scale(apply_additive_to_base_no_scale(additive_format, base_local_pose[chain_bone_index], lossy_local_pose[chain_bone_index]), lossy_obj_transform);
 			}
 
 			const RigidBone& target_bone = skeleton.get_bone(bone_index);
 
-			const Vector4_32 vtx0 = vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
-			const Vector4_32 vtx1 = vector_set(0.0F, target_bone.vertex_distance, 0.0F);
+			const rtm::vector4f vtx0 = rtm::vector_set(target_bone.vertex_distance, 0.0F, 0.0F);
+			const rtm::vector4f vtx1 = rtm::vector_set(0.0F, target_bone.vertex_distance, 0.0F);
 
-			const Vector4_32 raw_vtx0 = transform_position_no_scale(raw_obj_transform, vtx0);
-			const Vector4_32 raw_vtx1 = transform_position_no_scale(raw_obj_transform, vtx1);
-			const Vector4_32 lossy_vtx0 = transform_position_no_scale(lossy_obj_transform, vtx0);
-			const Vector4_32 lossy_vtx1 = transform_position_no_scale(lossy_obj_transform, vtx1);
+			const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, raw_obj_transform);
+			const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, raw_obj_transform);
+			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, lossy_obj_transform);
+			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, lossy_obj_transform);
 
-			const float vtx0_error = vector_distance3(raw_vtx0, lossy_vtx0);
-			const float vtx1_error = vector_distance3(raw_vtx1, lossy_vtx1);
+			const float vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
+			const float vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
 
-			return max(vtx0_error, vtx1_error);
+			return rtm::scalar_max(vtx0_error, vtx1_error);
 		}
 	};
 }

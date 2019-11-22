@@ -37,6 +37,9 @@
 #include "acl/core/string.h"
 #include "acl/core/unique_ptr.h"
 
+#include <rtm/quatd.h>
+#include <rtm/vector4d.h>
+
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -385,7 +388,7 @@ namespace acl
 					goto parsing_error;
 			}
 
-			m_parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, double(default_settings.constant_rotation_threshold_angle));
+			m_parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, double(default_settings.constant_rotation_threshold_angle.as_radians()));
 			m_parser.try_read("constant_translation_threshold", constant_translation_threshold, double(default_settings.constant_translation_threshold));
 			m_parser.try_read("constant_scale_threshold", constant_scale_threshold, double(default_settings.constant_scale_threshold));
 			m_parser.try_read("error_threshold", error_threshold, double(default_settings.error_threshold));
@@ -440,7 +443,7 @@ namespace acl
 
 				out_settings->segmenting.range_reduction = segmenting_range_reduction;
 
-				out_settings->constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
+				out_settings->constant_rotation_threshold_angle = rtm::radians(float(constant_rotation_threshold_angle));
 				out_settings->constant_translation_threshold = float(constant_translation_threshold);
 				out_settings->constant_scale_threshold = float(constant_scale_threshold);
 				out_settings->error_threshold = float(error_threshold);
@@ -520,14 +523,14 @@ namespace acl
 			return UInt32ToFloat(value_u32).flt;
 		}
 
-		static Quat_64 hex_to_quat(const sjson::StringView values[4])
+		static rtm::quatd hex_to_quat(const sjson::StringView values[4])
 		{
-			return quat_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]), hex_to_double(values[3]));
+			return rtm::quat_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]), hex_to_double(values[3]));
 		}
 
-		static Vector4_64 hex_to_vector3(const sjson::StringView values[3])
+		static rtm::vector4d hex_to_vector3(const sjson::StringView values[3])
 		{
-			return vector_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]));
+			return rtm::vector_set(hex_to_double(values[0]), hex_to_double(values[1]), hex_to_double(values[2]));
 		}
 
 		static rtm::float4f hex_to_float4f(const sjson::StringView values[4], uint32_t num_components)
@@ -609,15 +612,15 @@ namespace acl
 				{
 					double rotation[4] = { 0.0, 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_rotation", rotation, 4, 0.0) && !counting)
-						bone.bind_transform.rotation = quat_unaligned_load(&rotation[0]);
+						bone.bind_transform.rotation = rtm::quat_load(&rotation[0]);
 
 					double translation[3] = { 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_translation", translation, 3, 0.0) && !counting)
-						bone.bind_transform.translation = vector_unaligned_load3(&translation[0]);
+						bone.bind_transform.translation = rtm::vector_load3(&translation[0]);
 
 					double scale[3] = { 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_scale", scale, 3, 0.0) && !counting)
-						bone.bind_transform.scale = vector_unaligned_load3(&scale[0]);
+						bone.bind_transform.scale = rtm::vector_load3(&scale[0]);
 				}
 
 				if (!m_parser.object_ends())
@@ -943,7 +946,7 @@ namespace acl
 					else
 					{
 						for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
-							bone.rotation_track.set_sample(sample_index, quat_identity_64());
+							bone.rotation_track.set_sample(sample_index, rtm::quat_identity());
 					}
 
 					if (m_parser.try_array_begins("translations"))
@@ -954,7 +957,7 @@ namespace acl
 					else
 					{
 						for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
-							bone.translation_track.set_sample(sample_index, vector_zero_64());
+							bone.translation_track.set_sample(sample_index, rtm::vector_zero());
 					}
 
 					if (m_parser.try_array_begins("scales"))
@@ -965,7 +968,7 @@ namespace acl
 					else
 					{
 						for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
-							bone.scale_track.set_sample(sample_index, vector_set(1.0));
+							bone.scale_track.set_sample(sample_index, rtm::vector_set(1.0));
 					}
 
 					if (!m_parser.object_ends())
@@ -1002,7 +1005,7 @@ namespace acl
 				else
 				{
 					for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
-						bone.rotation_track.set_sample(sample_index, quat_identity_64());
+						bone.rotation_track.set_sample(sample_index, rtm::quat_identity());
 				}
 
 				if (m_parser.try_array_begins("translations"))
@@ -1013,7 +1016,7 @@ namespace acl
 				else
 				{
 					for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
-						bone.translation_track.set_sample(sample_index, vector_zero_64());
+						bone.translation_track.set_sample(sample_index, rtm::vector_zero());
 				}
 
 				if (m_parser.try_array_begins("scales"))
@@ -1024,7 +1027,7 @@ namespace acl
 				else
 				{
 					for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
-						bone.scale_track.set_sample(sample_index, vector_set(1.0));
+						bone.scale_track.set_sample(sample_index, rtm::vector_set(1.0));
 				}
 
 				if (!m_parser.object_ends())
@@ -1047,7 +1050,7 @@ namespace acl
 				if (!m_parser.array_begins())
 					return false;
 
-				Quat_64 rotation;
+				rtm::quatd rotation;
 
 				if (m_is_binary_exact)
 				{
@@ -1063,7 +1066,7 @@ namespace acl
 					if (!m_parser.read(values, 4))
 						return false;
 
-					rotation = quat_unaligned_load(values);
+					rotation = rtm::quat_load(values);
 				}
 
 				if (!m_parser.array_ends())
@@ -1082,7 +1085,7 @@ namespace acl
 				if (!m_parser.array_begins())
 					return false;
 
-				Vector4_64 translation;
+				rtm::vector4d translation;
 
 				if (m_is_binary_exact)
 				{
@@ -1098,7 +1101,7 @@ namespace acl
 					if (!m_parser.read(values, 3))
 						return false;
 
-					translation = vector_unaligned_load3(values);
+					translation = rtm::vector_load3(values);
 				}
 
 				if (!m_parser.array_ends())
@@ -1117,7 +1120,7 @@ namespace acl
 				if (!m_parser.array_begins())
 					return false;
 
-				Vector4_64 scale;
+				rtm::vector4d scale;
 
 				if (m_is_binary_exact)
 				{
@@ -1133,7 +1136,7 @@ namespace acl
 					if (!m_parser.read(values, 3))
 						return false;
 
-					scale = vector_unaligned_load3(values);
+					scale = rtm::vector_load3(values);
 				}
 
 				if (!m_parser.array_ends())

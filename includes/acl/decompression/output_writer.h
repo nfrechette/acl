@@ -25,8 +25,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/compiler_utils.h"
-#include "acl/math/quat_32.h"
-#include "acl/math/vector4_32.h"
+
+#include <rtm/quatf.h>
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -57,7 +58,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a quaternion rotation value for a specified bone index.
-		void write_bone_rotation(uint16_t bone_index, const Quat_32& rotation)
+		void RTM_SIMD_CALL write_bone_rotation(uint16_t bone_index, rtm::quatf_arg0 rotation)
 		{
 			(void)bone_index;
 			(void)rotation;
@@ -65,7 +66,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a translation value for a specified bone index.
-		void write_bone_translation(uint16_t bone_index, const Vector4_32& translation)
+		void RTM_SIMD_CALL write_bone_translation(uint16_t bone_index, rtm::vector4f_arg0 translation)
 		{
 			(void)bone_index;
 			(void)translation;
@@ -73,7 +74,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a scale value for a specified bone index.
-		void write_bone_scale(uint16_t bone_index, const Vector4_32& scale)
+		void RTM_SIMD_CALL write_bone_scale(uint16_t bone_index, rtm::vector4f_arg0 scale)
 		{
 			(void)bone_index;
 			(void)scale;

@@ -29,7 +29,8 @@
 #include "acl/core/error.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/string.h"
-#include "acl/math/transform_64.h"
+
+#include <rtm/qvvd.h>
 
 #include <cstdint>
 
@@ -136,7 +137,7 @@ namespace acl
 			, bone_chain(nullptr)
 			, vertex_distance(1.0F)
 			, parent_index(k_invalid_bone_index)
-			, bind_transform(transform_identity_64())
+			, bind_transform(rtm::qvv_identity())
 		{
 			(void)padding;
 		}
@@ -189,7 +190,7 @@ namespace acl
 
 		// The bind transform is in its parent's local space
 		// Note that the scale is ignored and this value is only used by the additive error metrics
-		Transform_64	bind_transform;
+		rtm::qvvd		bind_transform;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -235,9 +236,9 @@ namespace acl
 
 				ACL_ASSERT(bone.bone_chain == nullptr, "Bone chain should be calculated internally");
 				ACL_ASSERT(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
-				ACL_ASSERT(quat_is_finite(bone.bind_transform.rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
-				ACL_ASSERT(quat_is_normalized(bone.bind_transform.rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", quat_get_x(bone.bind_transform.rotation), quat_get_y(bone.bind_transform.rotation), quat_get_z(bone.bind_transform.rotation), quat_get_w(bone.bind_transform.rotation));
-				ACL_ASSERT(vector_is_finite3(bone.bind_transform.translation), "Bind translation is invalid: [%f, %f, %f]", vector_get_x(bone.bind_transform.translation), vector_get_y(bone.bind_transform.translation), vector_get_z(bone.bind_transform.translation));
+				ACL_ASSERT(rtm::quat_is_finite(bone.bind_transform.rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", rtm::quat_get_x(bone.bind_transform.rotation), rtm::quat_get_y(bone.bind_transform.rotation), rtm::quat_get_z(bone.bind_transform.rotation), rtm::quat_get_w(bone.bind_transform.rotation));
+				ACL_ASSERT(rtm::quat_is_normalized(bone.bind_transform.rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", rtm::quat_get_x(bone.bind_transform.rotation), rtm::quat_get_y(bone.bind_transform.rotation), rtm::quat_get_z(bone.bind_transform.rotation), rtm::quat_get_w(bone.bind_transform.rotation));
+				ACL_ASSERT(rtm::vector_is_finite3(bone.bind_transform.translation), "Bind translation is invalid: [%f, %f, %f]", rtm::vector_get_x(bone.bind_transform.translation), rtm::vector_get_y(bone.bind_transform.translation), rtm::vector_get_z(bone.bind_transform.translation));
 
 				// If we have a parent, mark it as not being a leaf bone (it has at least one child)
 				if (!is_root)
@@ -251,7 +252,7 @@ namespace acl
 				m_bones[bone_index] = std::move(bone);
 
 				// Input scale is ignored and always set to [1.0, 1.0, 1.0]
-				m_bones[bone_index].bind_transform.scale = vector_set(1.0);
+				m_bones[bone_index].bind_transform.scale = rtm::vector_set(1.0);
 			}
 
 			m_num_leaf_bones = safe_static_cast<uint16_t>(bitset_count_set_bits(is_leaf_bitset, bone_bitset_desc));

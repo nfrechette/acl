@@ -26,11 +26,12 @@
 
 #include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
-#include "acl/math/math.h"
+
+#include <rtm/math.h>
 
 #include <cstdint>
 
-#if !defined(ACL_USE_POPCOUNT) && !defined(ACL_NO_INTRINSICS)
+#if !defined(ACL_USE_POPCOUNT) && !defined(RTM_NO_INTRINSICS)
 	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
 	#if defined(_DURANGO) || defined(_XBOX_ONE)
 		// Enable pop-count type instructions on Xbox One
@@ -42,7 +43,7 @@
 	#include <nmmintrin.h>
 #endif
 
-#if defined(ACL_AVX_INTRINSICS)
+#if defined(RTM_AVX_INTRINSICS)
 	// Use BMI
 	#include <ammintrin.h>		// MSVC uses this header for _andn_u32 BMI intrinsic
 	#include <immintrin.h>		// Intel documentation says _andn_u32 and others are here
@@ -58,7 +59,7 @@ namespace acl
 	{
 #if defined(ACL_USE_POPCOUNT)
 		return (uint8_t)_mm_popcnt_u32(value);
-#elif defined(ACL_NEON_INTRINSICS)
+#elif defined(RTM_NEON_INTRINSICS)
 		return (uint8_t)vget_lane_u64(vcnt_u8(vcreate_u8(value)), 0);
 #else
 		value = value - ((value >> 1) & 0x55);
@@ -71,7 +72,7 @@ namespace acl
 	{
 #if defined(ACL_USE_POPCOUNT)
 		return (uint16_t)_mm_popcnt_u32(value);
-#elif defined(ACL_NEON_INTRINSICS)
+#elif defined(RTM_NEON_INTRINSICS)
 		return (uint16_t)vget_lane_u64(vpaddl_u8(vcnt_u8(vcreate_u8(value))), 0);
 #else
 		value = value - ((value >> 1) & 0x5555);
@@ -84,7 +85,7 @@ namespace acl
 	{
 #if defined(ACL_USE_POPCOUNT)
 		return _mm_popcnt_u32(value);
-#elif defined(ACL_NEON_INTRINSICS)
+#elif defined(RTM_NEON_INTRINSICS)
 		return (uint32_t)vget_lane_u64(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value)))), 0);
 #else
 		value = value - ((value >> 1) & 0x55555555);
@@ -97,7 +98,7 @@ namespace acl
 	{
 #if defined(ACL_USE_POPCOUNT)
 		return _mm_popcnt_u64(value);
-#elif defined(ACL_NEON_INTRINSICS)
+#elif defined(RTM_NEON_INTRINSICS)
 		return vget_lane_u64(vpaddl_u32(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value))))), 0);
 #else
 		value = value - ((value >> 1) & 0x5555555555555555ULL);

@@ -90,7 +90,7 @@ namespace acl
 		// Regression test
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			const float sample_time = min(float(sample_index) / sample_rate, duration);
+			const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
 			// We use the nearest sample to accurately measure the loss that happened, if any
 			raw_tracks.sample_tracks(sample_time, SampleRoundingPolicy::Nearest, raw_tracks_writer);

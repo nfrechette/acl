@@ -4,9 +4,9 @@
 
 A small number of defines are exposed and can be used to finetune the behavior.
 
-### ACL_NO_INTRINSICS
+### RTM_NO_INTRINSICS
 
-This define prevents the usage of intrinsics unless explicitly requested by the integration manually (e.g. you can still defined `ACL_SSE2_INTRINSICS` yourself). Everything will default to pure scalar implementations.
+This define prevents the usage of intrinsics unless explicitly requested by the integration manually (e.g. you can still defined `RTM_SSE2_INTRINSICS` yourself). Everything will default to pure scalar implementations.
 
 ### ACL_USE_POPCOUNT
 

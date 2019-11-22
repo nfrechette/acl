@@ -69,7 +69,6 @@ add_definitions(-DSJSON_CPP_ON_ASSERT_THROW)
 
 # Disable SIMD if not needed
 if(NOT USE_SIMD_INSTRUCTIONS)
-	add_definitions(-DACL_NO_INTRINSICS)
 	add_definitions(-DRTM_NO_INTRINSICS)
 endif()
 

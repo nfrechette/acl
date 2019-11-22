@@ -65,17 +65,17 @@ namespace acl
 		const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;
 		const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0F;
 
-		Transform_32* raw_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-		Transform_32* base_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
-		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_output_bones);
-		Transform_32* lossy_remapped_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
+		rtm::qvvf* raw_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+		rtm::qvvf* base_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+		rtm::qvvf* lossy_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_output_bones);
+		rtm::qvvf* lossy_remapped_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 
 		BoneError bone_error;
 		DefaultOutputWriter pose_writer(lossy_pose_transforms, num_output_bones);
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			const float sample_time = min(float(sample_index) / sample_rate, clip_duration);
+			const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, clip_duration);
 
 			// We use the nearest sample to accurately measure the loss that happened, if any
 			clip.sample_pose(sample_time, SampleRoundingPolicy::Nearest, raw_pose_transforms, num_bones);
@@ -92,7 +92,7 @@ namespace acl
 
 			// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
 			// the data is available
-			std::memcpy(lossy_remapped_pose_transforms, raw_pose_transforms, sizeof(Transform_32) * num_bones);
+			std::memcpy(lossy_remapped_pose_transforms, raw_pose_transforms, sizeof(rtm::qvvf) * num_bones);
 			for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
 			{
 				const uint16_t bone_index = output_bone_mapping[output_index];

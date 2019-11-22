@@ -61,9 +61,9 @@ namespace acl
 		};
 
 		// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 16 bytes from it
-		inline rtm::scalarf ACL_SIMD_CALL unpack_scalarf_96_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
+		inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_96_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
 		{
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(RTM_SSE2_INTRINSICS)
 			const uint32_t byte_offset = bit_offset / 8;
 			const uint32_t shift_offset = bit_offset % 8;
 			uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
@@ -74,7 +74,7 @@ namespace acl
 			const uint32_t x32 = uint32_t(vector_u64);
 
 			return _mm_castsi128_ps(_mm_set1_epi32(x32));
-#elif defined(ACL_NEON_INTRINSICS)
+#elif defined(RTM_NEON_INTRINSICS)
 			const uint32_t byte_offset = bit_offset / 8;
 			const uint32_t shift_offset = bit_offset % 8;
 			uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
@@ -103,7 +103,7 @@ namespace acl
 		}
 
 		// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
-		inline rtm::scalarf ACL_SIMD_CALL unpack_scalarf_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+		inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 		{
 			ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
 
@@ -128,7 +128,7 @@ namespace acl
 				PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
 			};
 
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(RTM_SSE2_INTRINSICS)
 			const uint32_t bit_shift = 32 - num_bits;
 			const uint32_t mask = k_packed_constants[num_bits].mask;
 			const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
@@ -140,7 +140,7 @@ namespace acl
 
 			const __m128 value = _mm_cvtsi32_ss(inv_max_value, x32 & mask);
 			return _mm_mul_ss(value, inv_max_value);
-#elif defined(ACL_NEON_INTRINSICS)
+#elif defined(RTM_NEON_INTRINSICS)
 			const uint32_t bit_shift = 32 - num_bits;
 			const uint32_t mask = k_packed_constants[num_bits].mask;
 			const float inv_max_value = k_packed_constants[num_bits].max_value;

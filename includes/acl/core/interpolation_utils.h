@@ -26,7 +26,8 @@
 
 #include "acl/core/error.h"
 #include "acl/core/compiler_utils.h"
-#include "acl/math/scalar_32.h"
+
+#include <rtm/scalarf.h>
 
 #include <cstdint>
 #include <algorithm>
@@ -76,7 +77,7 @@ namespace acl
 		ACL_ASSERT(num_samples > 0, "Invalid num_samples: %u", num_samples);
 
 		const float sample_rate = duration == 0.0F ? 0.0F : (float(num_samples - 1) / duration);
-		ACL_ASSERT(sample_rate >= 0.0F && is_finite(sample_rate), "Invalid sample_rate: %f", sample_rate);
+		ACL_ASSERT(sample_rate >= 0.0F && rtm::scalar_is_finite(sample_rate), "Invalid sample_rate: %f", sample_rate);
 
 		const float sample_index = sample_time * sample_rate;
 		const uint32_t sample_index0 = static_cast<uint32_t>(sample_index);
@@ -102,7 +103,7 @@ namespace acl
 			out_interpolation_alpha = 1.0F;
 			break;
 		case SampleRoundingPolicy::Nearest:
-			out_interpolation_alpha = floor(interpolation_alpha + 0.5F);
+			out_interpolation_alpha = rtm::scalar_floor(interpolation_alpha + 0.5F);
 			break;
 		}
 	}
@@ -155,7 +156,7 @@ namespace acl
 			out_interpolation_alpha = 1.0F;
 			break;
 		case SampleRoundingPolicy::Nearest:
-			out_interpolation_alpha = floor(interpolation_alpha + 0.5F);
+			out_interpolation_alpha = rtm::scalar_floor(interpolation_alpha + 0.5F);
 			break;
 		}
 	}

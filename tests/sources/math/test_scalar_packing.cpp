@@ -45,7 +45,7 @@ TEST_CASE("scalar packing math", "[math][scalar][packing]")
 		CHECK(pack_scalar_signed(-1.0F, num_bits) == 0);
 		CHECK(pack_scalar_signed(1.0F, num_bits) == max_value);
 		CHECK(unpack_scalar_signed(0, num_bits) == -1.0F);
-		CHECK(scalar_near_equal(unpack_scalar_signed(max_value, num_bits), 1.0F, threshold));
+		CHECK(rtm::scalar_near_equal(unpack_scalar_signed(max_value, num_bits), 1.0F, threshold));
 
 		uint32_t num_errors = 0;
 		for (uint32_t value = 0; value < max_value; ++value)

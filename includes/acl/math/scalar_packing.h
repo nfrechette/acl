@@ -26,7 +26,8 @@
 
 #include "acl/core/compiler_utils.h"
 #include "acl/core/error.h"
-#include "acl/math/scalar_32.h"
+
+#include <rtm/scalarf.h>
 
 #include <cstdint>
 
@@ -39,7 +40,7 @@ namespace acl
 		ACL_ASSERT(num_bits < 31, "Attempting to pack on too many bits");
 		ACL_ASSERT(input >= 0.0F && input <= 1.0F, "Expected normalized unsigned input value: %f", input);
 		const uint32_t max_value = (1 << num_bits) - 1;
-		return static_cast<uint32_t>(symmetric_round(input * safe_to_float(max_value)));
+		return static_cast<uint32_t>(rtm::scalar_symmetric_round(input * rtm::scalar_safe_to_float(max_value)));
 	}
 
 	inline float unpack_scalar_unsigned(uint32_t input, uint8_t num_bits)
@@ -48,8 +49,8 @@ namespace acl
 		const uint32_t max_value = (1 << num_bits) - 1;
 		ACL_ASSERT(input <= max_value, "Input value too large: %ull", input);
 		// For performance reasons, unpacking is faster when multiplying with the reciprocal
-		const float inv_max_value = 1.0F / safe_to_float(max_value);
-		return safe_to_float(input) * inv_max_value;
+		const float inv_max_value = 1.0F / rtm::scalar_safe_to_float(max_value);
+		return rtm::scalar_safe_to_float(input) * inv_max_value;
 	}
 
 	inline uint32_t pack_scalar_signed(float input, uint8_t num_bits)

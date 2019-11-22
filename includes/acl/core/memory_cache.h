@@ -26,7 +26,8 @@
 
 #include "acl/core/compiler_utils.h"
 #include "acl/core/iallocator.h"
-#include "acl/math/vector4_32.h"
+
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -62,7 +63,7 @@ namespace acl
 			(void)buffer;
 			(void)buffer_size;
 
-#if defined(ACL_SSE2_INTRINSICS)
+#if defined(RTM_SSE2_INTRINSICS)
 			constexpr size_t k_cache_line_size = 64;
 
 			const uint8_t* buffer_start = reinterpret_cast<const uint8_t*>(buffer);
@@ -84,9 +85,10 @@ namespace acl
 			ACL_ASSERT(m_is_flushing, "begin_flushing() not called");
 			m_is_flushing = false;
 
-#if !defined(ACL_SSE2_INTRINSICS)
+#if !defined(RTM_SSE2_INTRINSICS)
+			const rtm::vector4f one = rtm::vector_set(1.0F);
 			for (size_t entry_index = 0; entry_index < k_num_buffer_entries; ++entry_index)
-				m_buffer[entry_index] = vector_add(m_buffer[entry_index], vector_set(1.0f));
+				m_buffer[entry_index] = rtm::vector_add(m_buffer[entry_index], one);
 #endif
 		}
 
@@ -94,7 +96,7 @@ namespace acl
 		CPUCacheFlusher(const CPUCacheFlusher& other) = delete;
 		CPUCacheFlusher& operator=(const CPUCacheFlusher& other) = delete;
 
-#if !defined(ACL_SSE2_INTRINSICS)
+#if !defined(RTM_SSE2_INTRINSICS)
 		// TODO: get an official CPU cache size
 	#if defined(__ANDROID__)
 		// Nexus 5X has 2MB cache
@@ -104,9 +106,9 @@ namespace acl
 		static constexpr size_t k_cache_size = 9 * 1024 * 1024;
 	#endif
 
-		static constexpr size_t k_num_buffer_entries = k_cache_size / sizeof(Vector4_32);
+		static constexpr size_t k_num_buffer_entries = k_cache_size / sizeof(rtm::vector4f);
 
-		Vector4_32		m_buffer[k_num_buffer_entries];
+		rtm::vector4f	m_buffer[k_num_buffer_entries];
 #endif
 
 		bool	m_is_flushing;
