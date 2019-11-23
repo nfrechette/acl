@@ -49,6 +49,7 @@
 #include "acl/compression/compress.h"
 #include "acl/compression/skeleton.h"
 #include "acl/compression/skeleton_error_metric.h"
+#include "acl/compression/skeleton_pose_utils.h"	// Just to test compilation
 #include "acl/compression/stream/write_decompression_stats.h"
 #include "acl/compression/track_error.h"
 #include "acl/compression/utils.h"
