@@ -25,13 +25,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/compression/compression_settings.h"
-#include "acl/compression/stream/clip_context.h"
-#include "acl/compression/stream/segment_context.h"
-#include "acl/compression/stream/write_range_data.h"
-#include "acl/compression/stream/write_stream_data.h"
+#include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/segment_context.h"
+#include "acl/compression/impl/write_range_data.h"
+#include "acl/compression/impl/write_stream_data.h"
 
 #include <cstdint>
 

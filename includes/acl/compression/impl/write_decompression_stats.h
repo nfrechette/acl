@@ -26,8 +26,8 @@
 
 #if defined(SJSON_CPP_WRITER)
 
-#include "acl/core/compiler_utils.h"
-#include "acl/core/memory_cache.h"
+#include "acl/core/impl/compiler_utils.h"
+#include "acl/core/impl/memory_cache.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/core/utils.h"
 #include "acl/algorithm/uniformly_sampled/decoder.h"

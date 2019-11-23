@@ -26,7 +26,7 @@
 
 #if defined(SJSON_CPP_WRITER)
 
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/compression/impl/track_list_context.h"

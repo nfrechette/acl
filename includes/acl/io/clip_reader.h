@@ -32,7 +32,7 @@
 #include "acl/compression/track_array.h"
 #include "acl/compression/skeleton.h"
 #include "acl/core/algorithm_types.h"
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/string.h"
 #include "acl/core/unique_ptr.h"

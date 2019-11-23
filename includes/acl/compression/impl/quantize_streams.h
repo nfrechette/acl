@@ -25,17 +25,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/utils.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/impl/track_bit_rate_database.h"
 #include "acl/compression/impl/transform_bit_rate_permutations.h"
-#include "acl/compression/stream/clip_context.h"
-#include "acl/compression/stream/sample_streams.h"
-#include "acl/compression/stream/normalize_streams.h"
-#include "acl/compression/stream/convert_rotation_streams.h"
+#include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/sample_streams.h"
+#include "acl/compression/impl/normalize_streams.h"
+#include "acl/compression/impl/convert_rotation_streams.h"
 #include "acl/compression/skeleton_error_metric.h"
 #include "acl/compression/compression_settings.h"
 

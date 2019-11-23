@@ -26,7 +26,7 @@
 
 #if defined(SJSON_CPP_PARSER)
 
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
 

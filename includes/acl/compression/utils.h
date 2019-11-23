@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/core/iallocator.h"
 #include "acl/compression/compression_settings.h"
