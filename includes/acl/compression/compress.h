@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"

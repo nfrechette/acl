@@ -25,14 +25,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/enum_utils.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
-#include "acl/compression/stream/clip_context.h"
+#include "acl/compression/impl/clip_context.h"
 
 #include <rtm/vector4f.h>
 

@@ -24,10 +24,10 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
-#include "acl/compression/stream/sample_streams.h"
-#include "acl/compression/stream/track_stream.h"
+#include "acl/compression/impl/sample_streams.h"
+#include "acl/compression/impl/track_stream.h"
 
 #include <rtm/quatf.h>
 #include <rtm/qvvf.h>

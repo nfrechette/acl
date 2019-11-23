@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>

@@ -25,10 +25,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/compression/compression_settings.h"
-#include "acl/compression/stream/clip_context.h"
+#include "acl/compression/impl/clip_context.h"
 
 #include <cstdint>
 

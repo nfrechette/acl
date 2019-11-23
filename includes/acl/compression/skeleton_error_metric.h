@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/additive_utils.h"
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/hash.h"
 #include "acl/compression/skeleton.h"
 

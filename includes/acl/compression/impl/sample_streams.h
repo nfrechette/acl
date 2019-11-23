@@ -25,14 +25,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/iallocator.h"
-#include "acl/core/compiler_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/utils.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
-#include "acl/compression/stream/track_stream.h"
-#include "acl/compression/stream/normalize_streams.h"
-#include "acl/compression/stream/convert_rotation_streams.h"
+#include "acl/compression/impl/track_stream.h"
+#include "acl/compression/impl/normalize_streams.h"
+#include "acl/compression/impl/convert_rotation_streams.h"
 
 #include <rtm/quatf.h>
 #include <rtm/qvvf.h>
