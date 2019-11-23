@@ -40,7 +40,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	namespace impl
+	namespace acl_impl
 	{
 		inline TrackStreamRange calculate_track_range(const TrackStream& stream)
 		{
@@ -77,310 +77,310 @@ namespace acl
 					bone_range.scale = TrackStreamRange();
 			}
 		}
-	}
 
-	inline void extract_clip_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
-	{
-		clip_context.ranges = allocate_type_array<BoneRanges>(allocator, clip_context.num_bones);
-
-		ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
-		SegmentContext& segment = clip_context.segments[0];
-
-		impl::extract_bone_ranges_impl(segment, clip_context.ranges);
-	}
-
-	inline void extract_segment_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
-	{
-		const rtm::vector4f one = rtm::vector_set(1.0F);
-		const rtm::vector4f zero = rtm::vector_zero();
-		const float max_range_value_flt = float((1 << k_segment_range_reduction_num_bits_per_component) - 1);
-		const rtm::vector4f max_range_value = rtm::vector_set(max_range_value_flt);
-		const rtm::vector4f inv_max_range_value = rtm::vector_set(1.0F / max_range_value_flt);
-
-		// Segment ranges are always normalized and live between [0.0 ... 1.0]
-
-		auto fixup_range = [&](const TrackStreamRange& range)
+		inline void extract_clip_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
 		{
-			// In our compressed format, we store the minimum value of the track range quantized on 8 bits.
-			// To get the best accuracy, we pick the value closest to the true minimum that is slightly lower.
-			// This is to ensure that we encompass the lowest value even after quantization.
-			const rtm::vector4f range_min = range.get_min();
-			const rtm::vector4f scaled_min = rtm::vector_mul(range_min, max_range_value);
-			const rtm::vector4f quantized_min0 = rtm::vector_clamp(rtm::vector_floor(scaled_min), zero, max_range_value);
-			const rtm::vector4f quantized_min1 = rtm::vector_max(rtm::vector_sub(quantized_min0, one), zero);
+			clip_context.ranges = allocate_type_array<BoneRanges>(allocator, clip_context.num_bones);
 
-			const rtm::vector4f padded_range_min0 = rtm::vector_mul(quantized_min0, inv_max_range_value);
-			const rtm::vector4f padded_range_min1 = rtm::vector_mul(quantized_min1, inv_max_range_value);
+			ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
+			SegmentContext& segment = clip_context.segments[0];
 
-			// Check if min0 is below or equal to our original range minimum value, if it is, it is good
-			// enough to use otherwise min1 is guaranteed to be lower.
-			const rtm::mask4i is_min0_lower_mask = rtm::vector_less_equal(padded_range_min0, range_min);
-			const rtm::vector4f padded_range_min = rtm::vector_select(is_min0_lower_mask, padded_range_min0, padded_range_min1);
+			acl_impl::extract_bone_ranges_impl(segment, clip_context.ranges);
+		}
 
-			// The story is different for the extent. We do not store the max, instead we use the extent
-			// for performance reasons: a single mul/add is required to reconstruct the original value.
-			// Now that our minimum value changed, our extent also changed.
-			// We want to pick the extent value that brings us closest to our original max value while
-			// being slightly larger to encompass it.
-			const rtm::vector4f range_max = range.get_max();
-			const rtm::vector4f range_extent = rtm::vector_sub(range_max, padded_range_min);
-			const rtm::vector4f scaled_extent = rtm::vector_mul(range_extent, max_range_value);
-			const rtm::vector4f quantized_extent0 = rtm::vector_clamp(rtm::vector_ceil(scaled_extent), zero, max_range_value);
-			const rtm::vector4f quantized_extent1 = rtm::vector_min(rtm::vector_add(quantized_extent0, one), max_range_value);
-
-			const rtm::vector4f padded_range_extent0 = rtm::vector_mul(quantized_extent0, inv_max_range_value);
-			const rtm::vector4f padded_range_extent1 = rtm::vector_mul(quantized_extent1, inv_max_range_value);
-
-			// Check if extent0 is above or equal to our original range maximum value, if it is, it is good
-			// enough to use otherwise extent1 is guaranteed to be higher.
-			const rtm::mask4i is_extent0_higher_mask = rtm::vector_greater_equal(padded_range_extent0, range_max);
-			const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
-
-			return TrackStreamRange::from_min_extent(padded_range_min, padded_range_extent);
-		};
-
-		for (SegmentContext& segment : clip_context.segment_iterator())
+		inline void extract_segment_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
 		{
-			segment.ranges = allocate_type_array<BoneRanges>(allocator, segment.num_bones);
+			const rtm::vector4f one = rtm::vector_set(1.0F);
+			const rtm::vector4f zero = rtm::vector_zero();
+			const float max_range_value_flt = float((1 << k_segment_range_reduction_num_bits_per_component) - 1);
+			const rtm::vector4f max_range_value = rtm::vector_set(max_range_value_flt);
+			const rtm::vector4f inv_max_range_value = rtm::vector_set(1.0F / max_range_value_flt);
 
-			impl::extract_bone_ranges_impl(segment, segment.ranges);
+			// Segment ranges are always normalized and live between [0.0 ... 1.0]
 
-			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+			auto fixup_range = [&](const TrackStreamRange& range)
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
-				BoneRanges& bone_range = segment.ranges[bone_index];
+				// In our compressed format, we store the minimum value of the track range quantized on 8 bits.
+				// To get the best accuracy, we pick the value closest to the true minimum that is slightly lower.
+				// This is to ensure that we encompass the lowest value even after quantization.
+				const rtm::vector4f range_min = range.get_min();
+				const rtm::vector4f scaled_min = rtm::vector_mul(range_min, max_range_value);
+				const rtm::vector4f quantized_min0 = rtm::vector_clamp(rtm::vector_floor(scaled_min), zero, max_range_value);
+				const rtm::vector4f quantized_min1 = rtm::vector_max(rtm::vector_sub(quantized_min0, one), zero);
 
-				if (!bone_stream.is_rotation_constant && clip_context.are_rotations_normalized)
-					bone_range.rotation = fixup_range(bone_range.rotation);
+				const rtm::vector4f padded_range_min0 = rtm::vector_mul(quantized_min0, inv_max_range_value);
+				const rtm::vector4f padded_range_min1 = rtm::vector_mul(quantized_min1, inv_max_range_value);
 
-				if (!bone_stream.is_translation_constant && clip_context.are_translations_normalized)
-					bone_range.translation = fixup_range(bone_range.translation);
+				// Check if min0 is below or equal to our original range minimum value, if it is, it is good
+				// enough to use otherwise min1 is guaranteed to be lower.
+				const rtm::mask4i is_min0_lower_mask = rtm::vector_less_equal(padded_range_min0, range_min);
+				const rtm::vector4f padded_range_min = rtm::vector_select(is_min0_lower_mask, padded_range_min0, padded_range_min1);
 
-				if (!bone_stream.is_scale_constant && clip_context.are_scales_normalized)
-					bone_range.scale = fixup_range(bone_range.scale);
+				// The story is different for the extent. We do not store the max, instead we use the extent
+				// for performance reasons: a single mul/add is required to reconstruct the original value.
+				// Now that our minimum value changed, our extent also changed.
+				// We want to pick the extent value that brings us closest to our original max value while
+				// being slightly larger to encompass it.
+				const rtm::vector4f range_max = range.get_max();
+				const rtm::vector4f range_extent = rtm::vector_sub(range_max, padded_range_min);
+				const rtm::vector4f scaled_extent = rtm::vector_mul(range_extent, max_range_value);
+				const rtm::vector4f quantized_extent0 = rtm::vector_clamp(rtm::vector_ceil(scaled_extent), zero, max_range_value);
+				const rtm::vector4f quantized_extent1 = rtm::vector_min(rtm::vector_add(quantized_extent0, one), max_range_value);
+
+				const rtm::vector4f padded_range_extent0 = rtm::vector_mul(quantized_extent0, inv_max_range_value);
+				const rtm::vector4f padded_range_extent1 = rtm::vector_mul(quantized_extent1, inv_max_range_value);
+
+				// Check if extent0 is above or equal to our original range maximum value, if it is, it is good
+				// enough to use otherwise extent1 is guaranteed to be higher.
+				const rtm::mask4i is_extent0_higher_mask = rtm::vector_greater_equal(padded_range_extent0, range_max);
+				const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
+
+				return TrackStreamRange::from_min_extent(padded_range_min, padded_range_extent);
+			};
+
+			for (SegmentContext& segment : clip_context.segment_iterator())
+			{
+				segment.ranges = allocate_type_array<BoneRanges>(allocator, segment.num_bones);
+
+				acl_impl::extract_bone_ranges_impl(segment, segment.ranges);
+
+				for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+				{
+					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+					BoneRanges& bone_range = segment.ranges[bone_index];
+
+					if (!bone_stream.is_rotation_constant && clip_context.are_rotations_normalized)
+						bone_range.rotation = fixup_range(bone_range.rotation);
+
+					if (!bone_stream.is_translation_constant && clip_context.are_translations_normalized)
+						bone_range.translation = fixup_range(bone_range.translation);
+
+					if (!bone_stream.is_scale_constant && clip_context.are_scales_normalized)
+						bone_range.scale = fixup_range(bone_range.scale);
+				}
 			}
 		}
-	}
 
-	inline rtm::vector4f RTM_SIMD_CALL normalize_sample(rtm::vector4f_arg0 sample, const TrackStreamRange& range)
-	{
-		const rtm::vector4f range_min = range.get_min();
-		const rtm::vector4f range_extent = range.get_extent();
-		const rtm::mask4i is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
-
-		rtm::vector4f normalized_sample = rtm::vector_div(rtm::vector_sub(sample, range_min), range_extent);
-		// Clamp because the division might be imprecise
-		normalized_sample = rtm::vector_min(normalized_sample, rtm::vector_set(1.0F));
-		return rtm::vector_select(is_range_zero_mask, rtm::vector_zero(), normalized_sample);
-	}
-
-	inline void normalize_rotation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
-	{
-		const rtm::vector4f one = rtm::vector_set(1.0F);
-		const rtm::vector4f zero = rtm::vector_zero();
-
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		inline rtm::vector4f RTM_SIMD_CALL normalize_sample(rtm::vector4f_arg0 sample, const TrackStreamRange& range)
 		{
-			BoneStreams& bone_stream = bone_streams[bone_index];
-			const BoneRanges& bone_range = bone_ranges[bone_index];
-
-			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
-
-			// Constant or default tracks are not normalized
-			if (bone_stream.is_rotation_constant)
-				continue;
-
-			const uint32_t num_samples = bone_stream.rotations.get_num_samples();
-
-			const rtm::vector4f range_min = bone_range.rotation.get_min();
-			const rtm::vector4f range_extent = bone_range.rotation.get_extent();
+			const rtm::vector4f range_min = range.get_min();
+			const rtm::vector4f range_extent = range.get_extent();
 			const rtm::mask4i is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
 
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			rtm::vector4f normalized_sample = rtm::vector_div(rtm::vector_sub(sample, range_min), range_extent);
+			// Clamp because the division might be imprecise
+			normalized_sample = rtm::vector_min(normalized_sample, rtm::vector_set(1.0F));
+			return rtm::vector_select(is_range_zero_mask, rtm::vector_zero(), normalized_sample);
+		}
+
+		inline void normalize_rotation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
+		{
+			const rtm::vector4f one = rtm::vector_set(1.0F);
+			const rtm::vector4f zero = rtm::vector_zero();
+
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				// normalized value is between [0.0 .. 1.0]
-				// value = (normalized value * range extent) + range min
-				// normalized value = (value - range min) / range extent
-				const rtm::vector4f rotation = bone_stream.rotations.get_raw_sample<rtm::vector4f>(sample_index);
-				rtm::vector4f normalized_rotation = rtm::vector_div(rtm::vector_sub(rotation, range_min), range_extent);
-				// Clamp because the division might be imprecise
-				normalized_rotation = rtm::vector_min(normalized_rotation, one);
-				normalized_rotation = rtm::vector_select(is_range_zero_mask, zero, normalized_rotation);
+				BoneStreams& bone_stream = bone_streams[bone_index];
+				const BoneRanges& bone_range = bone_ranges[bone_index];
+
+				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
+				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
+
+				// Constant or default tracks are not normalized
+				if (bone_stream.is_rotation_constant)
+					continue;
+
+				const uint32_t num_samples = bone_stream.rotations.get_num_samples();
+
+				const rtm::vector4f range_min = bone_range.rotation.get_min();
+				const rtm::vector4f range_extent = bone_range.rotation.get_extent();
+				const rtm::mask4i is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
+
+				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+				{
+					// normalized value is between [0.0 .. 1.0]
+					// value = (normalized value * range extent) + range min
+					// normalized value = (value - range min) / range extent
+					const rtm::vector4f rotation = bone_stream.rotations.get_raw_sample<rtm::vector4f>(sample_index);
+					rtm::vector4f normalized_rotation = rtm::vector_div(rtm::vector_sub(rotation, range_min), range_extent);
+					// Clamp because the division might be imprecise
+					normalized_rotation = rtm::vector_min(normalized_rotation, one);
+					normalized_rotation = rtm::vector_select(is_range_zero_mask, zero, normalized_rotation);
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
-				switch (bone_stream.rotations.get_rotation_format())
-				{
-				case RotationFormat8::Quat_128:
-					ACL_ASSERT(rtm::vector_all_greater_equal(normalized_rotation, zero) && rtm::vector_all_less_equal(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_rotation), rtm::vector_get_y(normalized_rotation), rtm::vector_get_z(normalized_rotation), rtm::vector_get_w(normalized_rotation));
-					break;
-				case RotationFormat8::QuatDropW_96:
-				case RotationFormat8::QuatDropW_48:
-				case RotationFormat8::QuatDropW_32:
-				case RotationFormat8::QuatDropW_Variable:
-					ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_rotation, zero) && rtm::vector_all_less_equal3(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_rotation), rtm::vector_get_y(normalized_rotation), rtm::vector_get_z(normalized_rotation));
-					break;
-				}
+					switch (bone_stream.rotations.get_rotation_format())
+					{
+					case RotationFormat8::Quat_128:
+						ACL_ASSERT(rtm::vector_all_greater_equal(normalized_rotation, zero) && rtm::vector_all_less_equal(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_rotation), rtm::vector_get_y(normalized_rotation), rtm::vector_get_z(normalized_rotation), rtm::vector_get_w(normalized_rotation));
+						break;
+					case RotationFormat8::QuatDropW_96:
+					case RotationFormat8::QuatDropW_48:
+					case RotationFormat8::QuatDropW_32:
+					case RotationFormat8::QuatDropW_Variable:
+						ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_rotation, zero) && rtm::vector_all_less_equal3(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_rotation), rtm::vector_get_y(normalized_rotation), rtm::vector_get_z(normalized_rotation));
+						break;
+					}
 #endif
 
-				bone_stream.rotations.set_raw_sample(sample_index, normalized_rotation);
+					bone_stream.rotations.set_raw_sample(sample_index, normalized_rotation);
+				}
 			}
 		}
-	}
 
-	inline void normalize_translation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
-	{
-		const rtm::vector4f one = rtm::vector_set(1.0F);
-		const rtm::vector4f zero = rtm::vector_zero();
-
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		inline void normalize_translation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 		{
-			BoneStreams& bone_stream = bone_streams[bone_index];
-			const BoneRanges& bone_range = bone_ranges[bone_index];
+			const rtm::vector4f one = rtm::vector_set(1.0F);
+			const rtm::vector4f zero = rtm::vector_zero();
 
-			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-			ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
-
-			// Constant or default tracks are not normalized
-			if (bone_stream.is_translation_constant)
-				continue;
-
-			const uint32_t num_samples = bone_stream.translations.get_num_samples();
-
-			const rtm::vector4f range_min = bone_range.translation.get_min();
-			const rtm::vector4f range_extent = bone_range.translation.get_extent();
-			const rtm::mask4i is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
-
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				// normalized value is between [0.0 .. 1.0]
-				// value = (normalized value * range extent) + range min
-				// normalized value = (value - range min) / range extent
-				const rtm::vector4f translation = bone_stream.translations.get_raw_sample<rtm::vector4f>(sample_index);
-				rtm::vector4f normalized_translation = rtm::vector_div(rtm::vector_sub(translation, range_min), range_extent);
-				// Clamp because the division might be imprecise
-				normalized_translation = rtm::vector_min(normalized_translation, one);
-				normalized_translation = rtm::vector_select(is_range_zero_mask, zero, normalized_translation);
+				BoneStreams& bone_stream = bone_streams[bone_index];
+				const BoneRanges& bone_range = bone_ranges[bone_index];
 
-				ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_translation, zero) && rtm::vector_all_less_equal3(normalized_translation, one), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_translation), rtm::vector_get_y(normalized_translation), rtm::vector_get_z(normalized_translation));
+				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
+				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
 
-				bone_stream.translations.set_raw_sample(sample_index, normalized_translation);
+				// Constant or default tracks are not normalized
+				if (bone_stream.is_translation_constant)
+					continue;
+
+				const uint32_t num_samples = bone_stream.translations.get_num_samples();
+
+				const rtm::vector4f range_min = bone_range.translation.get_min();
+				const rtm::vector4f range_extent = bone_range.translation.get_extent();
+				const rtm::mask4i is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
+
+				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+				{
+					// normalized value is between [0.0 .. 1.0]
+					// value = (normalized value * range extent) + range min
+					// normalized value = (value - range min) / range extent
+					const rtm::vector4f translation = bone_stream.translations.get_raw_sample<rtm::vector4f>(sample_index);
+					rtm::vector4f normalized_translation = rtm::vector_div(rtm::vector_sub(translation, range_min), range_extent);
+					// Clamp because the division might be imprecise
+					normalized_translation = rtm::vector_min(normalized_translation, one);
+					normalized_translation = rtm::vector_select(is_range_zero_mask, zero, normalized_translation);
+
+					ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_translation, zero) && rtm::vector_all_less_equal3(normalized_translation, one), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_translation), rtm::vector_get_y(normalized_translation), rtm::vector_get_z(normalized_translation));
+
+					bone_stream.translations.set_raw_sample(sample_index, normalized_translation);
+				}
 			}
 		}
-	}
 
-	inline void normalize_scale_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
-	{
-		const rtm::vector4f one = rtm::vector_set(1.0F);
-		const rtm::vector4f zero = rtm::vector_zero();
-
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		inline void normalize_scale_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint16_t num_bones)
 		{
-			BoneStreams& bone_stream = bone_streams[bone_index];
-			const BoneRanges& bone_range = bone_ranges[bone_index];
+			const rtm::vector4f one = rtm::vector_set(1.0F);
+			const rtm::vector4f zero = rtm::vector_zero();
 
-			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-			ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
-
-			// Constant or default tracks are not normalized
-			if (bone_stream.is_scale_constant)
-				continue;
-
-			const uint32_t num_samples = bone_stream.scales.get_num_samples();
-
-			const rtm::vector4f range_min = bone_range.scale.get_min();
-			const rtm::vector4f range_extent = bone_range.scale.get_extent();
-			const rtm::mask4i is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
-
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				// normalized value is between [0.0 .. 1.0]
-				// value = (normalized value * range extent) + range min
-				// normalized value = (value - range min) / range extent
-				const rtm::vector4f scale = bone_stream.scales.get_raw_sample<rtm::vector4f>(sample_index);
-				rtm::vector4f normalized_scale = rtm::vector_div(rtm::vector_sub(scale, range_min), range_extent);
-				// Clamp because the division might be imprecise
-				normalized_scale = rtm::vector_min(normalized_scale, one);
-				normalized_scale = rtm::vector_select(is_range_zero_mask, zero, normalized_scale);
+				BoneStreams& bone_stream = bone_streams[bone_index];
+				const BoneRanges& bone_range = bone_ranges[bone_index];
 
-				ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_scale, zero) && rtm::vector_all_less_equal3(normalized_scale, one), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_scale), rtm::vector_get_y(normalized_scale), rtm::vector_get_z(normalized_scale));
+				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
+				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
 
-				bone_stream.scales.set_raw_sample(sample_index, normalized_scale);
+				// Constant or default tracks are not normalized
+				if (bone_stream.is_scale_constant)
+					continue;
+
+				const uint32_t num_samples = bone_stream.scales.get_num_samples();
+
+				const rtm::vector4f range_min = bone_range.scale.get_min();
+				const rtm::vector4f range_extent = bone_range.scale.get_extent();
+				const rtm::mask4i is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
+
+				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+				{
+					// normalized value is between [0.0 .. 1.0]
+					// value = (normalized value * range extent) + range min
+					// normalized value = (value - range min) / range extent
+					const rtm::vector4f scale = bone_stream.scales.get_raw_sample<rtm::vector4f>(sample_index);
+					rtm::vector4f normalized_scale = rtm::vector_div(rtm::vector_sub(scale, range_min), range_extent);
+					// Clamp because the division might be imprecise
+					normalized_scale = rtm::vector_min(normalized_scale, one);
+					normalized_scale = rtm::vector_select(is_range_zero_mask, zero, normalized_scale);
+
+					ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_scale, zero) && rtm::vector_all_less_equal3(normalized_scale, one), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_scale), rtm::vector_get_y(normalized_scale), rtm::vector_get_z(normalized_scale));
+
+					bone_stream.scales.set_raw_sample(sample_index, normalized_scale);
+				}
 			}
 		}
-	}
 
-	inline void normalize_clip_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction)
-	{
-		ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
-		SegmentContext& segment = clip_context.segments[0];
-
-		const bool has_scale = segment_context_has_scale(segment);
-
-		if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations))
+		inline void normalize_clip_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction)
 		{
-			normalize_rotation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
-			clip_context.are_rotations_normalized = true;
-		}
+			ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
+			SegmentContext& segment = clip_context.segments[0];
 
-		if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations))
-		{
-			normalize_translation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
-			clip_context.are_translations_normalized = true;
-		}
+			const bool has_scale = segment_context_has_scale(segment);
 
-		if (has_scale && are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales))
-		{
-			normalize_scale_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
-			clip_context.are_scales_normalized = true;
-		}
-	}
-
-	inline void normalize_segment_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction)
-	{
-		for (SegmentContext& segment : clip_context.segment_iterator())
-		{
 			if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations))
 			{
-				normalize_rotation_streams(segment.bone_streams, segment.ranges, segment.num_bones);
-				segment.are_rotations_normalized = true;
+				normalize_rotation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
+				clip_context.are_rotations_normalized = true;
 			}
 
 			if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations))
 			{
-				normalize_translation_streams(segment.bone_streams, segment.ranges, segment.num_bones);
-				segment.are_translations_normalized = true;
+				normalize_translation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
+				clip_context.are_translations_normalized = true;
 			}
 
-			const bool has_scale = segment_context_has_scale(segment);
 			if (has_scale && are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales))
 			{
-				normalize_scale_streams(segment.bone_streams, segment.ranges, segment.num_bones);
-				segment.are_scales_normalized = true;
+				normalize_scale_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
+				clip_context.are_scales_normalized = true;
 			}
+		}
 
-			uint32_t range_data_size = 0;
-
-			for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+		inline void normalize_segment_streams(ClipContext& clip_context, RangeReductionFlags8 range_reduction)
+		{
+			for (SegmentContext& segment : clip_context.segment_iterator())
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
-
-				if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) && !bone_stream.is_rotation_constant)
+				if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations))
 				{
-					if (bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128)
-						range_data_size += k_segment_range_reduction_num_bytes_per_component * 8;
-					else
+					normalize_rotation_streams(segment.bone_streams, segment.ranges, segment.num_bones);
+					segment.are_rotations_normalized = true;
+				}
+
+				if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations))
+				{
+					normalize_translation_streams(segment.bone_streams, segment.ranges, segment.num_bones);
+					segment.are_translations_normalized = true;
+				}
+
+				const bool has_scale = segment_context_has_scale(segment);
+				if (has_scale && are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales))
+				{
+					normalize_scale_streams(segment.bone_streams, segment.ranges, segment.num_bones);
+					segment.are_scales_normalized = true;
+				}
+
+				uint32_t range_data_size = 0;
+
+				for (uint16_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+				{
+					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
+					if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Rotations) && !bone_stream.is_rotation_constant)
+					{
+						if (bone_stream.rotations.get_rotation_format() == RotationFormat8::Quat_128)
+							range_data_size += k_segment_range_reduction_num_bytes_per_component * 8;
+						else
+							range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
+					}
+
+					if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations) && !bone_stream.is_translation_constant)
+						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
+
+					if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales) && !bone_stream.is_scale_constant)
 						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
 				}
 
-				if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations) && !bone_stream.is_translation_constant)
-					range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
-
-				if (are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales) && !bone_stream.is_scale_constant)
-					range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
+				segment.range_data_size = range_data_size;
 			}
-
-			segment.range_data_size = range_data_size;
 		}
 	}
 }

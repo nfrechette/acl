@@ -45,7 +45,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	namespace impl
+	namespace acl_impl
 	{
 		inline const char* format_hex_float(float value, char* buffer, size_t buffer_size)
 		{
@@ -317,7 +317,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, const char* acl_filename)
 	{
-		return impl::write_acl_clip(skeleton, clip, AlgorithmType8::UniformlySampled, nullptr, acl_filename);
+		return acl_impl::write_acl_clip(skeleton, clip, AlgorithmType8::UniformlySampled, nullptr, acl_filename);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -327,7 +327,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, AlgorithmType8 algorithm, const CompressionSettings& settings, const char* acl_filename)
 	{
-		return impl::write_acl_clip(skeleton, clip, algorithm, &settings, acl_filename);
+		return acl_impl::write_acl_clip(skeleton, clip, algorithm, &settings, acl_filename);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -406,7 +406,7 @@ namespace acl
 								data_writer.push([&](sjson::ArrayWriter& sample_writer)
 								{
 									const float sample = track__[sample_index];
-									sample_writer.push(impl::format_hex_float(sample, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample, buffer, sizeof(buffer)));
 								});
 								data_writer.push_newline();
 							}
@@ -431,8 +431,8 @@ namespace acl
 								data_writer.push([&](sjson::ArrayWriter& sample_writer)
 								{
 									const rtm::float2f& sample = track__[sample_index];
-									sample_writer.push(impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
-									sample_writer.push(impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
 								});
 								data_writer.push_newline();
 							}
@@ -457,9 +457,9 @@ namespace acl
 								data_writer.push([&](sjson::ArrayWriter& sample_writer)
 								{
 									const rtm::float3f& sample = track__[sample_index];
-									sample_writer.push(impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
-									sample_writer.push(impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
-									sample_writer.push(impl::format_hex_float(sample.z, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample.z, buffer, sizeof(buffer)));
 								});
 								data_writer.push_newline();
 							}
@@ -484,10 +484,10 @@ namespace acl
 								data_writer.push([&](sjson::ArrayWriter& sample_writer)
 								{
 									const rtm::float4f& sample = track__[sample_index];
-									sample_writer.push(impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
-									sample_writer.push(impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
-									sample_writer.push(impl::format_hex_float(sample.z, buffer, sizeof(buffer)));
-									sample_writer.push(impl::format_hex_float(sample.w, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample.z, buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(sample.w, buffer, sizeof(buffer)));
 								});
 								data_writer.push_newline();
 							}
@@ -512,10 +512,10 @@ namespace acl
 								data_writer.push([&](sjson::ArrayWriter& sample_writer)
 								{
 									const rtm::vector4f& sample = track__[sample_index];
-									sample_writer.push(impl::format_hex_float(rtm::vector_get_x(sample), buffer, sizeof(buffer)));
-									sample_writer.push(impl::format_hex_float(rtm::vector_get_y(sample), buffer, sizeof(buffer)));
-									sample_writer.push(impl::format_hex_float(rtm::vector_get_z(sample), buffer, sizeof(buffer)));
-									sample_writer.push(impl::format_hex_float(rtm::vector_get_w(sample), buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(sample), buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_y(sample), buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_z(sample), buffer, sizeof(buffer)));
+									sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_w(sample), buffer, sizeof(buffer)));
 								});
 								data_writer.push_newline();
 							}

@@ -69,7 +69,7 @@ namespace acl
 		// For the track id method to be more compact, an unreasonable small number of tracks would need to be
 		// animated or constant compared to the total possible number of tracks. Those are likely to be rare.
 
-		namespace impl
+		namespace acl_impl
 		{
 			constexpr size_t k_cache_line_size = 64;
 
@@ -338,7 +338,7 @@ namespace acl
 			DecompressionContext& operator=(const DecompressionContext& other) = delete;
 
 			// Internal context data
-			impl::DecompressionContext m_context;
+			acl_impl::DecompressionContext m_context;
 
 			// The static settings used to strip out code at runtime
 			DecompressionSettingsType m_settings;
@@ -552,6 +552,8 @@ namespace acl
 		{
 			static_assert(std::is_base_of<OutputWriter, OutputWriterType>::value, "OutputWriterType must derive from OutputWriter");
 
+			using namespace acl::acl_impl;
+
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
 			ACL_ASSERT(m_context.sample_time >= 0.0f, "Context not set to a valid sample time");
 
@@ -563,10 +565,10 @@ namespace acl
 
 			const ClipHeader& header = get_clip_header(*m_context.clip);
 
-			const impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
-			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
+			const acl_impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
+			const acl_impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
-			impl::SamplingContext sampling_context;
+			acl_impl::SamplingContext sampling_context;
 			sampling_context.track_index = 0;
 			sampling_context.constant_track_data_offset = 0;
 			sampling_context.clip_range_data_offset = 0;
@@ -615,6 +617,8 @@ namespace acl
 		template<class DecompressionSettingsType>
 		inline void DecompressionContext<DecompressionSettingsType>::decompress_bone(uint16_t sample_bone_index, rtm::quatf* out_rotation, rtm::vector4f* out_translation, rtm::vector4f* out_scale)
 		{
+			using namespace acl::acl_impl;
+
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
 			ACL_ASSERT(m_context.sample_time >= 0.0f, "Context not set to a valid sample time");
 
@@ -626,10 +630,10 @@ namespace acl
 
 			const ClipHeader& header = get_clip_header(*m_context.clip);
 
-			const impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
-			const impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
+			const acl_impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
+			const acl_impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
-			impl::SamplingContext sampling_context;
+			acl_impl::SamplingContext sampling_context;
 			sampling_context.key_frame_byte_offsets[0] = m_context.key_frame_byte_offsets[0];
 			sampling_context.key_frame_byte_offsets[1] = m_context.key_frame_byte_offsets[1];
 			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];

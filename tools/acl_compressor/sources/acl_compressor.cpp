@@ -732,7 +732,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			stats_writer->insert("worst_time", bone_error.sample_time);
 
 			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
-				write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
+				acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
 		}
 #endif
 
@@ -1279,7 +1279,7 @@ static int safe_main_impl(int argc, char* argv[])
 
 				runs_writer->push([&](sjson::ObjectWriter& writer)
 				{
-					write_decompression_performance_stats(allocator, default_settings, *compressed_clip, logging, writer);
+					acl_impl::write_decompression_performance_stats(allocator, default_settings, *compressed_clip, logging, writer);
 				});
 #else
 				std::ifstream input_file_stream(options.input_filename, std::ios_base::in | std::ios_base::binary);
@@ -1297,7 +1297,7 @@ static int safe_main_impl(int argc, char* argv[])
 
 					runs_writer->push([&](sjson::ObjectWriter& writer)
 					{
-						write_decompression_performance_stats(allocator, default_settings, *compressed_clip, logging, writer);
+						acl_impl::write_decompression_performance_stats(allocator, default_settings, *compressed_clip, logging, writer);
 					});
 
 					allocator.deallocate(buffer, buffer_size);

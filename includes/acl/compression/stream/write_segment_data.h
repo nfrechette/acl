@@ -39,61 +39,64 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	inline void write_segment_start_indices(const ClipContext& clip_context, uint32_t* segment_start_indices)
+	namespace acl_impl
 	{
-		for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
+		inline void write_segment_start_indices(const ClipContext& clip_context, uint32_t* segment_start_indices)
 		{
-			const SegmentContext& segment = clip_context.segments[segment_index];
-			segment_start_indices[segment_index] = segment.clip_sample_offset;
+			for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
+			{
+				const SegmentContext& segment = clip_context.segments[segment_index];
+				segment_start_indices[segment_index] = segment.clip_sample_offset;
+			}
+
+			// Write our sentinel value
+			segment_start_indices[clip_context.num_segments] = 0xFFFFFFFFU;
 		}
 
-		// Write our sentinel value
-		segment_start_indices[clip_context.num_segments] = 0xFFFFFFFFU;
-	}
-
-	inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint32_t segment_data_start_offset)
-	{
-		const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
-
-		uint32_t segment_data_offset = segment_data_start_offset;
-		for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
+		inline void write_segment_headers(const ClipContext& clip_context, const CompressionSettings& settings, SegmentHeader* segment_headers, uint32_t segment_data_start_offset)
 		{
-			const SegmentContext& segment = clip_context.segments[segment_index];
-			SegmentHeader& header = segment_headers[segment_index];
+			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
-			header.animated_pose_bit_size = segment.animated_pose_bit_size;
-			header.format_per_track_data_offset = segment_data_offset;
-			header.range_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
-			header.track_data_offset = align_to(header.range_data_offset + segment.range_data_size, 4);						// Aligned to 4 bytes
+			uint32_t segment_data_offset = segment_data_start_offset;
+			for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
+			{
+				const SegmentContext& segment = clip_context.segments[segment_index];
+				SegmentHeader& header = segment_headers[segment_index];
 
-			segment_data_offset = header.track_data_offset + segment.animated_data_size;
+				header.animated_pose_bit_size = segment.animated_pose_bit_size;
+				header.format_per_track_data_offset = segment_data_offset;
+				header.range_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
+				header.track_data_offset = align_to(header.range_data_offset + segment.range_data_size, 4);						// Aligned to 4 bytes
+
+				segment_data_offset = header.track_data_offset + segment.animated_data_size;
+			}
 		}
-	}
 
-	inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, ClipHeader& header, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
-	{
-		SegmentHeader* segment_headers = header.get_segment_headers();
-		const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
-
-		for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
+		inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, ClipHeader& header, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 		{
-			const SegmentContext& segment = clip_context.segments[segment_index];
-			SegmentHeader& segment_header = segment_headers[segment_index];
+			SegmentHeader* segment_headers = header.get_segment_headers();
+			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
-			if (format_per_track_data_size > 0)
-				write_format_per_track_data(segment, header.get_format_per_track_data(segment_header), format_per_track_data_size, output_bone_mapping, num_output_bones);
-			else
-				segment_header.format_per_track_data_offset = InvalidPtrOffset();
+			for (uint16_t segment_index = 0; segment_index < clip_context.num_segments; ++segment_index)
+			{
+				const SegmentContext& segment = clip_context.segments[segment_index];
+				SegmentHeader& segment_header = segment_headers[segment_index];
 
-			if (segment.range_data_size > 0)
-				write_segment_range_data(segment, settings.segmenting.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size, output_bone_mapping, num_output_bones);
-			else
-				segment_header.range_data_offset = InvalidPtrOffset();
+				if (format_per_track_data_size > 0)
+					write_format_per_track_data(segment, header.get_format_per_track_data(segment_header), format_per_track_data_size, output_bone_mapping, num_output_bones);
+				else
+					segment_header.format_per_track_data_offset = InvalidPtrOffset();
 
-			if (segment.animated_data_size > 0)
-				write_animated_track_data(segment, settings.rotation_format, settings.translation_format, settings.scale_format, header.get_track_data(segment_header), segment.animated_data_size, output_bone_mapping, num_output_bones);
-			else
-				segment_header.track_data_offset = InvalidPtrOffset();
+				if (segment.range_data_size > 0)
+					write_segment_range_data(segment, settings.segmenting.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size, output_bone_mapping, num_output_bones);
+				else
+					segment_header.range_data_offset = InvalidPtrOffset();
+
+				if (segment.animated_data_size > 0)
+					write_animated_track_data(segment, settings.rotation_format, settings.translation_format, settings.scale_format, header.get_track_data(segment_header), segment.animated_data_size, output_bone_mapping, num_output_bones);
+				else
+					segment_header.track_data_offset = InvalidPtrOffset();
+			}
 		}
 	}
 }

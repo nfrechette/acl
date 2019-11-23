@@ -372,6 +372,12 @@ namespace acl
 		String					m_name;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// Allocates an array of integers that correspond to the output bone mapping: result[output_index] = bone_index
+	//    - allocator: The allocator instance to use to allocate and free memory
+	//    - clip: The animation clip that dictates the bone output
+	//    - out_num_output_bones: The number of output bones
+	//////////////////////////////////////////////////////////////////////////
 	inline uint16_t* create_output_bone_mapping(IAllocator& allocator, const AnimationClip& clip, uint16_t& out_num_output_bones)
 	{
 		const uint16_t num_bones = clip.get_num_bones();

@@ -39,6 +39,14 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	class CompressedClip;
+
+	namespace acl_impl
+	{
+		CompressedClip* make_compressed_clip(void* buffer, uint32_t size, AlgorithmType8 type);
+		void finalize_compressed_clip(CompressedClip& compressed_clip);
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
 	// An instance of a compressed clip.
 	// The compressed data immediately follows the clip instance.
@@ -139,11 +147,11 @@ namespace acl
 		////////////////////////////////////////////////////////////////////////////////
 		// Friend function used to construct compressed clip instances. Should only
 		// be called by encoders.
-		friend CompressedClip* make_compressed_clip(void* buffer, uint32_t size, AlgorithmType8 type);
+		friend CompressedClip* acl_impl::make_compressed_clip(void* buffer, uint32_t size, AlgorithmType8 type);
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Friend function to finalize a compressed clip once all memory has been written within.
-		friend void finalize_compressed_clip(CompressedClip& compressed_clip);
+		friend void acl_impl::finalize_compressed_clip(CompressedClip& compressed_clip);
 	};
 
 	static_assert(alignof(CompressedClip) == 16, "Invalid alignment for CompressedClip");
