@@ -44,6 +44,14 @@ matrix:
     - os: linux
       env: COMPILER=clang7 TOOLCHAIN=clang PACKAGES="clang-7 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
 
+    # Linux clang8
+    - os: linux
+      env: COMPILER=clang8 TOOLCHAIN=clang PACKAGES="clang-8 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+
+    # Linux clang9
+    - os: linux
+      env: COMPILER=clang9 TOOLCHAIN=clang PACKAGES="clang-9 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+
     # OS X xcode8
     - os: osx
       osx_image: xcode8.3
@@ -70,6 +78,8 @@ before_install:
     - if [[ "$COMPILER" == "clang5" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-5.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
     - if [[ "$COMPILER" == "clang6" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
     - if [[ "$COMPILER" == "clang7" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang8" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang9" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
     - 'if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test";
       sudo -E apt-get -yq update;

@@ -7,7 +7,7 @@ def get_platform_compilers():
 	if platform.system() == 'Windows':
 		return [ 'vs2015', 'vs2017', 'vs2019' ]
 	elif platform.system() == 'Linux':
-		return [ 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'clang4', 'clang5', 'clang6', 'clang7' ]
+		return [ 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9' ]
 	elif platform.system() == 'Darwin':
 		return [ 'osx' ]
 	else:
@@ -34,8 +34,6 @@ if __name__ == "__main__":
 		for arch in archs:
 			for compiler in compilers:
 				for simd in simd_opts:
-					if compiler == 'clang7' and simd == '-nosimd':
-						continue	# Hack to avoid compiler issue
 					args = [python_exe, 'make.py', '-compiler', compiler, '-cpu', arch, '-config', config, simd, '-build', '-unit_test', '-clean']
 					if config != 'debug':
 						# Regression testing is too slow in debug and not really necessary
