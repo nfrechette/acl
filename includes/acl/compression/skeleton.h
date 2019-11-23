@@ -42,7 +42,7 @@ namespace acl
 	// We only support up to 65534 bones, we reserve 65535 for the invalid index
 	constexpr uint16_t k_invalid_bone_index = 0xFFFF;
 
-	namespace impl
+	namespace acl_impl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Simple iterator utility class to allow easy looping
@@ -113,8 +113,8 @@ namespace acl
 			m_root_index = root_index;
 		}
 
-		impl::BoneChainIterator begin() const { return impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_root_index); }
-		impl::BoneChainIterator end() const { return impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_bone_index + 1); }
+		acl_impl::BoneChainIterator begin() const { return acl_impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_root_index); }
+		acl_impl::BoneChainIterator end() const { return acl_impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_bone_index + 1); }
 
 		const uint32_t*		m_bone_chain;
 		BitSetDescription	m_bone_chain_desc;

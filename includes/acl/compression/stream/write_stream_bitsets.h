@@ -35,56 +35,59 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	inline void write_default_track_bitset(const ClipContext& clip_context, uint32_t* default_tracks_bitset, BitSetDescription bitset_desc, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
+	namespace acl_impl
 	{
-		ACL_ASSERT(default_tracks_bitset != nullptr, "'default_tracks_bitset' cannot be null!");
-
-		// Only use the first segment, it contains the necessary information
-		const SegmentContext& segment = clip_context.segments[0];
-
-		uint32_t default_track_offset = 0;
-
-		bitset_reset(default_tracks_bitset, bitset_desc, false);
-
-		for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
+		inline void write_default_track_bitset(const ClipContext& clip_context, uint32_t* default_tracks_bitset, BitSetDescription bitset_desc, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 		{
-			const uint16_t bone_index = output_bone_mapping[output_index];
-			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			ACL_ASSERT(default_tracks_bitset != nullptr, "'default_tracks_bitset' cannot be null!");
 
-			bitset_set(default_tracks_bitset, bitset_desc, default_track_offset++, bone_stream.is_rotation_default);
-			bitset_set(default_tracks_bitset, bitset_desc, default_track_offset++, bone_stream.is_translation_default);
+			// Only use the first segment, it contains the necessary information
+			const SegmentContext& segment = clip_context.segments[0];
 
-			if (clip_context.has_scale)
-				bitset_set(default_tracks_bitset, bitset_desc, default_track_offset++, bone_stream.is_scale_default);
+			uint32_t default_track_offset = 0;
+
+			bitset_reset(default_tracks_bitset, bitset_desc, false);
+
+			for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
+			{
+				const uint16_t bone_index = output_bone_mapping[output_index];
+				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
+				bitset_set(default_tracks_bitset, bitset_desc, default_track_offset++, bone_stream.is_rotation_default);
+				bitset_set(default_tracks_bitset, bitset_desc, default_track_offset++, bone_stream.is_translation_default);
+
+				if (clip_context.has_scale)
+					bitset_set(default_tracks_bitset, bitset_desc, default_track_offset++, bone_stream.is_scale_default);
+			}
+
+			ACL_ASSERT(default_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
 		}
 
-		ACL_ASSERT(default_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
-	}
-
-	inline void write_constant_track_bitset(const ClipContext& clip_context, uint32_t* constant_tracks_bitset, BitSetDescription bitset_desc, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
-	{
-		ACL_ASSERT(constant_tracks_bitset != nullptr, "'constant_tracks_bitset' cannot be null!");
-
-		// Only use the first segment, it contains the necessary information
-		const SegmentContext& segment = clip_context.segments[0];
-
-		uint32_t constant_track_offset = 0;
-
-		bitset_reset(constant_tracks_bitset, bitset_desc, false);
-
-		for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
+		inline void write_constant_track_bitset(const ClipContext& clip_context, uint32_t* constant_tracks_bitset, BitSetDescription bitset_desc, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 		{
-			const uint16_t bone_index = output_bone_mapping[output_index];
-			const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+			ACL_ASSERT(constant_tracks_bitset != nullptr, "'constant_tracks_bitset' cannot be null!");
 
-			bitset_set(constant_tracks_bitset, bitset_desc, constant_track_offset++, bone_stream.is_rotation_constant);
-			bitset_set(constant_tracks_bitset, bitset_desc, constant_track_offset++, bone_stream.is_translation_constant);
+			// Only use the first segment, it contains the necessary information
+			const SegmentContext& segment = clip_context.segments[0];
 
-			if (clip_context.has_scale)
-				bitset_set(constant_tracks_bitset, bitset_desc, constant_track_offset++, bone_stream.is_scale_constant);
+			uint32_t constant_track_offset = 0;
+
+			bitset_reset(constant_tracks_bitset, bitset_desc, false);
+
+			for (uint16_t output_index = 0; output_index < num_output_bones; ++output_index)
+			{
+				const uint16_t bone_index = output_bone_mapping[output_index];
+				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
+				bitset_set(constant_tracks_bitset, bitset_desc, constant_track_offset++, bone_stream.is_rotation_constant);
+				bitset_set(constant_tracks_bitset, bitset_desc, constant_track_offset++, bone_stream.is_translation_constant);
+
+				if (clip_context.has_scale)
+					bitset_set(constant_tracks_bitset, bitset_desc, constant_track_offset++, bone_stream.is_scale_constant);
+			}
+
+			ACL_ASSERT(constant_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
 		}
-
-		ACL_ASSERT(constant_track_offset <= bitset_desc.get_num_bits(), "Too many tracks found for bitset");
 	}
 }
 

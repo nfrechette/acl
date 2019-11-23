@@ -38,53 +38,56 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	struct ClipContext;
-
-	//////////////////////////////////////////////////////////////////////////
-	// The sample distribution.
-	//////////////////////////////////////////////////////////////////////////
-	enum class SampleDistribution8 : uint8_t
+	namespace acl_impl
 	{
-		// Samples are uniform, use the whole clip to determine the interpolation alpha.
-		Uniform,
-
-		// Samples are not uniform, use each track to determine the interpolation alpha.
-		Variable,
-	};
-
-	struct SegmentContext
-	{
-		ClipContext* clip;
-		BoneStreams* bone_streams;
-		BoneRanges* ranges;
-
-		uint16_t num_samples;
-		uint16_t num_bones;
-
-		uint32_t clip_sample_offset;
-		uint32_t segment_index;
-
-		SampleDistribution8 distribution;
-
-		bool are_rotations_normalized;
-		bool are_translations_normalized;
-		bool are_scales_normalized;
-
-		// Stat tracking
-		uint32_t animated_pose_bit_size;
-		uint32_t animated_data_size;
-		uint32_t range_data_size;
-		uint32_t total_header_size;
+		struct ClipContext;
 
 		//////////////////////////////////////////////////////////////////////////
-		Iterator<BoneStreams> bone_iterator() { return Iterator<BoneStreams>(bone_streams, num_bones); }
-		ConstIterator<BoneStreams> const_bone_iterator() const { return ConstIterator<BoneStreams>(bone_streams, num_bones); }
-	};
+		// The sample distribution.
+		//////////////////////////////////////////////////////////////////////////
+		enum class SampleDistribution8 : uint8_t
+		{
+			// Samples are uniform, use the whole clip to determine the interpolation alpha.
+			Uniform,
 
-	inline void destroy_segment_context(IAllocator& allocator, SegmentContext& segment)
-	{
-		deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
-		deallocate_type_array(allocator, segment.ranges, segment.num_bones);
+			// Samples are not uniform, use each track to determine the interpolation alpha.
+			Variable,
+		};
+
+		struct SegmentContext
+		{
+			ClipContext* clip;
+			BoneStreams* bone_streams;
+			BoneRanges* ranges;
+
+			uint16_t num_samples;
+			uint16_t num_bones;
+
+			uint32_t clip_sample_offset;
+			uint32_t segment_index;
+
+			SampleDistribution8 distribution;
+
+			bool are_rotations_normalized;
+			bool are_translations_normalized;
+			bool are_scales_normalized;
+
+			// Stat tracking
+			uint32_t animated_pose_bit_size;
+			uint32_t animated_data_size;
+			uint32_t range_data_size;
+			uint32_t total_header_size;
+
+			//////////////////////////////////////////////////////////////////////////
+			Iterator<BoneStreams> bone_iterator() { return Iterator<BoneStreams>(bone_streams, num_bones); }
+			ConstIterator<BoneStreams> const_bone_iterator() const { return ConstIterator<BoneStreams>(bone_streams, num_bones); }
+		};
+
+		inline void destroy_segment_context(IAllocator& allocator, SegmentContext& segment)
+		{
+			deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
+			deallocate_type_array(allocator, segment.ranges, segment.num_bones);
+		}
 	}
 }
 

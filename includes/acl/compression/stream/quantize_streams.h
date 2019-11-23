@@ -52,7 +52,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	namespace impl
+	namespace acl_impl
 	{
 		struct QuantizationContext
 		{
@@ -1283,30 +1283,30 @@ namespace acl
 			deallocate_type_array(context.allocator, best_permutation_bit_rates, context.num_bones);
 			deallocate_type_array(context.allocator, best_bit_rates, context.num_bones);
 		}
-	}
 
-	inline void quantize_streams(IAllocator& allocator, ClipContext& clip_context, const CompressionSettings& settings, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context, const ClipContext& additive_base_clip_context)
-	{
-		const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
-		const bool is_translation_variable = is_vector_format_variable(settings.translation_format);
-		const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
-		const bool is_any_variable = is_rotation_variable || is_translation_variable || is_scale_variable;
-
-		impl::QuantizationContext context(allocator, clip_context, raw_clip_context, additive_base_clip_context, settings, skeleton);
-
-		for (SegmentContext& segment : clip_context.segment_iterator())
+		inline void quantize_streams(IAllocator& allocator, ClipContext& clip_context, const CompressionSettings& settings, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context, const ClipContext& additive_base_clip_context)
 		{
+			const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
+			const bool is_translation_variable = is_vector_format_variable(settings.translation_format);
+			const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
+			const bool is_any_variable = is_rotation_variable || is_translation_variable || is_scale_variable;
+
+			acl_impl::QuantizationContext context(allocator, clip_context, raw_clip_context, additive_base_clip_context, settings, skeleton);
+
+			for (SegmentContext& segment : clip_context.segment_iterator())
+			{
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
-			printf("Quantizing segment %u...\n", segment.segment_index);
+				printf("Quantizing segment %u...\n", segment.segment_index);
 #endif
 
-			context.set_segment(segment);
+				context.set_segment(segment);
 
-			if (is_any_variable)
-				impl::find_optimal_bit_rates(context);
+				if (is_any_variable)
+					acl_impl::find_optimal_bit_rates(context);
 
-			// Quantize our streams now that we found the optimal bit rates
-			impl::quantize_all_streams(context);
+				// Quantize our streams now that we found the optimal bit rates
+				acl_impl::quantize_all_streams(context);
+			}
 		}
 	}
 }

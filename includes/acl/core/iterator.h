@@ -36,12 +36,12 @@ namespace acl
 	namespace acl_impl
 	{
 		template <class ItemType, bool is_const>
-		class Iterator
+		class IteratorImpl
 		{
 		public:
 			typedef typename std::conditional<is_const, const ItemType*, ItemType*>::type ItemPtr;
 
-			constexpr Iterator(ItemPtr items, size_t num_items) : m_items(items), m_num_items(num_items) {}
+			constexpr IteratorImpl(ItemPtr items, size_t num_items) : m_items(items), m_num_items(num_items) {}
 
 			constexpr ItemPtr begin() const { return m_items; }
 			constexpr ItemPtr end() const { return m_items + m_num_items; }
@@ -53,10 +53,10 @@ namespace acl
 	}
 
 	template <class ItemType>
-	using Iterator = acl_impl::Iterator<ItemType, false>;
+	using Iterator = acl_impl::IteratorImpl<ItemType, false>;
 
 	template <class ItemType>
-	using ConstIterator = acl_impl::Iterator<ItemType, true>;
+	using ConstIterator = acl_impl::IteratorImpl<ItemType, true>;
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
