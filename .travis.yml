@@ -93,10 +93,7 @@ script:
       fi'
     - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Debug -cpu x64
     - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x64
-    # Hack to avoid trying nosimd with clang7, it never terminates or takes forever
-    - 'if [[ "$COMPILER" != "clang7" ]]; then
-      python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x64 -nosimd;
-      fi'
+    - python make.py -clean -build -unit_test -compiler ${COMPILER} -config Release -cpu x64 -nosimd
     - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       python make.py -clean -build -compiler ios -config Debug;
       python make.py -clean -build -compiler ios -config Release;
