@@ -69,7 +69,7 @@ namespace acl
 					return unpack_vector3_96_unsafe(ptr);
 				else
 				{
-					const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+					const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 					if (is_normalized)
 						return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
 					else
@@ -100,7 +100,7 @@ namespace acl
 					return unpack_vector3_96_unsafe(ptr);
 				else
 				{
-					const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+					const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 					return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
 				}
 			default:

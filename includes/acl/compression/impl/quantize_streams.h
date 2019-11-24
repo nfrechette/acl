@@ -220,7 +220,7 @@ namespace acl
 			}
 			else
 			{
-				const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
@@ -343,7 +343,7 @@ namespace acl
 			}
 			else
 			{
-				const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
@@ -460,7 +460,7 @@ namespace acl
 			}
 			else
 			{
-				const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
@@ -612,7 +612,7 @@ namespace acl
 
 				BoneBitRate best_bit_rates = bone_bit_rates;
 				float best_error = 1.0E10F;
-				int32_t prev_transform_size = -1;
+				uint32_t prev_transform_size = ~0U;
 				bool is_error_good_enough = false;
 
 				if (context.has_scale)
@@ -656,10 +656,10 @@ namespace acl
 								continue;	// Skip permutations we aren't interested in
 						}
 
-						const int32_t rotation_size = get_num_bits_at_bit_rate(rotation_bit_rate);
-						const int32_t translation_size = get_num_bits_at_bit_rate(translation_bit_rate);
-						const int32_t scale_size = get_num_bits_at_bit_rate(scale_bit_rate);
-						const int32_t transform_size = rotation_size + translation_size + scale_size;
+						const uint32_t rotation_size = get_num_bits_at_bit_rate(rotation_bit_rate);
+						const uint32_t translation_size = get_num_bits_at_bit_rate(translation_bit_rate);
+						const uint32_t scale_size = get_num_bits_at_bit_rate(scale_bit_rate);
+						const uint32_t transform_size = rotation_size + translation_size + scale_size;
 
 						if (transform_size != prev_transform_size && is_error_good_enough)
 						{
@@ -716,9 +716,9 @@ namespace acl
 								continue;	// Skip permutations we aren't interested in
 						}
 
-						const int32_t rotation_size = get_num_bits_at_bit_rate(rotation_bit_rate);
-						const int32_t translation_size = get_num_bits_at_bit_rate(translation_bit_rate);
-						const int32_t transform_size = rotation_size + translation_size;
+						const uint32_t rotation_size = get_num_bits_at_bit_rate(rotation_bit_rate);
+						const uint32_t translation_size = get_num_bits_at_bit_rate(translation_bit_rate);
+						const uint32_t transform_size = rotation_size + translation_size;
 
 						if (transform_size != prev_transform_size && is_error_good_enough)
 						{
