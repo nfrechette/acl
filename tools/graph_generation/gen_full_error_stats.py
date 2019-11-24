@@ -15,6 +15,10 @@ def format_elapsed_time(elapsed_time):
 	return '{:0>2}h {:0>2}m {:05.2f}s'.format(int(hours), int(minutes), seconds)
 
 if __name__ == "__main__":
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run this script')
+		sys.exit(1)
+
 	if len(sys.argv) != 2:
 		print('Usage: python gen_full_error_stats.py <path/to/input_file.sjson>')
 		sys.exit(1)

@@ -59,6 +59,10 @@ def run_cmd(cmd, output_log):
 		sys.exit(1)
 
 if __name__ == "__main__":
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run this script')
+		sys.exit(1)
+
 	options = parse_argv()
 
 	os.environ['PYTHONIOENCODING'] = 'utf_8'

@@ -12,6 +12,10 @@ k_invalid_bit_rate = 255
 # This code assumes that rotations, translations, and scales are packed on 3 components (e.g. quat drop w)
 
 if __name__ == "__main__":
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run this script')
+		sys.exit(1)
+
 	permutation_tries = []
 	permutation_tries_no_scale = []
 

@@ -21,6 +21,10 @@ def get_python_exe_name():
 		return 'python3'
 
 if __name__ == "__main__":
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run this script')
+		sys.exit(1)
+
 	os.environ['PYTHONIOENCODING'] = 'utf_8'
 
 	configs = [ 'debug', 'release' ]

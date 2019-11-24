@@ -411,6 +411,10 @@ def set_process_affinity(affinity):
 		p.cpu_affinity([affinity])
 
 if __name__ == "__main__":
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run this script')
+		sys.exit(1)
+
 	options = parse_argv()
 
 	# Set the affinity to core 0, on platforms that support it, core 2 will be used to decompress

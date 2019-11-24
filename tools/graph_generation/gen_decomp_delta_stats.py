@@ -39,6 +39,10 @@ def bytes_to_mb(num_bytes):
 	return num_bytes / (1024 * 1024)
 
 if __name__ == "__main__":
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run this script')
+		sys.exit(1)
+
 	if len(sys.argv) != 2 and len(sys.argv) != 3:
 		print('Usage: python gen_decomp_delta_stats.py <path/to/input_file.sjson> [-warm]')
 		sys.exit(1)
