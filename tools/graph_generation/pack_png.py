@@ -5,6 +5,10 @@ import sys
 from PIL import Image
 
 if __name__ == "__main__":
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run this script')
+		sys.exit(1)
+
 	if len(sys.argv) != 2:
 		print('Usage: python pack_png.py <path to png image>')
 		sys.exit(1)

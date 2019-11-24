@@ -665,6 +665,10 @@ def percentile_rank(values, value):
 	return (values < value).mean() * 100.0
 
 if __name__ == "__main__":
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run this script')
+		sys.exit(1)
+
 	options = parse_argv()
 
 	stat_files = compress_clips(options)
