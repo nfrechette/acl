@@ -301,13 +301,13 @@ namespace acl
 					rtm::scalarf value1;
 					if (is_raw_bit_rate(bit_rate))
 					{
-						value0 = acl_impl::unpack_scalarf_96_unsafe(animated_values, track_bit_offset0);
-						value1 = acl_impl::unpack_scalarf_96_unsafe(animated_values, track_bit_offset1);
+						value0 = unpack_scalarf_32_unsafe(animated_values, track_bit_offset0);
+						value1 = unpack_scalarf_32_unsafe(animated_values, track_bit_offset1);
 					}
 					else
 					{
-						value0 = acl_impl::unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
-						value1 = acl_impl::unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
+						value0 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+						value1 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
 						const rtm::scalarf range_min = rtm::scalar_load(range_values);
 						const rtm::scalarf range_extent = rtm::scalar_load(range_values + 1);
@@ -536,13 +536,13 @@ namespace acl
 				rtm::scalarf value1;
 				if (is_raw_bit_rate(bit_rate))
 				{
-					value0 = acl_impl::unpack_scalarf_96_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
-					value1 = acl_impl::unpack_scalarf_96_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
+					value0 = unpack_scalarf_32_unsafe(animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_scalarf_32_unsafe(animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 				}
 				else
 				{
-					value0 = acl_impl::unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
-					value1 = acl_impl::unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
+					value0 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[0] + track_bit_offset);
+					value1 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, m_context.key_frame_bit_offsets[1] + track_bit_offset);
 
 					const rtm::scalarf range_min = rtm::scalar_load(range_values);
 					const rtm::scalarf range_extent = rtm::scalar_load(range_values + num_element_components);
