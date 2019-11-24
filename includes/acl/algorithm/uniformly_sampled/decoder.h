@@ -798,13 +798,15 @@ namespace acl
 
 				for (uint32_t animated_track_index = 0; animated_track_index < num_animated_tracks; ++animated_track_index)
 				{
-					for (size_t i = 0; i < 2; ++i)
-					{
-						const uint8_t bit_rate = m_context.format_per_track_data[i][animated_track_index];
-						const uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+					const uint8_t bit_rate0 = m_context.format_per_track_data[0][animated_track_index];
+					const uint32_t num_bits_at_bit_rate0 = get_num_bits_at_bit_rate(bit_rate0) * 3;	// 3 components
 
-						sampling_context.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
-					}
+					sampling_context.key_frame_bit_offsets[0] += num_bits_at_bit_rate0;
+
+					const uint8_t bit_rate1 = m_context.format_per_track_data[1][animated_track_index];
+					const uint32_t num_bits_at_bit_rate1 = get_num_bits_at_bit_rate(bit_rate1) * 3;	// 3 components
+
+					sampling_context.key_frame_bit_offsets[1] += num_bits_at_bit_rate1;
 				}
 			}
 

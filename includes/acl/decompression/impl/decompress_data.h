@@ -61,7 +61,7 @@ namespace acl
 						for (size_t i = 0; i < num_key_frames; ++i)
 						{
 							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-							uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+							uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
 								num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
@@ -123,7 +123,7 @@ namespace acl
 						for (size_t i = 0; i < num_key_frames; ++i)
 						{
 							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-							uint8_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+							uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
 								num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);

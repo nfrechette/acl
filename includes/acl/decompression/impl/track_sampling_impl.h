@@ -103,7 +103,7 @@ namespace acl
 		}
 
 		// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
-		inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+		inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 		{
 			ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
 

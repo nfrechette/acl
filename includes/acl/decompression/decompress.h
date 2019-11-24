@@ -285,7 +285,7 @@ namespace acl
 		{
 			const acl_impl::track_metadata& metadata = per_track_metadata[track_index];
 			const uint8_t bit_rate = metadata.bit_rate;
-			const uint8_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate);
+			const uint32_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate);
 
 			if (header.track_type == track_type8::float1f && m_settings.is_track_type_supported(track_type8::float1f))
 			{
@@ -521,7 +521,7 @@ namespace acl
 
 		const acl_impl::track_metadata& metadata = per_track_metadata[track_index];
 		const uint8_t bit_rate = metadata.bit_rate;
-		const uint8_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate);
+		const uint32_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate);
 
 		const uint8_t* animated_values = header.get_track_animated_values();
 

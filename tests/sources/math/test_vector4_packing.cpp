@@ -155,7 +155,7 @@ TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
 
 		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
 		{
-			uint8_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t num_bits = get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
@@ -383,7 +383,7 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 
 		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
 		{
-			uint8_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t num_bits = get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
@@ -450,7 +450,7 @@ TEST_CASE("decay_vector3_XX", "[math][vector4][decay]")
 
 		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
 		{
-			uint8_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t num_bits = get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
@@ -519,7 +519,7 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 
 		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
 		{
-			uint8_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t num_bits = get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{

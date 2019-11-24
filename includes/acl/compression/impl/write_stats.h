@@ -84,7 +84,7 @@ namespace acl
 
 			writer["bit_rate_counts"] = [&](sjson::ArrayWriter& bitrate_writer)
 			{
-				for (uint8_t bit_rate = 0; bit_rate < k_num_bit_rates; ++bit_rate)
+				for (uint32_t bit_rate = 0; bit_rate < k_num_bit_rates; ++bit_rate)
 					bitrate_writer.push(bit_rate_counts[bit_rate]);
 			};
 
