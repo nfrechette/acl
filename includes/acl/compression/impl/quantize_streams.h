@@ -66,9 +66,9 @@ namespace acl
 			const RigidSkeleton& skeleton;
 			const CompressionSettings& settings;
 
-			acl_impl::track_bit_rate_database database;
-			acl_impl::single_track_query local_query;
-			acl_impl::hierarchical_track_query object_query;
+			track_bit_rate_database bit_rate_database;
+			single_track_query local_query;
+			hierarchical_track_query object_query;
 
 			uint32_t num_samples;
 			uint32_t segment_sample_start_index;
@@ -95,7 +95,7 @@ namespace acl
 				, num_bones(clip_.num_bones)
 				, skeleton(skeleton_)
 				, settings(settings_)
-				, database(allocator_, settings_, clip_.segments->bone_streams, raw_clip_.segments->bone_streams, clip_.num_bones, clip_.segments->num_samples)
+				, bit_rate_database(allocator_, settings_, clip_.segments->bone_streams, raw_clip_.segments->bone_streams, clip_.num_bones, clip_.segments->num_samples)
 				, local_query()
 				, object_query(allocator_)
 				, num_samples(~0U)
@@ -106,8 +106,8 @@ namespace acl
 				, has_additive_base(clip_.has_additive_base)
 				, raw_bone_streams(raw_clip_.segments[0].bone_streams)
 			{
-				local_query.bind(database);
-				object_query.bind(database);
+				local_query.bind(bit_rate_database);
+				object_query.bind(bit_rate_database);
 
 				additive_local_pose = clip_.has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones) : nullptr;
 				raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
@@ -129,7 +129,7 @@ namespace acl
 				bone_streams = segment_.bone_streams;
 				num_samples = segment_.num_samples;
 				segment_sample_start_index = segment_.clip_sample_offset;
-				database.set_segment(segment_.bone_streams, segment_.num_bones, segment_.num_samples);
+				bit_rate_database.set_segment(segment_.bone_streams, segment_.num_bones, segment_.num_samples);
 			}
 
 			bool is_valid() const { return segment != nullptr; }
@@ -522,7 +522,7 @@ namespace acl
 
 				sample_stream(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
 
-				context.database.sample(context.local_query, sample_time, context.lossy_local_pose, context.num_bones);
+				context.bit_rate_database.sample(context.local_query, sample_time, context.lossy_local_pose, context.num_bones);
 
 				if (context.has_additive_base)
 				{
@@ -562,7 +562,7 @@ namespace acl
 
 				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
 
-				context.database.sample(context.object_query, sample_time, context.lossy_local_pose, context.num_bones);
+				context.bit_rate_database.sample(context.object_query, sample_time, context.lossy_local_pose, context.num_bones);
 
 				if (context.has_additive_base)
 				{
@@ -1291,7 +1291,7 @@ namespace acl
 			const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
 			const bool is_any_variable = is_rotation_variable || is_translation_variable || is_scale_variable;
 
-			acl_impl::QuantizationContext context(allocator, clip_context, raw_clip_context, additive_base_clip_context, settings, skeleton);
+			QuantizationContext context(allocator, clip_context, raw_clip_context, additive_base_clip_context, settings, skeleton);
 
 			for (SegmentContext& segment : clip_context.segment_iterator())
 			{
@@ -1302,10 +1302,10 @@ namespace acl
 				context.set_segment(segment);
 
 				if (is_any_variable)
-					acl_impl::find_optimal_bit_rates(context);
+					find_optimal_bit_rates(context);
 
 				// Quantize our streams now that we found the optimal bit rates
-				acl_impl::quantize_all_streams(context);
+				quantize_all_streams(context);
 			}
 		}
 	}
