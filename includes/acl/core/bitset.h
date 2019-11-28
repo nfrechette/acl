@@ -198,6 +198,18 @@ namespace acl
 
 		return num_set_bits;
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Performs the operation: result = ~not_value & and_value
+	// Bit sets must have the same description
+	// Bit sets can alias
+	inline void bitset_and_not(uint32_t* bitset_result, const uint32_t* bitset_not_value, const uint32_t* bitset_and_value, BitSetDescription desc)
+	{
+		const uint32_t size = desc.get_size();
+
+		for (uint32_t offset = 0; offset < size; ++offset)
+			bitset_result[offset] = and_not(bitset_not_value[offset], bitset_and_value[offset]);
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
