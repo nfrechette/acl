@@ -934,11 +934,12 @@ namespace acl
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
+			// With uniform sample distributions, we do not interpolate.
 			uint32_t sample_key;
 			if (segment_context->distribution == SampleDistribution8::Uniform)
-				sample_key = acl_impl::get_uniform_sample_key(*segment_context, sample_time);
+				sample_key = get_uniform_sample_key(*segment_context, sample_time);
 			else
-				sample_key = 0;
+				sample_key = 0;	// Not used
 
 			acl_impl::sample_context context;
 			context.sample_key = sample_key;
@@ -984,11 +985,12 @@ namespace acl
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
+			// With uniform sample distributions, we do not interpolate.
 			uint32_t sample_key;
 			if (segment_context->distribution == SampleDistribution8::Uniform)
-				sample_key = acl_impl::get_uniform_sample_key(*segment_context, sample_time);
+				sample_key = get_uniform_sample_key(*segment_context, sample_time);
 			else
-				sample_key = 0;
+				sample_key = 0;	// Not used
 
 			acl_impl::sample_context context;
 			context.track_index = bone_index;
@@ -1024,11 +1026,12 @@ namespace acl
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
+			// With uniform sample distributions, we do not interpolate.
 			uint32_t sample_key;
 			if (segment_context->distribution == SampleDistribution8::Uniform)
-				sample_key = acl_impl::get_uniform_sample_key(*segment_context, sample_time);
+				sample_key = get_uniform_sample_key(*segment_context, sample_time);
 			else
-				sample_key = 0;
+				sample_key = 0;	// Not used
 
 			acl_impl::sample_context context;
 			context.sample_key = sample_key;
@@ -1080,11 +1083,12 @@ namespace acl
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
+			// With uniform sample distributions, we do not interpolate.
 			uint32_t sample_key;
 			if (segment_context->distribution == SampleDistribution8::Uniform)
-				sample_key = acl_impl::get_uniform_sample_key(*segment_context, sample_time);
+				sample_key = get_uniform_sample_key(*segment_context, sample_time);
 			else
-				sample_key = 0;
+				sample_key = 0;	// Not used
 
 			acl_impl::sample_context context;
 			context.sample_key = sample_key;
@@ -1138,11 +1142,12 @@ namespace acl
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
+			// With uniform sample distributions, we do not interpolate.
 			uint32_t sample_key;
 			if (segment_context->distribution == SampleDistribution8::Uniform)
-				sample_key = acl_impl::get_uniform_sample_key(*segment_context, sample_time);
+				sample_key = get_uniform_sample_key(*segment_context, sample_time);
 			else
-				sample_key = 0;
+				sample_key = 0;	// Not used
 
 			acl_impl::sample_context context;
 			context.track_index = bone_index;
@@ -1184,11 +1189,12 @@ namespace acl
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
+			// With uniform sample distributions, we do not interpolate.
 			uint32_t sample_key;
 			if (segment_context->distribution == SampleDistribution8::Uniform)
-				sample_key = acl_impl::get_uniform_sample_key(*segment_context, sample_time);
+				sample_key = get_uniform_sample_key(*segment_context, sample_time);
 			else
-				sample_key = 0;
+				sample_key = 0;	// Not used
 
 			acl_impl::sample_context context;
 			context.sample_key = sample_key;
