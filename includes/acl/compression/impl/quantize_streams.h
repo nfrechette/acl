@@ -746,6 +746,10 @@ namespace acl
 					}
 				}
 
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
+				printf("%u: Best bit rates: %u | %u | %u\n", bone_index, best_bit_rates.rotation, best_bit_rates.translation, best_bit_rates.scale);
+#endif
+
 				context.bit_rate_per_bone[bone_index] = best_bit_rates;
 			}
 		}
