@@ -131,7 +131,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// The error metric to use.
 		// Defaults to 'null', this value must be set manually!
-		ISkeletalErrorMetric* error_metric;
+		itransform_error_metric* error_metric;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Threshold angle when detecting if rotation tracks are constant or default.

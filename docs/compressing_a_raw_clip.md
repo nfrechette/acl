@@ -30,7 +30,7 @@ settings.range_reduction = RangeReductionFlags8::AllTracks;
 settings.segmenting.enabled = true;
 settings.segmenting.range_reduction = RangeReductionFlags8::AllTracks;
 
-TransformErrorMetric error_metric;
+qvvf_transform_error_metric error_metric;
 settings.error_metric = &error_metric;
 
 OutputStats stats;
