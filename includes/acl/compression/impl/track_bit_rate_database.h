@@ -152,6 +152,8 @@ namespace acl
 			void sample(const single_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
 			void sample(const hierarchical_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
 
+			size_t get_allocated_size() const;
+
 		private:
 			track_bit_rate_database(const track_bit_rate_database&) = delete;
 			track_bit_rate_database(track_bit_rate_database&&) = delete;
@@ -1065,6 +1067,15 @@ namespace acl
 					current_track_index = bone_stream.parent_bone_index;
 				}
 			}
+		}
+
+		inline size_t track_bit_rate_database::get_allocated_size() const
+		{
+			size_t cache_size = 0;
+			cache_size += sizeof(transform_cache_entry) * m_num_transforms;
+			cache_size += m_track_bitsets_size;
+			cache_size += m_data_size;
+			return cache_size;
 		}
 	}
 }
