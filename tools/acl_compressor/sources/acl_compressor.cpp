@@ -147,6 +147,8 @@ struct Options
 	bool			profile_decompression;
 	bool			exhaustive_compression;
 
+	bool			use_matrix_error_metric;
+
 	bool			is_bind_pose_relative;
 	bool			is_bind_pose_additive0;
 	bool			is_bind_pose_additive1;
@@ -176,6 +178,7 @@ struct Options
 		, regression_testing(false)
 		, profile_decompression(false)
 		, exhaustive_compression(false)
+		, use_matrix_error_metric(false)
 		, is_bind_pose_relative(false)
 		, is_bind_pose_additive0(false)
 		, is_bind_pose_additive1(false)
@@ -224,6 +227,7 @@ static constexpr const char* k_exhaustive_compression_option = "-exhaustive";
 static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
+static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
 static constexpr const char* k_stat_detailed_output_option = "-stat_detailed";
 static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive";
 
@@ -349,6 +353,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_exhaustive_compression_option, option_length) == 0)
 		{
 			options.exhaustive_compression = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_matrix_error_metric_option);
+		if (std::strncmp(argument, k_matrix_error_metric_option, option_length) == 0)
+		{
+			options.use_matrix_error_metric = true;
 			continue;
 		}
 
@@ -1223,7 +1234,12 @@ static int safe_main_impl(int argc, char* argv[])
 		settings.error_metric = create_additive_error_metric(allocator, clip->get_additive_format());
 
 		if (settings.error_metric == nullptr)
+		{
+			if (options.use_matrix_error_metric)
+				settings.error_metric = allocate_type<qvvf_matrix3x4f_transform_error_metric>(allocator);
+			else
 				settings.error_metric = allocate_type<qvvf_transform_error_metric>(allocator);
+		}
 	}
 
 	// Compress & Decompress
