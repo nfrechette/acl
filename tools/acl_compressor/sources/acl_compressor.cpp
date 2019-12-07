@@ -629,8 +629,8 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 				const float raw_value = raw_track_writer.read_float1(track_index);
 				const float lossy_value = lossy_track_writer.read_float1(output_index);
 				ACL_ASSERT(rtm::scalar_near_equal(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::scalar_near_equal(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::scalar_near_equal(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::scalar_near_equal(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::scalar_near_equal(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
 				break;
 			}
 			case track_type8::float2f:
@@ -640,8 +640,8 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 				const rtm::vector4f raw_value = raw_track_writer.read_float2(track_index);
 				const rtm::vector4f lossy_value = lossy_track_writer.read_float2(output_index);
 				ACL_ASSERT(rtm::vector_all_near_equal2(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal2(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal2(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal2(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal2(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
 				break;
 			}
 			case track_type8::float3f:
@@ -651,8 +651,8 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 				const rtm::vector4f raw_value = raw_track_writer.read_float3(track_index);
 				const rtm::vector4f lossy_value = lossy_track_writer.read_float3(output_index);
 				ACL_ASSERT(rtm::vector_all_near_equal3(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal3(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal3(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal3(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal3(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
 				break;
 			}
 			case track_type8::float4f:
@@ -662,8 +662,8 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 				const rtm::vector4f raw_value = raw_track_writer.read_float4(track_index);
 				const rtm::vector4f lossy_value = lossy_track_writer.read_float4(output_index);
 				ACL_ASSERT(rtm::vector_all_near_equal(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
 				break;
 			}
 			case track_type8::vector4f:
@@ -673,8 +673,8 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 				const rtm::vector4f raw_value = raw_track_writer.read_vector4(track_index);
 				const rtm::vector4f lossy_value = lossy_track_writer.read_vector4(output_index);
 				ACL_ASSERT(rtm::vector_all_near_equal(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal(raw_value_, raw_value), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
+				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
 				break;
 			}
 			default:
