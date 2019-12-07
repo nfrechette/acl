@@ -914,7 +914,7 @@ static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
 	return success;
 }
 
-static bool read_config(IAllocator& allocator, const Options& options, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings, double& out_regression_error_threshold)
+static bool read_config(IAllocator& allocator, Options& options, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings, double& out_regression_error_threshold)
 {
 #if defined(__ANDROID__)
 	sjson::Parser parser(options.config_buffer, options.config_buffer_size - 1);
@@ -1054,6 +1054,14 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 	parser.try_read("error_threshold", out_settings.error_threshold, default_settings.error_threshold);
 
 	parser.try_read("regression_error_threshold", out_regression_error_threshold, 0.0);
+
+	bool is_bind_pose_relative;
+	if (parser.try_read("is_bind_pose_relative", is_bind_pose_relative, false))
+		options.is_bind_pose_relative = is_bind_pose_relative;
+
+	bool use_matrix_error_metric;
+	if (parser.try_read("use_matrix_error_metric", use_matrix_error_metric, false))
+		options.use_matrix_error_metric = use_matrix_error_metric;
 
 	if (!parser.is_valid() || !parser.remainder_is_comments_and_whitespace())
 	{
