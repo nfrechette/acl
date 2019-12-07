@@ -416,19 +416,16 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 {
 	(void)regression_error_threshold;
 
+	const BoneError bone_error = calculate_compressed_clip_error(allocator, clip, *settings.error_metric, context);
+	(void)bone_error;
+	ACL_ASSERT(rtm::scalar_is_finite(bone_error.error), "Returned error is not a finite value");
+	ACL_ASSERT(bone_error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_error.index, bone_error.error, bone_error.sample_time);
+
 	const uint16_t num_bones = clip.get_num_bones();
 	const float clip_duration = clip.get_duration();
 	const float sample_rate = clip.get_sample_rate();
 	const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
-	const ISkeletalErrorMetric& error_metric = *settings.error_metric;
-	const RigidSkeleton& skeleton = clip.get_skeleton();
 
-	const AnimationClip* additive_base_clip = clip.get_additive_base();
-	const uint32_t additive_num_samples = additive_base_clip != nullptr ? additive_base_clip->get_num_samples() : 0;
-	const float additive_duration = additive_base_clip != nullptr ? additive_base_clip->get_duration() : 0.0F;
-
-	rtm::qvvf* raw_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-	rtm::qvvf* base_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 	rtm::qvvf* lossy_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 
 	DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
@@ -439,26 +436,8 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, clip_duration);
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
-		clip.sample_pose(sample_time, SampleRoundingPolicy::Nearest, raw_pose_transforms, num_bones);
-
 		context.seek(sample_time, SampleRoundingPolicy::Nearest);
 		context.decompress_pose(pose_writer);
-
-		if (additive_base_clip != nullptr)
-		{
-			const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
-			const float additive_sample_time = normalized_sample_time * additive_duration;
-			additive_base_clip->sample_pose(additive_sample_time, SampleRoundingPolicy::Nearest, base_pose_transforms, num_bones);
-		}
-
-		// Validate decompress_pose
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			const float error = error_metric.calculate_object_bone_error(skeleton, raw_pose_transforms, base_pose_transforms, lossy_pose_transforms, bone_index);
-			(void)error;
-			ACL_ASSERT(rtm::scalar_is_finite(error), "Returned error is not a finite value");
-			ACL_ASSERT(error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_index, error, sample_time);
-		}
 
 		// Validate decompress_bone for rotations only
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -497,8 +476,6 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		}
 	}
 
-	deallocate_type_array(allocator, raw_pose_transforms, num_bones);
-	deallocate_type_array(allocator, base_pose_transforms, num_bones);
 	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 }
 
@@ -1080,16 +1057,16 @@ static bool read_config(IAllocator& allocator, const Options& options, Algorithm
 	return true;
 }
 
-static ISkeletalErrorMetric* create_additive_error_metric(IAllocator& allocator, AdditiveClipFormat8 format)
+static itransform_error_metric* create_additive_error_metric(IAllocator& allocator, AdditiveClipFormat8 format)
 {
 	switch (format)
 	{
 	case AdditiveClipFormat8::Relative:
-		return allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Relative>>(allocator);
+		return allocate_type<additive_qvvf_transform_error_metric<AdditiveClipFormat8::Relative>>(allocator);
 	case AdditiveClipFormat8::Additive0:
-		return allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive0>>(allocator);
+		return allocate_type<additive_qvvf_transform_error_metric<AdditiveClipFormat8::Additive0>>(allocator);
 	case AdditiveClipFormat8::Additive1:
-		return allocate_type<AdditiveTransformErrorMetric<AdditiveClipFormat8::Additive1>>(allocator);
+		return allocate_type<additive_qvvf_transform_error_metric<AdditiveClipFormat8::Additive1>>(allocator);
 	default:
 		return nullptr;
 	}
@@ -1246,7 +1223,7 @@ static int safe_main_impl(int argc, char* argv[])
 		settings.error_metric = create_additive_error_metric(allocator, clip->get_additive_format());
 
 		if (settings.error_metric == nullptr)
-			settings.error_metric = allocate_type<TransformErrorMetric>(allocator);
+				settings.error_metric = allocate_type<qvvf_transform_error_metric>(allocator);
 	}
 
 	// Compress & Decompress

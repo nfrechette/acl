@@ -35,9 +35,10 @@
 #include "acl/compression/skeleton_error_metric.h"
 #include "acl/compression/utils.h"
 
-#include <cstdint>
-#include <thread>
 #include <chrono>
+#include <cstdint>
+#include <functional>
+#include <thread>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -103,12 +104,51 @@ namespace acl
 			const uint16_t num_bones = skeleton.get_num_bones();
 			const bool has_scale = segment_context_has_scale(segment);
 
+			ACL_ASSERT(!settings.error_metric->needs_conversion(has_scale), "Error metric conversion not supported");
+
+			const auto local_to_object_space_impl = std::mem_fn(has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+			const auto calculate_error_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+
 			rtm::qvvf* raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 			rtm::qvvf* base_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 			rtm::qvvf* lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 
+			rtm::qvvf* raw_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+			rtm::qvvf* lossy_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+
+			uint16_t* parent_transform_indices = allocate_type_array<uint16_t>(allocator, num_bones);
+			uint16_t* self_transform_indices = allocate_type_array<uint16_t>(allocator, num_bones);
+
+			for (uint16_t transform_index = 0; transform_index < num_bones; ++transform_index)
+			{
+				const RigidBone& bone = skeleton.get_bone(transform_index);
+				parent_transform_indices[transform_index] = bone.parent_index;
+				self_transform_indices[transform_index] = transform_index;
+			}
+
 			const float sample_rate = raw_clip_context.sample_rate;
 			const float ref_duration = calculate_duration(raw_clip_context.num_samples, sample_rate);
+
+			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
+			apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
+			apply_additive_to_base_args_raw.num_dirty_transforms = num_bones;
+			apply_additive_to_base_args_raw.local_transforms = raw_local_pose;
+			apply_additive_to_base_args_raw.base_transforms = base_local_pose;
+			apply_additive_to_base_args_raw.num_transforms = num_bones;
+
+			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy = apply_additive_to_base_args_raw;
+			apply_additive_to_base_args_lossy.local_transforms = lossy_local_pose;
+
+			itransform_error_metric::local_to_object_space_args local_to_object_space_args_raw;
+			local_to_object_space_args_raw.dirty_transform_indices = self_transform_indices;
+			local_to_object_space_args_raw.num_dirty_transforms = num_bones;
+			local_to_object_space_args_raw.parent_transform_indices = parent_transform_indices;
+			local_to_object_space_args_raw.local_transforms = raw_local_pose;
+			local_to_object_space_args_raw.num_transforms = num_bones;
+
+			itransform_error_metric::local_to_object_space_args local_to_object_space_args_lossy = local_to_object_space_args_raw;
+			local_to_object_space_args_lossy.local_transforms = lossy_local_pose;
 
 			BoneError worst_bone_error;
 
@@ -124,31 +164,40 @@ namespace acl
 					if (raw_clip_context.has_additive_base)
 					{
 						const float normalized_sample_time = additive_base_clip_context.num_samples > 1 ? (sample_time / ref_duration) : 0.0F;
-						const float additive_sample_time = normalized_sample_time * additive_base_clip_context.duration;
+						const float additive_sample_time = additive_base_clip_context.num_samples > 1 ? (normalized_sample_time * additive_base_clip_context.duration) : 0.0F;
 						sample_streams(additive_base_clip_context.segments[0].bone_streams, num_bones, additive_sample_time, base_local_pose);
+
+						apply_additive_to_base_impl(settings.error_metric, apply_additive_to_base_args_raw, raw_local_pose);
+						apply_additive_to_base_impl(settings.error_metric, apply_additive_to_base_args_lossy, lossy_local_pose);
 					}
+
+					local_to_object_space_impl(settings.error_metric, local_to_object_space_args_raw, raw_object_pose);
+					local_to_object_space_impl(settings.error_metric, local_to_object_space_args_lossy, lossy_object_pose);
 
 					frames_writer.push_newline();
 					frames_writer.push([&](sjson::ArrayWriter& frame_writer)
+					{
+						for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 						{
-							for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+							const RigidBone& bone = skeleton.get_bone(bone_index);
+
+							itransform_error_metric::calculate_error_args calculate_error_args;
+							calculate_error_args.raw_transform = raw_object_pose + bone_index;
+							calculate_error_args.lossy_transform = lossy_object_pose + bone_index;
+							calculate_error_args.construct_sphere_shell(bone.vertex_distance);
+
+							const float error = rtm::scalar_cast(calculate_error_impl(settings.error_metric, calculate_error_args));
+
+							frame_writer.push(error);
+
+							if (error > worst_bone_error.error)
 							{
-								float error;
-								if (has_scale)
-									error = settings.error_metric->calculate_object_bone_error(skeleton, raw_local_pose, base_local_pose, lossy_local_pose, bone_index);
-								else
-									error = settings.error_metric->calculate_object_bone_error_no_scale(skeleton, raw_local_pose, base_local_pose, lossy_local_pose, bone_index);
-
-								frame_writer.push(error);
-
-								if (error > worst_bone_error.error)
-								{
-									worst_bone_error.error = error;
-									worst_bone_error.index = bone_index;
-									worst_bone_error.sample_time = sample_time;
-								}
+								worst_bone_error.error = error;
+								worst_bone_error.index = bone_index;
+								worst_bone_error.sample_time = sample_time;
 							}
-						});
+						}
+					});
 				}
 			};
 
@@ -159,6 +208,12 @@ namespace acl
 			deallocate_type_array(allocator, raw_local_pose, num_bones);
 			deallocate_type_array(allocator, base_local_pose, num_bones);
 			deallocate_type_array(allocator, lossy_local_pose, num_bones);
+
+			deallocate_type_array(allocator, raw_object_pose, num_bones);
+			deallocate_type_array(allocator, lossy_object_pose, num_bones);
+
+			deallocate_type_array(allocator, parent_transform_indices, num_bones);
+			deallocate_type_array(allocator, self_transform_indices, num_bones);
 		}
 
 		inline void write_stats(IAllocator& allocator, const AnimationClip& clip, const ClipContext& clip_context, const RigidSkeleton& skeleton,

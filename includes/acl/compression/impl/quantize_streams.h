@@ -44,6 +44,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 
 // 0 = no debug info, 1 = basic info, 2 = verbose
 #define ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION		0
@@ -76,14 +77,31 @@ namespace acl
 			float clip_duration;
 			bool has_scale;
 			bool has_additive_base;
+			bool needs_conversion;
 
 			const BoneStreams* raw_bone_streams;
 
-			rtm::qvvf* additive_local_pose;
-			rtm::qvvf* raw_local_pose;
-			rtm::qvvf* lossy_local_pose;
+			rtm::qvvf* additive_local_pose;			// 1 per transform
+			rtm::qvvf* raw_local_pose;				// 1 per transform
+			rtm::qvvf* lossy_local_pose;			// 1 per transform
 
-			BoneBitRate* bit_rate_per_bone;
+			uint8_t* raw_local_transforms;			// 1 per transform per sample in segment
+			uint8_t* base_local_transforms;			// 1 per transform per sample in segment
+			uint8_t* raw_object_transforms;			// 1 per transform per sample in segment
+			uint8_t* base_object_transforms;		// 1 per transform per sample in segment
+
+			uint8_t* local_transforms_converted;	// 1 per transform
+			uint8_t* lossy_object_pose;				// 1 per transform
+			size_t metric_transform_size;
+
+			BoneBitRate* bit_rate_per_bone;			// 1 per transform
+			uint16_t* parent_transform_indices;		// 1 per transform
+			uint16_t* self_transform_indices;		// 1 per transform
+
+			uint16_t* chain_bone_indices;			// 1 per transform
+			uint16_t num_bones_in_chain;
+			uint16_t padding0;	// unused
+			uint32_t padding1;	// unused
 
 			QuantizationContext(IAllocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, const ClipContext& additive_base_clip_, const CompressionSettings& settings_, const RigidSkeleton& skeleton_)
 				: allocator(allocator_)
@@ -105,14 +123,35 @@ namespace acl
 				, has_scale(clip_.has_scale)
 				, has_additive_base(clip_.has_additive_base)
 				, raw_bone_streams(raw_clip_.segments[0].bone_streams)
+				, num_bones_in_chain(0)
 			{
 				local_query.bind(bit_rate_database);
 				object_query.bind(bit_rate_database);
 
+				needs_conversion = settings_.error_metric->needs_conversion(clip_.has_scale);
+				const size_t metric_transform_size_ = settings_.error_metric->get_transform_size(clip_.has_scale);
+				metric_transform_size = metric_transform_size_;
+
 				additive_local_pose = clip_.has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones) : nullptr;
 				raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+				raw_local_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
+				base_local_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
+				raw_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
+				base_object_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
+				local_transforms_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones, 64) : nullptr;
+				lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones, 64);
 				bit_rate_per_bone = allocate_type_array<BoneBitRate>(allocator, num_bones);
+				parent_transform_indices = allocate_type_array<uint16_t>(allocator, num_bones);
+				self_transform_indices = allocate_type_array<uint16_t>(allocator, num_bones);
+				chain_bone_indices = allocate_type_array<uint16_t>(allocator, num_bones);
+
+				for (uint16_t transform_index = 0; transform_index < num_bones; ++transform_index)
+				{
+					const RigidBone& bone = skeleton_.get_bone(transform_index);
+					parent_transform_indices[transform_index] = bone.parent_index;
+					self_transform_indices[transform_index] = transform_index;
+				}
 			}
 
 			~QuantizationContext()
@@ -120,7 +159,16 @@ namespace acl
 				deallocate_type_array(allocator, additive_local_pose, num_bones);
 				deallocate_type_array(allocator, raw_local_pose, num_bones);
 				deallocate_type_array(allocator, lossy_local_pose, num_bones);
+				deallocate_type_array(allocator, raw_local_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
+				deallocate_type_array(allocator, base_local_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
+				deallocate_type_array(allocator, raw_object_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
+				deallocate_type_array(allocator, base_object_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
+				deallocate_type_array(allocator, local_transforms_converted, metric_transform_size * num_bones);
+				deallocate_type_array(allocator, lossy_object_pose, metric_transform_size * num_bones);
 				deallocate_type_array(allocator, bit_rate_per_bone, num_bones);
+				deallocate_type_array(allocator, parent_transform_indices, num_bones);
+				deallocate_type_array(allocator, self_transform_indices, num_bones);
+				deallocate_type_array(allocator, chain_bone_indices, num_bones);
 			}
 
 			void set_segment(SegmentContext& segment_)
@@ -130,6 +178,76 @@ namespace acl
 				num_samples = segment_.num_samples;
 				segment_sample_start_index = segment_.clip_sample_offset;
 				bit_rate_database.set_segment(segment_.bone_streams, segment_.num_bones, segment_.num_samples);
+
+				// Cache every raw local/object transforms and the base local transforms since they never change
+				const itransform_error_metric* error_metric = settings.error_metric;
+				const size_t sample_transform_size = metric_transform_size * num_bones;
+
+				const auto convert_transforms_impl = std::mem_fn(has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+				const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+				const auto local_to_object_space_impl = std::mem_fn(has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+
+				itransform_error_metric::convert_transforms_args convert_transforms_args_raw;
+				convert_transforms_args_raw.dirty_transform_indices = self_transform_indices;
+				convert_transforms_args_raw.num_dirty_transforms = num_bones;
+				convert_transforms_args_raw.transforms = raw_local_pose;
+				convert_transforms_args_raw.num_transforms = num_bones;
+
+				itransform_error_metric::convert_transforms_args convert_transforms_args_base = convert_transforms_args_raw;
+				convert_transforms_args_base.transforms = additive_local_pose;
+
+				itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
+				apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
+				apply_additive_to_base_args_raw.num_dirty_transforms = num_bones;
+				apply_additive_to_base_args_raw.local_transforms = nullptr;
+				apply_additive_to_base_args_raw.base_transforms = nullptr;
+				apply_additive_to_base_args_raw.num_transforms = num_bones;
+
+				itransform_error_metric::local_to_object_space_args local_to_object_space_args_raw;
+				local_to_object_space_args_raw.dirty_transform_indices = self_transform_indices;
+				local_to_object_space_args_raw.num_dirty_transforms = num_bones;
+				local_to_object_space_args_raw.parent_transform_indices = parent_transform_indices;
+				local_to_object_space_args_raw.local_transforms = nullptr;
+				local_to_object_space_args_raw.num_transforms = num_bones;
+
+				for (uint32_t sample_index = 0; sample_index < segment_.num_samples; ++sample_index)
+				{
+					// Sample our streams and calculate the error
+					// The sample time is calculated from the full clip duration to be consistent with decompression
+					const float sample_time = rtm::scalar_min(float(segment_.clip_sample_offset + sample_index) / sample_rate, clip_duration);
+
+					sample_streams(raw_bone_streams, num_bones, sample_time, raw_local_pose);
+
+					uint8_t* sample_raw_local_transforms = raw_local_transforms + (sample_index * sample_transform_size);
+
+					if (needs_conversion)
+						convert_transforms_impl(error_metric, convert_transforms_args_raw, sample_raw_local_transforms);
+					else
+						std::memcpy(sample_raw_local_transforms, raw_local_pose, sample_transform_size);
+
+					if (has_additive_base)
+					{
+						const float normalized_sample_time = additive_base_clip.num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
+						const float additive_sample_time = additive_base_clip.num_samples > 1 ? (normalized_sample_time * additive_base_clip.duration) : 0.0F;
+						sample_streams(additive_base_clip.segments[0].bone_streams, num_bones, additive_sample_time, additive_local_pose);
+
+						uint8_t* sample_base_local_transforms = base_local_transforms + (sample_index * sample_transform_size);
+
+						if (needs_conversion)
+							convert_transforms_impl(error_metric, convert_transforms_args_base, sample_base_local_transforms);
+						else
+							std::memcpy(sample_base_local_transforms, additive_local_pose, sample_transform_size);
+
+						apply_additive_to_base_args_raw.local_transforms = sample_raw_local_transforms;
+						apply_additive_to_base_args_raw.base_transforms = sample_base_local_transforms;
+						apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_raw, sample_raw_local_transforms);
+					}
+
+					local_to_object_space_args_raw.local_transforms = sample_raw_local_transforms;
+
+					uint8_t* sample_raw_object_transforms = raw_object_transforms + (sample_index * sample_transform_size);
+					local_to_object_space_impl(error_metric, local_to_object_space_args_raw, sample_raw_object_transforms);
+				}
 			}
 
 			bool is_valid() const { return segment != nullptr; }
@@ -508,81 +626,160 @@ namespace acl
 		inline float calculate_max_error_at_bit_rate_local(QuantizationContext& context, uint16_t target_bone_index, error_scan_stop_condition stop_condition)
 		{
 			const CompressionSettings& settings = context.settings;
-			const ISkeletalErrorMetric& error_metric = *settings.error_metric;
+			const itransform_error_metric* error_metric = settings.error_metric;
+			const bool needs_conversion = context.needs_conversion;
+			const bool has_additive_base = context.has_additive_base;
+			const RigidBone& target_bone = context.skeleton.get_bone(target_bone_index);
+			const uint32_t num_transforms = context.num_bones;
+			const size_t sample_transform_size = context.metric_transform_size * context.num_bones;
+			const float sample_rate = context.sample_rate;
+			const float clip_duration = context.clip_duration;
+			const rtm::scalarf error_threshold = rtm::scalar_set(settings.error_threshold);
+
+			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
+			convert_transforms_args_lossy.dirty_transform_indices = &target_bone_index;
+			convert_transforms_args_lossy.num_dirty_transforms = 1;
+			convert_transforms_args_lossy.transforms = context.lossy_local_pose;
+			convert_transforms_args_lossy.num_transforms = num_transforms;
+
+			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
+			apply_additive_to_base_args_lossy.dirty_transform_indices = &target_bone_index;
+			apply_additive_to_base_args_lossy.num_dirty_transforms = 1;
+			apply_additive_to_base_args_lossy.local_transforms = needs_conversion ? (const void*)context.local_transforms_converted : (const void*)context.lossy_local_pose;
+			apply_additive_to_base_args_lossy.base_transforms = nullptr;
+			apply_additive_to_base_args_lossy.num_transforms = num_transforms;
+
+			itransform_error_metric::calculate_error_args calculate_error_args;
+			calculate_error_args.raw_transform = nullptr;
+			calculate_error_args.lossy_transform = needs_conversion ? (const void*)(context.local_transforms_converted + (context.metric_transform_size * target_bone_index)) : (const void*)(context.lossy_local_pose + target_bone_index);
+			calculate_error_args.construct_sphere_shell(target_bone.vertex_distance);
+
+			const uint8_t* raw_transform = context.raw_local_transforms + (target_bone_index * context.metric_transform_size);
+			const uint8_t* base_transforms = context.base_local_transforms;
 
 			context.local_query.build(target_bone_index, context.bit_rate_per_bone[target_bone_index]);
 
-			float max_error = 0.0F;
+			float sample_indexf = float(context.segment_sample_start_index);
+			rtm::scalarf max_error = rtm::scalar_set(0.0F);
 
-			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
+			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index, sample_indexf += 1.0F)
 			{
 				// Sample our streams and calculate the error
 				// The sample time is calculated from the full clip duration to be consistent with decompression
-				const float sample_time = rtm::scalar_min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration);
+				const float sample_time = rtm::scalar_min(sample_indexf / sample_rate, clip_duration);
 
-				sample_stream(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
+				context.bit_rate_database.sample(context.local_query, sample_time, context.lossy_local_pose, num_transforms);
 
-				context.bit_rate_database.sample(context.local_query, sample_time, context.lossy_local_pose, context.num_bones);
+				if (needs_conversion)
+					convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
 
-				if (context.has_additive_base)
+				if (has_additive_base)
 				{
-					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0F;
-					const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
-					sample_stream(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
+					apply_additive_to_base_args_lossy.base_transforms = base_transforms;
+					base_transforms += sample_transform_size;
+
+					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
 
-				float error;
-				if (context.has_scale)
-					error = error_metric.calculate_local_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
-				else
-					error = error_metric.calculate_local_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
+				calculate_error_args.raw_transform = raw_transform;
+				raw_transform += sample_transform_size;
+
+				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
 
 				max_error = rtm::scalar_max(max_error, error);
-				if (stop_condition == error_scan_stop_condition::until_error_too_high && error >= settings.error_threshold)
+				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_is_greater_equal(error, error_threshold))
 					break;
 			}
 
-			return max_error;
+			return rtm::scalar_cast(max_error);
 		}
 
 		inline float calculate_max_error_at_bit_rate_object(QuantizationContext& context, uint16_t target_bone_index, error_scan_stop_condition stop_condition)
 		{
 			const CompressionSettings& settings = context.settings;
-			const ISkeletalErrorMetric& error_metric = *settings.error_metric;
+			const itransform_error_metric* error_metric = settings.error_metric;
+			const bool needs_conversion = context.needs_conversion;
+			const bool has_additive_base = context.has_additive_base;
+			const RigidBone& target_bone = context.skeleton.get_bone(target_bone_index);
+			const size_t sample_transform_size = context.metric_transform_size * context.num_bones;
+			const float sample_rate = context.sample_rate;
+			const float clip_duration = context.clip_duration;
+			const rtm::scalarf error_threshold = rtm::scalar_set(settings.error_threshold);
+
+			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto local_to_object_space_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
+			convert_transforms_args_lossy.dirty_transform_indices = context.chain_bone_indices;
+			convert_transforms_args_lossy.num_dirty_transforms = context.num_bones_in_chain;
+			convert_transforms_args_lossy.transforms = context.lossy_local_pose;
+			convert_transforms_args_lossy.num_transforms = context.num_bones;
+
+			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
+			apply_additive_to_base_args_lossy.dirty_transform_indices = context.chain_bone_indices;
+			apply_additive_to_base_args_lossy.num_dirty_transforms = context.num_bones_in_chain;
+			apply_additive_to_base_args_lossy.local_transforms = needs_conversion ? (const void*)(context.local_transforms_converted) : (const void*)context.lossy_local_pose;
+			apply_additive_to_base_args_lossy.base_transforms = nullptr;
+			apply_additive_to_base_args_lossy.num_transforms = context.num_bones;
+
+			itransform_error_metric::local_to_object_space_args local_to_object_space_args_lossy;
+			local_to_object_space_args_lossy.dirty_transform_indices = context.chain_bone_indices;
+			local_to_object_space_args_lossy.num_dirty_transforms = context.num_bones_in_chain;
+			local_to_object_space_args_lossy.parent_transform_indices = context.parent_transform_indices;
+			local_to_object_space_args_lossy.local_transforms = needs_conversion ? (const void*)(context.local_transforms_converted) : (const void*)context.lossy_local_pose;
+			local_to_object_space_args_lossy.num_transforms = context.num_bones;
+
+			itransform_error_metric::calculate_error_args calculate_error_args;
+			calculate_error_args.raw_transform = nullptr;
+			calculate_error_args.lossy_transform = context.lossy_object_pose + (target_bone_index * context.metric_transform_size);
+			calculate_error_args.construct_sphere_shell(target_bone.vertex_distance);
+
+			const uint8_t* raw_transform = context.raw_object_transforms + (target_bone_index * context.metric_transform_size);
+			const uint8_t* base_transforms = context.base_local_transforms;
 
 			context.object_query.build(target_bone_index, context.bit_rate_per_bone, context.bone_streams);
 
-			float max_error = 0.0F;
+			float sample_indexf = float(context.segment_sample_start_index);
+			rtm::scalarf max_error = rtm::scalar_set(0.0F);
 
-			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
+			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index, sample_indexf += 1.0F)
 			{
 				// Sample our streams and calculate the error
 				// The sample time is calculated from the full clip duration to be consistent with decompression
-				const float sample_time = rtm::scalar_min(float(context.segment_sample_start_index + sample_index) / context.sample_rate, context.clip_duration);
-
-				sample_streams_hierarchical(context.raw_bone_streams, context.num_bones, sample_time, target_bone_index, context.raw_local_pose);
+				const float sample_time = rtm::scalar_min(sample_indexf / sample_rate, clip_duration);
 
 				context.bit_rate_database.sample(context.object_query, sample_time, context.lossy_local_pose, context.num_bones);
 
-				if (context.has_additive_base)
+				if (needs_conversion)
+					convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
+
+				if (has_additive_base)
 				{
-					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0F;
-					const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
-					sample_streams_hierarchical(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
+					apply_additive_to_base_args_lossy.base_transforms = base_transforms;
+					base_transforms += sample_transform_size;
+
+					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
 
-				float error;
-				if (context.has_scale)
-					error = error_metric.calculate_object_bone_error(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
-				else
-					error = error_metric.calculate_object_bone_error_no_scale(context.skeleton, context.raw_local_pose, context.additive_local_pose, context.lossy_local_pose, target_bone_index);
+				local_to_object_space_impl(error_metric, local_to_object_space_args_lossy, context.lossy_object_pose);
+
+				calculate_error_args.raw_transform = raw_transform;
+				raw_transform += sample_transform_size;
+
+				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
 
 				max_error = rtm::scalar_max(max_error, error);
-				if (stop_condition == error_scan_stop_condition::until_error_too_high && error >= settings.error_threshold)
+				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_is_greater_equal(error, error_threshold))
 					break;
 			}
 
-			return max_error;
+			return rtm::scalar_cast(max_error);
 		}
 
 		inline void calculate_local_space_bit_rates(QuantizationContext& context)
@@ -814,7 +1011,7 @@ namespace acl
 			return best_error;
 		}
 
-		inline float calculate_bone_permutation_error(QuantizationContext& context, BoneBitRate* permutation_bit_rates, uint8_t* bone_chain_permutation, const uint16_t* chain_bone_indices, uint16_t num_bones_in_chain, uint16_t bone_index, BoneBitRate* best_bit_rates, float old_error)
+		inline float calculate_bone_permutation_error(QuantizationContext& context, BoneBitRate* permutation_bit_rates, uint8_t* bone_chain_permutation, uint16_t bone_index, BoneBitRate* best_bit_rates, float old_error)
 		{
 			const CompressionSettings& settings = context.settings;
 
@@ -826,12 +1023,12 @@ namespace acl
 				std::memcpy(permutation_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * context.num_bones);
 
 				bool is_permutation_valid = false;
-				for (uint16_t chain_link_index = 0; chain_link_index < num_bones_in_chain; ++chain_link_index)
+				for (uint16_t chain_link_index = 0; chain_link_index < context.num_bones_in_chain; ++chain_link_index)
 				{
 					if (bone_chain_permutation[chain_link_index] != 0)
 					{
 						// Increase bit rate
-						uint16_t chain_bone_index = chain_bone_indices[chain_link_index];
+						const uint16_t chain_bone_index = context.chain_bone_indices[chain_link_index];
 						BoneBitRate chain_bone_best_bit_rates;
 						increase_bone_bit_rate(context, chain_bone_index, bone_chain_permutation[chain_link_index], old_error, chain_bone_best_bit_rates);
 						is_permutation_valid |= chain_bone_best_bit_rates.rotation != permutation_bit_rates[chain_bone_index].rotation;
@@ -857,7 +1054,7 @@ namespace acl
 					if (permutation_error < settings.error_threshold)
 						break;
 				}
-			} while (std::next_permutation(bone_chain_permutation, bone_chain_permutation + num_bones_in_chain));
+			} while (std::next_permutation(bone_chain_permutation, bone_chain_permutation + context.num_bones_in_chain));
 
 			return best_error;
 		}
@@ -993,7 +1190,6 @@ namespace acl
 			//		[bone 0] + 0 [bone 1] + 0 [bone 2] + 3 (9)
 
 			uint8_t* bone_chain_permutation = allocate_type_array<uint8_t>(context.allocator, context.num_bones);
-			uint16_t* chain_bone_indices = allocate_type_array<uint16_t>(context.allocator, context.num_bones);
 			BoneBitRate* permutation_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
 			BoneBitRate* best_permutation_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
 			BoneBitRate* best_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
@@ -1001,11 +1197,12 @@ namespace acl
 
 			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
+				const uint16_t num_bones_in_chain = calculate_bone_chain_indices(context.skeleton, bone_index, context.chain_bone_indices);
+				context.num_bones_in_chain = num_bones_in_chain;
+
 				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_error_too_high);
 				if (error < settings.error_threshold)
 					continue;
-
-				const uint16_t num_bones_in_chain = calculate_bone_chain_indices(context.skeleton, bone_index, chain_bone_indices);
 
 				const float initial_error = error;
 
@@ -1020,7 +1217,7 @@ namespace acl
 					// The first permutation increases the bit rate of a single track/bone
 					std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 					bone_chain_permutation[num_bones_in_chain - 1] = 1;
-					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
+					error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, bone_index, best_permutation_bit_rates, original_error);
 					if (error < best_error)
 					{
 						best_error = error;
@@ -1035,7 +1232,7 @@ namespace acl
 						// The second permutation increases the bit rate of 2 track/bones
 						std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 						bone_chain_permutation[num_bones_in_chain - 1] = 2;
-						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
+						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, bone_index, best_permutation_bit_rates, original_error);
 						if (error < best_error)
 						{
 							best_error = error;
@@ -1050,7 +1247,7 @@ namespace acl
 							std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 							bone_chain_permutation[num_bones_in_chain - 2] = 1;
 							bone_chain_permutation[num_bones_in_chain - 1] = 1;
-							error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
+							error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, bone_index, best_permutation_bit_rates, original_error);
 							if (error < best_error)
 							{
 								best_error = error;
@@ -1067,7 +1264,7 @@ namespace acl
 						// The third permutation increases the bit rate of 3 track/bones
 						std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 						bone_chain_permutation[num_bones_in_chain - 1] = 3;
-						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
+						error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, bone_index, best_permutation_bit_rates, original_error);
 						if (error < best_error)
 						{
 							best_error = error;
@@ -1082,7 +1279,7 @@ namespace acl
 							std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
 							bone_chain_permutation[num_bones_in_chain - 2] = 2;
 							bone_chain_permutation[num_bones_in_chain - 1] = 1;
-							error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
+							error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, bone_index, best_permutation_bit_rates, original_error);
 							if (error < best_error)
 							{
 								best_error = error;
@@ -1098,7 +1295,7 @@ namespace acl
 								bone_chain_permutation[num_bones_in_chain - 3] = 1;
 								bone_chain_permutation[num_bones_in_chain - 2] = 1;
 								bone_chain_permutation[num_bones_in_chain - 1] = 1;
-								error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, chain_bone_indices, num_bones_in_chain, bone_index, best_permutation_bit_rates, original_error);
+								error = calculate_bone_permutation_error(context, permutation_bit_rates, bone_chain_permutation, bone_index, best_permutation_bit_rates, original_error);
 								if (error < best_error)
 								{
 									best_error = error;
@@ -1169,7 +1366,7 @@ namespace acl
 					uint16_t num_maxed_out = 0;
 					for (int16_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)
 					{
-						const uint16_t chain_bone_index = chain_bone_indices[chain_link_index];
+						const uint16_t chain_bone_index = context.chain_bone_indices[chain_link_index];
 
 						// Work with a copy. We'll increase the bit rate as much as we can and retain the values
 						// that yield the smallest error BUT increasing the bit rate does NOT always means
@@ -1249,7 +1446,7 @@ namespace acl
 					// From child to parent, max out the bit rate
 					for (int16_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)
 					{
-						const uint16_t chain_bone_index = chain_bone_indices[chain_link_index];
+						const uint16_t chain_bone_index = context.chain_bone_indices[chain_link_index];
 						BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
 						bone_bit_rate.rotation = std::max<uint8_t>(bone_bit_rate.rotation, k_highest_bit_rate);
 						bone_bit_rate.translation = std::max<uint8_t>(bone_bit_rate.translation, k_highest_bit_rate);
@@ -1273,7 +1470,6 @@ namespace acl
 #endif
 
 			deallocate_type_array(context.allocator, bone_chain_permutation, context.num_bones);
-			deallocate_type_array(context.allocator, chain_bone_indices, context.num_bones);
 			deallocate_type_array(context.allocator, permutation_bit_rates, context.num_bones);
 			deallocate_type_array(context.allocator, best_permutation_bit_rates, context.num_bones);
 			deallocate_type_array(context.allocator, best_bit_rates, context.num_bones);
