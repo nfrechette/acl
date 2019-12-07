@@ -164,7 +164,7 @@ def create_csv(options):
 		csv_data['stats_summary_csv_file'] = stats_summary_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_summary_csv_filename))
-		print('Clip Name, Algorithm Name, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks, Max Error', file = stats_summary_csv_file)
+		print('Clip Name, Algorithm Name, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks, Max Error, Num Transforms, Num Samples Per Track, Quantization Memory Usage', file = stats_summary_csv_file)
 
 	if options['csv_bit_rate']:
 		stats_bit_rate_csv_filename = os.path.join(stat_dir, 'stats_bit_rate.csv')
@@ -211,8 +211,8 @@ def close_csv(csv_data):
 def append_csv(csv_data, job_data):
 	if 'stats_summary_csv_file' in csv_data:
 		data = job_data['stats_summary_data']
-		for (clip_name, algo_name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error) in data:
-			print('{}, {}, {}, {}, {}, {}, {}, {}, {}'.format(clip_name, algo_name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error), file = csv_data['stats_summary_csv_file'])
+		for (clip_name, algo_name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, quantization_memory_usage) in data:
+			print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(clip_name, algo_name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, quantization_memory_usage), file = csv_data['stats_summary_csv_file'])
 
 	if 'stats_animated_size_csv_file' in csv_data:
 		size_data = job_data['stats_animated_size']
@@ -561,9 +561,12 @@ def run_stat_parsing(options, stat_queue, result_queue):
 						compression_times.append(run_stats['compression_time'])
 
 						if options['csv_summary']:
-							#(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error)
+							#(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, quantization_memory_usage)
+							num_transforms = run_stats['num_bones']
+							num_samples_per_track = run_stats['num_samples']
 							num_animated_tracks = run_stats.get('num_animated_tracks', 0)
-							data = (run_stats['clip_name'], run_stats['csv_desc'], run_stats['raw_size'], run_stats['compressed_size'], run_stats['compression_ratio'], run_stats['compression_time'], run_stats['duration'], num_animated_tracks, run_stats['max_error'])
+							quantization_memory_usage = run_stats.get('track_bit_rate_database_size', 0) + run_stats.get('transform_cache_size', 0)
+							data = (run_stats['clip_name'], run_stats['csv_desc'], run_stats['raw_size'], run_stats['compressed_size'], run_stats['compression_ratio'], run_stats['compression_time'], run_stats['duration'], num_animated_tracks, run_stats['max_error'], num_transforms, num_samples_per_track, quantization_memory_usage)
 							stats_summary_data.append(data)
 
 						if 'segments' in run_stats and len(run_stats['segments']) > 0:

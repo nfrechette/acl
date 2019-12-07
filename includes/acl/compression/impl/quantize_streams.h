@@ -1475,7 +1475,7 @@ namespace acl
 			deallocate_type_array(context.allocator, best_bit_rates, context.num_bones);
 		}
 
-		inline void quantize_streams(IAllocator& allocator, ClipContext& clip_context, const CompressionSettings& settings, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context, const ClipContext& additive_base_clip_context)
+		inline void quantize_streams(IAllocator& allocator, ClipContext& clip_context, const CompressionSettings& settings, const RigidSkeleton& skeleton, const ClipContext& raw_clip_context, const ClipContext& additive_base_clip_context, OutputStats& out_stats)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(settings.translation_format);
@@ -1498,6 +1498,33 @@ namespace acl
 				// Quantize our streams now that we found the optimal bit rates
 				quantize_all_streams(context);
 			}
+
+#if defined(SJSON_CPP_WRITER)
+			if (are_all_enum_flags_set(out_stats.logging, StatLogging::Detailed))
+			{
+				sjson::ObjectWriter& writer = *out_stats.writer;
+				writer["track_bit_rate_database_size"] = static_cast<uint32_t>(context.bit_rate_database.get_allocated_size());
+
+				size_t transform_cache_size = 0;
+				transform_cache_size += sizeof(rtm::qvvf) * context.num_bones;	// raw_local_pose
+				transform_cache_size += sizeof(rtm::qvvf) * context.num_bones;	// lossy_local_pose
+				transform_cache_size += context.metric_transform_size * context.num_bones;	// lossy_object_pose
+				transform_cache_size += context.metric_transform_size * context.num_bones * context.clip.segments->num_samples;	// raw_local_transforms
+				transform_cache_size += context.metric_transform_size * context.num_bones * context.clip.segments->num_samples;	// raw_object_transforms
+
+				if (context.needs_conversion)
+					transform_cache_size += context.metric_transform_size * context.num_bones;	// local_transforms_converted
+				
+				if (context.has_additive_base)
+				{
+					transform_cache_size += sizeof(rtm::qvvf) * context.num_bones;	// additive_local_pose
+					transform_cache_size += context.metric_transform_size * context.num_bones * context.clip.segments->num_samples;	// base_local_transforms
+					transform_cache_size += context.metric_transform_size * context.num_bones * context.clip.segments->num_samples;	// base_object_transforms
+				}
+
+				writer["transform_cache_size"] = static_cast<uint32_t>(transform_cache_size);
+			}
+#endif
 		}
 	}
 }

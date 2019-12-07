@@ -142,7 +142,7 @@ namespace acl
 			else
 				settings.segmenting.range_reduction = RangeReductionFlags8::None;
 
-			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context, additive_base_clip_context);
+			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context, additive_base_clip_context, out_stats);
 
 			uint16_t num_output_bones = 0;
 			uint16_t* output_bone_mapping = create_output_bone_mapping(allocator, clip, num_output_bones);
