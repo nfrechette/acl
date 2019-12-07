@@ -1000,15 +1000,6 @@ namespace acl
 				if (error < settings.error_threshold)
 					continue;
 
-				if (context.bit_rate_per_bone[bone_index].rotation >= k_highest_bit_rate && context.bit_rate_per_bone[bone_index].translation >= k_highest_bit_rate && context.bit_rate_per_bone[bone_index].scale >= k_highest_bit_rate)
-				{
-					// Our bone already has the highest precision possible locally, if the local error already exceeds our threshold,
-					// there is nothing we can do, bail out
-					const float local_error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
-					if (local_error >= settings.error_threshold)
-						continue;
-				}
-
 				const uint16_t num_bones_in_chain = calculate_bone_chain_indices(context.skeleton, bone_index, chain_bone_indices);
 
 				const float initial_error = error;
