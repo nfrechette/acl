@@ -210,18 +210,6 @@ namespace acl
 		struct calculate_error_args
 		{
 			//////////////////////////////////////////////////////////////////////////
-			// The raw reference transform against which we measure the error.
-			// In the type expected by the error metric.
-			// Could be in local or object space (same space as lossy).
-			const void* raw_transform;
-
-			//////////////////////////////////////////////////////////////////////////
-			// The lossy transform we are measuring the error for.
-			// In the type expected by the error metric.
-			// Could be in local or object space (same space as raw).
-			const void* lossy_transform;
-
-			//////////////////////////////////////////////////////////////////////////
 			// A point on our rigid shell along the X axis.
 			rtm::vector4f shell_point_x;
 
@@ -232,6 +220,18 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// A point on our rigid shell along the Z axis.
 			rtm::vector4f shell_point_z;
+
+			//////////////////////////////////////////////////////////////////////////
+			// The raw reference transform against which we measure the error.
+			// In the type expected by the error metric.
+			// Could be in local or object space (same space as lossy).
+			const void* raw_transform;
+
+			//////////////////////////////////////////////////////////////////////////
+			// The lossy transform we are measuring the error for.
+			// In the type expected by the error metric.
+			// Could be in local or object space (same space as raw).
+			const void* lossy_transform;
 
 			//////////////////////////////////////////////////////////////////////////
 			// We measure the error on a rigid shell around each transform.
