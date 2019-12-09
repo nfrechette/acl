@@ -1086,8 +1086,6 @@ namespace acl
 		switch (format)
 		{
 		case vector_format8::vector3f_full:		return sizeof(float) * 3;
-		case vector_format8::Vector3_48:		return sizeof(uint16_t) * 3;
-		case vector_format8::Vector3_32:		return sizeof(uint32_t);
 		case vector_format8::vector3f_variable:
 		default:
 			ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));

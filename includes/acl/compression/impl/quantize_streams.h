@@ -258,7 +258,7 @@ namespace acl
 			QuantizationContext& operator=(QuantizationContext&&) = delete;
 		};
 
-		inline void quantize_fixed_rotation_stream(IAllocator& allocator, const RotationTrackStream& raw_stream, rotation_format8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_rotation_stream(IAllocator& allocator, const RotationTrackStream& raw_stream, rotation_format8 rotation_format, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -281,15 +281,6 @@ namespace acl
 				case rotation_format8::quatf_drop_w_full:
 					pack_vector3_96(rtm::quat_to_vector(rotation), quantized_ptr);
 					break;
-				case rotation_format8::QuatDropW_48:
-					if (are_rotations_normalized)
-						pack_vector3_u48_unsafe(rtm::quat_to_vector(rotation), quantized_ptr);
-					else
-						pack_vector3_s48_unsafe(rtm::quat_to_vector(rotation), quantized_ptr);
-					break;
-				case rotation_format8::QuatDropW_32:
-					pack_vector3_32(rtm::quat_to_vector(rotation), 11, 11, 10, are_rotations_normalized, quantized_ptr);
-					break;
 				case rotation_format8::quatf_drop_w_variable:
 				default:
 					ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
@@ -310,8 +301,7 @@ namespace acl
 			if (bone_stream.is_rotation_default)
 				return;
 
-			const bool are_rotations_normalized = context.clip.are_rotations_normalized && !bone_stream.is_rotation_constant;
-			quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, rotation_format, are_rotations_normalized, bone_stream.rotations);
+			quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, rotation_format, bone_stream.rotations);
 		}
 
 		inline void quantize_variable_rotation_stream(QuantizationContext& context, const RotationTrackStream& raw_clip_stream, const RotationTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
@@ -382,7 +372,7 @@ namespace acl
 
 			// If our format is variable, we keep them fixed at the highest bit rate in the variant
 			if (bone_stream.is_rotation_constant)
-				quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, highest_bit_rate, are_rotations_normalized, bone_stream.rotations);
+				quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, highest_bit_rate, bone_stream.rotations);
 			else
 				quantize_variable_rotation_stream(context, raw_bone_stream.rotations, bone_stream.rotations, bone_range, bit_rate, are_rotations_normalized, bone_stream.rotations);
 		}
@@ -407,12 +397,6 @@ namespace acl
 				{
 				case vector_format8::vector3f_full:
 					pack_vector3_96(translation, quantized_ptr);
-					break;
-				case vector_format8::Vector3_48:
-					pack_vector3_u48_unsafe(translation, quantized_ptr);
-					break;
-				case vector_format8::Vector3_32:
-					pack_vector3_32(translation, 11, 11, 10, true, quantized_ptr);
 					break;
 				case vector_format8::vector3f_variable:
 				default:
@@ -524,12 +508,6 @@ namespace acl
 				{
 				case vector_format8::vector3f_full:
 					pack_vector3_96(scale, quantized_ptr);
-					break;
-				case vector_format8::Vector3_48:
-					pack_vector3_u48_unsafe(scale, quantized_ptr);
-					break;
-				case vector_format8::Vector3_32:
-					pack_vector3_32(scale, 11, 11, 10, true, quantized_ptr);
 					break;
 				case vector_format8::vector3f_variable:
 				default:
