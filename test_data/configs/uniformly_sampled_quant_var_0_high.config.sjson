@@ -1,12 +1,12 @@
 version = 1
 
-algorithm_name = "UniformlySampled"
+algorithm_name = "uniformly_sampled"
 
 level = "High"
 
-rotation_format = "QuatDropW_Variable"
-translation_format = "Vector3_Variable"
-scale_format = "Vector3_Variable"
+rotation_format = "quatf_drop_w_variable"
+translation_format = "vector3f_variable"
+scale_format = "vector3f_variable"
 
 rotation_range_reduction = true
 translation_range_reduction = true

@@ -93,7 +93,7 @@ namespace acl
 			, m_sample_rate(sample_rate)
 			, m_num_bones(skeleton.get_num_bones())
 			, m_additive_base_clip(nullptr)
-			, m_additive_format(AdditiveClipFormat8::None)
+			, m_additive_format(additive_clip_format8::none)
 			, m_name(allocator, name)
 		{
 			m_bones = allocate_type_array<AnimatedBone>(allocator, m_num_bones);
@@ -166,7 +166,7 @@ namespace acl
 		//    - rounding_policy: The rounding policy to use when sampling
 		//    - out_local_pose: An array of at least 'num_transforms' to output the data in
 		//    - num_transforms: The number of transforms in the output array
-		void sample_pose(float sample_time, SampleRoundingPolicy rounding_policy, rtm::qvvf* out_local_pose, uint16_t num_transforms) const
+		void sample_pose(float sample_time, sample_rounding_policy rounding_policy, rtm::qvvf* out_local_pose, uint16_t num_transforms) const
 		{
 			ACL_ASSERT(m_num_bones > 0, "Invalid number of bones: %u", m_num_bones);
 			ACL_ASSERT(m_num_bones == num_transforms, "Number of transforms does not match the number of bones: %u != %u", num_transforms, m_num_bones);
@@ -209,7 +209,7 @@ namespace acl
 		//    - num_transforms: The number of transforms in the output array
 		void sample_pose(float sample_time, rtm::qvvf* out_local_pose, uint16_t num_transforms) const
 		{
-			sample_pose(sample_time, SampleRoundingPolicy::None, out_local_pose, num_transforms);
+			sample_pose(sample_time, sample_rounding_policy::none, out_local_pose, num_transforms);
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -227,7 +227,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Sets the base animation clip and marks this instance as an additive clip of the provided format
-		void set_additive_base(const AnimationClip* base_clip, AdditiveClipFormat8 additive_format) { m_additive_base_clip = base_clip; m_additive_format = additive_format; }
+		void set_additive_base(const AnimationClip* base_clip, additive_clip_format8 additive_format) { m_additive_base_clip = base_clip; m_additive_format = additive_format; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the additive base clip, if any
@@ -235,7 +235,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the additive format of this clip, if any
-		AdditiveClipFormat8 get_additive_format() const { return m_additive_format; }
+		additive_clip_format8 get_additive_format() const { return m_additive_format; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Checks if the instance of this clip is valid and returns an error if it isn't
@@ -366,7 +366,7 @@ namespace acl
 		const AnimationClip*	m_additive_base_clip;
 
 		// If we have an additive base, this is the format we are in
-		AdditiveClipFormat8		m_additive_format;
+		additive_clip_format8		m_additive_format;
 
 		// The name of the clip
 		String					m_name;

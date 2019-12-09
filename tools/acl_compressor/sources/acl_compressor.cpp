@@ -140,7 +140,7 @@ struct Options
 
 	const char*		output_bin_filename;
 
-	CompressionLevel8	compression_level;
+	compression_level8	compression_level;
 	bool			compression_level_specified;
 
 	bool			regression_testing;
@@ -173,7 +173,7 @@ struct Options
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
 		, output_bin_filename(nullptr)
-		, compression_level(CompressionLevel8::Lowest)
+		, compression_level(compression_level8::lowest)
 		, compression_level_specified(false)
 		, regression_testing(false)
 		, profile_decompression(false)
@@ -447,7 +447,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, clip_duration);
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
-		context.seek(sample_time, SampleRoundingPolicy::Nearest);
+		context.seek(sample_time, sample_rounding_policy::nearest);
 		context.decompress_pose(pose_writer);
 
 		// Validate decompress_bone for rotations only
@@ -532,9 +532,9 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
-		raw_tracks.sample_tracks(sample_time, SampleRoundingPolicy::Nearest, raw_tracks_writer);
+		raw_tracks.sample_tracks(sample_time, sample_rounding_policy::nearest, raw_tracks_writer);
 
-		context.seek(sample_time, SampleRoundingPolicy::Nearest);
+		context.seek(sample_time, sample_rounding_policy::nearest);
 		context.decompress_tracks(lossy_tracks_writer);
 
 		// Validate decompress_tracks
@@ -605,7 +605,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 				continue;	// Track is being stripped, ignore it
 
 			// We use the nearest sample to accurately measure the loss that happened, if any
-			raw_tracks.sample_track(track_index, sample_time, SampleRoundingPolicy::Nearest, raw_track_writer);
+			raw_tracks.sample_track(track_index, sample_time, sample_rounding_policy::nearest, raw_track_writer);
 			context.decompress_track(output_index, lossy_track_writer);
 
 			switch (track_type)
@@ -674,7 +674,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 #endif	// defined(ACL_HAS_ASSERT_CHECKS)
 }
 
-static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, AlgorithmType8 algorithm_type, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, algorithm_type8 algorithm_type, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
 
@@ -688,7 +688,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 		ErrorResult error_result; (void)error_result;
 		switch (algorithm_type)
 		{
-		case AlgorithmType8::UniformlySampled:
+		case algorithm_type8::uniformly_sampled:
 			error_result = uniformly_sampled::compress_clip(allocator, clip, settings, compressed_clip, stats);
 			break;
 		}
@@ -706,7 +706,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			BoneError bone_error;
 			switch (algorithm_type)
 			{
-			case AlgorithmType8::UniformlySampled:
+			case algorithm_type8::uniformly_sampled:
 			{
 				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context;
 				context.initialize(*compressed_clip);
@@ -731,7 +731,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 
 			switch (algorithm_type)
 			{
-			case AlgorithmType8::UniformlySampled:
+			case algorithm_type8::uniformly_sampled:
 			{
 				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context;
 				context.initialize(*compressed_clip);
@@ -914,7 +914,7 @@ static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
 	return success;
 }
 
-static bool read_config(IAllocator& allocator, Options& options, AlgorithmType8& out_algorithm_type, CompressionSettings& out_settings, double& out_regression_error_threshold)
+static bool read_config(IAllocator& allocator, Options& options, algorithm_type8& out_algorithm_type, CompressionSettings& out_settings, double& out_regression_error_threshold)
 {
 #if defined(__ANDROID__)
 	sjson::Parser parser(options.config_buffer, options.config_buffer_size - 1);
@@ -995,22 +995,22 @@ static bool read_config(IAllocator& allocator, Options& options, AlgorithmType8&
 		return false;
 	}
 
-	RangeReductionFlags8 range_reduction = RangeReductionFlags8::None;
+	range_reduction_flags8 range_reduction = range_reduction_flags8::none;
 
 	bool rotation_range_reduction;
-	parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Rotations));
+	parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, range_reduction_flags8::rotations));
 	if (rotation_range_reduction)
-		range_reduction |= RangeReductionFlags8::Rotations;
+		range_reduction |= range_reduction_flags8::rotations;
 
 	bool translation_range_reduction;
-	parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Translations));
+	parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, range_reduction_flags8::translations));
 	if (translation_range_reduction)
-		range_reduction |= RangeReductionFlags8::Translations;
+		range_reduction |= range_reduction_flags8::translations;
 
 	bool scale_range_reduction;
-	parser.try_read("scale_range_reduction", scale_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Scales));
+	parser.try_read("scale_range_reduction", scale_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, range_reduction_flags8::scales));
 	if (scale_range_reduction)
-		range_reduction |= RangeReductionFlags8::Scales;
+		range_reduction |= range_reduction_flags8::scales;
 
 	out_settings.range_reduction = range_reduction;
 
@@ -1018,19 +1018,19 @@ static bool read_config(IAllocator& allocator, Options& options, AlgorithmType8&
 	{
 		parser.try_read("enabled", out_settings.segmenting.enabled, false);
 
-		range_reduction = RangeReductionFlags8::None;
-		parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Rotations));
-		parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Translations));
-		parser.try_read("scale_range_reduction", scale_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Scales));
+		range_reduction = range_reduction_flags8::none;
+		parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::rotations));
+		parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::translations));
+		parser.try_read("scale_range_reduction", scale_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::scales));
 
 		if (rotation_range_reduction)
-			range_reduction |= RangeReductionFlags8::Rotations;
+			range_reduction |= range_reduction_flags8::rotations;
 
 		if (translation_range_reduction)
-			range_reduction |= RangeReductionFlags8::Translations;
+			range_reduction |= range_reduction_flags8::translations;
 
 		if (scale_range_reduction)
-			range_reduction |= RangeReductionFlags8::Scales;
+			range_reduction |= range_reduction_flags8::scales;
 
 		out_settings.segmenting.range_reduction = range_reduction;
 
@@ -1076,16 +1076,16 @@ static bool read_config(IAllocator& allocator, Options& options, AlgorithmType8&
 	return true;
 }
 
-static itransform_error_metric* create_additive_error_metric(IAllocator& allocator, AdditiveClipFormat8 format)
+static itransform_error_metric* create_additive_error_metric(IAllocator& allocator, additive_clip_format8 format)
 {
 	switch (format)
 	{
-	case AdditiveClipFormat8::Relative:
-		return allocate_type<additive_qvvf_transform_error_metric<AdditiveClipFormat8::Relative>>(allocator);
-	case AdditiveClipFormat8::Additive0:
-		return allocate_type<additive_qvvf_transform_error_metric<AdditiveClipFormat8::Additive0>>(allocator);
-	case AdditiveClipFormat8::Additive1:
-		return allocate_type<additive_qvvf_transform_error_metric<AdditiveClipFormat8::Additive1>>(allocator);
+	case additive_clip_format8::relative:
+		return allocate_type<additive_qvvf_transform_error_metric<additive_clip_format8::relative>>(allocator);
+	case additive_clip_format8::additive0:
+		return allocate_type<additive_qvvf_transform_error_metric<additive_clip_format8::additive0>>(allocator);
+	case additive_clip_format8::additive1:
+		return allocate_type<additive_qvvf_transform_error_metric<additive_clip_format8::additive1>>(allocator);
 	default:
 		return nullptr;
 	}
@@ -1098,13 +1098,13 @@ static void create_additive_base_clip(const Options& options, AnimationClip& cli
 	const uint32_t num_samples = clip.get_num_samples();
 	AnimatedBone* bones = clip.get_bones();
 
-	AdditiveClipFormat8 additive_format = AdditiveClipFormat8::None;
+	additive_clip_format8 additive_format = additive_clip_format8::none;
 	if (options.is_bind_pose_relative)
-		additive_format = AdditiveClipFormat8::Relative;
+		additive_format = additive_clip_format8::relative;
 	else if (options.is_bind_pose_additive0)
-		additive_format = AdditiveClipFormat8::Additive0;
+		additive_format = additive_clip_format8::additive0;
 	else if (options.is_bind_pose_additive1)
-		additive_format = AdditiveClipFormat8::Additive1;
+		additive_format = additive_clip_format8::additive1;
 
 	for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 	{
@@ -1144,9 +1144,9 @@ static void create_additive_base_clip(const Options& options, AnimationClip& cli
 	clip.set_additive_base(&out_base_clip, additive_format);
 }
 
-static CompressionSettings make_settings(RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format,
-	RangeReductionFlags8 clip_range_reduction,
-	bool use_segmenting = false, RangeReductionFlags8 segment_range_reduction = RangeReductionFlags8::None)
+static CompressionSettings make_settings(rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format,
+	range_reduction_flags8 clip_range_reduction,
+	bool use_segmenting = false, range_reduction_flags8 segment_range_reduction = range_reduction_flags8::none)
 {
 	CompressionSettings settings;
 	settings.rotation_format = rotation_format;
@@ -1186,7 +1186,7 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 
 	bool use_external_config = false;
-	AlgorithmType8 algorithm_type = AlgorithmType8::UniformlySampled;
+	algorithm_type8 algorithm_type = algorithm_type8::uniformly_sampled;
 	CompressionSettings settings;
 
 	sjson_file_type sjson_type = sjson_file_type::unknown;
@@ -1214,7 +1214,7 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 	{
 		// Override whatever the ACL SJSON file might have contained
-		algorithm_type = AlgorithmType8::UniformlySampled;
+		algorithm_type = algorithm_type8::uniformly_sampled;
 		settings = CompressionSettings();
 
 		if (!read_config(allocator, options, algorithm_type, settings, regression_error_threshold))
@@ -1311,12 +1311,12 @@ static int safe_main_impl(int argc, char* argv[])
 		{
 			if (use_external_config)
 			{
-				ACL_ASSERT(algorithm_type == AlgorithmType8::UniformlySampled, "Only UniformlySampled is supported for now");
+				ACL_ASSERT(algorithm_type == algorithm_type8::uniformly_sampled, "Only uniformly_sampled is supported for now");
 
 				if (options.compression_level_specified)
 					settings.level = options.compression_level;
 
-				try_algorithm(options, allocator, *clip, settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
+				try_algorithm(options, allocator, *clip, settings, algorithm_type8::uniformly_sampled, logging, runs_writer, regression_error_threshold);
 			}
 			else if (options.exhaustive_compression)
 			{
@@ -1327,44 +1327,44 @@ static int safe_main_impl(int argc, char* argv[])
 
 					CompressionSettings uniform_tests[] =
 					{
-						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
-						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::none, use_segmenting),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, use_segmenting),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, use_segmenting),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, use_segmenting),
 
-						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::None, use_segmenting),
-						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, use_segmenting),
-						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::none, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, use_segmenting),
 
-						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, use_segmenting),
-						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::translations, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, use_segmenting),
 
-						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable, range_reduction_flags8::all_tracks, use_segmenting),
 					};
 
 					for (CompressionSettings test_settings : uniform_tests)
 					{
 						test_settings.error_metric = settings.error_metric;
 
-						try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
+						try_algorithm(options, allocator, *clip, test_settings, algorithm_type8::uniformly_sampled, logging, runs_writer, regression_error_threshold);
 					}
 				}
 
 				{
 					CompressionSettings uniform_tests[] =
 					{
-						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
-						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-						make_settings(RotationFormat8::Quat_128, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, true, range_reduction_flags8::rotations),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, true, range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, true, range_reduction_flags8::rotations | range_reduction_flags8::translations),
 
-						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations, true, RangeReductionFlags8::Rotations),
-						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-						make_settings(RotationFormat8::QuatDropW_96, VectorFormat8::Vector3_96, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
-						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Translations, true, RangeReductionFlags8::Translations),
-						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_96, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations, true, RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, true, range_reduction_flags8::rotations),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, true, range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, true, range_reduction_flags8::rotations | range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::translations, true, range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, true, range_reduction_flags8::rotations | range_reduction_flags8::translations),
 
-						make_settings(RotationFormat8::QuatDropW_Variable, VectorFormat8::Vector3_Variable, VectorFormat8::Vector3_Variable, RangeReductionFlags8::AllTracks, true, RangeReductionFlags8::AllTracks),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable, range_reduction_flags8::all_tracks, true, range_reduction_flags8::all_tracks),
 					};
 
 					for (CompressionSettings test_settings : uniform_tests)
@@ -1374,7 +1374,7 @@ static int safe_main_impl(int argc, char* argv[])
 						if (options.compression_level_specified)
 							test_settings.level = options.compression_level;
 
-						try_algorithm(options, allocator, *clip, test_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
+						try_algorithm(options, allocator, *clip, test_settings, algorithm_type8::uniformly_sampled, logging, runs_writer, regression_error_threshold);
 					}
 				}
 			}
@@ -1386,7 +1386,7 @@ static int safe_main_impl(int argc, char* argv[])
 				if (options.compression_level_specified)
 					default_settings.level = options.compression_level;
 
-				try_algorithm(options, allocator, *clip, default_settings, AlgorithmType8::UniformlySampled, logging, runs_writer, regression_error_threshold);
+				try_algorithm(options, allocator, *clip, default_settings, algorithm_type8::uniformly_sampled, logging, runs_writer, regression_error_threshold);
 			}
 		}
 		else if (sjson_type == sjson_file_type::raw_track_list)

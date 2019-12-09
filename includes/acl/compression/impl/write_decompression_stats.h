@@ -139,7 +139,7 @@ namespace acl
 						{
 							// If we want the cache warm, decompress everything once to prime it
 							DecompressionContextType* context = contexts[0];
-							context->seek(sample_time, SampleRoundingPolicy::None);
+							context->seek(sample_time, sample_rounding_policy::none);
 							context->decompress_pose(pose_writer);
 						}
 
@@ -154,7 +154,7 @@ namespace acl
 							// If we measure with a cold CPU cache, we use a different context every time otherwise we use the first one
 							DecompressionContextType* context = is_cold_cache_profiling ? contexts[clip_index] : contexts[0];
 
-							context->seek(sample_time, SampleRoundingPolicy::None);
+							context->seek(sample_time, sample_rounding_policy::none);
 
 							switch (decompression_function)
 							{
@@ -304,16 +304,16 @@ namespace acl
 
 			switch (compressed_clip.get_algorithm_type())
 			{
-			case AlgorithmType8::UniformlySampled:
+			case algorithm_type8::uniformly_sampled:
 			{
 #if defined(ACL_HAS_ASSERT_CHECKS)
 				// If we can, we use a fast-path that simulates what a real game engine would use
 				// by disabling the things they normally wouldn't care about like deprecated formats
 				// and debugging features
-				const bool use_uniform_fast_path = settings.rotation_format == RotationFormat8::QuatDropW_Variable
-					&& settings.translation_format == VectorFormat8::Vector3_Variable
-					&& settings.scale_format == VectorFormat8::Vector3_Variable
-					&& are_all_enum_flags_set(settings.range_reduction, RangeReductionFlags8::AllTracks)
+				const bool use_uniform_fast_path = settings.rotation_format == rotation_format8::quatf_drop_w_variable
+					&& settings.translation_format == vector_format8::vector3f_variable
+					&& settings.scale_format == vector_format8::vector3f_variable
+					&& are_all_enum_flags_set(settings.range_reduction, range_reduction_flags8::all_tracks)
 					&& settings.segmenting.enabled;
 
 				ACL_ASSERT(use_uniform_fast_path, "We do not support profiling the debug code path");

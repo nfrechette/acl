@@ -63,7 +63,7 @@ namespace acl
 			bool has_scale;
 			bool has_additive_base;
 
-			AdditiveClipFormat8 additive_format;
+			additive_clip_format8 additive_format;
 
 			// Stat tracking
 			uint32_t decomp_touched_bytes;
@@ -119,9 +119,9 @@ namespace acl
 				bone_stream.parent_bone_index = skel_bone.parent_index;
 				bone_stream.output_index = bone.output_index;
 
-				bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, RotationFormat8::Quat_128);
-				bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, VectorFormat8::Vector3_96);
-				bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, VectorFormat8::Vector3_96);
+				bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, rotation_format8::quatf_full);
+				bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
+				bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{

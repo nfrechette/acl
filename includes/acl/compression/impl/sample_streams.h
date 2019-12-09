@@ -46,19 +46,19 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline rtm::vector4f RTM_SIMD_CALL load_rotation_sample(const uint8_t* ptr, RotationFormat8 format, uint8_t bit_rate, bool is_normalized)
+		inline rtm::vector4f RTM_SIMD_CALL load_rotation_sample(const uint8_t* ptr, rotation_format8 format, uint8_t bit_rate, bool is_normalized)
 		{
 			switch (format)
 			{
-			case RotationFormat8::Quat_128:
+			case rotation_format8::quatf_full:
 				return unpack_vector4_128(ptr);
-			case RotationFormat8::QuatDropW_96:
+			case rotation_format8::quatf_drop_w_full:
 				return unpack_vector3_96_unsafe(ptr);
-			case RotationFormat8::QuatDropW_48:
+			case rotation_format8::QuatDropW_48:
 				return is_normalized ? unpack_vector3_u48_unsafe(ptr) : unpack_vector3_s48_unsafe(ptr);
-			case RotationFormat8::QuatDropW_32:
+			case rotation_format8::QuatDropW_32:
 				return unpack_vector3_32(11, 11, 10, is_normalized, ptr);
-			case RotationFormat8::QuatDropW_Variable:
+			case rotation_format8::quatf_drop_w_variable:
 			{
 				if (is_constant_bit_rate(bit_rate))
 				{
@@ -82,17 +82,17 @@ namespace acl
 			}
 		}
 
-		inline rtm::vector4f RTM_SIMD_CALL load_vector_sample(const uint8_t* ptr, VectorFormat8 format, uint8_t bit_rate)
+		inline rtm::vector4f RTM_SIMD_CALL load_vector_sample(const uint8_t* ptr, vector_format8 format, uint8_t bit_rate)
 		{
 			switch (format)
 			{
-			case VectorFormat8::Vector3_96:
+			case vector_format8::vector3f_full:
 				return unpack_vector3_96_unsafe(ptr);
-			case VectorFormat8::Vector3_48:
+			case vector_format8::Vector3_48:
 				return unpack_vector3_u48_unsafe(ptr);
-			case VectorFormat8::Vector3_32:
+			case vector_format8::Vector3_32:
 				return unpack_vector3_32(11, 11, 10, true, ptr);
-			case VectorFormat8::Vector3_Variable:
+			case vector_format8::vector3f_variable:
 				ACL_ASSERT(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
 					return unpack_vector3_u48_unsafe(ptr);
@@ -109,16 +109,16 @@ namespace acl
 			}
 		}
 
-		inline rtm::quatf RTM_SIMD_CALL rotation_to_quat_32(rtm::vector4f_arg0 rotation, RotationFormat8 format)
+		inline rtm::quatf RTM_SIMD_CALL rotation_to_quat_32(rtm::vector4f_arg0 rotation, rotation_format8 format)
 		{
 			switch (format)
 			{
-			case RotationFormat8::Quat_128:
+			case rotation_format8::quatf_full:
 				return rtm::vector_to_quat(rotation);
-			case RotationFormat8::QuatDropW_96:
-			case RotationFormat8::QuatDropW_48:
-			case RotationFormat8::QuatDropW_32:
-			case RotationFormat8::QuatDropW_Variable:
+			case rotation_format8::quatf_drop_w_full:
+			case rotation_format8::QuatDropW_48:
+			case rotation_format8::QuatDropW_32:
+			case rotation_format8::quatf_drop_w_variable:
 				return rtm::quat_from_positive_w(rotation);
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
@@ -132,10 +132,10 @@ namespace acl
 			const ClipContext* clip_context = segment->clip;
 			const bool are_rotations_normalized = clip_context->are_rotations_normalized;
 
-			const RotationFormat8 format = bone_steams.rotations.get_rotation_format();
+			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 			const uint8_t bit_rate = bone_steams.rotations.get_bit_rate();
 
-			if (format == RotationFormat8::QuatDropW_Variable && is_constant_bit_rate(bit_rate))
+			if (format == rotation_format8::quatf_drop_w_variable && is_constant_bit_rate(bit_rate))
 				sample_index = 0;
 
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
@@ -170,20 +170,20 @@ namespace acl
 			const SegmentContext* segment = bone_steams.segment;
 			const ClipContext* clip_context = segment->clip;
 			const bool are_rotations_normalized = clip_context->are_rotations_normalized;
-			const RotationFormat8 format = bone_steams.rotations.get_rotation_format();
+			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 
 			rtm::vector4f rotation;
 			if (is_constant_bit_rate(bit_rate))
 			{
 				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, RotationFormat8::Quat_128, k_invalid_bit_rate, are_rotations_normalized);
-				rotation = convert_rotation(rotation, RotationFormat8::Quat_128, format);
+				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate, are_rotations_normalized);
+				rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
 			}
 			else if (is_raw_bit_rate(bit_rate))
 			{
 				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, RotationFormat8::Quat_128, k_invalid_bit_rate, are_rotations_normalized);
-				rotation = convert_rotation(rotation, RotationFormat8::Quat_128, format);
+				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate, are_rotations_normalized);
+				rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
 			}
 			else
 			{
@@ -235,13 +235,13 @@ namespace acl
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
 		}
 
-		inline rtm::quatf RTM_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index, RotationFormat8 desired_format)
+		inline rtm::quatf RTM_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index, rotation_format8 desired_format)
 		{
 			const SegmentContext* segment = bone_steams.segment;
 			const ClipContext* clip_context = segment->clip;
 			const bool are_rotations_normalized = clip_context->are_rotations_normalized && !bone_steams.is_rotation_constant;
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
-			const RotationFormat8 format = bone_steams.rotations.get_rotation_format();
+			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 
 			const rtm::vector4f rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0, are_rotations_normalized);
 
@@ -250,14 +250,14 @@ namespace acl
 
 			switch (desired_format)
 			{
-			case RotationFormat8::Quat_128:
-			case RotationFormat8::QuatDropW_96:
+			case rotation_format8::quatf_full:
+			case rotation_format8::quatf_drop_w_full:
 				packed_rotation = rotation;
 				break;
-			case RotationFormat8::QuatDropW_48:
+			case rotation_format8::QuatDropW_48:
 				packed_rotation = are_rotations_normalized ? decay_vector3_u48(rotation) : decay_vector3_s48(rotation);
 				break;
-			case RotationFormat8::QuatDropW_32:
+			case rotation_format8::QuatDropW_32:
 				packed_rotation = are_rotations_normalized ? decay_vector3_u32(rotation, 11, 11, 10) : decay_vector3_s32(rotation, 11, 11, 10);
 				break;
 			default:
@@ -295,10 +295,10 @@ namespace acl
 			const ClipContext* clip_context = segment->clip;
 			const bool are_translations_normalized = clip_context->are_translations_normalized;
 
-			const VectorFormat8 format = bone_steams.translations.get_vector_format();
+			const vector_format8 format = bone_steams.translations.get_vector_format();
 			const uint8_t bit_rate = bone_steams.translations.get_bit_rate();
 
-			if (format == VectorFormat8::Vector3_Variable && is_constant_bit_rate(bit_rate))
+			if (format == vector_format8::vector3f_variable && is_constant_bit_rate(bit_rate))
 				sample_index = 0;
 
 			const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
@@ -332,7 +332,7 @@ namespace acl
 		{
 			const SegmentContext* segment = bone_steams.segment;
 			const ClipContext* clip_context = segment->clip;
-			const VectorFormat8 format = bone_steams.translations.get_vector_format();
+			const vector_format8 format = bone_steams.translations.get_vector_format();
 
 			const uint8_t* quantized_ptr;
 			if (is_constant_bit_rate(bit_rate))
@@ -389,13 +389,13 @@ namespace acl
 			return packed_translation;
 		}
 
-		inline rtm::vector4f RTM_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
+		inline rtm::vector4f RTM_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, vector_format8 desired_format)
 		{
 			const SegmentContext* segment = bone_steams.segment;
 			const ClipContext* clip_context = segment->clip;
 			const bool are_translations_normalized = clip_context->are_translations_normalized && !bone_steams.is_translation_constant;
 			const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
-			const VectorFormat8 format = bone_steams.translations.get_vector_format();
+			const vector_format8 format = bone_steams.translations.get_vector_format();
 
 			const rtm::vector4f translation = acl_impl::load_vector_sample(quantized_ptr, format, 0);
 
@@ -404,14 +404,14 @@ namespace acl
 
 			switch (desired_format)
 			{
-			case VectorFormat8::Vector3_96:
+			case vector_format8::vector3f_full:
 				packed_translation = translation;
 				break;
-			case VectorFormat8::Vector3_48:
+			case vector_format8::Vector3_48:
 				ACL_ASSERT(are_translations_normalized, "Translations must be normalized to support this format");
 				packed_translation = decay_vector3_u48(translation);
 				break;
-			case VectorFormat8::Vector3_32:
+			case vector_format8::Vector3_32:
 				ACL_ASSERT(are_translations_normalized, "Translations must be normalized to support this format");
 				packed_translation = decay_vector3_u32(translation, 11, 11, 10);
 				break;
@@ -450,10 +450,10 @@ namespace acl
 			const ClipContext* clip_context = segment->clip;
 			const bool are_scales_normalized = clip_context->are_scales_normalized;
 
-			const VectorFormat8 format = bone_steams.scales.get_vector_format();
+			const vector_format8 format = bone_steams.scales.get_vector_format();
 			const uint8_t bit_rate = bone_steams.scales.get_bit_rate();
 
-			if (format == VectorFormat8::Vector3_Variable && is_constant_bit_rate(bit_rate))
+			if (format == vector_format8::vector3f_variable && is_constant_bit_rate(bit_rate))
 				sample_index = 0;
 
 			const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
@@ -487,7 +487,7 @@ namespace acl
 		{
 			const SegmentContext* segment = bone_steams.segment;
 			const ClipContext* clip_context = segment->clip;
-			const VectorFormat8 format = bone_steams.scales.get_vector_format();
+			const vector_format8 format = bone_steams.scales.get_vector_format();
 
 			const uint8_t* quantized_ptr;
 			if (is_constant_bit_rate(bit_rate))
@@ -544,13 +544,13 @@ namespace acl
 			return packed_scale;
 		}
 
-		inline rtm::vector4f RTM_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, VectorFormat8 desired_format)
+		inline rtm::vector4f RTM_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, vector_format8 desired_format)
 		{
 			const SegmentContext* segment = bone_steams.segment;
 			const ClipContext* clip_context = segment->clip;
 			const bool are_scales_normalized = clip_context->are_scales_normalized && !bone_steams.is_scale_constant;
 			const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
-			const VectorFormat8 format = bone_steams.scales.get_vector_format();
+			const vector_format8 format = bone_steams.scales.get_vector_format();
 
 			const rtm::vector4f scale = acl_impl::load_vector_sample(quantized_ptr, format, 0);
 
@@ -559,14 +559,14 @@ namespace acl
 
 			switch (desired_format)
 			{
-			case VectorFormat8::Vector3_96:
+			case vector_format8::vector3f_full:
 				packed_scale = scale;
 				break;
-			case VectorFormat8::Vector3_48:
+			case vector_format8::Vector3_48:
 				ACL_ASSERT(are_scales_normalized, "Scales must be normalized to support this format");
 				packed_scale = decay_vector3_u48(scale);
 				break;
-			case VectorFormat8::Vector3_32:
+			case vector_format8::Vector3_32:
 				ACL_ASSERT(are_scales_normalized, "Scales must be normalized to support this format");
 				packed_scale = decay_vector3_u32(scale, 11, 11, 10);
 				break;
@@ -617,7 +617,7 @@ namespace acl
 
 			// Our samples are uniform, grab the nearest samples
 			const ClipContext* clip_context = segment.clip;
-			find_linear_interpolation_samples_with_sample_rate(clip_context->num_samples, clip_context->sample_rate, sample_time, SampleRoundingPolicy::Nearest, key0, key1, interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(clip_context->num_samples, clip_context->sample_rate, sample_time, sample_rounding_policy::nearest, key0, key1, interpolation_alpha);
 
 			// Offset for the current segment and clamp
 			key0 = key0 - segment.clip_sample_offset;
@@ -657,7 +657,7 @@ namespace acl
 					const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 					const float sample_rate = bone_stream.rotations.get_sample_rate();
 
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
 				}
 				else
 				{
@@ -681,7 +681,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_rotation_variable, RotationFormat8 rotation_format)
+		ACL_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_rotation_variable, rotation_format8 rotation_format)
 		{
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
@@ -705,7 +705,7 @@ namespace acl
 					const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 					const float sample_rate = bone_stream.rotations.get_sample_rate();
 
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
 				}
 				else
 				{
@@ -758,7 +758,7 @@ namespace acl
 					const uint32_t num_samples = bone_stream.translations.get_num_samples();
 					const float sample_rate = bone_stream.translations.get_sample_rate();
 
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
 				}
 				else
 				{
@@ -782,13 +782,13 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_translation_variable, VectorFormat8 translation_format)
+		ACL_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_translation_variable, vector_format8 translation_format)
 		{
 			rtm::vector4f translation;
 			if (bone_stream.is_translation_default)
 				translation = rtm::vector_zero();
 			else if (bone_stream.is_translation_constant)
-				translation = get_translation_sample(raw_bone_stream, 0, VectorFormat8::Vector3_96);
+				translation = get_translation_sample(raw_bone_stream, 0, vector_format8::vector3f_full);
 			else
 			{
 				uint32_t key0;
@@ -799,7 +799,7 @@ namespace acl
 					const uint32_t num_samples = bone_stream.translations.get_num_samples();
 					const float sample_rate = bone_stream.translations.get_sample_rate();
 
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
 				}
 				else
 				{
@@ -852,7 +852,7 @@ namespace acl
 					const uint32_t num_samples = bone_stream.scales.get_num_samples();
 					const float sample_rate = bone_stream.scales.get_sample_rate();
 
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
 				}
 				else
 				{
@@ -876,13 +876,13 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_scale(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_scale_variable, VectorFormat8 scale_format, rtm::vector4f_arg0 default_scale)
+		ACL_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_scale(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_scale_variable, vector_format8 scale_format, rtm::vector4f_arg0 default_scale)
 		{
 			rtm::vector4f scale;
 			if (bone_stream.is_scale_default)
 				scale = default_scale;
 			else if (bone_stream.is_scale_constant)
-				scale = get_scale_sample(raw_bone_stream, 0, VectorFormat8::Vector3_96);
+				scale = get_scale_sample(raw_bone_stream, 0, vector_format8::vector3f_full);
 			else
 			{
 				uint32_t key0;
@@ -893,7 +893,7 @@ namespace acl
 					const uint32_t num_samples = bone_stream.scales.get_num_samples();
 					const float sample_rate = bone_stream.scales.get_sample_rate();
 
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
 				}
 				else
 				{
@@ -1073,7 +1073,7 @@ namespace acl
 			}
 		}
 
-		inline void sample_streams(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, rtm::qvvf* out_local_pose)
+		inline void sample_streams(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -1130,7 +1130,7 @@ namespace acl
 			}
 		}
 
-		inline void sample_stream(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, rtm::qvvf* out_local_pose)
+		inline void sample_stream(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
 		{
 			(void)num_bones;
 
@@ -1177,7 +1177,7 @@ namespace acl
 			out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
 		}
 
-		inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, rtm::qvvf* out_local_pose)
+		inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
 		{
 			(void)num_bones;
 

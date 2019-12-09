@@ -52,12 +52,12 @@ namespace acl
 
 				switch (track.get_rotation_format())
 				{
-				case RotationFormat8::Quat_128:
+				case rotation_format8::quatf_full:
 					return rtm::vector_to_quat(rotation);
-				case RotationFormat8::QuatDropW_96:
-				case RotationFormat8::QuatDropW_48:
-				case RotationFormat8::QuatDropW_32:
-				case RotationFormat8::QuatDropW_Variable:
+				case rotation_format8::quatf_drop_w_full:
+				case rotation_format8::QuatDropW_48:
+				case rotation_format8::QuatDropW_32:
+				case rotation_format8::quatf_drop_w_variable:
 					return rtm::quat_from_positive_w(rotation);
 				default:
 					ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(track.get_rotation_format()));

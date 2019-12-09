@@ -119,7 +119,7 @@ namespace acl
 			compact_constant_streams(allocator, clip_context, settings.constant_rotation_threshold_angle, settings.constant_translation_threshold, settings.constant_scale_threshold);
 
 			uint32_t clip_range_data_size = 0;
-			if (settings.range_reduction != RangeReductionFlags8::None)
+			if (settings.range_reduction != range_reduction_flags8::none)
 			{
 				normalize_clip_streams(clip_context, settings.range_reduction);
 				clip_range_data_size = get_stream_range_data_size(clip_context, settings.range_reduction, settings.rotation_format);
@@ -131,16 +131,16 @@ namespace acl
 
 				// If we have a single segment, disable range reduction since it won't help
 				if (clip_context.num_segments == 1)
-					settings.segmenting.range_reduction = RangeReductionFlags8::None;
+					settings.segmenting.range_reduction = range_reduction_flags8::none;
 
-				if (settings.segmenting.range_reduction != RangeReductionFlags8::None)
+				if (settings.segmenting.range_reduction != range_reduction_flags8::none)
 				{
 					extract_segment_bone_ranges(allocator, clip_context);
 					normalize_segment_streams(clip_context, settings.segmenting.range_reduction);
 				}
 			}
 			else
-				settings.segmenting.range_reduction = RangeReductionFlags8::None;
+				settings.segmenting.range_reduction = range_reduction_flags8::none;
 
 			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context, additive_base_clip_context, out_stats);
 
@@ -219,7 +219,7 @@ namespace acl
 
 			uint8_t* buffer = allocate_type_array_aligned<uint8_t>(allocator, buffer_size, 16);
 
-			CompressedClip* compressed_clip = make_compressed_clip(buffer, buffer_size, AlgorithmType8::UniformlySampled);
+			CompressedClip* compressed_clip = make_compressed_clip(buffer, buffer_size, algorithm_type8::uniformly_sampled);
 
 			ClipHeader& header = get_clip_header(*compressed_clip);
 			header.num_bones = num_output_bones;
@@ -230,7 +230,7 @@ namespace acl
 			header.clip_range_reduction = settings.range_reduction;
 			header.segment_range_reduction = settings.segmenting.range_reduction;
 			header.has_scale = clip_context.has_scale ? 1 : 0;
-			header.default_scale = additive_base_clip == nullptr || clip.get_additive_format() != AdditiveClipFormat8::Additive1;
+			header.default_scale = additive_base_clip == nullptr || clip.get_additive_format() != additive_clip_format8::additive1;
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.segment_start_indices_offset = sizeof(ClipHeader);
@@ -255,7 +255,7 @@ namespace acl
 			else
 				header.constant_track_data_offset = InvalidPtrOffset();
 
-			if (settings.range_reduction != RangeReductionFlags8::None)
+			if (settings.range_reduction != range_reduction_flags8::none)
 				write_clip_range_data(clip_context, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();

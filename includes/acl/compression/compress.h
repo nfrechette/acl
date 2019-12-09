@@ -124,8 +124,8 @@ namespace acl
 
 		// Write our primary header
 		header->tag = k_compressed_tracks_tag;
-		header->version = get_algorithm_version(AlgorithmType8::UniformlySampled);
-		header->algorithm_type = AlgorithmType8::UniformlySampled;
+		header->version = get_algorithm_version(algorithm_type8::uniformly_sampled);
+		header->algorithm_type = algorithm_type8::uniformly_sampled;
 		header->track_type = track_list.get_track_type();
 		header->num_tracks = context.num_tracks;
 		header->num_samples = context.num_samples;

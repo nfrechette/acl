@@ -448,7 +448,7 @@ namespace acl
 	// This error metric should be used whenever a clip is additive or relative.
 	// Note that this can cause inaccuracy when dealing with shear/skew.
 	//////////////////////////////////////////////////////////////////////////
-	template<AdditiveClipFormat8 additive_format>
+	template<additive_clip_format8 additive_format>
 	class additive_qvvf_transform_error_metric : public qvvf_transform_error_metric
 	{
 	public:
@@ -457,10 +457,10 @@ namespace acl
 			switch (additive_format)
 			{
 			default:
-			case AdditiveClipFormat8::None:			return "additive_qvvf_transform_error_metric<None>";
-			case AdditiveClipFormat8::Relative:		return "additive_qvvf_transform_error_metric<Relative>";
-			case AdditiveClipFormat8::Additive0:	return "additive_qvvf_transform_error_metric<Additive0>";
-			case AdditiveClipFormat8::Additive1:	return "additive_qvvf_transform_error_metric<Additive1>";
+			case additive_clip_format8::none:			return "additive_qvvf_transform_error_metric<none>";
+			case additive_clip_format8::relative:		return "additive_qvvf_transform_error_metric<relative>";
+			case additive_clip_format8::additive0:	return "additive_qvvf_transform_error_metric<additive0>";
+			case additive_clip_format8::additive1:	return "additive_qvvf_transform_error_metric<additive1>";
 			}
 		}
 

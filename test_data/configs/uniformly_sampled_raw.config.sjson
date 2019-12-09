@@ -1,10 +1,10 @@
 version = 1
 
-algorithm_name = "UniformlySampled"
+algorithm_name = "uniformly_sampled"
 
-rotation_format = "Quat_128"
-translation_format = "Vector3_96"
-scale_format = "Vector3_96"
+rotation_format = "quatf_full"
+translation_format = "vector3f_full"
+scale_format = "vector3f_full"
 
 segmenting = {
 	enabled = false

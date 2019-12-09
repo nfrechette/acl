@@ -39,13 +39,13 @@ namespace acl
 	// still supported by the library or if it must be re-compressed. As such,
 	// changes to the binary format require incrementing the version number.
 	// TODO: constexpr
-	inline uint16_t get_algorithm_version(AlgorithmType8 type)
+	inline uint16_t get_algorithm_version(algorithm_type8 type)
 	{
 		switch (type)
 		{
-			case AlgorithmType8::UniformlySampled:		return 5;
-			//case AlgorithmType8::LinearKeyReduction:	return 0;
-			//case AlgorithmType8::SplineKeyReduction:	return 0;
+			case algorithm_type8::uniformly_sampled:		return 5;
+			//case algorithm_type8::LinearKeyReduction:	return 0;
+			//case algorithm_type8::SplineKeyReduction:	return 0;
 			default:									return 0xFFFF;
 		}
 	}

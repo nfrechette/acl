@@ -142,9 +142,9 @@ namespace acl
 			const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, clip_duration);
 
 			// We use the nearest sample to accurately measure the loss that happened, if any
-			clip.sample_pose(sample_time, SampleRoundingPolicy::Nearest, raw_local_pose, num_bones);
+			clip.sample_pose(sample_time, sample_rounding_policy::nearest, raw_local_pose, num_bones);
 
-			context.seek(sample_time, SampleRoundingPolicy::Nearest);
+			context.seek(sample_time, sample_rounding_policy::nearest);
 			context.decompress_pose(pose_writer);
 
 			// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
@@ -166,7 +166,7 @@ namespace acl
 			{
 				const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
 				const float additive_sample_time = additive_num_samples > 1 ? (normalized_sample_time * additive_duration) : 0.0F;
-				additive_base_clip->sample_pose(additive_sample_time, SampleRoundingPolicy::Nearest, base_local_pose, num_bones);
+				additive_base_clip->sample_pose(additive_sample_time, sample_rounding_policy::nearest, base_local_pose, num_bones);
 
 				if (needs_conversion)
 					error_metric.convert_transforms(convert_transforms_args_base, base_local_pose_converted);

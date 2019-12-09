@@ -208,15 +208,15 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	settings.constant_scale_threshold = 1.123F;
 	settings.constant_translation_threshold = 0.124F;
 	settings.error_threshold = 0.23F;
-	settings.level = CompressionLevel8::High;
-	settings.range_reduction = RangeReductionFlags8::Rotations | RangeReductionFlags8::Scales;
-	settings.rotation_format = RotationFormat8::QuatDropW_48;
-	settings.scale_format = VectorFormat8::Vector3_96;
-	settings.translation_format = VectorFormat8::Vector3_32;
+	settings.level = compression_level8::high;
+	settings.range_reduction = range_reduction_flags8::rotations | range_reduction_flags8::scales;
+	settings.rotation_format = rotation_format8::QuatDropW_48;
+	settings.scale_format = vector_format8::vector3f_full;
+	settings.translation_format = vector_format8::Vector3_32;
 	settings.segmenting.enabled = false;
 	settings.segmenting.ideal_num_samples = 23;
 	settings.segmenting.max_num_samples = 123;
-	settings.segmenting.range_reduction = RangeReductionFlags8::Translations;
+	settings.segmenting.range_reduction = range_reduction_flags8::translations;
 
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
@@ -227,7 +227,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 		get_temporary_filename(filename, filename_size, "clip_");
 
 		// Write the clip to a temporary file
-		error = write_acl_clip(skeleton, clip, AlgorithmType8::UniformlySampled, settings, filename);
+		error = write_acl_clip(skeleton, clip, algorithm_type8::uniformly_sampled, settings, filename);
 
 		if (error == nullptr)
 			break;	// Everything worked, stop trying
@@ -267,7 +267,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	const bool success = reader.read_raw_clip(file_clip);
 	REQUIRE(success);
 
-	CHECK(file_clip.algorithm_type == AlgorithmType8::UniformlySampled);
+	CHECK(file_clip.algorithm_type == algorithm_type8::uniformly_sampled);
 	CHECK(file_clip.has_settings);
 	CHECK(file_clip.settings.get_hash() == settings.get_hash());
 	CHECK(file_clip.skeleton->get_num_bones() == num_bones);

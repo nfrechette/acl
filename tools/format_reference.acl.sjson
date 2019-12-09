@@ -10,7 +10,8 @@
 // version = 1		// Initial version
 // version = 2		// Introduced clip compression settings
 //version = 3		// Introduced additive clip related data
-version = 4			// Introduced track list related data
+//version = 4		// Introduced track list related data
+version = 5			// Renamed enums for 2.0
 
 // BEGIN CLIP RELATED DATA
 
@@ -37,9 +38,9 @@ clip =
 	// Introduced in version 2.
 	is_binary_exact = true
 
-	// Additive format of base clip, if present. Optional, defaults to 'None'.
+	// Additive format of base clip, if present. Optional, defaults to 'none'.
 	// Introduced in version 3.
-	additive_format = "None"
+	additive_format = "none"
 
 	// The additive base clip name. Optional, defaults to empty string.
 	// Introduced in version 3.
@@ -59,14 +60,14 @@ clip =
 settings =
 {
 	// The name of the algorithm to use. See function get_algorithm_type(..)
-	// Defaults to 'UniformlySampled'
-	algorithm_name = "UniformlySampled"
+	// Defaults to 'uniformly_sampled'
+	algorithm_name = "uniformly_sampled"
 
 	// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
-	// Defaults to raw: 'Quat_128' and 'Vector3_96'
-	rotation_format = "Quat_128"
-	translation_format = "Vector3_96"
-	scale_format = "Vector3_96"
+	// Defaults to raw: 'quatf_full' and 'vector3f_full'
+	rotation_format = "quatf_full"
+	translation_format = "vector3f_full"
+	scale_format = "vector3f_full"
 
 	// Whether to use range reduction or not at the clip level
 	// Defaults to 'false'

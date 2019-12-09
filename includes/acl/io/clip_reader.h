@@ -63,7 +63,7 @@ namespace acl
 		std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
 
 		bool has_settings;
-		AlgorithmType8 algorithm_type;
+		algorithm_type8 algorithm_type;
 		CompressionSettings settings;
 	};
 
@@ -142,7 +142,7 @@ namespace acl
 				return false;
 
 			bool has_settings;				// Not used
-			AlgorithmType8 algorithm_type;	// Not used
+			algorithm_type8 algorithm_type;	// Not used
 			CompressionSettings settings;	// Not used
 			if (!read_settings(&has_settings, &algorithm_type, &settings))
 				return false;
@@ -165,7 +165,7 @@ namespace acl
 		float m_sample_rate;
 		sjson::StringView m_clip_name;
 		bool m_is_binary_exact;
-		AdditiveClipFormat8 m_additive_format;
+		additive_clip_format8 m_additive_format;
 		sjson::StringView m_additive_base_name;
 		uint32_t m_additive_base_num_samples;
 		float m_additive_base_sample_rate;
@@ -184,7 +184,7 @@ namespace acl
 				return false;
 			}
 
-			if (m_version > 4)
+			if (m_version > 5)
 			{
 				set_error(ClipReaderError::UnsupportedVersion);
 				return false;
@@ -234,7 +234,7 @@ namespace acl
 			m_parser.try_read("is_binary_exact", m_is_binary_exact, false);
 
 			// Optional value
-			m_parser.try_read("additive_format", additive_format, "None");
+			m_parser.try_read("additive_format", additive_format, "none");
 			if (!get_additive_clip_format(additive_format.c_str(), m_additive_format))
 			{
 				set_error(ClipReaderError::InvalidAdditiveClipFormat);
@@ -309,7 +309,7 @@ namespace acl
 			return false;
 		}
 
-		bool read_settings(bool* out_has_settings, AlgorithmType8* out_algorithm_type, CompressionSettings* out_settings)
+		bool read_settings(bool* out_has_settings, algorithm_type8* out_algorithm_type, CompressionSettings* out_settings)
 		{
 			if (!m_parser.try_object_begins("settings"))
 			{
@@ -338,27 +338,27 @@ namespace acl
 			bool segmenting_enabled = default_settings.segmenting.enabled;
 			double segmenting_ideal_num_samples = double(default_settings.segmenting.ideal_num_samples);
 			double segmenting_max_num_samples = double(default_settings.segmenting.max_num_samples);
-			bool segmenting_rotation_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Rotations);
-			bool segmenting_translation_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
-			bool segmenting_scale_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Scales);
+			bool segmenting_rotation_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::rotations);
+			bool segmenting_translation_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::translations);
+			bool segmenting_scale_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::scales);
 
-			m_parser.try_read("algorithm_name", algorithm_name, get_algorithm_name(AlgorithmType8::UniformlySampled));
+			m_parser.try_read("algorithm_name", algorithm_name, get_algorithm_name(algorithm_type8::uniformly_sampled));
 			m_parser.try_read("level", compression_level, get_compression_level_name(default_settings.level));
 			m_parser.try_read("rotation_format", rotation_format, get_rotation_format_name(default_settings.rotation_format));
 			m_parser.try_read("translation_format", translation_format, get_vector_format_name(default_settings.translation_format));
 			m_parser.try_read("scale_format", scale_format, get_vector_format_name(default_settings.scale_format));
-			m_parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Rotations));
-			m_parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Translations));
-			m_parser.try_read("scale_range_reduction", scale_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, RangeReductionFlags8::Scales));
+			m_parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, range_reduction_flags8::rotations));
+			m_parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, range_reduction_flags8::translations));
+			m_parser.try_read("scale_range_reduction", scale_range_reduction, are_any_enum_flags_set(default_settings.range_reduction, range_reduction_flags8::scales));
 
 			if (m_parser.try_object_begins("segmenting"))
 			{
 				m_parser.try_read("enabled", segmenting_enabled, default_settings.segmenting.enabled);
 				m_parser.try_read("ideal_num_samples", segmenting_ideal_num_samples, double(default_settings.segmenting.ideal_num_samples));
 				m_parser.try_read("max_num_samples", segmenting_max_num_samples, double(default_settings.segmenting.max_num_samples));
-				m_parser.try_read("rotation_range_reduction", segmenting_rotation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Rotations));
-				m_parser.try_read("translation_range_reduction", segmenting_translation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Translations));
-				m_parser.try_read("scale_range_reduction", segmenting_scale_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, RangeReductionFlags8::Scales));
+				m_parser.try_read("rotation_range_reduction", segmenting_rotation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::rotations));
+				m_parser.try_read("translation_range_reduction", segmenting_translation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::translations));
+				m_parser.try_read("scale_range_reduction", segmenting_scale_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::scales));
 
 				if (!m_parser.is_valid() || !m_parser.object_ends())
 					goto parsing_error;
@@ -391,15 +391,15 @@ namespace acl
 				if (!get_vector_format(scale_format.c_str(), out_settings->scale_format))
 					goto invalid_value_error;
 
-				RangeReductionFlags8 range_reduction = RangeReductionFlags8::None;
+				range_reduction_flags8 range_reduction = range_reduction_flags8::none;
 				if (rotation_range_reduction)
-					range_reduction |= RangeReductionFlags8::Rotations;
+					range_reduction |= range_reduction_flags8::rotations;
 
 				if (translation_range_reduction)
-					range_reduction |= RangeReductionFlags8::Translations;
+					range_reduction |= range_reduction_flags8::translations;
 
 				if (scale_range_reduction)
-					range_reduction |= RangeReductionFlags8::Scales;
+					range_reduction |= range_reduction_flags8::scales;
 
 				out_settings->range_reduction = range_reduction;
 
@@ -407,15 +407,15 @@ namespace acl
 				out_settings->segmenting.ideal_num_samples = uint16_t(segmenting_ideal_num_samples);
 				out_settings->segmenting.max_num_samples = uint16_t(segmenting_max_num_samples);
 
-				RangeReductionFlags8 segmenting_range_reduction = RangeReductionFlags8::None;
+				range_reduction_flags8 segmenting_range_reduction = range_reduction_flags8::none;
 				if (rotation_range_reduction)
-					segmenting_range_reduction |= RangeReductionFlags8::Rotations;
+					segmenting_range_reduction |= range_reduction_flags8::rotations;
 
 				if (translation_range_reduction)
-					segmenting_range_reduction |= RangeReductionFlags8::Translations;
+					segmenting_range_reduction |= range_reduction_flags8::translations;
 
 				if (scale_range_reduction)
-					segmenting_range_reduction |= RangeReductionFlags8::Scales;
+					segmenting_range_reduction |= range_reduction_flags8::scales;
 
 				out_settings->segmenting.range_reduction = segmenting_range_reduction;
 

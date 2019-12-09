@@ -98,7 +98,7 @@ namespace acl
 			writer.insert_newline();
 		}
 
-		inline void write_sjson_settings(AlgorithmType8 algorithm, const CompressionSettings& settings, sjson::Writer& writer)
+		inline void write_sjson_settings(algorithm_type8 algorithm, const CompressionSettings& settings, sjson::Writer& writer)
 		{
 			writer["settings"] = [&](sjson::ObjectWriter& settings_writer)
 			{
@@ -107,18 +107,18 @@ namespace acl
 				settings_writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 				settings_writer["translation_format"] = get_vector_format_name(settings.translation_format);
 				settings_writer["scale_format"] = get_vector_format_name(settings.scale_format);
-				settings_writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Rotations);
-				settings_writer["translation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Translations);
-				settings_writer["scale_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, RangeReductionFlags8::Scales);
+				settings_writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, range_reduction_flags8::rotations);
+				settings_writer["translation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, range_reduction_flags8::translations);
+				settings_writer["scale_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, range_reduction_flags8::scales);
 
 				settings_writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
 				{
 					segmenting_writer["enabled"] = settings.segmenting.enabled;
 					segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
 					segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
-					segmenting_writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Rotations);
-					segmenting_writer["translation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Translations);
-					segmenting_writer["scale_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, RangeReductionFlags8::Scales);
+					segmenting_writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, range_reduction_flags8::rotations);
+					segmenting_writer["translation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, range_reduction_flags8::translations);
+					segmenting_writer["scale_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, range_reduction_flags8::scales);
 				};
 
 				settings_writer["constant_rotation_threshold_angle"] = settings.constant_rotation_threshold_angle.as_radians();
@@ -266,7 +266,7 @@ namespace acl
 			};
 		}
 
-		inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, AlgorithmType8 algorithm, const CompressionSettings* settings, const char* acl_filename)
+		inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, algorithm_type8 algorithm, const CompressionSettings* settings, const char* acl_filename)
 		{
 			if (acl_filename == nullptr)
 				return "'acl_filename' cannot be NULL!";
@@ -291,7 +291,7 @@ namespace acl
 			sjson::FileStreamWriter stream_writer(file);
 			sjson::Writer writer(stream_writer);
 
-			writer["version"] = 3;
+			writer["version"] = 5;
 			writer.insert_newline();
 
 			write_sjson_clip(clip, writer);
@@ -317,7 +317,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, const char* acl_filename)
 	{
-		return acl_impl::write_acl_clip(skeleton, clip, AlgorithmType8::UniformlySampled, nullptr, acl_filename);
+		return acl_impl::write_acl_clip(skeleton, clip, algorithm_type8::uniformly_sampled, nullptr, acl_filename);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -325,7 +325,7 @@ namespace acl
 	// and compression settings.
 	// Returns an error string on failure, null on success.
 	//////////////////////////////////////////////////////////////////////////
-	inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, AlgorithmType8 algorithm, const CompressionSettings& settings, const char* acl_filename)
+	inline const char* write_acl_clip(const RigidSkeleton& skeleton, const AnimationClip& clip, algorithm_type8 algorithm, const CompressionSettings& settings, const char* acl_filename)
 	{
 		return acl_impl::write_acl_clip(skeleton, clip, algorithm, &settings, acl_filename);
 	}
@@ -361,7 +361,7 @@ namespace acl
 		sjson::FileStreamWriter stream_writer(file);
 		sjson::Writer writer(stream_writer);
 
-		writer["version"] = 4;
+		writer["version"] = 5;
 		writer.insert_newline();
 
 		writer["track_list"] = [&](sjson::ObjectWriter& header_writer)

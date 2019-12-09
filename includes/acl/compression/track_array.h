@@ -174,13 +174,13 @@ namespace acl
 		// Sample all tracks within this array at the specified sample time and
 		// desired rounding policy. Track samples are written out using the `track_writer` provided.
 		template<class track_writer_type>
-		void sample_tracks(float sample_time, SampleRoundingPolicy rounding_policy, track_writer_type& writer) const;
+		void sample_tracks(float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Sample a single track within this array at the specified sample time and
 		// desired rounding policy. The track sample is written out using the `track_writer` provided.
 		template<class track_writer_type>
-		void sample_track(uint32_t track_index, float sample_time, SampleRoundingPolicy rounding_policy, track_writer_type& writer) const;
+		void sample_track(uint32_t track_index, float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the raw size for this track array. Note that this differs from the actual
@@ -325,7 +325,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 
 	template<class track_writer_type>
-	inline void track_array::sample_tracks(float sample_time, SampleRoundingPolicy rounding_policy, track_writer_type& writer) const
+	inline void track_array::sample_tracks(float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const
 	{
 		ACL_ASSERT(is_valid().empty(), "Invalid track array");
 
@@ -334,7 +334,7 @@ namespace acl
 	}
 
 	template<class track_writer_type>
-	inline void track_array::sample_track(uint32_t track_index, float sample_time, SampleRoundingPolicy rounding_policy, track_writer_type& writer) const
+	inline void track_array::sample_track(uint32_t track_index, float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const
 	{
 		ACL_ASSERT(is_valid().empty(), "Invalid track array");
 		ACL_ASSERT(track_index < m_num_tracks, "Invalid track index");

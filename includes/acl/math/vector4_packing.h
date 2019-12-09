@@ -1081,14 +1081,14 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 
 	// TODO: constexpr
-	inline uint32_t get_packed_vector_size(VectorFormat8 format)
+	inline uint32_t get_packed_vector_size(vector_format8 format)
 	{
 		switch (format)
 		{
-		case VectorFormat8::Vector3_96:		return sizeof(float) * 3;
-		case VectorFormat8::Vector3_48:		return sizeof(uint16_t) * 3;
-		case VectorFormat8::Vector3_32:		return sizeof(uint32_t);
-		case VectorFormat8::Vector3_Variable:
+		case vector_format8::vector3f_full:		return sizeof(float) * 3;
+		case vector_format8::Vector3_48:		return sizeof(uint16_t) * 3;
+		case vector_format8::Vector3_32:		return sizeof(uint32_t);
+		case vector_format8::vector3f_variable:
 		default:
 			ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
 			return 0;

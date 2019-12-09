@@ -37,79 +37,87 @@ namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
 	// Describes the format used by the additive clip.
-	enum class AdditiveClipFormat8 : uint8_t
+	enum class additive_clip_format8 : uint8_t
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Clip is not additive
-		None				= 0,
+		none				= 0,
 
 		//////////////////////////////////////////////////////////////////////////
 		// Clip is in relative space, transform_mul or equivalent is used to combine them.
 		// transform = transform_mul(additive_transform, base_transform)
-		Relative			= 1,
+		relative			= 1,
 
 		//////////////////////////////////////////////////////////////////////////
 		// Clip is in additive space where scale is combined with: base_scale * additive_scale
 		// transform = transform_add0(additive_transform, base_transform)
-		Additive0			= 2,
+		additive0			= 2,
 
 		//////////////////////////////////////////////////////////////////////////
 		// Clip is in additive space where scale is combined with: base_scale * (1.0 + additive_scale)
 		// transform = transform_add1(additive_transform, base_transform)
-		Additive1			= 3,
+		additive1			= 3,
 	};
 
 	//////////////////////////////////////////////////////////////////////////
 
 	// TODO: constexpr
-	inline const char* get_additive_clip_format_name(AdditiveClipFormat8 format)
+	inline const char* get_additive_clip_format_name(additive_clip_format8 format)
 	{
 		switch (format)
 		{
-		case AdditiveClipFormat8::None:				return "None";
-		case AdditiveClipFormat8::Relative:			return "Relative";
-		case AdditiveClipFormat8::Additive0:		return "Additive0";
-		case AdditiveClipFormat8::Additive1:		return "Additive1";
+		case additive_clip_format8::none:			return "none";
+		case additive_clip_format8::relative:		return "relative";
+		case additive_clip_format8::additive0:		return "additive0";
+		case additive_clip_format8::additive1:		return "additive1";
 		default:									return "<Invalid>";
 		}
 	}
 
-	inline bool get_additive_clip_format(const char* format, AdditiveClipFormat8& out_format)
+	inline bool get_additive_clip_format(const char* format, additive_clip_format8& out_format)
 	{
-		const char* none_format = "None";
-		if (std::strncmp(format, none_format, std::strlen(none_format)) == 0)
+		const char* none_format = "None";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
+		const char* none_format_new = "none";
+		if (std::strncmp(format, none_format, std::strlen(none_format)) == 0
+			|| std::strncmp(format, none_format_new, std::strlen(none_format_new)) == 0)
 		{
-			out_format = AdditiveClipFormat8::None;
+			out_format = additive_clip_format8::none;
 			return true;
 		}
 
-		const char* relative_format = "Relative";
-		if (std::strncmp(format, relative_format, std::strlen(relative_format)) == 0)
+		const char* relative_format = "Relative";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
+		const char* relative_format_new = "relative";
+		if (std::strncmp(format, relative_format, std::strlen(relative_format)) == 0
+			|| std::strncmp(format, relative_format_new, std::strlen(relative_format_new)) == 0)
 		{
-			out_format = AdditiveClipFormat8::Relative;
+			out_format = additive_clip_format8::relative;
 			return true;
 		}
 
-		const char* additive0_format = "Additive0";
-		if (std::strncmp(format, additive0_format, std::strlen(additive0_format)) == 0)
+		const char* additive0_format = "Additive0";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
+		const char* additive0_format_new = "additive0";
+		if (std::strncmp(format, additive0_format, std::strlen(additive0_format)) == 0
+			|| std::strncmp(format, additive0_format_new, std::strlen(additive0_format_new)) == 0)
 		{
-			out_format = AdditiveClipFormat8::Additive0;
+			out_format = additive_clip_format8::additive0;
 			return true;
 		}
 
-		const char* additive1_format = "Additive1";
-		if (std::strncmp(format, additive1_format, std::strlen(additive1_format)) == 0)
+		const char* additive1_format = "Additive1";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
+		const char* additive1_format_new = "additive1";
+		if (std::strncmp(format, additive1_format, std::strlen(additive1_format)) == 0
+			|| std::strncmp(format, additive1_format_new, std::strlen(additive1_format_new)) == 0)
 		{
-			out_format = AdditiveClipFormat8::Additive1;
+			out_format = additive_clip_format8::additive1;
 			return true;
 		}
 
 		return false;
 	}
 
-	inline rtm::vector4f RTM_SIMD_CALL get_default_scale(AdditiveClipFormat8 additive_format)
+	inline rtm::vector4f RTM_SIMD_CALL get_default_scale(additive_clip_format8 additive_format)
 	{
-		return additive_format == AdditiveClipFormat8::Additive1 ? rtm::vector_zero() : rtm::vector_set(1.0F);
+		return additive_format == additive_clip_format8::additive1 ? rtm::vector_zero() : rtm::vector_set(1.0F);
 	}
 
 	inline rtm::qvvf RTM_SIMD_CALL transform_add0(rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
@@ -135,27 +143,27 @@ namespace acl
 		return rtm::qvv_set(rotation, translation, rtm::vector_set(1.0F));
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL apply_additive_to_base(AdditiveClipFormat8 additive_format, rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
+	inline rtm::qvvf RTM_SIMD_CALL apply_additive_to_base(additive_clip_format8 additive_format, rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
 	{
 		switch (additive_format)
 		{
 		default:
-		case AdditiveClipFormat8::None:			return additive;
-		case AdditiveClipFormat8::Relative:		return rtm::qvv_mul(additive, base);
-		case AdditiveClipFormat8::Additive0:	return transform_add0(base, additive);
-		case AdditiveClipFormat8::Additive1:	return transform_add1(base, additive);
+		case additive_clip_format8::none:			return additive;
+		case additive_clip_format8::relative:		return rtm::qvv_mul(additive, base);
+		case additive_clip_format8::additive0:		return transform_add0(base, additive);
+		case additive_clip_format8::additive1:		return transform_add1(base, additive);
 		}
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL apply_additive_to_base_no_scale(AdditiveClipFormat8 additive_format, rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
+	inline rtm::qvvf RTM_SIMD_CALL apply_additive_to_base_no_scale(additive_clip_format8 additive_format, rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
 	{
 		switch (additive_format)
 		{
 		default:
-		case AdditiveClipFormat8::None:			return additive;
-		case AdditiveClipFormat8::Relative:		return rtm::qvv_mul_no_scale(additive, base);
-		case AdditiveClipFormat8::Additive0:	return transform_add_no_scale(base, additive);
-		case AdditiveClipFormat8::Additive1:	return transform_add_no_scale(base, additive);
+		case additive_clip_format8::none:			return additive;
+		case additive_clip_format8::relative:		return rtm::qvv_mul_no_scale(additive, base);
+		case additive_clip_format8::additive0:		return transform_add_no_scale(base, additive);
+		case additive_clip_format8::additive1:		return transform_add_no_scale(base, additive);
 		}
 	}
 

@@ -62,14 +62,14 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Whether to use range reduction or not at the segment level
-		// Defaults to 'None'
-		RangeReductionFlags8 range_reduction;
+		// Defaults to 'none'
+		range_reduction_flags8 range_reduction;
 
 		SegmentingSettings()
 			: enabled(false)
 			, ideal_num_samples(16)
 			, max_num_samples(31)
-			, range_reduction(RangeReductionFlags8::None)
+			, range_reduction(range_reduction_flags8::none)
 		{}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -110,19 +110,19 @@ namespace acl
 		// The compression level determines how aggressively we attempt to reduce the memory
 		// footprint. Higher levels will try more permutations and bit rates. The higher
 		// the level, the slower the compression but the smaller the memory footprint.
-		CompressionLevel8 level;
+		compression_level8 level;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
-		// Defaults to raw: 'Quat_128' and 'Vector3_96'
-		RotationFormat8 rotation_format;
-		VectorFormat8 translation_format;
-		VectorFormat8 scale_format;
+		// Defaults to raw: 'quatf_full' and 'vector3f_full'
+		rotation_format8 rotation_format;
+		vector_format8 translation_format;
+		vector_format8 scale_format;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Whether to use range reduction or not at the clip level
-		// Defaults to 'None'
-		RangeReductionFlags8 range_reduction;
+		// Defaults to 'none'
+		range_reduction_flags8 range_reduction;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Segmenting settings, if used
@@ -135,7 +135,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Threshold angle when detecting if rotation tracks are constant or default.
-		// See the Quat_32 quat_near_identity for details about how the default threshold
+		// See the rtm::quatf quat_near_identity for details about how the default threshold
 		// was chosen. You will typically NEVER need to change this, the value has been
 		// selected to be as safe as possible and is independent of game engine units.
 		// Defaults to '0.00284714461' radians
@@ -163,11 +163,11 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Default constructor sets things up to perform no compression and to leave things raw.
 		CompressionSettings()
-			: level(CompressionLevel8::Low)
-			, rotation_format(RotationFormat8::Quat_128)
-			, translation_format(VectorFormat8::Vector3_96)
-			, scale_format(VectorFormat8::Vector3_96)
-			, range_reduction(RangeReductionFlags8::None)
+			: level(compression_level8::low)
+			, rotation_format(rotation_format8::quatf_full)
+			, translation_format(vector_format8::vector3f_full)
+			, scale_format(vector_format8::vector3f_full)
+			, range_reduction(range_reduction_flags8::none)
 			, segmenting()
 			, error_metric(nullptr)
 			, constant_rotation_threshold_angle(rtm::radians(0.00284714461F))
@@ -207,23 +207,23 @@ namespace acl
 		// Returns nullptr if the settings are valid.
 		ErrorResult is_valid() const
 		{
-			if (translation_format != VectorFormat8::Vector3_96)
+			if (translation_format != vector_format8::vector3f_full)
 			{
-				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Translations);
-				const bool has_segment_range_reduction = segmenting.enabled && are_any_enum_flags_set(segmenting.range_reduction, RangeReductionFlags8::Translations);
+				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations);
+				const bool has_segment_range_reduction = segmenting.enabled && are_any_enum_flags_set(segmenting.range_reduction, range_reduction_flags8::translations);
 				if (!has_clip_range_reduction && !has_segment_range_reduction)
 					return ErrorResult("This translation format requires range reduction to be enabled at the clip or segment level");
 			}
 
-			if (scale_format != VectorFormat8::Vector3_96)
+			if (scale_format != vector_format8::vector3f_full)
 			{
-				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, RangeReductionFlags8::Scales);
-				const bool has_segment_range_reduction = segmenting.enabled && are_any_enum_flags_set(segmenting.range_reduction, RangeReductionFlags8::Scales);
+				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales);
+				const bool has_segment_range_reduction = segmenting.enabled && are_any_enum_flags_set(segmenting.range_reduction, range_reduction_flags8::scales);
 				if (!has_clip_range_reduction && !has_segment_range_reduction)
 					return ErrorResult("This scale format requires range reduction to be enabled at the clip or segment level");
 			}
 
-			if (segmenting.enabled && segmenting.range_reduction != RangeReductionFlags8::None)
+			if (segmenting.enabled && segmenting.range_reduction != range_reduction_flags8::none)
 			{
 				if ((range_reduction & segmenting.range_reduction) != segmenting.range_reduction)
 					return ErrorResult("Per segment range reduction requires per clip range reduction to be enabled");
@@ -263,13 +263,13 @@ namespace acl
 	inline CompressionSettings get_default_compression_settings()
 	{
 		CompressionSettings settings;
-		settings.level = CompressionLevel8::Medium;
-		settings.rotation_format = RotationFormat8::QuatDropW_Variable;
-		settings.translation_format = VectorFormat8::Vector3_Variable;
-		settings.scale_format = VectorFormat8::Vector3_Variable;
-		settings.range_reduction = RangeReductionFlags8::AllTracks;
+		settings.level = compression_level8::medium;
+		settings.rotation_format = rotation_format8::quatf_drop_w_variable;
+		settings.translation_format = vector_format8::vector3f_variable;
+		settings.scale_format = vector_format8::vector3f_variable;
+		settings.range_reduction = range_reduction_flags8::all_tracks;
 		settings.segmenting.enabled = true;
-		settings.segmenting.range_reduction = RangeReductionFlags8::AllTracks;
+		settings.segmenting.range_reduction = range_reduction_flags8::all_tracks;
 		return settings;
 	}
 

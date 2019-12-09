@@ -60,7 +60,7 @@ namespace acl
 			uint16_t		version;
 
 			// Algorithm type used to compress the tracks.
-			AlgorithmType8	algorithm_type;
+			algorithm_type8	algorithm_type;
 
 			// Type of the tracks contained in this compressed stream.
 			track_type8		track_type;
