@@ -40,10 +40,14 @@ namespace acl
 	enum class rotation_format8 : uint8_t
 	{
 		quatf_full					= 0,	// Full precision quaternion, [x,y,z,w] stored with float32
+		//quatf_variable			= 5,	// TODO Quantized quaternion, [x,y,z,w] stored with [N,N,N,N] bits (same number of bits per component)
 		quatf_drop_w_full			= 1,	// Full precision quaternion, [x,y,z] stored with float32 (w is dropped)
-		QuatDropW_48				= 2,	// Quantized quaternion, [x,y,z] stored with [16,16,16] bits (w is dropped)
-		QuatDropW_32				= 3,	// Quantized quaternion, [x,y,z] stored with [11,11,10] bits (w is dropped)
 		quatf_drop_w_variable		= 4,	// Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
+
+		//quatf_optimal				= 100,	// Mix of quatf_variable and quatf_drop_w_variable
+
+		//reserved					= 2,	// Legacy value, no longer used
+		//reserved					= 3,	// Legacy value, no longer used
 		// TODO: Implement these
 		//Quat_32_Largest,		// Quantized quaternion, [?,?,?] stored with [10,10,10] bits (largest component is dropped, component index stored on 2 bits)
 		//QuatLog_96,			// Full precision quaternion logarithm, [x,y,z] stored with float 32
@@ -58,9 +62,10 @@ namespace acl
 	enum class vector_format8 : uint8_t
 	{
 		vector3f_full				= 0,	// Full precision vector3f, [x,y,z] stored with float32
-		Vector3_48					= 1,	// Quantized vector3, [x,y,z] stored with [16,16,16] bits
-		Vector3_32					= 2,	// Quantized vector3, [x,y,z] stored with [11,11,10] bits
 		vector3f_variable			= 3,	// Quantized vector3f, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
+
+		//reserved					= 1,	// Legacy value, no longer used
+		//reserved					= 2,	// Legacy value, no longer used
 	};
 
 	union track_format8
@@ -256,8 +261,6 @@ namespace acl
 		{
 		case rotation_format8::quatf_full:				return "quatf_full";
 		case rotation_format8::quatf_drop_w_full:		return "quatf_drop_w_full";
-		case rotation_format8::QuatDropW_48:			return "QuatDropW_48";
-		case rotation_format8::QuatDropW_32:			return "QuatDropW_32";
 		case rotation_format8::quatf_drop_w_variable:	return "quatf_drop_w_variable";
 		default:										return "<Invalid>";
 		}
@@ -283,20 +286,6 @@ namespace acl
 			return true;
 		}
 
-		const char* quatdropw_48_format = "QuatDropW_48";
-		if (std::strncmp(format, quatdropw_48_format, std::strlen(quatdropw_48_format)) == 0)
-		{
-			out_format = rotation_format8::QuatDropW_48;
-			return true;
-		}
-
-		const char* quatdropw_32_format = "QuatDropW_32";
-		if (std::strncmp(format, quatdropw_32_format, std::strlen(quatdropw_32_format)) == 0)
-		{
-			out_format = rotation_format8::QuatDropW_32;
-			return true;
-		}
-
 		const char* quatdropw_variable_format = "QuatDropW_Variable";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
 		const char* quatf_drop_w_variable_format = "quatf_drop_w_variable";
 		if (std::strncmp(format, quatdropw_variable_format, std::strlen(quatdropw_variable_format)) == 0
@@ -315,8 +304,6 @@ namespace acl
 		switch (format)
 		{
 		case vector_format8::vector3f_full:			return "vector3f_full";
-		case vector_format8::Vector3_48:			return "Vector3_48";
-		case vector_format8::Vector3_32:			return "Vector3_32";
 		case vector_format8::vector3f_variable:		return "vector3f_variable";
 		default:									return "<Invalid>";
 		}
@@ -330,20 +317,6 @@ namespace acl
 			|| std::strncmp(format, vector3f_full_format, std::strlen(vector3f_full_format)) == 0)
 		{
 			out_format = vector_format8::vector3f_full;
-			return true;
-		}
-
-		const char* vector3_48_format = "Vector3_48";
-		if (std::strncmp(format, vector3_48_format, std::strlen(vector3_48_format)) == 0)
-		{
-			out_format = vector_format8::Vector3_48;
-			return true;
-		}
-
-		const char* vector3_32_format = "Vector3_32";
-		if (std::strncmp(format, vector3_32_format, std::strlen(vector3_32_format)) == 0)
-		{
-			out_format = vector_format8::Vector3_32;
 			return true;
 		}
 
@@ -367,26 +340,11 @@ namespace acl
 		case rotation_format8::quatf_full:
 			return rotation_variant8::quat;
 		case rotation_format8::quatf_drop_w_full:
-		case rotation_format8::QuatDropW_48:
-		case rotation_format8::QuatDropW_32:
 		case rotation_format8::quatf_drop_w_variable:
 			return rotation_variant8::quat_drop_w;
 		default:
 			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
 			return rotation_variant8::quat;
-		}
-	}
-
-	// TODO: constexpr
-	inline rotation_format8 get_lowest_variant_precision(rotation_variant8 variant)
-	{
-		switch (variant)
-		{
-		case rotation_variant8::quat:				return rotation_format8::quatf_full;
-		case rotation_variant8::quat_drop_w:		return rotation_format8::QuatDropW_32;
-		default:
-			ACL_ASSERT(false, "Invalid or unsupported rotation format: %u", (uint32_t)variant);
-			return rotation_format8::quatf_full;
 		}
 	}
 

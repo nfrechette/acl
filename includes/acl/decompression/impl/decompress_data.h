@@ -187,10 +187,6 @@ namespace acl
 						interpolated_rotation = unpack_quat_128(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
 					else if (rotation_format == rotation_format8::quatf_drop_w_full && settings.is_rotation_format_supported(rotation_format8::quatf_drop_w_full))
 						interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
-					else if (rotation_format == rotation_format8::QuatDropW_48 && settings.is_rotation_format_supported(rotation_format8::QuatDropW_48))
-						interpolated_rotation = unpack_quat_48(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
-					else if (rotation_format == rotation_format8::QuatDropW_32 && settings.is_rotation_format_supported(rotation_format8::QuatDropW_32))
-						interpolated_rotation = unpack_quat_32(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
 					else if (rotation_format == rotation_format8::quatf_drop_w_variable && settings.is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 						interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context.constant_track_data_offset);
 					else
@@ -275,21 +271,6 @@ namespace acl
 						{
 							for (size_t i = 0; i < num_key_frames; ++i)
 								rotations_as_vec[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
-						}
-						else if (rotation_format == rotation_format8::QuatDropW_48 && settings.is_rotation_format_supported(rotation_format8::QuatDropW_48))
-						{
-							for (size_t i = 0; i < num_key_frames; ++i)
-							{
-								if (are_clip_rotations_normalized)
-									rotations_as_vec[i] = unpack_vector3_u48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
-								else
-									rotations_as_vec[i] = unpack_vector3_s48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
-							}
-						}
-						else if (rotation_format == rotation_format8::QuatDropW_32 && settings.is_rotation_format_supported(rotation_format8::QuatDropW_32))
-						{
-							for (size_t i = 0; i < num_key_frames; ++i)
-								rotations_as_vec[i] = unpack_vector3_32(11, 11, 10, are_clip_rotations_normalized, decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 						}
 
 						const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
@@ -581,16 +562,6 @@ namespace acl
 						{
 							for (size_t i = 0; i < num_key_frames; ++i)
 								vectors[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
-						}
-						else if (format == vector_format8::Vector3_48 && settings.is_vector_format_supported(vector_format8::Vector3_48))
-						{
-							for (size_t i = 0; i < num_key_frames; ++i)
-								vectors[i] = unpack_vector3_u48_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
-						}
-						else if (format == vector_format8::Vector3_32 && settings.is_vector_format_supported(vector_format8::Vector3_32))
-						{
-							for (size_t i = 0; i < num_key_frames; ++i)
-								vectors[i] = unpack_vector3_32(11, 11, 10, true, decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
 						}
 
 						const uint32_t sample_size = get_packed_vector_size(format);

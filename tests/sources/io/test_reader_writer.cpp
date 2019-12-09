@@ -210,9 +210,9 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	settings.error_threshold = 0.23F;
 	settings.level = compression_level8::high;
 	settings.range_reduction = range_reduction_flags8::rotations | range_reduction_flags8::scales;
-	settings.rotation_format = rotation_format8::QuatDropW_48;
-	settings.scale_format = vector_format8::vector3f_full;
-	settings.translation_format = vector_format8::Vector3_32;
+	settings.rotation_format = rotation_format8::quatf_drop_w_variable;
+	settings.scale_format = vector_format8::vector3f_variable;
+	settings.translation_format = vector_format8::vector3f_variable;
 	settings.segmenting.enabled = false;
 	settings.segmenting.ideal_num_samples = 23;
 	settings.segmenting.max_num_samples = 123;

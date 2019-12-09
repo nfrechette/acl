@@ -552,6 +552,4 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 TEST_CASE("misc vector4 packing", "[math][vector4][packing]")
 {
 	REQUIRE(get_packed_vector_size(vector_format8::vector3f_full) == 12);
-	REQUIRE(get_packed_vector_size(vector_format8::Vector3_48) == 6);
-	REQUIRE(get_packed_vector_size(vector_format8::Vector3_32) == 4);
 }

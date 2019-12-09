@@ -95,10 +95,8 @@ namespace acl
 	{
 		switch (format)
 		{
-		case rotation_format8::quatf_full:	return sizeof(float) * 4;
-		case rotation_format8::quatf_drop_w_full:	return sizeof(float) * 3;
-		case rotation_format8::QuatDropW_48:	return sizeof(uint16_t) * 3;
-		case rotation_format8::QuatDropW_32:	return sizeof(uint32_t);
+		case rotation_format8::quatf_full:				return sizeof(float) * 4;
+		case rotation_format8::quatf_drop_w_full:		return sizeof(float) * 3;
 		case rotation_format8::quatf_drop_w_variable:
 		default:
 			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
@@ -113,8 +111,6 @@ namespace acl
 		case rotation_format8::quatf_full:
 			return sizeof(float) * 8;
 		case rotation_format8::quatf_drop_w_full:
-		case rotation_format8::QuatDropW_48:
-		case rotation_format8::QuatDropW_32:
 		case rotation_format8::quatf_drop_w_variable:
 			return sizeof(float) * 6;
 		default:

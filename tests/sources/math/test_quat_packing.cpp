@@ -83,12 +83,8 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 
 	REQUIRE(get_packed_rotation_size(rotation_format8::quatf_full) == 16);
 	REQUIRE(get_packed_rotation_size(rotation_format8::quatf_drop_w_full) == 12);
-	REQUIRE(get_packed_rotation_size(rotation_format8::QuatDropW_48) == 6);
-	REQUIRE(get_packed_rotation_size(rotation_format8::QuatDropW_32) == 4);
 
 	REQUIRE(get_range_reduction_rotation_size(rotation_format8::quatf_full) == 32);
 	REQUIRE(get_range_reduction_rotation_size(rotation_format8::quatf_drop_w_full) == 24);
-	REQUIRE(get_range_reduction_rotation_size(rotation_format8::QuatDropW_48) == 24);
-	REQUIRE(get_range_reduction_rotation_size(rotation_format8::QuatDropW_32) == 24);
 	REQUIRE(get_range_reduction_rotation_size(rotation_format8::quatf_drop_w_variable) == 24);
 }

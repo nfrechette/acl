@@ -214,8 +214,6 @@ namespace acl
 						ACL_ASSERT(rtm::vector_all_greater_equal(normalized_rotation, zero) && rtm::vector_all_less_equal(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_rotation), rtm::vector_get_y(normalized_rotation), rtm::vector_get_z(normalized_rotation), rtm::vector_get_w(normalized_rotation));
 						break;
 					case rotation_format8::quatf_drop_w_full:
-					case rotation_format8::QuatDropW_48:
-					case rotation_format8::QuatDropW_32:
 					case rotation_format8::quatf_drop_w_variable:
 						ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_rotation, zero) && rtm::vector_all_less_equal3(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", rtm::vector_get_x(normalized_rotation), rtm::vector_get_y(normalized_rotation), rtm::vector_get_z(normalized_rotation));
 						break;

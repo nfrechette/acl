@@ -54,10 +54,6 @@ namespace acl
 				return unpack_vector4_128(ptr);
 			case rotation_format8::quatf_drop_w_full:
 				return unpack_vector3_96_unsafe(ptr);
-			case rotation_format8::QuatDropW_48:
-				return is_normalized ? unpack_vector3_u48_unsafe(ptr) : unpack_vector3_s48_unsafe(ptr);
-			case rotation_format8::QuatDropW_32:
-				return unpack_vector3_32(11, 11, 10, is_normalized, ptr);
 			case rotation_format8::quatf_drop_w_variable:
 			{
 				if (is_constant_bit_rate(bit_rate))
@@ -88,10 +84,6 @@ namespace acl
 			{
 			case vector_format8::vector3f_full:
 				return unpack_vector3_96_unsafe(ptr);
-			case vector_format8::Vector3_48:
-				return unpack_vector3_u48_unsafe(ptr);
-			case vector_format8::Vector3_32:
-				return unpack_vector3_32(11, 11, 10, true, ptr);
 			case vector_format8::vector3f_variable:
 				ACL_ASSERT(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
@@ -116,8 +108,6 @@ namespace acl
 			case rotation_format8::quatf_full:
 				return rtm::vector_to_quat(rotation);
 			case rotation_format8::quatf_drop_w_full:
-			case rotation_format8::QuatDropW_48:
-			case rotation_format8::QuatDropW_32:
 			case rotation_format8::quatf_drop_w_variable:
 				return rtm::quat_from_positive_w(rotation);
 			default:
@@ -253,12 +243,6 @@ namespace acl
 			case rotation_format8::quatf_full:
 			case rotation_format8::quatf_drop_w_full:
 				packed_rotation = rotation;
-				break;
-			case rotation_format8::QuatDropW_48:
-				packed_rotation = are_rotations_normalized ? decay_vector3_u48(rotation) : decay_vector3_s48(rotation);
-				break;
-			case rotation_format8::QuatDropW_32:
-				packed_rotation = are_rotations_normalized ? decay_vector3_u32(rotation, 11, 11, 10) : decay_vector3_s32(rotation, 11, 11, 10);
 				break;
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(desired_format));
@@ -407,14 +391,6 @@ namespace acl
 			case vector_format8::vector3f_full:
 				packed_translation = translation;
 				break;
-			case vector_format8::Vector3_48:
-				ACL_ASSERT(are_translations_normalized, "Translations must be normalized to support this format");
-				packed_translation = decay_vector3_u48(translation);
-				break;
-			case vector_format8::Vector3_32:
-				ACL_ASSERT(are_translations_normalized, "Translations must be normalized to support this format");
-				packed_translation = decay_vector3_u32(translation, 11, 11, 10);
-				break;
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
 				packed_translation = rtm::vector_zero();
@@ -561,14 +537,6 @@ namespace acl
 			{
 			case vector_format8::vector3f_full:
 				packed_scale = scale;
-				break;
-			case vector_format8::Vector3_48:
-				ACL_ASSERT(are_scales_normalized, "Scales must be normalized to support this format");
-				packed_scale = decay_vector3_u48(scale);
-				break;
-			case vector_format8::Vector3_32:
-				ACL_ASSERT(are_scales_normalized, "Scales must be normalized to support this format");
-				packed_scale = decay_vector3_u32(scale, 11, 11, 10);
 				break;
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
