@@ -83,23 +83,23 @@ namespace acl
 			uint32_t get_num_samples() const { return m_num_samples; }
 			uint32_t get_sample_size() const { return m_sample_size; }
 			float get_sample_rate() const { return m_sample_rate; }
-			AnimationTrackType8 get_track_type() const { return m_type; }
+			animation_track_type8 get_track_type() const { return m_type; }
 			uint8_t get_bit_rate() const { return m_bit_rate; }
 			bool is_bit_rate_variable() const { return m_bit_rate != k_invalid_bit_rate; }
 			float get_duration() const { return calculate_duration(m_num_samples, m_sample_rate); }
 
 			uint32_t get_packed_sample_size() const
 			{
-				if (m_type == AnimationTrackType8::Rotation)
+				if (m_type == animation_track_type8::rotation)
 					return get_packed_rotation_size(m_format.rotation);
 				else
 					return get_packed_vector_size(m_format.vector);
 			}
 
 		protected:
-			TrackStream(AnimationTrackType8 type, TrackFormat8 format) : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_sample_rate(0.0F), m_type(type), m_format(format), m_bit_rate(0) {}
+			TrackStream(animation_track_type8 type, track_format8 format) : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_sample_rate(0.0F), m_type(type), m_format(format), m_bit_rate(0) {}
 
-			TrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, AnimationTrackType8 type, TrackFormat8 format, uint8_t bit_rate)
+			TrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, animation_track_type8 type, track_format8 format, uint8_t bit_rate)
 				: m_allocator(&allocator)
 				, m_samples(reinterpret_cast<uint8_t*>(allocator.allocate(sample_size * num_samples + k_padding, 16)))
 				, m_num_samples(num_samples)
@@ -170,17 +170,17 @@ namespace acl
 			uint32_t				m_sample_size;
 			float					m_sample_rate;
 
-			AnimationTrackType8		m_type;
-			TrackFormat8			m_format;
+			animation_track_type8		m_type;
+			track_format8			m_format;
 			uint8_t					m_bit_rate;
 			};
 
 		class RotationTrackStream final : public TrackStream
 		{
 		public:
-			RotationTrackStream() : TrackStream(AnimationTrackType8::Rotation, TrackFormat8(RotationFormat8::Quat_128)) {}
-			RotationTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, RotationFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
-				: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Rotation, TrackFormat8(format), bit_rate)
+			RotationTrackStream() : TrackStream(animation_track_type8::rotation, track_format8(rotation_format8::quatf_full)) {}
+			RotationTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, rotation_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
+				: TrackStream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::rotation, track_format8(format), bit_rate)
 			{}
 			RotationTrackStream(const RotationTrackStream&) = delete;
 			RotationTrackStream(RotationTrackStream&& other)
@@ -202,15 +202,15 @@ namespace acl
 				return copy;
 			}
 
-			RotationFormat8 get_rotation_format() const { return m_format.rotation; }
+			rotation_format8 get_rotation_format() const { return m_format.rotation; }
 		};
 
 		class TranslationTrackStream final : public TrackStream
 		{
 		public:
-			TranslationTrackStream() : TrackStream(AnimationTrackType8::Translation, TrackFormat8(VectorFormat8::Vector3_96)) {}
-			TranslationTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, VectorFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
-				: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Translation, TrackFormat8(format), bit_rate)
+			TranslationTrackStream() : TrackStream(animation_track_type8::translation, track_format8(vector_format8::vector3f_full)) {}
+			TranslationTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, vector_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
+				: TrackStream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::translation, track_format8(format), bit_rate)
 			{}
 			TranslationTrackStream(const TranslationTrackStream&) = delete;
 			TranslationTrackStream(TranslationTrackStream&& other)
@@ -232,15 +232,15 @@ namespace acl
 				return copy;
 			}
 
-			VectorFormat8 get_vector_format() const { return m_format.vector; }
+			vector_format8 get_vector_format() const { return m_format.vector; }
 		};
 
 		class ScaleTrackStream final : public TrackStream
 		{
 		public:
-			ScaleTrackStream() : TrackStream(AnimationTrackType8::Scale, TrackFormat8(VectorFormat8::Vector3_96)) {}
-			ScaleTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, VectorFormat8 format, uint8_t bit_rate = k_invalid_bit_rate)
-				: TrackStream(allocator, num_samples, sample_size, sample_rate, AnimationTrackType8::Scale, TrackFormat8(format), bit_rate)
+			ScaleTrackStream() : TrackStream(animation_track_type8::scale, track_format8(vector_format8::vector3f_full)) {}
+			ScaleTrackStream(IAllocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, vector_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
+				: TrackStream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::scale, track_format8(format), bit_rate)
 			{}
 			ScaleTrackStream(const ScaleTrackStream&) = delete;
 			ScaleTrackStream(ScaleTrackStream&& other)
@@ -262,7 +262,7 @@ namespace acl
 				return copy;
 			}
 
-			VectorFormat8 get_vector_format() const { return m_format.vector; }
+			vector_format8 get_vector_format() const { return m_format.vector; }
 		};
 
 		// For a rotation track, the extent only tells us if the track is constant or not

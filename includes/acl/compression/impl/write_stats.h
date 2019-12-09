@@ -46,7 +46,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline void write_summary_segment_stats(const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, sjson::ObjectWriter& writer)
+		inline void write_summary_segment_stats(const SegmentContext& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, sjson::ObjectWriter& writer)
 		{
 			writer["segment_index"] = segment.segment_index;
 			writer["num_samples"] = segment.num_samples;
@@ -228,7 +228,7 @@ namespace acl
 			const double compression_ratio = double(raw_size) / double(compressed_size);
 
 			sjson::ObjectWriter& writer = *stats.writer;
-			writer["algorithm_name"] = get_algorithm_name(AlgorithmType8::UniformlySampled);
+			writer["algorithm_name"] = get_algorithm_name(algorithm_type8::uniformly_sampled);
 			writer["algorithm_uid"] = settings.get_hash();
 			writer["clip_name"] = clip.get_name().c_str();
 			writer["raw_size"] = raw_size;

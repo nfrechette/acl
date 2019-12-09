@@ -1,6 +1,6 @@
 version = 1
 
-algorithm_name = "UniformlySampled"
+algorithm_name = "uniformly_sampled"
 
 rotation_format = "QuatDropW_48"
 translation_format = "Vector3_48"

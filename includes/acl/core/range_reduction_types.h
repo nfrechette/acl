@@ -40,50 +40,50 @@ namespace acl
 	constexpr uint32_t k_clip_range_reduction_vector3_range_size = sizeof(float) * 6;
 
 	////////////////////////////////////////////////////////////////////////////////
-	// RangeReductionFlags8 represents the types of range reduction we support as a bit field.
+	// range_reduction_flags8 represents the types of range reduction we support as a bit field.
 	//
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
 	// The range reduction strategy is serialized in the compressed data, if you change a value
 	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
-	enum class RangeReductionFlags8 : uint8_t
+	enum class range_reduction_flags8 : uint8_t
 	{
-		None				= 0x00,
+		none				= 0x00,
 
 		// Flags to determine which tracks have range reduction applied
-		Rotations			= 0x01,
-		Translations		= 0x02,
-		Scales				= 0x04,
+		rotations			= 0x01,
+		translations		= 0x02,
+		scales				= 0x04,
 		//Properties		= 0x08,		// TODO: Implement this
 
-		AllTracks			= 0x07,
+		all_tracks			= 0x07,		// rotations | translations | scales
 	};
 
-	ACL_IMPL_ENUM_FLAGS_OPERATORS(RangeReductionFlags8)
+	ACL_IMPL_ENUM_FLAGS_OPERATORS(range_reduction_flags8)
 
 	//////////////////////////////////////////////////////////////////////////
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns a string of the algorithm name suitable for display.
 	// TODO: constexpr
-	inline const char* get_range_reduction_name(RangeReductionFlags8 flags)
+	inline const char* get_range_reduction_name(range_reduction_flags8 flags)
 	{
 		// Some compilers have trouble with constexpr operator| with enums in a case switch statement
-		if (flags == RangeReductionFlags8::None)
-			return "RangeReduction::None";
-		else if (flags == RangeReductionFlags8::Rotations)
-			return "RangeReduction::Rotations";
-		else if (flags == RangeReductionFlags8::Translations)
-			return "RangeReduction::Translations";
-		else if (flags == RangeReductionFlags8::Scales)
-			return "RangeReduction::Scales";
-		else if (flags == (RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations))
-			return "RangeReduction::Rotations | RangeReduction::Translations";
-		else if (flags == (RangeReductionFlags8::Rotations | RangeReductionFlags8::Scales))
-			return "RangeReduction::Rotations | RangeReduction::Scales";
-		else if (flags == (RangeReductionFlags8::Translations | RangeReductionFlags8::Scales))
-			return "RangeReduction::Translations | RangeReduction::Scales";
-		else if (flags == (RangeReductionFlags8::Rotations | RangeReductionFlags8::Translations | RangeReductionFlags8::Scales))
-			return "RangeReduction::Rotations | RangeReduction::Translations | RangeReduction::Scales";
+		if (flags == range_reduction_flags8::none)
+			return "range_reduction::none";
+		else if (flags == range_reduction_flags8::rotations)
+			return "range_reduction::rotations";
+		else if (flags == range_reduction_flags8::translations)
+			return "range_reduction::translations";
+		else if (flags == range_reduction_flags8::scales)
+			return "range_reduction::scales";
+		else if (flags == (range_reduction_flags8::rotations | range_reduction_flags8::translations))
+			return "range_reduction::rotations | range_reduction::translations";
+		else if (flags == (range_reduction_flags8::rotations | range_reduction_flags8::scales))
+			return "range_reduction::rotations | range_reduction::scales";
+		else if (flags == (range_reduction_flags8::translations | range_reduction_flags8::scales))
+			return "range_reduction::translations | range_reduction::scales";
+		else if (flags == (range_reduction_flags8::rotations | range_reduction_flags8::translations | range_reduction_flags8::scales))
+			return "range_reduction::rotations | range_reduction::translations | range_reduction::scales";
 		else
 			return "<Invalid>";
 	}

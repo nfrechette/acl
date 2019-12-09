@@ -394,59 +394,59 @@ def compress_clips(options):
 	return stat_files
 
 def shorten_range_reduction(range_reduction):
-	if range_reduction == 'RangeReduction::None':
+	if range_reduction == 'range_reduction::none':
 		return 'RR:None'
-	elif range_reduction == 'RangeReduction::Rotations':
+	elif range_reduction == 'range_reduction::rotations':
 		return 'RR:Rot'
-	elif range_reduction == 'RangeReduction::Translations':
+	elif range_reduction == 'range_reduction::translations':
 		return 'RR:Trans'
-	elif range_reduction == 'RangeReduction::Scales':
+	elif range_reduction == 'range_reduction::scales':
 		return 'RR:Scale'
-	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations':
+	elif range_reduction == 'range_reduction::rotations | range_reduction::translations':
 		return 'RR:Rot|Trans'
-	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Scales':
+	elif range_reduction == 'range_reduction::rotations | range_reduction::scales':
 		return 'RR:Rot|Scale'
-	elif range_reduction == 'RangeReduction::Translations | RangeReduction::Scales':
+	elif range_reduction == 'range_reduction::translations | range_reduction::scales':
 		return 'RR:Trans|Scale'
-	elif range_reduction == 'RangeReduction::Rotations | RangeReduction::Translations | RangeReduction::Scales':
+	elif range_reduction == 'range_reduction::rotations | range_reduction::translations | range_reduction::scales':
 		return 'RR:Rot|Trans|Scale'
 	else:
 		return 'RR:???'
 
 def shorten_rotation_format(format):
-	if format == 'Quat_128':
+	if format == 'quatf_full':
 		return 'R:Quat'
-	elif format == 'QuatDropW_96':
+	elif format == 'quatf_drop_w_full':
 		return 'R:QuatNoW96'
 	elif format == 'QuatDropW_48':
 		return 'R:QuatNoW48'
 	elif format == 'QuatDropW_32':
 		return 'R:QuatNoW32'
-	elif format == 'QuatDropW_Variable':
+	elif format == 'quatf_drop_w_variable':
 		return 'R:QuatNoWVar'
 	else:
 		return 'R:???'
 
 def shorten_translation_format(format):
-	if format == 'Vector3_96':
+	if format == 'vector3f_full':
 		return 'T:Vec3_96'
 	elif format == 'Vector3_48':
 		return 'T:Vec3_48'
 	elif format == 'Vector3_32':
 		return 'T:Vec3_32'
-	elif format == 'Vector3_Variable':
+	elif format == 'vector3f_variable':
 		return 'T:Vec3Var'
 	else:
 		return 'T:???'
 
 def shorten_scale_format(format):
-	if format == 'Vector3_96':
+	if format == 'vector3f_full':
 		return 'S:Vec3_96'
 	elif format == 'Vector3_48':
 		return 'S:Vec3_48'
 	elif format == 'Vector3_32':
 		return 'S:Vec3_32'
-	elif format == 'Vector3_Variable':
+	elif format == 'vector3f_variable':
 		return 'S:Vec3Var'
 	else:
 		return 'S:???'

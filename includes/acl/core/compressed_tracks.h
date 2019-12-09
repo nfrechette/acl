@@ -59,7 +59,7 @@ namespace acl
 	public:
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns the algorithm type used to compress the tracks.
-		AlgorithmType8 get_algorithm_type() const { return m_tracks_header.algorithm_type; }
+		algorithm_type8 get_algorithm_type() const { return m_tracks_header.algorithm_type; }
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns the size in bytes of the compressed tracks.

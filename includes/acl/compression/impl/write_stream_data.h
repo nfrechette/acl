@@ -89,7 +89,7 @@ namespace acl
 			}
 		}
 
-		inline void calculate_animated_data_size(ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
+		inline void calculate_animated_data_size(ClipContext& clip_context, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 		{
 			// If all tracks are variable, no need for any extra padding except at the very end of the data
 			// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
@@ -122,7 +122,7 @@ namespace acl
 			}
 		}
 
-		inline uint32_t get_format_per_track_data_size(const ClipContext& clip_context, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format)
+		inline uint32_t get_format_per_track_data_size(const ClipContext& clip_context, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -241,7 +241,7 @@ namespace acl
 			}
 		}
 
-		inline void write_animated_track_data(const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, uint8_t* animated_track_data, uint32_t animated_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
+		inline void write_animated_track_data(const SegmentContext& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, uint8_t* animated_track_data, uint32_t animated_data_size, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 		{
 			ACL_ASSERT(animated_track_data != nullptr, "'animated_track_data' cannot be null!");
 			(void)animated_data_size;

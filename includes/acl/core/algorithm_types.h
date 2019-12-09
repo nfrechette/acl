@@ -34,14 +34,14 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 namespace acl
 {
 	////////////////////////////////////////////////////////////////////////////////
-	// AlgorithmType8 is an enum that represents every supported algorithm.
+	// algorithm_type8 is an enum that represents every supported algorithm.
 	//
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
 	// The algorithm type is serialized in the compressed data, if you change a value
 	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
-	enum class AlgorithmType8 : uint8_t
+	enum class algorithm_type8 : uint8_t
 	{
-		UniformlySampled			= 0,
+		uniformly_sampled				= 0,
 		//LinearKeyReduction			= 1,
 		//SplineKeyReduction			= 2,
 	};
@@ -52,13 +52,13 @@ namespace acl
 	// Returns true if the algorithm type is a valid value. Used to validate if
 	// memory has been corrupted.
 	// TODO: constexpr
-	inline bool is_valid_algorithm_type(AlgorithmType8 type)
+	inline bool is_valid_algorithm_type(algorithm_type8 type)
 	{
 		switch (type)
 		{
-			case AlgorithmType8::UniformlySampled:
-			//case AlgorithmType8::LinearKeyReduction:
-			//case AlgorithmType8::SplineKeyReduction:
+			case algorithm_type8::uniformly_sampled:
+			//case algorithm_type8::LinearKeyReduction:
+			//case algorithm_type8::SplineKeyReduction:
 				return true;
 			default:
 				return false;
@@ -68,13 +68,13 @@ namespace acl
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns a string of the algorithm name suitable for display.
 	// TODO: constexpr
-	inline const char* get_algorithm_name(AlgorithmType8 type)
+	inline const char* get_algorithm_name(algorithm_type8 type)
 	{
 		switch (type)
 		{
-			case AlgorithmType8::UniformlySampled:		return "UniformlySampled";
-			//case AlgorithmType8::LinearKeyReduction:	return "LinearKeyReduction";
-			//case AlgorithmType8::SplineKeyReduction:	return "SplineKeyReduction";
+			case algorithm_type8::uniformly_sampled:	return "uniformly_sampled";
+			//case algorithm_type8::LinearKeyReduction:	return "LinearKeyReduction";
+			//case algorithm_type8::SplineKeyReduction:	return "SplineKeyReduction";
 			default:									return "<Invalid>";
 		}
 	}
@@ -84,12 +84,14 @@ namespace acl
 	//
 	// type: A string representing the algorithm name to parse. It must match the get_algorithm_name(..) output.
 	// out_type: On success, it will contain the the parsed algorithm type otherwise it is left untouched.
-	inline bool get_algorithm_type(const char* type, AlgorithmType8& out_type)
+	inline bool get_algorithm_type(const char* type, algorithm_type8& out_type)
 	{
-		const char* uniformly_sampled_name = "UniformlySampled";
-		if (std::strncmp(type, uniformly_sampled_name, std::strlen(uniformly_sampled_name)) == 0)
+		const char* uniformly_sampled_name = "UniformlySampled";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
+		const char* uniformly_sampled_name_new = "uniformly_sampled";
+		if (std::strncmp(type, uniformly_sampled_name, std::strlen(uniformly_sampled_name)) == 0
+			|| std::strncmp(type, uniformly_sampled_name_new, std::strlen(uniformly_sampled_name_new)) == 0)
 		{
-			out_type = AlgorithmType8::UniformlySampled;
+			out_type = algorithm_type8::uniformly_sampled;
 			return true;
 		}
 

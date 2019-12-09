@@ -174,14 +174,14 @@ namespace acl
 			{
 				explicit TranslationDecompressionSettingsAdapter(const SettingsType& settings_) : settings(settings_) {}
 
-				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Translations; }
+				constexpr range_reduction_flags8 get_range_reduction_flag() const { return range_reduction_flags8::translations; }
 				inline rtm::vector4f RTM_SIMD_CALL get_default_value() const { return rtm::vector_zero(); }
-				constexpr VectorFormat8 get_vector_format(const ClipHeader& header) const { return settings.get_translation_format(header.translation_format); }
-				constexpr bool is_vector_format_supported(VectorFormat8 format) const { return settings.is_translation_format_supported(format); }
+				constexpr vector_format8 get_vector_format(const ClipHeader& header) const { return settings.get_translation_format(header.translation_format); }
+				constexpr bool is_vector_format_supported(vector_format8 format) const { return settings.is_translation_format_supported(format); }
 
 				// Just forward the calls
-				constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return settings.get_clip_range_reduction(flags); }
-				constexpr RangeReductionFlags8 get_segment_range_reduction(RangeReductionFlags8 flags) const { return settings.get_segment_range_reduction(flags); }
+				constexpr range_reduction_flags8 get_clip_range_reduction(range_reduction_flags8 flags) const { return settings.get_clip_range_reduction(flags); }
+				constexpr range_reduction_flags8 get_segment_range_reduction(range_reduction_flags8 flags) const { return settings.get_segment_range_reduction(flags); }
 				constexpr bool supports_mixed_packing() const { return settings.supports_mixed_packing(); }
 
 				SettingsType settings;
@@ -195,14 +195,14 @@ namespace acl
 					, default_scale(header.default_scale ? rtm::vector_set(1.0F) : rtm::vector_zero())
 				{}
 
-				constexpr RangeReductionFlags8 get_range_reduction_flag() const { return RangeReductionFlags8::Scales; }
+				constexpr range_reduction_flags8 get_range_reduction_flag() const { return range_reduction_flags8::scales; }
 				inline rtm::vector4f RTM_SIMD_CALL get_default_value() const { return default_scale; }
-				constexpr VectorFormat8 get_vector_format(const ClipHeader& header) const { return settings.get_scale_format(header.scale_format); }
-				constexpr bool is_vector_format_supported(VectorFormat8 format) const { return settings.is_scale_format_supported(format); }
+				constexpr vector_format8 get_vector_format(const ClipHeader& header) const { return settings.get_scale_format(header.scale_format); }
+				constexpr bool is_vector_format_supported(vector_format8 format) const { return settings.is_scale_format_supported(format); }
 
 				// Just forward the calls
-				constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return settings.get_clip_range_reduction(flags); }
-				constexpr RangeReductionFlags8 get_segment_range_reduction(RangeReductionFlags8 flags) const { return settings.get_segment_range_reduction(flags); }
+				constexpr range_reduction_flags8 get_clip_range_reduction(range_reduction_flags8 flags) const { return settings.get_clip_range_reduction(flags); }
+				constexpr range_reduction_flags8 get_segment_range_reduction(range_reduction_flags8 flags) const { return settings.get_segment_range_reduction(flags); }
 				constexpr bool supports_mixed_packing() const { return settings.supports_mixed_packing(); }
 
 				SettingsType settings;
@@ -223,17 +223,17 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		struct DecompressionSettings
 		{
-			constexpr bool is_rotation_format_supported(RotationFormat8 /*format*/) const { return true; }
-			constexpr bool is_translation_format_supported(VectorFormat8 /*format*/) const { return true; }
-			constexpr bool is_scale_format_supported(VectorFormat8 /*format*/) const { return true; }
-			constexpr RotationFormat8 get_rotation_format(RotationFormat8 format) const { return format; }
-			constexpr VectorFormat8 get_translation_format(VectorFormat8 format) const { return format; }
-			constexpr VectorFormat8 get_scale_format(VectorFormat8 format) const { return format; }
+			constexpr bool is_rotation_format_supported(rotation_format8 /*format*/) const { return true; }
+			constexpr bool is_translation_format_supported(vector_format8 /*format*/) const { return true; }
+			constexpr bool is_scale_format_supported(vector_format8 /*format*/) const { return true; }
+			constexpr rotation_format8 get_rotation_format(rotation_format8 format) const { return format; }
+			constexpr vector_format8 get_translation_format(vector_format8 format) const { return format; }
+			constexpr vector_format8 get_scale_format(vector_format8 format) const { return format; }
 
-			constexpr bool are_clip_range_reduction_flags_supported(RangeReductionFlags8 /*flags*/) const { return true; }
-			constexpr bool are_segment_range_reduction_flags_supported(RangeReductionFlags8 /*flags*/) const { return true; }
-			constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 flags) const { return flags; }
-			constexpr RangeReductionFlags8 get_segment_range_reduction(RangeReductionFlags8 flags) const { return flags; }
+			constexpr bool are_clip_range_reduction_flags_supported(range_reduction_flags8 /*flags*/) const { return true; }
+			constexpr bool are_segment_range_reduction_flags_supported(range_reduction_flags8 /*flags*/) const { return true; }
+			constexpr range_reduction_flags8 get_clip_range_reduction(range_reduction_flags8 flags) const { return flags; }
+			constexpr range_reduction_flags8 get_segment_range_reduction(range_reduction_flags8 flags) const { return flags; }
 
 			// Whether tracks must all be variable or all fixed width, or if they can be mixed and require padding.
 			constexpr bool supports_mixed_packing() const { return true; }
@@ -255,19 +255,19 @@ namespace acl
 		// These are the default settings. Only the generally optimal settings
 		// are enabled and will offer the overall best performance.
 		//
-		// Note: Segment range reduction supports AllTracks or None because it can
+		// Note: Segment range reduction supports all_tracks or none because it can
 		// be disabled if there is a single segment.
 		//////////////////////////////////////////////////////////////////////////
 		struct DefaultDecompressionSettings : DecompressionSettings
 		{
-			constexpr bool is_rotation_format_supported(RotationFormat8 format) const { return format == RotationFormat8::QuatDropW_Variable; }
-			constexpr bool is_translation_format_supported(VectorFormat8 format) const { return format == VectorFormat8::Vector3_Variable; }
-			constexpr bool is_scale_format_supported(VectorFormat8 format) const { return format == VectorFormat8::Vector3_Variable; }
-			constexpr RotationFormat8 get_rotation_format(RotationFormat8 /*format*/) const { return RotationFormat8::QuatDropW_Variable; }
-			constexpr VectorFormat8 get_translation_format(VectorFormat8 /*format*/) const { return VectorFormat8::Vector3_Variable; }
-			constexpr VectorFormat8 get_scale_format(VectorFormat8 /*format*/) const { return VectorFormat8::Vector3_Variable; }
+			constexpr bool is_rotation_format_supported(rotation_format8 format) const { return format == rotation_format8::quatf_drop_w_variable; }
+			constexpr bool is_translation_format_supported(vector_format8 format) const { return format == vector_format8::vector3f_variable; }
+			constexpr bool is_scale_format_supported(vector_format8 format) const { return format == vector_format8::vector3f_variable; }
+			constexpr rotation_format8 get_rotation_format(rotation_format8 /*format*/) const { return rotation_format8::quatf_drop_w_variable; }
+			constexpr vector_format8 get_translation_format(vector_format8 /*format*/) const { return vector_format8::vector3f_variable; }
+			constexpr vector_format8 get_scale_format(vector_format8 /*format*/) const { return vector_format8::vector3f_variable; }
 
-			constexpr RangeReductionFlags8 get_clip_range_reduction(RangeReductionFlags8 /*flags*/) const { return RangeReductionFlags8::AllTracks; }
+			constexpr range_reduction_flags8 get_clip_range_reduction(range_reduction_flags8 /*flags*/) const { return range_reduction_flags8::all_tracks; }
 
 			constexpr bool supports_mixed_packing() const { return false; }
 		};
@@ -316,7 +316,7 @@ namespace acl
 
 			//////////////////////////////////////////////////////////////////////////
 			// Seeks within the compressed clip to a particular point in time
-			void seek(float sample_time, SampleRoundingPolicy rounding_policy);
+			void seek(float sample_time, sample_rounding_policy rounding_policy);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Decompress a full pose at the current sample time.
@@ -393,17 +393,17 @@ namespace acl
 		inline void DecompressionContext<DecompressionSettingsType>::initialize(const CompressedClip& clip)
 		{
 			ACL_ASSERT(clip.is_valid(false).empty(), "CompressedClip is not valid");
-			ACL_ASSERT(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
+			ACL_ASSERT(clip.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
 
 			const ClipHeader& header = get_clip_header(clip);
 
-			const RotationFormat8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
-			const VectorFormat8 translation_format = m_settings.get_translation_format(header.translation_format);
-			const VectorFormat8 scale_format = m_settings.get_translation_format(header.scale_format);
+			const rotation_format8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
+			const vector_format8 translation_format = m_settings.get_translation_format(header.translation_format);
+			const vector_format8 scale_format = m_settings.get_translation_format(header.scale_format);
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
-			const RangeReductionFlags8 clip_range_reduction = m_settings.get_clip_range_reduction(header.clip_range_reduction);
-			const RangeReductionFlags8 segment_range_reduction = m_settings.get_segment_range_reduction(header.segment_range_reduction);
+			const range_reduction_flags8 clip_range_reduction = m_settings.get_clip_range_reduction(header.clip_range_reduction);
+			const range_reduction_flags8 segment_range_reduction = m_settings.get_segment_range_reduction(header.segment_range_reduction);
 
 			ACL_ASSERT(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
 			ACL_ASSERT(m_settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
@@ -436,7 +436,7 @@ namespace acl
 
 			const uint32_t num_tracks_per_bone = header.has_scale ? 3 : 2;
 			m_context.bitset_desc = BitSetDescription::make_from_num_bits(header.num_bones * num_tracks_per_bone);
-			m_context.num_rotation_components = rotation_format == RotationFormat8::Quat_128 ? 4 : 3;
+			m_context.num_rotation_components = rotation_format == rotation_format8::quatf_full ? 4 : 3;
 
 			// If all tracks are variable, no need for any extra padding except at the very end of the data
 			// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
@@ -458,7 +458,7 @@ namespace acl
 		}
 
 		template<class DecompressionSettingsType>
-		inline void DecompressionContext<DecompressionSettingsType>::seek(float sample_time, SampleRoundingPolicy rounding_policy)
+		inline void DecompressionContext<DecompressionSettingsType>::seek(float sample_time, sample_rounding_policy rounding_policy)
 		{
 			ACL_ASSERT(m_context.clip != nullptr, "Context is not initialized");
 
@@ -639,9 +639,9 @@ namespace acl
 			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
 			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
 
-			const RotationFormat8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
-			const VectorFormat8 translation_format = m_settings.get_translation_format(header.translation_format);
-			const VectorFormat8 scale_format = m_settings.get_translation_format(header.scale_format);
+			const rotation_format8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
+			const vector_format8 translation_format = m_settings.get_translation_format(header.translation_format);
+			const vector_format8 scale_format = m_settings.get_translation_format(header.scale_format);
 
 			const bool are_all_tracks_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
 			const bool has_mixed_padding_or_fixed_quantization = (m_settings.supports_mixed_packing() && m_context.has_mixed_packing) || !are_all_tracks_variable;
@@ -752,27 +752,27 @@ namespace acl
 				const uint32_t num_animated_rotations = sample_bone_index - num_constant_rotations;
 				const uint32_t num_animated_translations = sample_bone_index - num_constant_translations;
 
-				const RotationFormat8 packed_rotation_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
+				const rotation_format8 packed_rotation_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
 				const uint32_t packed_rotation_size = get_packed_rotation_size(packed_rotation_format);
 
 				uint32_t constant_track_data_offset = (num_constant_rotations - num_default_rotations) * packed_rotation_size;
-				constant_track_data_offset += (num_constant_translations - num_default_translations) * get_packed_vector_size(VectorFormat8::Vector3_96);
+				constant_track_data_offset += (num_constant_translations - num_default_translations) * get_packed_vector_size(vector_format8::vector3f_full);
 
 				uint32_t clip_range_data_offset = 0;
 				uint32_t segment_range_data_offset = 0;
 
-				const RangeReductionFlags8 clip_range_reduction = m_settings.get_clip_range_reduction(header.clip_range_reduction);
-				const RangeReductionFlags8 segment_range_reduction = m_settings.get_segment_range_reduction(header.segment_range_reduction);
-				if (are_any_enum_flags_set(clip_range_reduction, RangeReductionFlags8::Rotations))
+				const range_reduction_flags8 clip_range_reduction = m_settings.get_clip_range_reduction(header.clip_range_reduction);
+				const range_reduction_flags8 segment_range_reduction = m_settings.get_segment_range_reduction(header.segment_range_reduction);
+				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flags8::rotations))
 					clip_range_data_offset += m_context.num_rotation_components * sizeof(float) * 2 * num_animated_rotations;
 
-				if (are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Rotations))
+				if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flags8::rotations))
 					segment_range_data_offset += m_context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_rotations;
 
-				if (are_any_enum_flags_set(clip_range_reduction, RangeReductionFlags8::Translations))
+				if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flags8::translations))
 					clip_range_data_offset += k_clip_range_reduction_vector3_range_size * num_animated_translations;
 
-				if (are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Translations))
+				if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flags8::translations))
 					segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_translations;
 
 				uint32_t num_animated_tracks = num_animated_rotations + num_animated_translations;
@@ -781,12 +781,12 @@ namespace acl
 					const uint32_t num_animated_scales = sample_bone_index - num_constant_scales;
 					num_animated_tracks += num_animated_scales;
 
-					constant_track_data_offset += (num_constant_scales - num_default_scales) * get_packed_vector_size(VectorFormat8::Vector3_96);
+					constant_track_data_offset += (num_constant_scales - num_default_scales) * get_packed_vector_size(vector_format8::vector3f_full);
 
-					if (are_any_enum_flags_set(clip_range_reduction, RangeReductionFlags8::Scales))
+					if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flags8::scales))
 						clip_range_data_offset += k_clip_range_reduction_vector3_range_size * num_animated_scales;
 
-					if (are_any_enum_flags_set(segment_range_reduction, RangeReductionFlags8::Scales))
+					if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flags8::scales))
 						segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_scales;
 				}
 

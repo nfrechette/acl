@@ -131,7 +131,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Seeks within the compressed tracks to a particular point in time with the
 		// desired rounding policy.
-		void seek(float sample_time, SampleRoundingPolicy rounding_policy);
+		void seek(float sample_time, sample_rounding_policy rounding_policy);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Decompress every track at the current sample time.
@@ -212,7 +212,7 @@ namespace acl
 	inline void decompression_context<decompression_settings_type>::initialize(const compressed_tracks& tracks)
 	{
 		ACL_ASSERT(tracks.is_valid(false).empty(), "Compressed tracks are not valid");
-		ACL_ASSERT(tracks.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
+		ACL_ASSERT(tracks.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
 
 		m_context.tracks = &tracks;
 		m_context.tracks_hash = tracks.get_hash();
@@ -234,7 +234,7 @@ namespace acl
 	}
 
 	template<class decompression_settings_type>
-	inline void decompression_context<decompression_settings_type>::seek(float sample_time, SampleRoundingPolicy rounding_policy)
+	inline void decompression_context<decompression_settings_type>::seek(float sample_time, sample_rounding_policy rounding_policy)
 	{
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
 		ACL_ASSERT(rtm::scalar_is_finite(sample_time), "Invalid sample time");

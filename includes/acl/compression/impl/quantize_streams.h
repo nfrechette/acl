@@ -258,7 +258,7 @@ namespace acl
 			QuantizationContext& operator=(QuantizationContext&&) = delete;
 		};
 
-		inline void quantize_fixed_rotation_stream(IAllocator& allocator, const RotationTrackStream& raw_stream, RotationFormat8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_rotation_stream(IAllocator& allocator, const RotationTrackStream& raw_stream, rotation_format8 rotation_format, bool are_rotations_normalized, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -275,22 +275,22 @@ namespace acl
 
 				switch (rotation_format)
 				{
-				case RotationFormat8::Quat_128:
+				case rotation_format8::quatf_full:
 					pack_vector4_128(rtm::quat_to_vector(rotation), quantized_ptr);
 					break;
-				case RotationFormat8::QuatDropW_96:
+				case rotation_format8::quatf_drop_w_full:
 					pack_vector3_96(rtm::quat_to_vector(rotation), quantized_ptr);
 					break;
-				case RotationFormat8::QuatDropW_48:
+				case rotation_format8::QuatDropW_48:
 					if (are_rotations_normalized)
 						pack_vector3_u48_unsafe(rtm::quat_to_vector(rotation), quantized_ptr);
 					else
 						pack_vector3_s48_unsafe(rtm::quat_to_vector(rotation), quantized_ptr);
 					break;
-				case RotationFormat8::QuatDropW_32:
+				case rotation_format8::QuatDropW_32:
 					pack_vector3_32(rtm::quat_to_vector(rotation), 11, 11, 10, are_rotations_normalized, quantized_ptr);
 					break;
-				case RotationFormat8::QuatDropW_Variable:
+				case rotation_format8::quatf_drop_w_variable:
 				default:
 					ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
 					break;
@@ -300,7 +300,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_rotation_stream(QuantizationContext& context, uint16_t bone_index, RotationFormat8 rotation_format)
+		inline void quantize_fixed_rotation_stream(QuantizationContext& context, uint16_t bone_index, rotation_format8 rotation_format)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -322,14 +322,14 @@ namespace acl
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const float sample_rate = raw_segment_stream.get_sample_rate();
-			RotationTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, RotationFormat8::QuatDropW_Variable, bit_rate);
+			RotationTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, rotation_format8::quatf_drop_w_variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
 			{
 				ACL_ASSERT(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
 
 				rtm::vector4f rotation = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index);
-				rotation = convert_rotation(rotation, RotationFormat8::Quat_128, RotationFormat8::QuatDropW_Variable);
+				rotation = convert_rotation(rotation, rotation_format8::quatf_full, rotation_format8::quatf_drop_w_variable);
 
 				const rtm::vector4f normalized_rotation = normalize_sample(rotation, clip_range);
 
@@ -347,7 +347,7 @@ namespace acl
 					if (is_raw_bit_rate(bit_rate))
 					{
 						rtm::vector4f rotation = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index + sample_index);
-						rotation = convert_rotation(rotation, RotationFormat8::Quat_128, RotationFormat8::QuatDropW_Variable);
+						rotation = convert_rotation(rotation, rotation_format8::quatf_full, rotation_format8::quatf_drop_w_variable);
 						pack_vector3_96(rotation, quantized_ptr);
 					}
 					else
@@ -375,7 +375,7 @@ namespace acl
 				return;
 
 			const BoneStreams& raw_bone_stream = context.raw_bone_streams[bone_index];
-			const RotationFormat8 highest_bit_rate = get_highest_variant_precision(RotationVariant8::QuatDropW);
+			const rotation_format8 highest_bit_rate = get_highest_variant_precision(rotation_variant8::quat_drop_w);
 			const TrackStreamRange invalid_range;
 			const TrackStreamRange& bone_range = context.clip.are_rotations_normalized ? context.clip.ranges[bone_index].rotation : invalid_range;
 			const bool are_rotations_normalized = context.clip.are_rotations_normalized && !bone_stream.is_rotation_constant;
@@ -387,11 +387,11 @@ namespace acl
 				quantize_variable_rotation_stream(context, raw_bone_stream.rotations, bone_stream.rotations, bone_range, bit_rate, are_rotations_normalized, bone_stream.rotations);
 		}
 
-		inline void quantize_fixed_translation_stream(IAllocator& allocator, const TranslationTrackStream& raw_stream, VectorFormat8 translation_format, TranslationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_translation_stream(IAllocator& allocator, const TranslationTrackStream& raw_stream, vector_format8 translation_format, TranslationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %u", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
+			ACL_ASSERT(raw_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t sample_size = get_packed_vector_size(translation_format);
@@ -405,16 +405,16 @@ namespace acl
 
 				switch (translation_format)
 				{
-				case VectorFormat8::Vector3_96:
+				case vector_format8::vector3f_full:
 					pack_vector3_96(translation, quantized_ptr);
 					break;
-				case VectorFormat8::Vector3_48:
+				case vector_format8::Vector3_48:
 					pack_vector3_u48_unsafe(translation, quantized_ptr);
 					break;
-				case VectorFormat8::Vector3_32:
+				case vector_format8::Vector3_32:
 					pack_vector3_32(translation, 11, 11, 10, true, quantized_ptr);
 					break;
-				case VectorFormat8::Vector3_Variable:
+				case vector_format8::vector3f_variable:
 				default:
 					ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(translation_format));
 					break;
@@ -424,7 +424,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_translation_stream(QuantizationContext& context, uint16_t bone_index, VectorFormat8 translation_format)
+		inline void quantize_fixed_translation_stream(QuantizationContext& context, uint16_t bone_index, vector_format8 translation_format)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -435,7 +435,7 @@ namespace acl
 				return;
 
 			// Constant translation tracks store the remaining sample with full precision
-			const VectorFormat8 format = bone_stream.is_translation_constant ? VectorFormat8::Vector3_96 : translation_format;
+			const vector_format8 format = bone_stream.is_translation_constant ? vector_format8::vector3f_full : translation_format;
 
 			quantize_fixed_translation_stream(context.allocator, bone_stream.translations, format, bone_stream.translations);
 		}
@@ -444,12 +444,12 @@ namespace acl
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %u", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(raw_segment_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_segment_stream.get_vector_format()));
+			ACL_ASSERT(raw_segment_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: %s", get_vector_format_name(raw_segment_stream.get_vector_format()));
 
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const float sample_rate = raw_segment_stream.get_sample_rate();
-			TranslationTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
+			TranslationTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, vector_format8::vector3f_variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
 			{
@@ -499,16 +499,16 @@ namespace acl
 
 			// Constant translation tracks store the remaining sample with full precision
 			if (bone_stream.is_translation_constant)
-				quantize_fixed_translation_stream(context.allocator, bone_stream.translations, VectorFormat8::Vector3_96, bone_stream.translations);
+				quantize_fixed_translation_stream(context.allocator, bone_stream.translations, vector_format8::vector3f_full, bone_stream.translations);
 			else
 				quantize_variable_translation_stream(context, raw_bone_stream.translations, bone_stream.translations, bone_range, bit_rate, bone_stream.translations);
 		}
 
-		inline void quantize_fixed_scale_stream(IAllocator& allocator, const ScaleTrackStream& raw_stream, VectorFormat8 scale_format, ScaleTrackStream& out_quantized_stream)
+		inline void quantize_fixed_scale_stream(IAllocator& allocator, const ScaleTrackStream& raw_stream, vector_format8 scale_format, ScaleTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %u", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(raw_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
+			ACL_ASSERT(raw_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: %s", get_vector_format_name(raw_stream.get_vector_format()));
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t sample_size = get_packed_vector_size(scale_format);
@@ -522,16 +522,16 @@ namespace acl
 
 				switch (scale_format)
 				{
-				case VectorFormat8::Vector3_96:
+				case vector_format8::vector3f_full:
 					pack_vector3_96(scale, quantized_ptr);
 					break;
-				case VectorFormat8::Vector3_48:
+				case vector_format8::Vector3_48:
 					pack_vector3_u48_unsafe(scale, quantized_ptr);
 					break;
-				case VectorFormat8::Vector3_32:
+				case vector_format8::Vector3_32:
 					pack_vector3_32(scale, 11, 11, 10, true, quantized_ptr);
 					break;
-				case VectorFormat8::Vector3_Variable:
+				case vector_format8::vector3f_variable:
 				default:
 					ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(scale_format));
 					break;
@@ -541,7 +541,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_scale_stream(QuantizationContext& context, uint16_t bone_index, VectorFormat8 scale_format)
+		inline void quantize_fixed_scale_stream(QuantizationContext& context, uint16_t bone_index, vector_format8 scale_format)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -552,7 +552,7 @@ namespace acl
 				return;
 
 			// Constant scale tracks store the remaining sample with full precision
-			const VectorFormat8 format = bone_stream.is_scale_constant ? VectorFormat8::Vector3_96 : scale_format;
+			const vector_format8 format = bone_stream.is_scale_constant ? vector_format8::vector3f_full : scale_format;
 
 			quantize_fixed_scale_stream(context.allocator, bone_stream.scales, format, bone_stream.scales);
 		}
@@ -561,12 +561,12 @@ namespace acl
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %u", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(raw_segment_stream.get_vector_format() == VectorFormat8::Vector3_96, "Expected a Vector3_96 vector format, found: %s", get_vector_format_name(raw_segment_stream.get_vector_format()));
+			ACL_ASSERT(raw_segment_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: %s", get_vector_format_name(raw_segment_stream.get_vector_format()));
 
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const float sample_rate = raw_segment_stream.get_sample_rate();
-			ScaleTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, VectorFormat8::Vector3_Variable, bit_rate);
+			ScaleTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, vector_format8::vector3f_variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
 			{
@@ -616,7 +616,7 @@ namespace acl
 
 			// Constant scale tracks store the remaining sample with full precision
 			if (bone_stream.is_scale_constant)
-				quantize_fixed_scale_stream(context.allocator, bone_stream.scales, VectorFormat8::Vector3_96, bone_stream.scales);
+				quantize_fixed_scale_stream(context.allocator, bone_stream.scales, vector_format8::vector3f_full, bone_stream.scales);
 			else
 				quantize_variable_scale_stream(context, raw_bone_stream.scales, bone_stream.scales, bone_range, bit_rate, bone_stream.scales);
 		}
@@ -1070,7 +1070,7 @@ namespace acl
 			return num_bones_in_chain;
 		}
 
-		inline void initialize_bone_bit_rates(const SegmentContext& segment, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, BoneBitRate* out_bit_rate_per_bone)
+		inline void initialize_bone_bit_rates(const SegmentContext& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, BoneBitRate* out_bit_rate_per_bone)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -1227,7 +1227,7 @@ namespace acl
 							break;
 					}
 
-					if (settings.level >= CompressionLevel8::High)
+					if (settings.level >= compression_level8::high)
 					{
 						// The second permutation increases the bit rate of 2 track/bones
 						std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
@@ -1259,7 +1259,7 @@ namespace acl
 						}
 					}
 
-					if (settings.level >= CompressionLevel8::Highest)
+					if (settings.level >= compression_level8::highest)
 					{
 						// The third permutation increases the bit rate of 3 track/bones
 						std::fill(bone_chain_permutation, bone_chain_permutation + context.num_bones, uint8_t(0));
@@ -1441,7 +1441,7 @@ namespace acl
 				// not, sibling bones will remain fairly close in their error. Some packed rotation formats, namely
 				// drop W component can have a high error even with raw values, it is assumed that if such a format
 				// is used then a best effort approach to reach the error threshold is entirely fine.
-				if (error >= settings.error_threshold && context.settings.rotation_format == RotationFormat8::Quat_128)
+				if (error >= settings.error_threshold && context.settings.rotation_format == rotation_format8::quatf_full)
 				{
 					// From child to parent, max out the bit rate
 					for (int16_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)

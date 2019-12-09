@@ -40,18 +40,18 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline rtm::vector4f RTM_SIMD_CALL convert_rotation(rtm::vector4f_arg0 rotation, RotationFormat8 from, RotationFormat8 to)
+		inline rtm::vector4f RTM_SIMD_CALL convert_rotation(rtm::vector4f_arg0 rotation, rotation_format8 from, rotation_format8 to)
 		{
-			ACL_ASSERT(from == RotationFormat8::Quat_128, "Source rotation format must be a full precision quaternion");
+			ACL_ASSERT(from == rotation_format8::quatf_full, "Source rotation format must be a full precision quaternion");
 			(void)from;
 
-			const RotationFormat8 high_precision_format = get_rotation_variant(to) == RotationVariant8::Quat ? RotationFormat8::Quat_128 : RotationFormat8::QuatDropW_96;
+			const rotation_format8 high_precision_format = get_rotation_variant(to) == rotation_variant8::quat ? rotation_format8::quatf_full : rotation_format8::quatf_drop_w_full;
 			switch (high_precision_format)
 			{
-			case RotationFormat8::Quat_128:
+			case rotation_format8::quatf_full:
 				// Original format, nothing to do
 				return rotation;
-			case RotationFormat8::QuatDropW_96:
+			case rotation_format8::quatf_drop_w_full:
 				// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 				return rtm::quat_to_vector(rtm::quat_ensure_positive_w(rtm::vector_to_quat(rotation)));
 			default:
@@ -60,13 +60,13 @@ namespace acl
 			}
 		}
 
-		inline void convert_rotation_streams(IAllocator& allocator, SegmentContext& segment, RotationFormat8 rotation_format)
+		inline void convert_rotation_streams(IAllocator& allocator, SegmentContext& segment, rotation_format8 rotation_format)
 		{
-			const RotationFormat8 high_precision_format = get_rotation_variant(rotation_format) == RotationVariant8::Quat ? RotationFormat8::Quat_128 : RotationFormat8::QuatDropW_96;
+			const rotation_format8 high_precision_format = get_rotation_variant(rotation_format) == rotation_variant8::quat ? rotation_format8::quatf_full : rotation_format8::quatf_drop_w_full;
 
 			for (BoneStreams& bone_stream : segment.bone_iterator())
 			{
-				// We convert our rotation stream in place. We assume that the original format is Quat_128 stored as rtm::quatf
+				// We convert our rotation stream in place. We assume that the original format is quatf_full stored as rtm::quatf
 				// For all other formats, we keep the same sample size and either keep Quat_32 or use rtm::vector4f
 				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::quatf), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(rtm::quatf));
 
@@ -80,10 +80,10 @@ namespace acl
 
 					switch (high_precision_format)
 					{
-					case RotationFormat8::Quat_128:
+					case rotation_format8::quatf_full:
 						// Original format, nothing to do
 						break;
-					case RotationFormat8::QuatDropW_96:
+					case rotation_format8::quatf_drop_w_full:
 						// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 						rotation = rtm::quat_ensure_positive_w(rotation);
 						break;
@@ -99,7 +99,7 @@ namespace acl
 			}
 		}
 
-		inline void convert_rotation_streams(IAllocator& allocator, ClipContext& clip_context, RotationFormat8 rotation_format)
+		inline void convert_rotation_streams(IAllocator& allocator, ClipContext& clip_context, rotation_format8 rotation_format)
 		{
 			for (SegmentContext& segment : clip_context.segment_iterator())
 				convert_rotation_streams(allocator, segment, rotation_format);

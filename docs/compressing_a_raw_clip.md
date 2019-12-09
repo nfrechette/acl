@@ -22,13 +22,13 @@ The last important setting to choose is the `error_threshold`. This is used in c
 using namespace acl;
 
 CompressionSettings settings;
-settings.level = CompressionLevel8::Medium;
-settings.rotation_format = RotationFormat8::QuatDropW_Variable;
-settings.translation_format = VectorFormat8::Vector3_Variable;
-settings.scale_format = VectorFormat8::Vector3_Variable;
-settings.range_reduction = RangeReductionFlags8::AllTracks;
+settings.level = compression_level8::medium;
+settings.rotation_format = rotation_format8::quatf_drop_w_variable;
+settings.translation_format = vector_format8::vector3f_variable;
+settings.scale_format = vector_format8::vector3f_variable;
+settings.range_reduction = range_reduction_flags8::all_tracks;
 settings.segmenting.enabled = true;
-settings.segmenting.range_reduction = RangeReductionFlags8::AllTracks;
+settings.segmenting.range_reduction = range_reduction_flags8::all_tracks;
 
 qvvf_transform_error_metric error_metric;
 settings.error_metric = &error_metric;

@@ -43,7 +43,7 @@ namespace acl
 
 	namespace acl_impl
 	{
-		CompressedClip* make_compressed_clip(void* buffer, uint32_t size, AlgorithmType8 type);
+		CompressedClip* make_compressed_clip(void* buffer, uint32_t size, algorithm_type8 type);
 		void finalize_compressed_clip(CompressedClip& compressed_clip);
 	}
 
@@ -56,7 +56,7 @@ namespace acl
 	public:
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns the algorithm type used to compress the clip.
-		AlgorithmType8 get_algorithm_type() const { return m_type; }
+		algorithm_type8 get_algorithm_type() const { return m_type; }
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns the size in bytes of the compressed clip.
@@ -107,7 +107,7 @@ namespace acl
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Constructs a compressed clip instance
-		CompressedClip(uint32_t size, AlgorithmType8 type)
+		CompressedClip(uint32_t size, algorithm_type8 type)
 			: m_size(size)
 			, m_hash(hash32(safe_ptr_cast<const uint8_t>(this) + k_hash_skip_size, size - k_hash_skip_size))
 			, m_tag(k_compressed_clip_tag)
@@ -139,7 +139,7 @@ namespace acl
 		uint16_t		m_version;
 
 		// Algorithm type used to compress the clip.
-		AlgorithmType8	m_type;
+		algorithm_type8	m_type;
 
 		// Unused memory left as padding
 		uint8_t			m_padding;
@@ -147,7 +147,7 @@ namespace acl
 		////////////////////////////////////////////////////////////////////////////////
 		// Friend function used to construct compressed clip instances. Should only
 		// be called by encoders.
-		friend CompressedClip* acl_impl::make_compressed_clip(void* buffer, uint32_t size, AlgorithmType8 type);
+		friend CompressedClip* acl_impl::make_compressed_clip(void* buffer, uint32_t size, algorithm_type8 type);
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Friend function to finalize a compressed clip once all memory has been written within.
@@ -189,13 +189,13 @@ namespace acl
 		uint16_t				num_segments;
 
 		// The rotation/translation/scale format used.
-		RotationFormat8			rotation_format;
-		VectorFormat8			translation_format;
-		VectorFormat8			scale_format;								// TODO: Make this optional?
+		rotation_format8			rotation_format;
+		vector_format8			translation_format;
+		vector_format8			scale_format;								// TODO: Make this optional?
 
 		// The clip/segment range reduction format used.
-		RangeReductionFlags8	clip_range_reduction;
-		RangeReductionFlags8	segment_range_reduction;
+		range_reduction_flags8	clip_range_reduction;
+		range_reduction_flags8	segment_range_reduction;
 
 		// Whether or not we have scale (bool).
 		uint8_t					has_scale;

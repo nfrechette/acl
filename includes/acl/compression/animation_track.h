@@ -69,7 +69,7 @@ namespace acl
 			, m_sample_data(nullptr)
 			, m_num_samples(0)
 			, m_sample_rate(0.0F)
-			, m_type(AnimationTrackType8::Rotation)
+			, m_type(animation_track_type8::rotation)
 		{}
 
 		AnimationTrack(AnimationTrack&& other)
@@ -89,7 +89,7 @@ namespace acl
 		//    - num_samples: The number of samples in this track
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		//    - type: The track type
-		AnimationTrack(IAllocator& allocator, uint32_t num_samples, float sample_rate, AnimationTrackType8 type)
+		AnimationTrack(IAllocator& allocator, uint32_t num_samples, float sample_rate, animation_track_type8 type)
 			: m_allocator(&allocator)
 			, m_sample_data(allocate_type_array_aligned<double>(allocator, size_t(num_samples) * get_animation_track_sample_size(type), alignof(rtm::vector4d)))
 			, m_num_samples(num_samples)
@@ -119,14 +119,14 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of values per sample
 		// TODO: constexpr
-		static uint32_t get_animation_track_sample_size(AnimationTrackType8 type)
+		static uint32_t get_animation_track_sample_size(animation_track_type8 type)
 		{
 			switch (type)
 			{
 			default:
-			case AnimationTrackType8::Rotation:		return 4;
-			case AnimationTrackType8::Translation:	return 3;
-			case AnimationTrackType8::Scale:		return 3;
+			case animation_track_type8::rotation:		return 4;
+			case animation_track_type8::translation:	return 3;
+			case animation_track_type8::scale:		return 3;
 			}
 		}
 
@@ -143,7 +143,7 @@ namespace acl
 		float							m_sample_rate;
 
 		// The track type
-		AnimationTrackType8				m_type;
+		animation_track_type8				m_type;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -163,7 +163,7 @@ namespace acl
 		//    - num_samples: The number of samples in this track
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		AnimationRotationTrack(IAllocator& allocator, uint32_t num_samples, float sample_rate)
-			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Rotation)
+			: AnimationTrack(allocator, num_samples, sample_rate, animation_track_type8::rotation)
 		{
 			rtm::quatd* samples = safe_ptr_cast<rtm::quatd>(&m_sample_data[0]);
 			std::fill(samples, samples + num_samples, rtm::quat_identity());
@@ -229,7 +229,7 @@ namespace acl
 		//    - num_samples: The number of samples in this track
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		AnimationTranslationTrack(IAllocator& allocator, uint32_t num_samples, float sample_rate)
-			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Translation)
+			: AnimationTrack(allocator, num_samples, sample_rate, animation_track_type8::translation)
 		{
 			std::fill(m_sample_data, m_sample_data + (num_samples * 3), 0.0);
 		}
@@ -293,7 +293,7 @@ namespace acl
 		//    - num_samples: The number of samples in this track
 		//    - sample_rate: The rate at which samples are recorded (e.g. 30 means 30 FPS)
 		AnimationScaleTrack(IAllocator& allocator, uint32_t num_samples, float sample_rate)
-			: AnimationTrack(allocator, num_samples, sample_rate, AnimationTrackType8::Scale)
+			: AnimationTrack(allocator, num_samples, sample_rate, animation_track_type8::scale)
 		{
 			rtm::vector4d defaultScale = rtm::vector_set(1.0);
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)

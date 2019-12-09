@@ -211,9 +211,9 @@ namespace acl
 
 			BitSetDescription	m_bitset_desc;
 			BitSetIndexRef		m_bitref_constant;
-			RotationFormat8		m_rotation_format;
-			VectorFormat8		m_translation_format;
-			VectorFormat8		m_scale_format;
+			rotation_format8		m_rotation_format;
+			vector_format8		m_translation_format;
+			vector_format8		m_scale_format;
 			bool				m_is_rotation_variable;
 			bool				m_is_translation_variable;
 			bool				m_is_scale_variable;
@@ -634,7 +634,7 @@ namespace acl
 					const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 					const float sample_rate = bone_stream.rotations.get_sample_rate();
 
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
 				}
 				else
 				{
@@ -741,7 +741,7 @@ namespace acl
 				else
 				{
 					// Not cached
-					translation = get_translation_sample(m_raw_bone_streams[track_index], 0, VectorFormat8::Vector3_96);
+					translation = get_translation_sample(m_raw_bone_streams[track_index], 0, vector_format8::vector3f_full);
 
 					cached_samples[0] = translation;
 					bitset_set(validity_bitset, m_bitref_constant, true);
@@ -766,7 +766,7 @@ namespace acl
 					const uint32_t num_samples = bone_stream.translations.get_num_samples();
 					const float sample_rate = bone_stream.translations.get_sample_rate();
 
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
 				}
 				else
 				{
@@ -869,7 +869,7 @@ namespace acl
 				else
 				{
 					// Not cached
-					scale = get_scale_sample(m_raw_bone_streams[track_index], 0, VectorFormat8::Vector3_96);
+					scale = get_scale_sample(m_raw_bone_streams[track_index], 0, vector_format8::vector3f_full);
 
 					cached_samples[0] = scale;
 					bitset_set(validity_bitset, m_bitref_constant, true);
@@ -894,7 +894,7 @@ namespace acl
 					const uint32_t num_samples = bone_stream.scales.get_num_samples();
 					const float sample_rate = bone_stream.scales.get_sample_rate();
 
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, SampleRoundingPolicy::None, key0, key1, interpolation_alpha);
+					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
 				}
 				else
 				{

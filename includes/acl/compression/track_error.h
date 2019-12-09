@@ -93,9 +93,9 @@ namespace acl
 			const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
 			// We use the nearest sample to accurately measure the loss that happened, if any
-			raw_tracks.sample_tracks(sample_time, SampleRoundingPolicy::Nearest, raw_tracks_writer);
+			raw_tracks.sample_tracks(sample_time, sample_rounding_policy::nearest, raw_tracks_writer);
 
-			context.seek(sample_time, SampleRoundingPolicy::Nearest);
+			context.seek(sample_time, sample_rounding_policy::nearest);
 			context.decompress_tracks(lossy_tracks_writer);
 
 			// Validate decompress_tracks
