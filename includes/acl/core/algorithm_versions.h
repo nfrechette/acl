@@ -43,7 +43,7 @@ namespace acl
 	{
 		switch (type)
 		{
-			case algorithm_type8::uniformly_sampled:		return 5;
+			case algorithm_type8::uniformly_sampled:	return 6;
 			//case algorithm_type8::LinearKeyReduction:	return 0;
 			//case algorithm_type8::SplineKeyReduction:	return 0;
 			default:									return 0xFFFF;
