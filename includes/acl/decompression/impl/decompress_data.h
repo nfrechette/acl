@@ -122,10 +122,8 @@ namespace acl
 					}
 					else
 					{
-						const uint32_t sample_size = get_packed_vector_size(format);
-
 						for (size_t i = 0; i < num_key_frames; ++i)
-							sampling_context.key_frame_bit_offsets[i] += 96;	// 3 components
+							sampling_context.key_frame_bit_offsets[i] += 96;
 					}
 
 					const range_reduction_flags8 range_reduction_flag = settings.get_range_reduction_flag();
