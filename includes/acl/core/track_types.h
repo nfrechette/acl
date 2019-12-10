@@ -231,10 +231,6 @@ namespace acl
 
 	static_assert(k_num_bit_rates == 19, "Expecting 19 bit rates");
 
-	// If all tracks are variable, no need for any extra padding except at the very end of the data
-	// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
-	constexpr uint32_t k_mixed_packing_alignment_num_bits = 16;
-
 	inline uint32_t get_num_bits_at_bit_rate(uint8_t bit_rate)
 	{
 		ACL_ASSERT(bit_rate <= k_highest_bit_rate, "Invalid bit rate: %u", bit_rate);

@@ -149,7 +149,7 @@ namespace acl
 
 			const uint32_t constant_data_size = get_constant_data_size(clip_context, output_bone_mapping, num_output_bones);
 
-			calculate_animated_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, output_bone_mapping, num_output_bones);
+			calculate_animated_data_size(clip_context, output_bone_mapping, num_output_bones);
 
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
