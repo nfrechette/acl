@@ -213,7 +213,6 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 	settings.scale_format = vector_format8::vector3f_variable;
 	settings.translation_format = vector_format8::vector3f_variable;
-	settings.segmenting.enabled = false;
 	settings.segmenting.ideal_num_samples = 23;
 	settings.segmenting.max_num_samples = 123;
 	settings.segmenting.range_reduction = range_reduction_flags8::translations;

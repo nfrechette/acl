@@ -113,7 +113,6 @@ namespace acl
 
 				settings_writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
 				{
-					segmenting_writer["enabled"] = settings.segmenting.enabled;
 					segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
 					segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
 					segmenting_writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, range_reduction_flags8::rotations);

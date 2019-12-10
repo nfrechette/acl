@@ -46,11 +46,6 @@ namespace acl
 	struct SegmentingSettings
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// Whether to enable segmenting or not
-		// Defaults to 'false'
-		bool enabled;
-
-		//////////////////////////////////////////////////////////////////////////
 		// How many samples to try and fit in our segments
 		// Defaults to '16'
 		uint16_t ideal_num_samples;
@@ -66,8 +61,7 @@ namespace acl
 		range_reduction_flags8 range_reduction;
 
 		SegmentingSettings()
-			: enabled(false)
-			, ideal_num_samples(16)
+			: ideal_num_samples(16)
 			, max_num_samples(31)
 			, range_reduction(range_reduction_flags8::none)
 		{}
@@ -77,7 +71,6 @@ namespace acl
 		uint32_t get_hash() const
 		{
 			uint32_t hash_value = 0;
-			hash_value = hash_combine(hash_value, hash32(enabled));
 			hash_value = hash_combine(hash_value, hash32(ideal_num_samples));
 			hash_value = hash_combine(hash_value, hash32(max_num_samples));
 			hash_value = hash_combine(hash_value, hash32(range_reduction));
@@ -89,9 +82,6 @@ namespace acl
 		// Returns nullptr if the settings are valid.
 		ErrorResult is_valid() const
 		{
-			if (!enabled)
-				return ErrorResult();
-
 			if (ideal_num_samples < 8)
 				return ErrorResult("ideal_num_samples must be greater or equal to 8");
 
@@ -187,8 +177,7 @@ namespace acl
 			hash_value = hash_combine(hash_value, hash32(scale_format));
 			hash_value = hash_combine(hash_value, hash32(range_reduction));
 
-			if (segmenting.enabled)
-				hash_value = hash_combine(hash_value, segmenting.get_hash());
+			hash_value = hash_combine(hash_value, segmenting.get_hash());
 
 			if (error_metric != nullptr)
 				hash_value = hash_combine(hash_value, error_metric->get_hash());
@@ -210,7 +199,7 @@ namespace acl
 			if (translation_format != vector_format8::vector3f_full)
 			{
 				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations);
-				const bool has_segment_range_reduction = segmenting.enabled && are_any_enum_flags_set(segmenting.range_reduction, range_reduction_flags8::translations);
+				const bool has_segment_range_reduction = are_any_enum_flags_set(segmenting.range_reduction, range_reduction_flags8::translations);
 				if (!has_clip_range_reduction && !has_segment_range_reduction)
 					return ErrorResult("This translation format requires range reduction to be enabled at the clip or segment level");
 			}
@@ -218,12 +207,12 @@ namespace acl
 			if (scale_format != vector_format8::vector3f_full)
 			{
 				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales);
-				const bool has_segment_range_reduction = segmenting.enabled && are_any_enum_flags_set(segmenting.range_reduction, range_reduction_flags8::scales);
+				const bool has_segment_range_reduction = are_any_enum_flags_set(segmenting.range_reduction, range_reduction_flags8::scales);
 				if (!has_clip_range_reduction && !has_segment_range_reduction)
 					return ErrorResult("This scale format requires range reduction to be enabled at the clip or segment level");
 			}
 
-			if (segmenting.enabled && segmenting.range_reduction != range_reduction_flags8::none)
+			if (segmenting.range_reduction != range_reduction_flags8::none)
 			{
 				if ((range_reduction & segmenting.range_reduction) != segmenting.range_reduction)
 					return ErrorResult("Per segment range reduction requires per clip range reduction to be enabled");
@@ -268,7 +257,6 @@ namespace acl
 		settings.translation_format = vector_format8::vector3f_variable;
 		settings.scale_format = vector_format8::vector3f_variable;
 		settings.range_reduction = range_reduction_flags8::all_tracks;
-		settings.segmenting.enabled = true;
 		settings.segmenting.range_reduction = range_reduction_flags8::all_tracks;
 		return settings;
 	}

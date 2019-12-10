@@ -7,7 +7,6 @@ translation_format = "vector3f_full"
 scale_format = "vector3f_full"
 
 segmenting = {
-	enabled = false
 }
 
 regression_error_threshold = 0.001

@@ -1016,8 +1016,6 @@ static bool read_config(IAllocator& allocator, Options& options, algorithm_type8
 
 	if (parser.object_begins("segmenting"))
 	{
-		parser.try_read("enabled", out_settings.segmenting.enabled, false);
-
 		range_reduction = range_reduction_flags8::none;
 		parser.try_read("rotation_range_reduction", rotation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::rotations));
 		parser.try_read("translation_range_reduction", translation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::translations));
@@ -1145,15 +1143,13 @@ static void create_additive_base_clip(const Options& options, AnimationClip& cli
 }
 
 static CompressionSettings make_settings(rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format,
-	range_reduction_flags8 clip_range_reduction,
-	bool use_segmenting = false, range_reduction_flags8 segment_range_reduction = range_reduction_flags8::none)
+	range_reduction_flags8 clip_range_reduction, range_reduction_flags8 segment_range_reduction = range_reduction_flags8::none)
 {
 	CompressionSettings settings;
 	settings.rotation_format = rotation_format;
 	settings.translation_format = translation_format;
 	settings.scale_format = scale_format;
 	settings.range_reduction = clip_range_reduction;
-	settings.segmenting.enabled = use_segmenting;
 	settings.segmenting.range_reduction = segment_range_reduction;
 	return settings;
 }
@@ -1320,27 +1316,23 @@ static int safe_main_impl(int argc, char* argv[])
 			}
 			else if (options.exhaustive_compression)
 			{
-				const bool use_segmenting_options[] = { false, true };
-				for (size_t segmenting_option_index = 0; segmenting_option_index < get_array_size(use_segmenting_options); ++segmenting_option_index)
 				{
-					const bool use_segmenting = use_segmenting_options[segmenting_option_index];
-
 					CompressionSettings uniform_tests[] =
 					{
-						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::none, use_segmenting),
-						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, use_segmenting),
-						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, use_segmenting),
-						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, use_segmenting),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::none),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations),
 
-						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::none, use_segmenting),
-						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, use_segmenting),
-						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, use_segmenting),
-						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::none),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations),
 
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::translations, use_segmenting),
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations),
 
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable, range_reduction_flags8::all_tracks, use_segmenting),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable, range_reduction_flags8::all_tracks),
 					};
 
 					for (CompressionSettings test_settings : uniform_tests)
@@ -1354,17 +1346,17 @@ static int safe_main_impl(int argc, char* argv[])
 				{
 					CompressionSettings uniform_tests[] =
 					{
-						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, true, range_reduction_flags8::rotations),
-						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, true, range_reduction_flags8::translations),
-						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, true, range_reduction_flags8::rotations | range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, range_reduction_flags8::rotations),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, range_reduction_flags8::rotations | range_reduction_flags8::translations),
 
-						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, true, range_reduction_flags8::rotations),
-						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, true, range_reduction_flags8::translations),
-						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, true, range_reduction_flags8::rotations | range_reduction_flags8::translations),
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::translations, true, range_reduction_flags8::translations),
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, true, range_reduction_flags8::rotations | range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations, range_reduction_flags8::rotations),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::translations, range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, range_reduction_flags8::rotations | range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::translations, range_reduction_flags8::translations),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full, range_reduction_flags8::rotations | range_reduction_flags8::translations, range_reduction_flags8::rotations | range_reduction_flags8::translations),
 
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable, range_reduction_flags8::all_tracks, true, range_reduction_flags8::all_tracks),
+						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable, range_reduction_flags8::all_tracks, range_reduction_flags8::all_tracks),
 					};
 
 					for (CompressionSettings test_settings : uniform_tests)

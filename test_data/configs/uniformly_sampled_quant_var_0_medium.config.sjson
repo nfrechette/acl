@@ -13,7 +13,6 @@ translation_range_reduction = true
 scale_range_reduction = true
 
 segmenting = {
-	enabled = false
 }
 
 regression_error_threshold = 0.075

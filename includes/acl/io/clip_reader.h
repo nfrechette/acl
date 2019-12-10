@@ -335,7 +335,6 @@ namespace acl
 			double constant_scale_threshold;
 			double error_threshold;
 
-			bool segmenting_enabled = default_settings.segmenting.enabled;
 			double segmenting_ideal_num_samples = double(default_settings.segmenting.ideal_num_samples);
 			double segmenting_max_num_samples = double(default_settings.segmenting.max_num_samples);
 			bool segmenting_rotation_range_reduction = are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::rotations);
@@ -353,7 +352,8 @@ namespace acl
 
 			if (m_parser.try_object_begins("segmenting"))
 			{
-				m_parser.try_read("enabled", segmenting_enabled, default_settings.segmenting.enabled);
+				bool segmenting_enabled = true;
+				m_parser.try_read("enabled", segmenting_enabled, false);	// Legacy, no longer used
 				m_parser.try_read("ideal_num_samples", segmenting_ideal_num_samples, double(default_settings.segmenting.ideal_num_samples));
 				m_parser.try_read("max_num_samples", segmenting_max_num_samples, double(default_settings.segmenting.max_num_samples));
 				m_parser.try_read("rotation_range_reduction", segmenting_rotation_range_reduction, are_any_enum_flags_set(default_settings.segmenting.range_reduction, range_reduction_flags8::rotations));
@@ -403,18 +403,17 @@ namespace acl
 
 				out_settings->range_reduction = range_reduction;
 
-				out_settings->segmenting.enabled = segmenting_enabled;
 				out_settings->segmenting.ideal_num_samples = uint16_t(segmenting_ideal_num_samples);
 				out_settings->segmenting.max_num_samples = uint16_t(segmenting_max_num_samples);
 
 				range_reduction_flags8 segmenting_range_reduction = range_reduction_flags8::none;
-				if (rotation_range_reduction)
+				if (segmenting_rotation_range_reduction)
 					segmenting_range_reduction |= range_reduction_flags8::rotations;
 
-				if (translation_range_reduction)
+				if (segmenting_translation_range_reduction)
 					segmenting_range_reduction |= range_reduction_flags8::translations;
 
-				if (scale_range_reduction)
+				if (segmenting_scale_range_reduction)
 					segmenting_range_reduction |= range_reduction_flags8::scales;
 
 				out_settings->segmenting.range_reduction = segmenting_range_reduction;
