@@ -10,4 +10,4 @@ segmenting = {
 	enabled = false
 }
 
-regression_error_threshold = 0.01
+regression_error_threshold = 0.001
