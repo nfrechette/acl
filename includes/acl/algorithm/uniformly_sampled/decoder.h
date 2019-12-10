@@ -389,10 +389,11 @@ namespace acl
 			const ClipHeader& header = get_clip_header(clip);
 
 			const rotation_format8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
 			const vector_format8 translation_format = m_settings.get_translation_format(header.translation_format);
 			const vector_format8 scale_format = m_settings.get_translation_format(header.scale_format);
 
-#if defined(ACL_HAS_ASSERT_CHECKS)
 			const range_reduction_flags8 clip_range_reduction = m_settings.get_clip_range_reduction(header.clip_range_reduction);
 			const range_reduction_flags8 segment_range_reduction = m_settings.get_segment_range_reduction(header.segment_range_reduction);
 
