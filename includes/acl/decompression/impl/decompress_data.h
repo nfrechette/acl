@@ -61,15 +61,9 @@ namespace acl
 						for (size_t i = 0; i < num_key_frames; ++i)
 						{
 							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-							uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
+							const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 							sampling_context.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								sampling_context.key_frame_byte_offsets[i] = decomp_context.key_frame_bit_offsets[i] / 8;
 						}
 
 						sampling_context.format_per_track_data_offset++;
@@ -77,14 +71,10 @@ namespace acl
 					else
 					{
 						const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
+						const uint32_t num_bits_at_bit_rate = rotation_size == (sizeof(float) * 4) ? 128 : 96;
 
 						for (size_t i = 0; i < num_key_frames; ++i)
-						{
-							sampling_context.key_frame_byte_offsets[i] += rotation_size;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								sampling_context.key_frame_bit_offsets[i] = sampling_context.key_frame_byte_offsets[i] * 8;
-						}
+							sampling_context.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
 					}
 
 					const range_reduction_flags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
@@ -123,15 +113,9 @@ namespace acl
 						for (size_t i = 0; i < num_key_frames; ++i)
 						{
 							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-							uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								num_bits_at_bit_rate = align_to(num_bits_at_bit_rate, k_mixed_packing_alignment_num_bits);
+							const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 							sampling_context.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								sampling_context.key_frame_byte_offsets[i] = sampling_context.key_frame_bit_offsets[i] / 8;
 						}
 
 						sampling_context.format_per_track_data_offset++;
@@ -141,12 +125,7 @@ namespace acl
 						const uint32_t sample_size = get_packed_vector_size(format);
 
 						for (size_t i = 0; i < num_key_frames; ++i)
-						{
-							sampling_context.key_frame_byte_offsets[i] += sample_size;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								sampling_context.key_frame_bit_offsets[i] = sampling_context.key_frame_byte_offsets[i] * 8;
-						}
+							sampling_context.key_frame_bit_offsets[i] += 96;	// 3 components
 					}
 
 					const range_reduction_flags8 range_reduction_flag = settings.get_range_reduction_flag();
@@ -225,8 +204,6 @@ namespace acl
 							range_ignore_flags <<= 2;
 
 							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-
-							// Promote to 32bit to avoid zero extending instructions on x64
 							const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 							if (is_constant_bit_rate(bit_rate))
@@ -247,15 +224,7 @@ namespace acl
 									rotations_as_vec[i] = unpack_vector3_sXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 							}
 
-							uint32_t num_bits_read = num_bits_at_bit_rate * 3;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								num_bits_read = align_to(num_bits_read, k_mixed_packing_alignment_num_bits);
-
-							sampling_context.key_frame_bit_offsets[i] += num_bits_read;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								sampling_context.key_frame_byte_offsets[i] = sampling_context.key_frame_bit_offsets[i] / 8;
+							sampling_context.key_frame_bit_offsets[i] += num_bits_at_bit_rate * 3;
 						}
 
 						sampling_context.format_per_track_data_offset++;
@@ -265,22 +234,18 @@ namespace acl
 						if (rotation_format == rotation_format8::quatf_full && settings.is_rotation_format_supported(rotation_format8::quatf_full))
 						{
 							for (size_t i = 0; i < num_key_frames; ++i)
-								rotations_as_vec[i] = unpack_vector4_128(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
+							{
+								rotations_as_vec[i] = unpack_vector4_128_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+								sampling_context.key_frame_bit_offsets[i] += 128;
+							}
 						}
 						else if (rotation_format == rotation_format8::quatf_drop_w_full && settings.is_rotation_format_supported(rotation_format8::quatf_drop_w_full))
 						{
 							for (size_t i = 0; i < num_key_frames; ++i)
-								rotations_as_vec[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
-						}
-
-						const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
-
-						for (size_t i = 0; i < num_key_frames; ++i)
-						{
-							sampling_context.key_frame_byte_offsets[i] += rotation_size;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								sampling_context.key_frame_bit_offsets[i] = sampling_context.key_frame_byte_offsets[i] * 8;
+							{
+								rotations_as_vec[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+								sampling_context.key_frame_bit_offsets[i] += 96;
+							}
 						}
 					}
 
@@ -526,8 +491,6 @@ namespace acl
 							range_ignore_flags <<= 2;
 
 							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context.format_per_track_data_offset];
-
-							// Promote to 32bit to avoid zero extending instructions on x64
 							const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 
 							if (is_constant_bit_rate(bit_rate))
@@ -543,15 +506,7 @@ namespace acl
 							else
 								vectors[i] = unpack_vector3_uXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 
-							uint32_t num_bits_read = num_bits_at_bit_rate * 3;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								num_bits_read = align_to(num_bits_read, k_mixed_packing_alignment_num_bits);
-
-							sampling_context.key_frame_bit_offsets[i] += num_bits_read;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								sampling_context.key_frame_byte_offsets[i] = sampling_context.key_frame_bit_offsets[i] / 8;
+							sampling_context.key_frame_bit_offsets[i] += num_bits_at_bit_rate * 3;
 						}
 
 						sampling_context.format_per_track_data_offset++;
@@ -561,17 +516,10 @@ namespace acl
 						if (format == vector_format8::vector3f_full && settings.is_vector_format_supported(vector_format8::vector3f_full))
 						{
 							for (size_t i = 0; i < num_key_frames; ++i)
-								vectors[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i] + sampling_context.key_frame_byte_offsets[i]);
-						}
-
-						const uint32_t sample_size = get_packed_vector_size(format);
-
-						for (size_t i = 0; i < num_key_frames; ++i)
-						{
-							sampling_context.key_frame_byte_offsets[i] += sample_size;
-
-							if (settings.supports_mixed_packing() && decomp_context.has_mixed_packing)
-								sampling_context.key_frame_bit_offsets[i] = sampling_context.key_frame_byte_offsets[i] * 8;
+							{
+								vectors[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
+								sampling_context.key_frame_bit_offsets[i] += 96;
+							}
 						}
 					}
 

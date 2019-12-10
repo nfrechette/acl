@@ -51,7 +51,7 @@ namespace acl
 		return rtm::vector_load(vector_data);
 	}
 
-	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 16 bytes from it
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 23 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_128_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
@@ -445,7 +445,7 @@ namespace acl
 		return rtm::vector_load(vector_data);
 	}
 
-	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 16 bytes from it
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
 	{
 #if defined(RTM_SSE2_INTRINSICS)

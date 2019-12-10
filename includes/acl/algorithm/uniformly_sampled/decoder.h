@@ -91,27 +91,25 @@ namespace acl
 				uint32_t clip_hash;								//  28 |  48
 
 				uint8_t num_rotation_components;				//  32 |  52
-				uint8_t has_mixed_packing;						//  33 |  53
 
-				uint8_t padding0[2];							//  34 |  54
+				uint8_t padding0[3];							//  33 |  53
 
 				// Seeking related data
 				const uint8_t* format_per_track_data[2];		//  36 |  56
 				const uint8_t* segment_range_data[2];			//  44 |  72
 				const uint8_t* animated_track_data[2];			//  52 |  88
 
-				uint32_t key_frame_byte_offsets[2];				//  60 | 104	// Fixed quantization
-				uint32_t key_frame_bit_offsets[2];				//  68 | 112	// Variable quantization
+				uint32_t key_frame_bit_offsets[2];				//  60 | 104
 
-				float interpolation_alpha;						//  76 | 120
-				float sample_time;								//  80 | 124
+				float interpolation_alpha;						//  68 | 112
+				float sample_time;								//  76 | 120
 
-				uint8_t padding1[sizeof(void*) == 4 ? 44 : 64];	//  84 | 128	// 64 bit has a full cache line of padding, can't have 0 length array
+				uint8_t padding1[sizeof(void*) == 4 ? 52 : 4];	//  80 | 124
 
-				//									Total size:	   128 | 192
+				//									Total size:	   128 | 128
 			};
 
-			static_assert(sizeof(DecompressionContext) == (sizeof(void*) == 4 ? 128 : 192), "Unexpected size");
+			static_assert(sizeof(DecompressionContext) == 128, "Unexpected size");
 
 			struct alignas(k_cache_line_size) SamplingContext
 			{
@@ -153,18 +151,16 @@ namespace acl
 				uint32_t format_per_track_data_offset;					//  12 |  12
 				uint32_t segment_range_data_offset;						//  16 |  16
 
-				uint32_t key_frame_byte_offsets[2];						//  20 |  20	// Fixed quantization
-				uint32_t key_frame_bit_offsets[2];						//  28 |  28	// Variable quantization
+				uint32_t key_frame_bit_offsets[2];						//  20 |  20
 
-				uint8_t padding[28];									//  36 |  36
+				uint8_t padding[4];										//  28 |  28
 
-				rtm::vector4f vectors[k_num_samples_to_interpolate];	//  64 |  64
-				rtm::vector4f padding0[2];								//  96 |  96
+				rtm::vector4f vectors[k_num_samples_to_interpolate];	//  32 |  32
 
-				//											Total size:	   128 | 128
+				//											Total size:	    64 |  64
 			};
 
-			static_assert(sizeof(SamplingContext) == 128, "Unexpected size");
+			static_assert(sizeof(SamplingContext) == 64, "Unexpected size");
 
 			// We use adapters to wrap the DecompressionSettings
 			// This allows us to re-use the code for skipping and decompressing Vector3 samples
@@ -235,9 +231,6 @@ namespace acl
 			constexpr range_reduction_flags8 get_clip_range_reduction(range_reduction_flags8 flags) const { return flags; }
 			constexpr range_reduction_flags8 get_segment_range_reduction(range_reduction_flags8 flags) const { return flags; }
 
-			// Whether tracks must all be variable or all fixed width, or if they can be mixed and require padding.
-			constexpr bool supports_mixed_packing() const { return true; }
-
 			// Whether to explicitly disable floating point exceptions during decompression.
 			// This has a cost, exceptions are usually disabled globally and do not need to be
 			// explicitly disabled during decompression.
@@ -268,8 +261,6 @@ namespace acl
 			constexpr vector_format8 get_scale_format(vector_format8 /*format*/) const { return vector_format8::vector3f_variable; }
 
 			constexpr range_reduction_flags8 get_clip_range_reduction(range_reduction_flags8 /*flags*/) const { return range_reduction_flags8::all_tracks; }
-
-			constexpr bool supports_mixed_packing() const { return false; }
 		};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -437,12 +428,6 @@ namespace acl
 			const uint32_t num_tracks_per_bone = header.has_scale ? 3 : 2;
 			m_context.bitset_desc = BitSetDescription::make_from_num_bits(header.num_bones * num_tracks_per_bone);
 			m_context.num_rotation_components = rotation_format == rotation_format8::quatf_full ? 4 : 3;
-
-			// If all tracks are variable, no need for any extra padding except at the very end of the data
-			// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment
-			const bool is_every_format_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
-			const bool is_any_format_variable = is_rotation_format_variable(rotation_format) || is_vector_format_variable(translation_format) || is_vector_format_variable(scale_format);
-			m_context.has_mixed_packing = !is_every_format_variable && is_any_format_variable;
 		}
 
 		template<class DecompressionSettingsType>
@@ -540,8 +525,6 @@ namespace acl
 			m_context.animated_track_data[0] = header.get_track_data(*segment_header0);
 			m_context.animated_track_data[1] = header.get_track_data(*segment_header1);
 
-			m_context.key_frame_byte_offsets[0] = (segment_key_frame0 * segment_header0->animated_pose_bit_size) / 8;
-			m_context.key_frame_byte_offsets[1] = (segment_key_frame1 * segment_header1->animated_pose_bit_size) / 8;
 			m_context.key_frame_bit_offsets[0] = segment_key_frame0 * segment_header0->animated_pose_bit_size;
 			m_context.key_frame_bit_offsets[1] = segment_key_frame1 * segment_header1->animated_pose_bit_size;
 		}
@@ -574,8 +557,6 @@ namespace acl
 			sampling_context.clip_range_data_offset = 0;
 			sampling_context.format_per_track_data_offset = 0;
 			sampling_context.segment_range_data_offset = 0;
-			sampling_context.key_frame_byte_offsets[0] = m_context.key_frame_byte_offsets[0];
-			sampling_context.key_frame_byte_offsets[1] = m_context.key_frame_byte_offsets[1];
 			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
 			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
 
@@ -634,8 +615,6 @@ namespace acl
 			const acl_impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
 			acl_impl::SamplingContext sampling_context;
-			sampling_context.key_frame_byte_offsets[0] = m_context.key_frame_byte_offsets[0];
-			sampling_context.key_frame_byte_offsets[1] = m_context.key_frame_byte_offsets[1];
 			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
 			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
 
@@ -644,8 +623,7 @@ namespace acl
 			const vector_format8 scale_format = m_settings.get_translation_format(header.scale_format);
 
 			const bool are_all_tracks_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
-			const bool has_mixed_padding_or_fixed_quantization = (m_settings.supports_mixed_packing() && m_context.has_mixed_packing) || !are_all_tracks_variable;
-			if (has_mixed_padding_or_fixed_quantization)
+			if (!are_all_tracks_variable)
 			{
 				// Slow path, not optimized yet because it's more complex and shouldn't be used in production anyway
 				sampling_context.track_index = 0;

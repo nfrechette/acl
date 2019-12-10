@@ -93,7 +93,7 @@ namespace acl
 					segment_header.range_data_offset = InvalidPtrOffset();
 
 				if (segment.animated_data_size > 0)
-					write_animated_track_data(segment, settings.rotation_format, settings.translation_format, settings.scale_format, header.get_track_data(segment_header), segment.animated_data_size, output_bone_mapping, num_output_bones);
+					write_animated_track_data(segment, header.get_track_data(segment_header), segment.animated_data_size, output_bone_mapping, num_output_bones);
 				else
 					segment_header.track_data_offset = InvalidPtrOffset();
 			}
