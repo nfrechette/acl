@@ -449,7 +449,7 @@ def do_prepare_decompression_test_data(test_data_dir, args):
 				if not filename.endswith('.config.sjson'):
 					continue
 
-				if not filename == 'uniformly_sampled_quant_var_2_medium.config.sjson':
+				if not filename == 'uniformly_sampled_quant_var_1_medium.config.sjson':
 					continue
 
 				config_filename = os.path.join(dirpath, filename)
