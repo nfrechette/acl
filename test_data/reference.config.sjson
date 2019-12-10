@@ -20,10 +20,6 @@ scale_range_reduction = false
 // Settings used when segmenting clips
 // Optional
 segmenting = {
-	// Whether to enable segmenting or not
-	// Defaults to 'false'
-	enabled = false
-
 	// Whether to use range reduction or not at the segment level
 	// Defaults to 'false'
 	rotation_range_reduction = false

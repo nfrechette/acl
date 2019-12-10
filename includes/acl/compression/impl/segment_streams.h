@@ -40,9 +40,6 @@ namespace acl
 	{
 		inline void segment_streams(IAllocator& allocator, ClipContext& clip_context, const SegmentingSettings& settings)
 		{
-			if (!settings.enabled)
-				return;
-
 			ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must have a single segment.");
 			ACL_ASSERT(settings.ideal_num_samples <= settings.max_num_samples, "Invalid num samples for segmenting settings. %u > %u", settings.ideal_num_samples, settings.max_num_samples);
 

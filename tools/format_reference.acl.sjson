@@ -11,7 +11,7 @@
 // version = 2		// Introduced clip compression settings
 //version = 3		// Introduced additive clip related data
 //version = 4		// Introduced track list related data
-version = 5			// Renamed enums for 2.0
+version = 5			// Renamed enums for 2.0 and other related changes
 
 // BEGIN CLIP RELATED DATA
 
@@ -78,10 +78,6 @@ settings =
 	// Settings used when segmenting clips
 	// Optional
 	segmenting = {
-		// Whether to enable segmenting or not
-		// Defaults to 'false'
-		enabled = false
-
 		// How many samples to try and fit in our segments
 		// Defaults to '16'
 		ideal_num_samples = 16

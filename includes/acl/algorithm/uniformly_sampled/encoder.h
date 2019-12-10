@@ -96,6 +96,15 @@ namespace acl
 
 			ScopeProfiler compression_time;
 
+			// If every track is to be stored raw, we disable segmenting and range reduction since it makes no sense
+			if (!is_rotation_format_variable(settings.rotation_format) && !is_vector_format_variable(settings.translation_format) && !is_vector_format_variable(settings.scale_format))
+			{
+				settings.range_reduction = range_reduction_flags8::none;
+				settings.segmenting.ideal_num_samples = 0xFFFF;
+				settings.segmenting.max_num_samples = 0xFFFF;
+				settings.segmenting.range_reduction = range_reduction_flags8::none;
+			}
+
 			const uint32_t num_samples = clip.get_num_samples();
 			const RigidSkeleton& skeleton = clip.get_skeleton();
 
@@ -125,22 +134,17 @@ namespace acl
 				clip_range_data_size = get_stream_range_data_size(clip_context, settings.range_reduction, settings.rotation_format);
 			}
 
-			if (settings.segmenting.enabled)
-			{
-				segment_streams(allocator, clip_context, settings.segmenting);
+			segment_streams(allocator, clip_context, settings.segmenting);
 
-				// If we have a single segment, disable range reduction since it won't help
-				if (clip_context.num_segments == 1)
-					settings.segmenting.range_reduction = range_reduction_flags8::none;
-
-				if (settings.segmenting.range_reduction != range_reduction_flags8::none)
-				{
-					extract_segment_bone_ranges(allocator, clip_context);
-					normalize_segment_streams(clip_context, settings.segmenting.range_reduction);
-				}
-			}
-			else
+			// If we have a single segment, disable range reduction since it won't help
+			if (clip_context.num_segments == 1)
 				settings.segmenting.range_reduction = range_reduction_flags8::none;
+
+			if (settings.segmenting.range_reduction != range_reduction_flags8::none)
+			{
+				extract_segment_bone_ranges(allocator, clip_context);
+				normalize_segment_streams(clip_context, settings.segmenting.range_reduction);
+			}
 
 			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context, additive_base_clip_context, out_stats);
 

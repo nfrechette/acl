@@ -302,16 +302,13 @@ namespace acl
 				writer["num_animated_tracks"] = num_animated_tracks;
 			}
 
-			if (settings.segmenting.enabled)
+			writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
 			{
-				writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
-				{
-					segmenting_writer["num_segments"] = header.num_segments;
-					segmenting_writer["range_reduction"] = get_range_reduction_name(settings.segmenting.range_reduction);
-					segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
-					segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
-				};
-			}
+				segmenting_writer["num_segments"] = header.num_segments;
+				segmenting_writer["range_reduction"] = get_range_reduction_name(settings.segmenting.range_reduction);
+				segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
+				segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
+			};
 
 			writer["segments"] = [&](sjson::ArrayWriter& segments_writer)
 			{
