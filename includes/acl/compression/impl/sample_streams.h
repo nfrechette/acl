@@ -46,7 +46,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline rtm::vector4f RTM_SIMD_CALL load_rotation_sample(const uint8_t* ptr, rotation_format8 format, uint8_t bit_rate, bool is_normalized)
+		inline rtm::vector4f RTM_SIMD_CALL load_rotation_sample(const uint8_t* ptr, rotation_format8 format, uint8_t bit_rate)
 		{
 			switch (format)
 			{
@@ -55,10 +55,9 @@ namespace acl
 			case rotation_format8::quatf_drop_w_full:
 				return unpack_vector3_96_unsafe(ptr);
 			case rotation_format8::quatf_drop_w_variable:
-			{
+				ACL_ASSERT(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
 				{
-					ACL_ASSERT(is_normalized, "Cannot drop a constant track if it isn't normalized");
 					return unpack_vector3_u48_unsafe(ptr);
 				}
 				else if (is_raw_bit_rate(bit_rate))
@@ -66,12 +65,8 @@ namespace acl
 				else
 				{
 					const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-					if (is_normalized)
-						return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
-					else
-						return unpack_vector3_sXX_unsafe(num_bits_at_bit_rate, ptr, 0);
+					return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
 				}
-			}
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
 				return rtm::vector_zero();
@@ -120,7 +115,6 @@ namespace acl
 		{
 			const SegmentContext* segment = bone_steams.segment;
 			const ClipContext* clip_context = segment->clip;
-			const bool are_rotations_normalized = clip_context->are_rotations_normalized;
 
 			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 			const uint8_t bit_rate = bone_steams.rotations.get_bit_rate();
@@ -130,9 +124,9 @@ namespace acl
 
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 
-			rtm::vector4f packed_rotation = acl_impl::load_rotation_sample(quantized_ptr, format, bit_rate, are_rotations_normalized);
+			rtm::vector4f packed_rotation = acl_impl::load_rotation_sample(quantized_ptr, format, bit_rate);
 
-			if (are_rotations_normalized && !is_raw_bit_rate(bit_rate))
+			if (clip_context->are_rotations_normalized && !is_raw_bit_rate(bit_rate))
 			{
 				if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate))
 				{
@@ -159,26 +153,25 @@ namespace acl
 		{
 			const SegmentContext* segment = bone_steams.segment;
 			const ClipContext* clip_context = segment->clip;
-			const bool are_rotations_normalized = clip_context->are_rotations_normalized;
 			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 
 			rtm::vector4f rotation;
 			if (is_constant_bit_rate(bit_rate))
 			{
 				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate, are_rotations_normalized);
+				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate);
 				rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
 			}
 			else if (is_raw_bit_rate(bit_rate))
 			{
 				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate, are_rotations_normalized);
+				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate);
 				rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
 			}
 			else
 			{
 				const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0, are_rotations_normalized);
+				rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0);
 			}
 
 			// Pack and unpack at our desired bit rate
@@ -187,9 +180,6 @@ namespace acl
 
 			if (is_constant_bit_rate(bit_rate))
 			{
-				ACL_ASSERT(are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
-				ACL_ASSERT(segment->are_rotations_normalized, "Cannot drop a constant track if it isn't normalized");
-
 				const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 				const rtm::vector4f normalized_rotation = normalize_sample(rotation, clip_bone_range.rotation);
 
@@ -197,12 +187,10 @@ namespace acl
 			}
 			else if (is_raw_bit_rate(bit_rate))
 				packed_rotation = rotation;
-			else if (are_rotations_normalized)
-				packed_rotation = decay_vector3_uXX(rotation, num_bits_at_bit_rate);
 			else
-				packed_rotation = decay_vector3_sXX(rotation, num_bits_at_bit_rate);
+				packed_rotation = decay_vector3_uXX(rotation, num_bits_at_bit_rate);
 
-			if (are_rotations_normalized && !is_raw_bit_rate(bit_rate))
+			if (!is_raw_bit_rate(bit_rate))
 			{
 				if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate))
 				{
@@ -229,11 +217,11 @@ namespace acl
 		{
 			const SegmentContext* segment = bone_steams.segment;
 			const ClipContext* clip_context = segment->clip;
-			const bool are_rotations_normalized = clip_context->are_rotations_normalized && !bone_steams.is_rotation_constant;
+
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 
-			const rtm::vector4f rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0, are_rotations_normalized);
+			const rtm::vector4f rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0);
 
 			// Pack and unpack in our desired format
 			rtm::vector4f packed_rotation;
@@ -250,6 +238,7 @@ namespace acl
 				break;
 			}
 
+			const bool are_rotations_normalized = clip_context->are_rotations_normalized && !bone_steams.is_rotation_constant;
 			if (are_rotations_normalized)
 			{
 				if (segment->are_rotations_normalized)
