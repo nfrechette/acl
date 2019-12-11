@@ -43,13 +43,13 @@ ACL_IMPL_ENUM_FLAGS_OPERATORS(TestEnum)
 
 TEST_CASE("enum utils", "[core][utils]")
 {
-	REQUIRE(are_any_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::All) == true);
-	REQUIRE(are_any_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::One) == true);
-	REQUIRE(are_any_enum_flags_set(TestEnum::All, TestEnum::One | TestEnum::Two) == true);
-	REQUIRE(are_any_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::Four) == false);
+	CHECK(are_any_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::All) == true);
+	CHECK(are_any_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::One) == true);
+	CHECK(are_any_enum_flags_set(TestEnum::All, TestEnum::One | TestEnum::Two) == true);
+	CHECK(are_any_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::Four) == false);
 
-	REQUIRE(are_all_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::One | TestEnum::Two) == true);
-	REQUIRE(are_all_enum_flags_set(TestEnum::One, TestEnum::One | TestEnum::Two) == false);
-	REQUIRE(are_all_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::One) == true);
-	REQUIRE(are_all_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::All) == false);
+	CHECK(are_all_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::One | TestEnum::Two) == true);
+	CHECK(are_all_enum_flags_set(TestEnum::One, TestEnum::One | TestEnum::Two) == false);
+	CHECK(are_all_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::One) == true);
+	CHECK(are_all_enum_flags_set(TestEnum::One | TestEnum::Two, TestEnum::All) == false);
 }

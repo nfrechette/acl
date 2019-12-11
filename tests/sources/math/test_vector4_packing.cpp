@@ -48,7 +48,7 @@ TEST_CASE("pack_vector4_128", "[math][vector4][packing]")
 		vector4f vec0 = vector_set(6123.123812F, 19237.01293127F, 1891.019231829F, 0.913912387F);
 		pack_vector4_128(vec0, &tmp.buffer[0]);
 		vector4f vec1 = unpack_vector4_128(&tmp.buffer[0]);
-		REQUIRE(std::memcmp(&vec0, &vec1, sizeof(vector4f)) == 0);
+		CHECK(std::memcmp(&vec0, &vec1, sizeof(vector4f)) == 0);
 	}
 
 	{
@@ -84,7 +84,7 @@ TEST_CASE("pack_vector4_128", "[math][vector4][packing]")
 			if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -110,7 +110,7 @@ TEST_CASE("pack_vector4_64", "[math][vector4][packing]")
 			if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -136,7 +136,7 @@ TEST_CASE("pack_vector4_32", "[math][vector4][packing]")
 			if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -181,7 +181,7 @@ TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
 				}
 			}
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -193,7 +193,7 @@ TEST_CASE("pack_vector3_96", "[math][vector4][packing]")
 		vector4f vec0 = vector_set(6123.123812F, 19237.01293127F, 0.913912387F);
 		pack_vector3_96(vec0, &tmp0.buffer[0]);
 		vector4f vec1 = unpack_vector3_96_unsafe(&tmp0.buffer[0]);
-		REQUIRE(vector_all_near_equal3(vec0, vec1, 1.0E-6F));
+		CHECK(vector_all_near_equal3(vec0, vec1, 1.0E-6F));
 
 		uint32_t x = unaligned_load<uint32_t>(&tmp0.buffer[0]);
 		x = byte_swap(x);
@@ -218,7 +218,7 @@ TEST_CASE("pack_vector3_96", "[math][vector4][packing]")
 			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -244,7 +244,7 @@ TEST_CASE("pack_vector3_48", "[math][vector4][packing]")
 			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -267,7 +267,7 @@ TEST_CASE("decay_vector3_48", "[math][vector4][decay]")
 			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -301,7 +301,7 @@ TEST_CASE("pack_vector3_32", "[math][vector4][packing]")
 			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -332,7 +332,7 @@ TEST_CASE("decay_vector3_32", "[math][vector4][decay]")
 			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -358,7 +358,7 @@ TEST_CASE("pack_vector3_24", "[math][vector4][packing]")
 			if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -429,7 +429,7 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 				}
 			}
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -469,7 +469,7 @@ TEST_CASE("decay_vector3_XX", "[math][vector4][decay]")
 			}
 		}
 
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -500,7 +500,7 @@ TEST_CASE("pack_vector2_64", "[math][vector4][packing]")
 			if (!vector_all_near_equal2(vec0, vec1, 1.0E-6F))
 				num_errors++;
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
@@ -545,11 +545,11 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 				}
 			}
 		}
-		REQUIRE(num_errors == 0);
+		CHECK(num_errors == 0);
 	}
 }
 
 TEST_CASE("misc vector4 packing", "[math][vector4][packing]")
 {
-	REQUIRE(get_packed_vector_size(vector_format8::vector3f_full) == 12);
+	CHECK(get_packed_vector_size(vector_format8::vector3f_full) == 12);
 }
