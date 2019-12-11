@@ -1,12 +1,9 @@
-version = 1
+version = 2
 
 algorithm_name = "uniformly_sampled"
 
 rotation_format = "quatf_full"
 translation_format = "vector3f_full"
 scale_format = "vector3f_full"
-
-segmenting = {
-}
 
 regression_error_threshold = 0.001

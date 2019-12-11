@@ -2,11 +2,10 @@ version = 2
 
 algorithm_name = "uniformly_sampled"
 
-level = "Medium"
+level = "High"
 
 rotation_format = "quatf_drop_w_variable"
 translation_format = "vector3f_variable"
 scale_format = "vector3f_variable"
 
 regression_error_threshold = 0.075
-use_matrix_error_metric = true

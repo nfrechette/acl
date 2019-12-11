@@ -43,6 +43,10 @@ namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
 	// Encapsulates all the compression settings related to segmenting.
+	// Segmenting ensures that large clips are split into smaller segments and
+	// compressed independently to allow a smaller memory footprint as well as
+	// faster compression and decompression.
+	// See also: http://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/
 	struct SegmentingSettings
 	{
 		//////////////////////////////////////////////////////////////////////////
@@ -55,15 +59,9 @@ namespace acl
 		// Defaults to '31'
 		uint16_t max_num_samples;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Whether to use range reduction or not at the segment level
-		// Defaults to 'none'
-		range_reduction_flags8 range_reduction;
-
 		SegmentingSettings()
 			: ideal_num_samples(16)
 			, max_num_samples(31)
-			, range_reduction(range_reduction_flags8::none)
 		{}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -73,7 +71,6 @@ namespace acl
 			uint32_t hash_value = 0;
 			hash_value = hash_combine(hash_value, hash32(ideal_num_samples));
 			hash_value = hash_combine(hash_value, hash32(max_num_samples));
-			hash_value = hash_combine(hash_value, hash32(range_reduction));
 			return hash_value;
 		}
 
@@ -108,11 +105,6 @@ namespace acl
 		rotation_format8 rotation_format;
 		vector_format8 translation_format;
 		vector_format8 scale_format;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Whether to use range reduction or not at the clip level
-		// Defaults to 'none'
-		range_reduction_flags8 range_reduction;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Segmenting settings, if used
@@ -157,7 +149,6 @@ namespace acl
 			, rotation_format(rotation_format8::quatf_full)
 			, translation_format(vector_format8::vector3f_full)
 			, scale_format(vector_format8::vector3f_full)
-			, range_reduction(range_reduction_flags8::none)
 			, segmenting()
 			, error_metric(nullptr)
 			, constant_rotation_threshold_angle(rtm::radians(0.00284714461F))
@@ -175,7 +166,6 @@ namespace acl
 			hash_value = hash_combine(hash_value, hash32(rotation_format));
 			hash_value = hash_combine(hash_value, hash32(translation_format));
 			hash_value = hash_combine(hash_value, hash32(scale_format));
-			hash_value = hash_combine(hash_value, hash32(range_reduction));
 
 			hash_value = hash_combine(hash_value, segmenting.get_hash());
 
@@ -196,28 +186,6 @@ namespace acl
 		// Returns nullptr if the settings are valid.
 		ErrorResult is_valid() const
 		{
-			if (translation_format != vector_format8::vector3f_full)
-			{
-				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations);
-				const bool has_segment_range_reduction = are_any_enum_flags_set(segmenting.range_reduction, range_reduction_flags8::translations);
-				if (!has_clip_range_reduction && !has_segment_range_reduction)
-					return ErrorResult("This translation format requires range reduction to be enabled at the clip or segment level");
-			}
-
-			if (scale_format != vector_format8::vector3f_full)
-			{
-				const bool has_clip_range_reduction = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales);
-				const bool has_segment_range_reduction = are_any_enum_flags_set(segmenting.range_reduction, range_reduction_flags8::scales);
-				if (!has_clip_range_reduction && !has_segment_range_reduction)
-					return ErrorResult("This scale format requires range reduction to be enabled at the clip or segment level");
-			}
-
-			if (segmenting.range_reduction != range_reduction_flags8::none)
-			{
-				if ((range_reduction & segmenting.range_reduction) != segmenting.range_reduction)
-					return ErrorResult("Per segment range reduction requires per clip range reduction to be enabled");
-			}
-
 			if (error_metric == nullptr)
 				return ErrorResult("error_metric cannot be NULL");
 
@@ -256,8 +224,6 @@ namespace acl
 		settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 		settings.translation_format = vector_format8::vector3f_variable;
 		settings.scale_format = vector_format8::vector3f_variable;
-		settings.range_reduction = range_reduction_flags8::all_tracks;
-		settings.segmenting.range_reduction = range_reduction_flags8::all_tracks;
 		return settings;
 	}
 

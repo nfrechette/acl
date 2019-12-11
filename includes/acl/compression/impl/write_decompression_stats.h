@@ -312,8 +312,7 @@ namespace acl
 				// and debugging features
 				const bool use_uniform_fast_path = settings.rotation_format == rotation_format8::quatf_drop_w_variable
 					&& settings.translation_format == vector_format8::vector3f_variable
-					&& settings.scale_format == vector_format8::vector3f_variable
-					&& are_all_enum_flags_set(settings.range_reduction, range_reduction_flags8::all_tracks);
+					&& settings.scale_format == vector_format8::vector3f_variable;
 
 				ACL_ASSERT(use_uniform_fast_path, "We do not support profiling the debug code path");
 #endif

@@ -1,4 +1,4 @@
-version = 1
+version = 2
 
 algorithm_name = "uniformly_sampled"
 
@@ -7,15 +7,5 @@ level = "Medium"
 rotation_format = "quatf_full"
 translation_format = "vector3f_variable"
 scale_format = "vector3f_variable"
-
-rotation_range_reduction = true
-translation_range_reduction = true
-scale_range_reduction = true
-
-segmenting = {
-	rotation_range_reduction = true
-	translation_range_reduction = true
-	scale_range_reduction = true
-}
 
 regression_error_threshold = 0.075

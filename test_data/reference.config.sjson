@@ -1,5 +1,6 @@
 // A version identifier, make sure to use the latest supported number
-version = 1
+//version = 1		// initial version
+version = 2		// cleanup with 2.0
 
 // The name of the algorithm to use. See function get_algorithm_type(..)
 // Required
@@ -10,22 +11,6 @@ algorithm_name = "uniformly_sampled"
 rotation_format = "quatf_full"
 translation_format = "vector3f_full"
 scale_format = "vector3f_full"
-
-// Whether to use range reduction or not at the clip level
-// Defaults to 'false'
-rotation_range_reduction = false
-translation_range_reduction = false
-scale_range_reduction = false
-
-// Settings used when segmenting clips
-// Optional
-segmenting = {
-	// Whether to use range reduction or not at the segment level
-	// Defaults to 'false'
-	rotation_range_reduction = false
-	translation_range_reduction = false
-	scale_range_reduction = false
-}
 
 // Threshold angle value to use when detecting if a rotation track is constant
 // Defaults to '0.00284714461' radians

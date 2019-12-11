@@ -77,13 +77,13 @@ namespace acl
 							sampling_context.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
 					}
 
-					const range_reduction_flags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
-					if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flags8::rotations))
+					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::rotations) && settings.are_range_reduction_flags_supported(range_reduction_flags8::rotations))
+					{
 						sampling_context.clip_range_data_offset += decomp_context.num_rotation_components * sizeof(float) * 2;
 
-					const range_reduction_flags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
-					if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flags8::rotations))
-						sampling_context.segment_range_data_offset += decomp_context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2;
+						if (header.num_segments > 1)
+							sampling_context.segment_range_data_offset += decomp_context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2;
+					}
 				}
 			}
 
@@ -128,13 +128,13 @@ namespace acl
 
 					const range_reduction_flags8 range_reduction_flag = settings.get_range_reduction_flag();
 
-					const range_reduction_flags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
-					if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))
+					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flag) && settings.are_range_reduction_flags_supported(range_reduction_flag))
+					{
 						sampling_context.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
 
-					const range_reduction_flags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
-					if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flag))
-						sampling_context.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
+						if (header.num_segments > 1)
+							sampling_context.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
+					}
 				}
 			}
 
@@ -180,10 +180,7 @@ namespace acl
 				}
 				else
 				{
-					const range_reduction_flags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
-					const range_reduction_flags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
-					const bool are_clip_rotations_normalized = are_any_enum_flags_set(clip_range_reduction, range_reduction_flags8::rotations);
-					const bool are_segment_rotations_normalized = are_any_enum_flags_set(segment_range_reduction, range_reduction_flags8::rotations);
+					const bool are_clip_rotations_normalized = are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::rotations);
 
 					constexpr size_t num_key_frames = SamplingContextType::k_num_samples_to_interpolate;
 
@@ -269,86 +266,17 @@ namespace acl
 
 					const uint32_t num_rotation_components = decomp_context.num_rotation_components;
 
-					if (are_segment_rotations_normalized)
+					if (are_clip_rotations_normalized && settings.are_range_reduction_flags_supported(range_reduction_flags8::rotations))
 					{
-						const uint32_t segment_range_min_offset = sampling_context.segment_range_data_offset;
-						const uint32_t segment_range_extent_offset = sampling_context.segment_range_data_offset + (num_rotation_components * sizeof(uint8_t));
-
-						if (rotation_format == rotation_format8::quatf_drop_w_variable && settings.is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+						if (header.num_segments > 1)
 						{
-							constexpr uint32_t ignore_mask = 0x00000001U << ((num_key_frames - 1) * 2);
-							if ((range_ignore_flags & (ignore_mask >> 0)) == 0)
+							const uint32_t segment_range_min_offset = sampling_context.segment_range_data_offset;
+							const uint32_t segment_range_extent_offset = sampling_context.segment_range_data_offset + (num_rotation_components * sizeof(uint8_t));
+
+							if (rotation_format == rotation_format8::quatf_drop_w_variable && settings.is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 							{
-								const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
-								const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_extent_offset);
-
-								rotation_as_vec0 = rtm::vector_mul_add(rotation_as_vec0, segment_range_extent, segment_range_min);
-							}
-
-							if ((range_ignore_flags & (ignore_mask >> 2)) == 0)
-							{
-								const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_min_offset);
-								const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_extent_offset);
-
-								rotation_as_vec1 = rtm::vector_mul_add(rotation_as_vec1, segment_range_extent, segment_range_min);
-							}
-
-							if (static_condition<num_key_frames == 4>::test())
-							{
-								if ((range_ignore_flags & (ignore_mask >> 4)) == 0)
-								{
-									const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_min_offset);
-									const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_extent_offset);
-
-									rotation_as_vec2 = rtm::vector_mul_add(rotation_as_vec2, segment_range_extent, segment_range_min);
-								}
-
-								if ((range_ignore_flags & (ignore_mask >> 8)) == 0)
-								{
-									const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_min_offset);
-									const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_extent_offset);
-
-									rotation_as_vec3 = rtm::vector_mul_add(rotation_as_vec3, segment_range_extent, segment_range_min);
-								}
-							}
-						}
-						else
-						{
-							if (rotation_format == rotation_format8::quatf_full && settings.is_rotation_format_supported(rotation_format8::quatf_full))
-							{
-								{
-									const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[0] + segment_range_min_offset, true);
-									const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[0] + segment_range_extent_offset, true);
-
-									rotation_as_vec0 = rtm::vector_mul_add(rotation_as_vec0, segment_range_extent, segment_range_min);
-								}
-
-								{
-									const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[1] + segment_range_min_offset, true);
-									const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[1] + segment_range_extent_offset, true);
-
-									rotation_as_vec1 = rtm::vector_mul_add(rotation_as_vec1, segment_range_extent, segment_range_min);
-								}
-
-								if (static_condition<num_key_frames == 4>::test())
-								{
-									{
-										const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[2] + segment_range_min_offset, true);
-										const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[2] + segment_range_extent_offset, true);
-
-										rotation_as_vec2 = rtm::vector_mul_add(rotation_as_vec2, segment_range_extent, segment_range_min);
-									}
-
-									{
-										const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[3] + segment_range_min_offset, true);
-										const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[3] + segment_range_extent_offset, true);
-
-										rotation_as_vec3 = rtm::vector_mul_add(rotation_as_vec3, segment_range_extent, segment_range_min);
-									}
-								}
-							}
-							else
-							{
+								constexpr uint32_t ignore_mask = 0x00000001U << ((num_key_frames - 1) * 2);
+								if ((range_ignore_flags & (ignore_mask >> 0)) == 0)
 								{
 									const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
 									const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_extent_offset);
@@ -356,6 +284,7 @@ namespace acl
 									rotation_as_vec0 = rtm::vector_mul_add(rotation_as_vec0, segment_range_extent, segment_range_min);
 								}
 
+								if ((range_ignore_flags & (ignore_mask >> 2)) == 0)
 								{
 									const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_min_offset);
 									const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_extent_offset);
@@ -365,6 +294,7 @@ namespace acl
 
 								if (static_condition<num_key_frames == 4>::test())
 								{
+									if ((range_ignore_flags & (ignore_mask >> 4)) == 0)
 									{
 										const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_min_offset);
 										const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_extent_offset);
@@ -372,6 +302,7 @@ namespace acl
 										rotation_as_vec2 = rtm::vector_mul_add(rotation_as_vec2, segment_range_extent, segment_range_min);
 									}
 
+									if ((range_ignore_flags & (ignore_mask >> 8)) == 0)
 									{
 										const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_min_offset);
 										const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_extent_offset);
@@ -380,13 +311,79 @@ namespace acl
 									}
 								}
 							}
+							else
+							{
+								if (rotation_format == rotation_format8::quatf_full && settings.is_rotation_format_supported(rotation_format8::quatf_full))
+								{
+									{
+										const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[0] + segment_range_min_offset, true);
+										const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[0] + segment_range_extent_offset, true);
+
+										rotation_as_vec0 = rtm::vector_mul_add(rotation_as_vec0, segment_range_extent, segment_range_min);
+									}
+
+									{
+										const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[1] + segment_range_min_offset, true);
+										const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[1] + segment_range_extent_offset, true);
+
+										rotation_as_vec1 = rtm::vector_mul_add(rotation_as_vec1, segment_range_extent, segment_range_min);
+									}
+
+									if (static_condition<num_key_frames == 4>::test())
+									{
+										{
+											const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[2] + segment_range_min_offset, true);
+											const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[2] + segment_range_extent_offset, true);
+
+											rotation_as_vec2 = rtm::vector_mul_add(rotation_as_vec2, segment_range_extent, segment_range_min);
+										}
+
+										{
+											const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[3] + segment_range_min_offset, true);
+											const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[3] + segment_range_extent_offset, true);
+
+											rotation_as_vec3 = rtm::vector_mul_add(rotation_as_vec3, segment_range_extent, segment_range_min);
+										}
+									}
+								}
+								else
+								{
+									{
+										const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
+										const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_extent_offset);
+
+										rotation_as_vec0 = rtm::vector_mul_add(rotation_as_vec0, segment_range_extent, segment_range_min);
+									}
+
+									{
+										const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_min_offset);
+										const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_extent_offset);
+
+										rotation_as_vec1 = rtm::vector_mul_add(rotation_as_vec1, segment_range_extent, segment_range_min);
+									}
+
+									if (static_condition<num_key_frames == 4>::test())
+									{
+										{
+											const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_min_offset);
+											const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_extent_offset);
+
+											rotation_as_vec2 = rtm::vector_mul_add(rotation_as_vec2, segment_range_extent, segment_range_min);
+										}
+
+										{
+											const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_min_offset);
+											const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_extent_offset);
+
+											rotation_as_vec3 = rtm::vector_mul_add(rotation_as_vec3, segment_range_extent, segment_range_min);
+										}
+									}
+								}
+							}
+
+							sampling_context.segment_range_data_offset += num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2;
 						}
 
-						sampling_context.segment_range_data_offset += num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2;
-					}
-
-					if (are_clip_rotations_normalized)
-					{
 						const rtm::vector4f clip_range_min = rtm::vector_load(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
 						const rtm::vector4f clip_range_extent = rtm::vector_load(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (num_rotation_components * sizeof(float)));
 
@@ -469,8 +466,6 @@ namespace acl
 				else
 				{
 					const vector_format8 format = settings.get_vector_format(header);
-					const range_reduction_flags8 clip_range_reduction = settings.get_clip_range_reduction(header.clip_range_reduction);
-					const range_reduction_flags8 segment_range_reduction = settings.get_segment_range_reduction(header.segment_range_reduction);
 
 					constexpr size_t num_key_frames = SamplingContextType::k_num_samples_to_interpolate;
 
@@ -542,52 +537,52 @@ namespace acl
 					}
 
 					const range_reduction_flags8 range_reduction_flag = settings.get_range_reduction_flag();
-					if (are_any_enum_flags_set(segment_range_reduction, range_reduction_flag))
+					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flag) && settings.are_range_reduction_flags_supported(range_reduction_flag))
 					{
-						const uint32_t segment_range_min_offset = sampling_context.segment_range_data_offset;
-						const uint32_t segment_range_extent_offset = sampling_context.segment_range_data_offset + (3 * sizeof(uint8_t));
-
-						constexpr uint32_t ignore_mask = 0x00000001U << ((num_key_frames - 1) * 2);
-						if ((range_ignore_flags & (ignore_mask >> 0)) == 0)
+						if (header.num_segments > 1)
 						{
-							const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
-							const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_extent_offset);
+							const uint32_t segment_range_min_offset = sampling_context.segment_range_data_offset;
+							const uint32_t segment_range_extent_offset = sampling_context.segment_range_data_offset + (3 * sizeof(uint8_t));
 
-							vector0 = rtm::vector_mul_add(vector0, segment_range_extent, segment_range_min);
-						}
-
-						if ((range_ignore_flags & (ignore_mask >> 2)) == 0)
-						{
-							const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_min_offset);
-							const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_extent_offset);
-
-							vector1 = rtm::vector_mul_add(vector1, segment_range_extent, segment_range_min);
-						}
-
-						if (static_condition<num_key_frames == 4>::test())
-						{
-							if ((range_ignore_flags & (ignore_mask >> 4)) == 0)
+							constexpr uint32_t ignore_mask = 0x00000001U << ((num_key_frames - 1) * 2);
+							if ((range_ignore_flags & (ignore_mask >> 0)) == 0)
 							{
-								const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_min_offset);
-								const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_extent_offset);
+								const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
+								const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_extent_offset);
 
-								vector2 = rtm::vector_mul_add(vector2, segment_range_extent, segment_range_min);
+								vector0 = rtm::vector_mul_add(vector0, segment_range_extent, segment_range_min);
 							}
 
-							if ((range_ignore_flags & (ignore_mask >> 8)) == 0)
+							if ((range_ignore_flags & (ignore_mask >> 2)) == 0)
 							{
-								const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_min_offset);
-								const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_extent_offset);
+								const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_min_offset);
+								const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_extent_offset);
 
-								vector3 = rtm::vector_mul_add(vector3, segment_range_extent, segment_range_min);
+								vector1 = rtm::vector_mul_add(vector1, segment_range_extent, segment_range_min);
 							}
+
+							if (static_condition<num_key_frames == 4>::test())
+							{
+								if ((range_ignore_flags & (ignore_mask >> 4)) == 0)
+								{
+									const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_min_offset);
+									const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[2] + segment_range_extent_offset);
+
+									vector2 = rtm::vector_mul_add(vector2, segment_range_extent, segment_range_min);
+								}
+
+								if ((range_ignore_flags & (ignore_mask >> 8)) == 0)
+								{
+									const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_min_offset);
+									const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[3] + segment_range_extent_offset);
+
+									vector3 = rtm::vector_mul_add(vector3, segment_range_extent, segment_range_min);
+								}
+							}
+
+							sampling_context.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
 						}
 
-						sampling_context.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
-					}
-
-					if (are_any_enum_flags_set(clip_range_reduction, range_reduction_flag))
-					{
 						const rtm::vector4f clip_range_min = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset);
 						const rtm::vector4f clip_range_extent = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context.clip_range_data_offset + (3 * sizeof(float)));
 

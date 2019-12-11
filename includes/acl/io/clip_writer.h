@@ -107,17 +107,11 @@ namespace acl
 				settings_writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 				settings_writer["translation_format"] = get_vector_format_name(settings.translation_format);
 				settings_writer["scale_format"] = get_vector_format_name(settings.scale_format);
-				settings_writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, range_reduction_flags8::rotations);
-				settings_writer["translation_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, range_reduction_flags8::translations);
-				settings_writer["scale_range_reduction"] = are_any_enum_flags_set(settings.range_reduction, range_reduction_flags8::scales);
 
 				settings_writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
 				{
 					segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
 					segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
-					segmenting_writer["rotation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, range_reduction_flags8::rotations);
-					segmenting_writer["translation_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, range_reduction_flags8::translations);
-					segmenting_writer["scale_range_reduction"] = are_any_enum_flags_set(settings.segmenting.range_reduction, range_reduction_flags8::scales);
 				};
 
 				settings_writer["constant_rotation_threshold_angle"] = settings.constant_rotation_threshold_angle.as_radians();
