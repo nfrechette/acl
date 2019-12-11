@@ -180,8 +180,6 @@ namespace acl
 				}
 				else
 				{
-					const bool are_clip_rotations_normalized = are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::rotations);
-
 					constexpr size_t num_key_frames = SamplingContextType::k_num_samples_to_interpolate;
 
 					// This part is fairly complex, we'll loop and write to the stack (sampling context)
@@ -212,12 +210,7 @@ namespace acl
 								range_ignore_flags |= 0x00000003U;	// Skip clip and segment
 							}
 							else
-							{
-								if (are_clip_rotations_normalized)
-									rotations_as_vec[i] = unpack_vector3_uXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
-								else
-									rotations_as_vec[i] = unpack_vector3_sXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
-							}
+								rotations_as_vec[i] = unpack_vector3_uXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context.key_frame_bit_offsets[i]);
 
 							sampling_context.key_frame_bit_offsets[i] += num_bits_at_bit_rate * 3;
 						}
@@ -266,7 +259,7 @@ namespace acl
 
 					const uint32_t num_rotation_components = decomp_context.num_rotation_components;
 
-					if (are_clip_rotations_normalized && settings.are_range_reduction_flags_supported(range_reduction_flags8::rotations))
+					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::rotations) && settings.are_range_reduction_flags_supported(range_reduction_flags8::rotations))
 					{
 						if (header.num_segments > 1)
 						{
