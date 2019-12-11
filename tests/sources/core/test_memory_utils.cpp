@@ -41,32 +41,32 @@ TEST_CASE("misc tests", "[core][memory]")
 			num_powers_of_two++;
 	}
 
-	REQUIRE(num_powers_of_two == 17);
-	REQUIRE(is_power_of_two(1) == true);
-	REQUIRE(is_power_of_two(2) == true);
-	REQUIRE(is_power_of_two(4) == true);
-	REQUIRE(is_power_of_two(8) == true);
-	REQUIRE(is_power_of_two(16) == true);
-	REQUIRE(is_power_of_two(32) == true);
-	REQUIRE(is_power_of_two(64) == true);
-	REQUIRE(is_power_of_two(128) == true);
-	REQUIRE(is_power_of_two(256) == true);
-	REQUIRE(is_power_of_two(512) == true);
-	REQUIRE(is_power_of_two(1024) == true);
-	REQUIRE(is_power_of_two(2048) == true);
-	REQUIRE(is_power_of_two(4096) == true);
-	REQUIRE(is_power_of_two(8192) == true);
-	REQUIRE(is_power_of_two(16384) == true);
-	REQUIRE(is_power_of_two(32768) == true);
-	REQUIRE(is_power_of_two(65536) == true);
+	CHECK(num_powers_of_two == 17);
+	CHECK(is_power_of_two(1) == true);
+	CHECK(is_power_of_two(2) == true);
+	CHECK(is_power_of_two(4) == true);
+	CHECK(is_power_of_two(8) == true);
+	CHECK(is_power_of_two(16) == true);
+	CHECK(is_power_of_two(32) == true);
+	CHECK(is_power_of_two(64) == true);
+	CHECK(is_power_of_two(128) == true);
+	CHECK(is_power_of_two(256) == true);
+	CHECK(is_power_of_two(512) == true);
+	CHECK(is_power_of_two(1024) == true);
+	CHECK(is_power_of_two(2048) == true);
+	CHECK(is_power_of_two(4096) == true);
+	CHECK(is_power_of_two(8192) == true);
+	CHECK(is_power_of_two(16384) == true);
+	CHECK(is_power_of_two(32768) == true);
+	CHECK(is_power_of_two(65536) == true);
 
-	REQUIRE(is_alignment_valid<int32_t>(0) == false);
-	REQUIRE(is_alignment_valid<int32_t>(4) == true);
-	REQUIRE(is_alignment_valid<int32_t>(8) == true);
-	REQUIRE(is_alignment_valid<int32_t>(2) == false);
-	REQUIRE(is_alignment_valid<int32_t>(5) == false);
-	REQUIRE(is_alignment_valid<int64_t>(8) == true);
-	REQUIRE(is_alignment_valid<int64_t>(16) == true);
+	CHECK(is_alignment_valid<int32_t>(0) == false);
+	CHECK(is_alignment_valid<int32_t>(4) == true);
+	CHECK(is_alignment_valid<int32_t>(8) == true);
+	CHECK(is_alignment_valid<int32_t>(2) == false);
+	CHECK(is_alignment_valid<int32_t>(5) == false);
+	CHECK(is_alignment_valid<int64_t>(8) == true);
+	CHECK(is_alignment_valid<int64_t>(16) == true);
 
 	struct alignas(8) Tmp
 	{
@@ -74,34 +74,34 @@ TEST_CASE("misc tests", "[core][memory]")
 		int32_t value;		// Aligned to 4 bytes
 	};
 	Tmp tmp;
-	REQUIRE(is_aligned_to(&tmp.padding, 8) == true);
-	REQUIRE(is_aligned_to(&tmp.value, 4) == true);
-	REQUIRE(is_aligned_to(&tmp.value, 2) == true);
-	REQUIRE(is_aligned_to(&tmp.value, 1) == true);
-	REQUIRE(is_aligned_to(&tmp.value, 8) == false);
+	CHECK(is_aligned_to(&tmp.padding, 8) == true);
+	CHECK(is_aligned_to(&tmp.value, 4) == true);
+	CHECK(is_aligned_to(&tmp.value, 2) == true);
+	CHECK(is_aligned_to(&tmp.value, 1) == true);
+	CHECK(is_aligned_to(&tmp.value, 8) == false);
 
-	REQUIRE(is_aligned_to(4, 4) == true);
-	REQUIRE(is_aligned_to(4, 2) == true);
-	REQUIRE(is_aligned_to(4, 1) == true);
-	REQUIRE(is_aligned_to(4, 8) == false);
-	REQUIRE(is_aligned_to(6, 4) == false);
-	REQUIRE(is_aligned_to(6, 2) == true);
-	REQUIRE(is_aligned_to(6, 1) == true);
+	CHECK(is_aligned_to(4, 4) == true);
+	CHECK(is_aligned_to(4, 2) == true);
+	CHECK(is_aligned_to(4, 1) == true);
+	CHECK(is_aligned_to(4, 8) == false);
+	CHECK(is_aligned_to(6, 4) == false);
+	CHECK(is_aligned_to(6, 2) == true);
+	CHECK(is_aligned_to(6, 1) == true);
 
-	REQUIRE(is_aligned_to(align_to(5, 4), 4) == true);
-	REQUIRE(align_to(5, 4) == 8);
-	REQUIRE(is_aligned_to(align_to(8, 4), 4) == true);
-	REQUIRE(align_to(8, 4) == 8);
+	CHECK(is_aligned_to(align_to(5, 4), 4) == true);
+	CHECK(align_to(5, 4) == 8);
+	CHECK(is_aligned_to(align_to(8, 4), 4) == true);
+	CHECK(align_to(8, 4) == 8);
 
 	void* ptr = (void*)0x00000000;
-	REQUIRE(align_to(ptr, 4) == (void*)0x00000000);
-	REQUIRE(align_to(ptr, 8) == (void*)0x00000000);
+	CHECK(align_to(ptr, 4) == (void*)0x00000000);
+	CHECK(align_to(ptr, 8) == (void*)0x00000000);
 	ptr = (void*)0x00000001;
-	REQUIRE(align_to(ptr, 4) == (void*)0x00000004);
-	REQUIRE(align_to(ptr, 8) == (void*)0x00000008);
+	CHECK(align_to(ptr, 4) == (void*)0x00000004);
+	CHECK(align_to(ptr, 8) == (void*)0x00000008);
 	ptr = (void*)0x00000004;
-	REQUIRE(align_to(ptr, 4) == (void*)0x00000004);
-	REQUIRE(align_to(ptr, 8) == (void*)0x00000008);
+	CHECK(align_to(ptr, 4) == (void*)0x00000004);
+	CHECK(align_to(ptr, 8) == (void*)0x00000008);
 
 	struct alignas(8) Align8
 	{
@@ -110,32 +110,32 @@ TEST_CASE("misc tests", "[core][memory]")
 
 	const size_t padding0 = get_required_padding<float, Align8>();
 	const size_t padding1 = get_required_padding<uint8_t, Align8>();
-	REQUIRE(padding0 == 4);
-	REQUIRE(padding1 == 7);
+	CHECK(padding0 == 4);
+	CHECK(padding1 == 7);
 
 	int32_t array[8];
-	REQUIRE(get_array_size(array) == (sizeof(array) / sizeof(array[0])));
+	CHECK(get_array_size(array) == (sizeof(array) / sizeof(array[0])));
 }
 
 TEST_CASE("raw memory support", "[core][memory]")
 {
 	uint8_t buffer[1024];
 	uint8_t* ptr = &buffer[32];
-	REQUIRE(add_offset_to_ptr<uint8_t>(ptr, 23) == ptr + 23);
-	REQUIRE(add_offset_to_ptr<uint8_t>(ptr, 64) == ptr + 64);
+	CHECK(add_offset_to_ptr<uint8_t>(ptr, 23) == ptr + 23);
+	CHECK(add_offset_to_ptr<uint8_t>(ptr, 64) == ptr + 64);
 
 	uint16_t value16 = 0x04FE;
-	REQUIRE(byte_swap(value16) == 0xFE04);
+	CHECK(byte_swap(value16) == 0xFE04);
 
 	uint32_t value32 = 0x04FE78AB;
-	REQUIRE(byte_swap(value32) == 0xAB78FE04);
+	CHECK(byte_swap(value32) == 0xAB78FE04);
 
 	uint64_t value64 = uint64_t(0x04FE78AB0098DC56ULL);
-	REQUIRE(byte_swap(value64) == uint64_t(0x56DC9800AB78FE04ULL));
+	CHECK(byte_swap(value64) == uint64_t(0x56DC9800AB78FE04ULL));
 
 	uint8_t unaligned_value_buffer[5] = { 0x00, 0x00, 0x00, 0x00, 0x00 };
 	std::memcpy(&unaligned_value_buffer[1], &value32, sizeof(uint32_t));
-	REQUIRE(unaligned_load<uint32_t>(&unaligned_value_buffer[1]) == value32);
+	CHECK(unaligned_load<uint32_t>(&unaligned_value_buffer[1]) == value32);
 }
 
 TEST_CASE("memcpy_bits", "[core][memory]")
@@ -143,28 +143,28 @@ TEST_CASE("memcpy_bits", "[core][memory]")
 	uint64_t dest = uint64_t(~0ULL);
 	uint64_t src = byte_swap(uint64_t(0x5555555555555555ULL));
 	memcpy_bits(&dest, 1, &src, 0, 64 - 3);
-	REQUIRE(dest == byte_swap(uint64_t(0xAAAAAAAAAAAAAAABULL)));
+	CHECK(dest == byte_swap(uint64_t(0xAAAAAAAAAAAAAAABULL)));
 
 	dest = byte_swap(uint64_t(0x0F00FF0000000000ULL));
 	src = byte_swap(uint64_t(0x3800000000000000ULL));
 	memcpy_bits(&dest, 0, &src, 2, 5);
-	REQUIRE(dest == byte_swap(uint64_t(0xE700FF0000000000ULL)));
+	CHECK(dest == byte_swap(uint64_t(0xE700FF0000000000ULL)));
 
 	dest = byte_swap(uint64_t(0x0F00FF0000000000ULL));
 	src = byte_swap(uint64_t(0x3800000000000000ULL));
 	memcpy_bits(&dest, 1, &src, 2, 5);
-	REQUIRE(dest == byte_swap(uint64_t(0x7300FF0000000000ULL)));
+	CHECK(dest == byte_swap(uint64_t(0x7300FF0000000000ULL)));
 
 	dest = 0;
 	src = uint64_t(~0ULL);
 	memcpy_bits(&dest, 1, &src, 0, 7);
-	REQUIRE(dest == byte_swap(uint64_t(0x7F00000000000000ULL)));
+	CHECK(dest == byte_swap(uint64_t(0x7F00000000000000ULL)));
 
 	memcpy_bits(&dest, 8, &src, 0, 8);
-	REQUIRE(dest == byte_swap(uint64_t(0x7FFF000000000000ULL)));
+	CHECK(dest == byte_swap(uint64_t(0x7FFF000000000000ULL)));
 
 	memcpy_bits(&dest, 0, &src, 0, 64);
-	REQUIRE(dest == uint64_t(~0ULL));
+	CHECK(dest == uint64_t(~0ULL));
 }
 
 enum class UnsignedEnum : uint32_t

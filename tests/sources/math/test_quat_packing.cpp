@@ -45,46 +45,46 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 		UnalignedBuffer tmp0;
 		pack_quat_128(quat0, &tmp0.buffer[0]);
 		quatf quat1 = unpack_quat_128(&tmp0.buffer[0]);
-		REQUIRE(quat_get_x(quat0) == quat_get_x(quat1));
-		REQUIRE(quat_get_y(quat0) == quat_get_y(quat1));
-		REQUIRE(quat_get_z(quat0) == quat_get_z(quat1));
-		REQUIRE(quat_get_w(quat0) == quat_get_w(quat1));
+		CHECK(quat_get_x(quat0) == quat_get_x(quat1));
+		CHECK(quat_get_y(quat0) == quat_get_y(quat1));
+		CHECK(quat_get_z(quat0) == quat_get_z(quat1));
+		CHECK(quat_get_w(quat0) == quat_get_w(quat1));
 	}
 
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_96(quat0, &tmp0.buffer[0]);
 		quatf quat1 = unpack_quat_96_unsafe(&tmp0.buffer[0]);
-		REQUIRE(quat_get_x(quat0) == quat_get_x(quat1));
-		REQUIRE(quat_get_y(quat0) == quat_get_y(quat1));
-		REQUIRE(quat_get_z(quat0) == quat_get_z(quat1));
-		REQUIRE(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-4F));
+		CHECK(quat_get_x(quat0) == quat_get_x(quat1));
+		CHECK(quat_get_y(quat0) == quat_get_y(quat1));
+		CHECK(quat_get_z(quat0) == quat_get_z(quat1));
+		CHECK(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-4F));
 	}
 
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_48(quat0, &tmp0.buffer[0]);
 		quatf quat1 = unpack_quat_48(&tmp0.buffer[0]);
-		REQUIRE(scalar_near_equal(quat_get_x(quat0), quat_get_x(quat1), 1.0E-4F));
-		REQUIRE(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-4F));
-		REQUIRE(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-4F));
-		REQUIRE(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-4F));
+		CHECK(scalar_near_equal(quat_get_x(quat0), quat_get_x(quat1), 1.0E-4F));
+		CHECK(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-4F));
+		CHECK(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-4F));
+		CHECK(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-4F));
 	}
 
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_32(quat0, &tmp0.buffer[0]);
 		quatf quat1 = unpack_quat_32(&tmp0.buffer[0]);
-		REQUIRE(scalar_near_equal(quat_get_x(quat0), quat_get_x(quat1), 1.0E-3F));
-		REQUIRE(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-3F));
-		REQUIRE(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-3F));
-		REQUIRE(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-3F));
+		CHECK(scalar_near_equal(quat_get_x(quat0), quat_get_x(quat1), 1.0E-3F));
+		CHECK(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-3F));
+		CHECK(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-3F));
+		CHECK(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-3F));
 	}
 
-	REQUIRE(get_packed_rotation_size(rotation_format8::quatf_full) == 16);
-	REQUIRE(get_packed_rotation_size(rotation_format8::quatf_drop_w_full) == 12);
+	CHECK(get_packed_rotation_size(rotation_format8::quatf_full) == 16);
+	CHECK(get_packed_rotation_size(rotation_format8::quatf_drop_w_full) == 12);
 
-	REQUIRE(get_range_reduction_rotation_size(rotation_format8::quatf_full) == 32);
-	REQUIRE(get_range_reduction_rotation_size(rotation_format8::quatf_drop_w_full) == 24);
-	REQUIRE(get_range_reduction_rotation_size(rotation_format8::quatf_drop_w_variable) == 24);
+	CHECK(get_range_reduction_rotation_size(rotation_format8::quatf_full) == 32);
+	CHECK(get_range_reduction_rotation_size(rotation_format8::quatf_drop_w_full) == 24);
+	CHECK(get_range_reduction_rotation_size(rotation_format8::quatf_drop_w_variable) == 24);
 }

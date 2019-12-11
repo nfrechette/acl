@@ -39,27 +39,27 @@ TEST_CASE("String", "[core][string]")
 {
 	ANSIAllocator allocator;
 
-	REQUIRE(String().size() == 0);
-	REQUIRE(String().c_str() != nullptr);
-	REQUIRE(String(allocator, "").size() == 0);
-	REQUIRE(String(allocator, "").c_str() != nullptr);
+	CHECK(String().size() == 0);
+	CHECK(String().c_str() != nullptr);
+	CHECK(String(allocator, "").size() == 0);
+	CHECK(String(allocator, "").c_str() != nullptr);
 
 	const char* str0 = "this is a test string";
 	const char* str1 = "this is not a test string";
 	const char* str2 = "this is a test asset!";
 
-	REQUIRE(String(allocator, str0) == str0);
-	REQUIRE(String(allocator, str0) != str1);
-	REQUIRE(String(allocator, str0) != str2);
-	REQUIRE(String(allocator, str0) == String(allocator, str0));
-	REQUIRE(String(allocator, str0) != String(allocator, str1));
-	REQUIRE(String(allocator, str0) != String(allocator, str2));
-	REQUIRE(String(allocator, str0).c_str() != str0);
-	REQUIRE(String(allocator, str0).size() == std::strlen(str0));
-	REQUIRE(String(allocator, str0, 4) == String(allocator, str1, 4));
-	REQUIRE(String(allocator, str0, 4) == "this");
+	CHECK(String(allocator, str0) == str0);
+	CHECK(String(allocator, str0) != str1);
+	CHECK(String(allocator, str0) != str2);
+	CHECK(String(allocator, str0) == String(allocator, str0));
+	CHECK(String(allocator, str0) != String(allocator, str1));
+	CHECK(String(allocator, str0) != String(allocator, str2));
+	CHECK(String(allocator, str0).c_str() != str0);
+	CHECK(String(allocator, str0).size() == std::strlen(str0));
+	CHECK(String(allocator, str0, 4) == String(allocator, str1, 4));
+	CHECK(String(allocator, str0, 4) == "this");
 
-	REQUIRE(String().empty() == true);
-	REQUIRE(String(allocator, "").empty() == true);
-	REQUIRE(String(allocator, str0).empty() == false);
+	CHECK(String().empty() == true);
+	CHECK(String(allocator, "").empty() == true);
+	CHECK(String(allocator, str0).empty() == false);
 }

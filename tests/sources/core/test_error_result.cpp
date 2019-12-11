@@ -33,18 +33,18 @@ using namespace acl;
 
 TEST_CASE("ErrorResult", "[core][error]")
 {
-	REQUIRE(ErrorResult().any() == false);
-	REQUIRE(ErrorResult().empty() == true);
-	REQUIRE(std::strlen(ErrorResult().c_str()) == 0);
+	CHECK(ErrorResult().any() == false);
+	CHECK(ErrorResult().empty() == true);
+	CHECK(std::strlen(ErrorResult().c_str()) == 0);
 
-	REQUIRE(ErrorResult("failed").any() == true);
-	REQUIRE(ErrorResult("failed").empty() == false);
-	REQUIRE(std::strcmp(ErrorResult("failed").c_str(), "failed") == 0);
+	CHECK(ErrorResult("failed").any() == true);
+	CHECK(ErrorResult("failed").empty() == false);
+	CHECK(std::strcmp(ErrorResult("failed").c_str(), "failed") == 0);
 
 	ErrorResult tmp("failed");
-	REQUIRE(tmp.any() == true);
+	CHECK(tmp.any() == true);
 	tmp.reset();
-	REQUIRE(tmp.any() == false);
-	REQUIRE(tmp.empty() == true);
-	REQUIRE(std::strlen(tmp.c_str()) == 0);
+	CHECK(tmp.any() == false);
+	CHECK(tmp.empty() == true);
+	CHECK(std::strlen(tmp.c_str()) == 0);
 }
