@@ -189,13 +189,9 @@ namespace acl
 		uint16_t				num_segments;
 
 		// The rotation/translation/scale format used.
-		rotation_format8			rotation_format;
+		rotation_format8		rotation_format;
 		vector_format8			translation_format;
 		vector_format8			scale_format;								// TODO: Make this optional?
-
-		// The clip/segment range reduction format used.
-		range_reduction_flags8	clip_range_reduction;
-		range_reduction_flags8	segment_range_reduction;
 
 		// Whether or not we have scale (bool).
 		uint8_t					has_scale;
@@ -203,7 +199,7 @@ namespace acl
 		// Whether the default scale is 0,0,0 or 1,1,1 (bool/bit).
 		uint8_t					default_scale;
 
-		uint8_t padding[1];
+		uint8_t padding[3];
 
 		// The total number of samples per track our clip contained.
 		uint32_t				num_samples;

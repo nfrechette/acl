@@ -209,13 +209,11 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	settings.constant_translation_threshold = 0.124F;
 	settings.error_threshold = 0.23F;
 	settings.level = compression_level8::high;
-	settings.range_reduction = range_reduction_flags8::rotations | range_reduction_flags8::scales;
 	settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 	settings.scale_format = vector_format8::vector3f_variable;
 	settings.translation_format = vector_format8::vector3f_variable;
 	settings.segmenting.ideal_num_samples = 23;
 	settings.segmenting.max_num_samples = 123;
-	settings.segmenting.range_reduction = range_reduction_flags8::translations;
 
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };

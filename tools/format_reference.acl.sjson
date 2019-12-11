@@ -69,12 +69,6 @@ settings =
 	translation_format = "vector3f_full"
 	scale_format = "vector3f_full"
 
-	// Whether to use range reduction or not at the clip level
-	// Defaults to 'false'
-	rotation_range_reduction = false
-	translation_range_reduction = false
-	scale_range_reduction = false
-
 	// Settings used when segmenting clips
 	// Optional
 	segmenting = {
@@ -85,12 +79,6 @@ settings =
 		// Maximum number of samples per segment
 		// Defaults to '31'
 		max_num_samples = 31
-
-		// Whether to use range reduction or not at the segment level
-		// Defaults to 'false'
-		rotation_range_reduction = false
-		translation_range_reduction = false
-		scale_range_reduction = false
 	}
 
 	// Threshold angle value to use when detecting if a rotation track is constant

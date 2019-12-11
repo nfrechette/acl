@@ -96,14 +96,23 @@ namespace acl
 
 			ScopeProfiler compression_time;
 
-			// If every track is to be stored raw, we disable segmenting and range reduction since it makes no sense
+			// If every track is retains full precision, we disable segmenting since it provides no benefit
 			if (!is_rotation_format_variable(settings.rotation_format) && !is_vector_format_variable(settings.translation_format) && !is_vector_format_variable(settings.scale_format))
 			{
-				settings.range_reduction = range_reduction_flags8::none;
 				settings.segmenting.ideal_num_samples = 0xFFFF;
 				settings.segmenting.max_num_samples = 0xFFFF;
-				settings.segmenting.range_reduction = range_reduction_flags8::none;
 			}
+
+			// Variable bit rate tracks need range reduction
+			range_reduction_flags8 range_reduction = range_reduction_flags8::none;
+			if (is_rotation_format_variable(settings.rotation_format))
+				range_reduction |= range_reduction_flags8::rotations;
+
+			if (is_vector_format_variable(settings.translation_format))
+				range_reduction |= range_reduction_flags8::translations;
+
+			if (is_vector_format_variable(settings.scale_format))
+				range_reduction |= range_reduction_flags8::scales;
 
 			const uint32_t num_samples = clip.get_num_samples();
 			const RigidSkeleton& skeleton = clip.get_skeleton();
@@ -128,22 +137,19 @@ namespace acl
 			compact_constant_streams(allocator, clip_context, settings.constant_rotation_threshold_angle, settings.constant_translation_threshold, settings.constant_scale_threshold);
 
 			uint32_t clip_range_data_size = 0;
-			if (settings.range_reduction != range_reduction_flags8::none)
+			if (range_reduction != range_reduction_flags8::none)
 			{
-				normalize_clip_streams(clip_context, settings.range_reduction);
-				clip_range_data_size = get_stream_range_data_size(clip_context, settings.range_reduction, settings.rotation_format);
+				normalize_clip_streams(clip_context, range_reduction);
+				clip_range_data_size = get_stream_range_data_size(clip_context, range_reduction, settings.rotation_format);
 			}
 
 			segment_streams(allocator, clip_context, settings.segmenting);
 
-			// If we have a single segment, disable range reduction since it won't help
-			if (clip_context.num_segments == 1)
-				settings.segmenting.range_reduction = range_reduction_flags8::none;
-
-			if (settings.segmenting.range_reduction != range_reduction_flags8::none)
+			// If we have a single segment, skip segment range reduction since it won't help
+			if (range_reduction != range_reduction_flags8::none && clip_context.num_segments > 1)
 			{
 				extract_segment_bone_ranges(allocator, clip_context);
-				normalize_segment_streams(clip_context, settings.segmenting.range_reduction);
+				normalize_segment_streams(clip_context, range_reduction);
 			}
 
 			quantize_streams(allocator, clip_context, settings, skeleton, raw_clip_context, additive_base_clip_context, out_stats);
@@ -231,8 +237,6 @@ namespace acl
 			header.rotation_format = settings.rotation_format;
 			header.translation_format = settings.translation_format;
 			header.scale_format = settings.scale_format;
-			header.clip_range_reduction = settings.range_reduction;
-			header.segment_range_reduction = settings.segmenting.range_reduction;
 			header.has_scale = clip_context.has_scale ? 1 : 0;
 			header.default_scale = additive_base_clip == nullptr || clip.get_additive_format() != additive_clip_format8::additive1;
 			header.num_samples = num_samples;
@@ -259,12 +263,12 @@ namespace acl
 			else
 				header.constant_track_data_offset = InvalidPtrOffset();
 
-			if (settings.range_reduction != range_reduction_flags8::none)
-				write_clip_range_data(clip_context, settings.range_reduction, header.get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
+			if (range_reduction != range_reduction_flags8::none)
+				write_clip_range_data(clip_context, range_reduction, header.get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
 			else
 				header.clip_range_data_offset = InvalidPtrOffset();
 
-			write_segment_data(clip_context, settings, header, output_bone_mapping, num_output_bones);
+			write_segment_data(clip_context, settings, range_reduction, header, output_bone_mapping, num_output_bones);
 
 			finalize_compressed_clip(*compressed_clip);
 

@@ -393,26 +393,6 @@ def compress_clips(options):
 
 	return stat_files
 
-def shorten_range_reduction(range_reduction):
-	if range_reduction == 'range_reduction::none':
-		return 'RR:None'
-	elif range_reduction == 'range_reduction::rotations':
-		return 'RR:Rot'
-	elif range_reduction == 'range_reduction::translations':
-		return 'RR:Trans'
-	elif range_reduction == 'range_reduction::scales':
-		return 'RR:Scale'
-	elif range_reduction == 'range_reduction::rotations | range_reduction::translations':
-		return 'RR:Rot|Trans'
-	elif range_reduction == 'range_reduction::rotations | range_reduction::scales':
-		return 'RR:Rot|Scale'
-	elif range_reduction == 'range_reduction::translations | range_reduction::scales':
-		return 'RR:Trans|Scale'
-	elif range_reduction == 'range_reduction::rotations | range_reduction::translations | range_reduction::scales':
-		return 'RR:Rot|Trans|Scale'
-	else:
-		return 'RR:???'
-
 def shorten_rotation_format(format):
 	if format == 'quatf_full':
 		return 'R:Quat'
@@ -534,7 +514,6 @@ def run_stat_parsing(options, stat_queue, result_queue):
 						if len(run_stats) == 0:
 							continue
 
-						run_stats['range_reduction'] = shorten_range_reduction(run_stats['range_reduction'])
 						run_stats['filename'] = stat_filename.replace('\\\\?\\', '')
 						run_stats['clip_name'] = os.path.splitext(os.path.basename(stat_filename))[0]
 						run_stats['rotation_format'] = shorten_rotation_format(run_stats['rotation_format'])
@@ -545,12 +524,11 @@ def run_stat_parsing(options, stat_queue, result_queue):
 							run_stats['duration'] = 0.0
 
 						if 'segmenting' in run_stats:
-							run_stats['segmenting']['range_reduction'] = shorten_range_reduction(run_stats['segmenting']['range_reduction'])
-							run_stats['desc'] = '{}|{}|{}, Clip {}, Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
-							run_stats['csv_desc'] = '{}|{}|{} Clip {} Segment {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'], run_stats['segmenting']['range_reduction'])
+							run_stats['desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
+							run_stats['csv_desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
 						else:
-							run_stats['desc'] = '{}|{}|{}, Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'])
-							run_stats['csv_desc'] = '{}|{}|{} Clip {}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'], run_stats['range_reduction'])
+							run_stats['desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
+							run_stats['csv_desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
 
 						aggregate_stats(agg_run_stats, run_stats)
 						track_best_runs(best_runs, run_stats)

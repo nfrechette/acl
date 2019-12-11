@@ -241,7 +241,6 @@ namespace acl
 			writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 			writer["translation_format"] = get_vector_format_name(settings.translation_format);
 			writer["scale_format"] = get_vector_format_name(settings.scale_format);
-			writer["range_reduction"] = get_range_reduction_name(settings.range_reduction);
 			writer["has_scale"] = clip_context.has_scale;
 			writer["error_metric"] = settings.error_metric->get_name();
 
@@ -305,7 +304,6 @@ namespace acl
 			writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
 			{
 				segmenting_writer["num_segments"] = header.num_segments;
-				segmenting_writer["range_reduction"] = get_range_reduction_name(settings.segmenting.range_reduction);
 				segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
 				segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
 			};

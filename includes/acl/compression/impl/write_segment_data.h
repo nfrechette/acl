@@ -72,7 +72,7 @@ namespace acl
 			}
 		}
 
-		inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, ClipHeader& header, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
+		inline void write_segment_data(const ClipContext& clip_context, const CompressionSettings& settings, range_reduction_flags8 range_reduction, ClipHeader& header, const uint16_t* output_bone_mapping, uint16_t num_output_bones)
 		{
 			SegmentHeader* segment_headers = header.get_segment_headers();
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
@@ -88,7 +88,7 @@ namespace acl
 					segment_header.format_per_track_data_offset = InvalidPtrOffset();
 
 				if (segment.range_data_size > 0)
-					write_segment_range_data(segment, settings.segmenting.range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size, output_bone_mapping, num_output_bones);
+					write_segment_range_data(segment, range_reduction, header.get_segment_range_data(segment_header), segment.range_data_size, output_bone_mapping, num_output_bones);
 				else
 					segment_header.range_data_offset = InvalidPtrOffset();
 

@@ -6,7 +6,7 @@ Range reduction is performed by calculating the range of possible values in a li
 
 This is an important optimization to keep the memory footprint as low as possible because it typically allows us to increase the precision retained on the normalized values.
 
-This feature can be enabled at the clip level where entire tracks are quantized over their full range as well as at the segment level where they are normalized over the segment only. Enabling the feature at the segment level requires it to also be enabled at the clip level because we store the range information in quantized form.
+This feature can be enabled at the clip level where entire tracks are quantized over their full range as well as at the segment level where they are normalized over the segment only. Enabling the feature at the segment level requires it to also be enabled at the clip level because we store the range information in quantized form. This is entirely controlled by the underlying compression algorithm.
 
 Additional reading:
 
