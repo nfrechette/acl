@@ -88,7 +88,6 @@ namespace acl
 
 		String& operator=(String&& other)
 		{
-			ACL_ASSERT(m_allocator == other.m_allocator || m_allocator == nullptr || other.m_allocator == nullptr, "Allocators must be identical or NULL otherwise the behavior is undefined");
 			std::swap(m_allocator, other.m_allocator);
 			std::swap(m_c_str, other.m_c_str);
 			return *this;
