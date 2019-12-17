@@ -107,6 +107,20 @@ namespace acl
 			}
 		}
 
+		AnimationClip(AnimationClip&& other)
+			: m_allocator(other.m_allocator)
+			, m_skeleton(other.m_skeleton)
+			, m_bones(other.m_bones)
+			, m_num_samples(other.m_num_samples)
+			, m_sample_rate(other.m_sample_rate)
+			, m_num_bones(other.m_num_bones)
+			, m_additive_base_clip(other.m_additive_base_clip)
+			, m_additive_format(other.m_additive_format)
+			, m_name(std::move(other.m_name))
+		{
+			other.m_bones = nullptr;
+		}
+
 		~AnimationClip()
 		{
 			deallocate_type_array(m_allocator, m_bones, m_num_bones);
@@ -114,6 +128,7 @@ namespace acl
 
 		AnimationClip(const AnimationClip&) = delete;
 		AnimationClip& operator=(const AnimationClip&) = delete;
+		AnimationClip& operator=(AnimationClip&&) = delete;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the rigid skeleton this clip was created with
@@ -366,7 +381,7 @@ namespace acl
 		const AnimationClip*	m_additive_base_clip;
 
 		// If we have an additive base, this is the format we are in
-		additive_clip_format8		m_additive_format;
+		additive_clip_format8	m_additive_format;
 
 		// The name of the clip
 		String					m_name;
