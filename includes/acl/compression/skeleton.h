@@ -290,6 +290,17 @@ namespace acl
 			deallocate_type_array(m_allocator, is_leaf_bitset, bone_bitset_desc.get_size());
 		}
 
+		RigidSkeleton(RigidSkeleton&& other)
+			: m_allocator(other.m_allocator)
+			, m_bones(other.m_bones)
+			, m_leaf_bone_chains(other.m_leaf_bone_chains)
+			, m_num_bones(other.m_num_bones)
+			, m_num_leaf_bones(other.m_num_leaf_bones)
+		{
+			other.m_bones = nullptr;
+			other.m_leaf_bone_chains = nullptr;
+		}
+
 		~RigidSkeleton()
 		{
 			deallocate_type_array(m_allocator, m_bones, m_num_bones);
@@ -300,6 +311,7 @@ namespace acl
 
 		RigidSkeleton(const RigidSkeleton&) = delete;
 		RigidSkeleton& operator=(const RigidSkeleton&) = delete;
+		RigidSkeleton& operator=(RigidSkeleton&&) = delete;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the array of bones contained in the skeleton
