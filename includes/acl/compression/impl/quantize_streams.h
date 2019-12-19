@@ -1379,7 +1379,7 @@ namespace acl
 								printf("%u: => %u %u %u (%f)\n", chain_bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error);
 								for (uint16_t i = chain_link_index + 1; i < num_bones_in_chain; ++i)
 								{
-									const uint16_t chain_bone_index2 = chain_bone_indices[chain_link_index];
+									const uint16_t chain_bone_index2 = context.chain_bone_indices[chain_link_index];
 									float error2 = calculate_max_error_at_bit_rate_object(context, chain_bone_index2, error_scan_stop_condition::until_end_of_segment);
 									printf("  %u: => (%f)\n", i, error2);
 								}
