@@ -52,10 +52,16 @@ namespace acl
 	inline BoneError calculate_compressed_clip_error(IAllocator& allocator,
 		const AnimationClip& clip, const itransform_error_metric& error_metric, DecompressionContextType& context)
 	{
+		const uint32_t num_samples = clip.get_num_samples();
+		if (num_samples == 0)
+			return BoneError();
+
 		const uint16_t num_bones = clip.get_num_bones();
+		if (num_bones == 0)
+			return BoneError();
+
 		const float clip_duration = clip.get_duration();
 		const float sample_rate = clip.get_sample_rate();
-		const uint32_t num_samples = clip.get_num_samples();
 		const RigidSkeleton& skeleton = clip.get_skeleton();
 
 		// Always calculate the error with scale, slower but we don't need to know if we have scale or not
@@ -135,6 +141,7 @@ namespace acl
 		local_to_object_space_args_lossy.local_transforms = lossy_local_pose_;
 
 		BoneError bone_error;
+		bone_error.error = -1.0F;	// Can never have a negative error, use it so the first sample is used
 		DefaultOutputWriter pose_writer(lossy_local_pose, num_output_bones);
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
