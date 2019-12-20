@@ -29,6 +29,7 @@
 #include "acl/core/bit_manip_utils.h"
 
 #include <cstdint>
+#include <limits>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
