@@ -547,6 +547,8 @@ namespace acl
 			const acl_impl::TranslationDecompressionSettingsAdapter<DecompressionSettingsType> translation_adapter(m_settings);
 			const acl_impl::ScaleDecompressionSettingsAdapter<DecompressionSettingsType> scale_adapter(m_settings, header);
 
+			const rtm::vector4f default_scale = scale_adapter.get_default_value();
+
 			acl_impl::SamplingContext sampling_context;
 			sampling_context.track_index = 0;
 			sampling_context.constant_track_data_offset = 0;
@@ -555,6 +557,9 @@ namespace acl
 			sampling_context.segment_range_data_offset = 0;
 			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
 			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
+
+			sampling_context.vectors[0] = default_scale;	// Init with something to avoid GCC warning
+			sampling_context.vectors[1] = default_scale;	// Init with something to avoid GCC warning
 
 			const uint16_t num_bones = header.num_bones;
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -582,7 +587,7 @@ namespace acl
 				}
 				else
 				{
-					const rtm::vector4f scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
+					const rtm::vector4f scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : default_scale;
 					writer.write_bone_scale(bone_index, scale);
 				}
 			}
@@ -789,6 +794,11 @@ namespace acl
 				}
 			}
 
+			const rtm::vector4f default_scale = scale_adapter.get_default_value();
+
+			sampling_context.vectors[0] = default_scale;	// Init with something to avoid GCC warning
+			sampling_context.vectors[1] = default_scale;	// Init with something to avoid GCC warning
+
 			if (out_rotation != nullptr)
 				*out_rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
 			else
@@ -803,7 +813,7 @@ namespace acl
 			}
 
 			if (out_scale != nullptr)
-				*out_scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
+				*out_scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : default_scale;
 			// No need to skip our last scale, we don't care anymore
 
 			if (m_settings.disable_fp_exeptions())
