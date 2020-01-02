@@ -40,8 +40,6 @@ namespace acl
 	{
 		inline void normalize_scalarf_track(track& mut_track, const scalarf_range& range)
 		{
-			ACL_ASSERT(mut_track.is_owner(), "Track must be writable");
-
 			using namespace rtm;
 
 			const vector4f one = rtm::vector_set(1.0F);

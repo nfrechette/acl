@@ -111,10 +111,8 @@ namespace acl
 		// Returns a pointer to an untyped sample at the specified index.
 		void* operator[](uint32_t index)
 		{
-			// If we have an allocator, we own the memory and mutable pointers are allowed
-			ACL_ASSERT(is_owner(), "Mutable reference not allowed, create a copy instead");
 			ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
-			return m_allocator ? m_data + (index * m_stride) : nullptr;
+			return m_data + (index * m_stride);
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -359,10 +357,8 @@ namespace acl
 		// invalid reference will be returned, leading to a crash.
 		sample_type& operator[](uint32_t index)
 		{
-			// If we have an allocator, we own the memory and mutable references are allowed
-			ACL_ASSERT(is_owner(), "Mutable reference not allowed, create a copy instead");
 			ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
-			return m_allocator ? *reinterpret_cast<sample_type*>(m_data + (index * m_stride)) : *reinterpret_cast<sample_type*>(0x42);
+			return *reinterpret_cast<sample_type*>(m_data + (index * m_stride));
 		}
 
 		//////////////////////////////////////////////////////////////////////////
