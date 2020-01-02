@@ -83,7 +83,6 @@ namespace acl
 
 			const track& ref_track = (*context.reference_list)[track_index];
 			track_vector4f& mut_track = track_cast<track_vector4f>(context.track_list[track_index]);
-			ACL_ASSERT(mut_track.is_owner(), "Track must be writable");
 
 			const vector4f precision = vector_load1(&mut_track.get_description().precision);
 			const uint32_t ref_element_size = ref_track.get_sample_size();
