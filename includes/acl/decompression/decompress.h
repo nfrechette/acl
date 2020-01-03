@@ -108,19 +108,13 @@ namespace acl
 	{
 	public:
 		//////////////////////////////////////////////////////////////////////////
-		// Constructs a context instance with an optional allocator instance.
+		// Constructs a context instance.
 		// The default constructor for the `decompression_settings_type` will be used.
-		// If an allocator is provided, it will be used in `release()` to free the context.
-		explicit decompression_context(IAllocator* allocator = nullptr);
+		decompression_context();
 
 		//////////////////////////////////////////////////////////////////////////
-		// Constructs a context instance from a set of static settings and an optional allocator instance.
-		// If an allocator is provided, it will be used in `release()` to free the context.
-		decompression_context(const decompression_settings_type& settings, IAllocator* allocator = nullptr);
-
-		//////////////////////////////////////////////////////////////////////////
-		// Destructs a context instance.
-		~decompression_context();
+		// Constructs a context instance from a settings instance.
+		decompression_context(const decompression_settings_type& settings);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Initializes the context instance to a particular compressed tracks instance.
@@ -145,10 +139,6 @@ namespace acl
 		template<class track_writer_type>
 		void decompress_track(uint32_t track_index, track_writer_type& writer);
 
-		//////////////////////////////////////////////////////////////////////////
-		// Releases the context instance if it contains an allocator reference.
-		void release();
-
 	private:
 		decompression_context(const decompression_context& other) = delete;
 		decompression_context& operator=(const decompression_context& other) = delete;
@@ -159,9 +149,6 @@ namespace acl
 		// The static settings used to strip out code at runtime
 		decompression_settings_type m_settings;
 
-		// The optional allocator instance used to allocate this instance
-		IAllocator* m_allocator;
-
 		static_assert(std::is_base_of<decompression_settings, decompression_settings_type>::value, "decompression_settings_type must derive from decompression_settings!");
 	};
 
@@ -170,7 +157,7 @@ namespace acl
 	template<class decompression_settings_type>
 	inline decompression_context<decompression_settings_type>* make_decompression_context(IAllocator& allocator)
 	{
-		return allocate_type<decompression_context<decompression_settings_type>>(allocator, &allocator);
+		return allocate_type<decompression_context<decompression_settings_type>>(allocator);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -178,34 +165,26 @@ namespace acl
 	template<class decompression_settings_type>
 	inline decompression_context<decompression_settings_type>* make_decompression_context(IAllocator& allocator, const decompression_settings_type& settings)
 	{
-		return allocate_type<decompression_context<decompression_settings_type>>(allocator, settings, &allocator);
+		return allocate_type<decompression_context<decompression_settings_type>>(allocator, settings);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// decompression_context implementation
 
 	template<class decompression_settings_type>
-	inline decompression_context<decompression_settings_type>::decompression_context(IAllocator* allocator)
+	inline decompression_context<decompression_settings_type>::decompression_context()
 		: m_context()
 		, m_settings()
-		, m_allocator(allocator)
 	{
 		m_context.tracks = nullptr;		// Only member used to detect if we are initialized
 	}
 
 	template<class decompression_settings_type>
-	inline decompression_context<decompression_settings_type>::decompression_context(const decompression_settings_type& settings, IAllocator* allocator)
+	inline decompression_context<decompression_settings_type>::decompression_context(const decompression_settings_type& settings)
 		: m_context()
 		, m_settings(settings)
-		, m_allocator(allocator)
 	{
 		m_context.tracks = nullptr;		// Only member used to detect if we are initialized
-	}
-
-	template<class decompression_settings_type>
-	inline decompression_context<decompression_settings_type>::~decompression_context()
-	{
-		release();
 	}
 
 	template<class decompression_settings_type>
@@ -678,17 +657,6 @@ namespace acl
 
 		if (m_settings.disable_fp_exeptions())
 			restore_fp_exceptions(fp_env);
-	}
-
-	template<class decompression_settings_type>
-	inline void decompression_context<decompression_settings_type>::release()
-	{
-		IAllocator* allocator = m_allocator;
-		if (allocator != nullptr)
-		{
-			m_allocator = nullptr;
-			deallocate_type<decompression_context>(*allocator, this);
-		}
 	}
 }
 
