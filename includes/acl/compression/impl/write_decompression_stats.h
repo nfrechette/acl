@@ -332,7 +332,7 @@ namespace acl
 				write_decompression_performance_stats(allocator, compressed_clips, contexts, logging, writer);
 
 				for (uint32_t pass_index = 0; pass_index < k_num_decompression_evaluations; ++pass_index)
-					contexts[pass_index]->release();
+					deallocate_type(allocator, contexts[pass_index]);
 
 				for (uint32_t clip_index = 0; clip_index < k_num_decompression_evaluations; ++clip_index)
 					allocator.deallocate(compressed_clips[clip_index], compressed_clip.get_size());
