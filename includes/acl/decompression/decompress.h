@@ -149,6 +149,10 @@ namespace acl
 		// The static settings used to strip out code at runtime
 		decompression_settings_type m_settings;
 
+		// Ensure we have non-zero padding to avoid compiler warnings
+		static constexpr size_t k_padding_size = alignof(acl_impl::persistent_decompression_context) - sizeof(decompression_settings_type);
+		uint8_t m_padding[k_padding_size != 0 ? k_padding_size : alignof(acl_impl::persistent_decompression_context)];
+
 		static_assert(std::is_base_of<decompression_settings, decompression_settings_type>::value, "decompression_settings_type must derive from decompression_settings!");
 	};
 
