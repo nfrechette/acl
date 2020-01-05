@@ -191,8 +191,8 @@ namespace acl
 				const RigidBone& bone = skeleton.get_bone(bone_index);
 
 				itransform_error_metric::calculate_error_args calculate_error_args;
-				calculate_error_args.raw_transform = raw_object_pose + (bone_index * transform_size);
-				calculate_error_args.lossy_transform = lossy_object_pose + (bone_index * transform_size);
+				calculate_error_args.transform0 = raw_object_pose + (bone_index * transform_size);
+				calculate_error_args.transform1 = lossy_object_pose + (bone_index * transform_size);
 				calculate_error_args.construct_sphere_shell(bone.vertex_distance);
 
 				const float error = rtm::scalar_cast(error_metric.calculate_error(calculate_error_args));

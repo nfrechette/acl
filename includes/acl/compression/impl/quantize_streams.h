@@ -623,8 +623,8 @@ namespace acl
 			apply_additive_to_base_args_lossy.num_transforms = num_transforms;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
-			calculate_error_args.raw_transform = nullptr;
-			calculate_error_args.lossy_transform = needs_conversion ? (const void*)(context.local_transforms_converted + (context.metric_transform_size * target_bone_index)) : (const void*)(context.lossy_local_pose + target_bone_index);
+			calculate_error_args.transform0 = nullptr;
+			calculate_error_args.transform1 = needs_conversion ? (const void*)(context.local_transforms_converted + (context.metric_transform_size * target_bone_index)) : (const void*)(context.lossy_local_pose + target_bone_index);
 			calculate_error_args.construct_sphere_shell(target_bone.vertex_distance);
 
 			const uint8_t* raw_transform = context.raw_local_transforms + (target_bone_index * context.metric_transform_size);
@@ -654,7 +654,7 @@ namespace acl
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
 
-				calculate_error_args.raw_transform = raw_transform;
+				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
 				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
@@ -705,8 +705,8 @@ namespace acl
 			local_to_object_space_args_lossy.num_transforms = context.num_bones;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
-			calculate_error_args.raw_transform = nullptr;
-			calculate_error_args.lossy_transform = context.lossy_object_pose + (target_bone_index * context.metric_transform_size);
+			calculate_error_args.transform0 = nullptr;
+			calculate_error_args.transform1 = context.lossy_object_pose + (target_bone_index * context.metric_transform_size);
 			calculate_error_args.construct_sphere_shell(target_bone.vertex_distance);
 
 			const uint8_t* raw_transform = context.raw_object_transforms + (target_bone_index * context.metric_transform_size);
@@ -738,7 +738,7 @@ namespace acl
 
 				local_to_object_space_impl(error_metric, local_to_object_space_args_lossy, context.lossy_object_pose);
 
-				calculate_error_args.raw_transform = raw_transform;
+				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
 				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);

@@ -222,16 +222,16 @@ namespace acl
 			rtm::vector4f shell_point_z;
 
 			//////////////////////////////////////////////////////////////////////////
-			// The raw reference transform against which we measure the error.
+			// The first transform used to measure the error.
 			// In the type expected by the error metric.
 			// Could be in local or object space (same space as lossy).
-			const void* raw_transform;
+			const void* transform0;
 
 			//////////////////////////////////////////////////////////////////////////
-			// The lossy transform we are measuring the error for.
+			// The second transform used to measure the error.
 			// In the type expected by the error metric.
 			// Could be in local or object space (same space as raw).
-			const void* lossy_transform;
+			const void* transform1;
 
 			//////////////////////////////////////////////////////////////////////////
 			// We measure the error on a rigid shell around each transform.
@@ -316,8 +316,8 @@ namespace acl
 
 		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const override
 		{
-			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.raw_transform);
-			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.lossy_transform);
+			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.transform0);
+			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
 
 			// Note that because we have scale, we must measure all three axes
 			const rtm::vector4f vtx0 = args.shell_point_x;
@@ -341,8 +341,8 @@ namespace acl
 
 		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const override
 		{
-			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.raw_transform);
-			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.lossy_transform);
+			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.transform0);
+			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
 
 			const rtm::vector4f vtx0 = args.shell_point_x;
 			const rtm::vector4f vtx1 = args.shell_point_y;
@@ -419,8 +419,8 @@ namespace acl
 
 		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const override
 		{
-			const rtm::matrix3x4f& raw_transform_ = *static_cast<const rtm::matrix3x4f*>(args.raw_transform);
-			const rtm::matrix3x4f& lossy_transform_ = *static_cast<const rtm::matrix3x4f*>(args.lossy_transform);
+			const rtm::matrix3x4f& raw_transform_ = *static_cast<const rtm::matrix3x4f*>(args.transform0);
+			const rtm::matrix3x4f& lossy_transform_ = *static_cast<const rtm::matrix3x4f*>(args.transform1);
 
 			// Note that because we have scale, we must measure all three axes
 			const rtm::vector4f vtx0 = args.shell_point_x;
