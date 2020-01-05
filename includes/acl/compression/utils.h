@@ -178,7 +178,6 @@ namespace acl
 				if (needs_conversion)
 					error_metric.convert_transforms(convert_transforms_args_base, base_local_pose_converted);
 
-				
 				error_metric.apply_additive_to_base(apply_additive_to_base_args_raw, raw_local_pose_);
 				error_metric.apply_additive_to_base(apply_additive_to_base_args_lossy, lossy_local_pose_);
 			}
