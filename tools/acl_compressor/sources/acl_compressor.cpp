@@ -427,7 +427,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 {
 	(void)regression_error_threshold;
 
-	const BoneError bone_error = calculate_compressed_clip_error(allocator, clip, *settings.error_metric, context);
+	const BoneError bone_error = calculate_error_between_clips(allocator, *settings.error_metric, clip, context);
 	(void)bone_error;
 	ACL_ASSERT(rtm::scalar_is_finite(bone_error.error), "Returned error is not a finite value");
 	ACL_ASSERT(bone_error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_error.index, bone_error.error, bone_error.sample_time);
@@ -710,7 +710,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			{
 				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context;
 				context.initialize(*compressed_clip);
-				bone_error = calculate_compressed_clip_error(allocator, clip, *settings.error_metric, context);
+				bone_error = calculate_error_between_clips(allocator, *settings.error_metric, clip, context);
 				break;
 			}
 			}
