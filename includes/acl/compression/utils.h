@@ -49,9 +49,11 @@ namespace acl
 	};
 
 	template<class DecompressionContextType>
-	inline BoneError calculate_compressed_clip_error(IAllocator& allocator,
-		const AnimationClip& clip, const itransform_error_metric& error_metric, DecompressionContextType& context)
+	inline BoneError calculate_error_between_clips(IAllocator& allocator, const itransform_error_metric& error_metric, const AnimationClip& clip, DecompressionContextType& context)
 	{
+		ACL_ASSERT(clip.is_valid().empty(), "Clip is invalid");
+		ACL_ASSERT(context.is_initialized(), "Context isn't initialized");
+
 		const uint32_t num_samples = clip.get_num_samples();
 		if (num_samples == 0)
 			return BoneError();
