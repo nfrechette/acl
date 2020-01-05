@@ -285,9 +285,19 @@ namespace acl
 			DecompressionContext(const DecompressionSettingsType& settings);
 
 			//////////////////////////////////////////////////////////////////////////
+			// Returns the compressed clip bound to this context instance.
+			const CompressedClip* get_compressed_clip() const { return m_context.clip; }
+
+			//////////////////////////////////////////////////////////////////////////
 			// Initializes the context instance to a particular compressed clip
 			void initialize(const CompressedClip& clip);
 
+			//////////////////////////////////////////////////////////////////////////
+			// Returns true if this context instance is bound to a compressed clip, false otherwise.
+			bool is_initialized() const { return m_context.clip != nullptr; }
+
+			//////////////////////////////////////////////////////////////////////////
+			// Returns true if this context instance is bound to the specified compressed clip, false otherwise.
 			bool is_dirty(const CompressedClip& clip);
 
 			//////////////////////////////////////////////////////////////////////////
