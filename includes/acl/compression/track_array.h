@@ -406,7 +406,7 @@ namespace acl
 		}
 	}
 
-	uint32_t track_array::get_raw_size() const
+	inline uint32_t track_array::get_raw_size() const
 	{
 		const uint32_t num_samples = get_num_samples_per_track();
 
