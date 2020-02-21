@@ -374,7 +374,7 @@ namespace acl
 
 			const rotation_format8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
 			const vector_format8 translation_format = m_settings.get_translation_format(header.translation_format);
-			const vector_format8 scale_format = m_settings.get_translation_format(header.scale_format);
+			const vector_format8 scale_format = m_settings.get_scale_format(header.scale_format);
 
 			ACL_ASSERT(rotation_format == header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(header.rotation_format));
 			ACL_ASSERT(m_settings.is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
@@ -614,7 +614,7 @@ namespace acl
 
 			const rotation_format8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
 			const vector_format8 translation_format = m_settings.get_translation_format(header.translation_format);
-			const vector_format8 scale_format = m_settings.get_translation_format(header.scale_format);
+			const vector_format8 scale_format = m_settings.get_scale_format(header.scale_format);
 
 			const bool are_all_tracks_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
 			if (!are_all_tracks_variable)
