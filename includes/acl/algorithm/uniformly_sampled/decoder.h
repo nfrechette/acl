@@ -398,7 +398,7 @@ namespace acl
 
 			const RotationFormat8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
 			const VectorFormat8 translation_format = m_settings.get_translation_format(header.translation_format);
-			const VectorFormat8 scale_format = m_settings.get_translation_format(header.scale_format);
+			const VectorFormat8 scale_format = m_settings.get_scale_format(header.scale_format);
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 			const RangeReductionFlags8 clip_range_reduction = m_settings.get_clip_range_reduction(header.clip_range_reduction);
@@ -636,7 +636,7 @@ namespace acl
 
 			const RotationFormat8 rotation_format = m_settings.get_rotation_format(header.rotation_format);
 			const VectorFormat8 translation_format = m_settings.get_translation_format(header.translation_format);
-			const VectorFormat8 scale_format = m_settings.get_translation_format(header.scale_format);
+			const VectorFormat8 scale_format = m_settings.get_scale_format(header.scale_format);
 
 			const bool are_all_tracks_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
 			const bool has_mixed_padding_or_fixed_quantization = (m_settings.supports_mixed_packing() && m_context.has_mixed_packing) || !are_all_tracks_variable;
