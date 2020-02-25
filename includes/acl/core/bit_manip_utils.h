@@ -43,7 +43,9 @@
 	#include <nmmintrin.h>
 #endif
 
-#if defined(RTM_AVX_INTRINSICS)
+// Note: It seems that the Clang toolchain with MSVC enables BMI only with AVX2 unlike
+// MSVC which enables it with AVX
+#if defined(RTM_AVX_INTRINSICS) && !(defined(_MSC_VER) && defined(__clang__))
 	// Use BMI
 	#include <ammintrin.h>		// MSVC uses this header for _andn_u32 BMI intrinsic
 	#include <immintrin.h>		// Intel documentation says _andn_u32 and others are here
