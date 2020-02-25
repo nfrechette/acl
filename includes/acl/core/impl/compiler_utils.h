@@ -38,7 +38,7 @@
 // To do this, every header is wrapped in two macros to push and pop the necessary
 // pragmas.
 //////////////////////////////////////////////////////////////////////////
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
 		/* Disable fast math, it can hurt precision for little to no performance gain due to the high level of hand tuned optimizations. */ \
 		__pragma(float_control(precise, on, push))
@@ -54,7 +54,7 @@
 // In some cases, for performance reasons, we wish to disable stack security
 // check cookies. This macro serves this purpose.
 //////////////////////////////////////////////////////////////////////////
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 	#define ACL_DISABLE_SECURITY_COOKIE_CHECK __declspec(safebuffers)
 #else
 	#define ACL_DISABLE_SECURITY_COOKIE_CHECK
