@@ -184,14 +184,14 @@ namespace acl
 			{}
 			RotationTrackStream(const RotationTrackStream&) = delete;
 			RotationTrackStream(RotationTrackStream&& other)
-				: TrackStream(std::forward<TrackStream>(other))
+				: TrackStream(static_cast<TrackStream&&>(other))
 			{}
 			~RotationTrackStream() = default;
 
 			RotationTrackStream& operator=(const RotationTrackStream&) = delete;
 			RotationTrackStream& operator=(RotationTrackStream&& rhs)
 			{
-				TrackStream::operator=(std::forward<TrackStream>(rhs));
+				TrackStream::operator=(static_cast<TrackStream&&>(rhs));
 				return *this;
 			}
 
@@ -214,14 +214,14 @@ namespace acl
 			{}
 			TranslationTrackStream(const TranslationTrackStream&) = delete;
 			TranslationTrackStream(TranslationTrackStream&& other)
-				: TrackStream(std::forward<TrackStream>(other))
+				: TrackStream(static_cast<TrackStream&&>(other))
 			{}
 			~TranslationTrackStream() = default;
 
 			TranslationTrackStream& operator=(const TranslationTrackStream&) = delete;
 			TranslationTrackStream& operator=(TranslationTrackStream&& rhs)
 			{
-				TrackStream::operator=(std::forward<TrackStream>(rhs));
+				TrackStream::operator=(static_cast<TrackStream&&>(rhs));
 				return *this;
 			}
 
@@ -244,14 +244,14 @@ namespace acl
 			{}
 			ScaleTrackStream(const ScaleTrackStream&) = delete;
 			ScaleTrackStream(ScaleTrackStream&& other)
-				: TrackStream(std::forward<TrackStream>(other))
+				: TrackStream(static_cast<TrackStream&&>(other))
 			{}
 			~ScaleTrackStream() = default;
 
 			ScaleTrackStream& operator=(const ScaleTrackStream&) = delete;
 			ScaleTrackStream& operator=(ScaleTrackStream&& rhs)
 			{
-				TrackStream::operator=(std::forward<TrackStream>(rhs));
+				TrackStream::operator=(static_cast<TrackStream&&>(rhs));
 				return *this;
 			}
 

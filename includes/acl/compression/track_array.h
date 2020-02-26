@@ -229,7 +229,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move constructor for a track array.
-		track_array_typed(track_array_typed&& other) : track_array(std::forward<track_array>(other)) {}
+		track_array_typed(track_array_typed&& other) : track_array(static_cast<track_array&&>(other)) {}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Destroys a track array.
@@ -237,7 +237,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track array.
-		track_array_typed& operator=(track_array_typed&& other) { return static_cast<track_array_typed&>(track_array::operator=(std::forward<track_array>(other))); }
+		track_array_typed& operator=(track_array_typed&& other) { return static_cast<track_array_typed&>(track_array::operator=(static_cast<track_array&&>(other))); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track type for tracks in this array.
