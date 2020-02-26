@@ -170,12 +170,12 @@ namespace acl
 		}
 
 		AnimationRotationTrack(AnimationRotationTrack&& other)
-			: AnimationTrack(std::forward<AnimationTrack>(other))
+			: AnimationTrack(static_cast<AnimationTrack&&>(other))
 		{}
 
 		AnimationRotationTrack& operator=(AnimationRotationTrack&& track)
 		{
-			AnimationTrack::operator=(std::forward<AnimationTrack>(track));
+			AnimationTrack::operator=(static_cast<AnimationTrack&&>(track));
 			return *this;
 		}
 
@@ -235,12 +235,12 @@ namespace acl
 		}
 
 		AnimationTranslationTrack(AnimationTranslationTrack&& other)
-			: AnimationTrack(std::forward<AnimationTrack>(other))
+			: AnimationTrack(static_cast<AnimationTrack&&>(other))
 		{}
 
 		AnimationTranslationTrack& operator=(AnimationTranslationTrack&& track)
 		{
-			AnimationTrack::operator=(std::forward<AnimationTrack>(track));
+			AnimationTrack::operator=(static_cast<AnimationTrack&&>(track));
 			return *this;
 		}
 
@@ -301,12 +301,12 @@ namespace acl
 		}
 
 		AnimationScaleTrack(AnimationScaleTrack&& other)
-			: AnimationTrack(std::forward<AnimationTrack>(other))
+			: AnimationTrack(static_cast<AnimationTrack&&>(other))
 		{}
 
 		AnimationScaleTrack& operator=(AnimationScaleTrack&& track)
 		{
-			AnimationTrack::operator=(std::forward<AnimationTrack>(track));
+			AnimationTrack::operator=(static_cast<AnimationTrack&&>(track));
 			return *this;
 		}
 
