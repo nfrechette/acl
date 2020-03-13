@@ -56,11 +56,11 @@ namespace acl
 
 		const uint32_t num_samples = clip.get_num_samples();
 		if (num_samples == 0)
-			return BoneError();
+			return BoneError();	// Cannot measure any error
 
 		const uint16_t num_bones = clip.get_num_bones();
 		if (num_bones == 0)
-			return BoneError();
+			return BoneError();	// Cannot measure any error
 
 		const float clip_duration = clip.get_duration();
 		const float sample_rate = clip.get_sample_rate();
@@ -143,7 +143,7 @@ namespace acl
 		local_to_object_space_args_lossy.local_transforms = lossy_local_pose_;
 
 		BoneError bone_error;
-		bone_error.error = -1.0F;	// Can never have a negative error, use it so the first sample is used
+		bone_error.error = -1.0F;	// Can never have a negative error, use -1 so the first sample is used
 		DefaultOutputWriter pose_writer(lossy_local_pose, num_output_bones);
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -232,11 +232,11 @@ namespace acl
 		const ClipHeader& clip_header = get_clip_header(*context0.get_compressed_clip());
 		const uint32_t num_samples = clip_header.num_samples;
 		if (num_samples == 0)
-			return BoneError();
+			return BoneError();	// Cannot measure any error
 
 		const uint16_t num_bones = clip_header.num_bones;
 		if (num_bones == 0)
-			return BoneError();
+			return BoneError();	// Cannot measure any error
 
 		const float sample_rate = clip_header.sample_rate;
 		const float clip_duration = calculate_duration(num_samples, sample_rate);
@@ -293,7 +293,7 @@ namespace acl
 		local_to_object_space_args1.local_transforms = local_pose1_;
 
 		BoneError bone_error;
-		bone_error.error = -1.0F;	// Can never have a negative error, use it so the first sample is used
+		bone_error.error = -1.0F;	// Can never have a negative error, use -1 so the first sample is used
 
 		DefaultOutputWriter pose_writer0(local_pose0, num_bones);
 		DefaultOutputWriter pose_writer1(local_pose1, num_bones);
@@ -359,11 +359,11 @@ namespace acl
 
 		const uint32_t num_samples = clip0.get_num_samples();
 		if (num_samples == 0)
-			return BoneError();
+			return BoneError();	// Cannot measure any error
 
 		const uint16_t num_bones = clip0.get_num_bones();
 		if (num_bones == 0)
-			return BoneError();
+			return BoneError();	// Cannot measure any error
 
 		const float clip_duration = clip0.get_duration();
 		const float sample_rate = clip0.get_sample_rate();
@@ -429,7 +429,7 @@ namespace acl
 		local_to_object_space_args1.local_transforms = local_pose1_;
 
 		BoneError bone_error;
-		bone_error.error = -1.0F;	// Can never have a negative error, use it so the first sample is used
+		bone_error.error = -1.0F;	// Can never have a negative error, use -1 so the first sample is used
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
