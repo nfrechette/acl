@@ -69,12 +69,22 @@ namespace acl
 	{
 		using namespace acl_impl;
 
+		ACL_ASSERT(raw_tracks.is_valid().empty(), "Raw tracks are invalid");
+		ACL_ASSERT(tracks.is_valid(false).empty(), "Compressed tracks are invalid");
+
+		const uint32_t num_samples = tracks.get_num_samples_per_track();
+		if (num_samples == 0)
+			return track_error();	// Cannot measure any error
+
+		const uint32_t num_tracks = tracks.get_num_tracks();
+		if (num_tracks == 0)
+			return track_error();	// Cannot measure any error
+
 		track_error result;
+		result.error = -1.0F;		// Can never have a negative error, use -1 so the first sample is used
 
 		const float duration = tracks.get_duration();
 		const float sample_rate = tracks.get_sample_rate();
-		const uint32_t num_tracks = tracks.get_num_tracks();
-		const uint32_t num_samples = tracks.get_num_samples_per_track();
 		const track_type8 track_type = raw_tracks.get_track_type();
 
 		decompression_context<debug_decompression_settings> context;
@@ -87,7 +97,7 @@ namespace acl
 
 		const rtm::vector4f zero = rtm::vector_zero();
 
-		// Regression test
+		// Measure our error
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
 			const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
