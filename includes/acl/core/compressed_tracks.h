@@ -80,6 +80,10 @@ namespace acl
 		uint32_t get_num_samples_per_track() const { return m_tracks_header.num_samples; }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the type of the compressed tracks.
+		track_type8 get_track_type() const { return m_tracks_header.track_type; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the duration of each track.
 		float get_duration() const { return calculate_duration(m_tracks_header.num_samples, m_tracks_header.sample_rate); }
 
