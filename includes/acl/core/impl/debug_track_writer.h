@@ -63,11 +63,13 @@ namespace acl
 			// Called by the decoder to write out a value for a specified track index.
 			void write_float1(uint32_t track_index, rtm::scalarf_arg0 value)
 			{
+				ACL_ASSERT(type == track_type8::float1f, "Unexpected track type access");
 				rtm::scalar_store(value, &tracks_typed.float1f[track_index]);
 			}
 
 			float read_float1(uint32_t track_index) const
 			{
+				ACL_ASSERT(type == track_type8::float1f, "Unexpected track type access");
 				return tracks_typed.float1f[track_index];
 			}
 
@@ -75,11 +77,13 @@ namespace acl
 			// Called by the decoder to write out a value for a specified track index.
 			void write_float2(uint32_t track_index, rtm::vector4f_arg0 value)
 			{
+				ACL_ASSERT(type == track_type8::float2f, "Unexpected track type access");
 				rtm::vector_store2(value, &tracks_typed.float2f[track_index]);
 			}
 
 			rtm::vector4f read_float2(uint32_t track_index) const
 			{
+				ACL_ASSERT(type == track_type8::float2f, "Unexpected track type access");
 				return rtm::vector_load2(&tracks_typed.float2f[track_index]);
 			}
 
@@ -87,11 +91,13 @@ namespace acl
 			// Called by the decoder to write out a value for a specified track index.
 			void write_float3(uint32_t track_index, rtm::vector4f_arg0 value)
 			{
+				ACL_ASSERT(type == track_type8::float3f, "Unexpected track type access");
 				rtm::vector_store3(value, &tracks_typed.float3f[track_index]);
 			}
 
 			rtm::vector4f read_float3(uint32_t track_index) const
 			{
+				ACL_ASSERT(type == track_type8::float3f, "Unexpected track type access");
 				return rtm::vector_load3(&tracks_typed.float3f[track_index]);
 			}
 
@@ -99,11 +105,13 @@ namespace acl
 			// Called by the decoder to write out a value for a specified track index.
 			void write_float4(uint32_t track_index, rtm::vector4f_arg0 value)
 			{
+				ACL_ASSERT(type == track_type8::float4f, "Unexpected track type access");
 				rtm::vector_store(value, &tracks_typed.float4f[track_index]);
 			}
 
 			rtm::vector4f read_float4(uint32_t track_index) const
 			{
+				ACL_ASSERT(type == track_type8::float4f, "Unexpected track type access");
 				return rtm::vector_load(&tracks_typed.float4f[track_index]);
 			}
 
@@ -111,11 +119,13 @@ namespace acl
 			// Called by the decoder to write out a value for a specified track index.
 			void write_vector4(uint32_t track_index, rtm::vector4f_arg0 value)
 			{
+				ACL_ASSERT(type == track_type8::vector4f, "Unexpected track type access");
 				tracks_typed.vector4f[track_index] = value;
 			}
 
 			rtm::vector4f read_vector4(uint32_t track_index) const
 			{
+				ACL_ASSERT(type == track_type8::vector4f, "Unexpected track type access");
 				return tracks_typed.vector4f[track_index];
 			}
 
