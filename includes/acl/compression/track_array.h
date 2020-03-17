@@ -356,7 +356,7 @@ namespace acl
 
 			const rtm::scalarf value0 = rtm::scalar_load(&track__[key_frame0]);
 			const rtm::scalarf value1 = rtm::scalar_load(&track__[key_frame1]);
-			const rtm::scalarf value = rtm::scalar_lerp(value0, value1, interpolation_alpha);
+			const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(interpolation_alpha));
 			writer.write_float1(track_index, value);
 			break;
 		}

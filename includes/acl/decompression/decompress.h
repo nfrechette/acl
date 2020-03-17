@@ -255,6 +255,7 @@ namespace acl
 			disable_fp_exceptions(fp_env);
 
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*m_context.tracks);
+		const rtm::scalarf interpolation_alpha = rtm::scalar_set(m_context.interpolation_alpha);
 
 		const acl_impl::track_metadata* per_track_metadata = header.get_track_metadata();
 		const float* constant_values = header.get_track_constant_values();
@@ -298,7 +299,7 @@ namespace acl
 						value1 = rtm::scalar_mul_add(value1, range_extent, range_min);
 					}
 
-					value = rtm::scalar_lerp(value0, value1, m_context.interpolation_alpha);
+					value = rtm::scalar_lerp(value0, value1, interpolation_alpha);
 
 					const uint32_t num_sample_bits = num_bits_per_component;
 					track_bit_offset0 += num_sample_bits;
@@ -481,6 +482,7 @@ namespace acl
 			disable_fp_exceptions(fp_env);
 
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*m_context.tracks);
+		const rtm::scalarf interpolation_alpha = rtm::scalar_set(m_context.interpolation_alpha);
 
 		const float* constant_values = header.get_track_constant_values();
 		const float* range_values = header.get_track_range_values();
@@ -533,7 +535,7 @@ namespace acl
 					value1 = rtm::scalar_mul_add(value1, range_extent, range_min);
 				}
 
-				value = rtm::scalar_lerp(value0, value1, m_context.interpolation_alpha);
+				value = rtm::scalar_lerp(value0, value1, interpolation_alpha);
 			}
 
 			writer.write_float1(track_index, value);
