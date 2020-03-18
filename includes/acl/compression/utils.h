@@ -35,6 +35,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <type_traits>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
