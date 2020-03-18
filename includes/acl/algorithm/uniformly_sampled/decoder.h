@@ -272,9 +272,13 @@ namespace acl
 		template<class DecompressionSettingsType>
 		class DecompressionContext
 		{
+		public:
 			static_assert(std::is_base_of<DecompressionSettings, DecompressionSettingsType>::value, "DecompressionSettingsType must derive from DecompressionSettings!");
 
-		public:
+			//////////////////////////////////////////////////////////////////////////
+			// An alias to the decompression settings type.
+			using SettingsType = DecompressionSettingsType;
+
 			//////////////////////////////////////////////////////////////////////////
 			// Constructs a context instance.
 			// The default constructor for the DecompressionSettingsType will be used.

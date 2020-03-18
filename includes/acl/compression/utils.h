@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/algorithm/uniformly_sampled/decoder.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/compressed_clip.h"
 #include "acl/core/iallocator.h"
@@ -39,16 +40,45 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	namespace acl_impl
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// SFINAE boilerplate to detect if a template argument derives from acl::uniformly_sampled::DecompressionContext.
+		//////////////////////////////////////////////////////////////////////////
+		template<class T>
+		using IsDecompressionContext = typename std::enable_if<std::is_base_of<acl::uniformly_sampled::DecompressionContext<typename T::SettingsType>, T>::value, nullptr_t>::type;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Encapsulates the compression error for a specific bone at a point in time.
+	//////////////////////////////////////////////////////////////////////////
 	struct BoneError
 	{
 		BoneError() : index(k_invalid_bone_index), error(0.0F), sample_time(0.0F) {}
 
+		//////////////////////////////////////////////////////////////////////////
+		// The bone index.
 		uint16_t index;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The measured error value.
 		float error;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The point in time where the error was measured.
 		float sample_time;
 	};
 
-	template<class DecompressionContextType>
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the error between a raw clip and a compressed clip.
+	//    - allocator: An allocate we can use for temporary data
+	//    - error_metric: The error metric to use when measuring the error
+	//    - clip: A raw clip
+	//    - context: A decompression context bound to a compressed clip
+	//
+	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
+	//////////////////////////////////////////////////////////////////////////
+	template<class DecompressionContextType, acl_impl::IsDecompressionContext<DecompressionContextType> = nullptr>
 	inline BoneError calculate_error_between_clips(IAllocator& allocator, const itransform_error_metric& error_metric, const AnimationClip& clip, DecompressionContextType& context)
 	{
 		ACL_ASSERT(clip.is_valid().empty(), "Clip is invalid");
@@ -223,7 +253,17 @@ namespace acl
 		return bone_error;
 	}
 
-	template<class DecompressionContextType0, class DecompressionContextType1>
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the error between two compressed clips.
+	//    - allocator: An allocate we can use for temporary data
+	//    - error_metric: The error metric to use when measuring the error
+	//    - skeleton: The skeleton used to compress the clips
+	//    - context0: A decompression context bound to a compressed clip
+	//    - context1: A decompression context bound to a compressed clip
+	//
+	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
+	//////////////////////////////////////////////////////////////////////////
+	template<class DecompressionContextType0, class DecompressionContextType1, acl_impl::IsDecompressionContext<DecompressionContextType0> = nullptr, acl_impl::IsDecompressionContext<DecompressionContextType1> = nullptr>
 	inline BoneError calculate_error_between_clips(IAllocator& allocator, const itransform_error_metric& error_metric, const RigidSkeleton& skeleton, DecompressionContextType0& context0, DecompressionContextType1& context1)
 	{
 		ACL_ASSERT(context0.is_initialized(), "Context isn't initialized");
@@ -350,6 +390,13 @@ namespace acl
 		return bone_error;
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the error between two raw clips.
+	//    - allocator: An allocate we can use for temporary data
+	//    - error_metric: The error metric to use when measuring the error
+	//    - clip0: A raw clip
+	//    - clip1: A raw clip
+	//////////////////////////////////////////////////////////////////////////
 	inline BoneError calculate_error_between_clips(IAllocator& allocator, const itransform_error_metric& error_metric, const AnimationClip& clip0, const AnimationClip& clip1)
 	{
 		ACL_ASSERT(clip0.is_valid().empty(), "Clip is invalid");
