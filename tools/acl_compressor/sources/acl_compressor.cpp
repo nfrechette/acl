@@ -783,7 +783,10 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const t
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
 
-			const track_error error = calculate_compression_error(allocator, track_list, *compressed_tracks_);
+			acl::decompression_context<acl::debug_decompression_settings> context;
+			context.initialize(*compressed_tracks_);
+
+			const track_error error = calculate_compression_error(allocator, track_list, context);
 
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
