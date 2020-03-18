@@ -117,9 +117,19 @@ namespace acl
 		decompression_context(const decompression_settings_type& settings);
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the compressed tracks bound to this context instance.
+		const compressed_tracks* get_compressed_tracks() const { return m_context.tracks; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Initializes the context instance to a particular compressed tracks instance.
 		void initialize(const compressed_tracks& tracks);
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if this context instance is bound to a compressed tracks instance, false otherwise.
+		bool is_initialized() const { return m_context.tracks != nullptr; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if this context instance is bound to the specified compressed tracks instance, false otherwise.
 		bool is_dirty(const compressed_tracks& tracks);
 
 		//////////////////////////////////////////////////////////////////////////
