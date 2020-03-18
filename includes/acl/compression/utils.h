@@ -46,7 +46,7 @@ namespace acl
 		// SFINAE boilerplate to detect if a template argument derives from acl::uniformly_sampled::DecompressionContext.
 		//////////////////////////////////////////////////////////////////////////
 		template<class T>
-		using IsDecompressionContext = typename std::enable_if<std::is_base_of<acl::uniformly_sampled::DecompressionContext<typename T::SettingsType>, T>::value, nullptr_t>::type;
+		using IsDecompressionContext = typename std::enable_if<std::is_base_of<acl::uniformly_sampled::DecompressionContext<typename T::SettingsType>, T>::value, std::nullptr_t>::type;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
