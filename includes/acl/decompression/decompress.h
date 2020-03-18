@@ -108,6 +108,10 @@ namespace acl
 	{
 	public:
 		//////////////////////////////////////////////////////////////////////////
+		// An alias to the decompression settings type.
+		using settings_type = decompression_settings_type;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Constructs a context instance.
 		// The default constructor for the `decompression_settings_type` will be used.
 		decompression_context();
