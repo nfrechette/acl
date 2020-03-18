@@ -362,7 +362,7 @@ namespace acl
 			return BoneError();	// Cannot measure any error
 
 		const uint16_t num_bones = clip0.get_num_bones();
-		if (num_bones == 0)
+		if (num_bones == 0 || num_bones != clip1.get_num_bones())
 			return BoneError();	// Cannot measure any error
 
 		const float clip_duration = clip0.get_duration();
