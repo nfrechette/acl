@@ -36,6 +36,7 @@
 #include <rtm/vector4f.h>
 
 #include <cstdint>
+#include <type_traits>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
