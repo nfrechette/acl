@@ -107,7 +107,7 @@ namespace acl
 			}
 		}
 
-		AnimationClip(AnimationClip&& other)
+		AnimationClip(AnimationClip&& other) noexcept
 			: m_allocator(other.m_allocator)
 			, m_skeleton(other.m_skeleton)
 			, m_bones(other.m_bones)

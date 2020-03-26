@@ -132,7 +132,7 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Default constructor, initializes a simple root bone with no name
-		RigidBone()
+		RigidBone() noexcept
 			: name()
 			, bone_chain(nullptr)
 			, vertex_distance(1.0F)
@@ -144,7 +144,7 @@ namespace acl
 
 		~RigidBone() = default;
 
-		RigidBone(RigidBone&& other)
+		RigidBone(RigidBone&& other) noexcept
 			: name(std::move(other.name))
 			, bone_chain(other.bone_chain)
 			, vertex_distance(other.vertex_distance)
@@ -154,7 +154,7 @@ namespace acl
 			new(&other) RigidBone();
 		}
 
-		RigidBone& operator=(RigidBone&& other)
+		RigidBone& operator=(RigidBone&& other) noexcept
 		{
 			std::swap(name, other.name);
 			std::swap(bone_chain, other.bone_chain);
@@ -290,7 +290,7 @@ namespace acl
 			deallocate_type_array(m_allocator, is_leaf_bitset, bone_bitset_desc.get_size());
 		}
 
-		RigidSkeleton(RigidSkeleton&& other)
+		RigidSkeleton(RigidSkeleton&& other) noexcept
 			: m_allocator(other.m_allocator)
 			, m_bones(other.m_bones)
 			, m_leaf_bone_chains(other.m_leaf_bone_chains)

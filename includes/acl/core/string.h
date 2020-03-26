@@ -43,7 +43,7 @@ namespace acl
 	class String
 	{
 	public:
-		String() : m_allocator(nullptr), m_c_str(nullptr) {}
+		String() noexcept : m_allocator(nullptr), m_c_str(nullptr) {}
 
 		String(IAllocator& allocator, const char* c_str, size_t length)
 			: m_allocator(&allocator)
@@ -79,14 +79,14 @@ namespace acl
 				deallocate_type_array(*m_allocator, m_c_str, std::strlen(m_c_str) + 1);
 		}
 
-		String(String&& other)
+		String(String&& other) noexcept
 			: m_allocator(other.m_allocator)
 			, m_c_str(other.m_c_str)
 		{
 			new(&other) String();
 		}
 
-		String& operator=(String&& other)
+		String& operator=(String&& other) noexcept
 		{
 			std::swap(m_allocator, other.m_allocator);
 			std::swap(m_c_str, other.m_c_str);
