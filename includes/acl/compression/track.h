@@ -136,7 +136,7 @@ namespace acl
 		uint32_t get_num_samples() const { return m_num_samples; }
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the stride in bytes in between samples as layed out in memory.
+		// Returns the stride in bytes in between samples as laid out in memory.
 		// This is always sizeof(sample_type) unless the memory isn't owned internally.
 		uint32_t get_stride() const { return m_stride; }
 
