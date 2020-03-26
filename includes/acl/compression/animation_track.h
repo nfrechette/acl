@@ -64,7 +64,7 @@ namespace acl
 		uint32_t get_num_samples() const { return m_num_samples; }
 
 	protected:
-		AnimationTrack()
+		AnimationTrack() noexcept
 			: m_allocator(nullptr)
 			, m_sample_data(nullptr)
 			, m_num_samples(0)
@@ -72,7 +72,7 @@ namespace acl
 			, m_type(animation_track_type8::rotation)
 		{}
 
-		AnimationTrack(AnimationTrack&& other)
+		AnimationTrack(AnimationTrack&& other) noexcept
 			: m_allocator(other.m_allocator)
 			, m_sample_data(other.m_sample_data)
 			, m_num_samples(other.m_num_samples)
@@ -103,7 +103,7 @@ namespace acl
 				deallocate_type_array(*m_allocator, m_sample_data, size_t(m_num_samples) * get_animation_track_sample_size(m_type));
 		}
 
-		AnimationTrack& operator=(AnimationTrack&& track)
+		AnimationTrack& operator=(AnimationTrack&& track) noexcept
 		{
 			std::swap(m_allocator, track.m_allocator);
 			std::swap(m_sample_data, track.m_sample_data);
@@ -154,7 +154,7 @@ namespace acl
 	class AnimationRotationTrack final : public AnimationTrack
 	{
 	public:
-		AnimationRotationTrack() : AnimationTrack() {}
+		AnimationRotationTrack() noexcept : AnimationTrack() {}
 		~AnimationRotationTrack() = default;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -169,11 +169,11 @@ namespace acl
 			std::fill(samples, samples + num_samples, rtm::quat_identity());
 		}
 
-		AnimationRotationTrack(AnimationRotationTrack&& other)
+		AnimationRotationTrack(AnimationRotationTrack&& other) noexcept
 			: AnimationTrack(static_cast<AnimationTrack&&>(other))
 		{}
 
-		AnimationRotationTrack& operator=(AnimationRotationTrack&& track)
+		AnimationRotationTrack& operator=(AnimationRotationTrack&& track) noexcept
 		{
 			AnimationTrack::operator=(static_cast<AnimationTrack&&>(track));
 			return *this;
@@ -220,7 +220,7 @@ namespace acl
 	class AnimationTranslationTrack final : public AnimationTrack
 	{
 	public:
-		AnimationTranslationTrack() : AnimationTrack() {}
+		AnimationTranslationTrack() noexcept : AnimationTrack() {}
 		~AnimationTranslationTrack() = default;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -234,11 +234,11 @@ namespace acl
 			std::fill(m_sample_data, m_sample_data + (num_samples * 3), 0.0);
 		}
 
-		AnimationTranslationTrack(AnimationTranslationTrack&& other)
+		AnimationTranslationTrack(AnimationTranslationTrack&& other) noexcept
 			: AnimationTrack(static_cast<AnimationTrack&&>(other))
 		{}
 
-		AnimationTranslationTrack& operator=(AnimationTranslationTrack&& track)
+		AnimationTranslationTrack& operator=(AnimationTranslationTrack&& track) noexcept
 		{
 			AnimationTrack::operator=(static_cast<AnimationTrack&&>(track));
 			return *this;
@@ -284,7 +284,7 @@ namespace acl
 	class AnimationScaleTrack final : public AnimationTrack
 	{
 	public:
-		AnimationScaleTrack() : AnimationTrack() {}
+		AnimationScaleTrack() noexcept : AnimationTrack() {}
 		~AnimationScaleTrack() = default;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -300,11 +300,11 @@ namespace acl
 				rtm::vector_store3(defaultScale, m_sample_data + (sample_index * 3));
 		}
 
-		AnimationScaleTrack(AnimationScaleTrack&& other)
+		AnimationScaleTrack(AnimationScaleTrack&& other) noexcept
 			: AnimationTrack(static_cast<AnimationTrack&&>(other))
 		{}
 
-		AnimationScaleTrack& operator=(AnimationScaleTrack&& track)
+		AnimationScaleTrack& operator=(AnimationScaleTrack&& track) noexcept
 		{
 			AnimationTrack::operator=(static_cast<AnimationTrack&&>(track));
 			return *this;

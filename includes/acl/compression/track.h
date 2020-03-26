@@ -48,7 +48,7 @@ namespace acl
 	public:
 		//////////////////////////////////////////////////////////////////////////
 		// Creates an empty, untyped track.
-		track()
+		track() noexcept
 			: m_allocator(nullptr)
 			, m_data(nullptr)
 			, m_num_samples(0)
@@ -63,7 +63,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move constructor for a track.
-		track(track&& other)
+		track(track&& other) noexcept
 			: m_allocator(other.m_allocator)
 			, m_data(other.m_data)
 			, m_num_samples(other.m_num_samples)
@@ -92,7 +92,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track.
-		track& operator=(track&& other)
+		track& operator=(track&& other) noexcept
 		{
 			std::swap(m_allocator, other.m_allocator);
 			std::swap(m_data, other.m_data);
@@ -224,7 +224,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
 		// Creates an empty, untyped track.
-		track(track_type8 type, track_category8 category)
+		track(track_type8 type, track_category8 category) noexcept
 			: m_allocator(nullptr)
 			, m_data(nullptr)
 			, m_num_samples(0)
@@ -239,7 +239,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
-		track(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size)
+		track(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept
 			: m_allocator(allocator)
 			, m_data(data)
 			, m_num_samples(num_samples)
@@ -337,7 +337,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs an empty typed track.
-		track_typed() : track(type, category) { static_assert(sizeof(track_typed) == sizeof(track), "You cannot add member variables to this class"); }
+		track_typed() noexcept : track(type, category) { static_assert(sizeof(track_typed) == sizeof(track), "You cannot add member variables to this class"); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Destroys the track and potentially frees any memory it might own.
@@ -345,11 +345,11 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track.
-		track_typed(track_typed&& other) : track(static_cast<track&&>(other)) {}
+		track_typed(track_typed&& other) noexcept : track(static_cast<track&&>(other)) {}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track.
-		track_typed& operator=(track_typed&& other) { return static_cast<track_typed&>(track::operator=(static_cast<track&&>(other))); }
+		track_typed& operator=(track_typed&& other) noexcept { return static_cast<track_typed&>(track::operator=(static_cast<track&&>(other))); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the sample at the specified index.
@@ -464,7 +464,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
-		track_typed(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const desc_type& desc)
+		track_typed(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const desc_type& desc) noexcept
 			: track(allocator, data, num_samples, stride, data_size, sample_rate, type, category, sizeof(sample_type))
 		{
 			m_desc = desc_union(desc);

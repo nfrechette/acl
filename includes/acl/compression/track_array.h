@@ -51,7 +51,7 @@ namespace acl
 	public:
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs an empty track array.
-		track_array()
+		track_array() noexcept
 			: m_allocator(nullptr)
 			, m_tracks(nullptr)
 			, m_num_tracks(0)
@@ -68,7 +68,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move constructor for a track array.
-		track_array(track_array&& other)
+		track_array(track_array&& other) noexcept
 			: m_allocator(other.m_allocator)
 			, m_tracks(other.m_tracks)
 			, m_num_tracks(other.m_num_tracks)
@@ -86,7 +86,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track array.
-		track_array& operator=(track_array&& other)
+		track_array& operator=(track_array&& other) noexcept
 		{
 			std::swap(m_allocator, other.m_allocator);
 			std::swap(m_tracks, other.m_tracks);
@@ -220,7 +220,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs an empty track array.
-		track_array_typed() : track_array() { static_assert(sizeof(track_array_typed) == sizeof(track_array), "You cannot add member variables to this class"); }
+		track_array_typed() noexcept : track_array() { static_assert(sizeof(track_array_typed) == sizeof(track_array), "You cannot add member variables to this class"); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs an array with the specified number of tracks.
@@ -229,7 +229,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move constructor for a track array.
-		track_array_typed(track_array_typed&& other) : track_array(static_cast<track_array&&>(other)) {}
+		track_array_typed(track_array_typed&& other) noexcept : track_array(static_cast<track_array&&>(other)) {}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Destroys a track array.
@@ -237,7 +237,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track array.
-		track_array_typed& operator=(track_array_typed&& other) { return static_cast<track_array_typed&>(track_array::operator=(static_cast<track_array&&>(other))); }
+		track_array_typed& operator=(track_array_typed&& other) noexcept { return static_cast<track_array_typed&>(track_array::operator=(static_cast<track_array&&>(other))); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track type for tracks in this array.
