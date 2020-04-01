@@ -1,73 +1,35 @@
 cmake_minimum_required(VERSION 3.2)
-project(acl_compressor)
+project(acl_compressor_gradle_shim NONE)
 
-set(CMAKE_CXX_STANDARD 11)
+# Set our project root since our gradle files used to build live in the binary output directory
+# but the actual source files live in the source/current directory.
+file(RELATIVE_PATH ACL_PROJECT_ROOT ${CMAKE_CURRENT_BINARY_DIR}/app ${PROJECT_SOURCE_DIR}/app)
 
-set(CMAKE_ANDROID_ARCH armv7-a)
-set(CMAKE_ANDROID_API_MIN 24)
-set(CMAKE_ANDROID_API 24)
-set(CMAKE_ANDROID_GUI 1)
+# Setup our state
+set(ACL_ANDROID_PROJECT_NAME "ACL Compressor")
+set(ACL_ANDROID_PROJECT_PACKAGE_NAME "com.acl.compressor")
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+# Configure gradle for our build configuration
+configure_file(${ACL_ANDROID_MISC_DIR}/app/build.gradle.in app/build.gradle @ONLY)
+configure_file(${ACL_ANDROID_MISC_DIR}/app/src/main/AndroidManifest.xml.in app/src/main/AndroidManifest.xml @ONLY)
+configure_file(${ACL_ANDROID_MISC_DIR}/app/src/main/res/values/strings.xml.in app/src/main/res/values/strings.xml @ONLY)
+configure_file(${ACL_ANDROID_MISC_DIR}/settings.gradle.in settings.gradle @ONLY)
 
-set(CMAKE_ANDROID_JAVA_SOURCE_DIR "${PROJECT_SOURCE_DIR}/java")
+# Copy gradle related files
+file(COPY
+	${ACL_ANDROID_MISC_DIR}/build.gradle
+	${ACL_ANDROID_MISC_DIR}/gradle.properties
+	${ACL_ANDROID_MISC_DIR}/gradle
+	${ACL_ANDROID_MISC_DIR}/gradlew
+	${ACL_ANDROID_MISC_DIR}/gradlew.bat
+	DESTINATION .)
 
-include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
-include_directories("${PROJECT_SOURCE_DIR}/../../../external/rtm/includes")
-include_directories("${PROJECT_SOURCE_DIR}/../includes")
+file(COPY
+	${ACL_ANDROID_MISC_DIR}/app/proguard-rules.pro
+	DESTINATION app)
 
-if(USE_SJSON)
-	include_directories("${PROJECT_SOURCE_DIR}/../../../external/sjson-cpp/includes")
-endif()
-
-# Grab all of our common source files
-file(GLOB_RECURSE ALL_COMMON_SOURCE_FILES LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/../sources/*.h
-	${PROJECT_SOURCE_DIR}/../sources/*.cpp)
-
-create_source_groups("${ALL_COMMON_SOURCE_FILES}" ${PROJECT_SOURCE_DIR}/..)
-
-# Grab all of our main source files
-file(GLOB_RECURSE ALL_MAIN_SOURCE_FILES LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/*.cpp)
-
-create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
-
-# Add resource files
-set(JAVA_FILES java/com/acl/compressor/MainActivity.java)
-set(RESOURCE_FILES res/values/strings.xml)
-set(ANDROID_FILES AndroidManifest.xml)
-
-add_executable(${PROJECT_NAME} ${ALL_COMMON_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILES} ${JAVA_FILES} ${RESOURCE_FILES} ${ANDROID_FILES})
-
-# Enable exceptions
-target_compile_options(${PROJECT_NAME} PRIVATE -fexceptions)
-
-# Enable debug symbols
-target_compile_options(${PROJECT_NAME} PRIVATE -g)
-
-# Disable SIMD if not needed
-if(NOT USE_SIMD_INSTRUCTIONS)
-	add_definitions(-DRTM_NO_INTRINSICS)
-endif()
-
-# Enable SJSON when needed
-if(USE_SJSON)
-	add_definitions(-DACL_USE_SJSON)
-endif()
-
-target_include_directories(${PROJECT_NAME} PUBLIC jni)
-
-target_link_libraries(${PROJECT_NAME} m) # test linking to library by name
-
-set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 11)
-set_target_properties(${PROJECT_NAME} PROPERTIES ANDROID_SKIP_ANT_STEP 0)
-set_target_properties(${PROJECT_NAME} PROPERTIES ANDROID_PROGUARD 1)
-set_target_properties(${PROJECT_NAME} PROPERTIES ANDROID_PROGUARD_CONFIG_PATH proguard-android.txt)
-set_target_properties(${PROJECT_NAME} PROPERTIES ANDROID_SECURE_PROPS_PATH /definitely/insecure)
-set_target_properties(${PROJECT_NAME} PROPERTIES VS_GLOBAL_AndroidBuildSystem "AntBuild")				# Use Ant as our build system
-
-set_property(TARGET ${PROJECT_NAME} PROPERTY ANDROID_NATIVE_LIB_DIRECTORIES $<TARGET_FILE_DIR:${PROJECT_NAME}>)
-set_property(TARGET ${PROJECT_NAME} PROPERTY ANDROID_NATIVE_LIB_DEPENDENCIES ${PROJECT_NAME}.so)
+add_custom_target(${PROJECT_NAME} ALL
+	COMMAND gradlew.bat
+	# Decide whether we should build Debug or Release
+	$<$<CONFIG:Debug>:assembleDebug>
+	$<$<CONFIG:Release>:assembleRelease>)

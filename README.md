@@ -49,7 +49,7 @@ Much thought was put into designing the library for it to be as flexible and pow
 *  Linux (clang4, clang5, clang6, clang7, clang8, clang9) x86 and x64
 *  OS X (Xcode 8.3, 9.4, 10.3) x86 and x64
 *  OS X (Xcode 11.2) x64
-*  Android (NVIDIA CodeWorks with clang5) ARMv7-A and ARM64
+*  Android (NDK 21) ARMv7-A and ARM64
 *  iOS (Xcode 8.3, 9.4, 10.3, 11.2) ARM64
 
 The above supported platform list is only what is tested every release but if it compiles, it should run just fine.

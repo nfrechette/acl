@@ -1,10 +1,17 @@
-cmake_minimum_required (VERSION 3.2)
-include(ProcessorCount)
+cmake_minimum_required(VERSION 3.2)
 
-set(CMAKE_SYSTEM_NAME Android)
+# For Android, we just set the platform name as we won't be using CMake to build anything.
+# Instead Gradle is used through CMake.
 
-# Use the clang tool set because it's support for C++11 is superior
-set(CMAKE_GENERATOR_TOOLSET DefaultClang)
+set(PLATFORM_ANDROID 1)
+set(PLATFORM_NAME "Android")
 
-# Make sure we use all our processors when building
-ProcessorCount(CMAKE_ANDROID_PROCESS_MAX)
+# Remap our CPU instruction set
+if(CPU_INSTRUCTION_SET MATCHES "armv7")
+	set(CPU_INSTRUCTION_SET "armeabi-v7a")
+elseif(CPU_INSTRUCTION_SET MATCHES "arm64")
+	set(CPU_INSTRUCTION_SET "arm64-v8a")
+endif()
+
+# Set our misc asset directory
+set(ACL_ANDROID_MISC_DIR ${CMAKE_SOURCE_DIR}/tools/android_misc)
