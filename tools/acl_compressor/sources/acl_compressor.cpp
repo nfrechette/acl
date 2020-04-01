@@ -1224,7 +1224,10 @@ static int safe_main_impl(int argc, char* argv[])
 
 #if defined(__ANDROID__)
 				const CompressedClip* compressed_clip = reinterpret_cast<const CompressedClip*>(options.input_buffer);
-				ACL_ASSERT(compressed_clip->is_valid(true).empty(), "Compressed clip is invalid");
+				const bool is_clip_valid = compressed_clip->is_valid(true).empty();
+				ACL_ASSERT(is_clip_valid, "Compressed clip is invalid");
+				if (!is_clip_valid)
+					return;	// Compressed clip is invalid, early out to avoid crash
 
 				runs_writer->push([&](sjson::ObjectWriter& writer)
 				{
@@ -1242,7 +1245,10 @@ static int safe_main_impl(int argc, char* argv[])
 					input_file_stream.read(buffer, buffer_size);
 
 					const CompressedClip* compressed_clip = reinterpret_cast<const CompressedClip*>(buffer);
-					ACL_ASSERT(compressed_clip->is_valid(true).empty(), "Compressed clip is invalid");
+					const bool is_clip_valid = compressed_clip->is_valid(true).empty();
+					ACL_ASSERT(is_clip_valid, "Compressed clip is invalid");
+					if (!is_clip_valid)
+						return;	// Compressed clip is invalid, early out to avoid crash
 
 					runs_writer->push([&](sjson::ObjectWriter& writer)
 					{
