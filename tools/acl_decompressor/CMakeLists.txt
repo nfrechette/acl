@@ -1,5 +1,5 @@
-cmake_minimum_required (VERSION 3.2)
-project(acl_decompressor_root CXX)
+cmake_minimum_required(VERSION 3.2)
+project(acl_decompressor_root NONE)
 
 if(PLATFORM_ANDROID)
 	if(USE_SJSON)
