@@ -7,7 +7,7 @@ In order to contribute to ACL and use the various tools provided for development
 ### Windows, Linux, and OS X for x86 and x64
 
 1. Install *CMake 3.2* or higher (*3.14* for Visual Studio 2019, or *3.10* on OS X with *Xcode 10*), *Python 2.7 or 3*, and the proper compiler for your platform.
-2. Execute `git submodule update --init` to get the files of thirdparty submodules (e.g. Catch2).
+2. Execute `git submodule update --init` to get the files of external submodules (e.g. Catch2).
 3. Generate the IDE solution with: `python make.py`  
    The solution is generated under `./build`  
    Note that if you do not have CMake in your `PATH`, you should define the `ACL_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
@@ -23,16 +23,9 @@ For *Windows on ARM64*, the steps are identical to *x86 and x64* but you will ne
 
 ### Android
 
-For *Android*, the steps are identical to *Windows, Linux, and OS X* but you also need to install *NVIDIA CodeWorks 1R5* (or higher).
+For *Android*, the steps are identical to *Windows, Linux, and OS X* but you also need to install *Android NDK 21* (or higher). The build uses `gradle` and `-unit_test` as well as `-regression_test` will deploy and run on the device when executed (make sure that the `adb` executable is in your `PATH` for this to work).
 
-Note that it is not currently possible to run the unit tests or the regression tests with scripts, you will need to run them manually from Visual Studio:
-
-*  Open the Visual Studio solution
-*  Build and run on your device
-
-Note that Android builds have never been tested on an emulator and that if you cannot code sign the APK, you will need to change the project ANT settings to use the debug configuration.
-
-*We currently only support NVIDIA CodeWorks as that is what is used by Unreal 4 to build. Contributions welcome to also support the NDK natively with CMake*
+*Android Studio v3.5* can be used to launch and debug. After running *CMake* to build and generate everything, the *Android Studio* projects can be found under the `./build` directory.
 
 ### iOS
 

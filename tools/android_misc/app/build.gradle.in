@@ -1,0 +1,56 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "@ACL_ANDROID_PROJECT_PACKAGE_NAME@"
+        minSdkVersion 24
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                arguments '-DUSE_SIMD_INSTRUCTIONS=@USE_SIMD_INSTRUCTIONS@', '-DUSE_SJSON=@USE_SJSON@'
+            }
+        }
+        ndk {
+            abiFilters '@CPU_INSTRUCTION_SET@'
+        }
+
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            debuggable = true
+            signingConfig signingConfigs.debug
+            externalNativeBuild {
+                cmake {
+                    // Because we want to debug 'release' builds, the 'debuggable' property above
+                    // forces the build configuration to 'Debug' which disables optimizations.
+                    // Force a release configutation anyway.
+                    arguments '-DCMAKE_BUILD_TYPE=Release'
+                }
+            }
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path '@ACL_PROJECT_ROOT@/src/main/cpp/CMakeLists.txt'
+        }
+    }
+    sourceSets {
+        main {
+            manifest.srcFile './src/main/AndroidManifest.xml'
+            java.srcDirs = ['@ACL_PROJECT_ROOT@/src/main/java']
+            res.srcDirs = ['./src/main/res']
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+}
