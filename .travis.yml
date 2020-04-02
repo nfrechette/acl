@@ -1,56 +1,45 @@
+os: linux
 dist: xenial
-sudo: required
 
 language: cpp
 
-matrix:
+jobs:
   include:
     # Linux gcc5
-    - os: linux
-      env: COMPILER=gcc5 TOOLCHAIN=gcc PACKAGES="g++-5 g++-5-multilib g++-multilib"
+    - env: COMPILER=gcc5 TOOLCHAIN=gcc PACKAGES="g++-5 g++-5-multilib g++-multilib"
 
     # Linux gcc6
-    - os: linux
-      env: COMPILER=gcc6 TOOLCHAIN=gcc PACKAGES="g++-6 g++-6-multilib g++-multilib"
+    - env: COMPILER=gcc6 TOOLCHAIN=gcc PACKAGES="g++-6 g++-6-multilib g++-multilib"
 
     # Linux gcc7
-    - os: linux
-      env: COMPILER=gcc7 TOOLCHAIN=gcc PACKAGES="g++-7 g++-7-multilib g++-multilib"
+    - env: COMPILER=gcc7 TOOLCHAIN=gcc PACKAGES="g++-7 g++-7-multilib g++-multilib"
 
     # Linux gcc8
-    - os: linux
-      env: COMPILER=gcc8 TOOLCHAIN=gcc PACKAGES="g++-8 g++-8-multilib g++-multilib"
+    - env: COMPILER=gcc8 TOOLCHAIN=gcc PACKAGES="g++-8 g++-8-multilib g++-multilib"
 
     # Linux gcc9
-    - os: linux
-      env: COMPILER=gcc9 TOOLCHAIN=gcc PACKAGES="g++-9 g++-9-multilib g++-multilib"
+    - env: COMPILER=gcc9 TOOLCHAIN=gcc PACKAGES="g++-9 g++-9-multilib g++-multilib"
 
     # Linux clang4
-    - os: linux
-      env: COMPILER=clang4 TOOLCHAIN=clang PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+    - env: COMPILER=clang4 TOOLCHAIN=clang PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
 
     # Linux clang5
-    - os: linux
-      env: COMPILER=clang5 TOOLCHAIN=clang SONARCLOUD=1 PACKAGES="clang-5.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+    - env: COMPILER=clang5 TOOLCHAIN=clang SONARCLOUD=1 PACKAGES="clang-5.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
       addons:
         sonarcloud:
           organization: "nfrechette-github"
 
     # Linux clang6
-    - os: linux
-      env: COMPILER=clang6 TOOLCHAIN=clang PACKAGES="clang-6.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+    - env: COMPILER=clang6 TOOLCHAIN=clang PACKAGES="clang-6.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
 
     # Linux clang7
-    - os: linux
-      env: COMPILER=clang7 TOOLCHAIN=clang PACKAGES="clang-7 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+    - env: COMPILER=clang7 TOOLCHAIN=clang PACKAGES="clang-7 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
 
     # Linux clang8
-    - os: linux
-      env: COMPILER=clang8 TOOLCHAIN=clang PACKAGES="clang-8 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+    - env: COMPILER=clang8 TOOLCHAIN=clang PACKAGES="clang-8 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
 
     # Linux clang9
-    - os: linux
-      env: COMPILER=clang9 TOOLCHAIN=clang PACKAGES="clang-9 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+    - env: COMPILER=clang9 TOOLCHAIN=clang PACKAGES="clang-9 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
 
     # OS X xcode8
     - os: osx
