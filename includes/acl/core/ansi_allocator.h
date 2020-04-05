@@ -28,7 +28,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__EMSCRIPTEN__)
 	#include <cstdlib>	// For posix_memalign
 #elif defined(_WIN32)
 	#include <malloc.h>
@@ -113,7 +113,7 @@ namespace acl
 
 #if defined(_WIN32)
 			ptr = _aligned_malloc(aligned_size, alignment);
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(__EMSCRIPTEN__)
 			ptr = nullptr;
 			posix_memalign(&ptr, std::max<size_t>(alignment, sizeof(void*)), aligned_size);
 #elif defined(__ANDROID__)
