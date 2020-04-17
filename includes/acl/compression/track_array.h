@@ -343,6 +343,10 @@ namespace acl
 		const uint32_t num_samples = track_.get_num_samples();
 		const float sample_rate = track_.get_sample_rate();
 
+		// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
+		const float duration = calculate_duration(num_samples, sample_rate);
+		sample_time = rtm::scalar_clamp(sample_time, 0.0F, duration);
+
 		uint32_t key_frame0;
 		uint32_t key_frame1;
 		float interpolation_alpha;
