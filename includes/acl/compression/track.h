@@ -264,6 +264,7 @@ namespace acl
 			out_track.m_sample_rate = m_sample_rate;
 			out_track.m_type = m_type;
 			out_track.m_category = m_category;
+			out_track.m_sample_size = m_sample_size;
 			out_track.m_desc = m_desc;
 
 			std::memcpy(out_track.m_data, m_data, m_data_size);
@@ -281,6 +282,7 @@ namespace acl
 			out_track.m_sample_rate = m_sample_rate;
 			out_track.m_type = m_type;
 			out_track.m_category = m_category;
+			out_track.m_sample_size = m_sample_size;
 			out_track.m_desc = m_desc;
 		}
 
