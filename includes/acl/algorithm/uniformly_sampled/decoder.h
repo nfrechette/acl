@@ -417,8 +417,8 @@ namespace acl
 
 			m_context.range_reduction = m_settings.get_range_reduction(range_reduction);
 
-			ACL_ASSERT((m_context.range_reduction & range_reduction) == range_reduction, "Statically compiled range reduction flags (%u) differ from the compressed flags (%u)!", m_context.range_reduction, range_reduction);
-			ACL_ASSERT(m_settings.are_range_reduction_flags_supported(m_context.range_reduction), "Range reduction flags (%u) aren't statically supported!", m_context.range_reduction);
+			ACL_ASSERT((m_context.range_reduction & range_reduction) == range_reduction, "Statically compiled range reduction flags (%u) differ from the compressed flags (%u)!", static_cast< uint32_t >( m_context.range_reduction ), static_cast< uint32_t >( range_reduction ) );
+			ACL_ASSERT(m_settings.are_range_reduction_flags_supported(m_context.range_reduction), "Range reduction flags (%u) aren't statically supported!", static_cast< uint32_t >( m_context.range_reduction ) );
 
 			m_context.num_rotation_components = rotation_format == rotation_format8::quatf_full ? 4 : 3;
 		}

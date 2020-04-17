@@ -68,7 +68,7 @@ namespace acl
 			{
 				// We convert our rotation stream in place. We assume that the original format is quatf_full stored as rtm::quatf
 				// For all other formats, we keep the same sample size and either keep Quat_32 or use rtm::vector4f
-				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::quatf), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(rtm::quatf));
+				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::quatf), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(rtm::quatf));
 
 				const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 				const float sample_rate = bone_stream.rotations.get_sample_rate();

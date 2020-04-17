@@ -184,7 +184,7 @@ namespace acl
 				const BoneRanges& bone_range = bone_ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
+				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
 
 				// Constant or default tracks are not normalized
 				if (bone_stream.is_rotation_constant)
@@ -236,7 +236,7 @@ namespace acl
 				const BoneRanges& bone_range = bone_ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
+				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
 
 				// Constant or default tracks are not normalized
 				if (bone_stream.is_translation_constant)
@@ -277,7 +277,7 @@ namespace acl
 				const BoneRanges& bone_range = bone_ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
+				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
 
 				// Constant or default tracks are not normalized
 				if (bone_stream.is_scale_constant)

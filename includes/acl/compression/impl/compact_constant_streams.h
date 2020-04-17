@@ -94,9 +94,9 @@ namespace acl
 				BoneRanges& bone_range = clip_context.ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
-				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %u", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
-				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %u", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
+				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
+				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
+				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
 
 				if (is_rotation_track_constant(bone_stream.rotations, rotation_threshold_angle))
 				{
