@@ -65,7 +65,7 @@ namespace acl
 		{
 			// We convert our rotation stream in place. We assume that the original format is Quat_128 stored as Quat_32
 			// For all other formats, we keep the same sample size and either keep Quat_32 or use Vector4_32
-			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %u", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
+			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(Quat_32), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(Quat_32));
 
 			const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 			const float sample_rate = bone_stream.rotations.get_sample_rate();

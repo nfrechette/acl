@@ -72,7 +72,7 @@ namespace acl
 		void ACL_SIMD_CALL set_raw_sample(uint32_t sample_index, SampleType sample)
 #endif
 		{
-			ACL_ASSERT(m_sample_size == sizeof(SampleType), "Unexpected sample size. %u != %u", m_sample_size, sizeof(SampleType));
+			ACL_ASSERT(m_sample_size == sizeof(SampleType), "Unexpected sample size. %u != %zu", m_sample_size, sizeof(SampleType));
 			uint8_t* ptr = get_raw_sample_ptr(sample_index);
 			*safe_ptr_cast<SampleType>(ptr) = sample;
 		}
