@@ -349,6 +349,7 @@ namespace acl
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + 2);
 						value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+						range_values += 4;
 					}
 
 					value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
@@ -356,7 +357,6 @@ namespace acl
 					const uint32_t num_sample_bits = num_bits_per_component * 2;
 					track_bit_offset0 += num_sample_bits;
 					track_bit_offset1 += num_sample_bits;
-					range_values += 4;
 				}
 
 				writer.write_float2(track_index, value);
@@ -387,6 +387,7 @@ namespace acl
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + 3);
 						value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+						range_values += 6;
 					}
 
 					value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
@@ -394,7 +395,6 @@ namespace acl
 					const uint32_t num_sample_bits = num_bits_per_component * 3;
 					track_bit_offset0 += num_sample_bits;
 					track_bit_offset1 += num_sample_bits;
-					range_values += 6;
 				}
 
 				writer.write_float3(track_index, value);
@@ -425,6 +425,7 @@ namespace acl
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + 4);
 						value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+						range_values += 8;
 					}
 
 					value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
@@ -432,7 +433,6 @@ namespace acl
 					const uint32_t num_sample_bits = num_bits_per_component * 4;
 					track_bit_offset0 += num_sample_bits;
 					track_bit_offset1 += num_sample_bits;
-					range_values += 8;
 				}
 
 				writer.write_float4(track_index, value);
@@ -463,6 +463,7 @@ namespace acl
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + 4);
 						value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+						range_values += 8;
 					}
 
 					value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
@@ -470,7 +471,6 @@ namespace acl
 					const uint32_t num_sample_bits = num_bits_per_component * 4;
 					track_bit_offset0 += num_sample_bits;
 					track_bit_offset1 += num_sample_bits;
-					range_values += 8;
 				}
 
 				writer.write_vector4(track_index, value);
