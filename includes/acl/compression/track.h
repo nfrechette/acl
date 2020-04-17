@@ -427,7 +427,7 @@ namespace acl
 			// Copy the data manually to avoid preserving the stride
 			sample_type* data_copy = reinterpret_cast<sample_type*>(allocator.allocate(data_size));
 			for (uint32_t index = 0; index < num_samples; ++index)
-				data_copy[index] = *reinterpret_cast<sample_type*>(data_raw + (index * stride));
+				data_copy[index] = *reinterpret_cast<const sample_type*>(data_raw + (index * stride));
 
 			return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(data_copy), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
 		}
