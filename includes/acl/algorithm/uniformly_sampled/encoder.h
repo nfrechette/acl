@@ -94,7 +94,9 @@ namespace acl
 			// and we might intentionally divide by zero, etc.
 			scope_disable_fp_exceptions fp_off;
 
+#if defined(SJSON_CPP_WRITER)
 			ScopeProfiler compression_time;
+#endif
 
 			// If every track is retains full precision, we disable segmenting since it provides no benefit
 			if (!is_rotation_format_variable(settings.rotation_format) && !is_vector_format_variable(settings.translation_format) && !is_vector_format_variable(settings.scale_format))
@@ -272,9 +274,9 @@ namespace acl
 
 			finalize_compressed_clip(*compressed_clip);
 
+#if defined(SJSON_CPP_WRITER)
 			compression_time.stop();
 
-#if defined(SJSON_CPP_WRITER)
 			if (out_stats.logging != StatLogging::None)
 				write_stats(allocator, clip, clip_context, skeleton, *compressed_clip, settings, header, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
 #endif
