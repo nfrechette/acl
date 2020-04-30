@@ -28,4 +28,4 @@ A lot of older compilers do not properly support **C++11** and there is no plan 
 
 This library's focus is solely on animation compression. There is no plan to include blending of animation poses or state machines to drive that process. Other middlewares and libraries already cover that field reasonably well.
 
-If you aren't sure, don't be afraid to reach out by email!
+If you aren't sure, don't be afraid to reach out by email or on discord!
