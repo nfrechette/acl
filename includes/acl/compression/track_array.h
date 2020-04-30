@@ -27,6 +27,7 @@
 #include "acl/core/compiler_utils.h"
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/interpolation_utils.h"
 #include "acl/core/track_writer.h"
 #include "acl/compression/track.h"
 
