@@ -10,5 +10,5 @@ This feature can be enabled at the clip level where entire tracks are quantized 
 
 Additional reading:
 
-*  [How it works](http://nfrechette.github.io/2016/11/09/anim_compression_range_reduction/)
-*  [How much it helps](http://nfrechette.github.io/2017/09/10/acl_v0.4.0/)
+*  [How it works](https://nfrechette.github.io/2016/11/09/anim_compression_range_reduction/)
+*  [How much it helps](https://nfrechette.github.io/2017/09/10/acl_v0.4.0/)

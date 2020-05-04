@@ -1,6 +1,6 @@
 # Skeleton error metric
 
-A proper error metric is central to every animation compression algorithm and ACL is no different. The general technique implemented is the one described on this [blog post](http://nfrechette.github.io/2016/11/01/anim_compression_accuracy/) and the various implementations as well as the interfaces live [here](../includes/acl/compression/skeleton_error_metric.h).
+A proper error metric is central to every animation compression algorithm and ACL is no different. The general technique implemented is the one described on this [blog post](https://nfrechette.github.io/2016/11/01/anim_compression_accuracy/) and the various implementations as well as the interfaces live [here](../includes/acl/compression/skeleton_error_metric.h).
 
 Some care must be taken when selecting which error metric to use. If the error it calculates isn't representative of how it would be calculated in the host game engine, the resulting visual fidelity might suffer. ACL implements a number of popular implementations and you are free to implement and use your own.
 

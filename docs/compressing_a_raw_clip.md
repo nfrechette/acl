@@ -8,7 +8,7 @@ The compression level used will dictate how much time to spend optimizing the va
 
 While we support various [rotation and vector quantization formats](rotation_and_vector_formats.md), the *variable* variants are generally the best. It is safe to use them for all your clips but if you do happen to run into issues with some exotic clips, you can easily fallback to less aggressive variants.
 
-[Segmenting](http://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/) ensures that large clips are split into smaller segments and compressed independently to allow a smaller memory footprint as well as faster compression and decompression.
+[Segmenting](https://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/) ensures that large clips are split into smaller segments and compressed independently to allow a smaller memory footprint as well as faster compression and decompression.
 
 [Range reduction](range_reduction.md) is important and also something you will want to enable for all your tracks both at the clip and segment level.
 
