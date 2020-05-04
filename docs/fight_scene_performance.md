@@ -14,7 +14,7 @@
 
 # Data and method used
 
-To compile these statistics, the [Matinee fight scene](http://nfrechette.github.io/2017/10/05/acl_in_ue4/) is used.
+To compile these statistics, the [Matinee fight scene](https://nfrechette.github.io/2017/10/05/acl_in_ue4/) is used.
 
 *  Number of clips: **5**
 *  Sample rate: **30 FPS**

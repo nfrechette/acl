@@ -46,7 +46,7 @@ namespace acl
 	// Segmenting ensures that large clips are split into smaller segments and
 	// compressed independently to allow a smaller memory footprint as well as
 	// faster compression and decompression.
-	// See also: http://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/
+	// See also: https://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/
 	struct SegmentingSettings
 	{
 		//////////////////////////////////////////////////////////////////////////
