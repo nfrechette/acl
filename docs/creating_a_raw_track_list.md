@@ -23,9 +23,9 @@ Once you have created an instance, simply populate the track data. Note that at 
 
 Each track requires a track description. It contains a number of important properties:
 
-*  Output index: after compression, this is the index of the track. This allows re-ordering for LOD processing and other similar use cases.
-*  Precision: the precision we aim to attain when optimizing the bit rate. The resulting compression error is nearly guaranteed to be below this threshold.
-*  Constant threshold: track with samples within this precision threshold are considered constant and can be collapsed to a single sample.
+*  **Output index**: after compression, this is the index of the track. This allows re-ordering for LOD processing and other similar use cases.
+*  **Precision**: the precision we aim to attain when optimizing the bit rate. The resulting compression error is nearly guaranteed to be below this threshold.
+*  **Constant threshold**: track with samples within this precision threshold are considered constant and can be collapsed to a single sample. *Use the same value as `Precision`, the `constant threshold` will be removed in ACL 2.0.*
 
 ```c++
 track_desc_scalarf desc0;
@@ -54,3 +54,13 @@ raw_track_list[0] = std::move(raw_track0);
 ```
 
 Once your raw track list has been populated with data, it is ready for [compression](compressing_scalar_tracks.md). The data contained within the `track_array` will be read-only.
+
+## Compressing morph target blend weights
+
+Curves that drive a morph target (aka blend shape) are not ordinary and require special consideration. They ultimately drive an object space mesh deformation and as such we can leverage that information to reduce the memory footprint and simplify the task of choosing a suitable `precision` value.
+
+If you have access to the morph target deformation information, you can calculate the largest vertex displacement for a given curve. Once you have that value, use a morph target deformation precision value such as **0.1 mm** and use the maximum vertex displacement to calculate the desired blend weight `precision` value like this:
+
+`blend weight precision = vertex precision / vertex displacement delta`
+
+See [here](https://nfrechette.github.io/2020/05/04/morph_target_compresion/) for more details.
