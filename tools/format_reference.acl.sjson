@@ -217,6 +217,7 @@ tracks =
 
 		// The constant track detection threshold
 		// Defaults to '0.00001' units
+		// DEPRECATED, NO LONGER USED OR NECESSARY
 		constant_threshold = 0.00001
 
 		// The track output index. When writing out the compressed data stream, this index

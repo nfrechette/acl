@@ -385,7 +385,6 @@ namespace acl
 					{
 						const track_float1f& track__ = track_cast<track_float1f>(track_);
 						track_writer["precision"] = track__.get_description().precision;
-						track_writer["constant_threshold"] = track__.get_description().constant_threshold;
 						track_writer["output_index"] = track__.get_description().output_index;
 
 						track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
@@ -410,7 +409,6 @@ namespace acl
 					{
 						const track_float2f& track__ = track_cast<track_float2f>(track_);
 						track_writer["precision"] = track__.get_description().precision;
-						track_writer["constant_threshold"] = track__.get_description().constant_threshold;
 						track_writer["output_index"] = track__.get_description().output_index;
 
 						track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
@@ -436,7 +434,6 @@ namespace acl
 					{
 						const track_float3f& track__ = track_cast<track_float3f>(track_);
 						track_writer["precision"] = track__.get_description().precision;
-						track_writer["constant_threshold"] = track__.get_description().constant_threshold;
 						track_writer["output_index"] = track__.get_description().output_index;
 
 						track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
@@ -463,7 +460,6 @@ namespace acl
 					{
 						const track_float4f& track__ = track_cast<track_float4f>(track_);
 						track_writer["precision"] = track__.get_description().precision;
-						track_writer["constant_threshold"] = track__.get_description().constant_threshold;
 						track_writer["output_index"] = track__.get_description().output_index;
 
 						track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
@@ -491,7 +487,6 @@ namespace acl
 					{
 						const track_vector4f& track__ = track_cast<track_vector4f>(track_);
 						track_writer["precision"] = track__.get_description().precision;
-						track_writer["constant_threshold"] = track__.get_description().constant_threshold;
 						track_writer["output_index"] = track__.get_description().output_index;
 
 						track_writer["data"] = [&](sjson::ArrayWriter& data_writer)

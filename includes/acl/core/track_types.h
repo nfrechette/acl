@@ -169,12 +169,6 @@ namespace acl
 		// exceeding it. If the error is above the precision threshold, we will add more bits until
 		// we lower it underneath.
 		float precision;
-
-		//////////////////////////////////////////////////////////////////////////
-		// The per component precision threshold used to detect constant tracks.
-		// A constant track is a track that has a single repeating value across every sample.
-		// TODO: Use the precision?
-		float constant_threshold;
 	};
 
 #if 0	// TODO: Add support for this

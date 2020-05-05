@@ -40,7 +40,7 @@ namespace acl
 		inline bool is_scalarf_track_constant(const track& track_, const track_range& range)
 		{
 			const track_desc_scalarf& desc = track_.get_description<track_desc_scalarf>();
-			return range.is_constant(desc.constant_threshold);
+			return range.is_constant(desc.precision);
 		}
 
 		inline void extract_constant_tracks(track_list_context& context)
