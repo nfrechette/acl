@@ -1,5 +1,12 @@
 # Significant changes per release
 
+## 1.3.1
+
+*  Fix bug with scalar track decompression where garbage could be returned
+*  Fix scalar track quantization to properly check the resulting error
+*  Fix scalar track creation and properly copy the sample size
+*  Other minor fixes and improvements
+
 ## 1.3.0
 
 *  Added support for VS2019, GCC 9, clang7, and Xcode 11
