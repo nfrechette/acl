@@ -312,7 +312,6 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
 	desc0.precision = 0.001F;
-	desc0.constant_threshold = 0.123F;
 	track_float1f track0 = track_float1f::make_reserve(desc0, allocator, num_samples, 32.0F);
 	track0[0] = 1.0F;
 	track0[1] = 2.333F;
@@ -394,7 +393,6 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
 		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
-		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
@@ -424,7 +422,6 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
 	desc0.precision = 0.001F;
-	desc0.constant_threshold = 0.123F;
 	track_float2f track0 = track_float2f::make_reserve(desc0, allocator, num_samples, 32.0F);
 	track0[0] = rtm::float2f{ 1.0F, 3123.0F };
 	track0[1] = rtm::float2f{ 2.333F, 321.13F };
@@ -506,7 +503,6 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
 		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
-		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
@@ -536,7 +532,6 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
 	desc0.precision = 0.001F;
-	desc0.constant_threshold = 0.123F;
 	track_float3f track0 = track_float3f::make_reserve(desc0, allocator, num_samples, 32.0F);
 	track0[0] = rtm::float3f{ 1.0F, 3123.0F, 315.13F };
 	track0[1] = rtm::float3f{ 2.333F, 321.13F, 31.66F };
@@ -618,7 +613,6 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
 		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
-		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
@@ -648,7 +642,6 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
 	desc0.precision = 0.001F;
-	desc0.constant_threshold = 0.123F;
 	track_float4f track0 = track_float4f::make_reserve(desc0, allocator, num_samples, 32.0F);
 	track0[0] = rtm::float4f{ 1.0F, 3123.0F, 315.13F, 123.31F };
 	track0[1] = rtm::float4f{ 2.333F, 321.13F, 31.66F, 7154.1F };
@@ -730,7 +723,6 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
 		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
-		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
@@ -760,7 +752,6 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 	track_desc_scalarf desc0;
 	desc0.output_index = 0;
 	desc0.precision = 0.001F;
-	desc0.constant_threshold = 0.123F;
 	track_vector4f track0 = track_vector4f::make_reserve(desc0, allocator, num_samples, 32.0F);
 	track0[0] = rtm::vector_set(1.0F, 3123.0F, 315.13F, 123.31F);
 	track0[1] = rtm::vector_set(2.333F, 321.13F, 31.66F, 7154.1F);
@@ -842,7 +833,6 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
 		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
-		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_threshold, ref_track.get_description().constant_threshold, 1.0E-8F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());

@@ -23,15 +23,13 @@ Once you have created an instance, simply populate the track data. Note that at 
 
 Each track requires a track description. It contains a number of important properties:
 
-*  **Output index**: after compression, this is the index of the track. This allows re-ordering for LOD processing and other similar use cases.
-*  **Precision**: the precision we aim to attain when optimizing the bit rate. The resulting compression error is nearly guaranteed to be below this threshold.
-*  **Constant threshold**: track with samples within this precision threshold are considered constant and can be collapsed to a single sample. *Use the same value as `Precision`, the `constant threshold` will be removed in ACL 2.0.*
+*  `output_index`: after compression, this is the index of the track. This allows re-ordering for LOD processing and other similar use cases.
+*  `precision`: the precision we aim to attain when optimizing the bit rate. The resulting compression error is nearly guaranteed to be below this threshold.
 
 ```c++
 track_desc_scalarf desc0;
 desc0.output_index = 0;
 desc0.precision = 0.001F;
-desc0.constant_threshold = 0.123F;
 ```
 
 Tracks can be created in one of four ways:

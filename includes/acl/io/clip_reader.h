@@ -652,6 +652,7 @@ namespace acl
 				float precision;
 				m_parser.try_read("precision", precision, 0.0001F);
 
+				// Deprecated, no longer used
 				float constant_threshold;
 				m_parser.try_read("constant_threshold", constant_threshold, 0.00001F);
 
@@ -661,7 +662,6 @@ namespace acl
 				track_desc_scalarf scalar_desc;
 				scalar_desc.output_index = output_index;
 				scalar_desc.precision = precision;
-				scalar_desc.constant_threshold = constant_threshold;
 
 				if (!m_parser.array_begins("data"))
 					goto error;
