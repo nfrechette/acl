@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/core/buffer_tag.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
@@ -125,7 +126,7 @@ namespace acl
 		buffer += sizeof(tracks_header);
 
 		// Write our primary header
-		header->tag = k_compressed_tracks_tag;
+		header->tag = static_cast<uint32_t>(buffer_tag32::compressed_tracks);
 		header->version = get_algorithm_version(algorithm_type8::uniformly_sampled);
 		header->algorithm_type = algorithm_type8::uniformly_sampled;
 		header->track_type = track_list.get_track_type();
