@@ -80,13 +80,13 @@ namespace acl
 	// These are debug settings, everything is enabled and nothing is stripped.
 	// It will have the worst performance but allows every feature.
 	//////////////////////////////////////////////////////////////////////////
-	struct debug_decompression_settings : decompression_settings {};
+	struct debug_decompression_settings : public decompression_settings {};
 
 	//////////////////////////////////////////////////////////////////////////
 	// These are the default settings. Only the generally optimal settings
 	// are enabled and will offer the overall best performance.
 	//////////////////////////////////////////////////////////////////////////
-	struct default_decompression_settings : decompression_settings {};
+	struct default_decompression_settings : public decompression_settings {};
 
 	//////////////////////////////////////////////////////////////////////////
 	// Decompression context for the uniformly sampled algorithm. The context
