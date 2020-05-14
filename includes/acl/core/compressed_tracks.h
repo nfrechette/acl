@@ -26,10 +26,11 @@
 
 #include "acl/core/algorithm_types.h"
 #include "acl/core/algorithm_versions.h"
-#include "acl/core/impl/compiler_utils.h"
+#include "acl/core/buffer_tag.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/utils.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/impl/compressed_headers.h"
 
 #include <cstdint>
@@ -42,10 +43,6 @@ namespace acl
 
 	namespace acl_impl
 	{
-		////////////////////////////////////////////////////////////////////////////////
-		// A known tag value to distinguish compressed tracks from other things.
-		static constexpr uint32_t k_compressed_tracks_tag = 0xac11ac11;
-
 		const tracks_header& get_tracks_header(const compressed_tracks& tracks);
 	}
 
@@ -70,6 +67,11 @@ namespace acl
 		// Returns the hash for the compressed tracks.
 		// This is only used for sanity checking in case of memory corruption.
 		uint32_t get_hash() const { return m_buffer_header.hash; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the binary tag for the compressed tracks.
+		// This uniquely identifies the buffer as a proper 'compressed_tracks' object.
+		buffer_tag32 get_tag() const { return static_cast<buffer_tag32>(m_tracks_header.tag); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of tracks contained.
@@ -102,7 +104,7 @@ namespace acl
 			if (!is_aligned_to(this, alignof(compressed_tracks)))
 				return ErrorResult("Invalid alignment");
 
-			if (m_tracks_header.tag != acl_impl::k_compressed_tracks_tag)
+			if (m_tracks_header.tag != static_cast<uint32_t>(buffer_tag32::compressed_tracks))
 				return ErrorResult("Invalid tag");
 
 			if (!is_valid_algorithm_type(m_tracks_header.algorithm_type))

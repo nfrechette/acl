@@ -25,13 +25,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/algorithm_versions.h"
-#include "acl/core/impl/compiler_utils.h"
+#include "acl/core/buffer_tag.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/memory_utils.h"
 #include "acl/core/ptr_offset.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_types.h"
+#include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
 
@@ -67,6 +68,11 @@ namespace acl
 		// Returns the hash for this compressed clip.
 		uint32_t get_hash() const { return m_hash; }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the binary tag for the compressed clip.
+		// This uniquely identifies the buffer as a proper 'CompressedClip' object.
+		buffer_tag32 get_tag() const { return static_cast<buffer_tag32>(m_tag); }
+
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if a compressed clip is valid and usable.
 		// This mainly validates some invariants as well as ensuring that the
@@ -78,7 +84,7 @@ namespace acl
 			if (!is_aligned_to(this, alignof(CompressedClip)))
 				return ErrorResult("Invalid alignment");
 
-			if (m_tag != k_compressed_clip_tag)
+			if (m_tag != static_cast<uint32_t>(buffer_tag32::compressed_clip))
 				return ErrorResult("Invalid tag");
 
 			if (!is_valid_algorithm_type(m_type))
@@ -98,10 +104,6 @@ namespace acl
 
 	private:
 		////////////////////////////////////////////////////////////////////////////////
-		// A known tag value to distinguish compressed clips from other things.
-		static constexpr uint32_t k_compressed_clip_tag = 0xac10ac10;
-
-		////////////////////////////////////////////////////////////////////////////////
 		// The number of bytes to skip in the header when calculating the hash.
 		static constexpr uint32_t k_hash_skip_size = sizeof(uint32_t) + sizeof(uint32_t);	// m_size + m_hash
 
@@ -110,7 +112,7 @@ namespace acl
 		CompressedClip(uint32_t size, algorithm_type8 type)
 			: m_size(size)
 			, m_hash(hash32(safe_ptr_cast<const uint8_t>(this) + k_hash_skip_size, size - k_hash_skip_size))
-			, m_tag(k_compressed_clip_tag)
+			, m_tag(static_cast<uint32_t>(buffer_tag32::compressed_clip))
 			, m_version(get_algorithm_version(type))
 			, m_type(type)
 			, m_padding(0)
