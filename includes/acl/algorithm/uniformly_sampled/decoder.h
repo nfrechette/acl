@@ -233,7 +233,7 @@ namespace acl
 		// These are debug settings, everything is enabled and nothing is stripped.
 		// It will have the worst performance but allows every feature.
 		//////////////////////////////////////////////////////////////////////////
-		struct DebugDecompressionSettings : DecompressionSettings {};
+		struct DebugDecompressionSettings : public DecompressionSettings {};
 
 		//////////////////////////////////////////////////////////////////////////
 		// These are the default settings. Only the generally optimal settings
@@ -242,7 +242,7 @@ namespace acl
 		// Note: Segment range reduction supports all_tracks or none because it can
 		// be disabled if there is a single segment.
 		//////////////////////////////////////////////////////////////////////////
-		struct DefaultDecompressionSettings : DecompressionSettings
+		struct DefaultDecompressionSettings : public DecompressionSettings
 		{
 			constexpr bool is_rotation_format_supported(rotation_format8 format) const { return format == rotation_format8::quatf_drop_w_variable; }
 			constexpr bool is_translation_format_supported(vector_format8 format) const { return format == vector_format8::vector3f_variable; }

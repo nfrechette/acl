@@ -39,7 +39,7 @@ namespace acl
 	// A simple output writer implementation that simply writes out to a
 	// Transform_32 array.
 	//////////////////////////////////////////////////////////////////////////
-	struct DefaultOutputWriter : OutputWriter
+	struct DefaultOutputWriter final : public OutputWriter
 	{
 		DefaultOutputWriter(rtm::qvvf* transforms, uint16_t num_transforms)
 			: m_transforms(transforms)
