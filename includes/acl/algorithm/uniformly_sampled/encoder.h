@@ -220,6 +220,7 @@ namespace acl
 			buffer_size += 15;
 
 			uint8_t* buffer = allocate_type_array_aligned<uint8_t>(allocator, buffer_size, 16);
+			std::memset(buffer, 0, buffer_size);
 
 			CompressedClip* compressed_clip = make_compressed_clip(buffer, buffer_size, AlgorithmType8::UniformlySampled);
 
