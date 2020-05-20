@@ -1,0 +1,41 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  emscripten:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Cache emsdk
+        uses: actions/cache@v1
+        id: 'emsdk'
+        with:
+          path: 'emsdk-cache'
+          key: ${{ runner.os }}-emsdk-1.39.11
+      - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@v4
+        with:
+          version: 1.39.11
+          no-cache: true
+          actions-cache-folder: 'emsdk-cache'
+      - name: Cache emsdk build artifacts
+        uses: actions/cache@v1
+        id: 'emsdk-build-artifacts'
+        with:
+          path: '~/.emscripten_cache'
+          key: ${{ runner.os }}-emsdk-build-artifacts-1.39.11
+      - name: Build (debug)
+        run: python3 make.py -compiler emscripten -config debug -build
+# Don't run debug unit tests, they are too slow and sometime time out
+#     - name: Unit tests (debug)
+#       run: python3 make.py -compiler emscripten -config debug -unit_test
+      - name: Clean
+        run: python3 make.py -clean
+      - name: Build (release)
+        run: python3 make.py -compiler emscripten -config release -build
+      - name: Unit tests (release)
+        run: python3 make.py -compiler emscripten -config release -unit_test
