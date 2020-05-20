@@ -9,8 +9,7 @@ In order to contribute to ACL and use the various tools provided for development
 1. Install *CMake 3.2* or higher (*3.14* for Visual Studio 2019, or *3.10* on OS X with *Xcode 10*), *Python 2.7 or 3*, and the proper compiler for your platform.
 2. Execute `git submodule update --init` to get the files of external submodules (e.g. Catch2).
 3. Generate the IDE solution with: `python make.py`  
-   The solution is generated under `./build`  
-   Note that if you do not have CMake in your `PATH`, you should define the `ACL_CMAKE_HOME` environment variable to something like `C:\Program Files\CMake`.
+   The solution is generated under `./build`
 4. Build the IDE solution with: `python make.py -build`
 5. Run the unit tests with: `python make.py -unit_test`
 6. Run the regression tests with: `python make.py -regression_test`
