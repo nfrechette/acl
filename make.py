@@ -110,12 +110,6 @@ def parse_argv():
 
 	return args
 
-def get_cmake_exes():
-	if platform.system() == 'Windows':
-		return ('cmake.exe', 'ctest.exe')
-	else:
-		return ('cmake', 'ctest')
-
 def get_generator(compiler, cpu):
 	if compiler == None:
 		return None
@@ -217,7 +211,7 @@ def set_compiler_env(compiler, args):
 			print('See help with: python make.py -help')
 			sys.exit(1)
 
-def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, test_data_dir, decomp_data_dir, args):
+def do_generate_solution(build_dir, cmake_script_dir, test_data_dir, decomp_data_dir, args):
 	compiler = args.compiler
 	cpu = args.cpu
 	config = args.config
@@ -264,7 +258,7 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, test_data_dir, 
 
 	# Generate IDE solution
 	print('Generating build files ...')
-	cmake_cmd = '"{}" .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(cmake_exe, build_dir, ' '.join(extra_switches))
+	cmake_cmd = 'cmake .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(build_dir, ' '.join(extra_switches))
 	cmake_generator = get_generator(compiler, cpu)
 	if not cmake_generator:
 		print('Using default generator')
@@ -281,11 +275,11 @@ def do_generate_solution(cmake_exe, build_dir, cmake_script_dir, test_data_dir, 
 	if result != 0:
 		sys.exit(result)
 
-def do_build(cmake_exe, args):
+def do_build(args):
 	config = args.config
 
 	print('Building ...')
-	cmake_cmd = '"{}" --build .'.format(cmake_exe)
+	cmake_cmd = 'cmake --build .'
 	if platform.system() == 'Windows':
 		if args.compiler == 'android':
 			cmake_cmd += ' --config {}'.format(config)
@@ -331,8 +325,8 @@ def do_tests_android(build_dir, args):
 	# Restore working directory
 	os.chdir(build_dir)
 
-def do_tests_cmake(ctest_exe, args):
-	ctest_cmd = '"{}" --output-on-failure --parallel {}'.format(ctest_exe, args.num_threads)
+def do_tests_cmake(args):
+	ctest_cmd = 'ctest --output-on-failure --parallel {}'.format(args.num_threads)
 
 	if platform.system() == 'Windows' or platform.system() == 'Darwin':
 		ctest_cmd += ' -C {}'.format(args.config)
@@ -343,13 +337,13 @@ def do_tests_cmake(ctest_exe, args):
 	if result != 0:
 		sys.exit(result)
 
-def do_tests(build_dir, ctest_exe, args):
+def do_tests(build_dir, args):
 	print('Running unit tests ...')
 
 	if args.compiler == 'android':
 		do_tests_android(build_dir, args)
 	else:
-		do_tests_cmake(ctest_exe, args)
+		do_tests_cmake(args)
 
 def format_elapsed_time(elapsed_time):
 	hours, rem = divmod(elapsed_time, 3600)
@@ -557,7 +551,7 @@ def do_regression_tests_android(build_dir, args):
 	# Restore working directory
 	os.chdir(build_dir)
 
-def do_regression_tests_cmake(ctest_exe, test_data_dir, args):
+def do_regression_tests_cmake(test_data_dir, args):
 	if sys.version_info < (3, 4):
 		print('Python 3.4 or higher needed to run regression tests')
 		sys.exit(1)
@@ -675,25 +669,16 @@ def do_regression_tests_cmake(ctest_exe, test_data_dir, args):
 		if regression_testing_failed:
 			sys.exit(1)
 
-def do_regression_tests(build_dir, ctest_exe, test_data_dir, args):
+def do_regression_tests(build_dir, test_data_dir, args):
 	print('Running regression tests ...')
 
 	if args.compiler == 'android':
 		do_regression_tests_android(build_dir, args)
 	else:
-		do_regression_tests_cmake(ctest_exe, test_data_dir, args)
+		do_regression_tests_cmake(test_data_dir, args)
 
 if __name__ == "__main__":
 	args = parse_argv()
-
-	cmake_exe, ctest_exe = get_cmake_exes()
-
-	# Set the ACL_CMAKE_HOME environment variable to point to CMake
-	# otherwise we assume it is already in the user PATH
-	if 'ACL_CMAKE_HOME' in os.environ:
-		cmake_home = os.environ['ACL_CMAKE_HOME']
-		cmake_exe = os.path.join(cmake_home, 'bin', cmake_exe)
-		ctest_exe = os.path.join(cmake_home, 'bin', ctest_exe)
 
 	build_dir = os.path.join(os.getcwd(), 'build')
 	test_data_dir = os.path.join(os.getcwd(), 'test_data')
@@ -717,15 +702,15 @@ if __name__ == "__main__":
 	regression_data_dir = do_prepare_regression_test_data(test_data_dir, args)
 	decomp_data_dir = do_prepare_decompression_test_data(test_data_dir, args)
 
-	do_generate_solution(cmake_exe, build_dir, cmake_script_dir, regression_data_dir, decomp_data_dir, args)
+	do_generate_solution(build_dir, cmake_script_dir, regression_data_dir, decomp_data_dir, args)
 
 	if args.build:
-		do_build(cmake_exe, args)
+		do_build(args)
 
 	if args.unit_test:
-		do_tests(build_dir, ctest_exe, args)
+		do_tests(build_dir, args)
 
 	if args.regression_test and not args.compiler == 'ios':
-		do_regression_tests(build_dir, ctest_exe, test_data_dir, args)
+		do_regression_tests(build_dir, test_data_dir, args)
 
 	sys.exit(0)
