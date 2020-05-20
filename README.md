@@ -51,6 +51,7 @@ Much thought was put into designing the library for it to be as flexible and pow
 *  OS X (Xcode 11.2) x64
 *  Android (NDK 21) ARMv7-A and ARM64
 *  iOS (Xcode 8.3, 9.4, 10.3, 11.2) ARM64
+*  Emscripten (1.39.11) WASM
 
 The above supported platform list is only what is tested every release but if it compiles, it should run just fine.
 
