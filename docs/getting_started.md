@@ -38,6 +38,10 @@ In order to run these manually:
 
 Note that *iOS* builds have never been tested on an emulator.
 
+### Emscripten
+
+Emscripten support currently only has been tested on OS X and Linux. To use it, make sure to install a recent version of Emscripten SDK 1.39.11+.
+
 ## Commit message format
 
 This library uses the [angular.js message format](https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#commits) and it is enforced with commit linting through every pull request.
