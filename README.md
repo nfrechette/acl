@@ -1,6 +1,7 @@
 [![CLA assistant](https://cla-assistant.io/readme/badge/nfrechette/acl)](https://cla-assistant.io/nfrechette/acl)
 [![Build status](https://ci.appveyor.com/api/projects/status/8h1jwmhumqh9ie3h/branch/develop?svg=true)](https://ci.appveyor.com/project/nfrechette/acl)
 [![Build Status](https://travis-ci.org/nfrechette/acl.svg?branch=develop)](https://travis-ci.org/nfrechette/acl)
+[![Build status](https://github.com/nfrechette/acl/workflows/build/badge.svg)](https://github.com/nfrechette/acl/actions)
 [![Sonar Status](https://sonarcloud.io/api/project_badges/measure?project=nfrechette_acl&metric=alert_status)](https://sonarcloud.io/dashboard?id=nfrechette_acl)
 [![GitHub release](https://img.shields.io/github/release/nfrechette/acl.svg)](https://github.com/nfrechette/acl/releases)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/nfrechette/acl/master/LICENSE)
