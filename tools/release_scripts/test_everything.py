@@ -67,6 +67,9 @@ if __name__ == "__main__":
 		for config in configs:
 			# Emscripten
 			args = [python_exe, 'make.py', '-compiler', 'emscripten', '-config', config, '-build', '-unit_test', '-clean']
+			if config != 'debug':
+				# Regression testing is too slow in debug and not really necessary
+				args.append('-regression_test')
 			cmd_args.append([x for x in args if x])
 
 	root_dir = os.path.join(os.getcwd(), '../..')
