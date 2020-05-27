@@ -1,5 +1,11 @@
 # Significant changes per release
 
+## 1.3.2
+
+*  Fix crash when compressing with an empty track array
+*  Strip unused code when stat logging isn't required
+*  Fix CompressedClip hash to be deterministic
+
 ## 1.3.1
 
 *  Fix bug with scalar track decompression where garbage could be returned
