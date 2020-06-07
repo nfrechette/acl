@@ -27,7 +27,7 @@ def parse_argv():
 	actions.add_argument('-regression_test', action='store_true')
 
 	target = parser.add_argument_group(title='Target')
-	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2019-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
+	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2019-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
 	target.add_argument('-config', choices=['Debug', 'Release'], type=str.capitalize)
 	target.add_argument('-cpu', choices=['x86', 'x64', 'armv7', 'arm64', 'wasm'], help='Defaults to the host system\'s architecture')
 
@@ -217,6 +217,9 @@ def set_compiler_env(compiler, args):
 		elif compiler == 'clang9':
 			os.environ['CC'] = 'clang-9'
 			os.environ['CXX'] = 'clang++-9'
+		elif compiler == 'clang10':
+			os.environ['CC'] = 'clang-10'
+			os.environ['CXX'] = 'clang++-10'
 		elif compiler == 'gcc5':
 			os.environ['CC'] = 'gcc-5'
 			os.environ['CXX'] = 'g++-5'

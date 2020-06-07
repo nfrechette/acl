@@ -47,7 +47,7 @@ Much thought was put into designing the library for it to be as flexible and pow
 *  Windows (VS2017, VS2019) x86, x64, and ARM64*
 *  Windows VS2019 with clang9 x86 and x64
 *  Linux (gcc5, gcc6, gcc7, gcc8, gcc9) x86 and x64
-*  Linux (clang4, clang5, clang6, clang7, clang8, clang9) x86 and x64
+*  Linux (clang4, clang5, clang6, clang7, clang8, clang9, clang10) x86 and x64
 *  OS X (Xcode 8.3, 9.4, 10.3) x86 and x64
 *  OS X (Xcode 11.2) x64
 *  Android (NDK 21) ARMv7-A and ARM64
