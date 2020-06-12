@@ -162,6 +162,13 @@ namespace acl
 		return memory_impl::safe_int_to_ptr_cast_impl<DestPtrType, SrcType>::cast(input);
 	}
 
+#if defined(ACL_COMPILER_GCC)
+	// GCC sometimes complains about comparisons being always true due to partial template
+	// evaluation. Disable that warning since we know it is safe.
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
+
 	namespace memory_impl
 	{
 		template<typename Type, bool is_enum = true>
@@ -213,6 +220,10 @@ namespace acl
 
 		return static_cast<DstType>(input);
 	}
+
+#if defined(ACL_COMPILER_GCC)
+	#pragma GCC diagnostic pop
+#endif
 
 	//////////////////////////////////////////////////////////////////////////
 	// Endian and raw memory support
