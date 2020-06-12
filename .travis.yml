@@ -1,5 +1,5 @@
 os: linux
-dist: xenial
+dist: bionic
 
 language: cpp
 
@@ -22,6 +22,7 @@ jobs:
 
     # Linux clang4
     - env: COMPILER=clang4 TOOLCHAIN=clang PACKAGES="clang-4.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+      dist: xenial
 
     # Linux clang5
     - env: COMPILER=clang5 TOOLCHAIN=clang SONARCLOUD=1 PACKAGES="clang-5.0 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
@@ -67,12 +68,12 @@ jobs:
 before_install:
     - if [[ "$TOOLCHAIN" == "clang" ]]; then curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add - ; fi
     - if [[ "$COMPILER" == "clang4" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
-    - if [[ "$COMPILER" == "clang5" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-5.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
-    - if [[ "$COMPILER" == "clang6" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
-    - if [[ "$COMPILER" == "clang7" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
-    - if [[ "$COMPILER" == "clang8" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
-    - if [[ "$COMPILER" == "clang9" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
-    - if [[ "$COMPILER" == "clang10" ]]; then echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang5" ]]; then echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-5.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang6" ]]; then echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-6.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang7" ]]; then echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-7 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang8" ]]; then echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang9" ]]; then echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-9 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
+    - if [[ "$COMPILER" == "clang10" ]]; then echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main" | sudo tee -a /etc/apt/sources.list > /dev/null ; fi
     - 'if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test";
       sudo -E apt-get -yq update;
