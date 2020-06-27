@@ -236,9 +236,9 @@ namespace acl
 
 				ACL_ASSERT(bone.bone_chain == nullptr, "Bone chain should be calculated internally");
 				ACL_ASSERT(is_root || bone.parent_index < bone_index, "Bones must be sorted parent first");
-				ACL_ASSERT(rtm::quat_is_finite(bone.bind_transform.rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", rtm::quat_get_x(bone.bind_transform.rotation), rtm::quat_get_y(bone.bind_transform.rotation), rtm::quat_get_z(bone.bind_transform.rotation), rtm::quat_get_w(bone.bind_transform.rotation));
-				ACL_ASSERT(rtm::quat_is_normalized(bone.bind_transform.rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", rtm::quat_get_x(bone.bind_transform.rotation), rtm::quat_get_y(bone.bind_transform.rotation), rtm::quat_get_z(bone.bind_transform.rotation), rtm::quat_get_w(bone.bind_transform.rotation));
-				ACL_ASSERT(rtm::vector_is_finite3(bone.bind_transform.translation), "Bind translation is invalid: [%f, %f, %f]", rtm::vector_get_x(bone.bind_transform.translation), rtm::vector_get_y(bone.bind_transform.translation), rtm::vector_get_z(bone.bind_transform.translation));
+				ACL_ASSERT(rtm::quat_is_finite(bone.bind_transform.rotation), "Bind rotation is invalid: [%f, %f, %f, %f]", (float)rtm::quat_get_x(bone.bind_transform.rotation), (float)rtm::quat_get_y(bone.bind_transform.rotation), (float)rtm::quat_get_z(bone.bind_transform.rotation), (float)rtm::quat_get_w(bone.bind_transform.rotation));
+				ACL_ASSERT(rtm::quat_is_normalized(bone.bind_transform.rotation), "Bind rotation isn't normalized: [%f, %f, %f, %f]", (float)rtm::quat_get_x(bone.bind_transform.rotation), (float)rtm::quat_get_y(bone.bind_transform.rotation), (float)rtm::quat_get_z(bone.bind_transform.rotation), (float)rtm::quat_get_w(bone.bind_transform.rotation));
+				ACL_ASSERT(rtm::vector_is_finite3(bone.bind_transform.translation), "Bind translation is invalid: [%f, %f, %f]", (float)rtm::vector_get_x(bone.bind_transform.translation), (float)rtm::vector_get_y(bone.bind_transform.translation), (float)rtm::vector_get_z(bone.bind_transform.translation));
 
 				// If we have a parent, mark it as not being a leaf bone (it has at least one child)
 				if (!is_root)

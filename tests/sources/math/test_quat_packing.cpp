@@ -45,40 +45,40 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 		UnalignedBuffer tmp0;
 		pack_quat_128(quat0, &tmp0.buffer[0]);
 		quatf quat1 = unpack_quat_128(&tmp0.buffer[0]);
-		CHECK(quat_get_x(quat0) == quat_get_x(quat1));
-		CHECK(quat_get_y(quat0) == quat_get_y(quat1));
-		CHECK(quat_get_z(quat0) == quat_get_z(quat1));
-		CHECK(quat_get_w(quat0) == quat_get_w(quat1));
+		CHECK((float)quat_get_x(quat0) == (float)quat_get_x(quat1));
+		CHECK((float)quat_get_y(quat0) == (float)quat_get_y(quat1));
+		CHECK((float)quat_get_z(quat0) == (float)quat_get_z(quat1));
+		CHECK((float)quat_get_w(quat0) == (float)quat_get_w(quat1));
 	}
 
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_96(quat0, &tmp0.buffer[0]);
 		quatf quat1 = unpack_quat_96_unsafe(&tmp0.buffer[0]);
-		CHECK(quat_get_x(quat0) == quat_get_x(quat1));
-		CHECK(quat_get_y(quat0) == quat_get_y(quat1));
-		CHECK(quat_get_z(quat0) == quat_get_z(quat1));
-		CHECK(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-4F));
+		CHECK((float)quat_get_x(quat0) == (float)quat_get_x(quat1));
+		CHECK((float)quat_get_y(quat0) == (float)quat_get_y(quat1));
+		CHECK((float)quat_get_z(quat0) == (float)quat_get_z(quat1));
+		CHECK(scalar_near_equal((float)quat_get_w(quat0), (float)quat_get_w(quat1), 1.0E-4F));
 	}
 
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_48(quat0, &tmp0.buffer[0]);
 		quatf quat1 = unpack_quat_48(&tmp0.buffer[0]);
-		CHECK(scalar_near_equal(quat_get_x(quat0), quat_get_x(quat1), 1.0E-4F));
-		CHECK(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-4F));
-		CHECK(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-4F));
-		CHECK(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-4F));
+		CHECK(scalar_near_equal((float)quat_get_x(quat0), (float)quat_get_x(quat1), 1.0E-4F));
+		CHECK(scalar_near_equal((float)quat_get_y(quat0), (float)quat_get_y(quat1), 1.0E-4F));
+		CHECK(scalar_near_equal((float)quat_get_z(quat0), (float)quat_get_z(quat1), 1.0E-4F));
+		CHECK(scalar_near_equal((float)quat_get_w(quat0), (float)quat_get_w(quat1), 1.0E-4F));
 	}
 
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_32(quat0, &tmp0.buffer[0]);
 		quatf quat1 = unpack_quat_32(&tmp0.buffer[0]);
-		CHECK(scalar_near_equal(quat_get_x(quat0), quat_get_x(quat1), 1.0E-3F));
-		CHECK(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-3F));
-		CHECK(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-3F));
-		CHECK(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-3F));
+		CHECK(scalar_near_equal((float)quat_get_x(quat0), (float)quat_get_x(quat1), 1.0E-3F));
+		CHECK(scalar_near_equal((float)quat_get_y(quat0), (float)quat_get_y(quat1), 1.0E-3F));
+		CHECK(scalar_near_equal((float)quat_get_z(quat0), (float)quat_get_z(quat1), 1.0E-3F));
+		CHECK(scalar_near_equal((float)quat_get_w(quat0), (float)quat_get_w(quat1), 1.0E-3F));
 	}
 
 	CHECK(get_packed_rotation_size(rotation_format8::quatf_full) == 16);

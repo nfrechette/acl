@@ -49,6 +49,13 @@
 // 0 = no debug info, 1 = basic info, 2 = verbose
 #define ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION		0
 
+// 0 = no profiling, 1 = we perform quantization 10 times in a row for every segment
+#define ACL_IMPL_PROFILE_MATH						0
+
+#if ACL_IMPL_PROFILE_MATH && defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
@@ -660,7 +667,7 @@ namespace acl
 				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
 
 				max_error = rtm::scalar_max(max_error, error);
-				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_is_greater_equal(error, error_threshold))
+				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error, error_threshold))
 					break;
 			}
 
@@ -744,7 +751,7 @@ namespace acl
 				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
 
 				max_error = rtm::scalar_max(max_error, error);
-				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_is_greater_equal(error, error_threshold))
+				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error, error_threshold))
 					break;
 			}
 
@@ -1461,6 +1468,28 @@ namespace acl
 				printf("Quantizing segment %u...\n", segment.segment_index);
 #endif
 
+#if ACL_IMPL_PROFILE_MATH
+				{
+					ScopeProfiler timer;
+
+					for (int32_t i = 0; i < 10; ++i)
+					{
+						context.set_segment(segment);
+
+						if (is_any_variable)
+							find_optimal_bit_rates(context);
+					}
+
+					timer.stop();
+
+#if defined(__ANDROID__)
+					__android_log_print(ANDROID_LOG_INFO, "acl", "Quantization optimization for segment %u took: %.4f ms", segment.segment_index, timer.get_elapsed_milliseconds());
+#else
+					printf("Quantization optimization for segment %u took: %.4f ms\n", segment.segment_index, timer.get_elapsed_milliseconds());
+#endif
+				}
+#endif
+
 				context.set_segment(segment);
 
 				if (is_any_variable)
@@ -1485,7 +1514,7 @@ namespace acl
 
 				if (context.needs_conversion)
 					transform_cache_size += context.metric_transform_size * context.num_bones;	// local_transforms_converted
-				
+
 				if (context.has_additive_base)
 				{
 					transform_cache_size += sizeof(rtm::qvvf) * context.num_bones;	// additive_local_pose

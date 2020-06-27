@@ -37,7 +37,6 @@
 #include <acl/io/clip_reader.h>
 #include <acl/io/clip_writer.h>
 
-#include <rtm/angled.h>
 #include <rtm/qvvd.h>
 #include <rtm/scalarf.h>
 
@@ -204,7 +203,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	animated_bones[2].scale_track.set_sample(3, rtm::vector_set(4.3, 2.8, 3.4));
 
 	CompressionSettings settings;
-	settings.constant_rotation_threshold_angle = rtm::radians(32.23F);
+	settings.constant_rotation_threshold_angle = 32.23F;
 	settings.constant_scale_threshold = 1.123F;
 	settings.constant_translation_threshold = 0.124F;
 	settings.error_threshold = 0.23F;

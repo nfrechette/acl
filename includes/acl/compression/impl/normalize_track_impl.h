@@ -51,7 +51,7 @@ namespace acl
 
 			const vector4f range_min = range.get_min();
 			const vector4f range_extent = range.get_extent();
-			const mask4i is_range_zero_mask = vector_less_than(range_extent, rtm::vector_set(0.000000001F));
+			const mask4f is_range_zero_mask = vector_less_than(range_extent, rtm::vector_set(0.000000001F));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -66,7 +66,7 @@ namespace acl
 				normalized_sample = vector_min(normalized_sample, one);
 				normalized_sample = vector_select(is_range_zero_mask, zero, normalized_sample);
 
-				ACL_ASSERT(vector_all_greater_equal(normalized_sample, zero) && vector_all_less_equal(normalized_sample, one), "Invalid normalized value. 0.0 <= [%f, %f, %f, %f] <= 1.0", vector_get_x(normalized_sample), vector_get_y(normalized_sample), vector_get_z(normalized_sample), vector_get_w(normalized_sample));
+				ACL_ASSERT(vector_all_greater_equal(normalized_sample, zero) && vector_all_less_equal(normalized_sample, one), "Invalid normalized value. 0.0 <= [%f, %f, %f, %f] <= 1.0", (float)vector_get_x(normalized_sample), (float)vector_get_y(normalized_sample), (float)vector_get_z(normalized_sample), (float)vector_get_w(normalized_sample));
 
 				typed_track[sample_index] = normalized_sample;
 			}
