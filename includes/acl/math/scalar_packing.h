@@ -41,7 +41,7 @@ namespace acl
 		ACL_ASSERT(num_bits < 31, "Attempting to pack on too many bits");
 		ACL_ASSERT(input >= 0.0F && input <= 1.0F, "Expected normalized unsigned input value: %f", input);
 		const uint32_t max_value = (1 << num_bits) - 1;
-		return static_cast<uint32_t>(rtm::scalar_symmetric_round(input * rtm::scalar_safe_to_float(max_value)));
+		return static_cast<uint32_t>(rtm::scalar_round_symmetric(input * rtm::scalar_safe_to_float(max_value)));
 	}
 
 	inline float unpack_scalar_unsigned(uint32_t input, uint32_t num_bits)
@@ -77,7 +77,7 @@ namespace acl
 
 		const uint32_t x32 = uint32_t(vector_u64);
 
-		return _mm_castsi128_ps(_mm_set1_epi32(x32));
+		return rtm::scalarf{ _mm_castsi128_ps(_mm_set1_epi32(x32)) };
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
@@ -143,7 +143,7 @@ namespace acl
 		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
 		const __m128 value = _mm_cvtsi32_ss(inv_max_value, x32 & mask);
-		return _mm_mul_ss(value, inv_max_value);
+		return rtm::scalarf{ _mm_mul_ss(value, inv_max_value) };
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
 		const uint32_t mask = k_packed_constants[num_bits].mask;

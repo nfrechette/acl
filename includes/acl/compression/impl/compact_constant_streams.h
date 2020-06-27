@@ -40,7 +40,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline bool is_rotation_track_constant(const RotationTrackStream& rotations, rtm::anglef threshold_angle)
+		inline bool is_rotation_track_constant(const RotationTrackStream& rotations, float threshold_angle)
 		{
 			// Calculating the average rotation and comparing every rotation in the track to it
 			// to determine if we are within the threshold seems overkill. We can't use the min/max for the range
@@ -78,7 +78,7 @@ namespace acl
 			return true;
 		}
 
-		inline void compact_constant_streams(IAllocator& allocator, ClipContext& clip_context, rtm::anglef rotation_threshold_angle, float translation_threshold, float scale_threshold)
+		inline void compact_constant_streams(IAllocator& allocator, ClipContext& clip_context, float rotation_threshold_angle, float translation_threshold, float scale_threshold)
 		{
 			ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 			SegmentContext& segment = clip_context.segments[0];

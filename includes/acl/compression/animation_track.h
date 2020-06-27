@@ -185,8 +185,8 @@ namespace acl
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");
 			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
-			ACL_ASSERT(rtm::quat_is_finite(rotation), "Invalid rotation: [%f, %f, %f, %f]", rtm::quat_get_x(rotation), rtm::quat_get_y(rotation), rtm::quat_get_z(rotation), rtm::quat_get_w(rotation));
-			ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation not normalized: [%f, %f, %f, %f]", rtm::quat_get_x(rotation), rtm::quat_get_y(rotation), rtm::quat_get_z(rotation), rtm::quat_get_w(rotation));
+			ACL_ASSERT(rtm::quat_is_finite(rotation), "Invalid rotation: [%f, %f, %f, %f]", (float)rtm::quat_get_x(rotation), (float)rtm::quat_get_y(rotation), (float)rtm::quat_get_z(rotation), (float)rtm::quat_get_w(rotation));
+			ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation not normalized: [%f, %f, %f, %f]", (float)rtm::quat_get_x(rotation), (float)rtm::quat_get_y(rotation), (float)rtm::quat_get_z(rotation), (float)rtm::quat_get_w(rotation));
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ASSERT(sample_size == 4, "Invalid sample size. %u != 4", sample_size);
@@ -250,7 +250,7 @@ namespace acl
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");
 			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
-			ACL_ASSERT(rtm::vector_is_finite3(translation), "Invalid translation: [%f, %f, %f]", rtm::vector_get_x(translation), rtm::vector_get_y(translation), rtm::vector_get_z(translation));
+			ACL_ASSERT(rtm::vector_is_finite3(translation), "Invalid translation: [%f, %f, %f]", (float)rtm::vector_get_x(translation), (float)rtm::vector_get_y(translation), (float)rtm::vector_get_z(translation));
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ASSERT(sample_size == 3, "Invalid sample size. %u != 3", sample_size);
@@ -316,7 +316,7 @@ namespace acl
 		{
 			ACL_ASSERT(is_initialized(), "Track is not initialized");
 			ACL_ASSERT(sample_index < m_num_samples, "Invalid sample index. %u >= %u", sample_index, m_num_samples);
-			ACL_ASSERT(rtm::vector_is_finite3(scale), "Invalid scale: [%f, %f, %f]", rtm::vector_get_x(scale), rtm::vector_get_y(scale), rtm::vector_get_z(scale));
+			ACL_ASSERT(rtm::vector_is_finite3(scale), "Invalid scale: [%f, %f, %f]", (float)rtm::vector_get_x(scale), (float)rtm::vector_get_y(scale), (float)rtm::vector_get_z(scale));
 
 			const uint32_t sample_size = get_animation_track_sample_size(m_type);
 			ACL_ASSERT(sample_size == 3, "Invalid sample size. %u != 3", sample_size);

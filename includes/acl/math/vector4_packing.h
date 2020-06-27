@@ -631,12 +631,12 @@ namespace acl
 
 	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_u48(rtm::vector4f_arg0 input)
 	{
-		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal3(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", rtm::vector_get_x(input), rtm::vector_get_y(input), rtm::vector_get_z(input));
+		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal3(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(input), (float)rtm::vector_get_y(input), (float)rtm::vector_get_z(input));
 
 		const float max_value = float((1 << 16) - 1);
 		const float inv_max_value = 1.0F / max_value;
 
-		const rtm::vector4f packed = rtm::vector_symmetric_round(rtm::vector_mul(input, max_value));
+		const rtm::vector4f packed = rtm::vector_round_symmetric(rtm::vector_mul(input, max_value));
 		const rtm::vector4f decayed = rtm::vector_mul(packed, inv_max_value);
 		return decayed;
 	}
@@ -646,12 +646,12 @@ namespace acl
 		const rtm::vector4f half = rtm::vector_set(0.5F);
 		const rtm::vector4f unsigned_input = rtm::vector_mul_add(input, half, half);
 
-		ACL_ASSERT(rtm::vector_all_greater_equal3(unsigned_input, rtm::vector_zero()) && rtm::vector_all_less_equal3(unsigned_input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", rtm::vector_get_x(unsigned_input), rtm::vector_get_y(unsigned_input), rtm::vector_get_z(unsigned_input));
+		ACL_ASSERT(rtm::vector_all_greater_equal3(unsigned_input, rtm::vector_zero()) && rtm::vector_all_less_equal3(unsigned_input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(unsigned_input), (float)rtm::vector_get_y(unsigned_input), (float)rtm::vector_get_z(unsigned_input));
 
 		const float max_value = rtm::scalar_safe_to_float((1 << 16) - 1);
 		const float inv_max_value = 1.0F / max_value;
 
-		const rtm::vector4f packed = rtm::vector_symmetric_round(rtm::vector_mul(unsigned_input, max_value));
+		const rtm::vector4f packed = rtm::vector_round_symmetric(rtm::vector_mul(unsigned_input, max_value));
 		const rtm::vector4f decayed = rtm::vector_mul(packed, inv_max_value);
 		return rtm::vector_neg_mul_sub(decayed, -2.0F, rtm::vector_set(-1.0F));
 	}
@@ -675,7 +675,7 @@ namespace acl
 	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_u32(rtm::vector4f_arg0 input, uint32_t XBits, uint32_t YBits, uint32_t ZBits)
 	{
 		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
-		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", rtm::vector_get_x(input), rtm::vector_get_y(input), rtm::vector_get_z(input));
+		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(input), (float)rtm::vector_get_y(input), (float)rtm::vector_get_z(input));
 
 		const float max_value_x = float((1 << XBits) - 1);
 		const float max_value_y = float((1 << YBits) - 1);
@@ -683,7 +683,7 @@ namespace acl
 		const rtm::vector4f max_value = rtm::vector_set(max_value_x, max_value_y, max_value_z, max_value_z);
 		const rtm::vector4f inv_max_value = rtm::vector_reciprocal(max_value);
 
-		const rtm::vector4f packed = rtm::vector_symmetric_round(rtm::vector_mul(input, max_value));
+		const rtm::vector4f packed = rtm::vector_round_symmetric(rtm::vector_mul(input, max_value));
 		const rtm::vector4f decayed = rtm::vector_mul(packed, inv_max_value);
 		return decayed;
 	}
@@ -694,7 +694,7 @@ namespace acl
 		const rtm::vector4f unsigned_input = rtm::vector_mul_add(input, half, half);
 
 		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
-		ACL_ASSERT(rtm::vector_all_greater_equal3(unsigned_input, rtm::vector_zero()) && rtm::vector_all_less_equal(unsigned_input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", rtm::vector_get_x(unsigned_input), rtm::vector_get_y(unsigned_input), rtm::vector_get_z(unsigned_input));
+		ACL_ASSERT(rtm::vector_all_greater_equal3(unsigned_input, rtm::vector_zero()) && rtm::vector_all_less_equal(unsigned_input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(unsigned_input), (float)rtm::vector_get_y(unsigned_input), (float)rtm::vector_get_z(unsigned_input));
 
 		const float max_value_x = float((1 << XBits) - 1);
 		const float max_value_y = float((1 << YBits) - 1);
@@ -702,7 +702,7 @@ namespace acl
 		const rtm::vector4f max_value = rtm::vector_set(max_value_x, max_value_y, max_value_z, max_value_z);
 		const rtm::vector4f inv_max_value = rtm::vector_reciprocal(max_value);
 
-		const rtm::vector4f packed = rtm::vector_symmetric_round(rtm::vector_mul(unsigned_input, max_value));
+		const rtm::vector4f packed = rtm::vector_round_symmetric(rtm::vector_mul(unsigned_input, max_value));
 		const rtm::vector4f decayed = rtm::vector_mul(packed, inv_max_value);
 		return rtm::vector_neg_mul_sub(decayed, -2.0F, rtm::vector_set(-1.0F));
 	}
@@ -826,12 +826,12 @@ namespace acl
 
 	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_uXX(rtm::vector4f_arg0 input, uint32_t num_bits)
 	{
-		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal3(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", rtm::vector_get_x(input), rtm::vector_get_y(input), rtm::vector_get_z(input));
+		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal3(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(input), (float)rtm::vector_get_y(input), (float)rtm::vector_get_z(input));
 
 		const float max_value = rtm::scalar_safe_to_float((1 << num_bits) - 1);
 		const float inv_max_value = 1.0F / max_value;
 
-		const rtm::vector4f packed = rtm::vector_symmetric_round(rtm::vector_mul(input, max_value));
+		const rtm::vector4f packed = rtm::vector_round_symmetric(rtm::vector_mul(input, max_value));
 		const rtm::vector4f decayed = rtm::vector_mul(packed, inv_max_value);
 		return decayed;
 	}
@@ -841,12 +841,12 @@ namespace acl
 		const rtm::vector4f half = rtm::vector_set(0.5F);
 		const rtm::vector4f unsigned_input = rtm::vector_mul_add(input, half, half);
 
-		ACL_ASSERT(rtm::vector_all_greater_equal3(unsigned_input, rtm::vector_zero()) && rtm::vector_all_less_equal3(unsigned_input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", rtm::vector_get_x(unsigned_input), rtm::vector_get_y(unsigned_input), rtm::vector_get_z(unsigned_input));
+		ACL_ASSERT(rtm::vector_all_greater_equal3(unsigned_input, rtm::vector_zero()) && rtm::vector_all_less_equal3(unsigned_input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(unsigned_input), (float)rtm::vector_get_y(unsigned_input), (float)rtm::vector_get_z(unsigned_input));
 
 		const float max_value = rtm::scalar_safe_to_float((1 << num_bits) - 1);
 		const float inv_max_value = 1.0F / max_value;
 
-		const rtm::vector4f packed = rtm::vector_symmetric_round(rtm::vector_mul(unsigned_input, max_value));
+		const rtm::vector4f packed = rtm::vector_round_symmetric(rtm::vector_mul(unsigned_input, max_value));
 		const rtm::vector4f decayed = rtm::vector_mul(packed, inv_max_value);
 		return rtm::vector_neg_mul_sub(decayed, -2.0F, rtm::vector_set(-1.0F));
 	}

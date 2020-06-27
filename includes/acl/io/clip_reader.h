@@ -364,7 +364,7 @@ namespace acl
 					goto parsing_error;
 			}
 
-			m_parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, double(default_settings.constant_rotation_threshold_angle.as_radians()));
+			m_parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, double(default_settings.constant_rotation_threshold_angle));
 			m_parser.try_read("constant_translation_threshold", constant_translation_threshold, double(default_settings.constant_translation_threshold));
 			m_parser.try_read("constant_scale_threshold", constant_scale_threshold, double(default_settings.constant_scale_threshold));
 			m_parser.try_read("error_threshold", error_threshold, double(default_settings.error_threshold));
@@ -394,7 +394,7 @@ namespace acl
 				out_settings->segmenting.ideal_num_samples = uint16_t(segmenting_ideal_num_samples);
 				out_settings->segmenting.max_num_samples = uint16_t(segmenting_max_num_samples);
 
-				out_settings->constant_rotation_threshold_angle = rtm::radians(float(constant_rotation_threshold_angle));
+				out_settings->constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
 				out_settings->constant_translation_threshold = float(constant_translation_threshold);
 				out_settings->constant_scale_threshold = float(constant_scale_threshold);
 				out_settings->error_threshold = float(error_threshold);

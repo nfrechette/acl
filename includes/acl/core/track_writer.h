@@ -44,7 +44,7 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a value for a specified track index.
-		void write_float1(uint32_t track_index, rtm::scalarf_arg0 value)
+		void RTM_SIMD_CALL write_float1(uint32_t track_index, rtm::scalarf_arg0 value)
 		{
 			(void)track_index;
 			(void)value;
@@ -52,7 +52,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a value for a specified track index.
-		void write_float2(uint32_t track_index, rtm::vector4f_arg0 value)
+		void RTM_SIMD_CALL write_float2(uint32_t track_index, rtm::vector4f_arg0 value)
 		{
 			(void)track_index;
 			(void)value;
@@ -60,7 +60,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a value for a specified track index.
-		void write_float3(uint32_t track_index, rtm::vector4f_arg0 value)
+		void RTM_SIMD_CALL write_float3(uint32_t track_index, rtm::vector4f_arg0 value)
 		{
 			(void)track_index;
 			(void)value;
@@ -68,7 +68,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a value for a specified track index.
-		void write_float4(uint32_t track_index, rtm::vector4f_arg0 value)
+		void RTM_SIMD_CALL write_float4(uint32_t track_index, rtm::vector4f_arg0 value)
 		{
 			(void)track_index;
 			(void)value;
@@ -76,7 +76,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a value for a specified track index.
-		void write_vector4(uint32_t track_index, rtm::vector4f_arg0 value)
+		void RTM_SIMD_CALL write_vector4(uint32_t track_index, rtm::vector4f_arg0 value)
 		{
 			(void)track_index;
 			(void)value;

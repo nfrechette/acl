@@ -999,8 +999,8 @@ static bool read_config(IAllocator& allocator, Options& options, algorithm_type8
 	}
 
 	double constant_rotation_threshold_angle;
-	parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, default_settings.constant_rotation_threshold_angle.as_radians());
-	out_settings.constant_rotation_threshold_angle = rtm::radians(float(constant_rotation_threshold_angle));
+	parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, default_settings.constant_rotation_threshold_angle);
+	out_settings.constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
 
 	parser.try_read("constant_translation_threshold", out_settings.constant_translation_threshold, default_settings.constant_translation_threshold);
 	parser.try_read("constant_scale_threshold", out_settings.constant_scale_threshold, default_settings.constant_scale_threshold);

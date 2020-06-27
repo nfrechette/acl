@@ -114,7 +114,7 @@ namespace acl
 					segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
 				};
 
-				settings_writer["constant_rotation_threshold_angle"] = settings.constant_rotation_threshold_angle.as_radians();
+				settings_writer["constant_rotation_threshold_angle"] = settings.constant_rotation_threshold_angle;
 				settings_writer["constant_translation_threshold"] = settings.constant_translation_threshold;
 				settings_writer["constant_scale_threshold"] = settings.constant_scale_threshold;
 				settings_writer["error_threshold"] = settings.error_threshold;

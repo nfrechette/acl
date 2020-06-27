@@ -60,9 +60,9 @@ namespace acl
 		{
 			using namespace rtm;
 
-			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value));
+			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", (float)vector_get_x(value), (float)vector_get_y(value), (float)vector_get_z(value), (float)vector_get_w(value));
 
-			const vector4f packed_value = vector_symmetric_round(vector_mul(value, scales.max_value));
+			const vector4f packed_value = vector_round_symmetric(vector_mul(value, scales.max_value));
 			const vector4f decayed_value = vector_mul(packed_value, scales.inv_max_value);
 			return decayed_value;
 		}
@@ -72,9 +72,9 @@ namespace acl
 		{
 			using namespace rtm;
 
-			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value));
+			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", (float)vector_get_x(value), (float)vector_get_y(value), (float)vector_get_z(value), (float)vector_get_w(value));
 
-			return vector_symmetric_round(vector_mul(value, scales.max_value));
+			return vector_round_symmetric(vector_mul(value, scales.max_value));
 		}
 
 		inline void quantize_scalarf_track(track_list_context& context, uint32_t track_index)
@@ -93,8 +93,8 @@ namespace acl
 			const vector4f range_extent = range.get_extent();
 
 			const vector4f zero = vector_zero();
-			const mask4i all_true_mask = mask_set(true, true, true, true);
-			mask4i sample_mask = mask_set(false, false, false, false);
+			const mask4f all_true_mask = mask_set(true, true, true, true);
+			mask4f sample_mask = mask_set(false, false, false, false);
 			std::memcpy(&sample_mask, &all_true_mask, ref_element_size);
 
 			vector4f raw_sample = zero;
