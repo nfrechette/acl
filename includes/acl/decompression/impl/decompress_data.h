@@ -421,10 +421,16 @@ namespace acl
 					if (static_condition<num_key_frames == 4>::test())
 						interpolated_rotation = SamplingContextType::interpolate_rotation(rotation0, rotation1, rotation2, rotation3, decomp_context.interpolation_alpha);
 					else
-						interpolated_rotation = SamplingContextType::interpolate_rotation(rotation0, rotation1, decomp_context.interpolation_alpha);
+					{
+						const bool normalize_rotations = settings.normalize_rotations();
+						if (normalize_rotations)
+							interpolated_rotation = SamplingContextType::interpolate_rotation(rotation0, rotation1, decomp_context.interpolation_alpha);
+						else
+							interpolated_rotation = SamplingContextType::interpolate_rotation_no_normalization(rotation0, rotation1, decomp_context.interpolation_alpha);
+					}
 
 					ACL_ASSERT(rtm::quat_is_finite(interpolated_rotation), "Rotation is not valid!");
-					ACL_ASSERT(rtm::quat_is_normalized(interpolated_rotation), "Rotation is not normalized!");
+					ACL_ASSERT(rtm::quat_is_normalized(interpolated_rotation) || !settings.normalize_rotations(), "Rotation is not normalized!");
 				}
 			}
 
