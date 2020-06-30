@@ -523,6 +523,7 @@ namespace acl
 	using track_float3f			= track_typed<track_type8::float3f>;
 	using track_float4f			= track_typed<track_type8::float4f>;
 	using track_vector4f		= track_typed<track_type8::vector4f>;
+	using track_qvvf			= track_typed<track_type8::qvvf>;
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

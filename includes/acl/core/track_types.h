@@ -119,7 +119,7 @@ namespace acl
 		//quatf		= 10,
 		//quatd		= 11,
 
-		//qvvf		= 12,
+		qvvf		= 12,
 		//qvvd		= 13,
 
 		//int1i		= 14,
@@ -140,11 +140,11 @@ namespace acl
 	enum class track_category8 : uint8_t
 	{
 		scalarf		= 0,
-		//scalard	= 1,
+		scalard		= 1,
 		//scalari	= 2,
 		//scalarq	= 3,
-		//transformf = 4,
-		//transformd = 5,
+		transformf	= 4,
+		transformd	= 5,
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -171,7 +171,6 @@ namespace acl
 		float precision;
 	};
 
-#if 0	// TODO: Add support for this
 	//////////////////////////////////////////////////////////////////////////
 	// This structure describes the various settings for transform tracks.
 	// Used by: quatf, qvvf
@@ -209,9 +208,6 @@ namespace acl
 		float constant_translation_threshold;
 		float constant_scale_threshold;
 	};
-#endif
-
-	// TODO: Add transform description?
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -383,6 +379,7 @@ namespace acl
 		case track_type8::float3f:			return "float3f";
 		case track_type8::float4f:			return "float4f";
 		case track_type8::vector4f:			return "vector4f";
+		case track_type8::qvvf:				return "qvvf";
 		default:							return "<Invalid>";
 		}
 	}
@@ -400,9 +397,20 @@ namespace acl
 			"float3f",
 			"float4f",
 			"vector4f",
+
+			"float1d",
+			"float2d",
+			"float3d",
+			"float4d",
+			"vector4d",
+
+			"quatf",
+			"quatd",
+
+			"qvvf",
 		};
 
-		static_assert(get_array_size(k_track_type_names) == (size_t)track_type8::vector4f + 1, "Unexpected array size");
+		static_assert(get_array_size(k_track_type_names) == (size_t)track_type8::qvvf + 1, "Unexpected array size");
 
 		for (size_t type_index = 0; type_index < get_array_size(k_track_type_names); ++type_index)
 		{
@@ -424,17 +432,28 @@ namespace acl
 		// Entries in the same order as the enum integral value
 		static constexpr track_category8 k_track_type_to_category[]
 		{
-			track_category8::scalarf,	// float1f
-			track_category8::scalarf,	// float2f
-			track_category8::scalarf,	// float3f
-			track_category8::scalarf,	// float4f
-			track_category8::scalarf,	// vector4f
+			track_category8::scalarf,		// float1f
+			track_category8::scalarf,		// float2f
+			track_category8::scalarf,		// float3f
+			track_category8::scalarf,		// float4f
+			track_category8::scalarf,		// vector4f
+
+			track_category8::scalard,		// float1d
+			track_category8::scalard,		// float2d
+			track_category8::scalard,		// float3d
+			track_category8::scalard,		// float4d
+			track_category8::scalard,		// vector4d
+
+			track_category8::transformf,	// quatf
+			track_category8::transformd,	// quatd
+
+			track_category8::transformf,	// qvvf
 		};
 
-		static_assert(get_array_size(k_track_type_to_category) == (size_t)track_type8::vector4f + 1, "Unexpected array size");
+		static_assert(get_array_size(k_track_type_to_category) == (size_t)track_type8::qvvf + 1, "Unexpected array size");
 
-		ACL_ASSERT(type <= track_type8::vector4f, "Unexpected track type");
-		return type <= track_type8::vector4f ? k_track_type_to_category[static_cast<uint32_t>(type)] : track_category8::scalarf;
+		ACL_ASSERT(type <= track_type8::qvvf, "Unexpected track type");
+		return type <= track_type8::qvvf ? k_track_type_to_category[static_cast<uint32_t>(type)] : track_category8::scalarf;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -449,12 +468,23 @@ namespace acl
 			3,	// float3f
 			4,	// float4f
 			4,	// vector4f
+
+			1,	// float1d
+			2,	// float2d
+			3,	// float3d
+			4,	// float4d
+			4,	// vector4d
+
+			4,	// quatf
+			4,	// quatd
+
+			12,	// qvvf
 		};
 
-		static_assert(get_array_size(k_track_type_to_num_elements) == (size_t)track_type8::vector4f + 1, "Unexpected array size");
+		static_assert(get_array_size(k_track_type_to_num_elements) == (size_t)track_type8::qvvf + 1, "Unexpected array size");
 
-		ACL_ASSERT(type <= track_type8::vector4f, "Unexpected track type");
-		return type <= track_type8::vector4f ? k_track_type_to_num_elements[static_cast<uint32_t>(type)] : 0;
+		ACL_ASSERT(type <= track_type8::qvvf, "Unexpected track type");
+		return type <= track_type8::qvvf ? k_track_type_to_num_elements[static_cast<uint32_t>(type)] : 0;
 	}
 }
 
