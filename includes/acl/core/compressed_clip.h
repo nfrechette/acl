@@ -159,6 +159,34 @@ namespace acl
 	static_assert(alignof(CompressedClip) == 16, "Invalid alignment for CompressedClip");
 	static_assert(sizeof(CompressedClip) == 16, "Invalid size for CompressedClip");
 
+	//////////////////////////////////////////////////////////////////////////
+	// Create a CompressedClip instance in place from a raw memory buffer.
+	// If the buffer does not contain a valid CompressedClip instance, nullptr is returned
+	// along with an optional error result.
+	//////////////////////////////////////////////////////////////////////////
+	inline const CompressedClip* make_compressed_clip(const void* buffer, ErrorResult* out_error_result = nullptr)
+	{
+		if (buffer == nullptr)
+		{
+			if (out_error_result != nullptr)
+				*out_error_result = ErrorResult("Buffer is not a valid pointer");
+
+			return nullptr;
+		}
+
+		const CompressedClip* clip = static_cast<const CompressedClip*>(buffer);
+		if (out_error_result != nullptr)
+		{
+			const ErrorResult result = clip->is_valid(false);
+			*out_error_result = result;
+
+			if (result.any())
+				return nullptr;
+		}
+
+		return clip;
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
 	// A compressed clip segment header. Each segment is built from a uniform number
 	// of samples per track. A clip is split into one or more segments.

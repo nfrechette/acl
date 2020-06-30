@@ -151,6 +151,34 @@ namespace acl
 		friend const acl_impl::tracks_header& acl_impl::get_tracks_header(const compressed_tracks& tracks);
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// Create a compressed_tracks instance in place from a raw memory buffer.
+	// If the buffer does not contain a valid compressed_tracks instance, nullptr is returned
+	// along with an optional error result.
+	//////////////////////////////////////////////////////////////////////////
+	inline const compressed_tracks* make_compressed_tracks(const void* buffer, ErrorResult* out_error_result = nullptr)
+	{
+		if (buffer == nullptr)
+		{
+			if (out_error_result != nullptr)
+				*out_error_result = ErrorResult("Buffer is not a valid pointer");
+
+			return nullptr;
+		}
+
+		const compressed_tracks* clip = static_cast<const compressed_tracks*>(buffer);
+		if (out_error_result != nullptr)
+		{
+			const ErrorResult result = clip->is_valid(false);
+			*out_error_result = result;
+
+			if (result.any())
+				return nullptr;
+		}
+
+		return clip;
+	}
+
 	namespace acl_impl
 	{
 		// Hide this implementation, it shouldn't be needed in user-space
