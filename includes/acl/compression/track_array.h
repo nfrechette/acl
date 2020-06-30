@@ -317,11 +317,12 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Create aliases for the various typed track array types.
 
-	using track_array_float1f = track_array_typed<track_type8::float1f>;
-	using track_array_float2f = track_array_typed<track_type8::float2f>;
-	using track_array_float3f = track_array_typed<track_type8::float3f>;
-	using track_array_float4f = track_array_typed<track_type8::float4f>;
-	using track_array_vector4f = track_array_typed<track_type8::vector4f>;
+	using track_array_float1f	= track_array_typed<track_type8::float1f>;
+	using track_array_float2f	= track_array_typed<track_type8::float2f>;
+	using track_array_float3f	= track_array_typed<track_type8::float3f>;
+	using track_array_float4f	= track_array_typed<track_type8::float4f>;
+	using track_array_vector4f	= track_array_typed<track_type8::vector4f>;
+	using track_array_qvvf		= track_array_typed<track_type8::qvvf>;
 
 	//////////////////////////////////////////////////////////////////////////
 
