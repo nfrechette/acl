@@ -106,6 +106,7 @@ namespace acl
 			}
 
 			// Variable bit rate tracks need range reduction
+			// Full precision tracks do not need range reduction since samples are stored raw
 			range_reduction_flags8 range_reduction = range_reduction_flags8::none;
 			if (is_rotation_format_variable(settings.rotation_format))
 				range_reduction |= range_reduction_flags8::rotations;
