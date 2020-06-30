@@ -231,9 +231,90 @@ namespace acl
 	// Note: Currently only used by scalar track compression which contain no global settings.
 	struct compression_settings
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// The compression level determines how aggressively we attempt to reduce the memory
+		// footprint. Higher levels will try more permutations and bit rates. The higher
+		// the level, the slower the compression but the smaller the memory footprint.
+		// Transform tracks only.
+		compression_level8 level;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
+		// Defaults to raw: 'quatf_full' and 'vector3f_full'
+		// Transform tracks only.
+		rotation_format8 rotation_format;
+		vector_format8 translation_format;
+		vector_format8 scale_format;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Segmenting settings, if used
+		// Transform tracks only.
+		SegmentingSettings segmenting;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The error metric to use.
+		// Defaults to 'null', this value must be set manually!
+		// Transform tracks only.
+		itransform_error_metric* error_metric;
+
 		compression_settings()
+			: level(compression_level8::low)
+			, rotation_format(rotation_format8::quatf_full)
+			, translation_format(vector_format8::vector3f_full)
+			, scale_format(vector_format8::vector3f_full)
+			, segmenting()
+			, error_metric(nullptr)
 		{}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Calculates a hash from the internal state to uniquely identify a configuration.
+		uint32_t get_hash() const
+		{
+			uint32_t hash_value = 0;
+			hash_value = hash_combine(hash_value, hash32(level));
+			hash_value = hash_combine(hash_value, hash32(rotation_format));
+			hash_value = hash_combine(hash_value, hash32(translation_format));
+			hash_value = hash_combine(hash_value, hash32(scale_format));
+
+			hash_value = hash_combine(hash_value, segmenting.get_hash());
+
+			if (error_metric != nullptr)
+				hash_value = hash_combine(hash_value, error_metric->get_hash());
+
+			return hash_value;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Checks if everything is valid and if it isn't, returns an error string.
+		ErrorResult is_valid() const
+		{
+			if (error_metric == nullptr)
+				return ErrorResult("error_metric cannot be NULL");
+
+			return segmenting.is_valid();
+		}
 	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns raw compression settings. No compression is performed and
+	// samples are all retained with full precision.
+	inline compression_settings get_raw_compression_settings_()
+	{
+		return compression_settings();
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the recommended and default compression settings. These have
+	// been tested in a wide range of scenarios and perform best overall.
+	inline compression_settings get_default_compression_settings_()
+	{
+		compression_settings settings;
+		settings.level = compression_level8::medium;
+		settings.rotation_format = rotation_format8::quatf_drop_w_variable;
+		settings.translation_format = vector_format8::vector3f_variable;
+		settings.scale_format = vector_format8::vector3f_variable;
+		return settings;
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
