@@ -149,6 +149,7 @@ namespace acl
 		//    - All tracks have the same type
 		//    - All tracks have the same number of samples
 		//    - All tracks have the same sample rate
+		//    - All tracks are valid
 		ErrorResult is_valid() const
 		{
 			const track_type8 type = get_track_type();
@@ -166,6 +167,58 @@ namespace acl
 
 				if (track_.get_sample_rate() != sample_rate)
 					return ErrorResult("Track array requires the same sample rate in every track");
+
+				const ErrorResult result = track_.is_valid();
+				if (result.any())
+					return result;
+
+				if (track_.get_category() == track_category8::transformf)
+				{
+					const track_desc_transformf& desc = track_.get_description<track_desc_transformf>();
+					if (desc.parent_index != k_invalid_track_index && desc.parent_index >= m_num_tracks)
+						return ErrorResult("Invalid parent_index. It must be 'k_invalid_track_index' or a valid track index");
+				}
+			}
+
+			// Validate output indices
+			uint32_t num_outputs = 0;
+			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			{
+				const track& track_ = m_tracks[track_index];
+				const uint32_t output_index = track_.get_output_index();
+				if (output_index != k_invalid_track_index && output_index >= m_num_tracks)
+					return ErrorResult("The output_index must be 'k_invalid_track_index' or less than the number of bones");
+
+				if (output_index != k_invalid_track_index)
+				{
+					for (uint32_t track_index2 = track_index + 1; track_index2 < m_num_tracks; ++track_index2)
+					{
+						const track& track2_ = m_tracks[track_index2];
+						const uint32_t output_index2 = track2_.get_output_index();
+						if (output_index == output_index2)
+							return ErrorResult("Duplicate output_index found");
+					}
+
+					num_outputs++;
+				}
+			}
+
+			for (uint32_t output_index = 0; output_index < num_outputs; ++output_index)
+			{
+				bool found = false;
+				for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+				{
+					const track& track_ = m_tracks[track_index];
+					const uint32_t output_index_ = track_.get_output_index();
+					if (output_index == output_index_)
+					{
+						found = true;
+						break;
+					}
+				}
+
+				if (!found)
+					return ErrorResult("Output indices are not contiguous");
 			}
 
 			return ErrorResult();

@@ -24,8 +24,11 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/impl/compiler_utils.h"
+#include "acl/core/error_result.h"
 #include "acl/core/memory_utils.h"
+#include "acl/core/impl/compiler_utils.h"
+
+#include <rtm/scalarf.h>
 
 #include <cstdint>
 #include <cstring>
@@ -169,6 +172,18 @@ namespace acl
 		// exceeding it. If the error is above the precision threshold, we will add more bits until
 		// we lower it underneath.
 		float precision;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns whether a scalar track description is valid or not.
+		// It is valid if:
+		//    - The precision is positive or zero and finite
+		ErrorResult is_valid() const
+		{
+			if (precision < 0.0F || !rtm::scalar_is_finite(precision))
+				return ErrorResult("Invalid precision");
+
+			return ErrorResult();
+		}
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -204,9 +219,55 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// TODO: Use the precision and shell distance?
-		float constant_rotation_threshold;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Threshold angle when detecting if rotation tracks are constant or default.
+		// See the rtm::quatf quat_near_identity for details about how the default threshold
+		// was chosen. You will typically NEVER need to change this, the value has been
+		// selected to be as safe as possible and is independent of game engine units.
+		// Defaults to '0.00284714461' radians
+		float constant_rotation_threshold_angle;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Threshold value to use when detecting if translation tracks are constant or default.
+		// Note that you will need to change this value if your units are not in centimeters.
+		// Defaults to '0.001' centimeters.
 		float constant_translation_threshold;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Threshold value to use when detecting if scale tracks are constant or default.
+		// There are no units for scale as such a value that was deemed safe was selected
+		// as a default.
+		// Defaults to '0.00001'
 		float constant_scale_threshold;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns whether a transform track description is valid or not.
+		// It is valid if:
+		//    - The precision is positive or zero and finite
+		//    - The shell distance is positive or zero and finite
+		//    - The constant toration threshold angle is positive or zero and finite
+		//    - The constant translation threshold is positive or zero and finite
+		//    - The constant scale threshold is positive or zero and finite
+		ErrorResult is_valid() const
+		{
+			if (precision < 0.0F || !rtm::scalar_is_finite(precision))
+				return ErrorResult("Invalid precision");
+
+			if (shell_distance < 0.0F || !rtm::scalar_is_finite(shell_distance))
+				return ErrorResult("Invalid shell_distance");
+
+			if (constant_rotation_threshold_angle < 0.0F || !rtm::scalar_is_finite(constant_rotation_threshold_angle))
+				return ErrorResult("Invalid constant_rotation_threshold_angle");
+
+			if (constant_translation_threshold < 0.0F || !rtm::scalar_is_finite(constant_translation_threshold))
+				return ErrorResult("Invalid constant_translation_threshold");
+
+			if (constant_scale_threshold < 0.0F || !rtm::scalar_is_finite(constant_scale_threshold))
+				return ErrorResult("Invalid constant_scale_threshold");
+
+			return ErrorResult();
+		}
 	};
 
 	//////////////////////////////////////////////////////////////////////////
