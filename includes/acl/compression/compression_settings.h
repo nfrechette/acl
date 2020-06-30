@@ -182,7 +182,6 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Checks if everything is valid and if it isn't, returns an error string.
-		// Returns nullptr if the settings are valid.
 		ErrorResult is_valid() const
 		{
 			if (error_metric == nullptr)
@@ -228,7 +227,6 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 	// Encapsulates all the compression settings.
-	// Note: Currently only used by scalar track compression which contain no global settings.
 	struct compression_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
