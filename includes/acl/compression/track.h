@@ -218,6 +218,31 @@ namespace acl
 			return track_;
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns whether a track is valid or not.
+		// A track is valid if:
+		//    - It is empty
+		//    - It has a positive and finite sample rate
+		//    - A valid description
+		ErrorResult is_valid() const
+		{
+			if (m_data == nullptr)
+				return ErrorResult();
+
+			if (m_num_samples == 0xFFFFFFFFU)
+				return ErrorResult("Too many samples");
+
+			if (m_sample_rate <= 0.0F || !rtm::scalar_is_finite(m_sample_rate))
+				return ErrorResult("Invalid sample rate");
+
+			switch (m_category)
+			{
+			case track_category8::scalarf:		return m_desc.scalar.is_valid();
+			case track_category8::transformf:	return m_desc.transform.is_valid();
+			default:							return ErrorResult("Invalid category");
+			}
+		}
+
 	protected:
 		//////////////////////////////////////////////////////////////////////////
 		// We prohibit copying, use get_copy() and get_ref() instead.
