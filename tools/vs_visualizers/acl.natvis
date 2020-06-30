@@ -2,36 +2,12 @@
 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-  <Type Name="acl::Vector4_32" Priority="MediumLow">
-    <DisplayString>({x}, {y}, {z}, {w})</DisplayString>
-  </Type>
-
-  <Type Name="acl::Quat_32" Priority="MediumLow">
-    <DisplayString>({x}, {y}, {z}, {w})</DisplayString>
-  </Type>
-
   <Type Name="__m128">
     <DisplayString>({m128_f32[0]}, {m128_f32[1]}, {m128_f32[2]}, {m128_f32[3]})</DisplayString>
   </Type>
 
   <Type Name="__m128i">
     <DisplayString>({m128i_u32[0]}, {m128i_u32[1]}, {m128i_u32[2]}, {m128i_u32[3]})</DisplayString>
-  </Type>
-
-  <Type Name="acl::Vector4_64" Priority="MediumLow">
-    <DisplayString>({x}, {y}, {z}, {w})</DisplayString>
-  </Type>
-
-  <Type Name="acl::Vector4_64">
-    <DisplayString>({xy.m128d_f64[0]}, {xy.m128d_f64[1]}, {zw.m128d_f64[0]}, {zw.m128d_f64[1]})</DisplayString>
-  </Type>
-
-  <Type Name="acl::Quat_64" Priority="MediumLow">
-    <DisplayString>({x}, {y}, {z}, {w})</DisplayString>
-  </Type>
-
-  <Type Name="acl::Quat_64">
-    <DisplayString>({xy.m128d_f64[0]}, {xy.m128d_f64[1]}, {zw.m128d_f64[0]}, {zw.m128d_f64[1]})</DisplayString>
   </Type>
 
   <Type Name="acl::String">
