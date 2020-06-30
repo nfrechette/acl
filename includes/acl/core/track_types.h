@@ -351,14 +351,24 @@ namespace acl
 		}
 	}
 
-	constexpr bool is_rotation_format_variable(rotation_format8 rotation_format)
+	constexpr bool is_rotation_format_variable(rotation_format8 format)
 	{
-		return rotation_format == rotation_format8::quatf_drop_w_variable;
+		return format == rotation_format8::quatf_drop_w_variable;
+	}
+
+	constexpr bool is_rotation_format_full_precision(rotation_format8 format)
+	{
+		return format == rotation_format8::quatf_full || format == rotation_format8::quatf_drop_w_full;
 	}
 
 	constexpr bool is_vector_format_variable(vector_format8 format)
 	{
 		return format == vector_format8::vector3f_variable;
+	}
+
+	constexpr bool is_vector_format_full_precision(vector_format8 format)
+	{
+		return format == vector_format8::vector3f_full;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
