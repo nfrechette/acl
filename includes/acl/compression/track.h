@@ -167,7 +167,8 @@ namespace acl
 			switch (m_category)
 			{
 			default:
-			case track_category8::scalarf:	return m_desc.scalar.output_index;
+			case track_category8::scalarf:		return m_desc.scalar.output_index;
+			case track_category8::transformf:	return m_desc.transform.output_index;
 			}
 		}
 
@@ -180,7 +181,8 @@ namespace acl
 			switch (desc_type::category)
 			{
 			default:
-			case track_category8::scalarf:	return m_desc.scalar;
+			case track_category8::scalarf:		return reinterpret_cast<desc_type&>(m_desc.scalar);
+			case track_category8::transformf:	return reinterpret_cast<desc_type&>(m_desc.transform);
 			}
 		}
 
@@ -193,7 +195,8 @@ namespace acl
 			switch (desc_type::category)
 			{
 			default:
-			case track_category8::scalarf:	return m_desc.scalar;
+			case track_category8::scalarf:		return reinterpret_cast<const desc_type&>(m_desc.scalar);
+			case track_category8::transformf:	return reinterpret_cast<const desc_type&>(m_desc.transform);
 			}
 		}
 
@@ -304,11 +307,12 @@ namespace acl
 		// This ensures every track has the same size regardless of its type.
 		union desc_union
 		{
-			track_desc_scalarf	scalar;
-			// TODO: Add other description types here
+			track_desc_scalarf		scalar;
+			track_desc_transformf	transform;
 
 			desc_union() : scalar() {}
 			explicit desc_union(const track_desc_scalarf& desc) : scalar(desc) {}
+			explicit desc_union(const track_desc_transformf& desc) : transform(desc) {}
 		};
 
 		desc_union				m_desc;				// The track description
@@ -378,7 +382,8 @@ namespace acl
 			switch (category)
 			{
 			default:
-			case track_category8::scalarf:	return m_desc.scalar;
+			case track_category8::scalarf:		return reinterpret_cast<desc_type&>(m_desc.scalar);
+			case track_category8::transformf:	return reinterpret_cast<desc_type&>(m_desc.transform);
 			}
 		}
 
@@ -389,7 +394,8 @@ namespace acl
 			switch (category)
 			{
 			default:
-			case track_category8::scalarf:	return m_desc.scalar;
+			case track_category8::scalarf:		return reinterpret_cast<const desc_type&>(m_desc.scalar);
+			case track_category8::transformf:	return reinterpret_cast<const desc_type&>(m_desc.transform);
 			}
 		}
 
