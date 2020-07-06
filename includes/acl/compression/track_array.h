@@ -392,8 +392,95 @@ namespace acl
 		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(is_valid().empty(), "Invalid track array");
 
-		for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
-			sample_track(track_index, sample_time, rounding_policy, writer);
+		const uint32_t num_samples = get_num_samples_per_track();
+		const float sample_rate = get_sample_rate();
+		const track_type8 track_type = get_track_type();
+
+		// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
+		const float duration = get_duration();
+		sample_time = rtm::scalar_clamp(sample_time, 0.0F, duration);
+
+		uint32_t key_frame0;
+		uint32_t key_frame1;
+		float interpolation_alpha;
+		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy, key_frame0, key_frame1, interpolation_alpha);
+
+		switch (track_type)
+		{
+		case track_type8::float1f:
+			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			{
+				const track_float1f& track__ = track_cast<track_float1f>(m_tracks[track_index]);
+
+				const rtm::scalarf value0 = rtm::scalar_load(&track__[key_frame0]);
+				const rtm::scalarf value1 = rtm::scalar_load(&track__[key_frame1]);
+				const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(interpolation_alpha));
+				writer.write_float1(track_index, value);
+			}
+			break;
+		case track_type8::float2f:
+			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			{
+				const track_float2f& track__ = track_cast<track_float2f>(m_tracks[track_index]);
+
+				const rtm::vector4f value0 = rtm::vector_load2(&track__[key_frame0]);
+				const rtm::vector4f value1 = rtm::vector_load2(&track__[key_frame1]);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				writer.write_float2(track_index, value);
+			}
+			break;
+		case track_type8::float3f:
+			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			{
+				const track_float3f& track__ = track_cast<track_float3f>(m_tracks[track_index]);
+
+				const rtm::vector4f value0 = rtm::vector_load3(&track__[key_frame0]);
+				const rtm::vector4f value1 = rtm::vector_load3(&track__[key_frame1]);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				writer.write_float3(track_index, value);
+			}
+			break;
+		case track_type8::float4f:
+			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			{
+				const track_float4f& track__ = track_cast<track_float4f>(m_tracks[track_index]);
+
+				const rtm::vector4f value0 = rtm::vector_load(&track__[key_frame0]);
+				const rtm::vector4f value1 = rtm::vector_load(&track__[key_frame1]);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				writer.write_float4(track_index, value);
+			}
+			break;
+		case track_type8::vector4f:
+			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			{
+				const track_vector4f& track__ = track_cast<track_vector4f>(m_tracks[track_index]);
+
+				const rtm::vector4f value0 = track__[key_frame0];
+				const rtm::vector4f value1 = track__[key_frame1];
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				writer.write_vector4(track_index, value);
+			}
+			break;
+		case track_type8::qvvf:
+			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			{
+				const track_qvvf& track__ = track_cast<track_qvvf>(m_tracks[track_index]);
+
+				const rtm::qvvf& value0 = track__[key_frame0];
+				const rtm::qvvf& value1 = track__[key_frame1];
+				const rtm::quatf rotation = rtm::quat_lerp(value0.rotation, value1.rotation, interpolation_alpha);
+				const rtm::vector4f translation = rtm::vector_lerp(value0.translation, value1.translation, interpolation_alpha);
+				const rtm::vector4f scale = rtm::vector_lerp(value0.scale, value1.scale, interpolation_alpha);
+				writer.write_rotation(track_index, rotation);
+				writer.write_translation(track_index, translation);
+				writer.write_scale(track_index, scale);
+			}
+			break;
+		default:
+			ACL_ASSERT(false, "Invalid track type");
+			break;
+		}
 	}
 
 	template<class track_writer_type>
