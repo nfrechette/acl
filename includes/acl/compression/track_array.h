@@ -465,6 +465,20 @@ namespace acl
 			writer.write_vector4(track_index, value);
 			break;
 		}
+		case track_type8::qvvf:
+		{
+			const track_qvvf& track__ = track_cast<track_qvvf>(track_);
+
+			const rtm::qvvf& value0 = track__[key_frame0];
+			const rtm::qvvf& value1 = track__[key_frame1];
+			const rtm::quatf rotation = rtm::quat_lerp(value0.rotation, value1.rotation, interpolation_alpha);
+			const rtm::vector4f translation = rtm::vector_lerp(value0.translation, value1.translation, interpolation_alpha);
+			const rtm::vector4f scale = rtm::vector_lerp(value0.scale, value1.scale, interpolation_alpha);
+			writer.write_rotation(track_index, rotation);
+			writer.write_translation(track_index, translation);
+			writer.write_scale(track_index, scale);
+			break;
+		}
 		default:
 			ACL_ASSERT(false, "Invalid track type");
 			break;
