@@ -132,6 +132,10 @@ namespace acl
 		bool is_ref() const { return m_allocator == nullptr; }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns a pointer to the allocator instance or nullptr if there is none present.
+		IAllocator* get_allocator() const { return m_allocator; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of samples contained within the track.
 		uint32_t get_num_samples() const { return m_num_samples; }
 

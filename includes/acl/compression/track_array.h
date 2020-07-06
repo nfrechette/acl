@@ -96,6 +96,10 @@ namespace acl
 		}
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns a pointer to the allocator instance or nullptr if there is none present.
+		IAllocator* get_allocator() const { return m_allocator; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of tracks contained in this array.
 		uint32_t get_num_tracks() const { return m_num_tracks; }
 
