@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // The MIT License (MIT)
 //
-// Copyright (c) 2019 Nicholas Frechette & Animation Compression Library contributors
+// Copyright (c) 2020 Nicholas Frechette & Animation Compression Library contributors
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +25,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/core/compressed_tracks.h"
-
-#include <rtm/scalarf.h>
-#include <rtm/vector4f.h>
-
-#include <cstdint>
+#include "acl/decompression/impl/scalar_track_decompression.h"
+#include "acl/decompression/impl/transform_track_decompression.h"
+#include "acl/decompression/impl/universal_track_decompression.h"
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -38,26 +35,27 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		struct alignas(64) persistent_decompression_context
+		//////////////////////////////////////////////////////////////////////////
+		// Helper struct to choose the decompression context type based on what tracks we support
+		template<bool supports_scalar_tracks, bool supports_transform_tracks>
+		struct persistent_decompression_context_selector {};
+
+		template<>
+		struct persistent_decompression_context_selector<true, false>
 		{
-			// Clip related data							//   offsets
-			const compressed_tracks* tracks;				//   0 |   0
+			using type = persistent_scalar_decompression_context;
+		};
 
-			uint32_t tracks_hash;							//   4 |   8
+		template<>
+		struct persistent_decompression_context_selector<false, true>
+		{
+			using type = persistent_transform_decompression_context;
+		};
 
-			float duration;									//   8 |  12
-
-			// Seeking related data
-			float interpolation_alpha;						//  12 |  16
-			float sample_time;								//  16 |  20
-
-			uint32_t key_frame_bit_offsets[2];				//  20 |  24	// Variable quantization
-
-			uint8_t padding_tail[sizeof(void*) == 4 ? 36 : 32];
-
-			//////////////////////////////////////////////////////////////////////////
-
-			inline bool is_initialized() const { return tracks != nullptr; }
+		template<>
+		struct persistent_decompression_context_selector<true, true>
+		{
+			using type = persistent_universal_decompression_context;
 		};
 	}
 }

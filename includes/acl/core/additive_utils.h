@@ -26,7 +26,6 @@
 
 #include "acl/core/impl/compiler_utils.h"
 
-#include <rtm/qvvd.h>
 #include <rtm/qvvf.h>
 
 #include <cstdint>
@@ -167,24 +166,24 @@ namespace acl
 		}
 	}
 
-	inline rtm::qvvd convert_to_relative(const rtm::qvvd& base, const rtm::qvvd& transform)
+	inline rtm::qvvf RTM_SIMD_CALL convert_to_relative(rtm::qvvf_arg0 base, rtm::qvvf_arg1 transform)
 	{
 		return rtm::qvv_mul(transform, rtm::qvv_inverse(base));
 	}
 
-	inline rtm::qvvd convert_to_additive0(const rtm::qvvd& base, const rtm::qvvd& transform)
+	inline rtm::qvvf RTM_SIMD_CALL convert_to_additive0(rtm::qvvf_arg0 base, rtm::qvvf_arg1 transform)
 	{
-		const rtm::quatd rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));
-		const rtm::vector4d translation = rtm::vector_sub(transform.translation, base.translation);
-		const rtm::vector4d scale = rtm::vector_div(transform.scale, base.scale);
+		const rtm::quatf rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));
+		const rtm::vector4f translation = rtm::vector_sub(transform.translation, base.translation);
+		const rtm::vector4f scale = rtm::vector_div(transform.scale, base.scale);
 		return rtm::qvv_set(rotation, translation, scale);
 	}
 
-	inline rtm::qvvd convert_to_additive1(const rtm::qvvd& base, const rtm::qvvd& transform)
+	inline rtm::qvvf RTM_SIMD_CALL convert_to_additive1(rtm::qvvf_arg0 base, rtm::qvvf_arg1 transform)
 	{
-		const rtm::quatd rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));
-		const rtm::vector4d translation = rtm::vector_sub(transform.translation, base.translation);
-		const rtm::vector4d scale = rtm::vector_sub(rtm::vector_mul(transform.scale, rtm::vector_reciprocal(base.scale)), rtm::vector_set(1.0));
+		const rtm::quatf rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));
+		const rtm::vector4f translation = rtm::vector_sub(transform.translation, base.translation);
+		const rtm::vector4f scale = rtm::vector_sub(rtm::vector_mul(transform.scale, rtm::vector_reciprocal(base.scale)), rtm::vector_set(1.0F));
 		return rtm::qvv_set(rotation, translation, scale);
 	}
 }

@@ -144,7 +144,7 @@ namespace acl
 		class track_bit_rate_database
 		{
 		public:
-			track_bit_rate_database(IAllocator& allocator, const CompressionSettings& settings, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
+			track_bit_rate_database(IAllocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
 			~track_bit_rate_database();
 
 			void set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
@@ -296,7 +296,7 @@ namespace acl
 			return -1;
 		}
 
-		inline track_bit_rate_database::track_bit_rate_database(IAllocator& allocator, const CompressionSettings& settings, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track)
+		inline track_bit_rate_database::track_bit_rate_database(IAllocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track)
 			: m_allocator(allocator)
 			, m_mutable_bone_streams(bone_streams)
 			, m_raw_bone_streams(raw_bone_steams)
@@ -318,12 +318,12 @@ namespace acl
 			m_bitset_desc = BitSetDescription::make_from_num_bits(num_samples_per_track);
 			m_bitref_constant = BitSetIndexRef(m_bitset_desc, 0);
 
-			m_rotation_format = settings.rotation_format;
-			m_translation_format = settings.translation_format;
-			m_scale_format = settings.scale_format;
-			m_is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
-			m_is_translation_variable = is_vector_format_variable(settings.translation_format);
-			m_is_scale_variable = is_vector_format_variable(settings.scale_format);
+			m_rotation_format = rotation_format;
+			m_translation_format = translation_format;
+			m_scale_format = scale_format;
+			m_is_rotation_variable = is_rotation_format_variable(rotation_format);
+			m_is_translation_variable = is_vector_format_variable(translation_format);
+			m_is_scale_variable = is_vector_format_variable(scale_format);
 
 			m_generation_id = 1;
 
