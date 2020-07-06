@@ -422,24 +422,28 @@ static bool parse_options(int argc, char** argv, Options& options)
 }
 
 #if defined(ACL_USE_SJSON)
-template<class DecompressionContextType>
-static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, DecompressionContextType& context, double regression_error_threshold)
+static void validate_accuracy(IAllocator& allocator, const track_array& raw_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
 {
+	using namespace acl_impl;
 	(void)regression_error_threshold;
 
-	const BoneError bone_error = calculate_error_between_clips(allocator, *settings.error_metric, clip, context);
-	(void)bone_error;
-	ACL_ASSERT(rtm::scalar_is_finite(bone_error.error), "Returned error is not a finite value");
-	ACL_ASSERT(bone_error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", bone_error.index, bone_error.error, bone_error.sample_time);
+	// Disable floating point exceptions since decompression assumes it
+	scope_disable_fp_exceptions fp_off;
 
-	const uint16_t num_bones = clip.get_num_bones();
-	const float clip_duration = clip.get_duration();
-	const float sample_rate = clip.get_sample_rate();
-	const uint32_t num_samples = calculate_num_samples(clip_duration, clip.get_sample_rate());
+	acl::decompression_context<acl::debug_decompression_settings> context;
+	context.initialize(compressed_tracks_);
 
-	rtm::qvvf* lossy_pose_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+	const track_error error = calculate_compression_error(allocator, raw_tracks, context, error_metric);
+	(void)error;
+	ACL_ASSERT(rtm::scalar_is_finite(error.error), "Returned error is not a finite value");
+	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", error.index, error.error, error.sample_time);
 
-	DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
+	const uint32_t num_bones = raw_tracks.get_num_tracks();
+	const float clip_duration = raw_tracks.get_duration();
+	const float sample_rate = raw_tracks.get_sample_rate();
+	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
+
+	debug_track_writer track_writer(allocator, track_type8::qvvf, num_bones);
 
 	// Regression test
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -448,46 +452,21 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
 		context.seek(sample_time, sample_rounding_policy::nearest);
-		context.decompress_pose(pose_writer);
+		context.decompress_tracks(track_writer);
 
-		// Validate decompress_bone for rotations only
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		// Validate decompress_track against decompress_tracks
+		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
-			rtm::quatf rotation;
-			context.decompress_bone(bone_index, &rotation, nullptr, nullptr);
-			ACL_ASSERT(rtm::quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
-		}
+			const rtm::qvvf transform0 = track_writer.read_qvv(bone_index);
 
-		// Validate decompress_bone for translations only
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			rtm::vector4f translation;
-			context.decompress_bone(bone_index, nullptr, &translation, nullptr);
-			ACL_ASSERT(rtm::vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
-		}
+			context.decompress_track(bone_index, track_writer);
+			const rtm::qvvf transform1 = track_writer.read_qvv(bone_index);
 
-		// Validate decompress_bone for scales only
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			rtm::vector4f scale;
-			context.decompress_bone(bone_index, nullptr, nullptr, &scale);
-			ACL_ASSERT(rtm::vector_all_near_equal3(scale, lossy_pose_transforms[bone_index].scale), "Failed to sample bone index: %u", bone_index);
-		}
-
-		// Validate decompress_bone
-		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			rtm::quatf rotation;
-			rtm::vector4f translation;
-			rtm::vector4f scale;
-			context.decompress_bone(bone_index, &rotation, &translation, &scale);
-			ACL_ASSERT(rtm::quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(scale, lossy_pose_transforms[bone_index].scale), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform1.rotation), 0.0F), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform1.translation, 0.0F), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, 0.0F), "Failed to sample bone index: %u", bone_index);
 		}
 	}
-
-	deallocate_type_array(allocator, lossy_pose_transforms, num_bones);
 }
 
 static void validate_accuracy(IAllocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold)
@@ -674,27 +653,41 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 #endif	// defined(ACL_HAS_ASSERT_CHECKS)
 }
 
-static void try_algorithm(const Options& options, IAllocator& allocator, const AnimationClip& clip, const CompressionSettings& settings, algorithm_type8 algorithm_type, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, IAllocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, const CompressionSettings& settings, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
 
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
-		if (clip.get_num_samples() == 0)
+		if (transform_tracks.get_num_samples_per_track() == 0)
 			return;
 
-		OutputStats stats(logging, stats_writer);
-		CompressedClip* compressed_clip = nullptr;
-		ErrorResult error_result; (void)error_result;
-		switch (algorithm_type)
+		// Copy our settings over to each track
+		const uint32_t num_transforms = transform_tracks.get_num_tracks();
+		for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 		{
-		case algorithm_type8::uniformly_sampled:
-			error_result = uniformly_sampled::compress_clip(allocator, clip, settings, compressed_clip, stats);
-			break;
+			track_qvvf& track = transform_tracks[transform_index];
+			track_desc_transformf& desc = track.get_description();
+
+			desc.constant_rotation_threshold_angle = settings.constant_rotation_threshold_angle;
+			desc.constant_translation_threshold = settings.constant_translation_threshold;
+			desc.constant_scale_threshold = settings.constant_scale_threshold;
+			desc.precision = settings.error_threshold;
 		}
 
+		compression_settings settings_;
+		settings_.level = settings.level;
+		settings_.rotation_format = settings.rotation_format;
+		settings_.translation_format = settings.translation_format;
+		settings_.scale_format = settings.scale_format;
+		settings_.error_metric = settings.error_metric;
+
+		OutputStats stats(logging, stats_writer);
+		compressed_tracks* compressed_tracks_ = nullptr;
+		const ErrorResult error_result = compress_track_list(allocator, transform_tracks, settings_, additive_base, additive_format, compressed_tracks_, stats);
+
 		ACL_ASSERT(error_result.empty(), error_result.c_str());
-		ACL_ASSERT(compressed_clip->is_valid(true).empty(), "Compressed clip is invalid");
+		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
 #if defined(SJSON_CPP_WRITER)
 		if (logging != StatLogging::None)
@@ -702,53 +695,31 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
 
-			// Use the compressed clip to make sure the decoder works properly
-			BoneError bone_error;
-			switch (algorithm_type)
-			{
-			case algorithm_type8::uniformly_sampled:
-			{
-				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context;
-				context.initialize(*compressed_clip);
-				bone_error = calculate_error_between_clips(allocator, *settings.error_metric, clip, context);
-				break;
-			}
-			}
+			acl::decompression_context<acl::debug_decompression_settings> context;
+			context.initialize(*compressed_tracks_);
 
-			stats_writer->insert("max_error", bone_error.error);
-			stats_writer->insert("worst_bone", bone_error.index);
-			stats_writer->insert("worst_time", bone_error.sample_time);
+			const track_error error = calculate_compression_error(allocator, transform_tracks, context, *settings_.error_metric);
+
+			stats_writer->insert("max_error", error.error);
+			stats_writer->insert("worst_track", error.index);
+			stats_writer->insert("worst_time", error.sample_time);
 
 			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
-				acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
+				acl_impl::write_decompression_performance_stats(allocator, settings_, *compressed_tracks_, logging, *stats_writer);
 		}
 #endif
 
 		if (options.regression_testing)
-		{
-			// Disable floating point exceptions since decompression assumes it
-			scope_disable_fp_exceptions fp_off;
-
-			switch (algorithm_type)
-			{
-			case algorithm_type8::uniformly_sampled:
-			{
-				uniformly_sampled::DecompressionContext<uniformly_sampled::DebugDecompressionSettings> context;
-				context.initialize(*compressed_clip);
-				validate_accuracy(allocator, clip, settings, context, regression_error_threshold);
-				break;
-			}
-			}
-		}
+			validate_accuracy(allocator, transform_tracks, *settings_.error_metric, *compressed_tracks_, regression_error_threshold);
 
 		if (options.output_bin_filename != nullptr)
 		{
 			std::ofstream output_file_stream(options.output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 			if (output_file_stream.is_open())
-				output_file_stream.write(reinterpret_cast<const char*>(compressed_clip), compressed_clip->get_size());
+				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
 		}
 
-		allocator.deallocate(compressed_clip, compressed_clip->get_size());
+		allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 	};
 
 #if defined(SJSON_CPP_WRITER)
@@ -1044,12 +1015,13 @@ static itransform_error_metric* create_additive_error_metric(IAllocator& allocat
 	}
 }
 
-static void create_additive_base_clip(const Options& options, AnimationClip& clip, const RigidSkeleton& skeleton, AnimationClip& out_base_clip)
+static void create_additive_base_clip(const Options& options, track_array_qvvf& clip, const track_qvvf& bind_pose, track_array_qvvf& out_base_clip, additive_clip_format8& out_additive_format)
 {
 	// Convert the animation clip to be relative to the bind pose
-	const uint16_t num_bones = clip.get_num_bones();
-	const uint32_t num_samples = clip.get_num_samples();
-	AnimatedBone* bones = clip.get_bones();
+	const uint32_t num_bones = clip.get_num_tracks();
+	const uint32_t num_samples = clip.get_num_samples_per_track();
+
+	out_base_clip = track_array_qvvf(*clip.get_allocator(), num_bones);
 
 	additive_clip_format8 additive_format = additive_clip_format8::none;
 	if (options.is_bind_pose_relative)
@@ -1058,24 +1030,21 @@ static void create_additive_base_clip(const Options& options, AnimationClip& cli
 		additive_format = additive_clip_format8::additive0;
 	else if (options.is_bind_pose_additive1)
 		additive_format = additive_clip_format8::additive1;
+	out_additive_format = additive_format;
 
-	for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+	for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 	{
-		AnimatedBone& anim_bone = bones[bone_index];
-
 		// Get the bind transform and make sure it has no scale
-		const RigidBone& skel_bone = skeleton.get_bone(bone_index);
-		const rtm::qvvd bind_transform = rtm::qvv_set(skel_bone.bind_transform.rotation, skel_bone.bind_transform.translation, rtm::vector_set(1.0));
+		rtm::qvvf bind_transform = bind_pose[bone_index];
+		bind_transform.scale = rtm::vector_set(1.0F);
+
+		track_qvvf& track = clip[bone_index];
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			const rtm::quatd rotation = rtm::quat_normalize(anim_bone.rotation_track.get_sample(sample_index));
-			const rtm::vector4d translation = anim_bone.translation_track.get_sample(sample_index);
-			const rtm::vector4d scale = anim_bone.scale_track.get_sample(sample_index);
+			const rtm::qvvf bone_transform = track[sample_index];
 
-			const rtm::qvvd bone_transform = rtm::qvv_set(rotation, translation, scale);
-
-			rtm::qvvd bind_local_transform = bone_transform;
+			rtm::qvvf bind_local_transform = bone_transform;
 			if (options.is_bind_pose_relative)
 				bind_local_transform = convert_to_relative(bind_transform, bone_transform);
 			else if (options.is_bind_pose_additive0)
@@ -1083,18 +1052,11 @@ static void create_additive_base_clip(const Options& options, AnimationClip& cli
 			else if (options.is_bind_pose_additive1)
 				bind_local_transform = convert_to_additive1(bind_transform, bone_transform);
 
-			anim_bone.rotation_track.set_sample(sample_index, bind_local_transform.rotation);
-			anim_bone.translation_track.set_sample(sample_index, bind_local_transform.translation);
-			anim_bone.scale_track.set_sample(sample_index, bind_local_transform.scale);
+			track[sample_index] = bind_local_transform;
 		}
 
-		AnimatedBone& base_bone = out_base_clip.get_animated_bone(bone_index);
-		base_bone.rotation_track.set_sample(0, bind_transform.rotation);
-		base_bone.translation_track.set_sample(0, bind_transform.translation);
-		base_bone.scale_track.set_sample(0, bind_transform.scale);
+		out_base_clip[bone_index][0] = bind_transform;
 	}
-
-	clip.set_additive_base(&out_base_clip, additive_format);
 }
 
 static CompressionSettings make_settings(rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format)
@@ -1124,8 +1086,10 @@ static int safe_main_impl(int argc, char* argv[])
 
 #if defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
-	std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
-	std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
+	track_array_qvvf transform_tracks;
+	track_array_qvvf base_clip;
+	additive_clip_format8 additive_format = additive_clip_format8::none;
+	track_qvvf bind_pose;
 
 #if defined(__ANDROID__)
 	const bool is_input_acl_bin_file = options.input_buffer_binary;
@@ -1146,8 +1110,10 @@ static int safe_main_impl(int argc, char* argv[])
 		if (!read_acl_sjson_file(allocator, options, sjson_type, sjson_clip, sjson_track_list))
 			return -1;
 
-		clip = std::move(sjson_clip.clip);
-		skeleton = std::move(sjson_clip.skeleton);
+		transform_tracks = std::move(sjson_clip.track_list);
+		base_clip = std::move(sjson_clip.additive_base_track_list);
+		additive_format = sjson_clip.additive_format;
+		bind_pose = std::move(sjson_clip.bind_pose);
 		use_external_config = sjson_clip.has_settings;
 		algorithm_type = sjson_clip.algorithm_type;
 		settings = sjson_clip.settings;
@@ -1171,23 +1137,17 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = true;
 	}
 
-	// TODO: Make a unique_ptr
-	AnimationClip* base_clip = nullptr;
-
 	if (!is_input_acl_bin_file && sjson_type == sjson_file_type::raw_clip)
 	{
 		// Grab whatever clip we might have read from the sjson file and cast the const away so we can manage the memory
-		base_clip = const_cast<AnimationClip*>(clip->get_additive_base());
-		if (base_clip == nullptr)
+		if (base_clip.get_num_tracks() == 0 && bind_pose.get_num_samples() != 0)
 		{
-			base_clip = allocate_type<AnimationClip>(allocator, allocator, *skeleton, 1, 30.0F, String(allocator, "Base Clip"));
-
 			if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
-				create_additive_base_clip(options, *clip, *skeleton, *base_clip);
+				create_additive_base_clip(options, transform_tracks, bind_pose, base_clip, additive_format);
 		}
 
 		// First try to create an additive error metric
-		settings.error_metric = create_additive_error_metric(allocator, clip->get_additive_format());
+		settings.error_metric = create_additive_error_metric(allocator, additive_format);
 
 		if (settings.error_metric == nullptr)
 		{
@@ -1220,10 +1180,10 @@ static int safe_main_impl(int argc, char* argv[])
 				// Disable floating point exceptions since decompression assumes it
 				scope_disable_fp_exceptions fp_off;
 
-				const CompressionSettings default_settings = get_default_compression_settings();
+				const compression_settings default_settings = get_default_compression_settings_();
 
 #if defined(__ANDROID__)
-				const CompressedClip* compressed_clip = make_compressed_clip(options.input_buffer);
+				const compressed_tracks* compressed_clip = make_compressed_tracks(options.input_buffer);
 				ACL_ASSERT(compressed_clip != nullptr, "Compressed clip is invalid");
 				if (compressed_clip == nullptr)
 					return;	// Compressed clip is invalid, early out to avoid crash
@@ -1240,10 +1200,10 @@ static int safe_main_impl(int argc, char* argv[])
 					const size_t buffer_size = size_t(input_file_stream.tellg());
 					input_file_stream.seekg(0, std::ios_base::beg);
 
-					char* buffer = (char*)allocator.allocate(buffer_size, alignof(CompressedClip));
+					char* buffer = (char*)allocator.allocate(buffer_size, alignof(compressed_tracks));
 					input_file_stream.read(buffer, buffer_size);
 
-					const CompressedClip* compressed_clip = make_compressed_clip(buffer);
+					const compressed_tracks* compressed_clip = make_compressed_tracks(buffer);
 					ACL_ASSERT(compressed_clip != nullptr, "Compressed clip is invalid");
 					if (compressed_clip == nullptr)
 						return;	// Compressed clip is invalid, early out to avoid crash
@@ -1268,7 +1228,7 @@ static int safe_main_impl(int argc, char* argv[])
 				if (options.compression_level_specified)
 					settings.level = options.compression_level;
 
-				try_algorithm(options, allocator, *clip, settings, algorithm_type8::uniformly_sampled, logging, runs_writer, regression_error_threshold);
+				try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, logging, runs_writer, regression_error_threshold);
 			}
 			else if (options.exhaustive_compression)
 			{
@@ -1286,7 +1246,7 @@ static int safe_main_impl(int argc, char* argv[])
 					{
 						test_settings.error_metric = settings.error_metric;
 
-						try_algorithm(options, allocator, *clip, test_settings, algorithm_type8::uniformly_sampled, logging, runs_writer, regression_error_threshold);
+						try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, test_settings, logging, runs_writer, regression_error_threshold);
 					}
 				}
 
@@ -1307,7 +1267,7 @@ static int safe_main_impl(int argc, char* argv[])
 						if (options.compression_level_specified)
 							test_settings.level = options.compression_level;
 
-						try_algorithm(options, allocator, *clip, test_settings, algorithm_type8::uniformly_sampled, logging, runs_writer, regression_error_threshold);
+						try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, test_settings, logging, runs_writer, regression_error_threshold);
 					}
 				}
 			}
@@ -1319,7 +1279,7 @@ static int safe_main_impl(int argc, char* argv[])
 				if (options.compression_level_specified)
 					default_settings.level = options.compression_level;
 
-				try_algorithm(options, allocator, *clip, default_settings, algorithm_type8::uniformly_sampled, logging, runs_writer, regression_error_threshold);
+				try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, default_settings, logging, runs_writer, regression_error_threshold);
 			}
 		}
 		else if (sjson_type == sjson_file_type::raw_track_list)
@@ -1341,7 +1301,6 @@ static int safe_main_impl(int argc, char* argv[])
 		exec_algos(nullptr);
 
 	deallocate_type(allocator, settings.error_metric);
-	deallocate_type(allocator, base_clip);
 #endif	// defined(ACL_USE_SJSON)
 
 	return 0;

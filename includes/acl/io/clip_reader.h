@@ -39,6 +39,7 @@
 
 #include <rtm/quatd.h>
 #include <rtm/vector4d.h>
+#include <rtm/qvvf.h>
 
 #include <cstdint>
 
@@ -62,6 +63,11 @@ namespace acl
 		std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
 		std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
 		track_array_qvvf track_list;
+
+		track_array_qvvf additive_base_track_list;
+		additive_clip_format8 additive_format;
+
+		track_qvvf bind_pose;
 
 		bool has_settings;
 		algorithm_type8 algorithm_type;
@@ -120,14 +126,16 @@ namespace acl
 			if (!read_settings(&out_data.has_settings, &out_data.algorithm_type, &out_data.settings))
 				return false;
 
-			if (!create_skeleton(out_data.skeleton, out_data.track_list))
+			if (!create_skeleton(out_data.skeleton, out_data.track_list, out_data.bind_pose))
 				return false;
 
 			if (!create_clip(out_data.clip, *out_data.skeleton))
 				return false;
 
-			if (!read_tracks(*out_data.clip, *out_data.skeleton, out_data.track_list))
+			if (!read_tracks(*out_data.clip, *out_data.skeleton, out_data.track_list, out_data.additive_base_track_list))
 				return false;
+
+			out_data.additive_format = out_data.additive_base_track_list.get_num_tracks() != 0 ? m_additive_format : additive_clip_format8::none;
 
 			return nothing_follows();
 		}
@@ -413,7 +421,7 @@ namespace acl
 			return false;
 		}
 
-		bool create_skeleton(std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton, track_array_qvvf& track_list)
+		bool create_skeleton(std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton, track_array_qvvf& track_list, track_qvvf& bind_pose)
 		{
 			sjson::ParserState before_bones = m_parser.save_state();
 
@@ -437,6 +445,7 @@ namespace acl
 			deallocate_type_array(m_allocator, bones, num_allocated_bones);
 
 			track_list = track_array_qvvf(m_allocator, num_bones);
+			bind_pose = track_qvvf::make_reserve(track_desc_transformf{}, m_allocator, num_bones, 30.0F);	// 1 sample per track
 
 			for (uint16_t transform_index = 0; transform_index < num_bones; ++transform_index)
 			{
@@ -444,8 +453,13 @@ namespace acl
 
 				track_qvvf& track = track_list[transform_index];
 				track_desc_transformf& desc = track.get_description();
-				desc.parent_index = bone.parent_index;
+				desc.parent_index = bone.parent_index == k_invalid_bone_index ? k_invalid_track_index : bone.parent_index;
 				desc.shell_distance = bone.vertex_distance;
+
+				rtm::qvvf bind_transform = rtm::qvv_cast(bone.bind_transform);
+				bind_transform.rotation = rtm::quat_normalize(bind_transform.rotation);
+
+				bind_pose[transform_index] = bind_transform;
 			}
 
 			return true;
@@ -870,7 +884,7 @@ namespace acl
 			return true;
 		}
 
-		bool read_tracks(AnimationClip& clip, const RigidSkeleton& skeleton, track_array_qvvf& track_list)
+		bool read_tracks(AnimationClip& clip, const RigidSkeleton& skeleton, track_array_qvvf& track_list, track_array_qvvf& additive_base_track_list)
 		{
 			const uint32_t num_transforms = track_list.get_num_tracks();
 
@@ -878,6 +892,11 @@ namespace acl
 
 			if (m_parser.try_array_begins("base_tracks"))
 			{
+				// Copy our metadata from the actual clip
+				additive_base_track_list = track_array_qvvf(m_allocator, num_transforms);
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+					additive_base_track_list[transform_index].get_description() = track_list[transform_index].get_description();
+
 				base_clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_additive_base_num_samples, m_additive_base_sample_rate, String(m_allocator, m_additive_base_name.c_str(), m_additive_base_name.size()));
 
 				while (!m_parser.try_array_ends())
@@ -994,8 +1013,7 @@ namespace acl
 					goto error;
 			}
 
-			clip.set_additive_base(base_clip.release(), m_additive_format);
-
+			// Populate our clip
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
 				const AnimatedBone& bone = clip.get_animated_bone(safe_static_cast<uint16_t>(transform_index));
@@ -1017,6 +1035,34 @@ namespace acl
 					track[sample_index] = transform;
 				}
 			}
+
+			if (base_clip)
+			{
+				// Populate our additive base
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+				{
+					const AnimatedBone& bone = base_clip->get_animated_bone(safe_static_cast<uint16_t>(transform_index));
+
+					track_qvvf& track = additive_base_track_list[transform_index];
+
+					track_desc_transformf desc = track.get_description();	// Copy our description
+					desc.output_index = bone.output_index;
+
+					track = track_qvvf::make_reserve(desc, m_allocator, m_additive_base_num_samples, m_additive_base_sample_rate);
+
+					for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
+					{
+						const rtm::quatf rotation = rtm::quat_normalize(rtm::quat_cast(bone.rotation_track.get_sample(sample_index)));
+						const rtm::vector4f translation = rtm::vector_cast(bone.translation_track.get_sample(sample_index));
+						const rtm::vector4f scale = rtm::vector_cast(bone.scale_track.get_sample(sample_index));
+
+						const rtm::qvvf transform = rtm::qvv_set(rotation, translation, scale);
+						track[sample_index] = transform;
+					}
+				}
+			}
+
+			clip.set_additive_base(base_clip.release(), m_additive_format);
 
 			return true;
 

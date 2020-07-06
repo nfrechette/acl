@@ -8,13 +8,9 @@ ACL aims to support a few core algorithms that are well suited for production us
 
 *  [Handling asserts](handling_asserts.md)
 *  [Implementing an allocator](implementing_an_allocator.md)
-*  [Creating a skeleton](creating_a_skeleton.md)
-*  [Creating a raw clip](creating_a_raw_clip.md)
-*  [Compressing a raw clip](compressing_a_raw_clip.md)
-*  [Decompressing a clip](decompressing_a_clip.md)
 *  [Creating a raw track list](creating_a_raw_track_list.md)
-*  [Compressing scalar tracks](compressing_scalar_tracks.md)
-*  [Decompressing scalar tracks](decompressing_a_track_list.md)
+*  [Compressing tracks](compressing_raw_tracks.md)
+*  [Decompressing tracks](decompressing_a_track_list.md)
 *  [Other considerations](misc_integration_details.md)
 
 See how it's integrated into Unreal Engine 4 [here](https://github.com/nfrechette/acl-ue4-plugin)!

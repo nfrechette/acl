@@ -1,6 +1,6 @@
 # Decompressing a track list
 
-Once you have a [compressed track list](compressing_scalar_tracks.md), the first order of business to decompress it is to select a set of `decompression_settings`. The decompression settings `struct` is populated with `constexpr` functions that can be overridden to turn on or off the code generation per feature.
+Once you have a [compressed track list](compressing_raw_tracks.md), the first order of business to decompress it is to select a set of `decompression_settings`. The decompression settings `struct` is populated with `constexpr` functions that can be overridden to turn on or off the code generation per feature.
 
 The next thing you need is a `decompression_context` instance. This will allow you to actually decompress tracks. You can also use it to seek arbitrarily in the list. For safety, the decompression context is templated with the decompression settings.
 

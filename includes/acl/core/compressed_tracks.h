@@ -181,8 +181,10 @@ namespace acl
 
 	namespace acl_impl
 	{
-		// Hide this implementation, it shouldn't be needed in user-space
+		// Hide these implementations, they shouldn't be needed in user-space
 		inline const tracks_header& get_tracks_header(const compressed_tracks& tracks) { return tracks.m_tracks_header; }
+		inline const scalar_tracks_header& get_scalar_tracks_header(const compressed_tracks& tracks) { return *reinterpret_cast<const scalar_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(compressed_tracks)); }
+		inline const transform_tracks_header& get_transform_tracks_header(const compressed_tracks& tracks) { return *reinterpret_cast<const transform_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(compressed_tracks)); }
 	}
 }
 
