@@ -474,12 +474,17 @@ namespace acl
 	inline uint32_t track_array::get_raw_size() const
 	{
 		const uint32_t num_samples = get_num_samples_per_track();
+		const track_type8 track_type = get_track_type();
 
 		uint32_t total_size = 0;
 		for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
 		{
 			const track& track_ = m_tracks[track_index];
-			total_size += num_samples * track_.get_sample_size();
+
+			if (track_type == track_type8::qvvf)
+				total_size += num_samples * 10 * sizeof(float);	// 4 rotation floats, 3 translation floats, 3 scale floats
+			else
+				total_size += num_samples * track_.get_sample_size();
 		}
 
 		return total_size;
