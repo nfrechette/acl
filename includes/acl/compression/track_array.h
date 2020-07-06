@@ -36,6 +36,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <type_traits>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -388,6 +389,7 @@ namespace acl
 	template<class track_writer_type>
 	inline void track_array::sample_tracks(float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const
 	{
+		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(is_valid().empty(), "Invalid track array");
 
 		for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
@@ -397,6 +399,7 @@ namespace acl
 	template<class track_writer_type>
 	inline void track_array::sample_track(uint32_t track_index, float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const
 	{
+		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(is_valid().empty(), "Invalid track array");
 		ACL_ASSERT(track_index < m_num_tracks, "Invalid track index");
 
