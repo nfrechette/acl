@@ -90,33 +90,14 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 
-	// TODO: constexpr
-	inline uint32_t get_packed_rotation_size(rotation_format8 format)
+	constexpr uint32_t get_packed_rotation_size(rotation_format8 format)
 	{
-		switch (format)
-		{
-		case rotation_format8::quatf_full:				return sizeof(float) * 4;
-		case rotation_format8::quatf_drop_w_full:		return sizeof(float) * 3;
-		case rotation_format8::quatf_drop_w_variable:
-		default:
-			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
-			return 0;
-		}
+		return format == rotation_format8::quatf_full ? (sizeof(float) * 4) : (sizeof(float) * 3);
 	}
 
-	inline uint32_t get_range_reduction_rotation_size(rotation_format8 format)
+	constexpr uint32_t get_range_reduction_rotation_size(rotation_format8 format)
 	{
-		switch (format)
-		{
-		case rotation_format8::quatf_full:
-			return sizeof(float) * 8;
-		case rotation_format8::quatf_drop_w_full:
-		case rotation_format8::quatf_drop_w_variable:
-			return sizeof(float) * 6;
-		default:
-			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
-			return 0;
-		}
+		return format == rotation_format8::quatf_full ? (sizeof(float) * 8) : (sizeof(float) * 6);
 	}
 }
 

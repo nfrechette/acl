@@ -383,33 +383,14 @@ namespace acl
 		return false;
 	}
 
-	// TODO: constexpr
-	inline rotation_variant8 get_rotation_variant(rotation_format8 rotation_format)
+	constexpr rotation_variant8 get_rotation_variant(rotation_format8 rotation_format)
 	{
-		switch (rotation_format)
-		{
-		case rotation_format8::quatf_full:
-			return rotation_variant8::quat;
-		case rotation_format8::quatf_drop_w_full:
-		case rotation_format8::quatf_drop_w_variable:
-			return rotation_variant8::quat_drop_w;
-		default:
-			ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(rotation_format));
-			return rotation_variant8::quat;
-		}
+		return rotation_format == rotation_format8::quatf_full ? rotation_variant8::quat : rotation_variant8::quat_drop_w;
 	}
 
-	// TODO: constexpr
-	inline rotation_format8 get_highest_variant_precision(rotation_variant8 variant)
+	constexpr rotation_format8 get_highest_variant_precision(rotation_variant8 variant)
 	{
-		switch (variant)
-		{
-		case rotation_variant8::quat:				return rotation_format8::quatf_full;
-		case rotation_variant8::quat_drop_w:		return rotation_format8::quatf_drop_w_full;
-		default:
-			ACL_ASSERT(false, "Invalid or unsupported rotation format: %u", (uint32_t)variant);
-			return rotation_format8::quatf_full;
-		}
+		return variant == rotation_variant8::quat ? rotation_format8::quatf_full : rotation_format8::quatf_drop_w_full;
 	}
 
 	constexpr bool is_rotation_format_variable(rotation_format8 format)
