@@ -451,10 +451,12 @@ namespace acl
 			{
 				const RigidBone& bone = skeleton->get_bone(transform_index);
 
-				track_qvvf& track = track_list[transform_index];
-				track_desc_transformf& desc = track.get_description();
+				track_desc_transformf desc;
 				desc.parent_index = bone.parent_index == k_invalid_bone_index ? k_invalid_track_index : bone.parent_index;
 				desc.shell_distance = bone.vertex_distance;
+
+				// Create a dummy track for now to hold our arguments
+				track_list[transform_index] = track_qvvf::make_ref(desc, nullptr, 0, 30.0F);
 
 				rtm::qvvf bind_transform = rtm::qvv_cast(bone.bind_transform);
 				bind_transform.rotation = rtm::quat_normalize(bind_transform.rotation);
