@@ -422,12 +422,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 }
 
 #if defined(ACL_USE_SJSON)
-static void validate_accuracy(IAllocator& allocator, const track_array& raw_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
+static void validate_accuracy(IAllocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
 {
 	using namespace acl_impl;
 
 	(void)allocator;
 	(void)raw_tracks;
+	(void)additive_base_tracks;
 	(void)error_metric;
 	(void)compressed_tracks_;
 	(void)regression_error_threshold;
@@ -439,7 +440,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 	acl::decompression_context<acl::debug_decompression_settings> context;
 	context.initialize(compressed_tracks_);
 
-	const track_error error = calculate_compression_error(allocator, raw_tracks, context, error_metric);
+	const track_error error = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 	(void)error;
 	ACL_ASSERT(rtm::scalar_is_finite(error.error), "Returned error is not a finite value");
 	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", error.index, error.error, error.sample_time);
@@ -718,7 +719,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, track_a
 #endif
 
 		if (options.regression_testing)
-			validate_accuracy(allocator, transform_tracks, *settings_.error_metric, *compressed_tracks_, regression_error_threshold);
+			validate_accuracy(allocator, transform_tracks, additive_base, *settings_.error_metric, *compressed_tracks_, regression_error_threshold);
 
 		if (options.output_bin_filename != nullptr)
 		{
