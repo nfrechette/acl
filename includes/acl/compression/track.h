@@ -423,28 +423,32 @@ namespace acl
 		}
 	}
 
-	template<typename desc_type>
-	inline desc_type& track::get_description()
+	template<>
+	inline track_desc_scalarf& track::get_description()
 	{
-		ACL_ASSERT(desc_type::category == m_category, "Unexpected track category");
-		switch (desc_type::category)
-		{
-		default:
-		case track_category8::scalarf:		return reinterpret_cast<desc_type&>(m_desc.scalar);
-		case track_category8::transformf:	return reinterpret_cast<desc_type&>(m_desc.transform);
-		}
+		ACL_ASSERT(track_desc_scalarf::category == m_category, "Unexpected track category");
+		return m_desc.scalar;
 	}
 
-	template<typename desc_type>
-	inline const desc_type& track::get_description() const
+	template<>
+	inline track_desc_transformf& track::get_description()
 	{
-		ACL_ASSERT(desc_type::category == m_category, "Unexpected track category");
-		switch (desc_type::category)
-		{
-		default:
-		case track_category8::scalarf:		return reinterpret_cast<const desc_type&>(m_desc.scalar);
-		case track_category8::transformf:	return reinterpret_cast<const desc_type&>(m_desc.transform);
-		}
+		ACL_ASSERT(track_desc_transformf::category == m_category, "Unexpected track category");
+		return m_desc.transform;
+	}
+
+	template<>
+	inline const track_desc_scalarf& track::get_description() const
+	{
+		ACL_ASSERT(track_desc_scalarf::category == m_category, "Unexpected track category");
+		return m_desc.scalar;
+	}
+
+	template<>
+	inline const track_desc_transformf& track::get_description() const
+	{
+		ACL_ASSERT(track_desc_transformf::category == m_category, "Unexpected track category");
+		return m_desc.transform;
 	}
 
 	inline track track::get_copy(IAllocator& allocator) const
@@ -553,23 +557,13 @@ namespace acl
 	template<track_type8 track_type_>
 	inline typename track_typed<track_type_>::desc_type& track_typed<track_type_>::get_description()
 	{
-		switch (category)
-		{
-		default:
-		case track_category8::scalarf:		return reinterpret_cast<desc_type&>(m_desc.scalar);
-		case track_category8::transformf:	return reinterpret_cast<desc_type&>(m_desc.transform);
-		}
+		return track::get_description<desc_type>();
 	}
 
 	template<track_type8 track_type_>
 	inline const typename track_typed<track_type_>::desc_type& track_typed<track_type_>::get_description() const
 	{
-		switch (category)
-		{
-		default:
-		case track_category8::scalarf:		return reinterpret_cast<const desc_type&>(m_desc.scalar);
-		case track_category8::transformf:	return reinterpret_cast<const desc_type&>(m_desc.transform);
-		}
+		return track::get_description<desc_type>();
 	}
 
 	template<track_type8 track_type_>
