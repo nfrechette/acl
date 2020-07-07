@@ -48,80 +48,27 @@ namespace acl
 	public:
 		//////////////////////////////////////////////////////////////////////////
 		// Creates an empty, untyped track.
-		track() noexcept
-			: m_allocator(nullptr)
-			, m_data(nullptr)
-			, m_num_samples(0)
-			, m_stride(0)
-			, m_data_size(0)
-			, m_sample_rate(0.0F)
-			, m_type(track_type8::float1f)
-			, m_category(track_category8::scalarf)
-			, m_sample_size(0)
-			, m_desc()
-		{}
+		track() noexcept;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move constructor for a track.
-		track(track&& other) noexcept
-			: m_allocator(other.m_allocator)
-			, m_data(other.m_data)
-			, m_num_samples(other.m_num_samples)
-			, m_stride(other.m_stride)
-			, m_data_size(other.m_data_size)
-			, m_sample_rate(other.m_sample_rate)
-			, m_type(other.m_type)
-			, m_category(other.m_category)
-			, m_sample_size(other.m_sample_size)
-			, m_desc(other.m_desc)
-		{
-			other.m_allocator = nullptr;
-			other.m_data = nullptr;
-		}
+		track(track&& other) noexcept;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Destroys the track. If it owns the memory referenced, it will be freed.
-		~track()
-		{
-			if (is_owner())
-			{
-				// We own the memory, free it
-				m_allocator->deallocate(m_data, m_data_size);
-			}
-		}
+		~track();
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track.
-		track& operator=(track&& other) noexcept
-		{
-			std::swap(m_allocator, other.m_allocator);
-			std::swap(m_data, other.m_data);
-			std::swap(m_num_samples, other.m_num_samples);
-			std::swap(m_stride, other.m_stride);
-			std::swap(m_data_size, other.m_data_size);
-			std::swap(m_sample_rate, other.m_sample_rate);
-			std::swap(m_type, other.m_type);
-			std::swap(m_category, other.m_category);
-			std::swap(m_sample_size, other.m_sample_size);
-			std::swap(m_desc, other.m_desc);
-			return *this;
-		}
+		track& operator=(track&& other) noexcept;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a pointer to an untyped sample at the specified index.
-		void* operator[](uint32_t index)
-		{
-			ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
-			return m_data + (index * m_stride);
-		}
+		void* operator[](uint32_t index);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a pointer to an untyped sample at the specified index.
-		const void* operator[](uint32_t index) const
-		{
-			ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
-			return m_data + (index * m_stride);
-		}
+		const void* operator[](uint32_t index) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if the track owns its memory, false otherwise.
@@ -166,61 +113,25 @@ namespace acl
 		// When compressing, it is often desirable to strip or re-order the tracks we output.
 		// This can be used to sort by LOD or to strip stale tracks. Tracks with an invalid
 		// track index are stripped in the output.
-		uint32_t get_output_index() const
-		{
-			switch (m_category)
-			{
-			default:
-			case track_category8::scalarf:		return m_desc.scalar.output_index;
-			case track_category8::transformf:	return m_desc.transform.output_index;
-			}
-		}
+		uint32_t get_output_index() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track description.
 		template<typename desc_type>
-		desc_type& get_description()
-		{
-			ACL_ASSERT(desc_type::category == m_category, "Unexpected track category");
-			switch (desc_type::category)
-			{
-			default:
-			case track_category8::scalarf:		return reinterpret_cast<desc_type&>(m_desc.scalar);
-			case track_category8::transformf:	return reinterpret_cast<desc_type&>(m_desc.transform);
-			}
-		}
+		desc_type& get_description();
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track description.
 		template<typename desc_type>
-		const desc_type& get_description() const
-		{
-			ACL_ASSERT(desc_type::category == m_category, "Unexpected track category");
-			switch (desc_type::category)
-			{
-			default:
-			case track_category8::scalarf:		return reinterpret_cast<const desc_type&>(m_desc.scalar);
-			case track_category8::transformf:	return reinterpret_cast<const desc_type&>(m_desc.transform);
-			}
-		}
+		const desc_type& get_description() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a copy of the track where the memory will be owned by the copy.
-		track get_copy(IAllocator& allocator) const
-		{
-			track track_;
-			get_copy_impl(allocator, track_);
-			return track_;
-		}
+		track get_copy(IAllocator& allocator) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a reference to the track where the memory isn't owned.
-		track get_ref() const
-		{
-			track track_;
-			get_ref_impl(track_);
-			return track_;
-		}
+		track get_ref() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether a track is valid or not.
@@ -228,24 +139,7 @@ namespace acl
 		//    - It is empty
 		//    - It has a positive and finite sample rate
 		//    - A valid description
-		ErrorResult is_valid() const
-		{
-			if (m_data == nullptr)
-				return ErrorResult();
-
-			if (m_num_samples == 0xFFFFFFFFU)
-				return ErrorResult("Too many samples");
-
-			if (m_sample_rate <= 0.0F || !rtm::scalar_is_finite(m_sample_rate))
-				return ErrorResult("Invalid sample rate");
-
-			switch (m_category)
-			{
-			case track_category8::scalarf:		return m_desc.scalar.is_valid();
-			case track_category8::transformf:	return m_desc.transform.is_valid();
-			default:							return ErrorResult("Invalid category");
-			}
-		}
+		ErrorResult is_valid() const;
 
 	protected:
 		//////////////////////////////////////////////////////////////////////////
@@ -256,67 +150,19 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
 		// Creates an empty, untyped track.
-		track(track_type8 type, track_category8 category) noexcept
-			: m_allocator(nullptr)
-			, m_data(nullptr)
-			, m_num_samples(0)
-			, m_stride(0)
-			, m_data_size(0)
-			, m_sample_rate(0.0F)
-			, m_type(type)
-			, m_category(category)
-			, m_sample_size(0)
-			, m_desc()
-		{}
+		track(track_type8 type, track_category8 category) noexcept;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
-		track(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept
-			: m_allocator(allocator)
-			, m_data(data)
-			, m_num_samples(num_samples)
-			, m_stride(stride)
-			, m_data_size(data_size)
-			, m_sample_rate(sample_rate)
-			, m_type(type)
-			, m_category(category)
-			, m_sample_size(sample_size)
-			, m_desc()
-		{}
+		track(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal helper.
-		void get_copy_impl(IAllocator& allocator, track& out_track) const
-		{
-			out_track.m_allocator = &allocator;
-			out_track.m_data = reinterpret_cast<uint8_t*>(allocator.allocate(m_data_size));
-			out_track.m_num_samples = m_num_samples;
-			out_track.m_stride = m_stride;
-			out_track.m_data_size = m_data_size;
-			out_track.m_sample_rate = m_sample_rate;
-			out_track.m_type = m_type;
-			out_track.m_category = m_category;
-			out_track.m_sample_size = m_sample_size;
-			out_track.m_desc = m_desc;
-
-			std::memcpy(out_track.m_data, m_data, m_data_size);
-		}
+		void get_copy_impl(IAllocator& allocator, track& out_track) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal helper.
-		void get_ref_impl(track& out_track) const
-		{
-			out_track.m_allocator = nullptr;
-			out_track.m_data = m_data;
-			out_track.m_num_samples = m_num_samples;
-			out_track.m_stride = m_stride;
-			out_track.m_data_size = m_data_size;
-			out_track.m_sample_rate = m_sample_rate;
-			out_track.m_type = m_type;
-			out_track.m_category = m_category;
-			out_track.m_sample_size = m_sample_size;
-			out_track.m_desc = m_desc;
-		}
+		void get_ref_impl(track& out_track) const;
 
 		IAllocator*				m_allocator;		// Optional allocator that owns the memory
 		uint8_t*				m_data;				// Pointer to the samples
@@ -390,43 +236,19 @@ namespace acl
 		// Returns the sample at the specified index.
 		// If this track does not own the memory, mutable references aren't allowed and an
 		// invalid reference will be returned, leading to a crash.
-		sample_type& operator[](uint32_t index)
-		{
-			ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
-			return *reinterpret_cast<sample_type*>(m_data + (index * m_stride));
-		}
+		sample_type& operator[](uint32_t index);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the sample at the specified index.
-		const sample_type& operator[](uint32_t index) const
-		{
-			ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
-			return *reinterpret_cast<const sample_type*>(m_data + (index * m_stride));
-		}
+		const sample_type& operator[](uint32_t index) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track description.
-		desc_type& get_description()
-		{
-			switch (category)
-			{
-			default:
-			case track_category8::scalarf:		return reinterpret_cast<desc_type&>(m_desc.scalar);
-			case track_category8::transformf:	return reinterpret_cast<desc_type&>(m_desc.transform);
-			}
-		}
+		desc_type& get_description();
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track description.
-		const desc_type& get_description() const
-		{
-			switch (category)
-			{
-			default:
-			case track_category8::scalarf:		return reinterpret_cast<const desc_type&>(m_desc.scalar);
-			case track_category8::transformf:	return reinterpret_cast<const desc_type&>(m_desc.transform);
-			}
-		}
+		const desc_type& get_description() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track type.
@@ -438,60 +260,27 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a copy of the track where the memory will be owned by the copy.
-		track_typed get_copy(IAllocator& allocator) const
-		{
-			track_typed track_;
-			track::get_copy_impl(allocator, track_);
-			return track_;
-		}
+		track_typed get_copy(IAllocator& allocator) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a reference to the track where the memory isn't owned.
-		track_typed get_ref() const
-		{
-			track_typed track_;
-			track::get_ref_impl(track_);
-			return track_;
-		}
+		track_typed get_ref() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track that copies the data and owns the memory.
-		static track_typed<track_type_> make_copy(const desc_type& desc, IAllocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type))
-		{
-			const size_t data_size = size_t(num_samples) * sizeof(sample_type);
-			const uint8_t* data_raw = reinterpret_cast<const uint8_t*>(data);
-
-			// Copy the data manually to avoid preserving the stride
-			sample_type* data_copy = reinterpret_cast<sample_type*>(allocator.allocate(data_size));
-			for (uint32_t index = 0; index < num_samples; ++index)
-				data_copy[index] = *reinterpret_cast<const sample_type*>(data_raw + (index * stride));
-
-			return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(data_copy), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
-		}
+		static track_typed<track_type_> make_copy(const desc_type& desc, IAllocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track and preallocates but does not initialize the memory that it owns.
-		static track_typed<track_type_> make_reserve(const desc_type& desc, IAllocator& allocator, uint32_t num_samples, float sample_rate)
-		{
-			const size_t data_size = size_t(num_samples) * sizeof(sample_type);
-			return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(allocator.allocate(data_size)), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
-		}
+		static track_typed<track_type_> make_reserve(const desc_type& desc, IAllocator& allocator, uint32_t num_samples, float sample_rate);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track and takes ownership of the already allocated memory.
-		static track_typed<track_type_> make_owner(const desc_type& desc, IAllocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type))
-		{
-			const size_t data_size = size_t(num_samples) * stride;
-			return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(data), num_samples, stride, data_size, sample_rate, desc);
-		}
+		static track_typed<track_type_> make_owner(const desc_type& desc, IAllocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track that just references the data without owning it.
-		static track_typed<track_type_> make_ref(const desc_type& desc, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type))
-		{
-			const size_t data_size = size_t(num_samples) * stride;
-			return track_typed<track_type_>(nullptr, const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data)), num_samples, stride, data_size, sample_rate, desc);
-		}
+		static track_typed<track_type_> make_ref(const desc_type& desc, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 	private:
 		//////////////////////////////////////////////////////////////////////////
@@ -501,11 +290,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
-		track_typed(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const desc_type& desc) noexcept
-			: track(allocator, data, num_samples, stride, data_size, sample_rate, type, category, sizeof(sample_type))
-		{
-			m_desc = desc_union(desc);
-		}
+		track_typed(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const desc_type& desc) noexcept;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -559,6 +344,291 @@ namespace acl
 	using track_float4f			= track_typed<track_type8::float4f>;
 	using track_vector4f		= track_typed<track_type8::vector4f>;
 	using track_qvvf			= track_typed<track_type8::qvvf>;
+
+	//////////////////////////////////////////////////////////////////////////
+	// Implementation
+
+	inline track::track() noexcept
+		: m_allocator(nullptr)
+		, m_data(nullptr)
+		, m_num_samples(0)
+		, m_stride(0)
+		, m_data_size(0)
+		, m_sample_rate(0.0F)
+		, m_type(track_type8::float1f)
+		, m_category(track_category8::scalarf)
+		, m_sample_size(0)
+		, m_desc()
+	{}
+
+	inline track::track(track&& other) noexcept
+		: m_allocator(other.m_allocator)
+		, m_data(other.m_data)
+		, m_num_samples(other.m_num_samples)
+		, m_stride(other.m_stride)
+		, m_data_size(other.m_data_size)
+		, m_sample_rate(other.m_sample_rate)
+		, m_type(other.m_type)
+		, m_category(other.m_category)
+		, m_sample_size(other.m_sample_size)
+		, m_desc(other.m_desc)
+	{
+		other.m_allocator = nullptr;
+		other.m_data = nullptr;
+	}
+
+	inline track::~track()
+	{
+		if (is_owner())
+		{
+			// We own the memory, free it
+			m_allocator->deallocate(m_data, m_data_size);
+		}
+	}
+
+	inline track& track::operator=(track&& other) noexcept
+	{
+		std::swap(m_allocator, other.m_allocator);
+		std::swap(m_data, other.m_data);
+		std::swap(m_num_samples, other.m_num_samples);
+		std::swap(m_stride, other.m_stride);
+		std::swap(m_data_size, other.m_data_size);
+		std::swap(m_sample_rate, other.m_sample_rate);
+		std::swap(m_type, other.m_type);
+		std::swap(m_category, other.m_category);
+		std::swap(m_sample_size, other.m_sample_size);
+		std::swap(m_desc, other.m_desc);
+		return *this;
+	}
+
+	inline void* track::operator[](uint32_t index)
+	{
+		ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
+		return m_data + (index * m_stride);
+	}
+
+	inline const void* track::operator[](uint32_t index) const
+	{
+		ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
+		return m_data + (index * m_stride);
+	}
+
+	inline uint32_t track::get_output_index() const
+	{
+		switch (m_category)
+		{
+		default:
+		case track_category8::scalarf:		return m_desc.scalar.output_index;
+		case track_category8::transformf:	return m_desc.transform.output_index;
+		}
+	}
+
+	template<typename desc_type>
+	inline desc_type& track::get_description()
+	{
+		ACL_ASSERT(desc_type::category == m_category, "Unexpected track category");
+		switch (desc_type::category)
+		{
+		default:
+		case track_category8::scalarf:		return reinterpret_cast<desc_type&>(m_desc.scalar);
+		case track_category8::transformf:	return reinterpret_cast<desc_type&>(m_desc.transform);
+		}
+	}
+
+	template<typename desc_type>
+	inline const desc_type& track::get_description() const
+	{
+		ACL_ASSERT(desc_type::category == m_category, "Unexpected track category");
+		switch (desc_type::category)
+		{
+		default:
+		case track_category8::scalarf:		return reinterpret_cast<const desc_type&>(m_desc.scalar);
+		case track_category8::transformf:	return reinterpret_cast<const desc_type&>(m_desc.transform);
+		}
+	}
+
+	inline track track::get_copy(IAllocator& allocator) const
+	{
+		track track_;
+		get_copy_impl(allocator, track_);
+		return track_;
+	}
+
+	inline track track::get_ref() const
+	{
+		track track_;
+		get_ref_impl(track_);
+		return track_;
+	}
+
+	inline ErrorResult track::is_valid() const
+	{
+		if (m_data == nullptr)
+			return ErrorResult();
+
+		if (m_num_samples == 0xFFFFFFFFU)
+			return ErrorResult("Too many samples");
+
+		if (m_sample_rate <= 0.0F || !rtm::scalar_is_finite(m_sample_rate))
+			return ErrorResult("Invalid sample rate");
+
+		switch (m_category)
+		{
+		case track_category8::scalarf:		return m_desc.scalar.is_valid();
+		case track_category8::transformf:	return m_desc.transform.is_valid();
+		default:							return ErrorResult("Invalid category");
+		}
+	}
+
+	inline track::track(track_type8 type, track_category8 category) noexcept
+		: m_allocator(nullptr)
+		, m_data(nullptr)
+		, m_num_samples(0)
+		, m_stride(0)
+		, m_data_size(0)
+		, m_sample_rate(0.0F)
+		, m_type(type)
+		, m_category(category)
+		, m_sample_size(0)
+		, m_desc()
+	{}
+
+	inline track::track(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept
+		: m_allocator(allocator)
+		, m_data(data)
+		, m_num_samples(num_samples)
+		, m_stride(stride)
+		, m_data_size(data_size)
+		, m_sample_rate(sample_rate)
+		, m_type(type)
+		, m_category(category)
+		, m_sample_size(sample_size)
+		, m_desc()
+	{}
+
+	inline void track::get_copy_impl(IAllocator& allocator, track& out_track) const
+	{
+		out_track.m_allocator = &allocator;
+		out_track.m_data = reinterpret_cast<uint8_t*>(allocator.allocate(m_data_size));
+		out_track.m_num_samples = m_num_samples;
+		out_track.m_stride = m_stride;
+		out_track.m_data_size = m_data_size;
+		out_track.m_sample_rate = m_sample_rate;
+		out_track.m_type = m_type;
+		out_track.m_category = m_category;
+		out_track.m_sample_size = m_sample_size;
+		out_track.m_desc = m_desc;
+
+		std::memcpy(out_track.m_data, m_data, m_data_size);
+	}
+
+	inline void track::get_ref_impl(track& out_track) const
+	{
+		out_track.m_allocator = nullptr;
+		out_track.m_data = m_data;
+		out_track.m_num_samples = m_num_samples;
+		out_track.m_stride = m_stride;
+		out_track.m_data_size = m_data_size;
+		out_track.m_sample_rate = m_sample_rate;
+		out_track.m_type = m_type;
+		out_track.m_category = m_category;
+		out_track.m_sample_size = m_sample_size;
+		out_track.m_desc = m_desc;
+	}
+
+	template<track_type8 track_type_>
+	inline typename track_typed<track_type_>::sample_type& track_typed<track_type_>::operator[](uint32_t index)
+	{
+		ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
+		return *reinterpret_cast<sample_type*>(m_data + (index * m_stride));
+	}
+
+	template<track_type8 track_type_>
+	inline const typename track_typed<track_type_>::sample_type& track_typed<track_type_>::operator[](uint32_t index) const
+	{
+		ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
+		return *reinterpret_cast<const sample_type*>(m_data + (index * m_stride));
+	}
+
+	template<track_type8 track_type_>
+	inline typename track_typed<track_type_>::desc_type& track_typed<track_type_>::get_description()
+	{
+		switch (category)
+		{
+		default:
+		case track_category8::scalarf:		return reinterpret_cast<desc_type&>(m_desc.scalar);
+		case track_category8::transformf:	return reinterpret_cast<desc_type&>(m_desc.transform);
+		}
+	}
+
+	template<track_type8 track_type_>
+	inline const typename track_typed<track_type_>::desc_type& track_typed<track_type_>::get_description() const
+	{
+		switch (category)
+		{
+		default:
+		case track_category8::scalarf:		return reinterpret_cast<const desc_type&>(m_desc.scalar);
+		case track_category8::transformf:	return reinterpret_cast<const desc_type&>(m_desc.transform);
+		}
+	}
+
+	template<track_type8 track_type_>
+	inline track_typed<track_type_> track_typed<track_type_>::get_copy(IAllocator& allocator) const
+	{
+		track_typed track_;
+		track::get_copy_impl(allocator, track_);
+		return track_;
+	}
+
+	template<track_type8 track_type_>
+	inline track_typed<track_type_> track_typed<track_type_>::get_ref() const
+	{
+		track_typed track_;
+		track::get_ref_impl(track_);
+		return track_;
+	}
+
+	template<track_type8 track_type_>
+	inline track_typed<track_type_> track_typed<track_type_>::make_copy(const typename track_typed<track_type_>::desc_type& desc, IAllocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
+	{
+		const size_t data_size = size_t(num_samples) * sizeof(sample_type);
+		const uint8_t* data_raw = reinterpret_cast<const uint8_t*>(data);
+
+		// Copy the data manually to avoid preserving the stride
+		sample_type* data_copy = reinterpret_cast<sample_type*>(allocator.allocate(data_size));
+		for (uint32_t index = 0; index < num_samples; ++index)
+			data_copy[index] = *reinterpret_cast<const sample_type*>(data_raw + (index * stride));
+
+		return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(data_copy), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
+	}
+
+	template<track_type8 track_type_>
+	inline track_typed<track_type_> track_typed<track_type_>::make_reserve(const typename track_typed<track_type_>::desc_type& desc, IAllocator& allocator, uint32_t num_samples, float sample_rate)
+	{
+		const size_t data_size = size_t(num_samples) * sizeof(sample_type);
+		return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(allocator.allocate(data_size)), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
+	}
+
+	template<track_type8 track_type_>
+	inline track_typed<track_type_> track_typed<track_type_>::make_owner(const typename track_typed<track_type_>::desc_type& desc, IAllocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
+	{
+		const size_t data_size = size_t(num_samples) * stride;
+		return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(data), num_samples, stride, data_size, sample_rate, desc);
+	}
+
+	template<track_type8 track_type_>
+	inline track_typed<track_type_> track_typed<track_type_>::make_ref(const typename track_typed<track_type_>::desc_type& desc, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
+	{
+		const size_t data_size = size_t(num_samples) * stride;
+		return track_typed<track_type_>(nullptr, const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data)), num_samples, stride, data_size, sample_rate, desc);
+	}
+
+	template<track_type8 track_type_>
+	inline track_typed<track_type_>::track_typed(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const typename track_typed<track_type_>::desc_type& desc) noexcept
+		: track(allocator, data, num_samples, stride, data_size, sample_rate, type, category, sizeof(sample_type))
+	{
+		m_desc = desc_union(desc);
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
