@@ -1122,7 +1122,7 @@ namespace acl
 			const bool is_scale_variable = segment_context_has_scale(segment) && is_vector_format_variable(scale_format);
 
 			const uint32_t num_bones = segment.num_bones;
-			for (uint32_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
+			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				BoneBitRate& bone_bit_rate = out_bit_rate_per_bone[bone_index];
 
