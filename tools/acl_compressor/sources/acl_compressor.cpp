@@ -1028,6 +1028,8 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 	// Convert the animation clip to be relative to the bind pose
 	const uint32_t num_bones = clip.get_num_tracks();
 	const uint32_t num_samples = clip.get_num_samples_per_track();
+	IAllocator& allocator = *clip.get_allocator();
+	const track_desc_transformf bind_desc;
 
 	out_base_clip = track_array_qvvf(*clip.get_allocator(), num_bones);
 
@@ -1063,7 +1065,7 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 			track[sample_index] = bind_local_transform;
 		}
 
-		out_base_clip[bone_index][0] = bind_transform;
+		out_base_clip[bone_index] = track_qvvf::make_copy(bind_desc, allocator, &bind_transform, 1, 30.0F);
 	}
 }
 
