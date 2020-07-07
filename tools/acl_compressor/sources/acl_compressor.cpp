@@ -425,8 +425,14 @@ static bool parse_options(int argc, char** argv, Options& options)
 static void validate_accuracy(IAllocator& allocator, const track_array& raw_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
 {
 	using namespace acl_impl;
+
+	(void)allocator;
+	(void)raw_tracks;
+	(void)error_metric;
+	(void)compressed_tracks_;
 	(void)regression_error_threshold;
 
+#if defined(ACL_HAS_ASSERT_CHECKS)
 	// Disable floating point exceptions since decompression assumes it
 	scope_disable_fp_exceptions fp_off;
 
@@ -467,6 +473,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, 0.0F), "Failed to sample bone index: %u", bone_index);
 		}
 	}
+#endif
 }
 
 static void validate_accuracy(IAllocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold)
@@ -686,6 +693,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, track_a
 		compressed_tracks* compressed_tracks_ = nullptr;
 		const ErrorResult error_result = compress_track_list(allocator, transform_tracks, settings_, additive_base, additive_format, compressed_tracks_, stats);
 
+		(void)error_result;
 		ACL_ASSERT(error_result.empty(), error_result.c_str());
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
