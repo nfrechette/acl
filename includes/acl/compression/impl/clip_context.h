@@ -356,7 +356,7 @@ namespace acl
 			segment.clip = &out_clip_context;
 			segment.ranges = nullptr;
 			segment.num_samples = safe_static_cast<uint16_t>(num_samples);
-			segment.num_bones = safe_static_cast<uint16_t>(num_transforms);;
+			segment.num_bones = safe_static_cast<uint16_t>(num_transforms);
 			segment.clip_sample_offset = 0;
 			segment.segment_index = 0;
 			segment.distribution = SampleDistribution8::Uniform;
