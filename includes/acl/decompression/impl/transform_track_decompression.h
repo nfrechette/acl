@@ -745,7 +745,7 @@ namespace acl
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 
 			const rtm::vector4f default_translation = rtm::vector_zero();
-			const rtm::vector4f default_scale = transform_header.default_scale ? rtm::vector_set(1.0F) : rtm::vector_zero();
+			const rtm::vector4f default_scale = rtm::vector_set(float(transform_header.default_scale));
 			const uint8_t has_scale = transform_header.has_scale;
 
 			sampling_context sampling_context_;
@@ -815,7 +815,7 @@ namespace acl
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 
 			const rtm::vector4f default_translation = rtm::vector_zero();
-			const rtm::vector4f default_scale = transform_header.default_scale ? rtm::vector_set(1.0F) : rtm::vector_zero();
+			const rtm::vector4f default_scale = rtm::vector_set(float(transform_header.default_scale));
 			const uint8_t has_scale = transform_header.has_scale;
 
 			sampling_context sampling_context_;
