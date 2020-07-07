@@ -746,7 +746,7 @@ namespace acl
 
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = transform_header.default_scale ? rtm::vector_set(1.0F) : rtm::vector_zero();
-			const bool has_scale = transform_header.has_scale;
+			const uint8_t has_scale = transform_header.has_scale;
 
 			sampling_context sampling_context_;
 			sampling_context_.track_index = 0;
@@ -816,7 +816,7 @@ namespace acl
 
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = transform_header.default_scale ? rtm::vector_set(1.0F) : rtm::vector_zero();
-			const bool has_scale = transform_header.has_scale;
+			const uint8_t has_scale = transform_header.has_scale;
 
 			sampling_context sampling_context_;
 			sampling_context_.key_frame_bit_offsets[0] = context.key_frame_bit_offsets[0];
