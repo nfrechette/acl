@@ -489,6 +489,91 @@ namespace acl
 	}
 
 	//////////////////////////////////////////////////////////////////////////
+	// Calculates the worst compression error between a raw track array and its
+	// compressed tracks.
+	// Supports transform tracks with an additive base.
+	//
+	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
+	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
+	inline track_error calculate_compression_error(IAllocator& allocator, const track_array_qvvf& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array_qvvf& additive_base_tracks)
+	{
+		using namespace acl_impl;
+
+		ACL_ASSERT(raw_tracks.is_valid().empty(), "Raw tracks are invalid");
+		ACL_ASSERT(context.is_initialized(), "Context isn't initialized");
+
+		calculate_track_error_args args;
+		args.num_samples = raw_tracks.get_num_samples_per_track();
+		args.num_tracks = raw_tracks.get_num_tracks();
+		args.duration = raw_tracks.get_duration();
+		args.sample_rate = raw_tracks.get_sample_rate();
+		args.track_type = raw_tracks.get_track_type();
+
+		args.sample_tracks0 = [&raw_tracks](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
+		{
+			raw_tracks.sample_tracks(sample_time, rounding_policy, track_writer);
+		};
+
+		args.sample_tracks1 = [&context](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
+		{
+			context.seek(sample_time, rounding_policy);
+			context.decompress_tracks(track_writer);
+		};
+
+		args.get_output_index = [&raw_tracks](uint32_t track_index)
+		{
+			const track& track_ = raw_tracks[track_index];
+			return track_.get_output_index();
+		};
+
+		uint32_t num_output_bones = 0;
+		uint32_t* output_bone_mapping = create_output_track_mapping(allocator, raw_tracks, num_output_bones);
+
+		args.error_metric = &error_metric;
+
+		args.get_parent_index = [&raw_tracks](uint32_t track_index)
+		{
+			const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks[track_index]);
+			return track_.get_description().parent_index;
+		};
+
+		args.get_shell_distance = [&raw_tracks](uint32_t track_index)
+		{
+			const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks[track_index]);
+			return track_.get_description().shell_distance;
+		};
+
+		args.remap_output = [output_bone_mapping, num_output_bones](debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped)
+		{
+			// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
+			// the data is available
+			std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer0.tracks_typed.qvvf, sizeof(rtm::qvvf) * track_writer_remapped.num_tracks);
+			for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
+			{
+				const uint32_t bone_index = output_bone_mapping[output_index];
+				track_writer_remapped.tracks_typed.qvvf[bone_index] = track_writer1.tracks_typed.qvvf[output_index];
+			}
+		};
+
+		if (additive_base_tracks.get_num_tracks() != 0)
+		{
+			args.base_num_samples = additive_base_tracks.get_num_samples_per_track();
+			args.base_duration = additive_base_tracks.get_duration();
+
+			args.sample_tracks_base = [&additive_base_tracks](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
+			{
+				additive_base_tracks.sample_tracks(sample_time, rounding_policy, track_writer);
+			};
+		}
+
+		const track_error result = calculate_transform_track_error(allocator, args);
+
+		deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
+
+		return result;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between two compressed tracks instances.
 	// Supports scalar tracks only.
 	//
