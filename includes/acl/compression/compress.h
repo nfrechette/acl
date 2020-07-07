@@ -402,7 +402,7 @@ namespace acl
 				ACL_ASSERT(written_bitset_size == (bitset_desc.get_num_bytes() * 2), "Wrote too little or too much data");
 				ACL_ASSERT(written_constant_data_size == constant_data_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_clip_range_data_size == clip_range_data_size, "Wrote too little or too much data");
-				ACL_ASSERT((buffer - buffer_start) == buffer_size, "Wrote too little or too much data");
+				ACL_ASSERT(uint32_t(buffer - buffer_start) == buffer_size, "Wrote too little or too much data");
 				for (const uint8_t* padding = buffer - 15; padding < buffer; ++padding)
 					ACL_ASSERT(*padding == 0, "Padding was overwritten");
 			}
