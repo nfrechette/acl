@@ -24,6 +24,7 @@
 
 #include "acl_compressor.h"
 
+#define DEBUG_MEGA_LARGE_CLIP 0
 
 // Enable 64 bit file IO
 #ifndef _WIN32
@@ -1129,6 +1130,35 @@ static int safe_main_impl(int argc, char* argv[])
 		algorithm_type = sjson_clip.algorithm_type;
 		settings = sjson_clip.settings;
 	}
+
+#if DEBUG_MEGA_LARGE_CLIP
+	track_array_qvvf new_transforms(allocator, transform_tracks.get_num_tracks());
+	float new_sample_rate = 19200.0F;
+	uint32_t new_num_samples = calculate_num_samples(transform_tracks.get_duration(), new_sample_rate);
+	float new_duration = calculate_duration(new_num_samples, new_sample_rate);
+	acl_impl::debug_track_writer dummy_writer(allocator, track_type8::qvvf, transform_tracks.get_num_tracks());
+
+	for (uint32_t track_index = 0; track_index < transform_tracks.get_num_tracks(); ++track_index)
+	{
+		track_qvvf& track = transform_tracks[track_index];
+		new_transforms[track_index] = track_qvvf::make_reserve(track.get_description(), allocator, new_num_samples, new_sample_rate);
+	}
+
+	for (uint32_t sample_index = 0; sample_index < new_num_samples; ++sample_index)
+	{
+		const float sample_time = rtm::scalar_min(float(sample_index) / new_sample_rate, new_duration);
+
+		transform_tracks.sample_tracks(sample_time, sample_rounding_policy::none, dummy_writer);
+
+		for (uint32_t track_index = 0; track_index < new_transforms.get_num_tracks(); ++track_index)
+		{
+			track_qvvf& track = new_transforms[track_index];
+			track[sample_index] = dummy_writer.tracks_typed.qvvf[track_index];
+		}
+	}
+
+	transform_tracks = std::move(new_transforms);
+#endif
 
 	double regression_error_threshold = 0.1;
 
