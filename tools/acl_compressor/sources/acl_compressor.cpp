@@ -46,19 +46,13 @@
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/string.h"
 #include "acl/core/impl/debug_track_writer.h"
-#include "acl/compression/animation_clip.h"
 #include "acl/compression/compress.h"
-#include "acl/compression/skeleton.h"
 #include "acl/compression/skeleton_error_metric.h"
 #include "acl/compression/skeleton_pose_utils.h"	// Just to test compilation
 #include "acl/compression/impl/write_decompression_stats.h"
 #include "acl/compression/track_error.h"
-#include "acl/compression/utils.h"
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
-
-#include "acl/algorithm/uniformly_sampled/encoder.h"
-#include "acl/algorithm/uniformly_sampled/decoder.h"
 
 #include <cstring>
 #include <cstdio>
@@ -662,7 +656,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 #endif	// defined(ACL_HAS_ASSERT_CHECKS)
 }
 
-static void try_algorithm(const Options& options, IAllocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, const CompressionSettings& settings, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, IAllocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, const compression_settings& settings, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
 
@@ -671,29 +665,9 @@ static void try_algorithm(const Options& options, IAllocator& allocator, track_a
 		if (transform_tracks.get_num_samples_per_track() == 0)
 			return;
 
-		// Copy our settings over to each track
-		const uint32_t num_transforms = transform_tracks.get_num_tracks();
-		for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
-		{
-			track_qvvf& track = transform_tracks[transform_index];
-			track_desc_transformf& desc = track.get_description();
-
-			desc.constant_rotation_threshold_angle = settings.constant_rotation_threshold_angle;
-			desc.constant_translation_threshold = settings.constant_translation_threshold;
-			desc.constant_scale_threshold = settings.constant_scale_threshold;
-			desc.precision = settings.error_threshold;
-		}
-
-		compression_settings settings_;
-		settings_.level = settings.level;
-		settings_.rotation_format = settings.rotation_format;
-		settings_.translation_format = settings.translation_format;
-		settings_.scale_format = settings.scale_format;
-		settings_.error_metric = settings.error_metric;
-
 		OutputStats stats(logging, stats_writer);
 		compressed_tracks* compressed_tracks_ = nullptr;
-		const ErrorResult error_result = compress_track_list(allocator, transform_tracks, settings_, additive_base, additive_format, compressed_tracks_, stats);
+		const ErrorResult error_result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
 
 		(void)error_result;
 		ACL_ASSERT(error_result.empty(), error_result.c_str());
@@ -708,19 +682,19 @@ static void try_algorithm(const Options& options, IAllocator& allocator, track_a
 			acl::decompression_context<acl::debug_decompression_settings> context;
 			context.initialize(*compressed_tracks_);
 
-			const track_error error = calculate_compression_error(allocator, transform_tracks, context, *settings_.error_metric);
+			const track_error error = calculate_compression_error(allocator, transform_tracks, context, *settings.error_metric);
 
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
 
 			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
-				acl_impl::write_decompression_performance_stats(allocator, settings_, *compressed_tracks_, logging, *stats_writer);
+				acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_tracks_, logging, *stats_writer);
 		}
 #endif
 
 		if (options.regression_testing)
-			validate_accuracy(allocator, transform_tracks, additive_base, *settings_.error_metric, *compressed_tracks_, regression_error_threshold);
+			validate_accuracy(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, regression_error_threshold);
 
 		if (options.output_bin_filename != nullptr)
 		{
@@ -898,7 +872,7 @@ static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
 	return success;
 }
 
-static bool read_config(IAllocator& allocator, Options& options, algorithm_type8& out_algorithm_type, CompressionSettings& out_settings, double& out_regression_error_threshold)
+static bool read_config(IAllocator& allocator, Options& options, compression_settings& out_settings, double& out_regression_error_threshold)
 {
 #if defined(__ANDROID__)
 	sjson::Parser parser(options.config_buffer, options.config_buffer_size - 1);
@@ -939,13 +913,14 @@ static bool read_config(IAllocator& allocator, Options& options, algorithm_type8
 		return false;
 	}
 
-	if (!get_algorithm_type(algorithm_name.c_str(), out_algorithm_type))
+	algorithm_type8 algorithm_type;
+	if (!get_algorithm_type(algorithm_name.c_str(), algorithm_type))
 	{
 		printf("Invalid algorithm name: %s\n", String(allocator, algorithm_name.c_str(), algorithm_name.size()).c_str());
 		return false;
 	}
 
-	CompressionSettings default_settings;
+	compression_settings default_settings;
 
 	sjson::StringView compression_level;
 	parser.try_read("level", compression_level, get_compression_level_name(default_settings.level));
@@ -979,13 +954,12 @@ static bool read_config(IAllocator& allocator, Options& options, algorithm_type8
 		return false;
 	}
 
-	double constant_rotation_threshold_angle;
-	parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, default_settings.constant_rotation_threshold_angle);
-	out_settings.constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
+	double dummy;
+	parser.try_read("constant_rotation_threshold_angle", dummy, 0.0F);
 
-	parser.try_read("constant_translation_threshold", out_settings.constant_translation_threshold, default_settings.constant_translation_threshold);
-	parser.try_read("constant_scale_threshold", out_settings.constant_scale_threshold, default_settings.constant_scale_threshold);
-	parser.try_read("error_threshold", out_settings.error_threshold, default_settings.error_threshold);
+	parser.try_read("constant_translation_threshold", dummy, 0.0F);
+	parser.try_read("constant_scale_threshold", dummy, 0.0F);
+	parser.try_read("error_threshold", dummy, 0.0F);
 
 	parser.try_read("regression_error_threshold", out_regression_error_threshold, 0.0);
 
@@ -1071,9 +1045,9 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 	}
 }
 
-static CompressionSettings make_settings(rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format)
+static compression_settings make_settings(rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format)
 {
-	CompressionSettings settings;
+	compression_settings settings;
 	settings.rotation_format = rotation_format;
 	settings.translation_format = translation_format;
 	settings.scale_format = scale_format;
@@ -1110,8 +1084,7 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 
 	bool use_external_config = false;
-	algorithm_type8 algorithm_type = algorithm_type8::uniformly_sampled;
-	CompressionSettings settings;
+	compression_settings settings;
 
 	sjson_file_type sjson_type = sjson_file_type::unknown;
 	sjson_raw_clip sjson_clip;
@@ -1127,7 +1100,6 @@ static int safe_main_impl(int argc, char* argv[])
 		additive_format = sjson_clip.additive_format;
 		bind_pose = std::move(sjson_clip.bind_pose);
 		use_external_config = sjson_clip.has_settings;
-		algorithm_type = sjson_clip.algorithm_type;
 		settings = sjson_clip.settings;
 	}
 
@@ -1169,10 +1141,9 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 	{
 		// Override whatever the ACL SJSON file might have contained
-		algorithm_type = algorithm_type8::uniformly_sampled;
-		settings = CompressionSettings();
+		settings = compression_settings();
 
-		if (!read_config(allocator, options, algorithm_type, settings, regression_error_threshold))
+		if (!read_config(allocator, options, settings, regression_error_threshold))
 			return -1;
 
 		use_external_config = true;
@@ -1221,7 +1192,7 @@ static int safe_main_impl(int argc, char* argv[])
 				// Disable floating point exceptions since decompression assumes it
 				scope_disable_fp_exceptions fp_off;
 
-				const compression_settings default_settings = get_default_compression_settings_();
+				settings = get_default_compression_settings();
 
 #if defined(__ANDROID__)
 				const compressed_tracks* compressed_clip = make_compressed_tracks(options.input_buffer);
@@ -1231,7 +1202,7 @@ static int safe_main_impl(int argc, char* argv[])
 
 				runs_writer->push([&](sjson::ObjectWriter& writer)
 				{
-					acl_impl::write_decompression_performance_stats(allocator, default_settings, *compressed_clip, logging, writer);
+					acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, writer);
 				});
 #else
 				std::ifstream input_file_stream(options.input_filename, std::ios_base::in | std::ios_base::binary);
@@ -1251,7 +1222,7 @@ static int safe_main_impl(int argc, char* argv[])
 
 					runs_writer->push([&](sjson::ObjectWriter& writer)
 					{
-						acl_impl::write_decompression_performance_stats(allocator, default_settings, *compressed_clip, logging, writer);
+						acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, writer);
 					});
 
 					allocator.deallocate(buffer, buffer_size);
@@ -1264,8 +1235,6 @@ static int safe_main_impl(int argc, char* argv[])
 		{
 			if (use_external_config)
 			{
-				ACL_ASSERT(algorithm_type == algorithm_type8::uniformly_sampled, "Only uniformly_sampled is supported for now");
-
 				if (options.compression_level_specified)
 					settings.level = options.compression_level;
 
@@ -1274,7 +1243,7 @@ static int safe_main_impl(int argc, char* argv[])
 			else if (options.exhaustive_compression)
 			{
 				{
-					CompressionSettings uniform_tests[] =
+					compression_settings uniform_tests[] =
 					{
 						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full),
 						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full),
@@ -1283,7 +1252,7 @@ static int safe_main_impl(int argc, char* argv[])
 						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable),
 					};
 
-					for (CompressionSettings test_settings : uniform_tests)
+					for (compression_settings test_settings : uniform_tests)
 					{
 						test_settings.error_metric = settings.error_metric;
 
@@ -1292,7 +1261,7 @@ static int safe_main_impl(int argc, char* argv[])
 				}
 
 				{
-					CompressionSettings uniform_tests[] =
+					compression_settings uniform_tests[] =
 					{
 						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full),
 						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full),
@@ -1301,7 +1270,7 @@ static int safe_main_impl(int argc, char* argv[])
 						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable),
 					};
 
-					for (CompressionSettings test_settings : uniform_tests)
+					for (compression_settings test_settings : uniform_tests)
 					{
 						test_settings.error_metric = settings.error_metric;
 
@@ -1314,7 +1283,7 @@ static int safe_main_impl(int argc, char* argv[])
 			}
 			else
 			{
-				CompressionSettings default_settings = get_default_compression_settings();
+				compression_settings default_settings = get_default_compression_settings();
 				default_settings.error_metric = settings.error_metric;
 
 				if (options.compression_level_specified)

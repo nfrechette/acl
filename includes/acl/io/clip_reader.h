@@ -27,18 +27,20 @@
 #if defined(SJSON_CPP_PARSER)
 
 #include "acl/io/clip_reader_error.h"
-#include "acl/compression/animation_clip.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
-#include "acl/compression/skeleton.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/string.h"
 #include "acl/core/unique_ptr.h"
+#include "acl/math/quatf.h"
 
 #include <rtm/quatd.h>
+#include <rtm/quatf.h>
 #include <rtm/vector4d.h>
+#include <rtm/vector4f.h>
+#include <rtm/qvvd.h>
 #include <rtm/qvvf.h>
 
 #include <cstdint>
@@ -57,11 +59,9 @@ namespace acl
 	};
 
 	//////////////////////////////////////////////////////////////////////////
-	// A raw clip with transform tracks
+	// Raw transform tracks
 	struct sjson_raw_clip
 	{
-		std::unique_ptr<AnimationClip, Deleter<AnimationClip>> clip;
-		std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>> skeleton;
 		track_array_qvvf track_list;
 
 		track_array_qvvf additive_base_track_list;
@@ -70,15 +70,19 @@ namespace acl
 		track_qvvf bind_pose;
 
 		bool has_settings;
-		algorithm_type8 algorithm_type;
-		CompressionSettings settings;
+		compression_settings settings;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
-	// A raw track list
+	// Raw scalar tracks
 	struct sjson_raw_track_list
 	{
 		track_array track_list;
+
+		track_qvvf bind_pose;
+
+		bool has_settings;
+		compression_settings settings;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -94,7 +98,14 @@ namespace acl
 			, m_num_samples(0)
 			, m_sample_rate(0.0F)
 			, m_is_binary_exact(false)
+			, m_bone_names(nullptr)
+			, m_num_bones(0)
 		{
+		}
+
+		~ClipReader()
+		{
+			deallocate_type_array(m_allocator, m_bone_names, m_num_bones);
 		}
 
 		sjson_file_type get_file_type()
@@ -123,16 +134,13 @@ namespace acl
 			if (!read_raw_clip_header())
 				return false;
 
-			if (!read_settings(&out_data.has_settings, &out_data.algorithm_type, &out_data.settings))
+			if (!read_settings(&out_data.has_settings, &out_data.settings))
 				return false;
 
-			if (!create_skeleton(out_data.skeleton, out_data.track_list, out_data.bind_pose))
+			if (!create_skeleton(out_data.track_list, out_data.bind_pose))
 				return false;
 
-			if (!create_clip(out_data.clip, *out_data.skeleton))
-				return false;
-
-			if (!read_tracks(*out_data.clip, *out_data.skeleton, out_data.track_list, out_data.additive_base_track_list))
+			if (!read_tracks(out_data.track_list, out_data.additive_base_track_list))
 				return false;
 
 			out_data.additive_format = out_data.additive_base_track_list.get_num_tracks() != 0 ? m_additive_format : additive_clip_format8::none;
@@ -150,13 +158,10 @@ namespace acl
 			if (!read_raw_track_list_header())
 				return false;
 
-			bool has_settings;				// Not used
-			algorithm_type8 algorithm_type;	// Not used
-			CompressionSettings settings;	// Not used
-			if (!read_settings(&has_settings, &algorithm_type, &settings))
+			if (!read_settings(&out_data.has_settings, &out_data.settings))
 				return false;
 
-			if (!create_track_list(out_data.track_list))
+			if (!create_track_list(out_data.track_list, out_data.bind_pose))
 				return false;
 
 			return nothing_follows();
@@ -178,6 +183,15 @@ namespace acl
 		sjson::StringView m_additive_base_name;
 		uint32_t m_additive_base_num_samples;
 		float m_additive_base_sample_rate;
+
+		bool m_has_settings;
+		float m_constant_rotation_threshold_angle;
+		float m_constant_translation_threshold;
+		float m_constant_scale_threshold;
+		float m_error_threshold;
+
+		sjson::StringView* m_bone_names;
+		uint32_t m_num_bones;
 
 		void reset_state()
 		{
@@ -318,8 +332,10 @@ namespace acl
 			return false;
 		}
 
-		bool read_settings(bool* out_has_settings, algorithm_type8* out_algorithm_type, CompressionSettings* out_settings)
+		bool read_settings(bool* out_has_settings, compression_settings* out_settings)
 		{
+			m_has_settings = false;
+
 			if (!m_parser.try_object_begins("settings"))
 			{
 				if (out_has_settings != nullptr)
@@ -329,7 +345,7 @@ namespace acl
 				return true;
 			}
 
-			CompressionSettings default_settings;
+			compression_settings default_settings;
 
 			sjson::StringView algorithm_name;
 			sjson::StringView compression_level;
@@ -373,10 +389,11 @@ namespace acl
 					goto parsing_error;
 			}
 
-			m_parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, double(default_settings.constant_rotation_threshold_angle));
-			m_parser.try_read("constant_translation_threshold", constant_translation_threshold, double(default_settings.constant_translation_threshold));
-			m_parser.try_read("constant_scale_threshold", constant_scale_threshold, double(default_settings.constant_scale_threshold));
-			m_parser.try_read("error_threshold", error_threshold, double(default_settings.error_threshold));
+			// Skip deprecated values
+			m_parser.try_read("constant_rotation_threshold_angle", constant_rotation_threshold_angle, 0.00284714461);
+			m_parser.try_read("constant_translation_threshold", constant_translation_threshold, 0.001);
+			m_parser.try_read("constant_scale_threshold", constant_scale_threshold, 0.00001);
+			m_parser.try_read("error_threshold", error_threshold, 0.01);
 
 			if (!m_parser.is_valid() || !m_parser.object_ends())
 				goto parsing_error;
@@ -384,9 +401,6 @@ namespace acl
 			if (out_has_settings != nullptr)
 			{
 				*out_has_settings = true;
-
-				if (!get_algorithm_type(algorithm_name.c_str(), *out_algorithm_type))
-					goto invalid_value_error;
 
 				if (!get_compression_level(compression_level.c_str(), out_settings->level))
 					goto invalid_value_error;
@@ -403,12 +417,13 @@ namespace acl
 				out_settings->segmenting.ideal_num_samples = uint16_t(segmenting_ideal_num_samples);
 				out_settings->segmenting.max_num_samples = uint16_t(segmenting_max_num_samples);
 
-				out_settings->constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
-				out_settings->constant_translation_threshold = float(constant_translation_threshold);
-				out_settings->constant_scale_threshold = float(constant_scale_threshold);
-				out_settings->error_threshold = float(error_threshold);
+				m_constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
+				m_constant_translation_threshold = float(constant_translation_threshold);
+				m_constant_scale_threshold = float(constant_scale_threshold);
+				m_error_threshold = float(error_threshold);
 			}
 
+			m_has_settings = true;
 			return true;
 
 		parsing_error:
@@ -421,48 +436,28 @@ namespace acl
 			return false;
 		}
 
-		bool create_skeleton(std::unique_ptr<RigidSkeleton, Deleter<RigidSkeleton>>& skeleton, track_array_qvvf& track_list, track_qvvf& bind_pose)
+		bool create_skeleton(track_array_qvvf& track_list, track_qvvf& bind_pose)
 		{
 			sjson::ParserState before_bones = m_parser.save_state();
 
 			uint16_t num_bones;
-			if (!process_each_bone(nullptr, num_bones))
+			if (!process_each_bone(nullptr, nullptr, num_bones))
 				return false;
 
 			m_parser.restore_state(before_bones);
 
-			RigidBone* bones = allocate_type_array<RigidBone>(m_allocator, num_bones);
-			const uint16_t num_allocated_bones = num_bones;
-
-			if (!process_each_bone(bones, num_bones))
-			{
-				deallocate_type_array(m_allocator, bones, num_allocated_bones);
-				return false;
-			}
-
-			ACL_ASSERT(num_bones == num_allocated_bones, "Number of bones read mismatch");
-			skeleton = make_unique<RigidSkeleton>(m_allocator, m_allocator, bones, num_bones);
-			deallocate_type_array(m_allocator, bones, num_allocated_bones);
+			m_num_bones = num_bones;
+			m_bone_names = allocate_type_array<sjson::StringView>(m_allocator, num_bones);
 
 			track_list = track_array_qvvf(m_allocator, num_bones);
 			bind_pose = track_qvvf::make_reserve(track_desc_transformf{}, m_allocator, num_bones, 30.0F);	// 1 sample per track
 
-			for (uint16_t transform_index = 0; transform_index < num_bones; ++transform_index)
-			{
-				const RigidBone& bone = skeleton->get_bone(transform_index);
+			const uint16_t num_allocated_bones = num_bones;
 
-				track_desc_transformf desc;
-				desc.parent_index = bone.parent_index == k_invalid_bone_index ? k_invalid_track_index : bone.parent_index;
-				desc.shell_distance = bone.vertex_distance;
+			if (!process_each_bone(&track_list, &bind_pose, num_bones))
+				return false;
 
-				// Create a dummy track for now to hold our arguments
-				track_list[transform_index] = track_qvvf::make_ref(desc, nullptr, 0, 30.0F);
-
-				rtm::qvvf bind_transform = rtm::qvv_cast(bone.bind_transform);
-				bind_transform.rotation = rtm::quat_normalize(bind_transform.rotation);
-
-				bind_pose[transform_index] = bind_transform;
-			}
+			ACL_ASSERT(num_bones == num_allocated_bones, "Number of bones read mismatch");
 
 			return true;
 		}
@@ -520,19 +515,16 @@ namespace acl
 			return result;
 		}
 
-		bool process_each_bone(RigidBone* bones, uint16_t& num_bones)
+		bool process_each_bone(track_array_qvvf* tracks, track_qvvf* bind_pose, uint16_t& num_bones)
 		{
-			bool counting = bones == nullptr;
+			bool counting = tracks == nullptr;
 			num_bones = 0;
 
 			if (!m_parser.array_begins("bones"))
 				goto error;
 
-			for (uint16_t i = 0; !m_parser.try_array_ends(); ++i)
+			for (uint32_t i = 0; !m_parser.try_array_ends(); ++i)
 			{
-				RigidBone dummy;
-				RigidBone& bone = counting ? dummy : bones[i];
-
 				if (!m_parser.object_begins())
 					goto error;
 
@@ -540,61 +532,79 @@ namespace acl
 				if (!m_parser.read("name", name))
 					goto error;
 
-				if (!counting)
-					bone.name = String(m_allocator, name.c_str(), name.size());
+				if (tracks != nullptr)
+					m_bone_names[i] = name;
 
 				sjson::StringView parent;
 				if (!m_parser.read("parent", parent))
 					goto error;
 
-				if (!counting)
+				uint32_t parent_index = k_invalid_track_index;
+				if (tracks != nullptr && parent.size() != 0)
 				{
-					if (parent.size() == 0)
+					parent_index = find_bone(parent);
+					if (parent_index == k_invalid_track_index)
 					{
-						// This is the root bone.
-						bone.parent_index = k_invalid_bone_index;
-					}
-					else
-					{
-						bone.parent_index = find_bone(bones, num_bones, parent);
-						if (bone.parent_index == k_invalid_bone_index)
-						{
-							set_error(ClipReaderError::NoParentBoneWithThatName);
-							return false;
-						}
+						set_error(ClipReaderError::NoParentBoneWithThatName);
+						return false;
 					}
 				}
 
-				if (!m_parser.read("vertex_distance", bone.vertex_distance))
+				float vertex_distance;
+				if (!m_parser.read("vertex_distance", vertex_distance))
 					goto error;
 
+				rtm::qvvd bind_transform = rtm::qvv_identity();
 				if (m_is_binary_exact)
 				{
 					sjson::StringView rotation[4];
 					if (m_parser.try_read("bind_rotation", rotation, 4, nullptr) && !counting)
-						bone.bind_transform.rotation = hex_to_quat(rotation);
+						bind_transform.rotation = hex_to_quat(rotation);
 
 					sjson::StringView translation[3];
 					if (m_parser.try_read("bind_translation", translation, 3, nullptr) && !counting)
-						bone.bind_transform.translation = hex_to_vector3(translation);
+						bind_transform.translation = hex_to_vector3(translation);
 
 					sjson::StringView scale[3];
 					if (m_parser.try_read("bind_scale", scale, 3, nullptr) && !counting)
-						bone.bind_transform.scale = hex_to_vector3(scale);
+						bind_transform.scale = hex_to_vector3(scale);
 				}
 				else
 				{
 					double rotation[4] = { 0.0, 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_rotation", rotation, 4, 0.0) && !counting)
-						bone.bind_transform.rotation = rtm::quat_load(&rotation[0]);
+						bind_transform.rotation = rtm::quat_load(&rotation[0]);
 
 					double translation[3] = { 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_translation", translation, 3, 0.0) && !counting)
-						bone.bind_transform.translation = rtm::vector_load3(&translation[0]);
+						bind_transform.translation = rtm::vector_load3(&translation[0]);
 
 					double scale[3] = { 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_scale", scale, 3, 0.0) && !counting)
-						bone.bind_transform.scale = rtm::vector_load3(&scale[0]);
+						bind_transform.scale = rtm::vector_load3(&scale[0]);
+				}
+
+				if (tracks != nullptr)
+				{
+					track_desc_transformf desc;
+					desc.parent_index = parent_index;
+					desc.shell_distance = vertex_distance;
+
+					if (m_has_settings)
+					{
+						desc.precision = m_error_threshold;
+						desc.constant_rotation_threshold_angle = m_constant_rotation_threshold_angle;
+						desc.constant_translation_threshold = m_constant_translation_threshold;
+						desc.constant_scale_threshold = m_constant_scale_threshold;
+					}
+
+					// Create a dummy track for now to hold our arguments
+					(*tracks)[i] = track_qvvf::make_ref(desc, nullptr, 0, 30.0F);
+
+					rtm::qvvf bind_transform_ = rtm::qvv_cast(bind_transform);
+					bind_transform_.rotation = rtm::quat_normalize(bind_transform_.rotation);
+
+					(*bind_pose)[i] = bind_transform_;
 				}
 
 				if (!m_parser.object_ends())
@@ -610,24 +620,133 @@ namespace acl
 			return false;
 		}
 
-		uint16_t find_bone(const RigidBone* bones, uint16_t num_bones, const sjson::StringView& name) const
+		uint32_t find_bone(const sjson::StringView& name) const
 		{
-			for (uint16_t i = 0; i < num_bones; ++i)
+			for (uint32_t i = 0; i < m_num_bones; ++i)
 			{
-				if (name == bones[i].name.c_str())
+				if (name == m_bone_names[i])
 					return i;
 			}
 
-			return k_invalid_bone_index;
+			return k_invalid_track_index;
 		}
 
-		bool create_clip(std::unique_ptr<AnimationClip, Deleter<AnimationClip>>& clip, const RigidSkeleton& skeleton)
+		float read_optional_float(const char* key, float default_value)
 		{
-			clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_num_samples, m_sample_rate, String(m_allocator, m_clip_name.c_str(), m_clip_name.size()));
+			float value = default_value;
+			if (m_is_binary_exact)
+			{
+				sjson::StringView value_str;
+				if (m_parser.try_read(key, value_str, ""))
+					value = hex_to_float(value_str);
+			}
+			else
+				m_parser.try_read(key, value, default_value);
+
+			return value;
+		}
+
+		bool read_qvv_sample(rtm::qvvf& out_sample)
+		{
+			rtm::qvvf sample = rtm::qvv_identity();
+			sjson::StringView values_str[4];
+			double values[4] = { 0.0, 0.0, 0.0, 0.0 };
+
+			{
+				if (!m_parser.array_begins())
+					return false;
+
+				rtm::float4f value;
+				if (m_is_binary_exact)
+				{
+					if (!m_parser.read(values_str, 4))
+						return false;
+
+					value = hex_to_float4f(values_str, 4);
+				}
+				else
+				{
+					if (!m_parser.read(values, 4))
+						return false;
+
+					value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3])};
+				}
+
+				sample.rotation = quat_load(&value);
+				if (!rtm::quat_is_finite(sample.rotation))
+					return false;
+
+				if (!m_parser.array_ends())
+					return false;
+			}
+
+			if (!m_parser.read_comma())
+				return false;
+
+			{
+				if (!m_parser.array_begins())
+					return false;
+
+				rtm::float4f value;
+				if (m_is_binary_exact)
+				{
+					if (!m_parser.read(values_str, 3))
+						return false;
+
+					value = hex_to_float4f(values_str, 4);
+				}
+				else
+				{
+					if (!m_parser.read(values, 3))
+						return false;
+
+					value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), 0.0F };
+				}
+
+				sample.translation = vector_load(&value);
+				if (!rtm::vector_is_finite3(sample.translation))
+					return false;
+
+				if (!m_parser.array_ends())
+					return false;
+			}
+
+			if (!m_parser.read_comma())
+				return false;
+
+			{
+				if (!m_parser.array_begins())
+					return false;
+
+				rtm::float4f value;
+				if (m_is_binary_exact)
+				{
+					if (!m_parser.read(values_str, 3))
+						return false;
+
+					value = hex_to_float4f(values_str, 4);
+				}
+				else
+				{
+					if (!m_parser.read(values, 3))
+						return false;
+
+					value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), 0.0F };
+				}
+
+				sample.scale = vector_load(&value);
+				if (!rtm::vector_is_finite3(sample.scale))
+					return false;
+
+				if (!m_parser.array_ends())
+					return false;
+			}
+
+			out_sample = sample;
 			return true;
 		}
 
-		bool process_track_list(track* tracks, uint32_t& num_tracks)
+		bool process_track_list(track* tracks, track_qvvf* bind_pose, uint32_t& num_tracks)
 		{
 			const bool counting = tracks == nullptr;
 			track dummy;
@@ -670,21 +789,75 @@ namespace acl
 				}
 
 				const uint32_t num_components = get_track_num_sample_elements(track_type);
-				ACL_ASSERT(num_components > 0 && num_components <= 4, "Cannot have 0 or more than 4 components");
+				ACL_ASSERT((num_components > 0 && num_components <= 4) || num_components == 12, "Must have between 1 and 4 components or 12");
 
-				float precision;
-				m_parser.try_read("precision", precision, 0.0001F);
+				track_desc_scalarf scalar_desc;
+				track_desc_transformf transform_desc;
+
+				float precision = read_optional_float("precision", -1.0F);
 
 				// Deprecated, no longer used
-				float constant_threshold;
-				m_parser.try_read("constant_threshold", constant_threshold, 0.00001F);
+				read_optional_float("constant_threshold", -1.0F);
 
 				uint32_t output_index;
 				m_parser.try_read("output_index", output_index, i);
 
-				track_desc_scalarf scalar_desc;
+				m_parser.try_read("parent_index", transform_desc.parent_index, k_invalid_track_index);
+
+				transform_desc.shell_distance = read_optional_float("shell_distance", transform_desc.shell_distance);
+				transform_desc.constant_rotation_threshold_angle = read_optional_float("constant_rotation_threshold_angle", transform_desc.constant_rotation_threshold_angle);
+				transform_desc.constant_translation_threshold = read_optional_float("constant_translation_threshold", transform_desc.constant_translation_threshold);
+				transform_desc.constant_scale_threshold = read_optional_float("constant_scale_threshold", transform_desc.constant_scale_threshold);
+
 				scalar_desc.output_index = output_index;
-				scalar_desc.precision = precision;
+				transform_desc.output_index = output_index;
+
+				if (track_type == track_type8::qvvf)
+					transform_desc.precision = precision < 0.0F ? transform_desc.precision : precision;
+				else
+					scalar_desc.precision = precision < 0.0F ? scalar_desc.precision : precision;
+
+				rtm::qvvf bind_transform = rtm::qvv_identity();
+				if (m_is_binary_exact)
+				{
+					sjson::StringView rotation[4];
+					if (m_parser.try_read("bind_rotation", rotation, 4, nullptr) && !counting)
+					{
+						const rtm::float4f value = hex_to_float4f(rotation, 4);
+						bind_transform.rotation = quat_load(&value);
+					}
+
+					sjson::StringView translation[3];
+					if (m_parser.try_read("bind_translation", translation, 3, nullptr) && !counting)
+					{
+						const rtm::float4f value = hex_to_float4f(translation, 3);
+						bind_transform.translation = rtm::vector_load(&value);
+					}
+
+					sjson::StringView scale[3];
+					if (m_parser.try_read("bind_scale", scale, 3, nullptr) && !counting)
+					{
+						const rtm::float4f value = hex_to_float4f(scale, 3);
+						bind_transform.scale = rtm::vector_load(&value);
+					}
+				}
+				else
+				{
+					double rotation[4] = { 0.0, 0.0, 0.0, 0.0 };
+					if (m_parser.try_read("bind_rotation", rotation, 4, 0.0) && !counting)
+						bind_transform.rotation = rtm::quat_normalize(rtm::quat_cast(rtm::quat_load(&rotation[0])));
+
+					double translation[3] = { 0.0, 0.0, 0.0 };
+					if (m_parser.try_read("bind_translation", translation, 3, 0.0) && !counting)
+						bind_transform.translation = rtm::vector_cast(rtm::vector_load3(&translation[0]));
+
+					double scale[3] = { 0.0, 0.0, 0.0 };
+					if (m_parser.try_read("bind_scale", scale, 3, 0.0) && !counting)
+						bind_transform.scale = rtm::vector_cast(rtm::vector_load3(&scale[0]));
+				}
+
+				if (bind_pose != nullptr)
+					(*bind_pose)[i] = bind_transform;
 
 				if (!m_parser.array_begins("data"))
 					goto error;
@@ -697,6 +870,7 @@ namespace acl
 					rtm::float3f*	float3f;
 					rtm::float4f*	float4f;
 					rtm::vector4f*	vector4f;
+					rtm::qvvf*		qvvf;
 				};
 				track_samples_ptr_union track_samples_typed = { nullptr };
 
@@ -717,6 +891,9 @@ namespace acl
 				case track_type8::vector4f:
 					track_samples_typed.vector4f = allocate_type_array<rtm::vector4f>(m_allocator, m_num_samples);
 					break;
+				case track_type8::qvvf:
+					track_samples_typed.qvvf = allocate_type_array<rtm::qvvf>(m_allocator, m_num_samples);
+					break;
 				default:
 					ACL_ASSERT(false, "Unsupported track type");
 					break;
@@ -733,59 +910,77 @@ namespace acl
 
 					if (m_is_binary_exact)
 					{
-						sjson::StringView values[4];
-						if (m_parser.read(values, num_components))
+						switch (track_type)
 						{
-							switch (track_type)
-							{
-							case track_type8::float1f:
-							case track_type8::float2f:
-							case track_type8::float3f:
-							case track_type8::float4f:
-							case track_type8::vector4f:
+						case track_type8::float1f:
+						case track_type8::float2f:
+						case track_type8::float3f:
+						case track_type8::float4f:
+						case track_type8::vector4f:
+						{
+							sjson::StringView values[4];
+							if (m_parser.read(values, num_components))
 							{
 								const rtm::float4f value = hex_to_float4f(values, num_components);
 								std::memcpy(track_samples_typed.float1f + (sample_index * num_components), &value, sizeof(float) * num_components);
-								break;
 							}
-							default:
-								ACL_ASSERT(false, "Unsupported track type");
-								break;
-							}
-						}
-						else
-						{
-							has_error = true;
+							else
+								has_error = true;
 							break;
 						}
+						case track_type8::qvvf:
+						{
+							rtm::qvvf sample;
+							if (!read_qvv_sample(sample))
+								has_error = true;
+							else
+								std::memcpy(track_samples_typed.qvvf + sample_index, &sample, sizeof(rtm::qvvf));
+							break;
+						}
+						default:
+							ACL_ASSERT(false, "Unsupported track type");
+							break;
+						}
+
+						if (has_error)
+							break;
 					}
 					else
 					{
-						double values[4] = { 0.0, 0.0, 0.0, 0.0 };
-						if (m_parser.read(values, num_components))
+						switch (track_type)
 						{
-							switch (track_type)
+						case track_type8::float1f:
+						case track_type8::float2f:
+						case track_type8::float3f:
+						case track_type8::float4f:
+						case track_type8::vector4f:
+						{
+							double values[4] = { 0.0, 0.0, 0.0, 0.0 };
+							if (m_parser.read(values, num_components))
 							{
-							case track_type8::float1f:
-							case track_type8::float2f:
-							case track_type8::float3f:
-							case track_type8::float4f:
-							case track_type8::vector4f:
-							{
-								const rtm::float4f value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3])};
+								const rtm::float4f value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3]) };
 								std::memcpy(track_samples_typed.float1f + (sample_index * num_components), &value, sizeof(float) * num_components);
-								break;
 							}
-							default:
-								ACL_ASSERT(false, "Unsupported track type");
-								break;
-							}
-						}
-						else
-						{
-							has_error = true;
+							else
+								has_error = true;
 							break;
 						}
+						case track_type8::qvvf:
+						{
+							rtm::qvvf sample;
+							if (!read_qvv_sample(sample))
+								has_error = true;
+							else
+								std::memcpy(track_samples_typed.qvvf + sample_index, &sample, sizeof(rtm::qvvf));
+							break;
+						}
+						default:
+							ACL_ASSERT(false, "Unsupported track type");
+							break;
+						}
+
+						if (has_error)
+							break;
 					}
 
 					if (!has_error && !m_parser.array_ends())
@@ -826,6 +1021,9 @@ namespace acl
 					case track_type8::vector4f:
 						deallocate_type_array<rtm::vector4f>(m_allocator, track_samples_typed.vector4f, m_num_samples);
 						break;
+					case track_type8::qvvf:
+						deallocate_type_array<rtm::qvvf>(m_allocator, track_samples_typed.qvvf, m_num_samples);
+						break;
 					default:
 						ACL_ASSERT(false, "Unsupported track type");
 						break;
@@ -850,6 +1048,9 @@ namespace acl
 					case track_type8::vector4f:
 						track_ = track_vector4f::make_owner(scalar_desc, m_allocator, track_samples_typed.vector4f, m_num_samples, m_sample_rate);
 						break;
+					case track_type8::qvvf:
+						track_ = track_qvvf::make_owner(transform_desc, m_allocator, track_samples_typed.qvvf, m_num_samples, m_sample_rate);
+						break;
 					default:
 						ACL_ASSERT(false, "Unsupported track type");
 						break;
@@ -866,19 +1067,20 @@ namespace acl
 			return false;
 		}
 
-		bool create_track_list(track_array& track_list)
+		bool create_track_list(track_array& track_list, track_qvvf& bind_pose)
 		{
 			const sjson::ParserState before_tracks = m_parser.save_state();
 
 			uint32_t num_tracks;
-			if (!process_track_list(nullptr, num_tracks))
+			if (!process_track_list(nullptr, nullptr, num_tracks))
 				return false;
 
 			m_parser.restore_state(before_tracks);
 
 			track_list = track_array(m_allocator, num_tracks);
+			bind_pose = track_qvvf::make_reserve(track_desc_transformf{}, m_allocator, num_tracks, 30.0F);	// 1 sample per track
 
-			if (!process_track_list(track_list.begin(), num_tracks))
+			if (!process_track_list(track_list.begin(), &bind_pose, num_tracks))
 				return false;
 
 			ACL_ASSERT(num_tracks == track_list.get_num_tracks(), "Number of tracks read mismatch");
@@ -886,11 +1088,9 @@ namespace acl
 			return true;
 		}
 
-		bool read_tracks(AnimationClip& clip, const RigidSkeleton& skeleton, track_array_qvvf& track_list, track_array_qvvf& additive_base_track_list)
+		bool read_tracks(track_array_qvvf& track_list, track_array_qvvf& additive_base_track_list)
 		{
 			const uint32_t num_transforms = track_list.get_num_tracks();
-
-			std::unique_ptr<AnimationClip, Deleter<AnimationClip>> base_clip;
 
 			if (m_parser.try_array_begins("base_tracks"))
 			{
@@ -898,8 +1098,6 @@ namespace acl
 				additive_base_track_list = track_array_qvvf(m_allocator, num_transforms);
 				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 					additive_base_track_list[transform_index].get_description() = track_list[transform_index].get_description();
-
-				base_clip = make_unique<AnimationClip>(m_allocator, m_allocator, skeleton, m_additive_base_num_samples, m_additive_base_sample_rate, String(m_allocator, m_additive_base_name.c_str(), m_additive_base_name.size()));
 
 				while (!m_parser.try_array_ends())
 				{
@@ -910,47 +1108,52 @@ namespace acl
 					if (!m_parser.read("name", name))
 						goto error;
 
-					const uint16_t bone_index = find_bone(skeleton.get_bones(), skeleton.get_num_bones(), name);
-					if (bone_index == k_invalid_bone_index)
+					const uint32_t bone_index = find_bone(name);
+					if (bone_index == k_invalid_track_index)
 					{
 						set_error(ClipReaderError::NoBoneWithThatName);
 						return false;
 					}
 
-					AnimatedBone& bone = base_clip->get_animated_bone(bone_index);
+					track_desc_transformf desc = additive_base_track_list[bone_index].get_description();	// Copy our description
+					desc.output_index = bone_index;
+
+					track_qvvf track = track_qvvf::make_reserve(desc, m_allocator, m_additive_base_num_samples, m_additive_base_sample_rate);
 
 					if (m_parser.try_array_begins("rotations"))
 					{
-						if (!read_track_rotations(bone, m_additive_base_num_samples) || !m_parser.array_ends())
+						if (!read_track_rotations(track, m_additive_base_num_samples) || !m_parser.array_ends())
 							goto error;
 					}
 					else
 					{
 						for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
-							bone.rotation_track.set_sample(sample_index, rtm::quat_identity());
+							track[sample_index].rotation = rtm::quat_identity();
 					}
 
 					if (m_parser.try_array_begins("translations"))
 					{
-						if (!read_track_translations(bone, m_additive_base_num_samples) || !m_parser.array_ends())
+						if (!read_track_translations(track, m_additive_base_num_samples) || !m_parser.array_ends())
 							goto error;
 					}
 					else
 					{
 						for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
-							bone.translation_track.set_sample(sample_index, rtm::vector_zero());
+							track[sample_index].translation = rtm::vector_zero();
 					}
 
 					if (m_parser.try_array_begins("scales"))
 					{
-						if (!read_track_scales(bone, m_additive_base_num_samples) || !m_parser.array_ends())
+						if (!read_track_scales(track, m_additive_base_num_samples) || !m_parser.array_ends())
 							goto error;
 					}
 					else
 					{
 						for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
-							bone.scale_track.set_sample(sample_index, rtm::vector_set(1.0));
+							track[sample_index].scale = rtm::vector_set(1.0F);
 					}
+
+					additive_base_track_list[bone_index] = std::move(track);
 
 					if (!m_parser.object_ends())
 						goto error;
@@ -969,102 +1172,56 @@ namespace acl
 				if (!m_parser.read("name", name))
 					goto error;
 
-				const uint16_t bone_index = find_bone(skeleton.get_bones(), skeleton.get_num_bones(), name);
-				if (bone_index == k_invalid_bone_index)
+				const uint32_t bone_index = find_bone(name);
+				if (bone_index == k_invalid_track_index)
 				{
 					set_error(ClipReaderError::NoBoneWithThatName);
 					return false;
 				}
 
-				AnimatedBone& bone = clip.get_animated_bone(bone_index);
+				track_desc_transformf desc = track_list[bone_index].get_description();	// Copy our description
+				desc.output_index = bone_index;
+
+				track_qvvf track = track_qvvf::make_reserve(desc, m_allocator, m_num_samples, m_sample_rate);
 
 				if (m_parser.try_array_begins("rotations"))
 				{
-					if (!read_track_rotations(bone, m_num_samples) || !m_parser.array_ends())
+					if (!read_track_rotations(track, m_num_samples) || !m_parser.array_ends())
 						goto error;
 				}
 				else
 				{
 					for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
-						bone.rotation_track.set_sample(sample_index, rtm::quat_identity());
+						track[sample_index].rotation = rtm::quat_identity();
 				}
 
 				if (m_parser.try_array_begins("translations"))
 				{
-					if (!read_track_translations(bone, m_num_samples) || !m_parser.array_ends())
+					if (!read_track_translations(track, m_num_samples) || !m_parser.array_ends())
 						goto error;
 				}
 				else
 				{
 					for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
-						bone.translation_track.set_sample(sample_index, rtm::vector_zero());
+						track[sample_index].translation = rtm::vector_zero();
 				}
 
 				if (m_parser.try_array_begins("scales"))
 				{
-					if (!read_track_scales(bone, m_num_samples) || !m_parser.array_ends())
+					if (!read_track_scales(track, m_num_samples) || !m_parser.array_ends())
 						goto error;
 				}
 				else
 				{
 					for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
-						bone.scale_track.set_sample(sample_index, rtm::vector_set(1.0));
+						track[sample_index].scale = rtm::vector_set(1.0F);
 				}
+
+				track_list[bone_index] = std::move(track);
 
 				if (!m_parser.object_ends())
 					goto error;
 			}
-
-			// Populate our clip
-			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
-			{
-				const AnimatedBone& bone = clip.get_animated_bone(safe_static_cast<uint16_t>(transform_index));
-
-				track_qvvf& track = track_list[transform_index];
-
-				track_desc_transformf desc = track.get_description();	// Copy our description
-				desc.output_index = bone.output_index;
-
-				track = track_qvvf::make_reserve(desc, m_allocator, m_num_samples, m_sample_rate);
-
-				for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
-				{
-					const rtm::quatf rotation = rtm::quat_normalize(rtm::quat_cast(bone.rotation_track.get_sample(sample_index)));
-					const rtm::vector4f translation = rtm::vector_cast(bone.translation_track.get_sample(sample_index));
-					const rtm::vector4f scale = rtm::vector_cast(bone.scale_track.get_sample(sample_index));
-
-					const rtm::qvvf transform = rtm::qvv_set(rotation, translation, scale);
-					track[sample_index] = transform;
-				}
-			}
-
-			if (base_clip)
-			{
-				// Populate our additive base
-				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
-				{
-					const AnimatedBone& bone = base_clip->get_animated_bone(safe_static_cast<uint16_t>(transform_index));
-
-					track_qvvf& track = additive_base_track_list[transform_index];
-
-					track_desc_transformf desc = track.get_description();	// Copy our description
-					desc.output_index = bone.output_index;
-
-					track = track_qvvf::make_reserve(desc, m_allocator, m_additive_base_num_samples, m_additive_base_sample_rate);
-
-					for (uint32_t sample_index = 0; sample_index < m_additive_base_num_samples; ++sample_index)
-					{
-						const rtm::quatf rotation = rtm::quat_normalize(rtm::quat_cast(bone.rotation_track.get_sample(sample_index)));
-						const rtm::vector4f translation = rtm::vector_cast(bone.translation_track.get_sample(sample_index));
-						const rtm::vector4f scale = rtm::vector_cast(bone.scale_track.get_sample(sample_index));
-
-						const rtm::qvvf transform = rtm::qvv_set(rotation, translation, scale);
-						track[sample_index] = transform;
-					}
-				}
-			}
-
-			clip.set_additive_base(base_clip.release(), m_additive_format);
 
 			return true;
 
@@ -1073,7 +1230,7 @@ namespace acl
 			return false;
 		}
 
-		bool read_track_rotations(AnimatedBone& bone, uint32_t num_samples_expected)
+		bool read_track_rotations(track_qvvf& track, uint32_t num_samples_expected)
 		{
 			for (uint32_t i = 0; i < num_samples_expected; ++i)
 			{
@@ -1102,13 +1259,13 @@ namespace acl
 				if (!m_parser.array_ends())
 					return false;
 
-				bone.rotation_track.set_sample(i, rotation);
+				track[i].rotation = rtm::quat_normalize(rtm::quat_cast(rotation));
 			}
 
 			return true;
 		}
 
-		bool read_track_translations(AnimatedBone& bone, uint32_t num_samples_expected)
+		bool read_track_translations(track_qvvf& track, uint32_t num_samples_expected)
 		{
 			for (uint32_t i = 0; i < num_samples_expected; ++i)
 			{
@@ -1137,13 +1294,13 @@ namespace acl
 				if (!m_parser.array_ends())
 					return false;
 
-				bone.translation_track.set_sample(i, translation);
+				track[i].translation = rtm::vector_cast(translation);
 			}
 
 			return true;
 		}
 
-		bool read_track_scales(AnimatedBone& bone, uint32_t num_samples_expected)
+		bool read_track_scales(track_qvvf& track, uint32_t num_samples_expected)
 		{
 			for (uint32_t i = 0; i < num_samples_expected; ++i)
 			{
@@ -1172,7 +1329,7 @@ namespace acl
 				if (!m_parser.array_ends())
 					return false;
 
-				bone.scale_track.set_sample(i, scale);
+				track[i].scale = rtm::vector_cast(scale);
 			}
 
 			return true;

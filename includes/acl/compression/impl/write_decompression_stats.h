@@ -26,11 +26,10 @@
 
 #if defined(SJSON_CPP_WRITER)
 
-#include "acl/core/impl/compiler_utils.h"
-#include "acl/core/impl/memory_cache.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/core/utils.h"
-#include "acl/algorithm/uniformly_sampled/decoder.h"
+#include "acl/core/impl/compiler_utils.h"
+#include "acl/core/impl/memory_cache.h"
 #include "acl/compression/output_stats.h"
 #include "acl/decompression/decompress.h"
 

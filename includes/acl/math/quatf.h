@@ -34,6 +34,21 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Loads an unaligned vector4 from memory.
+	// Missing from RTM for now
+	//////////////////////////////////////////////////////////////////////////
+	RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_load(const rtm::float4f* input) RTM_NO_EXCEPT
+	{
+#if defined(RTM_SSE2_INTRINSICS)
+		return _mm_loadu_ps(&input->x);
+#elif defined(RTM_NEON_INTRINSICS)
+		return vld1q_f32(&input->x);
+#else
+		return vector_set(input->x, input->y, input->z, input->w);
+#endif
+	}
+
 	RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_lerp_no_normalization(rtm::quatf_arg0 start, rtm::quatf_arg1 end, float alpha) RTM_NO_EXCEPT
 	{
 		using namespace rtm;

@@ -25,11 +25,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/additive_utils.h"
-#include "acl/core/impl/compiler_utils.h"
+#include "acl/core/bitset.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/iterator.h"
 #include "acl/core/error.h"
-#include "acl/compression/animation_clip.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/impl/segment_context.h"
 
@@ -44,6 +44,83 @@ namespace acl
 {
 	namespace acl_impl
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// Simple iterator utility class to allow easy looping
+		class BoneChainIterator
+		{
+		public:
+			BoneChainIterator(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index, uint16_t offset)
+				: m_bone_chain(bone_chain)
+				, m_bone_chain_desc(bone_chain_desc)
+				, m_bone_index(bone_index)
+				, m_offset(offset)
+			{}
+
+			BoneChainIterator& operator++()
+			{
+				ACL_ASSERT(m_offset <= m_bone_index, "Cannot increment the iterator, it is no longer valid");
+
+				// Skip the current bone
+				m_offset++;
+
+				// Iterate until we find the next bone part of the chain or until we reach the end of the chain
+				// TODO: Use clz or similar to find the next set bit starting at the current index
+				while (m_offset < m_bone_index && !bitset_test(m_bone_chain, m_bone_chain_desc, m_offset))
+					m_offset++;
+
+				return *this;
+			}
+
+			uint16_t operator*() const
+			{
+				ACL_ASSERT(m_offset <= m_bone_index, "Returned bone index doesn't belong to the bone chain");
+				ACL_ASSERT(bitset_test(m_bone_chain, m_bone_chain_desc, m_offset), "Returned bone index doesn't belong to the bone chain");
+				return m_offset;
+			}
+
+			// We only compare the offset in the bone chain. Two iterators on the same bone index
+			// from two different or equal chains will be equal.
+			bool operator==(const BoneChainIterator& other) const { return m_offset == other.m_offset; }
+			bool operator!=(const BoneChainIterator& other) const { return m_offset != other.m_offset; }
+
+		private:
+			const uint32_t*		m_bone_chain;
+			BitSetDescription	m_bone_chain_desc;
+			uint16_t			m_bone_index;
+			uint16_t			m_offset;
+		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// Simple bone chain container to allow easy looping
+		//
+		// A bone chain allows looping over all bones up to a specific bone starting
+		// at the root bone.
+		//////////////////////////////////////////////////////////////////////////
+		struct BoneChain
+		{
+			BoneChain(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index)
+				: m_bone_chain(bone_chain)
+				, m_bone_chain_desc(bone_chain_desc)
+				, m_bone_index(bone_index)
+			{
+				// We don't know where this bone chain starts, find the root bone
+				// TODO: Use clz or similar to find the next set bit starting at the current index
+				uint16_t root_index = 0;
+				while (!bitset_test(bone_chain, bone_chain_desc, root_index))
+					root_index++;
+
+				m_root_index = root_index;
+			}
+
+			acl_impl::BoneChainIterator begin() const { return acl_impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_root_index); }
+			acl_impl::BoneChainIterator end() const { return acl_impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_bone_index + 1); }
+
+			const uint32_t*		m_bone_chain;
+			BitSetDescription	m_bone_chain_desc;
+			uint16_t			m_root_index;
+			uint16_t			m_bone_index;
+		};
+
 		struct transform_metadata
 		{
 			const uint32_t* transform_chain;
@@ -93,178 +170,6 @@ namespace acl
 				return BoneChain(meta.transform_chain, BitSetDescription::make_from_num_bits(num_bones), (uint16_t)bone_index);
 			}
 		};
-
-		inline void initialize_clip_context(IAllocator& allocator, const AnimationClip& clip, const RigidSkeleton& skeleton, const CompressionSettings& settings, ClipContext& out_clip_context)
-		{
-			const uint16_t num_bones = clip.get_num_bones();
-			const uint32_t num_samples = clip.get_num_samples();
-			const float sample_rate = clip.get_sample_rate();
-			const AnimatedBone* bones = clip.get_bones();
-			const bool has_additive_base = clip.get_additive_base() != nullptr;
-
-			ACL_ASSERT(num_bones > 0, "Clip has no bones!");
-			ACL_ASSERT(num_samples > 0, "Clip has no samples!");
-
-			// Create a single segment with the whole clip
-			out_clip_context.segments = allocate_type_array<SegmentContext>(allocator, 1);
-			out_clip_context.ranges = nullptr;
-			out_clip_context.metadata = allocate_type_array<transform_metadata>(allocator, num_bones);
-			out_clip_context.leaf_transform_chains = nullptr;
-			out_clip_context.num_segments = 1;
-			out_clip_context.num_bones = num_bones;
-			out_clip_context.num_output_bones = num_bones;
-			out_clip_context.num_samples = num_samples;
-			out_clip_context.sample_rate = sample_rate;
-			out_clip_context.duration = clip.get_duration();
-			out_clip_context.are_rotations_normalized = false;
-			out_clip_context.are_translations_normalized = false;
-			out_clip_context.are_scales_normalized = false;
-			out_clip_context.has_additive_base = has_additive_base;
-			out_clip_context.additive_format = clip.get_additive_format();
-			out_clip_context.num_leaf_transforms = 0;
-
-			bool has_scale = false;
-			const rtm::vector4f default_scale = get_default_scale(clip.get_additive_format());
-
-			SegmentContext& segment = out_clip_context.segments[0];
-
-			BoneStreams* bone_streams = allocate_type_array<BoneStreams>(allocator, num_bones);
-
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-			{
-				const AnimatedBone& bone = bones[bone_index];
-				const RigidBone& skel_bone = skeleton.get_bone(bone_index);
-				BoneStreams& bone_stream = bone_streams[bone_index];
-
-				bone_stream.segment = &segment;
-				bone_stream.bone_index = bone_index;
-				bone_stream.parent_bone_index = skel_bone.parent_index;
-				bone_stream.output_index = bone.output_index;
-
-				bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, rotation_format8::quatf_full);
-				bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
-				bone_stream.scales = ScaleTrackStream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
-
-				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-				{
-					const rtm::quatf rotation = rtm::quat_normalize(rtm::quat_cast(bone.rotation_track.get_sample(sample_index)));
-					bone_stream.rotations.set_raw_sample(sample_index, rotation);
-
-					const rtm::vector4f translation = rtm::vector_cast(bone.translation_track.get_sample(sample_index));
-					bone_stream.translations.set_raw_sample(sample_index, translation);
-
-					const rtm::vector4f scale = rtm::vector_cast(bone.scale_track.get_sample(sample_index));
-					bone_stream.scales.set_raw_sample(sample_index, scale);
-				}
-
-				bone_stream.is_rotation_constant = num_samples == 1;
-				bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(rtm::quat_cast(bone.rotation_track.get_sample(0)), settings.constant_rotation_threshold_angle);
-				bone_stream.is_translation_constant = num_samples == 1;
-				bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(rtm::vector_cast(bone.translation_track.get_sample(0)), rtm::vector_zero(), settings.constant_translation_threshold);
-				bone_stream.is_scale_constant = num_samples == 1;
-				bone_stream.is_scale_default = bone_stream.is_scale_constant && rtm::vector_all_near_equal3(rtm::vector_cast(bone.scale_track.get_sample(0)), default_scale, settings.constant_scale_threshold);
-
-				has_scale |= !bone_stream.is_scale_default;
-
-				if (bone_stream.is_stripped_from_output())
-					out_clip_context.num_output_bones--;
-
-				transform_metadata& metadata = out_clip_context.metadata[bone_index];
-				metadata.transform_chain = nullptr;
-				metadata.parent_index = skel_bone.parent_index;
-				metadata.precision = settings.error_threshold;
-				metadata.shell_distance = skel_bone.vertex_distance;
-			}
-
-			out_clip_context.has_scale = has_scale;
-			out_clip_context.decomp_touched_bytes = 0;
-			out_clip_context.decomp_touched_cache_lines = 0;
-
-			segment.bone_streams = bone_streams;
-			segment.clip = &out_clip_context;
-			segment.ranges = nullptr;
-			segment.num_samples = safe_static_cast<uint16_t>(num_samples);
-			segment.num_bones = num_bones;
-			segment.clip_sample_offset = 0;
-			segment.segment_index = 0;
-			segment.distribution = SampleDistribution8::Uniform;
-			segment.are_rotations_normalized = false;
-			segment.are_translations_normalized = false;
-			segment.are_scales_normalized = false;
-
-			segment.animated_pose_bit_size = 0;
-			segment.animated_data_size = 0;
-			segment.range_data_size = 0;
-			segment.total_header_size = 0;
-
-			// Initialize our hierarchy information
-			{
-				// Calculate which bones are leaf bones that have no children
-				BitSetDescription bone_bitset_desc = BitSetDescription::make_from_num_bits(num_bones);
-				uint32_t* is_leaf_bitset = allocate_type_array<uint32_t>(allocator, bone_bitset_desc.get_size());
-				bitset_reset(is_leaf_bitset, bone_bitset_desc, false);
-
-				// By default  and if we find a child, we'll mark it as non-leaf
-				bitset_set_range(is_leaf_bitset, bone_bitset_desc, 0, num_bones, true);
-
-#if defined(ACL_HAS_ASSERT_CHECKS)
-				uint32_t num_root_bones = 0;
-#endif
-
-				// Move and validate the input data
-				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-				{
-					const RigidBone& bone = skeleton.get_bone(bone_index);
-
-					const bool is_root = bone.parent_index == k_invalid_bone_index;
-
-					// If we have a parent, mark it as not being a leaf bone (it has at least one child)
-					if (!is_root)
-						bitset_set(is_leaf_bitset, bone_bitset_desc, bone.parent_index, false);
-
-#if defined(ACL_HAS_ASSERT_CHECKS)
-					if (is_root)
-						num_root_bones++;
-#endif
-				}
-
-				const uint32_t num_leaf_transforms = bitset_count_set_bits(is_leaf_bitset, bone_bitset_desc);
-				out_clip_context.num_leaf_transforms = num_leaf_transforms;
-
-				uint32_t* leaf_transform_chains = allocate_type_array<uint32_t>(allocator, size_t(num_leaf_transforms) * bone_bitset_desc.get_size());
-				out_clip_context.leaf_transform_chains = leaf_transform_chains;
-
-				uint16_t leaf_index = 0;
-				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
-				{
-					if (!bitset_test(is_leaf_bitset, bone_bitset_desc, bone_index))
-						continue;	// Skip non-leaf bones
-
-					uint32_t* bone_chain = leaf_transform_chains + (leaf_index * bone_bitset_desc.get_size());
-					bitset_reset(bone_chain, bone_bitset_desc, false);
-
-					uint16_t chain_bone_index = bone_index;
-					while (chain_bone_index != k_invalid_bone_index)
-					{
-						bitset_set(bone_chain, bone_bitset_desc, chain_bone_index, true);
-
-						transform_metadata& metadata = out_clip_context.metadata[chain_bone_index];
-
-						// We assign a bone chain the first time we find a bone that isn't part of one already
-						if (metadata.transform_chain == nullptr)
-							metadata.transform_chain = bone_chain;
-
-						chain_bone_index = metadata.parent_index;
-					}
-
-					leaf_index++;
-				}
-
-				ACL_ASSERT(num_root_bones > 0, "No root bone found. The root bones must have a parent index = 0xFFFF");
-				ACL_ASSERT(leaf_index == num_leaf_transforms, "Invalid number of leaf bone found");
-				deallocate_type_array(allocator, is_leaf_bitset, bone_bitset_desc.get_size());
-			}
-		}
 
 		inline void initialize_clip_context(IAllocator& allocator, const track_array_qvvf& track_list, additive_clip_format8 additive_format, ClipContext& out_clip_context)
 		{

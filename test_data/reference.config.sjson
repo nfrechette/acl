@@ -12,22 +12,6 @@ rotation_format = "quatf_full"
 translation_format = "vector3f_full"
 scale_format = "vector3f_full"
 
-// Threshold angle value to use when detecting if a rotation track is constant
-// Defaults to '0.00284714461' radians
-constant_rotation_threshold_angle = 0.00284714461
-
-// Threshold value to use when detecting if a translation track is constant
-// Defaults to '0.001' centimeters
-constant_translation_threshold = 0.001
-
-// Threshold value to use when detecting if a scale track is constant
-// Defaults to '0.00001'
-constant_scale_threshold = 0.00001
-
-// The error threshold used when optimizing the bit rate
-// Defaults to '0.01' centimeters
-error_threshold = 0.01
-
 // The error threshold used when performing regression testing
 // We will sample the clip at various positions and compare the raw and decompressed poses
 // and fail if the error is above or equal to this threshold
