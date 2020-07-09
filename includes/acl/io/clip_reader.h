@@ -87,10 +87,10 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 	// An SJSON ACL file reader.
-	class ClipReader
+	class clip_reader
 	{
 	public:
-		ClipReader(IAllocator& allocator, const char* sjson_input, size_t input_length)
+		clip_reader(iallocator& allocator, const char* sjson_input, size_t input_length)
 			: m_allocator(allocator)
 			, m_parser(sjson_input, input_length)
 			, m_error()
@@ -103,7 +103,7 @@ namespace acl
 		{
 		}
 
-		~ClipReader()
+		~clip_reader()
 		{
 			deallocate_type_array(m_allocator, m_bone_names, m_num_bones);
 		}
@@ -167,12 +167,12 @@ namespace acl
 			return nothing_follows();
 		}
 
-		ClipReaderError get_error() const { return m_error; }
+		clip_reader_error get_error() const { return m_error; }
 
 	private:
-		IAllocator& m_allocator;
+		iallocator& m_allocator;
 		sjson::Parser m_parser;
-		ClipReaderError m_error;
+		clip_reader_error m_error;
 
 		uint32_t m_version;
 		uint32_t m_num_samples;
@@ -196,7 +196,7 @@ namespace acl
 		void reset_state()
 		{
 			m_parser.reset_state();
-			set_error(ClipReaderError::None);
+			set_error(clip_reader_error::None);
 		}
 
 		bool read_version()
@@ -209,7 +209,7 @@ namespace acl
 
 			if (m_version > 5)
 			{
-				set_error(ClipReaderError::UnsupportedVersion);
+				set_error(clip_reader_error::UnsupportedVersion);
 				return false;
 			}
 
@@ -233,7 +233,7 @@ namespace acl
 			m_num_samples = static_cast<uint32_t>(num_samples);
 			if (static_cast<double>(m_num_samples) != num_samples)
 			{
-				set_error(ClipReaderError::UnsignedIntegerExpected);
+				set_error(clip_reader_error::UnsignedIntegerExpected);
 				return false;
 			}
 
@@ -244,7 +244,7 @@ namespace acl
 			m_sample_rate = static_cast<float>(sample_rate);
 			if (m_sample_rate <= 0.0F)
 			{
-				set_error(ClipReaderError::PositiveValueExpected);
+				set_error(clip_reader_error::PositiveValueExpected);
 				return false;
 			}
 
@@ -260,7 +260,7 @@ namespace acl
 			m_parser.try_read("additive_format", additive_format, "none");
 			if (!get_additive_clip_format(additive_format.c_str(), m_additive_format))
 			{
-				set_error(ClipReaderError::InvalidAdditiveClipFormat);
+				set_error(clip_reader_error::InvalidAdditiveClipFormat);
 				return false;
 			}
 
@@ -269,14 +269,14 @@ namespace acl
 			m_additive_base_num_samples = static_cast<uint32_t>(num_samples);
 			if (static_cast<double>(m_additive_base_num_samples) != num_samples || m_additive_base_num_samples == 0)
 			{
-				set_error(ClipReaderError::UnsignedIntegerExpected);
+				set_error(clip_reader_error::UnsignedIntegerExpected);
 				return false;
 			}
 			m_parser.try_read("additive_base_sample_rate", sample_rate, 30.0);
 			m_additive_base_sample_rate = static_cast<float>(sample_rate);
 			if (m_additive_base_sample_rate <= 0.0F)
 			{
-				set_error(ClipReaderError::PositiveValueExpected);
+				set_error(clip_reader_error::PositiveValueExpected);
 				return false;
 			}
 
@@ -304,7 +304,7 @@ namespace acl
 			m_num_samples = static_cast<uint32_t>(num_samples);
 			if (static_cast<double>(m_num_samples) != num_samples)
 			{
-				set_error(ClipReaderError::UnsignedIntegerExpected);
+				set_error(clip_reader_error::UnsignedIntegerExpected);
 				return false;
 			}
 
@@ -315,7 +315,7 @@ namespace acl
 			m_sample_rate = static_cast<float>(sample_rate);
 			if (m_sample_rate <= 0.0F)
 			{
-				set_error(ClipReaderError::PositiveValueExpected);
+				set_error(clip_reader_error::PositiveValueExpected);
 				return false;
 			}
 
@@ -432,7 +432,7 @@ namespace acl
 
 		invalid_value_error:
 			m_parser.get_position(m_error.line, m_error.column);
-			m_error.error = ClipReaderError::InvalidCompressionSetting;
+			m_error.error = clip_reader_error::InvalidCompressionSetting;
 			return false;
 		}
 
@@ -545,7 +545,7 @@ namespace acl
 					parent_index = find_bone(parent);
 					if (parent_index == k_invalid_track_index)
 					{
-						set_error(ClipReaderError::NoParentBoneWithThatName);
+						set_error(clip_reader_error::NoParentBoneWithThatName);
 						return false;
 					}
 				}
@@ -776,7 +776,7 @@ namespace acl
 				track_type8 track_type;
 				if (!get_track_type(type.c_str(), track_type))
 				{
-					m_error.error = ClipReaderError::InvalidTrackType;
+					m_error.error = clip_reader_error::InvalidTrackType;
 					return false;
 				}
 
@@ -784,7 +784,7 @@ namespace acl
 					track_list_type = track_type;
 				else if (track_type != track_list_type)
 				{
-					m_error.error = ClipReaderError::InvalidTrackType;
+					m_error.error = clip_reader_error::InvalidTrackType;
 					return false;
 				}
 
@@ -1111,7 +1111,7 @@ namespace acl
 					const uint32_t bone_index = find_bone(name);
 					if (bone_index == k_invalid_track_index)
 					{
-						set_error(ClipReaderError::NoBoneWithThatName);
+						set_error(clip_reader_error::NoBoneWithThatName);
 						return false;
 					}
 
@@ -1175,7 +1175,7 @@ namespace acl
 				const uint32_t bone_index = find_bone(name);
 				if (bone_index == k_invalid_track_index)
 				{
-					set_error(ClipReaderError::NoBoneWithThatName);
+					set_error(clip_reader_error::NoBoneWithThatName);
 					return false;
 				}
 

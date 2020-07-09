@@ -135,7 +135,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
 #if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
-	ANSIAllocator allocator;
+	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
@@ -199,7 +199,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	ErrorResult error;
+	error_result error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "clip_");
@@ -237,7 +237,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	std::remove(filename);
 
 	// Read back the clip
-	ClipReader reader(allocator, sjson_file_buffer, clip_size - 1);
+	clip_reader reader(allocator, sjson_file_buffer, clip_size - 1);
 
 	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
 
@@ -289,7 +289,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
 #if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
-	ANSIAllocator allocator;
+	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
@@ -320,7 +320,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	ErrorResult error;
+	error_result error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_float1f_");
@@ -357,7 +357,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 	std::remove(filename);
 
 	// Read back the clip
-	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+	clip_reader reader(allocator, sjson_file_buffer, buffer_size - 1);
 
 	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
 
@@ -399,7 +399,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
 #if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
-	ANSIAllocator allocator;
+	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
@@ -430,7 +430,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	ErrorResult error;
+	error_result error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_float2f_");
@@ -467,7 +467,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 	std::remove(filename);
 
 	// Read back the clip
-	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+	clip_reader reader(allocator, sjson_file_buffer, buffer_size - 1);
 
 	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
 
@@ -509,7 +509,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
 #if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
-	ANSIAllocator allocator;
+	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
@@ -540,7 +540,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	ErrorResult error;
+	error_result error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_float3f_");
@@ -577,7 +577,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 	std::remove(filename);
 
 	// Read back the clip
-	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+	clip_reader reader(allocator, sjson_file_buffer, buffer_size - 1);
 
 	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
 
@@ -619,7 +619,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
 #if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
-	ANSIAllocator allocator;
+	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
@@ -650,7 +650,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	ErrorResult error;
+	error_result error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_float4f_");
@@ -687,7 +687,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 	std::remove(filename);
 
 	// Read back the clip
-	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+	clip_reader reader(allocator, sjson_file_buffer, buffer_size - 1);
 
 	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
 
@@ -729,7 +729,7 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
 #if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
-	ANSIAllocator allocator;
+	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
@@ -760,7 +760,7 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	ErrorResult error;
+	error_result error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_vector4f_");
@@ -797,7 +797,7 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 	std::remove(filename);
 
 	// Read back the clip
-	ClipReader reader(allocator, sjson_file_buffer, buffer_size - 1);
+	clip_reader reader(allocator, sjson_file_buffer, buffer_size - 1);
 
 	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
 

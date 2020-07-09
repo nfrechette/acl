@@ -32,25 +32,25 @@ using namespace acl;
 
 TEST_CASE("bitset", "[core][utils]")
 {
-	CHECK(BitSetDescription::make_from_num_bits(0).get_size() == 0);
-	CHECK(BitSetDescription::make_from_num_bits(1).get_size() == 1);
-	CHECK(BitSetDescription::make_from_num_bits(31).get_size() == 1);
-	CHECK(BitSetDescription::make_from_num_bits(32).get_size() == 1);
-	CHECK(BitSetDescription::make_from_num_bits(33).get_size() == 2);
-	CHECK(BitSetDescription::make_from_num_bits(64).get_size() == 2);
-	CHECK(BitSetDescription::make_from_num_bits(65).get_size() == 3);
+	CHECK(bitset_description::make_from_num_bits(0).get_size() == 0);
+	CHECK(bitset_description::make_from_num_bits(1).get_size() == 1);
+	CHECK(bitset_description::make_from_num_bits(31).get_size() == 1);
+	CHECK(bitset_description::make_from_num_bits(32).get_size() == 1);
+	CHECK(bitset_description::make_from_num_bits(33).get_size() == 2);
+	CHECK(bitset_description::make_from_num_bits(64).get_size() == 2);
+	CHECK(bitset_description::make_from_num_bits(65).get_size() == 3);
 
-	CHECK(BitSetDescription::make_from_num_bits(0).get_num_bits() == 0);
-	CHECK(BitSetDescription::make_from_num_bits(1).get_num_bits() == 32);
-	CHECK(BitSetDescription::make_from_num_bits(31).get_num_bits() == 32);
-	CHECK(BitSetDescription::make_from_num_bits(32).get_num_bits() == 32);
-	CHECK(BitSetDescription::make_from_num_bits(33).get_num_bits() == 64);
-	CHECK(BitSetDescription::make_from_num_bits(64).get_num_bits() == 64);
-	CHECK(BitSetDescription::make_from_num_bits(65).get_num_bits() == 96);
+	CHECK(bitset_description::make_from_num_bits(0).get_num_bits() == 0);
+	CHECK(bitset_description::make_from_num_bits(1).get_num_bits() == 32);
+	CHECK(bitset_description::make_from_num_bits(31).get_num_bits() == 32);
+	CHECK(bitset_description::make_from_num_bits(32).get_num_bits() == 32);
+	CHECK(bitset_description::make_from_num_bits(33).get_num_bits() == 64);
+	CHECK(bitset_description::make_from_num_bits(64).get_num_bits() == 64);
+	CHECK(bitset_description::make_from_num_bits(65).get_num_bits() == 96);
 
-	constexpr BitSetDescription desc = BitSetDescription::make_from_num_bits<64>();
+	constexpr bitset_description desc = bitset_description::make_from_num_bits<64>();
 	CHECK(desc.get_size() == 2);
-	CHECK(desc.get_size() == BitSetDescription::make_from_num_bits(64).get_size());
+	CHECK(desc.get_size() == bitset_description::make_from_num_bits(64).get_size());
 
 	uint32_t bitset_data[desc.get_size() + 1];	// Add padding
 	std::memset(&bitset_data[0], 0, sizeof(bitset_data));

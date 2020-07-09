@@ -35,11 +35,11 @@ namespace acl
 	// coerce with 'bool' in order to simplify and clean up error handling.
 	// In an ideal world, I would love for a C++11 equivalent of std::result in Rust.
 	//////////////////////////////////////////////////////////////////////////
-	class ErrorResult
+	class error_result
 	{
 	public:
-		ErrorResult() : m_error(nullptr) {}
-		explicit ErrorResult(const char* error) : m_error(error) {}
+		error_result() : m_error(nullptr) {}
+		explicit error_result(const char* error) : m_error(error) {}
 
 		bool empty() const { return m_error == nullptr; }
 		bool any() const { return m_error != nullptr; }

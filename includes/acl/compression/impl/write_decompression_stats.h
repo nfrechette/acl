@@ -66,7 +66,7 @@ namespace acl
 
 		template<class DecompressionContextType>
 		inline void write_decompression_performance_stats(
-			StatLogging logging, sjson::ObjectWriter& writer, const char* action_type,
+			stat_logging logging, sjson::ObjectWriter& writer, const char* action_type,
 			PlaybackDirection playback_direction, DecompressionFunction decompression_function,
 			compressed_tracks* compressed_clips[k_num_decompression_evaluations],
 			DecompressionContextType* contexts[k_num_decompression_evaluations],
@@ -144,7 +144,7 @@ namespace acl
 						// to help keep it warm and minimize the risk that we'll be interrupted during decompression
 						std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 
-						ScopeProfiler timer;
+						scope_profiler timer;
 
 						for (uint32_t clip_index = 0; clip_index < k_num_decompression_evaluations; ++clip_index)
 						{
@@ -169,7 +169,7 @@ namespace acl
 
 						const double elapsed_ms = timer.get_elapsed_milliseconds() / k_num_decompression_evaluations;
 
-						if (are_any_enum_flags_set(logging, StatLogging::ExhaustiveDecompression))
+						if (are_any_enum_flags_set(logging, stat_logging::ExhaustiveDecompression))
 							data_writer.push(elapsed_ms);
 
 						clip_min_ms = rtm::scalar_min(clip_min_ms, elapsed_ms);
@@ -188,7 +188,7 @@ namespace acl
 			};
 		}
 
-		inline void write_memcpy_performance_stats(IAllocator& allocator, sjson::ObjectWriter& writer, CPUCacheFlusher* cache_flusher, rtm::qvvf* lossy_pose_transforms, uint32_t num_bones)
+		inline void write_memcpy_performance_stats(iallocator& allocator, sjson::ObjectWriter& writer, CPUCacheFlusher* cache_flusher, rtm::qvvf* lossy_pose_transforms, uint32_t num_bones)
 		{
 			rtm::qvvf* memcpy_src_transforms = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 
@@ -215,7 +215,7 @@ namespace acl
 				}
 
 				double execution_count;
-				ScopeProfiler timer;
+				scope_profiler timer;
 				if (cache_flusher != nullptr)
 				{
 					std::memcpy(lossy_pose_transforms, memcpy_src_transforms, sizeof(rtm::qvvf) * num_bones);
@@ -254,7 +254,7 @@ namespace acl
 		}
 
 		template<class DecompressionContextType>
-		inline void write_decompression_performance_stats(IAllocator& allocator, compressed_tracks* compressed_clips[k_num_decompression_evaluations], DecompressionContextType* contexts[k_num_decompression_evaluations], StatLogging logging, sjson::ObjectWriter& writer)
+		inline void write_decompression_performance_stats(iallocator& allocator, compressed_tracks* compressed_clips[k_num_decompression_evaluations], DecompressionContextType* contexts[k_num_decompression_evaluations], stat_logging logging, sjson::ObjectWriter& writer)
 		{
 			CPUCacheFlusher* cache_flusher = allocate_type<CPUCacheFlusher>(allocator);
 
@@ -294,7 +294,7 @@ namespace acl
 			deallocate_type(allocator, cache_flusher);
 		}
 
-		inline void write_decompression_performance_stats(IAllocator& allocator, const compression_settings& settings, const compressed_tracks& compressed_clip, StatLogging logging, sjson::ObjectWriter& writer)
+		inline void write_decompression_performance_stats(iallocator& allocator, const compression_settings& settings, const compressed_tracks& compressed_clip, stat_logging logging, sjson::ObjectWriter& writer)
 		{
 			(void)settings;
 

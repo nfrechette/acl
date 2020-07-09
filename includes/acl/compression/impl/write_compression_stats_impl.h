@@ -40,7 +40,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline void write_compression_stats(const track_list_context& context, const compressed_tracks& tracks, const ScopeProfiler& compression_time, OutputStats& stats)
+		inline void write_compression_stats(const track_list_context& context, const compressed_tracks& tracks, const scope_profiler& compression_time, output_stats& stats)
 		{
 			ACL_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer");
 

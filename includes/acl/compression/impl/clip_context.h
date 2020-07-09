@@ -49,7 +49,7 @@ namespace acl
 		class BoneChainIterator
 		{
 		public:
-			BoneChainIterator(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index, uint16_t offset)
+			BoneChainIterator(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint16_t bone_index, uint16_t offset)
 				: m_bone_chain(bone_chain)
 				, m_bone_chain_desc(bone_chain_desc)
 				, m_bone_index(bone_index)
@@ -85,7 +85,7 @@ namespace acl
 
 		private:
 			const uint32_t*		m_bone_chain;
-			BitSetDescription	m_bone_chain_desc;
+			bitset_description	m_bone_chain_desc;
 			uint16_t			m_bone_index;
 			uint16_t			m_offset;
 		};
@@ -98,7 +98,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		struct BoneChain
 		{
-			BoneChain(const uint32_t* bone_chain, BitSetDescription bone_chain_desc, uint16_t bone_index)
+			BoneChain(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint16_t bone_index)
 				: m_bone_chain(bone_chain)
 				, m_bone_chain_desc(bone_chain_desc)
 				, m_bone_index(bone_index)
@@ -116,7 +116,7 @@ namespace acl
 			acl_impl::BoneChainIterator end() const { return acl_impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_bone_index + 1); }
 
 			const uint32_t*		m_bone_chain;
-			BitSetDescription	m_bone_chain_desc;
+			bitset_description	m_bone_chain_desc;
 			uint16_t			m_root_index;
 			uint16_t			m_bone_index;
 		};
@@ -129,7 +129,7 @@ namespace acl
 			float shell_distance;
 		};
 
-		struct ClipContext
+		struct clip_context
 		{
 			SegmentContext* segments;
 			BoneRanges* ranges;
@@ -160,18 +160,18 @@ namespace acl
 
 			//////////////////////////////////////////////////////////////////////////
 
-			Iterator<SegmentContext> segment_iterator() { return Iterator<SegmentContext>(segments, num_segments); }
-			ConstIterator<SegmentContext> const_segment_iterator() const { return ConstIterator<SegmentContext>(segments, num_segments); }
+			iterator<SegmentContext> segment_iterator() { return iterator<SegmentContext>(segments, num_segments); }
+			const_iterator<SegmentContext> const_segment_iterator() const { return const_iterator<SegmentContext>(segments, num_segments); }
 
 			BoneChain get_bone_chain(uint32_t bone_index) const
 			{
 				ACL_ASSERT(bone_index < num_bones, "Invalid bone index: %u >= %u", bone_index, num_bones);
 				const transform_metadata& meta = metadata[bone_index];
-				return BoneChain(meta.transform_chain, BitSetDescription::make_from_num_bits(num_bones), (uint16_t)bone_index);
+				return BoneChain(meta.transform_chain, bitset_description::make_from_num_bits(num_bones), (uint16_t)bone_index);
 			}
 		};
 
-		inline void initialize_clip_context(IAllocator& allocator, const track_array_qvvf& track_list, additive_clip_format8 additive_format, ClipContext& out_clip_context)
+		inline void initialize_clip_context(iallocator& allocator, const track_array_qvvf& track_list, additive_clip_format8 additive_format, clip_context& out_clip_context)
 		{
 			const uint32_t num_transforms = track_list.get_num_tracks();
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
@@ -277,7 +277,7 @@ namespace acl
 			// Initialize our hierarchy information
 			{
 				// Calculate which bones are leaf bones that have no children
-				BitSetDescription bone_bitset_desc = BitSetDescription::make_from_num_bits(num_transforms);
+				bitset_description bone_bitset_desc = bitset_description::make_from_num_bits(num_transforms);
 				uint32_t* is_leaf_bitset = allocate_type_array<uint32_t>(allocator, bone_bitset_desc.get_size());
 				bitset_reset(is_leaf_bitset, bone_bitset_desc, false);
 
@@ -343,17 +343,17 @@ namespace acl
 			}
 		}
 
-		inline void destroy_clip_context(IAllocator& allocator, ClipContext& clip_context)
+		inline void destroy_clip_context(iallocator& allocator, clip_context& context)
 		{
-			for (SegmentContext& segment : clip_context.segment_iterator())
+			for (SegmentContext& segment : context.segment_iterator())
 				destroy_segment_context(allocator, segment);
 
-			deallocate_type_array(allocator, clip_context.segments, clip_context.num_segments);
-			deallocate_type_array(allocator, clip_context.ranges, clip_context.num_bones);
-			deallocate_type_array(allocator, clip_context.metadata, clip_context.num_bones);
+			deallocate_type_array(allocator, context.segments, context.num_segments);
+			deallocate_type_array(allocator, context.ranges, context.num_bones);
+			deallocate_type_array(allocator, context.metadata, context.num_bones);
 
-			BitSetDescription bone_bitset_desc = BitSetDescription::make_from_num_bits(clip_context.num_bones);
-			deallocate_type_array(allocator, clip_context.leaf_transform_chains, size_t(clip_context.num_leaf_transforms) * bone_bitset_desc.get_size());
+			bitset_description bone_bitset_desc = bitset_description::make_from_num_bits(context.num_bones);
+			deallocate_type_array(allocator, context.leaf_transform_chains, size_t(context.num_leaf_transforms) * bone_bitset_desc.get_size());
 		}
 
 		constexpr bool segment_context_has_scale(const SegmentContext& segment) { return segment.clip->has_scale; }

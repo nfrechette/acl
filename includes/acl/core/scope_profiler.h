@@ -36,16 +36,16 @@ namespace acl
 	////////////////////////////////////////////////////////////////////////////////
 	// A scope activated profiler.
 	////////////////////////////////////////////////////////////////////////////////
-	class ScopeProfiler
+	class scope_profiler
 	{
 	public:
 		////////////////////////////////////////////////////////////////////////////////
 		// Creates and starts a scope profiler and automatically starts it.
-		ScopeProfiler();
+		scope_profiler();
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Destroys a scope profiler and automatically stops it.
-		~ScopeProfiler() = default;
+		~scope_profiler() = default;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Manually stops the profiler.
@@ -68,8 +68,8 @@ namespace acl
 		double get_elapsed_seconds() const { return std::chrono::duration<double, std::chrono::seconds::period>(get_elapsed_time()).count(); }
 
 	private:
-		ScopeProfiler(const ScopeProfiler&) = delete;
-		ScopeProfiler& operator=(const ScopeProfiler&) = delete;
+		scope_profiler(const scope_profiler&) = delete;
+		scope_profiler& operator=(const scope_profiler&) = delete;
 
 		// The time at which the profiler started.
 		std::chrono::time_point<std::chrono::high_resolution_clock>		m_start_time;
@@ -80,12 +80,12 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 
-	inline ScopeProfiler::ScopeProfiler()
+	inline scope_profiler::scope_profiler()
 	{
 		m_start_time = m_end_time = std::chrono::high_resolution_clock::now();
 	}
 
-	inline void ScopeProfiler::stop()
+	inline void scope_profiler::stop()
 	{
 		if (m_start_time == m_end_time)
 			m_end_time = std::chrono::high_resolution_clock::now();

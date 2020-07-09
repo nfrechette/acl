@@ -63,10 +63,10 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline ErrorResult compress_scalar_track_list(IAllocator& allocator, const track_array& track_list, compressed_tracks*& out_compressed_tracks, OutputStats& out_stats)
+		inline error_result compress_scalar_track_list(iallocator& allocator, const track_array& track_list, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
 #if defined(SJSON_CPP_WRITER)
-			ScopeProfiler compression_time;
+			scope_profiler compression_time;
 #endif
 
 			track_list_context context;
@@ -165,22 +165,22 @@ namespace acl
 #if defined(SJSON_CPP_WRITER)
 			compression_time.stop();
 
-			if (out_stats.logging != StatLogging::None)
+			if (out_stats.logging != stat_logging::None)
 				write_compression_stats(context, *out_compressed_tracks, compression_time, out_stats);
 #endif
 
-			return ErrorResult();
+			return error_result();
 		}
 
-		inline ErrorResult compress_transform_track_list(IAllocator& allocator, const track_array_qvvf& track_list, compression_settings settings, const track_array_qvvf* additive_base_track_list, additive_clip_format8 additive_format,
-			compressed_tracks*& out_compressed_tracks, OutputStats& out_stats)
+		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_qvvf& track_list, compression_settings settings, const track_array_qvvf* additive_base_track_list, additive_clip_format8 additive_format,
+			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
-			ErrorResult error_result = settings.is_valid();
-			if (error_result.any())
-				return error_result;
+			error_result result = settings.is_valid();
+			if (result.any())
+				return result;
 
 #if defined(SJSON_CPP_WRITER)
-			ScopeProfiler compression_time;
+			scope_profiler compression_time;
 #endif
 
 			// If every track is retains full precision, we disable segmenting since it provides no benefit
@@ -202,59 +202,59 @@ namespace acl
 			if (is_vector_format_variable(settings.scale_format))
 				range_reduction |= range_reduction_flags8::scales;
 
-			ClipContext raw_clip_context;
+			clip_context raw_clip_context;
 			initialize_clip_context(allocator, track_list, additive_format, raw_clip_context);
 
-			ClipContext clip_context;
-			initialize_clip_context(allocator, track_list, additive_format, clip_context);
+			clip_context lossy_clip_context;
+			initialize_clip_context(allocator, track_list, additive_format, lossy_clip_context);
 
 			const bool is_additive = additive_base_track_list != nullptr && additive_format != additive_clip_format8::none;
-			ClipContext additive_base_clip_context;
+			clip_context additive_base_clip_context;
 			if (is_additive)
 				initialize_clip_context(allocator, *additive_base_track_list, additive_format, additive_base_clip_context);
 
-			convert_rotation_streams(allocator, clip_context, settings.rotation_format);
+			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format);
 
 			// Extract our clip ranges now, we need it for compacting the constant streams
-			extract_clip_bone_ranges(allocator, clip_context);
+			extract_clip_bone_ranges(allocator, lossy_clip_context);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, clip_context, track_list);
+			compact_constant_streams(allocator, lossy_clip_context, track_list);
 
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
 			{
-				normalize_clip_streams(clip_context, range_reduction);
-				clip_range_data_size = get_stream_range_data_size(clip_context, range_reduction, settings.rotation_format);
+				normalize_clip_streams(lossy_clip_context, range_reduction);
+				clip_range_data_size = get_stream_range_data_size(lossy_clip_context, range_reduction, settings.rotation_format);
 			}
 
-			segment_streams(allocator, clip_context, settings.segmenting);
+			segment_streams(allocator, lossy_clip_context, settings.segmenting);
 
 			// If we have a single segment, skip segment range reduction since it won't help
-			if (range_reduction != range_reduction_flags8::none && clip_context.num_segments > 1)
+			if (range_reduction != range_reduction_flags8::none && lossy_clip_context.num_segments > 1)
 			{
-				extract_segment_bone_ranges(allocator, clip_context);
-				normalize_segment_streams(clip_context, range_reduction);
+				extract_segment_bone_ranges(allocator, lossy_clip_context);
+				normalize_segment_streams(lossy_clip_context, range_reduction);
 			}
 
-			quantize_streams(allocator, clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats);
+			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats);
 
 			uint32_t num_output_bones = 0;
 			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);
 
-			const uint32_t constant_data_size = get_constant_data_size(clip_context, output_bone_mapping, num_output_bones);
+			const uint32_t constant_data_size = get_constant_data_size(lossy_clip_context, output_bone_mapping, num_output_bones);
 
-			calculate_animated_data_size(clip_context, output_bone_mapping, num_output_bones);
+			calculate_animated_data_size(lossy_clip_context, output_bone_mapping, num_output_bones);
 
-			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
+			const uint32_t format_per_track_data_size = get_format_per_track_data_size(lossy_clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
 
-			const uint32_t num_tracks_per_bone = clip_context.has_scale ? 3 : 2;
+			const uint32_t num_tracks_per_bone = lossy_clip_context.has_scale ? 3 : 2;
 			const uint32_t num_tracks = uint32_t(num_output_bones) * num_tracks_per_bone;
-			const BitSetDescription bitset_desc = BitSetDescription::make_from_num_bits(num_tracks);
+			const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_tracks);
 
 			// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
-			const uint32_t segment_start_indices_size = clip_context.num_segments > 1 ? (sizeof(uint32_t) * (clip_context.num_segments + 1)) : 0;
-			const uint32_t segment_headers_size = sizeof(segment_header) * clip_context.num_segments;
+			const uint32_t segment_start_indices_size = lossy_clip_context.num_segments > 1 ? (sizeof(uint32_t) * (lossy_clip_context.num_segments + 1)) : 0;
+			const uint32_t segment_headers_size = sizeof(segment_header) * lossy_clip_context.num_segments;
 
 			uint32_t buffer_size = 0;
 			// Per clip data
@@ -279,20 +279,20 @@ namespace acl
 
 			const uint32_t clip_data_size = buffer_size - clip_segment_header_size - clip_header_size;
 
-			if (are_all_enum_flags_set(out_stats.logging, StatLogging::Detailed))
+			if (are_all_enum_flags_set(out_stats.logging, stat_logging::Detailed))
 			{
 				constexpr uint32_t k_cache_line_byte_size = 64;
-				clip_context.decomp_touched_bytes = clip_header_size + clip_data_size;
-				clip_context.decomp_touched_bytes += sizeof(uint32_t) * 4;			// We touch at most 4 segment start indices
-				clip_context.decomp_touched_bytes += sizeof(segment_header) * 2;	// We touch at most 2 segment headers
-				clip_context.decomp_touched_cache_lines = align_to(clip_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
-				clip_context.decomp_touched_cache_lines += align_to(clip_data_size, k_cache_line_byte_size) / k_cache_line_byte_size;
-				clip_context.decomp_touched_cache_lines += 1;						// All 4 segment start indices should fit in a cache line
-				clip_context.decomp_touched_cache_lines += 1;						// Both segment headers should fit in a cache line
+				lossy_clip_context.decomp_touched_bytes = clip_header_size + clip_data_size;
+				lossy_clip_context.decomp_touched_bytes += sizeof(uint32_t) * 4;			// We touch at most 4 segment start indices
+				lossy_clip_context.decomp_touched_bytes += sizeof(segment_header) * 2;	// We touch at most 2 segment headers
+				lossy_clip_context.decomp_touched_cache_lines = align_to(clip_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
+				lossy_clip_context.decomp_touched_cache_lines += align_to(clip_data_size, k_cache_line_byte_size) / k_cache_line_byte_size;
+				lossy_clip_context.decomp_touched_cache_lines += 1;						// All 4 segment start indices should fit in a cache line
+				lossy_clip_context.decomp_touched_cache_lines += 1;						// Both segment headers should fit in a cache line
 			}
 
 			// Per segment data
-			for (SegmentContext& segment : clip_context.segment_iterator())
+			for (SegmentContext& segment : lossy_clip_context.segment_iterator())
 			{
 				const uint32_t header_start = buffer_size;
 
@@ -338,11 +338,11 @@ namespace acl
 			transform_tracks_header* transforms_header = safe_ptr_cast<transform_tracks_header>(buffer);
 			buffer += sizeof(transform_tracks_header);
 
-			transforms_header->num_segments = clip_context.num_segments;
+			transforms_header->num_segments = lossy_clip_context.num_segments;
 			transforms_header->rotation_format = settings.rotation_format;
 			transforms_header->translation_format = settings.translation_format;
 			transforms_header->scale_format = settings.scale_format;
-			transforms_header->has_scale = clip_context.has_scale ? 1 : 0;
+			transforms_header->has_scale = lossy_clip_context.has_scale ? 1 : 0;
 			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
 			transforms_header->default_scale = !is_additive || additive_format != additive_clip_format8::additive1 ? 1 : 0;
 			transforms_header->segment_start_indices_offset = sizeof(transform_tracks_header);	// Relative to the start of our header
@@ -353,31 +353,31 @@ namespace acl
 			transforms_header->clip_range_data_offset = align_to(transforms_header->constant_track_data_offset + constant_data_size, 4);
 
 			uint32_t written_segment_start_indices_size = 0;
-			if (clip_context.num_segments > 1)
-				written_segment_start_indices_size = write_segment_start_indices(clip_context, transforms_header->get_segment_start_indices());
+			if (lossy_clip_context.num_segments > 1)
+				written_segment_start_indices_size = write_segment_start_indices(lossy_clip_context, transforms_header->get_segment_start_indices());
 			else
-				transforms_header->segment_start_indices_offset = InvalidPtrOffset();
+				transforms_header->segment_start_indices_offset = invalid_ptr_offset();
 
 			const uint32_t segment_data_start_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
-			const uint32_t written_segment_headers_size = write_segment_headers(clip_context, settings, transforms_header->get_segment_headers(), segment_data_start_offset);
+			const uint32_t written_segment_headers_size = write_segment_headers(lossy_clip_context, settings, transforms_header->get_segment_headers(), segment_data_start_offset);
 
 			uint32_t written_bitset_size = 0;
-			written_bitset_size += write_default_track_bitset(clip_context, transforms_header->get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
-			written_bitset_size += write_constant_track_bitset(clip_context, transforms_header->get_constant_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
+			written_bitset_size += write_default_track_bitset(lossy_clip_context, transforms_header->get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
+			written_bitset_size += write_constant_track_bitset(lossy_clip_context, transforms_header->get_constant_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
 
 			uint32_t written_constant_data_size = 0;
 			if (constant_data_size > 0)
-				written_constant_data_size = write_constant_track_data(clip_context, transforms_header->get_constant_track_data(), constant_data_size, output_bone_mapping, num_output_bones);
+				written_constant_data_size = write_constant_track_data(lossy_clip_context, transforms_header->get_constant_track_data(), constant_data_size, output_bone_mapping, num_output_bones);
 			else
-				transforms_header->constant_track_data_offset = InvalidPtrOffset();
+				transforms_header->constant_track_data_offset = invalid_ptr_offset();
 
 			uint32_t written_clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
-				written_clip_range_data_size = write_clip_range_data(clip_context, range_reduction, transforms_header->get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
+				written_clip_range_data_size = write_clip_range_data(lossy_clip_context, range_reduction, transforms_header->get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
 			else
-				transforms_header->clip_range_data_offset = InvalidPtrOffset();
+				transforms_header->clip_range_data_offset = invalid_ptr_offset();
 
-			const uint32_t written_segment_data_size = write_segment_data(clip_context, settings, range_reduction, *transforms_header, output_bone_mapping, num_output_bones);
+			const uint32_t written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, *transforms_header, output_bone_mapping, num_output_bones);
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 			{
@@ -424,18 +424,18 @@ namespace acl
 #if defined(SJSON_CPP_WRITER)
 			compression_time.stop();
 
-			if (out_stats.logging != StatLogging::None)
-				write_stats(allocator, track_list, clip_context, *out_compressed_tracks, settings, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
+			if (out_stats.logging != stat_logging::None)
+				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
 #endif
 
 			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
-			destroy_clip_context(allocator, clip_context);
+			destroy_clip_context(allocator, lossy_clip_context);
 			destroy_clip_context(allocator, raw_clip_context);
 
 			if (is_additive)
 				destroy_clip_context(allocator, additive_base_clip_context);
 
-			return ErrorResult();
+			return error_result();
 		}
 	}
 
@@ -456,27 +456,27 @@ namespace acl
 	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
 	//    out_stats:				Stat output structure.
 	//////////////////////////////////////////////////////////////////////////
-	inline ErrorResult compress_track_list(IAllocator& allocator, const track_array& track_list, const compression_settings& settings, compressed_tracks*& out_compressed_tracks, OutputStats& out_stats)
+	inline error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 	{
 		using namespace acl_impl;
 
-		ErrorResult error_result = track_list.is_valid();
-		if (error_result.any())
-			return error_result;
+		error_result result = track_list.is_valid();
+		if (result.any())
+			return result;
 
 		if (track_list.get_num_samples_per_track() > 0xFFFF)
-			return ErrorResult("ACL only supports up to 65535 samples");
+			return error_result("ACL only supports up to 65535 samples");
 
 		// Disable floating point exceptions during compression because we leverage all SIMD lanes
 		// and we might intentionally divide by zero, etc.
 		scope_disable_fp_exceptions fp_off;
 
 		if (track_list.get_track_category() == track_category8::transformf)
-			error_result = compress_transform_track_list(allocator, track_array_cast<track_array_qvvf>(track_list), settings, nullptr, additive_clip_format8::none, out_compressed_tracks, out_stats);
+			result = compress_transform_track_list(allocator, track_array_cast<track_array_qvvf>(track_list), settings, nullptr, additive_clip_format8::none, out_compressed_tracks, out_stats);
 		else
-			error_result = compress_scalar_track_list(allocator, track_list, out_compressed_tracks, out_stats);
+			result = compress_scalar_track_list(allocator, track_list, out_compressed_tracks, out_stats);
 
-		return error_result;
+		return result;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -496,20 +496,20 @@ namespace acl
 	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
 	//    out_stats:				Stat output structure.
 	//////////////////////////////////////////////////////////////////////////
-	inline ErrorResult compress_track_list(IAllocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings, const track_array_qvvf& additive_base_track_list, additive_clip_format8 additive_format, compressed_tracks*& out_compressed_tracks, OutputStats& out_stats)
+	inline error_result compress_track_list(iallocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings, const track_array_qvvf& additive_base_track_list, additive_clip_format8 additive_format, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 	{
 		using namespace acl_impl;
 
-		ErrorResult error_result = track_list.is_valid();
-		if (error_result.any())
-			return error_result;
+		error_result result = track_list.is_valid();
+		if (result.any())
+			return result;
 
-		error_result = additive_base_track_list.is_valid();
-		if (error_result.any())
-			return error_result;
+		result = additive_base_track_list.is_valid();
+		if (result.any())
+			return result;
 
 		if (track_list.get_num_samples_per_track() > 0xFFFF)
-			return ErrorResult("ACL only supports up to 65535 samples");
+			return error_result("ACL only supports up to 65535 samples");
 
 		// Disable floating point exceptions during compression because we leverage all SIMD lanes
 		// and we might intentionally divide by zero, etc.

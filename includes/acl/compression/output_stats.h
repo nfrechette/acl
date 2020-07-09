@@ -33,7 +33,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	enum class StatLogging
+	enum class stat_logging
 	{
 		None						= 0x0000,
 		Summary						= 0x0001,
@@ -43,14 +43,14 @@ namespace acl
 		ExhaustiveDecompression		= 0x0020,
 	};
 
-	ACL_IMPL_ENUM_FLAGS_OPERATORS(StatLogging)
+	ACL_IMPL_ENUM_FLAGS_OPERATORS(stat_logging)
 
-	struct OutputStats
+	struct output_stats
 	{
-		OutputStats() : logging(StatLogging::None), writer(nullptr) {}
-		OutputStats(StatLogging logging_, sjson::ObjectWriter* writer_) : logging(logging_), writer(writer_) {}
+		output_stats() : logging(stat_logging::None), writer(nullptr) {}
+		output_stats(stat_logging logging_, sjson::ObjectWriter* writer_) : logging(logging_), writer(writer_) {}
 
-		StatLogging				logging;
+		stat_logging				logging;
 		sjson::ObjectWriter*	writer;
 	};
 }

@@ -45,16 +45,16 @@ namespace acl
 	//
 	// See ansi_allocator.h for an implementation that uses the system malloc/free.
 	////////////////////////////////////////////////////////////////////////////////
-	class IAllocator
+	class iallocator
 	{
 	public:
 		static constexpr size_t k_default_alignment = 16;
 
-		IAllocator() {}
-		virtual ~IAllocator() {}
+		iallocator() {}
+		virtual ~iallocator() {}
 
-		IAllocator(const IAllocator&) = delete;
-		IAllocator& operator=(const IAllocator&) = delete;
+		iallocator(const iallocator&) = delete;
+		iallocator& operator=(const iallocator&) = delete;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Allocates memory with the specified size and alignment.
@@ -73,73 +73,73 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 
-	template<typename AllocatedType, typename... Args>
-	AllocatedType* allocate_type(IAllocator& allocator, Args&&... args)
+	template<typename allocated_type, typename... args>
+	allocated_type* allocate_type(iallocator& allocator, args&&... arguments)
 	{
-		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignof(AllocatedType)));
-		if (acl_impl::is_trivially_default_constructible<AllocatedType>::value)
+		allocated_type* ptr = reinterpret_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type), alignof(allocated_type)));
+		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
 			return ptr;
-		return new(ptr) AllocatedType(std::forward<Args>(args)...);
+		return new(ptr) allocated_type(std::forward<args>(arguments)...);
 	}
 
-	template<typename AllocatedType, typename... Args>
-	AllocatedType* allocate_type_aligned(IAllocator& allocator, size_t alignment, Args&&... args)
+	template<typename allocated_type, typename... args>
+	allocated_type* allocate_type_aligned(iallocator& allocator, size_t alignment, args&&... arguments)
 	{
-		ACL_ASSERT(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(AllocatedType));
-		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType), alignment));
-		if (acl_impl::is_trivially_default_constructible<AllocatedType>::value)
+		ACL_ASSERT(is_alignment_valid<allocated_type>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(allocated_type));
+		allocated_type* ptr = reinterpret_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type), alignment));
+		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
 			return ptr;
-		return new(ptr) AllocatedType(std::forward<Args>(args)...);
+		return new(ptr) allocated_type(std::forward<args>(arguments)...);
 	}
 
-	template<typename AllocatedType>
-	void deallocate_type(IAllocator& allocator, AllocatedType* ptr)
+	template<typename allocated_type>
+	void deallocate_type(iallocator& allocator, allocated_type* ptr)
 	{
 		if (ptr == nullptr)
 			return;
 
-		if (!std::is_trivially_destructible<AllocatedType>::value)
-			ptr->~AllocatedType();
+		if (!std::is_trivially_destructible<allocated_type>::value)
+			ptr->~allocated_type();
 
-		allocator.deallocate(ptr, sizeof(AllocatedType));
+		allocator.deallocate(ptr, sizeof(allocated_type));
 	}
 
-	template<typename AllocatedType, typename... Args>
-	AllocatedType* allocate_type_array(IAllocator& allocator, size_t num_elements, Args&&... args)
+	template<typename allocated_type, typename... args>
+	allocated_type* allocate_type_array(iallocator& allocator, size_t num_elements, args&&... arguments)
 	{
-		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignof(AllocatedType)));
-		if (acl_impl::is_trivially_default_constructible<AllocatedType>::value)
+		allocated_type* ptr = reinterpret_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type) * num_elements, alignof(allocated_type)));
+		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
 			return ptr;
 		for (size_t element_index = 0; element_index < num_elements; ++element_index)
-			new(&ptr[element_index]) AllocatedType(std::forward<Args>(args)...);
+			new(&ptr[element_index]) allocated_type(std::forward<args>(arguments)...);
 		return ptr;
 	}
 
-	template<typename AllocatedType, typename... Args>
-	AllocatedType* allocate_type_array_aligned(IAllocator& allocator, size_t num_elements, size_t alignment, Args&&... args)
+	template<typename allocated_type, typename... args>
+	allocated_type* allocate_type_array_aligned(iallocator& allocator, size_t num_elements, size_t alignment, args&&... arguments)
 	{
-		ACL_ASSERT(is_alignment_valid<AllocatedType>(alignment), "Invalid alignment: %zu. Expected a power of two at least equal to %zu", alignment, alignof(AllocatedType));
-		AllocatedType* ptr = reinterpret_cast<AllocatedType*>(allocator.allocate(sizeof(AllocatedType) * num_elements, alignment));
-		if (acl_impl::is_trivially_default_constructible<AllocatedType>::value)
+		ACL_ASSERT(is_alignment_valid<allocated_type>(alignment), "Invalid alignment: %zu. Expected a power of two at least equal to %zu", alignment, alignof(allocated_type));
+		allocated_type* ptr = reinterpret_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type) * num_elements, alignment));
+		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
 			return ptr;
 		for (size_t element_index = 0; element_index < num_elements; ++element_index)
-			new(&ptr[element_index]) AllocatedType(std::forward<Args>(args)...);
+			new(&ptr[element_index]) allocated_type(std::forward<args>(arguments)...);
 		return ptr;
 	}
 
-	template<typename AllocatedType>
-	void deallocate_type_array(IAllocator& allocator, AllocatedType* elements, size_t num_elements)
+	template<typename allocated_type>
+	void deallocate_type_array(iallocator& allocator, allocated_type* elements, size_t num_elements)
 	{
 		if (elements == nullptr)
 			return;
 
-		if (!std::is_trivially_destructible<AllocatedType>::value)
+		if (!std::is_trivially_destructible<allocated_type>::value)
 		{
 			for (size_t element_index = 0; element_index < num_elements; ++element_index)
-				elements[element_index].~AllocatedType();
+				elements[element_index].~allocated_type();
 		}
 
-		allocator.deallocate(elements, sizeof(AllocatedType) * num_elements);
+		allocator.deallocate(elements, sizeof(allocated_type) * num_elements);
 	}
 }
 

@@ -129,7 +129,7 @@ struct Options
 	const char*		config_filename;
 #endif
 
-	bool			output_stats;
+	bool			do_output_stats;
 	const char*		output_stats_filename;
 	std::FILE*		output_stats_file;
 
@@ -164,7 +164,7 @@ struct Options
 		: input_filename(nullptr)
 		, config_filename(nullptr)
 #endif
-		, output_stats(false)
+		, do_output_stats(false)
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
 		, output_bin_filename(nullptr)
@@ -286,7 +286,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 		option_length = std::strlen(k_stats_output_option);
 		if (std::strncmp(argument, k_stats_output_option, option_length) == 0)
 		{
-			options.output_stats = true;
+			options.do_output_stats = true;
 			if (argument[option_length] == '=')
 			{
 				options.output_stats_filename = argument + option_length + 1;
@@ -417,7 +417,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 }
 
 #if defined(ACL_USE_SJSON)
-static void validate_accuracy(IAllocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
+static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
 {
 	using namespace acl_impl;
 
@@ -472,7 +472,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array_qvvf& raw
 #endif
 }
 
-static void validate_accuracy(IAllocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold)
+static void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold)
 {
 	(void)allocator;
 	(void)raw_tracks;
@@ -656,7 +656,7 @@ static void validate_accuracy(IAllocator& allocator, const track_array& raw_trac
 #endif	// defined(ACL_HAS_ASSERT_CHECKS)
 }
 
-static void try_algorithm(const Options& options, IAllocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, const compression_settings& settings, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, iallocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, const compression_settings& settings, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
 
@@ -665,16 +665,16 @@ static void try_algorithm(const Options& options, IAllocator& allocator, track_a
 		if (transform_tracks.get_num_samples_per_track() == 0)
 			return;
 
-		OutputStats stats(logging, stats_writer);
+		output_stats stats(logging, stats_writer);
 		compressed_tracks* compressed_tracks_ = nullptr;
-		const ErrorResult error_result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
+		const error_result result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
 
-		(void)error_result;
-		ACL_ASSERT(error_result.empty(), error_result.c_str());
+		(void)result;
+		ACL_ASSERT(result.empty(), result.c_str());
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
 #if defined(SJSON_CPP_WRITER)
-		if (logging != StatLogging::None)
+		if (logging != stat_logging::None)
 		{
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
@@ -688,7 +688,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, track_a
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
 
-			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
+			if (are_any_enum_flags_set(logging, stat_logging::SummaryDecompression))
 				acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_tracks_, logging, *stats_writer);
 		}
 #endif
@@ -714,7 +714,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, track_a
 		try_algorithm_impl(nullptr);
 }
 
-static void try_algorithm(const Options& options, IAllocator& allocator, const track_array& track_list, StatLogging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, iallocator& allocator, const track_array& track_list, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
 
@@ -725,15 +725,15 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const t
 
 		compression_settings settings;
 
-		OutputStats stats(logging, stats_writer);
+		output_stats stats(logging, stats_writer);
 		compressed_tracks* compressed_tracks_ = nullptr;
-		const ErrorResult error_result = compress_track_list(allocator, track_list, settings, compressed_tracks_, stats);
+		const error_result result = compress_track_list(allocator, track_list, settings, compressed_tracks_, stats);
 
-		ACL_ASSERT(error_result.empty(), error_result.c_str()); (void)error_result;
+		ACL_ASSERT(result.empty(), result.c_str()); (void)result;
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
 #if defined(SJSON_CPP_WRITER)
-		if (logging != StatLogging::None)
+		if (logging != stat_logging::None)
 		{
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
@@ -748,7 +748,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const t
 			stats_writer->insert("worst_time", error.sample_time);
 
 			// TODO: measure decompression performance
-			//if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
+			//if (are_any_enum_flags_set(logging, stat_logging::SummaryDecompression))
 				//write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
 		}
 #endif
@@ -779,7 +779,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const t
 		try_algorithm_impl(nullptr);
 }
 
-static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
+static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 	sjson_file_type& out_file_type,
 	sjson_raw_clip& out_raw_clip,
 	sjson_raw_track_list& out_raw_track_list)
@@ -788,7 +788,7 @@ static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
 	size_t file_size = 0;
 
 #if defined(__ANDROID__)
-	ClipReader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
+	clip_reader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
 #else
 	// Use the raw C API with a large buffer to ensure this is as fast as possible
 	std::FILE* file = nullptr;
@@ -840,7 +840,7 @@ static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
 		return false;
 	}
 
-	ClipReader reader(allocator, sjson_file_buffer, file_size - 1);
+	clip_reader reader(allocator, sjson_file_buffer, file_size - 1);
 #endif
 
 	const sjson_file_type ftype = reader.get_file_type();
@@ -863,8 +863,8 @@ static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
 
 	if (!success)
 	{
-		const ClipReaderError err = reader.get_error();
-		if (err.error != ClipReaderError::None)
+		const clip_reader_error err = reader.get_error();
+		if (err.error != clip_reader_error::None)
 			printf("\nError on line %d column %d: %s\n", err.line, err.column, err.get_description());
 	}
 
@@ -872,7 +872,7 @@ static bool read_acl_sjson_file(IAllocator& allocator, const Options& options,
 	return success;
 }
 
-static bool read_config(IAllocator& allocator, Options& options, compression_settings& out_settings, double& out_regression_error_threshold)
+static bool read_config(iallocator& allocator, Options& options, compression_settings& out_settings, double& out_regression_error_threshold)
 {
 #if defined(__ANDROID__)
 	sjson::Parser parser(options.config_buffer, options.config_buffer_size - 1);
@@ -916,7 +916,7 @@ static bool read_config(IAllocator& allocator, Options& options, compression_set
 	algorithm_type8 algorithm_type;
 	if (!get_algorithm_type(algorithm_name.c_str(), algorithm_type))
 	{
-		printf("Invalid algorithm name: %s\n", String(allocator, algorithm_name.c_str(), algorithm_name.size()).c_str());
+		printf("Invalid algorithm name: %s\n", string(allocator, algorithm_name.c_str(), algorithm_name.size()).c_str());
 		return false;
 	}
 
@@ -926,7 +926,7 @@ static bool read_config(IAllocator& allocator, Options& options, compression_set
 	parser.try_read("level", compression_level, get_compression_level_name(default_settings.level));
 	if (!get_compression_level(compression_level.c_str(), out_settings.level))
 	{
-		printf("Invalid compression level: %s\n", String(allocator, compression_level.c_str(), compression_level.size()).c_str());
+		printf("Invalid compression level: %s\n", string(allocator, compression_level.c_str(), compression_level.size()).c_str());
 		return false;
 	}
 
@@ -934,7 +934,7 @@ static bool read_config(IAllocator& allocator, Options& options, compression_set
 	parser.try_read("rotation_format", rotation_format, get_rotation_format_name(default_settings.rotation_format));
 	if (!get_rotation_format(rotation_format.c_str(), out_settings.rotation_format))
 	{
-		printf("Invalid rotation format: %s\n", String(allocator, rotation_format.c_str(), rotation_format.size()).c_str());
+		printf("Invalid rotation format: %s\n", string(allocator, rotation_format.c_str(), rotation_format.size()).c_str());
 		return false;
 	}
 
@@ -942,7 +942,7 @@ static bool read_config(IAllocator& allocator, Options& options, compression_set
 	parser.try_read("translation_format", translation_format, get_vector_format_name(default_settings.translation_format));
 	if (!get_vector_format(translation_format.c_str(), out_settings.translation_format))
 	{
-		printf("Invalid translation format: %s\n", String(allocator, translation_format.c_str(), translation_format.size()).c_str());
+		printf("Invalid translation format: %s\n", string(allocator, translation_format.c_str(), translation_format.size()).c_str());
 		return false;
 	}
 
@@ -950,7 +950,7 @@ static bool read_config(IAllocator& allocator, Options& options, compression_set
 	parser.try_read("scale_format", scale_format, get_vector_format_name(default_settings.scale_format));
 	if (!get_vector_format(scale_format.c_str(), out_settings.scale_format))
 	{
-		printf("Invalid scale format: %s\n", String(allocator, scale_format.c_str(), scale_format.size()).c_str());
+		printf("Invalid scale format: %s\n", string(allocator, scale_format.c_str(), scale_format.size()).c_str());
 		return false;
 	}
 
@@ -984,7 +984,7 @@ static bool read_config(IAllocator& allocator, Options& options, compression_set
 	return true;
 }
 
-static itransform_error_metric* create_additive_error_metric(IAllocator& allocator, additive_clip_format8 format)
+static itransform_error_metric* create_additive_error_metric(iallocator& allocator, additive_clip_format8 format)
 {
 	switch (format)
 	{
@@ -1004,7 +1004,7 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 	// Convert the animation clip to be relative to the bind pose
 	const uint32_t num_bones = clip.get_num_tracks();
 	const uint32_t num_samples = clip.get_num_samples_per_track();
-	IAllocator& allocator = *clip.get_allocator();
+	iallocator& allocator = *clip.get_allocator();
 	const track_desc_transformf bind_desc;
 
 	out_base_clip = track_array_qvvf(*clip.get_allocator(), num_bones);
@@ -1071,7 +1071,7 @@ static int safe_main_impl(int argc, char* argv[])
 	}
 
 #if defined(ACL_USE_SJSON)
-	ANSIAllocator allocator;
+	ansi_allocator allocator;
 	track_array_qvvf transform_tracks;
 	track_array_qvvf base_clip;
 	additive_clip_format8 additive_format = additive_clip_format8::none;
@@ -1173,16 +1173,16 @@ static int safe_main_impl(int argc, char* argv[])
 	// Compress & Decompress
 	auto exec_algos = [&](sjson::ArrayWriter* runs_writer)
 	{
-		StatLogging logging = options.output_stats ? StatLogging::Summary : StatLogging::None;
+		stat_logging logging = options.do_output_stats ? stat_logging::Summary : stat_logging::None;
 
 		if (options.stat_detailed_output)
-			logging |= StatLogging::Detailed;
+			logging |= stat_logging::Detailed;
 
 		if (options.stat_exhaustive_output)
-			logging |= StatLogging::Exhaustive;
+			logging |= stat_logging::Exhaustive;
 
 		if (options.profile_decompression)
-			logging |= StatLogging::SummaryDecompression | StatLogging::ExhaustiveDecompression;
+			logging |= stat_logging::SummaryDecompression | stat_logging::ExhaustiveDecompression;
 
 		if (is_input_acl_bin_file)
 		{
@@ -1299,7 +1299,7 @@ static int safe_main_impl(int argc, char* argv[])
 	};
 
 #if defined(SJSON_CPP_WRITER)
-	if (options.output_stats)
+	if (options.do_output_stats)
 	{
 		sjson::FileStreamWriter stream_writer(options.output_stats_file);
 		sjson::Writer writer(stream_writer);

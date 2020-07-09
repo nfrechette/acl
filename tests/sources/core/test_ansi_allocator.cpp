@@ -35,7 +35,7 @@ using namespace acl;
 
 TEST_CASE("ANSI allocator", "[core][memory]")
 {
-	ANSIAllocator allocator;
+	ansi_allocator allocator;
 	CHECK(allocator.get_allocation_count() == 0);
 
 	void* ptr0 = allocator.allocate(32);

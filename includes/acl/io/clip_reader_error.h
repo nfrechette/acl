@@ -34,7 +34,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	struct ClipReaderError : sjson::ParserError
+	struct clip_reader_error : sjson::ParserError
 	{
 		enum : uint32_t
 		{
@@ -48,11 +48,11 @@ namespace acl
 			InvalidTrackType,
 		};
 
-		ClipReaderError()
+		clip_reader_error()
 		{
 		}
 
-		ClipReaderError(const sjson::ParserError& e)
+		clip_reader_error(const sjson::ParserError& e)
 		{
 			error = e.error;
 			line = e.line;

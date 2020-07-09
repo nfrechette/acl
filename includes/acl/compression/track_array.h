@@ -63,7 +63,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs an array with the specified number of tracks.
 		// Tracks will be empty and untyped by default.
-		track_array(IAllocator& allocator, uint32_t num_tracks)
+		track_array(iallocator& allocator, uint32_t num_tracks)
 			: m_allocator(&allocator)
 			, m_tracks(allocate_type_array<track>(allocator, num_tracks))
 			, m_num_tracks(num_tracks)
@@ -99,7 +99,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a pointer to the allocator instance or nullptr if there is none present.
-		IAllocator* get_allocator() const { return m_allocator; }
+		iallocator* get_allocator() const { return m_allocator; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of tracks contained in this array.
@@ -156,7 +156,7 @@ namespace acl
 		//    - All tracks have the same number of samples
 		//    - All tracks have the same sample rate
 		//    - All tracks are valid
-		ErrorResult is_valid() const;
+		error_result is_valid() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Sample all tracks within this array at the specified sample time and
@@ -182,7 +182,7 @@ namespace acl
 		track_array(const track_array&) = delete;
 		track_array& operator=(const track_array&) = delete;
 
-		IAllocator*		m_allocator;		// The allocator used to allocate our tracks
+		iallocator*		m_allocator;		// The allocator used to allocate our tracks
 		track*			m_tracks;			// The track list
 		uint32_t		m_num_tracks;		// The number of tracks
 	};
@@ -213,7 +213,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs an array with the specified number of tracks.
 		// Tracks will be empty and untyped by default.
-		track_array_typed(IAllocator& allocator, uint32_t num_tracks) : track_array(allocator, num_tracks) {}
+		track_array_typed(iallocator& allocator, uint32_t num_tracks) : track_array(allocator, num_tracks) {}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move constructor for a track array.
@@ -313,7 +313,7 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 
-	inline ErrorResult track_array::is_valid() const
+	inline error_result track_array::is_valid() const
 	{
 		const track_type8 type = get_track_type();
 		const uint32_t num_samples = get_num_samples_per_track();
@@ -323,15 +323,15 @@ namespace acl
 		{
 			const track& track_ = m_tracks[track_index];
 			if (track_.get_type() != type)
-				return ErrorResult("Tracks must all have the same type within an array");
+				return error_result("Tracks must all have the same type within an array");
 
 			if (track_.get_num_samples() != num_samples)
-				return ErrorResult("Track array requires the same number of samples in every track");
+				return error_result("Track array requires the same number of samples in every track");
 
 			if (track_.get_sample_rate() != sample_rate)
-				return ErrorResult("Track array requires the same sample rate in every track");
+				return error_result("Track array requires the same sample rate in every track");
 
-			const ErrorResult result = track_.is_valid();
+			const error_result result = track_.is_valid();
 			if (result.any())
 				return result;
 
@@ -339,7 +339,7 @@ namespace acl
 			{
 				const track_desc_transformf& desc = track_.get_description<track_desc_transformf>();
 				if (desc.parent_index != k_invalid_track_index && desc.parent_index >= m_num_tracks)
-					return ErrorResult("Invalid parent_index. It must be 'k_invalid_track_index' or a valid track index");
+					return error_result("Invalid parent_index. It must be 'k_invalid_track_index' or a valid track index");
 			}
 		}
 
@@ -350,7 +350,7 @@ namespace acl
 			const track& track_ = m_tracks[track_index];
 			const uint32_t output_index = track_.get_output_index();
 			if (output_index != k_invalid_track_index && output_index >= m_num_tracks)
-				return ErrorResult("The output_index must be 'k_invalid_track_index' or less than the number of bones");
+				return error_result("The output_index must be 'k_invalid_track_index' or less than the number of bones");
 
 			if (output_index != k_invalid_track_index)
 			{
@@ -359,7 +359,7 @@ namespace acl
 					const track& track2_ = m_tracks[track_index2];
 					const uint32_t output_index2 = track2_.get_output_index();
 					if (output_index == output_index2)
-						return ErrorResult("Duplicate output_index found");
+						return error_result("Duplicate output_index found");
 				}
 
 				num_outputs++;
@@ -381,10 +381,10 @@ namespace acl
 			}
 
 			if (!found)
-				return ErrorResult("Output indices are not contiguous");
+				return error_result("Output indices are not contiguous");
 		}
 
-		return ErrorResult();
+		return error_result();
 	}
 
 	template<class track_writer_type>

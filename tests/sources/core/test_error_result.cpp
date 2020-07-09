@@ -31,17 +31,17 @@
 
 using namespace acl;
 
-TEST_CASE("ErrorResult", "[core][error]")
+TEST_CASE("error_result", "[core][error]")
 {
-	CHECK(ErrorResult().any() == false);
-	CHECK(ErrorResult().empty() == true);
-	CHECK(std::strlen(ErrorResult().c_str()) == 0);
+	CHECK(error_result().any() == false);
+	CHECK(error_result().empty() == true);
+	CHECK(std::strlen(error_result().c_str()) == 0);
 
-	CHECK(ErrorResult("failed").any() == true);
-	CHECK(ErrorResult("failed").empty() == false);
-	CHECK(std::strcmp(ErrorResult("failed").c_str(), "failed") == 0);
+	CHECK(error_result("failed").any() == true);
+	CHECK(error_result("failed").empty() == false);
+	CHECK(std::strcmp(error_result("failed").c_str(), "failed") == 0);
 
-	ErrorResult tmp("failed");
+	error_result tmp("failed");
 	CHECK(tmp.any() == true);
 	tmp.reset();
 	CHECK(tmp.any() == false);

@@ -18,7 +18,7 @@ compression_settings settings;
 
 OutputStats stats;
 compressed_tracks* out_compressed_tracks = nullptr;
-ErrorResult error_result = compress_track_list(allocator, raw_track_list, settings, out_compressed_tracks, stats);
+ErrorResult result = compress_track_list(allocator, raw_track_list, settings, out_compressed_tracks, stats);
 ```
 
 ## Compressing transform tracks
@@ -47,7 +47,7 @@ settings.error_metric = &error_metric;
 
 OutputStats stats;
 compressed_tracks* out_compressed_tracks = nullptr;
-ErrorResult error_result = compress_track_list(allocator, raw_track_list, settings, out_compressed_tracks, stats);
+ErrorResult result = compress_track_list(allocator, raw_track_list, settings, out_compressed_tracks, stats);
 ```
 
 You can also query the current default and recommended settings with this function: `get_default_compression_settings()`.

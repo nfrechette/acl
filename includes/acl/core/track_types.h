@@ -183,12 +183,12 @@ namespace acl
 		// Returns whether a scalar track description is valid or not.
 		// It is valid if:
 		//    - The precision is positive or zero and finite
-		ErrorResult is_valid() const
+		error_result is_valid() const
 		{
 			if (precision < 0.0F || !rtm::scalar_is_finite(precision))
-				return ErrorResult("Invalid precision");
+				return error_result("Invalid precision");
 
-			return ErrorResult();
+			return error_result();
 		}
 	};
 
@@ -258,24 +258,24 @@ namespace acl
 		//    - The constant rotation threshold angle is positive or zero and finite
 		//    - The constant translation threshold is positive or zero and finite
 		//    - The constant scale threshold is positive or zero and finite
-		ErrorResult is_valid() const
+		error_result is_valid() const
 		{
 			if (precision < 0.0F || !rtm::scalar_is_finite(precision))
-				return ErrorResult("Invalid precision");
+				return error_result("Invalid precision");
 
 			if (shell_distance < 0.0F || !rtm::scalar_is_finite(shell_distance))
-				return ErrorResult("Invalid shell_distance");
+				return error_result("Invalid shell_distance");
 
 			if (constant_rotation_threshold_angle < 0.0F || !rtm::scalar_is_finite(constant_rotation_threshold_angle))
-				return ErrorResult("Invalid constant_rotation_threshold_angle");
+				return error_result("Invalid constant_rotation_threshold_angle");
 
 			if (constant_translation_threshold < 0.0F || !rtm::scalar_is_finite(constant_translation_threshold))
-				return ErrorResult("Invalid constant_translation_threshold");
+				return error_result("Invalid constant_translation_threshold");
 
 			if (constant_scale_threshold < 0.0F || !rtm::scalar_is_finite(constant_scale_threshold))
-				return ErrorResult("Invalid constant_scale_threshold");
+				return error_result("Invalid constant_scale_threshold");
 
-			return ErrorResult();
+			return error_result();
 		}
 	};
 

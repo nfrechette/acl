@@ -58,11 +58,11 @@ namespace acl
 	// An ANSI allocator implementation. It uses the system malloc/free to manage
 	// memory as well as provides some debugging functionality to track memory leaks.
 	////////////////////////////////////////////////////////////////////////////////
-	class ANSIAllocator : public IAllocator
+	class ansi_allocator : public iallocator
 	{
 	public:
-		ANSIAllocator()
-			: IAllocator()
+		ansi_allocator()
+			: iallocator()
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 			, m_allocation_count(0)
 #endif
@@ -71,7 +71,7 @@ namespace acl
 #endif
 		{}
 
-		virtual ~ANSIAllocator()
+		virtual ~ansi_allocator()
 		{
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
 			if (!m_debug_allocations.empty())
@@ -88,8 +88,8 @@ namespace acl
 #endif
 		}
 
-		ANSIAllocator(const ANSIAllocator&) = delete;
-		ANSIAllocator& operator=(const ANSIAllocator&) = delete;
+		ansi_allocator(const ansi_allocator&) = delete;
+		ansi_allocator& operator=(const ansi_allocator&) = delete;
 
 		virtual void* allocate(size_t size, size_t alignment = k_default_alignment) override
 		{

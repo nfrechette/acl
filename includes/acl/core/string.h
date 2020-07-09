@@ -40,12 +40,12 @@ namespace acl
 	//
 	// Strings are immutable.
 	//////////////////////////////////////////////////////////////////////////
-	class String
+	class string
 	{
 	public:
-		String() noexcept : m_allocator(nullptr), m_c_str(nullptr) {}
+		string() noexcept : m_allocator(nullptr), m_c_str(nullptr) {}
 
-		String(IAllocator& allocator, const char* c_str, size_t length)
+		string(iallocator& allocator, const char* c_str, size_t length)
 			: m_allocator(&allocator)
 		{
 			if (length > 0)
@@ -65,28 +65,28 @@ namespace acl
 			}
 		}
 
-		String(IAllocator& allocator, const char* c_str)
-			: String(allocator, c_str, c_str != nullptr ? std::strlen(c_str) : 0)
+		string(iallocator& allocator, const char* c_str)
+			: string(allocator, c_str, c_str != nullptr ? std::strlen(c_str) : 0)
 		{}
 
-		String(IAllocator& allocator, const String& str)
-			: String(allocator, str.c_str(), str.size())
+		string(iallocator& allocator, const string& str)
+			: string(allocator, str.c_str(), str.size())
 		{}
 
-		~String()
+		~string()
 		{
 			if (m_allocator != nullptr && m_c_str != nullptr)
 				deallocate_type_array(*m_allocator, m_c_str, std::strlen(m_c_str) + 1);
 		}
 
-		String(String&& other) noexcept
+		string(string&& other) noexcept
 			: m_allocator(other.m_allocator)
 			, m_c_str(other.m_c_str)
 		{
-			new(&other) String();
+			new(&other) string();
 		}
 
-		String& operator=(String&& other) noexcept
+		string& operator=(string&& other) noexcept
 		{
 			std::swap(m_allocator, other.m_allocator);
 			std::swap(m_c_str, other.m_c_str);
@@ -108,15 +108,15 @@ namespace acl
 
 		bool operator!=(const char* c_str) const { return !(*this == c_str); }
 
-		bool operator==(const String& other) const { return (*this == other.c_str()); }
-		bool operator!=(const String& other) const { return !(*this == other.c_str()); }
+		bool operator==(const string& other) const { return (*this == other.c_str()); }
+		bool operator!=(const string& other) const { return !(*this == other.c_str()); }
 
 		const char* c_str() const { return m_c_str != nullptr ? m_c_str : ""; }
 		size_t size() const { return m_c_str != nullptr ? std::strlen(m_c_str) : 0; }
 		bool empty() const { return m_c_str != nullptr ? (std::strlen(m_c_str) == 0) : true; }
 
 	private:
-		IAllocator* m_allocator;
+		iallocator* m_allocator;
 		char* m_c_str;
 	};
 }

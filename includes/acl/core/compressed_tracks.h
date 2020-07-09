@@ -99,28 +99,28 @@ namespace acl
 		// memory has not been corrupted.
 		//
 		// check_hash: If true, the compressed tracks hash will also be compared.
-		ErrorResult is_valid(bool check_hash) const
+		error_result is_valid(bool check_hash) const
 		{
 			if (!is_aligned_to(this, alignof(compressed_tracks)))
-				return ErrorResult("Invalid alignment");
+				return error_result("Invalid alignment");
 
 			if (m_tracks_header.tag != static_cast<uint32_t>(buffer_tag32::compressed_tracks))
-				return ErrorResult("Invalid tag");
+				return error_result("Invalid tag");
 
 			if (!is_valid_algorithm_type(m_tracks_header.algorithm_type))
-				return ErrorResult("Invalid algorithm type");
+				return error_result("Invalid algorithm type");
 
 			if (m_tracks_header.version != get_algorithm_version(m_tracks_header.algorithm_type))
-				return ErrorResult("Invalid algorithm version");
+				return error_result("Invalid algorithm version");
 
 			if (check_hash)
 			{
 				const uint32_t hash = hash32(safe_ptr_cast<const uint8_t>(&m_tracks_header), m_buffer_header.size - sizeof(acl_impl::raw_buffer_header));
 				if (hash != m_buffer_header.hash)
-					return ErrorResult("Invalid hash");
+					return error_result("Invalid hash");
 			}
 
-			return ErrorResult();
+			return error_result();
 		}
 
 	private:
@@ -156,12 +156,12 @@ namespace acl
 	// If the buffer does not contain a valid compressed_tracks instance, nullptr is returned
 	// along with an optional error result.
 	//////////////////////////////////////////////////////////////////////////
-	inline const compressed_tracks* make_compressed_tracks(const void* buffer, ErrorResult* out_error_result = nullptr)
+	inline const compressed_tracks* make_compressed_tracks(const void* buffer, error_result* out_error_result = nullptr)
 	{
 		if (buffer == nullptr)
 		{
 			if (out_error_result != nullptr)
-				*out_error_result = ErrorResult("Buffer is not a valid pointer");
+				*out_error_result = error_result("Buffer is not a valid pointer");
 
 			return nullptr;
 		}
@@ -169,7 +169,7 @@ namespace acl
 		const compressed_tracks* clip = static_cast<const compressed_tracks*>(buffer);
 		if (out_error_result != nullptr)
 		{
-			const ErrorResult result = clip->is_valid(false);
+			const error_result result = clip->is_valid(false);
 			*out_error_result = result;
 
 			if (result.any())

@@ -62,12 +62,12 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		struct QuantizationContext
+		struct quantization_context
 		{
-			IAllocator& allocator;
-			ClipContext& clip;
-			const ClipContext& raw_clip;
-			const ClipContext& additive_base_clip;
+			iallocator& allocator;
+			clip_context& clip;
+			const clip_context& raw_clip;
+			const clip_context& additive_base_clip;
 			SegmentContext* segment;
 			BoneStreams* bone_streams;
 			const transform_metadata* metadata;
@@ -116,7 +116,7 @@ namespace acl
 			uint16_t padding0;	// unused
 			uint32_t padding1;	// unused
 
-			QuantizationContext(IAllocator& allocator_, ClipContext& clip_, const ClipContext& raw_clip_, const ClipContext& additive_base_clip_, const compression_settings& settings_)
+			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const clip_context& additive_base_clip_, const compression_settings& settings_)
 				: allocator(allocator_)
 				, clip(clip_)
 				, raw_clip(raw_clip_)
@@ -172,7 +172,7 @@ namespace acl
 				}
 			}
 
-			~QuantizationContext()
+			~quantization_context()
 			{
 				deallocate_type_array(allocator, additive_local_pose, num_bones);
 				deallocate_type_array(allocator, raw_local_pose, num_bones);
@@ -270,13 +270,13 @@ namespace acl
 
 			bool is_valid() const { return segment != nullptr; }
 
-			QuantizationContext(const QuantizationContext&) = delete;
-			QuantizationContext(QuantizationContext&&) = delete;
-			QuantizationContext& operator=(const QuantizationContext&) = delete;
-			QuantizationContext& operator=(QuantizationContext&&) = delete;
+			quantization_context(const quantization_context&) = delete;
+			quantization_context(quantization_context&&) = delete;
+			quantization_context& operator=(const quantization_context&) = delete;
+			quantization_context& operator=(quantization_context&&) = delete;
 		};
 
-		inline void quantize_fixed_rotation_stream(IAllocator& allocator, const RotationTrackStream& raw_stream, rotation_format8 rotation_format, RotationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_rotation_stream(iallocator& allocator, const RotationTrackStream& raw_stream, rotation_format8 rotation_format, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -309,7 +309,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_rotation_stream(QuantizationContext& context, uint16_t bone_index, rotation_format8 rotation_format)
+		inline void quantize_fixed_rotation_stream(quantization_context& context, uint16_t bone_index, rotation_format8 rotation_format)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -322,7 +322,7 @@ namespace acl
 			quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, rotation_format, bone_stream.rotations);
 		}
 
-		inline void quantize_variable_rotation_stream(QuantizationContext& context, const RotationTrackStream& raw_clip_stream, const RotationTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, RotationTrackStream& out_quantized_stream)
+		inline void quantize_variable_rotation_stream(quantization_context& context, const RotationTrackStream& raw_clip_stream, const RotationTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, RotationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -367,7 +367,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_variable_rotation_stream(QuantizationContext& context, uint16_t bone_index, uint8_t bit_rate)
+		inline void quantize_variable_rotation_stream(quantization_context& context, uint16_t bone_index, uint8_t bit_rate)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -388,7 +388,7 @@ namespace acl
 				quantize_variable_rotation_stream(context, raw_bone_stream.rotations, bone_stream.rotations, bone_range, bit_rate, bone_stream.rotations);
 		}
 
-		inline void quantize_fixed_translation_stream(IAllocator& allocator, const TranslationTrackStream& raw_stream, vector_format8 translation_format, TranslationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_translation_stream(iallocator& allocator, const TranslationTrackStream& raw_stream, vector_format8 translation_format, TranslationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -419,7 +419,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_translation_stream(QuantizationContext& context, uint16_t bone_index, vector_format8 translation_format)
+		inline void quantize_fixed_translation_stream(quantization_context& context, uint16_t bone_index, vector_format8 translation_format)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -435,7 +435,7 @@ namespace acl
 			quantize_fixed_translation_stream(context.allocator, bone_stream.translations, format, bone_stream.translations);
 		}
 
-		inline void quantize_variable_translation_stream(QuantizationContext& context, const TranslationTrackStream& raw_clip_stream, const TranslationTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, TranslationTrackStream& out_quantized_stream)
+		inline void quantize_variable_translation_stream(quantization_context& context, const TranslationTrackStream& raw_clip_stream, const TranslationTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, TranslationTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -478,7 +478,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_variable_translation_stream(QuantizationContext& context, uint16_t bone_index, uint8_t bit_rate)
+		inline void quantize_variable_translation_stream(quantization_context& context, uint16_t bone_index, uint8_t bit_rate)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -498,7 +498,7 @@ namespace acl
 				quantize_variable_translation_stream(context, raw_bone_stream.translations, bone_stream.translations, bone_range, bit_rate, bone_stream.translations);
 		}
 
-		inline void quantize_fixed_scale_stream(IAllocator& allocator, const ScaleTrackStream& raw_stream, vector_format8 scale_format, ScaleTrackStream& out_quantized_stream)
+		inline void quantize_fixed_scale_stream(iallocator& allocator, const ScaleTrackStream& raw_stream, vector_format8 scale_format, ScaleTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -529,7 +529,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_scale_stream(QuantizationContext& context, uint16_t bone_index, vector_format8 scale_format)
+		inline void quantize_fixed_scale_stream(quantization_context& context, uint16_t bone_index, vector_format8 scale_format)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -545,7 +545,7 @@ namespace acl
 			quantize_fixed_scale_stream(context.allocator, bone_stream.scales, format, bone_stream.scales);
 		}
 
-		inline void quantize_variable_scale_stream(QuantizationContext& context, const ScaleTrackStream& raw_clip_stream, const ScaleTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, ScaleTrackStream& out_quantized_stream)
+		inline void quantize_variable_scale_stream(quantization_context& context, const ScaleTrackStream& raw_clip_stream, const ScaleTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, ScaleTrackStream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -588,7 +588,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_variable_scale_stream(QuantizationContext& context, uint16_t bone_index, uint8_t bit_rate)
+		inline void quantize_variable_scale_stream(quantization_context& context, uint16_t bone_index, uint8_t bit_rate)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -610,7 +610,7 @@ namespace acl
 
 		enum class error_scan_stop_condition { until_error_too_high, until_end_of_segment };
 
-		inline float calculate_max_error_at_bit_rate_local(QuantizationContext& context, uint32_t target_bone_index, error_scan_stop_condition stop_condition)
+		inline float calculate_max_error_at_bit_rate_local(quantization_context& context, uint32_t target_bone_index, error_scan_stop_condition stop_condition)
 		{
 			const itransform_error_metric* error_metric = context.error_metric;
 			const bool needs_conversion = context.needs_conversion;
@@ -685,7 +685,7 @@ namespace acl
 			return rtm::scalar_cast(max_error);
 		}
 
-		inline float calculate_max_error_at_bit_rate_object(QuantizationContext& context, uint32_t target_bone_index, error_scan_stop_condition stop_condition)
+		inline float calculate_max_error_at_bit_rate_object(quantization_context& context, uint32_t target_bone_index, error_scan_stop_condition stop_condition)
 		{
 			const itransform_error_metric* error_metric = context.error_metric;
 			const bool needs_conversion = context.needs_conversion;
@@ -768,7 +768,7 @@ namespace acl
 			return rtm::scalar_cast(max_error);
 		}
 
-		inline void calculate_local_space_bit_rates(QuantizationContext& context)
+		inline void calculate_local_space_bit_rates(quantization_context& context)
 		{
 			// To minimize the bit rate, we first start by trying every permutation in local space
 			// until our error is acceptable.
@@ -944,7 +944,7 @@ namespace acl
 			return bit_rate >= k_highest_bit_rate ? bit_rate : std::min<uint32_t>(bit_rate + increment, k_highest_bit_rate);
 		}
 
-		inline float increase_bone_bit_rate(QuantizationContext& context, uint32_t bone_index, uint32_t num_increments, float old_error, BoneBitRate& out_best_bit_rates)
+		inline float increase_bone_bit_rate(quantization_context& context, uint32_t bone_index, uint32_t num_increments, float old_error, BoneBitRate& out_best_bit_rates)
 		{
 			const BoneBitRate bone_bit_rates = context.bit_rate_per_bone[bone_index];
 			const uint32_t num_scale_increments = context.has_scale ? num_increments : 0;
@@ -1000,7 +1000,7 @@ namespace acl
 			return best_error;
 		}
 
-		inline float calculate_bone_permutation_error(QuantizationContext& context, BoneBitRate* permutation_bit_rates, uint8_t* bone_chain_permutation, uint32_t bone_index, BoneBitRate* best_bit_rates, float old_error)
+		inline float calculate_bone_permutation_error(quantization_context& context, BoneBitRate* permutation_bit_rates, uint8_t* bone_chain_permutation, uint32_t bone_index, BoneBitRate* best_bit_rates, float old_error)
 		{
 			const float error_threshold = context.error_threshold;
 			float best_error = old_error;
@@ -1048,7 +1048,7 @@ namespace acl
 			return best_error;
 		}
 
-		inline uint32_t calculate_bone_chain_indices(const ClipContext& clip, uint32_t bone_index, uint16_t* out_chain_bone_indices)
+		inline uint32_t calculate_bone_chain_indices(const clip_context& clip, uint32_t bone_index, uint16_t* out_chain_bone_indices)
 		{
 			const BoneChain bone_chain = clip.get_bone_chain(bone_index);
 
@@ -1090,9 +1090,9 @@ namespace acl
 			}
 		}
 
-		inline void quantize_all_streams(QuantizationContext& context)
+		inline void quantize_all_streams(quantization_context& context)
 		{
-			ACL_ASSERT(context.is_valid(), "QuantizationContext isn't valid");
+			ACL_ASSERT(context.is_valid(), "quantization_context isn't valid");
 
 			const bool is_rotation_variable = is_rotation_format_variable(context.rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(context.translation_format);
@@ -1122,9 +1122,9 @@ namespace acl
 			}
 		}
 
-		inline void find_optimal_bit_rates(QuantizationContext& context)
+		inline void find_optimal_bit_rates(quantization_context& context)
 		{
-			ACL_ASSERT(context.is_valid(), "QuantizationContext isn't valid");
+			ACL_ASSERT(context.is_valid(), "quantization_context isn't valid");
 
 			initialize_bone_bit_rates(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
@@ -1466,7 +1466,7 @@ namespace acl
 			deallocate_type_array(context.allocator, best_bit_rates, num_bones);
 		}
 
-		inline void quantize_streams(IAllocator& allocator, ClipContext& clip_context, const compression_settings& settings, const ClipContext& raw_clip_context, const ClipContext& additive_base_clip_context, OutputStats& out_stats)
+		inline void quantize_streams(iallocator& allocator, clip_context& clip, const compression_settings& settings, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, output_stats& out_stats)
 		{
 			(void)out_stats;
 
@@ -1475,9 +1475,9 @@ namespace acl
 			const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
 			const bool is_any_variable = is_rotation_variable || is_translation_variable || is_scale_variable;
 
-			QuantizationContext context(allocator, clip_context, raw_clip_context, additive_base_clip_context, settings);
+			quantization_context context(allocator, clip, raw_clip_context, additive_base_clip_context, settings);
 
-			for (SegmentContext& segment : clip_context.segment_iterator())
+			for (SegmentContext& segment : clip.segment_iterator())
 			{
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
 				printf("Quantizing segment %u...\n", segment.segment_index);
@@ -1485,7 +1485,7 @@ namespace acl
 
 #if ACL_IMPL_PROFILE_MATH
 				{
-					ScopeProfiler timer;
+					scope_profiler timer;
 
 					for (int32_t i = 0; i < 10; ++i)
 					{
@@ -1515,7 +1515,7 @@ namespace acl
 			}
 
 #if defined(SJSON_CPP_WRITER)
-			if (are_all_enum_flags_set(out_stats.logging, StatLogging::Detailed))
+			if (are_all_enum_flags_set(out_stats.logging, stat_logging::Detailed))
 			{
 				sjson::ObjectWriter& writer = *out_stats.writer;
 				writer["track_bit_rate_database_size"] = static_cast<uint32_t>(context.bit_rate_database.get_allocated_size());

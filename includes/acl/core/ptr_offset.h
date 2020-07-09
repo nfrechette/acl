@@ -34,88 +34,88 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 namespace acl
 {
 	////////////////////////////////////////////////////////////////////////////////
-	// Represents an invalid pointer offset, used by 'PtrOffset'.
+	// Represents an invalid pointer offset, used by 'ptr_offset'.
 	////////////////////////////////////////////////////////////////////////////////
-	struct InvalidPtrOffset {};
+	struct invalid_ptr_offset final {};
 
 	////////////////////////////////////////////////////////////////////////////////
 	// A type safe pointer offset.
 	//
-	// This class only wraps an integer of the 'OffsetType' type and adds type safety
-	// by only casting to 'DataType'.
+	// This class only wraps an integer of the 'offset_type' type and adds type safety
+	// by only casting to 'data_type'.
 	////////////////////////////////////////////////////////////////////////////////
-	template<typename DataType, typename OffsetType>
-	class PtrOffset
+	template<typename data_type, typename offset_type>
+	class ptr_offset
 	{
 	public:
 		////////////////////////////////////////////////////////////////////////////////
 		// Constructs a valid but empty offset.
-		constexpr PtrOffset() : m_value(0) {}
+		constexpr ptr_offset() : m_value(0) {}
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Constructs a valid offset with the specified value.
-		constexpr PtrOffset(size_t value) : m_value(safe_static_cast<OffsetType>(value)) {}
+		constexpr ptr_offset(size_t value) : m_value(safe_static_cast<offset_type>(value)) {}
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Constructs an invalid offset.
-		constexpr PtrOffset(InvalidPtrOffset) : m_value(std::numeric_limits<OffsetType>::max()) {}
+		constexpr ptr_offset(invalid_ptr_offset) : m_value(std::numeric_limits<offset_type>::max()) {}
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Adds this offset to the provided pointer.
 		template<typename BaseType>
-		inline DataType* add_to(BaseType* ptr) const
+		inline data_type* add_to(BaseType* ptr) const
 		{
-			ACL_ASSERT(is_valid(), "Invalid PtrOffset!");
-			return add_offset_to_ptr<DataType>(ptr, m_value);
+			ACL_ASSERT(is_valid(), "Invalid ptr_offset!");
+			return add_offset_to_ptr<data_type>(ptr, m_value);
 		}
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Adds this offset to the provided pointer.
 		template<typename BaseType>
-		inline const DataType* add_to(const BaseType* ptr) const
+		inline const data_type* add_to(const BaseType* ptr) const
 		{
-			ACL_ASSERT(is_valid(), "Invalid PtrOffset!");
-			return add_offset_to_ptr<const DataType>(ptr, m_value);
+			ACL_ASSERT(is_valid(), "Invalid ptr_offset!");
+			return add_offset_to_ptr<const data_type>(ptr, m_value);
 		}
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Adds this offset to the provided pointer or returns nullptr if the offset is invalid.
 		template<typename BaseType>
-		inline DataType* safe_add_to(BaseType* ptr) const
+		inline data_type* safe_add_to(BaseType* ptr) const
 		{
-			return is_valid() ? add_offset_to_ptr<DataType>(ptr, m_value) : nullptr;
+			return is_valid() ? add_offset_to_ptr<data_type>(ptr, m_value) : nullptr;
 		}
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Adds this offset to the provided pointer or returns nullptr if the offset is invalid.
 		template<typename BaseType>
-		inline const DataType* safe_add_to(const BaseType* ptr) const
+		inline const data_type* safe_add_to(const BaseType* ptr) const
 		{
-			return is_valid() ? add_offset_to_ptr<DataType>(ptr, m_value) : nullptr;
+			return is_valid() ? add_offset_to_ptr<data_type>(ptr, m_value) : nullptr;
 		}
 
 		////////////////////////////////////////////////////////////////////////////////
-		// Coercion operator to the underlying 'OffsetType'.
-		constexpr operator OffsetType() const { return m_value; }
+		// Coercion operator to the underlying 'offset_type'.
+		constexpr operator offset_type() const { return m_value; }
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the offset is valid.
-		constexpr bool is_valid() const { return m_value != std::numeric_limits<OffsetType>::max(); }
+		constexpr bool is_valid() const { return m_value != std::numeric_limits<offset_type>::max(); }
 
 	private:
 		// Actual offset value.
-		OffsetType m_value;
+		offset_type m_value;
 	};
 
 	////////////////////////////////////////////////////////////////////////////////
 	// A 16 bit offset.
-	template<typename DataType>
-	using PtrOffset16 = PtrOffset<DataType, uint16_t>;
+	template<typename data_type>
+	using ptr_offset16 = ptr_offset<data_type, uint16_t>;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// A 32 bit offset.
-	template<typename DataType>
-	using PtrOffset32 = PtrOffset<DataType, uint32_t>;
+	template<typename data_type>
+	using ptr_offset32 = ptr_offset<data_type, uint32_t>;
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

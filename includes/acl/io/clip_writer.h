@@ -320,14 +320,14 @@ namespace acl
 			writer.insert_newline();
 		}
 
-		inline ErrorResult write_track_list(const track_array& track_list, const compression_settings* settings, const char* acl_filename)
+		inline error_result write_track_list(const track_array& track_list, const compression_settings* settings, const char* acl_filename)
 		{
 			if (acl_filename == nullptr)
-				return ErrorResult("'acl_filename' cannot be NULL!");
+				return error_result("'acl_filename' cannot be NULL!");
 
 			const size_t filename_len = std::strlen(acl_filename);
 			if (filename_len < 10 || strncmp(acl_filename + filename_len - 10, ".acl.sjson", 10) != 0)
-				return ErrorResult("'acl_filename' file must be an ACL SJSON file of the form: *.acl.sjson");
+				return error_result("'acl_filename' file must be an ACL SJSON file of the form: *.acl.sjson");
 
 			std::FILE* file = nullptr;
 
@@ -340,7 +340,7 @@ namespace acl
 #endif
 
 			if (file == nullptr)
-				return ErrorResult("Failed to open ACL file for writing");
+				return error_result("Failed to open ACL file for writing");
 
 			sjson::FileStreamWriter stream_writer(file);
 			sjson::Writer writer(stream_writer);
@@ -353,14 +353,14 @@ namespace acl
 			write_sjson_tracks(track_list, writer);
 
 			std::fclose(file);
-			return ErrorResult();
+			return error_result();
 		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Write out an SJSON ACL track list file.
 	//////////////////////////////////////////////////////////////////////////
-	inline ErrorResult write_track_list(const track_array& track_list, const char* acl_filename)
+	inline error_result write_track_list(const track_array& track_list, const char* acl_filename)
 	{
 		return acl_impl::write_track_list(track_list, nullptr, acl_filename);
 	}
@@ -368,7 +368,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Write out an SJSON ACL track list file.
 	//////////////////////////////////////////////////////////////////////////
-	inline ErrorResult write_track_list(const track_array& track_list, const compression_settings& settings, const char* acl_filename)
+	inline error_result write_track_list(const track_array& track_list, const compression_settings& settings, const char* acl_filename)
 	{
 		return acl_impl::write_track_list(track_list, &settings, acl_filename);
 	}
