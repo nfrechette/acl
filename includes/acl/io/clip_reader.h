@@ -457,6 +457,7 @@ namespace acl
 			if (!process_each_bone(&track_list, &bind_pose, num_bones))
 				return false;
 
+			(void)num_allocated_bones;
 			ACL_ASSERT(num_bones == num_allocated_bones, "Number of bones read mismatch");
 
 			return true;
