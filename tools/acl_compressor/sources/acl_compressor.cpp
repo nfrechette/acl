@@ -47,8 +47,8 @@
 #include "acl/core/string.h"
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/compress.h"
-#include "acl/compression/skeleton_error_metric.h"
-#include "acl/compression/skeleton_pose_utils.h"	// Just to test compilation
+#include "acl/compression/transform_error_metrics.h"
+#include "acl/compression/transform_pose_utils.h"	// Just to test compilation
 #include "acl/compression/impl/write_decompression_stats.h"
 #include "acl/compression/track_error.h"
 #include "acl/decompression/decompress.h"

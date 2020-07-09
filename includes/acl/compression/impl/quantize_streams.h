@@ -36,7 +36,7 @@
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/normalize_streams.h"
 #include "acl/compression/impl/convert_rotation_streams.h"
-#include "acl/compression/skeleton_error_metric.h"
+#include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/compression_settings.h"
 
 #include <rtm/quatf.h>

@@ -30,7 +30,7 @@
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/compression/compression_level.h"
-#include "acl/compression/skeleton_error_metric.h"
+#include "acl/compression/transform_error_metrics.h"
 
 #include <rtm/scalarf.h>
 
