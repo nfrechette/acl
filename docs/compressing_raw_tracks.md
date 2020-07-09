@@ -45,9 +45,9 @@ settings.scale_format = vector_format8::vector3f_variable;
 qvvf_transform_error_metric error_metric;
 settings.error_metric = &error_metric;
 
-OutputStats stats;
+output_stats stats;
 compressed_tracks* out_compressed_tracks = nullptr;
-ErrorResult result = compress_track_list(allocator, raw_track_list, settings, out_compressed_tracks, stats);
+error_result result = compress_track_list(allocator, raw_track_list, settings, out_compressed_tracks, stats);
 ```
 
 You can also query the current default and recommended settings with this function: `get_default_compression_settings()`.
