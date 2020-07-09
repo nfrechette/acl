@@ -227,12 +227,42 @@ tracks =
 		// Defaults to the track index
 		output_index = 12
 
+		// The track index of our parent track
+		// Transforms only
+		parent_index = 2
+
+		// The shell distance of the transform's error metric
+		// Transforms only
+		shell_distance = 3.0
+
+		// The constant rotation detection threshold
+		// Transforms only
+		constant_rotation_threshold_angle = 0.1
+
+		// The constant translation detection threshold
+		// Transforms only
+		constant_translation_threshold = 0.1
+
+		// The constant scale detection threshold
+		// Transforms only
+		constant_scale_threshold = 0.1
+
+		// Bind pose transform information. All three are optional
+		// The bind pose should be in parent bone local space
+		bind_rotation = [ 0.0, 0.0, 0.0, 1.0 ]
+		bind_translation = [ 0.0, 0.0, 0.0 ]
+		bind_scale = [ 1.0, 1.0, 1.0 ]
+
 		// Track data
+		// The number of samples here must match num_samples
 		data =
 		[
+			// Scalar tracks are of the form: [ x, y, z, .. ] with one entry per scalar component
 			[ 0.0, 0.0, 0.0, 1.0 ]
 			[ 1.0, 0.0, 0.0, 0.0 ]
-			// The number of samples here must match num_samples
+
+			// Transform tracks are of the form: [ [ rot.x, rot.y, rot.z, rot.z ], [ trans.x, trans.y, trans.z ], [ scale.x, scale.y, scale.z ] ]
+			// All three parts must be present and cannot be omitted
 		]
 	}
 ]

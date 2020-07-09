@@ -26,7 +26,6 @@
 
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
-#include "acl/compression/skeleton.h"
 
 #include <rtm/qvvf.h>
 
@@ -36,37 +35,35 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	// Note: It is safe for both pose buffers to alias since the data is sorted parent first
-	inline void local_to_object_space(const RigidSkeleton& skeleton, const rtm::qvvf* local_pose, rtm::qvvf* out_object_pose)
+	// Note: It is safe for both pose buffers to alias since the data if sorted parent first
+	inline void local_to_object_space(const uint32_t* parent_indices, const rtm::qvvf* local_pose, uint32_t num_transforms, rtm::qvvf* out_object_pose)
 	{
-		const uint16_t num_bones = skeleton.get_num_bones();
-		const RigidBone* bones = skeleton.get_bones();
-		ACL_ASSERT(num_bones != 0, "Invalid number of bones: %u", num_bones);
+		if (num_transforms == 0)
+			return;	// Nothing to do
 
 		out_object_pose[0] = local_pose[0];
 
-		for (uint16_t bone_index = 1; bone_index < num_bones; ++bone_index)
+		for (uint32_t bone_index = 1; bone_index < num_transforms; ++bone_index)
 		{
-			const uint16_t parent_bone_index = bones[bone_index].parent_index;
-			ACL_ASSERT(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
+			const uint32_t parent_bone_index = parent_indices[bone_index];
+			ACL_ASSERT(parent_bone_index < num_transforms, "Invalid parent bone index: %u >= %u", parent_bone_index, num_transforms);
 
 			out_object_pose[bone_index] = rtm::qvv_normalize(rtm::qvv_mul(local_pose[bone_index], out_object_pose[parent_bone_index]));
 		}
 	}
 
-	// Note: It is safe for both pose buffers to alias since the data is sorted parent first
-	inline void object_to_local_space(const RigidSkeleton& skeleton, const rtm::qvvf* object_pose, rtm::qvvf* out_local_pose)
+	// Note: It is safe for both pose buffers to alias since the data if sorted parent first
+	inline void object_to_local_space(const uint32_t* parent_indices, const rtm::qvvf* object_pose, uint32_t num_transforms, rtm::qvvf* out_local_pose)
 	{
-		uint16_t num_bones = skeleton.get_num_bones();
-		const RigidBone* bones = skeleton.get_bones();
-		ACL_ASSERT(num_bones != 0, "Invalid number of bones: %u", num_bones);
+		if (num_transforms == 0)
+			return;	// Nothing to do
 
 		out_local_pose[0] = object_pose[0];
 
-		for (uint16_t bone_index = 1; bone_index < num_bones; ++bone_index)
+		for (uint32_t bone_index = 1; bone_index < num_transforms; ++bone_index)
 		{
-			const uint16_t parent_bone_index = bones[bone_index].parent_index;
-			ACL_ASSERT(parent_bone_index < num_bones, "Invalid parent bone index: %u >= %u", parent_bone_index, num_bones);
+			const uint32_t parent_bone_index = parent_indices[bone_index];
+			ACL_ASSERT(parent_bone_index < num_transforms, "Invalid parent bone index: %u >= %u", parent_bone_index, num_transforms);
 
 			const rtm::qvvf inv_parent_transform = rtm::qvv_inverse(object_pose[parent_bone_index]);
 			out_local_pose[bone_index] = rtm::qvv_normalize(rtm::qvv_mul(inv_parent_transform, object_pose[bone_index]));

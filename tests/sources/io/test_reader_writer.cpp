@@ -137,76 +137,58 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 #if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
 	ANSIAllocator allocator;
 
-	const uint16_t num_bones = 3;
-	RigidBone bones[num_bones];
-	bones[0].name = String(allocator, "root");
-	bones[0].vertex_distance = 4.0F;
-	bones[0].parent_index = k_invalid_bone_index;
-	bones[0].bind_transform = rtm::qvv_identity();
-
-	bones[1].name = String(allocator, "bone1");
-	bones[1].vertex_distance = 3.0F;
-	bones[1].parent_index = 0;
-	bones[1].bind_transform = rtm::qvv_set(rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.5), rtm::vector_set(3.2, 8.2, 5.1), rtm::vector_set(1.0));
-
-	bones[2].name = String(allocator, "bone2");
-	bones[2].vertex_distance = 2.0F;
-	bones[2].parent_index = 1;
-	bones[2].bind_transform = rtm::qvv_set(rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.25), rtm::vector_set(6.3, 9.4, 1.5), rtm::vector_set(1.0));
-
-	RigidSkeleton skeleton(allocator, bones, num_bones);
-
+	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
-	AnimationClip clip(allocator, skeleton, num_samples, 30.0F, String(allocator, "test_clip"));
+	track_array_qvvf track_list(allocator, num_tracks);
 
-	AnimatedBone* animated_bones = clip.get_bones();
-	animated_bones[0].output_index = 0;
-	animated_bones[0].rotation_track.set_sample(0, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.1));
-	animated_bones[0].rotation_track.set_sample(1, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.2));
-	animated_bones[0].rotation_track.set_sample(2, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.3));
-	animated_bones[0].rotation_track.set_sample(3, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 0.4));
-	animated_bones[0].translation_track.set_sample(0, rtm::vector_set(3.2, 1.4, 9.4));
-	animated_bones[0].translation_track.set_sample(1, rtm::vector_set(3.3, 1.5, 9.5));
-	animated_bones[0].translation_track.set_sample(2, rtm::vector_set(3.4, 1.6, 9.6));
-	animated_bones[0].translation_track.set_sample(3, rtm::vector_set(3.5, 1.7, 9.7));
-	animated_bones[0].scale_track.set_sample(0, rtm::vector_set(1.0, 1.5, 1.1));
-	animated_bones[0].scale_track.set_sample(1, rtm::vector_set(1.1, 1.6, 1.2));
-	animated_bones[0].scale_track.set_sample(2, rtm::vector_set(1.2, 1.7, 1.3));
-	animated_bones[0].scale_track.set_sample(3, rtm::vector_set(1.3, 1.8, 1.4));
+	track_desc_transformf desc0;
+	desc0.output_index = 0;
+	desc0.precision = 0.001F;
+	track_qvvf track0 = track_qvvf::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track0[0].rotation = rtm::quat_from_euler(0.1F, 0.5F, 1.2F);
+	track0[0].translation = rtm::vector_set(0.0F, 0.6F, 2.3F);
+	track0[0].scale = rtm::vector_set(1.4F, 2.1F, 0.2F);
+	for (uint32_t i = 1; i < num_samples; ++i)
+	{
+		track0[i].rotation = rtm::quat_lerp(rtm::quat_identity(), track0[0].rotation, 0.1F * float(i));
+		track0[i].translation = rtm::vector_lerp(rtm::vector_zero(), track0[0].translation, 0.1F * float(i));
+		track0[i].scale = rtm::vector_lerp(rtm::vector_zero(), track0[0].scale, 0.1F * float(i));
+	}
+	track_list[0] = track0.get_ref();
 
-	animated_bones[1].output_index = 2;
-	animated_bones[1].rotation_track.set_sample(0, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 1.1));
-	animated_bones[1].rotation_track.set_sample(1, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 1.2));
-	animated_bones[1].rotation_track.set_sample(2, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 1.3));
-	animated_bones[1].rotation_track.set_sample(3, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 1.0, 0.0), rtm::constants::pi() * 1.4));
-	animated_bones[1].translation_track.set_sample(0, rtm::vector_set(5.2, 2.4, 13.4));
-	animated_bones[1].translation_track.set_sample(1, rtm::vector_set(5.3, 2.5, 13.5));
-	animated_bones[1].translation_track.set_sample(2, rtm::vector_set(5.4, 2.6, 13.6));
-	animated_bones[1].translation_track.set_sample(3, rtm::vector_set(5.5, 2.7, 13.7));
-	animated_bones[1].scale_track.set_sample(0, rtm::vector_set(2.0, 0.5, 4.1));
-	animated_bones[1].scale_track.set_sample(1, rtm::vector_set(2.1, 0.6, 4.2));
-	animated_bones[1].scale_track.set_sample(2, rtm::vector_set(2.2, 0.7, 4.3));
-	animated_bones[1].scale_track.set_sample(3, rtm::vector_set(2.3, 0.8, 4.4));
+	track_desc_transformf desc1;
+	desc1.output_index = 0;
+	desc1.precision = 0.001F;
+	desc1.parent_index = 0;
+	desc1.shell_distance = 0.1241F;
+	desc1.constant_rotation_threshold_angle = 21.0F;
+	desc1.constant_translation_threshold = 0.11F;
+	desc1.constant_scale_threshold = 12.0F;
+	track_qvvf track1 = track_qvvf::make_reserve(desc1, allocator, num_samples, 32.0F);
+	track1[0].rotation = rtm::quat_from_euler(1.1F, 1.5F, 1.7F);
+	track1[0].translation = rtm::vector_set(0.0221F, 10.6F, 22.3F);
+	track1[0].scale = rtm::vector_set(1.451F, 24.1F, 10.2F);
+	for (uint32_t i = 1; i < num_samples; ++i)
+	{
+		track1[i].rotation = rtm::quat_lerp(rtm::quat_identity(), track1[0].rotation, 0.1F * float(i));
+		track1[i].translation = rtm::vector_lerp(rtm::vector_zero(), track1[0].translation, 0.1F * float(i));
+		track1[i].scale = rtm::vector_lerp(rtm::vector_zero(), track1[0].scale, 0.1F * float(i));
+	}
+	track_list[1] = track1.get_ref();
 
-	animated_bones[2].output_index = 1;
-	animated_bones[2].rotation_track.set_sample(0, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.7));
-	animated_bones[2].rotation_track.set_sample(1, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.8));
-	animated_bones[2].rotation_track.set_sample(2, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.9));
-	animated_bones[2].rotation_track.set_sample(3, rtm::quat_from_axis_angle(rtm::vector_set(0.0, 0.0, 1.0), rtm::constants::pi() * 0.4));
-	animated_bones[2].translation_track.set_sample(0, rtm::vector_set(1.2, 123.4, 11.4));
-	animated_bones[2].translation_track.set_sample(1, rtm::vector_set(1.3, 123.5, 11.5));
-	animated_bones[2].translation_track.set_sample(2, rtm::vector_set(1.4, 123.6, 11.6));
-	animated_bones[2].translation_track.set_sample(3, rtm::vector_set(1.5, 123.7, 11.7));
-	animated_bones[2].scale_track.set_sample(0, rtm::vector_set(4.0, 2.5, 3.1));
-	animated_bones[2].scale_track.set_sample(1, rtm::vector_set(4.1, 2.6, 3.2));
-	animated_bones[2].scale_track.set_sample(2, rtm::vector_set(4.2, 2.7, 3.3));
-	animated_bones[2].scale_track.set_sample(3, rtm::vector_set(4.3, 2.8, 3.4));
+	track_qvvf track2 = track_qvvf::make_reserve(desc1, allocator, num_samples, 32.0F);
+	track2[0].rotation = rtm::quat_from_euler(1.11F, 1.5333F, 0.17F);
+	track2[0].translation = rtm::vector_set(30.0221F, 101.6F, 22.3214F);
+	track2[0].scale = rtm::vector_set(21.451F, 244.1F, 100.2F);
+	for (uint32_t i = 1; i < num_samples; ++i)
+	{
+		track2[i].rotation = rtm::quat_lerp(rtm::quat_identity(), track2[0].rotation, 0.1F * float(i));
+		track2[i].translation = rtm::vector_lerp(rtm::vector_zero(), track2[0].translation, 0.1F * float(i));
+		track2[i].scale = rtm::vector_lerp(rtm::vector_zero(), track2[0].scale, 0.1F * float(i));
+	}
+	track_list[2] = track2.get_ref();
 
-	CompressionSettings settings;
-	settings.constant_rotation_threshold_angle = 32.23F;
-	settings.constant_scale_threshold = 1.123F;
-	settings.constant_translation_threshold = 0.124F;
-	settings.error_threshold = 0.23F;
+	compression_settings settings;
 	settings.level = compression_level8::high;
 	settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 	settings.scale_format = vector_format8::vector3f_variable;
@@ -217,18 +199,18 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	const char* error = nullptr;
+	ErrorResult error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "clip_");
 
 		// Write the clip to a temporary file
-		error = write_acl_clip(skeleton, clip, algorithm_type8::uniformly_sampled, settings, filename);
+		error = write_track_list(track_list, settings, filename);
 
-		if (error == nullptr)
+		if (error.empty())
 			break;	// Everything worked, stop trying
 	}
-	REQUIRE(error == nullptr);
+	REQUIRE(error.empty());
 
 	std::FILE* file = nullptr;
 
@@ -257,42 +239,47 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	// Read back the clip
 	ClipReader reader(allocator, sjson_file_buffer, clip_size - 1);
 
-	REQUIRE(reader.get_file_type() == sjson_file_type::raw_clip);
+	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
 
-	sjson_raw_clip file_clip;
-	const bool success = reader.read_raw_clip(file_clip);
+	sjson_raw_track_list file_clip;
+	const bool success = reader.read_raw_track_list(file_clip);
 	REQUIRE(success);
 
-	CHECK(file_clip.algorithm_type == algorithm_type8::uniformly_sampled);
 	CHECK(file_clip.has_settings);
 	CHECK(file_clip.settings.get_hash() == settings.get_hash());
-	CHECK(file_clip.skeleton->get_num_bones() == num_bones);
-	CHECK(file_clip.clip->get_num_bones() == num_bones);
-	CHECK(file_clip.clip->get_name() == clip.get_name());
-	CHECK(rtm::scalar_near_equal(file_clip.clip->get_duration(), clip.get_duration(), 1.0E-8F));
-	CHECK(file_clip.clip->get_num_samples() == clip.get_num_samples());
-	CHECK(file_clip.clip->get_sample_rate() == clip.get_sample_rate());
 
-	for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+	CHECK(file_clip.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
+	CHECK(file_clip.track_list.get_sample_rate() == track_list.get_sample_rate());
+	CHECK(file_clip.track_list.get_num_tracks() == track_list.get_num_tracks());
+	CHECK(rtm::scalar_near_equal(file_clip.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
+	CHECK(file_clip.track_list.get_track_type() == track_list.get_track_type());
+	CHECK(file_clip.track_list.get_track_category() == track_list.get_track_category());
+
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const RigidBone& src_bone = skeleton.get_bone(bone_index);
-		const RigidBone& file_bone = file_clip.skeleton->get_bone(bone_index);
-		CHECK(src_bone.name == file_bone.name);
-		CHECK(src_bone.vertex_distance == file_bone.vertex_distance);
-		CHECK(src_bone.parent_index == file_bone.parent_index);
-		CHECK(rtm::quat_near_equal(src_bone.bind_transform.rotation, file_bone.bind_transform.rotation, 0.0));
-		CHECK(rtm::vector_all_near_equal3(src_bone.bind_transform.translation, file_bone.bind_transform.translation, 0.0));
-		CHECK(rtm::vector_all_near_equal3(src_bone.bind_transform.scale, file_bone.bind_transform.scale, 0.0));
+		const track_qvvf& ref_track = track_cast<track_qvvf>(track_list[track_index]);
+		const track_qvvf& file_track = track_cast<track_qvvf>(file_clip.track_list[track_index]);
 
-		const AnimatedBone& src_animated_bone = clip.get_animated_bone(bone_index);
-		const AnimatedBone& file_animated_bone = file_clip.clip->get_animated_bone(bone_index);
-		//REQUIRE(src_animated_bone.output_index == file_animated_bone.output_index);
+		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
+		CHECK(file_track.get_description().parent_index == ref_track.get_description().parent_index);
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 0.0F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().shell_distance, ref_track.get_description().shell_distance, 0.0F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_rotation_threshold_angle, ref_track.get_description().constant_rotation_threshold_angle, 0.0F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_translation_threshold, ref_track.get_description().constant_translation_threshold, 0.0F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_scale_threshold, ref_track.get_description().constant_scale_threshold, 0.0F));
+		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
+		CHECK(file_track.get_output_index() == ref_track.get_output_index());
+		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
+		CHECK(file_track.get_type() == ref_track.get_type());
+		CHECK(file_track.get_category() == ref_track.get_category());
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			CHECK(rtm::quat_near_equal(src_animated_bone.rotation_track.get_sample(sample_index), file_animated_bone.rotation_track.get_sample(sample_index), 0.0));
-			CHECK(rtm::vector_all_near_equal3(src_animated_bone.translation_track.get_sample(sample_index), file_animated_bone.translation_track.get_sample(sample_index), 0.0));
-			CHECK(rtm::vector_all_near_equal3(src_animated_bone.scale_track.get_sample(sample_index), file_animated_bone.scale_track.get_sample(sample_index), 0.0));
+			const rtm::qvvf& ref_sample = ref_track[sample_index];
+			const rtm::qvvf& file_sample = file_track[sample_index];
+			CHECK(rtm::quat_near_equal(ref_sample.rotation, file_sample.rotation, 0.0F));
+			CHECK(rtm::vector_all_near_equal3(ref_sample.translation, file_sample.translation, 0.0F));
+			CHECK(rtm::vector_all_near_equal3(ref_sample.scale, file_sample.scale, 0.0F));
 		}
 	}
 #endif
@@ -333,7 +320,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	const char* error = nullptr;
+	ErrorResult error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_float1f_");
@@ -341,10 +328,10 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 		// Write the clip to a temporary file
 		error = write_track_list(track_list, filename);
 
-		if (error == nullptr)
+		if (error.empty())
 			break;	// Everything worked, stop trying
 	}
-	REQUIRE(error == nullptr);
+	REQUIRE(error.empty());
 
 	std::FILE* file = nullptr;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
@@ -391,7 +378,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 		const track_float1f& file_track = track_cast<track_float1f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
-		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 0.0F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
@@ -402,7 +389,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 		{
 			const float ref_sample = ref_track[sample_index];
 			const float file_sample = file_track[sample_index];
-			CHECK(rtm::scalar_near_equal(ref_sample, file_sample, 1.0E-8F));
+			CHECK(rtm::scalar_near_equal(ref_sample, file_sample, 0.0F));
 		}
 	}
 #endif
@@ -443,7 +430,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	const char* error = nullptr;
+	ErrorResult error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_float2f_");
@@ -451,10 +438,10 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 		// Write the clip to a temporary file
 		error = write_track_list(track_list, filename);
 
-		if (error == nullptr)
+		if (error.empty())
 			break;	// Everything worked, stop trying
 	}
-	REQUIRE(error == nullptr);
+	REQUIRE(error.empty());
 
 	std::FILE* file = nullptr;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
@@ -501,7 +488,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 		const track_float2f& file_track = track_cast<track_float2f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
-		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 0.0F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
@@ -512,7 +499,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 		{
 			const rtm::float2f& ref_sample = ref_track[sample_index];
 			const rtm::float2f& file_sample = file_track[sample_index];
-			CHECK(rtm::vector_all_near_equal2(rtm::vector_load2(&ref_sample), rtm::vector_load2(&file_sample), 1.0E-8F));
+			CHECK(rtm::vector_all_near_equal2(rtm::vector_load2(&ref_sample), rtm::vector_load2(&file_sample), 0.0F));
 		}
 	}
 #endif
@@ -553,7 +540,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	const char* error = nullptr;
+	ErrorResult error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_float3f_");
@@ -561,10 +548,10 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 		// Write the clip to a temporary file
 		error = write_track_list(track_list, filename);
 
-		if (error == nullptr)
+		if (error.empty())
 			break;	// Everything worked, stop trying
 	}
-	REQUIRE(error == nullptr);
+	REQUIRE(error.empty());
 
 	std::FILE* file = nullptr;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
@@ -611,7 +598,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 		const track_float3f& file_track = track_cast<track_float3f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
-		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 0.0F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
@@ -622,7 +609,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 		{
 			const rtm::float3f& ref_sample = ref_track[sample_index];
 			const rtm::float3f& file_sample = file_track[sample_index];
-			CHECK(rtm::vector_all_near_equal3(rtm::vector_load3(&ref_sample), rtm::vector_load3(&file_sample), 1.0E-8F));
+			CHECK(rtm::vector_all_near_equal3(rtm::vector_load3(&ref_sample), rtm::vector_load3(&file_sample), 0.0F));
 		}
 	}
 #endif
@@ -663,7 +650,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	const char* error = nullptr;
+	ErrorResult error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_float4f_");
@@ -671,10 +658,10 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 		// Write the clip to a temporary file
 		error = write_track_list(track_list, filename);
 
-		if (error == nullptr)
+		if (error.empty())
 			break;	// Everything worked, stop trying
 	}
-	REQUIRE(error == nullptr);
+	REQUIRE(error.empty());
 
 	std::FILE* file = nullptr;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
@@ -721,7 +708,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 		const track_float4f& file_track = track_cast<track_float4f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
-		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 0.0F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
@@ -732,7 +719,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 		{
 			const rtm::float4f& ref_sample = ref_track[sample_index];
 			const rtm::float4f& file_sample = file_track[sample_index];
-			CHECK(rtm::vector_all_near_equal(rtm::vector_load(&ref_sample), rtm::vector_load(&file_sample), 1.0E-8F));
+			CHECK(rtm::vector_all_near_equal(rtm::vector_load(&ref_sample), rtm::vector_load(&file_sample), 0.0F));
 		}
 	}
 #endif
@@ -773,7 +760,7 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };
 
-	const char* error = nullptr;
+	ErrorResult error;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
 	{
 		get_temporary_filename(filename, filename_size, "list_vector4f_");
@@ -781,10 +768,10 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 		// Write the clip to a temporary file
 		error = write_track_list(track_list, filename);
 
-		if (error == nullptr)
+		if (error.empty())
 			break;	// Everything worked, stop trying
 	}
-	REQUIRE(error == nullptr);
+	REQUIRE(error.empty());
 
 	std::FILE* file = nullptr;
 	for (uint32_t try_count = 0; try_count < 20; ++try_count)
@@ -831,7 +818,7 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 		const track_vector4f& file_track = track_cast<track_vector4f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
-		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 1.0E-8F));
+		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 0.0F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
@@ -842,7 +829,7 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 		{
 			const rtm::vector4f& ref_sample = ref_track[sample_index];
 			const rtm::vector4f& file_sample = file_track[sample_index];
-			CHECK(rtm::vector_all_near_equal(ref_sample, file_sample, 1.0E-8F));
+			CHECK(rtm::vector_all_near_equal(ref_sample, file_sample, 0.0F));
 		}
 	}
 #endif

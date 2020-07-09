@@ -103,6 +103,11 @@ namespace acl
 	constexpr uint32_t k_invalid_track_index = 0xFFFFFFFFU;
 
 	//////////////////////////////////////////////////////////////////////////
+	// Legacy value, to be removed
+	// TODO: remove me
+	constexpr uint16_t k_invalid_bone_index = 0xFFFFU;
+
+	//////////////////////////////////////////////////////////////////////////
 	// The various supported track types.
 	// Note: be careful when changing values here as they might be serialized.
 	enum class track_type8 : uint8_t

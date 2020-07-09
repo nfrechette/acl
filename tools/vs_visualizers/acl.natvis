@@ -36,6 +36,17 @@
       <Item Name="precision" Condition="m_type == acl::track_type8::float4f">m_desc.scalar.precision</Item>
       <Item Name="precision" Condition="m_type == acl::track_type8::vector4f">m_desc.scalar.precision</Item>
       <Item Name="precision" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.precision</Item>
+      <Item Name="shell_distance" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.shell_distance</Item>
+      <Item Name="constant_rotation_threshold_angle" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.constant_rotation_threshold_angle</Item>
+      <Item Name="constant_translation_threshold" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.constant_translation_threshold</Item>
+      <Item Name="constant_scale_threshold" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.constant_scale_threshold</Item>
+      <Item Name="output_index" Condition="m_type == acl::track_type8::float1f">m_desc.scalar.output_index</Item>
+      <Item Name="output_index" Condition="m_type == acl::track_type8::float2f">m_desc.scalar.output_index</Item>
+      <Item Name="output_index" Condition="m_type == acl::track_type8::float3f">m_desc.scalar.output_index</Item>
+      <Item Name="output_index" Condition="m_type == acl::track_type8::float4f">m_desc.scalar.output_index</Item>
+      <Item Name="output_index" Condition="m_type == acl::track_type8::vector4f">m_desc.scalar.output_index</Item>
+      <Item Name="output_index" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.output_index</Item>
+      <Item Name="parent_index" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.parent_index</Item>
       <Item Name="is_ref">m_allocator == nullptr</Item>
       <ArrayItems>
         <Size>m_num_samples</Size>
