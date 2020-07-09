@@ -34,6 +34,10 @@ if(USE_SJSON)
 	add_definitions(-DACL_USE_SJSON)
 endif()
 
+# Remove '-g' from compilation flags since it sometimes crashes the compiler
+string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+string(REPLACE "-g" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)		# Enable all warnings
 target_compile_options(${PROJECT_NAME} PRIVATE -Wshadow)			# Enable shadowing warnings
 target_compile_options(${PROJECT_NAME} PRIVATE -Werror)				# Treat warnings as errors

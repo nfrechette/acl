@@ -60,6 +60,12 @@ macro(setup_default_compiler_flags _project_name)
 		target_compile_options(${_project_name} PRIVATE -Wshadow)			# Enable shadowing warnings
 		target_compile_options(${_project_name} PRIVATE -Werror)			# Treat warnings as errors
 
-		target_compile_options(${_project_name} PRIVATE -g)					# Enable debug symbols
+		if (PLATFORM_EMSCRIPTEN)
+			# Remove '-g' from compilation flags since it sometimes crashes the compiler
+			string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+			string(REPLACE "-g" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+		else()
+			target_compile_options(${_project_name} PRIVATE -g)					# Enable debug symbols
+		endif()
 	endif()
 endmacro()
