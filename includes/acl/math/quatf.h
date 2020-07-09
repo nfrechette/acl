@@ -35,8 +35,9 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
-	// Loads an unaligned vector4 from memory.
+	// Loads an unaligned quat from memory.
 	// Missing from RTM for now
+	// TODO: Remove me once we upgrade to RTM 2.1 or later
 	//////////////////////////////////////////////////////////////////////////
 	RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_load(const rtm::float4f* input) RTM_NO_EXCEPT
 	{
@@ -45,7 +46,7 @@ namespace acl
 #elif defined(RTM_NEON_INTRINSICS)
 		return vld1q_f32(&input->x);
 #else
-		return vector_set(input->x, input->y, input->z, input->w);
+		return rtm::quat_set(input->x, input->y, input->z, input->w);
 #endif
 	}
 
