@@ -78,17 +78,17 @@ namespace acl
 			}
 		}
 
-		inline void extract_clip_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
+		inline void extract_clip_bone_ranges(iallocator& allocator, clip_context& context)
 		{
-			clip_context.ranges = allocate_type_array<BoneRanges>(allocator, clip_context.num_bones);
+			context.ranges = allocate_type_array<BoneRanges>(allocator, context.num_bones);
 
-			ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
-			SegmentContext& segment = clip_context.segments[0];
+			ACL_ASSERT(context.num_segments == 1, "clip_context must contain a single segment!");
+			SegmentContext& segment = context.segments[0];
 
-			acl_impl::extract_bone_ranges_impl(segment, clip_context.ranges);
+			acl_impl::extract_bone_ranges_impl(segment, context.ranges);
 		}
 
-		inline void extract_segment_bone_ranges(IAllocator& allocator, ClipContext& clip_context)
+		inline void extract_segment_bone_ranges(iallocator& allocator, clip_context& context)
 		{
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
@@ -138,7 +138,7 @@ namespace acl
 				return TrackStreamRange::from_min_extent(padded_range_min, padded_range_extent);
 			};
 
-			for (SegmentContext& segment : clip_context.segment_iterator())
+			for (SegmentContext& segment : context.segment_iterator())
 			{
 				segment.ranges = allocate_type_array<BoneRanges>(allocator, segment.num_bones);
 
@@ -149,13 +149,13 @@ namespace acl
 					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 					BoneRanges& bone_range = segment.ranges[bone_index];
 
-					if (!bone_stream.is_rotation_constant && clip_context.are_rotations_normalized)
+					if (!bone_stream.is_rotation_constant && context.are_rotations_normalized)
 						bone_range.rotation = fixup_range(bone_range.rotation);
 
-					if (!bone_stream.is_translation_constant && clip_context.are_translations_normalized)
+					if (!bone_stream.is_translation_constant && context.are_translations_normalized)
 						bone_range.translation = fixup_range(bone_range.translation);
 
-					if (!bone_stream.is_scale_constant && clip_context.are_scales_normalized)
+					if (!bone_stream.is_scale_constant && context.are_scales_normalized)
 						bone_range.scale = fixup_range(bone_range.scale);
 				}
 			}
@@ -307,35 +307,35 @@ namespace acl
 			}
 		}
 
-		inline void normalize_clip_streams(ClipContext& clip_context, range_reduction_flags8 range_reduction)
+		inline void normalize_clip_streams(clip_context& context, range_reduction_flags8 range_reduction)
 		{
-			ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
-			SegmentContext& segment = clip_context.segments[0];
+			ACL_ASSERT(context.num_segments == 1, "clip_context must contain a single segment!");
+			SegmentContext& segment = context.segments[0];
 
 			const bool has_scale = segment_context_has_scale(segment);
 
 			if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations))
 			{
-				normalize_rotation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
-				clip_context.are_rotations_normalized = true;
+				normalize_rotation_streams(segment.bone_streams, context.ranges, segment.num_bones);
+				context.are_rotations_normalized = true;
 			}
 
 			if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations))
 			{
-				normalize_translation_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
-				clip_context.are_translations_normalized = true;
+				normalize_translation_streams(segment.bone_streams, context.ranges, segment.num_bones);
+				context.are_translations_normalized = true;
 			}
 
 			if (has_scale && are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales))
 			{
-				normalize_scale_streams(segment.bone_streams, clip_context.ranges, segment.num_bones);
-				clip_context.are_scales_normalized = true;
+				normalize_scale_streams(segment.bone_streams, context.ranges, segment.num_bones);
+				context.are_scales_normalized = true;
 			}
 		}
 
-		inline void normalize_segment_streams(ClipContext& clip_context, range_reduction_flags8 range_reduction)
+		inline void normalize_segment_streams(clip_context& context, range_reduction_flags8 range_reduction)
 		{
-			for (SegmentContext& segment : clip_context.segment_iterator())
+			for (SegmentContext& segment : context.segment_iterator())
 			{
 				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations))
 				{

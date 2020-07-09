@@ -46,7 +46,7 @@ namespace acl
 	// compressed independently to allow a smaller memory footprint as well as
 	// faster compression and decompression.
 	// See also: https://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/
-	struct SegmentingSettings
+	struct segmenting_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// How many samples to try and fit in our segments
@@ -58,7 +58,7 @@ namespace acl
 		// Defaults to '31'
 		uint16_t max_num_samples;
 
-		SegmentingSettings()
+		segmenting_settings()
 			: ideal_num_samples(16)
 			, max_num_samples(31)
 		{}
@@ -76,15 +76,15 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Checks if everything is valid and if it isn't, returns an error string.
 		// Returns nullptr if the settings are valid.
-		ErrorResult is_valid() const
+		error_result is_valid() const
 		{
 			if (ideal_num_samples < 8)
-				return ErrorResult("ideal_num_samples must be greater or equal to 8");
+				return error_result("ideal_num_samples must be greater or equal to 8");
 
 			if (ideal_num_samples > max_num_samples)
-				return ErrorResult("ideal_num_samples must be smaller or equal to max_num_samples");
+				return error_result("ideal_num_samples must be smaller or equal to max_num_samples");
 
-			return ErrorResult();
+			return error_result();
 		}
 	};
 
@@ -110,7 +110,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Segmenting settings, if used
 		// Transform tracks only.
-		SegmentingSettings segmenting;
+		segmenting_settings segmenting;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The error metric to use.
@@ -147,10 +147,10 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Checks if everything is valid and if it isn't, returns an error string.
-		ErrorResult is_valid() const
+		error_result is_valid() const
 		{
 			if (error_metric == nullptr)
-				return ErrorResult("error_metric cannot be NULL");
+				return error_result("error_metric cannot be NULL");
 
 			return segmenting.is_valid();
 		}

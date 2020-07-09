@@ -47,7 +47,7 @@ namespace acl
 		{
 			ACL_ASSERT(context.is_valid(), "Invalid context");
 
-			const BitSetDescription bitset_desc = BitSetDescription::make_from_num_bits(context.num_tracks);
+			const bitset_description bitset_desc = bitset_description::make_from_num_bits(context.num_tracks);
 
 			context.constant_tracks_bitset = allocate_type_array<uint32_t>(*context.allocator, bitset_desc.get_size());
 			bitset_reset(context.constant_tracks_bitset, bitset_desc, false);

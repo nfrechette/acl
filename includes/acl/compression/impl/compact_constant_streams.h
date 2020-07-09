@@ -78,13 +78,13 @@ namespace acl
 			return true;
 		}
 
-		inline void compact_constant_streams(IAllocator& allocator, ClipContext& clip_context, const track_array_qvvf& track_list)
+		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const track_array_qvvf& track_list)
 		{
-			ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
-			SegmentContext& segment = clip_context.segments[0];
+			ACL_ASSERT(context.num_segments == 1, "clip_context must contain a single segment!");
+			SegmentContext& segment = context.segments[0];
 
-			const uint16_t num_bones = clip_context.num_bones;
-			const rtm::vector4f default_scale = get_default_scale(clip_context.additive_format);
+			const uint16_t num_bones = context.num_bones;
+			const rtm::vector4f default_scale = get_default_scale(context.additive_format);
 			uint16_t num_default_bone_scales = 0;
 
 			// When a stream is constant, we only keep the first sample
@@ -93,7 +93,7 @@ namespace acl
 				const track_desc_transformf& desc = track_list[bone_index].get_description();
 
 				BoneStreams& bone_stream = segment.bone_streams[bone_index];
-				BoneRanges& bone_range = clip_context.ranges[bone_index];
+				BoneRanges& bone_range = context.ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
@@ -142,7 +142,7 @@ namespace acl
 				}
 			}
 
-			clip_context.has_scale = num_default_bone_scales != num_bones;
+			context.has_scale = num_default_bone_scales != num_bones;
 		}
 	}
 }

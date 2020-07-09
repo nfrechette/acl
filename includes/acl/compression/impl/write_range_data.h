@@ -44,7 +44,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline uint32_t get_stream_range_data_size(const ClipContext& clip_context, range_reduction_flags8 range_reduction, rotation_format8 rotation_format)
+		inline uint32_t get_stream_range_data_size(const clip_context& clip, range_reduction_flags8 range_reduction, rotation_format8 rotation_format)
 		{
 			const uint32_t rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
 			const uint32_t translation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) ? k_clip_range_reduction_vector3_range_size : 0;
@@ -52,7 +52,7 @@ namespace acl
 			uint32_t range_data_size = 0;
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip_context.segments[0];
+			const SegmentContext& segment = clip.segments[0];
 			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
 			{
 				if (!bone_stream.is_rotation_constant)
@@ -179,12 +179,12 @@ namespace acl
 			return safe_static_cast<uint32_t>(range_data - range_data_start);
 		}
 
-		inline uint32_t write_clip_range_data(const ClipContext& clip_context, range_reduction_flags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_clip_range_data(const clip_context& clip, range_reduction_flags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip_context.segments[0];
+			const SegmentContext& segment = clip.segments[0];
 
-			return write_range_track_data(segment.bone_streams, clip_context.ranges, range_reduction, true, range_data, range_data_size, output_bone_mapping, num_output_bones);
+			return write_range_track_data(segment.bone_streams, clip.ranges, range_reduction, true, range_data, range_data_size, output_bone_mapping, num_output_bones);
 		}
 
 		inline uint32_t write_segment_range_data(const SegmentContext& segment, range_reduction_flags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)

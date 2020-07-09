@@ -84,10 +84,10 @@ namespace acl
 			uint32_t						num_bits_per_frame;
 
 			// Various data offsets relative to the start of this header.
-			PtrOffset32<track_metadata>		metadata_per_track;
-			PtrOffset32<float>				track_constant_values;
-			PtrOffset32<float>				track_range_values;
-			PtrOffset32<uint8_t>			track_animated_values;
+			ptr_offset32<track_metadata>		metadata_per_track;
+			ptr_offset32<float>				track_constant_values;
+			ptr_offset32<float>				track_range_values;
+			ptr_offset32<uint8_t>			track_animated_values;
 
 			//////////////////////////////////////////////////////////////////////////
 
@@ -115,13 +115,13 @@ namespace acl
 
 			// TODO: Only need one offset, calculate the others from the information we have?
 			// Offset to the per animated track format data.
-			PtrOffset32<uint8_t>			format_per_track_data_offset;		// TODO: Make this offset optional? Only present if variable
+			ptr_offset32<uint8_t>			format_per_track_data_offset;		// TODO: Make this offset optional? Only present if variable
 
 			// Offset to the segment range data.
-			PtrOffset32<uint8_t>			range_data_offset;					// TODO: Make this offset optional? Only present if normalized
+			ptr_offset32<uint8_t>			range_data_offset;					// TODO: Make this offset optional? Only present if normalized
 
 			// Offset to the segment animated tracks data.
-			PtrOffset32<uint8_t>			track_data_offset;
+			ptr_offset32<uint8_t>			track_data_offset;
 		};
 
 		struct transform_tracks_header
@@ -143,18 +143,18 @@ namespace acl
 			uint8_t							padding[1];
 
 			// Offset to the segment headers data.
-			PtrOffset16<uint32_t>			segment_start_indices_offset;
-			PtrOffset16<segment_header>		segment_headers_offset;
+			ptr_offset16<uint32_t>			segment_start_indices_offset;
+			ptr_offset16<segment_header>		segment_headers_offset;
 
 			// Offsets to the default/constant tracks bitsets.
-			PtrOffset16<uint32_t>			default_tracks_bitset_offset;
-			PtrOffset16<uint32_t>			constant_tracks_bitset_offset;
+			ptr_offset16<uint32_t>			default_tracks_bitset_offset;
+			ptr_offset16<uint32_t>			constant_tracks_bitset_offset;
 
 			// Offset to the constant tracks data.
-			PtrOffset16<uint8_t>			constant_track_data_offset;
+			ptr_offset16<uint8_t>			constant_track_data_offset;
 
 			// Offset to the clip range data.
-			PtrOffset16<uint8_t>			clip_range_data_offset;				// TODO: Make this offset optional? Only present if normalized
+			ptr_offset16<uint8_t>			clip_range_data_offset;				// TODO: Make this offset optional? Only present if normalized
 
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.

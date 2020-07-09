@@ -36,7 +36,7 @@ TEST_CASE("iterator", "[core][iterator]")
 	constexpr uint32_t num_items = 3;
 	uint32_t items[num_items];
 
-	auto i = Iterator<uint32_t>(items, num_items);
+	auto i = iterator<uint32_t>(items, num_items);
 
 	SECTION("mutable returns correct type")
 	{
@@ -46,7 +46,7 @@ TEST_CASE("iterator", "[core][iterator]")
 
 	SECTION("const returns correct type")
 	{
-		auto ci = ConstIterator<uint32_t>(items, num_items);
+		auto ci = const_iterator<uint32_t>(items, num_items);
 
 		CHECK(std::is_same<const uint32_t*, decltype(ci.begin())>::value);
 		CHECK(std::is_same<const uint32_t*, decltype(ci.end())>::value);

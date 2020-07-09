@@ -80,7 +80,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a pointer to the allocator instance or nullptr if there is none present.
-		IAllocator* get_allocator() const { return m_allocator; }
+		iallocator* get_allocator() const { return m_allocator; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of samples contained within the track.
@@ -127,7 +127,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a copy of the track where the memory will be owned by the copy.
-		track get_copy(IAllocator& allocator) const;
+		track get_copy(iallocator& allocator) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a reference to the track where the memory isn't owned.
@@ -139,7 +139,7 @@ namespace acl
 		//    - It is empty
 		//    - It has a positive and finite sample rate
 		//    - A valid description
-		ErrorResult is_valid() const;
+		error_result is_valid() const;
 
 	protected:
 		//////////////////////////////////////////////////////////////////////////
@@ -154,17 +154,17 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
-		track(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept;
+		track(iallocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal helper.
-		void get_copy_impl(IAllocator& allocator, track& out_track) const;
+		void get_copy_impl(iallocator& allocator, track& out_track) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal helper.
 		void get_ref_impl(track& out_track) const;
 
-		IAllocator*				m_allocator;		// Optional allocator that owns the memory
+		iallocator*				m_allocator;		// Optional allocator that owns the memory
 		uint8_t*				m_data;				// Pointer to the samples
 
 		uint32_t				m_num_samples;		// The number of samples
@@ -260,7 +260,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a copy of the track where the memory will be owned by the copy.
-		track_typed get_copy(IAllocator& allocator) const;
+		track_typed get_copy(iallocator& allocator) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a reference to the track where the memory isn't owned.
@@ -268,15 +268,15 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track that copies the data and owns the memory.
-		static track_typed<track_type_> make_copy(const desc_type& desc, IAllocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		static track_typed<track_type_> make_copy(const desc_type& desc, iallocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track and preallocates but does not initialize the memory that it owns.
-		static track_typed<track_type_> make_reserve(const desc_type& desc, IAllocator& allocator, uint32_t num_samples, float sample_rate);
+		static track_typed<track_type_> make_reserve(const desc_type& desc, iallocator& allocator, uint32_t num_samples, float sample_rate);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track and takes ownership of the already allocated memory.
-		static track_typed<track_type_> make_owner(const desc_type& desc, IAllocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		static track_typed<track_type_> make_owner(const desc_type& desc, iallocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track that just references the data without owning it.
@@ -290,7 +290,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
-		track_typed(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const desc_type& desc) noexcept;
+		track_typed(iallocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const desc_type& desc) noexcept;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -451,7 +451,7 @@ namespace acl
 		return m_desc.transform;
 	}
 
-	inline track track::get_copy(IAllocator& allocator) const
+	inline track track::get_copy(iallocator& allocator) const
 	{
 		track track_;
 		get_copy_impl(allocator, track_);
@@ -465,22 +465,22 @@ namespace acl
 		return track_;
 	}
 
-	inline ErrorResult track::is_valid() const
+	inline error_result track::is_valid() const
 	{
 		if (m_data == nullptr)
-			return ErrorResult();
+			return error_result();
 
 		if (m_num_samples == 0xFFFFFFFFU)
-			return ErrorResult("Too many samples");
+			return error_result("Too many samples");
 
 		if (m_sample_rate <= 0.0F || !rtm::scalar_is_finite(m_sample_rate))
-			return ErrorResult("Invalid sample rate");
+			return error_result("Invalid sample rate");
 
 		switch (m_category)
 		{
 		case track_category8::scalarf:		return m_desc.scalar.is_valid();
 		case track_category8::transformf:	return m_desc.transform.is_valid();
-		default:							return ErrorResult("Invalid category");
+		default:							return error_result("Invalid category");
 		}
 	}
 
@@ -497,7 +497,7 @@ namespace acl
 		, m_desc()
 	{}
 
-	inline track::track(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept
+	inline track::track(iallocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept
 		: m_allocator(allocator)
 		, m_data(data)
 		, m_num_samples(num_samples)
@@ -510,7 +510,7 @@ namespace acl
 		, m_desc()
 	{}
 
-	inline void track::get_copy_impl(IAllocator& allocator, track& out_track) const
+	inline void track::get_copy_impl(iallocator& allocator, track& out_track) const
 	{
 		out_track.m_allocator = &allocator;
 		out_track.m_data = reinterpret_cast<uint8_t*>(allocator.allocate(m_data_size));
@@ -567,7 +567,7 @@ namespace acl
 	}
 
 	template<track_type8 track_type_>
-	inline track_typed<track_type_> track_typed<track_type_>::get_copy(IAllocator& allocator) const
+	inline track_typed<track_type_> track_typed<track_type_>::get_copy(iallocator& allocator) const
 	{
 		track_typed track_;
 		track::get_copy_impl(allocator, track_);
@@ -583,7 +583,7 @@ namespace acl
 	}
 
 	template<track_type8 track_type_>
-	inline track_typed<track_type_> track_typed<track_type_>::make_copy(const typename track_typed<track_type_>::desc_type& desc, IAllocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
+	inline track_typed<track_type_> track_typed<track_type_>::make_copy(const typename track_typed<track_type_>::desc_type& desc, iallocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
 	{
 		const size_t data_size = size_t(num_samples) * sizeof(sample_type);
 		const uint8_t* data_raw = reinterpret_cast<const uint8_t*>(data);
@@ -597,14 +597,14 @@ namespace acl
 	}
 
 	template<track_type8 track_type_>
-	inline track_typed<track_type_> track_typed<track_type_>::make_reserve(const typename track_typed<track_type_>::desc_type& desc, IAllocator& allocator, uint32_t num_samples, float sample_rate)
+	inline track_typed<track_type_> track_typed<track_type_>::make_reserve(const typename track_typed<track_type_>::desc_type& desc, iallocator& allocator, uint32_t num_samples, float sample_rate)
 	{
 		const size_t data_size = size_t(num_samples) * sizeof(sample_type);
 		return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(allocator.allocate(data_size)), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
 	}
 
 	template<track_type8 track_type_>
-	inline track_typed<track_type_> track_typed<track_type_>::make_owner(const typename track_typed<track_type_>::desc_type& desc, IAllocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
+	inline track_typed<track_type_> track_typed<track_type_>::make_owner(const typename track_typed<track_type_>::desc_type& desc, iallocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
 	{
 		const size_t data_size = size_t(num_samples) * stride;
 		return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(data), num_samples, stride, data_size, sample_rate, desc);
@@ -618,7 +618,7 @@ namespace acl
 	}
 
 	template<track_type8 track_type_>
-	inline track_typed<track_type_>::track_typed(IAllocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const typename track_typed<track_type_>::desc_type& desc) noexcept
+	inline track_typed<track_type_>::track_typed(iallocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const typename track_typed<track_type_>::desc_type& desc) noexcept
 		: track(allocator, data, num_samples, stride, data_size, sample_rate, type, category, sizeof(sample_type))
 	{
 		m_desc = desc_union(desc);

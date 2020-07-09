@@ -30,9 +30,9 @@ using namespace acl;
 
 TEST_CASE("ptr_offset", "[core][memory]")
 {
-	CHECK(PtrOffset32<uint8_t>(InvalidPtrOffset()).is_valid() == false);
+	CHECK(ptr_offset32<uint8_t>(invalid_ptr_offset()).is_valid() == false);
 
-	PtrOffset32<uint8_t> offset(32);
+	ptr_offset32<uint8_t> offset(32);
 	CHECK(offset.is_valid() == true);
 
 	uint8_t* ptr = nullptr;

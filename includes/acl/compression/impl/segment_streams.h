@@ -38,12 +38,12 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline void segment_streams(IAllocator& allocator, ClipContext& clip_context, const SegmentingSettings& settings)
+		inline void segment_streams(iallocator& allocator, clip_context& clip, const segmenting_settings& settings)
 		{
-			ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must have a single segment.");
+			ACL_ASSERT(clip.num_segments == 1, "clip_context must have a single segment.");
 			ACL_ASSERT(settings.ideal_num_samples <= settings.max_num_samples, "Invalid num samples for segmenting settings. %u > %u", settings.ideal_num_samples, settings.max_num_samples);
 
-			if (clip_context.num_samples <= settings.max_num_samples)
+			if (clip.num_samples <= settings.max_num_samples)
 				return;
 
 			//////////////////////////////////////////////////////////////////////////
@@ -59,14 +59,14 @@ namespace acl
 			// TODO: Can we provide a tighter guarantee?
 			//////////////////////////////////////////////////////////////////////////
 
-			uint32_t num_segments = (clip_context.num_samples + settings.ideal_num_samples - 1) / settings.ideal_num_samples;
+			uint32_t num_segments = (clip.num_samples + settings.ideal_num_samples - 1) / settings.ideal_num_samples;
 			const uint32_t max_num_samples = num_segments * settings.ideal_num_samples;
 
 			const uint32_t original_num_segments = num_segments;
 			uint32_t* num_samples_per_segment = allocate_type_array<uint32_t>(allocator, num_segments);
 			std::fill(num_samples_per_segment, num_samples_per_segment + num_segments, settings.ideal_num_samples);
 
-			const uint32_t num_leftover_samples = settings.ideal_num_samples - (max_num_samples - clip_context.num_samples);
+			const uint32_t num_leftover_samples = settings.ideal_num_samples - (max_num_samples - clip.num_samples);
 			if (num_leftover_samples != 0)
 				num_samples_per_segment[num_segments - 1] = num_leftover_samples;
 
@@ -88,20 +88,20 @@ namespace acl
 
 			ACL_ASSERT(num_segments != 1, "Expected a number of segments greater than 1.");
 
-			SegmentContext* clip_segment = clip_context.segments;
-			clip_context.segments = allocate_type_array<SegmentContext>(allocator, num_segments);
-			clip_context.num_segments = safe_static_cast<uint16_t>(num_segments);
+			SegmentContext* clip_segment = clip.segments;
+			clip.segments = allocate_type_array<SegmentContext>(allocator, num_segments);
+			clip.num_segments = safe_static_cast<uint16_t>(num_segments);
 
 			uint32_t clip_sample_index = 0;
 			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 			{
 				const uint32_t num_samples_in_segment = num_samples_per_segment[segment_index];
 
-				SegmentContext& segment = clip_context.segments[segment_index];
-				segment.clip = &clip_context;
-				segment.bone_streams = allocate_type_array<BoneStreams>(allocator, clip_context.num_bones);
+				SegmentContext& segment = clip.segments[segment_index];
+				segment.clip = &clip;
+				segment.bone_streams = allocate_type_array<BoneStreams>(allocator, clip.num_bones);
 				segment.ranges = nullptr;
-				segment.num_bones = clip_context.num_bones;
+				segment.num_bones = clip.num_bones;
 				segment.num_samples = safe_static_cast<uint16_t>(num_samples_in_segment);
 				segment.clip_sample_offset = clip_sample_index;
 				segment.segment_index = segment_index;
@@ -114,7 +114,7 @@ namespace acl
 				segment.range_data_size = 0;
 				segment.total_header_size = 0;
 
-				for (uint16_t bone_index = 0; bone_index < clip_context.num_bones; ++bone_index)
+				for (uint16_t bone_index = 0; bone_index < clip.num_bones; ++bone_index)
 				{
 					const BoneStreams& clip_bone_stream = clip_segment->bone_streams[bone_index];
 					BoneStreams& segment_bone_stream = segment.bone_streams[bone_index];

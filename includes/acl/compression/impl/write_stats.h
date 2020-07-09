@@ -97,7 +97,7 @@ namespace acl
 			writer["decomp_touched_cache_lines"] = segment.clip->decomp_touched_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 		}
 
-		inline void write_exhaustive_segment_stats(IAllocator& allocator, const SegmentContext& segment, const ClipContext& raw_clip_context, const ClipContext& additive_base_clip_context, const compression_settings& settings, const track_array_qvvf& track_list, sjson::ObjectWriter& writer)
+		inline void write_exhaustive_segment_stats(iallocator& allocator, const SegmentContext& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array_qvvf& track_list, sjson::ObjectWriter& writer)
 		{
 			const uint16_t num_bones = raw_clip_context.num_bones;
 			const bool has_scale = segment_context_has_scale(segment);
@@ -217,10 +217,10 @@ namespace acl
 			deallocate_type_array(allocator, self_transform_indices, num_bones);
 		}
 
-		inline void write_stats(IAllocator& allocator, const track_array_qvvf& track_list, const ClipContext& clip_context,
-			const compressed_tracks& compressed_clip, const compression_settings& settings, const ClipContext& raw_clip_context,
-			const ClipContext& additive_base_clip_context, const ScopeProfiler& compression_time,
-			OutputStats& stats)
+		inline void write_stats(iallocator& allocator, const track_array_qvvf& track_list, const clip_context& clip,
+			const compressed_tracks& compressed_clip, const compression_settings& settings, const clip_context& raw_clip,
+			const clip_context& additive_base_clip_context, const scope_profiler& compression_time,
+			output_stats& stats)
 		{
 			ACL_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer");
 
@@ -242,10 +242,10 @@ namespace acl
 			writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 			writer["translation_format"] = get_vector_format_name(settings.translation_format);
 			writer["scale_format"] = get_vector_format_name(settings.scale_format);
-			writer["has_scale"] = clip_context.has_scale;
+			writer["has_scale"] = clip.has_scale;
 			writer["error_metric"] = settings.error_metric->get_name();
 
-			if (are_all_enum_flags_set(stats.logging, StatLogging::Detailed) || are_all_enum_flags_set(stats.logging, StatLogging::Exhaustive))
+			if (are_all_enum_flags_set(stats.logging, stat_logging::Detailed) || are_all_enum_flags_set(stats.logging, stat_logging::Exhaustive))
 			{
 				uint32_t num_default_rotation_tracks = 0;
 				uint32_t num_default_translation_tracks = 0;
@@ -257,7 +257,7 @@ namespace acl
 				uint32_t num_animated_translation_tracks = 0;
 				uint32_t num_animated_scale_tracks = 0;
 
-				for (const BoneStreams& bone_stream : clip_context.segments[0].bone_iterator())
+				for (const BoneStreams& bone_stream : clip.segments[0].bone_iterator())
 				{
 					if (bone_stream.is_rotation_default)
 						num_default_rotation_tracks++;
@@ -304,24 +304,24 @@ namespace acl
 
 			writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
 			{
-				segmenting_writer["num_segments"] = clip_context.num_segments;
+				segmenting_writer["num_segments"] = clip.num_segments;
 				segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
 				segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
 			};
 
 			writer["segments"] = [&](sjson::ArrayWriter& segments_writer)
 			{
-				for (const SegmentContext& segment : clip_context.const_segment_iterator())
+				for (const SegmentContext& segment : clip.const_segment_iterator())
 				{
 					segments_writer.push([&](sjson::ObjectWriter& segment_writer)
 						{
 							write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, segment_writer);
 
-							if (are_all_enum_flags_set(stats.logging, StatLogging::Detailed))
+							if (are_all_enum_flags_set(stats.logging, stat_logging::Detailed))
 								write_detailed_segment_stats(segment, segment_writer);
 
-							if (are_all_enum_flags_set(stats.logging, StatLogging::Exhaustive))
-								write_exhaustive_segment_stats(allocator, segment, raw_clip_context, additive_base_clip_context, settings, track_list, segment_writer);
+							if (are_all_enum_flags_set(stats.logging, stat_logging::Exhaustive))
+								write_exhaustive_segment_stats(allocator, segment, raw_clip, additive_base_clip_context, settings, track_list, segment_writer);
 						});
 				}
 			};

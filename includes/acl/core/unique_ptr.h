@@ -31,47 +31,47 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	template<typename AllocatedType>
-	class Deleter
+	template<typename allocated_type>
+	class deleter
 	{
 	public:
-		Deleter() : m_allocator(nullptr) {}
-		explicit Deleter(IAllocator& allocator) : m_allocator(&allocator) {}
-		Deleter(const Deleter&) = default;
-		Deleter(Deleter&&) = default;
-		~Deleter() = default;
-		Deleter& operator=(const Deleter&) = default;
-		Deleter& operator=(Deleter&&) = default;
+		deleter() : m_allocator(nullptr) {}
+		explicit deleter(iallocator& allocator) : m_allocator(&allocator) {}
+		deleter(const deleter&) = default;
+		deleter(deleter&&) = default;
+		~deleter() = default;
+		deleter& operator=(const deleter&) = default;
+		deleter& operator=(deleter&&) = default;
 
-		void operator()(AllocatedType* ptr)
+		void operator()(allocated_type* ptr)
 		{
 			if (ptr == nullptr)
 				return;
 
-			if (!std::is_trivially_destructible<AllocatedType>::value)
-				ptr->~AllocatedType();
+			if (!std::is_trivially_destructible<allocated_type>::value)
+				ptr->~allocated_type();
 
-			m_allocator->deallocate(ptr, sizeof(AllocatedType));
+			m_allocator->deallocate(ptr, sizeof(allocated_type));
 		}
 
 	private:
-		IAllocator* m_allocator;
+		iallocator* m_allocator;
 	};
 
-	template<typename AllocatedType, typename... Args>
-	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> make_unique(IAllocator& allocator, Args&&... args)
+	template<typename allocated_type, typename... args>
+	std::unique_ptr<allocated_type, deleter<allocated_type>> make_unique(iallocator& allocator, args&&... arguments)
 	{
-		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
-			allocate_type<AllocatedType>(allocator, std::forward<Args>(args)...),
-			Deleter<AllocatedType>(allocator));
+		return std::unique_ptr<allocated_type, deleter<allocated_type>>(
+			allocate_type<allocated_type>(allocator, std::forward<args>(arguments)...),
+			deleter<allocated_type>(allocator));
 	}
 
-	template<typename AllocatedType, typename... Args>
-	std::unique_ptr<AllocatedType, Deleter<AllocatedType>> make_unique_aligned(IAllocator& allocator, size_t alignment, Args&&... args)
+	template<typename allocated_type, typename... args>
+	std::unique_ptr<allocated_type, deleter<allocated_type>> make_unique_aligned(iallocator& allocator, size_t alignment, args&&... arguments)
 	{
-		return std::unique_ptr<AllocatedType, Deleter<AllocatedType>>(
-			allocate_type_aligned<AllocatedType>(allocator, alignment, std::forward<Args>(args)...),
-			Deleter<AllocatedType>(allocator));
+		return std::unique_ptr<allocated_type, deleter<allocated_type>>(
+			allocate_type_aligned<allocated_type>(allocator, alignment, std::forward<args>(arguments)...),
+			deleter<allocated_type>(allocator));
 	}
 }
 

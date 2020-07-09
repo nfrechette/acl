@@ -61,7 +61,7 @@ namespace acl
 
 		struct track_list_context
 		{
-			IAllocator* allocator;
+			iallocator* allocator;
 			const track_array* reference_list;
 
 			track_array track_list;
@@ -98,7 +98,7 @@ namespace acl
 				{
 					deallocate_type_array(*allocator, range_list, num_tracks);
 
-					const BitSetDescription bitset_desc = BitSetDescription::make_from_num_bits(num_tracks);
+					const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_tracks);
 					deallocate_type_array(*allocator, constant_tracks_bitset, bitset_desc.get_size());
 
 					deallocate_type_array(*allocator, bit_rate_list, num_tracks);
@@ -108,7 +108,7 @@ namespace acl
 			}
 
 			bool is_valid() const { return allocator != nullptr; }
-			bool is_constant(uint32_t track_index) const { return bitset_test(constant_tracks_bitset, BitSetDescription::make_from_num_bits(num_tracks), track_index); }
+			bool is_constant(uint32_t track_index) const { return bitset_test(constant_tracks_bitset, bitset_description::make_from_num_bits(num_tracks), track_index); }
 
 			track_list_context(const track_list_context&) = delete;
 			track_list_context(track_list_context&&) = delete;
@@ -117,7 +117,7 @@ namespace acl
 		};
 
 		// Promote scalar tracks to vector tracks for SIMD alignment and padding
-		inline track_array copy_and_promote_track_list(IAllocator& allocator, const track_array& ref_track_list)
+		inline track_array copy_and_promote_track_list(iallocator& allocator, const track_array& ref_track_list)
 		{
 			using namespace rtm;
 
@@ -180,7 +180,7 @@ namespace acl
 			return out_track_list;
 		}
 
-		inline uint32_t* create_output_track_mapping(IAllocator& allocator, const track_array& track_list, uint32_t& out_num_output_tracks)
+		inline uint32_t* create_output_track_mapping(iallocator& allocator, const track_array& track_list, uint32_t& out_num_output_tracks)
 		{
 			const uint32_t num_tracks = track_list.get_num_tracks();
 			uint32_t num_output_tracks = num_tracks;
@@ -203,7 +203,7 @@ namespace acl
 			return output_indices;
 		}
 
-		inline void initialize_context(IAllocator& allocator, const track_array& track_list, track_list_context& context)
+		inline void initialize_context(iallocator& allocator, const track_array& track_list, track_list_context& context)
 		{
 			ACL_ASSERT(track_list.is_valid().empty(), "Invalid track list");
 			ACL_ASSERT(!context.is_valid(), "Context already initialized");

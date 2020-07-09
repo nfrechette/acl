@@ -49,7 +49,7 @@ namespace acl
 		class hierarchical_track_query
 		{
 		public:
-			explicit hierarchical_track_query(IAllocator& allocator)
+			explicit hierarchical_track_query(iallocator& allocator)
 				: m_allocator(allocator)
 				, m_database(nullptr)
 				, m_track_index(0xFFFFFFFFU)
@@ -79,7 +79,7 @@ namespace acl
 				uint32_t	scale_cache_index;
 			};
 
-			IAllocator&						m_allocator;
+			iallocator&						m_allocator;
 			track_bit_rate_database*		m_database;
 			uint32_t						m_track_index;
 			const BoneBitRate*				m_bit_rates;
@@ -144,7 +144,7 @@ namespace acl
 		class track_bit_rate_database
 		{
 		public:
-			track_bit_rate_database(IAllocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
+			track_bit_rate_database(iallocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
 			~track_bit_rate_database();
 
 			void set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
@@ -200,7 +200,7 @@ namespace acl
 
 			rtm::vector4f		m_default_scale;
 
-			IAllocator&			m_allocator;
+			iallocator&			m_allocator;
 			const BoneStreams*	m_mutable_bone_streams;
 			const BoneStreams*	m_raw_bone_streams;
 
@@ -209,8 +209,8 @@ namespace acl
 			uint32_t			m_num_entries_per_transform;
 			uint32_t			m_track_size;
 
-			BitSetDescription	m_bitset_desc;
-			BitSetIndexRef		m_bitref_constant;
+			bitset_description	m_bitset_desc;
+			bitset_index_ref		m_bitref_constant;
 			rotation_format8		m_rotation_format;
 			vector_format8		m_translation_format;
 			vector_format8		m_scale_format;
@@ -296,7 +296,7 @@ namespace acl
 			return -1;
 		}
 
-		inline track_bit_rate_database::track_bit_rate_database(IAllocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track)
+		inline track_bit_rate_database::track_bit_rate_database(iallocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track)
 			: m_allocator(allocator)
 			, m_mutable_bone_streams(bone_streams)
 			, m_raw_bone_streams(raw_bone_steams)
@@ -315,8 +315,8 @@ namespace acl
 
 			const uint32_t num_cached_tracks = num_transforms * m_num_entries_per_transform;
 
-			m_bitset_desc = BitSetDescription::make_from_num_bits(num_samples_per_track);
-			m_bitref_constant = BitSetIndexRef(m_bitset_desc, 0);
+			m_bitset_desc = bitset_description::make_from_num_bits(num_samples_per_track);
+			m_bitref_constant = bitset_index_ref(m_bitset_desc, 0);
 
 			m_rotation_format = rotation_format;
 			m_translation_format = translation_format;
@@ -646,7 +646,7 @@ namespace acl
 				rtm::quatf sample0;
 				rtm::quatf sample1;
 
-				const BitSetIndexRef bitref0(m_bitset_desc, key0);
+				const bitset_index_ref bitref0(m_bitset_desc, key0);
 				if (bitset_test(validity_bitset, bitref0))
 				{
 					// Cached
@@ -678,7 +678,7 @@ namespace acl
 
 				if (static_condition<distribution == SampleDistribution8::Variable>::test())
 				{
-					const BitSetIndexRef bitref1(m_bitset_desc, key1);
+					const bitset_index_ref bitref1(m_bitset_desc, key1);
 					if (bitset_test(validity_bitset, bitref1))
 					{
 						// Cached
@@ -778,7 +778,7 @@ namespace acl
 				rtm::vector4f sample0;
 				rtm::vector4f sample1;
 
-				const BitSetIndexRef bitref0(m_bitset_desc, key0);
+				const bitset_index_ref bitref0(m_bitset_desc, key0);
 				if (bitset_test(validity_bitset, bitref0))
 				{
 					// Cached
@@ -806,7 +806,7 @@ namespace acl
 
 				if (static_condition<distribution == SampleDistribution8::Variable>::test())
 				{
-					const BitSetIndexRef bitref1(m_bitset_desc, key1);
+					const bitset_index_ref bitref1(m_bitset_desc, key1);
 					if (bitset_test(validity_bitset, bitref1))
 					{
 						// Cached
@@ -906,7 +906,7 @@ namespace acl
 				rtm::vector4f sample0;
 				rtm::vector4f sample1;
 
-				const BitSetIndexRef bitref0(m_bitset_desc, key0);
+				const bitset_index_ref bitref0(m_bitset_desc, key0);
 				if (bitset_test(validity_bitset, bitref0))
 				{
 					// Cached
@@ -934,7 +934,7 @@ namespace acl
 
 				if (static_condition<distribution == SampleDistribution8::Variable>::test())
 				{
-					const BitSetIndexRef bitref1(m_bitset_desc, key1);
+					const bitset_index_ref bitref1(m_bitset_desc, key1);
 					if (bitset_test(validity_bitset, bitref1))
 					{
 						// Cached

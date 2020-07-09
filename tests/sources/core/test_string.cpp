@@ -35,31 +35,31 @@
 
 using namespace acl;
 
-TEST_CASE("String", "[core][string]")
+TEST_CASE("string", "[core][string]")
 {
-	ANSIAllocator allocator;
+	ansi_allocator allocator;
 
-	CHECK(String().size() == 0);
-	CHECK(String().c_str() != nullptr);
-	CHECK(String(allocator, "").size() == 0);
-	CHECK(String(allocator, "").c_str() != nullptr);
+	CHECK(string().size() == 0);
+	CHECK(string().c_str() != nullptr);
+	CHECK(string(allocator, "").size() == 0);
+	CHECK(string(allocator, "").c_str() != nullptr);
 
 	const char* str0 = "this is a test string";
 	const char* str1 = "this is not a test string";
 	const char* str2 = "this is a test asset!";
 
-	CHECK(String(allocator, str0) == str0);
-	CHECK(String(allocator, str0) != str1);
-	CHECK(String(allocator, str0) != str2);
-	CHECK(String(allocator, str0) == String(allocator, str0));
-	CHECK(String(allocator, str0) != String(allocator, str1));
-	CHECK(String(allocator, str0) != String(allocator, str2));
-	CHECK(String(allocator, str0).c_str() != str0);
-	CHECK(String(allocator, str0).size() == std::strlen(str0));
-	CHECK(String(allocator, str0, 4) == String(allocator, str1, 4));
-	CHECK(String(allocator, str0, 4) == "this");
+	CHECK(string(allocator, str0) == str0);
+	CHECK(string(allocator, str0) != str1);
+	CHECK(string(allocator, str0) != str2);
+	CHECK(string(allocator, str0) == string(allocator, str0));
+	CHECK(string(allocator, str0) != string(allocator, str1));
+	CHECK(string(allocator, str0) != string(allocator, str2));
+	CHECK(string(allocator, str0).c_str() != str0);
+	CHECK(string(allocator, str0).size() == std::strlen(str0));
+	CHECK(string(allocator, str0, 4) == string(allocator, str1, 4));
+	CHECK(string(allocator, str0, 4) == "this");
 
-	CHECK(String().empty() == true);
-	CHECK(String(allocator, "").empty() == true);
-	CHECK(String(allocator, str0).empty() == false);
+	CHECK(string().empty() == true);
+	CHECK(string(allocator, "").empty() == true);
+	CHECK(string(allocator, str0).empty() == false);
 }

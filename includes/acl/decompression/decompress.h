@@ -229,7 +229,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Allocates and constructs an instance of the decompression context
 	template<class decompression_settings_type>
-	inline decompression_context<decompression_settings_type>* make_decompression_context(IAllocator& allocator)
+	inline decompression_context<decompression_settings_type>* make_decompression_context(iallocator& allocator)
 	{
 		return allocate_type<decompression_context<decompression_settings_type>>(allocator);
 	}

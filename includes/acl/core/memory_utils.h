@@ -228,8 +228,8 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Endian and raw memory support
 
-	template<typename OutputPtrType, typename InputPtrType, typename OffsetType>
-	inline OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, OffsetType offset)
+	template<typename OutputPtrType, typename InputPtrType, typename offset_type>
+	inline OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, offset_type offset)
 	{
 		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
 	}
@@ -318,24 +318,24 @@ namespace acl
 		}
 	}
 
-	template<typename DataType>
-	inline DataType unaligned_load(const void* input)
+	template<typename data_type>
+	inline data_type unaligned_load(const void* input)
 	{
-		DataType result;
-		std::memcpy(&result, input, sizeof(DataType));
+		data_type result;
+		std::memcpy(&result, input, sizeof(data_type));
 		return result;
 	}
 
-	template<typename DataType>
-	inline DataType aligned_load(const void* input)
+	template<typename data_type>
+	inline data_type aligned_load(const void* input)
 	{
-		return *safe_ptr_cast<const DataType, const void*>(input);
+		return *safe_ptr_cast<const data_type, const void*>(input);
 	}
 
-	template<typename DataType>
-	inline void unaligned_write(DataType input, void* output)
+	template<typename data_type>
+	inline void unaligned_write(data_type input, void* output)
 	{
-		std::memcpy(output, &input, sizeof(DataType));
+		std::memcpy(output, &input, sizeof(data_type));
 	}
 }
 

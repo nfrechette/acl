@@ -37,10 +37,10 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline uint32_t get_constant_data_size(const ClipContext& clip_context, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t get_constant_data_size(const clip_context& clip, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip_context.segments[0];
+			const SegmentContext& segment = clip.segments[0];
 
 			uint32_t constant_data_size = 0;
 
@@ -55,7 +55,7 @@ namespace acl
 				if (!bone_stream.is_translation_default && bone_stream.is_translation_constant)
 					constant_data_size += bone_stream.translations.get_packed_sample_size();
 
-				if (clip_context.has_scale && !bone_stream.is_scale_default && bone_stream.is_scale_constant)
+				if (clip.has_scale && !bone_stream.is_scale_default && bone_stream.is_scale_constant)
 					constant_data_size += bone_stream.scales.get_packed_sample_size();
 			}
 
@@ -86,9 +86,9 @@ namespace acl
 			}
 		}
 
-		inline void calculate_animated_data_size(ClipContext& clip_context, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline void calculate_animated_data_size(clip_context& clip, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
-			for (SegmentContext& segment : clip_context.segment_iterator())
+			for (SegmentContext& segment : clip.segment_iterator())
 			{
 				uint32_t num_animated_data_bits = 0;
 				uint32_t num_animated_pose_bits = 0;
@@ -113,14 +113,14 @@ namespace acl
 			}
 		}
 
-		inline uint32_t get_format_per_track_data_size(const ClipContext& clip_context, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format)
+		inline uint32_t get_format_per_track_data_size(const clip_context& clip, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
 			const bool is_scale_variable = is_vector_format_variable(scale_format);
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip_context.segments[0];
+			const SegmentContext& segment = clip.segments[0];
 
 			uint32_t format_per_track_data_size = 0;
 
@@ -142,13 +142,13 @@ namespace acl
 			return format_per_track_data_size;
 		}
 
-		inline uint32_t write_constant_track_data(const ClipContext& clip_context, uint8_t* constant_data, uint32_t constant_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_constant_track_data(const clip_context& clip, uint8_t* constant_data, uint32_t constant_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			ACL_ASSERT(constant_data != nullptr, "'constant_data' cannot be null!");
 			(void)constant_data_size;
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip_context.segments[0];
+			const SegmentContext& segment = clip.segments[0];
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 			const uint8_t* constant_data_end = add_offset_to_ptr<uint8_t>(constant_data, constant_data_size);
@@ -177,7 +177,7 @@ namespace acl
 					constant_data += sample_size;
 				}
 
-				if (clip_context.has_scale && !bone_stream.is_scale_default && bone_stream.is_scale_constant)
+				if (clip.has_scale && !bone_stream.is_scale_default && bone_stream.is_scale_constant)
 				{
 					const uint8_t* scale_ptr = bone_stream.scales.get_raw_sample_ptr(0);
 					uint32_t sample_size = bone_stream.scales.get_sample_size();

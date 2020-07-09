@@ -39,7 +39,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		struct ClipContext;
+		struct clip_context;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The sample distribution.
@@ -55,7 +55,7 @@ namespace acl
 
 		struct SegmentContext
 		{
-			ClipContext* clip;
+			clip_context* clip;
 			BoneStreams* bone_streams;
 			BoneRanges* ranges;
 
@@ -78,11 +78,11 @@ namespace acl
 			uint32_t total_header_size;
 
 			//////////////////////////////////////////////////////////////////////////
-			Iterator<BoneStreams> bone_iterator() { return Iterator<BoneStreams>(bone_streams, num_bones); }
-			ConstIterator<BoneStreams> const_bone_iterator() const { return ConstIterator<BoneStreams>(bone_streams, num_bones); }
+			iterator<BoneStreams> bone_iterator() { return iterator<BoneStreams>(bone_streams, num_bones); }
+			const_iterator<BoneStreams> const_bone_iterator() const { return const_iterator<BoneStreams>(bone_streams, num_bones); }
 		};
 
-		inline void destroy_segment_context(IAllocator& allocator, SegmentContext& segment)
+		inline void destroy_segment_context(iallocator& allocator, SegmentContext& segment)
 		{
 			deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
 			deallocate_type_array(allocator, segment.ranges, segment.num_bones);

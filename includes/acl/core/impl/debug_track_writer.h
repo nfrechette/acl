@@ -42,7 +42,7 @@ namespace acl
 	{
 		struct debug_track_writer final : public track_writer
 		{
-			debug_track_writer(IAllocator& allocator_, track_type8 type_, uint32_t num_tracks_)
+			debug_track_writer(iallocator& allocator_, track_type8 type_, uint32_t num_tracks_)
 				: allocator(allocator_)
 				, tracks_typed{ nullptr }
 				, buffer_size(0)
@@ -170,7 +170,7 @@ namespace acl
 				rtm::qvvf*		qvvf;
 			};
 
-			IAllocator& allocator;
+			iallocator& allocator;
 
 			ptr_union tracks_typed;
 			size_t buffer_size;

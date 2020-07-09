@@ -58,7 +58,7 @@ namespace acl
 
 			float clip_duration;							//  20 |  40
 
-			BitSetDescription bitset_desc;					//  24 |  44
+			bitset_description bitset_desc;					//  24 |  44
 
 			uint32_t clip_hash;								//  28 |  48
 
@@ -135,7 +135,7 @@ namespace acl
 		template<class decompression_settings_type>
 		inline void skip_over_rotation(const persistent_transform_decompression_context& decomp_context, const transform_tracks_header& header, sampling_context& sampling_context_)
 		{
-			const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
+			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
 			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 			if (!is_sample_default)
 			{
@@ -188,7 +188,7 @@ namespace acl
 		{
 			rtm::quatf interpolated_rotation;
 
-			const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
+			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
 			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 			if (is_sample_default)
 			{
@@ -393,7 +393,7 @@ namespace acl
 		template<class decompression_settings_type>
 		inline void skip_over_vector(const persistent_transform_decompression_context& decomp_context, const transform_tracks_header& header, sampling_context& sampling_context_)
 		{
-			const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
+			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
 			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 			if (!is_sample_default)
 			{
@@ -445,7 +445,7 @@ namespace acl
 		{
 			rtm::vector4f interpolated_vector;
 
-			const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
+			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
 			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 			if (is_sample_default)
 			{
@@ -611,7 +611,7 @@ namespace acl
 			}
 
 			const uint32_t num_tracks_per_bone = transform_header.has_scale ? 3 : 2;
-			context.bitset_desc = BitSetDescription::make_from_num_bits(header.num_tracks * num_tracks_per_bone);
+			context.bitset_desc = bitset_description::make_from_num_bits(header.num_tracks * num_tracks_per_bone);
 
 			range_reduction_flags8 range_reduction = range_reduction_flags8::none;
 			if (is_rotation_format_variable(rotation_format))

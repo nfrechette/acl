@@ -151,7 +151,7 @@ namespace acl
 			std::function<void(debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped)> remap_output;
 		};
 
-		inline track_error calculate_scalar_track_error(IAllocator& allocator, const calculate_track_error_args& args)
+		inline track_error calculate_scalar_track_error(iallocator& allocator, const calculate_track_error_args& args)
 		{
 			const uint32_t num_samples = args.num_samples;
 			if (args.num_samples == 0)
@@ -204,7 +204,7 @@ namespace acl
 			return result;
 		}
 
-		inline track_error calculate_transform_track_error(IAllocator& allocator, const calculate_track_error_args& args)
+		inline track_error calculate_transform_track_error(iallocator& allocator, const calculate_track_error_args& args)
 		{
 			ACL_ASSERT(args.error_metric != nullptr, "Must have an error metric");
 			ACL_ASSERT(args.get_parent_index, "Must be able to query the parent track index");
@@ -374,7 +374,7 @@ namespace acl
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
-	inline track_error calculate_compression_error(IAllocator& allocator, const track_array& raw_tracks, decompression_context_type& context)
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context)
 	{
 		using namespace acl_impl;
 
@@ -418,7 +418,7 @@ namespace acl
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
-	inline track_error calculate_compression_error(IAllocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric)
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric)
 	{
 		using namespace acl_impl;
 
@@ -495,7 +495,7 @@ namespace acl
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
-	inline track_error calculate_compression_error(IAllocator& allocator, const track_array_qvvf& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array_qvvf& additive_base_tracks)
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array_qvvf& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array_qvvf& additive_base_tracks)
 	{
 		using namespace acl_impl;
 
@@ -579,7 +579,7 @@ namespace acl
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type0, class decompression_context_type1, acl_impl::is_decompression_context<decompression_context_type0> = nullptr, acl_impl::is_decompression_context<decompression_context_type1> = nullptr>
-	inline track_error calculate_compression_error(IAllocator& allocator, decompression_context_type0& context0, decompression_context_type1& context1)
+	inline track_error calculate_compression_error(iallocator& allocator, decompression_context_type0& context0, decompression_context_type1& context1)
 	{
 		using namespace acl_impl;
 
@@ -616,7 +616,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between two raw track arrays.
 	// Supports scalar tracks only.
-	inline track_error calculate_compression_error(IAllocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1)
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1)
 	{
 		using namespace acl_impl;
 
@@ -649,7 +649,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between two raw track arrays.
 	// Supports scalar and transform tracks.
-	inline track_error calculate_compression_error(IAllocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const itransform_error_metric& error_metric)
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const itransform_error_metric& error_metric)
 	{
 		using namespace acl_impl;
 
