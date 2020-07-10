@@ -91,13 +91,15 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// These allow the caller of decompress_pose to control which track types they are interested in.
 		// This information allows the codecs to avoid unpacking values that are not needed.
-		constexpr bool skip_all_rotations() const { return false; }
-		constexpr bool skip_all_translations() const { return false; }
-		constexpr bool skip_all_scales() const { return false; }
+		// Must be static constexpr!
+		static constexpr bool skip_all_rotations() { return false; }
+		static constexpr bool skip_all_translations() { return false; }
+		static constexpr bool skip_all_scales() { return false; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// These allow the caller of decompress_pose to control which tracks they are interested in.
 		// This information allows the codecs to avoid unpacking values that are not needed.
+		// Must be non-static member functions!
 		constexpr bool skip_track_rotation(uint32_t track_index) const { return (void)track_index, false; }
 		constexpr bool skip_track_translation(uint32_t track_index) const { return (void)track_index, false; }
 		constexpr bool skip_track_scale(uint32_t track_index) const { return (void)track_index, false; }

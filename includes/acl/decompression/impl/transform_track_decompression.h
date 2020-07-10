@@ -763,7 +763,7 @@ namespace acl
 			const uint32_t num_tracks = header.num_tracks;
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
-				if (writer.skip_all_rotations() || writer.skip_track_rotation(track_index))
+				if (track_writer_type::skip_all_rotations() || writer.skip_track_rotation(track_index))
 					skip_over_rotation<decompression_settings_type>(context, transform_header, sampling_context_);
 				else
 				{
@@ -771,7 +771,7 @@ namespace acl
 					writer.write_rotation(track_index, rotation);
 				}
 
-				if (writer.skip_all_translations() || writer.skip_track_translation(track_index))
+				if (track_writer_type::skip_all_translations() || writer.skip_track_translation(track_index))
 					skip_over_vector<translation_adapter>(context, transform_header, sampling_context_);
 				else
 				{
@@ -779,7 +779,7 @@ namespace acl
 					writer.write_translation(track_index, translation);
 				}
 
-				if (writer.skip_all_scales() || writer.skip_track_scale(track_index))
+				if (track_writer_type::skip_all_scales() || writer.skip_track_scale(track_index))
 				{
 					if (has_scale)
 						skip_over_vector<scale_adapter>(context, transform_header, sampling_context_);
