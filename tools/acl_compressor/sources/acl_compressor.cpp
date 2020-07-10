@@ -432,7 +432,7 @@ static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw
 	// Disable floating point exceptions since decompression assumes it
 	scope_disable_fp_exceptions fp_off;
 
-	acl::decompression_context<acl::debug_decompression_settings> context;
+	acl::decompression_context<acl::debug_transform_decompression_settings> context;
 	context.initialize(compressed_tracks_);
 
 	const track_error error = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
@@ -498,7 +498,7 @@ static void validate_accuracy(iallocator& allocator, const track_array& raw_trac
 	ACL_ASSERT(num_tracks <= raw_tracks.get_num_tracks(), "Num tracks mismatch");
 	ACL_ASSERT(num_samples == raw_tracks.get_num_samples_per_track(), "Num samples mismatch");
 
-	decompression_context<debug_decompression_settings> context;
+	decompression_context<debug_scalar_decompression_settings> context;
 	context.initialize(tracks);
 
 	debug_track_writer raw_tracks_writer(allocator, track_type, num_tracks);
@@ -679,7 +679,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
 
-			acl::decompression_context<acl::debug_decompression_settings> context;
+			acl::decompression_context<acl::debug_transform_decompression_settings> context;
 			context.initialize(*compressed_tracks_);
 
 			const track_error error = calculate_compression_error(allocator, transform_tracks, context, *settings.error_metric);
@@ -738,7 +738,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
 
-			acl::decompression_context<acl::debug_decompression_settings> context;
+			acl::decompression_context<acl::debug_scalar_decompression_settings> context;
 			context.initialize(*compressed_tracks_);
 
 			const track_error error = calculate_compression_error(allocator, track_list, context);

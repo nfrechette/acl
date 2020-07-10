@@ -109,7 +109,23 @@ namespace acl
 	// These are debug settings, everything is enabled and nothing is stripped.
 	// It will have the worst performance but allows every feature.
 	//////////////////////////////////////////////////////////////////////////
-	struct debug_decompression_settings : public decompression_settings {};
+	struct debug_scalar_decompression_settings : public decompression_settings
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Only support scalar tracks
+		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::qvvf; }
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// These are debug settings, everything is enabled and nothing is stripped.
+	// It will have the worst performance but allows every feature.
+	//////////////////////////////////////////////////////////////////////////
+	struct debug_transform_decompression_settings : public decompression_settings
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Only support transform tracks
+		static constexpr bool is_track_type_supported(track_type8 type) { return type == track_type8::qvvf; }
+	};
 
 	//////////////////////////////////////////////////////////////////////////
 	// These are the default settings. Only the generally optimal settings
