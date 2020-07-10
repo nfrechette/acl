@@ -143,7 +143,7 @@ namespace acl
 			if (!read_tracks(out_data.track_list, out_data.additive_base_track_list))
 				return false;
 
-			out_data.additive_format = out_data.additive_base_track_list.get_num_tracks() != 0 ? m_additive_format : additive_clip_format8::none;
+			out_data.additive_format = !out_data.additive_base_track_list.is_empty() ? m_additive_format : additive_clip_format8::none;
 
 			return nothing_follows();
 		}

@@ -79,6 +79,10 @@ namespace acl
 		bool is_ref() const { return m_allocator == nullptr; }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns true if the track doesn't contain any data, false otherwise.
+		bool is_empty() const { return m_num_samples == 0; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns a pointer to the allocator instance or nullptr if there is none present.
 		iallocator* get_allocator() const { return m_allocator; }
 
@@ -298,7 +302,7 @@ namespace acl
 	template<typename track_type>
 	inline track_type& track_cast(track& track_)
 	{
-		ACL_ASSERT(track_type::type == track_.get_type() || track_.get_num_samples() == 0, "Unexpected track type");
+		ACL_ASSERT(track_type::type == track_.get_type() || track_.is_empty(), "Unexpected track type");
 		return static_cast<track_type&>(track_);
 	}
 
@@ -307,7 +311,7 @@ namespace acl
 	template<typename track_type>
 	inline const track_type& track_cast(const track& track_)
 	{
-		ACL_ASSERT(track_type::type == track_.get_type() || track_.get_num_samples() == 0, "Unexpected track type");
+		ACL_ASSERT(track_type::type == track_.get_type() || track_.is_empty(), "Unexpected track type");
 		return static_cast<const track_type&>(track_);
 	}
 
@@ -317,7 +321,7 @@ namespace acl
 	template<typename track_type>
 	inline track_type* track_cast(track* track_)
 	{
-		if (track_ == nullptr || (track_type::type != track_->get_type() && track_->get_num_samples() != 0))
+		if (track_ == nullptr || (track_type::type != track_->get_type() && !track_->is_empty()))
 			return nullptr;
 
 		return static_cast<track_type*>(track_);
@@ -329,7 +333,7 @@ namespace acl
 	template<typename track_type>
 	inline const track_type* track_cast(const track* track_)
 	{
-		if (track_ == nullptr || (track_type::type != track_->get_type() && track_->get_num_samples() != 0))
+		if (track_ == nullptr || (track_type::type != track_->get_type() && !track_->is_empty()))
 			return nullptr;
 
 		return static_cast<const track_type*>(track_);

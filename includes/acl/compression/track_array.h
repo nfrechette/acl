@@ -107,23 +107,23 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of samples per track in this array.
-		uint32_t get_num_samples_per_track() const { return m_allocator != nullptr && m_num_tracks > 0 ? m_tracks->get_num_samples() : 0; }
+		uint32_t get_num_samples_per_track() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_num_samples() : 0; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track type for tracks in this array.
-		track_type8 get_track_type() const { return m_allocator != nullptr && m_num_tracks > 0 ? m_tracks->get_type() : track_type8::float1f; }
+		track_type8 get_track_type() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_type() : track_type8::float1f; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track category for tracks in this array.
-		track_category8 get_track_category() const { return m_allocator != nullptr && m_num_tracks > 0 ? m_tracks->get_category() : track_category8::scalarf; }
+		track_category8 get_track_category() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_category() : track_category8::scalarf; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the sample rate for tracks in this array.
-		float get_sample_rate() const { return m_allocator != nullptr && m_num_tracks > 0 ? m_tracks->get_sample_rate() : 0.0F; }
+		float get_sample_rate() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_sample_rate() : 0.0F; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the duration for tracks in this array.
-		float get_duration() const { return m_allocator != nullptr && m_num_tracks > 0 ? calculate_duration(uint32_t(m_tracks->get_num_samples()), m_tracks->get_sample_rate()) : 0.0F; }
+		float get_duration() const { return m_allocator != nullptr && m_num_tracks != 0 ? calculate_duration(uint32_t(m_tracks->get_num_samples()), m_tracks->get_sample_rate()) : 0.0F; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track at the specified index.
@@ -147,6 +147,10 @@ namespace acl
 		const track* begin() const { return m_tracks; }
 		const track* end() { return m_tracks + m_num_tracks; }
 		const track* end() const { return m_tracks + m_num_tracks; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if the track array doesn't contain any data, false otherwise.
+		bool is_empty() const { return m_num_tracks == 0; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether a track array is valid or not.
@@ -264,7 +268,7 @@ namespace acl
 	template<typename track_array_type>
 	inline track_array_type& track_array_cast(track_array& track_array_)
 	{
-		ACL_ASSERT(track_array_type::type == track_array_.get_track_type() || track_array_.get_num_tracks() == 0, "Unexpected track type");
+		ACL_ASSERT(track_array_type::type == track_array_.get_track_type() || track_array_.is_empty(), "Unexpected track type");
 		return static_cast<track_array_type&>(track_array_);
 	}
 
@@ -273,7 +277,7 @@ namespace acl
 	template<typename track_array_type>
 	inline const track_array_type& track_array_cast(const track_array& track_array_)
 	{
-		ACL_ASSERT(track_array_type::type == track_array_.get_track_type() || track_array_.get_num_tracks() == 0, "Unexpected track type");
+		ACL_ASSERT(track_array_type::type == track_array_.get_track_type() || track_array_.is_empty(), "Unexpected track type");
 		return static_cast<const track_array_type&>(track_array_);
 	}
 
@@ -283,7 +287,7 @@ namespace acl
 	template<typename track_array_type>
 	inline track_array_type* track_array_cast(track_array* track_array_)
 	{
-		if (track_array_ == nullptr || (track_array_type::type != track_array_->get_track_type() && track_array_->get_num_tracks() != 0))
+		if (track_array_ == nullptr || (track_array_type::type != track_array_->get_track_type() && !track_array_->is_empty()))
 			return nullptr;
 
 		return static_cast<track_array_type*>(track_array_);
@@ -295,7 +299,7 @@ namespace acl
 	template<typename track_array_type>
 	inline const track_array_type* track_array_cast(const track_array* track_array_)
 	{
-		if (track_array_ == nullptr || (track_array_type::type != track_array_->get_track_type() && track_array_->get_num_tracks() != 0))
+		if (track_array_ == nullptr || (track_array_type::type != track_array_->get_track_type() && !track_array_->is_empty()))
 			return nullptr;
 
 		return static_cast<const track_array_type*>(track_array_);

@@ -555,7 +555,7 @@ namespace acl
 			}
 		};
 
-		if (additive_base_tracks.get_num_tracks() != 0)
+		if (!additive_base_tracks.is_empty())
 		{
 			args.base_num_samples = additive_base_tracks.get_num_samples_per_track();
 			args.base_duration = additive_base_tracks.get_duration();
