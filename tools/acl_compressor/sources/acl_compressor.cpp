@@ -720,7 +720,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
-		if (track_list.get_num_tracks() == 0)
+		if (track_list.is_empty())
 			return;
 
 		compression_settings settings;
@@ -1152,7 +1152,7 @@ static int safe_main_impl(int argc, char* argv[])
 	if (!is_input_acl_bin_file && sjson_type == sjson_file_type::raw_clip)
 	{
 		// Grab whatever clip we might have read from the sjson file and cast the const away so we can manage the memory
-		if (base_clip.get_num_tracks() == 0 && bind_pose.get_num_samples() != 0)
+		if (base_clip.is_empty() && !bind_pose.is_empty())
 		{
 			if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
 				create_additive_base_clip(options, transform_tracks, bind_pose, base_clip, additive_format);
