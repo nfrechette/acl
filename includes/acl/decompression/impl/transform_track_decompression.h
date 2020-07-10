@@ -24,8 +24,10 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/bitset.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/interpolation_utils.h"
+#include "acl/core/range_reduction_types.h"
 #include "acl/core/track_writer.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/math/quatf.h"
