@@ -43,8 +43,6 @@ namespace acl
 	{
 		struct alignas(64) persistent_scalar_decompression_context
 		{
-			persistent_scalar_decompression_context() {}
-
 			// Clip related data							//   offsets
 			// Only member used to detect if we are initialized, must be first
 			const compressed_tracks* tracks;				//   0 |   0

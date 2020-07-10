@@ -40,8 +40,6 @@ namespace acl
 	{
 		union persistent_universal_decompression_context
 		{
-			persistent_universal_decompression_context() {}
-
 			persistent_scalar_decompression_context scalar;
 			persistent_transform_decompression_context transform;
 
