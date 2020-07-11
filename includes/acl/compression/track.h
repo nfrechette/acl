@@ -33,6 +33,14 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C4582: 'union': constructor is not implicitly called (/Wall)
+	// This is fine because a track is empty until it is constructed with a valid description.
+	// Afterwards, access is typesafe.
+	#pragma warning(disable : 4582)
+#endif
+
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
@@ -184,17 +192,17 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// A union of every track description.
 		// This ensures every track has the same size regardless of its type.
-		union desc_union
+		union track_desc_untyped
 		{
 			track_desc_scalarf		scalar;
 			track_desc_transformf	transform;
 
-			desc_union() : scalar() {}
-			explicit desc_union(const track_desc_scalarf& desc) : scalar(desc) {}
-			explicit desc_union(const track_desc_transformf& desc) : transform(desc) {}
+			track_desc_untyped() {}
+			explicit track_desc_untyped(const track_desc_scalarf& desc) : scalar(desc) {}
+			explicit track_desc_untyped(const track_desc_transformf& desc) : transform(desc) {}
 		};
 
-		desc_union				m_desc;				// The track description
+		track_desc_untyped		m_desc;				// The track description
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -625,8 +633,12 @@ namespace acl
 	inline track_typed<track_type_>::track_typed(iallocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, const typename track_typed<track_type_>::desc_type& desc) noexcept
 		: track(allocator, data, num_samples, stride, data_size, sample_rate, type, category, sizeof(sample_type))
 	{
-		m_desc = desc_union(desc);
+		m_desc = track_desc_untyped(desc);
 	}
 }
+
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
 
 ACL_IMPL_FILE_PRAGMA_POP
