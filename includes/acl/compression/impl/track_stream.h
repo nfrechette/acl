@@ -318,7 +318,7 @@ namespace acl
 			SegmentContext* segment;
 			uint16_t bone_index;
 			uint16_t parent_bone_index;
-			uint16_t output_index;
+			uint32_t output_index;
 
 			RotationTrackStream rotations;
 			TranslationTrackStream translations;
@@ -331,7 +331,7 @@ namespace acl
 			bool is_scale_constant;
 			bool is_scale_default;
 
-			bool is_stripped_from_output() const { return output_index == k_invalid_bone_index; }
+			bool is_stripped_from_output() const { return output_index == k_invalid_track_index; }
 
 			BoneStreams duplicate() const
 			{

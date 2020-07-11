@@ -195,7 +195,7 @@ namespace acl
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
 				const uint32_t output_index = track_list[track_index].get_output_index();
-				if (output_index != k_invalid_bone_index)
+				if (output_index != k_invalid_track_index)
 					output_indices[output_index] = track_index;
 			}
 
