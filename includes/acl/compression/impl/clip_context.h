@@ -215,7 +215,7 @@ namespace acl
 				bone_stream.segment = &segment;
 				bone_stream.bone_index = safe_static_cast<uint16_t>(transform_index);
 				bone_stream.parent_bone_index = desc.parent_index == k_invalid_track_index ? k_invalid_bone_index : safe_static_cast<uint16_t>(desc.parent_index);
-				bone_stream.output_index = desc.output_index == k_invalid_track_index ? k_invalid_bone_index : safe_static_cast<uint16_t>(desc.output_index);
+				bone_stream.output_index = desc.output_index;
 
 				bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, rotation_format8::quatf_full);
 				bone_stream.translations = TranslationTrackStream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
