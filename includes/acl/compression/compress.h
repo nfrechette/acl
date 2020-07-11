@@ -202,13 +202,17 @@ namespace acl
 			if (is_vector_format_variable(settings.scale_format))
 				range_reduction |= range_reduction_flags8::scales;
 
+			// If we have no additive base, our additive format is always none
+			if (additive_base_track_list == nullptr || additive_base_track_list->is_empty())
+				additive_format = additive_clip_format8::none;
+
 			clip_context raw_clip_context;
 			initialize_clip_context(allocator, track_list, additive_format, raw_clip_context);
 
 			clip_context lossy_clip_context;
 			initialize_clip_context(allocator, track_list, additive_format, lossy_clip_context);
 
-			const bool is_additive = additive_base_track_list != nullptr && additive_format != additive_clip_format8::none;
+			const bool is_additive = additive_format != additive_clip_format8::none;
 			clip_context additive_base_clip_context;
 			if (is_additive)
 				initialize_clip_context(allocator, *additive_base_track_list, additive_format, additive_base_clip_context);
@@ -504,9 +508,12 @@ namespace acl
 		if (result.any())
 			return result;
 
-		result = additive_base_track_list.is_valid();
-		if (result.any())
-			return result;
+		if (additive_format != additive_clip_format8::none)
+		{
+			result = additive_base_track_list.is_valid();
+			if (result.any())
+				return result;
+		}
 
 		if (track_list.get_num_samples_per_track() > 0xFFFF)
 			return error_result("ACL only supports up to 65535 samples");
