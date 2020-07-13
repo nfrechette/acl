@@ -93,7 +93,7 @@ namespace acl
 			return *this;
 		}
 
-		bool operator==(const char* c_str) const
+		bool operator==(const char* c_str) const noexcept
 		{
 			const size_t this_length = m_c_str == nullptr ? 0 : std::strlen(m_c_str);
 			const size_t other_length = c_str == nullptr ? 0 : std::strlen(c_str);
@@ -106,14 +106,14 @@ namespace acl
 			return std::memcmp(m_c_str, c_str, other_length) == 0;
 		}
 
-		bool operator!=(const char* c_str) const { return !(*this == c_str); }
+		bool operator!=(const char* c_str) const noexcept { return !(*this == c_str); }
 
-		bool operator==(const string& other) const { return (*this == other.c_str()); }
-		bool operator!=(const string& other) const { return !(*this == other.c_str()); }
+		bool operator==(const string& other) const noexcept { return (*this == other.c_str()); }
+		bool operator!=(const string& other) const noexcept { return !(*this == other.c_str()); }
 
-		const char* c_str() const { return m_c_str != nullptr ? m_c_str : ""; }
-		size_t size() const { return m_c_str != nullptr ? std::strlen(m_c_str) : 0; }
-		bool empty() const { return m_c_str != nullptr ? (std::strlen(m_c_str) == 0) : true; }
+		const char* c_str() const noexcept { return m_c_str != nullptr ? m_c_str : ""; }
+		size_t size() const noexcept { return m_c_str != nullptr ? std::strlen(m_c_str) : 0; }
+		bool empty() const noexcept { return m_c_str != nullptr ? (std::strlen(m_c_str) == 0) : true; }
 
 	private:
 		iallocator* m_allocator;
