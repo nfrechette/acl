@@ -10,16 +10,16 @@
     <DisplayString>({m128i_u32[0]}, {m128i_u32[1]}, {m128i_u32[2]}, {m128i_u32[3]})</DisplayString>
   </Type>
 
-  <Type Name="acl::String">
+  <Type Name="acl::string">
     <DisplayString>{m_c_str,s8}</DisplayString>
   </Type>
 
-  <Type Name="acl::ErrorResult">
+  <Type Name="acl::error_result">
     <DisplayString Condition="m_error == nullptr">no error</DisplayString>
     <DisplayString Condition="m_error != nullptr">{m_error,s8}</DisplayString>
   </Type>
 
-  <Type Name="acl::BitSetDescription">
+  <Type Name="acl::bitset_description">
     <DisplayString>size={m_size}, num_bits={m_size * 32}</DisplayString>
   </Type>
 
