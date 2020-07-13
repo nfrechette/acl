@@ -115,6 +115,28 @@ namespace acl
 		// Returns a pointer to the allocator instance or nullptr if there is none present.
 		iallocator* get_allocator() const noexcept { return m_allocator; }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns a copy of the current string.
+		// Explicit instead of using the assignment operator or copy constructor
+		string get_copy() const
+		{
+			if (m_allocator == nullptr)
+				return string();
+
+			return string(*m_allocator, m_c_str, std::strlen(m_c_str));
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns a copy of the current string.
+		// Explicit instead of using the assignment operator or copy constructor
+		string get_copy(iallocator& allocator) const
+		{
+			if (m_allocator == nullptr)
+				return string();
+
+			return string(allocator, m_c_str, std::strlen(m_c_str));
+		}
+
 		const char* c_str() const noexcept { return m_c_str != nullptr ? m_c_str : ""; }
 		size_t size() const noexcept { return m_c_str != nullptr ? std::strlen(m_c_str) : 0; }
 		bool empty() const noexcept { return m_c_str != nullptr ? (std::strlen(m_c_str) == 0) : true; }

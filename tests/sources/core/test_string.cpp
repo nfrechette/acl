@@ -38,10 +38,14 @@ using namespace acl;
 TEST_CASE("string", "[core][string]")
 {
 	ansi_allocator allocator;
+	ansi_allocator allocator2;
 
 	CHECK(string().get_allocator() == nullptr);
 	CHECK(string().size() == 0);
 	CHECK(string().c_str() != nullptr);
+	CHECK(string().get_copy().size() == 0);
+	CHECK(string().get_copy().get_allocator() == nullptr);
+	CHECK(string().get_copy(allocator).get_allocator() == nullptr);
 	CHECK(string(allocator, "").size() == 0);
 	CHECK(string(allocator, "").c_str() != nullptr);
 
@@ -58,6 +62,12 @@ TEST_CASE("string", "[core][string]")
 	CHECK(string(allocator, str0).get_allocator() == &allocator);
 	CHECK(string(allocator, str0).c_str() != str0);
 	CHECK(string(allocator, str0).size() == std::strlen(str0));
+	CHECK(string(allocator, str0).get_copy().size() == std::strlen(str0));
+	CHECK(string(allocator, str0).get_copy().get_allocator() == &allocator);
+	CHECK(string(allocator, str0).get_copy() == string(allocator, str0));
+	CHECK(string(allocator, str0).get_copy(allocator2).size() == std::strlen(str0));
+	CHECK(string(allocator, str0).get_copy(allocator2).get_allocator() == &allocator2);
+	CHECK(string(allocator, str0).get_copy(allocator2) == string(allocator, str0));
 	CHECK(string(allocator, str0, 4) == string(allocator, str1, 4));
 	CHECK(string(allocator, str0, 4) == "this");
 
