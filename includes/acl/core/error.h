@@ -94,6 +94,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 	#define ACL_ASSERT(expression, format, ...) if (!(expression)) acl::error_impl::on_assert_abort(#expression, __LINE__, __FILE__, (format), ## __VA_ARGS__)
 	#define ACL_HAS_ASSERT_CHECKS
+	#define ACL_NO_EXCEPT noexcept
 
 #elif defined(ACL_ON_ASSERT_THROW)
 
@@ -139,6 +140,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 	#define ACL_ASSERT(expression, format, ...) if (!(expression)) acl::error_impl::on_assert_throw(#expression, __LINE__, __FILE__, (format), ## __VA_ARGS__)
 	#define ACL_HAS_ASSERT_CHECKS
+	#define ACL_NO_EXCEPT
 
 #elif defined(ACL_ON_ASSERT_CUSTOM)
 
@@ -147,10 +149,12 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 	#endif
 
 	#define ACL_HAS_ASSERT_CHECKS
+	#define ACL_NO_EXCEPT
 
 #else
 
 	#define ACL_ASSERT(expression, format, ...) ((void)0)
+	#define ACL_NO_EXCEPT noexcept
 
 #endif
 
