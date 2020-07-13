@@ -39,6 +39,7 @@ TEST_CASE("string", "[core][string]")
 {
 	ansi_allocator allocator;
 
+	CHECK(string().get_allocator() == nullptr);
 	CHECK(string().size() == 0);
 	CHECK(string().c_str() != nullptr);
 	CHECK(string(allocator, "").size() == 0);
@@ -54,6 +55,7 @@ TEST_CASE("string", "[core][string]")
 	CHECK(string(allocator, str0) == string(allocator, str0));
 	CHECK(string(allocator, str0) != string(allocator, str1));
 	CHECK(string(allocator, str0) != string(allocator, str2));
+	CHECK(string(allocator, str0).get_allocator() == &allocator);
 	CHECK(string(allocator, str0).c_str() != str0);
 	CHECK(string(allocator, str0).size() == std::strlen(str0));
 	CHECK(string(allocator, str0, 4) == string(allocator, str1, 4));

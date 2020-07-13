@@ -111,6 +111,10 @@ namespace acl
 		bool operator==(const string& other) const noexcept { return (*this == other.c_str()); }
 		bool operator!=(const string& other) const noexcept { return !(*this == other.c_str()); }
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns a pointer to the allocator instance or nullptr if there is none present.
+		iallocator* get_allocator() const noexcept { return m_allocator; }
+
 		const char* c_str() const noexcept { return m_c_str != nullptr ? m_c_str : ""; }
 		size_t size() const noexcept { return m_c_str != nullptr ? std::strlen(m_c_str) : 0; }
 		bool empty() const noexcept { return m_c_str != nullptr ? (std::strlen(m_c_str) == 0) : true; }
