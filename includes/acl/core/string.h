@@ -75,7 +75,7 @@ namespace acl
 
 		~string()
 		{
-			if (m_allocator != nullptr && m_c_str != nullptr)
+			if (m_c_str != nullptr)
 				deallocate_type_array(*m_allocator, m_c_str, std::strlen(m_c_str) + 1);
 		}
 
@@ -120,7 +120,7 @@ namespace acl
 		// Explicit instead of using the assignment operator or copy constructor
 		string get_copy() const
 		{
-			if (m_allocator == nullptr)
+			if (m_c_str == nullptr)
 				return string();
 
 			return string(*m_allocator, m_c_str, std::strlen(m_c_str));
@@ -131,7 +131,7 @@ namespace acl
 		// Explicit instead of using the assignment operator or copy constructor
 		string get_copy(iallocator& allocator) const
 		{
-			if (m_allocator == nullptr)
+			if (m_c_str == nullptr)
 				return string();
 
 			return string(allocator, m_c_str, std::strlen(m_c_str));
