@@ -58,6 +58,7 @@ namespace acl
 			: m_allocator(nullptr)
 			, m_tracks(nullptr)
 			, m_num_tracks(0)
+			, m_debug_name()
 		{}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -67,6 +68,7 @@ namespace acl
 			: m_allocator(&allocator)
 			, m_tracks(allocate_type_array<track>(allocator, num_tracks))
 			, m_num_tracks(num_tracks)
+			, m_debug_name()
 		{}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -75,6 +77,7 @@ namespace acl
 			: m_allocator(other.m_allocator)
 			, m_tracks(other.m_tracks)
 			, m_num_tracks(other.m_num_tracks)
+			, m_debug_name(std::move(other.m_debug_name))
 		{
 			other.m_allocator = nullptr;	// Make sure we don't free our data since we no longer own it
 		}
@@ -94,6 +97,7 @@ namespace acl
 			std::swap(m_allocator, other.m_allocator);
 			std::swap(m_tracks, other.m_tracks);
 			std::swap(m_num_tracks, other.m_num_tracks);
+			std::swap(m_debug_name, other.m_debug_name);
 			return *this;
 		}
 
@@ -124,6 +128,14 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the duration for tracks in this array.
 		float get_duration() const { return m_allocator != nullptr && m_num_tracks != 0 ? calculate_duration(uint32_t(m_tracks->get_num_samples()), m_tracks->get_sample_rate()) : 0.0F; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the track debug name.
+		const string& get_debug_name() const { return m_debug_name; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Sets the track debug name.
+		void set_debug_name(const string& debug_name) { m_debug_name = debug_name.get_copy(); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track at the specified index.
@@ -189,6 +201,8 @@ namespace acl
 		iallocator*		m_allocator;		// The allocator used to allocate our tracks
 		track*			m_tracks;			// The track list
 		uint32_t		m_num_tracks;		// The number of tracks
+
+		string			m_debug_name;		// An optional debug name
 	};
 
 	//////////////////////////////////////////////////////////////////////////
