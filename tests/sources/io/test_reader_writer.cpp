@@ -154,6 +154,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 		track0[i].translation = rtm::vector_lerp(rtm::vector_zero(), track0[0].translation, 0.1F * float(i));
 		track0[i].scale = rtm::vector_lerp(rtm::vector_zero(), track0[0].scale, 0.1F * float(i));
 	}
+	track0.set_debug_name(acl::string(allocator, "track 0"));
 	track_list[0] = track0.get_ref();
 
 	track_desc_transformf desc1;
@@ -174,6 +175,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 		track1[i].translation = rtm::vector_lerp(rtm::vector_zero(), track1[0].translation, 0.1F * float(i));
 		track1[i].scale = rtm::vector_lerp(rtm::vector_zero(), track1[0].scale, 0.1F * float(i));
 	}
+	track1.set_debug_name(acl::string(allocator, "track 1"));
 	track_list[1] = track1.get_ref();
 
 	track_qvvf track2 = track_qvvf::make_reserve(desc1, allocator, num_samples, 32.0F);
@@ -187,6 +189,8 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 		track2[i].scale = rtm::vector_lerp(rtm::vector_zero(), track2[0].scale, 0.1F * float(i));
 	}
 	track_list[2] = track2.get_ref();
+
+	track_list.set_debug_name(acl::string(allocator, "some track list"));
 
 	compression_settings settings;
 	settings.level = compression_level8::high;
@@ -254,6 +258,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	CHECK(rtm::scalar_near_equal(file_clip.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
 	CHECK(file_clip.track_list.get_track_type() == track_list.get_track_type());
 	CHECK(file_clip.track_list.get_track_category() == track_list.get_track_category());
+	CHECK(file_clip.track_list.get_debug_name() == track_list.get_debug_name());
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
@@ -272,6 +277,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
 		CHECK(file_track.get_type() == ref_track.get_type());
 		CHECK(file_track.get_category() == ref_track.get_category());
+		CHECK(file_track.get_debug_name() == ref_track.get_debug_name());
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{

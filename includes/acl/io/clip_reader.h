@@ -193,6 +193,11 @@ namespace acl
 		sjson::StringView* m_bone_names;
 		uint32_t m_num_bones;
 
+		string convert_string(const sjson::StringView& str) const
+		{
+			return string(m_allocator, str.c_str(), str.size());
+		}
+
 		void reset_state()
 		{
 			m_parser.reset_state();
@@ -223,8 +228,7 @@ namespace acl
 			if (!m_parser.object_begins("clip"))
 				goto error;
 
-			if (!m_parser.read("name", m_clip_name))
-				goto error;
+			m_parser.try_read("name", m_clip_name, "");
 
 			double num_samples;
 			if (!m_parser.read("num_samples", num_samples))
@@ -450,7 +454,9 @@ namespace acl
 			m_bone_names = allocate_type_array<sjson::StringView>(m_allocator, num_bones);
 
 			track_list = track_array_qvvf(m_allocator, num_bones);
+			track_list.set_debug_name(convert_string(m_clip_name));
 			bind_pose = track_qvvf::make_reserve(track_desc_transformf{}, m_allocator, num_bones, 30.0F);	// 1 sample per track
+			bind_pose.set_debug_name(string(m_allocator, "bind pose"));
 
 			const uint16_t num_allocated_bones = num_bones;
 
@@ -601,6 +607,7 @@ namespace acl
 
 					// Create a dummy track for now to hold our arguments
 					(*tracks)[i] = track_qvvf::make_ref(desc, nullptr, 0, 30.0F);
+					(*tracks)[i].set_debug_name(convert_string(name));
 
 					rtm::qvvf bind_transform_ = rtm::qvv_cast(bind_transform);
 					bind_transform_.rotation = rtm::quat_normalize(bind_transform_.rotation);
@@ -767,8 +774,6 @@ namespace acl
 
 				sjson::StringView name;
 				m_parser.try_read("name", name, "");
-
-				// TODO: Store track name somewhere for debugging purposes
 
 				sjson::StringView type;
 				if (!m_parser.read("type", type))
@@ -1058,6 +1063,8 @@ namespace acl
 					}
 				}
 
+				track_.set_debug_name(convert_string(name));
+
 				num_tracks++;
 			}
 
@@ -1079,7 +1086,9 @@ namespace acl
 			m_parser.restore_state(before_tracks);
 
 			track_list = track_array(m_allocator, num_tracks);
+			track_list.set_debug_name(convert_string(m_clip_name));
 			bind_pose = track_qvvf::make_reserve(track_desc_transformf{}, m_allocator, num_tracks, 30.0F);	// 1 sample per track
+			bind_pose.set_debug_name(string(m_allocator, "bind pose"));
 
 			if (!process_track_list(track_list.begin(), &bind_pose, num_tracks))
 				return false;
@@ -1097,6 +1106,7 @@ namespace acl
 			{
 				// Copy our metadata from the actual clip
 				additive_base_track_list = track_array_qvvf(m_allocator, num_transforms);
+				additive_base_track_list.set_debug_name(string(m_allocator, "additive base"));
 				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 					additive_base_track_list[transform_index].get_description() = track_list[transform_index].get_description();
 
@@ -1120,6 +1130,7 @@ namespace acl
 					desc.output_index = bone_index;
 
 					track_qvvf track = track_qvvf::make_reserve(desc, m_allocator, m_additive_base_num_samples, m_additive_base_sample_rate);
+					track.set_debug_name(convert_string(name));
 
 					if (m_parser.try_array_begins("rotations"))
 					{
@@ -1184,6 +1195,7 @@ namespace acl
 				desc.output_index = bone_index;
 
 				track_qvvf track = track_qvvf::make_reserve(desc, m_allocator, m_num_samples, m_sample_rate);
+				track.set_debug_name(convert_string(name));
 
 				if (m_parser.try_array_begins("rotations"))
 				{
