@@ -117,13 +117,14 @@ namespace acl
 		};
 
 		// Promote scalar tracks to vector tracks for SIMD alignment and padding
-		inline track_array copy_and_promote_track_list(iallocator& allocator, const track_array& ref_track_list)
+		inline track_array copy_and_promote_track_list(iallocator& allocator, const track_array& ref_track_list, bool& out_are_samples_valid)
 		{
 			using namespace rtm;
 
 			const uint32_t num_tracks = ref_track_list.get_num_tracks();
 			const uint32_t num_samples = ref_track_list.get_num_samples_per_track();
 			const float sample_rate = ref_track_list.get_sample_rate();
+			bool are_samples_valid = true;
 
 			track_array out_track_list(allocator, num_tracks);
 
@@ -139,7 +140,11 @@ namespace acl
 					const track_float1f& typed_ref_track = track_cast<const track_float1f>(ref_track);
 					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-						track[sample_index] = vector_load1(&typed_ref_track[sample_index]);
+					{
+						const vector4f sample = vector_load1(&typed_ref_track[sample_index]);
+						are_samples_valid &= scalar_is_finite(scalarf(vector_get_x(sample)));
+						track[sample_index] = sample;
+					}
 					out_track = std::move(track);
 					break;
 				}
@@ -148,7 +153,11 @@ namespace acl
 					const track_float2f& typed_ref_track = track_cast<const track_float2f>(ref_track);
 					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-						track[sample_index] = vector_load2(&typed_ref_track[sample_index]);
+					{
+						const vector4f sample = vector_load2(&typed_ref_track[sample_index]);
+						are_samples_valid &= vector_is_finite2(sample);
+						track[sample_index] = sample;
+					}
 					out_track = std::move(track);
 					break;
 				}
@@ -157,7 +166,11 @@ namespace acl
 					const track_float3f& typed_ref_track = track_cast<const track_float3f>(ref_track);
 					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-						track[sample_index] = vector_load3(&typed_ref_track[sample_index]);
+					{
+						const vector4f sample = vector_load3(&typed_ref_track[sample_index]);
+						are_samples_valid &= vector_is_finite3(sample);
+						track[sample_index] = sample;
+					}
 					out_track = std::move(track);
 					break;
 				}
@@ -166,17 +179,35 @@ namespace acl
 					const track_float4f& typed_ref_track = track_cast<const track_float4f>(ref_track);
 					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-						track[sample_index] = vector_load(&typed_ref_track[sample_index]);
+					{
+						const vector4f sample = vector_load(&typed_ref_track[sample_index]);
+						are_samples_valid &= vector_is_finite(sample);
+						track[sample_index] = sample;
+					}
+					out_track = std::move(track);
+					break;
+				}
+				case track_type8::vector4f:
+				{
+					const track_vector4f& typed_ref_track = track_cast<const track_vector4f>(ref_track);
+					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
+					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+					{
+						const vector4f sample = typed_ref_track[sample_index];
+						are_samples_valid &= vector_is_finite(sample);
+						track[sample_index] = sample;
+					}
 					out_track = std::move(track);
 					break;
 				}
 				default:
-					// Copy as is
-					out_track = ref_track.get_copy(allocator);
+					ACL_ASSERT(false, "Unexpected track type");
+					are_samples_valid = false;
 					break;
 				}
 			}
 
+			out_are_samples_valid = are_samples_valid;
 			return out_track_list;
 		}
 
@@ -203,14 +234,16 @@ namespace acl
 			return output_indices;
 		}
 
-		inline void initialize_context(iallocator& allocator, const track_array& track_list, track_list_context& context)
+		inline bool initialize_context(iallocator& allocator, const track_array& track_list, track_list_context& context)
 		{
 			ACL_ASSERT(track_list.is_valid().empty(), "Invalid track list");
 			ACL_ASSERT(!context.is_valid(), "Context already initialized");
 
+			bool are_samples_valid = true;
+
 			context.allocator = &allocator;
 			context.reference_list = &track_list;
-			context.track_list = copy_and_promote_track_list(allocator, track_list);
+			context.track_list = copy_and_promote_track_list(allocator, track_list, are_samples_valid);
 			context.range_list = nullptr;
 			context.constant_tracks_bitset = nullptr;
 			context.track_output_indices = nullptr;
@@ -221,6 +254,8 @@ namespace acl
 			context.duration = track_list.get_duration();
 
 			context.track_output_indices = create_output_track_mapping(allocator, track_list, context.num_output_tracks);
+
+			return are_samples_valid;
 		}
 	}
 }
