@@ -171,7 +171,7 @@ namespace acl
 			}
 		};
 
-		inline void initialize_clip_context(iallocator& allocator, const track_array_qvvf& track_list, additive_clip_format8 additive_format, clip_context& out_clip_context)
+		inline bool initialize_clip_context(iallocator& allocator, const track_array_qvvf& track_list, additive_clip_format8 additive_format, clip_context& out_clip_context)
 		{
 			const uint32_t num_transforms = track_list.get_num_tracks();
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
@@ -199,6 +199,7 @@ namespace acl
 			out_clip_context.num_leaf_transforms = 0;
 
 			bool has_scale = false;
+			bool are_samples_valid = true;
 			const rtm::vector4f default_scale = get_default_scale(additive_format);
 
 			SegmentContext& segment = out_clip_context.segments[0];
@@ -224,17 +225,23 @@ namespace acl
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
 					const rtm::qvvf& transform = track[sample_index];
+					const rtm::quatf rotation = rtm::quat_normalize(transform.rotation);	// Normalize just in case
 
-					bone_stream.rotations.set_raw_sample(sample_index, transform.rotation);
+					are_samples_valid &= rtm::quat_is_finite(rotation);
+					are_samples_valid &= rtm::vector_is_finite3(transform.translation);
+					are_samples_valid &= rtm::vector_is_finite3(transform.scale);
+
+					bone_stream.rotations.set_raw_sample(sample_index, rotation);
 					bone_stream.translations.set_raw_sample(sample_index, transform.translation);
 					bone_stream.scales.set_raw_sample(sample_index, transform.scale);
 				}
 
 				{
 					const rtm::qvvf& first_transform = track[0];
+					const rtm::quatf first_rotation = rtm::quat_normalize(first_transform.rotation);
 
 					bone_stream.is_rotation_constant = num_samples == 1;
-					bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(first_transform.rotation, desc.constant_rotation_threshold_angle);
+					bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(first_rotation, desc.constant_rotation_threshold_angle);
 					bone_stream.is_translation_constant = num_samples == 1;
 					bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(first_transform.translation, rtm::vector_zero(), desc.constant_translation_threshold);
 					bone_stream.is_scale_constant = num_samples == 1;
@@ -341,6 +348,8 @@ namespace acl
 				ACL_ASSERT(leaf_index == num_leaf_transforms, "Invalid number of leaf bone found");
 				deallocate_type_array(allocator, is_leaf_bitset, bone_bitset_desc.get_size());
 			}
+
+			return are_samples_valid;
 		}
 
 		inline void destroy_clip_context(iallocator& allocator, clip_context& context)
