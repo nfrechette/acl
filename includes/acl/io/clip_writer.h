@@ -85,7 +85,7 @@ namespace acl
 
 			writer["track_list"] = [&](sjson::ObjectWriter& header_writer)
 			{
-				header_writer["name"] = track_list.get_debug_name().c_str();
+				header_writer["name"] = track_list.get_name().c_str();
 				header_writer["num_samples"] = track_list.get_num_samples_per_track();
 				header_writer["sample_rate"] = track_list.get_sample_rate();
 				header_writer["is_binary_exact"] = true;
@@ -140,7 +140,7 @@ namespace acl
 				{
 					tracks_writer.push([&](sjson::ObjectWriter& track_writer)
 						{
-							track_writer["name"] = track_.get_debug_name().c_str();
+							track_writer["name"] = track_.get_name().c_str();
 							track_writer["type"] = get_track_type_name(track_.get_type());
 
 							switch (track_.get_type())

@@ -122,12 +122,12 @@ namespace acl
 		float get_sample_rate() const { return m_sample_rate; }
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the track debug name.
-		const string& get_debug_name() const { return m_debug_name; }
+		// Returns the track name.
+		const string& get_name() const { return m_name; }
 
 		//////////////////////////////////////////////////////////////////////////
-		// Sets the track debug name.
-		void set_debug_name(const string& debug_name) { m_debug_name = debug_name.get_copy(); }
+		// Sets the track name.
+		void set_name(const string& name) { m_name = name.get_copy(); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track output index.
@@ -213,7 +213,7 @@ namespace acl
 
 		track_desc_untyped		m_desc;				// The track description
 
-		string					m_debug_name;		// An optional debug name
+		string					m_name;				// An optional name
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -382,7 +382,7 @@ namespace acl
 		, m_category(track_category8::scalarf)
 		, m_sample_size(0)
 		, m_desc()
-		, m_debug_name()
+		, m_name()
 	{}
 
 	inline track::track(track&& other) noexcept
@@ -396,7 +396,7 @@ namespace acl
 		, m_category(other.m_category)
 		, m_sample_size(other.m_sample_size)
 		, m_desc(other.m_desc)
-		, m_debug_name(std::move(other.m_debug_name))
+		, m_name(std::move(other.m_name))
 	{
 		other.m_allocator = nullptr;
 		other.m_data = nullptr;
@@ -423,7 +423,7 @@ namespace acl
 		std::swap(m_category, other.m_category);
 		std::swap(m_sample_size, other.m_sample_size);
 		std::swap(m_desc, other.m_desc);
-		std::swap(m_debug_name, other.m_debug_name);
+		std::swap(m_name, other.m_name);
 		return *this;
 	}
 
@@ -521,7 +521,7 @@ namespace acl
 		, m_category(category)
 		, m_sample_size(0)
 		, m_desc()
-		, m_debug_name()
+		, m_name()
 	{}
 
 	inline track::track(iallocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept
@@ -535,7 +535,7 @@ namespace acl
 		, m_category(category)
 		, m_sample_size(sample_size)
 		, m_desc()
-		, m_debug_name()
+		, m_name()
 	{}
 
 	inline void track::get_copy_impl(iallocator& allocator, track& out_track) const
@@ -550,7 +550,7 @@ namespace acl
 		out_track.m_category = m_category;
 		out_track.m_sample_size = m_sample_size;
 		out_track.m_desc = m_desc;
-		out_track.m_debug_name = m_debug_name.get_copy(allocator);
+		out_track.m_name = m_name.get_copy(allocator);
 
 		std::memcpy(out_track.m_data, m_data, m_data_size);
 	}
@@ -567,7 +567,7 @@ namespace acl
 		out_track.m_category = m_category;
 		out_track.m_sample_size = m_sample_size;
 		out_track.m_desc = m_desc;
-		out_track.m_debug_name = m_debug_name.get_copy();
+		out_track.m_name = m_name.get_copy();
 	}
 
 	template<track_type8 track_type_>

@@ -58,7 +58,7 @@ namespace acl
 			: m_allocator(nullptr)
 			, m_tracks(nullptr)
 			, m_num_tracks(0)
-			, m_debug_name()
+			, m_name()
 		{}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -68,7 +68,7 @@ namespace acl
 			: m_allocator(&allocator)
 			, m_tracks(allocate_type_array<track>(allocator, num_tracks))
 			, m_num_tracks(num_tracks)
-			, m_debug_name()
+			, m_name()
 		{}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -77,7 +77,7 @@ namespace acl
 			: m_allocator(other.m_allocator)
 			, m_tracks(other.m_tracks)
 			, m_num_tracks(other.m_num_tracks)
-			, m_debug_name(std::move(other.m_debug_name))
+			, m_name(std::move(other.m_name))
 		{
 			other.m_allocator = nullptr;	// Make sure we don't free our data since we no longer own it
 		}
@@ -97,7 +97,7 @@ namespace acl
 			std::swap(m_allocator, other.m_allocator);
 			std::swap(m_tracks, other.m_tracks);
 			std::swap(m_num_tracks, other.m_num_tracks);
-			std::swap(m_debug_name, other.m_debug_name);
+			std::swap(m_name, other.m_name);
 			return *this;
 		}
 
@@ -130,12 +130,12 @@ namespace acl
 		float get_duration() const { return m_allocator != nullptr && m_num_tracks != 0 ? calculate_duration(uint32_t(m_tracks->get_num_samples()), m_tracks->get_sample_rate()) : 0.0F; }
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the track debug name.
-		const string& get_debug_name() const { return m_debug_name; }
+		// Returns the track name.
+		const string& get_name() const { return m_name; }
 
 		//////////////////////////////////////////////////////////////////////////
-		// Sets the track debug name.
-		void set_debug_name(const string& debug_name) { m_debug_name = debug_name.get_copy(); }
+		// Sets the track name.
+		void set_name(const string& name) { m_name = name.get_copy(); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track at the specified index.
@@ -202,7 +202,7 @@ namespace acl
 		track*			m_tracks;			// The track list
 		uint32_t		m_num_tracks;		// The number of tracks
 
-		string			m_debug_name;		// An optional debug name
+		string			m_name;				// An optional name
 	};
 
 	//////////////////////////////////////////////////////////////////////////
