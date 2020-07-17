@@ -67,7 +67,7 @@ namespace acl
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip, settings.rotation_format, settings.translation_format, settings.scale_format);
 
 			uint32_t segment_data_offset = segment_data_start_offset;
-			for (uint16_t segment_index = 0; segment_index < clip.num_segments; ++segment_index)
+			for (uint32_t segment_index = 0; segment_index < clip.num_segments; ++segment_index)
 			{
 				const SegmentContext& segment = clip.segments[segment_index];
 				segment_header& header = segment_headers[segment_index];

@@ -71,7 +71,7 @@ namespace acl
 			SegmentContext* segment;
 			BoneStreams* bone_streams;
 			const transform_metadata* metadata;
-			uint16_t num_bones;
+			uint32_t num_bones;
 			const itransform_error_metric* error_metric;
 
 			track_bit_rate_database bit_rate_database;
@@ -108,12 +108,11 @@ namespace acl
 			size_t metric_transform_size;
 
 			BoneBitRate* bit_rate_per_bone;			// 1 per transform
-			uint16_t* parent_transform_indices;		// 1 per transform
-			uint16_t* self_transform_indices;		// 1 per transform
+			uint32_t* parent_transform_indices;		// 1 per transform
+			uint32_t* self_transform_indices;		// 1 per transform
 
-			uint16_t* chain_bone_indices;			// 1 per transform
-			uint16_t num_bones_in_chain;
-			uint16_t padding0;	// unused
+			uint32_t* chain_bone_indices;			// 1 per transform
+			uint32_t num_bones_in_chain;
 			uint32_t padding1;	// unused
 
 			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const clip_context& additive_base_clip_, const compression_settings& settings_)
@@ -160,11 +159,11 @@ namespace acl
 				local_transforms_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones, 64) : nullptr;
 				lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones, 64);
 				bit_rate_per_bone = allocate_type_array<BoneBitRate>(allocator, num_bones);
-				parent_transform_indices = allocate_type_array<uint16_t>(allocator, num_bones);
-				self_transform_indices = allocate_type_array<uint16_t>(allocator, num_bones);
-				chain_bone_indices = allocate_type_array<uint16_t>(allocator, num_bones);
+				parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+				self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+				chain_bone_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 
-				for (uint16_t transform_index = 0; transform_index < num_bones; ++transform_index)
+				for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
 				{
 					const transform_metadata& metadata_ = clip_.metadata[transform_index];
 					parent_transform_indices[transform_index] = metadata_.parent_index;
@@ -309,7 +308,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_rotation_stream(quantization_context& context, uint16_t bone_index, rotation_format8 rotation_format)
+		inline void quantize_fixed_rotation_stream(quantization_context& context, uint32_t bone_index, rotation_format8 rotation_format)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -367,7 +366,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_variable_rotation_stream(quantization_context& context, uint16_t bone_index, uint8_t bit_rate)
+		inline void quantize_variable_rotation_stream(quantization_context& context, uint32_t bone_index, uint8_t bit_rate)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -419,7 +418,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_translation_stream(quantization_context& context, uint16_t bone_index, vector_format8 translation_format)
+		inline void quantize_fixed_translation_stream(quantization_context& context, uint32_t bone_index, vector_format8 translation_format)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -478,7 +477,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_variable_translation_stream(quantization_context& context, uint16_t bone_index, uint8_t bit_rate)
+		inline void quantize_variable_translation_stream(quantization_context& context, uint32_t bone_index, uint8_t bit_rate)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -529,7 +528,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_fixed_scale_stream(quantization_context& context, uint16_t bone_index, vector_format8 scale_format)
+		inline void quantize_fixed_scale_stream(quantization_context& context, uint32_t bone_index, vector_format8 scale_format)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -588,7 +587,7 @@ namespace acl
 			out_quantized_stream = std::move(quantized_stream);
 		}
 
-		inline void quantize_variable_scale_stream(quantization_context& context, uint16_t bone_index, uint8_t bit_rate)
+		inline void quantize_variable_scale_stream(quantization_context& context, uint32_t bone_index, uint8_t bit_rate)
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
@@ -621,20 +620,19 @@ namespace acl
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 			const rtm::scalarf error_threshold = rtm::scalar_set(context.error_threshold);
-			const uint16_t target_bone_index_ = (uint16_t)target_bone_index;
 
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
 			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
-			convert_transforms_args_lossy.dirty_transform_indices = &target_bone_index_;
+			convert_transforms_args_lossy.dirty_transform_indices = &target_bone_index;
 			convert_transforms_args_lossy.num_dirty_transforms = 1;
 			convert_transforms_args_lossy.transforms = context.lossy_local_pose;
 			convert_transforms_args_lossy.num_transforms = num_transforms;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
-			apply_additive_to_base_args_lossy.dirty_transform_indices = &target_bone_index_;
+			apply_additive_to_base_args_lossy.dirty_transform_indices = &target_bone_index;
 			apply_additive_to_base_args_lossy.num_dirty_transforms = 1;
 			apply_additive_to_base_args_lossy.local_transforms = needs_conversion ? (const void*)context.local_transforms_converted : (const void*)context.lossy_local_pose;
 			apply_additive_to_base_args_lossy.base_transforms = nullptr;
@@ -948,7 +946,6 @@ namespace acl
 		{
 			const BoneBitRate bone_bit_rates = context.bit_rate_per_bone[bone_index];
 			const uint32_t num_scale_increments = context.has_scale ? num_increments : 0;
-			const uint16_t bone_index_ = static_cast<uint16_t>(bone_index);
 
 			BoneBitRate best_bit_rates = bone_bit_rates;
 			float best_error = old_error;
@@ -974,7 +971,7 @@ namespace acl
 						}
 
 						context.bit_rate_per_bone[bone_index] = BoneBitRate{ (uint8_t)rotation_bit_rate, (uint8_t)translation_bit_rate, (uint8_t)scale_bit_rate };
-						const float error = calculate_max_error_at_bit_rate_object(context, bone_index_, error_scan_stop_condition::until_error_too_high);
+						const float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_error_too_high);
 
 						if (error < best_error)
 						{
@@ -1048,12 +1045,12 @@ namespace acl
 			return best_error;
 		}
 
-		inline uint32_t calculate_bone_chain_indices(const clip_context& clip, uint32_t bone_index, uint16_t* out_chain_bone_indices)
+		inline uint32_t calculate_bone_chain_indices(const clip_context& clip, uint32_t bone_index, uint32_t* out_chain_bone_indices)
 		{
 			const BoneChain bone_chain = clip.get_bone_chain(bone_index);
 
 			uint32_t num_bones_in_chain = 0;
-			for (uint16_t chain_bone_index : bone_chain)
+			for (uint32_t chain_bone_index : bone_chain)
 				out_chain_bone_indices[num_bones_in_chain++] = chain_bone_index;
 
 			return num_bones_in_chain;
@@ -1098,7 +1095,7 @@ namespace acl
 			const bool is_translation_variable = is_vector_format_variable(context.translation_format);
 			const bool is_scale_variable = is_vector_format_variable(context.scale_format);
 
-			for (uint16_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
+			for (uint32_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
 				const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[bone_index];
 
@@ -1189,7 +1186,7 @@ namespace acl
 				context.error_threshold = error_threshold;
 
 				const uint32_t num_bones_in_chain = calculate_bone_chain_indices(context.clip, bone_index, context.chain_bone_indices);
-				context.num_bones_in_chain = (uint16_t)num_bones_in_chain;
+				context.num_bones_in_chain = num_bones_in_chain;
 
 				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_error_too_high);
 				if (error < error_threshold)
@@ -1310,7 +1307,7 @@ namespace acl
 						float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 						std::swap(context.bit_rate_per_bone, best_bit_rates);
 
-						for (uint16_t i = 0; i < context.num_bones; ++i)
+						for (uint32_t i = 0; i < context.num_bones; ++i)
 						{
 							const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[i];
 							const BoneBitRate& best_bone_bit_rate = best_bit_rates[i];
@@ -1333,7 +1330,7 @@ namespace acl
 					float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 					std::swap(context.bit_rate_per_bone, best_bit_rates);
 
-					for (uint16_t i = 0; i < context.num_bones; ++i)
+					for (uint32_t i = 0; i < context.num_bones; ++i)
 					{
 						const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[i];
 						const BoneBitRate& best_bone_bit_rate = best_bit_rates[i];
@@ -1401,7 +1398,7 @@ namespace acl
 								printf("%u: => %u %u %u (%f)\n", chain_bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error);
 								for (uint32_t i = chain_link_index + 1; i < num_bones_in_chain; ++i)
 								{
-									const uint16_t chain_bone_index2 = context.chain_bone_indices[chain_link_index];
+									const uint32_t chain_bone_index2 = context.chain_bone_indices[chain_link_index];
 									float error2 = calculate_max_error_at_bit_rate_object(context, chain_bone_index2, error_scan_stop_condition::until_end_of_segment);
 									printf("  %u: => (%f)\n", i, error2);
 								}
@@ -1452,7 +1449,7 @@ namespace acl
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
 			printf("Variable quantization optimization results:\n");
-			for (uint16_t i = 0; i < context.num_bones; ++i)
+			for (uint32_t i = 0; i < context.num_bones; ++i)
 			{
 				float error = calculate_max_error_at_bit_rate_object(context, i, error_scan_stop_condition::until_end_of_segment);
 				const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[i];

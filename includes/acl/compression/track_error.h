@@ -250,14 +250,14 @@ namespace acl
 			uint8_t* raw_object_pose = allocate_type_array_aligned<uint8_t>(allocator, num_tracks * transform_size, 64);
 			uint8_t* lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, num_tracks * transform_size, 64);
 
-			uint16_t* parent_transform_indices = allocate_type_array<uint16_t>(allocator, num_tracks);
-			uint16_t* self_transform_indices = allocate_type_array<uint16_t>(allocator, num_tracks);
+			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_tracks);
+			uint32_t* self_transform_indices = allocate_type_array<uint32_t>(allocator, num_tracks);
 
 			for (uint32_t transform_index = 0; transform_index < num_tracks; ++transform_index)
 			{
 				const uint32_t parent_index = args.get_parent_index(transform_index);
-				parent_transform_indices[transform_index] = parent_index == k_invalid_track_index ? k_invalid_bone_index : safe_static_cast<uint16_t>(parent_index);
-				self_transform_indices[transform_index] = safe_static_cast<uint16_t>(transform_index);
+				parent_transform_indices[transform_index] = parent_index;
+				self_transform_indices[transform_index] = transform_index;
 			}
 
 			void* raw_local_pose_ = needs_conversion ? (void*)raw_local_pose_converted : (void*)tracks_writer0.tracks_typed.qvvf;

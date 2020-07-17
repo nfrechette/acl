@@ -316,8 +316,8 @@ namespace acl
 		struct BoneStreams
 		{
 			SegmentContext* segment;
-			uint16_t bone_index;
-			uint16_t parent_bone_index;
+			uint32_t bone_index;
+			uint32_t parent_bone_index;
 			uint32_t output_index;
 
 			RotationTrackStream rotations;

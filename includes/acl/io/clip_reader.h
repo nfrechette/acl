@@ -444,7 +444,7 @@ namespace acl
 		{
 			sjson::ParserState before_bones = m_parser.save_state();
 
-			uint16_t num_bones;
+			uint32_t num_bones;
 			if (!process_each_bone(nullptr, nullptr, num_bones))
 				return false;
 
@@ -458,7 +458,7 @@ namespace acl
 			bind_pose = track_qvvf::make_reserve(track_desc_transformf{}, m_allocator, num_bones, 30.0F);	// 1 sample per track
 			bind_pose.set_name(string(m_allocator, "bind pose"));
 
-			const uint16_t num_allocated_bones = num_bones;
+			const uint32_t num_allocated_bones = num_bones;
 
 			if (!process_each_bone(&track_list, &bind_pose, num_bones))
 				return false;
@@ -522,7 +522,7 @@ namespace acl
 			return result;
 		}
 
-		bool process_each_bone(track_array_qvvf* tracks, track_qvvf* bind_pose, uint16_t& num_bones)
+		bool process_each_bone(track_array_qvvf* tracks, track_qvvf* bind_pose, uint32_t& num_bones)
 		{
 			bool counting = tracks == nullptr;
 			num_bones = 0;
