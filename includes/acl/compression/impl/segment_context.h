@@ -59,8 +59,8 @@ namespace acl
 			BoneStreams* bone_streams;
 			BoneRanges* ranges;
 
-			uint16_t num_samples;
-			uint16_t num_bones;
+			uint32_t num_samples;
+			uint32_t num_bones;
 
 			uint32_t clip_sample_offset;
 			uint32_t segment_index;

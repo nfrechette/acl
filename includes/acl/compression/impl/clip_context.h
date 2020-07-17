@@ -49,7 +49,7 @@ namespace acl
 		class BoneChainIterator
 		{
 		public:
-			BoneChainIterator(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint16_t bone_index, uint16_t offset)
+			BoneChainIterator(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint32_t bone_index, uint32_t offset)
 				: m_bone_chain(bone_chain)
 				, m_bone_chain_desc(bone_chain_desc)
 				, m_bone_index(bone_index)
@@ -71,7 +71,7 @@ namespace acl
 				return *this;
 			}
 
-			uint16_t operator*() const
+			uint32_t operator*() const
 			{
 				ACL_ASSERT(m_offset <= m_bone_index, "Returned bone index doesn't belong to the bone chain");
 				ACL_ASSERT(bitset_test(m_bone_chain, m_bone_chain_desc, m_offset), "Returned bone index doesn't belong to the bone chain");
@@ -86,8 +86,8 @@ namespace acl
 		private:
 			const uint32_t*		m_bone_chain;
 			bitset_description	m_bone_chain_desc;
-			uint16_t			m_bone_index;
-			uint16_t			m_offset;
+			uint32_t			m_bone_index;
+			uint32_t			m_offset;
 		};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -98,14 +98,14 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		struct BoneChain
 		{
-			BoneChain(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint16_t bone_index)
+			BoneChain(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint32_t bone_index)
 				: m_bone_chain(bone_chain)
 				, m_bone_chain_desc(bone_chain_desc)
 				, m_bone_index(bone_index)
 			{
 				// We don't know where this bone chain starts, find the root bone
 				// TODO: Use clz or similar to find the next set bit starting at the current index
-				uint16_t root_index = 0;
+				uint32_t root_index = 0;
 				while (!bitset_test(bone_chain, bone_chain_desc, root_index))
 					root_index++;
 
@@ -117,14 +117,14 @@ namespace acl
 
 			const uint32_t*		m_bone_chain;
 			bitset_description	m_bone_chain_desc;
-			uint16_t			m_root_index;
-			uint16_t			m_bone_index;
+			uint32_t			m_root_index;
+			uint32_t			m_bone_index;
 		};
 
 		struct transform_metadata
 		{
 			const uint32_t* transform_chain;
-			uint16_t parent_index;
+			uint32_t parent_index;
 			float precision;
 			float shell_distance;
 		};
@@ -136,9 +136,8 @@ namespace acl
 			transform_metadata* metadata;
 			uint32_t* leaf_transform_chains;
 
-			uint16_t num_segments;
-			uint16_t num_bones;
-			uint16_t num_output_bones;
+			uint32_t num_segments;
+			uint32_t num_bones;
 			uint32_t num_samples;
 			float sample_rate;
 
@@ -167,7 +166,7 @@ namespace acl
 			{
 				ACL_ASSERT(bone_index < num_bones, "Invalid bone index: %u >= %u", bone_index, num_bones);
 				const transform_metadata& meta = metadata[bone_index];
-				return BoneChain(meta.transform_chain, bitset_description::make_from_num_bits(num_bones), (uint16_t)bone_index);
+				return BoneChain(meta.transform_chain, bitset_description::make_from_num_bits(num_bones), bone_index);
 			}
 		};
 
@@ -186,8 +185,7 @@ namespace acl
 			out_clip_context.metadata = allocate_type_array<transform_metadata>(allocator, num_transforms);
 			out_clip_context.leaf_transform_chains = nullptr;
 			out_clip_context.num_segments = 1;
-			out_clip_context.num_bones = safe_static_cast<uint16_t>(num_transforms);
-			out_clip_context.num_output_bones = safe_static_cast<uint16_t>(num_transforms);
+			out_clip_context.num_bones = num_transforms;
 			out_clip_context.num_samples = num_samples;
 			out_clip_context.sample_rate = sample_rate;
 			out_clip_context.duration = track_list.get_duration();
@@ -214,8 +212,8 @@ namespace acl
 				BoneStreams& bone_stream = bone_streams[transform_index];
 
 				bone_stream.segment = &segment;
-				bone_stream.bone_index = safe_static_cast<uint16_t>(transform_index);
-				bone_stream.parent_bone_index = desc.parent_index == k_invalid_track_index ? k_invalid_bone_index : safe_static_cast<uint16_t>(desc.parent_index);
+				bone_stream.bone_index = transform_index;
+				bone_stream.parent_bone_index = desc.parent_index;
 				bone_stream.output_index = desc.output_index;
 
 				bone_stream.rotations = RotationTrackStream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, rotation_format8::quatf_full);
@@ -250,12 +248,9 @@ namespace acl
 
 				has_scale |= !bone_stream.is_scale_default;
 
-				if (bone_stream.is_stripped_from_output())
-					out_clip_context.num_output_bones--;
-
 				transform_metadata& metadata = out_clip_context.metadata[transform_index];
 				metadata.transform_chain = nullptr;
-				metadata.parent_index = desc.parent_index == k_invalid_track_index ? k_invalid_bone_index : safe_static_cast<uint16_t>(desc.parent_index);
+				metadata.parent_index = desc.parent_index;
 				metadata.precision = desc.precision;
 				metadata.shell_distance = desc.shell_distance;
 			}
@@ -267,8 +262,8 @@ namespace acl
 			segment.bone_streams = bone_streams;
 			segment.clip = &out_clip_context;
 			segment.ranges = nullptr;
-			segment.num_samples = safe_static_cast<uint16_t>(num_samples);
-			segment.num_bones = safe_static_cast<uint16_t>(num_transforms);
+			segment.num_samples = num_samples;
+			segment.num_bones = num_transforms;
 			segment.clip_sample_offset = 0;
 			segment.segment_index = 0;
 			segment.distribution = SampleDistribution8::Uniform;
@@ -300,7 +295,7 @@ namespace acl
 				{
 					const transform_metadata& metadata = out_clip_context.metadata[transform_index];
 
-					const bool is_root = metadata.parent_index == k_invalid_bone_index;
+					const bool is_root = metadata.parent_index == k_invalid_track_index;
 
 					// If we have a parent, mark it as not being a leaf bone (it has at least one child)
 					if (!is_root)
@@ -327,8 +322,8 @@ namespace acl
 					uint32_t* bone_chain = leaf_transform_chains + (leaf_index * bone_bitset_desc.get_size());
 					bitset_reset(bone_chain, bone_bitset_desc, false);
 
-					uint16_t chain_bone_index = safe_static_cast<uint16_t>(transform_index);
-					while (chain_bone_index != k_invalid_bone_index)
+					uint32_t chain_bone_index = transform_index;
+					while (chain_bone_index != k_invalid_track_index)
 					{
 						bitset_set(bone_chain, bone_bitset_desc, chain_bone_index, true);
 

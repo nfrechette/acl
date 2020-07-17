@@ -99,7 +99,7 @@ namespace acl
 
 		inline void write_exhaustive_segment_stats(iallocator& allocator, const SegmentContext& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array_qvvf& track_list, sjson::ObjectWriter& writer)
 		{
-			const uint16_t num_bones = raw_clip_context.num_bones;
+			const uint32_t num_bones = raw_clip_context.num_bones;
 			const bool has_scale = segment_context_has_scale(segment);
 
 			ACL_ASSERT(!settings.error_metric->needs_conversion(has_scale), "Error metric conversion not supported");
@@ -115,15 +115,15 @@ namespace acl
 			rtm::qvvf* raw_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 			rtm::qvvf* lossy_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 
-			uint16_t* parent_transform_indices = allocate_type_array<uint16_t>(allocator, num_bones);
-			uint16_t* self_transform_indices = allocate_type_array<uint16_t>(allocator, num_bones);
+			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+			uint32_t* self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 
-			for (uint16_t transform_index = 0; transform_index < num_bones; ++transform_index)
+			for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
 			{
 				const track_qvvf& track = track_list[transform_index];
 				const track_desc_transformf& desc = track.get_description();
 
-				parent_transform_indices[transform_index] = desc.parent_index == k_invalid_track_index ? k_invalid_bone_index : safe_static_cast<uint16_t>(desc.parent_index);
+				parent_transform_indices[transform_index] = desc.parent_index;
 				self_transform_indices[transform_index] = transform_index;
 			}
 
@@ -177,7 +177,7 @@ namespace acl
 					frames_writer.push_newline();
 					frames_writer.push([&](sjson::ArrayWriter& frame_writer)
 						{
-							for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+							for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 							{
 								const track_qvvf& track = track_list[bone_index];
 								const track_desc_transformf& desc = track.get_description();

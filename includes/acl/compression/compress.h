@@ -350,7 +350,7 @@ namespace acl
 			transform_tracks_header* transforms_header = safe_ptr_cast<transform_tracks_header>(buffer);
 			buffer += sizeof(transform_tracks_header);
 
-			transforms_header->num_segments = lossy_clip_context.num_segments;
+			transforms_header->num_segments = uint16_t(lossy_clip_context.num_segments);
 			transforms_header->rotation_format = settings.rotation_format;
 			transforms_header->translation_format = settings.translation_format;
 			transforms_header->scale_format = settings.scale_format;

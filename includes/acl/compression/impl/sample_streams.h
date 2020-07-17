@@ -885,7 +885,7 @@ namespace acl
 			return scale;
 		}
 
-		inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, rtm::qvvf* out_local_pose)
+		inline void sample_streams(const BoneStreams* bone_streams, uint32_t num_bones, float sample_time, rtm::qvvf* out_local_pose)
 		{
 			const SegmentContext* segment_context = bone_streams->segment;
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
@@ -904,7 +904,7 @@ namespace acl
 
 			if (segment_context->distribution == SampleDistribution8::Uniform)
 			{
-				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+				for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 				{
 					context.track_index = bone_index;
 
@@ -919,7 +919,7 @@ namespace acl
 			}
 			else
 			{
-				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+				for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 				{
 					context.track_index = bone_index;
 
@@ -934,7 +934,7 @@ namespace acl
 			}
 		}
 
-		inline void sample_stream(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, rtm::qvvf* out_local_pose)
+		inline void sample_stream(const BoneStreams* bone_streams, uint32_t num_bones, float sample_time, uint32_t bone_index, rtm::qvvf* out_local_pose)
 		{
 			(void)num_bones;
 
@@ -975,7 +975,7 @@ namespace acl
 			out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
 		}
 
-		inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, rtm::qvvf* out_local_pose)
+		inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint32_t num_bones, float sample_time, uint32_t bone_index, rtm::qvvf* out_local_pose)
 		{
 			(void)num_bones;
 
@@ -996,8 +996,8 @@ namespace acl
 
 			if (segment_context->distribution == SampleDistribution8::Uniform)
 			{
-				uint16_t current_bone_index = bone_index;
-				while (current_bone_index != k_invalid_bone_index)
+				uint32_t current_bone_index = bone_index;
+				while (current_bone_index != k_invalid_track_index)
 				{
 					context.track_index = current_bone_index;
 
@@ -1013,8 +1013,8 @@ namespace acl
 			}
 			else
 			{
-				uint16_t current_bone_index = bone_index;
-				while (current_bone_index != k_invalid_bone_index)
+				uint32_t current_bone_index = bone_index;
+				while (current_bone_index != k_invalid_track_index)
 				{
 					context.track_index = current_bone_index;
 
@@ -1030,7 +1030,7 @@ namespace acl
 			}
 		}
 
-		inline void sample_streams(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
+		inline void sample_streams(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_bones, float sample_time, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -1053,7 +1053,7 @@ namespace acl
 
 			if (segment_context->distribution == SampleDistribution8::Uniform)
 			{
-				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+				for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 				{
 					context.track_index = bone_index;
 					context.bit_rates = bit_rates[bone_index];
@@ -1070,7 +1070,7 @@ namespace acl
 			}
 			else
 			{
-				for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+				for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 				{
 					context.track_index = bone_index;
 					context.bit_rates = bit_rates[bone_index];
@@ -1087,7 +1087,7 @@ namespace acl
 			}
 		}
 
-		inline void sample_stream(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
+		inline void sample_stream(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_bones, float sample_time, uint32_t bone_index, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
 		{
 			(void)num_bones;
 
@@ -1134,7 +1134,7 @@ namespace acl
 			out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
 		}
 
-		inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
+		inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_bones, float sample_time, uint32_t bone_index, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
 		{
 			(void)num_bones;
 
@@ -1159,8 +1159,8 @@ namespace acl
 
 			if (segment_context->distribution == SampleDistribution8::Uniform)
 			{
-				uint16_t current_bone_index = bone_index;
-				while (current_bone_index != k_invalid_bone_index)
+				uint32_t current_bone_index = bone_index;
+				while (current_bone_index != k_invalid_track_index)
 				{
 					context.track_index = current_bone_index;
 					context.bit_rates = bit_rates[current_bone_index];
@@ -1178,8 +1178,8 @@ namespace acl
 			}
 			else
 			{
-				uint16_t current_bone_index = bone_index;
-				while (current_bone_index != k_invalid_bone_index)
+				uint32_t current_bone_index = bone_index;
+				while (current_bone_index != k_invalid_track_index)
 				{
 					context.track_index = current_bone_index;
 					context.bit_rates = bit_rates[current_bone_index];
@@ -1197,9 +1197,9 @@ namespace acl
 			}
 		}
 
-		inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, uint32_t sample_index, rtm::qvvf* out_local_pose)
+		inline void sample_streams(const BoneStreams* bone_streams, uint32_t num_bones, uint32_t sample_index, rtm::qvvf* out_local_pose)
 		{
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				const BoneStreams& bone_stream = bone_streams[bone_index];
 

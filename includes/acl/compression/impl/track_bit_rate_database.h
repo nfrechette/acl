@@ -257,7 +257,7 @@ namespace acl
 			m_bit_rates = bit_rates;
 
 			uint32_t current_track_index = track_index;
-			while (current_track_index != k_invalid_bone_index)
+			while (current_track_index != k_invalid_track_index)
 			{
 				const BoneBitRate& current_bit_rates = bit_rates[current_track_index];
 				transform_indices& indices = m_indices[current_track_index];
@@ -1032,7 +1032,7 @@ namespace acl
 			if (segment_context->distribution == SampleDistribution8::Uniform)
 			{
 				uint32_t current_track_index = query.m_track_index;
-				while (current_track_index != k_invalid_bone_index)
+				while (current_track_index != k_invalid_track_index)
 				{
 					const BoneStreams& bone_stream = m_mutable_bone_streams[current_track_index];
 					const hierarchical_track_query::transform_indices& indices = query.m_indices[current_track_index];
@@ -1051,7 +1051,7 @@ namespace acl
 			else
 			{
 				uint32_t current_track_index = query.m_track_index;
-				while (current_track_index != k_invalid_bone_index)
+				while (current_track_index != k_invalid_track_index)
 				{
 					const BoneStreams& bone_stream = m_mutable_bone_streams[current_track_index];
 					const hierarchical_track_query::transform_indices& indices = query.m_indices[current_track_index];

@@ -90,7 +90,7 @@ namespace acl
 
 			SegmentContext* clip_segment = clip.segments;
 			clip.segments = allocate_type_array<SegmentContext>(allocator, num_segments);
-			clip.num_segments = safe_static_cast<uint16_t>(num_segments);
+			clip.num_segments = num_segments;
 
 			uint32_t clip_sample_index = 0;
 			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
@@ -102,7 +102,7 @@ namespace acl
 				segment.bone_streams = allocate_type_array<BoneStreams>(allocator, clip.num_bones);
 				segment.ranges = nullptr;
 				segment.num_bones = clip.num_bones;
-				segment.num_samples = safe_static_cast<uint16_t>(num_samples_in_segment);
+				segment.num_samples = num_samples_in_segment;
 				segment.clip_sample_offset = clip_sample_index;
 				segment.segment_index = segment_index;
 				segment.distribution = SampleDistribution8::Uniform;
@@ -114,7 +114,7 @@ namespace acl
 				segment.range_data_size = 0;
 				segment.total_header_size = 0;
 
-				for (uint16_t bone_index = 0; bone_index < clip.num_bones; ++bone_index)
+				for (uint32_t bone_index = 0; bone_index < clip.num_bones; ++bone_index)
 				{
 					const BoneStreams& clip_bone_stream = clip_segment->bone_streams[bone_index];
 					BoneStreams& segment_bone_stream = segment.bone_streams[bone_index];

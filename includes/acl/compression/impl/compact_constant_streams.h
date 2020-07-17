@@ -83,12 +83,12 @@ namespace acl
 			ACL_ASSERT(context.num_segments == 1, "clip_context must contain a single segment!");
 			SegmentContext& segment = context.segments[0];
 
-			const uint16_t num_bones = context.num_bones;
+			const uint32_t num_bones = context.num_bones;
 			const rtm::vector4f default_scale = get_default_scale(context.additive_format);
-			uint16_t num_default_bone_scales = 0;
+			uint32_t num_default_bone_scales = 0;
 
 			// When a stream is constant, we only keep the first sample
-			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				const track_desc_transformf& desc = track_list[bone_index].get_description();
 
