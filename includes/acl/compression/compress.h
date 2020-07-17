@@ -239,6 +239,9 @@ namespace acl
 
 			segment_streams(allocator, lossy_clip_context, settings.segmenting);
 
+			if (lossy_clip_context.num_segments > uint32_t(std::numeric_limits<uint16_t>::max()))
+				return error_result("Too many segments");
+
 			// If we have a single segment, skip segment range reduction since it won't help
 			if (range_reduction != range_reduction_flags8::none && lossy_clip_context.num_segments > 1)
 			{
