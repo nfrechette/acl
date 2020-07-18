@@ -43,13 +43,13 @@ namespace acl
 		template<>
 		struct persistent_decompression_context_selector<true, false>
 		{
-			using type = persistent_scalar_decompression_context;
+			using type = persistent_scalar_decompression_context_v0;
 		};
 
 		template<>
 		struct persistent_decompression_context_selector<false, true>
 		{
-			using type = persistent_transform_decompression_context;
+			using type = persistent_transform_decompression_context_v0;
 		};
 
 		template<>

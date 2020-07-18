@@ -24,15 +24,17 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/compressed_tracks.h"
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error.h"
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/track_traits.h"
 #include "acl/core/track_types.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/impl/decompression_context_selector.h"
+#include "acl/decompression/impl/decompression_version_selector.h"
 #include "acl/decompression/impl/scalar_track_decompression.h"
 #include "acl/decompression/impl/transform_track_decompression.h"
 #include "acl/decompression/impl/universal_track_decompression.h"
@@ -83,6 +85,16 @@ namespace acl
 		// We assume that floating point exceptions are already disabled by the caller.
 		// Must be static constexpr!
 		static constexpr bool disable_fp_exeptions() { return false; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Which version we should optimize for.
+		// If 'any' is specified, the decompression context will support every single version
+		// with full backwards compatibility.
+		// Using a specific version allows the compiler to statically strip code for all other
+		// versions. This allows the creation of context objects specialized for specific
+		// versions which yields optimal performance.
+		// Must be static constexpr!
+		static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::any; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Transform decompression settings
@@ -192,7 +204,8 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Initializes the context instance to a particular compressed tracks instance.
-		void initialize(const compressed_tracks& tracks);
+		// Returns whether initialization was successful or not.
+		bool initialize(const compressed_tracks& tracks);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to a compressed tracks instance, false otherwise.
@@ -224,22 +237,25 @@ namespace acl
 		decompression_context& operator=(const decompression_context& other) = delete;
 
 		// Whether the decompression context should support scalar tracks
-		static constexpr bool k_supports_scalar_tracks = decompression_settings_type::is_track_type_supported(track_type8::float1f)
-			|| decompression_settings_type::is_track_type_supported(track_type8::float2f)
-			|| decompression_settings_type::is_track_type_supported(track_type8::float3f)
-			|| decompression_settings_type::is_track_type_supported(track_type8::float4f)
-			|| decompression_settings_type::is_track_type_supported(track_type8::vector4f);
+		static constexpr bool k_supports_scalar_tracks = settings_type::is_track_type_supported(track_type8::float1f)
+			|| settings_type::is_track_type_supported(track_type8::float2f)
+			|| settings_type::is_track_type_supported(track_type8::float3f)
+			|| settings_type::is_track_type_supported(track_type8::float4f)
+			|| settings_type::is_track_type_supported(track_type8::vector4f);
 
 		// Whether the decompression context should support transform tracks
-		static constexpr bool k_supports_transform_tracks = decompression_settings_type::is_track_type_supported(track_type8::qvvf);
+		static constexpr bool k_supports_transform_tracks = settings_type::is_track_type_supported(track_type8::qvvf);
 
 		// The type of our persistent context based on what track types we support
 		using context_type = typename acl_impl::persistent_decompression_context_selector<k_supports_scalar_tracks, k_supports_transform_tracks>::type;
 
+		// The type of our algorithm implementation based on the supported version
+		using algorithm_version_type = acl_impl::decompression_version_selector<settings_type::version_supported()>;
+
 		// Internal context data
 		context_type m_context;
 
-		static_assert(std::is_base_of<decompression_settings, decompression_settings_type>::value, "decompression_settings_type must derive from decompression_settings!");
+		static_assert(std::is_base_of<decompression_settings, settings_type>::value, "decompression_settings_type must derive from decompression_settings!");
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -261,35 +277,38 @@ namespace acl
 	}
 
 	template<class decompression_settings_type>
-	inline void decompression_context<decompression_settings_type>::initialize(const compressed_tracks& tracks)
+	inline bool decompression_context<decompression_settings_type>::initialize(const compressed_tracks& tracks)
 	{
-		acl_impl::initialize<decompression_settings_type>(m_context, tracks);
+		if (!algorithm_version_type::is_version_supported(tracks.get_version()))
+			return false;
+
+		return algorithm_version_type::template initialize<decompression_settings_type>(m_context, tracks);
 	}
 
 	template<class decompression_settings_type>
 	inline bool decompression_context<decompression_settings_type>::is_dirty(const compressed_tracks& tracks) const
 	{
-		return acl_impl::is_dirty(m_context, tracks);
+		return algorithm_version_type::template is_dirty<decompression_settings_type>(m_context, tracks);
 	}
 
 	template<class decompression_settings_type>
 	inline void decompression_context<decompression_settings_type>::seek(float sample_time, sample_rounding_policy rounding_policy)
 	{
-		acl_impl::seek<decompression_settings_type>(m_context, sample_time, rounding_policy);
+		algorithm_version_type::template seek<decompression_settings_type>(m_context, sample_time, rounding_policy);
 	}
 
 	template<class decompression_settings_type>
 	template<class track_writer_type>
 	inline void decompression_context<decompression_settings_type>::decompress_tracks(track_writer_type& writer)
 	{
-		acl_impl::decompress_tracks<decompression_settings_type>(m_context, writer);
+		algorithm_version_type::template decompress_tracks<decompression_settings_type>(m_context, writer);
 	}
 
 	template<class decompression_settings_type>
 	template<class track_writer_type>
 	inline void decompression_context<decompression_settings_type>::decompress_track(uint32_t track_index, track_writer_type& writer)
 	{
-		acl_impl::decompress_track<decompression_settings_type>(m_context, track_index, writer);
+		algorithm_version_type::template decompress_track<decompression_settings_type>(m_context, track_index, writer);
 	}
 }
 

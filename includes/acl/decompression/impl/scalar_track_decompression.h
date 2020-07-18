@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/compressed_tracks.h"
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/track_writer.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -43,7 +44,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		struct alignas(64) persistent_scalar_decompression_context
+		struct alignas(64) persistent_scalar_decompression_context_v0
 		{
 			// Clip related data							//   offsets
 			// Only member used to detect if we are initialized, must be first
@@ -64,16 +65,19 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 
 			inline const compressed_tracks* get_compressed_tracks() const { return tracks; }
+			inline compressed_tracks_version16 get_version() const { return tracks->get_version(); }
 			inline bool is_initialized() const { return tracks != nullptr; }
 			inline void reset() { tracks = nullptr; }
 		};
 
-		static_assert(sizeof(persistent_scalar_decompression_context) == 64, "Unexpected size");
+		static_assert(sizeof(persistent_scalar_decompression_context_v0) == 64, "Unexpected size");
 
 		template<class decompression_settings_type>
-		inline void initialize(persistent_scalar_decompression_context& context, const compressed_tracks& tracks)
+		inline bool initialize_v0(persistent_scalar_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
-			ACL_ASSERT(tracks.is_valid(false).empty(), "Compressed tracks are not valid");
+			if (tracks.is_valid(false).any())
+				return false;	// Invalid compressed tracks instance
+
 			ACL_ASSERT(tracks.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
 
 			context.tracks = &tracks;
@@ -81,9 +85,11 @@ namespace acl
 			context.duration = tracks.get_duration();
 			context.sample_time = -1.0F;
 			context.interpolation_alpha = 0.0;
+
+			return true;
 		}
 
-		inline bool is_dirty(const persistent_scalar_decompression_context& context, const compressed_tracks& tracks)
+		inline bool is_dirty_v0(const persistent_scalar_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
 			if (context.tracks != &tracks)
 				return true;
@@ -95,10 +101,13 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void seek(persistent_scalar_decompression_context& context, float sample_time, sample_rounding_policy rounding_policy)
+		inline void seek_v0(persistent_scalar_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy)
 		{
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 			ACL_ASSERT(rtm::scalar_is_finite(sample_time), "Invalid sample time");
+
+			if (!context.is_initialized())
+				return;	// Context is not initialized
 
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			if (decompression_settings_type::clamp_sample_time())
@@ -122,10 +131,17 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_tracks(persistent_scalar_decompression_context& context, track_writer_type& writer)
+		inline void decompress_tracks_v0(persistent_scalar_decompression_context_v0& context, track_writer_type& writer)
 		{
 			static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
+			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
+
+			if (!context.is_initialized())
+				return;	// Context is not initialized
+
+			if (context.sample_time < 0.0F)
+				return;	// Invalid sample time, we didn't seek yet
 
 			// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
 			// Disable floating point exceptions to avoid issues.
@@ -351,10 +367,23 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_track(persistent_scalar_decompression_context& context, uint32_t track_index, track_writer_type& writer)
+		inline void decompress_track_v0(persistent_scalar_decompression_context_v0& context, uint32_t track_index, track_writer_type& writer)
 		{
 			static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
+			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
+
+			if (!context.is_initialized())
+				return;	// Context is not initialized
+
+			if (context.sample_time < 0.0F)
+				return;	// Invalid sample time, we didn't seek yet
+
+			const tracks_header& header = get_tracks_header(*context.tracks);
+			ACL_ASSERT(track_index < header.num_tracks, "Invalid track index");
+
+			if (track_index >= header.num_tracks)
+				return;	// Invalid track index
 
 			// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
 			// Disable floating point exceptions to avoid issues.
@@ -362,11 +391,8 @@ namespace acl
 			if (decompression_settings_type::disable_fp_exeptions())
 				disable_fp_exceptions(fp_env);
 
-			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*context.tracks);
-			const acl_impl::scalar_tracks_header& scalars_header = acl_impl::get_scalar_tracks_header(*context.tracks);
+			const scalar_tracks_header& scalars_header = get_scalar_tracks_header(*context.tracks);
 			const rtm::scalarf interpolation_alpha = rtm::scalar_set(context.interpolation_alpha);
-
-			ACL_ASSERT(track_index < header.num_tracks, "Invalid track index");
 
 			const float* constant_values = scalars_header.get_track_constant_values();
 			const float* range_values = scalars_header.get_track_range_values();

@@ -25,8 +25,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/algorithm_types.h"
-#include "acl/core/algorithm_versions.h"
 #include "acl/core/buffer_tag.h"
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/utils.h"
@@ -74,6 +74,10 @@ namespace acl
 		buffer_tag32 get_tag() const { return static_cast<buffer_tag32>(m_tracks_header.tag); }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the binary format version.
+		compressed_tracks_version16 get_version() const { return m_tracks_header.version; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of tracks contained.
 		uint32_t get_num_tracks() const { return m_tracks_header.num_tracks; }
 
@@ -110,7 +114,7 @@ namespace acl
 			if (!is_valid_algorithm_type(m_tracks_header.algorithm_type))
 				return error_result("Invalid algorithm type");
 
-			if (m_tracks_header.version != get_algorithm_version(m_tracks_header.algorithm_type))
+			if (m_tracks_header.version < compressed_tracks_version16::first || m_tracks_header.version > compressed_tracks_version16::latest)
 				return error_result("Invalid algorithm version");
 
 			if (check_hash)

@@ -26,6 +26,7 @@
 
 #if defined(SJSON_CPP_WRITER)
 
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/core/utils.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -97,8 +98,13 @@ namespace acl
 			}
 
 			// Initialize and clear our contexts
+			bool init_success = true;
 			for (uint32_t clip_index = 0; clip_index < k_num_decompression_evaluations; ++clip_index)
-				contexts[clip_index]->initialize(*compressed_clips[clip_index]);
+				init_success |= contexts[clip_index]->initialize(*compressed_clips[clip_index]);
+
+			ACL_ASSERT(init_success, "Failed to initialize decompression context");
+			if (!init_success)
+				return;
 
 			writer[action_type] = [&](sjson::ObjectWriter& action_writer)
 			{
@@ -294,6 +300,11 @@ namespace acl
 			deallocate_type(allocator, cache_flusher);
 		}
 
+		struct default_transform_decompression_settings_latest final : public default_transform_decompression_settings
+		{
+			static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::latest; }
+		};
+
 		inline void write_decompression_performance_stats(iallocator& allocator, const compression_settings& settings, const compressed_tracks& compressed_clip, stat_logging logging, sjson::ObjectWriter& writer)
 		{
 			(void)settings;
@@ -320,9 +331,9 @@ namespace acl
 				compressed_clips[clip_index] = reinterpret_cast<compressed_tracks*>(clip);
 			}
 
-			decompression_context<default_transform_decompression_settings>* contexts[k_num_decompression_evaluations];
+			decompression_context<default_transform_decompression_settings_latest>* contexts[k_num_decompression_evaluations];
 			for (uint32_t clip_index = 0; clip_index < k_num_decompression_evaluations; ++clip_index)
-				contexts[clip_index] = make_decompression_context<default_transform_decompression_settings>(allocator);
+				contexts[clip_index] = make_decompression_context<default_transform_decompression_settings_latest>(allocator);
 
 			write_decompression_performance_stats(allocator, compressed_clips, contexts, logging, writer);
 

@@ -26,6 +26,7 @@
 
 #include "acl/core/bitset.h"
 #include "acl/core/compressed_tracks.h"
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_writer.h"
@@ -45,7 +46,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		struct alignas(64) persistent_transform_decompression_context
+		struct alignas(64) persistent_transform_decompression_context_v0
 		{
 			// Clip related data							//   offsets
 			// Only member used to detect if we are initialized, must be first
@@ -85,13 +86,14 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 
 			inline const compressed_tracks* get_compressed_tracks() const { return tracks; }
+			inline compressed_tracks_version16 get_version() const { return tracks->get_version(); }
 			inline bool is_initialized() const { return tracks != nullptr; }
 			inline void reset() { tracks = nullptr; }
 		};
 
-		static_assert(sizeof(persistent_transform_decompression_context) == 128, "Unexpected size");
+		static_assert(sizeof(persistent_transform_decompression_context_v0) == 128, "Unexpected size");
 
-		struct alignas(64) sampling_context
+		struct alignas(64) sampling_context_v0
 		{
 			//														//   offsets
 			uint32_t track_index;									//   0 |   0
@@ -110,7 +112,7 @@ namespace acl
 			//											Total size:	    64 |  64
 		};
 
-		static_assert(sizeof(sampling_context) == 64, "Unexpected size");
+		static_assert(sizeof(sampling_context_v0) == 64, "Unexpected size");
 
 		// We use adapters to wrap the decompression_settings
 		// This allows us to re-use the code for skipping and decompressing Vector3 samples
@@ -134,7 +136,7 @@ namespace acl
 		};
 
 		template<class decompression_settings_type>
-		inline void skip_over_rotation(const persistent_transform_decompression_context& decomp_context, const transform_tracks_header& header, sampling_context& sampling_context_)
+		inline void skip_over_rotation(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, sampling_context_v0& sampling_context_)
 		{
 			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
 			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
@@ -185,7 +187,7 @@ namespace acl
 		}
 
 		template <class decompression_settings_type>
-		inline rtm::quatf RTM_SIMD_CALL decompress_and_interpolate_rotation(const persistent_transform_decompression_context& decomp_context, const transform_tracks_header& header, sampling_context& sampling_context_)
+		inline rtm::quatf RTM_SIMD_CALL decompress_and_interpolate_rotation(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, sampling_context_v0& sampling_context_)
 		{
 			rtm::quatf interpolated_rotation;
 
@@ -392,7 +394,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void skip_over_vector(const persistent_transform_decompression_context& decomp_context, const transform_tracks_header& header, sampling_context& sampling_context_)
+		inline void skip_over_vector(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, sampling_context_v0& sampling_context_)
 		{
 			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
 			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
@@ -442,7 +444,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_adapter_type>
-		inline rtm::vector4f RTM_SIMD_CALL decompress_and_interpolate_vector(const persistent_transform_decompression_context& decomp_context, const transform_tracks_header& header, rtm::vector4f_arg0 default_value, sampling_context& sampling_context_)
+		inline rtm::vector4f RTM_SIMD_CALL decompress_and_interpolate_vector(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, rtm::vector4f_arg0 default_value, sampling_context_v0& sampling_context_)
 		{
 			rtm::vector4f interpolated_vector;
 
@@ -575,9 +577,11 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void initialize(persistent_transform_decompression_context& context, const compressed_tracks& tracks)
+		inline bool initialize_v0(persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
-			ACL_ASSERT(tracks.is_valid(false).empty(), "Compressed tracks are not valid");
+			if (tracks.is_valid(false).any())
+				return false;	// Invalid compressed tracks instance
+
 			ACL_ASSERT(tracks.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
 
 			const tracks_header& header = get_tracks_header(tracks);
@@ -624,9 +628,11 @@ namespace acl
 
 			context.range_reduction = range_reduction;
 			context.num_rotation_components = rotation_format == rotation_format8::quatf_full ? 4 : 3;
+
+			return true;
 		}
 
-		inline bool is_dirty(const persistent_transform_decompression_context& context, const compressed_tracks& tracks)
+		inline bool is_dirty_v0(const persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
 			if (context.tracks != &tracks)
 				return true;
@@ -638,10 +644,13 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void seek(persistent_transform_decompression_context& context, float sample_time, sample_rounding_policy rounding_policy)
+		inline void seek_v0(persistent_transform_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy)
 		{
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 			ACL_ASSERT(rtm::scalar_is_finite(sample_time), "Invalid sample time");
+
+			if (!context.is_initialized())
+				return;	// Context is not initialized
 
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			if (decompression_settings_type::clamp_sample_time())
@@ -727,11 +736,17 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_tracks(persistent_transform_decompression_context& context, track_writer_type& writer)
+		inline void decompress_tracks_v0(persistent_transform_decompression_context_v0& context, track_writer_type& writer)
 		{
 			static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
+
+			if (!context.is_initialized())
+				return;	// Context is not initialized
+
+			if (context.sample_time < 0.0F)
+				return;	// Invalid sample time, we didn't seek yet
 
 			// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
 			// Disable floating point exceptions to avoid issues.
@@ -749,7 +764,7 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(transform_header.default_scale));
 			const uint8_t has_scale = transform_header.has_scale;
 
-			sampling_context sampling_context_;
+			sampling_context_v0 sampling_context_;
 			sampling_context_.track_index = 0;
 			sampling_context_.constant_track_data_offset = 0;
 			sampling_context_.clip_range_data_offset = 0;
@@ -797,11 +812,23 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_track(persistent_transform_decompression_context& context, uint32_t track_index, track_writer_type& writer)
+		inline void decompress_track_v0(persistent_transform_decompression_context_v0& context, uint32_t track_index, track_writer_type& writer)
 		{
 			static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
+
+			if (!context.is_initialized())
+				return;	// Context is not initialized
+
+			if (context.sample_time < 0.0F)
+				return;	// Invalid sample time, we didn't seek yet
+
+			const tracks_header& tracks_header_ = get_tracks_header(*context.tracks);
+			ACL_ASSERT(track_index < tracks_header_.num_tracks, "Invalid track index");
+
+			if (track_index >= tracks_header_.num_tracks)
+				return;	// Invalid track index
 
 			// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
 			// Disable floating point exceptions to avoid issues.
@@ -810,7 +837,6 @@ namespace acl
 				disable_fp_exceptions(fp_env);
 
 			const transform_tracks_header& transform_header = get_transform_tracks_header(*context.tracks);
-			ACL_ASSERT(track_index < get_tracks_header(*context.tracks).num_tracks, "Invalid track index");
 
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
@@ -819,7 +845,7 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(transform_header.default_scale));
 			const uint8_t has_scale = transform_header.has_scale;
 
-			sampling_context sampling_context_;
+			sampling_context_v0 sampling_context_;
 			sampling_context_.key_frame_bit_offsets[0] = context.key_frame_bit_offsets[0];
 			sampling_context_.key_frame_bit_offsets[1] = context.key_frame_bit_offsets[1];
 

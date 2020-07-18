@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/compressed_tracks.h"
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/impl/scalar_track_decompression.h"
@@ -40,18 +41,19 @@ namespace acl
 	{
 		union persistent_universal_decompression_context
 		{
-			persistent_scalar_decompression_context scalar;
-			persistent_transform_decompression_context transform;
+			persistent_scalar_decompression_context_v0 scalar;
+			persistent_transform_decompression_context_v0 transform;
 
 			//////////////////////////////////////////////////////////////////////////
 
 			inline const compressed_tracks* get_compressed_tracks() const { return scalar.tracks; }
+			inline compressed_tracks_version16 get_version() const { return scalar.tracks->get_version(); }
 			inline bool is_initialized() const { return scalar.is_initialized(); }
 			inline void reset() { scalar.tracks = nullptr; }
 		};
 
 		template<class decompression_settings_type>
-		inline void initialize(persistent_universal_decompression_context& context, const compressed_tracks& tracks)
+		inline bool initialize_v0(persistent_universal_decompression_context& context, const compressed_tracks& tracks)
 		{
 			const track_type8 track_type = tracks.get_track_type();
 			switch (track_type)
@@ -61,18 +63,16 @@ namespace acl
 			case track_type8::float3f:
 			case track_type8::float4f:
 			case track_type8::vector4f:
-				initialize<decompression_settings_type>(context.scalar, tracks);
-				break;
+				return initialize_v0<decompression_settings_type>(context.scalar, tracks);
 			case track_type8::qvvf:
-				initialize<decompression_settings_type>(context.transform, tracks);
-				break;
+				return initialize_v0<decompression_settings_type>(context.transform, tracks);
 			default:
 				ACL_ASSERT(false, "Invalid track type");
-				break;
+				return false;
 			}
 		}
 
-		inline bool is_dirty(const persistent_universal_decompression_context& context, const compressed_tracks& tracks)
+		inline bool is_dirty_v0(const persistent_universal_decompression_context& context, const compressed_tracks& tracks)
 		{
 			if (!context.is_initialized())
 				return true;	// Always dirty if we are not initialized
@@ -85,9 +85,9 @@ namespace acl
 			case track_type8::float3f:
 			case track_type8::float4f:
 			case track_type8::vector4f:
-				return is_dirty(context.scalar, tracks);
+				return is_dirty_v0(context.scalar, tracks);
 			case track_type8::qvvf:
-				return is_dirty(context.transform, tracks);
+				return is_dirty_v0(context.transform, tracks);
 			default:
 				ACL_ASSERT(false, "Invalid track type");
 				return true;
@@ -95,7 +95,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void seek(persistent_universal_decompression_context& context, float sample_time, sample_rounding_policy rounding_policy)
+		inline void seek_v0(persistent_universal_decompression_context& context, float sample_time, sample_rounding_policy rounding_policy)
 		{
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 
@@ -107,10 +107,10 @@ namespace acl
 			case track_type8::float3f:
 			case track_type8::float4f:
 			case track_type8::vector4f:
-				seek<decompression_settings_type>(context.scalar, sample_time, rounding_policy);
+				seek_v0<decompression_settings_type>(context.scalar, sample_time, rounding_policy);
 				break;
 			case track_type8::qvvf:
-				seek<decompression_settings_type>(context.transform, sample_time, rounding_policy);
+				seek_v0<decompression_settings_type>(context.transform, sample_time, rounding_policy);
 				break;
 			default:
 				ACL_ASSERT(false, "Invalid track type");
@@ -119,7 +119,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_tracks(persistent_universal_decompression_context& context, track_writer_type& writer)
+		inline void decompress_tracks_v0(persistent_universal_decompression_context& context, track_writer_type& writer)
 		{
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 
@@ -131,10 +131,10 @@ namespace acl
 			case track_type8::float3f:
 			case track_type8::float4f:
 			case track_type8::vector4f:
-				decompress_tracks<decompression_settings_type>(context.scalar, writer);
+				decompress_tracks_v0<decompression_settings_type>(context.scalar, writer);
 				break;
 			case track_type8::qvvf:
-				decompress_tracks<decompression_settings_type>(context.transform, writer);
+				decompress_tracks_v0<decompression_settings_type>(context.transform, writer);
 				break;
 			default:
 				ACL_ASSERT(false, "Invalid track type");
@@ -143,7 +143,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_track(persistent_universal_decompression_context& context, uint32_t track_index, track_writer_type& writer)
+		inline void decompress_track_v0(persistent_universal_decompression_context& context, uint32_t track_index, track_writer_type& writer)
 		{
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 
@@ -155,10 +155,10 @@ namespace acl
 			case track_type8::float3f:
 			case track_type8::float4f:
 			case track_type8::vector4f:
-				decompress_track<decompression_settings_type>(context.scalar, track_index, writer);
+				decompress_track_v0<decompression_settings_type>(context.scalar, track_index, writer);
 				break;
 			case track_type8::qvvf:
-				decompress_track<decompression_settings_type>(context.transform, track_index, writer);
+				decompress_track_v0<decompression_settings_type>(context.transform, track_index, writer);
 				break;
 			default:
 				ACL_ASSERT(false, "Invalid track type");
