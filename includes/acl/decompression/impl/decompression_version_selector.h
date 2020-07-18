@@ -59,8 +59,8 @@ namespace acl
 			template<class decompression_settings_type, class context_type>
 			ACL_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks); }
 
-			template<class decompression_settings_type, class context_type>
-			ACL_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0<decompression_settings_type>(context, tracks); }
+			template<class context_type>
+			ACL_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0(context, tracks); }
 
 			template<class decompression_settings_type, class context_type>
 			ACL_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy); }
@@ -98,14 +98,14 @@ namespace acl
 				}
 			}
 
-			template<class decompression_settings_type, class context_type>
+			template<class context_type>
 			static bool is_dirty(const context_type& context, const compressed_tracks& tracks)
 			{
 				const compressed_tracks_version16 version = tracks.get_version();
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
-					return decompression_version_selector<compressed_tracks_version16::v02_00_00>::is_dirty<decompression_settings_type>(context, tracks);
+					return decompression_version_selector<compressed_tracks_version16::v02_00_00>::is_dirty(context, tracks);
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					return false;
