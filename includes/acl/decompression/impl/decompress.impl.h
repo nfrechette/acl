@@ -50,7 +50,7 @@ namespace acl
 	template<class decompression_settings_type>
 	inline bool decompression_context<decompression_settings_type>::is_dirty(const compressed_tracks& tracks) const
 	{
-		return algorithm_version_type::template is_dirty<decompression_settings_type>(m_context, tracks);
+		return algorithm_version_type::template is_dirty(m_context, tracks);
 	}
 
 	template<class decompression_settings_type>
