@@ -24,10 +24,11 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/track_types.h"
 #include "acl/core/algorithm_types.h"
-#include "acl/core/impl/compiler_utils.h"
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/core/ptr_offset.h"
+#include "acl/core/track_types.h"
+#include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
 
@@ -49,27 +50,27 @@ namespace acl
 		struct tracks_header
 		{
 			// Serialization tag used to distinguish raw buffer types.
-			uint32_t		tag;
+			uint32_t						tag;
 
 			// Serialization version used to compress the tracks.
-			uint16_t		version;
+			compressed_tracks_version16		version;
 
 			// Algorithm type used to compress the tracks.
-			algorithm_type8	algorithm_type;
+			algorithm_type8					algorithm_type;
 
 			// Type of the tracks contained in this compressed stream.
-			track_type8		track_type;
+			track_type8						track_type;
 
 			// The total number of tracks.
-			uint32_t		num_tracks;
+			uint32_t						num_tracks;
 
 			// The total number of samples per track.
-			uint32_t		num_samples;
+			uint32_t						num_samples;
 
 			// The sample rate our tracks use.
-			float			sample_rate;								// TODO: Store duration as float instead?
+			float							sample_rate;					// TODO: Store duration as float instead?
 
-			uint32_t		padding;
+			uint32_t						padding;
 		};
 
 		struct track_metadata
