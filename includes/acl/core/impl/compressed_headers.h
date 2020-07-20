@@ -85,7 +85,7 @@ namespace acl
 			uint32_t						num_bits_per_frame;
 
 			// Various data offsets relative to the start of this header.
-			ptr_offset32<track_metadata>		metadata_per_track;
+			ptr_offset32<track_metadata>	metadata_per_track;
 			ptr_offset32<float>				track_constant_values;
 			ptr_offset32<float>				track_range_values;
 			ptr_offset32<uint8_t>			track_animated_values;
@@ -145,7 +145,7 @@ namespace acl
 
 			// Offset to the segment headers data.
 			ptr_offset16<uint32_t>			segment_start_indices_offset;
-			ptr_offset16<segment_header>		segment_headers_offset;
+			ptr_offset16<segment_header>	segment_headers_offset;
 
 			// Offsets to the default/constant tracks bitsets.
 			ptr_offset16<uint32_t>			default_tracks_bitset_offset;
