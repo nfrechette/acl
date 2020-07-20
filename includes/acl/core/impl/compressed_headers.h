@@ -38,6 +38,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
+		// Common header to all binary formats
 		struct raw_buffer_header
 		{
 			// Total size in bytes of the raw buffer.
@@ -47,6 +48,7 @@ namespace acl
 			uint32_t		hash;
 		};
 
+		// Header for 'compressed_tracks'
 		struct tracks_header
 		{
 			// Serialization tag used to distinguish raw buffer types.
@@ -73,11 +75,13 @@ namespace acl
 			uint32_t						padding;
 		};
 
+		// Scalar track metadata
 		struct track_metadata
 		{
 			uint8_t			bit_rate;
 		};
 
+		// Header for scalar 'compressed_tracks'
 		struct scalar_tracks_header
 		{
 			// The number of bits used for a whole frame of data.
@@ -125,6 +129,7 @@ namespace acl
 			ptr_offset32<uint8_t>			track_data_offset;
 		};
 
+		// Header for transform 'compressed_tracks'
 		struct transform_tracks_header
 		{
 			// The number of segments contained.
