@@ -140,7 +140,7 @@ namespace acl
 			vector_format8					translation_format;
 			vector_format8					scale_format;						// TODO: Make this optional?
 
-																				// Whether or not we have scale (bool).
+			// Whether or not we have scale (bool).
 			uint8_t							has_scale;
 
 			// Whether the default scale is 0,0,0 or 1,1,1 (bool/bit).
