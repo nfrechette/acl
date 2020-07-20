@@ -69,7 +69,7 @@ namespace acl
 
 			uint8_t padding0[2];							//  34 |  54
 
-															// Seeking related data
+			// Seeking related data
 			const uint8_t* format_per_track_data[2];		//  36 |  56
 			const uint8_t* segment_range_data[2];			//  44 |  72
 			const uint8_t* animated_track_data[2];			//  52 |  88
