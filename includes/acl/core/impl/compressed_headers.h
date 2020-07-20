@@ -72,7 +72,33 @@ namespace acl
 			// The sample rate our tracks use.
 			float							sample_rate;					// TODO: Store duration as float instead?
 
-			uint32_t						padding;
+			// Miscellaneous packed values
+			uint32_t						misc_packed;
+
+			//////////////////////////////////////////////////////////////////////////
+			// Accessors for 'misc_packed'
+
+			// Scalar tracks use it like this (listed from LSB):
+			// Bits [0, 32): unused (32 bits)
+
+			// Transform tracks use it like this (listed from LSB):
+			// Bit 0: has scale?
+			// Bit 1: default scale: 0,0,0 or 1,1,1 (bool/bit)
+			// Bit 2: scale format
+			// Bit 3: translation format
+			// Bits [4, 8): rotation format (4 bits)
+			// Bits [8, 32): unused (24 bits)
+
+			rotation_format8 get_rotation_format() const { return static_cast<rotation_format8>((misc_packed >> 4) & 15); }
+			void set_rotation_format(rotation_format8 format) { misc_packed = (misc_packed & ~(15 << 4)) | (static_cast<uint32_t>(format) << 4); }
+			vector_format8 get_translation_format() const { return static_cast<vector_format8>((misc_packed >> 3) & 1); }
+			void set_translation_format(vector_format8 format) { misc_packed = (misc_packed & ~(1 << 3)) | (static_cast<uint32_t>(format) << 3); }
+			vector_format8 get_scale_format() const { return static_cast<vector_format8>((misc_packed >> 2) & 1); }
+			void set_scale_format(vector_format8 format) { misc_packed = (misc_packed & ~(1 << 2)) | (static_cast<uint32_t>(format) << 2); }
+			int32_t get_default_scale() const { return (misc_packed >> 1) & 1; }
+			void set_default_scale(uint32_t scale) { ACL_ASSERT(scale == 0 || scale == 1, "Invalid default scale"); misc_packed = (misc_packed & ~(1 << 1)) | (scale << 1); }
+			bool get_has_scale() const { return (misc_packed & 1) != 0; }
+			void set_has_scale(bool has_scale) { misc_packed = (misc_packed & ~1) | static_cast<uint32_t>(has_scale); }
 		};
 
 		// Scalar track metadata
@@ -135,32 +161,19 @@ namespace acl
 			// The number of segments contained.
 			uint16_t						num_segments;
 
-			// The rotation/translation/scale format used.
-			rotation_format8				rotation_format;
-			vector_format8					translation_format;
-			vector_format8					scale_format;						// TODO: Make this optional?
-
-			// Whether or not we have scale (bool).
-			uint8_t							has_scale;
-
-			// Whether the default scale is 0,0,0 or 1,1,1 (bool/bit).
-			uint8_t							default_scale;
-
-			uint8_t							padding[1];
-
 			// Offset to the segment headers data.
 			ptr_offset16<uint32_t>			segment_start_indices_offset;
-			ptr_offset16<segment_header>	segment_headers_offset;
+			ptr_offset32<segment_header>	segment_headers_offset;
 
 			// Offsets to the default/constant tracks bitsets.
-			ptr_offset16<uint32_t>			default_tracks_bitset_offset;
-			ptr_offset16<uint32_t>			constant_tracks_bitset_offset;
+			ptr_offset32<uint32_t>			default_tracks_bitset_offset;
+			ptr_offset32<uint32_t>			constant_tracks_bitset_offset;
 
 			// Offset to the constant tracks data.
-			ptr_offset16<uint8_t>			constant_track_data_offset;
+			ptr_offset32<uint8_t>			constant_track_data_offset;
 
 			// Offset to the clip range data.
-			ptr_offset16<uint8_t>			clip_range_data_offset;				// TODO: Make this offset optional? Only present if normalized
+			ptr_offset32<uint8_t>			clip_range_data_offset;				// TODO: Make this offset optional? Only present if normalized
 
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.

@@ -276,6 +276,7 @@ namespace acl
 
 			const uint32_t clip_header_size = buffer_size;
 
+			buffer_size = align_to(buffer_size, 4);								// Align segment start indices
 			buffer_size += segment_start_indices_size;							// Segment start indices
 			buffer_size = align_to(buffer_size, 4);								// Align segment headers
 			buffer_size += segment_headers_size;								// Segment headers
@@ -346,19 +347,19 @@ namespace acl
 			header->num_tracks = num_output_bones;
 			header->num_samples = track_list.get_num_samples_per_track();
 			header->sample_rate = track_list.get_sample_rate();
+			header->set_rotation_format(settings.rotation_format);
+			header->set_translation_format(settings.translation_format);
+			header->set_scale_format(settings.scale_format);
+			header->set_has_scale(lossy_clip_context.has_scale);
+			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
+			header->set_default_scale(!is_additive || additive_format != additive_clip_format8::additive1 ? 1 : 0);
 
 			// Write our transform tracks header
 			transform_tracks_header* transforms_header = safe_ptr_cast<transform_tracks_header>(buffer);
 			buffer += sizeof(transform_tracks_header);
 
 			transforms_header->num_segments = uint16_t(lossy_clip_context.num_segments);
-			transforms_header->rotation_format = settings.rotation_format;
-			transforms_header->translation_format = settings.translation_format;
-			transforms_header->scale_format = settings.scale_format;
-			transforms_header->has_scale = lossy_clip_context.has_scale ? 1 : 0;
-			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
-			transforms_header->default_scale = !is_additive || additive_format != additive_clip_format8::additive1 ? 1 : 0;
-			transforms_header->segment_start_indices_offset = sizeof(transform_tracks_header);	// Relative to the start of our header
+			transforms_header->segment_start_indices_offset = align_to(sizeof(transform_tracks_header), 4);	// Relative to the start of our header
 			transforms_header->segment_headers_offset = align_to(transforms_header->segment_start_indices_offset + segment_start_indices_size, 4);
 			transforms_header->default_tracks_bitset_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
 			transforms_header->constant_tracks_bitset_offset = transforms_header->default_tracks_bitset_offset + bitset_desc.get_num_bytes();
@@ -395,6 +396,7 @@ namespace acl
 #if defined(ACL_HAS_ASSERT_CHECKS)
 			{
 				// Make sure we wrote the right amount of data
+				buffer = align_to(buffer, 4);								// Align segment start indices
 				buffer += written_segment_start_indices_size;
 				buffer = align_to(buffer, 4);								// Align segment headers
 				buffer += written_segment_headers_size;

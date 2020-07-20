@@ -64,20 +64,26 @@ namespace acl
 
 			uint32_t clip_hash;								//  28 |  48
 
-			range_reduction_flags8 range_reduction;			//  32 |  52
-			uint8_t num_rotation_components;				//  33 |  53
+			rotation_format8 rotation_format;				//  32 |  52
+			vector_format8 translation_format;				//  33 |  53
+			vector_format8 scale_format;					//  34 |  54
+			range_reduction_flags8 range_reduction;			//  35 |  55
 
-			uint8_t padding0[2];							//  34 |  54
+			uint8_t num_rotation_components;				//  36 |  56
+			uint8_t has_segments;							//  37 |  57
+
+			uint8_t padding0[2];							//  38 |  58
 
 			// Seeking related data
-			const uint8_t* format_per_track_data[2];		//  36 |  56
-			const uint8_t* segment_range_data[2];			//  44 |  72
-			const uint8_t* animated_track_data[2];			//  52 |  88
+			float sample_time;								//  40 |  60
 
-			uint32_t key_frame_bit_offsets[2];				//  60 | 104
+			const uint8_t* format_per_track_data[2];		//  44 |  64
+			const uint8_t* segment_range_data[2];			//  52 |  80
+			const uint8_t* animated_track_data[2];			//  60 |  96
 
-			float interpolation_alpha;						//  68 | 112
-			float sample_time;								//  76 | 120
+			uint32_t key_frame_bit_offsets[2];				//  68 | 112
+
+			float interpolation_alpha;						//  76 | 120
 
 			uint8_t padding1[sizeof(void*) == 4 ? 52 : 4];	//  80 | 124
 
@@ -122,7 +128,7 @@ namespace acl
 		{
 			// Forward to our decompression settings
 			static constexpr range_reduction_flags8 get_range_reduction_flag() { return range_reduction_flags8::translations; }
-			static constexpr vector_format8 get_vector_format(const transform_tracks_header& header) { return header.translation_format; }
+			static constexpr vector_format8 get_vector_format(const persistent_transform_decompression_context_v0& context) { return context.translation_format; }
 			static constexpr bool is_vector_format_supported(vector_format8 format) { return decompression_settings_type::is_translation_format_supported(format); }
 		};
 
@@ -131,7 +137,7 @@ namespace acl
 		{
 			// Forward to our decompression settings
 			static constexpr range_reduction_flags8 get_range_reduction_flag() { return range_reduction_flags8::scales; }
-			static constexpr vector_format8 get_vector_format(const transform_tracks_header& header) { return header.scale_format; }
+			static constexpr vector_format8 get_vector_format(const persistent_transform_decompression_context_v0& context) { return context.scale_format; }
 			static constexpr bool is_vector_format_supported(vector_format8 format) { return decompression_settings_type::is_scale_format_supported(format); }
 		};
 
@@ -169,24 +175,24 @@ namespace acl
 		// Returns the statically known vector format supported if we only support one, otherwise we return the input value
 		// which might not be known statically
 		template<class decompression_settings_adapter_type>
-		constexpr vector_format8 get_vector_format(const transform_tracks_header& header)
+		constexpr vector_format8 get_vector_format(vector_format8 format)
 		{
 			return num_supported_vector_formats<decompression_settings_adapter_type>() > 1
 				// More than one format is supported, return the input value, whatever it may be
-				? decompression_settings_adapter_type::get_vector_format(header)
+				? format
 				// Only one format is supported, figure out statically which one it is and return it
 				: (decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full) ? vector_format8::vector3f_full
 					: vector_format8::vector3f_variable);
 		}
 
 		template<class decompression_settings_type>
-		inline void skip_over_rotation(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, sampling_context_v0& sampling_context_)
+		inline void skip_over_rotation(const persistent_transform_decompression_context_v0& decomp_context, sampling_context_v0& sampling_context_)
 		{
 			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
 			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 			if (!is_sample_default)
 			{
-				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(header.rotation_format);
+				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 
 				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 				if (is_sample_constant)
@@ -221,7 +227,7 @@ namespace acl
 					{
 						sampling_context_.clip_range_data_offset += decomp_context.num_rotation_components * sizeof(float) * 2;
 
-						if (header.num_segments > 1)
+						if (decomp_context.has_segments)
 							sampling_context_.segment_range_data_offset += decomp_context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2;
 					}
 				}
@@ -231,7 +237,7 @@ namespace acl
 		}
 
 		template <class decompression_settings_type>
-		inline rtm::quatf RTM_SIMD_CALL decompress_and_interpolate_rotation(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, sampling_context_v0& sampling_context_)
+		inline rtm::quatf RTM_SIMD_CALL decompress_and_interpolate_rotation(const persistent_transform_decompression_context_v0& decomp_context, sampling_context_v0& sampling_context_)
 		{
 			rtm::quatf interpolated_rotation;
 
@@ -243,7 +249,7 @@ namespace acl
 			}
 			else
 			{
-				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(header.rotation_format);
+				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 				if (is_sample_constant)
 				{
@@ -337,7 +343,7 @@ namespace acl
 
 					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::rotations))
 					{
-						if (header.num_segments > 1)
+						if (decomp_context.has_segments)
 						{
 							const uint32_t segment_range_min_offset = sampling_context_.segment_range_data_offset;
 							const uint32_t segment_range_extent_offset = sampling_context_.segment_range_data_offset + (num_rotation_components * sizeof(uint8_t));
@@ -438,7 +444,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_adapter_type>
-		inline void skip_over_vector(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, sampling_context_v0& sampling_context_)
+		inline void skip_over_vector(const persistent_transform_decompression_context_v0& decomp_context, sampling_context_v0& sampling_context_)
 		{
 			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
 			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
@@ -452,7 +458,7 @@ namespace acl
 				}
 				else
 				{
-					const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(header);
+					const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
 
 					if (is_vector_format_variable(format))
 					{
@@ -478,7 +484,7 @@ namespace acl
 					{
 						sampling_context_.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
 
-						if (header.num_segments > 1)
+						if (decomp_context.has_segments)
 							sampling_context_.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
 					}
 				}
@@ -488,7 +494,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_adapter_type>
-		inline rtm::vector4f RTM_SIMD_CALL decompress_and_interpolate_vector(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, rtm::vector4f_arg0 default_value, sampling_context_v0& sampling_context_)
+		inline rtm::vector4f RTM_SIMD_CALL decompress_and_interpolate_vector(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f_arg0 default_value, sampling_context_v0& sampling_context_)
 		{
 			rtm::vector4f interpolated_vector;
 
@@ -511,7 +517,7 @@ namespace acl
 				}
 				else
 				{
-					const vector_format8 format = decompression_settings_adapter_type::get_vector_format(header);
+					const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
 
 					// This part is fairly complex, we'll loop and write to the stack (sampling context)
 					rtm::vector4f* vectors = &sampling_context_.vectors[0];
@@ -574,7 +580,7 @@ namespace acl
 					const range_reduction_flags8 range_reduction_flag = decompression_settings_adapter_type::get_range_reduction_flag();
 					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flag))
 					{
-						if (header.num_segments > 1)
+						if (decomp_context.has_segments)
 						{
 							const uint32_t segment_range_min_offset = sampling_context_.segment_range_data_offset;
 							const uint32_t segment_range_extent_offset = sampling_context_.segment_range_data_offset + (3 * sizeof(uint8_t));
@@ -634,16 +640,16 @@ namespace acl
 			const tracks_header& header = get_tracks_header(tracks);
 			const transform_tracks_header& transform_header = get_transform_tracks_header(tracks);
 
-			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(transform_header.rotation_format);
-			const vector_format8 translation_format = get_vector_format<translation_adapter>(transform_header);
-			const vector_format8 scale_format = get_vector_format<scale_adapter>(transform_header);
+			const rotation_format8 packed_rotation_format = header.get_rotation_format();
+			const vector_format8 packed_translation_format = header.get_translation_format();
+			const vector_format8 packed_scale_format = header.get_scale_format();
+			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(packed_rotation_format);
+			const vector_format8 translation_format = get_vector_format<translation_adapter>(packed_translation_format);
+			const vector_format8 scale_format = get_vector_format<scale_adapter>(packed_scale_format);
 
-			ACL_ASSERT(rotation_format == transform_header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(transform_header.rotation_format));
-			ACL_ASSERT(decompression_settings_type::is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
-			ACL_ASSERT(translation_format == transform_header.translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(transform_header.translation_format));
-			ACL_ASSERT(decompression_settings_type::is_translation_format_supported(translation_format), "Translation format (%s) isn't statically supported!", get_vector_format_name(translation_format));
-			ACL_ASSERT(scale_format == transform_header.scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(transform_header.scale_format));
-			ACL_ASSERT(decompression_settings_type::is_scale_format_supported(scale_format), "Scale format (%s) isn't statically supported!", get_vector_format_name(scale_format));
+			ACL_ASSERT(rotation_format == packed_rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(packed_rotation_format));
+			ACL_ASSERT(translation_format == packed_translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(packed_translation_format));
+			ACL_ASSERT(scale_format == packed_scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(packed_scale_format));
 
 			context.tracks = &tracks;
 			context.clip_hash = tracks.get_hash();
@@ -662,7 +668,8 @@ namespace acl
 				context.animated_track_data[key_frame_index] = nullptr;
 			}
 
-			const uint32_t num_tracks_per_bone = transform_header.has_scale ? 3 : 2;
+			const bool has_scale = header.get_has_scale();
+			const uint32_t num_tracks_per_bone = has_scale ? 3 : 2;
 			context.bitset_desc = bitset_description::make_from_num_bits(header.num_tracks * num_tracks_per_bone);
 
 			range_reduction_flags8 range_reduction = range_reduction_flags8::none;
@@ -673,8 +680,12 @@ namespace acl
 			if (is_vector_format_variable(scale_format))
 				range_reduction |= range_reduction_flags8::scales;
 
+			context.rotation_format = rotation_format;
+			context.translation_format = translation_format;
+			context.scale_format = scale_format;
 			context.range_reduction = range_reduction;
 			context.num_rotation_components = rotation_format == rotation_format8::quatf_full ? 4 : 3;
+			context.has_segments = transform_header.num_segments > 1;
 
 			return true;
 		}
@@ -802,14 +813,13 @@ namespace acl
 				disable_fp_exceptions(fp_env);
 
 			const tracks_header& header = get_tracks_header(*context.tracks);
-			const transform_tracks_header& transform_header = get_transform_tracks_header(*context.tracks);
 
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 
 			const rtm::vector4f default_translation = rtm::vector_zero();
-			const rtm::vector4f default_scale = rtm::vector_set(float(transform_header.default_scale));
-			const uint8_t has_scale = transform_header.has_scale;
+			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
+			const bool has_scale = header.get_has_scale();
 
 			sampling_context_v0 sampling_context_;
 			sampling_context_.track_index = 0;
@@ -827,29 +837,29 @@ namespace acl
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
 				if (track_writer_type::skip_all_rotations() || writer.skip_track_rotation(track_index))
-					skip_over_rotation<decompression_settings_type>(context, transform_header, sampling_context_);
+					skip_over_rotation<decompression_settings_type>(context, sampling_context_);
 				else
 				{
-					const rtm::quatf rotation = decompress_and_interpolate_rotation<decompression_settings_type>(context, transform_header, sampling_context_);
+					const rtm::quatf rotation = decompress_and_interpolate_rotation<decompression_settings_type>(context, sampling_context_);
 					writer.write_rotation(track_index, rotation);
 				}
 
 				if (track_writer_type::skip_all_translations() || writer.skip_track_translation(track_index))
-					skip_over_vector<translation_adapter>(context, transform_header, sampling_context_);
+					skip_over_vector<translation_adapter>(context, sampling_context_);
 				else
 				{
-					const rtm::vector4f translation = decompress_and_interpolate_vector<translation_adapter>(context, transform_header, default_translation, sampling_context_);
+					const rtm::vector4f translation = decompress_and_interpolate_vector<translation_adapter>(context, default_translation, sampling_context_);
 					writer.write_translation(track_index, translation);
 				}
 
 				if (track_writer_type::skip_all_scales() || writer.skip_track_scale(track_index))
 				{
 					if (has_scale)
-						skip_over_vector<scale_adapter>(context, transform_header, sampling_context_);
+						skip_over_vector<scale_adapter>(context, sampling_context_);
 				}
 				else
 				{
-					const rtm::vector4f scale = has_scale ? decompress_and_interpolate_vector<scale_adapter>(context, transform_header, default_scale, sampling_context_) : default_scale;
+					const rtm::vector4f scale = has_scale ? decompress_and_interpolate_vector<scale_adapter>(context, default_scale, sampling_context_) : default_scale;
 					writer.write_scale(track_index, scale);
 				}
 			}
@@ -883,22 +893,20 @@ namespace acl
 			if (decompression_settings_type::disable_fp_exeptions())
 				disable_fp_exceptions(fp_env);
 
-			const transform_tracks_header& transform_header = get_transform_tracks_header(*context.tracks);
-
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 
 			const rtm::vector4f default_translation = rtm::vector_zero();
-			const rtm::vector4f default_scale = rtm::vector_set(float(transform_header.default_scale));
-			const uint8_t has_scale = transform_header.has_scale;
+			const rtm::vector4f default_scale = rtm::vector_set(float(tracks_header_.get_default_scale()));
+			const bool has_scale = tracks_header_.get_has_scale();
 
 			sampling_context_v0 sampling_context_;
 			sampling_context_.key_frame_bit_offsets[0] = context.key_frame_bit_offsets[0];
 			sampling_context_.key_frame_bit_offsets[1] = context.key_frame_bit_offsets[1];
 
-			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(transform_header.rotation_format);
-			const vector_format8 translation_format = get_vector_format<translation_adapter>(transform_header);
-			const vector_format8 scale_format = get_vector_format<scale_adapter>(transform_header);
+			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(context.rotation_format);
+			const vector_format8 translation_format = get_vector_format<translation_adapter>(context.translation_format);
+			const vector_format8 scale_format = get_vector_format<scale_adapter>(context.scale_format);
 
 			const bool are_all_tracks_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
 			if (!are_all_tracks_variable)
@@ -912,11 +920,11 @@ namespace acl
 
 				for (uint32_t bone_index = 0; bone_index < track_index; ++bone_index)
 				{
-					skip_over_rotation<decompression_settings_type>(context, transform_header, sampling_context_);
-					skip_over_vector<translation_adapter>(context, transform_header, sampling_context_);
+					skip_over_rotation<decompression_settings_type>(context, sampling_context_);
+					skip_over_vector<translation_adapter>(context, sampling_context_);
 
 					if (has_scale)
-						skip_over_vector<scale_adapter>(context, transform_header, sampling_context_);
+						skip_over_vector<scale_adapter>(context, sampling_context_);
 				}
 			}
 			else
@@ -1022,7 +1030,7 @@ namespace acl
 				{
 					clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2 * num_animated_rotations;
 
-					if (transform_header.num_segments > 1)
+					if (context.has_segments)
 						segment_range_data_offset += context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_rotations;
 				}
 
@@ -1030,7 +1038,7 @@ namespace acl
 				{
 					clip_range_data_offset += k_clip_range_reduction_vector3_range_size * num_animated_translations;
 
-					if (transform_header.num_segments > 1)
+					if (context.has_segments)
 						segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_translations;
 				}
 
@@ -1046,7 +1054,7 @@ namespace acl
 					{
 						clip_range_data_offset += k_clip_range_reduction_vector3_range_size * num_animated_scales;
 
-						if (transform_header.num_segments > 1)
+						if (context.has_segments)
 							segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_scales;
 					}
 				}
@@ -1074,13 +1082,13 @@ namespace acl
 			sampling_context_.vectors[0] = default_translation;	// Init with something to avoid GCC warning
 			sampling_context_.vectors[1] = default_translation;	// Init with something to avoid GCC warning
 
-			const rtm::quatf rotation = decompress_and_interpolate_rotation<decompression_settings_type>(context, transform_header, sampling_context_);
+			const rtm::quatf rotation = decompress_and_interpolate_rotation<decompression_settings_type>(context, sampling_context_);
 			writer.write_rotation(track_index, rotation);
 
-			const rtm::vector4f translation = decompress_and_interpolate_vector<translation_adapter>(context, transform_header, default_translation, sampling_context_);
+			const rtm::vector4f translation = decompress_and_interpolate_vector<translation_adapter>(context, default_translation, sampling_context_);
 			writer.write_translation(track_index, translation);
 
-			const rtm::vector4f scale = has_scale ? decompress_and_interpolate_vector<scale_adapter>(context, transform_header, default_scale, sampling_context_) : default_scale;
+			const rtm::vector4f scale = has_scale ? decompress_and_interpolate_vector<scale_adapter>(context, default_scale, sampling_context_) : default_scale;
 			writer.write_scale(track_index, scale);
 
 			if (decompression_settings_type::disable_fp_exeptions())
