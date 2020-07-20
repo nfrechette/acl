@@ -43,20 +43,17 @@ namespace acl
 	enum class rotation_format8 : uint8_t
 	{
 		quatf_full					= 0,	// Full precision quaternion, [x,y,z,w] stored with float32
-		//quatf_variable			= 5,	// TODO Quantized quaternion, [x,y,z,w] stored with [N,N,N,N] bits (same number of bits per component)
-		quatf_drop_w_full			= 1,	// Full precision quaternion, [x,y,z] stored with float32 (w is dropped)
-		quatf_drop_w_variable		= 4,	// Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
+		//quatf_variable			= 1,	// TODO Quantized quaternion, [x,y,z,w] stored with [N,N,N,N] bits (same number of bits per component)
+		quatf_drop_w_full			= 2,	// Full precision quaternion, [x,y,z] stored with float32 (w is dropped)
+		quatf_drop_w_variable		= 3,	// Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
 
-		//quatf_optimal				= 100,	// Mix of quatf_variable and quatf_drop_w_variable
+		//quatf_optimal				= 15,	// Mix of quatf_variable and quatf_drop_w_variable
 
-		//reserved					= 2,	// Legacy value, no longer used
-		//reserved					= 3,	// Legacy value, no longer used
-		// TODO: Implement these
-		//Quat_32_Largest,		// Quantized quaternion, [?,?,?] stored with [10,10,10] bits (largest component is dropped, component index stored on 2 bits)
-		//QuatLog_96,			// Full precision quaternion logarithm, [x,y,z] stored with float 32
-		//QuatLog_48,			// Quantized quaternion logarithm, [x,y,z] stored with [16,16,16] bits
-		//QuatLog_32,			// Quantized quaternion logarithm, [x,y,z] stored with [11,11,10] bits
-		//QuatLog_Variable,		// Quantized quaternion logarithm, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
+		// TODO: Implement these?
+		//quatf_drop_largest_full			// Full precision quaternion, [a,b,c] stored with float32 (largest component dropped)
+		//quatf_drop_largest_variable		// Quantized quaternion, [a,b,c] stored with [N,N,N] bits (largest component dropped, same number of bits per component)
+		//quatf_log_full,					// Full precision quaternion logarithm, [x,y,z] stored with float32
+		//quatf_log_variable,				// Quantized quaternion logarithm, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
 	};
 
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
@@ -65,10 +62,7 @@ namespace acl
 	enum class vector_format8 : uint8_t
 	{
 		vector3f_full				= 0,	// Full precision vector3f, [x,y,z] stored with float32
-		vector3f_variable			= 3,	// Quantized vector3f, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
-
-		//reserved					= 1,	// Legacy value, no longer used
-		//reserved					= 2,	// Legacy value, no longer used
+		vector3f_variable			= 1,	// Quantized vector3f, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
 	};
 
 	union track_format8
