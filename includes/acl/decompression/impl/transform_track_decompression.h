@@ -122,7 +122,7 @@ namespace acl
 		{
 			// Forward to our decompression settings
 			static constexpr range_reduction_flags8 get_range_reduction_flag() { return range_reduction_flags8::translations; }
-			static constexpr vector_format8 get_vector_format(const transform_tracks_header& header) { return decompression_settings_type::get_translation_format(header.translation_format); }
+			static constexpr vector_format8 get_vector_format(const transform_tracks_header& header) { return header.translation_format; }
 			static constexpr bool is_vector_format_supported(vector_format8 format) { return decompression_settings_type::is_translation_format_supported(format); }
 		};
 
@@ -131,9 +131,53 @@ namespace acl
 		{
 			// Forward to our decompression settings
 			static constexpr range_reduction_flags8 get_range_reduction_flag() { return range_reduction_flags8::scales; }
-			static constexpr vector_format8 get_vector_format(const transform_tracks_header& header) { return decompression_settings_type::get_scale_format(header.scale_format); }
+			static constexpr vector_format8 get_vector_format(const transform_tracks_header& header) { return header.scale_format; }
 			static constexpr bool is_vector_format_supported(vector_format8 format) { return decompression_settings_type::is_scale_format_supported(format); }
 		};
+
+		// Returns the statically known number of rotation formats supported by the decompression settings
+		template<class decompression_settings_type>
+		constexpr int32_t num_supported_rotation_formats()
+		{
+			return decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full)
+				+ decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full)
+				+ decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable);
+		}
+
+		// Returns the statically known rotation format supported if we only support one, otherwise we return the input value
+		// which might not be known statically
+		template<class decompression_settings_type>
+		constexpr rotation_format8 get_rotation_format(rotation_format8 format)
+		{
+			return num_supported_rotation_formats<decompression_settings_type>() > 1
+				// More than one format is supported, return the input value, whatever it may be
+				? format
+				// Only one format is supported, figure out statically which one it is and return it
+				: (decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full) ? rotation_format8::quatf_full
+					: (decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full) ? rotation_format8::quatf_drop_w_full
+						: rotation_format8::quatf_drop_w_variable));
+		}
+
+		// Returns the statically known number of vector formats supported by the decompression settings
+		template<class decompression_settings_adapter_type>
+		constexpr int32_t num_supported_vector_formats()
+		{
+			return decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full)
+				+ decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable);
+		}
+
+		// Returns the statically known vector format supported if we only support one, otherwise we return the input value
+		// which might not be known statically
+		template<class decompression_settings_adapter_type>
+		constexpr vector_format8 get_vector_format(const transform_tracks_header& header)
+		{
+			return num_supported_vector_formats<decompression_settings_adapter_type>() > 1
+				// More than one format is supported, return the input value, whatever it may be
+				? decompression_settings_adapter_type::get_vector_format(header)
+				// Only one format is supported, figure out statically which one it is and return it
+				: (decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full) ? vector_format8::vector3f_full
+					: vector_format8::vector3f_variable);
+		}
 
 		template<class decompression_settings_type>
 		inline void skip_over_rotation(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, sampling_context_v0& sampling_context_)
@@ -142,7 +186,7 @@ namespace acl
 			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 			if (!is_sample_default)
 			{
-				const rotation_format8 rotation_format = decompression_settings_type::get_rotation_format(header.rotation_format);
+				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(header.rotation_format);
 
 				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 				if (is_sample_constant)
@@ -199,7 +243,7 @@ namespace acl
 			}
 			else
 			{
-				const rotation_format8 rotation_format = decompression_settings_type::get_rotation_format(header.rotation_format);
+				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(header.rotation_format);
 				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 				if (is_sample_constant)
 				{
@@ -393,7 +437,7 @@ namespace acl
 			return interpolated_rotation;
 		}
 
-		template<class decompression_settings_type>
+		template<class decompression_settings_adapter_type>
 		inline void skip_over_vector(const persistent_transform_decompression_context_v0& decomp_context, const transform_tracks_header& header, sampling_context_v0& sampling_context_)
 		{
 			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
@@ -408,7 +452,7 @@ namespace acl
 				}
 				else
 				{
-					const vector_format8 format = decompression_settings_type::get_vector_format(header);
+					const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(header);
 
 					if (is_vector_format_variable(format))
 					{
@@ -428,7 +472,7 @@ namespace acl
 							sampling_context_.key_frame_bit_offsets[i] += 96;
 					}
 
-					const range_reduction_flags8 range_reduction_flag = decompression_settings_type::get_range_reduction_flag();
+					const range_reduction_flags8 range_reduction_flag = decompression_settings_adapter_type::get_range_reduction_flag();
 
 					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flag))
 					{
@@ -584,12 +628,15 @@ namespace acl
 
 			ACL_ASSERT(tracks.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
 
+			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
+			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
+
 			const tracks_header& header = get_tracks_header(tracks);
 			const transform_tracks_header& transform_header = get_transform_tracks_header(tracks);
 
-			const rotation_format8 rotation_format = decompression_settings_type::get_rotation_format(transform_header.rotation_format);
-			const vector_format8 translation_format = decompression_settings_type::get_translation_format(transform_header.translation_format);
-			const vector_format8 scale_format = decompression_settings_type::get_scale_format(transform_header.scale_format);
+			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(transform_header.rotation_format);
+			const vector_format8 translation_format = get_vector_format<translation_adapter>(transform_header);
+			const vector_format8 scale_format = get_vector_format<scale_adapter>(transform_header);
 
 			ACL_ASSERT(rotation_format == transform_header.rotation_format, "Statically compiled rotation format (%s) differs from the compressed rotation format (%s)!", get_rotation_format_name(rotation_format), get_rotation_format_name(transform_header.rotation_format));
 			ACL_ASSERT(decompression_settings_type::is_rotation_format_supported(rotation_format), "Rotation format (%s) isn't statically supported!", get_rotation_format_name(rotation_format));
@@ -849,9 +896,9 @@ namespace acl
 			sampling_context_.key_frame_bit_offsets[0] = context.key_frame_bit_offsets[0];
 			sampling_context_.key_frame_bit_offsets[1] = context.key_frame_bit_offsets[1];
 
-			const rotation_format8 rotation_format = decompression_settings_type::get_rotation_format(transform_header.rotation_format);
-			const vector_format8 translation_format = decompression_settings_type::get_translation_format(transform_header.translation_format);
-			const vector_format8 scale_format = decompression_settings_type::get_scale_format(transform_header.scale_format);
+			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(transform_header.rotation_format);
+			const vector_format8 translation_format = get_vector_format<translation_adapter>(transform_header);
+			const vector_format8 scale_format = get_vector_format<scale_adapter>(transform_header);
 
 			const bool are_all_tracks_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
 			if (!are_all_tracks_variable)
