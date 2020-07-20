@@ -106,9 +106,6 @@ namespace acl
 		static constexpr bool is_rotation_format_supported(rotation_format8 /*format*/) { return true; }
 		static constexpr bool is_translation_format_supported(vector_format8 /*format*/) { return true; }
 		static constexpr bool is_scale_format_supported(vector_format8 /*format*/) { return true; }
-		static constexpr rotation_format8 get_rotation_format(rotation_format8 format) { return format; }
-		static constexpr vector_format8 get_translation_format(vector_format8 format) { return format; }
-		static constexpr vector_format8 get_scale_format(vector_format8 format) { return format; }
 
 		// Whether rotations should be normalized before being output or not. Some animation
 		// runtimes will normalize in a separate step and do not need the explicit normalization.
@@ -165,9 +162,6 @@ namespace acl
 		static constexpr bool is_rotation_format_supported(rotation_format8 format) { return format == rotation_format8::quatf_drop_w_variable; }
 		static constexpr bool is_translation_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
 		static constexpr bool is_scale_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
-		static constexpr rotation_format8 get_rotation_format(rotation_format8 /*format*/) { return rotation_format8::quatf_drop_w_variable; }
-		static constexpr vector_format8 get_translation_format(vector_format8 /*format*/) { return vector_format8::vector3f_variable; }
-		static constexpr vector_format8 get_scale_format(vector_format8 /*format*/) { return vector_format8::vector3f_variable; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
