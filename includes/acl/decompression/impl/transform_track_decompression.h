@@ -85,7 +85,7 @@ namespace acl
 
 			float interpolation_alpha;						//  76 | 120
 
-			uint8_t padding1[sizeof(void*) == 4 ? 52 : 4];	//  80 | 124
+			uint8_t padding1[sizeof(void*) == 4 ? 48 : 4];	//  80 | 124
 
 			//									Total size:	   128 | 128
 
