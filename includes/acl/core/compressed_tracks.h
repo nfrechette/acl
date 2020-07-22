@@ -56,7 +56,7 @@ namespace acl
 	public:
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns the algorithm type used to compress the tracks.
-		algorithm_type8 get_algorithm_type() const { return m_tracks_header.algorithm_type; }
+		algorithm_type8 get_algorithm_type() const { return acl_impl::get_tracks_header(*this).algorithm_type; }
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns the size in bytes of the compressed tracks.
@@ -71,31 +71,35 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the binary tag for the compressed tracks.
 		// This uniquely identifies the buffer as a proper 'compressed_tracks' object.
-		buffer_tag32 get_tag() const { return static_cast<buffer_tag32>(m_tracks_header.tag); }
+		buffer_tag32 get_tag() const { return static_cast<buffer_tag32>(acl_impl::get_tracks_header(*this).tag); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the binary format version.
-		compressed_tracks_version16 get_version() const { return m_tracks_header.version; }
+		compressed_tracks_version16 get_version() const { return acl_impl::get_tracks_header(*this).version; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of tracks contained.
-		uint32_t get_num_tracks() const { return m_tracks_header.num_tracks; }
+		uint32_t get_num_tracks() const { return acl_impl::get_tracks_header(*this).num_tracks; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of samples each track contains.
-		uint32_t get_num_samples_per_track() const { return m_tracks_header.num_samples; }
+		uint32_t get_num_samples_per_track() const { return acl_impl::get_tracks_header(*this).num_samples; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the type of the compressed tracks.
-		track_type8 get_track_type() const { return m_tracks_header.track_type; }
+		track_type8 get_track_type() const { return acl_impl::get_tracks_header(*this).track_type; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the duration of each track.
-		float get_duration() const { return calculate_duration(m_tracks_header.num_samples, m_tracks_header.sample_rate); }
+		float get_duration() const
+		{
+			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+			return calculate_duration(header.num_samples, header.sample_rate);
+		}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the sample rate used by each track.
-		float get_sample_rate() const { return m_tracks_header.sample_rate; }
+		float get_sample_rate() const { return acl_impl::get_tracks_header(*this).sample_rate; }
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the compressed tracks are valid and usable.
@@ -108,18 +112,19 @@ namespace acl
 			if (!is_aligned_to(this, alignof(compressed_tracks)))
 				return error_result("Invalid alignment");
 
-			if (m_tracks_header.tag != static_cast<uint32_t>(buffer_tag32::compressed_tracks))
+			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+			if (header.tag != static_cast<uint32_t>(buffer_tag32::compressed_tracks))
 				return error_result("Invalid tag");
 
-			if (!is_valid_algorithm_type(m_tracks_header.algorithm_type))
+			if (!is_valid_algorithm_type(header.algorithm_type))
 				return error_result("Invalid algorithm type");
 
-			if (m_tracks_header.version < compressed_tracks_version16::first || m_tracks_header.version > compressed_tracks_version16::latest)
+			if (header.version < compressed_tracks_version16::first || header.version > compressed_tracks_version16::latest)
 				return error_result("Invalid algorithm version");
 
 			if (check_hash)
 			{
-				const uint32_t hash = hash32(safe_ptr_cast<const uint8_t>(&m_tracks_header), m_buffer_header.size - sizeof(acl_impl::raw_buffer_header));
+				const uint32_t hash = hash32(safe_ptr_cast<const uint8_t>(&m_padding[0]), m_buffer_header.size - sizeof(acl_impl::raw_buffer_header));
 				if (hash != m_buffer_header.hash)
 					return error_result("Invalid hash");
 			}
@@ -146,7 +151,11 @@ namespace acl
 		// Everything starting here is included in the hash.
 		////////////////////////////////////////////////////////////////////////////////
 
-		acl_impl::tracks_header			m_tracks_header;
+		// Here we define some unspecified padding but the 'tracks_header' starts here.
+		// This is done to ensure that this class is 16 byte aligned without requiring further padding
+		// if the 'tracks_header' ends up causing us to be unaligned.
+		uint32_t m_padding[2];
+		//acl_impl::tracks_header			m_tracks_header;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Compressed data follows here in memory.
@@ -186,9 +195,20 @@ namespace acl
 	namespace acl_impl
 	{
 		// Hide these implementations, they shouldn't be needed in user-space
-		inline const tracks_header& get_tracks_header(const compressed_tracks& tracks) { return tracks.m_tracks_header; }
-		inline const scalar_tracks_header& get_scalar_tracks_header(const compressed_tracks& tracks) { return *reinterpret_cast<const scalar_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(compressed_tracks)); }
-		inline const transform_tracks_header& get_transform_tracks_header(const compressed_tracks& tracks) { return *reinterpret_cast<const transform_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(compressed_tracks)); }
+		inline const tracks_header& get_tracks_header(const compressed_tracks& tracks)
+		{
+			return *reinterpret_cast<const tracks_header*>(&tracks.m_padding[0]);
+		}
+
+		inline const scalar_tracks_header& get_scalar_tracks_header(const compressed_tracks& tracks)
+		{
+			return *reinterpret_cast<const scalar_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
+		}
+
+		inline const transform_tracks_header& get_transform_tracks_header(const compressed_tracks& tracks)
+		{
+			return *reinterpret_cast<const transform_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
+		}
 	}
 }
 
