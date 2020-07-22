@@ -88,7 +88,8 @@ namespace acl
 			const uint32_t num_bits_per_frame = context.num_samples != 0 ? (animated_num_bits / context.num_samples) : 0;
 
 			uint32_t buffer_size = 0;
-			buffer_size += sizeof(compressed_tracks);								// Headers
+			buffer_size += sizeof(raw_buffer_header);								// Header
+			buffer_size += sizeof(tracks_header);									// Header
 			buffer_size += sizeof(scalar_tracks_header);							// Header
 			ACL_ASSERT(is_aligned_to(buffer_size, alignof(track_metadata)), "Invalid alignment");
 			buffer_size += per_track_metadata_size;									// Per track metadata
@@ -271,7 +272,8 @@ namespace acl
 
 			uint32_t buffer_size = 0;
 			// Per clip data
-			buffer_size += sizeof(compressed_tracks);							// Headers
+			buffer_size += sizeof(raw_buffer_header);							// Header
+			buffer_size += sizeof(tracks_header);								// Header
 			buffer_size += sizeof(transform_tracks_header);						// Header
 
 			const uint32_t clip_header_size = buffer_size;
