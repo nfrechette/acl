@@ -75,9 +75,6 @@ namespace acl
 		template<class decompression_settings_type>
 		inline bool initialize_v0(persistent_scalar_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
-			if (tracks.is_valid(false).any())
-				return false;	// Invalid compressed tracks instance
-
 			ACL_ASSERT(tracks.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
 
 			context.tracks = &tracks;
@@ -103,12 +100,6 @@ namespace acl
 		template<class decompression_settings_type>
 		inline void seek_v0(persistent_scalar_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy)
 		{
-			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
-			ACL_ASSERT(rtm::scalar_is_finite(sample_time), "Invalid sample time");
-
-			if (!context.is_initialized())
-				return;	// Context is not initialized
-
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			if (decompression_settings_type::clamp_sample_time())
 				sample_time = rtm::scalar_clamp(sample_time, 0.0F, context.duration);
@@ -133,13 +124,7 @@ namespace acl
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_tracks_v0(persistent_scalar_decompression_context_v0& context, track_writer_type& writer)
 		{
-			static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
-			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
-
-			if (!context.is_initialized())
-				return;	// Context is not initialized
-
 			if (context.sample_time < 0.0F)
 				return;	// Invalid sample time, we didn't seek yet
 
@@ -369,13 +354,7 @@ namespace acl
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_track_v0(persistent_scalar_decompression_context_v0& context, uint32_t track_index, track_writer_type& writer)
 		{
-			static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
-			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
-
-			if (!context.is_initialized())
-				return;	// Context is not initialized
-
 			if (context.sample_time < 0.0F)
 				return;	// Invalid sample time, we didn't seek yet
 
