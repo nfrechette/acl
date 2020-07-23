@@ -8,6 +8,8 @@ import time
 import signal
 import sys
 
+from itertools import chain
+
 # This script depends on a SJSON parsing package:
 # https://pypi.python.org/pypi/SJSON/1.1.0
 # https://shelter13.net/projects/SJSON/
@@ -444,6 +446,39 @@ def aggregate_stats(agg_run_stats, run_stats):
 		agg_data['max_error'] = 0
 		agg_data['num_runs'] = 0
 		agg_data['bit_rates'] = [0] * 19
+
+		# Detailed stats
+		agg_data['compressed_size'] = []
+		agg_data['num_segments'] = []
+		agg_data['num_default_rotation_tracks'] = []
+		agg_data['num_default_translation_tracks'] = []
+		agg_data['num_default_scale_tracks'] = []
+		agg_data['num_constant_rotation_tracks'] = []
+		agg_data['num_constant_translation_tracks'] = []
+		agg_data['num_constant_scale_tracks'] = []
+		agg_data['num_animated_rotation_tracks'] = []
+		agg_data['num_animated_translation_tracks'] = []
+		agg_data['num_animated_scale_tracks'] = []
+		agg_data['num_default_tracks'] = []
+		agg_data['num_constant_tracks'] = []
+		agg_data['num_animated_tracks'] = []
+		agg_data['clip_header_size'] = []
+		agg_data['clip_metadata_common_size'] = []
+		agg_data['clip_metadata_rotation_constant_size'] = []
+		agg_data['clip_metadata_translation_constant_size'] = []
+		agg_data['clip_metadata_scale_constant_size'] = []
+		agg_data['clip_metadata_rotation_animated_size'] = []
+		agg_data['clip_metadata_translation_animated_size'] = []
+		agg_data['clip_metadata_scale_animated_size'] = []
+		agg_data['segment_metadata_common_size'] = []
+		agg_data['segment_metadata_rotation_size'] = []
+		agg_data['segment_metadata_translation_size'] = []
+		agg_data['segment_metadata_scale_size'] = []
+		agg_data['segment_animated_rotation_size'] = []
+		agg_data['segment_animated_translation_size'] = []
+		agg_data['segment_animated_scale_size'] = []
+		agg_data['unknown_overhead_size'] = []
+
 		agg_run_stats[algorithm_uid] = agg_data
 
 	agg_data = agg_run_stats[algorithm_uid]
@@ -458,6 +493,39 @@ def aggregate_stats(agg_run_stats, run_stats):
 			if 'bit_rate_counts' in segment:
 				for i in range(19):
 					agg_data['bit_rates'][i] += segment['bit_rate_counts'][i]
+
+	# Detailed stats
+	if 'num_default_rotation_tracks' in run_stats:
+		agg_data['compressed_size'].append(run_stats['compressed_size'])
+		agg_data['num_segments'].append(run_stats['segmenting']['num_segments'])
+		agg_data['num_default_rotation_tracks'].append(run_stats['num_default_rotation_tracks'])
+		agg_data['num_default_translation_tracks'].append(run_stats['num_default_translation_tracks'])
+		agg_data['num_default_scale_tracks'].append(run_stats['num_default_scale_tracks'])
+		agg_data['num_constant_rotation_tracks'].append(run_stats['num_constant_rotation_tracks'])
+		agg_data['num_constant_translation_tracks'].append(run_stats['num_constant_translation_tracks'])
+		agg_data['num_constant_scale_tracks'].append(run_stats['num_constant_scale_tracks'])
+		agg_data['num_animated_rotation_tracks'].append(run_stats['num_animated_rotation_tracks'])
+		agg_data['num_animated_translation_tracks'].append(run_stats['num_animated_translation_tracks'])
+		agg_data['num_animated_scale_tracks'].append(run_stats['num_animated_scale_tracks'])
+		agg_data['num_default_tracks'].append(run_stats['num_default_tracks'])
+		agg_data['num_constant_tracks'].append(run_stats['num_constant_tracks'])
+		agg_data['num_animated_tracks'].append(run_stats['num_animated_tracks'])
+		agg_data['clip_header_size'].append(run_stats['clip_header_size'])
+		agg_data['clip_metadata_common_size'].append(run_stats['clip_metadata_common_size'])
+		agg_data['clip_metadata_rotation_constant_size'].append(run_stats['clip_metadata_rotation_constant_size'])
+		agg_data['clip_metadata_translation_constant_size'].append(run_stats['clip_metadata_translation_constant_size'])
+		agg_data['clip_metadata_scale_constant_size'].append(run_stats['clip_metadata_scale_constant_size'])
+		agg_data['clip_metadata_rotation_animated_size'].append(run_stats['clip_metadata_rotation_animated_size'])
+		agg_data['clip_metadata_translation_animated_size'].append(run_stats['clip_metadata_translation_animated_size'])
+		agg_data['clip_metadata_scale_animated_size'].append(run_stats['clip_metadata_scale_animated_size'])
+		agg_data['segment_metadata_common_size'].append(run_stats['segment_metadata_common_size'])
+		agg_data['segment_metadata_rotation_size'].append(run_stats['segment_metadata_rotation_size'])
+		agg_data['segment_metadata_translation_size'].append(run_stats['segment_metadata_translation_size'])
+		agg_data['segment_metadata_scale_size'].append(run_stats['segment_metadata_scale_size'])
+		agg_data['segment_animated_rotation_size'].append(run_stats['segment_animated_rotation_size'])
+		agg_data['segment_animated_translation_size'].append(run_stats['segment_animated_translation_size'])
+		agg_data['segment_animated_scale_size'].append(run_stats['segment_animated_scale_size'])
+		agg_data['unknown_overhead_size'].append(run_stats['unknown_overhead_size'])
 
 def track_best_runs(best_runs, run_stats):
 	if run_stats['max_error'] < best_runs['best_error']:
@@ -623,6 +691,39 @@ def aggregate_job_stats(agg_job_results, job_results):
 				for i in range(19):
 					agg_job_results['agg_run_stats'][key]['bit_rates'][i] += job_results['agg_run_stats'][key]['bit_rates'][i]
 
+				# Detailed stats
+				if 'num_default_rotation_tracks' in job_results['agg_run_stats'][key]:
+					agg_job_results['agg_run_stats'][key]['compressed_size']							+= job_results['agg_run_stats'][key]['compressed_size']
+					agg_job_results['agg_run_stats'][key]['num_segments']								+= job_results['agg_run_stats'][key]['num_segments']
+					agg_job_results['agg_run_stats'][key]['num_default_rotation_tracks']				+= job_results['agg_run_stats'][key]['num_default_rotation_tracks']
+					agg_job_results['agg_run_stats'][key]['num_default_translation_tracks']				+= job_results['agg_run_stats'][key]['num_default_translation_tracks']
+					agg_job_results['agg_run_stats'][key]['num_default_scale_tracks']					+= job_results['agg_run_stats'][key]['num_default_scale_tracks']
+					agg_job_results['agg_run_stats'][key]['num_constant_rotation_tracks']				+= job_results['agg_run_stats'][key]['num_constant_rotation_tracks']
+					agg_job_results['agg_run_stats'][key]['num_constant_translation_tracks']			+= job_results['agg_run_stats'][key]['num_constant_translation_tracks']
+					agg_job_results['agg_run_stats'][key]['num_constant_scale_tracks']					+= job_results['agg_run_stats'][key]['num_constant_scale_tracks']
+					agg_job_results['agg_run_stats'][key]['num_animated_rotation_tracks']				+= job_results['agg_run_stats'][key]['num_animated_rotation_tracks']
+					agg_job_results['agg_run_stats'][key]['num_animated_translation_tracks']			+= job_results['agg_run_stats'][key]['num_animated_translation_tracks']
+					agg_job_results['agg_run_stats'][key]['num_animated_scale_tracks']					+= job_results['agg_run_stats'][key]['num_animated_scale_tracks']
+					agg_job_results['agg_run_stats'][key]['num_default_tracks']							+= job_results['agg_run_stats'][key]['num_default_tracks']
+					agg_job_results['agg_run_stats'][key]['num_constant_tracks']						+= job_results['agg_run_stats'][key]['num_constant_tracks']
+					agg_job_results['agg_run_stats'][key]['num_animated_tracks']						+= job_results['agg_run_stats'][key]['num_animated_tracks']
+					agg_job_results['agg_run_stats'][key]['clip_header_size']							+= job_results['agg_run_stats'][key]['clip_header_size']
+					agg_job_results['agg_run_stats'][key]['clip_metadata_common_size']					+= job_results['agg_run_stats'][key]['clip_metadata_common_size']
+					agg_job_results['agg_run_stats'][key]['clip_metadata_rotation_constant_size']		+= job_results['agg_run_stats'][key]['clip_metadata_rotation_constant_size']
+					agg_job_results['agg_run_stats'][key]['clip_metadata_translation_constant_size']	+= job_results['agg_run_stats'][key]['clip_metadata_translation_constant_size']
+					agg_job_results['agg_run_stats'][key]['clip_metadata_scale_constant_size']			+= job_results['agg_run_stats'][key]['clip_metadata_scale_constant_size']
+					agg_job_results['agg_run_stats'][key]['clip_metadata_rotation_animated_size']		+= job_results['agg_run_stats'][key]['clip_metadata_rotation_animated_size']
+					agg_job_results['agg_run_stats'][key]['clip_metadata_translation_animated_size']	+= job_results['agg_run_stats'][key]['clip_metadata_translation_animated_size']
+					agg_job_results['agg_run_stats'][key]['clip_metadata_scale_animated_size']			+= job_results['agg_run_stats'][key]['clip_metadata_scale_animated_size']
+					agg_job_results['agg_run_stats'][key]['segment_metadata_common_size']				+= job_results['agg_run_stats'][key]['segment_metadata_common_size']
+					agg_job_results['agg_run_stats'][key]['segment_metadata_rotation_size']				+= job_results['agg_run_stats'][key]['segment_metadata_rotation_size']
+					agg_job_results['agg_run_stats'][key]['segment_metadata_translation_size']			+= job_results['agg_run_stats'][key]['segment_metadata_translation_size']
+					agg_job_results['agg_run_stats'][key]['segment_metadata_scale_size']				+= job_results['agg_run_stats'][key]['segment_metadata_scale_size']
+					agg_job_results['agg_run_stats'][key]['segment_animated_rotation_size']				+= job_results['agg_run_stats'][key]['segment_animated_rotation_size']
+					agg_job_results['agg_run_stats'][key]['segment_animated_translation_size']			+= job_results['agg_run_stats'][key]['segment_animated_translation_size']
+					agg_job_results['agg_run_stats'][key]['segment_animated_scale_size']				+= job_results['agg_run_stats'][key]['segment_animated_scale_size']
+					agg_job_results['agg_run_stats'][key]['unknown_overhead_size']						+= job_results['agg_run_stats'][key]['unknown_overhead_size']
+
 		if job_results['best_runs']['best_error'] < agg_job_results['best_runs']['best_error']:
 			agg_job_results['best_runs']['best_error'] = job_results['best_runs']['best_error']
 			agg_job_results['best_runs']['best_error_entry'] = job_results['best_runs']['best_error_entry']
@@ -644,6 +745,123 @@ def aggregate_job_stats(agg_job_results, job_results):
 
 def percentile_rank(values, value):
 	return (values < value).mean() * 100.0
+
+def aggregate_and_print_track_results(agg_run_stats, key):
+	if key:
+		label = '{} '.format(key)
+		key = '{}_'.format(key)
+	else:
+		label = ''
+		key = ''
+
+	total_key = 'total_{}tracks'.format(key)
+	default_ratios_key = 'default_{}tracks_ratios'.format(key)
+	constant_ratios_key = 'constant_{}tracks_ratios'.format(key)
+	animated_ratios_key = 'animated_{}tracks_ratios'.format(key)
+	num_default_key = 'num_default_{}tracks'.format(key)
+	num_constant_key = 'num_constant_{}tracks'.format(key)
+	num_animated_key = 'num_animated_{}tracks'.format(key)
+
+	for value in agg_run_stats.values():
+		value[total_key] = [x + y + z for x, y, z in zip(value[num_default_key], value[num_constant_key], value[num_animated_key])]
+		value[default_ratios_key] = [(x / y) * 100.0 for x, y in zip(value[num_default_key], value[total_key])]
+		value[constant_ratios_key] = [(x / y) * 100.0 for x, y in zip(value[num_constant_key], value[total_key])]
+		value[animated_ratios_key] = [(x / y) * 100.0 for x, y in zip(value[num_animated_key], value[total_key])]
+
+		total_tracks = sum([sum(x[total_key]) for x in agg_run_stats.values()])
+		total_default_tracks = sum([sum(x[num_default_key]) for x in agg_run_stats.values()])
+		total_constant_tracks = sum([sum(x[num_constant_key]) for x in agg_run_stats.values()])
+		total_animated_tracks = sum([sum(x[num_animated_key]) for x in agg_run_stats.values()])
+
+		tmp = list(chain.from_iterable([x[default_ratios_key] for x in agg_run_stats.values()]))
+		total_default_tracks_p50 = numpy.percentile(tmp, 50.0)
+		total_default_tracks_p85 = numpy.percentile(tmp, 85.0)
+		total_default_tracks_p99 = numpy.percentile(tmp, 99.0)
+		tmp = list(chain.from_iterable([x[constant_ratios_key] for x in agg_run_stats.values()]))
+		total_constant_tracks_p50 = numpy.percentile(tmp, 50.0)
+		total_constant_tracks_p85 = numpy.percentile(tmp, 85.0)
+		total_constant_tracks_p99 = numpy.percentile(tmp, 99.0)
+		tmp = list(chain.from_iterable([x[animated_ratios_key] for x in agg_run_stats.values()]))
+		total_animated_tracks_p50 = numpy.percentile(tmp, 50.0)
+		total_animated_tracks_p85 = numpy.percentile(tmp, 85.0)
+		total_animated_tracks_p99 = numpy.percentile(tmp, 99.0)
+
+		print('Total {}tracks: {}'.format(label, total_tracks))
+		print('Total default {}tracks: {} ({:.2f} %)'.format(label, total_default_tracks, (total_default_tracks / total_tracks) * 100.0))
+		print('    50, 85, 99th percentile: {:.2f} %, {:.2f} %, {:.2f} %'.format(total_default_tracks_p50, total_default_tracks_p85, total_default_tracks_p99))
+		print('Total constant {}tracks: {} ({:.2f} %)'.format(label, total_constant_tracks, (total_constant_tracks / total_tracks) * 100.0))
+		print('    50, 85, 99th percentile: {:.2f} %, {:.2f} %, {:.2f} %'.format(total_constant_tracks_p50, total_constant_tracks_p85, total_constant_tracks_p99))
+		print('Total animated {}tracks: {} ({:.2f} %)'.format(label, total_animated_tracks, (total_animated_tracks / total_tracks) * 100.0))
+		print('    50, 85, 99th percentile: {:.2f} %, {:.2f} %, {:.2f} %'.format(total_animated_tracks_p50, total_animated_tracks_p85, total_animated_tracks_p99))
+
+def aggregate_and_print_clip_metadata_results(agg_run_stats):
+	for value in agg_run_stats.values():
+		value['clip_metadata_total_constant_size'] = [x + y + z for x, y, z in zip(value['clip_metadata_rotation_constant_size'], value['clip_metadata_translation_constant_size'], value['clip_metadata_scale_constant_size'])]
+		value['clip_metadata_total_animated_size'] = [x + y + z for x, y, z in zip(value['clip_metadata_rotation_animated_size'], value['clip_metadata_translation_animated_size'], value['clip_metadata_scale_animated_size'])]
+		value['clip_metadata_total_size'] = [x + y + z + w for x, y, z, w in zip(value['clip_header_size'], value['clip_metadata_common_size'], value['clip_metadata_total_constant_size'], value['clip_metadata_total_animated_size'])]
+
+		clip_metadata_total_size = sum([sum(x['clip_metadata_total_size']) for x in agg_run_stats.values()])
+		total_compressed_size = sum([sum(x['compressed_size']) for x in agg_run_stats.values()])
+
+		value['clip_metadata_ratios'] = [(x / y) * 100.0 for x, y in zip(value['clip_metadata_total_size'], value['compressed_size'])]
+
+		tmp = list(chain.from_iterable([x['clip_metadata_ratios'] for x in agg_run_stats.values()]))
+		clip_metadata_ratio_p50 = numpy.percentile(tmp, 50.0)
+		clip_metadata_ratio_p85 = numpy.percentile(tmp, 85.0)
+		clip_metadata_ratio_p99 = numpy.percentile(tmp, 99.0)
+
+		print('Total clip metadata size: {} ({:.2f} %)'.format(clip_metadata_total_size, (clip_metadata_total_size / total_compressed_size) * 100.0))
+		print('    50, 85, 99th percentile: {:.2f} %, {:.2f} %, {:.2f} %'.format(clip_metadata_ratio_p50, clip_metadata_ratio_p85, clip_metadata_ratio_p99))
+
+def aggregate_and_print_segment_metadata_results(agg_run_stats):
+	for value in agg_run_stats.values():
+		value['segment_metadata_total_size'] = [x + y + z + w for x, y, z, w in zip(value['segment_metadata_common_size'], value['segment_metadata_rotation_size'], value['segment_metadata_translation_size'], value['segment_metadata_scale_size'])]
+
+		segment_metadata_total_size = sum([sum(x['segment_metadata_total_size']) for x in agg_run_stats.values()])
+		total_compressed_size = sum([sum(x['compressed_size']) for x in agg_run_stats.values()])
+
+		value['segment_metadata_ratios'] = [(x / y) * 100.0 for x, y in zip(value['segment_metadata_total_size'], value['compressed_size'])]
+
+		tmp = list(chain.from_iterable([x['segment_metadata_ratios'] for x in agg_run_stats.values()]))
+		segment_metadata_ratio_p50 = numpy.percentile(tmp, 50.0)
+		segment_metadata_ratio_p85 = numpy.percentile(tmp, 85.0)
+		segment_metadata_ratio_p99 = numpy.percentile(tmp, 99.0)
+
+		print('Total segment metadata size: {} ({:.2f} %)'.format(segment_metadata_total_size, (segment_metadata_total_size / total_compressed_size) * 100.0))
+		print('    50, 85, 99th percentile: {:.2f} %, {:.2f} %, {:.2f} %'.format(segment_metadata_ratio_p50, segment_metadata_ratio_p85, segment_metadata_ratio_p99))
+
+def aggregate_and_print_segment_animated_results(agg_run_stats):
+	for value in agg_run_stats.values():
+		value['segment_animated_total_size'] = [x + y + z for x, y, z in zip(value['segment_animated_rotation_size'], value['segment_animated_translation_size'], value['segment_animated_scale_size'])]
+
+		segment_animated_total_size = sum([sum(x['segment_animated_total_size']) for x in agg_run_stats.values()])
+		total_compressed_size = sum([sum(x['compressed_size']) for x in agg_run_stats.values()])
+
+		value['segment_animated_ratios'] = [(x / y) * 100.0 for x, y in zip(value['segment_animated_total_size'], value['compressed_size'])]
+
+		tmp = list(chain.from_iterable([x['segment_animated_ratios'] for x in agg_run_stats.values()]))
+		segment_animated_ratio_p50 = numpy.percentile(tmp, 50.0)
+		segment_animated_ratio_p85 = numpy.percentile(tmp, 85.0)
+		segment_animated_ratio_p99 = numpy.percentile(tmp, 99.0)
+
+		print('Total segment animated size: {} ({:.2f} %)'.format(segment_animated_total_size, (segment_animated_total_size / total_compressed_size) * 100.0))
+		print('    50, 85, 99th percentile: {:.2f} %, {:.2f} %, {:.2f} %'.format(segment_animated_ratio_p50, segment_animated_ratio_p85, segment_animated_ratio_p99))
+
+def aggregate_and_print_num_segment_results(agg_run_stats):
+	for value in agg_run_stats.values():
+		value['total_num_segments'] = [x + y + z for x, y, z in zip(value['segment_animated_rotation_size'], value['segment_animated_translation_size'], value['segment_animated_scale_size'])]
+
+		total_num_segments = sum([sum(x['num_segments']) for x in agg_run_stats.values()])
+
+		value['segment_animated_ratios'] = [(x / y) * 100.0 for x, y in zip(value['segment_animated_total_size'], value['compressed_size'])]
+
+		tmp = list(chain.from_iterable([x['num_segments'] for x in agg_run_stats.values()]))
+		num_segments_p50 = numpy.percentile(tmp, 50.0)
+		num_segments_p85 = numpy.percentile(tmp, 85.0)
+		num_segments_p99 = numpy.percentile(tmp, 99.0)
+
+		print('Total num segments: {}'.format(total_num_segments))
+		print('    50, 85, 99th percentile: {:.2f}, {:.2f}, {:.2f}'.format(num_segments_p50, num_segments_p85, num_segments_p99))
 
 if __name__ == "__main__":
 	if sys.version_info < (3, 4):
@@ -750,3 +968,28 @@ if __name__ == "__main__":
 
 	print('Worst ratio: {}'.format(worst_runs['worst_ratio_entry']['filename']))
 	print_stat(worst_runs['worst_ratio_entry'])
+
+	if options['stat_detailed']:
+		print('----- Detailed stats -----')
+		print()
+
+		aggregate_and_print_track_results(agg_run_stats, None)
+		print()
+		aggregate_and_print_track_results(agg_run_stats, 'rotation')
+		print()
+		aggregate_and_print_track_results(agg_run_stats, 'translation')
+		print()
+		aggregate_and_print_track_results(agg_run_stats, 'scale')
+		print()
+
+		aggregate_and_print_clip_metadata_results(agg_run_stats)
+		print()
+
+		aggregate_and_print_segment_metadata_results(agg_run_stats)
+		print()
+
+		aggregate_and_print_segment_animated_results(agg_run_stats)
+		print()
+
+		aggregate_and_print_num_segment_results(agg_run_stats)
+		print()

@@ -557,7 +557,7 @@ namespace acl
 			compression_time.stop();
 
 			if (out_stats.logging != stat_logging::None)
-				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
+				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, range_reduction, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
 #endif
 
 			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
