@@ -361,6 +361,8 @@ namespace acl
 				for (uint32_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				{
 					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+					if (bone_stream.is_stripped_from_output())
+						continue;
 
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) && !bone_stream.is_rotation_constant)
 					{
