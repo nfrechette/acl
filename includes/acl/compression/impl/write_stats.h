@@ -259,6 +259,9 @@ namespace acl
 
 				for (const BoneStreams& bone_stream : clip.segments[0].bone_iterator())
 				{
+					if (bone_stream.is_stripped_from_output())
+						continue;
+
 					if (bone_stream.is_rotation_default)
 						num_default_rotation_tracks++;
 					else if (bone_stream.is_rotation_constant)
