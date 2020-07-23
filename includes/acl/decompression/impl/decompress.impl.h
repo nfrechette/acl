@@ -41,6 +41,12 @@ namespace acl
 	template<class decompression_settings_type>
 	inline bool decompression_context<decompression_settings_type>::initialize(const compressed_tracks& tracks)
 	{
+		const bool is_valid = tracks.is_valid(false).empty();
+		ACL_ASSERT(is_valid, "Invalid compressed tracks instance");
+		if (!is_valid)
+			return false;	// Invalid compressed tracks instance
+
+		ACL_ASSERT(algorithm_version_type::is_version_supported(tracks.get_version()), "Unsupported version");
 		if (!algorithm_version_type::is_version_supported(tracks.get_version()))
 			return false;
 
@@ -56,6 +62,12 @@ namespace acl
 	template<class decompression_settings_type>
 	inline void decompression_context<decompression_settings_type>::seek(float sample_time, sample_rounding_policy rounding_policy)
 	{
+		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
+		ACL_ASSERT(rtm::scalar_is_finite(sample_time), "Invalid sample time");
+
+		if (!m_context.is_initialized())
+			return;	// Context is not initialized
+
 		algorithm_version_type::template seek<decompression_settings_type>(m_context, sample_time, rounding_policy);
 	}
 
@@ -63,6 +75,12 @@ namespace acl
 	template<class track_writer_type>
 	inline void decompression_context<decompression_settings_type>::decompress_tracks(track_writer_type& writer)
 	{
+		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
+		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
+
+		if (!m_context.is_initialized())
+			return;	// Context is not initialized
+
 		algorithm_version_type::template decompress_tracks<decompression_settings_type>(m_context, writer);
 	}
 
@@ -70,6 +88,12 @@ namespace acl
 	template<class track_writer_type>
 	inline void decompression_context<decompression_settings_type>::decompress_track(uint32_t track_index, track_writer_type& writer)
 	{
+		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
+		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
+
+		if (!m_context.is_initialized())
+			return;	// Context is not initialized
+
 		algorithm_version_type::template decompress_track<decompression_settings_type>(m_context, track_index, writer);
 	}
 }
