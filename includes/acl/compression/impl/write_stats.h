@@ -217,8 +217,166 @@ namespace acl
 			deallocate_type_array(allocator, self_transform_indices, num_bones);
 		}
 
+		inline uint32_t calculate_clip_metadata_common_size(const clip_context& clip, const compressed_tracks& compressed_clip)
+		{
+			uint32_t result = 0;
+
+			// Segment start indices and headers
+			result += clip.num_segments > 1 ? (sizeof(uint32_t) * (clip.num_segments + 1)) : 0;
+			result += sizeof(segment_header) * clip.num_segments;
+
+			// Default/constant track bit sets
+			const bitset_description bitset_desc = bitset_description::make_from_num_bits(compressed_clip.get_num_tracks());
+			result += bitset_desc.get_num_bytes();
+			result += bitset_desc.get_num_bytes();
+
+			return result;
+		}
+
+		inline uint32_t calculate_segment_metadata_common_size(const clip_context& clip, const compression_settings& settings)
+		{
+			const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
+			const bool is_translation_variable = is_vector_format_variable(settings.translation_format);
+			const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
+
+			// Only use the first segment, it contains the necessary information
+			const SegmentContext& segment = clip.segments[0];
+
+			uint32_t result = 0;
+
+			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			{
+				if (bone_stream.is_stripped_from_output())
+					continue;
+
+				// Format per track
+				if (!bone_stream.is_rotation_constant && is_rotation_variable)
+					result++;
+
+				if (!bone_stream.is_translation_constant && is_translation_variable)
+					result++;
+
+				if (!bone_stream.is_scale_constant && is_scale_variable)
+					result++;
+			}
+
+			return result * clip.num_segments;
+		}
+
+		inline uint32_t calculate_segment_metadata_rotation_size(const clip_context& clip, range_reduction_flags8 range_reduction)
+		{
+			if (clip.num_segments == 1)
+				return 0;
+
+			// Only use the first segment, it contains the necessary information
+			const SegmentContext& segment = clip.segments[0];
+
+			uint32_t result = 0;
+
+			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			{
+				if (bone_stream.is_stripped_from_output())
+					continue;
+
+				// Range data
+				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) && !bone_stream.is_rotation_constant)
+				{
+					const uint32_t num_components = bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full ? 8 : 6;
+					result += num_components * k_segment_range_reduction_num_bytes_per_component;
+				}
+			}
+
+			return result * clip.num_segments;
+		}
+
+		inline uint32_t calculate_segment_metadata_translation_size(const clip_context& clip, range_reduction_flags8 range_reduction)
+		{
+			if (clip.num_segments == 1)
+				return 0;
+
+			// Only use the first segment, it contains the necessary information
+			const SegmentContext& segment = clip.segments[0];
+
+			uint32_t result = 0;
+
+			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			{
+				if (bone_stream.is_stripped_from_output())
+					continue;
+
+				// Range data
+				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) && !bone_stream.is_translation_constant)
+					result += k_segment_range_reduction_num_bytes_per_component * 6;
+			}
+
+			return result * clip.num_segments;
+		}
+
+		inline uint32_t calculate_segment_metadata_scale_size(const clip_context& clip, range_reduction_flags8 range_reduction)
+		{
+			if (clip.num_segments == 1)
+				return 0;
+
+			// Only use the first segment, it contains the necessary information
+			const SegmentContext& segment = clip.segments[0];
+
+			uint32_t result = 0;
+
+			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			{
+				if (bone_stream.is_stripped_from_output())
+					continue;
+
+				// Range data
+				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) && !bone_stream.is_scale_constant)
+					result += k_segment_range_reduction_num_bytes_per_component * 6;
+			}
+
+			return result * clip.num_segments;
+		}
+
+		inline uint32_t calculate_segment_animated_rotation_size(const clip_context& clip)
+		{
+			uint32_t result = 0;
+
+			for (const SegmentContext& segment : clip.segment_iterator())
+				result += align_to(segment.animated_pose_rotation_bit_size, 8) / 8;	// Convert bits to bytes;
+
+			return result;
+		}
+
+		inline uint32_t calculate_segment_animated_translation_size(const clip_context& clip)
+		{
+			uint32_t result = 0;
+
+			for (const SegmentContext& segment : clip.segment_iterator())
+				result += align_to(segment.animated_pose_translation_bit_size, 8) / 8;	// Convert bits to bytes;
+
+			return result;
+		}
+
+		inline uint32_t calculate_segment_animated_scale_size(const clip_context& clip)
+		{
+			uint32_t result = 0;
+
+			for (const SegmentContext& segment : clip.segment_iterator())
+				result += align_to(segment.animated_pose_scale_bit_size, 8) / 8;	// Convert bits to bytes;
+
+			return result;
+		}
+
+		inline uint32_t calculate_segment_animated_data_size(const clip_context& clip)
+		{
+			uint32_t result = 0;
+
+			for (const SegmentContext& segment : clip.segment_iterator())
+				result += segment.animated_data_size;
+
+			return result;
+		}
+
 		inline void write_stats(iallocator& allocator, const track_array_qvvf& track_list, const clip_context& clip,
-			const compressed_tracks& compressed_clip, const compression_settings& settings, const clip_context& raw_clip,
+			const compressed_tracks& compressed_clip, const compression_settings& settings, range_reduction_flags8 range_reduction, const clip_context& raw_clip,
 			const clip_context& additive_base_clip_context, const scope_profiler& compression_time,
 			output_stats& stats)
 		{
@@ -303,6 +461,62 @@ namespace acl
 				writer["num_default_tracks"] = num_default_tracks;
 				writer["num_constant_tracks"] = num_constant_tracks;
 				writer["num_animated_tracks"] = num_animated_tracks;
+
+				const uint32_t clip_header_size = sizeof(raw_buffer_header) + sizeof(tracks_header) + sizeof(transform_tracks_header);
+				const uint32_t clip_metadata_common_size = calculate_clip_metadata_common_size(clip, compressed_clip);
+				const uint32_t clip_metadata_rotation_constant_size = get_packed_rotation_size(get_highest_variant_precision(get_rotation_variant(settings.rotation_format))) * num_constant_rotation_tracks;
+				const uint32_t clip_metadata_translation_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_translation_tracks;
+				const uint32_t clip_metadata_scale_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_scale_tracks;
+				writer["clip_header_size"] = clip_header_size;
+				writer["clip_metadata_common_size"] = clip_metadata_common_size;
+				writer["clip_metadata_rotation_constant_size"] = clip_metadata_rotation_constant_size;
+				writer["clip_metadata_translation_constant_size"] = clip_metadata_translation_constant_size;
+				writer["clip_metadata_scale_constant_size"] = clip_metadata_scale_constant_size;
+
+				const uint32_t range_rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(settings.rotation_format) : 0;
+				const uint32_t range_translation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) ? k_clip_range_reduction_vector3_range_size : 0;
+				const uint32_t range_scale_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) ? k_clip_range_reduction_vector3_range_size : 0;
+				const uint32_t clip_metadata_rotation_animated_size = range_rotation_size * num_animated_rotation_tracks;
+				const uint32_t clip_metadata_translation_animated_size = range_translation_size * num_animated_translation_tracks;
+				const uint32_t clip_metadata_scale_animated_size = range_scale_size * num_animated_scale_tracks;
+				writer["clip_metadata_rotation_animated_size"] = clip_metadata_rotation_animated_size;
+				writer["clip_metadata_translation_animated_size"] = clip_metadata_translation_animated_size;
+				writer["clip_metadata_scale_animated_size"] = clip_metadata_scale_animated_size;
+
+				const uint32_t segment_metadata_common_size = calculate_segment_metadata_common_size(clip, settings);
+				const uint32_t segment_metadata_rotation_size = calculate_segment_metadata_rotation_size(clip, range_reduction);
+				const uint32_t segment_metadata_translation_size = calculate_segment_metadata_translation_size(clip, range_reduction);
+				const uint32_t segment_metadata_scale_size = calculate_segment_metadata_scale_size(clip, range_reduction);
+				const uint32_t segment_animated_rotation_size = calculate_segment_animated_rotation_size(clip);
+				const uint32_t segment_animated_translation_size = calculate_segment_animated_translation_size(clip);
+				const uint32_t segment_animated_scale_size = calculate_segment_animated_scale_size(clip);
+				writer["segment_metadata_common_size"] = segment_metadata_common_size;
+				writer["segment_metadata_rotation_size"] = segment_metadata_rotation_size;
+				writer["segment_metadata_translation_size"] = segment_metadata_translation_size;
+				writer["segment_metadata_scale_size"] = segment_metadata_scale_size;
+				writer["segment_animated_rotation_size"] = segment_animated_rotation_size;
+				writer["segment_animated_translation_size"] = segment_animated_translation_size;
+				writer["segment_animated_scale_size"] = segment_animated_scale_size;
+
+				uint32_t known_data_size = 0;
+				known_data_size += clip_header_size;
+				known_data_size += clip_metadata_common_size;
+				known_data_size += clip_metadata_rotation_constant_size;
+				known_data_size += clip_metadata_translation_constant_size;
+				known_data_size += clip_metadata_scale_constant_size;
+				known_data_size += clip_metadata_rotation_animated_size;
+				known_data_size += clip_metadata_translation_animated_size;
+				known_data_size += clip_metadata_scale_animated_size;
+				known_data_size += segment_metadata_common_size;
+				known_data_size += segment_metadata_rotation_size;
+				known_data_size += segment_metadata_translation_size;
+				known_data_size += segment_metadata_scale_size;
+				const uint32_t segment_animated_data_size = calculate_segment_animated_data_size(clip);
+				known_data_size += segment_animated_data_size;
+
+				const int32_t unknown_overhead_size = compressed_size - known_data_size;
+				ACL_ASSERT(unknown_overhead_size >= 0, "Overhead size should be positive");
+				writer["unknown_overhead_size"] = unknown_overhead_size;
 			}
 
 			writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
