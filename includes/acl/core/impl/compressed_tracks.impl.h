@@ -45,6 +45,11 @@ namespace acl
 		{
 			return *reinterpret_cast<const transform_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
 		}
+
+		inline const optional_metadata_header& get_optional_metadata_header(const compressed_tracks& tracks)
+		{
+			return *reinterpret_cast<const optional_metadata_header*>(reinterpret_cast<const uint8_t*>(&tracks) + tracks.get_size() - sizeof(optional_metadata_header));
+		}
 	}
 
 	algorithm_type8 compressed_tracks::get_algorithm_type() const { return acl_impl::get_tracks_header(*this).algorithm_type; }
@@ -66,6 +71,38 @@ namespace acl
 	}
 
 	float compressed_tracks::get_sample_rate() const { return acl_impl::get_tracks_header(*this).sample_rate; }
+
+	const char* compressed_tracks::get_name() const
+	{
+		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+		if (!header.get_has_metadata())
+			return nullptr;	// No metadata is stored
+
+		const acl_impl::optional_metadata_header& metadata_header = acl_impl::get_optional_metadata_header(*this);
+		if (!metadata_header.track_name_offsets.is_valid())
+			return nullptr;	// Track names aren't stored
+
+		return metadata_header.get_track_list_name(*this);
+	}
+
+	const char* compressed_tracks::get_track_name(uint32_t track_index) const
+	{
+		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+		if (!header.get_has_metadata())
+			return nullptr;	// No metadata is stored
+
+		ACL_ASSERT(track_index < header.num_tracks, "Invalid track index");
+		if (track_index >= header.num_tracks)
+			return nullptr;	// Invalid track index
+
+		const acl_impl::optional_metadata_header& metadata_header = acl_impl::get_optional_metadata_header(*this);
+		if (!metadata_header.track_name_offsets.is_valid())
+			return nullptr;	// Track names aren't stored
+
+		const uint32_t* track_names_offsets = metadata_header.get_track_name_offsets(*this);
+		const ptr_offset32<char> offset = track_names_offsets[track_index];
+		return offset.add_to(track_names_offsets);
+	}
 
 	error_result compressed_tracks::is_valid(bool check_hash) const
 	{

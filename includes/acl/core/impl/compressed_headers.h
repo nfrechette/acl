@@ -36,6 +36,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	class compressed_tracks;
+
 	namespace acl_impl
 	{
 		// Common header to all binary formats
@@ -79,7 +81,8 @@ namespace acl
 			// Accessors for 'misc_packed'
 
 			// Scalar tracks use it like this (listed from LSB):
-			// Bits [0, 32): unused (32 bits)
+			// Bits [0, 31): unused (31 bits)
+			// Bit [31, 32): has metadata?
 
 			// Transform tracks use it like this (listed from LSB):
 			// Bit 0: has scale?
@@ -87,7 +90,8 @@ namespace acl
 			// Bit 2: scale format
 			// Bit 3: translation format
 			// Bits [4, 8): rotation format (4 bits)
-			// Bits [8, 32): unused (24 bits)
+			// Bits [8, 31): unused (23 bits)
+			// Bit [31, 32): has metadata?
 
 			rotation_format8 get_rotation_format() const { return static_cast<rotation_format8>((misc_packed >> 4) & 15); }
 			void set_rotation_format(rotation_format8 format) { misc_packed = (misc_packed & ~(15 << 4)) | (static_cast<uint32_t>(format) << 4); }
@@ -99,6 +103,8 @@ namespace acl
 			void set_default_scale(uint32_t scale) { ACL_ASSERT(scale == 0 || scale == 1, "Invalid default scale"); misc_packed = (misc_packed & ~(1 << 1)) | (scale << 1); }
 			bool get_has_scale() const { return (misc_packed & 1) != 0; }
 			void set_has_scale(bool has_scale) { misc_packed = (misc_packed & ~1) | static_cast<uint32_t>(has_scale); }
+			bool get_has_metadata() const { return (misc_packed >> 31) != 0; }
+			void set_has_metadata(bool has_metadata) { misc_packed = (misc_packed & ~(1 << 31)) | (static_cast<uint32_t>(has_metadata) << 31); }
 		};
 
 		// Scalar track metadata
@@ -204,6 +210,23 @@ namespace acl
 
 			uint8_t*					get_segment_range_data(const segment_header& header) { return header.range_data_offset.safe_add_to(this); }
 			const uint8_t*				get_segment_range_data(const segment_header& header) const { return header.range_data_offset.safe_add_to(this); }
+		};
+
+		// Header for optional track metadata, must be at least 15 bytes
+		struct optional_metadata_header
+		{
+			ptr_offset32<char>				track_list_name;
+			ptr_offset32<uint32_t>			track_name_offsets;
+
+			uint32_t						padding[2];
+
+			//////////////////////////////////////////////////////////////////////////
+			// Utility functions that return pointers from their respective offsets.
+
+			char*						get_track_list_name(compressed_tracks& tracks) { return track_list_name.safe_add_to(&tracks); }
+			const char*					get_track_list_name(const compressed_tracks& tracks) const { return track_list_name.safe_add_to(&tracks); }
+			uint32_t*					get_track_name_offsets(compressed_tracks& tracks) { return track_name_offsets.safe_add_to(&tracks); }
+			const uint32_t*				get_track_name_offsets(const compressed_tracks& tracks) const { return track_name_offsets.safe_add_to(&tracks); }
 		};
 	}
 }

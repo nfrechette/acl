@@ -27,10 +27,16 @@
 // Included only once from compress.h
 
 #include "acl/core/buffer_tag.h"
+#include "acl/core/compressed_tracks.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error.h"
+#include "acl/core/error_result.h"
 #include "acl/core/floating_point_exceptions.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/scope_profiler.h"
+#include "acl/compression/compression_settings.h"
+#include "acl/compression/output_stats.h"
+#include "acl/compression/track_array.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/constant_track_impl.h"
 #include "acl/compression/impl/normalize_track_impl.h"
@@ -49,12 +55,15 @@
 #include "acl/compression/impl/write_stats.h"
 #include "acl/compression/impl/write_stream_bitsets.h"
 #include "acl/compression/impl/write_stream_data.h"
+#include "acl/compression/impl/write_track_metadata.h"
+
+#include <cstdint>
 
 namespace acl
 {
 	namespace acl_impl
 	{
-		inline error_result compress_scalar_track_list(iallocator& allocator, const track_array& track_list, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
+		inline error_result compress_scalar_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
 #if defined(SJSON_CPP_WRITER)
 			scope_profiler compression_time;
@@ -89,12 +98,32 @@ namespace acl
 			buffer_size += range_values_size;										// Range values
 			ACL_ASSERT(is_aligned_to(buffer_size, 4), "Invalid alignment");
 			buffer_size += animated_values_size;									// Animated values
-			buffer_size += 15;														// Ensure we have sufficient padding for unaligned 16 byte loads
+
+			// Optional metadata
+			const uint32_t metadata_start_offset = align_to(buffer_size, 4);
+			const uint32_t metadata_track_list_name_size = settings.include_track_list_name ? write_track_list_name(track_list, nullptr) : 0;
+			const uint32_t metadata_track_names_size = settings.include_track_names ? write_track_names(track_list, context.track_output_indices, context.num_output_tracks, nullptr) : 0;
+
+			uint32_t metadata_size = 0;
+			metadata_size += metadata_track_list_name_size;
+			metadata_size = align_to(metadata_size, 4);
+			metadata_size += metadata_track_names_size;
+
+			if (metadata_size != 0)
+			{
+				metadata_size = align_to(metadata_size, 4);
+				metadata_size += sizeof(optional_metadata_header);
+
+				buffer_size = align_to(buffer_size, 4);
+				buffer_size += metadata_size;
+			}
+			else
+				buffer_size += 15;	// Ensure we have sufficient padding for unaligned 16 byte loads
 
 			uint8_t* buffer = allocate_type_array_aligned<uint8_t>(allocator, buffer_size, alignof(compressed_tracks));
 			std::memset(buffer, 0, buffer_size);
 
-			const uint8_t* buffer_start = buffer;
+			uint8_t* buffer_start = buffer;
 			out_compressed_tracks = reinterpret_cast<compressed_tracks*>(buffer);
 
 			raw_buffer_header* buffer_header = safe_ptr_cast<raw_buffer_header>(buffer);
@@ -111,6 +140,7 @@ namespace acl
 			header->num_tracks = context.num_tracks;
 			header->num_samples = context.num_samples;
 			header->sample_rate = context.sample_rate;
+			header->set_has_metadata(metadata_size != 0);
 
 			// Write our scalar tracks header
 			scalar_tracks_header* scalars_header = safe_ptr_cast<scalar_tracks_header>(buffer);
@@ -128,7 +158,11 @@ namespace acl
 			buffer += range_values_size;
 			scalars_header->track_animated_values = buffer - packed_data_start_offset;
 			buffer += animated_values_size;
-			buffer += 15;
+
+			if (metadata_size != 0)
+				buffer = align_to(buffer, 4) + metadata_size;
+			else
+				buffer += 15;
 
 			(void)buffer_start;	// Avoid VS2017 bug, it falsely reports this variable as unused even when asserts are enabled
 			ACL_ASSERT((buffer_start + buffer_size) == buffer, "Buffer size and pointer mismatch");
@@ -146,13 +180,44 @@ namespace acl
 			uint8_t* animated_values = scalars_header->get_track_animated_values();
 			write_track_animated_values(context, animated_values);
 
+			// Optional metadata header is last
+			uint32_t writter_metadata_track_list_name_size = 0;
+			uint32_t written_metadata_track_names_size = 0;
+			if (metadata_size != 0)
+			{
+				optional_metadata_header* metadada_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
+				uint32_t metadata_offset = metadata_start_offset;
+
+				if (settings.include_track_list_name)
+				{
+					metadada_header->track_list_name = metadata_offset;
+					writter_metadata_track_list_name_size = write_track_list_name(track_list, metadada_header->get_track_list_name(*out_compressed_tracks));
+					metadata_offset += writter_metadata_track_list_name_size;
+				}
+				else
+					metadada_header->track_list_name = invalid_ptr_offset();
+
+				if (settings.include_track_names)
+				{
+					metadata_offset = align_to(metadata_offset, 4);
+					metadada_header->track_name_offsets = metadata_offset;
+					written_metadata_track_names_size = write_track_names(track_list, context.track_output_indices, context.num_output_tracks, metadada_header->get_track_name_offsets(*out_compressed_tracks));
+					metadata_offset += written_metadata_track_names_size;
+				}
+				else
+					metadada_header->track_name_offsets = invalid_ptr_offset();
+			}
+
 			// Finish the raw buffer header
 			buffer_header->size = buffer_size;
 			buffer_header->hash = hash32(safe_ptr_cast<const uint8_t>(header), buffer_size - sizeof(raw_buffer_header));	// Hash everything but the raw buffer header
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
-			for (const uint8_t* padding = buffer - 15; padding < buffer; ++padding)
-				ACL_ASSERT(*padding == 0, "Padding was overwritten");
+			if (metadata_size == 0)
+			{
+				for (const uint8_t* padding = buffer - 15; padding < buffer; ++padding)
+					ACL_ASSERT(*padding == 0, "Padding was overwritten");
+			}
 #endif
 
 #if defined(SJSON_CPP_WRITER)
@@ -316,13 +381,32 @@ namespace acl
 				segment.total_header_size = header_end - header_start;
 			}
 
-			// Ensure we have sufficient padding for unaligned 16 byte loads
-			buffer_size += 15;
+			// Optional metadata
+			const uint32_t metadata_start_offset = align_to(buffer_size, 4);
+			const uint32_t metadata_track_list_name_size = settings.include_track_list_name ? write_track_list_name(track_list, nullptr) : 0;
+			const uint32_t metadata_track_names_size = settings.include_track_names ? write_track_names(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
+
+			uint32_t metadata_size = 0;
+			metadata_size += metadata_track_list_name_size;
+			metadata_size = align_to(metadata_size, 4);
+			metadata_size += metadata_track_names_size;
+
+			if (metadata_size != 0)
+			{
+				metadata_size = align_to(metadata_size, 4);
+				metadata_size += sizeof(optional_metadata_header);
+
+				buffer_size = align_to(buffer_size, 4);
+				buffer_size += metadata_size;
+			}
+			else
+				buffer_size += 15;	// Ensure we have sufficient padding for unaligned 16 byte loads
+				
 
 			uint8_t* buffer = allocate_type_array_aligned<uint8_t>(allocator, buffer_size, alignof(compressed_tracks));
 			std::memset(buffer, 0, buffer_size);
 
-			const uint8_t* buffer_start = buffer;
+			uint8_t* buffer_start = buffer;
 			out_compressed_tracks = reinterpret_cast<compressed_tracks*>(buffer);
 
 			raw_buffer_header* buffer_header = safe_ptr_cast<raw_buffer_header>(buffer);
@@ -345,6 +429,7 @@ namespace acl
 			header->set_has_scale(lossy_clip_context.has_scale);
 			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
 			header->set_default_scale(!is_additive || additive_format != additive_clip_format8::additive1 ? 1 : 0);
+			header->set_has_metadata(metadata_size != 0);
 
 			// Write our transform tracks header
 			transform_tracks_header* transforms_header = safe_ptr_cast<transform_tracks_header>(buffer);
@@ -385,6 +470,34 @@ namespace acl
 
 			const uint32_t written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, *transforms_header, output_bone_mapping, num_output_bones);
 
+			// Optional metadata header is last
+			uint32_t writter_metadata_track_list_name_size = 0;
+			uint32_t written_metadata_track_names_size = 0;
+			if (metadata_size != 0)
+			{
+				optional_metadata_header* metadada_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
+				uint32_t metadata_offset = metadata_start_offset;
+
+				if (settings.include_track_list_name)
+				{
+					metadada_header->track_list_name = metadata_offset;
+					writter_metadata_track_list_name_size = write_track_list_name(track_list, metadada_header->get_track_list_name(*out_compressed_tracks));
+					metadata_offset += writter_metadata_track_list_name_size;
+				}
+				else
+					metadada_header->track_list_name = invalid_ptr_offset();
+
+				if (settings.include_track_names)
+				{
+					metadata_offset = align_to(metadata_offset, 4);
+					metadada_header->track_name_offsets = metadata_offset;
+					written_metadata_track_names_size = write_track_names(track_list, output_bone_mapping, num_output_bones, metadada_header->get_track_name_offsets(*out_compressed_tracks));
+					metadata_offset += written_metadata_track_names_size;
+				}
+				else
+					metadada_header->track_name_offsets = invalid_ptr_offset();
+			}
+
 #if defined(ACL_HAS_ASSERT_CHECKS)
 			{
 				// Make sure we wrote the right amount of data
@@ -400,8 +513,13 @@ namespace acl
 				buffer += written_clip_range_data_size;
 				buffer += written_segment_data_size;
 
-				// Ensure we have sufficient padding for unaligned 16 byte loads
-				buffer += 15;
+				if (metadata_size != 0)
+				{
+					buffer = align_to(buffer, 4);
+					buffer += metadata_size;
+				}
+				else
+					buffer += 15;	// Ensure we have sufficient padding for unaligned 16 byte loads
 
 				(void)buffer_start;	// Avoid VS2017 bug, it falsely reports this variable as unused even when asserts are enabled
 				ACL_ASSERT(written_segment_start_indices_size == segment_start_indices_size, "Wrote too little or too much data");
@@ -409,9 +527,15 @@ namespace acl
 				ACL_ASSERT(written_bitset_size == (bitset_desc.get_num_bytes() * 2), "Wrote too little or too much data");
 				ACL_ASSERT(written_constant_data_size == constant_data_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_clip_range_data_size == clip_range_data_size, "Wrote too little or too much data");
+				ACL_ASSERT(writter_metadata_track_list_name_size == metadata_track_list_name_size, "Wrote too little or too much data");
+				ACL_ASSERT(written_metadata_track_names_size == metadata_track_names_size, "Wrote too little or too much data");
 				ACL_ASSERT(uint32_t(buffer - buffer_start) == buffer_size, "Wrote too little or too much data");
-				for (const uint8_t* padding = buffer - 15; padding < buffer; ++padding)
-					ACL_ASSERT(*padding == 0, "Padding was overwritten");
+
+				if (metadata_size == 0)
+				{
+					for (const uint8_t* padding = buffer - 15; padding < buffer; ++padding)
+						ACL_ASSERT(*padding == 0, "Padding was overwritten");
+				}
 			}
 #else
 			(void)written_segment_start_indices_size;
@@ -464,7 +588,7 @@ namespace acl
 		if (track_list.get_track_category() == track_category8::transformf)
 			result = compress_transform_track_list(allocator, track_array_cast<track_array_qvvf>(track_list), settings, nullptr, additive_clip_format8::none, out_compressed_tracks, out_stats);
 		else
-			result = compress_scalar_track_list(allocator, track_list, out_compressed_tracks, out_stats);
+			result = compress_scalar_track_list(allocator, track_list, settings, out_compressed_tracks, out_stats);
 
 		return result;
 	}

@@ -90,6 +90,14 @@ namespace acl
 		// Returns the sample rate used by each track.
 		float get_sample_rate() const;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the track list name if present, nullptr otherwise.
+		const char* get_name() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the track name for the specified track index if present, nullptr otherwise.
+		const char* get_track_name(uint32_t track_index) const;
+
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the compressed tracks are valid and usable.
 		// This mainly validates some invariants as well as ensuring that the
