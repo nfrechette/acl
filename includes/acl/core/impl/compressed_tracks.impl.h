@@ -52,27 +52,27 @@ namespace acl
 		}
 	}
 
-	algorithm_type8 compressed_tracks::get_algorithm_type() const { return acl_impl::get_tracks_header(*this).algorithm_type; }
+	inline algorithm_type8 compressed_tracks::get_algorithm_type() const { return acl_impl::get_tracks_header(*this).algorithm_type; }
 
-	buffer_tag32 compressed_tracks::get_tag() const { return static_cast<buffer_tag32>(acl_impl::get_tracks_header(*this).tag); }
+	inline buffer_tag32 compressed_tracks::get_tag() const { return static_cast<buffer_tag32>(acl_impl::get_tracks_header(*this).tag); }
 
-	compressed_tracks_version16 compressed_tracks::get_version() const { return acl_impl::get_tracks_header(*this).version; }
+	inline compressed_tracks_version16 compressed_tracks::get_version() const { return acl_impl::get_tracks_header(*this).version; }
 
-	uint32_t compressed_tracks::get_num_tracks() const { return acl_impl::get_tracks_header(*this).num_tracks; }
+	inline uint32_t compressed_tracks::get_num_tracks() const { return acl_impl::get_tracks_header(*this).num_tracks; }
 
-	uint32_t compressed_tracks::get_num_samples_per_track() const { return acl_impl::get_tracks_header(*this).num_samples; }
+	inline uint32_t compressed_tracks::get_num_samples_per_track() const { return acl_impl::get_tracks_header(*this).num_samples; }
 
-	track_type8 compressed_tracks::get_track_type() const { return acl_impl::get_tracks_header(*this).track_type; }
+	inline track_type8 compressed_tracks::get_track_type() const { return acl_impl::get_tracks_header(*this).track_type; }
 
-	float compressed_tracks::get_duration() const
+	inline float compressed_tracks::get_duration() const
 	{
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
 		return calculate_duration(header.num_samples, header.sample_rate);
 	}
 
-	float compressed_tracks::get_sample_rate() const { return acl_impl::get_tracks_header(*this).sample_rate; }
+	inline float compressed_tracks::get_sample_rate() const { return acl_impl::get_tracks_header(*this).sample_rate; }
 
-	const char* compressed_tracks::get_name() const
+	inline const char* compressed_tracks::get_name() const
 	{
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
 		if (!header.get_has_metadata())
@@ -85,7 +85,7 @@ namespace acl
 		return metadata_header.get_track_list_name(*this);
 	}
 
-	const char* compressed_tracks::get_track_name(uint32_t track_index) const
+	inline const char* compressed_tracks::get_track_name(uint32_t track_index) const
 	{
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
 		if (!header.get_has_metadata())
@@ -104,7 +104,7 @@ namespace acl
 		return offset.add_to(track_names_offsets);
 	}
 
-	error_result compressed_tracks::is_valid(bool check_hash) const
+	inline error_result compressed_tracks::is_valid(bool check_hash) const
 	{
 		if (!is_aligned_to(this, alignof(compressed_tracks)))
 			return error_result("Invalid alignment");
