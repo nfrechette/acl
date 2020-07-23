@@ -366,10 +366,8 @@ namespace acl
 
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) && !bone_stream.is_rotation_constant)
 					{
-						if (bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full)
-							range_data_size += k_segment_range_reduction_num_bytes_per_component * 8;
-						else
-							range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
+						const uint32_t num_components = bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full ? 8 : 6;
+						range_data_size += num_components * k_segment_range_reduction_num_bytes_per_component;
 					}
 
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) && !bone_stream.is_translation_constant)
