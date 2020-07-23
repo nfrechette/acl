@@ -160,7 +160,7 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 
 			iterator<SegmentContext> segment_iterator() { return iterator<SegmentContext>(segments, num_segments); }
-			const_iterator<SegmentContext> const_segment_iterator() const { return const_iterator<SegmentContext>(segments, num_segments); }
+			const_iterator<SegmentContext> segment_iterator() const { return const_iterator<SegmentContext>(segments, num_segments); }
 
 			BoneChain get_bone_chain(uint32_t bone_index) const
 			{
