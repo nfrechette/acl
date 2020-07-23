@@ -368,7 +368,8 @@ namespace acl
 				const uint32_t header_start = buffer_size;
 
 				buffer_size += format_per_track_data_size;						// Format per track data
-																				// TODO: Alignment only necessary with 16bit per component (segment constant tracks), need to fix scalar decoding path
+
+				// TODO: Alignment only necessary with 16bit per component (segment constant tracks), need to fix scalar decoding path
 				buffer_size = align_to(buffer_size, 2);							// Align range data
 				buffer_size += segment.range_data_size;							// Range data
 
