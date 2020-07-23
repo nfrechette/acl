@@ -118,6 +118,16 @@ namespace acl
 		// Transform tracks only.
 		itransform_error_metric* error_metric;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Whether to include the optional metadata for the track list name
+		// Defaults to 'false'
+		bool include_track_list_name;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Whether to include the optional metadata for track names
+		// Defaults to 'false'
+		bool include_track_names;
+
 		compression_settings()
 			: level(compression_level8::low)
 			, rotation_format(rotation_format8::quatf_full)
@@ -125,6 +135,8 @@ namespace acl
 			, scale_format(vector_format8::vector3f_full)
 			, segmenting()
 			, error_metric(nullptr)
+			, include_track_list_name(false)
+			, include_track_names(false)
 		{}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -141,6 +153,9 @@ namespace acl
 
 			if (error_metric != nullptr)
 				hash_value = hash_combine(hash_value, error_metric->get_hash());
+
+			hash_value = hash_combine(hash_value, hash32(include_track_list_name));
+			hash_value = hash_combine(hash_value, hash32(include_track_names));
 
 			return hash_value;
 		}

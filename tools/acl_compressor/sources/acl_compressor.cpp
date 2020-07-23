@@ -417,6 +417,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 }
 
 #if defined(ACL_USE_SJSON)
+#if defined(ACL_HAS_ASSERT_CHECKS)
 static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
 {
 	using namespace acl_impl;
@@ -481,6 +482,9 @@ static void validate_accuracy(iallocator& allocator, const track_array& raw_trac
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 	using namespace acl_impl;
+
+	// Disable floating point exceptions since decompression assumes it
+	scope_disable_fp_exceptions fp_off;
 
 	const float regression_error_thresholdf = static_cast<float>(regression_error_threshold);
 	const rtm::vector4f regression_error_thresholdv = rtm::vector_set(regression_error_thresholdf);
@@ -656,14 +660,46 @@ static void validate_accuracy(iallocator& allocator, const track_array& raw_trac
 #endif	// defined(ACL_HAS_ASSERT_CHECKS)
 }
 
-static void try_algorithm(const Options& options, iallocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, const compression_settings& settings, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void validate_metadata(const track_array& raw_tracks, const compressed_tracks& tracks)
+{
+	const uint32_t num_tracks = raw_tracks.get_num_tracks();
+
+	// Validate track list name
+	const string& raw_list_name = raw_tracks.get_name();
+	const char* compressed_list_name = tracks.get_name();
+	ACL_ASSERT(raw_list_name == compressed_list_name, "Unexpected track list name");
+
+	// Validate track names
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track& raw_track = raw_tracks[track_index];
+		const uint32_t output_index = raw_track.get_output_index();
+		if (output_index == k_invalid_track_index)
+			continue;	// Stripped
+
+		const string& raw_name = raw_track.get_name();
+		const char* compressed_name = tracks.get_track_name(output_index);
+		ACL_ASSERT(raw_name == compressed_name, "Unexpected track name");
+	}
+}
+#endif
+
+static void try_algorithm(const Options& options, iallocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, compression_settings settings, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
+	(void)regression_error_threshold;
 
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
 		if (transform_tracks.get_num_samples_per_track() == 0)
 			return;
+
+		// When regression testing, we include all the metadata
+		if (options.regression_testing)
+		{
+			settings.include_track_list_name = true;
+			settings.include_track_names = true;
+		}
 
 		output_stats stats(logging, stats_writer);
 		compressed_tracks* compressed_tracks_ = nullptr;
@@ -693,8 +729,13 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 		}
 #endif
 
+#if defined(ACL_HAS_ASSERT_CHECKS)
 		if (options.regression_testing)
+		{
 			validate_accuracy(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, regression_error_threshold);
+			validate_metadata(transform_tracks, *compressed_tracks_);
+		}
+#endif
 
 		if (options.output_bin_filename != nullptr)
 		{
@@ -717,6 +758,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 static void try_algorithm(const Options& options, iallocator& allocator, const track_array& track_list, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
+	(void)regression_error_threshold;
 
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
@@ -724,6 +766,13 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			return;
 
 		compression_settings settings;
+
+		// When regression testing, we include all the metadata
+		if (options.regression_testing)
+		{
+			settings.include_track_list_name = true;
+			settings.include_track_names = true;
+		}
 
 		output_stats stats(logging, stats_writer);
 		compressed_tracks* compressed_tracks_ = nullptr;
@@ -753,13 +802,13 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		}
 #endif
 
+#if defined(ACL_HAS_ASSERT_CHECKS)
 		if (options.regression_testing)
 		{
-			// Disable floating point exceptions since decompression assumes it
-			scope_disable_fp_exceptions fp_off;
-
 			validate_accuracy(allocator, track_list, *compressed_tracks_, regression_error_threshold);
+			validate_metadata(track_list, *compressed_tracks_);
 		}
+#endif
 
 		if (options.output_bin_filename != nullptr)
 		{
