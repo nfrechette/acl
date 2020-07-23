@@ -231,7 +231,7 @@ namespace acl
 			sjson::ObjectWriter& writer = *stats.writer;
 			writer["algorithm_name"] = get_algorithm_name(algorithm_type8::uniformly_sampled);
 			writer["algorithm_uid"] = settings.get_hash();
-			//writer["clip_name"] = clip.get_name().c_str();
+			writer["clip_name"] = track_list.get_name().c_str();
 			writer["raw_size"] = raw_size;
 			writer["compressed_size"] = compressed_size;
 			writer["compression_ratio"] = compression_ratio;
