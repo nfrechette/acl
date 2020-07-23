@@ -90,7 +90,9 @@ namespace acl
 		{
 			for (SegmentContext& segment : clip.segment_iterator())
 			{
-				uint32_t num_animated_data_bits = 0;
+				uint32_t num_animated_rotation_data_bits = 0;
+				uint32_t num_animated_translation_data_bits = 0;
+				uint32_t num_animated_scale_data_bits = 0;
 				uint32_t num_animated_pose_bits = 0;
 
 				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
@@ -99,15 +101,20 @@ namespace acl
 					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 
 					if (!bone_stream.is_rotation_constant)
-						calculate_animated_data_size(bone_stream.rotations, num_animated_data_bits, num_animated_pose_bits);
+						calculate_animated_data_size(bone_stream.rotations, num_animated_rotation_data_bits, num_animated_pose_bits);
 
 					if (!bone_stream.is_translation_constant)
-						calculate_animated_data_size(bone_stream.translations, num_animated_data_bits, num_animated_pose_bits);
+						calculate_animated_data_size(bone_stream.translations, num_animated_translation_data_bits, num_animated_pose_bits);
 
 					if (!bone_stream.is_scale_constant)
-						calculate_animated_data_size(bone_stream.scales, num_animated_data_bits, num_animated_pose_bits);
+						calculate_animated_data_size(bone_stream.scales, num_animated_scale_data_bits, num_animated_pose_bits);
 				}
 
+				const uint32_t num_animated_data_bits = num_animated_rotation_data_bits + num_animated_translation_data_bits + num_animated_scale_data_bits;
+
+				segment.animated_pose_rotation_bit_size = num_animated_rotation_data_bits;
+				segment.animated_pose_translation_bit_size = num_animated_translation_data_bits;
+				segment.animated_pose_scale_bit_size = num_animated_scale_data_bits;
 				segment.animated_data_size = align_to(num_animated_data_bits, 8) / 8;
 				segment.animated_pose_bit_size = num_animated_pose_bits;
 			}

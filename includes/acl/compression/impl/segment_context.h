@@ -72,6 +72,9 @@ namespace acl
 			bool are_scales_normalized;
 
 			// Stat tracking
+			uint32_t animated_pose_rotation_bit_size;
+			uint32_t animated_pose_translation_bit_size;
+			uint32_t animated_pose_scale_bit_size;
 			uint32_t animated_pose_bit_size;
 			uint32_t animated_data_size;
 			uint32_t range_data_size;

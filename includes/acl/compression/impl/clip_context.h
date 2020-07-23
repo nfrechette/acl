@@ -271,6 +271,9 @@ namespace acl
 			segment.are_translations_normalized = false;
 			segment.are_scales_normalized = false;
 
+			segment.animated_pose_rotation_bit_size = 0;
+			segment.animated_pose_translation_bit_size = 0;
+			segment.animated_pose_scale_bit_size = 0;
 			segment.animated_pose_bit_size = 0;
 			segment.animated_data_size = 0;
 			segment.range_data_size = 0;
