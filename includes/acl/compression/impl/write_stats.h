@@ -311,7 +311,7 @@ namespace acl
 
 			writer["segments"] = [&](sjson::ArrayWriter& segments_writer)
 			{
-				for (const SegmentContext& segment : clip.const_segment_iterator())
+				for (const SegmentContext& segment : clip.segment_iterator())
 				{
 					segments_writer.push([&](sjson::ObjectWriter& segment_writer)
 						{
