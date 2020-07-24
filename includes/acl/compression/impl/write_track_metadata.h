@@ -95,7 +95,7 @@ namespace acl
 
 		inline uint32_t write_parent_track_indices(const track_array_qvvf& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t* out_parent_track_indices)
 		{
-			auto find_output_index = [](const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t track_index)
+			auto find_output_index = [track_output_indices, num_output_tracks](uint32_t track_index)
 			{
 				if (track_index == k_invalid_track_index)
 					return k_invalid_track_index;
@@ -119,7 +119,7 @@ namespace acl
 				const track_desc_transformf& desc = track.get_description();
 				const uint32_t parent_track_index = desc.parent_index;
 
-				const uint32_t parent_output_index = find_output_index(track_output_indices, num_output_tracks, parent_track_index);
+				const uint32_t parent_output_index = find_output_index(parent_track_index);
 				if (out_parent_track_indices != nullptr)
 					out_parent_track_indices[output_index] = parent_output_index;
 
