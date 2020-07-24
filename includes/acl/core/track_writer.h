@@ -100,9 +100,9 @@ namespace acl
 		// These allow the caller of decompress_pose to control which tracks they are interested in.
 		// This information allows the codecs to avoid unpacking values that are not needed.
 		// Must be non-static member functions!
-		constexpr bool skip_track_rotation(uint32_t track_index) const { return (void)track_index, false; }
-		constexpr bool skip_track_translation(uint32_t track_index) const { return (void)track_index, false; }
-		constexpr bool skip_track_scale(uint32_t track_index) const { return (void)track_index, false; }
+		constexpr bool skip_track_rotation(uint32_t /*track_index*/) const { return false; }
+		constexpr bool skip_track_translation(uint32_t /*track_index*/) const { return false; }
+		constexpr bool skip_track_scale(uint32_t /*track_index*/) const { return false; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called by the decoder to write out a quaternion rotation value for a specified bone index.
