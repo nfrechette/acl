@@ -681,6 +681,26 @@ static void validate_metadata(const track_array& raw_tracks, const compressed_tr
 		const char* compressed_name = tracks.get_track_name(output_index);
 		ACL_ASSERT(raw_name == compressed_name, "Unexpected track name");
 	}
+
+	if (raw_tracks.get_track_type() == track_type8::qvvf)
+	{
+		// Specific to transform tracks
+		const track_array_qvvf& transform_tracks = track_array_cast<track_array_qvvf>(raw_tracks);
+
+		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+		{
+			const track_qvvf& raw_track = transform_tracks[track_index];
+			const uint32_t output_index = raw_track.get_output_index();
+			if (output_index == k_invalid_track_index)
+				continue;	// Stripped
+
+			const uint32_t parent_track_index = raw_track.get_description().parent_index;
+			const uint32_t parent_track_output_index = parent_track_index != k_invalid_track_index ? transform_tracks[parent_track_index].get_output_index() : k_invalid_track_index;
+
+			const uint32_t compressed_parent_track_index = tracks.get_parent_track_index(output_index);
+			ACL_ASSERT(parent_track_output_index == compressed_parent_track_index, "Unexpected parent track index");
+		}
+	}
 }
 #endif
 
@@ -699,6 +719,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 		{
 			settings.include_track_list_name = true;
 			settings.include_track_names = true;
+			settings.include_parent_track_indices = true;
 		}
 
 		output_stats stats;

@@ -67,6 +67,7 @@ namespace acl
 
 		hash_value = hash_combine(hash_value, hash32(include_track_list_name));
 		hash_value = hash_combine(hash_value, hash32(include_track_names));
+		hash_value = hash_combine(hash_value, hash32(include_parent_track_indices));
 
 		return hash_value;
 	}

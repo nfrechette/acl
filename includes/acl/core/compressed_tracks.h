@@ -98,6 +98,10 @@ namespace acl
 		// Returns the track name for the specified track index if metadata is present, k_invalid_track_index otherwise.
 		const char* get_track_name(uint32_t track_index) const;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the parent track index for the specified track index if metadata is present, nullptr otherwise.
+		uint32_t get_parent_track_index(uint32_t track_index) const;
+
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the compressed tracks are valid and usable.
 		// This mainly validates some invariants as well as ensuring that the
