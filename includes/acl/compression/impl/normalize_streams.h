@@ -59,7 +59,7 @@ namespace acl
 			return TrackStreamRange::from_min_max(min, max);
 		}
 
-		inline void extract_bone_ranges_impl(SegmentContext& segment, BoneRanges* bone_ranges)
+		inline void extract_bone_ranges_impl(const SegmentContext& segment, BoneRanges* bone_ranges)
 		{
 			const bool has_scale = segment_context_has_scale(segment);
 

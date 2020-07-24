@@ -72,7 +72,7 @@ namespace acl
 		template<class T>
 		using is_decompression_context = typename std::enable_if<std::is_base_of<acl::decompression_context<typename T::settings_type>, T>::value, std::nullptr_t>::type;
 
-		inline rtm::vector4f RTM_SIMD_CALL get_scalar_track_error(track_type8 track_type, uint32_t raw_track_index, uint32_t lossy_track_index, debug_track_writer& raw_tracks_writer, debug_track_writer& lossy_tracks_writer)
+		inline rtm::vector4f RTM_SIMD_CALL get_scalar_track_error(track_type8 track_type, uint32_t raw_track_index, uint32_t lossy_track_index, const debug_track_writer& raw_tracks_writer, const debug_track_writer& lossy_tracks_writer)
 		{
 			rtm::vector4f error;
 			switch (track_type)
