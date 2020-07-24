@@ -48,20 +48,17 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	struct track_error
 	{
-		track_error() : index(k_invalid_track_index), error(0.0F), sample_time(0.0F) {}
-		track_error(uint32_t index_, float error_, float sample_time_) : index(index_), error(error_), sample_time(sample_time_) {}
-
 		//////////////////////////////////////////////////////////////////////////
 		// The track index with the worst error.
-		uint32_t index;
+		uint32_t index = k_invalid_track_index;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The worst error for the track index.
-		float error;
+		float error = 0.0F;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The sample time that has the worst error.
-		float sample_time;
+		float sample_time = 0.0F;
 	};
 
 	namespace acl_impl
@@ -382,7 +379,7 @@ namespace acl
 		ACL_ASSERT(context.is_initialized(), "Context isn't initialized");
 
 		if (raw_tracks.get_track_type() == track_type8::qvvf)
-			return track_error(~0U, -1.0F, -1.0F);	// Only supports scalar tracks
+			return track_error{ ~0U, -1.0F, -1.0F };	// Only supports scalar tracks
 
 		calculate_track_error_args args;
 		args.num_samples = raw_tracks.get_num_samples_per_track();
@@ -589,7 +586,7 @@ namespace acl
 		const compressed_tracks* tracks0 = context0.get_compressed_tracks();
 
 		if (tracks0->get_track_type() == track_type8::qvvf)
-			return track_error(~0U, -1.0F, -1.0F);	// Only supports scalar tracks
+			return track_error{ ~0U, -1.0F, -1.0F };	// Only supports scalar tracks
 
 		calculate_track_error_args args;
 		args.num_samples = tracks0->get_num_samples_per_track();
@@ -624,7 +621,7 @@ namespace acl
 		ACL_ASSERT(raw_tracks1.is_valid().empty(), "Raw tracks are invalid");
 
 		if (raw_tracks0.get_track_type() == track_type8::qvvf)
-			return track_error(~0U, -1.0F, -1.0F);	// Only supports scalar tracks
+			return track_error{ ~0U, -1.0F, -1.0F };	// Only supports scalar tracks
 
 		calculate_track_error_args args;
 		args.num_samples = raw_tracks0.get_num_samples_per_track();
