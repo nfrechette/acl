@@ -91,11 +91,11 @@ namespace acl
 		float get_sample_rate() const;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the track list name if present, nullptr otherwise.
+		// Returns the track list name if metadata is present, nullptr otherwise.
 		const char* get_name() const;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the track name for the specified track index if present, nullptr otherwise.
+		// Returns the track name for the specified track index if metadata is present, k_invalid_track_index otherwise.
 		const char* get_track_name(uint32_t track_index) const;
 
 		////////////////////////////////////////////////////////////////////////////////
