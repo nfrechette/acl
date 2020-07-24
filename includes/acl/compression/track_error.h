@@ -362,6 +362,15 @@ namespace acl
 
 			return result;
 		}
+
+		inline track_error invalid_track_error()
+		{
+			track_error result;
+			result.index = ~0U;
+			result.error = -1.0F;
+			result.sample_time = -1.0F;
+			return result;
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -379,7 +388,7 @@ namespace acl
 		ACL_ASSERT(context.is_initialized(), "Context isn't initialized");
 
 		if (raw_tracks.get_track_type() == track_type8::qvvf)
-			return track_error{ ~0U, -1.0F, -1.0F };	// Only supports scalar tracks
+			return invalid_track_error();	// Only supports scalar tracks
 
 		calculate_track_error_args args;
 		args.num_samples = raw_tracks.get_num_samples_per_track();
@@ -586,7 +595,7 @@ namespace acl
 		const compressed_tracks* tracks0 = context0.get_compressed_tracks();
 
 		if (tracks0->get_track_type() == track_type8::qvvf)
-			return track_error{ ~0U, -1.0F, -1.0F };	// Only supports scalar tracks
+			return invalid_track_error();	// Only supports scalar tracks
 
 		calculate_track_error_args args;
 		args.num_samples = tracks0->get_num_samples_per_track();
@@ -621,7 +630,7 @@ namespace acl
 		ACL_ASSERT(raw_tracks1.is_valid().empty(), "Raw tracks are invalid");
 
 		if (raw_tracks0.get_track_type() == track_type8::qvvf)
-			return track_error{ ~0U, -1.0F, -1.0F };	// Only supports scalar tracks
+			return invalid_track_error();	// Only supports scalar tracks
 
 		calculate_track_error_args args;
 		args.num_samples = raw_tracks0.get_num_samples_per_track();

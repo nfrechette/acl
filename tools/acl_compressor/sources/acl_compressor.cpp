@@ -701,7 +701,10 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			settings.include_track_names = true;
 		}
 
-		output_stats stats{ logging, stats_writer };
+		output_stats stats;
+		stats.logging = logging;
+		stats.writer = stats_writer;
+
 		compressed_tracks* compressed_tracks_ = nullptr;
 		const error_result result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
 
@@ -774,7 +777,10 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			settings.include_track_names = true;
 		}
 
-		output_stats stats{ logging, stats_writer };
+		output_stats stats;
+		stats.logging = logging;
+		stats.writer = stats_writer;
+
 		compressed_tracks* compressed_tracks_ = nullptr;
 		const error_result result = compress_track_list(allocator, track_list, settings, compressed_tracks_, stats);
 
