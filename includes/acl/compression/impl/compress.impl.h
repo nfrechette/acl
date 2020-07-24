@@ -206,6 +206,8 @@ namespace acl
 				}
 				else
 					metadada_header->track_name_offsets = invalid_ptr_offset();
+
+				metadada_header->parent_track_indices = invalid_ptr_offset();	// Not supported for scalar tracks
 			}
 
 			// Finish the raw buffer header
