@@ -446,9 +446,9 @@ def aggregate_stats(agg_run_stats, run_stats):
 		agg_data['max_error'] = 0
 		agg_data['num_runs'] = 0
 		agg_data['bit_rates'] = [0] * 19
+		agg_data['compressed_size'] = []
 
 		# Detailed stats
-		agg_data['compressed_size'] = []
 		agg_data['num_segments'] = []
 		agg_data['num_default_rotation_tracks'] = []
 		agg_data['num_default_translation_tracks'] = []
@@ -488,6 +488,7 @@ def aggregate_stats(agg_run_stats, run_stats):
 	agg_data['total_duration'] += run_stats['duration']
 	agg_data['max_error'] = max(agg_data['max_error'], run_stats['max_error'])
 	agg_data['num_runs'] += 1
+	agg_data['compressed_size'].append(run_stats['compressed_size'])
 	if 'segments' in run_stats and len(run_stats['segments']) > 0:
 		for segment in run_stats['segments']:
 			if 'bit_rate_counts' in segment:
@@ -496,7 +497,6 @@ def aggregate_stats(agg_run_stats, run_stats):
 
 	# Detailed stats
 	if 'num_default_rotation_tracks' in run_stats:
-		agg_data['compressed_size'].append(run_stats['compressed_size'])
 		agg_data['num_segments'].append(run_stats['segmenting']['num_segments'])
 		agg_data['num_default_rotation_tracks'].append(run_stats['num_default_rotation_tracks'])
 		agg_data['num_default_translation_tracks'].append(run_stats['num_default_translation_tracks'])
@@ -688,12 +688,12 @@ def aggregate_job_stats(agg_job_results, job_results):
 				agg_job_results['agg_run_stats'][key]['total_duration'] += job_results['agg_run_stats'][key]['total_duration']
 				agg_job_results['agg_run_stats'][key]['max_error'] = max(agg_job_results['agg_run_stats'][key]['max_error'], job_results['agg_run_stats'][key]['max_error'])
 				agg_job_results['agg_run_stats'][key]['num_runs'] += job_results['agg_run_stats'][key]['num_runs']
+				agg_job_results['agg_run_stats'][key]['compressed_size'] += job_results['agg_run_stats'][key]['compressed_size']
 				for i in range(19):
 					agg_job_results['agg_run_stats'][key]['bit_rates'][i] += job_results['agg_run_stats'][key]['bit_rates'][i]
 
 				# Detailed stats
 				if 'num_default_rotation_tracks' in job_results['agg_run_stats'][key]:
-					agg_job_results['agg_run_stats'][key]['compressed_size']							+= job_results['agg_run_stats'][key]['compressed_size']
 					agg_job_results['agg_run_stats'][key]['num_segments']								+= job_results['agg_run_stats'][key]['num_segments']
 					agg_job_results['agg_run_stats'][key]['num_default_rotation_tracks']				+= job_results['agg_run_stats'][key]['num_default_rotation_tracks']
 					agg_job_results['agg_run_stats'][key]['num_default_translation_tracks']				+= job_results['agg_run_stats'][key]['num_default_translation_tracks']
@@ -942,7 +942,12 @@ if __name__ == "__main__":
 	total_compression_time = sum([x['total_compression_time'] for x in agg_run_stats.values()])
 	total_max_error = max([x['max_error'] for x in agg_run_stats.values()])
 	total_ratio = float(total_raw_size) / float(total_compressed_size)
+	tmp = list(chain.from_iterable([x['compressed_size'] for x in agg_run_stats.values()]))
+	compressed_size_p50 = bytes_to_kb(numpy.percentile(tmp, 50.0))
+	compressed_size_p85 = bytes_to_kb(numpy.percentile(tmp, 85.0))
+	compressed_size_p99 = bytes_to_kb(numpy.percentile(tmp, 99.0))
 	print('Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}]'.format(bytes_to_mb(total_compressed_size), format_elapsed_time(total_compression_time), total_ratio, total_max_error))
+	print('    50, 85, 99th percentile: {:.2f} KB, {:.2f} KB, {:.2f} KB'.format(compressed_size_p50, compressed_size_p85, compressed_size_p99))
 	print()
 
 	total_duration = sum([x['total_duration'] for x in agg_run_stats.values()])
