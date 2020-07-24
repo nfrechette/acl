@@ -810,7 +810,7 @@ def aggregate_and_print_clip_metadata_results(agg_run_stats):
 		clip_metadata_ratio_p85 = numpy.percentile(tmp, 85.0)
 		clip_metadata_ratio_p99 = numpy.percentile(tmp, 99.0)
 
-		print('Total clip metadata size: {} ({:.2f} %)'.format(clip_metadata_total_size, (clip_metadata_total_size / total_compressed_size) * 100.0))
+		print('Total clip metadata size: {:.2f} MB ({:.2f} %)'.format(bytes_to_mb(clip_metadata_total_size), (clip_metadata_total_size / total_compressed_size) * 100.0))
 		print('    50, 85, 99th percentile: {:.2f} %, {:.2f} %, {:.2f} %'.format(clip_metadata_ratio_p50, clip_metadata_ratio_p85, clip_metadata_ratio_p99))
 
 def aggregate_and_print_segment_metadata_results(agg_run_stats):
@@ -827,7 +827,7 @@ def aggregate_and_print_segment_metadata_results(agg_run_stats):
 		segment_metadata_ratio_p85 = numpy.percentile(tmp, 85.0)
 		segment_metadata_ratio_p99 = numpy.percentile(tmp, 99.0)
 
-		print('Total segment metadata size: {} ({:.2f} %)'.format(segment_metadata_total_size, (segment_metadata_total_size / total_compressed_size) * 100.0))
+		print('Total segment metadata size: {:.2f} MB ({:.2f} %)'.format(bytes_to_mb(segment_metadata_total_size), (segment_metadata_total_size / total_compressed_size) * 100.0))
 		print('    50, 85, 99th percentile: {:.2f} %, {:.2f} %, {:.2f} %'.format(segment_metadata_ratio_p50, segment_metadata_ratio_p85, segment_metadata_ratio_p99))
 
 def aggregate_and_print_segment_animated_results(agg_run_stats):
@@ -844,7 +844,7 @@ def aggregate_and_print_segment_animated_results(agg_run_stats):
 		segment_animated_ratio_p85 = numpy.percentile(tmp, 85.0)
 		segment_animated_ratio_p99 = numpy.percentile(tmp, 99.0)
 
-		print('Total segment animated size: {} ({:.2f} %)'.format(segment_animated_total_size, (segment_animated_total_size / total_compressed_size) * 100.0))
+		print('Total segment animated size: {:.2f} MB ({:.2f} %)'.format(bytes_to_mb(segment_animated_total_size), (segment_animated_total_size / total_compressed_size) * 100.0))
 		print('    50, 85, 99th percentile: {:.2f} %, {:.2f} %, {:.2f} %'.format(segment_animated_ratio_p50, segment_animated_ratio_p85, segment_animated_ratio_p99))
 
 def aggregate_and_print_num_segment_results(agg_run_stats):
