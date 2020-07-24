@@ -51,17 +51,12 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// How many samples to try and fit in our segments
 		// Defaults to '16'
-		uint16_t ideal_num_samples;
+		uint16_t ideal_num_samples = 16;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Maximum number of samples per segment
 		// Defaults to '31'
-		uint16_t max_num_samples;
-
-		segmenting_settings()
-			: ideal_num_samples(16)
-			, max_num_samples(31)
-		{}
+		uint16_t max_num_samples = 31;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.
@@ -97,15 +92,15 @@ namespace acl
 		// footprint. Higher levels will try more permutations and bit rates. The higher
 		// the level, the slower the compression but the smaller the memory footprint.
 		// Transform tracks only.
-		compression_level8 level;
+		compression_level8 level = compression_level8::low;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
 		// Defaults to raw: 'quatf_full' and 'vector3f_full'
 		// Transform tracks only.
-		rotation_format8 rotation_format;
-		vector_format8 translation_format;
-		vector_format8 scale_format;
+		rotation_format8 rotation_format = rotation_format8::quatf_full;
+		vector_format8 translation_format = vector_format8::vector3f_full;
+		vector_format8 scale_format = vector_format8::vector3f_full;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Segmenting settings, if used
@@ -116,28 +111,17 @@ namespace acl
 		// The error metric to use.
 		// Defaults to 'null', this value must be set manually!
 		// Transform tracks only.
-		itransform_error_metric* error_metric;
+		itransform_error_metric* error_metric = nullptr;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Whether to include the optional metadata for the track list name
 		// Defaults to 'false'
-		bool include_track_list_name;
+		bool include_track_list_name = false;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Whether to include the optional metadata for track names
 		// Defaults to 'false'
-		bool include_track_names;
-
-		compression_settings()
-			: level(compression_level8::low)
-			, rotation_format(rotation_format8::quatf_full)
-			, translation_format(vector_format8::vector3f_full)
-			, scale_format(vector_format8::vector3f_full)
-			, segmenting()
-			, error_metric(nullptr)
-			, include_track_list_name(false)
-			, include_track_names(false)
-		{}
+		bool include_track_names = false;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.
