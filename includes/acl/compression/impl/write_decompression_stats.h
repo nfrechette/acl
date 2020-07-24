@@ -175,7 +175,7 @@ namespace acl
 
 						const double elapsed_ms = timer.get_elapsed_milliseconds() / k_num_decompression_evaluations;
 
-						if (are_any_enum_flags_set(logging, stat_logging::ExhaustiveDecompression))
+						if (are_any_enum_flags_set(logging, stat_logging::exhaustive_decompression))
 							data_writer.push(elapsed_ms);
 
 						clip_min_ms = rtm::scalar_min(clip_min_ms, elapsed_ms);
