@@ -115,6 +115,12 @@ namespace acl
 		bool include_parent_track_indices = false;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Whether to include the optional metadata for track descriptions
+		// For transforms, also enables the parent track indices metadata
+		// Defaults to 'false'
+		bool include_track_descriptions = false;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.
 		uint32_t get_hash() const;
 

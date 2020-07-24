@@ -103,11 +103,14 @@ namespace acl
 			const uint32_t metadata_start_offset = align_to(buffer_size, 4);
 			const uint32_t metadata_track_list_name_size = settings.include_track_list_name ? write_track_list_name(track_list, nullptr) : 0;
 			const uint32_t metadata_track_names_size = settings.include_track_names ? write_track_names(track_list, context.track_output_indices, context.num_output_tracks, nullptr) : 0;
+			const uint32_t metadata_track_descriptions_size = settings.include_track_descriptions ? write_track_descriptions(track_list, context.track_output_indices, context.num_output_tracks, nullptr) : 0;
 
 			uint32_t metadata_size = 0;
 			metadata_size += metadata_track_list_name_size;
 			metadata_size = align_to(metadata_size, 4);
 			metadata_size += metadata_track_names_size;
+			metadata_size = align_to(metadata_size, 4);
+			metadata_size += metadata_track_descriptions_size;
 
 			if (metadata_size != 0)
 			{
@@ -183,6 +186,7 @@ namespace acl
 			// Optional metadata header is last
 			uint32_t writter_metadata_track_list_name_size = 0;
 			uint32_t written_metadata_track_names_size = 0;
+			uint32_t written_metadata_track_descriptions_size = 0;
 			if (metadata_size != 0)
 			{
 				optional_metadata_header* metadada_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
@@ -208,7 +212,21 @@ namespace acl
 					metadada_header->track_name_offsets = invalid_ptr_offset();
 
 				metadada_header->parent_track_indices = invalid_ptr_offset();	// Not supported for scalar tracks
+
+				if (settings.include_track_descriptions)
+				{
+					metadata_offset = align_to(metadata_offset, 4);
+					metadada_header->track_descriptions = metadata_offset;
+					written_metadata_track_descriptions_size = write_track_descriptions(track_list, context.track_output_indices, context.num_output_tracks, metadada_header->get_track_descriptions(*out_compressed_tracks));
+					metadata_offset += written_metadata_track_descriptions_size;
+				}
+				else
+					metadada_header->track_descriptions = invalid_ptr_offset();
 			}
+
+			ACL_ASSERT(writter_metadata_track_list_name_size == metadata_track_list_name_size, "Wrote too little or too much data");
+			ACL_ASSERT(written_metadata_track_names_size == metadata_track_names_size, "Wrote too little or too much data");
+			ACL_ASSERT(written_metadata_track_descriptions_size == metadata_track_descriptions_size, "Wrote too little or too much data");
 
 			// Finish the raw buffer header
 			buffer_header->size = buffer_size;
@@ -249,6 +267,10 @@ namespace acl
 				settings.segmenting.ideal_num_samples = 0xFFFF;
 				settings.segmenting.max_num_samples = 0xFFFF;
 			}
+
+			// If we want the optional track descriptions, make sure to include the parent track indices
+			if (settings.include_track_descriptions)
+				settings.include_parent_track_indices = true;
 
 			// Variable bit rate tracks need range reduction
 			// Full precision tracks do not need range reduction since samples are stored raw
@@ -386,6 +408,7 @@ namespace acl
 			const uint32_t metadata_track_list_name_size = settings.include_track_list_name ? write_track_list_name(track_list, nullptr) : 0;
 			const uint32_t metadata_track_names_size = settings.include_track_names ? write_track_names(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
 			const uint32_t metadata_parent_track_indices_size = settings.include_parent_track_indices ? write_parent_track_indices(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
+			const uint32_t metadata_track_descriptions_size = settings.include_track_descriptions ? write_track_descriptions(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
 
 			uint32_t metadata_size = 0;
 			metadata_size += metadata_track_list_name_size;
@@ -393,6 +416,8 @@ namespace acl
 			metadata_size += metadata_track_names_size;
 			metadata_size = align_to(metadata_size, 4);
 			metadata_size += metadata_parent_track_indices_size;
+			metadata_size = align_to(metadata_size, 4);
+			metadata_size += metadata_track_descriptions_size;
 
 			if (metadata_size != 0)
 			{
@@ -477,6 +502,7 @@ namespace acl
 			uint32_t writter_metadata_track_list_name_size = 0;
 			uint32_t written_metadata_track_names_size = 0;
 			uint32_t written_metadata_parent_track_indices_size = 0;
+			uint32_t written_metadata_track_descriptions_size = 0;
 			if (metadata_size != 0)
 			{
 				optional_metadata_header* metadada_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
@@ -510,6 +536,16 @@ namespace acl
 				}
 				else
 					metadada_header->parent_track_indices = invalid_ptr_offset();
+
+				if (settings.include_track_descriptions)
+				{
+					metadata_offset = align_to(metadata_offset, 4);
+					metadada_header->track_descriptions = metadata_offset;
+					written_metadata_track_descriptions_size = write_track_descriptions(track_list, output_bone_mapping, num_output_bones, metadada_header->get_track_descriptions(*out_compressed_tracks));
+					metadata_offset += written_metadata_track_descriptions_size;
+				}
+				else
+					metadada_header->track_descriptions = invalid_ptr_offset();
 			}
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
@@ -544,6 +580,7 @@ namespace acl
 				ACL_ASSERT(writter_metadata_track_list_name_size == metadata_track_list_name_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_metadata_track_names_size == metadata_track_names_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_metadata_parent_track_indices_size == metadata_parent_track_indices_size, "Wrote too little or too much data");
+				ACL_ASSERT(written_metadata_track_descriptions_size == metadata_track_descriptions_size, "Wrote too little or too much data");
 				ACL_ASSERT(uint32_t(buffer - buffer_start) == buffer_size, "Wrote too little or too much data");
 
 				if (metadata_size == 0)

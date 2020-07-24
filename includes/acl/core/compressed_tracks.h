@@ -29,6 +29,7 @@
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
+#include "acl/core/track_types.h"
 #include "acl/core/utils.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/impl/compressed_headers.h"
@@ -101,6 +102,12 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the parent track index for the specified track index if metadata is present, nullptr otherwise.
 		uint32_t get_parent_track_index(uint32_t track_index) const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the track description for the specified track index if metadata is present.
+		// Returns true on success, false otherwise.
+		bool get_track_description(uint32_t track_index, track_desc_scalarf& out_description) const;
+		bool get_track_description(uint32_t track_index, track_desc_transformf& out_description) const;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the compressed tracks are valid and usable.
