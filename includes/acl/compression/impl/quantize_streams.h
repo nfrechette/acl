@@ -651,7 +651,7 @@ namespace acl
 			float sample_indexf = float(context.segment_sample_start_index);
 			rtm::scalarf max_error = rtm::scalar_set(0.0F);
 
-			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index, sample_indexf += 1.0F)
+			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
 				// Sample our streams and calculate the error
 				// The sample time is calculated from the full clip duration to be consistent with decompression
@@ -678,6 +678,8 @@ namespace acl
 				max_error = rtm::scalar_max(max_error, error);
 				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error, error_threshold))
 					break;
+
+				sample_indexf += 1.0F;
 			}
 
 			return rtm::scalar_cast(max_error);
@@ -732,7 +734,7 @@ namespace acl
 			float sample_indexf = float(context.segment_sample_start_index);
 			rtm::scalarf max_error = rtm::scalar_set(0.0F);
 
-			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index, sample_indexf += 1.0F)
+			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
 				// Sample our streams and calculate the error
 				// The sample time is calculated from the full clip duration to be consistent with decompression
@@ -761,6 +763,8 @@ namespace acl
 				max_error = rtm::scalar_max(max_error, error);
 				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error, error_threshold))
 					break;
+
+				sample_indexf += 1.0F;
 			}
 
 			return rtm::scalar_cast(max_error);
