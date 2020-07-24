@@ -378,7 +378,7 @@ namespace acl
 		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override
 		{
 			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
-			const rtm::qvvf* transforms_ = static_cast<const rtm::qvvf*>(args.transforms);
+			const rtm::qvvf* transforms_ = args.transforms;
 			rtm::matrix3x4f* out_transforms_ = static_cast<rtm::matrix3x4f*>(out_transforms);
 
 			const uint32_t num_dirty_transforms = args.num_dirty_transforms;
