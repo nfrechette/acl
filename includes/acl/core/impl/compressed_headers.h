@@ -228,6 +228,8 @@ namespace acl
 			uint32_t*					get_track_name_offsets(compressed_tracks& tracks) { return track_name_offsets.safe_add_to(&tracks); }
 			const uint32_t*				get_track_name_offsets(const compressed_tracks& tracks) const { return track_name_offsets.safe_add_to(&tracks); }
 		};
+
+		static_assert(sizeof(optional_metadata_header) >= 15, "Optional metadata must be at least 15 bytes");
 	}
 }
 
