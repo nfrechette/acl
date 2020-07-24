@@ -60,27 +60,12 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.
-		uint32_t get_hash() const
-		{
-			uint32_t hash_value = 0;
-			hash_value = hash_combine(hash_value, hash32(ideal_num_samples));
-			hash_value = hash_combine(hash_value, hash32(max_num_samples));
-			return hash_value;
-		}
+		uint32_t get_hash() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Checks if everything is valid and if it isn't, returns an error string.
 		// Returns nullptr if the settings are valid.
-		error_result is_valid() const
-		{
-			if (ideal_num_samples < 8)
-				return error_result("ideal_num_samples must be greater or equal to 8");
-
-			if (ideal_num_samples > max_num_samples)
-				return error_result("ideal_num_samples must be smaller or equal to max_num_samples");
-
-			return error_result();
-		}
+		error_result is_valid() const;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -125,56 +110,24 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.
-		uint32_t get_hash() const
-		{
-			uint32_t hash_value = 0;
-			hash_value = hash_combine(hash_value, hash32(level));
-			hash_value = hash_combine(hash_value, hash32(rotation_format));
-			hash_value = hash_combine(hash_value, hash32(translation_format));
-			hash_value = hash_combine(hash_value, hash32(scale_format));
-
-			hash_value = hash_combine(hash_value, segmenting.get_hash());
-
-			if (error_metric != nullptr)
-				hash_value = hash_combine(hash_value, error_metric->get_hash());
-
-			hash_value = hash_combine(hash_value, hash32(include_track_list_name));
-			hash_value = hash_combine(hash_value, hash32(include_track_names));
-
-			return hash_value;
-		}
+		uint32_t get_hash() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Checks if everything is valid and if it isn't, returns an error string.
-		error_result is_valid() const
-		{
-			if (error_metric == nullptr)
-				return error_result("error_metric cannot be NULL");
-
-			return segmenting.is_valid();
-		}
+		error_result is_valid() const;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
 	// Returns raw compression settings. No compression is performed and
 	// samples are all retained with full precision.
-	inline compression_settings get_raw_compression_settings()
-	{
-		return compression_settings();
-	}
+	compression_settings get_raw_compression_settings();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Returns the recommended and default compression settings. These have
 	// been tested in a wide range of scenarios and perform best overall.
-	inline compression_settings get_default_compression_settings()
-	{
-		compression_settings settings;
-		settings.level = compression_level8::medium;
-		settings.rotation_format = rotation_format8::quatf_drop_w_variable;
-		settings.translation_format = vector_format8::vector3f_variable;
-		settings.scale_format = vector_format8::vector3f_variable;
-		return settings;
-	}
+	compression_settings get_default_compression_settings();
 }
+
+#include "acl/compression/impl/compression_settings.impl.h"
 
 ACL_IMPL_FILE_PRAGMA_POP
