@@ -122,6 +122,61 @@ namespace acl
 		return parent_track_indices[track_index];
 	}
 
+	inline bool compressed_tracks::get_track_description(uint32_t track_index, track_desc_scalarf& out_description) const
+	{
+		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+		if (!header.get_has_metadata())
+			return false;	// No metadata is stored
+
+		ACL_ASSERT(track_index < header.num_tracks, "Invalid track index");
+		if (track_index >= header.num_tracks)
+			return false;	// Invalid track index
+
+		const acl_impl::optional_metadata_header& metadata_header = acl_impl::get_optional_metadata_header(*this);
+		if (!metadata_header.track_descriptions.is_valid())
+			return false;	// Metadata isn't stored
+
+		const uint8_t* descriptions = metadata_header.get_track_descriptions(*this);
+		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * sizeof(float) * 1));
+
+		out_description.output_index = track_index;
+		out_description.precision = description_data[0];
+
+		return true;
+	}
+
+	inline bool compressed_tracks::get_track_description(uint32_t track_index, track_desc_transformf& out_description) const
+	{
+		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+		if (!header.get_has_metadata())
+			return false;	// No metadata is stored
+
+		ACL_ASSERT(track_index < header.num_tracks, "Invalid track index");
+		if (track_index >= header.num_tracks)
+			return false;	// Invalid track index
+
+		const acl_impl::optional_metadata_header& metadata_header = acl_impl::get_optional_metadata_header(*this);
+		if (!metadata_header.track_descriptions.is_valid())
+			return false;	// Metadata isn't stored
+
+		if (!metadata_header.parent_track_indices.is_valid())
+			return false;	// Metadata isn't stored
+
+		const uint32_t* parent_track_indices = metadata_header.get_parent_track_indices(*this);
+		const uint8_t* descriptions = metadata_header.get_track_descriptions(*this);
+		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * sizeof(float) * 5));
+
+		out_description.output_index = track_index;
+		out_description.parent_index = parent_track_indices[track_index];
+		out_description.precision = description_data[0];
+		out_description.shell_distance = description_data[1];
+		out_description.constant_rotation_threshold_angle = description_data[2];
+		out_description.constant_translation_threshold = description_data[3];
+		out_description.constant_scale_threshold = description_data[4];
+
+		return true;
+	}
+
 	inline error_result compressed_tracks::is_valid(bool check_hash) const
 	{
 		if (!is_aligned_to(this, alignof(compressed_tracks)))

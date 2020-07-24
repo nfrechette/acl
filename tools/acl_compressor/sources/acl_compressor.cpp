@@ -694,11 +694,42 @@ static void validate_metadata(const track_array& raw_tracks, const compressed_tr
 			if (output_index == k_invalid_track_index)
 				continue;	// Stripped
 
-			const uint32_t parent_track_index = raw_track.get_description().parent_index;
+			const track_desc_transformf& raw_desc = raw_track.get_description();
+			const uint32_t parent_track_index = raw_desc.parent_index;
 			const uint32_t parent_track_output_index = parent_track_index != k_invalid_track_index ? transform_tracks[parent_track_index].get_output_index() : k_invalid_track_index;
 
 			const uint32_t compressed_parent_track_index = tracks.get_parent_track_index(output_index);
 			ACL_ASSERT(parent_track_output_index == compressed_parent_track_index, "Unexpected parent track index");
+
+			track_desc_transformf compressed_desc;
+			const bool compressed_track_desc_found = tracks.get_track_description(output_index, compressed_desc);
+			ACL_ASSERT(compressed_track_desc_found, "Expected track description");
+			ACL_ASSERT(output_index == compressed_desc.output_index, "Unexpected output index");
+			ACL_ASSERT(parent_track_output_index == compressed_desc.parent_index, "Unexpected parent track index");
+			ACL_ASSERT(raw_desc.precision == compressed_desc.precision, "Unexpected precision");
+			ACL_ASSERT(raw_desc.shell_distance == compressed_desc.shell_distance, "Unexpected shell_distance");
+			ACL_ASSERT(raw_desc.constant_rotation_threshold_angle == compressed_desc.constant_rotation_threshold_angle, "Unexpected constant_rotation_threshold_angle");
+			ACL_ASSERT(raw_desc.constant_translation_threshold == compressed_desc.constant_translation_threshold, "Unexpected constant_translation_threshold");
+			ACL_ASSERT(raw_desc.constant_scale_threshold == compressed_desc.constant_scale_threshold, "Unexpected constant_scale_threshold");
+		}
+	}
+	else
+	{
+		// Specific to scalar tracks
+		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+		{
+			const track& raw_track = raw_tracks[track_index];
+			const uint32_t output_index = raw_track.get_output_index();
+			if (output_index == k_invalid_track_index)
+				continue;	// Stripped
+
+			const track_desc_scalarf& raw_desc = raw_track.get_description<track_desc_scalarf>();
+
+			track_desc_scalarf compressed_desc;
+			const bool compressed_track_desc_found = tracks.get_track_description(output_index, compressed_desc);
+			ACL_ASSERT(compressed_track_desc_found, "Expected track description");
+			ACL_ASSERT(output_index == compressed_desc.output_index, "Unexpected output index");
+			ACL_ASSERT(raw_desc.precision == compressed_desc.precision, "Unexpected precision");
 		}
 	}
 }
@@ -720,6 +751,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			settings.include_track_list_name = true;
 			settings.include_track_names = true;
 			settings.include_parent_track_indices = true;
+			settings.include_track_descriptions = true;
 		}
 
 		output_stats stats;
@@ -796,6 +828,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		{
 			settings.include_track_list_name = true;
 			settings.include_track_names = true;
+			settings.include_track_descriptions = true;
 		}
 
 		output_stats stats;

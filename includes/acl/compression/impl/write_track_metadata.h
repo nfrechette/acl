@@ -128,6 +128,55 @@ namespace acl
 
 			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
 		}
+
+		inline uint32_t write_track_descriptions(const track_array& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint8_t* out_track_descriptions)
+		{
+			uint8_t* output_buffer = out_track_descriptions;
+			const uint8_t* output_buffer_start = output_buffer;
+
+			const bool is_scalar = tracks.get_track_type() != track_type8::qvvf;
+
+			for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)
+			{
+				const uint32_t track_index = track_output_indices[output_index];
+
+				if (is_scalar)
+				{
+					const track_desc_scalarf& desc = tracks[track_index].get_description<track_desc_scalarf>();
+
+					if (out_track_descriptions != nullptr)
+					{
+						// We don't write out the output index since the track has already been properly sorted or stripped
+
+						float* data = reinterpret_cast<float*>(output_buffer);
+						data[0] = desc.precision;
+					}
+
+					output_buffer += sizeof(float) * 1;
+				}
+				else
+				{
+					const track_desc_transformf& desc = tracks[track_index].get_description<track_desc_transformf>();
+
+					if (out_track_descriptions != nullptr)
+					{
+						// We don't write out the output index since the track has already been properly sorted or stripped
+						// We don't write out the parent index since it has already been included separately
+
+						float* data = reinterpret_cast<float*>(output_buffer);
+						data[0] = desc.precision;
+						data[1] = desc.shell_distance;
+						data[2] = desc.constant_rotation_threshold_angle;
+						data[3] = desc.constant_translation_threshold;
+						data[4] = desc.constant_scale_threshold;
+					}
+
+					output_buffer += sizeof(float) * 5;
+				}
+			}
+
+			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
+		}
 	}
 }
 
