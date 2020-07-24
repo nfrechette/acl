@@ -80,7 +80,7 @@ namespace acl
 
 		const acl_impl::optional_metadata_header& metadata_header = acl_impl::get_optional_metadata_header(*this);
 		if (!metadata_header.track_name_offsets.is_valid())
-			return nullptr;	// Track names aren't stored
+			return nullptr;	// Metadata isn't stored
 
 		return metadata_header.get_track_list_name(*this);
 	}
@@ -97,7 +97,7 @@ namespace acl
 
 		const acl_impl::optional_metadata_header& metadata_header = acl_impl::get_optional_metadata_header(*this);
 		if (!metadata_header.track_name_offsets.is_valid())
-			return nullptr;	// Track names aren't stored
+			return nullptr;	// Metadata isn't stored
 
 		const uint32_t* track_names_offsets = metadata_header.get_track_name_offsets(*this);
 		const ptr_offset32<char> offset = track_names_offsets[track_index];
@@ -116,7 +116,7 @@ namespace acl
 
 		const acl_impl::optional_metadata_header& metadata_header = acl_impl::get_optional_metadata_header(*this);
 		if (!metadata_header.parent_track_indices.is_valid())
-			return k_invalid_track_index;	// Parent track indices aren't stored
+			return k_invalid_track_index;	// Metadata isn't stored
 
 		const uint32_t* parent_track_indices = metadata_header.get_parent_track_indices(*this);
 		return parent_track_indices[track_index];
