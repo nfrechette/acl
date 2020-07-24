@@ -35,13 +35,13 @@ namespace acl
 	class deleter
 	{
 	public:
-		deleter() : m_allocator(nullptr) {}
-		explicit deleter(iallocator& allocator) : m_allocator(&allocator) {}
-		deleter(const deleter&) = default;
-		deleter(deleter&&) = default;
-		~deleter() = default;
-		deleter& operator=(const deleter&) = default;
-		deleter& operator=(deleter&&) = default;
+		deleter() noexcept : m_allocator(nullptr) {}
+		explicit deleter(iallocator& allocator) noexcept : m_allocator(&allocator) {}
+		deleter(const deleter&) noexcept = default;
+		deleter(deleter&&) noexcept = default;
+		~deleter() noexcept = default;
+		deleter& operator=(const deleter&) noexcept = default;
+		deleter& operator=(deleter&&) noexcept = default;
 
 		void operator()(allocated_type* ptr)
 		{
