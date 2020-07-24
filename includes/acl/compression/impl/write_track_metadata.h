@@ -92,6 +92,42 @@ namespace acl
 
 			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
 		}
+
+		inline uint32_t write_parent_track_indices(const track_array_qvvf& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t* out_parent_track_indices)
+		{
+			auto find_output_index = [](const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t track_index)
+			{
+				if (track_index == k_invalid_track_index)
+					return k_invalid_track_index;
+
+				for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)
+				{
+					if (track_output_indices[output_index] == track_index)
+						return output_index;
+				}
+
+				return k_invalid_track_index;
+			};
+
+			uint8_t* output_buffer = reinterpret_cast<uint8_t*>(out_parent_track_indices);
+			const uint8_t* output_buffer_start = output_buffer;
+
+			for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)
+			{
+				const uint32_t track_index = track_output_indices[output_index];
+				const track_qvvf& track = tracks[track_index];
+				const track_desc_transformf& desc = track.get_description();
+				const uint32_t parent_track_index = desc.parent_index;
+
+				const uint32_t parent_output_index = find_output_index(track_output_indices, num_output_tracks, parent_track_index);
+				if (out_parent_track_indices != nullptr)
+					out_parent_track_indices[output_index] = parent_output_index;
+
+				output_buffer += sizeof(uint32_t);
+			}
+
+			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
+		}
 	}
 }
 

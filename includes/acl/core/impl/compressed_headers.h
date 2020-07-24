@@ -217,8 +217,9 @@ namespace acl
 		{
 			ptr_offset32<char>				track_list_name;
 			ptr_offset32<uint32_t>			track_name_offsets;
+			ptr_offset32<uint32_t>			parent_track_indices;
 
-			uint32_t						padding[2];
+			uint32_t						padding[1];
 
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
@@ -227,6 +228,8 @@ namespace acl
 			const char*					get_track_list_name(const compressed_tracks& tracks) const { return track_list_name.safe_add_to(&tracks); }
 			uint32_t*					get_track_name_offsets(compressed_tracks& tracks) { return track_name_offsets.safe_add_to(&tracks); }
 			const uint32_t*				get_track_name_offsets(const compressed_tracks& tracks) const { return track_name_offsets.safe_add_to(&tracks); }
+			uint32_t*					get_parent_track_indices(compressed_tracks& tracks) { return parent_track_indices.safe_add_to(&tracks); }
+			const uint32_t*				get_parent_track_indices(const compressed_tracks& tracks) const { return parent_track_indices.safe_add_to(&tracks); }
 		};
 
 		static_assert(sizeof(optional_metadata_header) >= 15, "Optional metadata must be at least 15 bytes");

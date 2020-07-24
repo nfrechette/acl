@@ -104,6 +104,24 @@ namespace acl
 		return offset.add_to(track_names_offsets);
 	}
 
+	inline uint32_t compressed_tracks::get_parent_track_index(uint32_t track_index) const
+	{
+		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+		if (!header.get_has_metadata())
+			return k_invalid_track_index;	// No metadata is stored
+
+		ACL_ASSERT(track_index < header.num_tracks, "Invalid track index");
+		if (track_index >= header.num_tracks)
+			return k_invalid_track_index;	// Invalid track index
+
+		const acl_impl::optional_metadata_header& metadata_header = acl_impl::get_optional_metadata_header(*this);
+		if (!metadata_header.parent_track_indices.is_valid())
+			return k_invalid_track_index;	// Parent track indices aren't stored
+
+		const uint32_t* parent_track_indices = metadata_header.get_parent_track_indices(*this);
+		return parent_track_indices[track_index];
+	}
+
 	inline error_result compressed_tracks::is_valid(bool check_hash) const
 	{
 		if (!is_aligned_to(this, alignof(compressed_tracks)))
