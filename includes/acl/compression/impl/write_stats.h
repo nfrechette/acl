@@ -403,7 +403,7 @@ namespace acl
 			writer["has_scale"] = clip.has_scale;
 			writer["error_metric"] = settings.error_metric->get_name();
 
-			if (are_all_enum_flags_set(stats.logging, stat_logging::Detailed) || are_all_enum_flags_set(stats.logging, stat_logging::Exhaustive))
+			if (are_all_enum_flags_set(stats.logging, stat_logging::detailed) || are_all_enum_flags_set(stats.logging, stat_logging::exhaustive))
 			{
 				uint32_t num_default_rotation_tracks = 0;
 				uint32_t num_default_translation_tracks = 0;
@@ -534,10 +534,10 @@ namespace acl
 						{
 							write_summary_segment_stats(segment, settings.rotation_format, settings.translation_format, settings.scale_format, segment_writer);
 
-							if (are_all_enum_flags_set(stats.logging, stat_logging::Detailed))
+							if (are_all_enum_flags_set(stats.logging, stat_logging::detailed))
 								write_detailed_segment_stats(segment, segment_writer);
 
-							if (are_all_enum_flags_set(stats.logging, stat_logging::Exhaustive))
+							if (are_all_enum_flags_set(stats.logging, stat_logging::exhaustive))
 								write_exhaustive_segment_stats(allocator, segment, raw_clip, additive_base_clip_context, settings, track_list, segment_writer);
 						});
 				}

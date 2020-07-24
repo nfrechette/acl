@@ -701,7 +701,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			settings.include_track_names = true;
 		}
 
-		output_stats stats(logging, stats_writer);
+		output_stats stats{ logging, stats_writer };
 		compressed_tracks* compressed_tracks_ = nullptr;
 		const error_result result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
 
@@ -710,7 +710,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
 #if defined(SJSON_CPP_WRITER)
-		if (logging != stat_logging::None)
+		if (logging != stat_logging::none)
 		{
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
@@ -724,7 +724,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
 
-			if (are_any_enum_flags_set(logging, stat_logging::SummaryDecompression))
+			if (are_any_enum_flags_set(logging, stat_logging::summary_decompression))
 				acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_tracks_, logging, *stats_writer);
 		}
 #endif
@@ -774,7 +774,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			settings.include_track_names = true;
 		}
 
-		output_stats stats(logging, stats_writer);
+		output_stats stats{ logging, stats_writer };
 		compressed_tracks* compressed_tracks_ = nullptr;
 		const error_result result = compress_track_list(allocator, track_list, settings, compressed_tracks_, stats);
 
@@ -782,7 +782,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
 #if defined(SJSON_CPP_WRITER)
-		if (logging != stat_logging::None)
+		if (logging != stat_logging::none)
 		{
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
@@ -797,7 +797,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			stats_writer->insert("worst_time", error.sample_time);
 
 			// TODO: measure decompression performance
-			//if (are_any_enum_flags_set(logging, stat_logging::SummaryDecompression))
+			//if (are_any_enum_flags_set(logging, stat_logging::summary_decompression))
 				//write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
 		}
 #endif
@@ -1222,16 +1222,16 @@ static int safe_main_impl(int argc, char* argv[])
 	// Compress & Decompress
 	auto exec_algos = [&](sjson::ArrayWriter* runs_writer)
 	{
-		stat_logging logging = options.do_output_stats ? stat_logging::Summary : stat_logging::None;
+		stat_logging logging = options.do_output_stats ? stat_logging::summary : stat_logging::none;
 
 		if (options.stat_detailed_output)
-			logging |= stat_logging::Detailed;
+			logging |= stat_logging::detailed;
 
 		if (options.stat_exhaustive_output)
-			logging |= stat_logging::Exhaustive;
+			logging |= stat_logging::exhaustive;
 
 		if (options.profile_decompression)
-			logging |= stat_logging::SummaryDecompression | stat_logging::ExhaustiveDecompression;
+			logging |= stat_logging::summary_decompression | stat_logging::exhaustive_decompression;
 
 		if (is_input_acl_bin_file)
 		{

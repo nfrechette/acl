@@ -1512,7 +1512,7 @@ namespace acl
 			}
 
 #if defined(SJSON_CPP_WRITER)
-			if (are_all_enum_flags_set(out_stats.logging, stat_logging::Detailed))
+			if (are_all_enum_flags_set(out_stats.logging, stat_logging::detailed))
 			{
 				sjson::ObjectWriter& writer = *out_stats.writer;
 				writer["track_bit_rate_database_size"] = static_cast<uint32_t>(context.bit_rate_database.get_allocated_size());

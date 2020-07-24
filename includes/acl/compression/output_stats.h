@@ -35,23 +35,20 @@ namespace acl
 {
 	enum class stat_logging
 	{
-		None						= 0x0000,
-		Summary						= 0x0001,
-		Detailed					= 0x0002 | Summary,
-		Exhaustive					= 0x0004 | Detailed,
-		SummaryDecompression		= 0x0010,
-		ExhaustiveDecompression		= 0x0020,
+		none						= 0x0000,
+		summary						= 0x0001,
+		detailed					= 0x0002 | summary,
+		exhaustive					= 0x0004 | detailed,
+		summary_decompression		= 0x0010,
+		exhaustive_decompression	= 0x0020,
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(stat_logging)
 
 	struct output_stats
 	{
-		output_stats() : logging(stat_logging::None), writer(nullptr) {}
-		output_stats(stat_logging logging_, sjson::ObjectWriter* writer_) : logging(logging_), writer(writer_) {}
-
-		stat_logging				logging;
-		sjson::ObjectWriter*	writer;
+		stat_logging			logging = stat_logging::none;
+		sjson::ObjectWriter*	writer = nullptr;
 	};
 }
 

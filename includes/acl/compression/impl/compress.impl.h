@@ -223,7 +223,7 @@ namespace acl
 #if defined(SJSON_CPP_WRITER)
 			compression_time.stop();
 
-			if (out_stats.logging != stat_logging::None)
+			if (out_stats.logging != stat_logging::none)
 				write_compression_stats(context, *out_compressed_tracks, compression_time, out_stats);
 #endif
 
@@ -350,7 +350,7 @@ namespace acl
 
 			const uint32_t clip_data_size = buffer_size - clip_segment_header_size - clip_header_size;
 
-			if (are_all_enum_flags_set(out_stats.logging, stat_logging::Detailed))
+			if (are_all_enum_flags_set(out_stats.logging, stat_logging::detailed))
 			{
 				constexpr uint32_t k_cache_line_byte_size = 64;
 				lossy_clip_context.decomp_touched_bytes = clip_header_size + clip_data_size;
@@ -556,7 +556,7 @@ namespace acl
 #if defined(SJSON_CPP_WRITER)
 			compression_time.stop();
 
-			if (out_stats.logging != stat_logging::None)
+			if (out_stats.logging != stat_logging::none)
 				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, range_reduction, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
 #endif
 
