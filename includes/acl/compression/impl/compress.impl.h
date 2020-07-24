@@ -273,11 +273,8 @@ namespace acl
 
 			const bool is_additive = additive_format != additive_clip_format8::none;
 			clip_context additive_base_clip_context;
-			if (is_additive)
-			{
-				if (!initialize_clip_context(allocator, *additive_base_track_list, additive_format, additive_base_clip_context))
-					return error_result("Some base samples are not finite");
-			}
+			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, additive_format, additive_base_clip_context))
+				return error_result("Some base samples are not finite");
 
 			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format);
 
