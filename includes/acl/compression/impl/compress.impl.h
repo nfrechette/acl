@@ -295,15 +295,15 @@ namespace acl
 				additive_format = additive_clip_format8::none;
 
 			clip_context raw_clip_context;
-			if (!initialize_clip_context(allocator, track_list, additive_format, raw_clip_context))
+			if (!initialize_clip_context(allocator, track_list, settings, additive_format, raw_clip_context))
 				return error_result("Some samples are not finite");
 
 			clip_context lossy_clip_context;
-			initialize_clip_context(allocator, track_list, additive_format, lossy_clip_context);
+			initialize_clip_context(allocator, track_list, settings, additive_format, lossy_clip_context);
 
 			const bool is_additive = additive_format != additive_clip_format8::none;
 			clip_context additive_base_clip_context;
-			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, additive_format, additive_base_clip_context))
+			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, additive_base_clip_context))
 				return error_result("Some base samples are not finite");
 
 			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format);
@@ -312,7 +312,7 @@ namespace acl
 			extract_clip_bone_ranges(allocator, lossy_clip_context);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, lossy_clip_context, track_list);
+			compact_constant_streams(allocator, lossy_clip_context, track_list, settings);
 
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
