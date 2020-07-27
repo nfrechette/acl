@@ -24,10 +24,10 @@
   </Type>
 
   <Type Name="acl::track">
-    <DisplayString Condition="m_debug_name.m_c_str != nullptr">num_samples={m_num_samples}, type={m_type}, name={m_debug_name}</DisplayString>
+    <DisplayString Condition="m_name.m_c_str != nullptr">num_samples={m_num_samples}, type={m_type}, name={m_name}</DisplayString>
     <DisplayString>num_samples={m_num_samples}, type={m_type}</DisplayString>
     <Expand>
-      <Item Name="name" Condition="m_debug_name.m_c_str != nullptr">m_debug_name</Item>
+      <Item Name="name" Condition="m_name.m_c_str != nullptr">m_name</Item>
       <Item Name="num_samples">m_num_samples</Item>
       <Item Name="sample_rate">m_sample_rate</Item>
       <Item Name="stride">m_stride</Item>
@@ -63,10 +63,10 @@
   </Type>
 
   <Type Name="acl::track_array">
-    <DisplayString Condition="m_debug_name.m_c_str != nullptr">num_tracks={m_num_tracks}, name={m_debug_name}</DisplayString>
+    <DisplayString Condition="m_name.m_c_str != nullptr">num_tracks={m_num_tracks}, name={m_name}</DisplayString>
     <DisplayString>num_tracks={m_num_tracks}</DisplayString>
     <Expand>
-      <Item Name="name" Condition="m_debug_name.m_c_str != nullptr">m_debug_name</Item>
+      <Item Name="name" Condition="m_name.m_c_str != nullptr">m_name</Item>
       <Item Name="num_tracks">m_num_tracks</Item>
       <ArrayItems>
         <Size>m_num_tracks</Size>
