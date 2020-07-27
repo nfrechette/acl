@@ -78,7 +78,7 @@ namespace acl
 			return true;
 		}
 
-		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const track_array_qvvf& track_list)
+		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const track_array_qvvf& track_list, const compression_settings& settings)
 		{
 			ACL_ASSERT(context.num_segments == 1, "clip_context must contain a single segment!");
 			SegmentContext& segment = context.segments[0];
@@ -100,7 +100,12 @@ namespace acl
 				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
 				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
 
-				if (is_rotation_track_constant(bone_stream.rotations, desc.constant_rotation_threshold_angle))
+				// If we request raw data, use a 0.0 threshold for safety
+				const float constant_rotation_threshold_angle = settings.rotation_format != rotation_format8::quatf_full ? desc.constant_rotation_threshold_angle : 0.0F;
+				const float constant_translation_threshold = settings.translation_format != vector_format8::vector3f_full ? desc.constant_translation_threshold : 0.0F;
+				const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
+
+				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle))
 				{
 					RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
 					rtm::vector4f rotation = bone_stream.rotations.get_raw_sample<rtm::vector4f>(0);
@@ -108,12 +113,12 @@ namespace acl
 
 					bone_stream.rotations = std::move(constant_stream);
 					bone_stream.is_rotation_constant = true;
-					bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::vector_to_quat(rotation), desc.constant_rotation_threshold_angle);
+					bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::vector_to_quat(rotation), constant_rotation_threshold_angle);
 
 					bone_range.rotation = TrackStreamRange::from_min_extent(rotation, rtm::vector_zero());
 				}
 
-				if (bone_range.translation.is_constant(desc.constant_translation_threshold))
+				if (bone_range.translation.is_constant(constant_translation_threshold))
 				{
 					TranslationTrackStream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
 					rtm::vector4f translation = bone_stream.translations.get_raw_sample<rtm::vector4f>(0);
@@ -121,12 +126,12 @@ namespace acl
 
 					bone_stream.translations = std::move(constant_stream);
 					bone_stream.is_translation_constant = true;
-					bone_stream.is_translation_default = rtm::vector_all_near_equal3(translation, rtm::vector_zero(), desc.constant_translation_threshold);
+					bone_stream.is_translation_default = rtm::vector_all_near_equal3(translation, rtm::vector_zero(), constant_translation_threshold);
 
 					bone_range.translation = TrackStreamRange::from_min_extent(translation, rtm::vector_zero());
 				}
 
-				if (bone_range.scale.is_constant(desc.constant_scale_threshold))
+				if (bone_range.scale.is_constant(constant_scale_threshold))
 				{
 					ScaleTrackStream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
 					rtm::vector4f scale = bone_stream.scales.get_raw_sample<rtm::vector4f>(0);
@@ -134,7 +139,7 @@ namespace acl
 
 					bone_stream.scales = std::move(constant_stream);
 					bone_stream.is_scale_constant = true;
-					bone_stream.is_scale_default = rtm::vector_all_near_equal3(scale, default_scale, desc.constant_scale_threshold);
+					bone_stream.is_scale_default = rtm::vector_all_near_equal3(scale, default_scale, constant_scale_threshold);
 
 					bone_range.scale = TrackStreamRange::from_min_extent(scale, rtm::vector_zero());
 

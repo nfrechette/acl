@@ -170,7 +170,7 @@ namespace acl
 			}
 		};
 
-		inline bool initialize_clip_context(iallocator& allocator, const track_array_qvvf& track_list, additive_clip_format8 additive_format, clip_context& out_clip_context)
+		inline bool initialize_clip_context(iallocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings, additive_clip_format8 additive_format, clip_context& out_clip_context)
 		{
 			const uint32_t num_transforms = track_list.get_num_tracks();
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
@@ -238,12 +238,17 @@ namespace acl
 					const rtm::qvvf& first_transform = track[0];
 					const rtm::quatf first_rotation = rtm::quat_normalize(first_transform.rotation);
 
+					// If we request raw data, use a 0.0 threshold for safety
+					const float constant_rotation_threshold_angle = settings.rotation_format != rotation_format8::quatf_full ? desc.constant_rotation_threshold_angle : 0.0F;
+					const float constant_translation_threshold = settings.translation_format != vector_format8::vector3f_full ? desc.constant_translation_threshold : 0.0F;
+					const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
+
 					bone_stream.is_rotation_constant = num_samples == 1;
-					bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(first_rotation, desc.constant_rotation_threshold_angle);
+					bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(first_rotation, constant_rotation_threshold_angle);
 					bone_stream.is_translation_constant = num_samples == 1;
-					bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(first_transform.translation, rtm::vector_zero(), desc.constant_translation_threshold);
+					bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(first_transform.translation, rtm::vector_zero(), constant_translation_threshold);
 					bone_stream.is_scale_constant = num_samples == 1;
-					bone_stream.is_scale_default = bone_stream.is_scale_constant && rtm::vector_all_near_equal3(first_transform.scale, default_scale, desc.constant_scale_threshold);
+					bone_stream.is_scale_default = bone_stream.is_scale_constant && rtm::vector_all_near_equal3(first_transform.scale, default_scale, constant_scale_threshold);
 				}
 
 				has_scale |= !bone_stream.is_scale_default;
