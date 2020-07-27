@@ -114,11 +114,11 @@ namespace acl
 
 			if (metadata_size != 0)
 			{
-				metadata_size = align_to(metadata_size, 4);
-				metadata_size += sizeof(optional_metadata_header);
-
 				buffer_size = align_to(buffer_size, 4);
 				buffer_size += metadata_size;
+
+				buffer_size = align_to(buffer_size, 4);
+				buffer_size += sizeof(optional_metadata_header);
 			}
 			else
 				buffer_size += 15;	// Ensure we have sufficient padding for unaligned 16 byte loads
@@ -163,7 +163,13 @@ namespace acl
 			buffer += animated_values_size;
 
 			if (metadata_size != 0)
-				buffer = align_to(buffer, 4) + metadata_size;
+			{
+				buffer = align_to(buffer, 4);
+				buffer += metadata_size;
+
+				buffer = align_to(buffer, 4);
+				buffer += sizeof(optional_metadata_header);
+			}
 			else
 				buffer += 15;
 
@@ -421,11 +427,11 @@ namespace acl
 
 			if (metadata_size != 0)
 			{
-				metadata_size = align_to(metadata_size, 4);
-				metadata_size += sizeof(optional_metadata_header);
-
 				buffer_size = align_to(buffer_size, 4);
 				buffer_size += metadata_size;
+
+				buffer_size = align_to(buffer_size, 4);
+				buffer_size += sizeof(optional_metadata_header);
 			}
 			else
 				buffer_size += 15;	// Ensure we have sufficient padding for unaligned 16 byte loads
@@ -567,6 +573,9 @@ namespace acl
 				{
 					buffer = align_to(buffer, 4);
 					buffer += metadata_size;
+
+					buffer = align_to(buffer, 4);
+					buffer += sizeof(optional_metadata_header);
 				}
 				else
 					buffer += 15;	// Ensure we have sufficient padding for unaligned 16 byte loads
