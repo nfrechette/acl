@@ -107,6 +107,7 @@ namespace acl
 		static constexpr bool is_translation_format_supported(vector_format8 /*format*/) { return true; }
 		static constexpr bool is_scale_format_supported(vector_format8 /*format*/) { return true; }
 
+		//////////////////////////////////////////////////////////////////////////
 		// Whether rotations should be normalized before being output or not. Some animation
 		// runtimes will normalize in a separate step and do not need the explicit normalization.
 		// Enabled by default for safety.
