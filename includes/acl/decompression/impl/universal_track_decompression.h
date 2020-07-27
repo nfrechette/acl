@@ -46,10 +46,11 @@ namespace acl
 
 			//////////////////////////////////////////////////////////////////////////
 
-			inline const compressed_tracks* get_compressed_tracks() const { return scalar.tracks; }
-			inline compressed_tracks_version16 get_version() const { return scalar.tracks->get_version(); }
-			inline bool is_initialized() const { return scalar.is_initialized(); }
-			inline void reset() { scalar.tracks = nullptr; }
+			persistent_universal_decompression_context() noexcept {}
+			const compressed_tracks* get_compressed_tracks() const { return scalar.tracks; }
+			compressed_tracks_version16 get_version() const { return scalar.tracks->get_version(); }
+			bool is_initialized() const { return scalar.is_initialized(); }
+			void reset() { scalar.tracks = nullptr; }
 		};
 
 		template<class decompression_settings_type>

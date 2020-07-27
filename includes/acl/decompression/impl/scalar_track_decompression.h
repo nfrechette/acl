@@ -64,10 +64,10 @@ namespace acl
 
 			//////////////////////////////////////////////////////////////////////////
 
-			inline const compressed_tracks* get_compressed_tracks() const { return tracks; }
-			inline compressed_tracks_version16 get_version() const { return tracks->get_version(); }
-			inline bool is_initialized() const { return tracks != nullptr; }
-			inline void reset() { tracks = nullptr; }
+			const compressed_tracks* get_compressed_tracks() const { return tracks; }
+			compressed_tracks_version16 get_version() const { return tracks->get_version(); }
+			bool is_initialized() const { return tracks != nullptr; }
+			void reset() { tracks = nullptr; }
 		};
 
 		static_assert(sizeof(persistent_scalar_decompression_context_v0) == 64, "Unexpected size");
