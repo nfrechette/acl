@@ -339,7 +339,8 @@ namespace acl
 
 			calculate_animated_data_size(lossy_clip_context, output_bone_mapping, num_output_bones);
 
-			const uint32_t format_per_track_data_size = get_format_per_track_data_size(lossy_clip_context, settings.rotation_format, settings.translation_format, settings.scale_format);
+			uint32_t num_animated_variable_sub_tracks = 0;
+			const uint32_t format_per_track_data_size = get_format_per_track_data_size(lossy_clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, &num_animated_variable_sub_tracks);
 
 			const uint32_t num_tracks_per_bone = lossy_clip_context.has_scale ? 3 : 2;
 			const uint32_t num_tracks = uint32_t(num_output_bones) * num_tracks_per_bone;
@@ -389,6 +390,8 @@ namespace acl
 			// Per segment data
 			for (SegmentContext& segment : lossy_clip_context.segment_iterator())
 			{
+				ACL_ASSERT(segment.range_data_size == 0 || segment.range_data_size == (num_animated_variable_sub_tracks * k_segment_range_reduction_num_bytes_per_component * 6), "Animated tracks only have 3 components with range data");
+
 				const uint32_t header_start = buffer_size;
 
 				buffer_size += format_per_track_data_size;						// Format per track data
@@ -467,8 +470,9 @@ namespace acl
 			buffer += sizeof(transform_tracks_header);
 
 			transforms_header->num_segments = lossy_clip_context.num_segments;
-			transforms_header->segment_start_indices_offset = align_to(sizeof(transform_tracks_header), 4);	// Relative to the start of our header
-			transforms_header->segment_headers_offset = align_to(transforms_header->segment_start_indices_offset + segment_start_indices_size, 4);
+			transforms_header->num_animated_variable_sub_tracks = num_animated_variable_sub_tracks;
+			const uint32_t segment_start_indices_offset = align_to<uint32_t>(sizeof(transform_tracks_header), 4);	// Relative to the start of our header
+			transforms_header->segment_headers_offset = align_to(segment_start_indices_offset + segment_start_indices_size, 4);
 			transforms_header->default_tracks_bitset_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
 			transforms_header->constant_tracks_bitset_offset = transforms_header->default_tracks_bitset_offset + bitset_desc.get_num_bytes();
 			transforms_header->constant_track_data_offset = align_to(transforms_header->constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
@@ -477,8 +481,6 @@ namespace acl
 			uint32_t written_segment_start_indices_size = 0;
 			if (lossy_clip_context.num_segments > 1)
 				written_segment_start_indices_size = write_segment_start_indices(lossy_clip_context, transforms_header->get_segment_start_indices());
-			else
-				transforms_header->segment_start_indices_offset = invalid_ptr_offset();
 
 			const uint32_t segment_data_start_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
 			const uint32_t written_segment_headers_size = write_segment_headers(lossy_clip_context, settings, transforms_header->get_segment_headers(), segment_data_start_offset);

@@ -73,11 +73,11 @@ namespace acl
 				segment_header& header = segment_headers[segment_index];
 
 				header.animated_pose_bit_size = segment.animated_pose_bit_size;
-				header.format_per_track_data_offset = segment_data_offset;
-				header.range_data_offset = align_to(header.format_per_track_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
-				header.track_data_offset = align_to(header.range_data_offset + segment.range_data_size, 4);						// Aligned to 4 bytes
+				header.segment_data = segment_data_offset;
 
-				segment_data_offset = header.track_data_offset + segment.animated_data_size;
+				segment_data_offset = align_to(segment_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
+				segment_data_offset = align_to(segment_data_offset + segment.range_data_size, 4);			// Aligned to 4 bytes
+				segment_data_offset = segment_data_offset + segment.animated_data_size;
 				size_written += sizeof(segment_header);
 			}
 
@@ -97,24 +97,23 @@ namespace acl
 				const SegmentContext& segment = clip.segments[segment_index];
 				segment_header& segment_header_ = segment_headers[segment_index];
 
+				uint8_t* format_per_track_data = nullptr;
+				uint8_t* range_data = nullptr;
+				uint8_t* animated_data = nullptr;
+				header.get_segment_data(segment_header_, format_per_track_data, range_data, animated_data);
+
 				if (format_per_track_data_size > 0)
-					size_written += write_format_per_track_data(segment, header.get_format_per_track_data(segment_header_), format_per_track_data_size, output_bone_mapping, num_output_bones);
-				else
-					segment_header_.format_per_track_data_offset = invalid_ptr_offset();
+					size_written += write_format_per_track_data(segment, format_per_track_data, format_per_track_data_size, output_bone_mapping, num_output_bones);
 
 				size_written = align_to(size_written, 2);	// Align range data
 
 				if (segment.range_data_size > 0)
-					size_written += write_segment_range_data(segment, range_reduction, header.get_segment_range_data(segment_header_), segment.range_data_size, output_bone_mapping, num_output_bones);
-				else
-					segment_header_.range_data_offset = invalid_ptr_offset();
+					size_written += write_segment_range_data(segment, range_reduction, range_data, segment.range_data_size, output_bone_mapping, num_output_bones);
 
 				size_written = align_to(size_written, 4);	// Align animated data
 
 				if (segment.animated_data_size > 0)
-					size_written += write_animated_track_data(segment, header.get_track_data(segment_header_), segment.animated_data_size, output_bone_mapping, num_output_bones);
-				else
-					segment_header_.track_data_offset = invalid_ptr_offset();
+					size_written += write_animated_track_data(segment, animated_data, segment.animated_data_size, output_bone_mapping, num_output_bones);
 			}
 
 			return size_written;
