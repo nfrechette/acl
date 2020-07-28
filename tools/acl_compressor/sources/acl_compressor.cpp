@@ -47,6 +47,7 @@
 #include "acl/core/string.h"
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/compress.h"
+#include "acl/compression/convert.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/transform_pose_utils.h"	// Just to test compilation
 #include "acl/compression/impl/write_decompression_stats.h"
@@ -733,6 +734,155 @@ static void validate_metadata(const track_array& raw_tracks, const compressed_tr
 		}
 	}
 }
+
+static void compare_raw_with_compressed(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& compressed_tracks_)
+{
+	const uint32_t num_tracks = raw_tracks.get_num_tracks();
+
+	uint32_t num_output_tracks = 0;
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track& raw_track = raw_tracks[track_index];
+		const uint32_t output_index = raw_track.get_output_index();
+		if (output_index == k_invalid_track_index)
+			continue;	// Stripped
+
+		num_output_tracks++;
+	}
+
+	ACL_ASSERT(num_output_tracks == compressed_tracks_.get_num_tracks(), "Unexpected num tracks");
+	ACL_ASSERT(raw_tracks.get_num_samples_per_track() == compressed_tracks_.get_num_samples_per_track(), "Unexpected num samples");
+	ACL_ASSERT(raw_tracks.get_sample_rate() == compressed_tracks_.get_sample_rate(), "Unexpected sample rate");
+	ACL_ASSERT(raw_tracks.get_track_type() == compressed_tracks_.get_track_type(), "Unexpected track type");
+	ACL_ASSERT(raw_tracks.get_name() == compressed_tracks_.get_name(), "Unexpected track list name");
+
+	const track_category8 track_category = raw_tracks.get_track_category();
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track& raw_track = raw_tracks[track_index];
+		const uint32_t output_index = raw_track.get_output_index();
+		if (output_index == k_invalid_track_index)
+			continue;	// Stripped
+
+		if (track_category == track_category8::scalarf)
+		{
+			const track_desc_scalarf& raw_desc = raw_track.get_description<track_desc_scalarf>();
+			track_desc_scalarf desc;
+			compressed_tracks_.get_track_description(output_index, desc);
+
+			ACL_ASSERT(raw_desc.precision == desc.precision, "Unexpected precision");
+		}
+		else
+		{
+			const track_desc_transformf& raw_desc = raw_track.get_description<track_desc_transformf>();
+			track_desc_transformf desc;
+			compressed_tracks_.get_track_description(output_index, desc);
+
+			ACL_ASSERT(raw_desc.parent_index == desc.parent_index, "Unexpected parent index");
+			ACL_ASSERT(raw_desc.precision == desc.precision, "Unexpected precision");
+			ACL_ASSERT(raw_desc.shell_distance == desc.shell_distance, "Unexpected shell_distance");
+			ACL_ASSERT(raw_desc.constant_rotation_threshold_angle == desc.constant_rotation_threshold_angle, "Unexpected constant_rotation_threshold_angle");
+			ACL_ASSERT(raw_desc.constant_translation_threshold == desc.constant_translation_threshold, "Unexpected constant_translation_threshold");
+			ACL_ASSERT(raw_desc.constant_scale_threshold == desc.constant_scale_threshold, "Unexpected constant_scale_threshold");
+		}
+	}
+
+	// Disable floating point exceptions since decompression assumes it
+	scope_disable_fp_exceptions fp_off;
+
+	acl::decompression_context<acl_impl::raw_sampling_decompression_settings> context;
+	context.initialize(compressed_tracks_);
+
+	const track_type8 track_type = raw_tracks.get_track_type();
+	acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
+
+	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
+	const float sample_rate = raw_tracks.get_sample_rate();
+	const float duration = raw_tracks.get_duration();
+
+	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+	{
+		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
+
+		// Round to nearest to land directly on a sample
+		context.seek(sample_time, sample_rounding_policy::nearest);
+
+		context.decompress_tracks(writer);
+
+		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+		{
+			const track& raw_track = raw_tracks[track_index];
+			const uint32_t output_index = raw_track.get_output_index();
+			if (output_index == k_invalid_track_index)
+				continue;	// Track is stripped
+
+			switch (track_type)
+			{
+			case track_type8::float1f:
+			{
+				const float raw_sample = *reinterpret_cast<const float*>(raw_track[sample_index]);
+				const float compressed_sample = writer.read_float1(track_index);
+				ACL_ASSERT(raw_sample == compressed_sample, "Unexpected sample");
+				break;
+			}
+			case track_type8::float2f:
+			{
+				const rtm::vector4f raw_sample = rtm::vector_load2(reinterpret_cast<const rtm::float2f*>(raw_track[sample_index]));
+				const rtm::vector4f compressed_sample = writer.read_float2(track_index);
+				ACL_ASSERT(rtm::vector_all_near_equal2(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
+				break;
+			}
+			case track_type8::float3f:
+			{
+				const rtm::vector4f raw_sample = rtm::vector_load3(reinterpret_cast<const rtm::float3f*>(raw_track[sample_index]));
+				const rtm::vector4f compressed_sample = writer.read_float3(track_index);
+				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
+				break;
+			}
+			case track_type8::float4f:
+			{
+				const rtm::vector4f raw_sample = rtm::vector_load(reinterpret_cast<const rtm::float4f*>(raw_track[sample_index]));
+				const rtm::vector4f compressed_sample = writer.read_float4(track_index);
+				ACL_ASSERT(rtm::vector_all_near_equal(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
+				break;
+			}
+			case track_type8::vector4f:
+			{
+				const rtm::vector4f raw_sample = *reinterpret_cast<const rtm::vector4f*>(raw_track[sample_index]);
+				const rtm::vector4f compressed_sample = writer.read_vector4(track_index);
+				ACL_ASSERT(rtm::vector_all_near_equal(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
+				break;
+			}
+			case track_type8::qvvf:
+			{
+				const rtm::qvvf raw_sample = *reinterpret_cast<const rtm::qvvf*>(raw_track[sample_index]);
+				const rtm::qvvf compressed_sample = writer.read_qvv(track_index);
+				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0F), "Unexpected sample");
+				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.translation, compressed_sample.translation, 0.0F), "Unexpected sample");
+				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.scale, compressed_sample.scale, 0.0F), "Unexpected sample");
+				break;
+			}
+			}
+		}
+	}
+}
+
+static void validate_convert(iallocator& allocator, const track_array& raw_tracks)
+{
+	compressed_tracks* compressed_tracks_ = nullptr;
+	error_result result = convert_track_list(allocator, raw_tracks, compressed_tracks_);
+	ACL_ASSERT(result.empty() && compressed_tracks_ != nullptr, "Convert failed");
+
+	compare_raw_with_compressed(allocator, raw_tracks, *compressed_tracks_);
+
+	track_array new_raw_tracks;
+	result = convert_track_list(allocator, *compressed_tracks_, new_raw_tracks);
+	ACL_ASSERT(result.empty() && !new_raw_tracks.is_empty(), "Convert failed");
+
+	compare_raw_with_compressed(allocator, new_raw_tracks, *compressed_tracks_);
+
+	allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
+}
 #endif
 
 static void try_algorithm(const Options& options, iallocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, compression_settings settings, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
@@ -790,6 +940,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 		{
 			validate_accuracy(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, regression_error_threshold);
 			validate_metadata(transform_tracks, *compressed_tracks_);
+			validate_convert(allocator, transform_tracks);
 		}
 #endif
 
