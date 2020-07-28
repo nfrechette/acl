@@ -51,12 +51,12 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// How many samples to try and fit in our segments
 		// Defaults to '16'
-		uint16_t ideal_num_samples = 16;
+		uint32_t ideal_num_samples = 16;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Maximum number of samples per segment
 		// Defaults to '31'
-		uint16_t max_num_samples = 31;
+		uint32_t max_num_samples = 31;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.

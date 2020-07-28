@@ -270,8 +270,8 @@ namespace acl
 			// If every track is retains full precision, we disable segmenting since it provides no benefit
 			if (!is_rotation_format_variable(settings.rotation_format) && !is_vector_format_variable(settings.translation_format) && !is_vector_format_variable(settings.scale_format))
 			{
-				settings.segmenting.ideal_num_samples = 0xFFFF;
-				settings.segmenting.max_num_samples = 0xFFFF;
+				settings.segmenting.ideal_num_samples = 0xFFFFFFFF;
+				settings.segmenting.max_num_samples = 0xFFFFFFFF;
 			}
 
 			// If we want the optional track descriptions, make sure to include the parent track indices
@@ -322,9 +322,6 @@ namespace acl
 			}
 
 			segment_streams(allocator, lossy_clip_context, settings.segmenting);
-
-			if (lossy_clip_context.num_segments > uint32_t(std::numeric_limits<uint16_t>::max()))
-				return error_result("Too many segments");
 
 			// If we have a single segment, skip segment range reduction since it won't help
 			if (range_reduction != range_reduction_flags8::none && lossy_clip_context.num_segments > 1)
@@ -469,7 +466,7 @@ namespace acl
 			transform_tracks_header* transforms_header = safe_ptr_cast<transform_tracks_header>(buffer);
 			buffer += sizeof(transform_tracks_header);
 
-			transforms_header->num_segments = uint16_t(lossy_clip_context.num_segments);
+			transforms_header->num_segments = lossy_clip_context.num_segments;
 			transforms_header->segment_start_indices_offset = align_to(sizeof(transform_tracks_header), 4);	// Relative to the start of our header
 			transforms_header->segment_headers_offset = align_to(transforms_header->segment_start_indices_offset + segment_start_indices_size, 4);
 			transforms_header->default_tracks_bitset_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
@@ -639,9 +636,6 @@ namespace acl
 		if (result.any())
 			return result;
 
-		if (track_list.get_num_samples_per_track() > 0xFFFF)
-			return error_result("ACL only supports up to 65535 samples");
-
 		// Disable floating point exceptions during compression because we leverage all SIMD lanes
 		// and we might intentionally divide by zero, etc.
 		scope_disable_fp_exceptions fp_off;
@@ -668,9 +662,6 @@ namespace acl
 			if (result.any())
 				return result;
 		}
-
-		if (track_list.get_num_samples_per_track() > 0xFFFF)
-			return error_result("ACL only supports up to 65535 samples");
 
 		// Disable floating point exceptions during compression because we leverage all SIMD lanes
 		// and we might intentionally divide by zero, etc.

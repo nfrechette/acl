@@ -165,7 +165,9 @@ namespace acl
 		struct transform_tracks_header
 		{
 			// The number of segments contained.
-			uint16_t						num_segments;
+			uint32_t						num_segments;
+
+			uint16_t						padding;
 
 			// Offset to the segment headers data.
 			ptr_offset16<uint32_t>			segment_start_indices_offset;
