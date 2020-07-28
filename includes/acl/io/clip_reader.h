@@ -423,8 +423,8 @@ namespace acl
 				if (!get_vector_format(scale_format.c_str(), out_settings->scale_format))
 					goto invalid_value_error;
 
-				out_settings->segmenting.ideal_num_samples = uint16_t(segmenting_ideal_num_samples);
-				out_settings->segmenting.max_num_samples = uint16_t(segmenting_max_num_samples);
+				out_settings->segmenting.ideal_num_samples = uint32_t(segmenting_ideal_num_samples);
+				out_settings->segmenting.max_num_samples = uint32_t(segmenting_max_num_samples);
 
 				m_constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
 				m_constant_translation_threshold = float(constant_translation_threshold);
