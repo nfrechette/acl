@@ -120,7 +120,7 @@ namespace acl
 			}
 		}
 
-		inline uint32_t get_format_per_track_data_size(const clip_context& clip, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format)
+		inline uint32_t get_format_per_track_data_size(const clip_context& clip, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, uint32_t* out_num_animated_variable_sub_tracks = nullptr)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -145,6 +145,9 @@ namespace acl
 				if (!bone_stream.is_scale_constant && is_scale_variable)
 					format_per_track_data_size++;
 			}
+
+			if (out_num_animated_variable_sub_tracks != nullptr)
+				*out_num_animated_variable_sub_tracks = format_per_track_data_size;	// 1 byte each
 
 			return format_per_track_data_size;
 		}

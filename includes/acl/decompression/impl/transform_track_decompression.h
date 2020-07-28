@@ -773,12 +773,17 @@ namespace acl
 				segment_key_frame1 = key_frame1 - segment_start_indices[segment_index1];
 			}
 
-			context.format_per_track_data[0] = transform_header.get_format_per_track_data(*segment_header0);
-			context.format_per_track_data[1] = transform_header.get_format_per_track_data(*segment_header1);
-			context.segment_range_data[0] = transform_header.get_segment_range_data(*segment_header0);
-			context.segment_range_data[1] = transform_header.get_segment_range_data(*segment_header1);
-			context.animated_track_data[0] = transform_header.get_track_data(*segment_header0);
-			context.animated_track_data[1] = transform_header.get_track_data(*segment_header1);
+			transform_header.get_segment_data(*segment_header0, context.format_per_track_data[0], context.segment_range_data[0], context.animated_track_data[0]);
+
+			// More often than not the two segments are identical, when this is the case, just copy our pointers
+			if (segment_header0 != segment_header1)
+				transform_header.get_segment_data(*segment_header1, context.format_per_track_data[1], context.segment_range_data[1], context.animated_track_data[1]);
+			else
+			{
+				context.format_per_track_data[1] = context.format_per_track_data[0];
+				context.segment_range_data[1] = context.segment_range_data[0];
+				context.animated_track_data[1] = context.animated_track_data[0];
+			}
 
 			context.key_frame_bit_offsets[0] = segment_key_frame0 * segment_header0->animated_pose_bit_size;
 			context.key_frame_bit_offsets[1] = segment_key_frame1 * segment_header1->animated_pose_bit_size;

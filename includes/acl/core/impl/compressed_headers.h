@@ -148,17 +148,14 @@ namespace acl
 		struct segment_header
 		{
 			// Number of bits used by a fully animated pose (excludes default/constant tracks).
-			uint32_t						animated_pose_bit_size;				// TODO: Calculate from bitsets and formats?
+			uint32_t						animated_pose_bit_size;
 
-			// TODO: Only need one offset, calculate the others from the information we have?
-			// Offset to the per animated track format data.
-			ptr_offset32<uint8_t>			format_per_track_data_offset;		// TODO: Make this offset optional? Only present if variable
-
-			// Offset to the segment range data.
-			ptr_offset32<uint8_t>			range_data_offset;					// TODO: Make this offset optional? Only present if normalized
-
-			// Offset to the segment animated tracks data.
-			ptr_offset32<uint8_t>			track_data_offset;
+			// Offset to the animated segment data
+			// Segment data is partitioned as follows:
+			//    - format per variable track (no alignment)
+			//    - range data per variable track (only when more than one segment) (2 byte alignment)
+			//    - track data sorted per sample then per track (4 byte alignment)
+			ptr_offset32<uint8_t>			segment_data;
 		};
 
 		// Header for transform 'compressed_tracks'
@@ -167,10 +164,10 @@ namespace acl
 			// The number of segments contained.
 			uint32_t						num_segments;
 
-			uint16_t						padding;
+			// The number of animated rot/trans/scale tracks.
+			uint32_t						num_animated_variable_sub_tracks;
 
 			// Offset to the segment headers data.
-			ptr_offset16<uint32_t>			segment_start_indices_offset;
 			ptr_offset32<segment_header>	segment_headers_offset;
 
 			// Offsets to the default/constant tracks bitsets.
@@ -186,8 +183,8 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
 
-			uint32_t*					get_segment_start_indices() { return segment_start_indices_offset.safe_add_to(this); }
-			const uint32_t*				get_segment_start_indices() const { return segment_start_indices_offset.safe_add_to(this); }
+			uint32_t*					get_segment_start_indices() { return num_segments > 1 ? add_offset_to_ptr<uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)) : 0; }
+			const uint32_t*				get_segment_start_indices() const { return num_segments > 1 ? add_offset_to_ptr<const uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)) : 0; }
 
 			segment_header*				get_segment_headers() { return segment_headers_offset.add_to(this); }
 			const segment_header*		get_segment_headers() const { return segment_headers_offset.add_to(this); }
@@ -201,17 +198,40 @@ namespace acl
 			uint8_t*					get_constant_track_data() { return constant_track_data_offset.safe_add_to(this); }
 			const uint8_t*				get_constant_track_data() const { return constant_track_data_offset.safe_add_to(this); }
 
-			uint8_t*					get_format_per_track_data(const segment_header& header) { return header.format_per_track_data_offset.safe_add_to(this); }
-			const uint8_t*				get_format_per_track_data(const segment_header& header) const { return header.format_per_track_data_offset.safe_add_to(this); }
-
 			uint8_t*					get_clip_range_data() { return clip_range_data_offset.safe_add_to(this); }
 			const uint8_t*				get_clip_range_data() const { return clip_range_data_offset.safe_add_to(this); }
 
-			uint8_t*					get_track_data(const segment_header& header) { return header.track_data_offset.safe_add_to(this); }
-			const uint8_t*				get_track_data(const segment_header& header) const { return header.track_data_offset.safe_add_to(this); }
+			void						get_segment_data(const segment_header& header, uint8_t*& out_format_per_track_data, uint8_t*& out_range_data, uint8_t*& out_animated_data)
+			{
+				uint8_t* segment_data = header.segment_data.add_to(this);
 
-			uint8_t*					get_segment_range_data(const segment_header& header) { return header.range_data_offset.safe_add_to(this); }
-			const uint8_t*				get_segment_range_data(const segment_header& header) const { return header.range_data_offset.safe_add_to(this); }
+				uint8_t* format_per_track_data = segment_data;
+
+				uint8_t* range_data = align_to(format_per_track_data + (sizeof(uint8_t) * num_animated_variable_sub_tracks), 2);
+				const uint32_t range_data_size = num_segments > 1 ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
+
+				uint8_t* animated_data = align_to(range_data + range_data_size, 4);
+
+				out_format_per_track_data = format_per_track_data;
+				out_range_data = range_data;
+				out_animated_data = animated_data;
+			}
+
+			void						get_segment_data(const segment_header& header, const uint8_t*& out_format_per_track_data, const uint8_t*& out_range_data, const uint8_t*& out_animated_data) const
+			{
+				const uint8_t* segment_data = header.segment_data.add_to(this);
+
+				const uint8_t* format_per_track_data = segment_data;
+
+				const uint8_t* range_data = align_to(format_per_track_data + (sizeof(uint8_t) * num_animated_variable_sub_tracks), 2);
+				const uint32_t range_data_size = num_segments > 1 ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
+
+				const uint8_t* animated_data = align_to(range_data + range_data_size, 4);
+
+				out_format_per_track_data = format_per_track_data;
+				out_range_data = range_data;
+				out_animated_data = animated_data;
+			}
 		};
 
 		// Header for optional track metadata, must be at least 15 bytes
