@@ -223,7 +223,14 @@ namespace acl
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
 					const rtm::qvvf& transform = track[sample_index];
-					const rtm::quatf rotation = rtm::quat_normalize(transform.rotation);	// Normalize just in case
+
+					// If we request raw data and we are already normalized, retain the original value
+					// otherwise we normalize for safety
+					rtm::quatf rotation;
+					if (settings.rotation_format != rotation_format8::quatf_full || !rtm::quat_is_normalized(transform.rotation))
+						rotation = rtm::quat_normalize(transform.rotation);
+					else
+						rotation = transform.rotation;
 
 					are_samples_valid &= rtm::quat_is_finite(rotation);
 					are_samples_valid &= rtm::vector_is_finite3(transform.translation);
