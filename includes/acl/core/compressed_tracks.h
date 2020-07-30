@@ -29,6 +29,7 @@
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
+#include "acl/core/track_desc.h"
 #include "acl/core/track_types.h"
 #include "acl/core/utils.h"
 #include "acl/core/impl/compiler_utils.h"

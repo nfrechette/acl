@@ -26,6 +26,8 @@
 
 // Included only once from compressed_tracks.h
 
+#include "acl/core/track_desc.h"
+
 namespace acl
 {
 	namespace acl_impl

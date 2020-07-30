@@ -27,6 +27,7 @@
 #include "acl/core/bitset.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/track_desc.h"
 #include "acl/compression/impl/track_list_context.h"
 
 #include <cstdint>

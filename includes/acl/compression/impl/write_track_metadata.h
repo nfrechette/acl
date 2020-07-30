@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/memory_utils.h"
+#include "acl/core/track_desc.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
 

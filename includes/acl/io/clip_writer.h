@@ -31,6 +31,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
+#include "acl/core/track_desc.h"
 
 #include <rtm/quatd.h>
 #include <rtm/vector4d.h>
