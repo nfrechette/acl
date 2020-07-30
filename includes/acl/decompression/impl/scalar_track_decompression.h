@@ -28,6 +28,7 @@
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/track_writer.h"
+#include "acl/core/variable_bit_rates.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/math/scalar_packing.h"
 #include "acl/math/vector4_packing.h"

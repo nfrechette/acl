@@ -24,6 +24,7 @@
 
 #include <catch.hpp>
 
+#include <acl/core/variable_bit_rates.h>
 #include <acl/math/scalar_packing.h>
 #include <acl/math/vector4_packing.h>
 

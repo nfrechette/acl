@@ -28,6 +28,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/bitset.h"
 #include "acl/core/track_desc.h"
+#include "acl/core/variable_bit_rates.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/track_range.h"
 

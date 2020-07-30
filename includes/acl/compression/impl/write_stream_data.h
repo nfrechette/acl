@@ -27,6 +27,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
+#include "acl/core/variable_bit_rates.h"
 #include "acl/compression/impl/clip_context.h"
 
 #include <cstdint>
