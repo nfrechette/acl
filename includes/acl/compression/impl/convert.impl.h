@@ -31,6 +31,7 @@
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/track_formats.h"
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/decompression/decompress.h"
 

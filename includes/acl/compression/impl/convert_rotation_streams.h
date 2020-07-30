@@ -27,6 +27,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
+#include "acl/core/track_formats.h"
 #include "acl/compression/impl/clip_context.h"
 
 #include <rtm/quatf.h>

@@ -30,6 +30,7 @@
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/interpolation_utils.h"
+#include "acl/core/track_formats.h"
 #include "acl/core/track_traits.h"
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"

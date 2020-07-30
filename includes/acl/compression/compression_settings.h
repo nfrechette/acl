@@ -27,6 +27,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
+#include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/compression/compression_level.h"

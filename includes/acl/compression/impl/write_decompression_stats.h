@@ -28,6 +28,7 @@
 
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/scope_profiler.h"
+#include "acl/core/track_formats.h"
 #include "acl/core/utils.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/impl/memory_cache.h"
