@@ -4,9 +4,9 @@ import sys
 
 k_bit_rate_num_bits = [ 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 ]
 
-k_highest_bit_rate = 18
+k_highest_bit_rate = len(k_bit_rate_num_bits) - 1
 k_lowest_bit_rate = 1
-k_num_bit_rates = 19
+k_num_bit_rates = len(k_bit_rate_num_bits)
 k_invalid_bit_rate = 255
 
 # This code assumes that rotations, translations, and scales are packed on 3 components (e.g. quat drop w)
