@@ -24,10 +24,12 @@ exit /B 1
 IF /i %WORKER_IMAGE%=="Visual Studio 2015" SET COMPILER=vs2015
 IF /i %WORKER_IMAGE%=="Visual Studio 2017" SET COMPILER=vs2017
 IF /i %WORKER_IMAGE%=="Visual Studio 2019" SET COMPILER=vs2019
+IF /i %WORKER_IMAGE%=="Previous Visual Studio 2019" SET COMPILER=vs2019
 GOTO :next
 
 :clang
 IF /i %WORKER_IMAGE%=="Visual Studio 2019" SET COMPILER=vs2019-clang
+IF /i %WORKER_IMAGE%=="Previous Visual Studio 2019" SET COMPILER=vs2019-clang
 GOTO :next
 
 :next
