@@ -27,6 +27,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
+#include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
 #include "acl/math/scalar_packing.h"
 

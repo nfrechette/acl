@@ -28,6 +28,7 @@
 
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
+#include "acl/core/track_formats.h"
 
 #include <cstdint>
 

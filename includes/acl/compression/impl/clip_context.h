@@ -29,6 +29,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/iterator.h"
 #include "acl/core/error.h"
+#include "acl/core/track_formats.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/impl/segment_context.h"
