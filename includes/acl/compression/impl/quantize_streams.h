@@ -1455,11 +1455,18 @@ namespace acl
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
 			printf("Variable quantization optimization results:\n");
-			for (uint32_t i = 0; i < context.num_bones; ++i)
+			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				float error = calculate_max_error_at_bit_rate_object(context, i, error_scan_stop_condition::until_end_of_segment);
-				const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[i];
-				printf("%u: %u | %u | %u => %f %s\n", i, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error, error >= error_threshold ? "!" : "");
+				// Update our context with the new bone data
+				const float error_threshold = context.metadata[bone_index].precision;
+				context.error_threshold = error_threshold;
+
+				const uint32_t num_bones_in_chain = calculate_bone_chain_indices(context.clip, bone_index, context.chain_bone_indices);
+				context.num_bones_in_chain = num_bones_in_chain;
+
+				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
+				const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[bone_index];
+				printf("%u: %u | %u | %u => %f %s\n", bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error, error >= error_threshold ? "!" : "");
 			}
 #endif
 
