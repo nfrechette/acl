@@ -944,11 +944,12 @@ namespace acl
 						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
 						num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
 
-						// Because the number of tracks in a 32bit word isn't a multiple of the number of tracks we have (3),
-						// we have to rotate the masks left
-						rotation_track_bit_mask = rotate_bits_left(rotation_track_bit_mask, 2);
-						translation_track_bit_mask = rotate_bits_left(translation_track_bit_mask, 2);
-						scale_track_bit_mask = rotate_bits_left(scale_track_bit_mask, 2);
+						// Because the number of tracks in a 32 bit value isn't a multiple of the number of tracks we have (3),
+						// we have to cycle the masks. There are 3 possible masks, just swap them.
+						const uint32_t old_rotation_track_bit_mask = rotation_track_bit_mask;
+						rotation_track_bit_mask = translation_track_bit_mask;
+						translation_track_bit_mask = scale_track_bit_mask;
+						scale_track_bit_mask = old_rotation_track_bit_mask;
 					}
 
 					const uint32_t remaining_tracks = sub_track_index % 32;
