@@ -129,7 +129,7 @@ namespace acl
 
 			rtm::vector4f packed_rotation = acl_impl::load_rotation_sample(quantized_ptr, format, bit_rate);
 
-			if (clip->are_rotations_normalized && !is_raw_bit_rate(bit_rate))
+			if (!bone_steams.is_rotation_constant && clip->are_rotations_normalized && !is_raw_bit_rate(bit_rate))
 			{
 				if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate))
 				{
@@ -284,7 +284,7 @@ namespace acl
 
 			rtm::vector4f packed_translation = acl_impl::load_vector_sample(quantized_ptr, format, bit_rate);
 
-			if (are_translations_normalized && !is_raw_bit_rate(bit_rate))
+			if (!bone_steams.is_translation_constant && are_translations_normalized && !is_raw_bit_rate(bit_rate))
 			{
 				if (segment->are_translations_normalized && !is_constant_bit_rate(bit_rate))
 				{
@@ -422,7 +422,6 @@ namespace acl
 		{
 			const SegmentContext* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
-			const bool are_scales_normalized = clip->are_scales_normalized;
 
 			const vector_format8 format = bone_steams.scales.get_vector_format();
 			const uint8_t bit_rate = bone_steams.scales.get_bit_rate();
@@ -434,7 +433,7 @@ namespace acl
 
 			rtm::vector4f packed_scale = acl_impl::load_vector_sample(quantized_ptr, format, bit_rate);
 
-			if (are_scales_normalized && !is_raw_bit_rate(bit_rate))
+			if (!bone_steams.is_scale_constant && clip->are_scales_normalized && !is_raw_bit_rate(bit_rate))
 			{
 				if (segment->are_scales_normalized && !is_constant_bit_rate(bit_rate))
 				{
