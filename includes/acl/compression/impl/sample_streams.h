@@ -113,6 +113,7 @@ namespace acl
 			}
 		}
 
+		// Gets a rotation sample from the format/bit rate stored
 		inline rtm::quatf RTM_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 		{
 			const SegmentContext* segment = bone_steams.segment;
@@ -151,6 +152,7 @@ namespace acl
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
 		}
 
+		// Gets a rotation sample at the specified bit rate
 		inline rtm::quatf RTM_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 		{
 			const SegmentContext* segment = bone_steams.segment;
@@ -215,6 +217,7 @@ namespace acl
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
 		}
 
+		// Gets a rotation sample with the desired format
 		inline rtm::quatf RTM_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index, rotation_format8 desired_format)
 		{
 			const SegmentContext* segment = bone_steams.segment;
@@ -264,6 +267,7 @@ namespace acl
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
 		}
 
+		// Gets a translation sample from the format/bit rate stored
 		inline rtm::vector4f RTM_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 		{
 			const SegmentContext* segment = bone_steams.segment;
@@ -303,6 +307,7 @@ namespace acl
 			return packed_translation;
 		}
 
+		// Gets a translation sample at the specified bit rate
 		inline rtm::vector4f RTM_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 		{
 			const SegmentContext* segment = bone_steams.segment;
@@ -364,6 +369,7 @@ namespace acl
 			return packed_translation;
 		}
 
+		// Gets a translation sample with the desired format
 		inline rtm::vector4f RTM_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, vector_format8 desired_format)
 		{
 			const SegmentContext* segment = bone_steams.segment;
@@ -411,6 +417,7 @@ namespace acl
 			return packed_translation;
 		}
 
+		// Gets a scale sample from the format/bit rate stored
 		inline rtm::vector4f RTM_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 		{
 			const SegmentContext* segment = bone_steams.segment;
@@ -450,6 +457,7 @@ namespace acl
 			return packed_scale;
 		}
 
+		// Gets a scale sample at the specified bit rate
 		inline rtm::vector4f RTM_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 		{
 			const SegmentContext* segment = bone_steams.segment;
@@ -511,6 +519,7 @@ namespace acl
 			return packed_scale;
 		}
 
+		// Gets a scale sample with the desired format
 		inline rtm::vector4f RTM_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, vector_format8 desired_format)
 		{
 			const SegmentContext* segment = bone_steams.segment;
