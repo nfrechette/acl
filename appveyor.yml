@@ -6,7 +6,7 @@ environment:
 image:
 - Visual Studio 2015
 - Visual Studio 2017
-- Visual Studio 2019
+- Previous Visual Studio 2019
 
 configuration:
   - Debug
@@ -33,6 +33,8 @@ build_script:
     IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" (SET COMPILER=vs2017)
 
     IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2019" (SET COMPILER=vs2019)
+
+    IF "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Previous Visual Studio 2019" (SET COMPILER=vs2019)
 
     SET UNIT_TEST_FLAG=-unit_test
 
