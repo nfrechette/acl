@@ -306,6 +306,7 @@ namespace acl
 			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, additive_base_clip_context))
 				return error_result("Some base samples are not finite");
 
+			// Convert our rotations if we need to
 			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format);
 
 			// Extract our clip ranges now, we need it for compacting the constant streams
@@ -317,6 +318,7 @@ namespace acl
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
 			{
+				// Normalize our samples into the clip wide ranges per bone
 				normalize_clip_streams(lossy_clip_context, range_reduction);
 				clip_range_data_size = get_stream_range_data_size(lossy_clip_context, range_reduction, settings.rotation_format);
 			}
@@ -326,7 +328,10 @@ namespace acl
 			// If we have a single segment, skip segment range reduction since it won't help
 			if (range_reduction != range_reduction_flags8::none && lossy_clip_context.num_segments > 1)
 			{
+				// Extract and fixup our segment wide ranges per bone
 				extract_segment_bone_ranges(allocator, lossy_clip_context);
+
+				// Normalize our samples into the segment wide ranges per bone
 				normalize_segment_streams(lossy_clip_context, range_reduction);
 			}
 
