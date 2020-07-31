@@ -90,6 +90,9 @@ namespace acl
 			if (error_result.any())
 				return error_result;
 
+			if (clip.get_num_samples() > 0xFFFF)
+				return ErrorResult("ACL only supports up to 65535 samples");
+
 			// Disable floating point exceptions during compression because we leverage all SIMD lanes
 			// and we might intentionally divide by zero, etc.
 			scope_disable_fp_exceptions fp_off;
