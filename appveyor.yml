@@ -31,6 +31,9 @@ matrix:
     - image: Visual Studio 2019
       platform: arm64
       toolchain: clang
+    - image: Previous Visual Studio 2019
+      platform: arm64
+      toolchain: clang
 
 install:
 - cmd: >-
