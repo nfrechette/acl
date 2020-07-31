@@ -374,8 +374,8 @@ namespace acl
 
 			BoneStreams& bone_stream = context.bone_streams[bone_index];
 
-			// Default tracks aren't quantized
-			if (bone_stream.is_rotation_default)
+			// Default and constant tracks aren't quantized
+			if (bone_stream.is_rotation_default || bone_stream.is_rotation_constant)
 				return;
 
 			const BoneStreams& raw_bone_stream = context.raw_bone_streams[bone_index];
@@ -383,9 +383,9 @@ namespace acl
 			const TrackStreamRange& bone_range = context.clip.ranges[bone_index].rotation;
 
 			// If our format is variable, we keep them fixed at the highest bit rate in the variant
-			if (bone_stream.is_rotation_constant)
-				quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, highest_bit_rate, bone_stream.rotations);
-			else
+			//if (bone_stream.is_rotation_constant)
+			//	quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, highest_bit_rate, bone_stream.rotations);
+			//else
 				quantize_variable_rotation_stream(context, raw_bone_stream.rotations, bone_stream.rotations, bone_range, bit_rate, bone_stream.rotations);
 		}
 

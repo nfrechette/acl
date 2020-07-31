@@ -199,8 +199,9 @@ namespace acl
 				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 				if (is_sample_constant)
 				{
-					const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-					sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
+					//const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
+					//sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
+					sampling_context_.constant_track_data_offset += sizeof(float) * 4;
 				}
 				else
 				{
@@ -255,23 +256,24 @@ namespace acl
 				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 				if (is_sample_constant)
 				{
-					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+					//if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 						interpolated_rotation = unpack_quat_128(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-					else if (rotation_format == rotation_format8::quatf_drop_w_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full))
-						interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-					else if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
-						interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-					else
-					{
-						ACL_ASSERT(false, "Unrecognized rotation format");
-						interpolated_rotation = rtm::quat_identity();
-					}
+					//else if (rotation_format == rotation_format8::quatf_drop_w_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full))
+					//	interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
+					//else if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+					//	interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
+					//else
+					//{
+					//	ACL_ASSERT(false, "Unrecognized rotation format");
+					//	interpolated_rotation = rtm::quat_identity();
+					//}
 
 					ACL_ASSERT(rtm::quat_is_finite(interpolated_rotation), "Rotation is not valid!");
 					ACL_ASSERT(rtm::quat_is_normalized(interpolated_rotation), "Rotation is not normalized!");
 
-					const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-					sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
+					//const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
+					//sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
+					sampling_context_.constant_track_data_offset += sizeof(float) * 4;
 				}
 				else
 				{
@@ -1003,8 +1005,9 @@ namespace acl
 				const uint32_t num_animated_rotations = track_index - num_constant_rotations;
 				const uint32_t num_animated_translations = track_index - num_constant_translations;
 
-				const rotation_format8 packed_rotation_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-				const uint32_t packed_rotation_size = get_packed_rotation_size(packed_rotation_format);
+				//const rotation_format8 packed_rotation_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
+				//const uint32_t packed_rotation_size = get_packed_rotation_size(packed_rotation_format);
+				const uint32_t packed_rotation_size = sizeof(float) * 4;
 
 				uint32_t constant_track_data_offset = (num_constant_rotations - num_default_rotations) * packed_rotation_size;
 				constant_track_data_offset += (num_constant_translations - num_default_translations) * get_packed_vector_size(vector_format8::vector3f_full);

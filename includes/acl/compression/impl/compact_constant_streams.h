@@ -108,7 +108,12 @@ namespace acl
 
 				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle))
 				{
-					RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
+					// Constant rotation tracks always retain a full quaternion.
+					// If we use the Drop W format, the value is still present but the sign might have been flipped.
+					// This is fine, just force back to full quaternion to ensure we don't needlessly reconstruct
+					// the W component.
+					//RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
+					RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), rotation_format8::quatf_full);
 					rtm::vector4f rotation = bone_stream.rotations.get_raw_sample<rtm::vector4f>(0);
 					constant_stream.set_raw_sample(0, rotation);
 
