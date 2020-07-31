@@ -604,14 +604,16 @@ namespace acl
 				else
 				{
 					// Not cached
-					if (m_is_rotation_variable)
-						rotation = get_rotation_sample(m_raw_bone_streams[track_index], 0);
-					else
-						rotation = get_rotation_sample(m_raw_bone_streams[track_index], 0, m_rotation_format);
+					rotation = get_rotation_sample(bone_stream, 0);
+					//if (m_is_rotation_variable)
+					//	rotation = get_rotation_sample(m_raw_bone_streams[track_index], 0);
+					//else
+					//	rotation = get_rotation_sample(m_raw_bone_streams[track_index], 0, m_rotation_format);
 
-					// If we are uniform, normalize now. Variable will interpolate and normalize after.
-					if (static_condition<distribution == SampleDistribution8::Uniform>::test())
-						rotation = rtm::quat_normalize(rotation);
+					//const quantization_scales scales(16);
+					//rotation = rtm::vector_to_quat(decay_vector4_uXX(rtm::quat_to_vector(rotation), scales));
+
+					//rotation = rtm::quat_normalize(rotation);
 
 					cached_samples[0] = rotation;
 					bitset_set(validity_bitset, m_bitref_constant, true);

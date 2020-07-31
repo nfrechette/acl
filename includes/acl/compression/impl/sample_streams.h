@@ -48,14 +48,21 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline rtm::vector4f RTM_SIMD_CALL load_rotation_sample(const uint8_t* ptr, rotation_format8 format, uint8_t bit_rate)
+		inline rtm::vector4f RTM_SIMD_CALL load_rotation_sample(const uint8_t* ptr, rotation_format8 format, uint8_t bit_rate, bool is_constant)
 		{
+			(void)is_constant;
 			switch (format)
 			{
 			case rotation_format8::quatf_full:
-				return unpack_vector4_128(ptr);
+				//if (is_constant)
+				//	return unpack_vector4_64(ptr, true);
+				//else
+					return unpack_vector4_128(ptr);
 			case rotation_format8::quatf_drop_w_full:
-				return unpack_vector3_96_unsafe(ptr);
+				//if (is_constant)
+				//	return unpack_vector3_u48_unsafe(ptr);
+				//else
+					return unpack_vector3_96_unsafe(ptr);
 			case rotation_format8::quatf_drop_w_variable:
 				ACL_ASSERT(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
@@ -103,7 +110,7 @@ namespace acl
 			switch (format)
 			{
 			case rotation_format8::quatf_full:
-				return rtm::vector_to_quat(rotation);
+				return rtm::quat_normalize(rtm::vector_to_quat(rotation));
 			case rotation_format8::quatf_drop_w_full:
 			case rotation_format8::quatf_drop_w_variable:
 				return rtm::quat_from_positive_w(rotation);
@@ -127,9 +134,16 @@ namespace acl
 
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 
-			rtm::vector4f packed_rotation = acl_impl::load_rotation_sample(quantized_ptr, format, bit_rate);
+			rtm::vector4f packed_rotation = acl_impl::load_rotation_sample(quantized_ptr, format, bit_rate, bone_steams.is_rotation_constant);
 
-			if (!bone_steams.is_rotation_constant && clip->are_rotations_normalized && !is_raw_bit_rate(bit_rate))
+			if (bone_steams.is_rotation_constant)
+			{
+				const rtm::vector4f global_range_min = clip->global_range.rotation.get_min();
+				const rtm::vector4f global_range_extent = clip->global_range.rotation.get_extent();
+
+				packed_rotation = rtm::vector_mul_add(packed_rotation, global_range_extent, global_range_min);
+			}
+			else if (clip->are_rotations_normalized && !is_raw_bit_rate(bit_rate))
 			{
 				if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate))
 				{
@@ -147,6 +161,11 @@ namespace acl
 				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
 
 				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
+
+				const rtm::vector4f global_range_min = clip->global_range.rotation.get_min();
+				const rtm::vector4f global_range_extent = clip->global_range.rotation.get_extent();
+
+				packed_rotation = rtm::vector_mul_add(packed_rotation, global_range_extent, global_range_min);
 			}
 
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
@@ -163,19 +182,19 @@ namespace acl
 			if (is_constant_bit_rate(bit_rate))
 			{
 				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate);
+				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate, false);
 				rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
 			}
 			else if (is_raw_bit_rate(bit_rate))
 			{
 				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate);
+				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate, false);
 				rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
 			}
 			else
 			{
 				const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0);
+				rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0, false);
 			}
 
 			// Pack and unpack at our desired bit rate
@@ -185,7 +204,8 @@ namespace acl
 			if (is_constant_bit_rate(bit_rate))
 			{
 				const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
-				const rtm::vector4f normalized_rotation = normalize_sample(rotation, clip_bone_range.rotation);
+				rtm::vector4f normalized_rotation = normalize_sample(rotation, clip->global_range.rotation);
+				normalized_rotation = normalize_sample(normalized_rotation, clip_bone_range.rotation);
 
 				packed_rotation = decay_vector3_u48(normalized_rotation);
 			}
@@ -212,6 +232,11 @@ namespace acl
 				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
 
 				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
+
+				const rtm::vector4f global_range_min = clip->global_range.rotation.get_min();
+				const rtm::vector4f global_range_extent = clip->global_range.rotation.get_extent();
+
+				packed_rotation = rtm::vector_mul_add(packed_rotation, global_range_extent, global_range_min);
 			}
 
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
@@ -226,7 +251,7 @@ namespace acl
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
 			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 
-			const rtm::vector4f rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0);
+			const rtm::vector4f rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0, false);
 
 			// Pack and unpack in our desired format
 			rtm::vector4f packed_rotation;
@@ -262,6 +287,11 @@ namespace acl
 				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
 
 				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
+
+				const rtm::vector4f global_range_min = clip->global_range.rotation.get_min();
+				const rtm::vector4f global_range_extent = clip->global_range.rotation.get_extent();
+
+				packed_rotation = rtm::vector_mul_add(packed_rotation, global_range_extent, global_range_min);
 			}
 
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
@@ -607,7 +637,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream)
+		/*ACL_FORCE_INLINE*/ rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream)
 		{
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
@@ -648,7 +678,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_rotation_variable, rotation_format8 rotation_format)
+		/*ACL_FORCE_INLINE*/ rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_rotation_variable, rotation_format8 rotation_format)
 		{
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)

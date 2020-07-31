@@ -182,6 +182,8 @@ namespace acl
 			// Offset to the clip range data.
 			ptr_offset32<uint8_t>			clip_range_data_offset;				// TODO: Make this offset optional? Only present if normalized
 
+			float							global_ranges[8];
+
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
 

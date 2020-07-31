@@ -60,6 +60,52 @@ namespace acl
 			return TrackStreamRange::from_min_max(min, max);
 		}
 
+		inline TrackStreamRange fixup_range(const TrackStreamRange& range, uint32_t num_quantization_bits)
+		{
+			const rtm::vector4f one = rtm::vector_set(1.0F);
+			const rtm::vector4f zero = rtm::vector_zero();
+			const float max_range_value_flt = float((1 << num_quantization_bits) - 1);
+			const rtm::vector4f max_range_value = rtm::vector_set(max_range_value_flt);
+			const rtm::vector4f inv_max_range_value = rtm::vector_set(1.0F / max_range_value_flt);
+
+			// In our compressed format, we store the minimum value of the track range quantized on 8 bits.
+			// To get the best accuracy, we pick the value closest to the true minimum that is slightly lower.
+			// This is to ensure that we encompass the lowest value even after quantization.
+			const rtm::vector4f range_min = range.get_min();
+			const rtm::vector4f scaled_min = rtm::vector_mul(range_min, max_range_value);
+			const rtm::vector4f quantized_min0 = rtm::vector_clamp(rtm::vector_floor(scaled_min), zero, max_range_value);
+			const rtm::vector4f quantized_min1 = rtm::vector_max(rtm::vector_sub(quantized_min0, one), zero);
+
+			const rtm::vector4f padded_range_min0 = rtm::vector_mul(quantized_min0, inv_max_range_value);
+			const rtm::vector4f padded_range_min1 = rtm::vector_mul(quantized_min1, inv_max_range_value);
+
+			// Check if min0 is below or equal to our original range minimum value, if it is, it is good
+			// enough to use otherwise min1 is guaranteed to be lower.
+			const rtm::mask4f is_min0_lower_mask = rtm::vector_less_equal(padded_range_min0, range_min);
+			const rtm::vector4f padded_range_min = rtm::vector_select(is_min0_lower_mask, padded_range_min0, padded_range_min1);
+
+			// The story is different for the extent. We do not store the max, instead we use the extent
+			// for performance reasons: a single mul/add is required to reconstruct the original value.
+			// Now that our minimum value changed, our extent also changed.
+			// We want to pick the extent value that brings us closest to our original max value while
+			// being slightly larger to encompass it.
+			const rtm::vector4f range_max = range.get_max();
+			const rtm::vector4f range_extent = rtm::vector_sub(range_max, padded_range_min);
+			const rtm::vector4f scaled_extent = rtm::vector_mul(range_extent, max_range_value);
+			const rtm::vector4f quantized_extent0 = rtm::vector_clamp(rtm::vector_ceil(scaled_extent), zero, max_range_value);
+			const rtm::vector4f quantized_extent1 = rtm::vector_min(rtm::vector_add(quantized_extent0, one), max_range_value);
+
+			const rtm::vector4f padded_range_extent0 = rtm::vector_mul(quantized_extent0, inv_max_range_value);
+			const rtm::vector4f padded_range_extent1 = rtm::vector_mul(quantized_extent1, inv_max_range_value);
+
+			// Check if extent0 is above or equal to our original range maximum value, if it is, it is good
+			// enough to use otherwise extent1 is guaranteed to be higher.
+			const rtm::mask4f is_extent0_higher_mask = rtm::vector_greater_equal(padded_range_extent0, range_max);
+			const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
+
+			return TrackStreamRange::from_min_extent(padded_range_min, padded_range_extent);
+		}
+
 		inline void extract_bone_ranges_impl(const SegmentContext& segment, BoneRanges* bone_ranges)
 		{
 			const bool has_scale = segment_context_has_scale(segment);
@@ -79,65 +125,70 @@ namespace acl
 			}
 		}
 
-		inline void extract_clip_bone_ranges(iallocator& allocator, clip_context& context)
+		inline void extract_clip_bone_ranges(clip_context& context)
 		{
-			context.ranges = allocate_type_array<BoneRanges>(allocator, context.num_bones);
-
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			SegmentContext& segment = context.segments[0];
 
 			acl_impl::extract_bone_ranges_impl(segment, context.ranges);
 		}
 
+		inline void extract_clip_global_ranges(clip_context& context)
+		{
+			rtm::vector4f rotation_min = rtm::vector_set(1e10F);
+			rtm::vector4f rotation_max = rtm::vector_set(-1e10F);
+
+			rtm::vector4f translation_min = rtm::vector_set(1e10F);
+			rtm::vector4f translation_max = rtm::vector_set(-1e10F);
+
+			rtm::vector4f scale_min = rtm::vector_set(1e10F);
+			rtm::vector4f scale_max = rtm::vector_set(-1e10F);
+
+			for (uint32_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
+			{
+				const BoneRanges& bone_range = context.ranges[bone_index];
+
+				rotation_min = rtm::vector_min(rotation_min, bone_range.rotation.get_min());
+				rotation_max = rtm::vector_max(rotation_max, bone_range.rotation.get_max());
+
+				translation_min = rtm::vector_min(translation_min, bone_range.translation.get_min());
+				translation_max = rtm::vector_max(translation_max, bone_range.translation.get_max());
+
+				scale_min = rtm::vector_min(scale_min, bone_range.scale.get_min());
+				scale_max = rtm::vector_max(scale_max, bone_range.scale.get_max());
+			}
+
+			context.global_range.rotation = TrackStreamRange::from_min_max(rotation_min, rotation_max);
+			context.global_range.translation = TrackStreamRange::from_min_max(translation_min, translation_max);
+			context.global_range.scale = TrackStreamRange::from_min_max(scale_min, scale_max);
+		}
+
+		inline void fixup_clip_bone_ranges(clip_context& context, range_reduction_flags8 range_reduction)
+		{
+			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
+			SegmentContext& segment = context.segments[0];
+
+			//const bool has_scale = segment_context_has_scale(segment);
+
+			for (uint32_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
+			{
+				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				BoneRanges& bone_range = context.ranges[bone_index];
+
+				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) && !bone_stream.is_rotation_constant)
+					bone_range.rotation = fixup_range(bone_range.rotation, 8);
+
+				//if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) && !bone_stream.is_translation_constant)
+				//	bone_range.translation = fixup_range(bone_range.translation, 8);
+
+				//if (has_scale && are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) && !bone_stream.is_scale_constant)
+				//	bone_range.scale = fixup_range(bone_range.scale, 8);
+			}
+		}
+
 		inline void extract_segment_bone_ranges(iallocator& allocator, clip_context& context)
 		{
-			const rtm::vector4f one = rtm::vector_set(1.0F);
-			const rtm::vector4f zero = rtm::vector_zero();
-			const float max_range_value_flt = float((1 << k_segment_range_reduction_num_bits_per_component) - 1);
-			const rtm::vector4f max_range_value = rtm::vector_set(max_range_value_flt);
-			const rtm::vector4f inv_max_range_value = rtm::vector_set(1.0F / max_range_value_flt);
-
 			// Segment ranges are always normalized and live between [0.0 ... 1.0]
-
-			auto fixup_range = [&](const TrackStreamRange& range)
-			{
-				// In our compressed format, we store the minimum value of the track range quantized on 8 bits.
-				// To get the best accuracy, we pick the value closest to the true minimum that is slightly lower.
-				// This is to ensure that we encompass the lowest value even after quantization.
-				const rtm::vector4f range_min = range.get_min();
-				const rtm::vector4f scaled_min = rtm::vector_mul(range_min, max_range_value);
-				const rtm::vector4f quantized_min0 = rtm::vector_clamp(rtm::vector_floor(scaled_min), zero, max_range_value);
-				const rtm::vector4f quantized_min1 = rtm::vector_max(rtm::vector_sub(quantized_min0, one), zero);
-
-				const rtm::vector4f padded_range_min0 = rtm::vector_mul(quantized_min0, inv_max_range_value);
-				const rtm::vector4f padded_range_min1 = rtm::vector_mul(quantized_min1, inv_max_range_value);
-
-				// Check if min0 is below or equal to our original range minimum value, if it is, it is good
-				// enough to use otherwise min1 is guaranteed to be lower.
-				const rtm::mask4f is_min0_lower_mask = rtm::vector_less_equal(padded_range_min0, range_min);
-				const rtm::vector4f padded_range_min = rtm::vector_select(is_min0_lower_mask, padded_range_min0, padded_range_min1);
-
-				// The story is different for the extent. We do not store the max, instead we use the extent
-				// for performance reasons: a single mul/add is required to reconstruct the original value.
-				// Now that our minimum value changed, our extent also changed.
-				// We want to pick the extent value that brings us closest to our original max value while
-				// being slightly larger to encompass it.
-				const rtm::vector4f range_max = range.get_max();
-				const rtm::vector4f range_extent = rtm::vector_sub(range_max, padded_range_min);
-				const rtm::vector4f scaled_extent = rtm::vector_mul(range_extent, max_range_value);
-				const rtm::vector4f quantized_extent0 = rtm::vector_clamp(rtm::vector_ceil(scaled_extent), zero, max_range_value);
-				const rtm::vector4f quantized_extent1 = rtm::vector_min(rtm::vector_add(quantized_extent0, one), max_range_value);
-
-				const rtm::vector4f padded_range_extent0 = rtm::vector_mul(quantized_extent0, inv_max_range_value);
-				const rtm::vector4f padded_range_extent1 = rtm::vector_mul(quantized_extent1, inv_max_range_value);
-
-				// Check if extent0 is above or equal to our original range maximum value, if it is, it is good
-				// enough to use otherwise extent1 is guaranteed to be higher.
-				const rtm::mask4f is_extent0_higher_mask = rtm::vector_greater_equal(padded_range_extent0, range_max);
-				const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
-
-				return TrackStreamRange::from_min_extent(padded_range_min, padded_range_extent);
-			};
 
 			for (SegmentContext& segment : context.segment_iterator())
 			{
@@ -151,13 +202,13 @@ namespace acl
 					BoneRanges& bone_range = segment.ranges[bone_index];
 
 					if (!bone_stream.is_rotation_constant && context.are_rotations_normalized)
-						bone_range.rotation = fixup_range(bone_range.rotation);
+						bone_range.rotation = fixup_range(bone_range.rotation, 8);
 
 					if (!bone_stream.is_translation_constant && context.are_translations_normalized)
-						bone_range.translation = fixup_range(bone_range.translation);
+						bone_range.translation = fixup_range(bone_range.translation, 8);
 
 					if (!bone_stream.is_scale_constant && context.are_scales_normalized)
-						bone_range.scale = fixup_range(bone_range.scale);
+						bone_range.scale = fixup_range(bone_range.scale, 8);
 				}
 			}
 		}
@@ -174,7 +225,7 @@ namespace acl
 			return rtm::vector_select(is_range_zero_mask, rtm::vector_zero(), normalized_sample);
 		}
 
-		inline void normalize_rotation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint32_t num_bones)
+		inline void normalize_rotation_streams(BoneStreams* bone_streams, const BoneRanges* bone_ranges, uint32_t num_bones, bool normalize_per_bone)
 		{
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
@@ -182,13 +233,13 @@ namespace acl
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				BoneStreams& bone_stream = bone_streams[bone_index];
-				const BoneRanges& bone_range = bone_ranges[bone_index];
+				const BoneRanges& bone_range = normalize_per_bone ? bone_ranges[bone_index] : bone_ranges[0];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
 
-				// Constant or default tracks are not normalized
-				if (bone_stream.is_rotation_constant)
+				// Constant or default tracks are not normalized per bone, but they are globally
+				if (bone_stream.is_rotation_constant && normalize_per_bone)
 					continue;
 
 				const uint32_t num_samples = bone_stream.rotations.get_num_samples();
@@ -317,7 +368,7 @@ namespace acl
 
 			if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations))
 			{
-				normalize_rotation_streams(segment.bone_streams, context.ranges, segment.num_bones);
+				normalize_rotation_streams(segment.bone_streams, context.ranges, segment.num_bones, true);
 				context.are_rotations_normalized = true;
 			}
 
@@ -334,13 +385,39 @@ namespace acl
 			}
 		}
 
+		inline void normalize_clip_streams_global(clip_context& context, range_reduction_flags8 range_reduction)
+		{
+			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
+			SegmentContext& segment = context.segments[0];
+
+			const bool has_scale = segment_context_has_scale(segment);
+
+			if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations))
+			{
+				normalize_rotation_streams(segment.bone_streams, &context.global_range, segment.num_bones, false);
+				//context.are_rotations_normalized = true;
+			}
+
+			if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations))
+			{
+				//normalize_translation_streams(segment.bone_streams, context.ranges, segment.num_bones);
+				//context.are_translations_normalized = true;
+			}
+
+			if (has_scale && are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales))
+			{
+				//normalize_scale_streams(segment.bone_streams, context.ranges, segment.num_bones);
+				//context.are_scales_normalized = true;
+			}
+		}
+
 		inline void normalize_segment_streams(clip_context& context, range_reduction_flags8 range_reduction)
 		{
 			for (SegmentContext& segment : context.segment_iterator())
 			{
 				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations))
 				{
-					normalize_rotation_streams(segment.bone_streams, segment.ranges, segment.num_bones);
+					normalize_rotation_streams(segment.bone_streams, segment.ranges, segment.num_bones, true);
 					segment.are_rotations_normalized = true;
 				}
 

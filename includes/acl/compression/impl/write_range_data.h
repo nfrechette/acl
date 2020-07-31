@@ -48,7 +48,9 @@ namespace acl
 	{
 		inline uint32_t get_stream_range_data_size(const clip_context& clip, range_reduction_flags8 range_reduction, rotation_format8 rotation_format)
 		{
-			const uint32_t rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
+			(void)rotation_format;
+			//const uint32_t rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
+			const uint32_t rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? sizeof(uint8_t) * 8 : 0;
 			const uint32_t translation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) ? k_clip_range_reduction_vector3_range_size : 0;
 			const uint32_t scale_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) ? k_clip_range_reduction_vector3_range_size : 0;
 			uint32_t range_data_size = 0;
@@ -133,12 +135,32 @@ namespace acl
 
 					if (is_clip_range_data)
 					{
+						if (bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full)
+						{
+							pack_vector4_32(range_min, true, range_data);
+							range_data += sizeof(uint8_t) * 4;
+							pack_vector4_32(range_extent, true, range_data);
+							range_data += sizeof(uint8_t) * 4;
+						}
+						else
+						{
+							pack_vector3_u24_unsafe(range_min, range_data);
+							range_data += sizeof(uint8_t) * 3;
+							pack_vector3_u24_unsafe(range_extent, range_data);
+							range_data += sizeof(uint8_t) * 3;
+
+							// Add alignment padding for now
+							range_data += sizeof(uint8_t) * 2;
+						}
+
+#if 0
 						const uint32_t range_member_size = bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full ? (sizeof(float) * 4) : (sizeof(float) * 3);
 
 						std::memcpy(range_data, &range_min, range_member_size);
 						range_data += range_member_size;
 						std::memcpy(range_data, &range_extent, range_member_size);
 						range_data += range_member_size;
+#endif
 					}
 					else
 					{

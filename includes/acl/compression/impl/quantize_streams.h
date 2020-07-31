@@ -285,6 +285,7 @@ namespace acl
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t rotation_sample_size = get_packed_rotation_size(rotation_format);
 			const float sample_rate = raw_stream.get_sample_rate();
+			const bool is_constant = num_samples == 1;
 			RotationTrackStream quantized_stream(allocator, num_samples, rotation_sample_size, sample_rate, rotation_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -295,10 +296,16 @@ namespace acl
 				switch (rotation_format)
 				{
 				case rotation_format8::quatf_full:
-					pack_vector4_128(rtm::quat_to_vector(rotation), quantized_ptr);
+					//if (is_constant)
+					//	pack_vector4_64(rtm::quat_to_vector(rotation), true, quantized_ptr);
+					//else
+						pack_vector4_128(rtm::quat_to_vector(rotation), quantized_ptr);
 					break;
 				case rotation_format8::quatf_drop_w_full:
-					pack_vector3_96(rtm::quat_to_vector(rotation), quantized_ptr);
+					//if (is_constant)
+					//	pack_vector3_u48_unsafe(rtm::quat_to_vector(rotation), quantized_ptr);
+					//else
+						pack_vector3_96(rtm::quat_to_vector(rotation), quantized_ptr);
 					break;
 				case rotation_format8::quatf_drop_w_variable:
 				default:
@@ -338,7 +345,8 @@ namespace acl
 				rtm::vector4f rotation = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index);
 				rotation = convert_rotation(rotation, rotation_format8::quatf_full, rotation_format8::quatf_drop_w_variable);
 
-				const rtm::vector4f normalized_rotation = normalize_sample(rotation, clip_range);
+				rtm::vector4f normalized_rotation = normalize_sample(rotation, context.clip.global_range.rotation);
+				normalized_rotation = normalize_sample(normalized_rotation, clip_range);
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
 				pack_vector3_u48_unsafe(normalized_rotation, quantized_ptr);
@@ -646,6 +654,7 @@ namespace acl
 			calculate_error_args.construct_sphere_shell(target_bone.shell_distance);
 
 			const uint8_t* raw_transform = context.raw_local_transforms + (target_bone_index * context.metric_transform_size);
+			// TODO: Is this right? Shouldn't we offset to the right bone here as well?
 			const uint8_t* base_transforms = context.base_local_transforms;
 
 			context.local_query.build(target_bone_index, context.bit_rate_per_bone[target_bone_index]);
@@ -729,6 +738,7 @@ namespace acl
 			calculate_error_args.construct_sphere_shell(target_bone.shell_distance);
 
 			const uint8_t* raw_transform = context.raw_object_transforms + (target_bone_index * context.metric_transform_size);
+			// TODO: Is this right? Shouldn't we offset to the right bone here as well?
 			const uint8_t* base_transforms = context.base_local_transforms;
 
 			context.object_query.build(target_bone_index, context.bit_rate_per_bone, context.bone_streams);

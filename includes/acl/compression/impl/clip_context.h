@@ -137,6 +137,8 @@ namespace acl
 			transform_metadata* metadata;
 			uint32_t* leaf_transform_chains;
 
+			BoneRanges global_range;
+
 			uint32_t num_segments;
 			uint32_t num_bones;
 			uint32_t num_samples;
@@ -182,7 +184,7 @@ namespace acl
 
 			// Create a single segment with the whole clip
 			out_clip_context.segments = allocate_type_array<SegmentContext>(allocator, 1);
-			out_clip_context.ranges = nullptr;
+			out_clip_context.ranges = allocate_type_array<BoneRanges>(allocator, num_transforms);;
 			out_clip_context.metadata = allocate_type_array<transform_metadata>(allocator, num_transforms);
 			out_clip_context.leaf_transform_chains = nullptr;
 			out_clip_context.num_segments = 1;
@@ -244,22 +246,31 @@ namespace acl
 
 				{
 					const rtm::qvvf& first_transform = track[0];
-					const rtm::quatf first_rotation = rtm::quat_normalize(first_transform.rotation);
+					//const rtm::quatf first_rotation = rtm::quat_normalize(first_transform.rotation);
 
 					// If we request raw data, use a 0.0 threshold for safety
-					const float constant_rotation_threshold_angle = settings.rotation_format != rotation_format8::quatf_full ? desc.constant_rotation_threshold_angle : 0.0F;
-					const float constant_translation_threshold = settings.translation_format != vector_format8::vector3f_full ? desc.constant_translation_threshold : 0.0F;
+					//const float constant_rotation_threshold_angle = settings.rotation_format != rotation_format8::quatf_full ? desc.constant_rotation_threshold_angle : 0.0F;
+					//const float constant_translation_threshold = settings.translation_format != vector_format8::vector3f_full ? desc.constant_translation_threshold : 0.0F;
 					const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
 
-					bone_stream.is_rotation_constant = num_samples == 1;
-					bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(first_rotation, constant_rotation_threshold_angle);
-					bone_stream.is_translation_constant = num_samples == 1;
-					bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(first_transform.translation, rtm::vector_zero(), constant_translation_threshold);
-					bone_stream.is_scale_constant = num_samples == 1;
-					bone_stream.is_scale_default = bone_stream.is_scale_constant && rtm::vector_all_near_equal3(first_transform.scale, default_scale, constant_scale_threshold);
+					//bone_stream.is_rotation_constant = num_samples == 1;
+					//bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(first_rotation, constant_rotation_threshold_angle);
+					//bone_stream.is_translation_constant = num_samples == 1;
+					//bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(first_transform.translation, rtm::vector_zero(), constant_translation_threshold);
+					//bone_stream.is_scale_constant = num_samples == 1;
+					//bone_stream.is_scale_default = bone_stream.is_scale_constant && rtm::vector_all_near_equal3(first_transform.scale, default_scale, constant_scale_threshold);
+					bone_stream.is_rotation_constant = false;
+					bone_stream.is_rotation_default = false;
+					bone_stream.is_translation_constant = false;
+					bone_stream.is_translation_default = false;
+					bone_stream.is_scale_constant = false;
+					bone_stream.is_scale_default = false;
+
+					const bool is_scale_default = num_samples == 1 && rtm::vector_all_near_equal3(first_transform.scale, default_scale, constant_scale_threshold);
+					has_scale |= !is_scale_default;
 				}
 
-				has_scale |= !bone_stream.is_scale_default;
+				//has_scale |= !bone_stream.is_scale_default;
 
 				transform_metadata& metadata = out_clip_context.metadata[transform_index];
 				metadata.transform_chain = nullptr;

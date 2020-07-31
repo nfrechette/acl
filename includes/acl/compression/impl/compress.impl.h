@@ -309,11 +309,40 @@ namespace acl
 			// Convert our rotations if we need to
 			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format);
 
-			// Extract our clip ranges now, we need it for compacting the constant streams
-			extract_clip_bone_ranges(allocator, lossy_clip_context);
+			// Extract our clip wide ranges per bone now, we need it for compacting the constant streams
+			extract_clip_bone_ranges(lossy_clip_context);
+
+			// Extract our global clip ranges
+			extract_clip_global_ranges(lossy_clip_context);
 
 			// Compact and collapse the constant streams
 			compact_constant_streams(allocator, lossy_clip_context, track_list, settings);
+
+			if (range_reduction != range_reduction_flags8::none)
+			{
+				// Normalize our samples into the clip wide global ranges
+				normalize_clip_streams_global(lossy_clip_context, range_reduction);
+
+				// Now that our constant tracks have been normalized, decay them
+				decay_constant_streams(lossy_clip_context, range_reduction);
+
+				// Extract our clip wide ranges per bone again, our values changed
+				extract_clip_bone_ranges(lossy_clip_context);
+
+				// Our clip ranges are quantized and need to be fixed up
+				fixup_clip_bone_ranges(lossy_clip_context, range_reduction);
+			}
+
+#if 0
+			if (lossy_clip_context.num_samples > settings.segmenting.max_num_samples)
+			{
+				for (uint32_t i = 0; i < lossy_clip_context.num_bones; ++i)
+				{
+					if (!lossy_clip_context.segments[0].bone_streams[i].is_rotation_constant)
+						lossy_clip_context.ranges[i].rotation = TrackStreamRange::from_min_extent(rtm::vector_set(-1.0F), rtm::vector_set(2.0F));
+				}
+			}
+#endif
 
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
@@ -482,6 +511,8 @@ namespace acl
 			transforms_header->constant_tracks_bitset_offset = transforms_header->default_tracks_bitset_offset + bitset_desc.get_num_bytes();
 			transforms_header->constant_track_data_offset = align_to(transforms_header->constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
 			transforms_header->clip_range_data_offset = align_to(transforms_header->constant_track_data_offset + constant_data_size, 4);
+			rtm::vector_store(lossy_clip_context.global_range.rotation.get_min(), &transforms_header->global_ranges[0]);
+			rtm::vector_store(lossy_clip_context.global_range.rotation.get_extent(), &transforms_header->global_ranges[4]);
 
 			uint32_t written_segment_start_indices_size = 0;
 			if (lossy_clip_context.num_segments > 1)

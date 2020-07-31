@@ -466,7 +466,12 @@ namespace acl
 
 				const uint32_t clip_header_size = sizeof(raw_buffer_header) + sizeof(tracks_header) + sizeof(transform_tracks_header);
 				const uint32_t clip_metadata_common_size = calculate_clip_metadata_common_size(clip, compressed_clip);
-				const uint32_t clip_metadata_rotation_constant_size = get_packed_rotation_size(get_highest_variant_precision(get_rotation_variant(settings.rotation_format))) * num_constant_rotation_tracks;
+				uint32_t clip_metadata_rotation_constant_size;
+				if (settings.rotation_format == rotation_format8::quatf_full)
+					clip_metadata_rotation_constant_size = get_packed_rotation_size(rotation_format8::quatf_full);
+				else
+					clip_metadata_rotation_constant_size = 4 * sizeof(uint16_t);
+				//const uint32_t clip_metadata_rotation_constant_size = get_packed_rotation_size(get_highest_variant_precision(get_rotation_variant(settings.rotation_format))) * num_constant_rotation_tracks;
 				const uint32_t clip_metadata_translation_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_translation_tracks;
 				const uint32_t clip_metadata_scale_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_scale_tracks;
 				writer["clip_header_size"] = clip_header_size;
@@ -475,7 +480,8 @@ namespace acl
 				writer["clip_metadata_translation_constant_size"] = clip_metadata_translation_constant_size;
 				writer["clip_metadata_scale_constant_size"] = clip_metadata_scale_constant_size;
 
-				const uint32_t range_rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(settings.rotation_format) : 0;
+				//const uint32_t range_rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(settings.rotation_format) : 0;
+				const uint32_t range_rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? sizeof(uint8_t) * 8 : 0;
 				const uint32_t range_translation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) ? k_clip_range_reduction_vector3_range_size : 0;
 				const uint32_t range_scale_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) ? k_clip_range_reduction_vector3_range_size : 0;
 				const uint32_t clip_metadata_rotation_animated_size = range_rotation_size * num_animated_rotation_tracks;

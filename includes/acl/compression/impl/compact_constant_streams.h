@@ -150,6 +150,32 @@ namespace acl
 
 			context.has_scale = num_default_bone_scales != num_bones;
 		}
+
+		inline void decay_constant_streams(clip_context& context, range_reduction_flags8 range_reduction)
+		{
+			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
+			SegmentContext& segment = context.segments[0];
+
+			const quantization_scales scales(16);
+
+			// When a stream is constant, we quantize its remaining sample.
+			// Here we simply decay for now to reflect the real quantization error.
+			// The actual quantization happens later.
+			const uint32_t num_bones = context.num_bones;
+			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			{
+				BoneStreams& bone_stream = segment.bone_streams[bone_index];
+
+				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) && bone_stream.is_rotation_constant)
+				{
+					rtm::vector4f rotation = bone_stream.rotations.get_raw_sample<rtm::vector4f>(0);
+
+					rotation = decay_vector4_uXX(rotation, scales);
+
+					bone_stream.rotations.set_raw_sample(0, rotation);
+				}
+			}
+		}
 	}
 }
 
