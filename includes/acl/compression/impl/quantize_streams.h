@@ -1187,7 +1187,7 @@ namespace acl
 			const uint32_t num_bones = context.num_bones;
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				// Update our error threshold
+				// Update our context with the new bone data
 				const float error_threshold = context.metadata[bone_index].precision;
 				context.error_threshold = error_threshold;
 
