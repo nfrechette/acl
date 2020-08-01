@@ -1,5 +1,10 @@
 # Significant changes per release
 
+## 1.3.3
+
+*  Fix single track decompression when scale is present with more than one segment
+*  Gracefully fail compression when we have more than 65535 samples
+
 ## 1.3.2
 
 *  Fix crash when compressing with an empty track array
