@@ -54,7 +54,7 @@ namespace acl
 		template<>
 		struct decompression_version_selector<compressed_tracks_version16::v02_00_00>
 		{
-			static bool is_version_supported(compressed_tracks_version16 version) { return version == compressed_tracks_version16::v02_00_00; }
+			static constexpr bool is_version_supported(compressed_tracks_version16 version) { return version == compressed_tracks_version16::v02_00_00; }
 
 			template<class decompression_settings_type, class context_type>
 			ACL_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks); }
@@ -78,7 +78,7 @@ namespace acl
 		template<>
 		struct decompression_version_selector<compressed_tracks_version16::any>
 		{
-			static bool is_version_supported(compressed_tracks_version16 version)
+			static constexpr bool is_version_supported(compressed_tracks_version16 version)
 			{
 				return version >= compressed_tracks_version16::first && version <= compressed_tracks_version16::latest;
 			}
