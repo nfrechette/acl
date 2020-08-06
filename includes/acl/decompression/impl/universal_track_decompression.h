@@ -35,6 +35,14 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C4582: 'union': constructor is not implicitly called (/Wall)
+	// This is fine because a context is empty until it is constructed with a valid clip.
+	// Afterwards, access is typesafe.
+	#pragma warning(disable : 4582)
+#endif
+
 namespace acl
 {
 	namespace acl_impl
@@ -168,5 +176,9 @@ namespace acl
 		}
 	}
 }
+
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
 
 ACL_IMPL_FILE_PRAGMA_POP
