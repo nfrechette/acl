@@ -29,6 +29,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_error_metrics.h"
 #include "acl/decompression/decompress.h"
 
 #include <cstdint>
