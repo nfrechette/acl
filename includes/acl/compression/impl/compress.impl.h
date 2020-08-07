@@ -65,6 +65,8 @@ namespace acl
 	{
 		inline error_result compress_scalar_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
+			(void)out_stats;
+
 #if defined(SJSON_CPP_WRITER)
 			scope_profiler compression_time;
 #endif
