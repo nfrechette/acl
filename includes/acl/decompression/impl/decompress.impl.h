@@ -26,8 +26,19 @@
 
 // Included only once from decompress.h
 
+#include <type_traits>
+
 namespace acl
 {
+	namespace acl_impl
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// SFINAE boilerplate to detect if a template argument derives from acl::decompression_context.
+		//////////////////////////////////////////////////////////////////////////
+		template<class T>
+		using is_decompression_context = typename std::enable_if<std::is_base_of<acl::decompression_context<typename T::settings_type>, T>::value, std::nullptr_t>::type;
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// decompression_context implementation
 
