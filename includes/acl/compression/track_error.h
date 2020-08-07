@@ -30,6 +30,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/impl/track_list_context.h"
 #include "acl/decompression/decompress.h"
 
 #include <rtm/scalarf.h>
