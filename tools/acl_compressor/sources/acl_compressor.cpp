@@ -993,7 +993,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
 #if defined(SJSON_CPP_WRITER)
-		if (logging != stat_logging::none)
+		if (logging != stat_logging::none && stats_writer != nullptr)
 		{
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
