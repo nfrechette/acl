@@ -40,6 +40,7 @@
 #include <rtm/vector4f.h>
 
 #include <cstdint>
+#include <functional>
 
 namespace acl
 {
