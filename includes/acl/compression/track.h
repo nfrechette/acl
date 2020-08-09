@@ -304,7 +304,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track that just references the data without owning it.
-		static track_typed<track_type_> make_ref(const desc_type& desc, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		static track_typed<track_type_> make_ref(const desc_type& desc, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 	private:
 		//////////////////////////////////////////////////////////////////////////
