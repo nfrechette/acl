@@ -235,7 +235,7 @@ namespace acl
 			}
 
 			void* raw_local_pose_ = needs_conversion ? (void*)raw_local_pose_converted : (void*)tracks_writer0.tracks_typed.qvvf;
-			void* base_local_pose_ = needs_conversion ? (void*)base_local_pose_converted : (void*)tracks_writer_base.tracks_typed.qvvf;
+			const void* base_local_pose_ = needs_conversion ? (void*)base_local_pose_converted : (void*)tracks_writer_base.tracks_typed.qvvf;
 			void* lossy_local_pose_ = needs_conversion ? (void*)lossy_local_pose_converted : (void*)tracks_writer1_remapped.tracks_typed.qvvf;
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_raw;
