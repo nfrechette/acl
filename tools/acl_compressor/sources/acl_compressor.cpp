@@ -1067,7 +1067,10 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 	// Make sure to enable buffering with a large buffer
 	const int setvbuf_result = setvbuf(file, NULL, _IOFBF, 1 * 1024 * 1024);
 	if (setvbuf_result != 0)
+	{
+		fclose(file);
 		return false;
+	}
 
 	const int fseek_result = fseek(file, 0, SEEK_END);
 	if (fseek_result != 0)
