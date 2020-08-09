@@ -100,23 +100,23 @@ namespace acl
 		struct calculate_track_error_args
 		{
 			// Scalar and transforms
-			uint32_t num_samples;
-			uint32_t num_tracks;
-			float duration;
-			float sample_rate;
-			track_type8 track_type;
+			uint32_t num_samples = 0;
+			uint32_t num_tracks = 0;
+			float duration = 0.0F;
+			float sample_rate = 0.0F;
+			track_type8 track_type = track_type8::float1f;
 
 			std::function<void(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)> sample_tracks0;
 			std::function<void(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)> sample_tracks1;
 
 			// Transforms only
-			const itransform_error_metric* error_metric;
+			const itransform_error_metric* error_metric = nullptr;
 			std::function<uint32_t(uint32_t track_index)> get_parent_index;
 			std::function<float(uint32_t track_index)> get_shell_distance;
 
 			// Optional
-			uint32_t base_num_samples;
-			float base_duration;
+			uint32_t base_num_samples = 0;
+			float base_duration = 0.0F;
 
 
 			std::function<void(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)> sample_tracks_base;
