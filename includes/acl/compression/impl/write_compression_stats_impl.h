@@ -43,6 +43,8 @@ namespace acl
 		inline void write_compression_stats(const track_list_context& context, const compressed_tracks& tracks, const scope_profiler& compression_time, output_stats& stats)
 		{
 			ACL_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer");
+			if (stats.writer == nullptr)
+				return;
 
 			const uint32_t raw_size = context.reference_list->get_raw_size();
 			const uint32_t compressed_size = tracks.get_size();
