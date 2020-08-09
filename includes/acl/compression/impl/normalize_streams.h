@@ -84,7 +84,7 @@ namespace acl
 			context.ranges = allocate_type_array<BoneRanges>(allocator, context.num_bones);
 
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
-			SegmentContext& segment = context.segments[0];
+			const SegmentContext& segment = context.segments[0];
 
 			acl_impl::extract_bone_ranges_impl(segment, context.ranges);
 		}
