@@ -165,6 +165,9 @@ namespace acl
 					case track_type8::qvvf:
 						*reinterpret_cast<rtm::qvvf*>(track_[sample_index]) = writer.read_qvv(track_index);
 						break;
+					default:
+						ACL_ASSERT(false, "Unexpected track type");
+						break;
 					}
 				}
 			}
@@ -208,6 +211,9 @@ namespace acl
 						break;
 					case track_type8::qvvf:
 						*reinterpret_cast<rtm::qvvf*>(track_[sample_index]) = writer.read_qvv(track_index);
+						break;
+					default:
+						ACL_ASSERT(false, "Unexpected track type");
 						break;
 					}
 				}
