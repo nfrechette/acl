@@ -306,10 +306,10 @@ namespace acl
 	}
 
 	template<track_type8 track_type_>
-	inline track_typed<track_type_> track_typed<track_type_>::make_ref(const typename track_typed<track_type_>::desc_type& desc, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
+	inline track_typed<track_type_> track_typed<track_type_>::make_ref(const typename track_typed<track_type_>::desc_type& desc, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
 	{
 		const size_t data_size = size_t(num_samples) * stride;
-		return track_typed<track_type_>(nullptr, const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data)), num_samples, stride, data_size, sample_rate, desc);
+		return track_typed<track_type_>(nullptr, reinterpret_cast<uint8_t*>(data), num_samples, stride, data_size, sample_rate, desc);
 	}
 
 	template<track_type8 track_type_>
