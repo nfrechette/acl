@@ -128,7 +128,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_tracks_v0(persistent_universal_decompression_context& context, track_writer_type& writer)
+		inline void decompress_tracks_v0(const persistent_universal_decompression_context& context, track_writer_type& writer)
 		{
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 
@@ -152,7 +152,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_track_v0(persistent_universal_decompression_context& context, uint32_t track_index, track_writer_type& writer)
+		inline void decompress_track_v0(const persistent_universal_decompression_context& context, uint32_t track_index, track_writer_type& writer)
 		{
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 

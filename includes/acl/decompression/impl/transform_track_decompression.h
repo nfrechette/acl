@@ -792,7 +792,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_tracks_v0(persistent_transform_decompression_context_v0& context, track_writer_type& writer)
+		inline void decompress_tracks_v0(const persistent_transform_decompression_context_v0& context, track_writer_type& writer)
 		{
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
 			if (context.sample_time < 0.0F)
@@ -861,7 +861,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type, class track_writer_type>
-		inline void decompress_track_v0(persistent_transform_decompression_context_v0& context, uint32_t track_index, track_writer_type& writer)
+		inline void decompress_track_v0(const persistent_transform_decompression_context_v0& context, uint32_t track_index, track_writer_type& writer)
 		{
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
 			if (context.sample_time < 0.0F)
