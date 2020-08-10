@@ -114,6 +114,9 @@ namespace acl
 				tracks.get_track_description(track_index, desc_transform);
 				track_ = track_qvvf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
 				break;
+			default:
+				ACL_ASSERT(false, "Unexpected track type");
+				break;
 			}
 
 			track_.set_name(string(allocator, tracks.get_track_name(track_index)));
