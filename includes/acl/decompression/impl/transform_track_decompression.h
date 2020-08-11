@@ -200,12 +200,12 @@ namespace acl
 				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 				if (is_sample_constant)
 				{
-					//const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-					//sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
-					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
-						sampling_context_.constant_track_data_offset += get_packed_rotation_size(rotation_format8::quatf_full);
-					else
-						sampling_context_.constant_track_data_offset += 4 * sizeof(uint16_t);
+					const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
+					sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
+					//if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						//sampling_context_.constant_track_data_offset += get_packed_rotation_size(rotation_format8::quatf_full);
+					//else
+						//sampling_context_.constant_track_data_offset += 4 * sizeof(uint16_t);
 				}
 				else
 				{
@@ -261,43 +261,43 @@ namespace acl
 				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
 				if (is_sample_constant)
 				{
-					const rtm::vector4f global_range_min = rtm::vector_load(decomp_context.global_range_data + 0);
-					const rtm::vector4f global_range_extent = rtm::vector_load(decomp_context.global_range_data + 4);
+					//const rtm::vector4f global_range_min = rtm::vector_load(decomp_context.global_range_data + 0);
+					//const rtm::vector4f global_range_extent = rtm::vector_load(decomp_context.global_range_data + 4);
 
 					//rtm::vector4f normalized_rotation;
-					uint32_t sample_size;
+					//uint32_t sample_size;
 					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 					{
 						interpolated_rotation = unpack_quat_128(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
 						//rtm::vector4f normalized_rotation = unpack_vector4_64(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset, true);
 						//normalized_rotation = rtm::vector_mul_add(normalized_rotation, global_range_extent, global_range_min);
 						//interpolated_rotation = rtm::quat_normalize(rtm::vector_to_quat(normalized_rotation));
-						sample_size = get_packed_rotation_size(rotation_format8::quatf_full);
+						//sample_size = get_packed_rotation_size(rotation_format8::quatf_full);
 					}
 					else if (rotation_format == rotation_format8::quatf_drop_w_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full))
 					{
-						//interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-						rtm::vector4f normalized_rotation = unpack_vector3_u48_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-						normalized_rotation = rtm::vector_mul_add(normalized_rotation, global_range_extent, global_range_min);
-						interpolated_rotation = rtm::quat_from_positive_w(normalized_rotation);
-						interpolated_rotation = rtm::quat_normalize(interpolated_rotation);
-						sample_size = 4 * sizeof(uint16_t);
+						interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
+						//rtm::vector4f normalized_rotation = unpack_vector3_u48_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
+						//normalized_rotation = rtm::vector_mul_add(normalized_rotation, global_range_extent, global_range_min);
+						//interpolated_rotation = rtm::quat_from_positive_w(normalized_rotation);
+						//interpolated_rotation = rtm::quat_normalize(interpolated_rotation);
+						//sample_size = 4 * sizeof(uint16_t);
 					}
 					else if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 					{
-						//interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-						rtm::vector4f normalized_rotation = unpack_vector3_u48_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-						normalized_rotation = rtm::vector_mul_add(normalized_rotation, global_range_extent, global_range_min);
-						interpolated_rotation = rtm::quat_from_positive_w(normalized_rotation);
-						interpolated_rotation = rtm::quat_normalize(interpolated_rotation);
-						sample_size = 4 * sizeof(uint16_t);
+						interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
+						//rtm::vector4f normalized_rotation = unpack_vector3_u48_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
+						//normalized_rotation = rtm::vector_mul_add(normalized_rotation, global_range_extent, global_range_min);
+						//interpolated_rotation = rtm::quat_from_positive_w(normalized_rotation);
+						//interpolated_rotation = rtm::quat_normalize(interpolated_rotation);
+						//sample_size = 4 * sizeof(uint16_t);
 					}
 					else
 					{
 						ACL_ASSERT(false, "Unrecognized rotation format");
 						interpolated_rotation = rtm::quat_identity();
 						//normalized_rotation = rtm::vector_zero();
-						sample_size = 0;
+						//sample_size = 0;
 					}
 
 					//normalized_rotation = rtm::vector_mul_add(normalized_rotation, global_range_extent, global_range_min);
@@ -307,8 +307,8 @@ namespace acl
 					ACL_ASSERT(rtm::quat_is_normalized(interpolated_rotation), "Rotation is not normalized!");
 
 					const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-					//sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
-					sampling_context_.constant_track_data_offset += sample_size;
+					sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
+					//sampling_context_.constant_track_data_offset += sample_size;
 				}
 				else
 				{
@@ -1053,14 +1053,14 @@ namespace acl
 				const uint32_t num_animated_rotations = track_index - num_constant_rotations;
 				const uint32_t num_animated_translations = track_index - num_constant_translations;
 
-				//const rotation_format8 packed_rotation_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-				//const uint32_t packed_rotation_size = get_packed_rotation_size(packed_rotation_format);
+				const rotation_format8 packed_rotation_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
+				const uint32_t packed_rotation_size = get_packed_rotation_size(packed_rotation_format);
 
-				uint32_t packed_rotation_size;
-				if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
-					packed_rotation_size = get_packed_rotation_size(rotation_format8::quatf_full);
-				else
-					packed_rotation_size = 4 * sizeof(uint16_t);
+				//uint32_t packed_rotation_size;
+				//if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+				//	packed_rotation_size = get_packed_rotation_size(rotation_format8::quatf_full);
+				//else
+				//	packed_rotation_size = 4 * sizeof(uint16_t);
 
 				uint32_t constant_track_data_offset = (num_constant_rotations - num_default_rotations) * packed_rotation_size;
 				//uint32_t constant_track_data_offset = (num_constant_rotations - num_default_rotations) * 4 * sizeof(uint16_t);

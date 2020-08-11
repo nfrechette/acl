@@ -53,6 +53,8 @@ namespace acl
 
 				if (!bone_stream.is_rotation_default && bone_stream.is_rotation_constant)
 				{
+					constant_data_size += bone_stream.rotations.get_packed_sample_size();
+#if 0
 					if (bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full)
 					{
 						constant_data_size += bone_stream.rotations.get_packed_sample_size();
@@ -62,6 +64,7 @@ namespace acl
 						//const uint32_t num_rotation_components = bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full ? 4 : 3;
 						constant_data_size += 4 * sizeof(uint16_t);
 					}
+#endif
 				}
 
 				if (!bone_stream.is_translation_default && bone_stream.is_translation_constant)
@@ -185,6 +188,12 @@ namespace acl
 
 				if (!bone_stream.is_rotation_default && bone_stream.is_rotation_constant)
 				{
+					const uint8_t* rotation_ptr = bone_stream.rotations.get_raw_sample_ptr(0);
+					uint32_t sample_size = bone_stream.rotations.get_sample_size();
+					std::memcpy(constant_data, rotation_ptr, sample_size);
+					constant_data += sample_size;
+
+#if 0
 					if (bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full)
 					{
 						const uint8_t* rotation_ptr = bone_stream.rotations.get_raw_sample_ptr(0);
@@ -199,6 +208,7 @@ namespace acl
 						pack_vector3_u48_unsafe(rotation, constant_data);
 						constant_data += 4 * sizeof(uint16_t);
 					}
+#endif
 				}
 
 				if (!bone_stream.is_translation_default && bone_stream.is_translation_constant)

@@ -138,10 +138,10 @@ namespace acl
 
 			if (bone_steams.is_rotation_constant)
 			{
-				const rtm::vector4f global_range_min = clip->global_range.rotation.get_min();
-				const rtm::vector4f global_range_extent = clip->global_range.rotation.get_extent();
+				//const rtm::vector4f global_range_min = clip->global_range.rotation.get_min();
+				//const rtm::vector4f global_range_extent = clip->global_range.rotation.get_extent();
 
-				packed_rotation = rtm::vector_mul_add(packed_rotation, global_range_extent, global_range_min);
+				//packed_rotation = rtm::vector_mul_add(packed_rotation, global_range_extent, global_range_min);
 			}
 			else if (clip->are_rotations_normalized && !is_raw_bit_rate(bit_rate))
 			{

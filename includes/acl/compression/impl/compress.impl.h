@@ -324,7 +324,7 @@ namespace acl
 				normalize_clip_streams_global(lossy_clip_context, range_reduction);
 
 				// Now that our constant tracks have been normalized, decay them
-				decay_constant_streams(lossy_clip_context, range_reduction);
+				//decay_constant_streams(lossy_clip_context, range_reduction);
 
 				// Extract our clip wide ranges per bone again, our values changed
 				extract_clip_bone_ranges(lossy_clip_context);

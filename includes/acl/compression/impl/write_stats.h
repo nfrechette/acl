@@ -470,7 +470,8 @@ namespace acl
 				if (settings.rotation_format == rotation_format8::quatf_full)
 					clip_metadata_rotation_constant_size = get_packed_rotation_size(rotation_format8::quatf_full);
 				else
-					clip_metadata_rotation_constant_size = 4 * sizeof(uint16_t);
+					//clip_metadata_rotation_constant_size = 4 * sizeof(uint16_t);
+					clip_metadata_rotation_constant_size = get_packed_rotation_size(rotation_format8::quatf_drop_w_full);
 				//const uint32_t clip_metadata_rotation_constant_size = get_packed_rotation_size(get_highest_variant_precision(get_rotation_variant(settings.rotation_format))) * num_constant_rotation_tracks;
 				const uint32_t clip_metadata_translation_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_translation_tracks;
 				const uint32_t clip_metadata_scale_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_scale_tracks;

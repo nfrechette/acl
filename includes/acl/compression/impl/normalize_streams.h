@@ -239,7 +239,7 @@ namespace acl
 				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
 
 				// Constant or default tracks are not normalized per bone, but they are globally
-				if (bone_stream.is_rotation_constant && normalize_per_bone)
+				if (bone_stream.is_rotation_constant)// && normalize_per_bone)
 					continue;
 
 				const uint32_t num_samples = bone_stream.rotations.get_num_samples();
