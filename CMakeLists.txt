@@ -12,6 +12,7 @@ set(USE_POPCNT_INSTRUCTIONS false CACHE BOOL "Use POPCOUNT instructions")
 set(USE_SIMD_INSTRUCTIONS true CACHE BOOL "Use SIMD instructions")
 set(USE_SJSON true CACHE BOOL "Use SJSON")
 set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
+set(BUILD_BENCHMARK_EXE false CACHE BOOL "Enable the benchmark projects")
 
 set(TEST_DATA_DIR "" CACHE STRING "The full path of the regression test data directory")
 set(DECOMP_DATA_DIR "" CACHE STRING "The full path of the decompression data directory")
@@ -66,7 +67,10 @@ enable_testing()
 
 # Add other projects
 add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
-add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_decompressor")
+
+if(BUILD_BENCHMARK_EXE)
+	add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_decompressor")
+endif()
 
 if(INCLUDE_UNIT_TESTS)
 	add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
