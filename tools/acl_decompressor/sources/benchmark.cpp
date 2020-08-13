@@ -46,7 +46,7 @@
 	static constexpr uint32_t k_num_tlb_entries = 4000;
 #elif defined(__ANDROID__)
 	static constexpr uint32_t k_cache_size = 3 * 1024 * 1024;		// Pixel 3 has 2 MB cache
-	static constexpr uint32_t k_num_tlb_entries = 2000;
+	static constexpr uint32_t k_num_tlb_entries = 100;
 #else
 	static constexpr uint32_t k_cache_size = 9 * 1024 * 1024;		// iPad Pro has 8 MB cache
 	static constexpr uint32_t k_num_tlb_entries = 2000;
