@@ -81,6 +81,7 @@ namespace acl
 		result.set_name(string(allocator, tracks.get_name()));
 
 		// Setup our track metadata and allocate memory
+		bool success = true;
 		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 		{
 			track& track_ = result[track_index];
@@ -88,30 +89,31 @@ namespace acl
 			track_desc_scalarf desc_scalar;
 			track_desc_transformf desc_transform;
 
+			bool got_description = false;
 			switch (track_type)
 			{
 			case track_type8::float1f:
-				tracks.get_track_description(track_index, desc_scalar);
+				got_description = tracks.get_track_description(track_index, desc_scalar);
 				track_ = track_float1f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
 			case track_type8::float2f:
-				tracks.get_track_description(track_index, desc_scalar);
+				got_description = tracks.get_track_description(track_index, desc_scalar);
 				track_ = track_float2f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
 			case track_type8::float3f:
-				tracks.get_track_description(track_index, desc_scalar);
+				got_description = tracks.get_track_description(track_index, desc_scalar);
 				track_ = track_float3f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
 			case track_type8::float4f:
-				tracks.get_track_description(track_index, desc_scalar);
+				got_description = tracks.get_track_description(track_index, desc_scalar);
 				track_ = track_float4f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
 			case track_type8::vector4f:
-				tracks.get_track_description(track_index, desc_scalar);
+				got_description = tracks.get_track_description(track_index, desc_scalar);
 				track_ = track_vector4f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
 			case track_type8::qvvf:
-				tracks.get_track_description(track_index, desc_transform);
+				got_description = tracks.get_track_description(track_index, desc_transform);
 				track_ = track_qvvf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
 				break;
 			default:
@@ -119,8 +121,13 @@ namespace acl
 				break;
 			}
 
+			success &= got_description;
+
 			track_.set_name(string(allocator, tracks.get_track_name(track_index)));
 		}
+
+		if (!success)
+			return error_result("Metadata was missing from the input");
 
 		// Disable floating point exceptions since decompression assumes it
 		scope_disable_fp_exceptions fp_off;
