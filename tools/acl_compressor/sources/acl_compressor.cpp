@@ -236,7 +236,7 @@ bool is_acl_sjson_file(const char* filename)
 bool is_acl_bin_file(const char* filename)
 {
 	const size_t filename_len = std::strlen(filename);
-	return filename_len >= 8 && strncmp(filename + filename_len - 8, ".acl.bin", 8) == 0;
+	return filename_len >= 4 && strncmp(filename + filename_len - 4, ".acl", 4) == 0;
 }
 
 static bool parse_options(int argc, char** argv, Options& options)
@@ -309,10 +309,9 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_bin_output_option, option_length) == 0)
 		{
 			options.output_bin_filename = argument + option_length;
-			const size_t filename_len = std::strlen(options.output_bin_filename);
-			if (filename_len < 8 || strncmp(options.output_bin_filename + filename_len - 8, ".acl.bin", 8) != 0)
+			if (!is_acl_bin_file(options.output_bin_filename))
 			{
-				printf("Binary output file must be an ACL binary file of the form: [*.acl.bin]\n");
+				printf("Binary output file must be an ACL binary file of the form: [*.acl]\n");
 				return false;
 			}
 			continue;
@@ -895,8 +894,8 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 		if (transform_tracks.get_num_samples_per_track() == 0)
 			return;
 
-		// When regression testing, we include all the metadata
-		if (options.regression_testing)
+		// When regression testing or writing to a binary output, we include all the metadata
+		if (options.regression_testing || options.output_bin_filename != nullptr)
 		{
 			settings.include_track_list_name = true;
 			settings.include_track_names = true;

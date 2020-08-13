@@ -30,11 +30,8 @@ file(COPY
 
 # Copy our decompression clip data
 if(EXISTS ${DECOMP_DATA_DIR})
-	set(DECOMP_DATA_CONFIG_DIR_SRC "${DECOMP_DATA_DIR}/../configs")
 	file(GLOB_RECURSE ALL_DECOMP_DATA_FILES LIST_DIRECTORIES false ${DECOMP_DATA_DIR}/*.*)
-	file(GLOB_RECURSE ALL_DECOMP_DATA_CONFIG_FILES LIST_DIRECTORIES false ${DECOMP_DATA_CONFIG_DIR_SRC}/*.*)
 	file(COPY ${ALL_DECOMP_DATA_FILES} DESTINATION app/src/main/assets)
-	file(COPY ${ALL_DECOMP_DATA_CONFIG_FILES} DESTINATION app/src/main/assets)
 else()
 	message(WARNING "Decompression data directory not found")
 endif()
