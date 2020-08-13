@@ -6,6 +6,7 @@ import argparse
 import multiprocessing
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -15,7 +16,7 @@ import zipfile
 
 # The current test/decompression data version in use
 current_test_data = 'test_data_v3'
-current_decomp_data = 'decomp_data_v5'
+current_decomp_data = 'decomp_data_v6'
 
 def parse_argv():
 	parser = argparse.ArgumentParser(add_help=False)
@@ -25,6 +26,10 @@ def parse_argv():
 	actions.add_argument('-clean', action='store_true')
 	actions.add_argument('-unit_test', action='store_true')
 	actions.add_argument('-regression_test', action='store_true')
+	actions.add_argument('-bench', action='store_true')
+	actions.add_argument('-run_bench', action='store_true')
+	actions.add_argument('-pull_bench', action='store_true')	# Android only
+	actions.add_argument('-convert', help='Input/Output directory to convert')
 
 	target = parser.add_argument_group(title='Target')
 	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2019-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
@@ -46,7 +51,9 @@ def parse_argv():
 	if not num_threads or num_threads == 0:
 		num_threads = 4
 
-	parser.set_defaults(build=False, clean=False, unit_test=False, regression_test=False, compiler=None, config='Release', cpu=None, use_avx=False, use_popcnt=False, use_simd=True, use_sjson=True, num_threads=num_threads, tests_matching='')
+	parser.set_defaults(build=False, clean=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False,
+		compiler=None, config='Release', cpu=None, use_avx=False, use_popcnt=False, use_simd=True, use_sjson=True,
+		num_threads=num_threads, tests_matching='')
 
 	args = parser.parse_args()
 
@@ -273,6 +280,9 @@ def do_generate_solution(build_dir, cmake_script_dir, test_data_dir, decomp_data
 		print('Disabling SJSON support')
 		extra_switches.append('-DUSE_SJSON:BOOL=false')
 
+	if args.bench:
+		extra_switches.append('-DBUILD_BENCHMARK_EXE:BOOL=true')
+
 	if not platform.system() == 'Windows':
 		extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))
 
@@ -334,6 +344,67 @@ def do_build(args):
 	result = subprocess.call(cmake_cmd, shell=True)
 	if result != 0:
 		sys.exit(result)
+
+def do_convert(test_data_dir, args):
+	if sys.version_info < (3, 4):
+		print('Python 3.4 or higher needed to run conversion')
+		sys.exit(1)
+
+	if not os.path.exists(args.convert):
+		print('Input/Output conversion directory not found: {}'.format(args.convert))
+		sys.exit(1)
+
+	# Validate that our regression testing tool is present
+	if args.compiler == 'emscripten':
+		compressor_exe_path = './bin/acl_compressor.js'
+	elif platform.system() == 'Windows':
+		compressor_exe_path = './bin/acl_compressor.exe'
+	else:
+		compressor_exe_path = './bin/acl_compressor'
+
+	compressor_exe_path = os.path.abspath(compressor_exe_path)
+	if not os.path.exists(compressor_exe_path):
+		print('Compressor exe not found: {}'.format(compressor_exe_path))
+		sys.exit(1)
+
+	# Grab all the test clips
+	conversion_clips = []
+	for (dirpath, dirnames, filenames) in os.walk(args.convert):
+		for filename in filenames:
+			if not filename.endswith('.acl.sjson'):
+				continue
+
+			clip_filename = os.path.join(dirpath, filename)
+			conversion_clips.append(clip_filename)
+
+	# Grab the raw config
+	config_dir = os.path.join(test_data_dir, 'configs')
+	config_filename = os.path.join(config_dir, 'uniformly_sampled_raw.config.sjson')
+
+	print('Converting SJSON clips in {} ...'.format(args.convert))
+	conversion_failed = False
+	for clip_filename in conversion_clips:
+		output_filename = clip_filename.replace('.acl.sjson', '.acl')
+
+		if args.compiler == 'emscripten':
+			cmd = 'node "{}" -acl="{}" -config="{}" -out="{}"'.format(compressor_exe_path, clip_filename, config_filename, output_filename)
+		else:
+			cmd = '"{}" -acl="{}" -config="{}" -out="{}"'.format(compressor_exe_path, clip_filename, config_filename, output_filename)
+
+		if platform.system() == 'Windows':
+			cmd = cmd.replace('/', '\\')
+
+		result = subprocess.call(cmd, shell=True)
+
+		if result != 0:
+			print('Failed to run conversion for clip: {}'.format(clip_filename))
+			print(cmd)
+			conversion_failed = True
+
+	print('Done!')
+
+	if conversion_failed:
+		sys.exit(1)
 
 def do_tests_android(build_dir, args):
 	# Switch our working directory to where we built everything
@@ -513,7 +584,7 @@ def do_prepare_decompression_test_data(test_data_dir, args):
 	clips = []
 	for (dirpath, dirnames, filenames) in os.walk(current_data_dir):
 		for filename in filenames:
-			if not filename.endswith('.acl.bin'):
+			if not filename.endswith('.acl'):
 				continue
 
 			clip_filename = os.path.join(dirpath, filename)
@@ -525,33 +596,9 @@ def do_prepare_decompression_test_data(test_data_dir, args):
 
 	print('Found {} decompression clips'.format(len(clips)))
 
-	# Grab all the test configurations
-	configs = []
-	config_dir = os.path.join(test_data_dir, 'configs')
-	if os.path.exists(config_dir):
-		for (dirpath, dirnames, filenames) in os.walk(config_dir):
-			for filename in filenames:
-				if not filename.endswith('.config.sjson'):
-					continue
-
-				if not filename == 'uniformly_sampled_quant_medium.config.sjson':
-					continue
-
-				config_filename = os.path.join(dirpath, filename)
-				configs.append(config_filename)
-
-	if len(configs) == 0:
-		print('No decompression configurations found')
-		sys.exit(1)
-
-	print('Found {} decompression configurations'.format(len(configs)))
-
 	# Write our metadata file
 	with open(os.path.join(current_data_dir, 'metadata.sjson'), 'w') as metadata_file:
-		print('configs = [', file = metadata_file)
-		for config_filename in configs:
-			print('\t"{}"'.format(os.path.relpath(config_filename, config_dir)), file = metadata_file)
-		print(']', file = metadata_file)
+		print('clip_dir = "{}"'.format(current_data_dir), file = metadata_file)
 		print('', file = metadata_file)
 		print('clips = [', file = metadata_file)
 		for clip_filename in clips:
@@ -721,6 +768,77 @@ def do_regression_tests(build_dir, test_data_dir, args):
 	else:
 		do_regression_tests_cmake(test_data_dir, args)
 
+def do_run_bench_android():
+	# Switch our working directory to where we built everything
+	working_dir = os.path.join(build_dir, 'tools', 'acl_decompressor', 'main_android')
+	os.chdir(working_dir)
+
+	gradlew_exe = os.path.join(working_dir, 'gradlew.bat')
+
+	# We uninstall first and then install
+	if args.config == 'Debug':
+		install_cmd = 'uninstallAll installDebug'
+	elif args.config == 'Release':
+		install_cmd = 'uninstallAll installRelease'
+
+	# Install our app
+	test_cmd = '"{}" {}'.format(gradlew_exe, install_cmd)
+	result = subprocess.call(test_cmd, shell=True)
+	if result != 0:
+		sys.exit(result)
+
+	# Execute through ADB
+	run_cmd = 'adb shell am start -n "com.acl.decompressor/com.acl.decompressor.MainActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER'
+	result = subprocess.call(run_cmd, shell=True)
+	if result != 0:
+		sys.exit(result)
+
+	# Restore working directory
+	os.chdir(build_dir)
+
+def do_pull_bench_android(build_dir):
+	# Grab the android directory we wrote the results to
+	output = str(subprocess.check_output('adb logcat -s acl -e "Benchmark results will be written to:" -m 1 -d'))
+	matches = re.search('Benchmark results will be written to: ([/\.\w]+)', output)
+	if matches == None:
+		print('Failed to find Android source directory from ADB')
+		android_src_dir = '/storage/emulated/0/Android/data/com.acl.decompressor/files'
+		print('{} will be used instead'.format(android_src_dir))
+	else:
+		android_src_dir = matches.group(1)
+
+	# Grab the benchmark results from the android device
+	dst_filename = os.path.join(build_dir, 'benchmark_results.json')
+	src_filename = '{}/benchmark_results.json'.format(android_src_dir)
+	cmd = 'adb pull "{}" "{}"'.format(src_filename, dst_filename)
+	os.system(cmd)
+
+def do_run_bench_native(build_dir, test_data_dir):
+	if platform.system() == 'Windows':
+		bench_exe = os.path.join(os.getcwd(), 'bin/acl_decompressor.exe')
+	else:
+		bench_exe = os.path.join(os.getcwd(), 'bin/acl_decompressor')
+
+	current_data_dir = os.path.join(test_data_dir, current_decomp_data)
+	metadata_filename = os.path.join(current_data_dir, 'metadata.sjson')
+	benchmark_output_filename = os.path.join(build_dir, 'benchmark_results.json')
+	bench_cmd = '{} -metadata="{}" --benchmark_out={} --benchmark_out_format=json'.format(bench_exe, metadata_filename, benchmark_output_filename)
+
+	result = subprocess.call(bench_cmd, shell=True)
+	if result != 0:
+		sys.exit(result)
+
+def do_run_bench(build_dir, test_data_dir):
+	if args.compiler == 'ios':
+		return	# Not supported on iOS
+
+	print('Running benchmark ...')
+
+	if args.compiler == 'android':
+		do_run_bench_android()
+	else:
+		do_run_bench_native(build_dir, test_data_dir)
+
 if __name__ == "__main__":
 	args = parse_argv()
 
@@ -751,10 +869,19 @@ if __name__ == "__main__":
 	if args.build:
 		do_build(args)
 
+	if args.convert:
+		do_convert(test_data_dir, args)
+
 	if args.unit_test:
 		do_tests(build_dir, args)
 
 	if args.regression_test and not args.compiler == 'ios':
 		do_regression_tests(build_dir, test_data_dir, args)
+
+	if args.run_bench:
+		do_run_bench(build_dir, test_data_dir)
+
+	if args.pull_bench:
+		do_pull_bench_android(build_dir)
 
 	sys.exit(0)
