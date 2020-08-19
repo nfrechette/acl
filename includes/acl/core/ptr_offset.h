@@ -58,7 +58,7 @@ namespace acl
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Constructs an invalid offset.
-		constexpr ptr_offset(invalid_ptr_offset) : m_value(std::numeric_limits<offset_type>::max()) {}
+		constexpr ptr_offset(invalid_ptr_offset) : m_value(k_invalid_value) {}
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Adds this offset to the provided pointer.
@@ -100,9 +100,12 @@ namespace acl
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the offset is valid.
-		constexpr bool is_valid() const { return m_value != std::numeric_limits<offset_type>::max(); }
+		constexpr bool is_valid() const { return m_value != k_invalid_value; }
 
 	private:
+		// Value representing an invalid offset
+		static constexpr offset_type k_invalid_value = std::numeric_limits<offset_type>::max();
+
 		// Actual offset value.
 		offset_type m_value;
 	};
