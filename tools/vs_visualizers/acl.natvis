@@ -88,4 +88,9 @@
     </Expand>
   </Type>
 
+  <Type Name="acl::ptr_offset&lt;*,*&gt;">
+    <DisplayString Condition="m_value == k_invalid_value">Invalid!</DisplayString>
+    <DisplayString>{m_value}</DisplayString>
+  </Type>
+
 </AutoVisualizer>
