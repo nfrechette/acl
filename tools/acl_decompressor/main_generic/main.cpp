@@ -161,9 +161,6 @@ int main(int argc, char* argv[])
 	// Run benchmarks
 	benchmark::RunSpecifiedBenchmarks();
 
-	// Clean up
-	clear_benchmark_state();
-
 	for (acl::compressed_tracks* compressed_tracks : compressed_clips)
 		s_allocator.deallocate(compressed_tracks, compressed_tracks->get_size());
 

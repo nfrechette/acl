@@ -174,9 +174,6 @@ extern "C" jint Java_com_acl_decompressor_MainActivity_nativeMain(JNIEnv* env, j
 	// Run benchmarks
 	benchmark::RunSpecifiedBenchmarks();
 
-	// Clean up
-	clear_benchmark_state();
-
 	for (acl::compressed_tracks* compressed_tracks : compressed_clips)
 		s_allocator.deallocate(compressed_tracks, compressed_tracks->get_size());
 

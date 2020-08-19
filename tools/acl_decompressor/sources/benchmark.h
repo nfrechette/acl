@@ -32,8 +32,6 @@
 
 extern acl::ansi_allocator s_allocator;
 
-void clear_benchmark_state();
-
 bool parse_metadata(const char* buffer, size_t buffer_size, std::string& out_clip_dir, std::vector<std::string>& out_clips);
 
 bool read_clip(const std::string& clip_dir, const std::string& clip, acl::iallocator& allocator, acl::compressed_tracks*& out_compressed_tracks);
