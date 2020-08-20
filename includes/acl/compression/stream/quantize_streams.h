@@ -526,7 +526,7 @@ namespace acl
 				if (context.has_additive_base)
 				{
 					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0F;
-					const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
+					const float additive_sample_time = context.additive_base_clip.num_samples > 1 ? (normalized_sample_time * context.additive_base_clip.duration) : 0.0F;
 					sample_stream(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
 				}
 
@@ -566,7 +566,7 @@ namespace acl
 				if (context.has_additive_base)
 				{
 					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / context.clip_duration) : 0.0F;
-					const float additive_sample_time = normalized_sample_time * context.additive_base_clip.duration;
+					const float additive_sample_time = context.additive_base_clip.num_samples > 1 ? (normalized_sample_time * context.additive_base_clip.duration) : 0.0F;
 					sample_streams_hierarchical(context.additive_base_clip.segments[0].bone_streams, context.num_bones, additive_sample_time, target_bone_index, context.additive_local_pose);
 				}
 
