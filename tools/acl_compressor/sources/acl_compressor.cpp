@@ -446,7 +446,7 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		if (additive_base_clip != nullptr)
 		{
 			const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
-			const float additive_sample_time = normalized_sample_time * additive_duration;
+			const float additive_sample_time = additive_num_samples > 1 ? (normalized_sample_time * additive_duration) : 0.0F;
 			additive_base_clip->sample_pose(additive_sample_time, SampleRoundingPolicy::Nearest, base_pose_transforms, num_bones);
 		}
 

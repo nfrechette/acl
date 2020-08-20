@@ -122,7 +122,7 @@ namespace acl
 				if (raw_clip_context.has_additive_base)
 				{
 					const float normalized_sample_time = additive_base_clip_context.num_samples > 1 ? (sample_time / ref_duration) : 0.0F;
-					const float additive_sample_time = normalized_sample_time * additive_base_clip_context.duration;
+					const float additive_sample_time = additive_base_clip_context.num_samples > 1 ? (normalized_sample_time * additive_base_clip_context.duration) : 0.0F;
 					sample_streams(additive_base_clip_context.segments[0].bone_streams, num_bones, additive_sample_time, base_local_pose);
 				}
 
