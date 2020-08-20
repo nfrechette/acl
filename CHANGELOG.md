@@ -1,5 +1,9 @@
 # Significant changes per release
 
+## 1.3.4
+
+*  Avoid assert when using an additive base with a static pose/single frame
+
 ## 1.3.3
 
 *  Fix single track decompression when scale is present with more than one segment
