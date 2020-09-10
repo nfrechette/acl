@@ -43,7 +43,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline TrackStreamRange calculate_track_range(const TrackStream& stream)
+		inline TrackStreamRange calculate_track_range(const TrackStream& stream, bool is_vector4)
 		{
 			rtm::vector4f min = rtm::vector_set(1e10F);
 			rtm::vector4f max = rtm::vector_set(-1e10F);
@@ -55,6 +55,13 @@ namespace acl
 
 				min = rtm::vector_min(min, sample);
 				max = rtm::vector_max(max, sample);
+			}
+
+			// Set the 4th component to zero if we don't need it
+			if (!is_vector4)
+			{
+				min = rtm::vector_set_w(min, 0.0F);
+				max = rtm::vector_set_w(max, 0.0F);
 			}
 
 			return TrackStreamRange::from_min_max(min, max);
@@ -69,11 +76,11 @@ namespace acl
 				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 				BoneRanges& bone_range = bone_ranges[bone_index];
 
-				bone_range.rotation = calculate_track_range(bone_stream.rotations);
-				bone_range.translation = calculate_track_range(bone_stream.translations);
+				bone_range.rotation = calculate_track_range(bone_stream.rotations, true);
+				bone_range.translation = calculate_track_range(bone_stream.translations, false);
 
 				if (has_scale)
-					bone_range.scale = calculate_track_range(bone_stream.scales);
+					bone_range.scale = calculate_track_range(bone_stream.scales, false);
 				else
 					bone_range.scale = TrackStreamRange();
 			}
