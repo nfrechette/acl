@@ -17,7 +17,7 @@ jobs:
           path: 'emsdk-cache'
           key: ${{ runner.os }}-emsdk-1.39.11
       - name: Setup emsdk
-        uses: mymindstorm/setup-emsdk@v4
+        uses: mymindstorm/setup-emsdk@v6
         with:
           version: 1.39.11
           no-cache: true
