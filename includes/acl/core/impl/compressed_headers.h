@@ -293,6 +293,16 @@ namespace acl
 		};
 
 		static_assert(sizeof(optional_metadata_header) >= 15, "Optional metadata must be at least 15 bytes");
+
+		// Header for 'compressed_database'
+		struct database_header
+		{
+			// Serialization tag used to distinguish raw buffer types.
+			uint32_t						tag;
+
+			// Serialization version used to compress the database.
+			uint32_t						version;		// TODO use an enum like compressed tracks
+		};
 	}
 }
 

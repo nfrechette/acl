@@ -41,6 +41,7 @@
 #endif
 
 #include "acl/core/ansi_allocator.h"
+#include "acl/core/compressed_database.h"
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/range_reduction_types.h"
