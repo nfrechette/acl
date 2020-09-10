@@ -59,7 +59,7 @@ namespace acl
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
 	//////////////////////////////////////////////////////////////////////////
-	// Compresses a transform track array and using its additive base and uniform sampling.
+	// Compresses a transform track array using its additive base with uniform sampling.
 	//
 	// This compression algorithm is the simplest by far and as such it offers
 	// the fastest compression and decompression. Every sample is retained and
