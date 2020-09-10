@@ -15,6 +15,15 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 		set(PLATFORM_OSX 1)
 		set(PLATFORM_NAME "OS X")
 	endif()
+
+	# Get the Xcode version being used.
+	execute_process(COMMAND xcodebuild -version
+		OUTPUT_VARIABLE PLATFORM_XCODE_VERSION
+		ERROR_QUIET
+		OUTPUT_STRIP_TRAILING_WHITESPACE)
+	string(REGEX MATCH "Xcode [0-9\\.]+" PLATFORM_XCODE_VERSION "${PLATFORM_XCODE_VERSION}")
+	string(REGEX REPLACE "Xcode ([0-9\\.]+)" "\\1" PLATFORM_XCODE_VERSION "${PLATFORM_XCODE_VERSION}")
+	message(STATUS "Building with Xcode version: ${PLATFORM_XCODE_VERSION}")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(PLATFORM_LINUX 1)
 	set(PLATFORM_NAME "Linux")
