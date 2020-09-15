@@ -627,11 +627,9 @@ namespace acl
 #endif
 
 			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
-			destroy_clip_context(allocator, lossy_clip_context);
-			destroy_clip_context(allocator, raw_clip_context);
-
-			if (is_additive)
-				destroy_clip_context(allocator, additive_base_clip_context);
+			destroy_clip_context(lossy_clip_context);
+			destroy_clip_context(raw_clip_context);
+			destroy_clip_context(additive_base_clip_context);
 
 			return error_result();
 		}
