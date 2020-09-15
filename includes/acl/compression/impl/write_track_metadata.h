@@ -40,6 +40,8 @@ namespace acl
 	{
 		inline uint32_t write_track_list_name(const track_array& tracks, char* out_track_list_name)
 		{
+			ACL_ASSERT(out_track_list_name == nullptr || out_track_list_name[0] == 0, "Buffer overrun detected");
+
 			uint8_t* output_buffer = reinterpret_cast<uint8_t*>(out_track_list_name);
 			const uint8_t* output_buffer_start = output_buffer;
 
@@ -56,6 +58,8 @@ namespace acl
 
 		inline uint32_t write_track_names(const track_array& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t* out_track_names)
 		{
+			ACL_ASSERT(out_track_names == nullptr || out_track_names[0] == 0, "Buffer overrun detected");
+
 			uint8_t* output_buffer = reinterpret_cast<uint8_t*>(out_track_names);
 			const uint8_t* output_buffer_start = output_buffer;
 
@@ -96,6 +100,8 @@ namespace acl
 
 		inline uint32_t write_parent_track_indices(const track_array_qvvf& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t* out_parent_track_indices)
 		{
+			ACL_ASSERT(out_parent_track_indices == nullptr || out_parent_track_indices[0] == 0, "Buffer overrun detected");
+
 			auto find_output_index = [track_output_indices, num_output_tracks](uint32_t track_index)
 			{
 				if (track_index == k_invalid_track_index)
@@ -132,6 +138,8 @@ namespace acl
 
 		inline uint32_t write_track_descriptions(const track_array& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint8_t* out_track_descriptions)
 		{
+			ACL_ASSERT(out_track_descriptions == nullptr || out_track_descriptions[0] == 0, "Buffer overrun detected");
+
 			uint8_t* output_buffer = out_track_descriptions;
 			const uint8_t* output_buffer_start = output_buffer;
 
