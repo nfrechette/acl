@@ -24,8 +24,10 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
+
+#include <rtm/quatf.h>
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -33,32 +35,47 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	// Bit rate 0 is reserved for tracks that are constant in a segment
-	constexpr uint8_t k_bit_rate_num_bits[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 };
-
-	constexpr uint8_t k_invalid_bit_rate = 0xFF;
-	constexpr uint8_t k_lowest_bit_rate = 1;
-	constexpr uint8_t k_highest_bit_rate = sizeof(k_bit_rate_num_bits) - 1;
-	constexpr uint32_t k_num_bit_rates = sizeof(k_bit_rate_num_bits);
-
-	static_assert(k_num_bit_rates == 19, "Expecting 19 bit rates");
-
-	inline uint32_t get_num_bits_at_bit_rate(uint32_t bit_rate)
+	namespace acl_impl
 	{
-		ACL_ASSERT(bit_rate <= k_highest_bit_rate, "Invalid bit rate: %u", bit_rate);
-		return k_bit_rate_num_bits[bit_rate];
+		template<typename cached_type>
+		struct track_cache_v0
+		{
+			// Our cached type
+			using type = typename cached_type::type;
+
+			// Our cached values
+			type			cached_samples[8];
+
+			// The index to write the next cache entry when we unpack
+			// Effective index value is modulo 8 what is stored here, guaranteed to never wrap
+			uint32_t		cache_write_index = 0;
+
+			// The index to read the next cache entry when we consume
+			// Effective index value is modulo 8 what is stored here, guaranteed to never wrap
+			uint32_t		cache_read_index = 0;
+
+			// How many we have left to unpack in total
+			uint32_t		num_left_to_unpack;
+
+			uint32_t		padding;
+
+			// Returns the number of cached entries
+			uint32_t		get_num_cached() const { return cache_write_index - cache_read_index; }
+		};
+
+		// Type traits for the track_cache to avoid GCC warning about template argument attributes
+		struct track_cache_quatf_trait
+		{
+			using type = rtm::quatf;
+		};
+
+		struct track_cache_vector4f_trait
+		{
+			using type = rtm::vector4f;
+		};
+
+		using track_cache_quatf_v0 = track_cache_v0<track_cache_quatf_trait>;
+		using track_cache_vector4f_v0 = track_cache_v0<track_cache_vector4f_trait>;
 	}
-
-	// Track is constant, our constant sample is stored in the range information
-	constexpr bool is_constant_bit_rate(uint32_t bit_rate) { return bit_rate == 0; }
-	constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == k_highest_bit_rate; }
-
-	struct BoneBitRate
-	{
-		uint8_t rotation;
-		uint8_t translation;
-		uint8_t scale;
-	};
 }
-
 ACL_IMPL_FILE_PRAGMA_POP

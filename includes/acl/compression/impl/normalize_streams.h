@@ -365,6 +365,7 @@ namespace acl
 				}
 
 				uint32_t range_data_size = 0;
+				uint32_t range_data_rotation_num = 0;
 
 				for (uint32_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				{
@@ -374,8 +375,9 @@ namespace acl
 
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) && !bone_stream.is_rotation_constant)
 					{
-						const uint32_t num_components = bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full ? 8 : 6;
-						range_data_size += num_components * k_segment_range_reduction_num_bytes_per_component;
+						ACL_ASSERT(bone_stream.rotations.get_rotation_format() != rotation_format8::quatf_full, "Normalization only supported on drop W variants");
+						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
+						range_data_rotation_num++;
 					}
 
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) && !bone_stream.is_translation_constant)
@@ -384,6 +386,11 @@ namespace acl
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) && !bone_stream.is_scale_constant)
 						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
 				}
+
+				// The last partial rotation group is padded to 4 elements to keep decompression fast
+				const uint32_t partial_group_size_rotation = range_data_rotation_num % 4;
+				if (partial_group_size_rotation != 0)
+					range_data_size += (4 - partial_group_size_rotation) * k_segment_range_reduction_num_bytes_per_component * 6;
 
 				segment.range_data_size = range_data_size;
 			}

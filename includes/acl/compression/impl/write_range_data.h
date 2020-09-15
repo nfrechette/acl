@@ -34,7 +34,10 @@
 #include "acl/core/variable_bit_rates.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
+#include "acl/compression/impl/animated_track_utils.h"
 #include "acl/compression/impl/clip_context.h"
+
+#include "acl/core/impl/compressed_headers.h"
 
 #include <rtm/vector4f.h>
 
@@ -186,12 +189,276 @@ namespace acl
 			// Only use the first segment, it contains the necessary information
 			const SegmentContext& segment = clip.segments[0];
 
-			return write_range_track_data(segment.bone_streams, clip.ranges, range_reduction, true, range_data, range_data_size, output_bone_mapping, num_output_bones);
+			(void)range_reduction;
+			(void)range_data_size;
+
+			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
+			// Order depends on animated track order. If we have 6 animated rotation tracks before the first animated
+			// translation track, we'll have 8 animated rotation sub-tracks followed by 4 animated translation sub-tracks.
+			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
+			// This is because we always process 4 animated sub-tracks at a time and cache the results.
+
+			// Groups are written in the order of first use and as such are sorted by their lowest sub-track index.
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
+			const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
+#endif
+
+			const uint8_t* range_data_start = range_data;
+			const rotation_format8 rotation_format = segment.bone_streams[0].rotations.get_rotation_format();	// The same for every track
+
+			// Each range entry is a min/extent at most sizeof(float4f) each, 32 bytes total max per sub-track, 4 sub-tracks per group
+			rtm::vector4f range_group_min[4];
+			rtm::vector4f range_group_extent[4];
+
+			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
+			{
+				(void)bone_index;
+
+				if (group_type == animation_track_type8::rotation)
+					return are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations);
+				else if (group_type == animation_track_type8::translation)
+					return are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations);
+				else
+					return are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales);
+			};
+
+			auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
+			{
+				if (group_type == animation_track_type8::rotation)
+				{
+					const BoneRanges& bone_range = clip.ranges[bone_index];
+
+					const rtm::vector4f range_min = bone_range.rotation.get_min();
+					const rtm::vector4f range_extent = bone_range.rotation.get_extent();
+
+					range_group_min[group_size] = range_min;
+					range_group_extent[group_size] = range_extent;
+				}
+				else if (group_type == animation_track_type8::translation)
+				{
+					const BoneRanges& bone_range = clip.ranges[bone_index];
+
+					const rtm::vector4f range_min = bone_range.translation.get_min();
+					const rtm::vector4f range_extent = bone_range.translation.get_extent();
+
+					range_group_min[group_size] = range_min;
+					range_group_extent[group_size] = range_extent;
+				}
+				else
+				{
+					const BoneRanges& bone_range = clip.ranges[bone_index];
+
+					const rtm::vector4f range_min = bone_range.scale.get_min();
+					const rtm::vector4f range_extent = bone_range.scale.get_extent();
+
+					range_group_min[group_size] = range_min;
+					range_group_extent[group_size] = range_extent;
+				}
+			};
+
+			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
+			{
+				if (group_type == animation_track_type8::rotation)
+				{
+					// 2x float3f or float4f, we swizzle into SOA form
+					RTM_MATRIXF_TRANSPOSE_4X4(range_group_min[0], range_group_min[1], range_group_min[2], range_group_min[3],
+						range_group_min[0], range_group_min[1], range_group_min[2], range_group_min[3]);
+
+					RTM_MATRIXF_TRANSPOSE_4X4(range_group_extent[0], range_group_extent[1], range_group_extent[2], range_group_extent[3],
+						range_group_extent[0], range_group_extent[1], range_group_extent[2], range_group_extent[3]);
+
+					if (rotation_format == rotation_format8::quatf_full)
+					{
+						// min
+						std::memcpy(range_data + group_size * sizeof(float) * 0, &range_group_min[0], group_size * sizeof(float));		// xxxx
+						std::memcpy(range_data + group_size * sizeof(float) * 1, &range_group_min[1], group_size * sizeof(float));		// yyyy
+						std::memcpy(range_data + group_size * sizeof(float) * 2, &range_group_min[2], group_size * sizeof(float));		// zzzz
+						std::memcpy(range_data + group_size * sizeof(float) * 3, &range_group_min[3], group_size * sizeof(float));		// wwww
+
+						// extent
+						std::memcpy(range_data + group_size * sizeof(float) * 4, &range_group_extent[0], group_size * sizeof(float));	// xxxx
+						std::memcpy(range_data + group_size * sizeof(float) * 5, &range_group_extent[1], group_size * sizeof(float));	// yyyy
+						std::memcpy(range_data + group_size * sizeof(float) * 6, &range_group_extent[2], group_size * sizeof(float));	// zzzz
+						std::memcpy(range_data + group_size * sizeof(float) * 7, &range_group_extent[3], group_size * sizeof(float));	// wwww
+
+						range_data += group_size * sizeof(float) * 8;
+					}
+					else
+					{
+						// min
+						std::memcpy(range_data + group_size * sizeof(float) * 0, &range_group_min[0], group_size * sizeof(float));		// xxxx
+						std::memcpy(range_data + group_size * sizeof(float) * 1, &range_group_min[1], group_size * sizeof(float));		// yyyy
+						std::memcpy(range_data + group_size * sizeof(float) * 2, &range_group_min[2], group_size * sizeof(float));		// zzzz
+
+						// extent
+						std::memcpy(range_data + group_size * sizeof(float) * 3, &range_group_extent[0], group_size * sizeof(float));	// xxxx
+						std::memcpy(range_data + group_size * sizeof(float) * 4, &range_group_extent[1], group_size * sizeof(float));	// yyyy
+						std::memcpy(range_data + group_size * sizeof(float) * 5, &range_group_extent[2], group_size * sizeof(float));	// zzzz
+
+						range_data += group_size * sizeof(float) * 6;
+					}
+				}
+				else
+				{
+					// 2x float3f
+					for (uint32_t group_index = 0; group_index < group_size; ++group_index)
+					{
+						std::memcpy(range_data, &range_group_min[group_index], sizeof(rtm::float3f));
+						std::memcpy(range_data + sizeof(rtm::float3f), &range_group_extent[group_index], sizeof(rtm::float3f));
+						range_data += sizeof(rtm::float3f) * 2;
+					}
+				}
+
+				ACL_ASSERT(range_data <= range_data_end, "Invalid range data offset. Wrote too little data.");
+			};
+
+			animated_group_writer(segment, output_bone_mapping, num_output_bones, group_filter_action, group_entry_action, group_flush_action);
+
+			ACL_ASSERT(range_data == range_data_end, "Invalid range data offset. Wrote too little data.");
+
+			return safe_static_cast<uint32_t>(range_data - range_data_start);
 		}
 
 		inline uint32_t write_segment_range_data(const SegmentContext& segment, range_reduction_flags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
-			return write_range_track_data(segment.bone_streams, segment.ranges, range_reduction, false, range_data, range_data_size, output_bone_mapping, num_output_bones);
+			ACL_ASSERT(range_data != nullptr, "'range_data' cannot be null!");
+			(void)range_reduction;
+			(void)range_data_size;
+
+			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
+			// Order depends on animated track order. If we have 6 animated rotation tracks before the first animated
+			// translation track, we'll have 8 animated rotation sub-tracks followed by 4 animated translation sub-tracks.
+			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
+			// This is because we always process 4 animated sub-tracks at a time and cache the results.
+
+			// Groups are written in the order of first use and as such are sorted by their lowest sub-track index.
+
+			// normalized value is between [0.0 .. 1.0]
+			// value = (normalized value * range extent) + range min
+			// normalized value = (value - range min) / range extent
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
+			const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
+#endif
+
+			const uint8_t* range_data_start = range_data;
+
+			// For rotations contains: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
+			// For trans/scale: min0.xyz, extent0.xyz, min1.xyz, extent1.xyz, min2.xyz, extent2.xyz, min3.xyz, extent3.xyz
+			// To keep decompression simpler, rotations are padded to 4 elements even if the last group is partial
+			alignas(16) uint8_t range_data_group[6 * 4] = { 0 };
+
+			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
+			{
+				(void)bone_index;
+
+				if (group_type == animation_track_type8::rotation)
+					return are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations);
+				else if (group_type == animation_track_type8::translation)
+					return are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations);
+				else
+					return are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales);
+			};
+
+			auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
+			{
+				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				if (group_type == animation_track_type8::rotation)
+				{
+					if (is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
+					{
+						const uint8_t* sample = bone_stream.rotations.get_raw_sample_ptr(0);
+
+						// Swizzle into SOA form
+						range_data_group[group_size + 0] = sample[1];		// sample.x top 8 bits
+						range_data_group[group_size + 4] = sample[0];		// sample.x bottom 8 bits
+						range_data_group[group_size + 8] = sample[3];		// sample.y top 8 bits
+						range_data_group[group_size + 12] = sample[2];		// sample.y bottom 8 bits
+						range_data_group[group_size + 16] = sample[5];		// sample.z top 8 bits
+						range_data_group[group_size + 20] = sample[4];		// sample.z bottom 8 bits
+					}
+					else
+					{
+						const BoneRanges& bone_range = segment.ranges[bone_index];
+
+						const rtm::vector4f range_min = bone_range.rotation.get_min();
+						const rtm::vector4f range_extent = bone_range.rotation.get_extent();
+
+						// Swizzle into SOA form
+						alignas(16) uint8_t range_min_buffer[16];
+						alignas(16) uint8_t range_extent_buffer[16];
+						pack_vector3_u24_unsafe(range_min, range_min_buffer);
+						pack_vector3_u24_unsafe(range_extent, range_extent_buffer);
+
+						range_data_group[group_size + 0] = range_min_buffer[0];
+						range_data_group[group_size + 4] = range_min_buffer[1];
+						range_data_group[group_size + 8] = range_min_buffer[2];
+
+						range_data_group[group_size + 12] = range_extent_buffer[0];
+						range_data_group[group_size + 16] = range_extent_buffer[1];
+						range_data_group[group_size + 20] = range_extent_buffer[2];
+					}
+				}
+				else if (group_type == animation_track_type8::translation)
+				{
+					if (is_constant_bit_rate(bone_stream.translations.get_bit_rate()))
+					{
+						const uint8_t* sample = bone_stream.translations.get_raw_sample_ptr(0);
+						uint8_t* sub_track_range_data = &range_data_group[group_size * 6];
+						std::memcpy(sub_track_range_data, sample, 6);
+					}
+					else
+					{
+						const BoneRanges& bone_range = segment.ranges[bone_index];
+
+						const rtm::vector4f range_min = bone_range.translation.get_min();
+						const rtm::vector4f range_extent = bone_range.translation.get_extent();
+
+						uint8_t* sub_track_range_data = &range_data_group[group_size * 6];
+						pack_vector3_u24_unsafe(range_min, sub_track_range_data);
+						pack_vector3_u24_unsafe(range_extent, sub_track_range_data + 3);
+					}
+				}
+				else
+				{
+					if (is_constant_bit_rate(bone_stream.scales.get_bit_rate()))
+					{
+						const uint8_t* sample = bone_stream.scales.get_raw_sample_ptr(0);
+						uint8_t* sub_track_range_data = &range_data_group[group_size * 6];
+						std::memcpy(sub_track_range_data, sample, 6);
+					}
+					else
+					{
+						const BoneRanges& bone_range = segment.ranges[bone_index];
+
+						const rtm::vector4f range_min = bone_range.scale.get_min();
+						const rtm::vector4f range_extent = bone_range.scale.get_extent();
+
+						uint8_t* sub_track_range_data = &range_data_group[group_size * 6];
+						pack_vector3_u24_unsafe(range_min, sub_track_range_data);
+						pack_vector3_u24_unsafe(range_extent, sub_track_range_data + 3);
+					}
+				}
+			};
+
+			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
+			{
+				const uint32_t copy_size = group_type == animation_track_type8::rotation ? 4 : group_size;
+				std::memcpy(range_data, &range_data_group[0], copy_size * 6);
+				range_data += copy_size * 6;
+
+				// Zero out the temporary buffer for the final group to not contain partial garbage
+				std::memset(&range_data_group[0], 0, sizeof(range_data_group));
+
+				ACL_ASSERT(range_data <= range_data_end, "Invalid range data offset. Wrote too little data.");
+			};
+
+			animated_group_writer(segment, output_bone_mapping, num_output_bones, group_filter_action, group_entry_action, group_flush_action);
+
+			ACL_ASSERT(range_data == range_data_end, "Invalid range data offset. Wrote too little data.");
+
+			return safe_static_cast<uint32_t>(range_data - range_data_start);
 		}
 	}
 }

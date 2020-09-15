@@ -72,6 +72,8 @@ namespace acl
 				const SegmentContext& segment = clip.segments[segment_index];
 				segment_header& header = segment_headers[segment_index];
 
+				ACL_ASSERT(header.animated_pose_bit_size == 0, "Buffer overrun detected");
+
 				header.animated_pose_bit_size = segment.animated_pose_bit_size;
 				header.segment_data = segment_data_offset;
 
@@ -79,6 +81,8 @@ namespace acl
 				segment_data_offset = align_to(segment_data_offset + segment.range_data_size, 4);			// Aligned to 4 bytes
 				segment_data_offset = segment_data_offset + segment.animated_data_size;
 				size_written += sizeof(segment_header);
+
+				ACL_ASSERT((segment_data_offset - (uint32_t)header.segment_data) == segment.segment_data_size, "Unexpected segment size");
 			}
 
 			return size_written;
@@ -102,18 +106,32 @@ namespace acl
 				uint8_t* animated_data = nullptr;
 				header.get_segment_data(segment_header_, format_per_track_data, range_data, animated_data);
 
-				if (format_per_track_data_size > 0)
-					size_written += write_format_per_track_data(segment, format_per_track_data, format_per_track_data_size, output_bone_mapping, num_output_bones);
+				ACL_ASSERT(format_per_track_data[0] == 0, "Buffer overrun detected");
+				ACL_ASSERT(range_data[0] == 0, "Buffer overrun detected");
+				ACL_ASSERT(animated_data[0] == 0, "Buffer overrun detected");
 
-				size_written = align_to(size_written, 2);	// Align range data
+				if (format_per_track_data_size != 0)
+				{
+					const uint32_t size = write_format_per_track_data(segment, format_per_track_data, format_per_track_data_size, output_bone_mapping, num_output_bones);
+					(void)size;
+					ACL_ASSERT(size == format_per_track_data_size, "Unexpected format per track data size");
+				}
 
-				if (segment.range_data_size > 0)
-					size_written += write_segment_range_data(segment, range_reduction, range_data, segment.range_data_size, output_bone_mapping, num_output_bones);
+				if (segment.range_data_size != 0)
+				{
+					const uint32_t size = write_segment_range_data(segment, range_reduction, range_data, segment.range_data_size, output_bone_mapping, num_output_bones);
+					(void)size;
+					ACL_ASSERT(size == segment.range_data_size, "Unexpected range data size");
+				}
 
-				size_written = align_to(size_written, 4);	// Align animated data
+				if (segment.animated_data_size != 0)
+				{
+					const uint32_t size = write_animated_track_data(segment, animated_data, segment.animated_data_size, output_bone_mapping, num_output_bones);
+					(void)size;
+					ACL_ASSERT(size == segment.animated_data_size, "Unexpected animated data size");
+				}
 
-				if (segment.animated_data_size > 0)
-					size_written += write_animated_track_data(segment, animated_data, segment.animated_data_size, output_bone_mapping, num_output_bones);
+				size_written += segment.segment_data_size;
 			}
 
 			return size_written;

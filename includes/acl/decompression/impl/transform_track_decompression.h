@@ -33,10 +33,14 @@
 #include "acl/core/track_writer.h"
 #include "acl/core/variable_bit_rates.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/decompression/impl/transform_animated_track_cache.h"
+#include "acl/decompression/impl/transform_constant_track_cache.h"
 #include "acl/decompression/impl/transform_decompression_context.h"
 #include "acl/math/quatf.h"
 #include "acl/math/quat_packing.h"
+#include "acl/math/vector4f.h"
 
+#include <rtm/quatf.h>
 #include <rtm/scalarf.h>
 #include <rtm/vector4f.h>
 
@@ -49,468 +53,6 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		struct alignas(64) sampling_context_v0
-		{
-			//														//   offsets
-			uint32_t track_index;									//   0 |   0
-			uint32_t constant_track_data_offset;					//   4 |   4
-			uint32_t clip_range_data_offset;						//   8 |   8
-
-			uint32_t format_per_track_data_offset;					//  12 |  12
-			uint32_t segment_range_data_offset;						//  16 |  16
-
-			uint32_t key_frame_bit_offsets[2];						//  20 |  20
-
-			uint8_t padding[4];										//  28 |  28
-
-			rtm::vector4f vectors[2];								//  32 |  32
-
-			//											Total size:	    64 |  64
-		};
-
-		static_assert(sizeof(sampling_context_v0) == 64, "Unexpected size");
-
-		template<class decompression_settings_type>
-		inline void skip_over_rotation(const persistent_transform_decompression_context_v0& decomp_context, sampling_context_v0& sampling_context_)
-		{
-			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
-			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
-			if (!is_sample_default)
-			{
-				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
-
-				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
-				if (is_sample_constant)
-				{
-					const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-					sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
-				}
-				else
-				{
-					if (is_rotation_format_variable(rotation_format))
-					{
-						for (uint32_t i = 0; i < 2; ++i)
-						{
-							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context_.format_per_track_data_offset];
-							const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
-
-							sampling_context_.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
-						}
-
-						sampling_context_.format_per_track_data_offset++;
-					}
-					else
-					{
-						const uint32_t rotation_size = get_packed_rotation_size(rotation_format);
-						const uint32_t num_bits_at_bit_rate = rotation_size == (sizeof(float) * 4) ? 128 : 96;
-
-						for (uint32_t i = 0; i < 2; ++i)
-							sampling_context_.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
-					}
-
-					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::rotations))
-					{
-						sampling_context_.clip_range_data_offset += decomp_context.num_rotation_components * sizeof(float) * 2;
-
-						if (decomp_context.has_segments)
-							sampling_context_.segment_range_data_offset += decomp_context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2;
-					}
-				}
-			}
-
-			sampling_context_.track_index++;
-		}
-
-		template <class decompression_settings_type>
-		inline rtm::quatf RTM_SIMD_CALL decompress_and_interpolate_rotation(const persistent_transform_decompression_context_v0& decomp_context, sampling_context_v0& sampling_context_)
-		{
-			rtm::quatf interpolated_rotation;
-
-			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
-			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
-			if (is_sample_default)
-			{
-				interpolated_rotation = rtm::quat_identity();
-			}
-			else
-			{
-				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
-				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
-				if (is_sample_constant)
-				{
-					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
-						interpolated_rotation = unpack_quat_128(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-					else if (rotation_format == rotation_format8::quatf_drop_w_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full))
-						interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-					else if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
-						interpolated_rotation = unpack_quat_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-					else
-					{
-						ACL_ASSERT(false, "Unrecognized rotation format");
-						interpolated_rotation = rtm::quat_identity();
-					}
-
-					ACL_ASSERT(rtm::quat_is_finite(interpolated_rotation), "Rotation is not valid!");
-					ACL_ASSERT(rtm::quat_is_normalized(interpolated_rotation), "Rotation is not normalized!");
-
-					const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-					sampling_context_.constant_track_data_offset += get_packed_rotation_size(packed_format);
-				}
-				else
-				{
-					// This part is fairly complex, we'll loop and write to the stack (sampling context)
-					rtm::vector4f* rotations_as_vec = &sampling_context_.vectors[0];
-
-					// Range ignore flags are used to skip range normalization at the clip and/or segment levels
-					// Each sample has two bits like so:
-					//    - 0x01 = sample 1 segment
-					//    - 0x02 = sample 1 clip
-					//    - 0x04 = sample 0 segment
-					//    - 0x08 = sample 0 clip
-					// By default, we never ignore range reduction
-					uint32_t range_ignore_flags = 0;
-
-					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
-					{
-						for (uint32_t i = 0; i < 2; ++i)
-						{
-							range_ignore_flags <<= 2;
-
-							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context_.format_per_track_data_offset];
-							const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-
-							if (is_constant_bit_rate(bit_rate))
-							{
-								rotations_as_vec[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context_.segment_range_data_offset);
-								range_ignore_flags |= 0x00000001U;	// Skip segment only
-							}
-							else if (is_raw_bit_rate(bit_rate))
-							{
-								rotations_as_vec[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context_.key_frame_bit_offsets[i]);
-								range_ignore_flags |= 0x00000003U;	// Skip clip and segment
-							}
-							else
-								rotations_as_vec[i] = unpack_vector3_uXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context_.key_frame_bit_offsets[i]);
-
-							sampling_context_.key_frame_bit_offsets[i] += num_bits_at_bit_rate * 3;
-						}
-
-						sampling_context_.format_per_track_data_offset++;
-					}
-					else
-					{
-						if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
-						{
-							for (uint32_t i = 0; i < 2; ++i)
-							{
-								rotations_as_vec[i] = unpack_vector4_128_unsafe(decomp_context.animated_track_data[i], sampling_context_.key_frame_bit_offsets[i]);
-								sampling_context_.key_frame_bit_offsets[i] += 128;
-							}
-						}
-						else if (rotation_format == rotation_format8::quatf_drop_w_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full))
-						{
-							for (uint32_t i = 0; i < 2; ++i)
-							{
-								rotations_as_vec[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context_.key_frame_bit_offsets[i]);
-								sampling_context_.key_frame_bit_offsets[i] += 96;
-							}
-						}
-					}
-
-					// Load our samples to avoid working with the stack now that things can be unrolled.
-					// We unroll because even if we work from the stack, with 2 samples the compiler always
-					// unrolls but it fails to keep the values in registers, working from the stack which
-					// is inefficient.
-					rtm::vector4f rotation_as_vec0 = rotations_as_vec[0];
-					rtm::vector4f rotation_as_vec1 = rotations_as_vec[1];
-
-					const uint32_t num_rotation_components = decomp_context.num_rotation_components;
-
-					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::rotations))
-					{
-						if (decomp_context.has_segments)
-						{
-							const uint32_t segment_range_min_offset = sampling_context_.segment_range_data_offset;
-							const uint32_t segment_range_extent_offset = sampling_context_.segment_range_data_offset + (num_rotation_components * sizeof(uint8_t));
-
-							if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
-							{
-								if ((range_ignore_flags & 0x04) == 0)
-								{
-									const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
-									const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_extent_offset);
-
-									rotation_as_vec0 = rtm::vector_mul_add(rotation_as_vec0, segment_range_extent, segment_range_min);
-								}
-
-								if ((range_ignore_flags & 0x01) == 0)
-								{
-									const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_min_offset);
-									const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_extent_offset);
-
-									rotation_as_vec1 = rtm::vector_mul_add(rotation_as_vec1, segment_range_extent, segment_range_min);
-								}
-							}
-							else
-							{
-								if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
-								{
-									{
-										const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[0] + segment_range_min_offset, true);
-										const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[0] + segment_range_extent_offset, true);
-
-										rotation_as_vec0 = rtm::vector_mul_add(rotation_as_vec0, segment_range_extent, segment_range_min);
-									}
-
-									{
-										const rtm::vector4f segment_range_min = unpack_vector4_32(decomp_context.segment_range_data[1] + segment_range_min_offset, true);
-										const rtm::vector4f segment_range_extent = unpack_vector4_32(decomp_context.segment_range_data[1] + segment_range_extent_offset, true);
-
-										rotation_as_vec1 = rtm::vector_mul_add(rotation_as_vec1, segment_range_extent, segment_range_min);
-									}
-								}
-								else
-								{
-									{
-										const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
-										const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_extent_offset);
-
-										rotation_as_vec0 = rtm::vector_mul_add(rotation_as_vec0, segment_range_extent, segment_range_min);
-									}
-
-									{
-										const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_min_offset);
-										const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_extent_offset);
-
-										rotation_as_vec1 = rtm::vector_mul_add(rotation_as_vec1, segment_range_extent, segment_range_min);
-									}
-								}
-							}
-
-							sampling_context_.segment_range_data_offset += num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2;
-						}
-
-						const rtm::vector4f clip_range_min = rtm::vector_load(decomp_context.clip_range_data + sampling_context_.clip_range_data_offset);
-						const rtm::vector4f clip_range_extent = rtm::vector_load(decomp_context.clip_range_data + sampling_context_.clip_range_data_offset + (num_rotation_components * sizeof(float)));
-
-						if ((range_ignore_flags & 0x08) == 0)
-							rotation_as_vec0 = rtm::vector_mul_add(rotation_as_vec0, clip_range_extent, clip_range_min);
-
-						if ((range_ignore_flags & 0x02) == 0)
-							rotation_as_vec1 = rtm::vector_mul_add(rotation_as_vec1, clip_range_extent, clip_range_min);
-
-						sampling_context_.clip_range_data_offset += num_rotation_components * sizeof(float) * 2;
-					}
-
-					// No-op conversion
-					rtm::quatf rotation0 = rtm::vector_to_quat(rotation_as_vec0);
-					rtm::quatf rotation1 = rtm::vector_to_quat(rotation_as_vec1);
-
-					if (rotation_format != rotation_format8::quatf_full || !decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
-					{
-						// We dropped the W component
-						rotation0 = rtm::quat_from_positive_w(rotation_as_vec0);
-						rotation1 = rtm::quat_from_positive_w(rotation_as_vec1);
-					}
-
-					const bool normalize_rotations = decompression_settings_type::normalize_rotations();
-					if (normalize_rotations)
-						interpolated_rotation = rtm::quat_lerp(rotation0, rotation1, decomp_context.interpolation_alpha);
-					else
-						interpolated_rotation = quat_lerp_no_normalization(rotation0, rotation1, decomp_context.interpolation_alpha);
-
-					ACL_ASSERT(rtm::quat_is_finite(interpolated_rotation), "Rotation is not valid!");
-					ACL_ASSERT(rtm::quat_is_normalized(interpolated_rotation) || !decompression_settings_type::normalize_rotations(), "Rotation is not normalized!");
-				}
-			}
-
-			sampling_context_.track_index++;
-			return interpolated_rotation;
-		}
-
-		template<class decompression_settings_adapter_type>
-		inline void skip_over_vector(const persistent_transform_decompression_context_v0& decomp_context, sampling_context_v0& sampling_context_)
-		{
-			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
-			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
-			if (!is_sample_default)
-			{
-				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
-				if (is_sample_constant)
-				{
-					// Constant Vector3 tracks store the remaining sample with full precision
-					sampling_context_.constant_track_data_offset += get_packed_vector_size(vector_format8::vector3f_full);
-				}
-				else
-				{
-					const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
-
-					if (is_vector_format_variable(format))
-					{
-						for (uint32_t i = 0; i < 2; ++i)
-						{
-							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context_.format_per_track_data_offset];
-							const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
-
-							sampling_context_.key_frame_bit_offsets[i] += num_bits_at_bit_rate;
-						}
-
-						sampling_context_.format_per_track_data_offset++;
-					}
-					else
-					{
-						for (uint32_t i = 0; i < 2; ++i)
-							sampling_context_.key_frame_bit_offsets[i] += 96;
-					}
-
-					const range_reduction_flags8 range_reduction_flag = decompression_settings_adapter_type::get_range_reduction_flag();
-
-					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flag))
-					{
-						sampling_context_.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
-
-						if (decomp_context.has_segments)
-							sampling_context_.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
-					}
-				}
-			}
-
-			sampling_context_.track_index++;
-		}
-
-		template<class decompression_settings_adapter_type>
-		inline rtm::vector4f RTM_SIMD_CALL decompress_and_interpolate_vector(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f_arg0 default_value, sampling_context_v0& sampling_context_)
-		{
-			rtm::vector4f interpolated_vector;
-
-			const bitset_index_ref track_index_bit_ref(decomp_context.bitset_desc, sampling_context_.track_index);
-			const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
-			if (is_sample_default)
-			{
-				interpolated_vector = default_value;
-			}
-			else
-			{
-				const bool is_sample_constant = bitset_test(decomp_context.constant_tracks_bitset, track_index_bit_ref);
-				if (is_sample_constant)
-				{
-					// Constant translation tracks store the remaining sample with full precision
-					interpolated_vector = unpack_vector3_96_unsafe(decomp_context.constant_track_data + sampling_context_.constant_track_data_offset);
-					ACL_ASSERT(rtm::vector_is_finite3(interpolated_vector), "Vector is not valid!");
-
-					sampling_context_.constant_track_data_offset += get_packed_vector_size(vector_format8::vector3f_full);
-				}
-				else
-				{
-					const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
-
-					// This part is fairly complex, we'll loop and write to the stack (sampling context)
-					rtm::vector4f* vectors = &sampling_context_.vectors[0];
-
-					// Range ignore flags are used to skip range normalization at the clip and/or segment levels
-					// Each sample has two bits like so:
-					//    - 0x01 = sample 1 segment
-					//    - 0x02 = sample 1 clip
-					//    - 0x04 = sample 0 segment
-					//    - 0x08 = sample 0 clip
-					// By default, we never ignore range reduction
-					uint32_t range_ignore_flags = 0;
-
-					if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
-					{
-						for (uint32_t i = 0; i < 2; ++i)
-						{
-							range_ignore_flags <<= 2;
-
-							const uint8_t bit_rate = decomp_context.format_per_track_data[i][sampling_context_.format_per_track_data_offset];
-							const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
-
-							if (is_constant_bit_rate(bit_rate))
-							{
-								vectors[i] = unpack_vector3_u48_unsafe(decomp_context.segment_range_data[i] + sampling_context_.segment_range_data_offset);
-								range_ignore_flags |= 0x00000001U;	// Skip segment only
-							}
-							else if (is_raw_bit_rate(bit_rate))
-							{
-								vectors[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context_.key_frame_bit_offsets[i]);
-								range_ignore_flags |= 0x00000003U;	// Skip clip and segment
-							}
-							else
-								vectors[i] = unpack_vector3_uXX_unsafe(uint8_t(num_bits_at_bit_rate), decomp_context.animated_track_data[i], sampling_context_.key_frame_bit_offsets[i]);
-
-							sampling_context_.key_frame_bit_offsets[i] += num_bits_at_bit_rate * 3;
-						}
-
-						sampling_context_.format_per_track_data_offset++;
-					}
-					else
-					{
-						if (format == vector_format8::vector3f_full && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full))
-						{
-							for (uint32_t i = 0; i < 2; ++i)
-							{
-								vectors[i] = unpack_vector3_96_unsafe(decomp_context.animated_track_data[i], sampling_context_.key_frame_bit_offsets[i]);
-								sampling_context_.key_frame_bit_offsets[i] += 96;
-							}
-						}
-					}
-
-					// Load our samples to avoid working with the stack now that things can be unrolled.
-					// We unroll because even if we work from the stack, with 2 samples the compiler always
-					// unrolls but it fails to keep the values in registers, working from the stack which
-					// is inefficient.
-					rtm::vector4f vector0 = vectors[0];
-					rtm::vector4f vector1 = vectors[1];
-
-					const range_reduction_flags8 range_reduction_flag = decompression_settings_adapter_type::get_range_reduction_flag();
-					if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flag))
-					{
-						if (decomp_context.has_segments)
-						{
-							const uint32_t segment_range_min_offset = sampling_context_.segment_range_data_offset;
-							const uint32_t segment_range_extent_offset = sampling_context_.segment_range_data_offset + (3 * sizeof(uint8_t));
-
-							if ((range_ignore_flags & 0x04) == 0)
-							{
-								const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_min_offset);
-								const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[0] + segment_range_extent_offset);
-
-								vector0 = rtm::vector_mul_add(vector0, segment_range_extent, segment_range_min);
-							}
-
-							if ((range_ignore_flags & 0x01) == 0)
-							{
-								const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_min_offset);
-								const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(decomp_context.segment_range_data[1] + segment_range_extent_offset);
-
-								vector1 = rtm::vector_mul_add(vector1, segment_range_extent, segment_range_min);
-							}
-
-							sampling_context_.segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2;
-						}
-
-						const rtm::vector4f clip_range_min = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context_.clip_range_data_offset);
-						const rtm::vector4f clip_range_extent = unpack_vector3_96_unsafe(decomp_context.clip_range_data + sampling_context_.clip_range_data_offset + (3 * sizeof(float)));
-
-						if ((range_ignore_flags & 0x08) == 0)
-							vector0 = rtm::vector_mul_add(vector0, clip_range_extent, clip_range_min);
-
-						if ((range_ignore_flags & 0x02) == 0)
-							vector1 = rtm::vector_mul_add(vector1, clip_range_extent, clip_range_min);
-
-						sampling_context_.clip_range_data_offset += k_clip_range_reduction_vector3_range_size;
-					}
-
-					interpolated_vector = rtm::vector_lerp(vector0, vector1, decomp_context.interpolation_alpha);
-
-					ACL_ASSERT(rtm::vector_is_finite3(interpolated_vector), "Vector is not valid!");
-				}
-			}
-
-			sampling_context_.track_index++;
-			return interpolated_vector;
-		}
-
 		template<class decompression_settings_type>
 		inline bool initialize_v0(persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
@@ -674,6 +216,15 @@ namespace acl
 			context.key_frame_bit_offsets[1] = segment_key_frame1 * segment_header1->animated_pose_bit_size;
 		}
 
+		// TODO: Stage bitset decomp
+		// TODO: Merge the per track format and segment range info into a single buffer? Less to prefetch and used together
+		// TODO: How do we hide the cache miss after the seek to read the segment header? What work can we do while we prefetch?
+		// TODO: Port vector3 decomp to use SOA
+		// TODO: Unroll quat unpacking and convert to SOA
+		// TODO: Use AVX where we can
+		// TODO: Remove segment data alignment, no longer required?
+
+
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_tracks_v0(const persistent_transform_decompression_context_v0& context, track_writer_type& writer)
 		{
@@ -695,48 +246,109 @@ namespace acl
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const bool has_scale = header.get_has_scale();
-
-			sampling_context_v0 sampling_context_;
-			sampling_context_.track_index = 0;
-			sampling_context_.constant_track_data_offset = 0;
-			sampling_context_.clip_range_data_offset = 0;
-			sampling_context_.format_per_track_data_offset = 0;
-			sampling_context_.segment_range_data_offset = 0;
-			sampling_context_.key_frame_bit_offsets[0] = context.key_frame_bit_offsets[0];
-			sampling_context_.key_frame_bit_offsets[1] = context.key_frame_bit_offsets[1];
-
-			sampling_context_.vectors[0] = default_translation;	// Init with something to avoid GCC warning
-			sampling_context_.vectors[1] = default_translation;	// Init with something to avoid GCC warning
-
 			const uint32_t num_tracks = header.num_tracks;
+
+			constant_track_cache_v0 constant_track_cache;
+			constant_track_cache.initialize<decompression_settings_type>(context);
+
+			animated_track_cache_v0 animated_track_cache;
+			animated_track_cache.initialize(context);
+
+			uint32_t sub_track_index = 0;
+
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
-				if (track_writer_type::skip_all_rotations() || writer.skip_track_rotation(track_index))
-					skip_over_rotation<decompression_settings_type>(context, sampling_context_);
-				else
+				if ((track_index % 4) == 0)
 				{
-					const rtm::quatf rotation = decompress_and_interpolate_rotation<decompression_settings_type>(context, sampling_context_);
-					writer.write_rotation(track_index, rotation);
-				}
+					// Unpack our next 4 tracks
+					constant_track_cache.unpack_rotation_group<decompression_settings_type>(context);
+					constant_track_cache.unpack_translation_group();
 
-				if (track_writer_type::skip_all_translations() || writer.skip_track_translation(track_index))
-					skip_over_vector<translation_adapter>(context, sampling_context_);
-				else
-				{
-					const rtm::vector4f translation = decompress_and_interpolate_vector<translation_adapter>(context, default_translation, sampling_context_);
-					writer.write_translation(track_index, translation);
-				}
+					animated_track_cache.unpack_rotation_group<decompression_settings_type>(context);
+					animated_track_cache.unpack_translation_group<translation_adapter>(context);
 
-				if (track_writer_type::skip_all_scales() || writer.skip_track_scale(track_index))
-				{
 					if (has_scale)
-						skip_over_vector<scale_adapter>(context, sampling_context_);
+					{
+						constant_track_cache.unpack_scale_group();
+						animated_track_cache.unpack_scale_group<scale_adapter>(context);
+					}
 				}
-				else
+
 				{
-					const rtm::vector4f scale = has_scale ? decompress_and_interpolate_vector<scale_adapter>(context, default_scale, sampling_context_) : default_scale;
-					writer.write_scale(track_index, scale);
+					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
+					const bool is_sample_default = bitset_test(context.default_tracks_bitset, track_index_bit_ref);
+					rtm::quatf rotation;
+					if (is_sample_default)
+					{
+						rotation = rtm::quat_identity();
+					}
+					else
+					{
+						const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, track_index_bit_ref);
+						if (is_sample_constant)
+							rotation = constant_track_cache.consume_rotation();
+						else
+							rotation = animated_track_cache.consume_rotation();
+					}
+
+					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
+
+					if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index))
+						writer.write_rotation(track_index, rotation);
+					sub_track_index++;
 				}
+
+				{
+					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
+					const bool is_sample_default = bitset_test(context.default_tracks_bitset, track_index_bit_ref);
+					rtm::vector4f translation;
+					if (is_sample_default)
+					{
+						translation = default_translation;
+					}
+					else
+					{
+						const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, track_index_bit_ref);
+						if (is_sample_constant)
+							translation = constant_track_cache.consume_translation();
+						else
+							translation = animated_track_cache.consume_translation();
+					}
+
+					ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+					if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index))
+						writer.write_translation(track_index, translation);
+					sub_track_index++;
+				}
+
+				if (has_scale)
+				{
+					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
+					const bool is_sample_default = bitset_test(context.default_tracks_bitset, track_index_bit_ref);
+					rtm::vector4f scale;
+					if (is_sample_default)
+					{
+						scale = default_scale;
+					}
+					else
+					{
+						const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, track_index_bit_ref);
+						if (is_sample_constant)
+							scale = constant_track_cache.consume_scale();
+						else
+							scale = animated_track_cache.consume_scale();
+					}
+
+					ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+					if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
+						writer.write_scale(track_index, scale);
+					sub_track_index++;
+				}
+				else if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
+					writer.write_scale(track_index, default_scale);
 			}
 
 			if (decompression_settings_type::disable_fp_exeptions())
@@ -765,201 +377,301 @@ namespace acl
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 
+			const rtm::quatf default_rotation = rtm::quat_identity();
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = rtm::vector_set(float(tracks_header_.get_default_scale()));
 			const bool has_scale = tracks_header_.get_has_scale();
 
-			sampling_context_v0 sampling_context_;
-			sampling_context_.key_frame_bit_offsets[0] = context.key_frame_bit_offsets[0];
-			sampling_context_.key_frame_bit_offsets[1] = context.key_frame_bit_offsets[1];
+			// To decompress a single track, we need a few things:
+			//    - if our rot/trans/scale is the default value, this is a trivial bitset lookup
+			//    - constant and animated sub-tracks need to know which group they below to so it can be unpacked
 
-			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(context.rotation_format);
-			const vector_format8 translation_format = get_vector_format<translation_adapter>(context.translation_format);
-			const vector_format8 scale_format = get_vector_format<scale_adapter>(context.scale_format);
+			const uint32_t num_tracks_per_bone = has_scale ? 3 : 2;
+			const uint32_t sub_track_index = track_index * num_tracks_per_bone;
 
-			const bool are_all_tracks_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
-			if (!are_all_tracks_variable)
+			const bitset_index_ref rotation_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 0);
+			const bitset_index_ref translation_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 1);
+			const bitset_index_ref scale_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 2);
+
+			const bool is_rotation_default = bitset_test(context.default_tracks_bitset, rotation_sub_track_index_bit_ref);
+			const bool is_translation_default = bitset_test(context.default_tracks_bitset, translation_sub_track_index_bit_ref);
+			const bool is_scale_default = has_scale ? bitset_test(context.default_tracks_bitset, scale_sub_track_index_bit_ref) : true;
+
+			if (is_rotation_default && is_translation_default && is_scale_default)
 			{
-				// Slow path, not optimized yet because it's more complex and shouldn't be used in production anyway
-				sampling_context_.track_index = 0;
-				sampling_context_.constant_track_data_offset = 0;
-				sampling_context_.clip_range_data_offset = 0;
-				sampling_context_.format_per_track_data_offset = 0;
-				sampling_context_.segment_range_data_offset = 0;
+				// Everything is default
+				writer.write_rotation(track_index, default_rotation);
+				writer.write_translation(track_index, default_translation);
+				writer.write_scale(track_index, default_scale);
+				return;
+			}
 
-				for (uint32_t bone_index = 0; bone_index < track_index; ++bone_index)
+			const bool is_rotation_constant = !is_rotation_default && bitset_test(context.constant_tracks_bitset, rotation_sub_track_index_bit_ref);
+			const bool is_translation_constant = !is_translation_default && bitset_test(context.constant_tracks_bitset, translation_sub_track_index_bit_ref);
+			const bool is_scale_constant = !is_scale_default && has_scale ? bitset_test(context.constant_tracks_bitset, scale_sub_track_index_bit_ref) : false;
+
+			const bool is_rotation_animated = !is_rotation_default && !is_rotation_constant;
+			const bool is_translation_animated = !is_translation_default && !is_translation_constant;
+			const bool is_scale_animated = !is_scale_default && !is_scale_constant;
+
+			uint32_t num_default_rotations = 0;
+			uint32_t num_default_translations = 0;
+			uint32_t num_default_scales = 0;
+			uint32_t num_constant_rotations = 0;
+			uint32_t num_constant_translations = 0;
+			uint32_t num_constant_scales = 0;
+
+			if (has_scale)
+			{
+				uint32_t rotation_track_bit_mask = 0x92492492;		// b100100100..
+				uint32_t translation_track_bit_mask = 0x49249249;	// b010010010..
+				uint32_t scale_track_bit_mask = 0x24924924;			// b001001001..
+
+				const uint32_t last_offset = sub_track_index / 32;
+				uint32_t offset = 0;
+				for (; offset < last_offset; ++offset)
 				{
-					skip_over_rotation<decompression_settings_type>(context, sampling_context_);
-					skip_over_vector<translation_adapter>(context, sampling_context_);
+					const uint32_t default_value = context.default_tracks_bitset[offset];
+					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
+					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
+					num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
 
-					if (has_scale)
-						skip_over_vector<scale_adapter>(context, sampling_context_);
+					const uint32_t constant_value = context.constant_tracks_bitset[offset];
+					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
+					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
+					num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
+
+					// Because the number of tracks in a 32 bit value isn't a multiple of the number of tracks we have (3),
+					// we have to cycle the masks. There are 3 possible masks, just swap them.
+					const uint32_t old_rotation_track_bit_mask = rotation_track_bit_mask;
+					rotation_track_bit_mask = translation_track_bit_mask;
+					translation_track_bit_mask = scale_track_bit_mask;
+					scale_track_bit_mask = old_rotation_track_bit_mask;
+				}
+
+				const uint32_t remaining_tracks = sub_track_index % 32;
+				if (remaining_tracks != 0)
+				{
+					const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
+					const uint32_t default_value = and_not(not_up_to_track_mask, context.default_tracks_bitset[offset]);
+					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
+					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
+					num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
+
+					const uint32_t constant_value = and_not(not_up_to_track_mask, context.constant_tracks_bitset[offset]);
+					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
+					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
+					num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
 				}
 			}
 			else
 			{
-				const uint32_t num_tracks_per_bone = has_scale ? 3 : 2;
-				const uint32_t sub_track_index = track_index * num_tracks_per_bone;
-				uint32_t num_default_rotations = 0;
-				uint32_t num_default_translations = 0;
-				uint32_t num_default_scales = 0;
-				uint32_t num_constant_rotations = 0;
-				uint32_t num_constant_translations = 0;
-				uint32_t num_constant_scales = 0;
+				const uint32_t rotation_track_bit_mask = 0xAAAAAAAA;		// b10101010..
+				const uint32_t translation_track_bit_mask = 0x55555555;		// b01010101..
 
-				if (has_scale)
+				const uint32_t last_offset = sub_track_index / 32;
+				uint32_t offset = 0;
+				for (; offset < last_offset; ++offset)
 				{
-					uint32_t rotation_track_bit_mask = 0x92492492;		// b100100100..
-					uint32_t translation_track_bit_mask = 0x49249249;	// b010010010..
-					uint32_t scale_track_bit_mask = 0x24924924;			// b001001001..
+					const uint32_t default_value = context.default_tracks_bitset[offset];
+					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
+					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
 
-					const uint32_t last_offset = sub_track_index / 32;
-					uint32_t offset = 0;
-					for (; offset < last_offset; ++offset)
-					{
-						const uint32_t default_value = context.default_tracks_bitset[offset];
-						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
-						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
-						num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
-
-						const uint32_t constant_value = context.constant_tracks_bitset[offset];
-						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
-						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
-						num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
-
-						// Because the number of tracks in a 32 bit value isn't a multiple of the number of tracks we have (3),
-						// we have to cycle the masks. There are 3 possible masks, just swap them.
-						const uint32_t old_rotation_track_bit_mask = rotation_track_bit_mask;
-						rotation_track_bit_mask = translation_track_bit_mask;
-						translation_track_bit_mask = scale_track_bit_mask;
-						scale_track_bit_mask = old_rotation_track_bit_mask;
-					}
-
-					const uint32_t remaining_tracks = sub_track_index % 32;
-					if (remaining_tracks != 0)
-					{
-						const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
-						const uint32_t default_value = and_not(not_up_to_track_mask, context.default_tracks_bitset[offset]);
-						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
-						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
-						num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
-
-						const uint32_t constant_value = and_not(not_up_to_track_mask, context.constant_tracks_bitset[offset]);
-						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
-						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
-						num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
-					}
-				}
-				else
-				{
-					const uint32_t rotation_track_bit_mask = 0xAAAAAAAA;		// b10101010..
-					const uint32_t translation_track_bit_mask = 0x55555555;		// b01010101..
-
-					const uint32_t last_offset = sub_track_index / 32;
-					uint32_t offset = 0;
-					for (; offset < last_offset; ++offset)
-					{
-						const uint32_t default_value = context.default_tracks_bitset[offset];
-						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
-						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
-
-						const uint32_t constant_value = context.constant_tracks_bitset[offset];
-						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
-						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
-					}
-
-					const uint32_t remaining_tracks = sub_track_index % 32;
-					if (remaining_tracks != 0)
-					{
-						const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
-						const uint32_t default_value = and_not(not_up_to_track_mask, context.default_tracks_bitset[offset]);
-						num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
-						num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
-
-						const uint32_t constant_value = and_not(not_up_to_track_mask, context.constant_tracks_bitset[offset]);
-						num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
-						num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
-					}
+					const uint32_t constant_value = context.constant_tracks_bitset[offset];
+					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
+					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
 				}
 
-				// Tracks that are default are also constant
-				const uint32_t num_animated_rotations = track_index - num_constant_rotations;
-				const uint32_t num_animated_translations = track_index - num_constant_translations;
-
-				const rotation_format8 packed_rotation_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-				const uint32_t packed_rotation_size = get_packed_rotation_size(packed_rotation_format);
-
-				uint32_t constant_track_data_offset = (num_constant_rotations - num_default_rotations) * packed_rotation_size;
-				constant_track_data_offset += (num_constant_translations - num_default_translations) * get_packed_vector_size(vector_format8::vector3f_full);
-
-				uint32_t clip_range_data_offset = 0;
-				uint32_t segment_range_data_offset = 0;
-
-				const range_reduction_flags8 range_reduction = context.range_reduction;
-				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations))
+				const uint32_t remaining_tracks = sub_track_index % 32;
+				if (remaining_tracks != 0)
 				{
-					clip_range_data_offset += context.num_rotation_components * sizeof(float) * 2 * num_animated_rotations;
+					const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
+					const uint32_t default_value = and_not(not_up_to_track_mask, context.default_tracks_bitset[offset]);
+					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
+					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
 
-					if (context.has_segments)
-						segment_range_data_offset += context.num_rotation_components * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_rotations;
-				}
-
-				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations))
-				{
-					clip_range_data_offset += k_clip_range_reduction_vector3_range_size * num_animated_translations;
-
-					if (context.has_segments)
-						segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_translations;
-				}
-
-				uint32_t num_animated_tracks = num_animated_rotations + num_animated_translations;
-				if (has_scale)
-				{
-					const uint32_t num_animated_scales = track_index - num_constant_scales;
-					num_animated_tracks += num_animated_scales;
-
-					constant_track_data_offset += (num_constant_scales - num_default_scales) * get_packed_vector_size(vector_format8::vector3f_full);
-
-					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales))
-					{
-						clip_range_data_offset += k_clip_range_reduction_vector3_range_size * num_animated_scales;
-
-						if (context.has_segments)
-							segment_range_data_offset += 3 * k_segment_range_reduction_num_bytes_per_component * 2 * num_animated_scales;
-					}
-				}
-
-				sampling_context_.track_index = sub_track_index;
-				sampling_context_.constant_track_data_offset = constant_track_data_offset;
-				sampling_context_.clip_range_data_offset = clip_range_data_offset;
-				sampling_context_.segment_range_data_offset = segment_range_data_offset;
-				sampling_context_.format_per_track_data_offset = num_animated_tracks;
-
-				for (uint32_t animated_track_index = 0; animated_track_index < num_animated_tracks; ++animated_track_index)
-				{
-					const uint8_t bit_rate0 = context.format_per_track_data[0][animated_track_index];
-					const uint32_t num_bits_at_bit_rate0 = get_num_bits_at_bit_rate(bit_rate0) * 3;	// 3 components
-
-					sampling_context_.key_frame_bit_offsets[0] += num_bits_at_bit_rate0;
-
-					const uint8_t bit_rate1 = context.format_per_track_data[1][animated_track_index];
-					const uint32_t num_bits_at_bit_rate1 = get_num_bits_at_bit_rate(bit_rate1) * 3;	// 3 components
-
-					sampling_context_.key_frame_bit_offsets[1] += num_bits_at_bit_rate1;
+					const uint32_t constant_value = and_not(not_up_to_track_mask, context.constant_tracks_bitset[offset]);
+					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
+					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
 				}
 			}
 
-			sampling_context_.vectors[0] = default_translation;	// Init with something to avoid GCC warning
-			sampling_context_.vectors[1] = default_translation;	// Init with something to avoid GCC warning
+			uint32_t rotation_group_index = 0;
+			uint32_t translation_group_index = 0;
+			uint32_t scale_group_index = 0;
 
-			const rtm::quatf rotation = decompress_and_interpolate_rotation<decompression_settings_type>(context, sampling_context_);
-			writer.write_rotation(track_index, rotation);
+			constant_track_cache_v0 constant_track_cache;
 
-			const rtm::vector4f translation = decompress_and_interpolate_vector<translation_adapter>(context, default_translation, sampling_context_);
-			writer.write_translation(track_index, translation);
+			// Skip the constant track data
+			if (is_rotation_constant || is_translation_constant || is_scale_constant)
+			{
+				constant_track_cache.initialize<decompression_settings_type>(context);
 
-			const rtm::vector4f scale = has_scale ? decompress_and_interpolate_vector<scale_adapter>(context, default_scale, sampling_context_) : default_scale;
-			writer.write_scale(track_index, scale);
+				// Calculate how many constant groups of each sub-track type we need to skip
+				// Constant groups are easy to skip since they are contiguous in memory, we can just skip N trivially
+				// Tracks that are default are also constant
+
+				// Unpack the groups we need and skip the tracks before us
+				if (is_rotation_constant)
+				{
+					const uint32_t num_constant_rotations_packed = num_constant_rotations - num_default_rotations;
+					const uint32_t num_rotation_constant_groups_to_skip = num_constant_rotations_packed / 4;
+					if (num_rotation_constant_groups_to_skip != 0)
+						constant_track_cache.skip_rotation_groups<decompression_settings_type>(context, num_rotation_constant_groups_to_skip);
+
+					rotation_group_index = num_constant_rotations_packed % 4;
+				}
+
+				if (is_translation_constant)
+				{
+					const uint32_t num_constant_translations_packed = num_constant_translations - num_default_translations;
+					const uint32_t num_translation_constant_groups_to_skip = num_constant_translations_packed / 4;
+					if (num_translation_constant_groups_to_skip != 0)
+						constant_track_cache.skip_translation_groups(num_translation_constant_groups_to_skip);
+
+					translation_group_index = num_constant_translations_packed % 4;
+				}
+
+				if (is_scale_constant)
+				{
+					const uint32_t num_constant_scales_packed = num_constant_scales - num_default_scales;
+					const uint32_t num_scale_constant_groups_to_skip = num_constant_scales_packed / 4;
+					if (num_scale_constant_groups_to_skip != 0)
+						constant_track_cache.skip_scale_groups(num_scale_constant_groups_to_skip);
+
+					scale_group_index = num_constant_scales_packed % 4;
+				}
+			}
+			else
+			{
+				// Fake init to avoid compiler warning...
+				constant_track_cache.rotations.num_left_to_unpack = 0;
+				constant_track_cache.constant_data_rotations = nullptr;
+				constant_track_cache.constant_data_translations = nullptr;
+				constant_track_cache.constant_data_scales = nullptr;
+			}
+
+			animated_track_cache_v0 animated_track_cache;
+			animated_group_cursor_v0 rotation_group_cursor;
+			animated_group_cursor_v0 translation_group_cursor;
+			animated_group_cursor_v0 scale_group_cursor;
+
+			// Skip the animated track data
+			if (is_rotation_animated || is_translation_animated || is_scale_animated)
+			{
+				animated_track_cache.initialize(context);
+
+				// Calculate how many animated groups of each sub-track type we need to skip
+				// Skipping animated groups is a bit more complicated because they are interleaved in the order
+				// they are needed
+
+				// Tracks that are default are also constant
+				const uint32_t num_animated_rotations = track_index - num_constant_rotations;
+
+				if (is_rotation_animated)
+					rotation_group_index = num_animated_rotations % 4;
+
+				const uint32_t num_animated_translations = track_index - num_constant_translations;
+
+				if (is_translation_animated)
+					translation_group_index = num_animated_translations % 4;
+
+				const uint32_t num_animated_scales = has_scale ? (track_index - num_constant_scales) : 0;
+
+				if (is_scale_animated)
+					scale_group_index = num_animated_scales % 4;
+
+				uint32_t num_rotations_to_unpack = is_rotation_animated ? num_animated_rotations : ~0U;
+				uint32_t num_translations_to_unpack = is_translation_animated ? num_animated_translations : ~0U;
+				uint32_t num_scales_to_unpack = is_scale_animated ? num_animated_scales : ~0U;
+
+				uint32_t num_animated_groups_to_unpack = is_rotation_animated + is_translation_animated + is_scale_animated;
+
+				const transform_tracks_header& transform_header = get_transform_tracks_header(*context.tracks);
+				const animation_track_type8* group_types = transform_header.get_animated_group_types();
+
+				while (num_animated_groups_to_unpack != 0)
+				{
+					const animation_track_type8 group_type = *group_types;
+					group_types++;
+					ACL_ASSERT(group_type != static_cast<animation_track_type8>(0xFF), "Reached terminator");
+
+					if (group_type == animation_track_type8::rotation)
+					{
+						if (num_rotations_to_unpack < 4)
+						{
+							// This is the group we need, cache our cursor
+							animated_track_cache.get_rotation_cursor(rotation_group_cursor);
+							num_animated_groups_to_unpack--;
+						}
+
+						animated_track_cache.skip_rotation_group<decompression_settings_type>(context);
+						num_rotations_to_unpack -= 4;
+					}
+					else if (group_type == animation_track_type8::translation)
+					{
+						if (num_translations_to_unpack < 4)
+						{
+							// This is the group we need, cache our cursor
+							animated_track_cache.get_translation_cursor(translation_group_cursor);
+							num_animated_groups_to_unpack--;
+						}
+
+						animated_track_cache.skip_translation_group<translation_adapter>(context);
+						num_translations_to_unpack -= 4;
+					}
+					else // scale
+					{
+						if (num_scales_to_unpack < 4)
+						{
+							// This is the group we need, cache our cursor
+							animated_track_cache.get_scale_cursor(scale_group_cursor);
+							num_animated_groups_to_unpack--;
+						}
+
+						animated_track_cache.skip_scale_group<scale_adapter>(context);
+						num_scales_to_unpack -= 4;
+					}
+				}
+			}
+
+			// Finally reached our desired track, unpack it
+
+			{
+				rtm::quatf rotation;
+				if (is_rotation_default)
+					rotation = default_rotation;
+				else if (is_rotation_constant)
+					rotation = constant_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_index);
+				else
+					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_cursor, rotation_group_index);
+
+				writer.write_rotation(track_index, rotation);
+			}
+
+			{
+				rtm::vector4f translation;
+				if (is_translation_default)
+					translation = default_translation;
+				else if (is_translation_constant)
+					translation = constant_track_cache.unpack_translation_within_group(translation_group_index);
+				else
+					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_cursor, translation_group_index);
+
+				writer.write_translation(track_index, translation);
+			}
+
+			{
+				rtm::vector4f scale;
+				if (is_scale_default)
+					scale = default_scale;
+				else if (is_scale_constant)
+					scale = constant_track_cache.unpack_scale_within_group(scale_group_index);
+				else
+					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_cursor, scale_group_index);
+
+				writer.write_scale(track_index, scale);
+			}
 
 			if (decompression_settings_type::disable_fp_exeptions())
 				restore_fp_exceptions(fp_env);

@@ -34,6 +34,9 @@
 
 #include <cstdint>
 
+// This is a bit slower because of the added bookkeeping when we unpack
+//#define ACL_IMPL_USE_CONSTANT_GROUPS
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
@@ -160,6 +163,24 @@ namespace acl
 			ptr_offset32<uint8_t>			segment_data;
 		};
 
+		//////////////////////////////////////////////////////////////////////////
+		// A packed structure with metadata for animated groups.
+		//////////////////////////////////////////////////////////////////////////
+		struct animated_group_metadata
+		{
+			// Bits [0, 14): the group size
+			// Bits [14, 16): the group type
+			uint16_t						metadata;
+
+			bool							is_valid() const { return metadata != 0xFFFF; }
+
+			animation_track_type8			get_type() const { return static_cast<animation_track_type8>(metadata >> 6); }
+			void							set_type(animation_track_type8 type) { metadata = (metadata & ~(3 << 6)) | static_cast<uint16_t>(type) << 6; }
+
+			uint32_t						get_size() const { return static_cast<uint32_t>(metadata) & ((1 << 14) - 1); }
+			void							set_size(uint32_t size) { ACL_ASSERT(size < (1 << 14), "Group size too large"); metadata = (metadata & ~((1 << 14) - 1)) | static_cast<uint16_t>(size); }
+		};
+
 		// Header for transform 'compressed_tracks'
 		struct transform_tracks_header
 		{
@@ -167,7 +188,15 @@ namespace acl
 			uint32_t						num_segments;
 
 			// The number of animated rot/trans/scale tracks.
-			uint32_t						num_animated_variable_sub_tracks;
+			uint32_t						num_animated_variable_sub_tracks;		// Might be padded with dummy tracks for alignment
+			uint32_t						num_animated_rotation_sub_tracks;
+			uint32_t						num_animated_translation_sub_tracks;
+			uint32_t						num_animated_scale_sub_tracks;			// TODO: Not needed?
+
+			// The number of constant sub-track samples stored, does not include default samples
+			uint32_t						num_constant_rotation_samples;
+			uint32_t						num_constant_translation_samples;
+			uint32_t						num_constant_scale_samples;			// TODO: Not needed?
 
 			// Offset to the segment headers data.
 			ptr_offset32<segment_header>	segment_headers_offset;
@@ -182,6 +211,9 @@ namespace acl
 			// Offset to the clip range data.
 			ptr_offset32<uint8_t>			clip_range_data_offset;				// TODO: Make this offset optional? Only present if normalized
 
+			// Offset to the animated group types. Ends with an invalid group type of 0xFF.
+			ptr_offset32<animation_track_type8>	animated_group_types_offset;
+
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
 
@@ -190,6 +222,9 @@ namespace acl
 
 			segment_header*				get_segment_headers() { return segment_headers_offset.add_to(this); }
 			const segment_header*		get_segment_headers() const { return segment_headers_offset.add_to(this); }
+
+			animation_track_type8*			get_animated_group_types() { return animated_group_types_offset.add_to(this); }
+			const animation_track_type8*	get_animated_group_types() const { return animated_group_types_offset.add_to(this); }
 
 			uint32_t*					get_default_tracks_bitset() { return default_tracks_bitset_offset.add_to(this); }
 			const uint32_t*				get_default_tracks_bitset() const { return default_tracks_bitset_offset.add_to(this); }
@@ -209,7 +244,7 @@ namespace acl
 
 				uint8_t* format_per_track_data = segment_data;
 
-				uint8_t* range_data = align_to(format_per_track_data + (sizeof(uint8_t) * num_animated_variable_sub_tracks), 2);
+				uint8_t* range_data = align_to(format_per_track_data + num_animated_variable_sub_tracks, 2);
 				const uint32_t range_data_size = num_segments > 1 ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
 
 				uint8_t* animated_data = align_to(range_data + range_data_size, 4);
@@ -225,7 +260,7 @@ namespace acl
 
 				const uint8_t* format_per_track_data = segment_data;
 
-				const uint8_t* range_data = align_to(format_per_track_data + (sizeof(uint8_t) * num_animated_variable_sub_tracks), 2);
+				const uint8_t* range_data = align_to(format_per_track_data + num_animated_variable_sub_tracks, 2);
 				const uint32_t range_data_size = num_segments > 1 ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
 
 				const uint8_t* animated_data = align_to(range_data + range_data_size, 4);
