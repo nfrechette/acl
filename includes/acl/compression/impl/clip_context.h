@@ -154,12 +154,15 @@ namespace acl
 
 			uint32_t num_leaf_transforms;
 
+			iallocator* allocator = nullptr;	// Never null if the context is initialized
+
 			// Stat tracking
 			uint32_t decomp_touched_bytes;
 			uint32_t decomp_touched_cache_lines;
 
 			//////////////////////////////////////////////////////////////////////////
 
+			bool is_initialized() const { return allocator != nullptr; }
 			iterator<SegmentContext> segment_iterator() { return iterator<SegmentContext>(segments, num_segments); }
 			const_iterator<SegmentContext> segment_iterator() const { return const_iterator<SegmentContext>(segments, num_segments); }
 
@@ -196,6 +199,7 @@ namespace acl
 			out_clip_context.has_additive_base = additive_format != additive_clip_format8::none;
 			out_clip_context.additive_format = additive_format;
 			out_clip_context.num_leaf_transforms = 0;
+			out_clip_context.allocator = &allocator;
 
 			bool has_scale = false;
 			bool are_samples_valid = true;
@@ -363,8 +367,13 @@ namespace acl
 			return are_samples_valid;
 		}
 
-		inline void destroy_clip_context(iallocator& allocator, clip_context& context)
+		inline void destroy_clip_context(clip_context& context)
 		{
+			if (context.allocator == nullptr)
+				return;	// Not initialized
+
+			iallocator& allocator = *context.allocator;
+
 			for (SegmentContext& segment : context.segment_iterator())
 				destroy_segment_context(allocator, segment);
 
