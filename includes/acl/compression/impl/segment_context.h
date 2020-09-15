@@ -78,6 +78,7 @@ namespace acl
 			uint32_t animated_pose_bit_size;
 			uint32_t animated_data_size;
 			uint32_t range_data_size;
+			uint32_t segment_data_size;
 			uint32_t total_header_size;
 
 			//////////////////////////////////////////////////////////////////////////
