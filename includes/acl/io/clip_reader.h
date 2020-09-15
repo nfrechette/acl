@@ -686,7 +686,7 @@ namespace acl
 					value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3])};
 				}
 
-				sample.rotation = quat_load(&value);
+				sample.rotation = rtm::quat_load(&value);
 				if (!rtm::quat_is_finite(sample.rotation))
 					return false;
 
@@ -836,7 +836,7 @@ namespace acl
 					if (m_parser.try_read("bind_rotation", rotation, 4, nullptr) && !counting)
 					{
 						const rtm::float4f value = hex_to_float4f(rotation, 4);
-						bind_transform.rotation = quat_load(&value);
+						bind_transform.rotation = rtm::quat_load(&value);
 					}
 
 					sjson::StringView translation[3];
