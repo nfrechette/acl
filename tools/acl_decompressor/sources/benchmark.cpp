@@ -387,7 +387,7 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	bench->ArgNames({ "", "Dir", "Func" });
 
 	// Sometimes the numbers are slightly different from run to run, we'll run a few times
-	bench->Repetitions(4);
+	bench->Repetitions(20);
 
 	bench->ComputeStatistics("min", [](const std::vector<double>& v)
 	{
