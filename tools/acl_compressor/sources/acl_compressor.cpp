@@ -465,7 +465,8 @@ static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw
 			context.decompress_track(bone_index, track_writer);
 			const rtm::qvvf transform1 = track_writer.read_qvv(bone_index);
 
-			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform1.rotation), 0.0F), "Failed to sample bone index: %u", bone_index);
+			// Rotations can differ a bit due to how we normalize during interpolation
+			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform1.rotation), 0.0001F), "Failed to sample bone index: %u", bone_index);
 			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform1.translation, 0.0F), "Failed to sample bone index: %u", bone_index);
 			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, 0.0F), "Failed to sample bone index: %u", bone_index);
 		}
