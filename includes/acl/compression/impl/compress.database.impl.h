@@ -30,39 +30,5 @@
 
 namespace acl
 {
-	error_result compress_track_list(iallocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings,
-		const track_array_qvvf& additive_base_track_list, additive_clip_format8 additive_format,
-		compressed_tracks*& out_compressed_tracks, compressed_database*& out_compressed_database, output_stats& out_stats)
-	{
-		using namespace acl_impl;
-
-		error_result result = track_list.is_valid();
-		if (result.any())
-			return result;
-
-		if (additive_format != additive_clip_format8::none)
-		{
-			result = additive_base_track_list.is_valid();
-			if (result.any())
-				return result;
-		}
-
-		// Disable floating point exceptions during compression because we leverage all SIMD lanes
-		// and we might intentionally divide by zero, etc.
-		scope_disable_fp_exceptions fp_off;
-
-		result = compress_transform_track_list(allocator, track_list, settings, &additive_base_track_list, additive_format, out_compressed_tracks, out_stats);
-		out_compressed_database = nullptr;	// TODO!
-		return result;
-	}
-
-	error_result merge_compressed_databases(iallocator& allocator, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, compressed_database*& out_merged_compressed_database)
-	{
-		(void)allocator;
-		(void)merge_mappings;
-		(void)num_merge_mappings;
-		out_merged_compressed_database = nullptr;
-		// TODO!
-		return error_result("not implemented");
-	}
+	
 }
