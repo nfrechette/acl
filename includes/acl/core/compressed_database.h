@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/buffer_tag.h"
+#include "acl/core/compressed_database_version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -66,6 +67,10 @@ namespace acl
 		// Returns the binary tag for the compressed database.
 		// This uniquely identifies the buffer as a proper 'compressed_database' object.
 		buffer_tag32 get_tag() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the binary format version.
+		compressed_database_version16 get_version() const;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the compressed database is valid and usable.

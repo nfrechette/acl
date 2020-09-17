@@ -301,7 +301,9 @@ namespace acl
 			uint32_t						tag;
 
 			// Serialization version used to compress the database.
-			uint32_t						version;		// TODO use an enum like compressed tracks
+			compressed_database_version16	version;
+
+			uint16_t padding;
 		};
 	}
 }
