@@ -63,6 +63,14 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C4146: unary minus operator applied to unsigned type, result still unsigned
+	// This is fine because we use bitwise arithmetic and rely on the fact that unsigned
+	// integers use twos complement.
+	#pragma warning(disable : 4146)
+#endif
+
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
@@ -126,6 +134,43 @@ namespace acl
 	}
 
 	//////////////////////////////////////////////////////////////////////////
+	// Starting at the MSB, counts the number of leading zeros
+	inline uint32_t count_leading_zeros(uint32_t value)
+	{
+#if defined(ACL_USE_POPCOUNT)
+		return _lzcnt_u32(value);
+#elif defined(ACL_COMPILER_MSVC)
+		unsigned long first_set_bit_index;
+		return _BitScanReverse(&first_set_bit_index, value) ? (31 - first_set_bit_index) : 32;
+#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+		return value != 0 ? __builtin_clz(value) : 32;
+#else
+		value = value | (value >> 1);
+		value = value | (value >> 2);
+		value = value | (value >> 4);
+		value = value | (value >> 8);
+		value = value | (value >> 16);
+		return count_set_bits(~value);
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Starting at the LSB, counts the number of trailing zeros
+	inline uint32_t count_trailing_zeros(uint32_t value)
+	{
+#if defined(ACL_BMI_INTRINSICS)
+		return _tzcnt_u32(value);
+#elif defined(ACL_COMPILER_MSVC)
+		unsigned long first_set_bit_index;
+		return _BitScanForward(&first_set_bit_index, value) ? first_set_bit_index : 32;
+#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+		return value != 0 ? __builtin_ctz(value) : 32;
+#else
+		return value != 0 ? (31 - count_leading_zeros(value & -value)) : 32;
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	// Rotate the bits left by some amount
 	inline uint32_t rotate_bits_left(uint32_t value, int32_t num_bits)
 	{
@@ -152,5 +197,9 @@ namespace acl
 #endif
 	}
 }
+
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
 
 ACL_IMPL_FILE_PRAGMA_POP

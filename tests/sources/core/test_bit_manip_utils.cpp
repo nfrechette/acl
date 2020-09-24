@@ -53,6 +53,18 @@ TEST_CASE("bit_manip_utils", "[core][utils]")
 	CHECK(count_set_bits(uint64_t(0x1000100001010101ULL)) == 6);
 	CHECK(count_set_bits(uint64_t(0xFFFFFFFFFFFFFFFFULL)) == 64);
 
+	CHECK(count_leading_zeros(uint32_t(0x00000000)) == 32);
+	CHECK(count_leading_zeros(uint32_t(0x00000001)) == 31);
+	CHECK(count_leading_zeros(uint32_t(0x00000002)) == 30);
+	CHECK(count_leading_zeros(uint32_t(0x80000000)) == 0);
+	CHECK(count_leading_zeros(uint32_t(0x40000000)) == 1);
+
+	CHECK(count_trailing_zeros(uint32_t(0x00000000)) == 32);
+	CHECK(count_trailing_zeros(uint32_t(0x00000001)) == 0);
+	CHECK(count_trailing_zeros(uint32_t(0x00000002)) == 1);
+	CHECK(count_trailing_zeros(uint32_t(0x80000000)) == 31);
+	CHECK(count_trailing_zeros(uint32_t(0x40000000)) == 30);
+
 	CHECK(rotate_bits_left(0x00000010, 0) == 0x00000010);
 	CHECK(rotate_bits_left(0x10000010, 1) == 0x20000020);
 	CHECK(rotate_bits_left(0x10000010, 2) == 0x40000040);
