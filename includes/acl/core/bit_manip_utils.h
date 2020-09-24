@@ -65,6 +65,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
 	inline uint8_t count_set_bits(uint8_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -78,6 +80,8 @@ namespace acl
 #endif
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
 	inline uint16_t count_set_bits(uint16_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -91,6 +95,8 @@ namespace acl
 #endif
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
 	inline uint32_t count_set_bits(uint32_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -104,6 +110,8 @@ namespace acl
 #endif
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
 	inline uint64_t count_set_bits(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -117,6 +125,8 @@ namespace acl
 #endif
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Rotate the bits left by some amount
 	inline uint32_t rotate_bits_left(uint32_t value, int32_t num_bits)
 	{
 		ACL_ASSERT(num_bits >= 0, "Attempting to rotate by negative bits");
@@ -126,6 +136,8 @@ namespace acl
 		return (value << num_bits) | (value >> ((-num_bits) & mask));
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Perform: ~not_value & and_value
 	inline uint32_t and_not(uint32_t not_value, uint32_t and_value)
 	{
 #if defined(ACL_BMI_INTRINSICS)
