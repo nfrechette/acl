@@ -39,4 +39,6 @@ TEST_CASE("ptr_offset", "[core][memory]")
 	CHECK(offset.add_to(ptr) == (ptr + 32));
 	CHECK(offset.add_to(ptr) == offset.safe_add_to(ptr));
 	CHECK(uint32_t(offset) == 32);
+
+	CHECK(ptr_offset32<uint8_t>(ptr, ptr + 31) == 31);
 }
