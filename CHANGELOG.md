@@ -1,5 +1,10 @@
 # Significant changes per release
 
+## 1.3.5
+
+*  Gracefully fail compression when we have more than 50000 samples
+*  Update Catch2 to 2.13.1 to work with latest CMake
+
 ## 1.3.4
 
 *  Avoid assert when using an additive base with a static pose/single frame
