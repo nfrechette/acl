@@ -43,14 +43,22 @@
 	#include <nmmintrin.h>
 #endif
 
-// Note: It seems that the Clang toolchain with MSVC enables BMI only with AVX2 unlike
-// MSVC which enables it with AVX
-#if defined(RTM_AVX_INTRINSICS) && !(defined(_MSC_VER) && defined(__clang__))
-	// Use BMI
+#if !defined(ACL_BMI_INTRINSICS) && !defined(RTM_NO_INTRINSICS)
+	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
+	#if defined(_DURANGO) || defined(_XBOX_ONE)
+		// Enable BMI type instructions on Xbox One
+		#define ACL_BMI_INTRINSICS
+	#elif defined(RTM_AVX_INTRINSICS) && !(defined(_MSC_VER) && defined(__clang__))
+		// Enable BMI when AVX is enabled except with clang under Windows
+		// Note: It seems that the Clang toolchain with MSVC enables BMI only with AVX2 unlike
+		// MSVC which enables it with AVX
+		#define ACL_BMI_INTRINSICS
+	#endif
+#endif
+
+#if defined(ACL_BMI_INTRINSICS)
 	#include <ammintrin.h>		// MSVC uses this header for _andn_u32 BMI intrinsic
 	#include <immintrin.h>		// Intel documentation says _andn_u32 and others are here
-
-	#define ACL_BMI_INTRINSICS
 #endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH
