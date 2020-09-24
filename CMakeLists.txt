@@ -16,6 +16,19 @@ set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
 set(TEST_DATA_DIR "" CACHE STRING "The full path of the regression test data directory")
 set(DECOMP_DATA_DIR "" CACHE STRING "The full path of the decompression data directory")
 
+# Determine if we should include unit tests
+set(INCLUDE_UNIT_TESTS true)
+
+if(PLATFORM_IOS)
+	# Catch2 2.13 doesn't compile on iOS with Xcode 8 and 9
+	if(PLATFORM_XCODE_VERSION MATCHES "^8\\.")
+		set(INCLUDE_UNIT_TESTS false)
+	elseif(PLATFORM_XCODE_VERSION MATCHES "^9\\.")
+		set(INCLUDE_UNIT_TESTS false)
+	endif()
+endif()
+
+
 # Grab all of our include files
 file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false
 	${PROJECT_SOURCE_DIR}/includes/*.h
@@ -54,7 +67,10 @@ enable_testing()
 # Add other projects
 add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_compressor")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tools/acl_decompressor")
-add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
+
+if(INCLUDE_UNIT_TESTS)
+	add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
+endif()
 
 # Custom regression testing (requires SJSON support)
 if(USE_SJSON)
