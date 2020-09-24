@@ -141,6 +141,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// These are the default settings. Only the generally optimal settings
 	// are enabled and will offer the overall best performance.
+	// Supports every version.
 	//////////////////////////////////////////////////////////////////////////
 	struct default_scalar_decompression_settings : public decompression_settings
 	{
@@ -152,6 +153,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// These are the default settings. Only the generally optimal settings
 	// are enabled and will offer the overall best performance.
+	// Supports every version.
 	//////////////////////////////////////////////////////////////////////////
 	struct default_transform_decompression_settings : public decompression_settings
 	{
