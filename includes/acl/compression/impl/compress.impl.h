@@ -56,9 +56,11 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_qvvf& track_list, compression_settings settings, const track_array_qvvf* additive_base_track_list, additive_clip_format8 additive_format,
-			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
+		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_qvvf& track_list, compression_settings settings,
+			const track_array_qvvf* additive_base_track_list, additive_clip_format8 additive_format,
+			compressed_tracks*& out_compressed_tracks, compressed_database** out_compressed_database, output_stats& out_stats)
 		{
+			(void)out_compressed_database;
 			error_result result = settings.is_valid();
 			if (result.any())
 				return result;
@@ -474,7 +476,7 @@ namespace acl
 		scope_disable_fp_exceptions fp_off;
 
 		if (track_list.get_track_category() == track_category8::transformf)
-			result = compress_transform_track_list(allocator, track_array_cast<track_array_qvvf>(track_list), settings, nullptr, additive_clip_format8::none, out_compressed_tracks, out_stats);
+			result = compress_transform_track_list(allocator, track_array_cast<track_array_qvvf>(track_list), settings, nullptr, additive_clip_format8::none, out_compressed_tracks, nullptr, out_stats);
 		else
 			result = compress_scalar_track_list(allocator, track_list, settings, out_compressed_tracks, out_stats);
 
@@ -500,7 +502,7 @@ namespace acl
 		// and we might intentionally divide by zero, etc.
 		scope_disable_fp_exceptions fp_off;
 
-		return compress_transform_track_list(allocator, track_list, settings, &additive_base_track_list, additive_format, out_compressed_tracks, out_stats);
+		return compress_transform_track_list(allocator, track_list, settings, &additive_base_track_list, additive_format, out_compressed_tracks, nullptr, out_stats);
 	}
 
 	inline error_result compress_track_list(iallocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings,
