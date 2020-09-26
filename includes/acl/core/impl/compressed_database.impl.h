@@ -39,12 +39,30 @@ namespace acl
 
 	inline uint32_t compressed_database::get_total_size() const
 	{
-		return 0;	// TODO
+		const acl_impl::database_header& header = acl_impl::get_database_header(*this);
+		if (header.get_is_bulk_data_inline())
+			return m_buffer_header.size;
+		else
+			return m_buffer_header.size + header.bulk_data_size;
 	}
+
+	inline uint32_t compressed_database::get_bulk_data_size() const { return acl_impl::get_database_header(*this).bulk_data_size; }
+
+	inline uint32_t compressed_database::get_bulk_data_hash() const { return acl_impl::get_database_header(*this).bulk_data_hash; }
 
 	inline buffer_tag32 compressed_database::get_tag() const { return static_cast<buffer_tag32>(acl_impl::get_database_header(*this).tag); }
 
 	inline compressed_database_version16 compressed_database::get_version() const { return acl_impl::get_database_header(*this).version; }
+
+	inline uint32_t compressed_database::get_num_chunks() const { return acl_impl::get_database_header(*this).num_chunks; }
+
+	inline uint32_t compressed_database::get_num_clips() const { return acl_impl::get_database_header(*this).num_clips; }
+
+	inline uint32_t compressed_database::get_num_segments() const { return acl_impl::get_database_header(*this).num_segments; }
+
+	inline bool compressed_database::is_bulk_data_inline() const { return acl_impl::get_database_header(*this).get_is_bulk_data_inline(); }
+
+	inline const uint8_t* compressed_database::get_bulk_data() const { return acl_impl::get_database_header(*this).get_bulk_data(); }
 
 	inline error_result compressed_database::is_valid(bool check_hash) const
 	{

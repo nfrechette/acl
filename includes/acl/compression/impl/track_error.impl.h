@@ -407,6 +407,13 @@ namespace acl
 		// If we have a database with some data missing, we can't use the nearest samples, we have to interpolate
 		args.rounding_policy = sample_rounding_policy::nearest;
 
+		const compressed_tracks& tracks = *context.get_compressed_tracks();
+		if (tracks.has_database())
+		{
+			// TODO: Check if all the data is loaded, always interpolate for now
+			args.rounding_policy = sample_rounding_policy::none;
+		}
+
 		args.sample_tracks0 = [&raw_tracks](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
 		{
 			raw_tracks.sample_tracks(sample_time, rounding_policy, track_writer);
@@ -481,6 +488,13 @@ namespace acl
 		// We use the nearest sample to accurately measure the loss that happened, if any but only if all data is loaded
 		// If we have a database with some data missing, we can't use the nearest samples, we have to interpolate
 		args.rounding_policy = sample_rounding_policy::nearest;
+
+		const compressed_tracks& tracks = *context.get_compressed_tracks();
+		if (tracks.has_database())
+		{
+			// TODO: Check if all the data is loaded, always interpolate for now
+			args.rounding_policy = sample_rounding_policy::none;
+		}
 
 		args.sample_tracks0 = [&raw_tracks](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
 		{
@@ -569,6 +583,14 @@ namespace acl
 		// We use the nearest sample to accurately measure the loss that happened, if any but only if all data is loaded
 		// If we have a database with some data missing, we can't use the nearest samples, we have to interpolate
 		args.rounding_policy = sample_rounding_policy::nearest;
+
+		const compressed_tracks& tracks0 = *context0.get_compressed_tracks();
+		const compressed_tracks& tracks1 = *context1.get_compressed_tracks();
+		if (tracks0.has_database() || tracks1.has_database())
+		{
+			// TODO: Check if all the data is loaded, always interpolate for now
+			args.rounding_policy = sample_rounding_policy::none;
+		}
 
 		args.sample_tracks0 = [&context0](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
 		{

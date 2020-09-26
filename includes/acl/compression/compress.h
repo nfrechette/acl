@@ -108,6 +108,17 @@ namespace acl
 		compressed_tracks*& out_compressed_tracks, compressed_database*& out_compressed_database, output_stats& out_stats);
 
 	//////////////////////////////////////////////////////////////////////////
+	// Takes a compressed database with inline bulk data and duplicates it into
+	// a new database instance where the bulk data lives in a separate buffer.
+	//
+	//    allocator:						The allocator instance to use to allocate the new database and its bulk data.
+	//    database:							The source database to split with inline bulk data.
+	//    out_split_database:				The new database without inline bulk data.
+	//    out_bulk_data:					The new database's bulk data.
+	//////////////////////////////////////////////////////////////////////////
+	error_result split_compressed_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data);
+
+	//////////////////////////////////////////////////////////////////////////
 	// A pair of pointers to a compressed tracks instance and its database.
 	//////////////////////////////////////////////////////////////////////////
 	struct database_merge_mapping

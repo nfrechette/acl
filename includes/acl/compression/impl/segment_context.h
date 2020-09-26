@@ -53,11 +53,20 @@ namespace acl
 			Variable,
 		};
 
+		//////////////////////////////////////////////////////////////////////////
+		// What database tier a sample/track belongs to
+		enum class database_tier8 : uint8_t
+		{
+			high_importance,
+			low_importance,
+		};
+
 		struct SegmentContext
 		{
 			clip_context* clip;
 			BoneStreams* bone_streams;
 			BoneRanges* ranges;
+			database_tier8* sample_tiers;		// Optional if we split into a database, one value per sample
 
 			uint32_t num_samples;
 			uint32_t num_bones;
@@ -72,11 +81,11 @@ namespace acl
 			bool are_scales_normalized;
 
 			// Stat tracking
-			uint32_t animated_pose_rotation_bit_size;
-			uint32_t animated_pose_translation_bit_size;
-			uint32_t animated_pose_scale_bit_size;
-			uint32_t animated_pose_bit_size;
-			uint32_t animated_data_size;
+			uint32_t animated_rotation_bit_size;		// Tier 0
+			uint32_t animated_translation_bit_size;		// Tier 0
+			uint32_t animated_scale_bit_size;			// Tier 0
+			uint32_t animated_pose_bit_size;			// Tier 0
+			uint32_t animated_data_size;				// Tier 0
 			uint32_t range_data_size;
 			uint32_t segment_data_size;
 			uint32_t total_header_size;
@@ -90,6 +99,7 @@ namespace acl
 		{
 			deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
 			deallocate_type_array(allocator, segment.ranges, segment.num_bones);
+			deallocate_type_array(allocator, segment.sample_tiers, segment.num_samples);
 		}
 	}
 }

@@ -93,6 +93,10 @@ namespace acl
 		float get_sample_rate() const;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns whether or not this clip is split into a compressed database instance.
+		bool has_database() const;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the track list name if metadata is present, nullptr otherwise.
 		const char* get_name() const;
 

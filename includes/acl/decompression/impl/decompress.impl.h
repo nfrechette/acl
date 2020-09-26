@@ -36,21 +36,21 @@ namespace acl
 		// SFINAE boilerplate to detect if a template argument derives from acl::decompression_context.
 		//////////////////////////////////////////////////////////////////////////
 		template<class T>
-		using is_decompression_context = typename std::enable_if<std::is_base_of<acl::decompression_context<typename T::settings_type>, T>::value, std::nullptr_t>::type;
+		using is_decompression_context = typename std::enable_if<std::is_base_of<acl::decompression_context<typename T::settings_type, typename T::db_settings_type>, T>::value, std::nullptr_t>::type;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// decompression_context implementation
 
-	template<class decompression_settings_type>
-	inline decompression_context<decompression_settings_type>::decompression_context()
+	template<class decompression_settings_type, class database_settings_type>
+	inline decompression_context<decompression_settings_type, database_settings_type>::decompression_context()
 		: m_context()
 	{
 		m_context.reset();
 	}
 
-	template<class decompression_settings_type>
-	inline bool decompression_context<decompression_settings_type>::initialize(const compressed_tracks& tracks)
+	template<class decompression_settings_type, class database_settings_type>
+	inline bool decompression_context<decompression_settings_type, database_settings_type>::initialize(const compressed_tracks& tracks)
 	{
 		const bool is_valid = tracks.is_valid(false).empty();
 		ACL_ASSERT(is_valid, "Invalid compressed tracks instance");
@@ -61,17 +61,41 @@ namespace acl
 		if (!algorithm_version_type::is_version_supported(tracks.get_version()))
 			return false;
 
-		return algorithm_version_type::template initialize<decompression_settings_type>(m_context, tracks);
+		const database_context<database_settings_type>* database = nullptr;
+		return algorithm_version_type::template initialize<decompression_settings_type>(m_context, tracks, database);
 	}
 
-	template<class decompression_settings_type>
-	inline bool decompression_context<decompression_settings_type>::is_dirty(const compressed_tracks& tracks) const
+	template<class decompression_settings_type, class database_settings_type>
+	inline bool decompression_context<decompression_settings_type, database_settings_type>::initialize(const compressed_tracks& tracks, const database_context<database_settings_type>& database)
+	{
+		bool is_valid = tracks.is_valid(false).empty();
+		ACL_ASSERT(is_valid, "Invalid compressed tracks instance");
+		if (!is_valid)
+			return false;	// Invalid compressed tracks instance
+
+		is_valid = database.is_initialized();
+		ACL_ASSERT(is_valid, "Invalid compressed database instance");
+		if (!is_valid)
+			return false;	// Invalid compressed database instance
+
+		ACL_ASSERT(algorithm_version_type::is_version_supported(tracks.get_version()), "Unsupported version");
+		if (!algorithm_version_type::is_version_supported(tracks.get_version()))
+			return false;
+
+		if (!database.contains(tracks))
+			return false;
+
+		return algorithm_version_type::template initialize<decompression_settings_type>(m_context, tracks, &database);
+	}
+
+	template<class decompression_settings_type, class database_settings_type>
+	inline bool decompression_context<decompression_settings_type, database_settings_type>::is_dirty(const compressed_tracks& tracks) const
 	{
 		return algorithm_version_type::template is_dirty(m_context, tracks);
 	}
 
-	template<class decompression_settings_type>
-	inline void decompression_context<decompression_settings_type>::seek(float sample_time, sample_rounding_policy rounding_policy)
+	template<class decompression_settings_type, class database_settings_type>
+	inline void decompression_context<decompression_settings_type, database_settings_type>::seek(float sample_time, sample_rounding_policy rounding_policy)
 	{
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
 		ACL_ASSERT(rtm::scalar_is_finite(sample_time), "Invalid sample time");
@@ -82,9 +106,9 @@ namespace acl
 		algorithm_version_type::template seek<decompression_settings_type>(m_context, sample_time, rounding_policy);
 	}
 
-	template<class decompression_settings_type>
+	template<class decompression_settings_type, class database_settings_type>
 	template<class track_writer_type>
-	inline void decompression_context<decompression_settings_type>::decompress_tracks(track_writer_type& writer)
+	inline void decompression_context<decompression_settings_type, database_settings_type>::decompress_tracks(track_writer_type& writer)
 	{
 		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
@@ -95,9 +119,9 @@ namespace acl
 		algorithm_version_type::template decompress_tracks<decompression_settings_type>(m_context, writer);
 	}
 
-	template<class decompression_settings_type>
+	template<class decompression_settings_type, class database_settings_type>
 	template<class track_writer_type>
-	inline void decompression_context<decompression_settings_type>::decompress_track(uint32_t track_index, track_writer_type& writer)
+	inline void decompression_context<decompression_settings_type, database_settings_type>::decompress_track(uint32_t track_index, track_writer_type& writer)
 	{
 		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");

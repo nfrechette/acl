@@ -53,6 +53,7 @@
 #include "acl/compression/transform_pose_utils.h"	// Just to test compilation
 #include "acl/compression/impl/write_decompression_stats.h"
 #include "acl/compression/track_error.h"
+#include "acl/database/database.h"
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
 
@@ -136,6 +137,7 @@ struct Options
 	std::FILE*		output_stats_file;
 
 	const char*		output_bin_filename;
+	const char*		output_db_filename;
 
 	compression_level8	compression_level;
 	bool			compression_level_specified;
@@ -149,6 +151,8 @@ struct Options
 	bool			is_bind_pose_relative;
 	bool			is_bind_pose_additive0;
 	bool			is_bind_pose_additive1;
+
+	bool			split_into_database;
 
 	bool			stat_detailed_output;
 	bool			stat_exhaustive_output;
@@ -170,6 +174,7 @@ struct Options
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
 		, output_bin_filename(nullptr)
+		, output_db_filename(nullptr)
 		, compression_level(compression_level8::lowest)
 		, compression_level_specified(false)
 		, regression_testing(false)
@@ -179,6 +184,7 @@ struct Options
 		, is_bind_pose_relative(false)
 		, is_bind_pose_additive0(false)
 		, is_bind_pose_additive1(false)
+		, split_into_database(false)
 		, stat_detailed_output(false)
 		, stat_exhaustive_output(false)
 	{}
@@ -225,6 +231,7 @@ static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
+static constexpr const char* k_split_into_database = "-db";
 static constexpr const char* k_stat_detailed_output_option = "-stat_detailed";
 static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive";
 
@@ -380,6 +387,25 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
+		option_length = std::strlen(k_split_into_database);
+		if (std::strncmp(argument, k_split_into_database, option_length) == 0)
+		{
+			options.split_into_database = true;
+			if (argument[option_length] == '=')
+			{
+				options.output_db_filename = argument + option_length + 1;
+				const size_t filename_len = std::strlen(options.output_db_filename);
+				if (filename_len < 6 || strncmp(options.output_db_filename + filename_len - 6, ".acldb", 6) != 0)
+				{
+					printf("Database output filename must be of the form: [*.acldb]\n");
+					return false;
+				}
+			}
+			else
+				options.output_db_filename = nullptr;
+			continue;
+		}
+
 		option_length = std::strlen(k_stat_detailed_output_option);
 		if (std::strncmp(argument, k_stat_detailed_output_option, option_length) == 0)
 		{
@@ -419,23 +445,25 @@ static bool parse_options(int argc, char** argv, Options& options)
 
 #if defined(ACL_USE_SJSON)
 #if defined(ACL_HAS_ASSERT_CHECKS)
-static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
+static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, const compressed_database* db, double regression_error_threshold)
 {
 	using namespace acl_impl;
 
-	(void)allocator;
-	(void)raw_tracks;
-	(void)additive_base_tracks;
-	(void)error_metric;
-	(void)compressed_tracks_;
-	(void)regression_error_threshold;
-
-#if defined(ACL_HAS_ASSERT_CHECKS)
 	// Disable floating point exceptions since decompression assumes it
 	scope_disable_fp_exceptions fp_off;
 
-	acl::decompression_context<acl::debug_transform_decompression_settings> context;
-	context.initialize(compressed_tracks_);
+	acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+	acl::database_context<acl::debug_database_settings> db_context;
+
+	bool initialized;
+	if (db != nullptr)
+	{
+		initialized = db_context.initialize(allocator, *db);
+		initialized = initialized && context.initialize(compressed_tracks_, db_context);
+	}
+	else
+		initialized = context.initialize(compressed_tracks_);
+	ACL_ASSERT(initialized, "Failed to initialize decompression context"); (void)initialized;
 
 	const track_error error = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 	(void)error;
@@ -472,7 +500,6 @@ static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw
 			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, 0.0F), "Failed to sample bone index: %u", bone_index);
 		}
 	}
-#endif
 }
 
 static void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold)
@@ -884,6 +911,70 @@ static void validate_convert(iallocator& allocator, const track_array& raw_track
 
 	allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 }
+
+static void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, const compressed_database& db)
+{
+	using namespace acl_impl;
+
+	// Disable floating point exceptions since decompression assumes it
+	scope_disable_fp_exceptions fp_off;
+
+	// Reference error with the bulk data inline and everything loaded
+	track_error error_tier1_ref;
+	{
+		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+		acl::database_context<acl::debug_database_settings> db_context;
+
+		bool initialized = db_context.initialize(allocator, db);
+		initialized = initialized && context.initialize(compressed_tracks_, db_context);
+		ACL_ASSERT(initialized, "Failed to initialize decompression context");
+
+		error_tier1_ref = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
+	}
+
+	// Split the database bulk data out
+	compressed_database* split_db = nullptr;
+	uint8_t* db_bulk_data = nullptr;
+	const error_result split_result = split_compressed_database_bulk_data(allocator, db, split_db, db_bulk_data);
+	ACL_ASSERT(split_result.empty(), "Failed to split database");
+
+	// Measure the tier error through simulated streaming
+	{
+		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+		acl::database_context<acl::debug_database_settings> db_context;
+		acl::debug_database_streamer db_streamer(allocator, db_bulk_data, split_db->get_bulk_data_size());
+
+		bool initialized = db_context.initialize(allocator, *split_db, db_streamer);
+		initialized = initialized && context.initialize(compressed_tracks_, db_context);
+		ACL_ASSERT(initialized, "Failed to initialize decompression context");
+		ACL_ASSERT(!db_context.is_streamed_in(), "Tier 1 shouldn't be streamed in yet");
+
+		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier0.error >= error_tier1_ref.error, "Tier 0 error should be higher or equal to tier 1");
+
+		// Stream in our tier 1 data
+		const acl::database_stream_request_result stream_in_result = db_context.stream_in();
+		ACL_ASSERT(stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
+		const bool is_streamed_in = db_context.is_streamed_in();
+		ACL_ASSERT(is_streamed_in, "Failed to stream in tier 1");
+
+		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier1.error == error_tier1_ref.error, "Tier 1 split error should be equal to tier 1 inline");
+
+		// Stream out our tier 1 data
+		const acl::database_stream_request_result stream_out_result = db_context.stream_out();
+		ACL_ASSERT(stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
+		const bool is_streamed_out = !db_context.is_streamed_in();
+		ACL_ASSERT(is_streamed_out, "Failed to stream out tier 1");
+
+		const track_error error_tier0_tmp = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier0_tmp.error == error_tier0.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
+	}
+
+	// Free our memory
+	allocator.deallocate(db_bulk_data, split_db->get_bulk_data_size());
+	allocator.deallocate(split_db, split_db->get_size());
+}
 #endif
 
 static void try_algorithm(const Options& options, iallocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, compression_settings settings, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
@@ -909,12 +1000,18 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 		stats.logging = logging;
 		stats.writer = stats_writer;
 
+		compressed_database* db = nullptr;
 		compressed_tracks* compressed_tracks_ = nullptr;
-		const error_result result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
 
-		(void)result;
+		error_result result;
+		if (options.split_into_database)
+			result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, db, stats);
+		else
+			result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
+
 		ACL_ASSERT(result.empty(), result.c_str());
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
+		ACL_ASSERT(!options.split_into_database || (db != nullptr && db->is_valid(true).empty()), "Compressed database is invalid");
 
 #if defined(SJSON_CPP_WRITER)
 		if (logging != stat_logging::none)
@@ -922,8 +1019,18 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
 
-			acl::decompression_context<acl::debug_transform_decompression_settings> context;
-			context.initialize(*compressed_tracks_);
+			acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+			acl::database_context<acl::debug_database_settings> db_context;
+
+			bool initialized;
+			if (db != nullptr)
+			{
+				initialized = db_context.initialize(allocator, *db);
+				initialized = initialized && context.initialize(*compressed_tracks_, db_context);
+			}
+			else
+				initialized = context.initialize(*compressed_tracks_);
+			ACL_ASSERT(initialized, "Failed to initialize decompression context"); (void)initialized;
 
 			const track_error error = calculate_compression_error(allocator, transform_tracks, context, *settings.error_metric);
 
@@ -939,9 +1046,12 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		if (options.regression_testing)
 		{
-			validate_accuracy(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, regression_error_threshold);
+			validate_accuracy(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, db, regression_error_threshold);
 			validate_metadata(transform_tracks, *compressed_tracks_);
 			validate_convert(allocator, transform_tracks);
+
+			if (db != nullptr)
+				validate_db(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, *db);
 		}
 #endif
 
@@ -952,7 +1062,17 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
 		}
 
+		if (options.output_db_filename != nullptr && db != nullptr)
+		{
+			std::ofstream output_file_stream(options.output_db_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+			if (output_file_stream.is_open())
+				output_file_stream.write(reinterpret_cast<const char*>(db), db->get_size());
+		}
+
 		allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
+
+		if (db != nullptr)
+			allocator.deallocate(db, db->get_size());
 	};
 
 #if defined(SJSON_CPP_WRITER)
@@ -1234,6 +1354,10 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	bool use_matrix_error_metric;
 	if (parser.try_read("use_matrix_error_metric", use_matrix_error_metric, false))
 		options.use_matrix_error_metric = use_matrix_error_metric;
+
+	bool split_into_database;
+	if (parser.try_read("split_into_database", split_into_database, false))
+		options.split_into_database = split_into_database;
 
 	if (!parser.is_valid() || !parser.remainder_is_comments_and_whitespace())
 	{

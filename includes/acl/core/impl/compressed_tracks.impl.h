@@ -74,6 +74,8 @@ namespace acl
 
 	inline float compressed_tracks::get_sample_rate() const { return acl_impl::get_tracks_header(*this).sample_rate; }
 
+	inline bool compressed_tracks::has_database() const { return acl_impl::get_tracks_header(*this).get_has_database(); }
+
 	inline const char* compressed_tracks::get_name() const
 	{
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);

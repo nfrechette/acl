@@ -30,6 +30,7 @@
 #include "acl/core/track_writer.h"
 #include "acl/core/variable_bit_rates.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/database/database.h"
 #include "acl/math/scalar_packing.h"
 #include "acl/math/vector4_packing.h"
 
@@ -73,10 +74,13 @@ namespace acl
 
 		static_assert(sizeof(persistent_scalar_decompression_context_v0) == 64, "Unexpected size");
 
-		template<class decompression_settings_type>
-		inline bool initialize_v0(persistent_scalar_decompression_context_v0& context, const compressed_tracks& tracks)
+		template<class decompression_settings_type, class database_settings_type>
+		inline bool initialize_v0(persistent_scalar_decompression_context_v0& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
 		{
 			ACL_ASSERT(tracks.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
+
+			if (database != nullptr)
+				return false;	// Database decompression is not supported for scalar tracks
 
 			context.tracks = &tracks;
 			context.tracks_hash = tracks.get_hash();

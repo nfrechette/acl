@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/bit_manip_utils.h"
 #include "acl/core/bitset.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/compressed_tracks_version.h"
@@ -33,6 +34,7 @@
 #include "acl/core/track_writer.h"
 #include "acl/core/variable_bit_rates.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/database/database.h"
 #include "acl/decompression/impl/transform_animated_track_cache.h"
 #include "acl/decompression/impl/transform_constant_track_cache.h"
 #include "acl/decompression/impl/transform_decompression_context.h"
@@ -53,8 +55,8 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		template<class decompression_settings_type>
-		inline bool initialize_v0(persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks)
+		template<class decompression_settings_type, class database_settings_type>
+		inline bool initialize_v0(persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
 		{
 			ACL_ASSERT(tracks.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
 
@@ -76,14 +78,14 @@ namespace acl
 			ACL_ASSERT(scale_format == packed_scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(packed_scale_format));
 
 			context.tracks = &tracks;
+			context.db = reinterpret_cast<const database_context_v0*>(database);	// Context is always the first member and versions should always match
 			context.clip_hash = tracks.get_hash();
 			context.clip_duration = calculate_duration(header.num_samples, header.sample_rate);
 			context.sample_time = -1.0F;
-			context.default_tracks_bitset = transform_header.get_default_tracks_bitset();
-
-			context.constant_tracks_bitset = transform_header.get_constant_tracks_bitset();
-			context.constant_track_data = transform_header.get_constant_track_data();
-			context.clip_range_data = transform_header.get_clip_range_data();
+			context.default_tracks_bitset = ptr_offset32<uint32_t>(&tracks, transform_header.get_default_tracks_bitset());
+			context.constant_tracks_bitset = ptr_offset32<uint32_t>(&tracks, transform_header.get_constant_tracks_bitset());
+			context.constant_track_data = ptr_offset32<uint8_t>(&tracks, transform_header.get_constant_track_data());
+			context.clip_range_data = ptr_offset32<uint8_t>(&tracks, transform_header.get_clip_range_data());
 
 			for (uint32_t key_frame_index = 0; key_frame_index < 2; ++key_frame_index)
 			{
@@ -150,18 +152,119 @@ namespace acl
 			const segment_header* segment_header0;
 			const segment_header* segment_header1;
 
+			const uint8_t* db_animated_track_data0 = nullptr;
+			const uint8_t* db_animated_track_data1 = nullptr;
+
+			// These two pointers are the same, the compiler should optimize one out, only here for type safety later
 			const segment_header* segment_headers = transform_header.get_segment_headers();
+			const segment_tier0_header* segment_tier0_headers = transform_header.get_segment_tier0_headers();
+
 			const uint32_t num_segments = transform_header.num_segments;
+
+			// TODO: Move in context and add decompression settings stripping
+			const bool has_database = context.tracks->has_database();
+			const database_context_v0* db = context.db;
 
 			if (num_segments == 1)
 			{
 				// Key frame 0 and 1 are in the only segment present
 				// This is a really common case and when it happens, we don't store the segment start index (zero)
-				segment_header0 = segment_headers;
-				segment_key_frame0 = key_frame0;
 
-				segment_header1 = segment_headers;
-				segment_key_frame1 = key_frame1;
+				if (has_database)
+				{
+					const segment_tier0_header* segment_tier0_header0 = segment_tier0_headers;
+
+					// This will cache miss
+					uint32_t sample_indices0 = segment_tier0_header0->sample_indices;
+
+					// When we load our sample indices and offsets from the database, there can be another thread writing
+					// to those memory locations at the same time (e.g. streaming in/out).
+					// To ensure thread safety, we atomically load the offset and sample indices.
+					uint64_t tier1_metadata0 = 0;
+					uint64_t tier2_metadata0 = 0;
+
+					// Combine all our loaded samples into a single bit set to find which samples we need to interpolate
+					if (db != nullptr)
+					{
+						// Possible cache miss for the clip header offset
+						// Cache miss for the db clip segment headers pointer
+						const tracks_database_header* tracks_db_header = transform_header.get_database_header();
+						const database_runtime_clip_header* db_clip_header = tracks_db_header->clip_header_offset.add_to(db->clip_segment_headers);
+						const database_runtime_segment_header* db_segment_headers = db_clip_header->get_segment_headers();
+
+						// Cache miss for the db segment headers
+						const database_runtime_segment_header* db_segment_header0 = db_segment_headers;
+						tier1_metadata0 = db_segment_header0->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
+						tier2_metadata0 = db_segment_header0->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
+
+						sample_indices0 |= uint32_t(tier1_metadata0);
+						sample_indices0 |= uint32_t(tier2_metadata0);
+					}
+
+					// Find the closest loaded samples
+					// Mask all trailing samples to find the first sample by counting trailing zeros
+					const uint32_t candidate_indices0 = sample_indices0 & (0xFFFFFFFFU << (31 - key_frame0));
+					key_frame0 = 31 - count_trailing_zeros(candidate_indices0);
+
+					// Mask all leading samples to find the second sample by counting leading zeros
+					const uint32_t candidate_indices1 = sample_indices0 & (0xFFFFFFFFU >> key_frame1);
+					key_frame1 = count_leading_zeros(candidate_indices1);
+
+					// Calculate our clip relative sample indices
+					const float sample_index = context.interpolation_alpha + float(key_frame0);
+
+					// Calculate our new interpolation alpha
+					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, key_frame0, key_frame1, rounding_policy);
+
+					// Find where our data lives (clip or database tier X)
+					sample_indices0 = segment_tier0_header0->sample_indices;
+					uint32_t sample_indices1 = sample_indices0;	// Identical
+
+					if (db != nullptr)
+					{
+						const uint64_t sample_index0 = uint64_t(1) << (31 - key_frame0);
+						const uint64_t sample_index1 = uint64_t(1) << (31 - key_frame1);
+
+						const uint8_t* bulk_data = db->bulk_data;
+						if ((tier1_metadata0 & sample_index0) != 0)
+						{
+							sample_indices0 = uint32_t(tier1_metadata0);
+							db_animated_track_data0 = bulk_data + uint32_t(tier1_metadata0 >> 32);
+						}
+						else if ((tier2_metadata0 & sample_index0) != 0)
+						{
+							sample_indices0 = uint32_t(tier2_metadata0);
+							db_animated_track_data0 = bulk_data + uint32_t(tier2_metadata0 >> 32);
+						}
+
+						if ((tier1_metadata0 & sample_index1) != 0)
+						{
+							sample_indices1 = uint32_t(tier1_metadata0);
+							db_animated_track_data1 = bulk_data + uint32_t(tier1_metadata0 >> 32);
+						}
+						else if ((tier2_metadata0 & sample_index1) != 0)
+						{
+							sample_indices1 = uint32_t(tier2_metadata0);
+							db_animated_track_data1 = bulk_data + uint32_t(tier2_metadata0 >> 32);
+						}
+					}
+
+					// Remap our sample indices within the ones actually stored (e.g. index 3 might be the second frame stored)
+					segment_key_frame0 = count_set_bits(and_not(0xFFFFFFFFU >> key_frame0, sample_indices0));
+					segment_key_frame1 = count_set_bits(and_not(0xFFFFFFFFU >> key_frame1, sample_indices1));
+
+					// Nasty but safe since they have the same layout
+					segment_header0 = reinterpret_cast<const segment_header*>(segment_tier0_header0);
+					segment_header1 = reinterpret_cast<const segment_header*>(segment_tier0_header0);
+				}
+				else
+				{
+					segment_header0 = segment_headers;
+					segment_header1 = segment_headers;
+
+					segment_key_frame0 = key_frame0;
+					segment_key_frame1 = key_frame1;
+				}
 			}
 			else
 			{
@@ -193,13 +296,117 @@ namespace acl
 					}
 				}
 
-				segment_header0 = segment_headers + segment_index0;
-				segment_header1 = segment_headers + segment_index1;
-
 				segment_key_frame0 = key_frame0 - segment_start_indices[segment_index0];
 				segment_key_frame1 = key_frame1 - segment_start_indices[segment_index1];
+
+				if (has_database)
+				{
+					const segment_tier0_header* segment_tier0_header0 = segment_tier0_headers + segment_index0;
+					const segment_tier0_header* segment_tier0_header1 = segment_tier0_headers + segment_index1;
+
+					// This will cache miss
+					uint32_t sample_indices0 = segment_tier0_header0->sample_indices;
+					uint32_t sample_indices1 = segment_tier0_header1->sample_indices;
+
+					// When we load our sample indices and offsets from the database, there can be another thread writing
+					// to those memory locations at the same time (e.g. streaming in/out).
+					// To ensure thread safety, we atomically load the offset and sample indices.
+					uint64_t tier1_metadata0 = 0;
+					uint64_t tier1_metadata1 = 0;
+					uint64_t tier2_metadata0 = 0;
+					uint64_t tier2_metadata1 = 0;
+
+					// Combine all our loaded samples into a single bit set to find which samples we need to interpolate
+					if (db != nullptr)
+					{
+						// Possible cache miss for the clip header offset
+						// Cache miss for the db clip segment headers pointer
+						const tracks_database_header* tracks_db_header = transform_header.get_database_header();
+						const database_runtime_clip_header* db_clip_header = tracks_db_header->clip_header_offset.add_to(db->clip_segment_headers);
+						const database_runtime_segment_header* db_segment_headers = db_clip_header->get_segment_headers();
+
+						// Cache miss for the db segment headers
+						const database_runtime_segment_header* db_segment_header0 = db_segment_headers + segment_index0;
+						tier1_metadata0 = db_segment_header0->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
+						tier2_metadata0 = db_segment_header0->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
+
+						sample_indices0 |= uint32_t(tier1_metadata0);
+						sample_indices0 |= uint32_t(tier2_metadata0);
+
+						const database_runtime_segment_header* db_segment_header1 = db_segment_headers + segment_index1;
+						tier1_metadata1 = db_segment_header1->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
+						tier2_metadata1 = db_segment_header1->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
+
+						sample_indices0 |= uint32_t(tier1_metadata1);
+						sample_indices0 |= uint32_t(tier2_metadata1);
+					}
+
+					// Find the closest loaded samples
+					// Mask all trailing samples to find the first sample by counting trailing zeros
+					const uint32_t candidate_indices0 = sample_indices0 & (0xFFFFFFFFU << (31 - segment_key_frame0));
+					segment_key_frame0 = 31 - count_trailing_zeros(candidate_indices0);
+
+					// Mask all leading samples to find the second sample by counting leading zeros
+					const uint32_t candidate_indices1 = sample_indices1 & (0xFFFFFFFFU >> segment_key_frame1);
+					segment_key_frame1 = count_leading_zeros(candidate_indices1);
+
+					// Calculate our clip relative sample indices
+					const float sample_index = context.interpolation_alpha + float(key_frame0);
+					const uint32_t clip_key_frame0 = segment_start_indices[segment_index0] + segment_key_frame0;
+					const uint32_t clip_key_frame1 = segment_start_indices[segment_index1] + segment_key_frame1;
+
+					// Calculate our new interpolation alpha
+					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, clip_key_frame0, clip_key_frame1, rounding_policy);
+
+					// Find where our data lives (clip or database tier X)
+					sample_indices0 = segment_tier0_header0->sample_indices;
+					sample_indices1 = segment_tier0_header1->sample_indices;
+
+					if (db != nullptr)
+					{
+						const uint64_t sample_index0 = uint64_t(1) << (31 - segment_key_frame0);
+						const uint64_t sample_index1 = uint64_t(1) << (31 - segment_key_frame1);
+
+						const uint8_t* bulk_data = db->bulk_data;
+						if ((tier1_metadata0 & sample_index0) != 0)
+						{
+							sample_indices0 = uint32_t(tier1_metadata0);
+							db_animated_track_data0 = bulk_data + uint32_t(tier1_metadata0 >> 32);
+						}
+						else if ((tier2_metadata0 & sample_index0) != 0)
+						{
+							sample_indices0 = uint32_t(tier2_metadata0);
+							db_animated_track_data0 = bulk_data + uint32_t(tier2_metadata0 >> 32);
+						}
+
+						if ((tier1_metadata1 & sample_index1) != 0)
+						{
+							sample_indices1 = uint32_t(tier1_metadata1);
+							db_animated_track_data1 = bulk_data + uint32_t(tier1_metadata1 >> 32);
+						}
+						else if ((tier2_metadata1 & sample_index1) != 0)
+						{
+							sample_indices1 = uint32_t(tier2_metadata1);
+							db_animated_track_data1 = bulk_data + uint32_t(tier2_metadata1 >> 32);
+						}
+					}
+
+					// Remap our sample indices within the ones actually stored (e.g. index 3 might be the second frame stored)
+					segment_key_frame0 = count_set_bits(and_not(0xFFFFFFFFU >> segment_key_frame0, sample_indices0));
+					segment_key_frame1 = count_set_bits(and_not(0xFFFFFFFFU >> segment_key_frame1, sample_indices1));
+
+					// Nasty but safe since they have the same layout
+					segment_header0 = reinterpret_cast<const segment_header*>(segment_tier0_header0);
+					segment_header1 = reinterpret_cast<const segment_header*>(segment_tier0_header1);
+				}
+				else
+				{
+					segment_header0 = segment_headers + segment_index0;
+					segment_header1 = segment_headers + segment_index1;
+				}
 			}
 
+			// Cache miss if we don't access the db data
 			transform_header.get_segment_data(*segment_header0, context.format_per_track_data[0], context.segment_range_data[0], context.animated_track_data[0]);
 
 			// More often than not the two segments are identical, when this is the case, just copy our pointers
@@ -210,6 +417,16 @@ namespace acl
 				context.format_per_track_data[1] = context.format_per_track_data[0];
 				context.segment_range_data[1] = context.segment_range_data[0];
 				context.animated_track_data[1] = context.animated_track_data[0];
+			}
+
+			if (has_database)
+			{
+				// Update our pointers if the data lives within the database
+				if (db_animated_track_data0 != nullptr)
+					context.animated_track_data[0] = db_animated_track_data0;
+
+				if (db_animated_track_data1 != nullptr)
+					context.animated_track_data[1] = db_animated_track_data1;
 			}
 
 			context.key_frame_bit_offsets[0] = segment_key_frame0 * segment_header0->animated_pose_bit_size;
@@ -248,6 +465,9 @@ namespace acl
 			const bool has_scale = header.get_has_scale();
 			const uint32_t num_tracks = header.num_tracks;
 
+			const uint32_t* default_tracks_bitset = context.default_tracks_bitset.add_to(context.tracks);
+			const uint32_t* constant_tracks_bitset = context.constant_tracks_bitset.add_to(context.tracks);
+
 			constant_track_cache_v0 constant_track_cache;
 			constant_track_cache.initialize<decompression_settings_type>(context);
 
@@ -276,7 +496,7 @@ namespace acl
 
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					const bool is_sample_default = bitset_test(context.default_tracks_bitset, track_index_bit_ref);
+					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
 					rtm::quatf rotation;
 					if (is_sample_default)
 					{
@@ -284,7 +504,7 @@ namespace acl
 					}
 					else
 					{
-						const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, track_index_bit_ref);
+						const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
 						if (is_sample_constant)
 							rotation = constant_track_cache.consume_rotation();
 						else
@@ -301,7 +521,7 @@ namespace acl
 
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					const bool is_sample_default = bitset_test(context.default_tracks_bitset, track_index_bit_ref);
+					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
 					rtm::vector4f translation;
 					if (is_sample_default)
 					{
@@ -309,7 +529,7 @@ namespace acl
 					}
 					else
 					{
-						const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, track_index_bit_ref);
+						const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
 						if (is_sample_constant)
 							translation = constant_track_cache.consume_translation();
 						else
@@ -326,7 +546,7 @@ namespace acl
 				if (has_scale)
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					const bool is_sample_default = bitset_test(context.default_tracks_bitset, track_index_bit_ref);
+					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
 					rtm::vector4f scale;
 					if (is_sample_default)
 					{
@@ -334,7 +554,7 @@ namespace acl
 					}
 					else
 					{
-						const bool is_sample_constant = bitset_test(context.constant_tracks_bitset, track_index_bit_ref);
+						const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
 						if (is_sample_constant)
 							scale = constant_track_cache.consume_scale();
 						else
@@ -382,6 +602,9 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(tracks_header_.get_default_scale()));
 			const bool has_scale = tracks_header_.get_has_scale();
 
+			const uint32_t* default_tracks_bitset = context.default_tracks_bitset.add_to(context.tracks);
+			const uint32_t* constant_tracks_bitset = context.constant_tracks_bitset.add_to(context.tracks);
+
 			// To decompress a single track, we need a few things:
 			//    - if our rot/trans/scale is the default value, this is a trivial bitset lookup
 			//    - constant and animated sub-tracks need to know which group they below to so it can be unpacked
@@ -393,9 +616,9 @@ namespace acl
 			const bitset_index_ref translation_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 1);
 			const bitset_index_ref scale_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 2);
 
-			const bool is_rotation_default = bitset_test(context.default_tracks_bitset, rotation_sub_track_index_bit_ref);
-			const bool is_translation_default = bitset_test(context.default_tracks_bitset, translation_sub_track_index_bit_ref);
-			const bool is_scale_default = has_scale ? bitset_test(context.default_tracks_bitset, scale_sub_track_index_bit_ref) : true;
+			const bool is_rotation_default = bitset_test(default_tracks_bitset, rotation_sub_track_index_bit_ref);
+			const bool is_translation_default = bitset_test(default_tracks_bitset, translation_sub_track_index_bit_ref);
+			const bool is_scale_default = has_scale ? bitset_test(default_tracks_bitset, scale_sub_track_index_bit_ref) : true;
 
 			if (is_rotation_default && is_translation_default && is_scale_default)
 			{
@@ -406,9 +629,9 @@ namespace acl
 				return;
 			}
 
-			const bool is_rotation_constant = !is_rotation_default && bitset_test(context.constant_tracks_bitset, rotation_sub_track_index_bit_ref);
-			const bool is_translation_constant = !is_translation_default && bitset_test(context.constant_tracks_bitset, translation_sub_track_index_bit_ref);
-			const bool is_scale_constant = !is_scale_default && has_scale ? bitset_test(context.constant_tracks_bitset, scale_sub_track_index_bit_ref) : false;
+			const bool is_rotation_constant = !is_rotation_default && bitset_test(constant_tracks_bitset, rotation_sub_track_index_bit_ref);
+			const bool is_translation_constant = !is_translation_default && bitset_test(constant_tracks_bitset, translation_sub_track_index_bit_ref);
+			const bool is_scale_constant = !is_scale_default && has_scale ? bitset_test(constant_tracks_bitset, scale_sub_track_index_bit_ref) : false;
 
 			const bool is_rotation_animated = !is_rotation_default && !is_rotation_constant;
 			const bool is_translation_animated = !is_translation_default && !is_translation_constant;
@@ -431,12 +654,12 @@ namespace acl
 				uint32_t offset = 0;
 				for (; offset < last_offset; ++offset)
 				{
-					const uint32_t default_value = context.default_tracks_bitset[offset];
+					const uint32_t default_value = default_tracks_bitset[offset];
 					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
 					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
 					num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
 
-					const uint32_t constant_value = context.constant_tracks_bitset[offset];
+					const uint32_t constant_value = constant_tracks_bitset[offset];
 					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
 					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
 					num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
@@ -453,12 +676,12 @@ namespace acl
 				if (remaining_tracks != 0)
 				{
 					const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
-					const uint32_t default_value = and_not(not_up_to_track_mask, context.default_tracks_bitset[offset]);
+					const uint32_t default_value = and_not(not_up_to_track_mask, default_tracks_bitset[offset]);
 					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
 					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
 					num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
 
-					const uint32_t constant_value = and_not(not_up_to_track_mask, context.constant_tracks_bitset[offset]);
+					const uint32_t constant_value = and_not(not_up_to_track_mask, constant_tracks_bitset[offset]);
 					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
 					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
 					num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
@@ -473,11 +696,11 @@ namespace acl
 				uint32_t offset = 0;
 				for (; offset < last_offset; ++offset)
 				{
-					const uint32_t default_value = context.default_tracks_bitset[offset];
+					const uint32_t default_value = default_tracks_bitset[offset];
 					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
 					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
 
-					const uint32_t constant_value = context.constant_tracks_bitset[offset];
+					const uint32_t constant_value = constant_tracks_bitset[offset];
 					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
 					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
 				}
@@ -486,11 +709,11 @@ namespace acl
 				if (remaining_tracks != 0)
 				{
 					const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
-					const uint32_t default_value = and_not(not_up_to_track_mask, context.default_tracks_bitset[offset]);
+					const uint32_t default_value = and_not(not_up_to_track_mask, default_tracks_bitset[offset]);
 					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
 					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
 
-					const uint32_t constant_value = and_not(not_up_to_track_mask, context.constant_tracks_bitset[offset]);
+					const uint32_t constant_value = and_not(not_up_to_track_mask, constant_tracks_bitset[offset]);
 					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
 					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
 				}

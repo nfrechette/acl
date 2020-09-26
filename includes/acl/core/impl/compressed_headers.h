@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/algorithm_types.h"
+#include "acl/core/compressed_database_version.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/ptr_offset.h"
 #include "acl/core/range_reduction_types.h"
@@ -32,6 +33,7 @@
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
 
+#include <atomic>
 #include <cstdint>
 
 // This is a bit slower because of the added bookkeeping when we unpack
@@ -95,19 +97,22 @@ namespace acl
 			// Bit 2: scale format
 			// Bit 3: translation format
 			// Bits [4, 8): rotation format (4 bits)
-			// Bits [8, 31): unused (23 bits)
-			// Bit [31, 32): has metadata?
+			// Bit 8: has database?
+			// Bits [9, 31): unused (22 bits)
+			// Bit 31: has metadata?
 
-			rotation_format8 get_rotation_format() const { return static_cast<rotation_format8>((misc_packed >> 4) & 15); }
-			void set_rotation_format(rotation_format8 format) { misc_packed = (misc_packed & ~(15 << 4)) | (static_cast<uint32_t>(format) << 4); }
-			vector_format8 get_translation_format() const { return static_cast<vector_format8>((misc_packed >> 3) & 1); }
-			void set_translation_format(vector_format8 format) { misc_packed = (misc_packed & ~(1 << 3)) | (static_cast<uint32_t>(format) << 3); }
-			vector_format8 get_scale_format() const { return static_cast<vector_format8>((misc_packed >> 2) & 1); }
-			void set_scale_format(vector_format8 format) { misc_packed = (misc_packed & ~(1 << 2)) | (static_cast<uint32_t>(format) << 2); }
-			int32_t get_default_scale() const { return (misc_packed >> 1) & 1; }
-			void set_default_scale(uint32_t scale) { ACL_ASSERT(scale == 0 || scale == 1, "Invalid default scale"); misc_packed = (misc_packed & ~(1 << 1)) | (scale << 1); }
 			bool get_has_scale() const { return (misc_packed & 1) != 0; }
 			void set_has_scale(bool has_scale) { misc_packed = (misc_packed & ~1) | static_cast<uint32_t>(has_scale); }
+			int32_t get_default_scale() const { return (misc_packed >> 1) & 1; }
+			void set_default_scale(uint32_t scale) { ACL_ASSERT(scale == 0 || scale == 1, "Invalid default scale"); misc_packed = (misc_packed & ~(1 << 1)) | (scale << 1); }
+			vector_format8 get_scale_format() const { return static_cast<vector_format8>((misc_packed >> 2) & 1); }
+			void set_scale_format(vector_format8 format) { misc_packed = (misc_packed & ~(1 << 2)) | (static_cast<uint32_t>(format) << 2); }
+			vector_format8 get_translation_format() const { return static_cast<vector_format8>((misc_packed >> 3) & 1); }
+			void set_translation_format(vector_format8 format) { misc_packed = (misc_packed & ~(1 << 3)) | (static_cast<uint32_t>(format) << 3); }
+			rotation_format8 get_rotation_format() const { return static_cast<rotation_format8>((misc_packed >> 4) & 15); }
+			void set_rotation_format(rotation_format8 format) { misc_packed = (misc_packed & ~(15 << 4)) | (static_cast<uint32_t>(format) << 4); }
+			bool get_has_database() const { return (misc_packed & (1 << 8)) != 0; }
+			void set_has_database(bool has_database) { misc_packed = (misc_packed & ~(1 << 8)) | (static_cast<uint32_t>(has_database) << 8); }
 			bool get_has_metadata() const { return (misc_packed >> 31) != 0; }
 			void set_has_metadata(bool has_metadata) { misc_packed = (misc_packed & ~(1 << 31)) | (static_cast<uint32_t>(has_metadata) << 31); }
 		};
@@ -163,6 +168,29 @@ namespace acl
 			ptr_offset32<uint8_t>			segment_data;
 		};
 
+		////////////////////////////////////////////////////////////////////////////////
+		// A compressed clip segment header. Each segment is built from a uniform number
+		// of samples per track. A clip is split into one or more segments.
+		// Only valid when a clip is split into a database.
+		////////////////////////////////////////////////////////////////////////////////
+		struct segment_tier0_header
+		{
+			// Same layout as segment_header with new data at the end to allow safe usage under the segment_header type
+
+			// Number of bits used by a fully animated pose (excludes default/constant tracks).
+			uint32_t						animated_pose_bit_size;
+
+			// Offset to the animated segment data
+			// Segment data is partitioned as follows:
+			//    - format per variable track (no alignment)
+			//    - range data per variable track (only when more than one segment) (2 byte alignment)
+			//    - track data sorted per sample then per track (4 byte alignment)
+			ptr_offset32<uint8_t>			segment_data;
+
+			// Bit set of which sample indices are stored in this clip (tier 0).
+			uint32_t						sample_indices;
+		};
+
 		//////////////////////////////////////////////////////////////////////////
 		// A packed structure with metadata for animated groups.
 		//////////////////////////////////////////////////////////////////////////
@@ -179,6 +207,22 @@ namespace acl
 
 			uint32_t						get_size() const { return static_cast<uint32_t>(metadata) & ((1 << 14) - 1); }
 			void							set_size(uint32_t size) { ACL_ASSERT(size < (1 << 14), "Group size too large"); metadata = (metadata & ~((1 << 14) - 1)) | static_cast<uint16_t>(size); }
+		};
+
+		struct database_runtime_clip_header;	// Forward declare
+
+		// Header for database related metadata in 'compressed_tracks'
+		struct tracks_database_header
+		{
+			// Offset of the runtime clip header to update when we stream in/out.
+			// This is invalid if the clip isn't split into a database.
+			ptr_offset32<database_runtime_clip_header>		clip_header_offset;
+
+			//////////////////////////////////////////////////////////////////////////
+			// Utility functions that return pointers from their respective offsets.
+
+			database_runtime_clip_header*					get_clip_header(void* base) { return clip_header_offset.safe_add_to(base); }
+			const database_runtime_clip_header*				get_clip_header(const void* base) const { return clip_header_offset.safe_add_to(base); }
 		};
 
 		// Header for transform 'compressed_tracks'
@@ -198,8 +242,15 @@ namespace acl
 			uint32_t						num_constant_translation_samples;
 			uint32_t						num_constant_scale_samples;			// TODO: Not needed?
 
-			// Offset to the segment headers data.
-			ptr_offset32<segment_header>	segment_headers_offset;
+			// Offset to the database metadata header.
+			ptr_offset32<tracks_database_header>	database_header_offset;
+
+			// Offset to the segment headers data (tier 0 if split into database).
+			union
+			{
+				ptr_offset32<segment_header>		segment_headers_offset;
+				ptr_offset32<segment_tier0_header>	segment_tier0_headers_offset;
+			};
 
 			// Offsets to the default/constant tracks bitsets.
 			ptr_offset32<uint32_t>			default_tracks_bitset_offset;
@@ -217,11 +268,17 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
 
-			uint32_t*					get_segment_start_indices() { return num_segments > 1 ? add_offset_to_ptr<uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)) : 0; }
-			const uint32_t*				get_segment_start_indices() const { return num_segments > 1 ? add_offset_to_ptr<const uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)) : 0; }
+			uint32_t*					get_segment_start_indices() { ACL_ASSERT(num_segments > 1, "Must have segments to contain segment indices"); return add_offset_to_ptr<uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)); }
+			const uint32_t*				get_segment_start_indices() const { ACL_ASSERT(num_segments > 1, "Must have segments to contain segment indices"); return add_offset_to_ptr<const uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)); }
+
+			tracks_database_header*			get_database_header() { return database_header_offset.safe_add_to(this); }
+			const tracks_database_header*	get_database_header() const { return database_header_offset.safe_add_to(this); }
 
 			segment_header*				get_segment_headers() { return segment_headers_offset.add_to(this); }
 			const segment_header*		get_segment_headers() const { return segment_headers_offset.add_to(this); }
+
+			segment_tier0_header*			get_segment_tier0_headers() { return segment_tier0_headers_offset.add_to(this); }
+			const segment_tier0_header*		get_segment_tier0_headers() const { return segment_tier0_headers_offset.add_to(this); }
 
 			animation_track_type8*			get_animated_group_types() { return animated_group_types_offset.add_to(this); }
 			const animation_track_type8*	get_animated_group_types() const { return animated_group_types_offset.add_to(this); }
@@ -232,13 +289,14 @@ namespace acl
 			uint32_t*					get_constant_tracks_bitset() { return constant_tracks_bitset_offset.add_to(this); }
 			const uint32_t*				get_constant_tracks_bitset() const { return constant_tracks_bitset_offset.add_to(this); }
 
-			uint8_t*					get_constant_track_data() { return constant_track_data_offset.safe_add_to(this); }
-			const uint8_t*				get_constant_track_data() const { return constant_track_data_offset.safe_add_to(this); }
+			uint8_t*					get_constant_track_data() { return constant_track_data_offset.add_to(this); }
+			const uint8_t*				get_constant_track_data() const { return constant_track_data_offset.add_to(this); }
 
-			uint8_t*					get_clip_range_data() { return clip_range_data_offset.safe_add_to(this); }
-			const uint8_t*				get_clip_range_data() const { return clip_range_data_offset.safe_add_to(this); }
+			uint8_t*					get_clip_range_data() { return clip_range_data_offset.add_to(this); }
+			const uint8_t*				get_clip_range_data() const { return clip_range_data_offset.add_to(this); }
 
-			void						get_segment_data(const segment_header& header, uint8_t*& out_format_per_track_data, uint8_t*& out_range_data, uint8_t*& out_animated_data)
+			template<class segment_header_type>
+			void						get_segment_data(const segment_header_type& header, uint8_t*& out_format_per_track_data, uint8_t*& out_range_data, uint8_t*& out_animated_data)
 			{
 				uint8_t* segment_data = header.segment_data.add_to(this);
 
@@ -254,7 +312,8 @@ namespace acl
 				out_animated_data = animated_data;
 			}
 
-			void						get_segment_data(const segment_header& header, const uint8_t*& out_format_per_track_data, const uint8_t*& out_range_data, const uint8_t*& out_animated_data) const
+			template<class segment_header_type>
+			void						get_segment_data(const segment_header_type& header, const uint8_t*& out_format_per_track_data, const uint8_t*& out_range_data, const uint8_t*& out_animated_data) const
 			{
 				const uint8_t* segment_data = header.segment_data.add_to(this);
 
@@ -294,6 +353,142 @@ namespace acl
 
 		static_assert(sizeof(optional_metadata_header) >= 15, "Optional metadata must be at least 15 bytes");
 
+		//////////////////////////////////////////////////////////////////////////
+		// Runtime metadata has the following layout:
+		// [ database_runtime_clip_header, database_runtime_segment_header+, database_runtime_clip_header, database_runtime_segment_header+, ... ]
+		// Each clip header is followed by a list of segment headers, one for each segment contained in the clip.
+		// The pattern repeats for every clip contained in the database.
+
+		// Header for runtime database segments
+		struct database_runtime_segment_header
+		{
+			// Each segment can be split into at most 3 tiers with tier 0 being in the compressed clip itself.
+			// As such, each segment can be split into at most 2 tiers within the database, each with it's own
+			// chunk. Each segment contains at most 32 samples. Tiers are sorted in order from most important
+			// to least important and as such should stream in that order.
+
+			// For thread safety reasons when streaming in asynchronously, we use a 64 bit atomic value per tier.
+			// This ensures that when we read and write to it, both the offset and the indices are updated in lock
+			// step. This avoids the need for fences on 64 bit systems.
+			// Each tier value contains: (sample offset << 32) | sample indices
+			// Sample indices is a bit set of which sample indices are stored in our chunk
+			// Sample offset to the data. Zero if the data isn't used or streamed in. Relative to start of bulk data.
+			std::atomic<uint64_t>			tier_metadata[2];
+		};
+
+		// Header for runtime database clips
+		struct database_runtime_clip_header
+		{
+			// Hash of the compressed clip stored in this entry
+			uint32_t						clip_hash;
+
+			uint32_t						padding;
+
+			// Segment headers follow in memory
+
+			//////////////////////////////////////////////////////////////////////////
+			// Utility functions that return pointers from their respective offsets.
+
+			database_runtime_segment_header*			get_segment_headers() { return add_offset_to_ptr<database_runtime_segment_header>(this, sizeof(database_runtime_clip_header)); }
+			const database_runtime_segment_header*		get_segment_headers() const { return add_offset_to_ptr<const database_runtime_segment_header>(this, sizeof(database_runtime_clip_header)); }
+		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// Chunk data has the following layout:
+		// [ database_chunk_header, database_chunk_segment_header+, sample data ... ]
+		// Each chunk starts with a header for itself and one header per segment it contains.
+		// Segments might belong to different clips within the same chunk.
+		// The actual sample data follows afterwards.
+
+		// Header for compressed database chunk segment header
+		struct database_chunk_segment_header
+		{
+			// Hash of the compressed clip stored in this segment
+			uint32_t										clip_hash;
+
+			// Bit set of which sample indices are stored in this chunk.
+			uint32_t										sample_indices;
+
+			// Offset in the chunk where the segment sample data begins. Relative to start of bulk data.
+			ptr_offset32<uint8_t>							samples_offset;
+
+			// Offset of the runtime clip header to update when we stream in/out
+			ptr_offset32<database_runtime_clip_header>		clip_header_offset;
+
+			// Offset of the runtime segment header to update when we stream in/out
+			ptr_offset32<database_runtime_segment_header>	segment_header_offset;
+
+			//////////////////////////////////////////////////////////////////////////
+			// Utility functions that return pointers from their respective offsets.
+
+			database_runtime_clip_header*					get_clip_header(void* base) const { return clip_header_offset.add_to(base); }
+			const database_runtime_clip_header*				get_clip_header(const void* base) const { return clip_header_offset.add_to(base); }
+
+			database_runtime_segment_header*				get_segment_header(void* base) const { return segment_header_offset.add_to(base); }
+			const database_runtime_segment_header*			get_segment_header(const void* base) const { return segment_header_offset.add_to(base); }
+		};
+
+		static_assert(alignof(database_chunk_segment_header), "Alignment must be 4 bytes");
+
+		// Header for compressed database bulk data chunks
+		struct database_chunk_header
+		{
+			// Each chunk contains multiple segments and is at most 1 MB in size.
+
+			// Chunk index.
+			uint32_t						index;
+
+			// Chunk size in bytes
+			uint32_t						size;
+
+			// Number of segments stored in this chunk.
+			uint32_t						num_segments;
+
+			// Chunk segment headers and sample data follows in memory
+
+			//////////////////////////////////////////////////////////////////////////
+			// Utility functions that return pointers from their respective offsets.
+
+			database_chunk_segment_header*			get_segment_headers() { return add_offset_to_ptr<database_chunk_segment_header>(this, sizeof(database_chunk_header)); }
+			const database_chunk_segment_header*	get_segment_headers() const { return add_offset_to_ptr<const database_chunk_segment_header>(this, sizeof(database_chunk_header)); }
+		};
+
+		static_assert((sizeof(database_chunk_header) % 4) == 0, "Header size must be a multiple of 4 bytes");
+
+		//////////////////////////////////////////////////////////////////////////
+		// Standalone database metadata headers
+
+		// Header for compressed database chunk descriptions
+		struct database_chunk_description
+		{
+			// Size in bytes of this chunk.
+			uint32_t								size;
+
+			// Offset in bulk data for this chunk, relative to the start of the bulk data.
+			ptr_offset32<database_chunk_header>		offset;
+
+			//////////////////////////////////////////////////////////////////////////
+			// Utility functions that return pointers from their respective offsets.
+
+			database_chunk_header*					get_chunk_header(void* base) const { return offset.add_to(base); }
+			const database_chunk_header*			get_chunk_header(const void* base) const { return offset.add_to(base); }
+		};
+
+		struct database_clip_metadata
+		{
+			// Hash of the compressed clip stored in this entry
+			uint32_t										clip_hash;
+
+			// Offset of the runtime clip header to update when we stream in/out
+			ptr_offset32<database_runtime_clip_header>		clip_header_offset;
+
+			//////////////////////////////////////////////////////////////////////////
+			// Utility functions that return pointers from their respective offsets.
+
+			database_runtime_clip_header*					get_clip_header(void* base) const { return clip_header_offset.add_to(base); }
+			const database_runtime_clip_header*				get_clip_header(const void* base) const { return clip_header_offset.add_to(base); }
+		};
+
 		// Header for 'compressed_database'
 		struct database_header
 		{
@@ -303,7 +498,53 @@ namespace acl
 			// Serialization version used to compress the database.
 			compressed_database_version16	version;
 
-			uint16_t padding;
+			// Misc packed data.
+			uint16_t						misc_packed;
+
+			// Number of chunks stored in the bulk data.
+			uint32_t						num_chunks;
+
+			// Number of clips stored in the database.
+			uint32_t						num_clips;
+
+			// Number of segments stored in the database.
+			uint32_t						num_segments;
+
+			// Offset to a list of clip metadata contained in this database.
+			ptr_offset32<database_clip_metadata>	clip_metadata_offset;
+
+			// Size in bytes of the bulk data.
+			uint32_t						bulk_data_size;
+
+			// Offset to the bulk data (optional, omitted if not inline).
+			ptr_offset32<uint8_t>			bulk_data_offset;
+
+			// Hash of the bulk data.
+			uint32_t						bulk_data_hash;
+
+			// Chunk descriptions follow in memory
+
+			//////////////////////////////////////////////////////////////////////////
+			// Accessors for 'misc_packed'
+
+			// Listed from LSB:
+			// Bit 0: is bulk data inline?
+			// Bits [1, 16): unused (15 bits)
+
+			bool get_is_bulk_data_inline() const { return (misc_packed & (1 << 0)) != 0; }
+			void set_is_bulk_data_inline(bool is_inline) { misc_packed = (misc_packed & ~(1 << 0)) | (static_cast<uint16_t>(is_inline) << 0); }
+
+			//////////////////////////////////////////////////////////////////////////
+			// Utility functions that return pointers from their respective offsets.
+
+			database_chunk_description*				get_chunk_descriptions() { return add_offset_to_ptr<database_chunk_description>(this, align_to(sizeof(database_header), 4)); }
+			const database_chunk_description*		get_chunk_descriptions() const { return add_offset_to_ptr<const database_chunk_description>(this, align_to(sizeof(database_header), 4)); }
+
+			database_clip_metadata*					get_clip_metadatas() { return clip_metadata_offset.add_to(this); }
+			const database_clip_metadata*			get_clip_metadatas() const { return clip_metadata_offset.add_to(this); }
+
+			uint8_t*								get_bulk_data() { return bulk_data_offset.safe_add_to(this); }
+			const uint8_t*							get_bulk_data() const { return bulk_data_offset.safe_add_to(this); }
 		};
 	}
 }

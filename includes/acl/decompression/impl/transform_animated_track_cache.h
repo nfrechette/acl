@@ -863,7 +863,7 @@ namespace acl
 
 			void ACL_DISABLE_SECURITY_COOKIE_CHECK initialize(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-				clip_sampling_context.clip_range_data = decomp_context.clip_range_data;
+				clip_sampling_context.clip_range_data = decomp_context.clip_range_data.add_to(decomp_context.tracks);
 
 				segment_sampling_context[0].format_per_track_data = decomp_context.format_per_track_data[0];
 				segment_sampling_context[0].segment_range_data = decomp_context.segment_range_data[0];

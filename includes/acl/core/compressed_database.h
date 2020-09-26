@@ -49,19 +49,27 @@ namespace acl
 	public:
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns the size in bytes of the compressed database.
-		// Includes the 'compressed_database' instance size and the size of all inline chunks
-		// but the streamable chunks.
+		// Includes the 'compressed_database' instance size and the size of the inline bulk data (if present).
 		uint32_t get_size() const { return m_buffer_header.size; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the total size in bytes of the compressed database.
-		// Includes 'get_size()' and all streamable chunks.
+		// Includes non-inline bulk data.
 		uint32_t get_total_size() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the size in bytes of the bulk data.
+		uint32_t get_bulk_data_size() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the hash for the compressed database.
 		// This is only used for sanity checking in case of memory corruption.
 		uint32_t get_hash() const { return m_buffer_header.hash; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the hash for the bulk data.
+		// This is only used for sanity checking in case of memory corruption.
+		uint32_t get_bulk_data_hash() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the binary tag for the compressed database.
@@ -71,6 +79,26 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the binary format version.
 		compressed_database_version16 get_version() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the number of chunks contained in this database.
+		uint32_t get_num_chunks() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the number of clips contained in this database.
+		uint32_t get_num_clips() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the number of segments contained in this database (for all clips).
+		uint32_t get_num_segments() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns whether or not the bulk data is stored inline in this compressed database.
+		bool is_bulk_data_inline() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns a pointer to the bulk data when it is inline, nullptr otherwise.
+		const uint8_t* get_bulk_data() const;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the compressed database is valid and usable.

@@ -34,6 +34,7 @@
 #include "acl/core/track_traits.h"
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/database/database.h"
 #include "acl/decompression/impl/decompression_context_selector.h"
 #include "acl/decompression/impl/decompression_version_selector.h"
 #include "acl/decompression/impl/scalar_track_decompression.h"
@@ -183,13 +184,17 @@ namespace acl
 	// desired data. All the data is sorted in order to ensure all reads are
 	// as contiguous as possible for optimal cache locality during decompression.
 	//////////////////////////////////////////////////////////////////////////
-	template<class decompression_settings_type>
+	template<class decompression_settings_type, class database_settings_type = default_database_settings>
 	class decompression_context
 	{
 	public:
 		//////////////////////////////////////////////////////////////////////////
 		// An alias to the decompression settings type.
 		using settings_type = decompression_settings_type;
+
+		//////////////////////////////////////////////////////////////////////////
+		// An alias to the database settings type.
+		using db_settings_type = database_settings_type;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs a context instance.
@@ -204,6 +209,11 @@ namespace acl
 		// Initializes the context instance to a particular compressed tracks instance.
 		// Returns whether initialization was successful or not.
 		bool initialize(const compressed_tracks& tracks);
+
+		//////////////////////////////////////////////////////////////////////////
+		// Initializes the context instance to a particular compressed tracks instance and its database instance.
+		// Returns whether initialization was successful or not.
+		bool initialize(const compressed_tracks& tracks, const database_context<database_settings_type>& database);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to a compressed tracks instance, false otherwise.
@@ -253,15 +263,16 @@ namespace acl
 		// Internal context data
 		context_type m_context;
 
-		static_assert(std::is_base_of<decompression_settings, settings_type>::value, "decompression_settings_type must derive from decompression_settings!");
+		static_assert(std::is_base_of<decompression_settings_type, settings_type>::value, "decompression_settings_type must derive from decompression_settings!");
+		static_assert(std::is_base_of<database_settings_type, db_settings_type>::value, "database_settings_type must derive from database_settings!");
 	};
 
 	//////////////////////////////////////////////////////////////////////////
 	// Allocates and constructs an instance of the decompression context
-	template<class decompression_settings_type>
-	inline decompression_context<decompression_settings_type>* make_decompression_context(iallocator& allocator)
+	template<class decompression_settings_type, class database_settings_type = default_database_settings>
+	inline decompression_context<decompression_settings_type, database_settings_type>* make_decompression_context(iallocator& allocator)
 	{
-		return allocate_type<decompression_context<decompression_settings_type>>(allocator);
+		return allocate_type<decompression_context<decompression_settings_type, database_settings_type>>(allocator);
 	}
 }
 
