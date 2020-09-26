@@ -584,9 +584,8 @@ namespace acl
 		// If we have a database with some data missing, we can't use the nearest samples, we have to interpolate
 		args.rounding_policy = sample_rounding_policy::nearest;
 
-		const compressed_tracks& tracks0 = *context0.get_compressed_tracks();
-		const compressed_tracks& tracks1 = *context1.get_compressed_tracks();
-		if (tracks0.has_database() || tracks1.has_database())
+		const compressed_tracks* tracks1 = context1.get_compressed_tracks();
+		if (tracks0->has_database() || tracks1->has_database())
 		{
 			// TODO: Check if all the data is loaded, always interpolate for now
 			args.rounding_policy = sample_rounding_policy::none;
