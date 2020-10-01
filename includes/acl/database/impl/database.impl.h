@@ -467,17 +467,17 @@ namespace acl
 		acl_impl::database_context_v0& context = m_context;
 		auto continuation = [&context, first_chunk_index, num_streaming_chunks](bool success)
 		{
-			const uint32_t num_chunks = context.db->get_num_chunks();
-			const bitset_description desc = bitset_description::make_from_num_bits(num_chunks);
+			const uint32_t num_chunks_ = context.db->get_num_chunks();
+			const bitset_description desc_ = bitset_description::make_from_num_bits(num_chunks_);
 
 			if (success)
 			{
 				// Mark chunks as done streaming out
-				bitset_set_range(context.loaded_chunks, desc, first_chunk_index, num_streaming_chunks, false);
+				bitset_set_range(context.loaded_chunks, desc_, first_chunk_index, num_streaming_chunks, false);
 			}
 
 			// Mark chunks as no longer streaming
-			bitset_set_range(context.streaming_chunks, desc, first_chunk_index, num_streaming_chunks, false);
+			bitset_set_range(context.streaming_chunks, desc_, first_chunk_index, num_streaming_chunks, false);
 		};
 
 		m_context.streamer->stream_out(stream_start_offset, stream_size, continuation);
