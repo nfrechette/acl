@@ -143,6 +143,7 @@ namespace acl
 	// along with an optional error result.
 	//////////////////////////////////////////////////////////////////////////
 	const compressed_database* make_compressed_database(const void* buffer, error_result* out_error_result = nullptr);
+	compressed_database* make_compressed_database(void* buffer, error_result* out_error_result = nullptr);
 }
 
 #include "acl/core/impl/compressed_database.impl.h"

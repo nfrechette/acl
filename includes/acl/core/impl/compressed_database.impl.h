@@ -108,4 +108,27 @@ namespace acl
 
 		return db;
 	}
+
+	inline compressed_database* make_compressed_database(void* buffer, error_result* out_error_result)
+	{
+		if (buffer == nullptr)
+		{
+			if (out_error_result != nullptr)
+				*out_error_result = error_result("Buffer is not a valid pointer");
+
+			return nullptr;
+		}
+
+		compressed_database* db = static_cast<compressed_database*>(buffer);
+		if (out_error_result != nullptr)
+		{
+			const error_result result = db->is_valid(false);
+			*out_error_result = result;
+
+			if (result.any())
+				return nullptr;
+		}
+
+		return db;
+	}
 }
