@@ -340,18 +340,18 @@ namespace acl
 		acl_impl::database_context_v0& context = m_context;
 		auto continuation = [&context, first_chunk_index, num_streaming_chunks](bool success)
 		{
-			const uint32_t num_chunks = context.db->get_num_chunks();
-			const bitset_description desc = bitset_description::make_from_num_bits(num_chunks);
+			const uint32_t num_chunks_ = context.db->get_num_chunks();
+			const bitset_description desc_ = bitset_description::make_from_num_bits(num_chunks_);
 
 			if (success)
 			{
 				// Register our new chunks
-				const acl_impl::database_header& header = acl_impl::get_database_header(*context.db);
-				const acl_impl::database_chunk_description* chunk_descriptions = header.get_chunk_descriptions();
+				const acl_impl::database_header& header_ = acl_impl::get_database_header(*context.db);
+				const acl_impl::database_chunk_description* chunk_descriptions_ = header_.get_chunk_descriptions();
 				const uint32_t end_chunk_index = first_chunk_index + num_streaming_chunks;
 				for (uint32_t chunk_index = first_chunk_index; chunk_index < end_chunk_index; ++chunk_index)
 				{
-					const acl_impl::database_chunk_description& chunk_description = chunk_descriptions[chunk_index];
+					const acl_impl::database_chunk_description& chunk_description = chunk_descriptions_[chunk_index];
 					const acl_impl::database_chunk_header* chunk_header = chunk_description.get_chunk_header(context.bulk_data);
 					ACL_ASSERT(chunk_header->index == chunk_index, "Unexpected chunk index");
 
@@ -373,11 +373,11 @@ namespace acl
 				}
 
 				// Mark chunks as done streaming
-				bitset_set_range(context.loaded_chunks, desc, first_chunk_index, num_streaming_chunks, true);
+				bitset_set_range(context.loaded_chunks, desc_, first_chunk_index, num_streaming_chunks, true);
 			}
 
 			// Mark chunks as no longer streaming
-			bitset_set_range(context.streaming_chunks, desc, first_chunk_index, num_streaming_chunks, false);
+			bitset_set_range(context.streaming_chunks, desc_, first_chunk_index, num_streaming_chunks, false);
 		};
 
 		m_context.streamer->stream_in(stream_start_offset, stream_size, continuation);
