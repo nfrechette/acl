@@ -337,8 +337,8 @@ namespace acl
 						tier1_metadata1 = db_segment_header1->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
 						tier2_metadata1 = db_segment_header1->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
 
-						sample_indices0 |= uint32_t(tier1_metadata1);
-						sample_indices0 |= uint32_t(tier2_metadata1);
+						sample_indices1 |= uint32_t(tier1_metadata1);
+						sample_indices1 |= uint32_t(tier2_metadata1);
 					}
 
 					// Find the closest loaded samples
