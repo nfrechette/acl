@@ -176,10 +176,6 @@ namespace acl
 		if (database.get_version() != compressed_database_version16::v02_00_00)
 			return false;
 
-		ACL_ASSERT(!database.is_bulk_data_inline(), "Bulk data must not be inline when initializing with a streamer");
-		if (database.is_bulk_data_inline())
-			return false;
-
 		ACL_ASSERT(streamer.is_initialized(), "Streamer must be initialized");
 		if (!streamer.is_initialized())
 			return false;
@@ -259,9 +255,6 @@ namespace acl
 	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::is_streamed_in() const
 	{
-		if (m_context.db->is_bulk_data_inline())
-			return true;
-
 		const uint32_t num_chunks = m_context.db->get_num_chunks();
 		const bitset_description desc = bitset_description::make_from_num_bits(num_chunks);
 
@@ -273,9 +266,6 @@ namespace acl
 	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::is_streaming() const
 	{
-		if (m_context.db->is_bulk_data_inline())
-			return false;
-
 		const uint32_t num_chunks = m_context.db->get_num_chunks();
 		const bitset_description desc = bitset_description::make_from_num_bits(num_chunks);
 
@@ -287,9 +277,6 @@ namespace acl
 	template<class database_settings_type>
 	inline database_stream_request_result database_context<database_settings_type>::stream_in(uint32_t num_chunks_to_stream)
 	{
-		if (m_context.db->is_bulk_data_inline())
-			return database_stream_request_result::done;	// Already streamed in, nothing to do
-
 		if (is_streaming())
 			return database_stream_request_result::streaming;	// Can't stream while we are streaming
 
@@ -388,9 +375,6 @@ namespace acl
 	template<class database_settings_type>
 	inline database_stream_request_result database_context<database_settings_type>::stream_out(uint32_t num_chunks_to_stream)
 	{
-		if (m_context.db->is_bulk_data_inline())
-			return database_stream_request_result::done;	// Cannot stream out, nothing to do
-
 		if (is_streaming())
 			return database_stream_request_result::streaming;	// Can't stream while we are streaming
 
