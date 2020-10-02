@@ -131,7 +131,6 @@ namespace acl
 				const uint32_t first_sample = drop_odd_samples ? 0 : 1;
 				for (uint32_t sample_index = first_sample; sample_index < segment.num_samples - 1; ++sample_index)
 				{
-					const bool is_odd = (sample_index % 2) != 0;
 					if (drop_odd_samples)
 					{
 						// Drop odd samples
