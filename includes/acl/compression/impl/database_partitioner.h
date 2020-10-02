@@ -119,15 +119,31 @@ namespace acl
 				for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 					segment.sample_tiers[sample_index] = database_tier8::high_importance;
 
-				// If we have an even number of samples, we can't remove every other one because we always retain the first and last sample
-				if ((segment.num_samples % 2) == 0)
-					continue;
+				if (segment.num_samples < 3)
+					continue;	// Not enough samples, nothing to drop
 
-				for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
+				// If we have an odd number of samples, we retain the first and last samples and drop every other sample (the odd samples)
+				//    e.g: [0, 1, 2, 3, 4] = high [0, 2, 4] + low [1, 3]
+				// If we have an even number of samples, we retain the first two and last samples and drop every other sample (the even samples)
+				//    e.g: [0, 1, 2, 3, 4, 5] = high [0, 1, 3, 5] + low [2, 4]
+				const bool drop_odd_samples = (segment.num_samples % 2) != 0;
+
+				const uint32_t first_sample = drop_odd_samples ? 0 : 1;
+				for (uint32_t sample_index = first_sample; sample_index < segment.num_samples - 1; ++sample_index)
 				{
-					// Drop every odd sample
-					if ((sample_index % 2) == 1)
-						segment.sample_tiers[sample_index] = database_tier8::low_importance;
+					const bool is_odd = (sample_index % 2) != 0;
+					if (drop_odd_samples)
+					{
+						// Drop odd samples
+						if ((sample_index % 2) != 0)
+							segment.sample_tiers[sample_index] = database_tier8::low_importance;
+					}
+					else
+					{
+						// Drop even samples
+						if ((sample_index % 2) == 0)
+							segment.sample_tiers[sample_index] = database_tier8::low_importance;
+					}
 				}
 			}
 		}
