@@ -29,10 +29,10 @@
 #include "acl/core/error.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/database/idatabase_streamer.h"
 #include "acl/database/impl/database_context.h"
 
 #include <cstdint>
-#include <functional>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -66,19 +66,6 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	struct default_database_settings : public database_settings
 	{
-	};
-
-	class idatabase_streamer
-	{
-	public:
-		virtual ~idatabase_streamer() {}
-
-		virtual bool is_initialized() const = 0;
-
-		virtual const uint8_t* get_bulk_data() const = 0;
-
-		virtual void stream_in(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) = 0;
-		virtual void stream_out(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) = 0;
 	};
 
 	class debug_database_streamer final : public idatabase_streamer
