@@ -68,49 +68,6 @@ namespace acl
 	{
 	};
 
-	class debug_database_streamer final : public idatabase_streamer
-	{
-	public:
-		debug_database_streamer(iallocator& allocator, const uint8_t* bulk_data, uint32_t bulk_data_size)
-			: m_allocator(allocator)
-			, m_src_bulk_data(bulk_data)
-			, m_streamed_bulk_data(allocate_type_array<uint8_t>(allocator, bulk_data_size))
-			, m_bulk_data_size(bulk_data_size)
-		{
-			std::memset(m_streamed_bulk_data, 0xCD, bulk_data_size);
-		}
-
-		virtual ~debug_database_streamer()
-		{
-			deallocate_type_array(m_allocator, m_streamed_bulk_data, m_bulk_data_size);
-		}
-
-		virtual bool is_initialized() const override {return m_src_bulk_data != nullptr; }
-
-		virtual const uint8_t* get_bulk_data() const override { return m_streamed_bulk_data; }
-
-		virtual void stream_in(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) override
-		{
-			std::memcpy(m_streamed_bulk_data + offset, m_src_bulk_data + offset, size);
-			continuation(true);
-		}
-
-		virtual void stream_out(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) override
-		{
-			std::memset(m_streamed_bulk_data + offset, 0xCD, size);
-			continuation(true);
-		}
-
-	private:
-		debug_database_streamer(const debug_database_streamer&) = delete;
-		debug_database_streamer& operator=(const debug_database_streamer&) = delete;
-
-		iallocator& m_allocator;
-		const uint8_t* m_src_bulk_data;
-		uint8_t* m_streamed_bulk_data;
-		uint32_t m_bulk_data_size;
-	};
-
 	enum class database_stream_request_result
 	{
 		done,
