@@ -81,6 +81,26 @@ namespace acl
 		return error_result();
 	}
 
+	inline error_result database_merge_mapping::is_valid() const
+	{
+		if (tracks == nullptr)
+			return error_result("No compressed tracks provided");
+
+		if (tracks->is_valid(false).any())
+			return error_result("Compressed tracks aren't valid");
+
+		if (database == nullptr)
+			return error_result("No compressed database provided");
+
+		if (database->is_valid(false).any())
+			return error_result("Compressed database isn't valid");
+
+		if (!database->contains(*tracks))
+			return error_result("Compressed database doesn't contain the compressed tracks");
+
+		return error_result();
+	}
+
 	inline error_result merge_compressed_databases(iallocator& allocator, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, compressed_database*& out_merged_compressed_database)
 	{
 		(void)allocator;

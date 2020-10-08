@@ -127,7 +127,8 @@ namespace acl
 		compressed_tracks* tracks;
 		const compressed_database* database;
 
-		// TODO: Implement is_valid function that checks the mapping is valid
+		// Checks if the mapping is valid
+		error_result is_valid() const;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
