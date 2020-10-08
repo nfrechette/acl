@@ -64,6 +64,25 @@ namespace acl
 
 	inline const uint8_t* compressed_database::get_bulk_data() const { return acl_impl::get_database_header(*this).get_bulk_data(); }
 
+	inline bool compressed_database::contains(const compressed_tracks& tracks) const
+	{
+		if (!tracks.has_database())
+			return false;	// Clip not bound to anything
+
+		const acl_impl::database_header& db_header = acl_impl::get_database_header(*this);
+		const acl_impl::database_clip_metadata* clips = db_header.get_clip_metadatas();
+		const uint32_t clip_hash = tracks.get_hash();
+		const uint32_t num_clips = db_header.num_clips;
+		for (uint32_t clip_index = 0; clip_index < num_clips; ++clip_index)
+		{
+			if (clips[clip_index].clip_hash == clip_hash)
+				return true;	// Contained!
+		}
+
+		// We didn't find our clip
+		return false;
+	}
+
 	inline error_result compressed_database::is_valid(bool check_hash) const
 	{
 		if (!is_aligned_to(this, alignof(compressed_database)))

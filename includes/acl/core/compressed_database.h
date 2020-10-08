@@ -26,6 +26,7 @@
 
 #include "acl/core/buffer_tag.h"
 #include "acl/core/compressed_database_version.h"
+#include "acl/core/compressed_tracks.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -99,6 +100,10 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a pointer to the bulk data when it is inline, nullptr otherwise.
 		const uint8_t* get_bulk_data() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if the compressed database contains the provided compressed tracks instance.
+		bool contains(const compressed_tracks& tracks) const;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns true if the compressed database is valid and usable.
