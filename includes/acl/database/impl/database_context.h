@@ -58,7 +58,7 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 
 			const compressed_database* get_compressed_database() const { return db; }
-			//compressed_tracks_version16 get_version() const { return db->get_version(); }
+			compressed_database_version16 get_version() const { return db->get_version(); }
 			bool is_initialized() const { return db != nullptr; }
 			void reset() { db = nullptr; }
 		};
