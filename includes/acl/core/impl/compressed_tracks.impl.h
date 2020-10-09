@@ -43,6 +43,11 @@ namespace acl
 			return *reinterpret_cast<const scalar_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
 		}
 
+		inline transform_tracks_header& get_transform_tracks_header(compressed_tracks& tracks)
+		{
+			return *reinterpret_cast<transform_tracks_header*>(reinterpret_cast<uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
+		}
+
 		inline const transform_tracks_header& get_transform_tracks_header(const compressed_tracks& tracks)
 		{
 			return *reinterpret_cast<const transform_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
