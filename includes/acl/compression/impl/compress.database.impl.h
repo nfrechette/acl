@@ -98,6 +98,12 @@ namespace acl
 		if (!database->contains(*tracks))
 			return error_result("Compressed database doesn't contain the compressed tracks");
 
+		if (!database->is_bulk_data_inline())
+			return error_result("Compressed database does not have inline bulk data");
+
+		if (database->get_num_clips() != 1)
+			return error_result("Compressed database already contains more than 1 clip");
+
 		return error_result();
 	}
 
