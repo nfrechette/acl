@@ -243,7 +243,19 @@ namespace acl
 		if (!tracks_db_header->clip_header_offset.is_valid())
 			return false;	// Invalid clip header offset
 
-		// TODO: Validate that the offset is valid otherwise we could read out of bounds
+		const uint32_t num_clips = m_context.db->get_num_clips();
+		const uint32_t num_segments = m_context.db->get_num_segments();
+
+		uint32_t largest_offset = 0;
+		largest_offset += num_clips * sizeof(acl_impl::database_runtime_clip_header);
+		largest_offset += num_segments * sizeof(acl_impl::database_runtime_segment_header);
+
+		// We can't read past the end of the last entry
+		largest_offset -= sizeof(acl_impl::database_runtime_segment_header);
+
+		if (tracks_db_header->clip_header_offset > largest_offset)
+			return false;	// Invalid clip header offset
+
 		const acl_impl::database_runtime_clip_header* db_clip_header = tracks_db_header->clip_header_offset.add_to(m_context.clip_segment_headers);
 		if (db_clip_header->clip_hash != tracks.get_hash())
 			return false;	// Clip not bound to this database instance
