@@ -913,9 +913,14 @@ static void validate_convert(iallocator& allocator, const track_array& raw_track
 	allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 }
 
-static void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, const compressed_database& db)
+static void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric,
+	const compressed_tracks& compressed_tracks0, const compressed_database& db0,
+	const compressed_tracks& compressed_tracks1, const compressed_database& db1)
 {
 	using namespace acl_impl;
+
+	ACL_ASSERT(db0.contains(compressed_tracks0), "Database should contain our clip");
+	ACL_ASSERT(db1.contains(compressed_tracks1), "Database should contain our clip");
 
 	// Disable floating point exceptions since decompression assumes it
 	scope_disable_fp_exceptions fp_off;
@@ -926,8 +931,8 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
 		acl::database_context<acl::debug_database_settings> db_context;
 
-		bool initialized = db_context.initialize(allocator, db);
-		initialized = initialized && context.initialize(compressed_tracks_, db_context);
+		bool initialized = db_context.initialize(allocator, db0);
+		initialized = initialized && context.initialize(compressed_tracks0, db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		error_tier1_ref = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
@@ -935,18 +940,21 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 
 	// Split the database bulk data out
 	compressed_database* split_db = nullptr;
-	uint8_t* db_bulk_data = nullptr;
-	const error_result split_result = split_compressed_database_bulk_data(allocator, db, split_db, db_bulk_data);
+	uint8_t* split_db_bulk_data = nullptr;
+	const error_result split_result = split_compressed_database_bulk_data(allocator, db0, split_db, split_db_bulk_data);
 	ACL_ASSERT(split_result.empty(), "Failed to split database");
+	ACL_ASSERT(split_db->is_valid(true).empty(), "Failed to split database");
+
+	ACL_ASSERT(split_db->contains(compressed_tracks0), "Database should contain our clip");
 
 	// Measure the tier error through simulated streaming
 	{
 		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
 		acl::database_context<acl::debug_database_settings> db_context;
-		acl::debug_database_streamer db_streamer(allocator, db_bulk_data, split_db->get_bulk_data_size());
+		acl::debug_database_streamer db_streamer(allocator, split_db_bulk_data, split_db->get_bulk_data_size());
 
 		bool initialized = db_context.initialize(allocator, *split_db, db_streamer);
-		initialized = initialized && context.initialize(compressed_tracks_, db_context);
+		initialized = initialized && context.initialize(compressed_tracks0, db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 		ACL_ASSERT(!db_context.is_streamed_in(), "Tier 1 shouldn't be streamed in yet");
 
@@ -972,9 +980,98 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 		ACL_ASSERT(error_tier0_tmp.error == error_tier0.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
 	}
 
+	// Duplicate our clips so we can modify them
+	compressed_tracks* compressed_tracks_copy0 = safe_ptr_cast<compressed_tracks>(allocate_type_array_aligned<uint8_t>(allocator, compressed_tracks0.get_size(), alignof(compressed_tracks)));
+	compressed_tracks* compressed_tracks_copy1 = safe_ptr_cast<compressed_tracks>(allocate_type_array_aligned<uint8_t>(allocator, compressed_tracks1.get_size(), alignof(compressed_tracks)));
+	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy0), &compressed_tracks0, compressed_tracks0.get_size());
+	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy1), &compressed_tracks1, compressed_tracks1.get_size());
+
+	// Merge our everything into a new database
+	database_merge_mapping mappings[2];
+	mappings[0].tracks = compressed_tracks_copy0;
+	mappings[0].database = &db0;
+	mappings[1].tracks = compressed_tracks_copy1;
+	mappings[1].database = &db1;
+
+	compressed_database* merged_db = nullptr;
+	const error_result merge_result = merge_compressed_databases(allocator, &mappings[0], 2, merged_db);
+	ACL_ASSERT(merge_result.empty(), "Failed to merge databases");
+	ACL_ASSERT(merged_db->is_valid(true).empty(), "Failed to merge database");
+
+	ACL_ASSERT(merged_db->contains(*compressed_tracks_copy0), "New database should contain our clip");
+	ACL_ASSERT(merged_db->contains(*compressed_tracks_copy1), "New database should contain our clip");
+
+	{
+		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+		acl::database_context<acl::debug_database_settings> db_context;
+
+		bool initialized = db_context.initialize(allocator, *merged_db);
+		initialized = initialized && context.initialize(*compressed_tracks_copy0, db_context);
+		ACL_ASSERT(initialized, "Failed to initialize decompression context");
+
+		const track_error error_tier1_ref_merged = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier1_ref.error == error_tier1_ref_merged.error, "Reference error should be equal to merged error");
+	}
+
+	// Split the database bulk data out
+	compressed_database* split_merged_db = nullptr;
+	uint8_t* split_merged_db_bulk_data = nullptr;
+	const error_result split_merge_result = split_compressed_database_bulk_data(allocator, *merged_db, split_merged_db, split_merged_db_bulk_data);
+	ACL_ASSERT(split_merge_result.empty(), "Failed to split merged database");
+	ACL_ASSERT(split_merged_db->is_valid(true).empty(), "Failed to split merged database");
+
+	ACL_ASSERT(split_merged_db->contains(*compressed_tracks_copy0), "New database should contain our clip");
+	ACL_ASSERT(split_merged_db->contains(*compressed_tracks_copy1), "New database should contain our clip");
+
+	// Measure the tier error through simulated streaming
+	{
+		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context0;
+		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context1;
+		acl::database_context<acl::debug_database_settings> db_context;
+		acl::debug_database_streamer db_streamer(allocator, split_merged_db_bulk_data, split_merged_db->get_bulk_data_size());
+
+		bool initialized = db_context.initialize(allocator, *split_merged_db, db_streamer);
+		initialized = initialized && context0.initialize(*compressed_tracks_copy0, db_context);
+		initialized = initialized && context1.initialize(*compressed_tracks_copy1, db_context);
+		ACL_ASSERT(initialized, "Failed to initialize decompression context");
+		ACL_ASSERT(!db_context.is_streamed_in(), "Tier 1 shouldn't be streamed in yet");
+
+		const track_error error_tier00 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier00.error >= error_tier1_ref.error, "Tier 0 error should be higher or equal to tier 1");
+		const track_error error_tier01 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier01.error >= error_tier1_ref.error, "Tier 0 error should be higher or equal to tier 1");
+
+		// Stream in our tier 1 data
+		const acl::database_stream_request_result stream_in_result = db_context.stream_in();
+		ACL_ASSERT(stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
+		const bool is_streamed_in = db_context.is_streamed_in();
+		ACL_ASSERT(is_streamed_in, "Failed to stream in tier 1");
+
+		const track_error error_tier10 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier10.error == error_tier1_ref.error, "Tier 1 split error should be equal to tier 1 inline");
+		const track_error error_tier11 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier11.error == error_tier1_ref.error, "Tier 1 split error should be equal to tier 1 inline");
+
+		// Stream out our tier 1 data
+		const acl::database_stream_request_result stream_out_result = db_context.stream_out();
+		ACL_ASSERT(stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
+		const bool is_streamed_out = !db_context.is_streamed_in();
+		ACL_ASSERT(is_streamed_out, "Failed to stream out tier 1");
+
+		const track_error error_tier0_tmp0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier0_tmp0.error == error_tier00.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
+		const track_error error_tier0_tmp1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+		ACL_ASSERT(error_tier0_tmp1.error == error_tier01.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
+	}
+
 	// Free our memory
-	allocator.deallocate(db_bulk_data, split_db->get_bulk_data_size());
+	allocator.deallocate(split_db_bulk_data, split_db->get_bulk_data_size());
 	allocator.deallocate(split_db, split_db->get_size());
+	allocator.deallocate(compressed_tracks_copy0, compressed_tracks_copy0->get_size());
+	allocator.deallocate(compressed_tracks_copy1, compressed_tracks_copy1->get_size());
+	allocator.deallocate(split_merged_db_bulk_data, split_merged_db->get_bulk_data_size());
+	allocator.deallocate(split_merged_db, split_merged_db->get_size());
+	allocator.deallocate(merged_db, merged_db->get_size());
 }
 #endif
 
@@ -1052,7 +1149,29 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			validate_convert(allocator, transform_tracks);
 
 			if (db != nullptr)
-				validate_db(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, *db);
+			{
+				// Drop all the metadata and make a second copy for testing
+				// This will ensure we have two clips with different hashes
+				settings.include_track_list_name = false;
+				settings.include_track_names = false;
+				settings.include_parent_track_indices = false;
+				settings.include_track_descriptions = false;
+
+				compressed_database* db1 = nullptr;
+				compressed_tracks* compressed_tracks1 = nullptr;
+
+				result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks1, db1, stats);
+
+				ACL_ASSERT(result.empty(), result.c_str());
+				ACL_ASSERT(compressed_tracks1->is_valid(true).empty(), "Compressed tracks are invalid");
+				ACL_ASSERT(db1->is_valid(true).empty(), "Compressed database is invalid");
+				ACL_ASSERT(compressed_tracks_->get_hash() != compressed_tracks1->get_hash(), "Hashes should not match");
+
+				validate_db(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, *db, *compressed_tracks1, *db1);
+
+				allocator.deallocate(compressed_tracks1, compressed_tracks1->get_size());
+				allocator.deallocate(db1, db1->get_size());
+			}
 		}
 #endif
 
