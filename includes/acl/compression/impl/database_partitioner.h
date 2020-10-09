@@ -170,6 +170,8 @@ namespace acl
 				}
 
 				const uint32_t segment_data_size = (total_bit_size + 7) / 8;
+				ACL_ASSERT(segment_data_size + simd_padding + sizeof(database_chunk_segment_header) <= max_chunk_size, "Segment is larger than our max chunk size");
+
 				const uint32_t new_chunk_size = chunk_size + segment_data_size + simd_padding + sizeof(database_chunk_segment_header);
 				if (new_chunk_size > max_chunk_size)
 				{
