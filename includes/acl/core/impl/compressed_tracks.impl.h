@@ -211,26 +211,39 @@ namespace acl
 		return error_result();
 	}
 
+	namespace acl_impl
+	{
+		inline const compressed_tracks* make_compressed_tracks_impl(const void* buffer, error_result* out_error_result)
+		{
+			if (buffer == nullptr)
+			{
+				if (out_error_result != nullptr)
+					*out_error_result = error_result("Buffer is not a valid pointer");
+
+				return nullptr;
+			}
+
+			const compressed_tracks* clip = static_cast<const compressed_tracks*>(buffer);
+			if (out_error_result != nullptr)
+			{
+				const error_result result = clip->is_valid(false);
+				*out_error_result = result;
+
+				if (result.any())
+					return nullptr;
+			}
+
+			return clip;
+		}
+	}
+
 	inline const compressed_tracks* make_compressed_tracks(const void* buffer, error_result* out_error_result)
 	{
-		if (buffer == nullptr)
-		{
-			if (out_error_result != nullptr)
-				*out_error_result = error_result("Buffer is not a valid pointer");
+		return acl_impl::make_compressed_tracks_impl(buffer, out_error_result);
+	}
 
-			return nullptr;
-		}
-
-		const compressed_tracks* clip = static_cast<const compressed_tracks*>(buffer);
-		if (out_error_result != nullptr)
-		{
-			const error_result result = clip->is_valid(false);
-			*out_error_result = result;
-
-			if (result.any())
-				return nullptr;
-		}
-
-		return clip;
+	inline compressed_tracks* make_compressed_tracks(void* buffer, error_result* out_error_result)
+	{
+		return const_cast<compressed_tracks*>(acl_impl::make_compressed_tracks_impl(buffer, out_error_result));
 	}
 }

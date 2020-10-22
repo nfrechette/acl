@@ -157,6 +157,13 @@ namespace acl
 	// along with an optional error result.
 	//////////////////////////////////////////////////////////////////////////
 	const compressed_tracks* make_compressed_tracks(const void* buffer, error_result* out_error_result = nullptr);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Create a compressed_tracks instance in place from a raw memory buffer.
+	// If the buffer does not contain a valid compressed_tracks instance, nullptr is returned
+	// along with an optional error result.
+	//////////////////////////////////////////////////////////////////////////
+	compressed_tracks* make_compressed_tracks(void* buffer, error_result* out_error_result = nullptr);
 }
 
 #include "acl/core/impl/compressed_tracks.impl.h"
