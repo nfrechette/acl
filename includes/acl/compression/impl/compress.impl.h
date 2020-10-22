@@ -342,7 +342,7 @@ namespace acl
 			if (split_into_database)
 			{
 				tracks_database_header* tracks_db_header = transforms_header->get_database_header();
-				tracks_db_header->clip_header_offset = 0;
+				tracks_db_header->clip_header_offset = 0;	// Always first clip when compressing
 			}
 
 			const uint32_t segment_data_start_offset = transforms_header->animated_group_types_offset + animated_group_types_size;
