@@ -215,14 +215,13 @@ namespace acl
 		struct tracks_database_header
 		{
 			// Offset of the runtime clip header to update when we stream in/out.
-			// This is invalid if the clip isn't split into a database.
 			ptr_offset32<database_runtime_clip_header>		clip_header_offset;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
 
-			database_runtime_clip_header*					get_clip_header(void* base) { return clip_header_offset.safe_add_to(base); }
-			const database_runtime_clip_header*				get_clip_header(const void* base) const { return clip_header_offset.safe_add_to(base); }
+			database_runtime_clip_header*					get_clip_header(void* base) { return clip_header_offset.add_to(base); }
+			const database_runtime_clip_header*				get_clip_header(const void* base) const { return clip_header_offset.add_to(base); }
 		};
 
 		// Header for transform 'compressed_tracks'

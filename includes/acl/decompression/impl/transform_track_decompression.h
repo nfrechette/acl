@@ -189,7 +189,7 @@ namespace acl
 						// Possible cache miss for the clip header offset
 						// Cache miss for the db clip segment headers pointer
 						const tracks_database_header* tracks_db_header = transform_header.get_database_header();
-						const database_runtime_clip_header* db_clip_header = tracks_db_header->clip_header_offset.add_to(db->clip_segment_headers);
+						const database_runtime_clip_header* db_clip_header = tracks_db_header->get_clip_header(db->clip_segment_headers);
 						const database_runtime_segment_header* db_segment_headers = db_clip_header->get_segment_headers();
 
 						// Cache miss for the db segment headers
@@ -322,7 +322,7 @@ namespace acl
 						// Possible cache miss for the clip header offset
 						// Cache miss for the db clip segment headers pointer
 						const tracks_database_header* tracks_db_header = transform_header.get_database_header();
-						const database_runtime_clip_header* db_clip_header = tracks_db_header->clip_header_offset.add_to(db->clip_segment_headers);
+						const database_runtime_clip_header* db_clip_header = tracks_db_header->get_clip_header(db->clip_segment_headers);
 						const database_runtime_segment_header* db_segment_headers = db_clip_header->get_segment_headers();
 
 						// Cache miss for the db segment headers

@@ -256,7 +256,7 @@ namespace acl
 		if (tracks_db_header->clip_header_offset > largest_offset)
 			return false;	// Invalid clip header offset
 
-		const acl_impl::database_runtime_clip_header* db_clip_header = tracks_db_header->clip_header_offset.add_to(m_context.clip_segment_headers);
+		const acl_impl::database_runtime_clip_header* db_clip_header = tracks_db_header->get_clip_header(m_context.clip_segment_headers);
 		if (db_clip_header->clip_hash != tracks.get_hash())
 			return false;	// Clip not bound to this database instance
 
