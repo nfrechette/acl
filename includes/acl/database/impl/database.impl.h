@@ -233,6 +233,10 @@ namespace acl
 	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::contains(const compressed_tracks& tracks) const
 	{
+		ACL_ASSERT(is_initialized(), "Database isn't initialized");
+		if (!is_initialized())
+			return false;
+
 		if (!tracks.has_database())
 			return false;	// Clip not bound to anything
 
@@ -267,6 +271,10 @@ namespace acl
 	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::is_streamed_in() const
 	{
+		ACL_ASSERT(is_initialized(), "Database isn't initialized");
+		if (!is_initialized())
+			return false;
+
 		const uint32_t num_chunks = m_context.db->get_num_chunks();
 		const bitset_description desc = bitset_description::make_from_num_bits(num_chunks);
 
@@ -278,6 +286,10 @@ namespace acl
 	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::is_streaming() const
 	{
+		ACL_ASSERT(is_initialized(), "Database isn't initialized");
+		if (!is_initialized())
+			return false;
+
 		const uint32_t num_chunks = m_context.db->get_num_chunks();
 		const bitset_description desc = bitset_description::make_from_num_bits(num_chunks);
 
@@ -289,6 +301,10 @@ namespace acl
 	template<class database_settings_type>
 	inline database_stream_request_result database_context<database_settings_type>::stream_in(uint32_t num_chunks_to_stream)
 	{
+		ACL_ASSERT(is_initialized(), "Database isn't initialized");
+		if (!is_initialized())
+			return database_stream_request_result::not_initialized;
+
 		if (is_streaming())
 			return database_stream_request_result::streaming;	// Can't stream while we are streaming
 
@@ -387,6 +403,10 @@ namespace acl
 	template<class database_settings_type>
 	inline database_stream_request_result database_context<database_settings_type>::stream_out(uint32_t num_chunks_to_stream)
 	{
+		ACL_ASSERT(is_initialized(), "Database isn't initialized");
+		if (!is_initialized())
+			return database_stream_request_result::not_initialized;
+
 		if (is_streaming())
 			return database_stream_request_result::streaming;	// Can't stream while we are streaming
 

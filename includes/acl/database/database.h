@@ -84,6 +84,10 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// The streaming request has been ignored because streaming is already in progress
 		streaming,
+
+		//////////////////////////////////////////////////////////////////////////
+		// The database context isn't initialized
+		not_initialized,
 	};
 
 	template<class database_settings_type>
