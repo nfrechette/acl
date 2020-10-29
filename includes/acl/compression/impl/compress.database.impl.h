@@ -417,13 +417,13 @@ namespace acl
 		{
 			uint32_t clip_index = 0;
 			uint32_t runtime_header_offset = 0;
-			uint32_t last_clip_hash = 0;
 			for (uint32_t mapping_index = 0; mapping_index < num_merge_mappings; ++mapping_index)
 			{
 				const compressed_tracks& tracks = *merge_mappings[mapping_index].tracks;
 				const compressed_database& database = *merge_mappings[mapping_index].database;
 
 				uint32_t bulk_data_offset = 0;
+				uint32_t last_clip_hash = 0;
 				while (bulk_data_offset < database.get_bulk_data_size())
 				{
 					const database_chunk_header* chunk_header = safe_ptr_cast<const database_chunk_header>(database.get_bulk_data() + bulk_data_offset);
@@ -456,7 +456,6 @@ namespace acl
 		{
 			uint32_t clip_index = 0;
 			uint32_t runtime_header_offset = 0;
-			uint32_t last_clip_hash = 0;
 			for (uint32_t mapping_index = 0; mapping_index < num_merge_mappings; ++mapping_index)
 			{
 				compressed_tracks& tracks = *merge_mappings[mapping_index].tracks;
@@ -474,6 +473,7 @@ namespace acl
 
 				// Update our header offset
 				uint32_t bulk_data_offset = 0;
+				uint32_t last_clip_hash = 0;
 				while (bulk_data_offset < database.get_bulk_data_size())
 				{
 					const database_chunk_header* chunk_header = safe_ptr_cast<const database_chunk_header>(database.get_bulk_data() + bulk_data_offset);
