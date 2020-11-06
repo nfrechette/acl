@@ -25,7 +25,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/algorithm_types.h"
-#include "acl/core/compressed_database_version.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/ptr_offset.h"
 #include "acl/core/range_reduction_types.h"
@@ -495,7 +494,7 @@ namespace acl
 			uint32_t						tag;
 
 			// Serialization version used to compress the database.
-			compressed_database_version16	version;
+			compressed_tracks_version16		version;
 
 			// Misc packed data.
 			uint16_t						misc_packed;

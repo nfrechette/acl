@@ -524,7 +524,7 @@ namespace acl
 
 				// Write our header
 				db_header->tag = static_cast<uint32_t>(buffer_tag32::compressed_database);
-				db_header->version = compressed_database_version16::latest;
+				db_header->version = compressed_tracks_version16::latest;
 				db_header->num_chunks = num_chunks;
 				db_header->num_clips = 1;	// Only one when we compress
 				db_header->num_segments = lossy_clip_context.num_segments;

@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/compressed_database.h"
-#include "acl/core/compressed_database_version.h"
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -48,7 +48,7 @@ namespace acl
 		// versions. This allows the creation of context objects specialized for specific
 		// versions which yields optimal performance.
 		// Must be static constexpr!
-		static constexpr compressed_database_version16 version_supported() { return compressed_database_version16::any; }
+		static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::any; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////

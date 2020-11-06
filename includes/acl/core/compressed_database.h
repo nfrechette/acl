@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/buffer_tag.h"
-#include "acl/core/compressed_database_version.h"
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
@@ -79,7 +79,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the binary format version.
-		compressed_database_version16 get_version() const;
+		compressed_tracks_version16 get_version() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of chunks contained in this database.

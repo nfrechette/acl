@@ -52,7 +52,7 @@ namespace acl
 
 	inline buffer_tag32 compressed_database::get_tag() const { return static_cast<buffer_tag32>(acl_impl::get_database_header(*this).tag); }
 
-	inline compressed_database_version16 compressed_database::get_version() const { return acl_impl::get_database_header(*this).version; }
+	inline compressed_tracks_version16 compressed_database::get_version() const { return acl_impl::get_database_header(*this).version; }
 
 	inline uint32_t compressed_database::get_num_chunks() const { return acl_impl::get_database_header(*this).num_chunks; }
 
@@ -92,7 +92,7 @@ namespace acl
 		if (header.tag != static_cast<uint32_t>(buffer_tag32::compressed_database))
 			return error_result("Invalid tag");
 
-		if (header.version < compressed_database_version16::first || header.version > compressed_database_version16::latest)
+		if (header.version < compressed_tracks_version16::first || header.version > compressed_tracks_version16::latest)
 			return error_result("Invalid database version");
 
 		if (check_hash)

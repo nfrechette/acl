@@ -28,7 +28,7 @@
 
 #include "acl/core/bitset.h"
 #include "acl/core/compressed_database.h"
-#include "acl/core/compressed_database_version.h"
+#include "acl/core/compressed_tracks_version.h"
 #include "acl/database/impl/database_context.h"
 
 #include <cstdint>
@@ -81,8 +81,8 @@ namespace acl
 		if (!is_valid)
 			return false;
 
-		ACL_ASSERT(database.get_version() == compressed_database_version16::v02_00_00, "Unsupported version");
-		if (database.get_version() != compressed_database_version16::v02_00_00)
+		ACL_ASSERT(database.get_version() == compressed_tracks_version16::v02_00_00, "Unsupported version");
+		if (database.get_version() != compressed_tracks_version16::v02_00_00)
 			return false;
 
 		ACL_ASSERT(database.is_bulk_data_inline(), "Bulk data must be inline when initializing without a streamer");
@@ -166,8 +166,8 @@ namespace acl
 		if (!is_valid)
 			return false;
 
-		ACL_ASSERT(database.get_version() == compressed_database_version16::v02_00_00, "Unsupported version");
-		if (database.get_version() != compressed_database_version16::v02_00_00)
+		ACL_ASSERT(database.get_version() == compressed_tracks_version16::v02_00_00, "Unsupported version");
+		if (database.get_version() != compressed_tracks_version16::v02_00_00)
 			return false;
 
 		ACL_ASSERT(streamer.is_initialized(), "Streamer must be initialized");
