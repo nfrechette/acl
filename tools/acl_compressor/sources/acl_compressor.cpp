@@ -446,6 +446,11 @@ static bool parse_options(int argc, char** argv, Options& options)
 
 #if defined(ACL_USE_SJSON)
 #if defined(ACL_HAS_ASSERT_CHECKS)
+struct debug_transform_decompression_settings_with_db : public acl::debug_transform_decompression_settings
+{
+	using database_settings_type = acl::debug_database_settings;
+};
+
 static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, const compressed_database* db, double regression_error_threshold)
 {
 	using namespace acl_impl;
@@ -453,7 +458,7 @@ static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw
 	// Disable floating point exceptions since decompression assumes it
 	scope_disable_fp_exceptions fp_off;
 
-	acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+	acl::decompression_context<debug_transform_decompression_settings_with_db> context;
 	acl::database_context<acl::debug_database_settings> db_context;
 
 	bool initialized;
@@ -928,7 +933,7 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	// Reference error with the bulk data inline and everything loaded
 	track_error error_tier1_ref;
 	{
-		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+		acl::decompression_context<debug_transform_decompression_settings_with_db> context;
 		acl::database_context<acl::debug_database_settings> db_context;
 
 		bool initialized = db_context.initialize(allocator, db0);
@@ -949,7 +954,7 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 
 	// Measure the tier error through simulated streaming
 	{
-		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+		acl::decompression_context<debug_transform_decompression_settings_with_db> context;
 		acl::database_context<acl::debug_database_settings> db_context;
 		acl::debug_database_streamer db_streamer(allocator, split_db_bulk_data, split_db->get_bulk_data_size());
 
@@ -1002,7 +1007,7 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	ACL_ASSERT(merged_db->contains(*compressed_tracks_copy1), "New database should contain our clip");
 
 	{
-		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+		acl::decompression_context<debug_transform_decompression_settings_with_db> context;
 		acl::database_context<acl::debug_database_settings> db_context;
 
 		bool initialized = db_context.initialize(allocator, *merged_db);
@@ -1025,8 +1030,8 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 
 	// Measure the tier error through simulated streaming
 	{
-		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context0;
-		acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context1;
+		acl::decompression_context<debug_transform_decompression_settings_with_db> context0;
+		acl::decompression_context<debug_transform_decompression_settings_with_db> context1;
 		acl::database_context<acl::debug_database_settings> db_context;
 		acl::debug_database_streamer db_streamer(allocator, split_merged_db_bulk_data, split_merged_db->get_bulk_data_size());
 
@@ -1117,7 +1122,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
 
-			acl::decompression_context<acl::debug_transform_decompression_settings, acl::debug_database_settings> context;
+			acl::decompression_context<debug_transform_decompression_settings_with_db> context;
 			acl::database_context<acl::debug_database_settings> db_context;
 
 			bool initialized;

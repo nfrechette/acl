@@ -28,6 +28,7 @@
 #include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/database/database_settings.h"
 
 #include <cstdint>
 
@@ -97,6 +98,10 @@ namespace acl
 		// Enabled by default for safety.
 		// Must be static constexpr!
 		static constexpr bool normalize_rotations() { return true; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// The database settings to use when decompressing.
+		using database_settings_type = null_database_settings;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
