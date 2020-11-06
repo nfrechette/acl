@@ -29,6 +29,7 @@
 #include "acl/core/error.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/database/database_settings.h"
 #include "acl/database/idatabase_streamer.h"
 #include "acl/database/impl/database_context.h"
 
@@ -38,36 +39,6 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	struct database_settings
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// Which version we should optimize for.
-		// If 'any' is specified, the database context will support every single version
-		// with full backwards compatibility.
-		// Using a specific version allows the compiler to statically strip code for all other
-		// versions. This allows the creation of context objects specialized for specific
-		// versions which yields optimal performance.
-		// Must be static constexpr!
-		static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::any; }
-	};
-
-	//////////////////////////////////////////////////////////////////////////
-	// These are debug settings, everything is enabled and nothing is stripped.
-	// It will have the worst performance but allows every feature.
-	//////////////////////////////////////////////////////////////////////////
-	struct debug_database_settings : public database_settings
-	{
-	};
-
-	//////////////////////////////////////////////////////////////////////////
-	// These are the default settings. Only the generally optimal settings
-	// are enabled and will offer the overall best performance.
-	// Supports every version.
-	//////////////////////////////////////////////////////////////////////////
-	struct default_database_settings : public database_settings
-	{
-	};
-
 	//////////////////////////////////////////////////////////////////////////
 	// Encapsulates the possible streaming request results.
 	//////////////////////////////////////////////////////////////////////////
