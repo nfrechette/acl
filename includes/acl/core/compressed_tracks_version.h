@@ -47,6 +47,12 @@ namespace acl
 		any			= 0,
 
 		//////////////////////////////////////////////////////////////////////////
+		// Special version identifier used when decompressing.
+		// This indicates that no version is supported by decompression.
+		// It is not a valid value for compressed tracks.
+		none		= 0xFFFF,
+
+		//////////////////////////////////////////////////////////////////////////
 		// Actual versions in sequential order.
 		// Keep the enum values sequential.
 		// Enum value name should be of the form: major, minor, patch version.
