@@ -50,12 +50,12 @@ namespace acl
 	struct segmenting_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// How many samples to try and fit in our segments
+		// How many samples to try and fit in our segments.
 		// Defaults to '16'
 		uint32_t ideal_num_samples = 16;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Maximum number of samples per segment
+		// Maximum number of samples per segment.
 		// Defaults to '31'
 		uint32_t max_num_samples = 31;
 
@@ -89,7 +89,7 @@ namespace acl
 		vector_format8 scale_format = vector_format8::vector3f_full;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Segmenting settings, if used
+		// Segmenting settings, if used.
 		// Transform tracks only.
 		segmenting_settings segmenting;
 
