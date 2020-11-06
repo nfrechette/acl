@@ -109,6 +109,8 @@ namespace acl
 
 		bool is_initialized() const;
 
+		void reset();
+
 		bool contains(const compressed_tracks& tracks) const;
 
 		bool is_streamed_in() const;

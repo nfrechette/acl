@@ -67,13 +67,7 @@ namespace acl
 	template<class database_settings_type>
 	inline database_context<database_settings_type>::~database_context()
 	{
-		if (!is_initialized())
-			return;	// Nothing to do
-
-		// TODO: Assert we aren't streaming in progress, otherwise behavior is undefined we'll access freed memory
-
-		const uint32_t runtime_data_size = acl_impl::calculate_runtime_data_size(*m_context.db);
-		deallocate_type_array(*m_context.allocator, m_context.loaded_chunks, runtime_data_size);
+		reset();
 	}
 
 	template<class database_settings_type>
@@ -229,6 +223,21 @@ namespace acl
 
 	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::is_initialized() const { return m_context.is_initialized(); }
+
+	template<class database_settings_type>
+	inline void database_context<database_settings_type>::reset()
+	{
+		if (!is_initialized())
+			return;	// Nothing to do
+
+		// TODO: Assert we aren't streaming in progress, otherwise behavior is undefined we'll access freed memory
+
+		const uint32_t runtime_data_size = acl_impl::calculate_runtime_data_size(*m_context.db);
+		deallocate_type_array(*m_context.allocator, m_context.loaded_chunks, runtime_data_size);
+
+		// Just reset the DB pointer, this will mark us as no longer initialized indicating everything is stale
+		m_context.db = nullptr;
+	}
 
 	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::contains(const compressed_tracks& tracks) const
