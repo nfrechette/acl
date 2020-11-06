@@ -51,10 +51,23 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C4127: conditional expression is constant
+	// This is fine, the optimizer will strip the code away when it can, but it isn't always constant in practice
+	#pragma warning(disable : 4127)
+#endif
+
 namespace acl
 {
 	namespace acl_impl
 	{
+		template<class decompression_settings_type>
+		constexpr bool is_database_supported_impl()
+		{
+			return decompression_settings_type::database_settings_type::version_supported() != compressed_tracks_version16::none;
+		}
+
 		template<class decompression_settings_type, class database_settings_type>
 		inline bool initialize_v0(persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
 		{
@@ -161,8 +174,10 @@ namespace acl
 
 			const uint32_t num_segments = transform_header.num_segments;
 
-			// TODO: Move in context and add decompression settings stripping
-			const bool has_database = context.tracks->has_database();
+			const bool is_database_supported = is_database_supported_impl<decompression_settings_type>();
+			ACL_ASSERT(is_database_supported || !context.tracks->has_database(), "Cannot have a database when it isn't supported");
+
+			const bool has_database = is_database_supported && context.tracks->has_database();
 			const database_context_v0* db = context.db;
 
 			if (num_segments == 1)
@@ -170,7 +185,7 @@ namespace acl
 				// Key frame 0 and 1 are in the only segment present
 				// This is a really common case and when it happens, we don't store the segment start index (zero)
 
-				if (has_database)
+				if (is_database_supported && has_database)
 				{
 					const segment_tier0_header* segment_tier0_header0 = segment_tier0_headers;
 
@@ -299,7 +314,7 @@ namespace acl
 				segment_key_frame0 = key_frame0 - segment_start_indices[segment_index0];
 				segment_key_frame1 = key_frame1 - segment_start_indices[segment_index1];
 
-				if (has_database)
+				if (is_database_supported && has_database)
 				{
 					const segment_tier0_header* segment_tier0_header0 = segment_tier0_headers + segment_index0;
 					const segment_tier0_header* segment_tier0_header1 = segment_tier0_headers + segment_index1;
@@ -419,7 +434,7 @@ namespace acl
 				context.animated_track_data[1] = context.animated_track_data[0];
 			}
 
-			if (has_database)
+			if (is_database_supported && has_database)
 			{
 				// Update our pointers if the data lives within the database
 				if (db_animated_track_data0 != nullptr)
@@ -901,5 +916,9 @@ namespace acl
 		}
 	}
 }
+
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
 
 ACL_IMPL_FILE_PRAGMA_POP
