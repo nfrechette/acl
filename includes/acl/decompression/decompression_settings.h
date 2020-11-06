@@ -41,7 +41,7 @@ namespace acl
 	// With these, you can:
 	//    - Support only a subset of the formats and statically strip the rest
 	//    - Force a single format and statically strip the rest
-	//    - Decide all of this at runtime by not making the overrides constexpr
+	//    - Etc.
 	//
 	// By default, all formats are supported.
 	//////////////////////////////////////////////////////////////////////////
