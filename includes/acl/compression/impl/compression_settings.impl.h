@@ -34,7 +34,7 @@
 
 namespace acl
 {
-	inline uint32_t segmenting_settings::get_hash() const
+	inline uint32_t compression_segmenting_settings::get_hash() const
 	{
 		uint32_t hash_value = 0;
 		hash_value = hash_combine(hash_value, hash32(ideal_num_samples));
@@ -42,7 +42,7 @@ namespace acl
 		return hash_value;
 	}
 
-	inline error_result segmenting_settings::is_valid() const
+	inline error_result compression_segmenting_settings::is_valid() const
 	{
 		if (ideal_num_samples < 8)
 			return error_result("ideal_num_samples must be greater or equal to 8");

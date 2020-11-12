@@ -47,7 +47,7 @@ namespace acl
 	// compressed independently to allow a smaller memory footprint as well as
 	// faster compression and decompression.
 	// See also: https://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/
-	struct segmenting_settings
+	struct compression_segmenting_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// How many samples to try and fit in our segments.
@@ -91,7 +91,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Segmenting settings, if used.
 		// Transform tracks only.
-		segmenting_settings segmenting;
+		compression_segmenting_settings segmenting;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The error metric to use.

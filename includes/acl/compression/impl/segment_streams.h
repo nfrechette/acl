@@ -38,7 +38,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline void segment_streams(iallocator& allocator, clip_context& clip, const segmenting_settings& settings)
+		inline void segment_streams(iallocator& allocator, clip_context& clip, const compression_segmenting_settings& settings)
 		{
 			ACL_ASSERT(clip.num_segments == 1, "clip_context must have a single segment.");
 			ACL_ASSERT(settings.ideal_num_samples <= settings.max_num_samples, "Invalid num samples for segmenting settings. %u > %u", settings.ideal_num_samples, settings.max_num_samples);
