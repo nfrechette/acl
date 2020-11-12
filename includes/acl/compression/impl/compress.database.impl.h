@@ -516,6 +516,10 @@ namespace acl
 			const error_result result = merge_mappings[mapping_index].is_valid();
 			if (result.any())
 				return result;
+
+			const acl_impl::database_header& header = acl_impl::get_database_header(*merge_mappings[mapping_index].database);
+			if (settings.max_chunk_size < header.max_chunk_size)
+				return error_result("Cannot merge databases into smaller chunks");
 		}
 
 		// Since we'll create a new merged database, the input mappings need to be updated to point to the new merged database
