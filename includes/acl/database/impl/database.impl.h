@@ -436,10 +436,10 @@ namespace acl
 		for (uint32_t entry_index = 0; entry_index < num_entries; ++entry_index)
 		{
 			const uint32_t maybe_loaded = m_context.loaded_chunks[entry_index];
-			const uint32_t num_pending_chunks = count_leading_zeros(~maybe_loaded);
-			if (num_pending_chunks != 0)
+			const uint32_t num_pending_chunks = count_leading_zeros(maybe_loaded);
+			if (num_pending_chunks != 32)
 			{
-				first_chunk_index = (entry_index * 32) + num_pending_chunks - 1;
+				first_chunk_index = (entry_index * 32) + num_pending_chunks;
 				break;
 			}
 		}
