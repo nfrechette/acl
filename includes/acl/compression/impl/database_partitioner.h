@@ -274,9 +274,9 @@ namespace acl
 						chunk_header->index = chunk_index;
 						chunk_header->size = 0;
 						chunk_header->num_segments = 0;
-					}
 
-					segment_chunk_headers = chunk_header->get_segment_headers();
+						segment_chunk_headers = chunk_header->get_segment_headers();
+					}
 				}
 
 				if (bulk_data != nullptr)
