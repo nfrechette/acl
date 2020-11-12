@@ -291,7 +291,7 @@ namespace acl
 
 					// Fixed when we compress, updated when we merge databases
 					segment_chunk_header.clip_header_offset = 0;
-					segment_chunk_header.segment_header_offset = sizeof(database_runtime_clip_header) + chunk_header->num_segments * sizeof(database_runtime_segment_header);
+					segment_chunk_header.segment_header_offset = sizeof(database_runtime_clip_header) + segment.segment_index * sizeof(database_runtime_segment_header);
 
 					chunk_header->num_segments++;
 				}
