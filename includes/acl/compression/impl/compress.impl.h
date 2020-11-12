@@ -493,8 +493,8 @@ namespace acl
 			// Write our database and relevant headers if we need to
 			if (split_into_database)
 			{
-				const uint32_t num_chunks = write_database_chunk_descriptions(lossy_clip_context, nullptr);
-				const uint32_t bulk_data_size = write_database_bulk_data(lossy_clip_context, buffer_header->hash, nullptr, output_bone_mapping, num_output_bones);
+				const uint32_t num_chunks = write_database_chunk_descriptions(lossy_clip_context, settings.database, nullptr);
+				const uint32_t bulk_data_size = write_database_bulk_data(lossy_clip_context, settings.database, buffer_header->hash, nullptr, output_bone_mapping, num_output_bones);
 
 				uint32_t database_buffer_size = 0;
 				database_buffer_size += sizeof(raw_buffer_header);							// Header
@@ -526,6 +526,7 @@ namespace acl
 				db_header->tag = static_cast<uint32_t>(buffer_tag32::compressed_database);
 				db_header->version = compressed_tracks_version16::latest;
 				db_header->num_chunks = num_chunks;
+				db_header->max_chunk_size = settings.database.max_chunk_size;
 				db_header->num_clips = 1;	// Only one when we compress
 				db_header->num_segments = lossy_clip_context.num_segments;
 				db_header->bulk_data_size = bulk_data_size;
@@ -543,7 +544,7 @@ namespace acl
 				database_buffer += bulk_data_size;											// Bulk data
 
 				// Write our chunk descriptions
-				const uint32_t num_written_chunks = write_database_chunk_descriptions(lossy_clip_context, db_header->get_chunk_descriptions());
+				const uint32_t num_written_chunks = write_database_chunk_descriptions(lossy_clip_context, settings.database, db_header->get_chunk_descriptions());
 				ACL_ASSERT(num_written_chunks == num_chunks, "Unexpected amount of data written"); (void)num_written_chunks;
 
 				// Write our clip metadata
@@ -552,7 +553,7 @@ namespace acl
 				clip_metadata->clip_header_offset = 0;
 
 				// Write our bulk data
-				const uint32_t written_bulk_data_size = write_database_bulk_data(lossy_clip_context, buffer_header->hash, db_header->get_bulk_data(), output_bone_mapping, num_output_bones);
+				const uint32_t written_bulk_data_size = write_database_bulk_data(lossy_clip_context, settings.database, buffer_header->hash, db_header->get_bulk_data(), output_bone_mapping, num_output_bones);
 				ACL_ASSERT(written_bulk_data_size == bulk_data_size, "Unexpected amount of data written"); (void)written_bulk_data_size;
 				db_header->bulk_data_hash = hash32(db_header->get_bulk_data(), bulk_data_size);
 

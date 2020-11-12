@@ -53,6 +53,24 @@ namespace acl
 		return error_result();
 	}
 
+	inline uint32_t compression_database_settings::get_hash() const
+	{
+		uint32_t hash_value = 0;
+		hash_value = hash_combine(hash_value, hash32(max_chunk_size));
+		return hash_value;
+	}
+
+	inline error_result compression_database_settings::is_valid() const
+	{
+		if (max_chunk_size < 4 * 1024)
+			return error_result("max_chunk_size must be greater or equal to 4 KB");
+
+		if (align_to(max_chunk_size, 4 * 1024) != max_chunk_size)
+			return error_result("max_chunk_size must be a multiple of 4 KB");
+
+		return error_result();
+	}
+
 	inline uint32_t compression_settings::get_hash() const
 	{
 		uint32_t hash_value = 0;
@@ -62,6 +80,7 @@ namespace acl
 		hash_value = hash_combine(hash_value, hash32(scale_format));
 
 		hash_value = hash_combine(hash_value, segmenting.get_hash());
+		hash_value = hash_combine(hash_value, database.get_hash());
 
 		if (error_metric != nullptr)
 			hash_value = hash_combine(hash_value, error_metric->get_hash());
@@ -79,7 +98,15 @@ namespace acl
 		if (error_metric == nullptr)
 			return error_result("error_metric cannot be NULL");
 
-		return segmenting.is_valid();
+		const error_result segmenting_result = segmenting.is_valid();
+		if (segmenting_result.any())
+			return segmenting_result;
+
+		const error_result database_result = database.is_valid();
+		if (database_result.any())
+			return database_result;
+
+		return error_result();
 	}
 
 	inline compression_settings get_raw_compression_settings()

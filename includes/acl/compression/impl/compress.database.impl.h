@@ -110,9 +110,9 @@ namespace acl
 	namespace acl_impl
 	{
 		// Returns the number of chunks written
-		inline uint32_t write_database_chunk_descriptions(const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, database_chunk_description* chunk_descriptions)
+		inline uint32_t write_database_chunk_descriptions(const compression_database_settings& settings, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, database_chunk_description* chunk_descriptions)
 		{
-			const uint32_t max_chunk_size = 1 * 1024 * 1024;
+			const uint32_t max_chunk_size = settings.max_chunk_size;
 			const uint32_t simd_padding = 15;
 
 			uint32_t bulk_data_offset = 0;
@@ -178,11 +178,11 @@ namespace acl
 		}
 
 		// Returns the size of the bulk data
-		inline uint32_t write_database_bulk_data(const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, uint8_t* bulk_data)
+		inline uint32_t write_database_bulk_data(const compression_database_settings& settings, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, uint8_t* bulk_data)
 		{
-			// TODO: If the last chunk is too small, merge it with the previous chunk
+			// TODO: If the last chunk is too small, merge it with the previous chunk?
 
-			const uint32_t max_chunk_size = 1 * 1024 * 1024;
+			const uint32_t max_chunk_size = settings.max_chunk_size;
 			const uint32_t simd_padding = 15;
 
 			database_chunk_header* chunk_header = nullptr;
@@ -500,9 +500,13 @@ namespace acl
 		}
 	}
 
-	inline error_result merge_compressed_databases(iallocator& allocator, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, compressed_database*& out_merged_compressed_database)
+	inline error_result merge_compressed_databases(iallocator& allocator, const compression_database_settings& settings, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, compressed_database*& out_merged_compressed_database)
 	{
 		using namespace acl_impl;
+
+		const error_result settings_result = settings.is_valid();
+		if (settings_result.any())
+			return settings_result;
 
 		if (merge_mappings == nullptr || num_merge_mappings == 0)
 			return error_result("No merge mappings provided");
@@ -526,8 +530,8 @@ namespace acl
 			num_segments += merge_mappings[mapping_index].database->get_num_segments();
 		}
 
-		const uint32_t num_chunks = write_database_chunk_descriptions(merge_mappings, num_merge_mappings, nullptr);
-		const uint32_t bulk_data_size = write_database_bulk_data(merge_mappings, num_merge_mappings, nullptr);
+		const uint32_t num_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, nullptr);
+		const uint32_t bulk_data_size = write_database_bulk_data(settings, merge_mappings, num_merge_mappings, nullptr);
 
 		uint32_t database_buffer_size = 0;
 		database_buffer_size += sizeof(raw_buffer_header);							// Header
@@ -559,6 +563,7 @@ namespace acl
 		db_header->tag = static_cast<uint32_t>(buffer_tag32::compressed_database);
 		db_header->version = compressed_tracks_version16::latest;
 		db_header->num_chunks = num_chunks;
+		db_header->max_chunk_size = settings.max_chunk_size;
 		db_header->num_clips = num_clips;
 		db_header->num_segments = num_segments;
 		db_header->bulk_data_size = bulk_data_size;
@@ -576,14 +581,14 @@ namespace acl
 		database_buffer += bulk_data_size;											// Bulk data
 
 		// Write our chunk descriptions
-		const uint32_t num_written_chunks = write_database_chunk_descriptions(merge_mappings, num_merge_mappings, db_header->get_chunk_descriptions());
+		const uint32_t num_written_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, db_header->get_chunk_descriptions());
 		ACL_ASSERT(num_written_chunks == num_chunks, "Unexpected amount of data written"); (void)num_written_chunks;
 
 		// Write our clip metadata
 		write_database_clip_metadata(merge_mappings, num_merge_mappings, db_header->get_clip_metadatas());
 
 		// Write our bulk data
-		const uint32_t written_bulk_data_size = write_database_bulk_data(merge_mappings, num_merge_mappings, db_header->get_bulk_data());
+		const uint32_t written_bulk_data_size = write_database_bulk_data(settings, merge_mappings, num_merge_mappings, db_header->get_bulk_data());
 		ACL_ASSERT(written_bulk_data_size == bulk_data_size, "Unexpected amount of data written"); (void)written_bulk_data_size;
 		db_header->bulk_data_hash = hash32(db_header->get_bulk_data(), bulk_data_size);
 

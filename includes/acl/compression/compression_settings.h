@@ -70,6 +70,28 @@ namespace acl
 	};
 
 	//////////////////////////////////////////////////////////////////////////
+	// Encapsulates all the compression settings related to database usage.
+	struct compression_database_settings
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// How large should each chunk be, in bytes.
+		// This value must be at least 4 KB and ideally it should be a multiple of
+		// the virtual memory page size used on the platform that will decompress
+		// from the database.
+		// Defaults to '1 MB'
+		uint32_t max_chunk_size = 1 * 1024 * 1024;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Calculates a hash from the internal state to uniquely identify a configuration.
+		uint32_t get_hash() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Checks if everything is valid and if it isn't, returns an error string.
+		// Returns nullptr if the settings are valid.
+		error_result is_valid() const;
+	};
+
+	//////////////////////////////////////////////////////////////////////////
 	// Encapsulates all the compression settings.
 	struct compression_settings
 	{
@@ -92,6 +114,11 @@ namespace acl
 		// Segmenting settings, if used.
 		// Transform tracks only.
 		compression_segmenting_settings segmenting;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Database settings, if used.
+		// Transform tracks only.
+		compression_database_settings database;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The error metric to use.

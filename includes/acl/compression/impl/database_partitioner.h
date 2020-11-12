@@ -148,12 +148,12 @@ namespace acl
 		}
 
 		// Returns the number of chunks written
-		inline uint32_t write_database_chunk_descriptions(const clip_context& clip, database_chunk_description* chunk_descriptions)
+		inline uint32_t write_database_chunk_descriptions(const clip_context& clip, const compression_database_settings& settings, database_chunk_description* chunk_descriptions)
 		{
 			if (clip.segments->sample_tiers == nullptr)
 				return 0;	// No tiered sample data
 
-			const uint32_t max_chunk_size = 1 * 1024 * 1024;
+			const uint32_t max_chunk_size = settings.max_chunk_size;
 			const uint32_t simd_padding = 15;
 
 			uint32_t bulk_data_offset = 0;
@@ -205,14 +205,14 @@ namespace acl
 		}
 
 		// Returns the size of the bulk data
-		inline uint32_t write_database_bulk_data(const clip_context& clip, uint32_t clip_hash, uint8_t* bulk_data, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_database_bulk_data(const clip_context& clip, const compression_database_settings& settings, uint32_t clip_hash, uint8_t* bulk_data, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			if (clip.segments->sample_tiers == nullptr)
 				return 0;	// No tiered sample data
 
-			// TODO: If the last chunk is too small, merge it with the previous chunk
+			// TODO: If the last chunk is too small, merge it with the previous chunk?
 
-			const uint32_t max_chunk_size = 1 * 1024 * 1024;
+			const uint32_t max_chunk_size = settings.max_chunk_size;
 			const uint32_t simd_padding = 15;
 			const bitset_description desc = bitset_description::make_from_num_bits<32>();
 

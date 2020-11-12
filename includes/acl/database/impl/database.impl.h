@@ -322,7 +322,7 @@ namespace acl
 
 		const uint32_t num_chunks = m_context.db->get_num_chunks();
 		const bitset_description desc = bitset_description::make_from_num_bits(num_chunks);
-		const uint32_t max_chunk_size = 1 * 1024 * 1024;
+		const uint32_t max_chunk_size = header.max_chunk_size;
 
 		uint32_t first_chunk_index = ~0U;
 
@@ -424,7 +424,7 @@ namespace acl
 
 		const uint32_t num_chunks = m_context.db->get_num_chunks();
 		const bitset_description desc = bitset_description::make_from_num_bits(num_chunks);
-		const uint32_t max_chunk_size = 1 * 1024 * 1024;
+		const uint32_t max_chunk_size = header.max_chunk_size;
 
 		// Clamp the total number of chunks we can stream
 		num_chunks_to_stream = std::min<uint32_t>(num_chunks_to_stream, num_chunks);

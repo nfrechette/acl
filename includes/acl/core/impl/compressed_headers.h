@@ -502,6 +502,9 @@ namespace acl
 			// Number of chunks stored in the bulk data.
 			uint32_t						num_chunks;
 
+			// Max chunk size contained within
+			uint32_t						max_chunk_size;
+
 			// Number of clips stored in the database.
 			uint32_t						num_clips;
 

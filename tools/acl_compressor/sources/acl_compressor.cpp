@@ -991,6 +991,8 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy0), &compressed_tracks0, compressed_tracks0.get_size());
 	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy1), &compressed_tracks1, compressed_tracks1.get_size());
 
+	compression_database_settings settings;	// Use defaults
+
 	// Merge our everything into a new database
 	database_merge_mapping mappings[2];
 	mappings[0].tracks = compressed_tracks_copy0;
@@ -999,7 +1001,7 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	mappings[1].database = &db1;
 
 	compressed_database* merged_db = nullptr;
-	const error_result merge_result = merge_compressed_databases(allocator, &mappings[0], 2, merged_db);
+	const error_result merge_result = merge_compressed_databases(allocator, settings, &mappings[0], 2, merged_db);
 	ACL_ASSERT(merge_result.empty(), "Failed to merge databases");
 	ACL_ASSERT(merged_db->is_valid(true).empty(), "Failed to merge database");
 

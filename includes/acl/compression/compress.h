@@ -139,11 +139,12 @@ namespace acl
 	// database.
 	//
 	//    allocator:						The allocator instance to use to allocate the new database.
+	//    settings:							The compression database settings to use
 	//    merge_mappings:					The mappings to merge together into our new database.
 	//    num_merge_mappings:				The number of mappings to merge together.
 	//    out_merged_compressed_database:	The resulting merged database. The caller owns the returned memory and must free it.
 	//////////////////////////////////////////////////////////////////////////
-	error_result merge_compressed_databases(iallocator& allocator, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, compressed_database*& out_merged_compressed_database);
+	error_result merge_compressed_databases(iallocator& allocator, const compression_database_settings& settings, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, compressed_database*& out_merged_compressed_database);
 }
 
 #include "acl/compression/impl/compress.scalar.impl.h"
