@@ -213,6 +213,9 @@ namespace acl
 				const database_header& header = get_database_header(database);
 				const database_chunk_description* db_chunk_descriptions = header.get_chunk_descriptions();
 				const uint32_t num_db_chunks = header.num_chunks;
+
+				uint32_t clip_segment_index = 0;
+
 				for (uint32_t chunk_index = 0; chunk_index < num_db_chunks; ++chunk_index)
 				{
 					const database_chunk_description& db_chunk_description = db_chunk_descriptions[chunk_index];
@@ -269,7 +272,7 @@ namespace acl
 
 							// Temporarily store relative to the clip header, we'll update things later to their final offset
 							segment_chunk_header.clip_header_offset = 0;
-							segment_chunk_header.segment_header_offset = sizeof(database_runtime_clip_header) + segment_index * sizeof(database_runtime_segment_header);
+							segment_chunk_header.segment_header_offset = sizeof(database_runtime_clip_header) + clip_segment_index * sizeof(database_runtime_segment_header);
 
 							chunk_header->num_segments++;
 
@@ -286,6 +289,7 @@ namespace acl
 							}
 
 							chunk_sample_data_offset += segment_data_size;
+							clip_segment_index++;
 						}
 					}
 
