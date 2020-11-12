@@ -259,9 +259,9 @@ namespace acl
 						// Update our chunk headers
 						const database_chunk_header* db_chunk_header = db_chunk_description.get_chunk_header(database.get_bulk_data());
 						const database_chunk_segment_header* db_segment_chunk_headers = db_chunk_header->get_segment_headers();
-						for (uint32_t segment_index = 0; segment_index < db_chunk_header->num_segments; ++segment_index)
+						for (uint32_t db_chunk_segment_index = 0; db_chunk_segment_index < db_chunk_header->num_segments; ++db_chunk_segment_index)
 						{
-							const database_chunk_segment_header& db_segment_chunk_header = db_segment_chunk_headers[segment_index];
+							const database_chunk_segment_header& db_segment_chunk_header = db_segment_chunk_headers[db_chunk_segment_index];
 							database_chunk_segment_header& segment_chunk_header = segment_chunk_headers[chunk_header->num_segments];
 							segment_chunk_header.clip_hash = tracks.get_hash();
 							segment_chunk_header.sample_indices = db_segment_chunk_header.sample_indices;
@@ -274,10 +274,10 @@ namespace acl
 							chunk_header->num_segments++;
 
 							uint32_t segment_data_size;
-							if (segment_index + 1 < db_chunk_header->num_segments)
+							if (db_chunk_segment_index + 1 < db_chunk_header->num_segments)
 							{
 								// Not the last segment, use the offset from the next one to calculate our size
-								segment_data_size = db_segment_chunk_headers[segment_index + 1].samples_offset - db_segment_chunk_header.samples_offset;
+								segment_data_size = db_segment_chunk_headers[db_chunk_segment_index + 1].samples_offset - db_segment_chunk_header.samples_offset;
 							}
 							else
 							{
@@ -331,7 +331,7 @@ namespace acl
 
 						const database_chunk_header* db_chunk_header = db_chunk_description.get_chunk_header(database.get_bulk_data());
 						const database_chunk_segment_header* db_segment_chunk_headers = db_chunk_header->get_segment_headers();
-						for (uint32_t segment_index = 0; segment_index < db_chunk_header->num_segments; ++segment_index)
+						for (uint32_t db_chunk_segment_index = 0; db_chunk_segment_index < db_chunk_header->num_segments; ++db_chunk_segment_index)
 						{
 							if (chunk_segment_index >= chunk_header->num_segments)
 							{
@@ -341,13 +341,13 @@ namespace acl
 								chunk_segment_index = 0;
 							}
 
-							const database_chunk_segment_header& db_segment_chunk_header = db_segment_chunk_headers[segment_index];
+							const database_chunk_segment_header& db_segment_chunk_header = db_segment_chunk_headers[db_chunk_segment_index];
 
 							uint32_t segment_data_size;
-							if (segment_index + 1 < db_chunk_header->num_segments)
+							if (db_chunk_segment_index + 1 < db_chunk_header->num_segments)
 							{
 								// Not the last segment, use the offset from the next one to calculate our size
-								segment_data_size = db_segment_chunk_headers[segment_index + 1].samples_offset - db_segment_chunk_header.samples_offset;
+								segment_data_size = db_segment_chunk_headers[db_chunk_segment_index + 1].samples_offset - db_segment_chunk_header.samples_offset;
 							}
 							else
 							{
