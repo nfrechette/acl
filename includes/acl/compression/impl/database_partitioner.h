@@ -188,6 +188,8 @@ namespace acl
 				}
 
 				chunk_size += segment_data_size + sizeof(database_chunk_segment_header);
+
+				ACL_ASSERT(chunk_size <= max_chunk_size, "Expected a valid chunk size, segment is larger than max chunk size?");
 			}
 
 			if (chunk_size != 0)
@@ -296,6 +298,8 @@ namespace acl
 
 				chunk_size += segment_data_size + sizeof(database_chunk_segment_header);
 				chunk_sample_data_offset += segment_data_size;
+
+				ACL_ASSERT(chunk_size <= max_chunk_size, "Expected a valid chunk size, segment is larger than max chunk size?");
 			}
 
 			if (chunk_size != 0)
