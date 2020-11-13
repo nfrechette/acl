@@ -345,15 +345,19 @@ namespace acl
 		if (first_chunk_index == ~0U)
 			return database_stream_request_result::done;	// Everything is streamed in or streaming, nothing to do
 
-		// Find the stream start offset from our first chunk's offset
-		const acl_impl::database_chunk_description& first_chunk_description = chunk_descriptions[first_chunk_index];
-		const uint32_t stream_start_offset = first_chunk_description.offset;
-
-		// Calculate and clamp our last chunk index
-		const uint32_t last_chunk_index = std::min<uint32_t>(first_chunk_index + num_chunks_to_stream, num_chunks - 1);
+		// Calculate and clamp our last chunk index (and handle wrapping for safety)
+		const uint64_t last_chunk_index64 = uint64_t(first_chunk_index) + uint64_t(num_chunks_to_stream) - 1;
+		const uint32_t last_chunk_index = last_chunk_index64 >= uint64_t(num_chunks) ? (num_chunks - 1) : uint32_t(last_chunk_index64);
 
 		// Calculate our stream size and account for the fact that the last chunk doesn't have the same size
 		const uint32_t num_streaming_chunks = last_chunk_index - first_chunk_index + 1;
+
+		if (num_streaming_chunks == 0)
+			return database_stream_request_result::done;	// Nothing more to stream
+
+		// Find the stream start offset from our first chunk's offset
+		const acl_impl::database_chunk_description& first_chunk_description = chunk_descriptions[first_chunk_index];
+		const uint32_t stream_start_offset = first_chunk_description.offset;
 
 		const acl_impl::database_chunk_description& last_chunk_description = chunk_descriptions[last_chunk_index];
 		const uint32_t stream_size = ((num_streaming_chunks - 1) * max_chunk_size) + last_chunk_description.size;
@@ -447,15 +451,19 @@ namespace acl
 		if (first_chunk_index == ~0U)
 			return database_stream_request_result::done;	// Everything is streamed out or streaming, nothing to do
 
-		// Find the stream start offset from our first chunk's offset
-		const acl_impl::database_chunk_description& first_chunk_description = chunk_descriptions[first_chunk_index];
-		const uint32_t stream_start_offset = first_chunk_description.offset;
-
-		// Calculate and clamp our last chunk index
-		const uint32_t last_chunk_index = std::min<uint32_t>(first_chunk_index + num_chunks_to_stream, num_chunks - 1);
+		// Calculate and clamp our last chunk index (and handle wrapping for safety)
+		const uint64_t last_chunk_index64 = uint64_t(first_chunk_index) + uint64_t(num_chunks_to_stream) - 1;
+		const uint32_t last_chunk_index = last_chunk_index64 >= uint64_t(num_chunks) ? (num_chunks - 1) : uint32_t(last_chunk_index64);
 
 		// Calculate our stream size and account for the fact that the last chunk doesn't have the same size
 		const uint32_t num_streaming_chunks = last_chunk_index - first_chunk_index + 1;
+
+		if (num_streaming_chunks == 0)
+			return database_stream_request_result::done;	// Nothing more to stream
+
+		// Find the stream start offset from our first chunk's offset
+		const acl_impl::database_chunk_description& first_chunk_description = chunk_descriptions[first_chunk_index];
+		const uint32_t stream_start_offset = first_chunk_description.offset;
 
 		const acl_impl::database_chunk_description& last_chunk_description = chunk_descriptions[last_chunk_index];
 		const uint32_t stream_size = ((num_streaming_chunks - 1) * max_chunk_size) + last_chunk_description.size;
