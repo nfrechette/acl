@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/database/idatabase_streamer.h"
@@ -62,12 +63,20 @@ namespace acl
 
 		virtual void stream_in(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) override
 		{
+			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
+			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
+			ACL_ASSERT(offset + size <= m_bulk_data_size, "Streaming request is outside of the bulk data range");
+
 			std::memcpy(m_streamed_bulk_data + offset, m_src_bulk_data + offset, size);
 			continuation(true);
 		}
 
 		virtual void stream_out(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) override
 		{
+			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
+			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
+			ACL_ASSERT(offset + size <= m_bulk_data_size, "Streaming request is outside of the bulk data range");
+
 			std::memset(m_streamed_bulk_data + offset, 0xCD, size);
 			continuation(true);
 		}
