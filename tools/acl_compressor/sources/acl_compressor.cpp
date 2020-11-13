@@ -967,19 +967,31 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 		ACL_ASSERT(error_tier0.error >= error_tier1_ref.error, "Tier 0 error should be higher or equal to tier 1");
 
 		// Stream in our tier 1 data
-		const acl::database_stream_request_result stream_in_result = db_context.stream_in();
-		ACL_ASSERT(stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
-		const bool is_streamed_in = db_context.is_streamed_in();
-		ACL_ASSERT(is_streamed_in, "Failed to stream in tier 1");
+		{
+			acl::database_stream_request_result stream_in_result = db_context.stream_in(2);
+			ACL_ASSERT(stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
+			bool is_streamed_in = db_context.is_streamed_in();
+			ACL_ASSERT((split_db->get_num_chunks() <= 2 && is_streamed_in) || !is_streamed_in, "Failed to stream in tier 1 (first 2 chunks)");
+			stream_in_result = db_context.stream_in();
+			ACL_ASSERT((split_db->get_num_chunks() <= 2 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
+			is_streamed_in = db_context.is_streamed_in();
+			ACL_ASSERT(is_streamed_in, "Failed to stream in tier 1");
+		}
 
 		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 		ACL_ASSERT(error_tier1.error == error_tier1_ref.error, "Tier 1 split error should be equal to tier 1 inline");
 
 		// Stream out our tier 1 data
-		const acl::database_stream_request_result stream_out_result = db_context.stream_out();
-		ACL_ASSERT(stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
-		const bool is_streamed_out = !db_context.is_streamed_in();
-		ACL_ASSERT(is_streamed_out, "Failed to stream out tier 1");
+		{
+			acl::database_stream_request_result stream_out_result = db_context.stream_out(2);
+			ACL_ASSERT(stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
+			bool is_streamed_out = !db_context.is_streamed_in();
+			ACL_ASSERT(is_streamed_out, "Failed to stream out tier 1 (first 2 chunks)");
+			stream_out_result = db_context.stream_out();
+			ACL_ASSERT((split_db->get_num_chunks() <= 2 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
+			is_streamed_out = !db_context.is_streamed_in();
+			ACL_ASSERT(is_streamed_out, "Failed to stream out tier 1");
+		}
 
 		const track_error error_tier0_tmp = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 		ACL_ASSERT(error_tier0_tmp.error == error_tier0.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
@@ -1049,10 +1061,16 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 		ACL_ASSERT(error_tier01.error >= error_tier1_ref.error, "Tier 0 error should be higher or equal to tier 1");
 
 		// Stream in our tier 1 data
-		const acl::database_stream_request_result stream_in_result = db_context.stream_in();
-		ACL_ASSERT(stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
-		const bool is_streamed_in = db_context.is_streamed_in();
-		ACL_ASSERT(is_streamed_in, "Failed to stream in tier 1");
+		{
+			acl::database_stream_request_result stream_in_result = db_context.stream_in(2);
+			ACL_ASSERT(stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
+			bool is_streamed_in = db_context.is_streamed_in();
+			ACL_ASSERT((split_db->get_num_chunks() <= 2 && is_streamed_in) || !is_streamed_in, "Failed to stream in tier 1 (first 2 chunks)");
+			stream_in_result = db_context.stream_in();
+			ACL_ASSERT((split_db->get_num_chunks() <= 2 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
+			is_streamed_in = db_context.is_streamed_in();
+			ACL_ASSERT(is_streamed_in, "Failed to stream in tier 1");
+		}
 
 		const track_error error_tier10 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
 		ACL_ASSERT(error_tier10.error == error_tier1_ref.error, "Tier 1 split error should be equal to tier 1 inline");
@@ -1060,10 +1078,16 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 		ACL_ASSERT(error_tier11.error == error_tier1_ref.error, "Tier 1 split error should be equal to tier 1 inline");
 
 		// Stream out our tier 1 data
-		const acl::database_stream_request_result stream_out_result = db_context.stream_out();
-		ACL_ASSERT(stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
-		const bool is_streamed_out = !db_context.is_streamed_in();
-		ACL_ASSERT(is_streamed_out, "Failed to stream out tier 1");
+		{
+			acl::database_stream_request_result stream_out_result = db_context.stream_out(2);
+			ACL_ASSERT(stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
+			bool is_streamed_out = !db_context.is_streamed_in();
+			ACL_ASSERT(is_streamed_out, "Failed to stream out tier 1 (first 2 chunks)");
+			stream_out_result = db_context.stream_out();
+			ACL_ASSERT((split_db->get_num_chunks() <= 2 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
+			is_streamed_out = !db_context.is_streamed_in();
+			ACL_ASSERT(is_streamed_out, "Failed to stream out tier 1");
+		}
 
 		const track_error error_tier0_tmp0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
 		ACL_ASSERT(error_tier0_tmp0.error == error_tier00.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
