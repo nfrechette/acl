@@ -918,7 +918,7 @@ static void validate_convert(iallocator& allocator, const track_array& raw_track
 	allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 }
 
-static void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric,
+static void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const compression_settings& settings,
 	const compressed_tracks& compressed_tracks0, const compressed_database& db0,
 	const compressed_tracks& compressed_tracks1, const compressed_database& db1)
 {
@@ -926,6 +926,8 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 
 	ACL_ASSERT(db0.contains(compressed_tracks0), "Database should contain our clip");
 	ACL_ASSERT(db1.contains(compressed_tracks1), "Database should contain our clip");
+
+	const itransform_error_metric& error_metric = *settings.error_metric;
 
 	// Disable floating point exceptions since decompression assumes it
 	scope_disable_fp_exceptions fp_off;
@@ -1003,8 +1005,6 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy0), &compressed_tracks0, compressed_tracks0.get_size());
 	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy1), &compressed_tracks1, compressed_tracks1.get_size());
 
-	compression_database_settings settings;	// Use defaults
-
 	// Merge our everything into a new database
 	database_merge_mapping mappings[2];
 	mappings[0].tracks = compressed_tracks_copy0;
@@ -1013,7 +1013,7 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	mappings[1].database = &db1;
 
 	compressed_database* merged_db = nullptr;
-	const error_result merge_result = merge_compressed_databases(allocator, settings, &mappings[0], 2, merged_db);
+	const error_result merge_result = merge_compressed_databases(allocator, settings.database, &mappings[0], 2, merged_db);
 	ACL_ASSERT(merge_result.empty(), "Failed to merge databases");
 	ACL_ASSERT(merged_db->is_valid(true).empty(), "Failed to merge database");
 
@@ -1198,7 +1198,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 				ACL_ASSERT(db1->is_valid(true).empty(), "Compressed database is invalid");
 				ACL_ASSERT(compressed_tracks_->get_hash() != compressed_tracks1->get_hash(), "Hashes should not match");
 
-				validate_db(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, *db, *compressed_tracks1, *db1);
+				validate_db(allocator, transform_tracks, additive_base, settings, *compressed_tracks_, *db, *compressed_tracks1, *db1);
 
 				allocator.deallocate(compressed_tracks1, compressed_tracks1->get_size());
 				allocator.deallocate(db1, db1->get_size());
@@ -1509,6 +1509,10 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	bool split_into_database;
 	if (parser.try_read("split_into_database", split_into_database, false))
 		options.split_into_database = split_into_database;
+
+	uint32_t database_max_chunk_size;
+	if (parser.try_read("database_max_chunk_size", database_max_chunk_size, default_settings.database.max_chunk_size))
+		out_settings.database.max_chunk_size = database_max_chunk_size;
 
 	if (!parser.is_valid() || !parser.remainder_is_comments_and_whitespace())
 	{
