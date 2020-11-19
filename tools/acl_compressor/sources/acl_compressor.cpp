@@ -445,13 +445,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 	return true;
 }
 
-#if defined(ACL_USE_SJSON)
-#if defined(ACL_HAS_ASSERT_CHECKS)
 struct debug_transform_decompression_settings_with_db : public acl::debug_transform_decompression_settings
 {
 	using database_settings_type = acl::debug_database_settings;
 };
 
+#if defined(ACL_USE_SJSON)
+#if defined(ACL_HAS_ASSERT_CHECKS)
 static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, const compressed_database* db, double regression_error_threshold)
 {
 	using namespace acl_impl;
