@@ -174,18 +174,13 @@ namespace acl
 		if (!streamer.is_initialized())
 			return false;
 
-		const uint8_t* bulk_data = streamer.get_bulk_data();
-		ACL_ASSERT(bulk_data != nullptr, "Streamer must have bulk data allocated");
-		if (bulk_data == nullptr)
-			return false;
-
 		ACL_ASSERT(!is_initialized(), "Cannot initialize database twice");
 		if (is_initialized())
 			return false;
 
 		m_context.db = &database;
 		m_context.allocator = &allocator;
-		m_context.bulk_data = bulk_data;
+		m_context.bulk_data = nullptr;		// Will be set during the first stream in request
 		m_context.streamer = &streamer;
 
 		const uint32_t num_chunks = database.get_num_chunks();
@@ -373,6 +368,16 @@ namespace acl
 
 			if (success)
 			{
+				const uint8_t* bulk_data = context.bulk_data;
+				if (bulk_data == nullptr)
+				{
+					// This is the first stream in request, our bulk data should be allocated now, query and cache it
+					bulk_data = context.streamer->get_bulk_data();
+					ACL_ASSERT(bulk_data != nullptr, "Bulk data should be allocated when we stream in");
+
+					context.bulk_data = bulk_data;
+				}
+
 				// Register our new chunks
 				const acl_impl::database_header& header_ = acl_impl::get_database_header(*context.db);
 				const acl_impl::database_chunk_description* chunk_descriptions_ = header_.get_chunk_descriptions();
@@ -380,7 +385,7 @@ namespace acl
 				for (uint32_t chunk_index = first_chunk_index; chunk_index < end_chunk_index; ++chunk_index)
 				{
 					const acl_impl::database_chunk_description& chunk_description = chunk_descriptions_[chunk_index];
-					const acl_impl::database_chunk_header* chunk_header = chunk_description.get_chunk_header(context.bulk_data);
+					const acl_impl::database_chunk_header* chunk_header = chunk_description.get_chunk_header(bulk_data);
 					ACL_ASSERT(chunk_header->index == chunk_index, "Unexpected chunk index");
 
 					const acl_impl::database_chunk_segment_header* chunk_segment_headers = chunk_header->get_segment_headers();
@@ -471,12 +476,15 @@ namespace acl
 		// Mark chunks as in-streaming
 		bitset_set_range(m_context.streaming_chunks, desc, first_chunk_index, num_streaming_chunks, true);
 
+		const uint8_t* bulk_data = m_context.bulk_data;
+		ACL_ASSERT(bulk_data != nullptr, "Bulk data should be allocated when we stream out");
+
 		// Unregister our chunks
 		const uint32_t end_chunk_index = first_chunk_index + num_streaming_chunks;
 		for (uint32_t chunk_index = first_chunk_index; chunk_index < end_chunk_index; ++chunk_index)
 		{
 			const acl_impl::database_chunk_description& chunk_description = chunk_descriptions[chunk_index];
-			const acl_impl::database_chunk_header* chunk_header = chunk_description.get_chunk_header(m_context.bulk_data);
+			const acl_impl::database_chunk_header* chunk_header = chunk_description.get_chunk_header(bulk_data);
 			ACL_ASSERT(chunk_header->index == chunk_index, "Unexpected chunk index");
 
 			const acl_impl::database_chunk_segment_header* chunk_segment_headers = chunk_header->get_segment_headers();

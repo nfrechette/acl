@@ -240,7 +240,7 @@ namespace acl
 						const uint64_t sample_index0 = uint64_t(1) << (31 - key_frame0);
 						const uint64_t sample_index1 = uint64_t(1) << (31 - key_frame1);
 
-						const uint8_t* bulk_data = db->bulk_data;
+						const uint8_t* bulk_data = db->bulk_data;		// Might be nullptr if we haven't streamed in yet
 						if ((tier1_metadata0 & sample_index0) != 0)
 						{
 							sample_indices0 = uint32_t(tier1_metadata0);
@@ -382,7 +382,7 @@ namespace acl
 						const uint64_t sample_index0 = uint64_t(1) << (31 - segment_key_frame0);
 						const uint64_t sample_index1 = uint64_t(1) << (31 - segment_key_frame1);
 
-						const uint8_t* bulk_data = db->bulk_data;
+						const uint8_t* bulk_data = db->bulk_data;		// Might be nullptr if we haven't streamed in yet
 						if ((tier1_metadata0 & sample_index0) != 0)
 						{
 							sample_indices0 = uint32_t(tier1_metadata0);
