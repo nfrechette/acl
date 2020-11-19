@@ -76,7 +76,7 @@ namespace acl
 		std::memcpy(bulk_data_buffer, database.get_bulk_data(), bulk_data_size);
 
 		const uint32_t bulk_data_hash = hash32(bulk_data_buffer, bulk_data_size);
-		ACL_ASSERT(bulk_data_hash == database.get_bulk_data_hash(), "Bulk data hash mismatch");
+		ACL_ASSERT(bulk_data_hash == database.get_bulk_data_hash(), "Bulk data hash mismatch"); (void)bulk_data_hash;
 
 		return error_result();
 	}
@@ -724,7 +724,7 @@ namespace acl
 		ACL_ASSERT(written_bulk_data_size == bulk_data_size, "Unexpected amount of data written"); (void)written_bulk_data_size;
 		db_header->bulk_data_hash = hash32(db_header->get_bulk_data(), bulk_data_size);
 
-		ACL_ASSERT(uint32_t(database_buffer - database_buffer_start) == database_buffer_size, "Unexpected amount of data written");
+		ACL_ASSERT(uint32_t(database_buffer - database_buffer_start) == database_buffer_size, "Unexpected amount of data written"); (void)database_buffer_start;
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		// Make sure nobody overwrote our padding
