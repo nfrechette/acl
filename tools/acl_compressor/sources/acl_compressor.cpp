@@ -54,6 +54,7 @@
 #include "acl/compression/impl/write_decompression_stats.h"
 #include "acl/compression/track_error.h"
 #include "acl/database/database.h"
+#include "acl/database/null_database_streamer.h"	// Just to test compilation
 #include "acl/database/impl/debug_database_streamer.h"
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
