@@ -65,7 +65,7 @@ namespace acl
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
-			ACL_ASSERT(offset + size <= m_bulk_data_size, "Streaming request is outside of the bulk data range");
+			ACL_ASSERT(uint64_t(offset) + uint64_t(size) <= uint64_t(m_bulk_data_size), "Streaming request is outside of the bulk data range");
 
 			std::memcpy(m_streamed_bulk_data + offset, m_src_bulk_data + offset, size);
 			continuation(true);
@@ -75,7 +75,7 @@ namespace acl
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
-			ACL_ASSERT(offset + size <= m_bulk_data_size, "Streaming request is outside of the bulk data range");
+			ACL_ASSERT(uint64_t(offset) + uint64_t(size) <= uint64_t(m_bulk_data_size), "Streaming request is outside of the bulk data range");
 
 			std::memset(m_streamed_bulk_data + offset, 0xCD, size);
 			continuation(true);
