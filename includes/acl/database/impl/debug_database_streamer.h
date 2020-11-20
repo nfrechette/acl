@@ -46,10 +46,9 @@ namespace acl
 		debug_database_streamer(iallocator& allocator, const uint8_t* bulk_data, uint32_t bulk_data_size)
 			: m_allocator(allocator)
 			, m_src_bulk_data(bulk_data)
-			, m_streamed_bulk_data(allocate_type_array<uint8_t>(allocator, bulk_data_size))
+			, m_streamed_bulk_data(nullptr)
 			, m_bulk_data_size(bulk_data_size)
 		{
-			std::memset(m_streamed_bulk_data, 0xCD, bulk_data_size);
 		}
 
 		virtual ~debug_database_streamer()
@@ -61,24 +60,42 @@ namespace acl
 
 		virtual const uint8_t* get_bulk_data() const override { return m_streamed_bulk_data; }
 
-		virtual void stream_in(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) override
+		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, const std::function<void(bool success)>& continuation) override
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
 			ACL_ASSERT(uint64_t(offset) + uint64_t(size) <= uint64_t(m_bulk_data_size), "Streaming request is outside of the bulk data range");
 
+			if (can_allocate_bulk_data)
+			{
+				ACL_ASSERT(m_streamed_bulk_data == nullptr, "Bulk data already allocated");
+
+				m_streamed_bulk_data = allocate_type_array<uint8_t>(m_allocator, m_bulk_data_size);
+
+				std::memset(m_streamed_bulk_data, 0xCD, m_bulk_data_size);
+			}
+
 			std::memcpy(m_streamed_bulk_data + offset, m_src_bulk_data + offset, size);
 			continuation(true);
 		}
 
-		virtual void stream_out(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) override
+		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, const std::function<void()>& continuation) override
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
 			ACL_ASSERT(uint64_t(offset) + uint64_t(size) <= uint64_t(m_bulk_data_size), "Streaming request is outside of the bulk data range");
 
 			std::memset(m_streamed_bulk_data + offset, 0xCD, size);
-			continuation(true);
+
+			if (can_deallocate_bulk_data)
+			{
+				ACL_ASSERT(m_streamed_bulk_data != nullptr, "Bulk data already deallocated");
+
+				deallocate_type_array(m_allocator, m_streamed_bulk_data, m_bulk_data_size);
+				m_streamed_bulk_data = nullptr;
+			}
+
+			continuation();
 		}
 
 	private:

@@ -357,6 +357,9 @@ namespace acl
 		const acl_impl::database_chunk_description& last_chunk_description = chunk_descriptions[last_chunk_index];
 		const uint32_t stream_size = ((num_streaming_chunks - 1) * max_chunk_size) + last_chunk_description.size;
 
+		// We can allocate our bulk data if we haven't already
+		const bool can_allocate_bulk_data = m_context.bulk_data == nullptr;
+
 		// Mark chunks as in-streaming
 		bitset_set_range(m_context.streaming_chunks, desc, first_chunk_index, num_streaming_chunks, true);
 
@@ -413,7 +416,7 @@ namespace acl
 			bitset_set_range(context.streaming_chunks, desc_, first_chunk_index, num_streaming_chunks, false);
 		};
 
-		m_context.streamer->stream_in(stream_start_offset, stream_size, continuation);
+		m_context.streamer->stream_in(stream_start_offset, stream_size, can_allocate_bulk_data, continuation);
 
 		return database_stream_request_result::dispatched;
 	}
@@ -479,6 +482,12 @@ namespace acl
 		const uint8_t* bulk_data = m_context.bulk_data;
 		ACL_ASSERT(bulk_data != nullptr, "Bulk data should be allocated when we stream out");
 
+		// We can deallocate our bulk data if we are streaming out the last chunks
+		const uint32_t num_loaded_chunks = bitset_count_set_bits(m_context.loaded_chunks, desc);
+		const bool can_deallocate_bulk_data = num_streaming_chunks == num_loaded_chunks;
+		if (can_deallocate_bulk_data)
+			m_context.bulk_data = nullptr;
+
 		// Unregister our chunks
 		const uint32_t end_chunk_index = first_chunk_index + num_streaming_chunks;
 		for (uint32_t chunk_index = first_chunk_index; chunk_index < end_chunk_index; ++chunk_index)
@@ -506,22 +515,19 @@ namespace acl
 		}
 
 		acl_impl::database_context_v0& context = m_context;
-		auto continuation = [&context, first_chunk_index, num_streaming_chunks](bool success)
+		auto continuation = [&context, first_chunk_index, num_streaming_chunks]()
 		{
 			const uint32_t num_chunks_ = context.db->get_num_chunks();
 			const bitset_description desc_ = bitset_description::make_from_num_bits(num_chunks_);
 
-			if (success)
-			{
-				// Mark chunks as done streaming out
-				bitset_set_range(context.loaded_chunks, desc_, first_chunk_index, num_streaming_chunks, false);
-			}
+			// Mark chunks as done streaming out
+			bitset_set_range(context.loaded_chunks, desc_, first_chunk_index, num_streaming_chunks, false);
 
 			// Mark chunks as no longer streaming
 			bitset_set_range(context.streaming_chunks, desc_, first_chunk_index, num_streaming_chunks, false);
 		};
 
-		m_context.streamer->stream_out(stream_start_offset, stream_size, continuation);
+		m_context.streamer->stream_out(stream_start_offset, stream_size, can_deallocate_bulk_data, continuation);
 
 		return database_stream_request_result::dispatched;
 	}

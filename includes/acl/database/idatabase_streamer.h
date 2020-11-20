@@ -60,18 +60,29 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called when we request some data to be streamed in.
+		// Only one stream in/out request can be in flight at a time.
+		// Streaming in animation data can be done while animations are decompressing.
+		//
 		// The offset into the bulk data and the size in bytes to stream in are provided as arguments.
+		// On the first stream in request, the bulk data can be allocated but it cannot change with subsequent
+		// stream in requests until everything has been streamed out.
 		// Once the streaming request has been fulfilled (sync or async), call the continuation function with
-		// the status result. The continuation can be called from any thread at any moment safely.
-		virtual void stream_in(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) = 0;
+		// the status result.
+		// The continuation can be safely called from any thread.
+		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, const std::function<void(bool success)>& continuation) = 0;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called when we request some data to be streamed out.
+		// Only one stream in/out request can be in flight at a time.
+		// Streaming out animation data cannot be done while animations are decompressing.
+		// Doing so will result in undefined behavior as the data could be in use while we stream it out.
+		//
 		// The offset into the bulk data and the size in bytes to stream out are provided as arguments.
-		// Once the streaming request has been fulfilled (sync or async), call the continuation function with
-		// the status result. The continuation cannot be called while decompression is in progress with the associated
-		// database/bulk data. Doing so will result in undefined behavior as the data could be in use while we stream it out.
-		virtual void stream_out(uint32_t offset, uint32_t size, const std::function<void(bool success)>& continuation) = 0;
+		// On the last stream out request, the bulk data can be deallocated. It will be allocated again
+		// if the data streams back in.
+		// Once the streaming request has been fulfilled (sync or async), call the continuation function.
+		// The continuation can be safely called from any thread.
+		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, const std::function<void()>& continuation) = 0;
 	};
 }
 
