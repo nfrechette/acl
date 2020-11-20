@@ -511,12 +511,6 @@ static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw
 
 static void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold)
 {
-	(void)allocator;
-	(void)raw_tracks;
-	(void)tracks;
-	(void)regression_error_threshold;
-
-#if defined(ACL_HAS_ASSERT_CHECKS)
 	using namespace acl_impl;
 
 	// Disable floating point exceptions since decompression assumes it
@@ -693,7 +687,6 @@ static void validate_accuracy(iallocator& allocator, const track_array& raw_trac
 			}
 		}
 	}
-#endif	// defined(ACL_HAS_ASSERT_CHECKS)
 }
 
 static void validate_metadata(const track_array& raw_tracks, const compressed_tracks& tracks)
