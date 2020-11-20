@@ -61,6 +61,16 @@ namespace acl
 		not_initialized,
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// Database decompression context for the uniformly sampled algorithm. The context
+	// allows various streaming actions to be performed on the database.
+	//
+	// Both the constructor and destructor are public because it is safe to place
+	// instances of this context on the stack or as member variables.
+	//
+	// Note that the context only manages the streaming bookkeeping, the actual IO is
+	// handled by the idatabase_streamer implementation provided.
+	//////////////////////////////////////////////////////////////////////////
 	template<class database_settings_type>
 	class database_context
 	{
@@ -69,27 +79,61 @@ namespace acl
 		// An alias to the database settings type.
 		using settings_type = database_settings_type;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs a context instance.
 		database_context();
+
+		//////////////////////////////////////////////////////////////////////////
+		// Destructs a context instance.
 		~database_context();
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the compressed database bound to this context instance.
 		const compressed_database* get_compressed_database() const;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Initializes the context instance to a particular compressed database instance.
+		// No streaming can be performed and it is assumed that all the data is present in memory.
+		// Returns whether initialization was successful or not.
 		bool initialize(iallocator& allocator, const compressed_database& database);
 
+		//////////////////////////////////////////////////////////////////////////
+		// Initializes the context instance to a particular compressed database instance.
+		// The streamer instance will be used to issue IO stream in/out requests.
+		// Returns whether initialization was successful or not.
 		bool initialize(iallocator& allocator, const compressed_database& database, idatabase_streamer& streamer);
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if this context instance is bound to a compressed database instance, false otherwise.
 		bool is_initialized() const;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Resets the context instance to its default constructed state. If the context was
+		// currently bound to a database instance, it will no longer be bound to it.
 		void reset();
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns whether the database bound contains the provided compressed tracks instance data.
 		bool contains(const compressed_tracks& tracks) const;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns whether or not we have streamed in any of the database bulk data.
 		bool is_streamed_in() const;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns whether or not a streaming request is in flight.
 		bool is_streaming() const;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Issues a stream in request and returns the current status.
+		// By default, every chunk will be streamed in but they can be streamed progressively
+		// by providing a number of chunks.
 		database_stream_request_result stream_in(uint32_t num_chunks_to_stream = ~0U);
 
+		//////////////////////////////////////////////////////////////////////////
+		// Issues a stream out request and returns the current status.
+		// By default, every chunk will be streamed out but they can be streamed progressively
+		// by providing a number of chunks.
 		database_stream_request_result stream_out(uint32_t num_chunks_to_stream = ~0U);
 
 	private:
