@@ -192,6 +192,9 @@ namespace acl
 					// This will cache miss
 					uint32_t sample_indices0 = segment_tier0_header0->sample_indices;
 
+					// Calculate our clip relative sample index, we'll remap it later relative to the samples we'll use
+					const float sample_index = context.interpolation_alpha + float(key_frame0);
+
 					// When we load our sample indices and offsets from the database, there can be another thread writing
 					// to those memory locations at the same time (e.g. streaming in/out).
 					// To ensure thread safety, we atomically load the offset and sample indices.
@@ -224,9 +227,6 @@ namespace acl
 					// Mask all leading samples to find the second sample by counting leading zeros
 					const uint32_t candidate_indices1 = sample_indices0 & (0xFFFFFFFFU >> key_frame1);
 					key_frame1 = count_leading_zeros(candidate_indices1);
-
-					// Calculate our clip relative sample indices
-					const float sample_index = context.interpolation_alpha + float(key_frame0);
 
 					// Calculate our new interpolation alpha
 					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, key_frame0, key_frame1, rounding_policy);
@@ -323,6 +323,9 @@ namespace acl
 					uint32_t sample_indices0 = segment_tier0_header0->sample_indices;
 					uint32_t sample_indices1 = segment_tier0_header1->sample_indices;
 
+					// Calculate our clip relative sample index, we'll remap it later relative to the samples we'll use
+					const float sample_index = context.interpolation_alpha + float(key_frame0);
+
 					// When we load our sample indices and offsets from the database, there can be another thread writing
 					// to those memory locations at the same time (e.g. streaming in/out).
 					// To ensure thread safety, we atomically load the offset and sample indices.
@@ -366,7 +369,6 @@ namespace acl
 					segment_key_frame1 = count_leading_zeros(candidate_indices1);
 
 					// Calculate our clip relative sample indices
-					const float sample_index = context.interpolation_alpha + float(key_frame0);
 					const uint32_t clip_key_frame0 = segment_start_indices[segment_index0] + segment_key_frame0;
 					const uint32_t clip_key_frame1 = segment_start_indices[segment_index1] + segment_key_frame1;
 
