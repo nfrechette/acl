@@ -122,6 +122,45 @@ namespace acl
 			friend track_bit_rate_database;
 		};
 
+		class every_track_query
+		{
+		public:
+			explicit every_track_query(iallocator& allocator)
+				: m_allocator(allocator)
+				, m_database(nullptr)
+				, m_bit_rates(nullptr)
+				, m_indices(nullptr)
+				, m_num_transforms(0)
+			{}
+
+			~every_track_query()
+			{
+				deallocate_type_array(m_allocator, m_indices, m_num_transforms);
+			}
+
+			void bind(track_bit_rate_database& database);
+			void build(const BoneBitRate* bit_rates);
+
+		private:
+			every_track_query(const every_track_query&) = delete;
+			every_track_query& operator=(const every_track_query&) = delete;
+
+			struct transform_indices
+			{
+				uint32_t	rotation_cache_index;
+				uint32_t	translation_cache_index;
+				uint32_t	scale_cache_index;
+			};
+
+			iallocator&						m_allocator;
+			track_bit_rate_database*		m_database;
+			const BoneBitRate*				m_bit_rates;
+			transform_indices*				m_indices;
+			uint32_t						m_num_transforms;
+
+			friend track_bit_rate_database;
+		};
+
 		union bit_rates_union
 		{
 			// We are 0xFF, 0xFF, 0xFF, 0xFF if we are uninitialized and 0xFF, 0xFF, 0xFF, 0x00 if all three tracks are not variable
@@ -149,6 +188,7 @@ namespace acl
 
 			void sample(const single_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
 			void sample(const hierarchical_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
+			void sample(const every_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
 
 			size_t get_allocated_size() const;
 
@@ -230,6 +270,7 @@ namespace acl
 
 			friend single_track_query;
 			friend hierarchical_track_query;
+			friend every_track_query;
 		};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -279,6 +320,30 @@ namespace acl
 			m_bit_rates = bit_rates;
 
 			m_database->find_cache_entries(track_index, bit_rates, m_rotation_cache_index, m_translation_cache_index, m_scale_cache_index);
+		}
+
+		inline void every_track_query::bind(track_bit_rate_database& database)
+		{
+			ACL_ASSERT(m_database == nullptr, "Query already bound");
+			m_database = &database;
+
+			m_indices = allocate_type_array<transform_indices>(database.m_allocator, database.m_num_transforms);
+			m_num_transforms = database.m_num_transforms;
+		}
+
+		inline void every_track_query::build(const BoneBitRate* bit_rates)
+		{
+			ACL_ASSERT(m_database != nullptr, "Query not bound to a database");
+
+			m_bit_rates = bit_rates;
+
+			for (uint32_t transform_index = 0; transform_index < m_num_transforms; ++transform_index)
+			{
+				const BoneBitRate& current_bit_rates = bit_rates[transform_index];
+				transform_indices& indices = m_indices[transform_index];
+
+				m_database->find_cache_entries(transform_index, current_bit_rates, indices.rotation_cache_index, indices.translation_cache_index, indices.scale_cache_index);
+			}
 		}
 
 		inline int32_t track_bit_rate_database::transform_cache_entry::find_bit_rate_index(const bit_rates_union& bit_rates, uint32_t search_bit_rate)
@@ -1061,6 +1126,59 @@ namespace acl
 
 					out_local_pose[current_track_index] = rtm::qvv_set(rotation, translation, scale);
 					current_track_index = bone_stream.parent_bone_index;
+				}
+			}
+		}
+
+		inline void track_bit_rate_database::sample(const every_track_query& query, float sample_time, rtm::qvvf* out_local_pose, uint32_t num_transforms)
+		{
+			ACL_ASSERT(out_local_pose != nullptr, "Cannot write to null output local pose");
+			ACL_ASSERT(num_transforms > 0, "Cannot write to empty output local pose");
+			ACL_ASSERT(num_transforms == m_num_transforms, "Expected the same number of pose transforms");
+			(void)num_transforms;
+
+			const SegmentContext* segment_context = m_mutable_bone_streams->segment;
+
+			uint32_t sample_key;
+			if (segment_context->distribution == SampleDistribution8::Uniform)
+				sample_key = get_uniform_sample_key(*segment_context, sample_time);
+			else
+				sample_key = 0;
+
+			sample_context context;
+			context.sample_key = sample_key;
+			context.sample_time = sample_time;
+
+			if (segment_context->distribution == SampleDistribution8::Uniform)
+			{
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+				{
+					const every_track_query::transform_indices& indices = query.m_indices[transform_index];
+
+					context.track_index = transform_index;
+					context.bit_rates = query.m_bit_rates[transform_index];
+
+					const rtm::quatf rotation = sample_rotation<SampleDistribution8::Uniform>(context, indices.rotation_cache_index);
+					const rtm::vector4f translation = sample_translation<SampleDistribution8::Uniform>(context, indices.translation_cache_index);
+					const rtm::vector4f scale = sample_scale<SampleDistribution8::Uniform>(context, indices.scale_cache_index);
+
+					out_local_pose[transform_index] = rtm::qvv_set(rotation, translation, scale);
+				}
+			}
+			else
+			{
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+				{
+					const every_track_query::transform_indices& indices = query.m_indices[transform_index];
+
+					context.track_index = transform_index;
+					context.bit_rates = query.m_bit_rates[transform_index];
+
+					const rtm::quatf rotation = sample_rotation<SampleDistribution8::Variable>(context, indices.rotation_cache_index);
+					const rtm::vector4f translation = sample_translation<SampleDistribution8::Variable>(context, indices.translation_cache_index);
+					const rtm::vector4f scale = sample_scale<SampleDistribution8::Variable>(context, indices.scale_cache_index);
+
+					out_local_pose[transform_index] = rtm::qvv_set(rotation, translation, scale);
 				}
 			}
 		}
