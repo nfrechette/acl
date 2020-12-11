@@ -379,47 +379,47 @@ namespace acl
 			uint32_t written_metadata_track_descriptions_size = 0;
 			if (metadata_size != 0)
 			{
-				optional_metadata_header* metadada_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
+				optional_metadata_header* metadata_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
 				uint32_t metadata_offset = metadata_start_offset;	// Relative to the start of our compressed_tracks
 
 				if (settings.include_track_list_name)
 				{
-					metadada_header->track_list_name = metadata_offset;
-					writter_metadata_track_list_name_size = write_track_list_name(track_list, metadada_header->get_track_list_name(*out_compressed_tracks));
+					metadata_header->track_list_name = metadata_offset;
+					writter_metadata_track_list_name_size = write_track_list_name(track_list, metadata_header->get_track_list_name(*out_compressed_tracks));
 					metadata_offset += writter_metadata_track_list_name_size;
 				}
 				else
-					metadada_header->track_list_name = invalid_ptr_offset();
+					metadata_header->track_list_name = invalid_ptr_offset();
 
 				if (settings.include_track_names)
 				{
 					metadata_offset = align_to(metadata_offset, 4);
-					metadada_header->track_name_offsets = metadata_offset;
-					written_metadata_track_names_size = write_track_names(track_list, output_bone_mapping, num_output_bones, metadada_header->get_track_name_offsets(*out_compressed_tracks));
+					metadata_header->track_name_offsets = metadata_offset;
+					written_metadata_track_names_size = write_track_names(track_list, output_bone_mapping, num_output_bones, metadata_header->get_track_name_offsets(*out_compressed_tracks));
 					metadata_offset += written_metadata_track_names_size;
 				}
 				else
-					metadada_header->track_name_offsets = invalid_ptr_offset();
+					metadata_header->track_name_offsets = invalid_ptr_offset();
 
 				if (settings.include_parent_track_indices)
 				{
 					metadata_offset = align_to(metadata_offset, 4);
-					metadada_header->parent_track_indices = metadata_offset;
-					written_metadata_parent_track_indices_size = write_parent_track_indices(track_list, output_bone_mapping, num_output_bones, metadada_header->get_parent_track_indices(*out_compressed_tracks));
+					metadata_header->parent_track_indices = metadata_offset;
+					written_metadata_parent_track_indices_size = write_parent_track_indices(track_list, output_bone_mapping, num_output_bones, metadata_header->get_parent_track_indices(*out_compressed_tracks));
 					metadata_offset += written_metadata_parent_track_indices_size;
 				}
 				else
-					metadada_header->parent_track_indices = invalid_ptr_offset();
+					metadata_header->parent_track_indices = invalid_ptr_offset();
 
 				if (settings.include_track_descriptions)
 				{
 					metadata_offset = align_to(metadata_offset, 4);
-					metadada_header->track_descriptions = metadata_offset;
-					written_metadata_track_descriptions_size = write_track_descriptions(track_list, output_bone_mapping, num_output_bones, metadada_header->get_track_descriptions(*out_compressed_tracks));
+					metadata_header->track_descriptions = metadata_offset;
+					written_metadata_track_descriptions_size = write_track_descriptions(track_list, output_bone_mapping, num_output_bones, metadata_header->get_track_descriptions(*out_compressed_tracks));
 					metadata_offset += written_metadata_track_descriptions_size;
 				}
 				else
-					metadada_header->track_descriptions = invalid_ptr_offset();
+					metadata_header->track_descriptions = invalid_ptr_offset();
 			}
 
 			// Finish the compressed tracks raw buffer header
