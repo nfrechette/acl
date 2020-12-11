@@ -70,9 +70,7 @@ namespace acl
 
 		private:
 			hierarchical_track_query(const hierarchical_track_query&) = delete;
-			hierarchical_track_query(hierarchical_track_query&&) = delete;
 			hierarchical_track_query& operator=(const hierarchical_track_query&) = delete;
-			hierarchical_track_query& operator=(hierarchical_track_query&&) = delete;
 
 			struct transform_indices
 			{
@@ -111,9 +109,7 @@ namespace acl
 
 		private:
 			single_track_query(const single_track_query&) = delete;
-			single_track_query(single_track_query&&) = delete;
 			single_track_query& operator=(const single_track_query&) = delete;
-			single_track_query& operator=(single_track_query&&) = delete;
 
 			track_bit_rate_database*		m_database;
 			uint32_t						m_track_index;
@@ -158,9 +154,7 @@ namespace acl
 
 		private:
 			track_bit_rate_database(const track_bit_rate_database&) = delete;
-			track_bit_rate_database(track_bit_rate_database&&) = delete;
 			track_bit_rate_database& operator=(const track_bit_rate_database&) = delete;
-			track_bit_rate_database& operator=(track_bit_rate_database&&) = delete;
 
 			void find_cache_entries(uint32_t track_index, const BoneBitRate& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index);
 
