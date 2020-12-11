@@ -614,8 +614,6 @@ namespace acl
 					buffer_size += animated_data_size;						// Animated track data
 				}
 
-				const uint32_t segment_data_size = buffer_size - clip_data_size - clip_segment_header_size - clip_header_size;
-
 				// Optional metadata
 				const uint32_t metadata_start_offset = align_to(buffer_size, 4);
 				const uint32_t metadata_track_list_name_size = get_metadata_track_list_name_size(input_metadata_header);
@@ -945,7 +943,6 @@ namespace acl
 
 			const uint32_t max_chunk_size = settings.max_chunk_size;
 			const uint32_t simd_padding = 15;
-			const bitset_description desc = bitset_description::make_from_num_bits<32>();
 
 			database_chunk_header* chunk_header = nullptr;
 			database_chunk_segment_header* segment_chunk_headers = nullptr;
