@@ -141,25 +141,13 @@ namespace acl
 						calculate_animated_data_size(bone_stream.scales, num_animated_pose_scale_data_bits);
 				}
 
-				// Only account for tier 0 samples
-				uint32_t num_tier0_samples = 0;
-				if (segment.sample_tiers != nullptr)
-				{
-					for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
-					{
-						if (segment.sample_tiers[sample_index] == database_tier8::high_importance)
-							num_tier0_samples++;
-					}
-				}
-				else
-					num_tier0_samples = segment.num_samples;
-
+				const uint32_t num_samples = segment.num_samples;
 				const uint32_t num_animated_pose_bits = num_animated_pose_rotation_data_bits + num_animated_pose_translation_data_bits + num_animated_pose_scale_data_bits;
-				const uint32_t num_animated_data_bits = num_animated_pose_bits * num_tier0_samples;
+				const uint32_t num_animated_data_bits = num_animated_pose_bits * num_samples;
 
-				segment.animated_rotation_bit_size = num_animated_pose_rotation_data_bits * num_tier0_samples;
-				segment.animated_translation_bit_size = num_animated_pose_translation_data_bits * num_tier0_samples;
-				segment.animated_scale_bit_size = num_animated_pose_scale_data_bits * num_tier0_samples;
+				segment.animated_rotation_bit_size = num_animated_pose_rotation_data_bits * num_samples;
+				segment.animated_translation_bit_size = num_animated_pose_translation_data_bits * num_samples;
+				segment.animated_scale_bit_size = num_animated_pose_scale_data_bits * num_samples;
 				segment.animated_data_size = align_to(num_animated_data_bits, 8) / 8;
 				segment.animated_pose_bit_size = num_animated_pose_bits;
 			}
@@ -456,7 +444,7 @@ namespace acl
 			}
 		}
 
-		inline uint32_t write_animated_track_data(const SegmentContext& segment, database_tier8 tier, uint8_t* animated_track_data, uint32_t animated_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_animated_track_data(const SegmentContext& segment, uint8_t* animated_track_data, uint32_t animated_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			ACL_ASSERT(animated_track_data != nullptr, "'animated_track_data' cannot be null!");
 			(void)animated_data_size;
@@ -469,7 +457,7 @@ namespace acl
 
 			const uint8_t* animated_track_data_start = animated_track_data;
 			uint64_t bit_offset = 0;
-			uint32_t num_samples_at_tier = 0;
+			uint32_t num_samples = 0;
 
 			// Data is sorted first by time, second by bone.
 			// This ensures that all bones are contiguous in memory when we sample a particular time.
@@ -521,12 +509,7 @@ namespace acl
 			// TODO: Use a group writer context object to avoid alloc/free/work in loop for every sample when it doesn't change
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
-				if (segment.sample_tiers != nullptr && segment.sample_tiers[sample_index] != tier)
-					continue;	// Not writing this tier
-
-				ACL_ASSERT(segment.sample_tiers != nullptr || tier == database_tier8::high_importance, "Unexpected database tier");
-
-				num_samples_at_tier++;
+				num_samples++;
 
 				auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 				{
@@ -565,7 +548,7 @@ namespace acl
 			if (bit_offset != 0)
 				animated_track_data = animated_track_data_begin + ((bit_offset + 7) / 8);
 
-			ACL_ASSERT((bit_offset == 0 && num_samples_at_tier == 0) || ((bit_offset / num_samples_at_tier) == segment.animated_pose_bit_size), "Unexpected number of bits written");
+			ACL_ASSERT((bit_offset == 0 && num_samples == 0) || ((bit_offset / num_samples) == segment.animated_pose_bit_size), "Unexpected number of bits written");
 			ACL_ASSERT(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
 			return safe_static_cast<uint32_t>(animated_track_data - animated_track_data_start);
 		}

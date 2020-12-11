@@ -80,32 +80,20 @@ namespace acl
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
 	//////////////////////////////////////////////////////////////////////////
-	// Compresses a transform track array using its additive base with uniform sampling.
+	// Takes a list of compressed track instances that contain the contributing error metadata and uses their data to build
+	// a new database instance. Each compressed track instance will be duplicated and split between a new instance and the
+	// database.
 	//
-	// This compression algorithm is the simplest by far and as such it offers
-	// the fastest compression and decompression. Every sample is retained and
-	// every track has the same number of samples playing back at the same
-	// sample rate. This means that when we sample at a particular time within
-	// the clip, we can trivially calculate the offsets required to read the
-	// desired data. All the data is sorted in order to ensure all reads are
-	// as contiguous as possible for optimal cache locality during decompression.
-	//
-	// The data is also partitioned into a separate database. The resulting compressed clip
-	// can be used for playback on its own but with reduced quality and together with the database
-	// full quality playback can be achieved. In a separate step, multiple databases can be merged
-	// together for bulk streaming. The two step process allows easy preview and a predictable
-	// cost when compressing offline.
-	//
-	//    allocator:				The allocator instance to use to allocate and free memory.
-	//    track_list:				The track list to compress.
-	//    settings:					The compression settings to use.
-	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
-	//    out_compressed_database:	The resulting compressed database. The caller owns the returned memory and must free it.
-	//    out_stats:				Stat output structure.
+	//    allocator:						The allocator instance to use
+	//    settings:							The settings to use when creating the database
+	//    compressed_tracks_list:			The list of compressed tracks to build the database with (must have contributing error metadata)
+	//    num_compressed_tracks:			The number of compressed track instances in the above list
+	//    out_compressed_tracks:			The output list of compressed tracks bound to the output database (array allocated by the caller (must be large enough); compressed_tracks instances allocated by the function)
+	//    out_database:						The output database (allocated by the function)
 	//////////////////////////////////////////////////////////////////////////
-	error_result compress_track_list(iallocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings,
-		const track_array_qvvf& additive_base_track_list, additive_clip_format8 additive_format,
-		compressed_tracks*& out_compressed_tracks, compressed_database*& out_compressed_database, output_stats& out_stats);
+	error_result build_database(iallocator& allocator, const compression_database_settings& settings,
+		const compressed_tracks* const* compressed_tracks_list, uint32_t num_compressed_tracks,
+		compressed_tracks** out_compressed_tracks, compressed_database*& out_database);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Takes a compressed database with inline bulk data and duplicates it into

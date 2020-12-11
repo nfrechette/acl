@@ -42,7 +42,6 @@
 #include "acl/compression/impl/convert_rotation_streams.h"
 #include "acl/compression/impl/compact_constant_streams.h"
 #include "acl/compression/impl/normalize_streams.h"
-#include "acl/compression/impl/database_partitioner.h"
 #include "acl/compression/impl/quantize_streams.h"
 #include "acl/compression/impl/segment_streams.h"
 #include "acl/compression/impl/write_segment_data.h"
@@ -59,7 +58,7 @@ namespace acl
 	{
 		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_qvvf& track_list, compression_settings settings,
 			const track_array_qvvf* additive_base_track_list, additive_clip_format8 additive_format,
-			compressed_tracks*& out_compressed_tracks, compressed_database** out_compressed_database, output_stats& out_stats)
+			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
 			error_result result = settings.is_valid();
 			if (result.any())
@@ -69,13 +68,9 @@ namespace acl
 			scope_profiler compression_time;
 #endif
 
-			const bool split_into_database = out_compressed_database != nullptr;
-
 			// If every track is retains full precision, we disable segmenting since it provides no benefit
 			if (!is_rotation_format_variable(settings.rotation_format) && !is_vector_format_variable(settings.translation_format) && !is_vector_format_variable(settings.scale_format))
 			{
-				if (split_into_database)
-					return error_result("Cannot split raw tracks into a separate database");
 				if (settings.include_contributing_error)
 					return error_result("Raw tracks have no contributing error");
 
@@ -83,8 +78,6 @@ namespace acl
 				settings.segmenting.max_num_samples = 0xFFFFFFFF;
 			}
 
-			if (split_into_database && settings.segmenting.max_num_samples > 32)
-				return error_result("Cannot have more than 32 samples per segment when splitting into a database");
 			if (settings.include_contributing_error && settings.segmenting.max_num_samples > 32)
 				return error_result("Cannot have more than 32 samples per segment when calculating the contributing error per frame");
 
@@ -151,9 +144,6 @@ namespace acl
 
 			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats);
 
-			if (split_into_database)
-				partition_into_database(allocator, lossy_clip_context);
-
 			uint32_t num_output_bones = 0;
 			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);
 
@@ -179,14 +169,13 @@ namespace acl
 			animation_track_type8* animated_sub_track_groups = calculate_sub_track_groups(lossy_clip_context.segments[0], output_bone_mapping, num_output_bones, num_animated_groups, animated_group_filter_action);
 			const uint32_t animated_group_types_size = sizeof(animation_track_type8) * (num_animated_groups + 1);	// Includes terminator
 
-			const uint32_t num_tracks_per_bone = lossy_clip_context.has_scale ? 3 : 2;
-			const uint32_t num_tracks = uint32_t(num_output_bones) * num_tracks_per_bone;
-			const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_tracks);
+			const uint32_t num_sub_tracks_per_bone = lossy_clip_context.has_scale ? 3 : 2;
+			const uint32_t num_sub_tracks = num_output_bones * num_sub_tracks_per_bone;
+			const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_sub_tracks);
 
 			// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
 			const uint32_t segment_start_indices_size = lossy_clip_context.num_segments > 1 ? (sizeof(uint32_t) * (lossy_clip_context.num_segments + 1)) : 0;
-			const uint32_t segment_header_size = split_into_database ? sizeof(segment_tier0_header) : sizeof(segment_header);
-			const uint32_t segment_headers_size = segment_header_size * lossy_clip_context.num_segments;
+			const uint32_t segment_headers_size = sizeof(segment_header) * lossy_clip_context.num_segments;
 
 			uint32_t buffer_size = 0;
 			// Per clip data
@@ -200,13 +189,6 @@ namespace acl
 			buffer_size += segment_start_indices_size;							// Segment start indices
 			buffer_size = align_to(buffer_size, 4);								// Align segment headers
 			buffer_size += segment_headers_size;								// Segment headers
-
-			if (split_into_database)
-			{
-				buffer_size = align_to(buffer_size, 4);							// Align database header
-				buffer_size += sizeof(tracks_database_header);					// Database header
-			}
-
 			buffer_size = align_to(buffer_size, 4);								// Align bitsets
 
 			const uint32_t clip_segment_header_size = buffer_size - clip_header_size;
@@ -226,7 +208,7 @@ namespace acl
 				constexpr uint32_t k_cache_line_byte_size = 64;
 				lossy_clip_context.decomp_touched_bytes = clip_header_size + clip_data_size;
 				lossy_clip_context.decomp_touched_bytes += sizeof(uint32_t) * 4;		// We touch at most 4 segment start indices
-				lossy_clip_context.decomp_touched_bytes += segment_header_size * 2;		// We touch at most 2 segment headers
+				lossy_clip_context.decomp_touched_bytes += sizeof(segment_header) * 2;	// We touch at most 2 segment headers
 				lossy_clip_context.decomp_touched_cache_lines = align_to(clip_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
 				lossy_clip_context.decomp_touched_cache_lines += align_to(clip_data_size, k_cache_line_byte_size) / k_cache_line_byte_size;
 				lossy_clip_context.decomp_touched_cache_lines += 1;						// All 4 segment start indices should fit in a cache line
@@ -312,7 +294,7 @@ namespace acl
 			header->set_has_scale(lossy_clip_context.has_scale);
 			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
 			header->set_default_scale(!is_additive || additive_format != additive_clip_format8::additive1 ? 1 : 0);
-			header->set_has_database(split_into_database);
+			header->set_has_database(false);
 			header->set_has_metadata(metadata_size != 0);
 
 			// Write our transform tracks header
@@ -324,18 +306,10 @@ namespace acl
 			get_num_constant_samples(lossy_clip_context, transforms_header->num_constant_rotation_samples, transforms_header->num_constant_translation_samples, transforms_header->num_constant_scale_samples);
 			get_num_animated_sub_tracks(lossy_clip_context.segments[0],
 				transforms_header->num_animated_rotation_sub_tracks, transforms_header->num_animated_translation_sub_tracks, transforms_header->num_animated_scale_sub_tracks);
-			const uint32_t segment_start_indices_offset = align_to<uint32_t>(sizeof(transform_tracks_header), 4);	// Relative to the start of our transform_tracks_header
-			if (split_into_database)
-			{
-				transforms_header->database_header_offset = align_to(segment_start_indices_offset + segment_start_indices_size, 4);
-				transforms_header->segment_headers_offset = align_to(transforms_header->database_header_offset + sizeof(tracks_database_header), 4);
-			}
-			else
-			{
-				transforms_header->database_header_offset = invalid_ptr_offset();
-				transforms_header->segment_headers_offset = align_to(segment_start_indices_offset + segment_start_indices_size, 4);
-			}
 
+			const uint32_t segment_start_indices_offset = align_to<uint32_t>(sizeof(transform_tracks_header), 4);	// Relative to the start of our transform_tracks_header
+			transforms_header->database_header_offset = invalid_ptr_offset();
+			transforms_header->segment_headers_offset = align_to(segment_start_indices_offset + segment_start_indices_size, 4);
 			transforms_header->default_tracks_bitset_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
 			transforms_header->constant_tracks_bitset_offset = transforms_header->default_tracks_bitset_offset + bitset_desc.get_num_bytes();
 			transforms_header->constant_track_data_offset = align_to(transforms_header->constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
@@ -346,18 +320,8 @@ namespace acl
 			if (lossy_clip_context.num_segments > 1)
 				written_segment_start_indices_size = write_segment_start_indices(lossy_clip_context, transforms_header->get_segment_start_indices());
 
-			if (split_into_database)
-			{
-				tracks_database_header* tracks_db_header = transforms_header->get_database_header();
-				tracks_db_header->clip_header_offset = 0;	// Always first clip when compressing
-			}
-
 			const uint32_t segment_data_start_offset = transforms_header->animated_group_types_offset + animated_group_types_size;
-			uint32_t written_segment_headers_size;
-			if (split_into_database)
-				written_segment_headers_size = write_segment_headers(lossy_clip_context, settings, transforms_header->get_segment_tier0_headers(), segment_data_start_offset);
-			else
-				written_segment_headers_size = write_segment_headers(lossy_clip_context, settings, transforms_header->get_segment_headers(), segment_data_start_offset);
+			const uint32_t written_segment_headers_size = write_segment_headers(lossy_clip_context, settings, transforms_header->get_segment_headers(), segment_data_start_offset);
 
 			uint32_t written_bitset_size = 0;
 			written_bitset_size += write_default_track_bitset(lossy_clip_context, transforms_header->get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
@@ -373,11 +337,7 @@ namespace acl
 
 			const uint32_t written_animated_group_types_size = write_animated_group_types(animated_sub_track_groups, num_animated_groups, transforms_header->get_animated_group_types(), animated_group_types_size);
 
-			uint32_t written_segment_data_size;
-			if (split_into_database)
-				written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, transforms_header->get_segment_tier0_headers(), *transforms_header, output_bone_mapping, num_output_bones);
-			else
-				written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, transforms_header->get_segment_headers(), *transforms_header, output_bone_mapping, num_output_bones);
+			const uint32_t written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, transforms_header->get_segment_headers(), *transforms_header, output_bone_mapping, num_output_bones);
 
 			// Optional metadata header is last
 			uint32_t writter_metadata_track_list_name_size = 0;
@@ -451,11 +411,6 @@ namespace acl
 				buffer += written_segment_start_indices_size;
 				buffer = align_to(buffer, 4);								// Align segment headers
 				buffer += written_segment_headers_size;
-				if (split_into_database)
-				{
-					buffer = align_to(buffer, 4);							// Align header
-					buffer += sizeof(tracks_database_header);
-				}
 				buffer = align_to(buffer, 4);								// Align bitsets
 				buffer += written_bitset_size;
 				buffer = align_to(buffer, 4);								// Align constant track data
@@ -509,86 +464,6 @@ namespace acl
 			(void)buffer_start;
 #endif
 
-			// Write our database and relevant headers if we need to
-			if (split_into_database)
-			{
-				const uint32_t num_chunks = write_database_chunk_descriptions(lossy_clip_context, settings.database, nullptr);
-				const uint32_t bulk_data_size = write_database_bulk_data(lossy_clip_context, settings.database, buffer_header->hash, nullptr, output_bone_mapping, num_output_bones);
-
-				uint32_t database_buffer_size = 0;
-				database_buffer_size += sizeof(raw_buffer_header);							// Header
-				database_buffer_size += sizeof(database_header);							// Header
-
-				database_buffer_size = align_to(database_buffer_size, 4);					// Align chunk descriptions
-				database_buffer_size += num_chunks * sizeof(database_chunk_description);	// Chunk descriptions
-
-				database_buffer_size = align_to(database_buffer_size, 4);					// Align clip hashes
-				database_buffer_size += 1 * sizeof(database_clip_metadata);					// Clip metadata (only one when we compress)
-
-				database_buffer_size = align_to(database_buffer_size, 8);					// Align bulk data
-				database_buffer_size += bulk_data_size;										// Bulk data
-
-				uint8_t* database_buffer = allocate_type_array_aligned<uint8_t>(allocator, database_buffer_size, alignof(compressed_database));
-				std::memset(database_buffer, 0, database_buffer_size);
-
-				const uint8_t* database_buffer_start = database_buffer;
-				*out_compressed_database = reinterpret_cast<compressed_database*>(database_buffer);
-
-				raw_buffer_header* database_buffer_header = safe_ptr_cast<raw_buffer_header>(database_buffer);
-				database_buffer += sizeof(raw_buffer_header);
-
-				uint8_t* db_header_start = database_buffer;
-				database_header* db_header = safe_ptr_cast<database_header>(database_buffer);
-				database_buffer += sizeof(database_header);
-
-				// Write our header
-				db_header->tag = static_cast<uint32_t>(buffer_tag32::compressed_database);
-				db_header->version = compressed_tracks_version16::latest;
-				db_header->num_chunks = num_chunks;
-				db_header->max_chunk_size = settings.database.max_chunk_size;
-				db_header->num_clips = 1;	// Only one when we compress
-				db_header->num_segments = lossy_clip_context.num_segments;
-				db_header->bulk_data_size = bulk_data_size;
-				db_header->set_is_bulk_data_inline(true);	// Data is always inline when compressing
-
-				database_buffer = align_to(database_buffer, 4);								// Align chunk descriptions
-				database_buffer += num_chunks * sizeof(database_chunk_description);			// Chunk descriptions
-
-				database_buffer = align_to(database_buffer, 4);								// Align clip hashes
-				db_header->clip_metadata_offset = database_buffer - db_header_start;		// Clip metadata (only one when we compress)
-				database_buffer += 1 * sizeof(database_clip_metadata);						// Clip metadata
-
-				database_buffer = align_to(database_buffer, 8);								// Align bulk data
-				db_header->bulk_data_offset = database_buffer - db_header_start;			// Bulk data
-				database_buffer += bulk_data_size;											// Bulk data
-
-				// Write our chunk descriptions
-				const uint32_t num_written_chunks = write_database_chunk_descriptions(lossy_clip_context, settings.database, db_header->get_chunk_descriptions());
-				ACL_ASSERT(num_written_chunks == num_chunks, "Unexpected amount of data written"); (void)num_written_chunks;
-
-				// Write our clip metadata
-				database_clip_metadata* clip_metadata = db_header->get_clip_metadatas();
-				clip_metadata->clip_hash = buffer_header->hash;
-				clip_metadata->clip_header_offset = 0;
-
-				// Write our bulk data
-				const uint32_t written_bulk_data_size = write_database_bulk_data(lossy_clip_context, settings.database, buffer_header->hash, db_header->get_bulk_data(), output_bone_mapping, num_output_bones);
-				ACL_ASSERT(written_bulk_data_size == bulk_data_size, "Unexpected amount of data written"); (void)written_bulk_data_size;
-				db_header->bulk_data_hash = hash32(db_header->get_bulk_data(), bulk_data_size);
-
-				ACL_ASSERT(uint32_t(database_buffer - database_buffer_start) == database_buffer_size, "Unexpected amount of data written"); (void)database_buffer_start;
-
-#if defined(ACL_HAS_ASSERT_CHECKS)
-				// Make sure nobody overwrote our padding
-				for (const uint8_t* padding = database_buffer - 15; padding < database_buffer; ++padding)
-					ACL_ASSERT(*padding == 0, "Padding was overwritten");
-#endif
-
-				// Finish the raw buffer header
-				database_buffer_header->size = database_buffer_size;
-				database_buffer_header->hash = hash32(safe_ptr_cast<const uint8_t>(db_header), database_buffer_size - sizeof(raw_buffer_header));	// Hash everything but the raw buffer header
-			}
-
 #if defined(SJSON_CPP_WRITER)
 			compression_time.stop();
 
@@ -619,7 +494,7 @@ namespace acl
 		scope_disable_fp_exceptions fp_off;
 
 		if (track_list.get_track_category() == track_category8::transformf)
-			result = compress_transform_track_list(allocator, track_array_cast<track_array_qvvf>(track_list), settings, nullptr, additive_clip_format8::none, out_compressed_tracks, nullptr, out_stats);
+			result = compress_transform_track_list(allocator, track_array_cast<track_array_qvvf>(track_list), settings, nullptr, additive_clip_format8::none, out_compressed_tracks, out_stats);
 		else
 			result = compress_scalar_track_list(allocator, track_list, settings, out_compressed_tracks, out_stats);
 
@@ -645,30 +520,6 @@ namespace acl
 		// and we might intentionally divide by zero, etc.
 		scope_disable_fp_exceptions fp_off;
 
-		return compress_transform_track_list(allocator, track_list, settings, &additive_base_track_list, additive_format, out_compressed_tracks, nullptr, out_stats);
-	}
-
-	inline error_result compress_track_list(iallocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings,
-		const track_array_qvvf& additive_base_track_list, additive_clip_format8 additive_format,
-		compressed_tracks*& out_compressed_tracks, compressed_database*& out_compressed_database, output_stats& out_stats)
-	{
-		using namespace acl_impl;
-
-		error_result result = track_list.is_valid();
-		if (result.any())
-			return result;
-
-		if (additive_format != additive_clip_format8::none)
-		{
-			result = additive_base_track_list.is_valid();
-			if (result.any())
-				return result;
-		}
-
-		// Disable floating point exceptions during compression because we leverage all SIMD lanes
-		// and we might intentionally divide by zero, etc.
-		scope_disable_fp_exceptions fp_off;
-
-		return compress_transform_track_list(allocator, track_list, settings, &additive_base_track_list, additive_format, out_compressed_tracks, &out_compressed_database, out_stats);
+		return compress_transform_track_list(allocator, track_list, settings, &additive_base_track_list, additive_format, out_compressed_tracks, out_stats);
 	}
 }

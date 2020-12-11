@@ -74,6 +74,23 @@ namespace acl
 	struct compression_database_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
+		// What proportions we should use when distributing our frames based on
+		// their importance to the overall error contribution. If a sample doesn't
+		// go into the medium or low importance tiers, it will end up in the high
+		// importance tier stored within each compressed track instance.
+		// Proportion values must be between 0.0 and 1.0 and their sum cannot exceed 1.0
+		// and it must be larger than 0.0 (at least some samples must be moved to the database).
+		// If the sum is less than 1.0, remaining frames are considered to have high
+		// importance. A low importance proportion of 30% means that the least important
+		// 30% of frames will end up in that corresponding database tier.
+		// Note that only movable frames can end up in the database as some frames must remain
+		// within the compressed track instance. A frame is movable if it isn't the first or last
+		// frame of its segment.
+		// Defaults to '0.5' (50% of frames are moved to the database)
+		//float medium_importance_tier_proportion = 0.0F;	// TODO: Add support for a second tier
+		float low_importance_tier_proportion = 0.5F;
+
+		//////////////////////////////////////////////////////////////////////////
 		// How large should each chunk be, in bytes.
 		// This value must be at least 4 KB and ideally it should be a multiple of
 		// the virtual memory page size used on the platform that will decompress
@@ -114,11 +131,6 @@ namespace acl
 		// Segmenting settings, if used.
 		// Transform tracks only.
 		compression_segmenting_settings segmenting;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Database settings, if used.
-		// Transform tracks only.
-		compression_database_settings database;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The error metric to use.

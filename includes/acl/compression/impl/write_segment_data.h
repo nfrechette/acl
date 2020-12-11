@@ -89,46 +89,7 @@ namespace acl
 			return size_written;
 		}
 
-		inline uint32_t write_segment_headers(const clip_context& clip, const compression_settings& settings, segment_tier0_header* segment_headers, uint32_t segment_data_start_offset)
-		{
-			uint32_t size_written = 0;
-
-			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip, settings.rotation_format, settings.translation_format, settings.scale_format);
-			const bitset_description desc = bitset_description::make_from_num_bits<32>();
-
-			uint32_t segment_data_offset = segment_data_start_offset;
-			for (uint32_t segment_index = 0; segment_index < clip.num_segments; ++segment_index)
-			{
-				const SegmentContext& segment = clip.segments[segment_index];
-				segment_tier0_header& header = segment_headers[segment_index];
-
-				ACL_ASSERT(header.animated_pose_bit_size == 0, "Buffer overrun detected");
-
-				header.animated_pose_bit_size = segment.animated_pose_bit_size;
-				header.segment_data = segment_data_offset;
-
-				// Populate which sample indices are stored in our segment
-				bitset_reset(&header.sample_indices, desc, false);
-
-				for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
-				{
-					if (segment.sample_tiers[sample_index] == database_tier8::high_importance)
-						bitset_set(&header.sample_indices, desc, sample_index, true);
-				}
-
-				segment_data_offset = align_to(segment_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
-				segment_data_offset = align_to(segment_data_offset + segment.range_data_size, 4);			// Aligned to 4 bytes
-				segment_data_offset = segment_data_offset + segment.animated_data_size;
-				size_written += sizeof(segment_tier0_header);
-
-				ACL_ASSERT((segment_data_offset - (uint32_t)header.segment_data) == segment.segment_data_size, "Unexpected segment size");
-			}
-
-			return size_written;
-		}
-
-		template<class segment_header_type>
-		inline uint32_t write_segment_data(const clip_context& clip, const compression_settings& settings, range_reduction_flags8 range_reduction, segment_header_type* segment_headers, transform_tracks_header& header, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_segment_data(const clip_context& clip, const compression_settings& settings, range_reduction_flags8 range_reduction, segment_header* segment_headers, transform_tracks_header& header, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip, settings.rotation_format, settings.translation_format, settings.scale_format);
 
@@ -138,7 +99,7 @@ namespace acl
 			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 			{
 				const SegmentContext& segment = clip.segments[segment_index];
-				segment_header_type& segment_header_ = segment_headers[segment_index];
+				segment_header& segment_header_ = segment_headers[segment_index];
 
 				uint8_t* format_per_track_data = nullptr;
 				uint8_t* range_data = nullptr;
@@ -163,7 +124,7 @@ namespace acl
 
 				if (segment.animated_data_size != 0)
 				{
-					const uint32_t size = write_animated_track_data(segment, database_tier8::high_importance, animated_data, segment.animated_data_size, output_bone_mapping, num_output_bones);
+					const uint32_t size = write_animated_track_data(segment, animated_data, segment.animated_data_size, output_bone_mapping, num_output_bones);
 					ACL_ASSERT(size == segment.animated_data_size, "Unexpected animated data size"); (void)size;
 				}
 

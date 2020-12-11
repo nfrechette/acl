@@ -101,7 +101,6 @@ namespace acl
 				segment.clip = &clip;
 				segment.bone_streams = allocate_type_array<BoneStreams>(allocator, clip.num_bones);
 				segment.ranges = nullptr;
-				segment.sample_tiers = nullptr;
 				segment.contributing_error = nullptr;
 				segment.num_bones = clip.num_bones;
 				segment.num_samples = num_samples_in_segment;

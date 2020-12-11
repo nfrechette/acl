@@ -57,6 +57,7 @@ namespace acl
 	{
 		uint32_t hash_value = 0;
 		hash_value = hash_combine(hash_value, hash32(max_chunk_size));
+		hash_value = hash_combine(hash_value, hash32(low_importance_tier_proportion));
 		return hash_value;
 	}
 
@@ -67,6 +68,9 @@ namespace acl
 
 		if (align_to(max_chunk_size, 4 * 1024) != max_chunk_size)
 			return error_result("max_chunk_size must be a multiple of 4 KB");
+
+		if (!rtm::scalar_is_finite(low_importance_tier_proportion) || low_importance_tier_proportion <= 0.0F || low_importance_tier_proportion > 1.0F)
+			return error_result("low_importance_tier_proportion must be larger than 0.0 and lower or equal to 1.0");
 
 		return error_result();
 	}
@@ -80,7 +84,6 @@ namespace acl
 		hash_value = hash_combine(hash_value, hash32(scale_format));
 
 		hash_value = hash_combine(hash_value, segmenting.get_hash());
-		hash_value = hash_combine(hash_value, database.get_hash());
 
 		if (error_metric != nullptr)
 			hash_value = hash_combine(hash_value, error_metric->get_hash());
@@ -102,10 +105,6 @@ namespace acl
 		const error_result segmenting_result = segmenting.is_valid();
 		if (segmenting_result.any())
 			return segmenting_result;
-
-		const error_result database_result = database.is_valid();
-		if (database_result.any())
-			return database_result;
 
 		return error_result();
 	}

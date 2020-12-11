@@ -75,19 +75,6 @@
     </Expand>
   </Type>
 
-  <Type Name="acl::acl_impl::scalarf_range">
-    <DisplayString>min={m_min}, extent={m_extent}</DisplayString>
-  </Type>
-
-  <Type Name="acl::acl_impl::track_range">
-    <DisplayString Condition="category == acl::track_category8::scalarf">{range.scalarf}</DisplayString>
-    <Expand>
-      <Item Name="category">category</Item>
-      <Item Name="min" Condition="category == acl::track_category8::scalarf">range.scalarf.m_min</Item>
-      <Item Name="extent" Condition="category == acl::track_category8::scalarf">range.scalarf.m_extent</Item>
-    </Expand>
-  </Type>
-
   <Type Name="acl::ptr_offset&lt;*,*&gt;">
     <DisplayString Condition="m_value == k_invalid_value">Invalid!</DisplayString>
     <DisplayString>{m_value}</DisplayString>
@@ -113,6 +100,58 @@
       <Item Name="num_clips">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_clips</Item>
       <Item Name="num_segments">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_segments</Item>
       <Item Name="version">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->version</Item>
+    </Expand>
+  </Type>
+  
+  <!-- Internal implementation detail types follow -->
+
+  <Type Name="acl::acl_impl::scalarf_range">
+    <DisplayString>min={m_min}, extent={m_extent}</DisplayString>
+  </Type>
+
+  <Type Name="acl::acl_impl::track_range">
+    <DisplayString Condition="category == acl::track_category8::scalarf">{range.scalarf}</DisplayString>
+    <Expand>
+      <Item Name="category">category</Item>
+      <Item Name="min" Condition="category == acl::track_category8::scalarf">range.scalarf.m_min</Item>
+      <Item Name="extent" Condition="category == acl::track_category8::scalarf">range.scalarf.m_extent</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="acl::acl_impl::database_tier_mapping">
+    <DisplayString>{tier}</DisplayString>
+    <Expand>
+      <Item Name="num_frames">num_frames</Item>
+      <ArrayItems>
+        <Size>num_frames</Size>
+        <ValuePointer>frames</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <Type Name="acl::acl_impl::clip_contributing_error">
+    <DisplayString>num_segments: {num_segments}, assigned: {num_assigned} / {num_frames}</DisplayString>
+    <Expand>
+      <Item Name="num_segments">num_segments</Item>
+      <Item Name="num_frames">num_frames</Item>
+      <Item Name="num_assigned">num_assigned</Item>
+      <ArrayItems>
+        <Size>num_segments</Size>
+        <ValuePointer>segments</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <Type Name="acl::acl_impl::segment_contriguting_error">
+    <DisplayString>assigned: {num_assigned} / {num_movable}</DisplayString>
+    <Expand>
+      <Item Name="num_frames">num_frames</Item>
+      <Item Name="num_movable">num_movable</Item>
+      <Item Name="num_assigned">num_assigned</Item>
+      <ArrayItems>
+        <Size>num_frames</Size>
+        <ValuePointer>errors</ValuePointer>
+      </ArrayItems>
     </Expand>
   </Type>
 

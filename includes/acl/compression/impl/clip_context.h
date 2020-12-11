@@ -279,7 +279,6 @@ namespace acl
 			segment.bone_streams = bone_streams;
 			segment.clip = &out_clip_context;
 			segment.ranges = nullptr;
-			segment.sample_tiers = nullptr;
 			segment.contributing_error = nullptr;
 			segment.num_samples = num_samples;
 			segment.num_bones = num_transforms;
