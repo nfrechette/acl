@@ -206,8 +206,8 @@ namespace acl
 			uint32_t			m_track_size;
 
 			bitset_description	m_bitset_desc;
-			bitset_index_ref		m_bitref_constant;
-			rotation_format8		m_rotation_format;
+			bitset_index_ref	m_bitref_constant;
+			rotation_format8	m_rotation_format;
 			vector_format8		m_translation_format;
 			vector_format8		m_scale_format;
 			bool				m_is_rotation_variable;
