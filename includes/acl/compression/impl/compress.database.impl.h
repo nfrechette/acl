@@ -222,7 +222,7 @@ namespace acl
 			// Iterate until we've fully assigned every frame we can to this tier
 			for (uint32_t assigned_frame_count = 0; assigned_frame_count < tier_mapping.num_frames; ++assigned_frame_count)
 			{
-				frame_tier_mapping best_mapping = { 0 };
+				frame_tier_mapping best_mapping{};
 				best_mapping.contributing_error = std::numeric_limits<float>::infinity();
 
 				// Iterate over every segment and find the one with the frame that has the lowest contributing error to assign to this tier
