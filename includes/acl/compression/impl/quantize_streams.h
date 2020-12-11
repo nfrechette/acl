@@ -80,7 +80,7 @@ namespace acl
 			single_track_query local_query;
 			hierarchical_track_query object_query;
 
-			uint32_t num_samples;
+			uint32_t num_samples;					// Num samples within our segment
 			uint32_t segment_sample_start_index;
 			float sample_rate;
 			float clip_duration;
@@ -1517,6 +1517,7 @@ namespace acl
 
 				context.set_segment(segment);
 
+				// If we use a variable bit rate, run our optimization algorithm to find the optimal bit rates
 				if (is_any_variable)
 					find_optimal_bit_rates(context);
 

@@ -159,7 +159,7 @@ namespace acl
 			// Number of bits used by a fully animated pose (excludes default/constant tracks).
 			uint32_t						animated_pose_bit_size;
 
-			// Offset to the animated segment data
+			// Offset to the animated segment data, relative to the start of the transform_tracks_header
 			// Segment data is partitioned as follows:
 			//    - format per variable track (no alignment)
 			//    - range data per variable track (only when more than one segment) (2 byte alignment)
@@ -179,7 +179,7 @@ namespace acl
 			// Number of bits used by a fully animated pose (excludes default/constant tracks).
 			uint32_t						animated_pose_bit_size;
 
-			// Offset to the animated segment data
+			// Offset to the animated segment data, relative to the start of the transform_tracks_header
 			// Segment data is partitioned as follows:
 			//    - format per variable track (no alignment)
 			//    - range data per variable track (only when more than one segment) (2 byte alignment)
@@ -238,7 +238,7 @@ namespace acl
 			// The number of constant sub-track samples stored, does not include default samples
 			uint32_t						num_constant_rotation_samples;
 			uint32_t						num_constant_translation_samples;
-			uint32_t						num_constant_scale_samples;			// TODO: Not needed?
+			uint32_t						num_constant_scale_samples;				// TODO: Not needed?
 
 			// Offset to the database metadata header.
 			ptr_offset32<tracks_database_header>	database_header_offset;
@@ -258,7 +258,7 @@ namespace acl
 			ptr_offset32<uint8_t>			constant_track_data_offset;
 
 			// Offset to the clip range data.
-			ptr_offset32<uint8_t>			clip_range_data_offset;				// TODO: Make this offset optional? Only present if normalized
+			ptr_offset32<uint8_t>			clip_range_data_offset;					// TODO: Make this offset optional? Only present if normalized
 
 			// Offset to the animated group types. Ends with an invalid group type of 0xFF.
 			ptr_offset32<animation_track_type8>	animated_group_types_offset;
@@ -272,8 +272,8 @@ namespace acl
 			tracks_database_header*			get_database_header() { return database_header_offset.safe_add_to(this); }
 			const tracks_database_header*	get_database_header() const { return database_header_offset.safe_add_to(this); }
 
-			segment_header*				get_segment_headers() { return segment_headers_offset.add_to(this); }
-			const segment_header*		get_segment_headers() const { return segment_headers_offset.add_to(this); }
+			segment_header*					get_segment_headers() { return segment_headers_offset.add_to(this); }
+			const segment_header*			get_segment_headers() const { return segment_headers_offset.add_to(this); }
 
 			segment_tier0_header*			get_segment_tier0_headers() { return segment_tier0_headers_offset.add_to(this); }
 			const segment_tier0_header*		get_segment_tier0_headers() const { return segment_tier0_headers_offset.add_to(this); }
@@ -281,20 +281,20 @@ namespace acl
 			animation_track_type8*			get_animated_group_types() { return animated_group_types_offset.add_to(this); }
 			const animation_track_type8*	get_animated_group_types() const { return animated_group_types_offset.add_to(this); }
 
-			uint32_t*					get_default_tracks_bitset() { return default_tracks_bitset_offset.add_to(this); }
-			const uint32_t*				get_default_tracks_bitset() const { return default_tracks_bitset_offset.add_to(this); }
+			uint32_t*						get_default_tracks_bitset() { return default_tracks_bitset_offset.add_to(this); }
+			const uint32_t*					get_default_tracks_bitset() const { return default_tracks_bitset_offset.add_to(this); }
 
-			uint32_t*					get_constant_tracks_bitset() { return constant_tracks_bitset_offset.add_to(this); }
-			const uint32_t*				get_constant_tracks_bitset() const { return constant_tracks_bitset_offset.add_to(this); }
+			uint32_t*						get_constant_tracks_bitset() { return constant_tracks_bitset_offset.add_to(this); }
+			const uint32_t*					get_constant_tracks_bitset() const { return constant_tracks_bitset_offset.add_to(this); }
 
-			uint8_t*					get_constant_track_data() { return constant_track_data_offset.add_to(this); }
-			const uint8_t*				get_constant_track_data() const { return constant_track_data_offset.add_to(this); }
+			uint8_t*						get_constant_track_data() { return constant_track_data_offset.add_to(this); }
+			const uint8_t*					get_constant_track_data() const { return constant_track_data_offset.add_to(this); }
 
-			uint8_t*					get_clip_range_data() { return clip_range_data_offset.add_to(this); }
-			const uint8_t*				get_clip_range_data() const { return clip_range_data_offset.add_to(this); }
+			uint8_t*						get_clip_range_data() { return clip_range_data_offset.add_to(this); }
+			const uint8_t*					get_clip_range_data() const { return clip_range_data_offset.add_to(this); }
 
 			template<class segment_header_type>
-			void						get_segment_data(const segment_header_type& header, uint8_t*& out_format_per_track_data, uint8_t*& out_range_data, uint8_t*& out_animated_data)
+			void							get_segment_data(const segment_header_type& header, uint8_t*& out_format_per_track_data, uint8_t*& out_range_data, uint8_t*& out_animated_data)
 			{
 				uint8_t* segment_data = header.segment_data.add_to(this);
 
@@ -311,7 +311,7 @@ namespace acl
 			}
 
 			template<class segment_header_type>
-			void						get_segment_data(const segment_header_type& header, const uint8_t*& out_format_per_track_data, const uint8_t*& out_range_data, const uint8_t*& out_animated_data) const
+			void							get_segment_data(const segment_header_type& header, const uint8_t*& out_format_per_track_data, const uint8_t*& out_range_data, const uint8_t*& out_animated_data) const
 			{
 				const uint8_t* segment_data = header.segment_data.add_to(this);
 
@@ -331,22 +331,22 @@ namespace acl
 		// Header for optional track metadata, must be at least 15 bytes
 		struct optional_metadata_header
 		{
-			ptr_offset32<char>				track_list_name;
-			ptr_offset32<uint32_t>			track_name_offsets;
-			ptr_offset32<uint32_t>			parent_track_indices;
-			ptr_offset32<uint8_t>			track_descriptions;
+			ptr_offset32<char>						track_list_name;
+			ptr_offset32<uint32_t>					track_name_offsets;
+			ptr_offset32<uint32_t>					parent_track_indices;
+			ptr_offset32<uint8_t>					track_descriptions;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
 
-			char*						get_track_list_name(compressed_tracks& tracks) { return track_list_name.safe_add_to(&tracks); }
-			const char*					get_track_list_name(const compressed_tracks& tracks) const { return track_list_name.safe_add_to(&tracks); }
-			uint32_t*					get_track_name_offsets(compressed_tracks& tracks) { return track_name_offsets.safe_add_to(&tracks); }
-			const uint32_t*				get_track_name_offsets(const compressed_tracks& tracks) const { return track_name_offsets.safe_add_to(&tracks); }
-			uint32_t*					get_parent_track_indices(compressed_tracks& tracks) { return parent_track_indices.safe_add_to(&tracks); }
-			const uint32_t*				get_parent_track_indices(const compressed_tracks& tracks) const { return parent_track_indices.safe_add_to(&tracks); }
-			uint8_t*					get_track_descriptions(compressed_tracks& tracks) { return track_descriptions.safe_add_to(&tracks); }
-			const uint8_t*				get_track_descriptions(const compressed_tracks& tracks) const { return track_descriptions.safe_add_to(&tracks); }
+			char*									get_track_list_name(compressed_tracks& tracks) { return track_list_name.safe_add_to(&tracks); }
+			const char*								get_track_list_name(const compressed_tracks& tracks) const { return track_list_name.safe_add_to(&tracks); }
+			uint32_t*								get_track_name_offsets(compressed_tracks& tracks) { return track_name_offsets.safe_add_to(&tracks); }
+			const uint32_t*							get_track_name_offsets(const compressed_tracks& tracks) const { return track_name_offsets.safe_add_to(&tracks); }
+			uint32_t*								get_parent_track_indices(compressed_tracks& tracks) { return parent_track_indices.safe_add_to(&tracks); }
+			const uint32_t*							get_parent_track_indices(const compressed_tracks& tracks) const { return parent_track_indices.safe_add_to(&tracks); }
+			uint8_t*								get_track_descriptions(compressed_tracks& tracks) { return track_descriptions.safe_add_to(&tracks); }
+			const uint8_t*							get_track_descriptions(const compressed_tracks& tracks) const { return track_descriptions.safe_add_to(&tracks); }
 		};
 
 		static_assert(sizeof(optional_metadata_header) >= 15, "Optional metadata must be at least 15 bytes");
