@@ -57,8 +57,8 @@ namespace acl
 		// What database tier a sample/track belongs to
 		enum class database_tier8 : uint8_t
 		{
-			high_importance,
-			low_importance,
+			high_importance		= 0,
+			low_importance		= 1,
 		};
 
 		struct SegmentContext
