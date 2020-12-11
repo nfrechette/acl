@@ -51,7 +51,7 @@ namespace acl
 
 		virtual ~null_database_streamer() {}
 
-		virtual bool is_initialized() const override { return m_bulk_data != nullptr; }
+		virtual bool is_initialized() const override { return m_bulk_data_size == 0 || m_bulk_data != nullptr; }
 
 		virtual const uint8_t* get_bulk_data() const override { return m_bulk_data; }
 
