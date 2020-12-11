@@ -264,10 +264,14 @@ namespace acl
 			ptr_offset32<animation_track_type8>	animated_group_types_offset;
 
 			//////////////////////////////////////////////////////////////////////////
+
+			bool							has_multiple_segments() const { return num_segments > 1; }
+
+			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
 
-			uint32_t*					get_segment_start_indices() { ACL_ASSERT(num_segments > 1, "Must have segments to contain segment indices"); return add_offset_to_ptr<uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)); }
-			const uint32_t*				get_segment_start_indices() const { ACL_ASSERT(num_segments > 1, "Must have segments to contain segment indices"); return add_offset_to_ptr<const uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)); }
+			uint32_t*						get_segment_start_indices() { ACL_ASSERT(has_multiple_segments(), "Must have multiple segments to contain segment indices"); return add_offset_to_ptr<uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)); }
+			const uint32_t*					get_segment_start_indices() const { ACL_ASSERT(has_multiple_segments(), "Must have multiple segments to contain segment indices"); return add_offset_to_ptr<const uint32_t>(this, align_to(sizeof(transform_tracks_header), 4)); }
 
 			tracks_database_header*			get_database_header() { return database_header_offset.safe_add_to(this); }
 			const tracks_database_header*	get_database_header() const { return database_header_offset.safe_add_to(this); }
@@ -301,7 +305,7 @@ namespace acl
 				uint8_t* format_per_track_data = segment_data;
 
 				uint8_t* range_data = align_to(format_per_track_data + num_animated_variable_sub_tracks, 2);
-				const uint32_t range_data_size = num_segments > 1 ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
+				const uint32_t range_data_size = has_multiple_segments() ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
 
 				uint8_t* animated_data = align_to(range_data + range_data_size, 4);
 
@@ -318,7 +322,7 @@ namespace acl
 				const uint8_t* format_per_track_data = segment_data;
 
 				const uint8_t* range_data = align_to(format_per_track_data + num_animated_variable_sub_tracks, 2);
-				const uint32_t range_data_size = num_segments > 1 ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
+				const uint32_t range_data_size = has_multiple_segments() ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
 
 				const uint8_t* animated_data = align_to(range_data + range_data_size, 4);
 

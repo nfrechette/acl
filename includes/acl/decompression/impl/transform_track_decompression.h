@@ -124,7 +124,7 @@ namespace acl
 			context.scale_format = scale_format;
 			context.range_reduction = range_reduction;
 			context.num_rotation_components = rotation_format == rotation_format8::quatf_full ? 4 : 3;
-			context.has_segments = transform_header.num_segments > 1;
+			context.has_segments = transform_header.has_multiple_segments();
 
 			return true;
 		}
