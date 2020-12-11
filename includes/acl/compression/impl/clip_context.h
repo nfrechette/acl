@@ -280,6 +280,7 @@ namespace acl
 			segment.clip = &out_clip_context;
 			segment.ranges = nullptr;
 			segment.sample_tiers = nullptr;
+			segment.contributing_error = nullptr;
 			segment.num_samples = num_samples;
 			segment.num_bones = num_transforms;
 			segment.clip_sample_offset = 0;

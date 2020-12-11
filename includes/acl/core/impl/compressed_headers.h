@@ -332,6 +332,15 @@ namespace acl
 			}
 		};
 
+		//////////////////////////////////////////////////////////////////////////
+		// How much error each frame contributes to at most
+		// Frames that cannot be removed have infinite error (e.g. first and last frame of the clip)
+		struct frame_contributing_error
+		{
+			uint32_t index;		// Segment relative frame index
+			float error;		// Contributing error
+		};
+
 		// Header for optional track metadata, must be at least 15 bytes
 		struct optional_metadata_header
 		{
@@ -339,6 +348,7 @@ namespace acl
 			ptr_offset32<uint32_t>					track_name_offsets;
 			ptr_offset32<uint32_t>					parent_track_indices;
 			ptr_offset32<uint8_t>					track_descriptions;
+			ptr_offset32<frame_contributing_error>	contributing_error;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
@@ -351,6 +361,8 @@ namespace acl
 			const uint32_t*							get_parent_track_indices(const compressed_tracks& tracks) const { return parent_track_indices.safe_add_to(&tracks); }
 			uint8_t*								get_track_descriptions(compressed_tracks& tracks) { return track_descriptions.safe_add_to(&tracks); }
 			const uint8_t*							get_track_descriptions(const compressed_tracks& tracks) const { return track_descriptions.safe_add_to(&tracks); }
+			frame_contributing_error*				get_contributing_error(compressed_tracks& tracks) { return contributing_error.safe_add_to(&tracks); }
+			const frame_contributing_error*			get_contributing_error(const compressed_tracks& tracks) const { return contributing_error.safe_add_to(&tracks); }
 		};
 
 		static_assert(sizeof(optional_metadata_header) >= 15, "Optional metadata must be at least 15 bytes");

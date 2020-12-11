@@ -29,6 +29,7 @@
 #include "acl/core/error.h"
 #include "acl/core/hash.h"
 #include "acl/core/iterator.h"
+#include "acl/core/impl/compressed_headers.h"
 #include "acl/compression/impl/track_stream.h"
 
 #include <cstdint>
@@ -66,7 +67,8 @@ namespace acl
 			clip_context* clip;
 			BoneStreams* bone_streams;
 			BoneRanges* ranges;
-			database_tier8* sample_tiers;		// Optional if we split into a database, one value per sample
+			database_tier8* sample_tiers;					// Optional if we split into a database, one value per sample
+			frame_contributing_error* contributing_error;	// Optional if we request it in the compression settings
 
 			uint32_t num_samples;
 			uint32_t num_bones;
@@ -100,6 +102,7 @@ namespace acl
 			deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
 			deallocate_type_array(allocator, segment.ranges, segment.num_bones);
 			deallocate_type_array(allocator, segment.sample_tiers, segment.num_samples);
+			deallocate_type_array(allocator, segment.contributing_error, segment.num_samples);
 		}
 	}
 }

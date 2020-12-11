@@ -76,6 +76,8 @@ namespace acl
 			{
 				if (split_into_database)
 					return error_result("Cannot split raw tracks into a separate database");
+				if (settings.include_contributing_error)
+					return error_result("Raw tracks have no contributing error");
 
 				settings.segmenting.ideal_num_samples = 0xFFFFFFFF;
 				settings.segmenting.max_num_samples = 0xFFFFFFFF;
@@ -83,6 +85,8 @@ namespace acl
 
 			if (split_into_database && settings.segmenting.max_num_samples > 32)
 				return error_result("Cannot have more than 32 samples per segment when splitting into a database");
+			if (settings.include_contributing_error && settings.segmenting.max_num_samples > 32)
+				return error_result("Cannot have more than 32 samples per segment when calculating the contributing error per frame");
 
 			// If we want the optional track descriptions, make sure to include the parent track indices
 			if (settings.include_track_descriptions)
@@ -258,6 +262,7 @@ namespace acl
 			const uint32_t metadata_track_names_size = settings.include_track_names ? write_track_names(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
 			const uint32_t metadata_parent_track_indices_size = settings.include_parent_track_indices ? write_parent_track_indices(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
 			const uint32_t metadata_track_descriptions_size = settings.include_track_descriptions ? write_track_descriptions(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
+			const uint32_t metadata_contributing_error_size = settings.include_contributing_error ? write_contributing_error(lossy_clip_context, nullptr) : 0;
 
 			uint32_t metadata_size = 0;
 			metadata_size += metadata_track_list_name_size;
@@ -267,6 +272,8 @@ namespace acl
 			metadata_size += metadata_parent_track_indices_size;
 			metadata_size = align_to(metadata_size, 4);
 			metadata_size += metadata_track_descriptions_size;
+			metadata_size = align_to(metadata_size, 4);
+			metadata_size += metadata_contributing_error_size;
 
 			if (metadata_size != 0)
 			{
@@ -377,6 +384,7 @@ namespace acl
 			uint32_t written_metadata_track_names_size = 0;
 			uint32_t written_metadata_parent_track_indices_size = 0;
 			uint32_t written_metadata_track_descriptions_size = 0;
+			uint32_t written_metadata_contributing_error_size = 0;
 			if (metadata_size != 0)
 			{
 				optional_metadata_header* metadata_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
@@ -420,6 +428,16 @@ namespace acl
 				}
 				else
 					metadata_header->track_descriptions = invalid_ptr_offset();
+
+				if (settings.include_contributing_error)
+				{
+					metadata_offset = align_to(metadata_offset, 4);
+					metadata_header->contributing_error = metadata_offset;
+					written_metadata_contributing_error_size = write_contributing_error(lossy_clip_context, metadata_header->get_contributing_error(*out_compressed_tracks));
+					metadata_offset += written_metadata_contributing_error_size;
+				}
+				else
+					metadata_header->contributing_error = invalid_ptr_offset();
 			}
 
 			// Finish the compressed tracks raw buffer header
@@ -470,6 +488,7 @@ namespace acl
 				ACL_ASSERT(written_metadata_track_names_size == metadata_track_names_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_metadata_parent_track_indices_size == metadata_parent_track_indices_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_metadata_track_descriptions_size == metadata_track_descriptions_size, "Wrote too little or too much data");
+				ACL_ASSERT(written_metadata_contributing_error_size == metadata_contributing_error_size, "Wrote too little or too much data");
 				ACL_ASSERT(uint32_t(buffer - buffer_start) == buffer_size, "Wrote too little or too much data");
 
 				if (metadata_size == 0)

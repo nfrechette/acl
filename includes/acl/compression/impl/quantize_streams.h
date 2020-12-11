@@ -51,6 +51,9 @@
 // 0 = no debug info, 1 = basic info, 2 = verbose
 #define ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION		0
 
+// 0 = no debug into, 1 = basic info
+#define ACL_IMPL_DEBUG_CONTRIBUTING_ERROR			0
+
 // 0 = no profiling, 1 = we perform quantization 10 times in a row for every segment
 #define ACL_IMPL_PROFILE_MATH						0
 
@@ -78,6 +81,7 @@ namespace acl
 
 			track_bit_rate_database bit_rate_database;
 			single_track_query local_query;
+			every_track_query all_local_query;
 			hierarchical_track_query object_query;
 
 			uint32_t num_samples;					// Num samples within our segment
@@ -99,6 +103,9 @@ namespace acl
 			rtm::qvvf* additive_local_pose;			// 1 per transform
 			rtm::qvvf* raw_local_pose;				// 1 per transform
 			rtm::qvvf* lossy_local_pose;			// 1 per transform
+
+			rtm::qvvf* lossy_transforms_start;		// 1 per transform, for calculating the contributing error
+			rtm::qvvf* lossy_transforms_end;		// 1 per transform, for calculating the contributing error
 
 			uint8_t* raw_local_transforms;			// 1 per transform per sample in segment
 			uint8_t* base_local_transforms;			// 1 per transform per sample in segment
@@ -129,6 +136,7 @@ namespace acl
 				, error_metric(settings_.error_metric)
 				, bit_rate_database(allocator_, settings_.rotation_format, settings_.translation_format, settings_.scale_format, clip_.segments->bone_streams, raw_clip_.segments->bone_streams, clip_.num_bones, clip_.segments->num_samples)
 				, local_query()
+				, all_local_query(allocator_)
 				, object_query(allocator_)
 				, num_samples(~0U)
 				, segment_sample_start_index(~0U)
@@ -154,6 +162,8 @@ namespace acl
 				additive_local_pose = clip_.has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones) : nullptr;
 				raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+				lossy_transforms_start = nullptr;
+				lossy_transforms_end = nullptr;
 				raw_local_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
 				base_local_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
 				raw_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
@@ -178,6 +188,8 @@ namespace acl
 				deallocate_type_array(allocator, additive_local_pose, num_bones);
 				deallocate_type_array(allocator, raw_local_pose, num_bones);
 				deallocate_type_array(allocator, lossy_local_pose, num_bones);
+				deallocate_type_array(allocator, lossy_transforms_start, num_bones);
+				deallocate_type_array(allocator, lossy_transforms_end, num_bones);
 				deallocate_type_array(allocator, raw_local_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
 				deallocate_type_array(allocator, base_local_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
 				deallocate_type_array(allocator, raw_object_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
@@ -1476,6 +1488,224 @@ namespace acl
 			deallocate_type_array(context.allocator, best_bit_rates, num_bones);
 		}
 
+		// Partitioning will be done as follow in two phases: calculating the error contribution for every frame and a global optimization pass.
+		//
+		// Phase 1:
+		// For every clip we compress, when requested, we'll calculate the contributing error of every frame and store it in optional metadata.
+		// Later this metadata will be used to create a database.
+		// To calculate the contributing error, we iterate over every segment.
+		// For every frame we can remove (e.g. not first/last of clip/segment), calculate the resulting error of every frame between the remaining
+		// frames. For example, say we have frame 0, 1, 2, 3, and 4. We first try removing frame 1 and calculate the error. We repeat this for
+		// frame 2 and 3 individually. The frame with the lowest error is the least important one and can be removed first. Suppose it is frame 1,
+		// we'll append in the metadata for that segment that the first frame to remove is frame 1 and the contributing error we just calculated.
+		// We then loop again over every frame we can remove. We'll try removing frame 2 by measuring the error at frame 1 and 2 once it is removed
+		// (by interpolating between frame 0 and 3). The resulting error is the largest error of every frame we test.
+		// And we then try removing frame 3 on its own. Once we have a contributing error for frame 2 and 3, we again pick the lowest and append it
+		// to our segment metadata. We repeat this until every frame has been sorted. Each segment is processed individually.
+		// This metadata is stored at the end of the clip.
+		//
+		// Phase 2:
+		// A new create database function will be added that takes a list of compressed clips as inputs and outputs a list of compressed clips
+		// as well as a new database. Every input clip must contain the metadata from phase 1.
+		// Using our tier distribution information, we can calculate how many frames we have that can be moved to the database and how many
+		// each tier will contain. We then start with the highest tier (tier 2) which will contain the least important frames. These frames contribute
+		// the least to our accuracy (they have the lowest contributing error as calculated in phase 1). For every tier, we iterate over every clip/segment
+		// and find the lowest contributing error. One we found it, we assign it to our tier until the tier is full. Repeat for every tier.
+		// Once every tier has been populated, we can calculate where our chunk limits are and assign each frame to its chunk.
+		// We can then iterate over every clip/segment/frame and copy the compressed bits to its final destination: our new clip, or our database chunk
+		// for tier 1 or 2. We copy bit by bit to tightly pack things. Our new clips are mostly unchanged. The header and its metadata is nearly identical
+		// except it now contains sample contained information. Each segment has a few frames stripped if they got moved to the database. Finally, the optional
+		// database metadata is stripped.
+		// Once every clip has been populated, we can finalize them and calculate their final hash value.
+		// Once every chunk has been populated, we can finalize them and the database as well.
+		//
+		// This is thus a globally optimal process. If we wish to retain the 20% most important frames in tier 0 (our compressed clips) and 80% in the database, we can.
+		// Some clips might see more than 80% of their frames moved to the database while others might see less.
+
+		inline void find_contributing_error(quantization_context& context)
+		{
+			ACL_ASSERT(context.num_samples <= 32, "Expected no more than 32 samples per track");
+
+			if (context.segment->contributing_error == nullptr)
+				context.segment->contributing_error = allocate_type_array<frame_contributing_error>(context.allocator, 32);	// Always no more than 32 frames per segment
+
+			const uint32_t num_frames = context.num_samples;
+			const uint32_t num_bones = context.num_bones;
+			const bitset_description desc = bitset_description::make_from_num_bits<32>();
+			const float infinity = std::numeric_limits<float>::infinity();
+
+			frame_contributing_error* contributing_error = context.segment->contributing_error;
+			uint32_t frames_retained = ~0U;	// By default, every frame is present
+
+			// First and last frame of the segment cannot be removed and thus contribute infinite error
+			// TODO: We could retain only the first/last frames of the clip instead but it would mean interpolating
+			// with a frame from the previous/next segments
+			contributing_error[0] = frame_contributing_error{ 0, infinity };
+			contributing_error[num_frames - 1] = frame_contributing_error{ num_frames - 1, infinity };
+
+			// START OF ERROR METRIC STUFF
+			const itransform_error_metric* error_metric = context.error_metric;
+			const bool needs_conversion = context.needs_conversion;
+			const bool has_additive_base = context.has_additive_base;
+			const size_t sample_transform_size = context.metric_transform_size * num_bones;
+			const float sample_rate = context.sample_rate;
+			const float clip_duration = context.clip_duration;
+
+			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto local_to_object_space_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
+			convert_transforms_args_lossy.dirty_transform_indices = context.self_transform_indices;
+			convert_transforms_args_lossy.num_dirty_transforms = num_bones;
+			convert_transforms_args_lossy.transforms = context.lossy_local_pose;
+			convert_transforms_args_lossy.num_transforms = num_bones;
+
+			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
+			apply_additive_to_base_args_lossy.dirty_transform_indices = context.self_transform_indices;
+			apply_additive_to_base_args_lossy.num_dirty_transforms = num_bones;
+			apply_additive_to_base_args_lossy.local_transforms = needs_conversion ? (const void*)(context.local_transforms_converted) : (const void*)context.lossy_local_pose;
+			apply_additive_to_base_args_lossy.base_transforms = nullptr;
+			apply_additive_to_base_args_lossy.num_transforms = num_bones;
+
+			itransform_error_metric::local_to_object_space_args local_to_object_space_args_lossy;
+			local_to_object_space_args_lossy.dirty_transform_indices = context.self_transform_indices;
+			local_to_object_space_args_lossy.num_dirty_transforms = num_bones;
+			local_to_object_space_args_lossy.parent_transform_indices = context.parent_transform_indices;
+			local_to_object_space_args_lossy.local_transforms = needs_conversion ? (const void*)(context.local_transforms_converted) : (const void*)context.lossy_local_pose;
+			local_to_object_space_args_lossy.num_transforms = num_bones;
+
+			const uint8_t* raw_transform = context.raw_object_transforms;
+			const uint8_t* base_transforms = context.base_local_transforms;
+
+			if (context.lossy_transforms_start == nullptr)
+			{
+				// This is the first time we call this, initialize what we'll need and re-use
+				context.all_local_query.bind(context.bit_rate_database);
+
+				context.lossy_transforms_start = allocate_type_array<rtm::qvvf>(context.allocator, num_bones);
+				context.lossy_transforms_end = allocate_type_array<rtm::qvvf>(context.allocator, num_bones);
+			}
+
+			rtm::qvvf* lossy_transforms_start = context.lossy_transforms_start;
+			rtm::qvvf* lossy_transforms_end = context.lossy_transforms_end;
+
+			context.all_local_query.build(context.bit_rate_per_bone);
+			// END OF ERROR METRIC STUFF
+
+			// We iterate until every frame but the first and last have been removed
+			for (uint32_t iteration_count = 1; iteration_count < num_frames - 1; ++iteration_count)
+			{
+				frame_contributing_error best_error{ num_frames, infinity };
+
+#if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
+				printf("Contributing error for segment %u (%u frames), iteration %u ...\n", context.segment->segment_index, num_frames, iteration_count);
+#endif
+
+				// Calculate how much error each frame contributes as we remove them, skip the first and last
+				for (uint32_t frame_index = 1; frame_index < num_frames - 1; ++frame_index)
+				{
+					// We'll attempt to remove the current frame if it hasn't been removed already
+					if (!bitset_test(&frames_retained, desc, frame_index))
+						continue;	// This frame has already been removed, skip it
+
+					// Find the first frame before the current one that is retained, it'll be our interpolation start point
+					uint32_t interp_start_frame_index = frame_index - 1;
+					while (!bitset_test(&frames_retained, desc, interp_start_frame_index))
+						interp_start_frame_index--;	// This frame isn't being retained, skip it
+
+					// Find the first frame after the current one that is retained, it'll be out interpolation end point
+					uint32_t interp_end_frame_index = frame_index + 1;
+					while (!bitset_test(&frames_retained, desc, interp_end_frame_index))
+						interp_end_frame_index++;	// This frame isn't being retained, skip it
+
+					// TODO: We could cache the contributing error and only invalidate it when we remove a frame
+
+					// The sample time is calculated from the full clip duration to be consistent with decompression
+					const float interp_start_time = rtm::scalar_min(float(interp_start_frame_index) / sample_rate, clip_duration);
+					const float interp_end_time = rtm::scalar_min(float(interp_end_frame_index) / sample_rate, clip_duration);
+
+					// We'll calculate the resulting error on every frame already removed that lives in between the remaining
+					// two interpolation frames.
+					context.bit_rate_database.sample(context.all_local_query, interp_start_time, lossy_transforms_start, num_bones);
+					context.bit_rate_database.sample(context.all_local_query, interp_end_time, lossy_transforms_end, num_bones);
+
+					// We'll retain the worst error as the current frame's contributing error.
+					rtm::scalarf max_contributing_error = rtm::scalar_set(0.0F);
+
+					for (uint32_t interp_frame_index = interp_start_frame_index + 1; interp_frame_index < interp_end_frame_index; ++interp_frame_index)
+					{
+						// Calculate our interpolation alpha
+						const float interpolation_alpha = find_linear_interpolation_alpha(float(interp_frame_index), interp_start_frame_index, interp_end_frame_index, sample_rounding_policy::none);
+
+						// Interpolate our transforms in local space before we convert or apply the additive and transform to object space
+						for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+						{
+							// TODO: Implement qvv_lerp(..)
+							const rtm::quatf interp_rotation = rtm::quat_lerp(lossy_transforms_start[bone_index].rotation, lossy_transforms_end[bone_index].rotation, interpolation_alpha);
+							const rtm::vector4f interp_translation = rtm::vector_lerp(lossy_transforms_start[bone_index].translation, lossy_transforms_end[bone_index].translation, interpolation_alpha);
+							const rtm::vector4f interp_scale = rtm::vector_lerp(lossy_transforms_start[bone_index].scale, lossy_transforms_end[bone_index].scale, interpolation_alpha);
+
+							context.lossy_local_pose[bone_index] = rtm::qvv_set(interp_rotation, interp_translation, interp_scale);
+						}
+
+						// Convert to our object space representation
+						if (needs_conversion)
+							convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
+
+						if (has_additive_base)
+						{
+							apply_additive_to_base_args_lossy.base_transforms = base_transforms + (interp_frame_index * sample_transform_size);
+
+							apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
+						}
+
+						local_to_object_space_impl(error_metric, local_to_object_space_args_lossy, context.lossy_object_pose);
+
+						// Calculate our error
+						const uint8_t* raw_frame_transform = raw_transform + (interp_frame_index * sample_transform_size);
+						for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+						{
+							const transform_metadata& target_bone = context.metadata[bone_index];
+
+							itransform_error_metric::calculate_error_args calculate_error_args;
+							calculate_error_args.transform0 = raw_frame_transform + (bone_index * context.metric_transform_size);
+							calculate_error_args.transform1 = context.lossy_object_pose + (bone_index * context.metric_transform_size);
+							calculate_error_args.construct_sphere_shell(target_bone.shell_distance);
+
+							const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
+							max_contributing_error = rtm::scalar_max(max_contributing_error, error);
+						}
+					}
+
+					const float max_contributing_errorf = rtm::scalar_cast(max_contributing_error);
+
+#if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
+					printf("    Error between frame [%u, %u] while testing %u: %f\n", interp_start_frame_index, interp_end_frame_index, frame_index, max_contributing_errorf);
+#endif
+
+					// If our current frame's contributing error is lowest, it is the best candidate for removal
+					if (max_contributing_errorf < best_error.error)
+						best_error = frame_contributing_error{ frame_index, max_contributing_errorf };
+				}
+
+				ACL_ASSERT(best_error.index != num_frames, "Failed to find the best contributing error");
+
+#if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
+				printf("    Best frame to remove: %u (%f)\n", best_error.index, best_error.error);
+#endif
+
+				// We found the best frame to remove, remove it
+				contributing_error[best_error.index] = best_error;
+				bitset_set(&frames_retained, desc, best_error.index, false);
+			}
+
+			// We found the contributing error for every frame, sort them by lowest error first
+			auto sort_predicate = [](const frame_contributing_error& lhs, const frame_contributing_error& rhs) { return lhs.error < rhs.error; };
+			std::sort(contributing_error, contributing_error + num_frames, sort_predicate);
+		}
+
 		inline void quantize_streams(iallocator& allocator, clip_context& clip, const compression_settings& settings, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, output_stats& out_stats)
 		{
 			(void)out_stats;
@@ -1520,6 +1750,10 @@ namespace acl
 				// If we use a variable bit rate, run our optimization algorithm to find the optimal bit rates
 				if (is_any_variable)
 					find_optimal_bit_rates(context);
+
+				// If we need the contributing error of each frame, find it now before we quantize
+				if (settings.include_contributing_error)
+					find_contributing_error(context);
 
 				// Quantize our streams now that we found the optimal bit rates
 				quantize_all_streams(context);

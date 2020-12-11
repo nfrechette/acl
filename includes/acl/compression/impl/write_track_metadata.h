@@ -28,6 +28,7 @@
 #include "acl/core/track_desc.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/impl/clip_context.h"
 
 #include <cstdint>
 #include <memory>
@@ -181,6 +182,31 @@ namespace acl
 					}
 
 					output_buffer += sizeof(float) * 5;
+				}
+			}
+
+			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
+		}
+
+		inline uint32_t write_contributing_error(const clip_context& clip, frame_contributing_error* out_contributing_error)
+		{
+			ACL_ASSERT(out_contributing_error == nullptr || clip.num_samples == 0 || out_contributing_error[0].index == 0, "Buffer overrun detected");
+
+			uint8_t* output_buffer = reinterpret_cast<uint8_t*>(out_contributing_error);
+			const uint8_t* output_buffer_start = output_buffer;
+			frame_contributing_error* contributing_error = out_contributing_error;
+
+			// Write the contributing error for each frame by iterating over our segments to retrieve it
+			// Values are thus sorted per segment
+			for (const SegmentContext& segment : clip.segment_iterator())
+			{
+				for (uint32_t frame_index = 0; frame_index < segment.num_samples; ++frame_index)
+				{
+					if (out_contributing_error != nullptr)
+						*contributing_error = segment.contributing_error[frame_index];
+
+					contributing_error++;
+					output_buffer += sizeof(frame_contributing_error);
 				}
 			}
 

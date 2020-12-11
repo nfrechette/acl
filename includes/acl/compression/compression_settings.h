@@ -149,6 +149,15 @@ namespace acl
 		bool include_track_descriptions = false;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Whether to include the optional metadata for the contributing error
+		// of each frame. These are sorted from lowest to largest error.
+		// This is required when the compressed tracks will later be merged into
+		// a database.
+		// Transform tracks only
+		// Defaults to 'false'
+		bool include_contributing_error = false;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.
 		uint32_t get_hash() const;
 
