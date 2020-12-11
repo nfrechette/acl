@@ -560,8 +560,6 @@ namespace acl
 				buffer_size += sizeof(tracks_header);								// Header
 				buffer_size += sizeof(transform_tracks_header);						// Header
 
-				const uint32_t clip_header_size = buffer_size;
-
 				buffer_size = align_to(buffer_size, 4);								// Align segment start indices
 				buffer_size += segment_start_indices_size;							// Segment start indices
 				buffer_size = align_to(buffer_size, 4);								// Align segment headers
@@ -571,9 +569,6 @@ namespace acl
 				buffer_size += sizeof(tracks_database_header);						// Database header
 
 				buffer_size = align_to(buffer_size, 4);								// Align bitsets
-
-				const uint32_t clip_segment_header_size = buffer_size - clip_header_size;
-
 				buffer_size += bitset_desc.get_num_bytes();							// Default tracks bitset
 				buffer_size += bitset_desc.get_num_bytes();							// Constant tracks bitset
 				buffer_size = align_to(buffer_size, 4);								// Align constant track data
@@ -581,8 +576,6 @@ namespace acl
 				buffer_size = align_to(buffer_size, 4);								// Align range data
 				buffer_size += clip_range_data_size;								// Range data
 				buffer_size += animated_group_types_size;							// Our animated group types
-
-				const uint32_t clip_data_size = buffer_size - clip_segment_header_size - clip_header_size;
 
 				// Per segment data
 				for (uint32_t segment_index = 0; segment_index < input_transforms_header.num_segments; ++segment_index)
