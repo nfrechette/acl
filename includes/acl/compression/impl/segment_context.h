@@ -24,11 +24,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/iallocator.h"
-#include "acl/core/impl/compiler_utils.h"
+#include "acl/core/database_tiers.h"
 #include "acl/core/error.h"
 #include "acl/core/hash.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/iterator.h"
+#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/impl/compressed_headers.h"
 #include "acl/compression/impl/track_stream.h"
 
@@ -52,14 +53,6 @@ namespace acl
 
 			// Samples are not uniform, use each track to determine the interpolation alpha.
 			Variable,
-		};
-
-		//////////////////////////////////////////////////////////////////////////
-		// What database tier a sample/track belongs to
-		enum class database_tier8 : uint8_t
-		{
-			high_importance		= 0,
-			low_importance		= 1,
 		};
 
 		struct SegmentContext
