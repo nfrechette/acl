@@ -7,7 +7,7 @@ def get_platform_compilers():
 	if platform.system() == 'Windows':
 		return [ 'vs2015', 'vs2017', 'vs2019' ]
 	elif platform.system() == 'Linux':
-		return [ 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10' ]
+		return [ 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11' ]
 	elif platform.system() == 'Darwin':
 		return [ 'osx' ]
 	else:

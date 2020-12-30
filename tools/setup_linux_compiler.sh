@@ -46,6 +46,9 @@ elif [[ $COMPILER == clang9 ]]; then
 elif [[ $COMPILER == clang10 ]]; then
     PACKAGES="clang-10 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
     echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main" | sudo tee -a /etc/apt/sources.list > /dev/null ;
+elif [[ $COMPILER == clang11 ]]; then
+    PACKAGES="clang-11 libstdc++-5-dev libc6-dev-i386 g++-5-multilib g++-multilib"
+    echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-11 main" | sudo tee -a /etc/apt/sources.list > /dev/null ;
 fi
 
 # Install the packages we need
