@@ -28,7 +28,7 @@
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/database/database.h"
+#include "acl/decompression/database/database.h"
 #include "acl/decompression/impl/scalar_track_decompression.h"
 #include "acl/decompression/impl/transform_track_decompression.h"
 

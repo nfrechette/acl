@@ -29,9 +29,9 @@
 #include "acl/core/error.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/database/database_settings.h"
-#include "acl/database/idatabase_streamer.h"
-#include "acl/database/impl/database_context.h"
+#include "acl/decompression/database/database_settings.h"
+#include "acl/decompression/database/idatabase_streamer.h"
+#include "acl/decompression/database/impl/database_context.h"
 
 #include <cstdint>
 
@@ -152,6 +152,6 @@ namespace acl
 	};
 }
 
-#include "acl/database/impl/database.impl.h"
+#include "acl/decompression/database/impl/database.impl.h"
 
 ACL_IMPL_FILE_PRAGMA_POP

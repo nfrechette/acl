@@ -28,7 +28,7 @@
 #include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/database/database_settings.h"
+#include "acl/decompression/database/database_settings.h"
 
 #include <cstdint>
 

@@ -34,7 +34,7 @@
 #include "acl/core/track_writer.h"
 #include "acl/core/variable_bit_rates.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/database/database.h"
+#include "acl/decompression/database/database.h"
 #include "acl/decompression/impl/transform_animated_track_cache.h"
 #include "acl/decompression/impl/transform_constant_track_cache.h"
 #include "acl/decompression/impl/transform_decompression_context.h"

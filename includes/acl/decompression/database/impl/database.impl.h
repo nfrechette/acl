@@ -29,7 +29,7 @@
 #include "acl/core/bitset.h"
 #include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks_version.h"
-#include "acl/database/impl/database_context.h"
+#include "acl/decompression/database/impl/database_context.h"
 
 #include <cstdint>
 

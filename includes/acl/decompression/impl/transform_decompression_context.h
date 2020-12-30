@@ -30,7 +30,7 @@
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/database/impl/database_context.h"
+#include "acl/decompression/database/impl/database_context.h"
 
 #include <cstdint>
 

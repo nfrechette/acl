@@ -25,57 +25,45 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/error.h"
-#include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/database/idatabase_streamer.h"
+#include "acl/decompression/database/idatabase_streamer.h"
 
 #include <cstdint>
-#include <cstring>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
 	////////////////////////////////////////////////////////////////////////////////
-	// Implements a debug streamer where we duplicate the bulk data in memory and use
-	// memcpy to stream in the data. Streamed out data is explicitly set to 0xCD with memset.
+	// Implements a null streamer where we simply use the provided bulk data buffer and
+	// perform no operations on it as everything is already streamed in.
+	// This streamer is the default in-memory streaming implementation.
 	////////////////////////////////////////////////////////////////////////////////
-	class debug_database_streamer final : public idatabase_streamer
+	class null_database_streamer final : public idatabase_streamer
 	{
 	public:
-		debug_database_streamer(iallocator& allocator, const uint8_t* bulk_data, uint32_t bulk_data_size)
-			: m_allocator(allocator)
-			, m_src_bulk_data(bulk_data)
-			, m_streamed_bulk_data(nullptr)
+		null_database_streamer(const uint8_t* bulk_data, uint32_t bulk_data_size)
+			: m_bulk_data(bulk_data)
 			, m_bulk_data_size(bulk_data_size)
 		{
+			ACL_ASSERT(bulk_data != nullptr, "Bulk data buffer cannot be null");
 		}
 
-		virtual ~debug_database_streamer()
-		{
-			deallocate_type_array(m_allocator, m_streamed_bulk_data, m_bulk_data_size);
-		}
+		virtual ~null_database_streamer() {}
 
-		virtual bool is_initialized() const override { return m_bulk_data_size == 0 || m_src_bulk_data != nullptr; }
+		virtual bool is_initialized() const override { return m_bulk_data_size == 0 || m_bulk_data != nullptr; }
 
-		virtual const uint8_t* get_bulk_data() const override { return m_streamed_bulk_data; }
+		virtual const uint8_t* get_bulk_data() const override { return m_bulk_data; }
 
 		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, const std::function<void(bool success)>& continuation) override
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
 			ACL_ASSERT(uint64_t(offset) + uint64_t(size) <= uint64_t(m_bulk_data_size), "Streaming request is outside of the bulk data range");
+			(void)offset;
+			(void)size;
+			(void)can_allocate_bulk_data;
 
-			if (can_allocate_bulk_data)
-			{
-				ACL_ASSERT(m_streamed_bulk_data == nullptr, "Bulk data already allocated");
-
-				m_streamed_bulk_data = allocate_type_array<uint8_t>(m_allocator, m_bulk_data_size);
-
-				std::memset(m_streamed_bulk_data, 0xCD, m_bulk_data_size);
-			}
-
-			std::memcpy(m_streamed_bulk_data + offset, m_src_bulk_data + offset, size);
 			continuation(true);
 		}
 
@@ -84,27 +72,18 @@ namespace acl
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
 			ACL_ASSERT(uint64_t(offset) + uint64_t(size) <= uint64_t(m_bulk_data_size), "Streaming request is outside of the bulk data range");
-
-			std::memset(m_streamed_bulk_data + offset, 0xCD, size);
-
-			if (can_deallocate_bulk_data)
-			{
-				ACL_ASSERT(m_streamed_bulk_data != nullptr, "Bulk data already deallocated");
-
-				deallocate_type_array(m_allocator, m_streamed_bulk_data, m_bulk_data_size);
-				m_streamed_bulk_data = nullptr;
-			}
+			(void)offset;
+			(void)size;
+			(void)can_deallocate_bulk_data;
 
 			continuation();
 		}
 
 	private:
-		debug_database_streamer(const debug_database_streamer&) = delete;
-		debug_database_streamer& operator=(const debug_database_streamer&) = delete;
+		null_database_streamer(const null_database_streamer&) = delete;
+		null_database_streamer& operator=(const null_database_streamer&) = delete;
 
-		iallocator& m_allocator;
-		const uint8_t* m_src_bulk_data;
-		uint8_t* m_streamed_bulk_data;
+		const uint8_t* m_bulk_data;
 		uint32_t m_bulk_data_size;
 	};
 }
