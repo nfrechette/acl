@@ -149,8 +149,8 @@ namespace acl
 		const uint32_t generation_id = acl_impl::get_generation_id(request_id);
 
 		streaming_request& request = m_requests[request_index];
-		ACL_ASSERT(request.tier != quality_tier::highest_importance, "Request is invalid");
-		if (request.tier == quality_tier::highest_importance)
+		ACL_ASSERT(request.is_valid(), "Request is invalid");
+		if (!request.is_valid())
 			return;
 
 		ACL_ASSERT(request.generation_id == generation_id, "Unexpected request generation id");
@@ -160,7 +160,7 @@ namespace acl
 		acl_impl::execute_request(true, *m_context, request);
 
 		// Mark our request as invalid
-		request.tier = quality_tier::highest_importance;
+		request.reset();
 	}
 
 	inline void database_streamer::cancel(streaming_request_id request_id)
@@ -173,8 +173,8 @@ namespace acl
 		const uint32_t generation_id = acl_impl::get_generation_id(request_id);
 
 		streaming_request& request = m_requests[request_index];
-		ACL_ASSERT(request.tier != quality_tier::highest_importance, "Request is invalid");
-		if (request.tier == quality_tier::highest_importance)
+		ACL_ASSERT(request.is_valid(), "Request is invalid");
+		if (!request.is_valid())
 			return;
 
 		ACL_ASSERT(request.generation_id == generation_id, "Unexpected request generation id");
@@ -184,7 +184,7 @@ namespace acl
 		acl_impl::execute_request(false, *m_context, request);
 
 		// Mark our request as invalid
-		request.tier = quality_tier::highest_importance;
+		request.reset();
 	}
 
 	inline void database_streamer::bind(acl_impl::database_context_v0& context)
