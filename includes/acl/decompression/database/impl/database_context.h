@@ -32,7 +32,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	class idatabase_streamer;
+	class database_streamer;
 
 	namespace acl_impl
 	{
@@ -54,7 +54,7 @@ namespace acl
 			const uint8_t* bulk_data[k_num_database_tiers];			//   8 |  16
 
 			// Streaming related data not commonly accessed
-			idatabase_streamer* streamers[k_num_database_tiers];	//  16 |  32
+			database_streamer* streamers[k_num_database_tiers];	//  16 |  32
 
 			uint32_t* loaded_chunks[k_num_database_tiers];			//  24 |  48
 			uint32_t* streaming_chunks[k_num_database_tiers];		//  32 |  64

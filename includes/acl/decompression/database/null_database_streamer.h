@@ -26,7 +26,7 @@
 
 #include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/decompression/database/idatabase_streamer.h"
+#include "acl/decompression/database/database_streamer.h"
 
 #include <cstdint>
 
@@ -39,11 +39,11 @@ namespace acl
 	// perform no operations on it as everything is already streamed in.
 	// This streamer is the default in-memory streaming implementation.
 	////////////////////////////////////////////////////////////////////////////////
-	class null_database_streamer final : public idatabase_streamer
+	class null_database_streamer final : public database_streamer
 	{
 	public:
 		null_database_streamer(const uint8_t* bulk_data, uint32_t bulk_data_size)
-			: idatabase_streamer(&m_request, 1)
+			: database_streamer(&m_request, 1)
 			, m_bulk_data(bulk_data)
 			, m_bulk_data_size(bulk_data_size)
 		{

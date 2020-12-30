@@ -27,7 +27,7 @@
 #include "acl/core/error.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/decompression/database/idatabase_streamer.h"
+#include "acl/decompression/database/database_streamer.h"
 
 #include <cstdint>
 #include <cstring>
@@ -40,11 +40,11 @@ namespace acl
 	// Implements a debug streamer where we duplicate the bulk data in memory and use
 	// memcpy to stream in the data. Streamed out data is explicitly set to 0xCD with memset.
 	////////////////////////////////////////////////////////////////////////////////
-	class debug_database_streamer final : public idatabase_streamer
+	class debug_database_streamer final : public database_streamer
 	{
 	public:
 		debug_database_streamer(iallocator& allocator, const uint8_t* bulk_data, uint32_t bulk_data_size)
-			: idatabase_streamer(m_requests, k_max_num_requests)
+			: database_streamer(m_requests, k_max_num_requests)
 			, m_allocator(allocator)
 			, m_src_bulk_data(bulk_data)
 			, m_streamed_bulk_data(nullptr)

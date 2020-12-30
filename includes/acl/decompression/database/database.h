@@ -30,7 +30,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/database/database_settings.h"
-#include "acl/decompression/database/idatabase_streamer.h"
+#include "acl/decompression/database/database_streamer.h"
 #include "acl/decompression/database/impl/database_context.h"
 
 #include <cstdint>
@@ -77,7 +77,7 @@ namespace acl
 	// instances of this context on the stack or as member variables.
 	//
 	// Note that the context only manages the streaming bookkeeping, the actual IO is
-	// handled by the idatabase_streamer implementation provided.
+	// handled by the database_streamer implementation provided.
 	//////////////////////////////////////////////////////////////////////////
 	template<class database_settings_type>
 	class database_context
@@ -110,7 +110,7 @@ namespace acl
 		// The streamer instances will be used to issue IO stream in/out requests.
 		// If a tier is stripped, the null_database_streamer can be used.
 		// Returns whether initialization was successful or not.
-		bool initialize(iallocator& allocator, const compressed_database& database, idatabase_streamer& medium_tier_streamer, idatabase_streamer& low_tier_streamer);
+		bool initialize(iallocator& allocator, const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to a compressed database instance, false otherwise.

@@ -79,7 +79,7 @@ namespace acl
 	constexpr streaming_request_id k_invalid_streamer_request_id = { ~0ULL };
 
 	////////////////////////////////////////////////////////////////////////////////
-	// The interface for database streamers.
+	// The base class for database streamers.
 	//
 	// Streamer implementations are responsible for allocating/freeing the bulk data as well as
 	// streaming the data in/out. Streaming in is safe from any thread but streaming out
@@ -89,12 +89,12 @@ namespace acl
 	// A streamer implementation must also provide a list of streaming requests to use and
 	// recycle. A proper implementation should consider how many requests it needs.
 	////////////////////////////////////////////////////////////////////////////////
-	class idatabase_streamer
+	class database_streamer
 	{
 	public:
 		//////////////////////////////////////////////////////////////////////////
 		// Streamer destructor
-		virtual ~idatabase_streamer() {}
+		virtual ~database_streamer() {}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if the streamer is initialized.
@@ -147,7 +147,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs the database streamer.
 		// The provided requests will be used and recycled internally when we stream in/out.
-		idatabase_streamer(streaming_request* requests, uint32_t num_requests);
+		database_streamer(streaming_request* requests, uint32_t num_requests);
 
 	private:
 		//////////////////////////////////////////////////////////////////////////

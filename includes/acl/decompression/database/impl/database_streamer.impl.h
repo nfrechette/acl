@@ -71,7 +71,7 @@ namespace acl
 					if (bulk_data_ == nullptr)
 					{
 						// This is the first stream in request, our bulk data should be allocated now, query and cache it
-						idatabase_streamer* streamer_ = context.streamers[tier_index_];
+						database_streamer* streamer_ = context.streamers[tier_index_];
 						bulk_data_ = streamer_->get_bulk_data();
 						ACL_ASSERT(bulk_data_ != nullptr, "Bulk data should be allocated when we stream in");
 
@@ -128,7 +128,7 @@ namespace acl
 		}
 	}
 
-	inline idatabase_streamer::idatabase_streamer(streaming_request* requests, uint32_t num_requests)
+	inline database_streamer::database_streamer(streaming_request* requests, uint32_t num_requests)
 		: m_context(nullptr)
 		, m_requests(requests)
 		, m_generation_id(0)
@@ -139,7 +139,7 @@ namespace acl
 		ACL_ASSERT(num_requests != 0, "Must have at least one request");
 	}
 
-	inline void idatabase_streamer::complete(streaming_request_id request_id)
+	inline void database_streamer::complete(streaming_request_id request_id)
 	{
 		const uint32_t request_index = acl_impl::get_request_index(request_id);
 		ACL_ASSERT(request_index < m_num_requests, "Invalid request index");
@@ -163,7 +163,7 @@ namespace acl
 		request.tier = quality_tier::highest_importance;
 	}
 
-	inline void idatabase_streamer::cancel(streaming_request_id request_id)
+	inline void database_streamer::cancel(streaming_request_id request_id)
 	{
 		const uint32_t request_index = acl_impl::get_request_index(request_id);
 		ACL_ASSERT(request_index < m_num_requests, "Invalid request index");
@@ -187,13 +187,13 @@ namespace acl
 		request.tier = quality_tier::highest_importance;
 	}
 
-	inline void idatabase_streamer::bind(acl_impl::database_context_v0& context)
+	inline void database_streamer::bind(acl_impl::database_context_v0& context)
 	{
 		ACL_ASSERT(m_context == nullptr || m_context == &context, "Streamer cannot be bound to two different database contexts");
 		m_context = &context;
 	}
 
-	inline streaming_request_id idatabase_streamer::build_request(streaming_action action, quality_tier tier, uint32_t first_chunk_index, uint32_t num_streaming_chunks)
+	inline streaming_request_id database_streamer::build_request(streaming_action action, quality_tier tier, uint32_t first_chunk_index, uint32_t num_streaming_chunks)
 	{
 		const uint32_t request_index = m_next_request_index;
 		streaming_request& request = m_requests[request_index];

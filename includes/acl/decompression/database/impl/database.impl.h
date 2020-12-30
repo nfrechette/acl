@@ -204,7 +204,7 @@ namespace acl
 	}
 
 	template<class database_settings_type>
-	inline bool database_context<database_settings_type>::initialize(iallocator& allocator, const compressed_database& database, idatabase_streamer& medium_tier_streamer, idatabase_streamer& low_tier_streamer)
+	inline bool database_context<database_settings_type>::initialize(iallocator& allocator, const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer)
 	{
 		const bool is_valid = database.is_valid(false).empty();
 		ACL_ASSERT(is_valid, "Invalid compressed database instance");
@@ -430,7 +430,7 @@ namespace acl
 		if (num_streaming_chunks == 0)
 			return database_stream_request_result::done;	// Nothing more to stream
 
-		idatabase_streamer* streamer = m_context.streamers[tier_index];
+		database_streamer* streamer = m_context.streamers[tier_index];
 
 		const streaming_request_id request_id = streamer->build_request(streaming_action::stream_in, tier, first_chunk_index, num_streaming_chunks);
 		if (!request_id.is_valid())
@@ -512,7 +512,7 @@ namespace acl
 		if (num_streaming_chunks == 0)
 			return database_stream_request_result::done;	// Nothing more to stream
 
-		idatabase_streamer* streamer = m_context.streamers[tier_index];
+		database_streamer* streamer = m_context.streamers[tier_index];
 
 		const streaming_request_id request_id = streamer->build_request(streaming_action::stream_out, tier, first_chunk_index, num_streaming_chunks);
 		if (!request_id.is_valid())
