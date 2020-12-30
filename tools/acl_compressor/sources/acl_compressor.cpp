@@ -903,7 +903,7 @@ static void validate_convert(iallocator& allocator, const track_array& raw_track
 	allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 }
 
-static void stream_in_database_tier(database_context<debug_database_settings>& context, debug_database_streamer& streamer, const compressed_database& db, database_tier8 tier)
+static void stream_in_database_tier(database_context<debug_database_settings>& context, debug_database_streamer& streamer, const compressed_database& db, quality_tier tier)
 {
 	const uint32_t num_chunks = db.get_num_chunks(tier);
 
@@ -930,7 +930,7 @@ static void stream_in_database_tier(database_context<debug_database_settings>& c
 	ACL_ASSERT(is_streamed_in, "Failed to stream in tier");
 }
 
-static void stream_out_database_tier(database_context<debug_database_settings>& context, debug_database_streamer& streamer, const compressed_database& db, database_tier8 tier)
+static void stream_out_database_tier(database_context<debug_database_settings>& context, debug_database_streamer& streamer, const compressed_database& db, quality_tier tier)
 {
 	const uint8_t* streamer_bulk_data = streamer.get_bulk_data();
 	const uint32_t num_chunks = db.get_num_chunks(tier);
@@ -972,8 +972,8 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	decompression_context<debug_transform_decompression_settings_with_db> context0;
 	decompression_context<debug_transform_decompression_settings_with_db> context1;
 	database_context<acl::debug_database_settings> db_context;
-	debug_database_streamer db_medium_streamer(allocator, db_bulk_data_medium, db.get_bulk_data_size(database_tier8::medium_importance));
-	debug_database_streamer db_low_streamer(allocator, db_bulk_data_low, db.get_bulk_data_size(database_tier8::low_importance));
+	debug_database_streamer db_medium_streamer(allocator, db_bulk_data_medium, db.get_bulk_data_size(quality_tier::medium_importance));
+	debug_database_streamer db_low_streamer(allocator, db_bulk_data_low, db.get_bulk_data_size(quality_tier::low_importance));
 	ACL_ASSERT(db_medium_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
 	ACL_ASSERT(db_low_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
 
@@ -981,8 +981,8 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	initialized = initialized && context0.initialize(tracks0, db_context);
 	initialized = initialized && context1.initialize(tracks1, db_context);
 	ACL_ASSERT(initialized, "Failed to initialize decompression context");
-	ACL_ASSERT(!db_context.is_streamed_in(database_tier8::medium_importance) || db.get_num_chunks(database_tier8::medium_importance) == 0, "Tier shouldn't be streamed in yet");
-	ACL_ASSERT(!db_context.is_streamed_in(database_tier8::low_importance) || db.get_num_chunks(database_tier8::low_importance) == 0, "Tier shouldn't be streamed in yet");
+	ACL_ASSERT(!db_context.is_streamed_in(quality_tier::medium_importance) || db.get_num_chunks(quality_tier::medium_importance) == 0, "Tier shouldn't be streamed in yet");
+	ACL_ASSERT(!db_context.is_streamed_in(quality_tier::low_importance) || db.get_num_chunks(quality_tier::low_importance) == 0, "Tier shouldn't be streamed in yet");
 
 	// Nothing is streamed in yet, we have low quality
 	const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
@@ -991,7 +991,7 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	ACL_ASSERT(low_quality_tier_error1.error >= high_quality_tier_error_ref.error, "Low quality tier split error should be higher or equal to high quality tier inline");
 
 	// Stream in our medium importance tier
-	stream_in_database_tier(db_context, db_medium_streamer, db, database_tier8::medium_importance);
+	stream_in_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
 	const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
 	ACL_ASSERT(medium_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Medium quality tier split error should be higher or equal to high quality tier inline");
@@ -1002,7 +1002,7 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	ACL_ASSERT(low_quality_tier_error1.error >= medium_quality_tier_error1.error, "Low quality tier split error should be higher or equal to medium quality tier split error");
 
 	// Stream in our low importance tier, restoring the full high quality
-	stream_in_database_tier(db_context, db_low_streamer, db, database_tier8::low_importance);
+	stream_in_database_tier(db_context, db_low_streamer, db, quality_tier::low_importance);
 
 	{
 		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
@@ -1012,7 +1012,7 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	}
 
 	// Stream out our medium importance tier, we'll have mixed quality
-	stream_out_database_tier(db_context, db_medium_streamer, db, database_tier8::medium_importance);
+	stream_out_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
 	const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
 	ACL_ASSERT(mixed_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Mixed quality split error should be higher or equal to high quality tier inline");
@@ -1024,7 +1024,7 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	//ACL_ASSERT(low_quality_tier_error1.error >= mixed_quality_tier_error1.error, "Low quality tier split error should be higher or equal to mixed quality split error");
 
 	// Stream in our medium importance tier, restoring the full high quality
-	stream_in_database_tier(db_context, db_medium_streamer, db, database_tier8::medium_importance);
+	stream_in_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
 	{
 		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
@@ -1034,7 +1034,7 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	}
 
 	// Stream out our low importance tier, restoring medium quality
-	stream_out_database_tier(db_context, db_low_streamer, db, database_tier8::low_importance);
+	stream_out_database_tier(db_context, db_low_streamer, db, quality_tier::low_importance);
 
 	{
 		const track_error medium_quality_tier_error0_ = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
@@ -1044,7 +1044,7 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	}
 
 	// Stream out our medium importance tier, restoring low quality
-	stream_out_database_tier(db_context, db_medium_streamer, db, database_tier8::medium_importance);
+	stream_out_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
 	{
 		const track_error low_quality_tier_error0_ = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
@@ -1208,13 +1208,13 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	validate_db_streaming(allocator, raw_tracks, additive_base_tracks, error_metric, high_quality_tier_error_ref, *compressed_tracks_copy0, *compressed_tracks_copy1, *split_merged_db, split_merged_db_bulk_data_medium, split_merged_db_bulk_data_low);
 
 	// Free our memory
-	allocator.deallocate(split_db_bulk_data_medium, split_db->get_bulk_data_size(database_tier8::medium_importance));
-	allocator.deallocate(split_db_bulk_data_low, split_db->get_bulk_data_size(database_tier8::low_importance));
+	allocator.deallocate(split_db_bulk_data_medium, split_db->get_bulk_data_size(quality_tier::medium_importance));
+	allocator.deallocate(split_db_bulk_data_low, split_db->get_bulk_data_size(quality_tier::low_importance));
 	allocator.deallocate(split_db, split_db->get_size());
 	allocator.deallocate(compressed_tracks_copy0, compressed_tracks_copy0->get_size());
 	allocator.deallocate(compressed_tracks_copy1, compressed_tracks_copy1->get_size());
-	allocator.deallocate(split_merged_db_bulk_data_medium, split_merged_db->get_bulk_data_size(database_tier8::medium_importance));
-	allocator.deallocate(split_merged_db_bulk_data_low, split_merged_db->get_bulk_data_size(database_tier8::low_importance));
+	allocator.deallocate(split_merged_db_bulk_data_medium, split_merged_db->get_bulk_data_size(quality_tier::medium_importance));
+	allocator.deallocate(split_merged_db_bulk_data_low, split_merged_db->get_bulk_data_size(quality_tier::low_importance));
 	allocator.deallocate(split_merged_db, split_merged_db->get_size());
 	allocator.deallocate(merged_db, merged_db->get_size());
 	allocator.deallocate(db_tracks0[0], db_tracks0[0]->get_size());

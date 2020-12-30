@@ -123,23 +123,23 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether or not we have streamed in any of the database bulk data for the specified tier (medium or low).
-		bool is_streamed_in(database_tier8 tier) const;
+		bool is_streamed_in(quality_tier tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether or not a streaming request is in flight for the specified tier (medium or low).
-		bool is_streaming(database_tier8 tier) const;
+		bool is_streaming(quality_tier tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Issues a stream in request and returns the current status for the specified tier (medium or low).
 		// By default, every chunk will be streamed in but they can be streamed progressively
 		// by providing a number of chunks.
-		database_stream_request_result stream_in(database_tier8 tier, uint32_t num_chunks_to_stream = ~0U);
+		database_stream_request_result stream_in(quality_tier tier, uint32_t num_chunks_to_stream = ~0U);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Issues a stream out request and returns the current status for the specified tier (medium or low).
 		// By default, every chunk will be streamed out but they can be streamed progressively
 		// by providing a number of chunks.
-		database_stream_request_result stream_out(database_tier8 tier, uint32_t num_chunks_to_stream = ~0U);
+		database_stream_request_result stream_out(quality_tier tier, uint32_t num_chunks_to_stream = ~0U);
 
 	private:
 		database_context(const database_context& other) = delete;

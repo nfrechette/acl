@@ -24,11 +24,11 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/database_tiers.h"
 #include "acl/core/error.h"
 #include "acl/core/hash.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/iterator.h"
+#include "acl/core/quality_tiers.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/impl/compressed_headers.h"
 #include "acl/compression/impl/track_stream.h"

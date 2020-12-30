@@ -46,10 +46,10 @@ namespace acl
 			return m_buffer_header.size + header.bulk_data_size[0] + header.bulk_data_size[1];
 	}
 
-	inline uint32_t compressed_database::get_bulk_data_size(database_tier8 tier) const
+	inline uint32_t compressed_database::get_bulk_data_size(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != database_tier8::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == database_tier8::high_importance)
+		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::high_importance)
 			return 0;
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*this);
@@ -57,10 +57,10 @@ namespace acl
 		return header.bulk_data_size[tier_index];
 	}
 
-	inline uint32_t compressed_database::get_bulk_data_hash(database_tier8 tier) const
+	inline uint32_t compressed_database::get_bulk_data_hash(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != database_tier8::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == database_tier8::high_importance)
+		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::high_importance)
 			return 0;
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*this);
@@ -72,10 +72,10 @@ namespace acl
 
 	inline compressed_tracks_version16 compressed_database::get_version() const { return acl_impl::get_database_header(*this).version; }
 
-	inline uint32_t compressed_database::get_num_chunks(database_tier8 tier) const
+	inline uint32_t compressed_database::get_num_chunks(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != database_tier8::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == database_tier8::high_importance)
+		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::high_importance)
 			return 0;
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*this);
@@ -89,10 +89,10 @@ namespace acl
 
 	inline bool compressed_database::is_bulk_data_inline() const { return acl_impl::get_database_header(*this).get_is_bulk_data_inline(); }
 
-	inline const uint8_t* compressed_database::get_bulk_data(database_tier8 tier) const
+	inline const uint8_t* compressed_database::get_bulk_data(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != database_tier8::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == database_tier8::high_importance)
+		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::high_importance)
 			return nullptr;
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*this);

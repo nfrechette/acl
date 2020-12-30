@@ -55,7 +55,7 @@ namespace acl
 			frame_tier_mapping* frames = nullptr;	// Frames mapped to this tier
 			uint32_t num_frames = 0;				// Number of frames mapped to this tier
 
-			database_tier8 tier;					// Actual tier
+			quality_tier tier;					// Actual tier
 
 			bool is_empty() const { return num_frames == 0; }
 		};
@@ -95,9 +95,9 @@ namespace acl
 				, num_movable_frames(num_movable_frames_)
 				, contributing_error_per_clip(allocate_type_array<clip_contributing_error>(allocator_, num_compressed_tracks_))
 			{
-				mappings[0].tier = database_tier8::high_importance;
-				mappings[1].tier = database_tier8::medium_importance;
-				mappings[2].tier = database_tier8::low_importance;
+				mappings[0].tier = quality_tier::high_importance;
+				mappings[1].tier = quality_tier::medium_importance;
+				mappings[2].tier = quality_tier::low_importance;
 
 				// Setup our error metadata to make iterating on it easier and track what has been assigned
 				for (uint32_t list_index = 0; list_index < num_compressed_tracks_; ++list_index)
@@ -151,10 +151,10 @@ namespace acl
 				deallocate_type_array(allocator, contributing_error_per_clip, num_compressed_tracks);
 			}
 
-			database_tier_mapping& get_tier_mapping(database_tier8 tier) { return mappings[(uint32_t)tier]; }
-			const database_tier_mapping& get_tier_mapping(database_tier8 tier) const { return mappings[(uint32_t)tier]; }
+			database_tier_mapping& get_tier_mapping(quality_tier tier) { return mappings[(uint32_t)tier]; }
+			const database_tier_mapping& get_tier_mapping(quality_tier tier) const { return mappings[(uint32_t)tier]; }
 
-			void set_tier_num_frames(database_tier8 tier, uint32_t num_frames)
+			void set_tier_num_frames(quality_tier tier, uint32_t num_frames)
 			{
 				database_tier_mapping& mapping = mappings[(uint32_t)tier];
 				ACL_ASSERT(mapping.frames == nullptr, "Tier already setup");
@@ -242,12 +242,12 @@ namespace acl
 						const segment_contriguting_error& segment_error = clip_error.segments[segment_index];
 
 						// High importance frames can always be moved since they end up in our compressed tracks
-						const uint32_t num_movable = tier_mapping.tier == database_tier8::high_importance ? segment_error.num_frames : segment_error.num_movable;
+						const uint32_t num_movable = tier_mapping.tier == quality_tier::high_importance ? segment_error.num_frames : segment_error.num_movable;
 						if (segment_error.num_assigned >= num_movable)
 							continue;	// No more movable data in this segment, skip it
 
 						const frame_contributing_error& contributing_error = segment_error.errors[segment_error.num_assigned];
-						ACL_ASSERT(tier_mapping.tier == database_tier8::high_importance || rtm::scalar_is_finite(contributing_error.error), "Error should be finite");
+						ACL_ASSERT(tier_mapping.tier == quality_tier::high_importance || rtm::scalar_is_finite(contributing_error.error), "Error should be finite");
 
 						if (contributing_error.error <= best_mapping.contributing_error)
 						{
@@ -270,7 +270,7 @@ namespace acl
 					}
 				}
 
-				ACL_ASSERT(tier_mapping.tier == database_tier8::high_importance || rtm::scalar_is_finite(best_mapping.contributing_error), "Error should be finite");
+				ACL_ASSERT(tier_mapping.tier == quality_tier::high_importance || rtm::scalar_is_finite(best_mapping.contributing_error), "Error should be finite");
 
 				// Assigned our mapping
 				tier_mapping.frames[assigned_frame_count] = best_mapping;
@@ -308,13 +308,13 @@ namespace acl
 		inline void assign_frames_to_tiers(frame_assignment_context& context)
 		{
 			// Assign frames to our lowest importance tier first
-			assign_frames_to_tier(context, context.get_tier_mapping(database_tier8::low_importance));
+			assign_frames_to_tier(context, context.get_tier_mapping(quality_tier::low_importance));
 
 			// Assign frames to our medium importance tier next
-			assign_frames_to_tier(context, context.get_tier_mapping(database_tier8::medium_importance));
+			assign_frames_to_tier(context, context.get_tier_mapping(quality_tier::medium_importance));
 
 			// Then our high importance tier
-			assign_frames_to_tier(context, context.get_tier_mapping(database_tier8::high_importance));
+			assign_frames_to_tier(context, context.get_tier_mapping(quality_tier::high_importance));
 
 			// Sanity check that everything has been assigned
 #if defined(ACL_HAS_ASSERT_CHECKS)
@@ -526,7 +526,7 @@ namespace acl
 		{
 			const bitset_description desc = bitset_description::make_from_num_bits<32>();
 
-			const database_tier_mapping& tier_mapping = context.get_tier_mapping(database_tier8::high_importance);
+			const database_tier_mapping& tier_mapping = context.get_tier_mapping(quality_tier::high_importance);
 			uint32_t clip_header_offset = 0;
 
 			for (uint32_t list_index = 0; list_index < context.num_compressed_tracks; ++list_index)
@@ -867,9 +867,9 @@ namespace acl
 		}
 
 		// Returns the number of chunks written
-		inline uint32_t write_database_chunk_descriptions(const frame_assignment_context& context, const compression_database_settings& settings, database_tier8 tier, database_chunk_description* chunk_descriptions)
+		inline uint32_t write_database_chunk_descriptions(const frame_assignment_context& context, const compression_database_settings& settings, quality_tier tier, database_chunk_description* chunk_descriptions)
 		{
-			ACL_ASSERT(tier != database_tier8::high_importance, "No chunks for the high importance tier");
+			ACL_ASSERT(tier != quality_tier::high_importance, "No chunks for the high importance tier");
 			const database_tier_mapping& tier_mapping = context.get_tier_mapping(tier);
 			if (tier_mapping.is_empty())
 				return 0;	// No data
@@ -933,9 +933,9 @@ namespace acl
 		}
 
 		// Returns the size of the bulk data
-		inline uint32_t write_database_bulk_data(const frame_assignment_context& context, const compression_database_settings& settings, database_tier8 tier, const compressed_tracks* const* db_compressed_tracks_list, uint8_t* bulk_data)
+		inline uint32_t write_database_bulk_data(const frame_assignment_context& context, const compression_database_settings& settings, quality_tier tier, const compressed_tracks* const* db_compressed_tracks_list, uint8_t* bulk_data)
 		{
-			ACL_ASSERT(tier != database_tier8::high_importance, "No bulk data for the high importance tier");
+			ACL_ASSERT(tier != quality_tier::high_importance, "No bulk data for the high importance tier");
 			const database_tier_mapping& tier_mapping = context.get_tier_mapping(tier);
 			if (tier_mapping.is_empty())
 				return 0;	// No data
@@ -1100,10 +1100,10 @@ namespace acl
 			// Find our chunk limits and calculate our database size
 			const uint32_t num_tracks = write_database_clip_metadata(db_compressed_tracks_list, context.num_compressed_tracks, nullptr);
 			const uint32_t num_segments = calculate_num_segments(db_compressed_tracks_list, context.num_compressed_tracks);
-			const uint32_t num_medium_chunks = write_database_chunk_descriptions(context, settings, database_tier8::medium_importance, nullptr);
-			const uint32_t num_low_chunks = write_database_chunk_descriptions(context, settings, database_tier8::low_importance, nullptr);
-			const uint32_t bulk_data_medium_size = write_database_bulk_data(context, settings, database_tier8::medium_importance, db_compressed_tracks_list, nullptr);
-			const uint32_t bulk_data_low_size = write_database_bulk_data(context, settings, database_tier8::low_importance, db_compressed_tracks_list, nullptr);
+			const uint32_t num_medium_chunks = write_database_chunk_descriptions(context, settings, quality_tier::medium_importance, nullptr);
+			const uint32_t num_low_chunks = write_database_chunk_descriptions(context, settings, quality_tier::low_importance, nullptr);
+			const uint32_t bulk_data_medium_size = write_database_bulk_data(context, settings, quality_tier::medium_importance, db_compressed_tracks_list, nullptr);
+			const uint32_t bulk_data_low_size = write_database_bulk_data(context, settings, quality_tier::low_importance, db_compressed_tracks_list, nullptr);
 
 			uint32_t database_buffer_size = 0;
 			database_buffer_size += sizeof(raw_buffer_header);							// Header
@@ -1175,10 +1175,10 @@ namespace acl
 			database_buffer += bulk_data_low_size;										// Bulk data
 
 			// Write our chunk descriptions
-			const uint32_t num_written_medium_chunks = write_database_chunk_descriptions(context, settings, database_tier8::medium_importance, db_header->get_chunk_descriptions_medium());
+			const uint32_t num_written_medium_chunks = write_database_chunk_descriptions(context, settings, quality_tier::medium_importance, db_header->get_chunk_descriptions_medium());
 			ACL_ASSERT(num_written_medium_chunks == num_medium_chunks, "Unexpected amount of data written"); (void)num_written_medium_chunks;
 
-			const uint32_t num_written_low_chunks = write_database_chunk_descriptions(context, settings, database_tier8::low_importance, db_header->get_chunk_descriptions_low());
+			const uint32_t num_written_low_chunks = write_database_chunk_descriptions(context, settings, quality_tier::low_importance, db_header->get_chunk_descriptions_low());
 			ACL_ASSERT(num_written_low_chunks == num_low_chunks, "Unexpected amount of data written"); (void)num_written_low_chunks;
 
 			// Write our clip metadata
@@ -1186,11 +1186,11 @@ namespace acl
 			ACL_ASSERT(num_written_tracks == num_tracks, "Unexpected amount of data written"); (void)num_written_tracks;
 
 			// Write our bulk data
-			const uint32_t written_bulk_data_medium_size = write_database_bulk_data(context, settings, database_tier8::medium_importance, db_compressed_tracks_list, db_header->get_bulk_data_medium());
+			const uint32_t written_bulk_data_medium_size = write_database_bulk_data(context, settings, quality_tier::medium_importance, db_compressed_tracks_list, db_header->get_bulk_data_medium());
 			ACL_ASSERT(written_bulk_data_medium_size == bulk_data_medium_size, "Unexpected amount of data written"); (void)written_bulk_data_medium_size;
 			db_header->bulk_data_hash[0] = hash32(db_header->get_bulk_data_medium(), bulk_data_medium_size);
 
-			const uint32_t written_bulk_data_low_size = write_database_bulk_data(context, settings, database_tier8::low_importance, db_compressed_tracks_list, db_header->get_bulk_data_low());
+			const uint32_t written_bulk_data_low_size = write_database_bulk_data(context, settings, quality_tier::low_importance, db_compressed_tracks_list, db_header->get_bulk_data_low());
 			ACL_ASSERT(written_bulk_data_low_size == bulk_data_low_size, "Unexpected amount of data written"); (void)written_bulk_data_low_size;
 			db_header->bulk_data_hash[1] = hash32(db_header->get_bulk_data_low(), bulk_data_low_size);
 
@@ -1271,9 +1271,9 @@ namespace acl
 		const uint32_t num_high_importance_frames = num_frames - num_medium_importance_frames - num_low_importance_frames;
 
 		frame_assignment_context context(allocator, compressed_tracks_list, num_compressed_tracks, num_movable_frames);
-		context.set_tier_num_frames(database_tier8::high_importance, num_high_importance_frames);
-		context.set_tier_num_frames(database_tier8::medium_importance, num_medium_importance_frames);
-		context.set_tier_num_frames(database_tier8::low_importance, num_low_importance_frames);
+		context.set_tier_num_frames(quality_tier::high_importance, num_high_importance_frames);
+		context.set_tier_num_frames(quality_tier::medium_importance, num_medium_importance_frames);
+		context.set_tier_num_frames(quality_tier::low_importance, num_low_importance_frames);
 
 		// Assign every frame to its tier
 		assign_frames_to_tiers(context);
@@ -1299,8 +1299,8 @@ namespace acl
 			return error_result("Bulk data is not inline in source database");
 
 		const uint32_t total_size = database.get_total_size();
-		const uint32_t bulk_data_medium_size = database.get_bulk_data_size(database_tier8::medium_importance);
-		const uint32_t bulk_data_low_size = database.get_bulk_data_size(database_tier8::low_importance);
+		const uint32_t bulk_data_medium_size = database.get_bulk_data_size(quality_tier::medium_importance);
+		const uint32_t bulk_data_low_size = database.get_bulk_data_size(quality_tier::low_importance);
 		const uint32_t db_size = total_size - bulk_data_medium_size - bulk_data_low_size;
 
 		// Allocate and setup our new database
@@ -1327,19 +1327,19 @@ namespace acl
 		uint8_t* bulk_data_medium_buffer = bulk_data_medium_size != 0 ? allocate_type_array_aligned<uint8_t>(allocator, bulk_data_medium_size, alignof(compressed_database)) : nullptr;
 		out_bulk_data_medium = bulk_data_medium_buffer;
 
-		std::memcpy(bulk_data_medium_buffer, database.get_bulk_data(database_tier8::medium_importance), bulk_data_medium_size);
+		std::memcpy(bulk_data_medium_buffer, database.get_bulk_data(quality_tier::medium_importance), bulk_data_medium_size);
 
 		uint8_t* bulk_data_low_buffer = bulk_data_low_size != 0 ? allocate_type_array_aligned<uint8_t>(allocator, bulk_data_low_size, alignof(compressed_database)) : nullptr;
 		out_bulk_data_low = bulk_data_low_buffer;
 
-		std::memcpy(bulk_data_low_buffer, database.get_bulk_data(database_tier8::low_importance), bulk_data_low_size);
+		std::memcpy(bulk_data_low_buffer, database.get_bulk_data(quality_tier::low_importance), bulk_data_low_size);
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint32_t bulk_data_medium_hash = hash32(bulk_data_medium_buffer, bulk_data_medium_size);
-		ACL_ASSERT(bulk_data_medium_hash == database.get_bulk_data_hash(database_tier8::medium_importance), "Bulk data hash mismatch");
+		ACL_ASSERT(bulk_data_medium_hash == database.get_bulk_data_hash(quality_tier::medium_importance), "Bulk data hash mismatch");
 
 		const uint32_t bulk_data_low_hash = hash32(bulk_data_low_buffer, bulk_data_low_size);
-		ACL_ASSERT(bulk_data_low_hash == database.get_bulk_data_hash(database_tier8::low_importance), "Bulk data hash mismatch");
+		ACL_ASSERT(bulk_data_low_hash == database.get_bulk_data_hash(quality_tier::low_importance), "Bulk data hash mismatch");
 #endif
 
 		return error_result();
@@ -1374,9 +1374,9 @@ namespace acl
 	namespace acl_impl
 	{
 		// Returns the number of chunks written
-		inline uint32_t write_database_chunk_descriptions(const compression_database_settings& settings, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, database_tier8 tier, database_chunk_description* chunk_descriptions)
+		inline uint32_t write_database_chunk_descriptions(const compression_database_settings& settings, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, quality_tier tier, database_chunk_description* chunk_descriptions)
 		{
-			ACL_ASSERT(tier != database_tier8::high_importance, "No chunks for the high importance tier");
+			ACL_ASSERT(tier != quality_tier::high_importance, "No chunks for the high importance tier");
 
 			const uint32_t max_chunk_size = settings.max_chunk_size;
 			const uint32_t simd_padding = 15;
@@ -1390,7 +1390,7 @@ namespace acl
 			{
 				const compressed_database& database = *merge_mappings[mapping_index].database;
 				const database_header& header = get_database_header(database);
-				const database_chunk_description* db_chunk_descriptions = tier == database_tier8::medium_importance ? header.get_chunk_descriptions_medium() : header.get_chunk_descriptions_low();
+				const database_chunk_description* db_chunk_descriptions = tier == quality_tier::medium_importance ? header.get_chunk_descriptions_medium() : header.get_chunk_descriptions_low();
 				const uint32_t num_db_chunks = header.num_chunks[tier_index];
 				for (uint32_t chunk_index = 0; chunk_index < num_db_chunks; ++chunk_index)
 				{
@@ -1525,9 +1525,9 @@ namespace acl
 		}
 
 		// Returns the size of the bulk data
-		inline uint32_t write_database_bulk_data(iallocator& allocator, const compression_database_settings& settings, const merged_db_metadata& db_metadata, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, database_tier8 tier, uint8_t* bulk_data)
+		inline uint32_t write_database_bulk_data(iallocator& allocator, const compression_database_settings& settings, const merged_db_metadata& db_metadata, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, quality_tier tier, uint8_t* bulk_data)
 		{
-			ACL_ASSERT(tier != database_tier8::high_importance, "No bulk data for the high importance tier");
+			ACL_ASSERT(tier != quality_tier::high_importance, "No bulk data for the high importance tier");
 			(void)db_metadata;
 
 			// TODO: If the last chunk is too small, merge it with the previous chunk?
@@ -1592,7 +1592,7 @@ namespace acl
 				{
 					const compressed_database& database = *merge_mappings[mapping_index].database;
 					const database_header& header = get_database_header(database);
-					const database_chunk_description* db_chunk_descriptions = tier == database_tier8::medium_importance ? header.get_chunk_descriptions_medium() : header.get_chunk_descriptions_low();
+					const database_chunk_description* db_chunk_descriptions = tier == quality_tier::medium_importance ? header.get_chunk_descriptions_medium() : header.get_chunk_descriptions_low();
 					const uint32_t num_db_chunks = header.num_chunks[tier_index];
 
 					for (uint32_t chunk_index = 0; chunk_index < num_db_chunks; ++chunk_index)
@@ -1886,10 +1886,10 @@ namespace acl
 			db_metadata.num_segments += merge_mappings[mapping_index].database->get_num_segments();
 		}
 
-		db_metadata.num_medium_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, database_tier8::medium_importance, nullptr);
-		db_metadata.num_low_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, database_tier8::low_importance, nullptr);
-		const uint32_t bulk_data_medium_size = write_database_bulk_data(allocator, settings, db_metadata, merge_mappings, num_merge_mappings, database_tier8::medium_importance, nullptr);
-		const uint32_t bulk_data_low_size = write_database_bulk_data(allocator, settings, db_metadata, merge_mappings, num_merge_mappings, database_tier8::low_importance, nullptr);
+		db_metadata.num_medium_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, quality_tier::medium_importance, nullptr);
+		db_metadata.num_low_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, quality_tier::low_importance, nullptr);
+		const uint32_t bulk_data_medium_size = write_database_bulk_data(allocator, settings, db_metadata, merge_mappings, num_merge_mappings, quality_tier::medium_importance, nullptr);
+		const uint32_t bulk_data_low_size = write_database_bulk_data(allocator, settings, db_metadata, merge_mappings, num_merge_mappings, quality_tier::low_importance, nullptr);
 
 		uint32_t database_buffer_size = 0;
 		database_buffer_size += sizeof(raw_buffer_header);							// Header
@@ -1960,21 +1960,21 @@ namespace acl
 		database_buffer += bulk_data_low_size;											// Bulk data
 
 		// Write our chunk descriptions
-		const uint32_t num_written_medium_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, database_tier8::medium_importance, db_header->get_chunk_descriptions_medium());
+		const uint32_t num_written_medium_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, quality_tier::medium_importance, db_header->get_chunk_descriptions_medium());
 		ACL_ASSERT(num_written_medium_chunks == db_metadata.num_medium_chunks, "Unexpected amount of data written"); (void)num_written_medium_chunks;
 
-		const uint32_t num_written_low_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, database_tier8::low_importance, db_header->get_chunk_descriptions_low());
+		const uint32_t num_written_low_chunks = write_database_chunk_descriptions(settings, merge_mappings, num_merge_mappings, quality_tier::low_importance, db_header->get_chunk_descriptions_low());
 		ACL_ASSERT(num_written_low_chunks == db_metadata.num_low_chunks, "Unexpected amount of data written"); (void)num_written_low_chunks;
 
 		// Write our clip metadata
 		write_database_clip_metadata(merge_mappings, num_merge_mappings, db_header->get_clip_metadatas());
 
 		// Write our bulk data
-		const uint32_t written_bulk_data_medium_size = write_database_bulk_data(allocator, settings, db_metadata, merge_mappings, num_merge_mappings, database_tier8::medium_importance, db_header->get_bulk_data_medium());
+		const uint32_t written_bulk_data_medium_size = write_database_bulk_data(allocator, settings, db_metadata, merge_mappings, num_merge_mappings, quality_tier::medium_importance, db_header->get_bulk_data_medium());
 		ACL_ASSERT(written_bulk_data_medium_size == bulk_data_medium_size, "Unexpected amount of data written"); (void)written_bulk_data_medium_size;
 		db_header->bulk_data_hash[0] = hash32(db_header->get_bulk_data_medium(), bulk_data_medium_size);
 
-		const uint32_t written_bulk_data_low_size = write_database_bulk_data(allocator, settings, db_metadata, merge_mappings, num_merge_mappings, database_tier8::low_importance, db_header->get_bulk_data_low());
+		const uint32_t written_bulk_data_low_size = write_database_bulk_data(allocator, settings, db_metadata, merge_mappings, num_merge_mappings, quality_tier::low_importance, db_header->get_bulk_data_low());
 		ACL_ASSERT(written_bulk_data_low_size == bulk_data_low_size, "Unexpected amount of data written"); (void)written_bulk_data_low_size;
 		db_header->bulk_data_hash[1] = hash32(db_header->get_bulk_data_low(), bulk_data_low_size);
 

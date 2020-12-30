@@ -26,8 +26,8 @@
 
 #include "acl/core/algorithm_types.h"
 #include "acl/core/compressed_tracks_version.h"
-#include "acl/core/database_tiers.h"
 #include "acl/core/ptr_offset.h"
+#include "acl/core/quality_tiers.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"

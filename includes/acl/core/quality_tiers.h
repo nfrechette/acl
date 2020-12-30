@@ -33,8 +33,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
-	// What database tier a key frame belongs to
-	enum class database_tier8 : uint8_t
+	// What quality tier a key frame/sample belongs to
+	enum class quality_tier
 	{
 		// High importance frames remain in the compressed clip and can be used to interpolate even without the database present
 		high_importance		= 0,
