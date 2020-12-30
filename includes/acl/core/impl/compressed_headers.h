@@ -26,6 +26,7 @@
 
 #include "acl/core/algorithm_types.h"
 #include "acl/core/compressed_tracks_version.h"
+#include "acl/core/database_tiers.h"
 #include "acl/core/ptr_offset.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_formats.h"
@@ -504,6 +505,8 @@ namespace acl
 		};
 
 		// Header for 'compressed_database'
+		// We use arrays so we can index with (tier - 1) as our index
+		// Index 0 = medium importance tier, index 1 = low importance
 		struct database_header
 		{
 			// Serialization tag used to distinguish raw buffer types.
@@ -515,8 +518,8 @@ namespace acl
 			// Misc packed data.
 			uint16_t						misc_packed;
 
-			// Number of chunks stored in the bulk data.
-			uint32_t						num_chunks;
+			// Number of chunks stored in the bulk data for each tier.
+			uint32_t						num_chunks[k_num_database_tiers];
 
 			// Max chunk size contained within
 			uint32_t						max_chunk_size;
@@ -530,14 +533,14 @@ namespace acl
 			// Offset to a list of clip metadata contained in this database.
 			ptr_offset32<database_clip_metadata>	clip_metadata_offset;
 
-			// Size in bytes of the bulk data.
-			uint32_t						bulk_data_size;
+			// Size in bytes of the bulk data for each tier.
+			uint32_t						bulk_data_size[k_num_database_tiers];
 
-			// Offset to the bulk data (optional, omitted if not inline).
-			ptr_offset32<uint8_t>			bulk_data_offset;
+			// Offset to the bulk data for each tier (optional, omitted if not inline).
+			ptr_offset32<uint8_t>			bulk_data_offset[k_num_database_tiers];
 
-			// Hash of the bulk data.
-			uint32_t						bulk_data_hash;
+			// Hash of the bulk data for each tier.
+			uint32_t						bulk_data_hash[k_num_database_tiers];
 
 			// Chunk descriptions follow in memory
 
@@ -554,14 +557,22 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
 
-			database_chunk_description*				get_chunk_descriptions() { return add_offset_to_ptr<database_chunk_description>(this, align_to(sizeof(database_header), 4)); }
-			const database_chunk_description*		get_chunk_descriptions() const { return add_offset_to_ptr<const database_chunk_description>(this, align_to(sizeof(database_header), 4)); }
+			// Follows the header
+			database_chunk_description*				get_chunk_descriptions_medium() { return add_offset_to_ptr<database_chunk_description>(this, align_to(sizeof(database_header), 4)); }
+			const database_chunk_description*		get_chunk_descriptions_medium() const { return add_offset_to_ptr<const database_chunk_description>(this, align_to(sizeof(database_header), 4)); }
+
+			// Follows the medium descriptions
+			database_chunk_description*				get_chunk_descriptions_low() { return add_offset_to_ptr<database_chunk_description>(this, align_to(align_to(sizeof(database_header), 4) + num_chunks[0] * sizeof(database_chunk_description), 4)); }
+			const database_chunk_description*		get_chunk_descriptions_low() const { return add_offset_to_ptr<const database_chunk_description>(this, align_to(align_to(sizeof(database_header), 4) + num_chunks[0] * sizeof(database_chunk_description), 4)); }
 
 			database_clip_metadata*					get_clip_metadatas() { return clip_metadata_offset.add_to(this); }
 			const database_clip_metadata*			get_clip_metadatas() const { return clip_metadata_offset.add_to(this); }
 
-			uint8_t*								get_bulk_data() { return bulk_data_offset.safe_add_to(this); }
-			const uint8_t*							get_bulk_data() const { return bulk_data_offset.safe_add_to(this); }
+			uint8_t*								get_bulk_data_medium() { return bulk_data_offset[0].safe_add_to(this); }
+			const uint8_t*							get_bulk_data_medium() const { return bulk_data_offset[0].safe_add_to(this); }
+
+			uint8_t*								get_bulk_data_low() { return bulk_data_offset[1].safe_add_to(this); }
+			const uint8_t*							get_bulk_data_low() const { return bulk_data_offset[1].safe_add_to(this); }
 		};
 	}
 }

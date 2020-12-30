@@ -36,24 +36,34 @@ namespace acl
 
 	namespace acl_impl
 	{
+		// TODO: If we need to make the context smaller, we can use offsets for the bitsets instead of pointers
+		// from the clip_segment_headers base pointer. The bitsets also follow linearly in memory, we could store only
+		// one offset for the base, and index with the tier * desc.size
 		struct alignas(64) database_context_v0
 		{
-			//												//   offsets
+			//														//   offsets
 			// Only member used to detect if we are initialized, must be first
-			const compressed_database* db;					//   0 |   0
-			iallocator* allocator;							//   4 |   8
-			
-			const uint8_t* bulk_data;						//   8 |  16
-			idatabase_streamer* streamer;					//  12 |  24
+			const compressed_database* db;							//   0 |   0
 
-			uint32_t* loaded_chunks;						//  16 |  32
-			uint32_t* streaming_chunks;						//  20 |  40
+			// We use arrays so we can index with (tier - 1) as our index
+			// Index 0 = medium importance tier, index 1 = low importance
 
-			uint8_t* clip_segment_headers;					//  24 |  48
+			// Runtime related data, commonly accessed
+			uint8_t* clip_segment_headers;							//   4 |   8
 
-			uint8_t padding1[sizeof(void*) == 4 ? 36 : 8];	//  28 |  56
+			const uint8_t* bulk_data[k_num_database_tiers];			//   8 |  16
 
-			//									Total size:	    64 |  64
+			// Streaming related data not commonly accessed
+			idatabase_streamer* streamers[k_num_database_tiers];	//  16 |  32
+
+			uint32_t* loaded_chunks[k_num_database_tiers];			//  24 |  48
+			uint32_t* streaming_chunks[k_num_database_tiers];		//  32 |  64
+
+			iallocator* allocator;									//  40 |  72
+
+			uint8_t padding1[sizeof(void*) == 4 ? 84 : 40];			//  44 |  88
+
+			//											Total size:	   128 | 128
 
 			//////////////////////////////////////////////////////////////////////////
 
@@ -63,7 +73,7 @@ namespace acl
 			void reset() { db = nullptr; }
 		};
 
-		static_assert(sizeof(database_context_v0) == 64, "Unexpected size");
+		static_assert(sizeof(database_context_v0) == 128, "Unexpected size");
 	}
 }
 

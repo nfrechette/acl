@@ -198,8 +198,8 @@ namespace acl
 					// When we load our sample indices and offsets from the database, there can be another thread writing
 					// to those memory locations at the same time (e.g. streaming in/out).
 					// To ensure thread safety, we atomically load the offset and sample indices.
-					uint64_t tier1_metadata0 = 0;
-					uint64_t tier2_metadata0 = 0;
+					uint64_t medium_importance_tier_metadata0 = 0;
+					uint64_t low_importance_tier_metadata0 = 0;
 
 					// Combine all our loaded samples into a single bit set to find which samples we need to interpolate
 					if (db != nullptr)
@@ -212,11 +212,11 @@ namespace acl
 
 						// Cache miss for the db segment headers
 						const database_runtime_segment_header* db_segment_header0 = db_segment_headers;
-						tier1_metadata0 = db_segment_header0->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
-						tier2_metadata0 = db_segment_header0->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
+						medium_importance_tier_metadata0 = db_segment_header0->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
+						low_importance_tier_metadata0 = db_segment_header0->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
 
-						sample_indices0 |= uint32_t(tier1_metadata0);
-						sample_indices0 |= uint32_t(tier2_metadata0);
+						sample_indices0 |= uint32_t(medium_importance_tier_metadata0);
+						sample_indices0 |= uint32_t(low_importance_tier_metadata0);
 					}
 
 					// Find the closest loaded samples
@@ -240,27 +240,29 @@ namespace acl
 						const uint64_t sample_index0 = uint64_t(1) << (31 - key_frame0);
 						const uint64_t sample_index1 = uint64_t(1) << (31 - key_frame1);
 
-						const uint8_t* bulk_data = db->bulk_data;		// Might be nullptr if we haven't streamed in yet
-						if ((tier1_metadata0 & sample_index0) != 0)
+						const uint8_t* bulk_data_medium = db->bulk_data[0];		// Might be nullptr if we haven't streamed in yet
+						const uint8_t* bulk_data_low = db->bulk_data[1];		// Might be nullptr if we haven't streamed in yet
+						if ((medium_importance_tier_metadata0 & sample_index0) != 0)
 						{
-							sample_indices0 = uint32_t(tier1_metadata0);
-							db_animated_track_data0 = bulk_data + uint32_t(tier1_metadata0 >> 32);
+							sample_indices0 = uint32_t(medium_importance_tier_metadata0);
+							db_animated_track_data0 = bulk_data_medium + uint32_t(medium_importance_tier_metadata0 >> 32);
 						}
-						else if ((tier2_metadata0 & sample_index0) != 0)
+						else if ((low_importance_tier_metadata0 & sample_index0) != 0)
 						{
-							sample_indices0 = uint32_t(tier2_metadata0);
-							db_animated_track_data0 = bulk_data + uint32_t(tier2_metadata0 >> 32);
+							sample_indices0 = uint32_t(low_importance_tier_metadata0);
+							db_animated_track_data0 = bulk_data_low + uint32_t(low_importance_tier_metadata0 >> 32);
 						}
 
-						if ((tier1_metadata0 & sample_index1) != 0)
+						// Only one segment, our metadata is the same for our second key frame
+						if ((medium_importance_tier_metadata0 & sample_index1) != 0)
 						{
-							sample_indices1 = uint32_t(tier1_metadata0);
-							db_animated_track_data1 = bulk_data + uint32_t(tier1_metadata0 >> 32);
+							sample_indices1 = uint32_t(medium_importance_tier_metadata0);
+							db_animated_track_data1 = bulk_data_medium + uint32_t(medium_importance_tier_metadata0 >> 32);
 						}
-						else if ((tier2_metadata0 & sample_index1) != 0)
+						else if ((low_importance_tier_metadata0 & sample_index1) != 0)
 						{
-							sample_indices1 = uint32_t(tier2_metadata0);
-							db_animated_track_data1 = bulk_data + uint32_t(tier2_metadata0 >> 32);
+							sample_indices1 = uint32_t(low_importance_tier_metadata0);
+							db_animated_track_data1 = bulk_data_low + uint32_t(low_importance_tier_metadata0 >> 32);
 						}
 					}
 
@@ -329,10 +331,10 @@ namespace acl
 					// When we load our sample indices and offsets from the database, there can be another thread writing
 					// to those memory locations at the same time (e.g. streaming in/out).
 					// To ensure thread safety, we atomically load the offset and sample indices.
-					uint64_t tier1_metadata0 = 0;
-					uint64_t tier1_metadata1 = 0;
-					uint64_t tier2_metadata0 = 0;
-					uint64_t tier2_metadata1 = 0;
+					uint64_t medium_importance_tier_metadata0 = 0;
+					uint64_t medium_importance_tier_metadata1 = 0;
+					uint64_t low_importance_tier_metadata0 = 0;
+					uint64_t low_importance_tier_metadata1 = 0;
 
 					// Combine all our loaded samples into a single bit set to find which samples we need to interpolate
 					if (db != nullptr)
@@ -345,18 +347,18 @@ namespace acl
 
 						// Cache miss for the db segment headers
 						const database_runtime_segment_header* db_segment_header0 = db_segment_headers + segment_index0;
-						tier1_metadata0 = db_segment_header0->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
-						tier2_metadata0 = db_segment_header0->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
+						medium_importance_tier_metadata0 = db_segment_header0->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
+						low_importance_tier_metadata0 = db_segment_header0->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
 
-						sample_indices0 |= uint32_t(tier1_metadata0);
-						sample_indices0 |= uint32_t(tier2_metadata0);
+						sample_indices0 |= uint32_t(medium_importance_tier_metadata0);
+						sample_indices0 |= uint32_t(low_importance_tier_metadata0);
 
 						const database_runtime_segment_header* db_segment_header1 = db_segment_headers + segment_index1;
-						tier1_metadata1 = db_segment_header1->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
-						tier2_metadata1 = db_segment_header1->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
+						medium_importance_tier_metadata1 = db_segment_header1->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
+						low_importance_tier_metadata1 = db_segment_header1->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
 
-						sample_indices1 |= uint32_t(tier1_metadata1);
-						sample_indices1 |= uint32_t(tier2_metadata1);
+						sample_indices1 |= uint32_t(medium_importance_tier_metadata1);
+						sample_indices1 |= uint32_t(low_importance_tier_metadata1);
 					}
 
 					// Find the closest loaded samples
@@ -384,27 +386,28 @@ namespace acl
 						const uint64_t sample_index0 = uint64_t(1) << (31 - segment_key_frame0);
 						const uint64_t sample_index1 = uint64_t(1) << (31 - segment_key_frame1);
 
-						const uint8_t* bulk_data = db->bulk_data;		// Might be nullptr if we haven't streamed in yet
-						if ((tier1_metadata0 & sample_index0) != 0)
+						const uint8_t* bulk_data_medium = db->bulk_data[0];		// Might be nullptr if we haven't streamed in yet
+						const uint8_t* bulk_data_low = db->bulk_data[1];		// Might be nullptr if we haven't streamed in yet
+						if ((medium_importance_tier_metadata0 & sample_index0) != 0)
 						{
-							sample_indices0 = uint32_t(tier1_metadata0);
-							db_animated_track_data0 = bulk_data + uint32_t(tier1_metadata0 >> 32);
+							sample_indices0 = uint32_t(medium_importance_tier_metadata0);
+							db_animated_track_data0 = bulk_data_medium + uint32_t(medium_importance_tier_metadata0 >> 32);
 						}
-						else if ((tier2_metadata0 & sample_index0) != 0)
+						else if ((low_importance_tier_metadata0 & sample_index0) != 0)
 						{
-							sample_indices0 = uint32_t(tier2_metadata0);
-							db_animated_track_data0 = bulk_data + uint32_t(tier2_metadata0 >> 32);
+							sample_indices0 = uint32_t(low_importance_tier_metadata0);
+							db_animated_track_data0 = bulk_data_low + uint32_t(low_importance_tier_metadata0 >> 32);
 						}
 
-						if ((tier1_metadata1 & sample_index1) != 0)
+						if ((medium_importance_tier_metadata1 & sample_index1) != 0)
 						{
-							sample_indices1 = uint32_t(tier1_metadata1);
-							db_animated_track_data1 = bulk_data + uint32_t(tier1_metadata1 >> 32);
+							sample_indices1 = uint32_t(medium_importance_tier_metadata1);
+							db_animated_track_data1 = bulk_data_medium + uint32_t(medium_importance_tier_metadata1 >> 32);
 						}
-						else if ((tier2_metadata1 & sample_index1) != 0)
+						else if ((low_importance_tier_metadata1 & sample_index1) != 0)
 						{
-							sample_indices1 = uint32_t(tier2_metadata1);
-							db_animated_track_data1 = bulk_data + uint32_t(tier2_metadata1 >> 32);
+							sample_indices1 = uint32_t(low_importance_tier_metadata1);
+							db_animated_track_data1 = bulk_data_low + uint32_t(low_importance_tier_metadata1 >> 32);
 						}
 					}
 

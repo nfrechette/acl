@@ -47,7 +47,10 @@ namespace acl
 	};
 
 	// We only support 3 tiers
-	constexpr uint32_t k_num_database_tiers = 3;
+	constexpr uint32_t k_num_quality_tiers = 3;
+
+	// Database contains 2 tiers
+	constexpr uint32_t k_num_database_tiers = 2;
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

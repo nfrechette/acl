@@ -903,6 +903,157 @@ static void validate_convert(iallocator& allocator, const track_array& raw_track
 	allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 }
 
+static void stream_in_database_tier(database_context<debug_database_settings>& context, debug_database_streamer& streamer, const compressed_database& db, database_tier8 tier)
+{
+	const uint32_t num_chunks = db.get_num_chunks(tier);
+
+	bool is_streamed_in = context.is_streamed_in(tier);
+	ACL_ASSERT((num_chunks == 0 && is_streamed_in) || !is_streamed_in, "Tier should not be streamed in");
+	ACL_ASSERT(streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
+
+	acl::database_stream_request_result stream_in_result = context.stream_in(tier, 2);
+	const uint8_t* streamer_bulk_data = streamer.get_bulk_data();
+
+	ACL_ASSERT((num_chunks == 0 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier");
+	ACL_ASSERT(num_chunks == 0 || streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
+
+	is_streamed_in = context.is_streamed_in(tier);
+	ACL_ASSERT((num_chunks <= 2 && is_streamed_in) || !is_streamed_in, "Failed to stream in tier (first 2 chunks)");
+
+	stream_in_result = context.stream_in(tier);
+
+	ACL_ASSERT((num_chunks <= 2 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier");
+	ACL_ASSERT(num_chunks == 0 || streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
+	ACL_ASSERT(streamer.get_bulk_data() == streamer_bulk_data, "Bulk data should not have been reallocated");
+
+	is_streamed_in = context.is_streamed_in(tier);
+	ACL_ASSERT(is_streamed_in, "Failed to stream in tier");
+}
+
+static void stream_out_database_tier(database_context<debug_database_settings>& context, debug_database_streamer& streamer, const compressed_database& db, database_tier8 tier)
+{
+	const uint8_t* streamer_bulk_data = streamer.get_bulk_data();
+	const uint32_t num_chunks = db.get_num_chunks(tier);
+
+	const bool is_streamed_in = context.is_streamed_in(tier);
+	ACL_ASSERT(is_streamed_in, "Tier should be streamed in");
+	ACL_ASSERT(num_chunks == 0 || streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
+
+	acl::database_stream_request_result stream_out_result = context.stream_out(tier, 2);
+
+	ACL_ASSERT((num_chunks == 0 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
+	if (num_chunks <= 2)
+	{
+		ACL_ASSERT(streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
+	}
+	else
+	{
+		ACL_ASSERT(streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
+		ACL_ASSERT(streamer.get_bulk_data() == streamer_bulk_data, "Bulk data should not have been reallocated");
+	}
+
+	bool is_streamed_out = !context.is_streamed_in(tier);
+	ACL_ASSERT(num_chunks == 0 || is_streamed_out, "Failed to stream out tier 1 (first 2 chunks)");
+
+	stream_out_result = context.stream_out(tier);
+
+	ACL_ASSERT((num_chunks <= 2 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
+	ACL_ASSERT(streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
+
+	is_streamed_out = !context.is_streamed_in(tier);
+	ACL_ASSERT(num_chunks == 0 || is_streamed_out, "Failed to stream out tier 1");
+}
+
+static void validate_db_streaming(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric,
+	const track_error& high_quality_tier_error_ref,
+	const compressed_tracks& tracks0, const compressed_tracks& tracks1,
+	const compressed_database& db, const uint8_t* db_bulk_data_medium, const uint8_t* db_bulk_data_low)
+{
+	decompression_context<debug_transform_decompression_settings_with_db> context0;
+	decompression_context<debug_transform_decompression_settings_with_db> context1;
+	database_context<acl::debug_database_settings> db_context;
+	debug_database_streamer db_medium_streamer(allocator, db_bulk_data_medium, db.get_bulk_data_size(database_tier8::medium_importance));
+	debug_database_streamer db_low_streamer(allocator, db_bulk_data_low, db.get_bulk_data_size(database_tier8::low_importance));
+	ACL_ASSERT(db_medium_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
+	ACL_ASSERT(db_low_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
+
+	bool initialized = db_context.initialize(allocator, db, db_medium_streamer, db_low_streamer);
+	initialized = initialized && context0.initialize(tracks0, db_context);
+	initialized = initialized && context1.initialize(tracks1, db_context);
+	ACL_ASSERT(initialized, "Failed to initialize decompression context");
+	ACL_ASSERT(!db_context.is_streamed_in(database_tier8::medium_importance) || db.get_num_chunks(database_tier8::medium_importance) == 0, "Tier shouldn't be streamed in yet");
+	ACL_ASSERT(!db_context.is_streamed_in(database_tier8::low_importance) || db.get_num_chunks(database_tier8::low_importance) == 0, "Tier shouldn't be streamed in yet");
+
+	// Nothing is streamed in yet, we have low quality
+	const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+	ACL_ASSERT(low_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Low quality tier split error should be higher or equal to high quality tier inline");
+	const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+	ACL_ASSERT(low_quality_tier_error1.error >= high_quality_tier_error_ref.error, "Low quality tier split error should be higher or equal to high quality tier inline");
+
+	// Stream in our medium importance tier
+	stream_in_database_tier(db_context, db_medium_streamer, db, database_tier8::medium_importance);
+
+	const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+	ACL_ASSERT(medium_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Medium quality tier split error should be higher or equal to high quality tier inline");
+	const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+	ACL_ASSERT(medium_quality_tier_error1.error >= high_quality_tier_error_ref.error, "Medium quality tier split error should be higher or equal to high quality tier inline");
+
+	ACL_ASSERT(low_quality_tier_error0.error >= medium_quality_tier_error0.error, "Low quality tier split error should be higher or equal to medium quality tier split error");
+	ACL_ASSERT(low_quality_tier_error1.error >= medium_quality_tier_error1.error, "Low quality tier split error should be higher or equal to medium quality tier split error");
+
+	// Stream in our low importance tier, restoring the full high quality
+	stream_in_database_tier(db_context, db_low_streamer, db, database_tier8::low_importance);
+
+	{
+		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+		ACL_ASSERT(high_quality_tier_error0.error == high_quality_tier_error_ref.error, "High quality tier split error should be equal to high quality tier inline");
+		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+		ACL_ASSERT(high_quality_tier_error1.error == high_quality_tier_error_ref.error, "High quality tier split error should be equal to high quality tier inline");
+	}
+
+	// Stream out our medium importance tier, we'll have mixed quality
+	stream_out_database_tier(db_context, db_medium_streamer, db, database_tier8::medium_importance);
+
+	const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+	ACL_ASSERT(mixed_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Mixed quality split error should be higher or equal to high quality tier inline");
+	const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+	ACL_ASSERT(mixed_quality_tier_error1.error >= high_quality_tier_error_ref.error, "Mixed quality split error should be higher or equal to high quality tier inline");
+
+	// Not guaranteed to always be the case due to linear interpolation
+	//ACL_ASSERT(low_quality_tier_error0.error >= mixed_quality_tier_error0.error, "Low quality tier split error should be higher or equal to mixed quality split error");
+	//ACL_ASSERT(low_quality_tier_error1.error >= mixed_quality_tier_error1.error, "Low quality tier split error should be higher or equal to mixed quality split error");
+
+	// Stream in our medium importance tier, restoring the full high quality
+	stream_in_database_tier(db_context, db_medium_streamer, db, database_tier8::medium_importance);
+
+	{
+		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+		ACL_ASSERT(high_quality_tier_error0.error == high_quality_tier_error_ref.error, "High quality tier split error should be equal to high quality tier inline");
+		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+		ACL_ASSERT(high_quality_tier_error1.error == high_quality_tier_error_ref.error, "High quality tier split error should be equal to high quality tier inline");
+	}
+
+	// Stream out our low importance tier, restoring medium quality
+	stream_out_database_tier(db_context, db_low_streamer, db, database_tier8::low_importance);
+
+	{
+		const track_error medium_quality_tier_error0_ = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+		ACL_ASSERT(medium_quality_tier_error0_.error == medium_quality_tier_error0.error, "Medium quality should be restored");
+		const track_error medium_quality_tier_error1_ = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+		ACL_ASSERT(medium_quality_tier_error1_.error == medium_quality_tier_error1.error, "Medium quality should be restored");
+	}
+
+	// Stream out our medium importance tier, restoring low quality
+	stream_out_database_tier(db_context, db_medium_streamer, db, database_tier8::medium_importance);
+
+	{
+		const track_error low_quality_tier_error0_ = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+		ACL_ASSERT(low_quality_tier_error0_.error == low_quality_tier_error0.error, "Low quality should be restored");
+		const track_error low_quality_tier_error1_ = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
+		ACL_ASSERT(low_quality_tier_error1_.error == low_quality_tier_error1.error, "Low quality should be restored");
+	}
+}
+
 static void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks,
 	const compression_database_settings& settings, const itransform_error_metric& error_metric,
 	const compressed_tracks& compressed_tracks0, const compressed_tracks& compressed_tracks1)
@@ -939,14 +1090,14 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	}
 
 	// Reference error with the bulk data inline and everything loaded
-	track_error error_tier0_ref;
+	track_error high_quality_tier_error_ref;
 	{
 		acl::decompression_context<debug_transform_decompression_settings_with_db> context;
 
 		const bool initialized = context.initialize(compressed_tracks0);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
-		error_tier0_ref = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
+		high_quality_tier_error_ref = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 	}
 
 	// Make sure the databases agree with our reference
@@ -959,7 +1110,7 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0.error == error_tier0_ref.error, "Database 0 should have the same error");
+		ACL_ASSERT(error_tier0.error == high_quality_tier_error_ref.error, "Database 0 should have the same error");
 	}
 
 	{
@@ -971,7 +1122,7 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier1.error == error_tier0_ref.error, "Database 1 should have the same error");
+		ACL_ASSERT(error_tier1.error == high_quality_tier_error_ref.error, "Database 1 should have the same error");
 	}
 
 	{
@@ -985,16 +1136,17 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0.error == error_tier0_ref.error, "Database 01 should have the same error");
+		ACL_ASSERT(error_tier0.error == high_quality_tier_error_ref.error, "Database 01 should have the same error");
 
 		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier1.error == error_tier0_ref.error, "Database 01 should have the same error");
+		ACL_ASSERT(error_tier1.error == high_quality_tier_error_ref.error, "Database 01 should have the same error");
 	}
 
 	// Split the database bulk data out
 	compressed_database* split_db = nullptr;
-	uint8_t* split_db_bulk_data = nullptr;
-	const error_result split_result = split_compressed_database_bulk_data(allocator, *db01, split_db, split_db_bulk_data);
+	uint8_t* split_db_bulk_data_medium = nullptr;
+	uint8_t* split_db_bulk_data_low = nullptr;
+	const error_result split_result = split_compressed_database_bulk_data(allocator, *db01, split_db, split_db_bulk_data_medium, split_db_bulk_data_low);
 	ACL_ASSERT(split_result.empty(), "Failed to split database");
 	ACL_ASSERT(split_db->is_valid(true).empty(), "Failed to split database");
 
@@ -1002,71 +1154,7 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	ACL_ASSERT(split_db->contains(*db_tracks01[1]), "Database should contain our clip");
 
 	// Measure the tier error through simulated streaming
-	{
-		acl::decompression_context<debug_transform_decompression_settings_with_db> context0;
-		acl::decompression_context<debug_transform_decompression_settings_with_db> context1;
-		acl::database_context<acl::debug_database_settings> db_context;
-		acl::debug_database_streamer db_streamer(allocator, split_db_bulk_data, split_db->get_bulk_data_size());
-		ACL_ASSERT(db_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
-		const uint8_t* streamer_bulk_data = nullptr;
-
-		bool initialized = db_context.initialize(allocator, *split_db, db_streamer);
-		initialized = initialized && context0.initialize(*db_tracks01[0], db_context);
-		initialized = initialized && context1.initialize(*db_tracks01[1], db_context);
-		ACL_ASSERT(initialized, "Failed to initialize decompression context");
-		ACL_ASSERT(!db_context.is_streamed_in() || split_db->get_num_chunks() == 0, "Tier 1 shouldn't be streamed in yet");
-
-		const track_error error_tier00 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier00.error >= error_tier0_ref.error, "Tier 0 error should be higher or equal to tier 1");
-		const track_error error_tier01 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier01.error >= error_tier0_ref.error, "Tier 0 error should be higher or equal to tier 1");
-
-		// Stream in our tier 1 data
-		{
-			acl::database_stream_request_result stream_in_result = db_context.stream_in(2);
-			ACL_ASSERT((split_db->get_num_chunks() == 0 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
-			ACL_ASSERT(split_db->get_num_chunks() == 0 || db_streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
-			streamer_bulk_data = db_streamer.get_bulk_data();
-			bool is_streamed_in = db_context.is_streamed_in();
-			ACL_ASSERT((split_db->get_num_chunks() <= 2 && is_streamed_in) || !is_streamed_in, "Failed to stream in tier 1 (first 2 chunks)");
-			stream_in_result = db_context.stream_in();
-			ACL_ASSERT((split_db->get_num_chunks() <= 2 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
-			ACL_ASSERT(split_db->get_num_chunks() == 0 || db_streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
-			ACL_ASSERT(db_streamer.get_bulk_data() == streamer_bulk_data, "Bulk data should not have been reallocated");
-			is_streamed_in = db_context.is_streamed_in();
-			ACL_ASSERT(is_streamed_in, "Failed to stream in tier 1");
-		}
-
-		const track_error error_tier10 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier10.error == error_tier0_ref.error, "Tier 1 split error should be equal to tier 1 inline");
-		const track_error error_tier11 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier11.error == error_tier0_ref.error, "Tier 1 split error should be equal to tier 1 inline");
-
-		// Stream out our tier 1 data
-		{
-			acl::database_stream_request_result stream_out_result = db_context.stream_out(2);
-			ACL_ASSERT((split_db->get_num_chunks() == 0 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
-			if (split_db->get_num_chunks() <= 2)
-				ACL_ASSERT(db_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
-			else
-			{
-				ACL_ASSERT(db_streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
-				ACL_ASSERT(db_streamer.get_bulk_data() == streamer_bulk_data, "Bulk data should not have been reallocated");
-			}
-			bool is_streamed_out = !db_context.is_streamed_in();
-			ACL_ASSERT(split_db->get_num_chunks() == 0 || is_streamed_out, "Failed to stream out tier 1 (first 2 chunks)");
-			stream_out_result = db_context.stream_out();
-			ACL_ASSERT((split_db->get_num_chunks() <= 2 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
-			ACL_ASSERT(db_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
-			is_streamed_out = !db_context.is_streamed_in();
-			ACL_ASSERT(split_db->get_num_chunks() == 0 || is_streamed_out, "Failed to stream out tier 1");
-		}
-
-		const track_error error_tier0_tmp0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0_tmp0.error == error_tier00.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
-		const track_error error_tier0_tmp1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0_tmp1.error == error_tier01.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
-	}
+	validate_db_streaming(allocator, raw_tracks, additive_base_tracks, error_metric, high_quality_tier_error_ref, *db_tracks01[0], *db_tracks01[1], *split_db, split_db_bulk_data_medium, split_db_bulk_data_low);
 
 	// Duplicate our clips so we can modify them
 	compressed_tracks* compressed_tracks_copy0 = safe_ptr_cast<compressed_tracks>(allocate_type_array_aligned<uint8_t>(allocator, db_tracks0[0]->get_size(), alignof(compressed_tracks)));
@@ -1100,15 +1188,16 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier1_ref_merged0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0_ref.error == error_tier1_ref_merged0.error, "Reference error should be equal to merged error");
+		ACL_ASSERT(high_quality_tier_error_ref.error == error_tier1_ref_merged0.error, "Reference error should be equal to merged error");
 		const track_error error_tier1_ref_merged1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0_ref.error == error_tier1_ref_merged1.error, "Reference error should be equal to merged error");
+		ACL_ASSERT(high_quality_tier_error_ref.error == error_tier1_ref_merged1.error, "Reference error should be equal to merged error");
 	}
 
 	// Split the database bulk data out
 	compressed_database* split_merged_db = nullptr;
-	uint8_t* split_merged_db_bulk_data = nullptr;
-	const error_result split_merge_result = split_compressed_database_bulk_data(allocator, *merged_db, split_merged_db, split_merged_db_bulk_data);
+	uint8_t* split_merged_db_bulk_data_medium = nullptr;
+	uint8_t* split_merged_db_bulk_data_low = nullptr;
+	const error_result split_merge_result = split_compressed_database_bulk_data(allocator, *merged_db, split_merged_db, split_merged_db_bulk_data_medium, split_merged_db_bulk_data_low);
 	ACL_ASSERT(split_merge_result.empty(), "Failed to split merged database");
 	ACL_ASSERT(split_merged_db->is_valid(true).empty(), "Failed to split merged database");
 
@@ -1116,78 +1205,16 @@ static void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	ACL_ASSERT(split_merged_db->contains(*compressed_tracks_copy1), "New database should contain our clip");
 
 	// Measure the tier error through simulated streaming
-	{
-		acl::decompression_context<debug_transform_decompression_settings_with_db> context0;
-		acl::decompression_context<debug_transform_decompression_settings_with_db> context1;
-		acl::database_context<acl::debug_database_settings> db_context;
-		acl::debug_database_streamer db_streamer(allocator, split_merged_db_bulk_data, split_merged_db->get_bulk_data_size());
-		ACL_ASSERT(db_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
-		const uint8_t* streamer_bulk_data = nullptr;
-
-		bool initialized = db_context.initialize(allocator, *split_merged_db, db_streamer);
-		initialized = initialized && context0.initialize(*compressed_tracks_copy0, db_context);
-		initialized = initialized && context1.initialize(*compressed_tracks_copy1, db_context);
-		ACL_ASSERT(initialized, "Failed to initialize decompression context");
-		ACL_ASSERT(split_merged_db->get_num_chunks() == 0 || !db_context.is_streamed_in(), "Tier 1 shouldn't be streamed in yet");
-
-		const track_error error_tier00 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier00.error >= error_tier0_ref.error, "Tier 0 error should be higher or equal to tier 1");
-		const track_error error_tier01 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier01.error >= error_tier0_ref.error, "Tier 0 error should be higher or equal to tier 1");
-
-		// Stream in our tier 1 data
-		{
-			acl::database_stream_request_result stream_in_result = db_context.stream_in(2);
-			ACL_ASSERT((split_merged_db->get_num_chunks() == 0 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
-			ACL_ASSERT(split_merged_db->get_num_chunks() == 0 || db_streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
-			streamer_bulk_data = db_streamer.get_bulk_data();
-			bool is_streamed_in = db_context.is_streamed_in();
-			ACL_ASSERT((split_merged_db->get_num_chunks() <= 2 && is_streamed_in) || !is_streamed_in, "Failed to stream in tier 1 (first 2 chunks)");
-			stream_in_result = db_context.stream_in();
-			ACL_ASSERT((split_merged_db->get_num_chunks() <= 2 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier 1");
-			ACL_ASSERT(split_merged_db->get_num_chunks() == 0 || db_streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
-			ACL_ASSERT(db_streamer.get_bulk_data() == streamer_bulk_data, "Bulk data should not have been reallocated");
-			is_streamed_in = db_context.is_streamed_in();
-			ACL_ASSERT(is_streamed_in, "Failed to stream in tier 1");
-		}
-
-		const track_error error_tier10 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier10.error == error_tier0_ref.error, "Tier 1 split error should be equal to tier 1 inline");
-		const track_error error_tier11 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier11.error == error_tier0_ref.error, "Tier 1 split error should be equal to tier 1 inline");
-
-		// Stream out our tier 1 data
-		{
-			acl::database_stream_request_result stream_out_result = db_context.stream_out(2);
-			ACL_ASSERT((split_merged_db->get_num_chunks() == 0 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
-			if (split_merged_db->get_num_chunks() <= 2)
-				ACL_ASSERT(db_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
-			else
-			{
-				ACL_ASSERT(db_streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
-				ACL_ASSERT(db_streamer.get_bulk_data() == streamer_bulk_data, "Bulk data should not have been reallocated");
-			}
-			bool is_streamed_out = !db_context.is_streamed_in();
-			ACL_ASSERT(split_merged_db->get_num_chunks() == 0 || is_streamed_out, "Failed to stream out tier 1 (first 2 chunks)");
-			stream_out_result = db_context.stream_out();
-			ACL_ASSERT((split_merged_db->get_num_chunks() <= 2 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
-			ACL_ASSERT(db_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
-			is_streamed_out = !db_context.is_streamed_in();
-			ACL_ASSERT(split_merged_db->get_num_chunks() == 0 || is_streamed_out, "Failed to stream out tier 1");
-		}
-
-		const track_error error_tier0_tmp0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0_tmp0.error == error_tier00.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
-		const track_error error_tier0_tmp1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0_tmp1.error == error_tier01.error, "Tier 0 error should be equal to tier 0 after we stream in/out");
-	}
+	validate_db_streaming(allocator, raw_tracks, additive_base_tracks, error_metric, high_quality_tier_error_ref, *compressed_tracks_copy0, *compressed_tracks_copy1, *split_merged_db, split_merged_db_bulk_data_medium, split_merged_db_bulk_data_low);
 
 	// Free our memory
-	allocator.deallocate(split_db_bulk_data, split_db->get_bulk_data_size());
+	allocator.deallocate(split_db_bulk_data_medium, split_db->get_bulk_data_size(database_tier8::medium_importance));
+	allocator.deallocate(split_db_bulk_data_low, split_db->get_bulk_data_size(database_tier8::low_importance));
 	allocator.deallocate(split_db, split_db->get_size());
 	allocator.deallocate(compressed_tracks_copy0, compressed_tracks_copy0->get_size());
 	allocator.deallocate(compressed_tracks_copy1, compressed_tracks_copy1->get_size());
-	allocator.deallocate(split_merged_db_bulk_data, split_merged_db->get_bulk_data_size());
+	allocator.deallocate(split_merged_db_bulk_data_medium, split_merged_db->get_bulk_data_size(database_tier8::medium_importance));
+	allocator.deallocate(split_merged_db_bulk_data_low, split_merged_db->get_bulk_data_size(database_tier8::low_importance));
 	allocator.deallocate(split_merged_db, split_merged_db->get_size());
 	allocator.deallocate(merged_db, merged_db->get_size());
 	allocator.deallocate(db_tracks0[0], db_tracks0[0]->get_size());
@@ -1602,6 +1629,14 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	uint32_t database_max_chunk_size;
 	if (parser.try_read("database_max_chunk_size", database_max_chunk_size, default_database_settings.max_chunk_size))
 		out_database_settings.max_chunk_size = database_max_chunk_size;
+
+	float medium_importance_tier;
+	if (parser.try_read("medium_importance_tier", medium_importance_tier, default_database_settings.medium_importance_tier_proportion))
+		out_database_settings.medium_importance_tier_proportion = medium_importance_tier;
+
+	float low_importance_tier;
+	if (parser.try_read("low_importance_tier", low_importance_tier, default_database_settings.low_importance_tier_proportion))
+		out_database_settings.low_importance_tier_proportion = low_importance_tier;
 
 	if (!parser.is_valid() || !parser.remainder_is_comments_and_whitespace())
 	{

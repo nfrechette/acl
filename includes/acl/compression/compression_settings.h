@@ -78,16 +78,19 @@ namespace acl
 		// their importance to the overall error contribution. If a sample doesn't
 		// go into the medium or low importance tiers, it will end up in the high
 		// importance tier stored within each compressed track instance.
-		// Proportion values must be between 0.0 and 1.0 and their sum cannot exceed 1.0
-		// and it must be larger than 0.0 (at least some samples must be moved to the database).
+		// Proportion values must be between 0.0 and 1.0 and their sum as well.
 		// If the sum is less than 1.0, remaining frames are considered to have high
 		// importance. A low importance proportion of 30% means that the least important
 		// 30% of frames will end up in that corresponding database tier.
 		// Note that only movable frames can end up in the database as some frames must remain
 		// within the compressed track instance. A frame is movable if it isn't the first or last
 		// frame of its segment.
-		// Defaults to '0.5' (50% of frames are moved to the database)
-		//float medium_importance_tier_proportion = 0.0F;	// TODO: Add support for a second tier
+		// Defaults to '0.0' (the medium importance tier is empty)
+		float medium_importance_tier_proportion = 0.0F;
+
+		//////////////////////////////////////////////////////////////////////////
+		// See above for details.
+		// Defaults to '0.5' (the least important 50% of frames are moved to the database)
 		float low_importance_tier_proportion = 0.5F;
 
 		//////////////////////////////////////////////////////////////////////////

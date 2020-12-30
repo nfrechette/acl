@@ -27,6 +27,7 @@
 #include "acl/core/buffer_tag.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/compressed_tracks.h"
+#include "acl/core/database_tiers.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -59,8 +60,8 @@ namespace acl
 		uint32_t get_total_size() const;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the size in bytes of the bulk data.
-		uint32_t get_bulk_data_size() const;
+		// Returns the size in bytes of the bulk data for the specified tier (medium or low).
+		uint32_t get_bulk_data_size(database_tier8 tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the hash for the compressed database.
@@ -68,9 +69,9 @@ namespace acl
 		uint32_t get_hash() const { return m_buffer_header.hash; }
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the hash for the bulk data.
+		// Returns the hash of the bulk data for the specified tier (medium or low).
 		// This is only used for sanity checking in case of memory corruption.
-		uint32_t get_bulk_data_hash() const;
+		uint32_t get_bulk_data_hash(database_tier8 tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the binary tag for the compressed database.
@@ -82,8 +83,8 @@ namespace acl
 		compressed_tracks_version16 get_version() const;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the number of chunks contained in this database.
-		uint32_t get_num_chunks() const;
+		// Returns the number of chunks contained in this database for the specified tier (medium or low).
+		uint32_t get_num_chunks(database_tier8 tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of clips contained in this database.
@@ -98,8 +99,8 @@ namespace acl
 		bool is_bulk_data_inline() const;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns a pointer to the bulk data when it is inline, nullptr otherwise.
-		const uint8_t* get_bulk_data() const;
+		// Returns a pointer to the bulk data for the specified tier (medium or low) when it is inline, nullptr otherwise.
+		const uint8_t* get_bulk_data(database_tier8 tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if the compressed database contains the provided compressed tracks instance.

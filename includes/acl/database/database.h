@@ -59,6 +59,10 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// The database context isn't initialized
 		not_initialized,
+
+		//////////////////////////////////////////////////////////////////////////
+		// Invalid database tier specified
+		invalid_database_tier,
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -99,9 +103,10 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Initializes the context instance to a particular compressed database instance.
-		// The streamer instance will be used to issue IO stream in/out requests.
+		// The streamer instances will be used to issue IO stream in/out requests.
+		// If a tier is stripped, the null_database_streamer can be used.
 		// Returns whether initialization was successful or not.
-		bool initialize(iallocator& allocator, const compressed_database& database, idatabase_streamer& streamer);
+		bool initialize(iallocator& allocator, const compressed_database& database, idatabase_streamer& medium_tier_streamer, idatabase_streamer& low_tier_streamer);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to a compressed database instance, false otherwise.
@@ -117,24 +122,24 @@ namespace acl
 		bool contains(const compressed_tracks& tracks) const;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns whether or not we have streamed in any of the database bulk data.
-		bool is_streamed_in() const;
+		// Returns whether or not we have streamed in any of the database bulk data for the specified tier (medium or low).
+		bool is_streamed_in(database_tier8 tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns whether or not a streaming request is in flight.
-		bool is_streaming() const;
+		// Returns whether or not a streaming request is in flight for the specified tier (medium or low).
+		bool is_streaming(database_tier8 tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Issues a stream in request and returns the current status.
+		// Issues a stream in request and returns the current status for the specified tier (medium or low).
 		// By default, every chunk will be streamed in but they can be streamed progressively
 		// by providing a number of chunks.
-		database_stream_request_result stream_in(uint32_t num_chunks_to_stream = ~0U);
+		database_stream_request_result stream_in(database_tier8 tier, uint32_t num_chunks_to_stream = ~0U);
 
 		//////////////////////////////////////////////////////////////////////////
-		// Issues a stream out request and returns the current status.
+		// Issues a stream out request and returns the current status for the specified tier (medium or low).
 		// By default, every chunk will be streamed out but they can be streamed progressively
 		// by providing a number of chunks.
-		database_stream_request_result stream_out(uint32_t num_chunks_to_stream = ~0U);
+		database_stream_request_result stream_out(database_tier8 tier, uint32_t num_chunks_to_stream = ~0U);
 
 	private:
 		database_context(const database_context& other) = delete;

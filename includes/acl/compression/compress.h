@@ -97,14 +97,15 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 	// Takes a compressed database with inline bulk data and duplicates it into
-	// a new database instance where the bulk data lives in a separate buffer.
+	// a new database instance where the bulk data lives in separate buffers.
 	//
 	//    allocator:						The allocator instance to use to allocate the new database and its bulk data.
 	//    database:							The source database to split with inline bulk data.
 	//    out_split_database:				The new database without inline bulk data.
-	//    out_bulk_data:					The new database's bulk data.
+	//    out_bulk_data_medium:				The new database's bulk data for the medium importance tier.
+	//    out_bulk_data_low:				The new database's bulk data for the low importance tier.
 	//////////////////////////////////////////////////////////////////////////
-	error_result split_compressed_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data);
+	error_result split_compressed_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low);
 
 	//////////////////////////////////////////////////////////////////////////
 	// A pair of pointers to a compressed tracks instance and its database.
