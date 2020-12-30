@@ -43,7 +43,8 @@ namespace acl
 	{
 	public:
 		null_database_streamer(const uint8_t* bulk_data, uint32_t bulk_data_size)
-			: m_bulk_data(bulk_data)
+			: idatabase_streamer(&m_request, 1)
+			, m_bulk_data(bulk_data)
 			, m_bulk_data_size(bulk_data_size)
 		{
 			ACL_ASSERT(bulk_data != nullptr, "Bulk data buffer cannot be null");
@@ -55,7 +56,7 @@ namespace acl
 
 		virtual const uint8_t* get_bulk_data() const override { return m_bulk_data; }
 
-		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, const std::function<void(bool success)>& continuation) override
+		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, streaming_request_id request_id) override
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
@@ -64,10 +65,10 @@ namespace acl
 			(void)size;
 			(void)can_allocate_bulk_data;
 
-			continuation(true);
+			complete(request_id);
 		}
 
-		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, const std::function<void()>& continuation) override
+		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, streaming_request_id request_id) override
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
@@ -76,7 +77,7 @@ namespace acl
 			(void)size;
 			(void)can_deallocate_bulk_data;
 
-			continuation();
+			complete(request_id);
 		}
 
 	private:
@@ -85,6 +86,8 @@ namespace acl
 
 		const uint8_t* m_bulk_data;
 		uint32_t m_bulk_data_size;
+
+		streaming_request m_request;	// Everything is synchronous, we only need one request
 	};
 }
 

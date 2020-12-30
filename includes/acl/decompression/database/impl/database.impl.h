@@ -233,6 +233,9 @@ namespace acl
 		m_context.streamers[0] = &medium_tier_streamer;
 		m_context.streamers[1] = &low_tier_streamer;
 
+		medium_tier_streamer.bind(m_context);
+		low_tier_streamer.bind(m_context);
+
 		const acl_impl::database_header& header = acl_impl::get_database_header(database);
 
 		const uint32_t num_medium_chunks = header.num_chunks[0];
@@ -377,14 +380,14 @@ namespace acl
 	{
 		ACL_ASSERT(is_initialized(), "Database isn't initialized");
 		if (!is_initialized())
-			return database_stream_request_result::not_initialized;
+			return database_stream_request_result::context_not_initialized;
 
 		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
 		if (tier == quality_tier::highest_importance)
 			return database_stream_request_result::invalid_database_tier;
 
 		if (is_streaming(tier))
-			return database_stream_request_result::streaming;	// Can't stream while we are streaming
+			return database_stream_request_result::streaming_in_progress;	// Can't stream while we are streaming
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*m_context.db);
 		const acl_impl::database_chunk_description* chunk_descriptions = tier == quality_tier::medium_importance ? header.get_chunk_descriptions_medium() : header.get_chunk_descriptions_low();
@@ -427,6 +430,12 @@ namespace acl
 		if (num_streaming_chunks == 0)
 			return database_stream_request_result::done;	// Nothing more to stream
 
+		idatabase_streamer* streamer = m_context.streamers[tier_index];
+
+		const streaming_request_id request_id = streamer->build_request(streaming_action::stream_in, tier, first_chunk_index, num_streaming_chunks);
+		if (!request_id.is_valid())
+			return database_stream_request_result::no_free_streaming_requests;
+
 		// Find the stream start offset from our first chunk's offset
 		const acl_impl::database_chunk_description& first_chunk_description = chunk_descriptions[first_chunk_index];
 		const uint32_t stream_start_offset = first_chunk_description.offset;
@@ -442,65 +451,8 @@ namespace acl
 		uint32_t* streaming_chunks = m_context.streaming_chunks[tier_index];
 		bitset_set_range(streaming_chunks, desc, first_chunk_index, num_streaming_chunks, true);
 
-		// Keep the continuation as small as possible
-		acl_impl::database_context_v0& context = m_context;
-		auto continuation = [&context, tier, first_chunk_index, num_streaming_chunks](bool success)
-		{
-			const uint32_t num_chunks_ = context.db->get_num_chunks(tier);
-			const bitset_description desc_ = bitset_description::make_from_num_bits(num_chunks_);
-			const uint32_t tier_index_ = uint32_t(tier) - 1;
-
-			if (success)
-			{
-				const uint8_t*& bulk_data_ref = context.bulk_data[tier_index_];
-				const uint8_t* bulk_data_ = bulk_data_ref;
-				if (bulk_data_ == nullptr)
-				{
-					// This is the first stream in request, our bulk data should be allocated now, query and cache it
-					idatabase_streamer* streamer_ = context.streamers[tier_index_];
-					bulk_data_ = streamer_->get_bulk_data();
-					ACL_ASSERT(bulk_data_ != nullptr, "Bulk data should be allocated when we stream in");
-
-					bulk_data_ref = bulk_data_;
-				}
-
-				// Register our new chunks
-				const acl_impl::database_header& header_ = acl_impl::get_database_header(*context.db);
-				const acl_impl::database_chunk_description* chunk_descriptions_ = tier == quality_tier::medium_importance ? header_.get_chunk_descriptions_medium() : header_.get_chunk_descriptions_low();
-				const uint32_t end_chunk_index = first_chunk_index + num_streaming_chunks;
-				for (uint32_t chunk_index = first_chunk_index; chunk_index < end_chunk_index; ++chunk_index)
-				{
-					const acl_impl::database_chunk_description& chunk_description = chunk_descriptions_[chunk_index];
-					const acl_impl::database_chunk_header* chunk_header = chunk_description.get_chunk_header(bulk_data_);
-					ACL_ASSERT(chunk_header->index == chunk_index, "Unexpected chunk index");
-
-					const acl_impl::database_chunk_segment_header* chunk_segment_headers = chunk_header->get_segment_headers();
-					const uint32_t num_segments = chunk_header->num_segments;
-					for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
-					{
-						const acl_impl::database_chunk_segment_header& chunk_segment_header = chunk_segment_headers[segment_index];
-
-						acl_impl::database_runtime_clip_header* clip_header = chunk_segment_header.get_clip_header(context.clip_segment_headers);
-						ACL_ASSERT(clip_header->clip_hash == chunk_segment_header.clip_hash, "Unexpected clip hash"); (void)clip_header;
-
-						acl_impl::database_runtime_segment_header* segment_header = chunk_segment_header.get_segment_header(context.clip_segment_headers);
-						ACL_ASSERT(segment_header->tier_metadata[tier_index_].load(std::memory_order::memory_order_relaxed) == 0, "Tier metadata should not be initialized");
-						segment_header->tier_metadata[tier_index_].store((uint64_t(chunk_segment_header.samples_offset) << 32) | chunk_segment_header.sample_indices, std::memory_order::memory_order_relaxed);
-					}
-				}
-
-				// Mark chunks as done streaming
-				uint32_t* loaded_chunks_ = context.loaded_chunks[tier_index_];
-				bitset_set_range(loaded_chunks_, desc_, first_chunk_index, num_streaming_chunks, true);
-			}
-
-			// Mark chunks as no longer streaming
-			uint32_t* streaming_chunks_ = context.streaming_chunks[tier_index_];
-			bitset_set_range(streaming_chunks_, desc_, first_chunk_index, num_streaming_chunks, false);
-		};
-
-		idatabase_streamer* streamer = m_context.streamers[tier_index];
-		streamer->stream_in(stream_start_offset, stream_size, can_allocate_bulk_data, continuation);
+		// Fire the stream in request and let the streamer handle it (sync/async)
+		streamer->stream_in(stream_start_offset, stream_size, can_allocate_bulk_data, request_id);
 
 		return database_stream_request_result::dispatched;
 	}
@@ -510,14 +462,14 @@ namespace acl
 	{
 		ACL_ASSERT(is_initialized(), "Database isn't initialized");
 		if (!is_initialized())
-			return database_stream_request_result::not_initialized;
+			return database_stream_request_result::context_not_initialized;
 
 		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
 		if (tier == quality_tier::highest_importance)
 			return database_stream_request_result::invalid_database_tier;
 
 		if (is_streaming(tier))
-			return database_stream_request_result::streaming;	// Can't stream while we are streaming
+			return database_stream_request_result::streaming_in_progress;	// Can't stream while we are streaming
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*m_context.db);
 		const acl_impl::database_chunk_description* chunk_descriptions = tier == quality_tier::medium_importance ? header.get_chunk_descriptions_medium() : header.get_chunk_descriptions_low();
@@ -559,6 +511,12 @@ namespace acl
 
 		if (num_streaming_chunks == 0)
 			return database_stream_request_result::done;	// Nothing more to stream
+
+		idatabase_streamer* streamer = m_context.streamers[tier_index];
+
+		const streaming_request_id request_id = streamer->build_request(streaming_action::stream_out, tier, first_chunk_index, num_streaming_chunks);
+		if (!request_id.is_valid())
+			return database_stream_request_result::no_free_streaming_requests;
 
 		// Find the stream start offset from our first chunk's offset
 		const acl_impl::database_chunk_description& first_chunk_description = chunk_descriptions[first_chunk_index];
@@ -605,25 +563,8 @@ namespace acl
 			}
 		}
 
-		// Keep the continuation as small as possible
-		acl_impl::database_context_v0& context = m_context;
-		auto continuation = [&context, tier, first_chunk_index, num_streaming_chunks]()
-		{
-			const uint32_t num_chunks_ = context.db->get_num_chunks(tier);
-			const bitset_description desc_ = bitset_description::make_from_num_bits(num_chunks_);
-			const uint32_t tier_index_ = uint32_t(tier) - 1;
-
-			// Mark chunks as done streaming out
-			uint32_t* loaded_chunks_ = context.loaded_chunks[tier_index_];
-			bitset_set_range(loaded_chunks_, desc_, first_chunk_index, num_streaming_chunks, false);
-
-			// Mark chunks as no longer streaming
-			uint32_t* streaming_chunks_ = context.streaming_chunks[tier_index_];
-			bitset_set_range(streaming_chunks_, desc_, first_chunk_index, num_streaming_chunks, false);
-		};
-
-		idatabase_streamer* streamer = m_context.streamers[tier_index];
-		streamer->stream_out(stream_start_offset, stream_size, can_deallocate_bulk_data, continuation);
+		// Fire the stream out request and let the streamer handle it (sync/async)
+		streamer->stream_out(stream_start_offset, stream_size, can_deallocate_bulk_data, request_id);
 
 		return database_stream_request_result::dispatched;
 	}

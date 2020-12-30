@@ -44,7 +44,8 @@ namespace acl
 	{
 	public:
 		debug_database_streamer(iallocator& allocator, const uint8_t* bulk_data, uint32_t bulk_data_size)
-			: m_allocator(allocator)
+			: idatabase_streamer(m_requests, k_max_num_requests)
+			, m_allocator(allocator)
 			, m_src_bulk_data(bulk_data)
 			, m_streamed_bulk_data(nullptr)
 			, m_bulk_data_size(bulk_data_size)
@@ -60,7 +61,7 @@ namespace acl
 
 		virtual const uint8_t* get_bulk_data() const override { return m_streamed_bulk_data; }
 
-		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, const std::function<void(bool success)>& continuation) override
+		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, streaming_request_id request_id) override
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
@@ -76,10 +77,10 @@ namespace acl
 			}
 
 			std::memcpy(m_streamed_bulk_data + offset, m_src_bulk_data + offset, size);
-			continuation(true);
+			complete(request_id);
 		}
 
-		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, const std::function<void()>& continuation) override
+		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, streaming_request_id request_id) override
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
@@ -95,7 +96,7 @@ namespace acl
 				m_streamed_bulk_data = nullptr;
 			}
 
-			continuation();
+			complete(request_id);
 		}
 
 	private:
@@ -106,6 +107,9 @@ namespace acl
 		const uint8_t* m_src_bulk_data;
 		uint8_t* m_streamed_bulk_data;
 		uint32_t m_bulk_data_size;
+
+		static constexpr uint32_t k_max_num_requests = k_num_database_tiers;	// One per database tier
+		streaming_request m_requests[k_max_num_requests];
 	};
 }
 
