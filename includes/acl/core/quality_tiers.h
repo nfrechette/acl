@@ -36,14 +36,18 @@ namespace acl
 	// What quality tier a key frame/sample belongs to
 	enum class quality_tier
 	{
-		// High importance frames remain in the compressed clip and can be used to interpolate even without the database present
-		high_importance		= 0,
+		// Highest importance frames remain in the compressed clip and can be used to interpolate even without the database present
+		highest_importance	= 0,
 
-		// Medium importance frames live in the compressed database and contribute more the quality than those of the low importance tier
+		//high_importance,	// RESERVED
+
+		// Medium importance frames live in the compressed database and contribute more the quality than those of the lower importance tiers
 		medium_importance	= 1,
 
-		// Low importance frames live in the compressed database and contribute the least to the quality
-		low_importance		= 2,
+		//low_importance,	// RESERVED
+
+		// Lowest importance frames live in the compressed database and contribute the least to the quality
+		lowest_importance	= 2,
 	};
 
 	// We only support 3 tiers

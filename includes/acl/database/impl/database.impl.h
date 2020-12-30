@@ -105,7 +105,7 @@ namespace acl
 		m_context.db = &database;
 		m_context.allocator = &allocator;
 		m_context.bulk_data[0] = database.get_bulk_data(quality_tier::medium_importance);
-		m_context.bulk_data[1] = database.get_bulk_data(quality_tier::low_importance);
+		m_context.bulk_data[1] = database.get_bulk_data(quality_tier::lowest_importance);
 		m_context.streamers[0] = m_context.streamers[1] = nullptr;
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(database);
@@ -289,7 +289,7 @@ namespace acl
 			return;	// Nothing to do
 
 		ACL_ASSERT(!is_streaming(quality_tier::medium_importance), "Behavior is undefined if context is reset while streaming is in progress");
-		ACL_ASSERT(!is_streaming(quality_tier::low_importance), "Behavior is undefined if context is reset while streaming is in progress");
+		ACL_ASSERT(!is_streaming(quality_tier::lowest_importance), "Behavior is undefined if context is reset while streaming is in progress");
 
 		const uint32_t runtime_data_size = acl_impl::calculate_runtime_data_size(*m_context.db);
 		deallocate_type_array(*m_context.allocator, m_context.loaded_chunks[0], runtime_data_size);
@@ -339,9 +339,9 @@ namespace acl
 	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::is_streamed_in(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
 		ACL_ASSERT(is_initialized(), "Database isn't initialized");
-		if (!is_initialized() || tier == quality_tier::high_importance)
+		if (!is_initialized() || tier == quality_tier::highest_importance)
 			return false;
 
 		const uint32_t num_chunks = m_context.db->get_num_chunks(tier);
@@ -357,9 +357,9 @@ namespace acl
 	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::is_streaming(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
 		ACL_ASSERT(is_initialized(), "Database isn't initialized");
-		if (!is_initialized() || tier == quality_tier::high_importance)
+		if (!is_initialized() || tier == quality_tier::highest_importance)
 			return false;
 
 		const uint32_t num_chunks = m_context.db->get_num_chunks(tier);
@@ -379,8 +379,8 @@ namespace acl
 		if (!is_initialized())
 			return database_stream_request_result::not_initialized;
 
-		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == quality_tier::high_importance)
+		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::highest_importance)
 			return database_stream_request_result::invalid_database_tier;
 
 		if (is_streaming(tier))
@@ -512,8 +512,8 @@ namespace acl
 		if (!is_initialized())
 			return database_stream_request_result::not_initialized;
 
-		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == quality_tier::high_importance)
+		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::highest_importance)
 			return database_stream_request_result::invalid_database_tier;
 
 		if (is_streaming(tier))

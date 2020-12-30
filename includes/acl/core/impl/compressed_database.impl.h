@@ -48,8 +48,8 @@ namespace acl
 
 	inline uint32_t compressed_database::get_bulk_data_size(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == quality_tier::high_importance)
+		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::highest_importance)
 			return 0;
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*this);
@@ -59,8 +59,8 @@ namespace acl
 
 	inline uint32_t compressed_database::get_bulk_data_hash(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == quality_tier::high_importance)
+		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::highest_importance)
 			return 0;
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*this);
@@ -74,8 +74,8 @@ namespace acl
 
 	inline uint32_t compressed_database::get_num_chunks(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == quality_tier::high_importance)
+		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::highest_importance)
 			return 0;
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*this);
@@ -91,8 +91,8 @@ namespace acl
 
 	inline const uint8_t* compressed_database::get_bulk_data(quality_tier tier) const
 	{
-		ACL_ASSERT(tier != quality_tier::high_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
-		if (tier == quality_tier::high_importance)
+		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::highest_importance)
 			return nullptr;
 
 		const acl_impl::database_header& header = acl_impl::get_database_header(*this);
