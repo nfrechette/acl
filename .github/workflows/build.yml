@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-        compiler: [gcc5, gcc6, gcc7, gcc8, gcc9, gcc10, clang4, clang5, clang6, clang7, clang8, clang9, clang10]
+        compiler: [gcc5, gcc6, gcc7, gcc8, gcc9, gcc10, clang4, clang5, clang6, clang7, clang8, clang9, clang10, clang11]
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
