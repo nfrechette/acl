@@ -150,6 +150,8 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	const compressed_database* make_compressed_database(const void* buffer, error_result* out_error_result = nullptr);
 	compressed_database* make_compressed_database(void* buffer, error_result* out_error_result = nullptr);
+
+	constexpr uint32_t k_database_bulk_data_alignment = alignof(acl_impl::database_chunk_header);
 }
 
 #include "acl/core/impl/compressed_database.impl.h"

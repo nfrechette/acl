@@ -1106,23 +1106,23 @@ namespace acl
 			const uint32_t bulk_data_low_size = write_database_bulk_data(context, settings, quality_tier::lowest_importance, db_compressed_tracks_list, nullptr);
 
 			uint32_t database_buffer_size = 0;
-			database_buffer_size += sizeof(raw_buffer_header);							// Header
-			database_buffer_size += sizeof(database_header);							// Header
+			database_buffer_size += sizeof(raw_buffer_header);										// Header
+			database_buffer_size += sizeof(database_header);										// Header
 
-			database_buffer_size = align_to(database_buffer_size, 4);						// Align chunk descriptions
-			database_buffer_size += num_medium_chunks * sizeof(database_chunk_description);	// Chunk descriptions
+			database_buffer_size = align_to(database_buffer_size, 4);								// Align chunk descriptions
+			database_buffer_size += num_medium_chunks * sizeof(database_chunk_description);			// Chunk descriptions
 
-			database_buffer_size = align_to(database_buffer_size, 4);						// Align chunk descriptions
-			database_buffer_size += num_low_chunks * sizeof(database_chunk_description);	// Chunk descriptions
+			database_buffer_size = align_to(database_buffer_size, 4);								// Align chunk descriptions
+			database_buffer_size += num_low_chunks * sizeof(database_chunk_description);			// Chunk descriptions
 
-			database_buffer_size = align_to(database_buffer_size, 4);					// Align clip hashes
-			database_buffer_size += num_tracks * sizeof(database_clip_metadata);		// Clip metadata
+			database_buffer_size = align_to(database_buffer_size, 4);								// Align clip hashes
+			database_buffer_size += num_tracks * sizeof(database_clip_metadata);					// Clip metadata
 
-			database_buffer_size = align_to(database_buffer_size, 8);					// Align bulk data
-			database_buffer_size += bulk_data_medium_size;								// Bulk data
+			database_buffer_size = align_to(database_buffer_size, k_database_bulk_data_alignment);	// Align bulk data
+			database_buffer_size += bulk_data_medium_size;											// Bulk data
 
-			database_buffer_size = align_to(database_buffer_size, 8);					// Align bulk data
-			database_buffer_size += bulk_data_low_size;									// Bulk data
+			database_buffer_size = align_to(database_buffer_size, k_database_bulk_data_alignment);	// Align bulk data
+			database_buffer_size += bulk_data_low_size;												// Bulk data
 
 			uint8_t* database_buffer = allocate_type_array_aligned<uint8_t>(context.allocator, database_buffer_size, alignof(compressed_database));
 			std::memset(database_buffer, 0, database_buffer_size);
@@ -1160,14 +1160,14 @@ namespace acl
 			db_header->clip_metadata_offset = database_buffer - db_header_start;		// Clip metadata
 			database_buffer += num_tracks * sizeof(database_clip_metadata);				// Clip metadata
 
-			database_buffer = align_to(database_buffer, 8);								// Align bulk data
+			database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
 			if (bulk_data_medium_size != 0)
 				db_header->bulk_data_offset[0] = database_buffer - db_header_start;		// Bulk data
 			else
 				db_header->bulk_data_offset[0] = invalid_ptr_offset();
 			database_buffer += bulk_data_medium_size;									// Bulk data
 
-			database_buffer = align_to(database_buffer, 8);								// Align bulk data
+			database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
 			if (bulk_data_low_size != 0)
 				db_header->bulk_data_offset[1] = database_buffer - db_header_start;		// Bulk data
 			else
@@ -1324,12 +1324,12 @@ namespace acl
 		ACL_ASSERT(out_split_database->is_valid(true).empty(), "Failed to split database");
 
 		// Allocate and setup our new bulk data
-		uint8_t* bulk_data_medium_buffer = bulk_data_medium_size != 0 ? allocate_type_array_aligned<uint8_t>(allocator, bulk_data_medium_size, alignof(compressed_database)) : nullptr;
+		uint8_t* bulk_data_medium_buffer = bulk_data_medium_size != 0 ? allocate_type_array_aligned<uint8_t>(allocator, bulk_data_medium_size, k_database_bulk_data_alignment) : nullptr;
 		out_bulk_data_medium = bulk_data_medium_buffer;
 
 		std::memcpy(bulk_data_medium_buffer, database.get_bulk_data(quality_tier::medium_importance), bulk_data_medium_size);
 
-		uint8_t* bulk_data_low_buffer = bulk_data_low_size != 0 ? allocate_type_array_aligned<uint8_t>(allocator, bulk_data_low_size, alignof(compressed_database)) : nullptr;
+		uint8_t* bulk_data_low_buffer = bulk_data_low_size != 0 ? allocate_type_array_aligned<uint8_t>(allocator, bulk_data_low_size, k_database_bulk_data_alignment) : nullptr;
 		out_bulk_data_low = bulk_data_low_buffer;
 
 		std::memcpy(bulk_data_low_buffer, database.get_bulk_data(quality_tier::lowest_importance), bulk_data_low_size);
@@ -1904,11 +1904,11 @@ namespace acl
 		database_buffer_size = align_to(database_buffer_size, 4);									// Align clip hashes
 		database_buffer_size += db_metadata.num_clips * sizeof(database_clip_metadata);				// Clip metadata (only one when we compress)
 
-		database_buffer_size = align_to(database_buffer_size, 8);					// Align bulk data
-		database_buffer_size += bulk_data_medium_size;								// Bulk data
+		database_buffer_size = align_to(database_buffer_size, k_database_bulk_data_alignment);		// Align bulk data
+		database_buffer_size += bulk_data_medium_size;												// Bulk data
 
-		database_buffer_size = align_to(database_buffer_size, 8);					// Align bulk data
-		database_buffer_size += bulk_data_low_size;									// Bulk data
+		database_buffer_size = align_to(database_buffer_size, k_database_bulk_data_alignment);		// Align bulk data
+		database_buffer_size += bulk_data_low_size;													// Bulk data
 
 		uint8_t* database_buffer = allocate_type_array_aligned<uint8_t>(allocator, database_buffer_size, alignof(compressed_database));
 		std::memset(database_buffer, 0, database_buffer_size);
@@ -1945,14 +1945,14 @@ namespace acl
 		db_header->clip_metadata_offset = database_buffer - db_header_start;			// Clip metadata
 		database_buffer += db_metadata.num_clips * sizeof(database_clip_metadata);		// Clip metadata
 
-		database_buffer = align_to(database_buffer, 8);									// Align bulk data
+		database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
 		if (bulk_data_medium_size != 0)
 			db_header->bulk_data_offset[0] = database_buffer - db_header_start;			// Bulk data
 		else
 			db_header->bulk_data_offset[0] = invalid_ptr_offset();
 		database_buffer += bulk_data_medium_size;										// Bulk data
 
-		database_buffer = align_to(database_buffer, 8);									// Align bulk data
+		database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
 		if (bulk_data_low_size != 0)
 			db_header->bulk_data_offset[1] = database_buffer - db_header_start;			// Bulk data
 		else
