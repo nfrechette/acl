@@ -452,7 +452,7 @@ namespace acl
 		bitset_set_range(streaming_chunks, desc, first_chunk_index, num_streaming_chunks, true);
 
 		// Fire the stream in request and let the streamer handle it (sync/async)
-		streamer->stream_in(stream_start_offset, stream_size, can_allocate_bulk_data, request_id);
+		streamer->stream_in(stream_start_offset, stream_size, can_allocate_bulk_data, tier, request_id);
 
 		return database_stream_request_result::dispatched;
 	}
@@ -564,7 +564,7 @@ namespace acl
 		}
 
 		// Fire the stream out request and let the streamer handle it (sync/async)
-		streamer->stream_out(stream_start_offset, stream_size, can_deallocate_bulk_data, request_id);
+		streamer->stream_out(stream_start_offset, stream_size, can_deallocate_bulk_data, tier, request_id);
 
 		return database_stream_request_result::dispatched;
 	}

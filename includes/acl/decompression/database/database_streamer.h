@@ -117,7 +117,7 @@ namespace acl
 		// stream in requests until everything has been streamed out.
 		// Once the streaming request has been fulfilled (sync or async), call complete(..) or cancel(..) with the provided
 		// request ID.
-		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, streaming_request_id request_id) = 0;
+		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, quality_tier tier, streaming_request_id request_id) = 0;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called when we request some data to be streamed out.
@@ -132,7 +132,7 @@ namespace acl
 		// request ID.
 		//
 		// A stream out request CANNOT be canceled!
-		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, streaming_request_id request_id) = 0;
+		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, quality_tier tier, streaming_request_id request_id) = 0;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Signifies that the streamer has completed this streaming request successfully.

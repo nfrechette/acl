@@ -56,7 +56,7 @@ namespace acl
 
 		virtual const uint8_t* get_bulk_data() const override { return m_bulk_data; }
 
-		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, streaming_request_id request_id) override
+		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, quality_tier tier, streaming_request_id request_id) override
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
@@ -64,11 +64,12 @@ namespace acl
 			(void)offset;
 			(void)size;
 			(void)can_allocate_bulk_data;
+			(void)tier;
 
 			complete(request_id);
 		}
 
-		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, streaming_request_id request_id) override
+		virtual void stream_out(uint32_t offset, uint32_t size, bool can_deallocate_bulk_data, quality_tier tier, streaming_request_id request_id) override
 		{
 			ACL_ASSERT(offset < m_bulk_data_size, "Steam offset is outside of the bulk data range");
 			ACL_ASSERT(size <= m_bulk_data_size, "Stream size is larger than the bulk data size");
@@ -76,6 +77,7 @@ namespace acl
 			(void)offset;
 			(void)size;
 			(void)can_deallocate_bulk_data;
+			(void)tier;
 
 			complete(request_id);
 		}
