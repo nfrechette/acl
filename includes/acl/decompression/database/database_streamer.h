@@ -101,11 +101,11 @@ namespace acl
 		virtual bool is_initialized() const = 0;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns a valid pointer to the bulk data used to decompress from.
+		// Returns a valid pointer to the bulk data used to decompress from for the specified quality tier.
 		// Note that the pointer will not be used until after the first successful stream in
 		// request is completed. As such, it is safe to allocate the bulk data when the first
 		// stream in request happens.
-		virtual const uint8_t* get_bulk_data() const = 0;
+		virtual const uint8_t* get_bulk_data(quality_tier tier) const = 0;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Called when we request some data to be streamed in.

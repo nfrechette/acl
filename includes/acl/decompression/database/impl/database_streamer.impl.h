@@ -72,7 +72,7 @@ namespace acl
 					{
 						// This is the first stream in request, our bulk data should be allocated now, query and cache it
 						database_streamer* streamer_ = context.streamers[tier_index_];
-						bulk_data_ = streamer_->get_bulk_data();
+						bulk_data_ = streamer_->get_bulk_data(tier);
 						ACL_ASSERT(bulk_data_ != nullptr, "Bulk data should be allocated when we stream in");
 
 						bulk_data_ref = bulk_data_;

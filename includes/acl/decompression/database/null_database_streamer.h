@@ -38,6 +38,7 @@ namespace acl
 	// Implements a null streamer where we simply use the provided bulk data buffer and
 	// perform no operations on it as everything is already streamed in.
 	// This streamer is the default in-memory streaming implementation.
+	// It cannot be shared between multiple tiers.
 	////////////////////////////////////////////////////////////////////////////////
 	class null_database_streamer final : public database_streamer
 	{
@@ -54,7 +55,7 @@ namespace acl
 
 		virtual bool is_initialized() const override { return m_bulk_data_size == 0 || m_bulk_data != nullptr; }
 
-		virtual const uint8_t* get_bulk_data() const override { return m_bulk_data; }
+		virtual const uint8_t* get_bulk_data(quality_tier tier) const override { (void)tier; return m_bulk_data; }
 
 		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, quality_tier tier, streaming_request_id request_id) override
 		{

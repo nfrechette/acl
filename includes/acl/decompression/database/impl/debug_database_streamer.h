@@ -39,6 +39,7 @@ namespace acl
 	////////////////////////////////////////////////////////////////////////////////
 	// Implements a debug streamer where we duplicate the bulk data in memory and use
 	// memcpy to stream in the data. Streamed out data is explicitly set to 0xCD with memset.
+	// It cannot be shared between tiers.
 	////////////////////////////////////////////////////////////////////////////////
 	class debug_database_streamer final : public database_streamer
 	{
@@ -59,7 +60,7 @@ namespace acl
 
 		virtual bool is_initialized() const override { return m_bulk_data_size == 0 || m_src_bulk_data != nullptr; }
 
-		virtual const uint8_t* get_bulk_data() const override { return m_streamed_bulk_data; }
+		virtual const uint8_t* get_bulk_data(quality_tier tier) const override { (void)tier; return m_streamed_bulk_data; }
 
 		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, quality_tier tier, streaming_request_id request_id) override
 		{

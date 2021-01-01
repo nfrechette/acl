@@ -909,13 +909,13 @@ static void stream_in_database_tier(database_context<debug_database_settings>& c
 
 	bool is_streamed_in = context.is_streamed_in(tier);
 	ACL_ASSERT((num_chunks == 0 && is_streamed_in) || !is_streamed_in, "Tier should not be streamed in");
-	ACL_ASSERT(streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
+	ACL_ASSERT(streamer.get_bulk_data(tier) == nullptr, "Bulk data should not be allocated");
 
 	acl::database_stream_request_result stream_in_result = context.stream_in(tier, 2);
-	const uint8_t* streamer_bulk_data = streamer.get_bulk_data();
+	const uint8_t* streamer_bulk_data = streamer.get_bulk_data(tier);
 
 	ACL_ASSERT((num_chunks == 0 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier");
-	ACL_ASSERT(num_chunks == 0 || streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
+	ACL_ASSERT(num_chunks == 0 || streamer.get_bulk_data(tier) != nullptr, "Bulk data should be allocated");
 
 	is_streamed_in = context.is_streamed_in(tier);
 	ACL_ASSERT((num_chunks <= 2 && is_streamed_in) || !is_streamed_in, "Failed to stream in tier (first 2 chunks)");
@@ -923,8 +923,8 @@ static void stream_in_database_tier(database_context<debug_database_settings>& c
 	stream_in_result = context.stream_in(tier);
 
 	ACL_ASSERT((num_chunks <= 2 && stream_in_result == database_stream_request_result::done) || stream_in_result == acl::database_stream_request_result::dispatched, "Failed to stream in tier");
-	ACL_ASSERT(num_chunks == 0 || streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
-	ACL_ASSERT(streamer.get_bulk_data() == streamer_bulk_data, "Bulk data should not have been reallocated");
+	ACL_ASSERT(num_chunks == 0 || streamer.get_bulk_data(tier) != nullptr, "Bulk data should be allocated");
+	ACL_ASSERT(streamer.get_bulk_data(tier) == streamer_bulk_data, "Bulk data should not have been reallocated");
 
 	is_streamed_in = context.is_streamed_in(tier);
 	ACL_ASSERT(is_streamed_in, "Failed to stream in tier");
@@ -932,24 +932,24 @@ static void stream_in_database_tier(database_context<debug_database_settings>& c
 
 static void stream_out_database_tier(database_context<debug_database_settings>& context, debug_database_streamer& streamer, const compressed_database& db, quality_tier tier)
 {
-	const uint8_t* streamer_bulk_data = streamer.get_bulk_data();
+	const uint8_t* streamer_bulk_data = streamer.get_bulk_data(tier);
 	const uint32_t num_chunks = db.get_num_chunks(tier);
 
 	const bool is_streamed_in = context.is_streamed_in(tier);
 	ACL_ASSERT(is_streamed_in, "Tier should be streamed in");
-	ACL_ASSERT(num_chunks == 0 || streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
+	ACL_ASSERT(num_chunks == 0 || streamer.get_bulk_data(tier) != nullptr, "Bulk data should be allocated");
 
 	acl::database_stream_request_result stream_out_result = context.stream_out(tier, 2);
 
 	ACL_ASSERT((num_chunks == 0 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
 	if (num_chunks <= 2)
 	{
-		ACL_ASSERT(streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
+		ACL_ASSERT(streamer.get_bulk_data(tier) == nullptr, "Bulk data should not be allocated");
 	}
 	else
 	{
-		ACL_ASSERT(streamer.get_bulk_data() != nullptr, "Bulk data should be allocated");
-		ACL_ASSERT(streamer.get_bulk_data() == streamer_bulk_data, "Bulk data should not have been reallocated");
+		ACL_ASSERT(streamer.get_bulk_data(tier) != nullptr, "Bulk data should be allocated");
+		ACL_ASSERT(streamer.get_bulk_data(tier) == streamer_bulk_data, "Bulk data should not have been reallocated");
 	}
 
 	bool is_streamed_out = !context.is_streamed_in(tier);
@@ -958,7 +958,7 @@ static void stream_out_database_tier(database_context<debug_database_settings>& 
 	stream_out_result = context.stream_out(tier);
 
 	ACL_ASSERT((num_chunks <= 2 && stream_out_result == database_stream_request_result::done) || stream_out_result == acl::database_stream_request_result::dispatched, "Failed to stream out tier 1");
-	ACL_ASSERT(streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
+	ACL_ASSERT(streamer.get_bulk_data(tier) == nullptr, "Bulk data should not be allocated");
 
 	is_streamed_out = !context.is_streamed_in(tier);
 	ACL_ASSERT(num_chunks == 0 || is_streamed_out, "Failed to stream out tier 1");
@@ -974,8 +974,8 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	database_context<acl::debug_database_settings> db_context;
 	debug_database_streamer db_medium_streamer(allocator, db_bulk_data_medium, db.get_bulk_data_size(quality_tier::medium_importance));
 	debug_database_streamer db_low_streamer(allocator, db_bulk_data_low, db.get_bulk_data_size(quality_tier::lowest_importance));
-	ACL_ASSERT(db_medium_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
-	ACL_ASSERT(db_low_streamer.get_bulk_data() == nullptr, "Bulk data should not be allocated");
+	ACL_ASSERT(db_medium_streamer.get_bulk_data(acl::quality_tier::medium_importance) == nullptr, "Bulk data should not be allocated");
+	ACL_ASSERT(db_low_streamer.get_bulk_data(acl::quality_tier::lowest_importance) == nullptr, "Bulk data should not be allocated");
 
 	bool initialized = db_context.initialize(allocator, db, db_medium_streamer, db_low_streamer);
 	initialized = initialized && context0.initialize(tracks0, db_context);
