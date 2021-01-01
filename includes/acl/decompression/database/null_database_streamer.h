@@ -55,7 +55,12 @@ namespace acl
 
 		virtual bool is_initialized() const override { return m_bulk_data_size == 0 || m_bulk_data != nullptr; }
 
-		virtual const uint8_t* get_bulk_data(quality_tier tier) const override { (void)tier; return m_bulk_data; }
+		virtual const uint8_t* get_bulk_data(quality_tier tier) const override
+		{
+			ACL_ASSERT(tier != quality_tier::highest_importance, "Cannot stream the highest importance tier");
+			(void)tier;
+			return m_bulk_data;
+		}
 
 		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, quality_tier tier, streaming_request_id request_id) override
 		{
