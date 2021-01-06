@@ -108,6 +108,18 @@ namespace acl
 	error_result split_compressed_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low);
 
 	//////////////////////////////////////////////////////////////////////////
+	// Takes a compressed database and strips the specified quality tier from it.
+	// The database is duplicated including its remaining bulk data (if inline).
+	// Only the medium/lowest tiers can be stripped.
+	//
+	//    allocator:						The allocator instance to use to allocate the new database.
+	//    database:							The source database to strip.
+	//    tier:								The quality tier to strip.
+	//    out_stripped_database:			The new database without the specified quality tier.
+	//////////////////////////////////////////////////////////////////////////
+	error_result strip_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database);
+
+	//////////////////////////////////////////////////////////////////////////
 	// A pair of pointers to a compressed tracks instance and its database.
 	//////////////////////////////////////////////////////////////////////////
 	struct database_merge_mapping

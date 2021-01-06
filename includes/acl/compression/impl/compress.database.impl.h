@@ -1345,6 +1345,153 @@ namespace acl
 		return error_result();
 	}
 
+	inline error_result strip_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database)
+	{
+		using namespace acl_impl;
+
+		const error_result result = database.is_valid(true);
+		if (result.any())
+			return result;
+
+		if (tier == quality_tier::highest_importance)
+			return error_result("The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+
+		if (database.get_bulk_data_size(tier) == 0)
+			return error_result("Cannot strip an empty quality tier");
+
+		const uint32_t tier_index = uint32_t(tier) - 1;
+		const bool is_bulk_data_inline = database.is_bulk_data_inline();
+		const database_header& ref_header = get_database_header(database);
+		const uint32_t num_medium_chunks = tier != quality_tier::medium_importance ? database.get_num_chunks(quality_tier::medium_importance) : 0;
+		const uint32_t num_low_chunks = tier != quality_tier::lowest_importance ? database.get_num_chunks(quality_tier::lowest_importance) : 0;
+		const uint32_t num_tracks = ref_header.num_clips;
+		const uint32_t bulk_data_medium_size = tier != quality_tier::medium_importance ? database.get_bulk_data_size(quality_tier::medium_importance) : 0;
+		const uint32_t bulk_data_low_size = tier != quality_tier::lowest_importance ? database.get_bulk_data_size(quality_tier::lowest_importance) : 0;
+
+		uint32_t database_buffer_size = 0;
+		database_buffer_size += sizeof(raw_buffer_header);										// Header
+		database_buffer_size += sizeof(database_header);										// Header
+
+		database_buffer_size = align_to(database_buffer_size, 4);								// Align chunk descriptions
+		database_buffer_size += num_medium_chunks * sizeof(database_chunk_description);			// Chunk descriptions
+
+		database_buffer_size = align_to(database_buffer_size, 4);								// Align chunk descriptions
+		database_buffer_size += num_low_chunks * sizeof(database_chunk_description);			// Chunk descriptions
+
+		database_buffer_size = align_to(database_buffer_size, 4);								// Align clip hashes
+		database_buffer_size += num_tracks * sizeof(database_clip_metadata);					// Clip metadata
+
+		database_buffer_size = align_to(database_buffer_size, k_database_bulk_data_alignment);	// Align bulk data
+		database_buffer_size += bulk_data_medium_size;											// Bulk data
+
+		database_buffer_size = align_to(database_buffer_size, k_database_bulk_data_alignment);	// Align bulk data
+		database_buffer_size += bulk_data_low_size;												// Bulk data
+
+		// Allocate and setup our new database
+		uint8_t* database_buffer = allocate_type_array_aligned<uint8_t>(allocator, database_buffer_size, alignof(compressed_database));
+		std::memset(database_buffer, 0, database_buffer_size);
+		out_stripped_database = reinterpret_cast<compressed_database*>(database_buffer);
+
+		raw_buffer_header* database_buffer_header = safe_ptr_cast<raw_buffer_header>(database_buffer);
+		database_buffer += sizeof(raw_buffer_header);
+
+		uint8_t* db_header_start = database_buffer;
+		database_header* db_header = safe_ptr_cast<database_header>(database_buffer);
+		database_buffer += sizeof(database_header);
+
+		// Copy our header
+		std::memcpy(db_header, &get_database_header(database), sizeof(database_header));
+
+		// Zero out our stripped tier
+		db_header->num_chunks[tier_index] = 0;
+		db_header->bulk_data_size[tier_index] = 0;
+		db_header->bulk_data_offset[tier_index] = invalid_ptr_offset();
+		db_header->bulk_data_hash[tier_index] = hash32(nullptr, 0);
+
+		database_buffer = align_to(database_buffer, 4);								// Align chunk descriptions
+		database_buffer += num_medium_chunks * sizeof(database_chunk_description);	// Chunk descriptions
+
+		database_buffer = align_to(database_buffer, 4);								// Align chunk descriptions
+		database_buffer += num_low_chunks * sizeof(database_chunk_description);		// Chunk descriptions
+
+		database_buffer = align_to(database_buffer, 4);								// Align clip hashes
+		db_header->clip_metadata_offset = database_buffer - db_header_start;		// Clip metadata
+		database_buffer += num_tracks * sizeof(database_clip_metadata);				// Clip metadata
+
+		database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
+		if (bulk_data_medium_size != 0)
+			db_header->bulk_data_offset[0] = database_buffer - db_header_start;			// Bulk data
+		else
+			db_header->bulk_data_offset[0] = invalid_ptr_offset();
+		database_buffer += bulk_data_medium_size;										// Bulk data
+
+		database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
+		if (bulk_data_low_size != 0)
+			db_header->bulk_data_offset[1] = database_buffer - db_header_start;			// Bulk data
+		else
+			db_header->bulk_data_offset[1] = invalid_ptr_offset();
+		database_buffer += bulk_data_low_size;											// Bulk data
+
+		// Copy our chunk descriptions
+		if (tier != quality_tier::medium_importance)
+			std::memcpy(db_header->get_chunk_descriptions_medium(), ref_header.get_chunk_descriptions_medium(), num_medium_chunks * sizeof(database_chunk_description));
+		else if (tier != quality_tier::lowest_importance)
+			std::memcpy(db_header->get_chunk_descriptions_low(), ref_header.get_chunk_descriptions_low(), num_low_chunks * sizeof(database_chunk_description));
+
+		// Copy our clip metadata
+		std::memcpy(db_header->get_clip_metadatas(), ref_header.get_clip_metadatas(), num_tracks * sizeof(database_clip_metadata));
+
+		// Copy our bulk data
+		if (is_bulk_data_inline)
+		{
+			// Copy the remaining bulk data
+			if (tier != quality_tier::medium_importance)
+			{
+				database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);
+
+				const uint32_t bulk_data_size = database.get_bulk_data_size(quality_tier::medium_importance);
+				const uint8_t* bulk_data = database.get_bulk_data(quality_tier::medium_importance);
+				std::memcpy(database_buffer, bulk_data, bulk_data_size);
+				database_buffer += bulk_data_size;
+			}
+			else if (tier != quality_tier::lowest_importance)
+			{
+				database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);
+
+				const uint32_t bulk_data_size = database.get_bulk_data_size(quality_tier::lowest_importance);
+				const uint8_t* bulk_data = database.get_bulk_data(quality_tier::lowest_importance);
+				std::memcpy(database_buffer, bulk_data, bulk_data_size);
+				database_buffer += bulk_data_size;
+			}
+		}
+
+		database_buffer_header->size = database_buffer_size;
+		database_buffer_header->hash = hash32(safe_ptr_cast<const uint8_t>(db_header), database_buffer_size - sizeof(raw_buffer_header));	// Hash everything but the raw buffer header
+		ACL_ASSERT(out_stripped_database->is_valid(true).empty(), "Failed to strip database");
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
+		if (is_bulk_data_inline)
+		{
+			if (tier != quality_tier::medium_importance)
+			{
+				const uint32_t bulk_data_size = database.get_bulk_data_size(quality_tier::medium_importance);
+				const uint8_t* bulk_data = database.get_bulk_data(quality_tier::medium_importance);
+				const uint32_t bulk_data_hash = hash32(bulk_data, bulk_data_size);
+				ACL_ASSERT(bulk_data_hash == database.get_bulk_data_hash(quality_tier::medium_importance), "Bulk data hash mismatch");
+			}
+			else if (tier != quality_tier::lowest_importance)
+			{
+				const uint32_t bulk_data_size = database.get_bulk_data_size(quality_tier::lowest_importance);
+				const uint8_t* bulk_data = database.get_bulk_data(quality_tier::lowest_importance);
+				const uint32_t bulk_data_hash = hash32(bulk_data, bulk_data_size);
+				ACL_ASSERT(bulk_data_hash == database.get_bulk_data_hash(quality_tier::lowest_importance), "Bulk data hash mismatch");
+			}
+		}
+#endif
+
+		return error_result();
+	}
+
 	inline error_result database_merge_mapping::is_valid() const
 	{
 		if (tracks == nullptr)
