@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
