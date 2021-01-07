@@ -91,6 +91,10 @@ namespace acl
 		uint32_t get_num_chunks(quality_tier tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the maximum size in bytes of each chunk.
+		uint32_t get_max_chunk_size() const;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of clips contained in this database.
 		uint32_t get_num_clips() const;
 

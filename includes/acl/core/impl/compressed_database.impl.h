@@ -94,6 +94,8 @@ namespace acl
 		return header.num_chunks[tier_index];
 	}
 
+	inline uint32_t compressed_database::get_max_chunk_size() const { return acl_impl::get_database_header(*this).max_chunk_size; }
+
 	inline uint32_t compressed_database::get_num_clips() const { return acl_impl::get_database_header(*this).num_clips; }
 
 	inline uint32_t compressed_database::get_num_segments() const { return acl_impl::get_database_header(*this).num_segments; }
