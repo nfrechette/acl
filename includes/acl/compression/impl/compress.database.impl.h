@@ -1356,7 +1356,7 @@ namespace acl
 		if (tier == quality_tier::highest_importance)
 			return error_result("The database does not contain data for the high importance tier, it lives inside compressed_tracks");
 
-		if (database.get_bulk_data_size(tier) == 0)
+		if (!database.has_bulk_data(tier))
 			return error_result("Cannot strip an empty quality tier");
 
 		const uint32_t tier_index = uint32_t(tier) - 1;

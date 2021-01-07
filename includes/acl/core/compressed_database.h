@@ -64,6 +64,10 @@ namespace acl
 		uint32_t get_bulk_data_size(quality_tier tier) const;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns whether or not the specified quality tier contains bulk data.
+		bool has_bulk_data(quality_tier tier) const;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the hash for the compressed database.
 		// This is only used for sanity checking in case of memory corruption.
 		uint32_t get_hash() const { return m_buffer_header.hash; }

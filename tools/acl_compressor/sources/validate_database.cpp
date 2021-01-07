@@ -246,7 +246,7 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 	}
 
 	// Strip medium tier
-	if (db.get_bulk_data_size(quality_tier::medium_importance) != 0)
+	if (db.has_bulk_data(quality_tier::medium_importance))
 	{
 		const error_result result = strip_quality_tier(allocator, db, quality_tier::medium_importance, db_no_medium);
 		ACL_ASSERT(result.empty(), result.c_str());
@@ -302,7 +302,7 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 	}
 
 	// Strip lowest tier
-	if (db.get_bulk_data_size(quality_tier::lowest_importance) != 0)
+	if (db.has_bulk_data(quality_tier::lowest_importance))
 	{
 		const error_result result = strip_quality_tier(allocator, db, quality_tier::lowest_importance, db_no_low);
 		ACL_ASSERT(result.empty(), result.c_str());
@@ -358,7 +358,7 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 	}
 
 	// Strip medium and lowest tiers
-	if (db.get_bulk_data_size(quality_tier::medium_importance) != 0 && db.get_bulk_data_size(quality_tier::lowest_importance) != 0)
+	if (db.has_bulk_data(quality_tier::medium_importance) && db.has_bulk_data(quality_tier::lowest_importance))
 	{
 		ACL_ASSERT(db_no_medium != nullptr, "Expected a valid database");
 		ACL_ASSERT(db_no_low != nullptr, "Expected a valid database");

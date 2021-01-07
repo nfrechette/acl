@@ -57,6 +57,17 @@ namespace acl
 		return header.bulk_data_size[tier_index];
 	}
 
+	inline bool compressed_database::has_bulk_data(quality_tier tier) const
+	{
+		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
+		if (tier == quality_tier::highest_importance)
+			return false;
+
+		const acl_impl::database_header& header = acl_impl::get_database_header(*this);
+		const uint32_t tier_index = uint32_t(tier) - 1;
+		return header.bulk_data_size[tier_index] != 0;
+	}
+
 	inline uint32_t compressed_database::get_bulk_data_hash(quality_tier tier) const
 	{
 		ACL_ASSERT(tier != quality_tier::highest_importance, "The database does not contain data for the high importance tier, it lives inside compressed_tracks");
