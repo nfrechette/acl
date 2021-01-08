@@ -24,6 +24,7 @@ def parse_argv():
 	actions = parser.add_argument_group(title='Actions', description='If no action is specified, on Windows, OS X, and Linux the solution/make files are generated.  Multiple actions can be used simultaneously.')
 	actions.add_argument('-build', action='store_true')
 	actions.add_argument('-clean', action='store_true')
+	actions.add_argument('-clean_only', action='store_true')
 	actions.add_argument('-unit_test', action='store_true')
 	actions.add_argument('-regression_test', action='store_true')
 	actions.add_argument('-bench', action='store_true')
@@ -32,7 +33,7 @@ def parse_argv():
 	actions.add_argument('-convert', help='Input/Output directory to convert')
 
 	target = parser.add_argument_group(title='Target')
-	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2019-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
+	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2019-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
 	target.add_argument('-config', choices=['Debug', 'Release'], type=str.capitalize)
 	target.add_argument('-cpu', choices=['x86', 'x64', 'armv7', 'arm64', 'wasm'], help='Defaults to the host system\'s architecture')
 
@@ -51,7 +52,7 @@ def parse_argv():
 	if not num_threads or num_threads == 0:
 		num_threads = 4
 
-	parser.set_defaults(build=False, clean=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False,
+	parser.set_defaults(build=False, clean=False, clean_only=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False,
 		compiler=None, config='Release', cpu=None, use_avx=False, use_popcnt=False, use_simd=True, use_sjson=True,
 		num_threads=num_threads, tests_matching='')
 
@@ -227,6 +228,9 @@ def set_compiler_env(compiler, args):
 		elif compiler == 'clang10':
 			os.environ['CC'] = 'clang-10'
 			os.environ['CXX'] = 'clang++-10'
+		elif compiler == 'clang11':
+			os.environ['CC'] = 'clang-11'
+			os.environ['CXX'] = 'clang++-11'
 		elif compiler == 'gcc5':
 			os.environ['CC'] = 'gcc-5'
 			os.environ['CXX'] = 'g++-5'
@@ -846,9 +850,13 @@ if __name__ == "__main__":
 	test_data_dir = os.path.join(os.getcwd(), 'test_data')
 	cmake_script_dir = os.path.join(os.getcwd(), 'cmake')
 
-	if args.clean and os.path.exists(build_dir):
+	is_clean_requested = args.clean or args.clean_only
+	if is_clean_requested and os.path.exists(build_dir):
 		print('Cleaning previous build ...')
 		shutil.rmtree(build_dir)
+
+	if args.clean_only:
+		sys.exit(0)
 
 	if not os.path.exists(build_dir):
 		os.makedirs(build_dir)

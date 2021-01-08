@@ -1,6 +1,5 @@
 [![CLA assistant](https://cla-assistant.io/readme/badge/nfrechette/acl)](https://cla-assistant.io/nfrechette/acl)
 [![Build status](https://ci.appveyor.com/api/projects/status/8h1jwmhumqh9ie3h/branch/develop?svg=true)](https://ci.appveyor.com/project/nfrechette/acl)
-[![Build Status](https://travis-ci.org/nfrechette/acl.svg?branch=develop)](https://travis-ci.org/nfrechette/acl)
 [![Build status](https://github.com/nfrechette/acl/workflows/build/badge.svg)](https://github.com/nfrechette/acl/actions)
 [![Sonar Status](https://sonarcloud.io/api/project_badges/measure?project=nfrechette_acl&metric=alert_status)](https://sonarcloud.io/dashboard?id=nfrechette_acl)
 [![GitHub release](https://img.shields.io/github/release/nfrechette/acl.svg)](https://github.com/nfrechette/acl/releases)
@@ -44,14 +43,14 @@ Much thought was put into designing the library for it to be as flexible and pow
 ## Supported platforms
 
 *  Windows VS2015 x86 and x64
-*  Windows (VS2017, VS2019) x86, x64, and ARM64*
+*  Windows (VS2017, VS2019) x86, x64, and ARM64
 *  Windows VS2019 with clang9 x86 and x64
-*  Linux (gcc5, gcc6, gcc7, gcc8, gcc9, gcc10) x86 and x64
-*  Linux (clang4, clang5, clang6, clang7, clang8, clang9, clang10) x86 and x64
-*  OS X (Xcode 8.3, 9.4, 10.3) x86 and x64
+*  Linux (gcc 5 to 10) x86 and x64
+*  Linux (clang 4 to 11) x86 and x64
+*  OS X (Xcode 10.3) x86 and x64
 *  OS X (Xcode 11.2) x64
 *  Android (NDK 21) ARMv7-A and ARM64
-*  iOS (Xcode 8.3, 9.4, 10.3, 11.2) ARM64
+*  iOS (Xcode 10.3, 11.2) ARM64
 *  Emscripten (1.39.11) WASM
 
 The above supported platform list is only what is tested every release but if it compiles, it should run just fine.

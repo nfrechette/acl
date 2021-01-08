@@ -34,7 +34,7 @@
 
 namespace acl
 {
-	inline uint32_t segmenting_settings::get_hash() const
+	inline uint32_t compression_segmenting_settings::get_hash() const
 	{
 		uint32_t hash_value = 0;
 		hash_value = hash_combine(hash_value, hash32(ideal_num_samples));
@@ -42,13 +42,45 @@ namespace acl
 		return hash_value;
 	}
 
-	inline error_result segmenting_settings::is_valid() const
+	inline error_result compression_segmenting_settings::is_valid() const
 	{
 		if (ideal_num_samples < 8)
 			return error_result("ideal_num_samples must be greater or equal to 8");
 
 		if (ideal_num_samples > max_num_samples)
 			return error_result("ideal_num_samples must be smaller or equal to max_num_samples");
+
+		return error_result();
+	}
+
+	inline uint32_t compression_database_settings::get_hash() const
+	{
+		uint32_t hash_value = 0;
+		hash_value = hash_combine(hash_value, hash32(max_chunk_size));
+		hash_value = hash_combine(hash_value, hash32(medium_importance_tier_proportion));
+		hash_value = hash_combine(hash_value, hash32(low_importance_tier_proportion));
+		return hash_value;
+	}
+
+	inline error_result compression_database_settings::is_valid() const
+	{
+		if (max_chunk_size < 4 * 1024)
+			return error_result("max_chunk_size must be greater or equal to 4 KB");
+
+		if (align_to(max_chunk_size, 4 * 1024) != max_chunk_size)
+			return error_result("max_chunk_size must be a multiple of 4 KB");
+
+		if (!rtm::scalar_is_finite(medium_importance_tier_proportion) || medium_importance_tier_proportion < 0.0F || medium_importance_tier_proportion > 1.0F)
+			return error_result("medium_importance_tier_proportion must be in the range [0.0, 1.0]");
+
+		if (!rtm::scalar_is_finite(low_importance_tier_proportion) || low_importance_tier_proportion < 0.0F || low_importance_tier_proportion > 1.0F)
+			return error_result("low_importance_tier_proportion must be in the range [0.0, 1.0]");
+
+		// Add an epsilon to account for arithmetic imprecision
+		const float database_proportion = low_importance_tier_proportion + medium_importance_tier_proportion;
+		const float epsilon = 1.0e-5F;
+		if (database_proportion < epsilon || database_proportion > (1.0F + epsilon))
+			return error_result("The sum of medium_importance_tier_proportion + low_importance_tier_proportion must be in the range [0.0, 1.0]");
 
 		return error_result();
 	}
@@ -70,6 +102,7 @@ namespace acl
 		hash_value = hash_combine(hash_value, hash32(include_track_names));
 		hash_value = hash_combine(hash_value, hash32(include_parent_track_indices));
 		hash_value = hash_combine(hash_value, hash32(include_track_descriptions));
+		hash_value = hash_combine(hash_value, hash32(include_contributing_error));
 
 		return hash_value;
 	}
@@ -79,7 +112,11 @@ namespace acl
 		if (error_metric == nullptr)
 			return error_result("error_metric cannot be NULL");
 
-		return segmenting.is_valid();
+		const error_result segmenting_result = segmenting.is_valid();
+		if (segmenting_result.any())
+			return segmenting_result;
+
+		return error_result();
 	}
 
 	inline compression_settings get_raw_compression_settings()

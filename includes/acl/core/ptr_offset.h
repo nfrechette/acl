@@ -56,6 +56,10 @@ namespace acl
 		// Constructs a valid offset with the specified value.
 		constexpr ptr_offset(size_t value) : m_value(safe_static_cast<offset_type>(value)) {}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Constructs a valid offset from a base pointer and another pointer part of the same aggregate.
+		constexpr ptr_offset(const void* base, const void* ptr) : m_value(safe_static_cast<offset_type>(reinterpret_cast<const uint8_t*>(ptr) - reinterpret_cast<const uint8_t*>(base))) {}
+
 		////////////////////////////////////////////////////////////////////////////////
 		// Constructs an invalid offset.
 		constexpr ptr_offset(invalid_ptr_offset) : m_value(k_invalid_value) {}

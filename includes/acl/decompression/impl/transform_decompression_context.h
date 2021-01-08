@@ -30,6 +30,7 @@
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/decompression/database/impl/database_context.h"
 
 #include <cstdint>
 
@@ -45,44 +46,47 @@ namespace acl
 			// Only member used to detect if we are initialized, must be first
 			const compressed_tracks* tracks;				//   0 |   0
 
-			const uint32_t* constant_tracks_bitset;			//   4 |   8
-			const uint8_t* constant_track_data;				//   8 |  16
-			const uint32_t* default_tracks_bitset;			//  12 |  24
+			// Database context, optional
+			const database_context_v0* db;					//   4 |   8
 
-			const uint8_t* clip_range_data;					//  16 |  32
+			// Offsets relative to the 'tracks' pointer
+			ptr_offset32<uint32_t> constant_tracks_bitset;	//   8 |  16
+			ptr_offset32<uint8_t> constant_track_data;		//  12 |  20
+			ptr_offset32<uint32_t> default_tracks_bitset;	//  16 |  24
+			ptr_offset32<uint8_t> clip_range_data;			//  20 |  28
 
-			float clip_duration;							//  20 |  40
+			float clip_duration;							//  24 |  32
 
-			bitset_description bitset_desc;					//  24 |  44
+			bitset_description bitset_desc;					//  28 |  36
 
-			uint32_t clip_hash;								//  28 |  48
+			uint32_t clip_hash;								//  32 |  40
 
-			rotation_format8 rotation_format;				//  32 |  52
-			vector_format8 translation_format;				//  33 |  53
-			vector_format8 scale_format;					//  34 |  54
-			range_reduction_flags8 range_reduction;			//  35 |  55
+			rotation_format8 rotation_format;				//  36 |  44
+			vector_format8 translation_format;				//  37 |  45
+			vector_format8 scale_format;					//  38 |  46
+			range_reduction_flags8 range_reduction;			//  39 |  47
 
-			uint8_t num_rotation_components;				//  36 |  56
-			uint8_t has_segments;							//  37 |  57
+			uint8_t num_rotation_components;				//  40 |  48
+			uint8_t has_segments;							//  41 |  49
 
-			uint8_t padding0[2];							//  38 |  58
+			uint8_t padding0[2];							//  42 |  50
 
-															// Seeking related data
-			float sample_time;								//  40 |  60
+			// Seeking related data
+			float sample_time;								//  44 |  52
 
-			const uint8_t* format_per_track_data[2];		//  44 |  64
-			const uint8_t* segment_range_data[2];			//  52 |  80
-			const uint8_t* animated_track_data[2];			//  60 |  96
+			const uint8_t* format_per_track_data[2];		//  48 |  56
+			const uint8_t* segment_range_data[2];			//  56 |  72
+			const uint8_t* animated_track_data[2];			//  64 |  88
 
-			uint32_t key_frame_bit_offsets[2];				//  68 | 112
+			uint32_t key_frame_bit_offsets[2];				//  72 | 104
 
-			float interpolation_alpha;						//  76 | 120
+			float interpolation_alpha;						//  80 | 112
 
-			uint8_t padding1[sizeof(void*) == 4 ? 48 : 4];	//  80 | 124
+			uint8_t padding1[sizeof(void*) == 4 ? 44 : 12];	//  84 | 116
 
-															//									Total size:	   128 | 128
+			//									Total size:	   128 | 128
 
-															//////////////////////////////////////////////////////////////////////////
+			//////////////////////////////////////////////////////////////////////////
 
 			const compressed_tracks* get_compressed_tracks() const { return tracks; }
 			compressed_tracks_version16 get_version() const { return tracks->get_version(); }

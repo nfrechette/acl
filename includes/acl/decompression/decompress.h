@@ -34,6 +34,8 @@
 #include "acl/core/track_traits.h"
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/decompression/decompression_settings.h"
+#include "acl/decompression/database/database.h"
 #include "acl/decompression/impl/decompression_context_selector.h"
 #include "acl/decompression/impl/decompression_version_selector.h"
 #include "acl/decompression/impl/scalar_track_decompression.h"
@@ -52,120 +54,6 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	//////////////////////////////////////////////////////////////////////////
-	// Deriving from this struct and overriding these constexpr functions
-	// allow you to control which code is stripped for maximum performance.
-	// With these, you can:
-	//    - Support only a subset of the formats and statically strip the rest
-	//    - Force a single format and statically strip the rest
-	//    - Decide all of this at runtime by not making the overrides constexpr
-	//
-	// By default, all formats are supported.
-	//////////////////////////////////////////////////////////////////////////
-	struct decompression_settings
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// Common decompression settings
-
-		//////////////////////////////////////////////////////////////////////////
-		// Whether or not to clamp the sample time when `seek(..)` is called. Defaults to true.
-		// Must be static constexpr!
-		static constexpr bool clamp_sample_time() { return true; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// Whether or not the specified track type is supported. Defaults to true.
-		// If a track type is statically known not to be supported, the compiler can strip
-		// the associated code.
-		// Must be static constexpr!
-		static constexpr bool is_track_type_supported(track_type8 /*type*/) { return true; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// Whether to explicitly disable floating point exceptions during decompression.
-		// This has a cost, exceptions are usually disabled globally and do not need to be
-		// explicitly disabled during decompression.
-		// We assume that floating point exceptions are already disabled by the caller.
-		// Must be static constexpr!
-		static constexpr bool disable_fp_exeptions() { return false; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// Which version we should optimize for.
-		// If 'any' is specified, the decompression context will support every single version
-		// with full backwards compatibility.
-		// Using a specific version allows the compiler to statically strip code for all other
-		// versions. This allows the creation of context objects specialized for specific
-		// versions which yields optimal performance.
-		// Must be static constexpr!
-		static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::any; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// Transform decompression settings
-
-		//////////////////////////////////////////////////////////////////////////
-		// Whether the specified rotation/translation/scale format are supported or not.
-		// Use this to strip code related to formats you do not need.
-		// Must be static constexpr!
-		static constexpr bool is_rotation_format_supported(rotation_format8 /*format*/) { return true; }
-		static constexpr bool is_translation_format_supported(vector_format8 /*format*/) { return true; }
-		static constexpr bool is_scale_format_supported(vector_format8 /*format*/) { return true; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// Whether rotations should be normalized before being output or not. Some animation
-		// runtimes will normalize in a separate step and do not need the explicit normalization.
-		// Enabled by default for safety.
-		// Must be static constexpr!
-		static constexpr bool normalize_rotations() { return true; }
-	};
-
-	//////////////////////////////////////////////////////////////////////////
-	// These are debug settings, everything is enabled and nothing is stripped.
-	// It will have the worst performance but allows every feature.
-	//////////////////////////////////////////////////////////////////////////
-	struct debug_scalar_decompression_settings : public decompression_settings
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// Only support scalar tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::qvvf; }
-	};
-
-	//////////////////////////////////////////////////////////////////////////
-	// These are debug settings, everything is enabled and nothing is stripped.
-	// It will have the worst performance but allows every feature.
-	//////////////////////////////////////////////////////////////////////////
-	struct debug_transform_decompression_settings : public decompression_settings
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// Only support transform tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type == track_type8::qvvf; }
-	};
-
-	//////////////////////////////////////////////////////////////////////////
-	// These are the default settings. Only the generally optimal settings
-	// are enabled and will offer the overall best performance.
-	//////////////////////////////////////////////////////////////////////////
-	struct default_scalar_decompression_settings : public decompression_settings
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// Only support scalar tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::qvvf; }
-	};
-
-	//////////////////////////////////////////////////////////////////////////
-	// These are the default settings. Only the generally optimal settings
-	// are enabled and will offer the overall best performance.
-	//////////////////////////////////////////////////////////////////////////
-	struct default_transform_decompression_settings : public decompression_settings
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// Only support transform tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type == track_type8::qvvf; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// By default, we only support the variable bit rates as they are generally optimal
-		static constexpr bool is_rotation_format_supported(rotation_format8 format) { return format == rotation_format8::quatf_drop_w_variable; }
-		static constexpr bool is_translation_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
-		static constexpr bool is_scale_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
-	};
-
 	//////////////////////////////////////////////////////////////////////////
 	// Decompression context for the uniformly sampled algorithm. The context
 	// allows various decompression actions to be performed on a compressed track list.
@@ -190,8 +78,11 @@ namespace acl
 		using settings_type = decompression_settings_type;
 
 		//////////////////////////////////////////////////////////////////////////
+		// An alias to the database settings type.
+		using db_settings_type = typename decompression_settings_type::database_settings_type;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Constructs a context instance.
-		// The default constructor for the `decompression_settings_type` will be used.
 		decompression_context();
 
 		//////////////////////////////////////////////////////////////////////////
@@ -202,6 +93,11 @@ namespace acl
 		// Initializes the context instance to a particular compressed tracks instance.
 		// Returns whether initialization was successful or not.
 		bool initialize(const compressed_tracks& tracks);
+
+		//////////////////////////////////////////////////////////////////////////
+		// Initializes the context instance to a particular compressed tracks instance and its database instance.
+		// Returns whether initialization was successful or not.
+		bool initialize(const compressed_tracks& tracks, const database_context<db_settings_type>& database);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to a compressed tracks instance, false otherwise.
@@ -252,6 +148,7 @@ namespace acl
 		context_type m_context;
 
 		static_assert(std::is_base_of<decompression_settings, settings_type>::value, "decompression_settings_type must derive from decompression_settings!");
+		static_assert(std::is_base_of<database_settings, db_settings_type>::value, "database_settings_type must derive from database_settings!");
 	};
 
 	//////////////////////////////////////////////////////////////////////////

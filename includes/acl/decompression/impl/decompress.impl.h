@@ -61,7 +61,31 @@ namespace acl
 		if (!algorithm_version_type::is_version_supported(tracks.get_version()))
 			return false;
 
-		return algorithm_version_type::template initialize<decompression_settings_type>(m_context, tracks);
+		const database_context<db_settings_type>* database = nullptr;
+		return algorithm_version_type::template initialize<decompression_settings_type>(m_context, tracks, database);
+	}
+
+	template<class decompression_settings_type>
+	inline bool decompression_context<decompression_settings_type>::initialize(const compressed_tracks& tracks, const database_context<db_settings_type>& database)
+	{
+		bool is_valid = tracks.is_valid(false).empty();
+		ACL_ASSERT(is_valid, "Invalid compressed tracks instance");
+		if (!is_valid)
+			return false;	// Invalid compressed tracks instance
+
+		is_valid = database.is_initialized();
+		ACL_ASSERT(is_valid, "Invalid compressed database instance");
+		if (!is_valid)
+			return false;	// Invalid compressed database instance
+
+		ACL_ASSERT(algorithm_version_type::is_version_supported(tracks.get_version()), "Unsupported version");
+		if (!algorithm_version_type::is_version_supported(tracks.get_version()))
+			return false;
+
+		if (!database.contains(tracks))
+			return false;
+
+		return algorithm_version_type::template initialize<decompression_settings_type>(m_context, tracks, &database);
 	}
 
 	template<class decompression_settings_type>

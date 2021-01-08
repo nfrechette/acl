@@ -1,0 +1,16 @@
+version = 2
+
+algorithm_name = "uniformly_sampled"
+
+level = "Medium"
+
+rotation_format = "quatf_drop_w_variable"
+translation_format = "vector3f_variable"
+scale_format = "vector3f_variable"
+
+regression_error_threshold = 0.075
+
+split_into_database = true
+database_max_chunk_size = 4096
+medium_importance_tier = 0.3
+low_importance_tier = 0.4

@@ -67,5 +67,10 @@ macro(setup_default_compiler_flags _project_name)
 		else()
 			target_compile_options(${_project_name} PRIVATE -g)					# Enable debug symbols
 		endif()
+
+		# Link against the atomic library with x86 clang 4 and 5
+		if(CPU_INSTRUCTION_SET MATCHES "x86" AND CLANG_VERSION_MAJOR VERSION_LESS 5 AND NOT PLATFORM_OSX)
+			target_link_libraries(${_project_name} PRIVATE "-latomic")
+		endif()
 	endif()
 endmacro()

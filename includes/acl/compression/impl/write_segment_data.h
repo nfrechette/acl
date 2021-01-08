@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/bitset.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/impl/compressed_headers.h"
@@ -88,9 +89,8 @@ namespace acl
 			return size_written;
 		}
 
-		inline uint32_t write_segment_data(const clip_context& clip, const compression_settings& settings, range_reduction_flags8 range_reduction, transform_tracks_header& header, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_segment_data(const clip_context& clip, const compression_settings& settings, range_reduction_flags8 range_reduction, segment_header* segment_headers, transform_tracks_header& header, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
-			segment_header* segment_headers = header.get_segment_headers();
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip, settings.rotation_format, settings.translation_format, settings.scale_format);
 
 			uint32_t size_written = 0;
@@ -113,22 +113,19 @@ namespace acl
 				if (format_per_track_data_size != 0)
 				{
 					const uint32_t size = write_format_per_track_data(segment, format_per_track_data, format_per_track_data_size, output_bone_mapping, num_output_bones);
-					(void)size;
-					ACL_ASSERT(size == format_per_track_data_size, "Unexpected format per track data size");
+					ACL_ASSERT(size == format_per_track_data_size, "Unexpected format per track data size"); (void)size;
 				}
 
 				if (segment.range_data_size != 0)
 				{
 					const uint32_t size = write_segment_range_data(segment, range_reduction, range_data, segment.range_data_size, output_bone_mapping, num_output_bones);
-					(void)size;
-					ACL_ASSERT(size == segment.range_data_size, "Unexpected range data size");
+					ACL_ASSERT(size == segment.range_data_size, "Unexpected range data size"); (void)size;
 				}
 
 				if (segment.animated_data_size != 0)
 				{
 					const uint32_t size = write_animated_track_data(segment, animated_data, segment.animated_data_size, output_bone_mapping, num_output_bones);
-					(void)size;
-					ACL_ASSERT(size == segment.animated_data_size, "Unexpected animated data size");
+					ACL_ASSERT(size == segment.animated_data_size, "Unexpected animated data size"); (void)size;
 				}
 
 				size_written += segment.segment_data_size;

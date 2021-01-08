@@ -42,16 +42,11 @@
 
 #include "acl/core/ansi_allocator.h"
 #include "acl/core/floating_point_exceptions.h"
-#include "acl/core/iallocator.h"
-#include "acl/core/range_reduction_types.h"
 #include "acl/core/string.h"
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/compress.h"
-#include "acl/compression/convert.h"
-#include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/transform_pose_utils.h"	// Just to test compilation
 #include "acl/compression/impl/write_decompression_stats.h"
-#include "acl/compression/track_error.h"
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
 
@@ -135,6 +130,7 @@ struct Options
 	std::FILE*		output_stats_file;
 
 	const char*		output_bin_filename;
+	const char*		output_db_filename;
 
 	compression_level8	compression_level;
 	bool			compression_level_specified;
@@ -148,6 +144,8 @@ struct Options
 	bool			is_bind_pose_relative;
 	bool			is_bind_pose_additive0;
 	bool			is_bind_pose_additive1;
+
+	bool			split_into_database;
 
 	bool			stat_detailed_output;
 	bool			stat_exhaustive_output;
@@ -169,6 +167,7 @@ struct Options
 		, output_stats_filename(nullptr)
 		, output_stats_file(nullptr)
 		, output_bin_filename(nullptr)
+		, output_db_filename(nullptr)
 		, compression_level(compression_level8::lowest)
 		, compression_level_specified(false)
 		, regression_testing(false)
@@ -178,6 +177,7 @@ struct Options
 		, is_bind_pose_relative(false)
 		, is_bind_pose_additive0(false)
 		, is_bind_pose_additive1(false)
+		, split_into_database(false)
 		, stat_detailed_output(false)
 		, stat_exhaustive_output(false)
 	{}
@@ -224,6 +224,7 @@ static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
+static constexpr const char* k_split_into_database = "-db";
 static constexpr const char* k_stat_detailed_output_option = "-stat_detailed";
 static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive";
 
@@ -379,6 +380,25 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
+		option_length = std::strlen(k_split_into_database);
+		if (std::strncmp(argument, k_split_into_database, option_length) == 0)
+		{
+			options.split_into_database = true;
+			if (argument[option_length] == '=')
+			{
+				options.output_db_filename = argument + option_length + 1;
+				const size_t filename_len = std::strlen(options.output_db_filename);
+				if (filename_len < 6 || strncmp(options.output_db_filename + filename_len - 6, ".acldb", 6) != 0)
+				{
+					printf("Database output filename must be of the form: [*.acldb]\n");
+					return false;
+				}
+			}
+			else
+				options.output_db_filename = nullptr;
+			continue;
+		}
+
 		option_length = std::strlen(k_stat_detailed_output_option);
 		if (std::strncmp(argument, k_stat_detailed_output_option, option_length) == 0)
 		{
@@ -418,474 +438,20 @@ static bool parse_options(int argc, char** argv, Options& options)
 
 #if defined(ACL_USE_SJSON)
 #if defined(ACL_HAS_ASSERT_CHECKS)
-static void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
-{
-	using namespace acl_impl;
-
-	(void)allocator;
-	(void)raw_tracks;
-	(void)additive_base_tracks;
-	(void)error_metric;
-	(void)compressed_tracks_;
-	(void)regression_error_threshold;
-
-#if defined(ACL_HAS_ASSERT_CHECKS)
-	// Disable floating point exceptions since decompression assumes it
-	scope_disable_fp_exceptions fp_off;
-
-	acl::decompression_context<acl::debug_transform_decompression_settings> context;
-	context.initialize(compressed_tracks_);
-
-	const track_error error = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
-	(void)error;
-	ACL_ASSERT(rtm::scalar_is_finite(error.error), "Returned error is not a finite value");
-	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", error.index, error.error, error.sample_time);
-
-	const uint32_t num_bones = raw_tracks.get_num_tracks();
-	const float clip_duration = raw_tracks.get_duration();
-	const float sample_rate = raw_tracks.get_sample_rate();
-	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
-
-	debug_track_writer track_writer(allocator, track_type8::qvvf, num_bones);
-
-	// Regression test
-	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-	{
-		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, clip_duration);
-
-		// We use the nearest sample to accurately measure the loss that happened, if any
-		context.seek(sample_time, sample_rounding_policy::nearest);
-		context.decompress_tracks(track_writer);
-
-		// Validate decompress_track against decompress_tracks
-		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
-		{
-			const rtm::qvvf transform0 = track_writer.read_qvv(bone_index);
-
-			context.decompress_track(bone_index, track_writer);
-			const rtm::qvvf transform1 = track_writer.read_qvv(bone_index);
-
-			// Rotations can differ a bit due to how we normalize during interpolation
-			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform1.rotation), 0.0001F), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform1.translation, 0.0F), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, 0.0F), "Failed to sample bone index: %u", bone_index);
-		}
-	}
-#endif
-}
-
-static void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold)
-{
-	(void)allocator;
-	(void)raw_tracks;
-	(void)tracks;
-	(void)regression_error_threshold;
-
-#if defined(ACL_HAS_ASSERT_CHECKS)
-	using namespace acl_impl;
-
-	// Disable floating point exceptions since decompression assumes it
-	scope_disable_fp_exceptions fp_off;
-
-	const float regression_error_thresholdf = static_cast<float>(regression_error_threshold);
-	const rtm::vector4f regression_error_thresholdv = rtm::vector_set(regression_error_thresholdf);
-	(void)regression_error_thresholdf;
-	(void)regression_error_thresholdv;
-
-	const float duration = tracks.get_duration();
-	const float sample_rate = tracks.get_sample_rate();
-	const uint32_t num_tracks = tracks.get_num_tracks();
-	const uint32_t num_samples = tracks.get_num_samples_per_track();
-	const track_type8 track_type = raw_tracks.get_track_type();
-
-	ACL_ASSERT(rtm::scalar_near_equal(duration, raw_tracks.get_duration(), 1.0E-7F), "Duration mismatch");
-	ACL_ASSERT(sample_rate == raw_tracks.get_sample_rate(), "Sample rate mismatch");
-	ACL_ASSERT(num_tracks <= raw_tracks.get_num_tracks(), "Num tracks mismatch");
-	ACL_ASSERT(num_samples == raw_tracks.get_num_samples_per_track(), "Num samples mismatch");
-
-	decompression_context<debug_scalar_decompression_settings> context;
-	context.initialize(tracks);
-
-	debug_track_writer raw_tracks_writer(allocator, track_type, num_tracks);
-	debug_track_writer raw_track_writer(allocator, track_type, num_tracks);
-	debug_track_writer lossy_tracks_writer(allocator, track_type, num_tracks);
-	debug_track_writer lossy_track_writer(allocator, track_type, num_tracks);
-
-	const rtm::vector4f zero = rtm::vector_zero();
-
-	// Regression test
-	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-	{
-		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
-
-		// We use the nearest sample to accurately measure the loss that happened, if any
-		raw_tracks.sample_tracks(sample_time, sample_rounding_policy::nearest, raw_tracks_writer);
-
-		context.seek(sample_time, sample_rounding_policy::nearest);
-		context.decompress_tracks(lossy_tracks_writer);
-
-		// Validate decompress_tracks
-		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
-		{
-			const track& track_ = raw_tracks[track_index];
-			const uint32_t output_index = track_.get_output_index();
-			if (output_index == k_invalid_track_index)
-				continue;	// Track is being stripped, ignore it
-
-			rtm::vector4f error = zero;
-
-			switch (track_type)
-			{
-			case track_type8::float1f:
-			{
-				const float raw_value = raw_tracks_writer.read_float1(track_index);
-				const float lossy_value = lossy_tracks_writer.read_float1(output_index);
-				error = rtm::vector_set(rtm::scalar_abs(raw_value - lossy_value));
-				break;
-			}
-			case track_type8::float2f:
-			{
-				const rtm::vector4f raw_value = raw_tracks_writer.read_float2(track_index);
-				const rtm::vector4f lossy_value = lossy_tracks_writer.read_float2(output_index);
-				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
-				error = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::c, rtm::mix4::d>(error, zero);
-				break;
-			}
-			case track_type8::float3f:
-			{
-				const rtm::vector4f raw_value = raw_tracks_writer.read_float3(track_index);
-				const rtm::vector4f lossy_value = lossy_tracks_writer.read_float3(output_index);
-				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
-				error = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::z, rtm::mix4::d>(error, zero);
-				break;
-			}
-			case track_type8::float4f:
-			{
-				const rtm::vector4f raw_value = raw_tracks_writer.read_float4(track_index);
-				const rtm::vector4f lossy_value = lossy_tracks_writer.read_float4(output_index);
-				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
-				break;
-			}
-			case track_type8::vector4f:
-			{
-				const rtm::vector4f raw_value = raw_tracks_writer.read_vector4(track_index);
-				const rtm::vector4f lossy_value = lossy_tracks_writer.read_vector4(output_index);
-				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
-				break;
-			}
-			default:
-				ACL_ASSERT(false, "Unsupported track type");
-				break;
-			}
-
-			(void)error;
-			ACL_ASSERT(rtm::vector_is_finite(error), "Returned error is not a finite value");
-			ACL_ASSERT(rtm::vector_all_less_than(error, regression_error_thresholdv), "Error too high for track %u at time %f", track_index, sample_time);
-		}
-
-		// Validate decompress_track
-		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
-		{
-			const track& track_ = raw_tracks[track_index];
-			const uint32_t output_index = track_.get_output_index();
-			if (output_index == k_invalid_track_index)
-				continue;	// Track is being stripped, ignore it
-
-			// We use the nearest sample to accurately measure the loss that happened, if any
-			raw_tracks.sample_track(track_index, sample_time, sample_rounding_policy::nearest, raw_track_writer);
-			context.decompress_track(output_index, lossy_track_writer);
-
-			switch (track_type)
-			{
-			case track_type8::float1f:
-			{
-				const float raw_value_ = raw_tracks_writer.read_float1(track_index);
-				const float lossy_value_ = lossy_tracks_writer.read_float1(output_index);
-				const float raw_value = raw_track_writer.read_float1(track_index);
-				const float lossy_value = lossy_track_writer.read_float1(output_index);
-				ACL_ASSERT(rtm::scalar_near_equal(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::scalar_near_equal(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::scalar_near_equal(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				break;
-			}
-			case track_type8::float2f:
-			{
-				const rtm::vector4f raw_value_ = raw_tracks_writer.read_float2(track_index);
-				const rtm::vector4f lossy_value_ = lossy_tracks_writer.read_float2(output_index);
-				const rtm::vector4f raw_value = raw_track_writer.read_float2(track_index);
-				const rtm::vector4f lossy_value = lossy_track_writer.read_float2(output_index);
-				ACL_ASSERT(rtm::vector_all_near_equal2(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal2(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal2(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				break;
-			}
-			case track_type8::float3f:
-			{
-				const rtm::vector4f raw_value_ = raw_tracks_writer.read_float3(track_index);
-				const rtm::vector4f lossy_value_ = lossy_tracks_writer.read_float3(output_index);
-				const rtm::vector4f raw_value = raw_track_writer.read_float3(track_index);
-				const rtm::vector4f lossy_value = lossy_track_writer.read_float3(output_index);
-				ACL_ASSERT(rtm::vector_all_near_equal3(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal3(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal3(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				break;
-			}
-			case track_type8::float4f:
-			{
-				const rtm::vector4f raw_value_ = raw_tracks_writer.read_float4(track_index);
-				const rtm::vector4f lossy_value_ = lossy_tracks_writer.read_float4(output_index);
-				const rtm::vector4f raw_value = raw_track_writer.read_float4(track_index);
-				const rtm::vector4f lossy_value = lossy_track_writer.read_float4(output_index);
-				ACL_ASSERT(rtm::vector_all_near_equal(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				break;
-			}
-			case track_type8::vector4f:
-			{
-				const rtm::vector4f raw_value_ = raw_tracks_writer.read_vector4(track_index);
-				const rtm::vector4f lossy_value_ = lossy_tracks_writer.read_vector4(output_index);
-				const rtm::vector4f raw_value = raw_track_writer.read_vector4(track_index);
-				const rtm::vector4f lossy_value = lossy_track_writer.read_vector4(output_index);
-				ACL_ASSERT(rtm::vector_all_near_equal(raw_value, lossy_value, regression_error_thresholdf), "Error too high for track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal(raw_value_, raw_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
-				break;
-			}
-			default:
-				ACL_ASSERT(false, "Unsupported track type");
-				break;
-			}
-		}
-	}
-#endif	// defined(ACL_HAS_ASSERT_CHECKS)
-}
-
-static void validate_metadata(const track_array& raw_tracks, const compressed_tracks& tracks)
-{
-	const uint32_t num_tracks = raw_tracks.get_num_tracks();
-
-	// Validate track list name
-	const string& raw_list_name = raw_tracks.get_name();
-	const char* compressed_list_name = tracks.get_name();
-	ACL_ASSERT(raw_list_name == compressed_list_name, "Unexpected track list name");
-
-	// Validate track names
-	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
-	{
-		const track& raw_track = raw_tracks[track_index];
-		const uint32_t output_index = raw_track.get_output_index();
-		if (output_index == k_invalid_track_index)
-			continue;	// Stripped
-
-		const string& raw_name = raw_track.get_name();
-		const char* compressed_name = tracks.get_track_name(output_index);
-		ACL_ASSERT(raw_name == compressed_name, "Unexpected track name");
-	}
-
-	if (raw_tracks.get_track_type() == track_type8::qvvf)
-	{
-		// Specific to transform tracks
-		const track_array_qvvf& transform_tracks = track_array_cast<track_array_qvvf>(raw_tracks);
-
-		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
-		{
-			const track_qvvf& raw_track = transform_tracks[track_index];
-			const uint32_t output_index = raw_track.get_output_index();
-			if (output_index == k_invalid_track_index)
-				continue;	// Stripped
-
-			const track_desc_transformf& raw_desc = raw_track.get_description();
-			const uint32_t parent_track_index = raw_desc.parent_index;
-			const uint32_t parent_track_output_index = parent_track_index != k_invalid_track_index ? transform_tracks[parent_track_index].get_output_index() : k_invalid_track_index;
-
-			const uint32_t compressed_parent_track_index = tracks.get_parent_track_index(output_index);
-			ACL_ASSERT(parent_track_output_index == compressed_parent_track_index, "Unexpected parent track index");
-
-			track_desc_transformf compressed_desc;
-			const bool compressed_track_desc_found = tracks.get_track_description(output_index, compressed_desc);
-			ACL_ASSERT(compressed_track_desc_found, "Expected track description");
-			ACL_ASSERT(output_index == compressed_desc.output_index, "Unexpected output index");
-			ACL_ASSERT(parent_track_output_index == compressed_desc.parent_index, "Unexpected parent track index");
-			ACL_ASSERT(raw_desc.precision == compressed_desc.precision, "Unexpected precision");
-			ACL_ASSERT(raw_desc.shell_distance == compressed_desc.shell_distance, "Unexpected shell_distance");
-			ACL_ASSERT(raw_desc.constant_rotation_threshold_angle == compressed_desc.constant_rotation_threshold_angle, "Unexpected constant_rotation_threshold_angle");
-			ACL_ASSERT(raw_desc.constant_translation_threshold == compressed_desc.constant_translation_threshold, "Unexpected constant_translation_threshold");
-			ACL_ASSERT(raw_desc.constant_scale_threshold == compressed_desc.constant_scale_threshold, "Unexpected constant_scale_threshold");
-		}
-	}
-	else
-	{
-		// Specific to scalar tracks
-		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
-		{
-			const track& raw_track = raw_tracks[track_index];
-			const uint32_t output_index = raw_track.get_output_index();
-			if (output_index == k_invalid_track_index)
-				continue;	// Stripped
-
-			const track_desc_scalarf& raw_desc = raw_track.get_description<track_desc_scalarf>();
-
-			track_desc_scalarf compressed_desc;
-			const bool compressed_track_desc_found = tracks.get_track_description(output_index, compressed_desc);
-			ACL_ASSERT(compressed_track_desc_found, "Expected track description");
-			ACL_ASSERT(output_index == compressed_desc.output_index, "Unexpected output index");
-			ACL_ASSERT(raw_desc.precision == compressed_desc.precision, "Unexpected precision");
-		}
-	}
-}
-
-static void compare_raw_with_compressed(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& compressed_tracks_)
-{
-	const uint32_t num_tracks = raw_tracks.get_num_tracks();
-
-	uint32_t num_output_tracks = 0;
-	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
-	{
-		const track& raw_track = raw_tracks[track_index];
-		const uint32_t output_index = raw_track.get_output_index();
-		if (output_index == k_invalid_track_index)
-			continue;	// Stripped
-
-		num_output_tracks++;
-	}
-
-	ACL_ASSERT(num_output_tracks == compressed_tracks_.get_num_tracks(), "Unexpected num tracks");
-	ACL_ASSERT(raw_tracks.get_num_samples_per_track() == compressed_tracks_.get_num_samples_per_track(), "Unexpected num samples");
-	ACL_ASSERT(raw_tracks.get_sample_rate() == compressed_tracks_.get_sample_rate(), "Unexpected sample rate");
-	ACL_ASSERT(raw_tracks.get_track_type() == compressed_tracks_.get_track_type(), "Unexpected track type");
-	ACL_ASSERT(raw_tracks.get_name() == compressed_tracks_.get_name(), "Unexpected track list name");
-
-	const track_category8 track_category = raw_tracks.get_track_category();
-	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
-	{
-		const track& raw_track = raw_tracks[track_index];
-		const uint32_t output_index = raw_track.get_output_index();
-		if (output_index == k_invalid_track_index)
-			continue;	// Stripped
-
-		if (track_category == track_category8::scalarf)
-		{
-			const track_desc_scalarf& raw_desc = raw_track.get_description<track_desc_scalarf>();
-			track_desc_scalarf desc;
-			compressed_tracks_.get_track_description(output_index, desc);
-
-			ACL_ASSERT(raw_desc.precision == desc.precision, "Unexpected precision");
-		}
-		else
-		{
-			const track_desc_transformf& raw_desc = raw_track.get_description<track_desc_transformf>();
-			track_desc_transformf desc;
-			compressed_tracks_.get_track_description(output_index, desc);
-
-			ACL_ASSERT(raw_desc.parent_index == desc.parent_index, "Unexpected parent index");
-			ACL_ASSERT(raw_desc.precision == desc.precision, "Unexpected precision");
-			ACL_ASSERT(raw_desc.shell_distance == desc.shell_distance, "Unexpected shell_distance");
-			ACL_ASSERT(raw_desc.constant_rotation_threshold_angle == desc.constant_rotation_threshold_angle, "Unexpected constant_rotation_threshold_angle");
-			ACL_ASSERT(raw_desc.constant_translation_threshold == desc.constant_translation_threshold, "Unexpected constant_translation_threshold");
-			ACL_ASSERT(raw_desc.constant_scale_threshold == desc.constant_scale_threshold, "Unexpected constant_scale_threshold");
-		}
-	}
-
-	// Disable floating point exceptions since decompression assumes it
-	scope_disable_fp_exceptions fp_off;
-
-	acl::decompression_context<acl_impl::raw_sampling_decompression_settings> context;
-	context.initialize(compressed_tracks_);
-
-	const track_type8 track_type = raw_tracks.get_track_type();
-	acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
-
-	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
-	const float sample_rate = raw_tracks.get_sample_rate();
-	const float duration = raw_tracks.get_duration();
-
-	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-	{
-		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
-
-		// Round to nearest to land directly on a sample
-		context.seek(sample_time, sample_rounding_policy::nearest);
-
-		context.decompress_tracks(writer);
-
-		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
-		{
-			const track& raw_track = raw_tracks[track_index];
-			const uint32_t output_index = raw_track.get_output_index();
-			if (output_index == k_invalid_track_index)
-				continue;	// Track is stripped
-
-			switch (track_type)
-			{
-			case track_type8::float1f:
-			{
-				const float raw_sample = *reinterpret_cast<const float*>(raw_track[sample_index]);
-				const float compressed_sample = writer.read_float1(track_index);
-				ACL_ASSERT(raw_sample == compressed_sample, "Unexpected sample");
-				break;
-			}
-			case track_type8::float2f:
-			{
-				const rtm::vector4f raw_sample = rtm::vector_load2(reinterpret_cast<const rtm::float2f*>(raw_track[sample_index]));
-				const rtm::vector4f compressed_sample = writer.read_float2(track_index);
-				ACL_ASSERT(rtm::vector_all_near_equal2(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
-				break;
-			}
-			case track_type8::float3f:
-			{
-				const rtm::vector4f raw_sample = rtm::vector_load3(reinterpret_cast<const rtm::float3f*>(raw_track[sample_index]));
-				const rtm::vector4f compressed_sample = writer.read_float3(track_index);
-				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
-				break;
-			}
-			case track_type8::float4f:
-			{
-				const rtm::vector4f raw_sample = rtm::vector_load(reinterpret_cast<const rtm::float4f*>(raw_track[sample_index]));
-				const rtm::vector4f compressed_sample = writer.read_float4(track_index);
-				ACL_ASSERT(rtm::vector_all_near_equal(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
-				break;
-			}
-			case track_type8::vector4f:
-			{
-				const rtm::vector4f raw_sample = *reinterpret_cast<const rtm::vector4f*>(raw_track[sample_index]);
-				const rtm::vector4f compressed_sample = writer.read_vector4(track_index);
-				ACL_ASSERT(rtm::vector_all_near_equal(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
-				break;
-			}
-			case track_type8::qvvf:
-			{
-				const rtm::qvvf raw_sample = *reinterpret_cast<const rtm::qvvf*>(raw_track[sample_index]);
-				const rtm::qvvf compressed_sample = writer.read_qvv(track_index);
-				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0F), "Unexpected sample");
-				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.translation, compressed_sample.translation, 0.0F), "Unexpected sample");
-				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.scale, compressed_sample.scale, 0.0F), "Unexpected sample");
-				break;
-			}
-			}
-		}
-	}
-}
-
-static void validate_convert(iallocator& allocator, const track_array& raw_tracks)
-{
-	compressed_tracks* compressed_tracks_ = nullptr;
-	error_result result = convert_track_list(allocator, raw_tracks, compressed_tracks_);
-	ACL_ASSERT(result.empty() && compressed_tracks_ != nullptr, "Convert failed");
-
-	compare_raw_with_compressed(allocator, raw_tracks, *compressed_tracks_);
-
-	track_array new_raw_tracks;
-	result = convert_track_list(allocator, *compressed_tracks_, new_raw_tracks);
-	ACL_ASSERT(result.empty() && !new_raw_tracks.is_empty(), "Convert failed");
-
-	compare_raw_with_compressed(allocator, new_raw_tracks, *compressed_tracks_);
-
-	allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
-}
+// We extern our regression test functions for simplicity
+extern void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold);
+extern void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold);
+extern void validate_metadata(const track_array& raw_tracks, const compressed_tracks& tracks);
+extern void validate_convert(iallocator& allocator, const track_array& raw_tracks);
+extern void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks,
+	const compression_database_settings& settings, const itransform_error_metric& error_metric,
+	const compressed_tracks& compressed_tracks0, const compressed_tracks& compressed_tracks1);
 #endif
 
-static void try_algorithm(const Options& options, iallocator& allocator, track_array_qvvf& transform_tracks, const track_array_qvvf& additive_base, additive_clip_format8 additive_format, compression_settings settings, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, iallocator& allocator, track_array_qvvf& transform_tracks,
+	const track_array_qvvf& additive_base, additive_clip_format8 additive_format,
+	compression_settings settings, const compression_database_settings& database_settings,
+	stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
 	(void)regression_error_threshold;
@@ -904,14 +470,18 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			settings.include_track_descriptions = true;
 		}
 
+		// To generate our database, we include the contributing error
+		if (options.split_into_database)
+			settings.include_contributing_error = true;
+
 		output_stats stats;
 		stats.logging = logging;
 		stats.writer = stats_writer;
 
 		compressed_tracks* compressed_tracks_ = nullptr;
-		const error_result result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
 
-		(void)result;
+		error_result result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
+
 		ACL_ASSERT(result.empty(), result.c_str());
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
@@ -921,8 +491,10 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			// Disable floating point exceptions since decompression assumes it
 			scope_disable_fp_exceptions fp_off;
 
-			acl::decompression_context<acl::debug_transform_decompression_settings> context;
-			context.initialize(*compressed_tracks_);
+			decompression_context<debug_transform_decompression_settings> context;
+
+			const bool initialized = context.initialize(*compressed_tracks_);
+			ACL_ASSERT(initialized, "Failed to initialize decompression context"); (void)initialized;
 
 			const track_error error = calculate_compression_error(allocator, transform_tracks, context, *settings.error_metric);
 
@@ -941,6 +513,31 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			validate_accuracy(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, regression_error_threshold);
 			validate_metadata(transform_tracks, *compressed_tracks_);
 			validate_convert(allocator, transform_tracks);
+
+			if (options.split_into_database)
+			{
+				// Drop all the metadata and make a second copy for testing
+				// This will ensure we have two clips with different hashes
+				settings.include_track_list_name = false;
+				settings.include_track_names = false;
+				settings.include_parent_track_indices = false;
+				settings.include_track_descriptions = false;
+
+				// No logging for second copy
+				output_stats stats1;
+
+				compressed_tracks* compressed_tracks1 = nullptr;
+
+				result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks1, stats1);
+
+				ACL_ASSERT(result.empty(), result.c_str());
+				ACL_ASSERT(compressed_tracks1->is_valid(true).empty(), "Compressed tracks are invalid");
+				ACL_ASSERT(compressed_tracks_->get_hash() != compressed_tracks1->get_hash(), "Hashes should not match");
+
+				validate_db(allocator, transform_tracks, additive_base, database_settings, *settings.error_metric, *compressed_tracks_, *compressed_tracks1);
+
+				allocator.deallocate(compressed_tracks1, compressed_tracks1->get_size());
+			}
 		}
 #endif
 
@@ -950,6 +547,16 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			if (output_file_stream.is_open())
 				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
 		}
+
+		// TODO
+#if 0
+		if (options.split_into_database && options.output_db_filename != nullptr)
+		{
+			std::ofstream output_file_stream(options.output_db_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+			if (output_file_stream.is_open())
+				output_file_stream.write(reinterpret_cast<const char*>(db), db->get_size());
+		}
+#endif
 
 		allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 	};
@@ -1135,7 +742,7 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 	return success;
 }
 
-static bool read_config(iallocator& allocator, Options& options, compression_settings& out_settings, double& out_regression_error_threshold)
+static bool read_config(iallocator& allocator, Options& options, compression_settings& out_settings, compression_database_settings& out_database_settings, double& out_regression_error_threshold)
 {
 #if defined(__ANDROID__)
 	sjson::Parser parser(options.config_buffer, options.config_buffer_size - 1);
@@ -1233,6 +840,24 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	bool use_matrix_error_metric;
 	if (parser.try_read("use_matrix_error_metric", use_matrix_error_metric, false))
 		options.use_matrix_error_metric = use_matrix_error_metric;
+
+	bool split_into_database;
+	if (parser.try_read("split_into_database", split_into_database, false))
+		options.split_into_database = split_into_database;
+
+	compression_database_settings default_database_settings;
+
+	uint32_t database_max_chunk_size;
+	if (parser.try_read("database_max_chunk_size", database_max_chunk_size, default_database_settings.max_chunk_size))
+		out_database_settings.max_chunk_size = database_max_chunk_size;
+
+	float medium_importance_tier;
+	if (parser.try_read("medium_importance_tier", medium_importance_tier, default_database_settings.medium_importance_tier_proportion))
+		out_database_settings.medium_importance_tier_proportion = medium_importance_tier;
+
+	float low_importance_tier;
+	if (parser.try_read("low_importance_tier", low_importance_tier, default_database_settings.low_importance_tier_proportion))
+		out_database_settings.low_importance_tier_proportion = low_importance_tier;
 
 	if (!parser.is_valid() || !parser.remainder_is_comments_and_whitespace())
 	{
@@ -1348,6 +973,7 @@ static int safe_main_impl(int argc, char* argv[])
 
 	bool use_external_config = false;
 	compression_settings settings;
+	compression_database_settings database_settings;
 
 	sjson_file_type sjson_type = sjson_file_type::unknown;
 	sjson_raw_clip sjson_clip;
@@ -1405,8 +1031,9 @@ static int safe_main_impl(int argc, char* argv[])
 	{
 		// Override whatever the ACL SJSON file might have contained
 		settings = compression_settings();
+		database_settings = compression_database_settings();
 
-		if (!read_config(allocator, options, settings, regression_error_threshold))
+		if (!read_config(allocator, options, settings, database_settings, regression_error_threshold))
 			return -1;
 
 		use_external_config = true;
@@ -1501,7 +1128,7 @@ static int safe_main_impl(int argc, char* argv[])
 				if (options.compression_level_specified)
 					settings.level = options.compression_level;
 
-				try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, logging, runs_writer, regression_error_threshold);
+				try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, database_settings, logging, runs_writer, regression_error_threshold);
 			}
 			else if (options.exhaustive_compression)
 			{
@@ -1519,7 +1146,7 @@ static int safe_main_impl(int argc, char* argv[])
 					{
 						test_settings.error_metric = settings.error_metric;
 
-						try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, test_settings, logging, runs_writer, regression_error_threshold);
+						try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, test_settings, database_settings, logging, runs_writer, regression_error_threshold);
 					}
 				}
 
@@ -1540,7 +1167,7 @@ static int safe_main_impl(int argc, char* argv[])
 						if (options.compression_level_specified)
 							test_settings.level = options.compression_level;
 
-						try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, test_settings, logging, runs_writer, regression_error_threshold);
+						try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, test_settings, database_settings, logging, runs_writer, regression_error_threshold);
 					}
 				}
 			}
@@ -1552,7 +1179,9 @@ static int safe_main_impl(int argc, char* argv[])
 				if (options.compression_level_specified)
 					default_settings.level = options.compression_level;
 
-				try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, default_settings, logging, runs_writer, regression_error_threshold);
+				compression_database_settings default_database_settings;
+
+				try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, default_settings, default_database_settings, logging, runs_writer, regression_error_threshold);
 			}
 		}
 		else if (sjson_type == sjson_file_type::raw_track_list)

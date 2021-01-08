@@ -28,6 +28,7 @@
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/decompression/database/database.h"
 #include "acl/decompression/impl/scalar_track_decompression.h"
 #include "acl/decompression/impl/transform_track_decompression.h"
 
@@ -61,8 +62,8 @@ namespace acl
 			void reset() { scalar.tracks = nullptr; }
 		};
 
-		template<class decompression_settings_type>
-		inline bool initialize_v0(persistent_universal_decompression_context& context, const compressed_tracks& tracks)
+		template<class decompression_settings_type, class database_settings_type>
+		inline bool initialize_v0(persistent_universal_decompression_context& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
 		{
 			const track_type8 track_type = tracks.get_track_type();
 			switch (track_type)
@@ -72,9 +73,9 @@ namespace acl
 			case track_type8::float3f:
 			case track_type8::float4f:
 			case track_type8::vector4f:
-				return initialize_v0<decompression_settings_type>(context.scalar, tracks);
+				return initialize_v0<decompression_settings_type>(context.scalar, tracks, database);
 			case track_type8::qvvf:
-				return initialize_v0<decompression_settings_type>(context.transform, tracks);
+				return initialize_v0<decompression_settings_type>(context.transform, tracks, database);
 			default:
 				ACL_ASSERT(false, "Invalid track type");
 				return false;

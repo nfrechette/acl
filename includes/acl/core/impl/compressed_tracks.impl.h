@@ -43,6 +43,11 @@ namespace acl
 			return *reinterpret_cast<const scalar_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
 		}
 
+		inline transform_tracks_header& get_transform_tracks_header(compressed_tracks& tracks)
+		{
+			return *reinterpret_cast<transform_tracks_header*>(reinterpret_cast<uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
+		}
+
 		inline const transform_tracks_header& get_transform_tracks_header(const compressed_tracks& tracks)
 		{
 			return *reinterpret_cast<const transform_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
@@ -73,6 +78,8 @@ namespace acl
 	}
 
 	inline float compressed_tracks::get_sample_rate() const { return acl_impl::get_tracks_header(*this).sample_rate; }
+
+	inline bool compressed_tracks::has_database() const { return acl_impl::get_tracks_header(*this).get_has_database(); }
 
 	inline const char* compressed_tracks::get_name() const
 	{
@@ -204,26 +211,39 @@ namespace acl
 		return error_result();
 	}
 
+	namespace acl_impl
+	{
+		inline const compressed_tracks* make_compressed_tracks_impl(const void* buffer, error_result* out_error_result)
+		{
+			if (buffer == nullptr)
+			{
+				if (out_error_result != nullptr)
+					*out_error_result = error_result("Buffer is not a valid pointer");
+
+				return nullptr;
+			}
+
+			const compressed_tracks* clip = static_cast<const compressed_tracks*>(buffer);
+			if (out_error_result != nullptr)
+			{
+				const error_result result = clip->is_valid(false);
+				*out_error_result = result;
+
+				if (result.any())
+					return nullptr;
+			}
+
+			return clip;
+		}
+	}
+
 	inline const compressed_tracks* make_compressed_tracks(const void* buffer, error_result* out_error_result)
 	{
-		if (buffer == nullptr)
-		{
-			if (out_error_result != nullptr)
-				*out_error_result = error_result("Buffer is not a valid pointer");
+		return acl_impl::make_compressed_tracks_impl(buffer, out_error_result);
+	}
 
-			return nullptr;
-		}
-
-		const compressed_tracks* clip = static_cast<const compressed_tracks*>(buffer);
-		if (out_error_result != nullptr)
-		{
-			const error_result result = clip->is_valid(false);
-			*out_error_result = result;
-
-			if (result.any())
-				return nullptr;
-		}
-
-		return clip;
+	inline compressed_tracks* make_compressed_tracks(void* buffer, error_result* out_error_result)
+	{
+		return const_cast<compressed_tracks*>(acl_impl::make_compressed_tracks_impl(buffer, out_error_result));
 	}
 }

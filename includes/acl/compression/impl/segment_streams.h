@@ -38,7 +38,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline void segment_streams(iallocator& allocator, clip_context& clip, const segmenting_settings& settings)
+		inline void segment_streams(iallocator& allocator, clip_context& clip, const compression_segmenting_settings& settings)
 		{
 			ACL_ASSERT(clip.num_segments == 1, "clip_context must have a single segment.");
 			ACL_ASSERT(settings.ideal_num_samples <= settings.max_num_samples, "Invalid num samples for segmenting settings. %u > %u", settings.ideal_num_samples, settings.max_num_samples);
@@ -101,6 +101,7 @@ namespace acl
 				segment.clip = &clip;
 				segment.bone_streams = allocate_type_array<BoneStreams>(allocator, clip.num_bones);
 				segment.ranges = nullptr;
+				segment.contributing_error = nullptr;
 				segment.num_bones = clip.num_bones;
 				segment.num_samples = num_samples_in_segment;
 				segment.clip_sample_offset = clip_sample_index;
@@ -109,9 +110,9 @@ namespace acl
 				segment.are_rotations_normalized = false;
 				segment.are_translations_normalized = false;
 				segment.are_scales_normalized = false;
-				segment.animated_pose_rotation_bit_size = 0;
-				segment.animated_pose_translation_bit_size = 0;
-				segment.animated_pose_scale_bit_size = 0;
+				segment.animated_rotation_bit_size = 0;
+				segment.animated_translation_bit_size = 0;
+				segment.animated_scale_bit_size = 0;
 				segment.animated_pose_bit_size = 0;
 				segment.animated_data_size = 0;
 				segment.range_data_size = 0;

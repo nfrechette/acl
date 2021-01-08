@@ -279,6 +279,7 @@ namespace acl
 			segment.bone_streams = bone_streams;
 			segment.clip = &out_clip_context;
 			segment.ranges = nullptr;
+			segment.contributing_error = nullptr;
 			segment.num_samples = num_samples;
 			segment.num_bones = num_transforms;
 			segment.clip_sample_offset = 0;
@@ -288,9 +289,9 @@ namespace acl
 			segment.are_translations_normalized = false;
 			segment.are_scales_normalized = false;
 
-			segment.animated_pose_rotation_bit_size = 0;
-			segment.animated_pose_translation_bit_size = 0;
-			segment.animated_pose_scale_bit_size = 0;
+			segment.animated_rotation_bit_size = 0;
+			segment.animated_translation_bit_size = 0;
+			segment.animated_scale_bit_size = 0;
 			segment.animated_pose_bit_size = 0;
 			segment.animated_data_size = 0;
 			segment.range_data_size = 0;

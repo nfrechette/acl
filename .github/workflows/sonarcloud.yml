@@ -1,0 +1,42 @@
+name: sonarcloud
+
+on:
+  push:
+    branches:
+      - '**'
+    paths-ignore:
+      - docs/**
+      - '**/*.md'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - docs/**
+      - '**/*.md'
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Setup build wrapper
+        run: |
+          wget -q https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip build-wrapper-linux-x86.zip
+      - name: Setup Sonar Scanner
+        run: |
+          wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.2.0.1873-linux.zip
+          unzip sonar-scanner-cli-4.2.0.1873-linux.zip
+      - name: Setup compiler
+        run: ./tools/setup_linux_compiler.sh clang5
+      - name: Build with wrapper
+        run: ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw_output python3 make.py -compiler clang5 -config Release -cpu x64 -build
+      - name: Run Sonar Scanner and upload to Sonarcloud
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        run: ./sonar-scanner-4.2.0.1873-linux/bin/sonar-scanner

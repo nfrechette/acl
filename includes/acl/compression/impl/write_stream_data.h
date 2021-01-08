@@ -98,26 +98,22 @@ namespace acl
 			out_num_constant_scale_samples = num_constant_scale_samples;
 		}
 
-		inline void get_animated_variable_bit_rate_data_size(const TrackStream& track_stream, uint32_t num_samples, uint32_t& out_num_animated_data_bits, uint32_t& out_num_animated_pose_bits)
+		inline void get_animated_variable_bit_rate_data_size(const TrackStream& track_stream, uint32_t& out_num_animated_pose_bits)
 		{
 			const uint8_t bit_rate = track_stream.get_bit_rate();
 			const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
-			out_num_animated_data_bits += num_bits_at_bit_rate * num_samples;
 			out_num_animated_pose_bits += num_bits_at_bit_rate;
 		}
 
-		inline void calculate_animated_data_size(const TrackStream& track_stream, uint32_t& num_animated_data_bits, uint32_t& num_animated_pose_bits)
+		inline void calculate_animated_data_size(const TrackStream& track_stream, uint32_t& num_animated_pose_bits)
 		{
-			const uint32_t num_samples = track_stream.get_num_samples();
-
 			if (track_stream.is_bit_rate_variable())
 			{
-				get_animated_variable_bit_rate_data_size(track_stream, num_samples, num_animated_data_bits, num_animated_pose_bits);
+				get_animated_variable_bit_rate_data_size(track_stream, num_animated_pose_bits);
 			}
 			else
 			{
 				const uint32_t sample_size = track_stream.get_packed_sample_size();
-				num_animated_data_bits += sample_size * num_samples * 8;
 				num_animated_pose_bits += sample_size * 8;
 			}
 		}
@@ -126,10 +122,9 @@ namespace acl
 		{
 			for (SegmentContext& segment : clip.segment_iterator())
 			{
-				uint32_t num_animated_rotation_data_bits = 0;
-				uint32_t num_animated_translation_data_bits = 0;
-				uint32_t num_animated_scale_data_bits = 0;
-				uint32_t num_animated_pose_bits = 0;
+				uint32_t num_animated_pose_rotation_data_bits = 0;
+				uint32_t num_animated_pose_translation_data_bits = 0;
+				uint32_t num_animated_pose_scale_data_bits = 0;
 
 				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 				{
@@ -137,20 +132,22 @@ namespace acl
 					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 
 					if (!bone_stream.is_rotation_constant)
-						calculate_animated_data_size(bone_stream.rotations, num_animated_rotation_data_bits, num_animated_pose_bits);
+						calculate_animated_data_size(bone_stream.rotations, num_animated_pose_rotation_data_bits);
 
 					if (!bone_stream.is_translation_constant)
-						calculate_animated_data_size(bone_stream.translations, num_animated_translation_data_bits, num_animated_pose_bits);
+						calculate_animated_data_size(bone_stream.translations, num_animated_pose_translation_data_bits);
 
 					if (!bone_stream.is_scale_constant)
-						calculate_animated_data_size(bone_stream.scales, num_animated_scale_data_bits, num_animated_pose_bits);
+						calculate_animated_data_size(bone_stream.scales, num_animated_pose_scale_data_bits);
 				}
 
-				const uint32_t num_animated_data_bits = num_animated_rotation_data_bits + num_animated_translation_data_bits + num_animated_scale_data_bits;
+				const uint32_t num_samples = segment.num_samples;
+				const uint32_t num_animated_pose_bits = num_animated_pose_rotation_data_bits + num_animated_pose_translation_data_bits + num_animated_pose_scale_data_bits;
+				const uint32_t num_animated_data_bits = num_animated_pose_bits * num_samples;
 
-				segment.animated_pose_rotation_bit_size = num_animated_rotation_data_bits;
-				segment.animated_pose_translation_bit_size = num_animated_translation_data_bits;
-				segment.animated_pose_scale_bit_size = num_animated_scale_data_bits;
+				segment.animated_rotation_bit_size = num_animated_pose_rotation_data_bits * num_samples;
+				segment.animated_translation_bit_size = num_animated_pose_translation_data_bits * num_samples;
+				segment.animated_scale_bit_size = num_animated_pose_scale_data_bits * num_samples;
 				segment.animated_data_size = align_to(num_animated_data_bits, 8) / 8;
 				segment.animated_pose_bit_size = num_animated_pose_bits;
 			}
@@ -460,6 +457,7 @@ namespace acl
 
 			const uint8_t* animated_track_data_start = animated_track_data;
 			uint64_t bit_offset = 0;
+			uint32_t num_samples = 0;
 
 			// Data is sorted first by time, second by bone.
 			// This ensures that all bones are contiguous in memory when we sample a particular time.
@@ -511,6 +509,8 @@ namespace acl
 			// TODO: Use a group writer context object to avoid alloc/free/work in loop for every sample when it doesn't change
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
+				num_samples++;
+
 				auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 				{
 					(void)group_size;
@@ -546,9 +546,9 @@ namespace acl
 			}
 
 			if (bit_offset != 0)
-				animated_track_data = animated_track_data_begin + (align_to(bit_offset, 8) / 8);
+				animated_track_data = animated_track_data_begin + ((bit_offset + 7) / 8);
 
-			ACL_ASSERT((bit_offset / segment.num_samples) == segment.animated_pose_bit_size, "Unexpected number of bits written");
+			ACL_ASSERT((bit_offset == 0 && num_samples == 0) || ((bit_offset / num_samples) == segment.animated_pose_bit_size), "Unexpected number of bits written");
 			ACL_ASSERT(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
 			return safe_static_cast<uint32_t>(animated_track_data - animated_track_data_start);
 		}

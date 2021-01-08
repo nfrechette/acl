@@ -221,11 +221,13 @@ namespace acl
 
 		inline uint32_t calculate_clip_metadata_common_size(const clip_context& clip, const compressed_tracks& compressed_clip)
 		{
+			const uint32_t segment_header_size = compressed_clip.has_database() ? sizeof(segment_tier0_header) : sizeof(segment_header);
+
 			uint32_t result = 0;
 
 			// Segment start indices and headers
 			result += clip.num_segments > 1 ? (sizeof(uint32_t) * (clip.num_segments + 1)) : 0;
-			result += sizeof(segment_header) * clip.num_segments;
+			result += segment_header_size * clip.num_segments;
 
 			// Default/constant track bit sets
 			const bitset_description bitset_desc = bitset_description::make_from_num_bits(compressed_clip.get_num_tracks());
@@ -342,7 +344,7 @@ namespace acl
 			uint32_t result = 0;
 
 			for (const SegmentContext& segment : clip.segment_iterator())
-				result += align_to(segment.animated_pose_rotation_bit_size, 8) / 8;	// Convert bits to bytes;
+				result += align_to(segment.animated_rotation_bit_size, 8) / 8;	// Convert bits to bytes;
 
 			return result;
 		}
@@ -352,7 +354,7 @@ namespace acl
 			uint32_t result = 0;
 
 			for (const SegmentContext& segment : clip.segment_iterator())
-				result += align_to(segment.animated_pose_translation_bit_size, 8) / 8;	// Convert bits to bytes;
+				result += align_to(segment.animated_translation_bit_size, 8) / 8;	// Convert bits to bytes;
 
 			return result;
 		}
@@ -362,7 +364,7 @@ namespace acl
 			uint32_t result = 0;
 
 			for (const SegmentContext& segment : clip.segment_iterator())
-				result += align_to(segment.animated_pose_scale_bit_size, 8) / 8;	// Convert bits to bytes;
+				result += align_to(segment.animated_scale_bit_size, 8) / 8;	// Convert bits to bytes;
 
 			return result;
 		}

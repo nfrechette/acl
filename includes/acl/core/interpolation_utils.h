@@ -153,6 +153,32 @@ namespace acl
 			break;
 		}
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the sample indices and the interpolation required to linearly
+	// interpolate when the samples are uniform.
+	// This function does not support looping.
+	inline float find_linear_interpolation_alpha(float sample_index, uint32_t sample_index0, uint32_t sample_index1, sample_rounding_policy rounding_policy)
+	{
+		ACL_ASSERT(sample_index >= 0.0F, "Invalid sample rate: %f", sample_index);
+
+		if (rounding_policy == sample_rounding_policy::floor)
+			return 0.0F;
+		else if (rounding_policy == sample_rounding_policy::ceil)
+			return 1.0F;
+		else if (sample_index0 == sample_index1)
+			return 0.0F;
+
+		ACL_ASSERT(sample_index0 < sample_index1, "Invalid sample indices: %u >= %u", sample_index0, sample_index1);
+
+		const float interpolation_alpha = (sample_index - float(sample_index0)) / float(sample_index1 - sample_index0);
+		ACL_ASSERT(interpolation_alpha >= 0.0F && interpolation_alpha <= 1.0F, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
+
+		if (rounding_policy == sample_rounding_policy::none)
+			return interpolation_alpha;
+		else // sample_rounding_policy::nearest
+			return rtm::scalar_floor(interpolation_alpha + 0.5F);
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

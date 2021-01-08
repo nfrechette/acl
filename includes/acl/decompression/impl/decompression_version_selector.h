@@ -29,6 +29,7 @@
 #include "acl/core/error.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/decompression/database/database.h"
 #include "acl/decompression/impl/scalar_track_decompression.h"
 #include "acl/decompression/impl/transform_track_decompression.h"
 #include "acl/decompression/impl/universal_track_decompression.h"
@@ -56,8 +57,8 @@ namespace acl
 		{
 			static constexpr bool is_version_supported(compressed_tracks_version16 version) { return version == compressed_tracks_version16::v02_00_00; }
 
-			template<class decompression_settings_type, class context_type>
-			ACL_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks); }
+			template<class decompression_settings_type, class context_type, class database_settings_type>
+			ACL_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database); }
 
 			template<class context_type>
 			ACL_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0(context, tracks); }
@@ -83,15 +84,15 @@ namespace acl
 				return version >= compressed_tracks_version16::first && version <= compressed_tracks_version16::latest;
 			}
 
-			template<class decompression_settings_type, class context_type>
-			static bool initialize(context_type& context, const compressed_tracks& tracks)
+			template<class decompression_settings_type, class context_type, class database_settings_type>
+			static bool initialize(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
 			{
 				// TODO: Use an array of lambdas and use the version to lookup? This could be a simple indirect function call.
 				const compressed_tracks_version16 version = tracks.get_version();
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
-					return decompression_version_selector<compressed_tracks_version16::v02_00_00>::initialize<decompression_settings_type>(context, tracks);
+					return decompression_version_selector<compressed_tracks_version16::v02_00_00>::initialize<decompression_settings_type>(context, tracks, database);
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					return false;

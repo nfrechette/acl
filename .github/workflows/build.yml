@@ -1,0 +1,151 @@
+name: build
+
+on:
+  push:
+    branches:
+      - '**'
+    paths-ignore:
+      - docs/**
+      - '**/*.md'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - docs/**
+      - '**/*.md'
+
+jobs:
+  linux:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        compiler: [gcc5, gcc6, gcc7, gcc8, gcc9, gcc10, clang4, clang5, clang6, clang7, clang8, clang9, clang10, clang11]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Setup ${{ matrix.compiler }} compiler
+        run: ./tools/setup_linux_compiler.sh ${{ matrix.compiler }}
+      - name: Building (debug-x86)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Debug -cpu x86 -build
+      - name: Running unit tests (debug-x86)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Debug -cpu x86 -unit_test
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (debug-x64)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Debug -cpu x64 -build
+      - name: Running unit tests (debug-x64)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Debug -cpu x64 -unit_test
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (release-x86)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Release -cpu x86 -build
+      - name: Running unit tests (release-x86)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Release -cpu x86 -unit_test
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (release-x64)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Release -cpu x64 -build
+      - name: Running unit tests (release-x64)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Release -cpu x64 -unit_test
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (release-x64 nosimd)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -build
+      - name: Running unit tests (release-x64 nosimd)
+        run: python3 make.py -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -unit_test
+  osx:
+    runs-on: macos-10.15
+    strategy:
+      matrix:
+        compiler: [xcode10, xcode11]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Setup ${{ matrix.compiler }} compiler
+        run: ./tools/setup_osx_compiler.sh ${{ matrix.compiler }}
+      - name: Building (debug-x86)
+        if: ${{ matrix.compiler == 'xcode10' }}
+        run: python3 make.py -compiler osx -config Debug -cpu x86 -build
+      - name: Running unit tests (debug-x86)
+        if: ${{ matrix.compiler == 'xcode10' }}
+        run: python3 make.py -compiler osx -config Debug -cpu x86 -unit_test
+      - name: Clean
+        if: ${{ matrix.compiler == 'xcode10' }}
+        run: python3 make.py -clean_only
+      - name: Building (debug-x64)
+        run: python3 make.py -compiler osx -config Debug -cpu x64 -build
+      - name: Running unit tests (debug-x64)
+        run: python3 make.py -compiler osx -config Debug -cpu x64 -unit_test
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (release-x86)
+        if: ${{ matrix.compiler == 'xcode10' }}
+        run: python3 make.py -compiler osx -config Release -cpu x86 -build
+      - name: Running unit tests (release-x86)
+        if: ${{ matrix.compiler == 'xcode10' }}
+        run: python3 make.py -compiler osx -config Release -cpu x86 -unit_test
+      - name: Clean
+        if: ${{ matrix.compiler == 'xcode10' }}
+        run: python3 make.py -clean_only
+      - name: Building (release-x64)
+        run: python3 make.py -compiler osx -config Release -cpu x64 -build
+      - name: Running unit tests (release-x64)
+        run: python3 make.py -compiler osx -config Release -cpu x64 -unit_test
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (release-x64 nosimd)
+        run: python3 make.py -compiler osx -config Release -cpu x64 -nosimd -build
+      - name: Running unit tests (release-x64 nosimd)
+        run: python3 make.py -compiler osx -config Release -cpu x64 -nosimd -unit_test
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building for iOS (debug-arm64)
+        run: python3 make.py -compiler ios -config Debug -build
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building for iOS (release-arm64)
+        run: python3 make.py -compiler ios -config Release -build
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building for iOS (release-arm64 nosimd)
+        run: python3 make.py -compiler ios -config Release -build -nosimd
+  emscripten:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Cache emsdk
+        uses: actions/cache@v1
+        id: 'emsdk'
+        with:
+          path: 'emsdk-cache'
+          key: ${{ runner.os }}-emsdk-1.39.11
+      - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@v7
+        with:
+          version: 1.39.11
+          no-cache: true
+          actions-cache-folder: 'emsdk-cache'
+      - name: Cache emsdk build artifacts
+        uses: actions/cache@v1
+        id: 'emsdk-build-artifacts'
+        with:
+          path: '~/.emscripten_cache'
+          key: ${{ runner.os }}-emsdk-build-artifacts-1.39.11
+      - name: Build (debug)
+        run: python3 make.py -compiler emscripten -config debug -build
+# Don't run debug unit tests, they are too slow and sometime time out
+#     - name: Unit tests (debug)
+#       run: python3 make.py -compiler emscripten -config debug -unit_test
+      - name: Clean
+        run: python3 make.py -clean
+      - name: Build (release)
+        run: python3 make.py -compiler emscripten -config release -build
+      - name: Unit tests (release)
+        run: python3 make.py -compiler emscripten -config release -unit_test

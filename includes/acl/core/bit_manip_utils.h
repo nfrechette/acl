@@ -43,20 +43,38 @@
 	#include <nmmintrin.h>
 #endif
 
-// Note: It seems that the Clang toolchain with MSVC enables BMI only with AVX2 unlike
-// MSVC which enables it with AVX
-#if defined(RTM_AVX_INTRINSICS) && !(defined(_MSC_VER) && defined(__clang__))
-	// Use BMI
+#if !defined(ACL_BMI_INTRINSICS) && !defined(RTM_NO_INTRINSICS)
+	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
+	#if defined(_DURANGO) || defined(_XBOX_ONE)
+		// Enable BMI type instructions on Xbox One
+		#define ACL_BMI_INTRINSICS
+	#elif defined(RTM_AVX_INTRINSICS) && !(defined(_MSC_VER) && defined(__clang__))
+		// Enable BMI when AVX is enabled except with clang under Windows
+		// Note: It seems that the Clang toolchain with MSVC enables BMI only with AVX2 unlike
+		// MSVC which enables it with AVX
+		#define ACL_BMI_INTRINSICS
+	#endif
+#endif
+
+#if defined(ACL_BMI_INTRINSICS)
 	#include <ammintrin.h>		// MSVC uses this header for _andn_u32 BMI intrinsic
 	#include <immintrin.h>		// Intel documentation says _andn_u32 and others are here
-
-	#define ACL_BMI_INTRINSICS
 #endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C4146: unary minus operator applied to unsigned type, result still unsigned
+	// This is fine because we use bitwise arithmetic and rely on the fact that unsigned
+	// integers use twos complement.
+	#pragma warning(disable : 4146)
+#endif
+
 namespace acl
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
 	inline uint8_t count_set_bits(uint8_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -70,6 +88,8 @@ namespace acl
 #endif
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
 	inline uint16_t count_set_bits(uint16_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -83,6 +103,8 @@ namespace acl
 #endif
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
 	inline uint32_t count_set_bits(uint32_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -96,6 +118,8 @@ namespace acl
 #endif
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
 	inline uint64_t count_set_bits(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -109,6 +133,45 @@ namespace acl
 #endif
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Starting at the MSB, counts the number of leading zeros
+	inline uint32_t count_leading_zeros(uint32_t value)
+	{
+#if defined(ACL_USE_POPCOUNT)
+		return _lzcnt_u32(value);
+#elif defined(ACL_COMPILER_MSVC)
+		unsigned long first_set_bit_index;
+		return _BitScanReverse(&first_set_bit_index, value) ? (31 - first_set_bit_index) : 32;
+#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+		return value != 0 ? __builtin_clz(value) : 32;
+#else
+		value = value | (value >> 1);
+		value = value | (value >> 2);
+		value = value | (value >> 4);
+		value = value | (value >> 8);
+		value = value | (value >> 16);
+		return count_set_bits(~value);
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Starting at the LSB, counts the number of trailing zeros
+	inline uint32_t count_trailing_zeros(uint32_t value)
+	{
+#if defined(ACL_BMI_INTRINSICS)
+		return _tzcnt_u32(value);
+#elif defined(ACL_COMPILER_MSVC)
+		unsigned long first_set_bit_index;
+		return _BitScanForward(&first_set_bit_index, value) ? first_set_bit_index : 32;
+#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+		return value != 0 ? __builtin_ctz(value) : 32;
+#else
+		return value != 0 ? (31 - count_leading_zeros(value & -value)) : 32;
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Rotate the bits left by some amount
 	inline uint32_t rotate_bits_left(uint32_t value, int32_t num_bits)
 	{
 		ACL_ASSERT(num_bits >= 0, "Attempting to rotate by negative bits");
@@ -118,11 +181,13 @@ namespace acl
 		return (value << num_bits) | (value >> ((-num_bits) & mask));
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Perform: ~not_value & and_value
 	inline uint32_t and_not(uint32_t not_value, uint32_t and_value)
 	{
 #if defined(ACL_BMI_INTRINSICS)
 		// Use BMI
-#if defined(__GNUC__) && !defined(__clang__) && !defined(_andn_u32)
+#if defined(ACL_COMPILER_GCC) && !defined(_andn_u32)
 		return __andn_u32(not_value, and_value);	// GCC doesn't define the right intrinsic symbol
 #else
 		return _andn_u32(not_value, and_value);
@@ -132,5 +197,9 @@ namespace acl
 #endif
 	}
 }
+
+#if defined(ACL_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
 
 ACL_IMPL_FILE_PRAGMA_POP

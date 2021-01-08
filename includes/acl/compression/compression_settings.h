@@ -47,17 +47,59 @@ namespace acl
 	// compressed independently to allow a smaller memory footprint as well as
 	// faster compression and decompression.
 	// See also: https://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/
-	struct segmenting_settings
+	struct compression_segmenting_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// How many samples to try and fit in our segments
+		// How many samples to try and fit in our segments.
 		// Defaults to '16'
 		uint32_t ideal_num_samples = 16;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Maximum number of samples per segment
+		// Maximum number of samples per segment.
 		// Defaults to '31'
 		uint32_t max_num_samples = 31;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Calculates a hash from the internal state to uniquely identify a configuration.
+		uint32_t get_hash() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Checks if everything is valid and if it isn't, returns an error string.
+		// Returns nullptr if the settings are valid.
+		error_result is_valid() const;
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// Encapsulates all the compression settings related to database usage.
+	struct compression_database_settings
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// What proportions we should use when distributing our frames based on
+		// their importance to the overall error contribution. If a sample doesn't
+		// go into the medium or low importance tiers, it will end up in the high
+		// importance tier stored within each compressed track instance.
+		// Proportion values must be between 0.0 and 1.0 and their sum as well.
+		// If the sum is less than 1.0, remaining frames are considered to have high
+		// importance. A low importance proportion of 30% means that the least important
+		// 30% of frames will end up in that corresponding database tier.
+		// Note that only movable frames can end up in the database as some frames must remain
+		// within the compressed track instance. A frame is movable if it isn't the first or last
+		// frame of its segment.
+		// Defaults to '0.0' (the medium importance tier is empty)
+		float medium_importance_tier_proportion = 0.0F;
+
+		//////////////////////////////////////////////////////////////////////////
+		// See above for details.
+		// Defaults to '0.5' (the least important 50% of frames are moved to the database)
+		float low_importance_tier_proportion = 0.5F;
+
+		//////////////////////////////////////////////////////////////////////////
+		// How large should each chunk be, in bytes.
+		// This value must be at least 4 KB and ideally it should be a multiple of
+		// the virtual memory page size used on the platform that will decompress
+		// from the database.
+		// Defaults to '1 MB'
+		uint32_t max_chunk_size = 1 * 1024 * 1024;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.
@@ -89,9 +131,9 @@ namespace acl
 		vector_format8 scale_format = vector_format8::vector3f_full;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Segmenting settings, if used
+		// Segmenting settings, if used.
 		// Transform tracks only.
-		segmenting_settings segmenting;
+		compression_segmenting_settings segmenting;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The error metric to use.
@@ -120,6 +162,15 @@ namespace acl
 		// For transforms, also enables the parent track indices metadata
 		// Defaults to 'false'
 		bool include_track_descriptions = false;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Whether to include the optional metadata for the contributing error
+		// of each frame. These are sorted from lowest to largest error.
+		// This is required when the compressed tracks will later be merged into
+		// a database.
+		// Transform tracks only
+		// Defaults to 'false'
+		bool include_contributing_error = false;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.
