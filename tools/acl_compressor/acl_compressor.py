@@ -337,7 +337,7 @@ def compress_clips(options):
 			cmd = '{} -acl="{}" -stats="{}" -level={}'.format(compressor_exe_path, acl_filename, stat_filename, options['level'])
 
 			if out_dir:
-				out_filename = os.path.join(options['out'], filename.replace('.acl.sjson', '.acl.bin'))
+				out_filename = os.path.join(options['out'], filename.replace('.acl.sjson', '.acl'))
 				cmd = '{} -out="{}"'.format(cmd, out_filename)
 
 			if options['stat_detailed']:
