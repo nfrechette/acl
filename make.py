@@ -748,7 +748,7 @@ def do_regression_tests_cmake(test_data_dir, args):
 
 				all_threads_done = True
 				for thread in threads:
-					if thread.isAlive():
+					if thread.is_alive():
 						all_threads_done = False
 
 				if all_threads_done:
