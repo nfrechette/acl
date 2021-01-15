@@ -88,24 +88,35 @@ namespace acl
 			uint32_t group_size;
 		};
 
-		struct segment_animated_scratch_v0
+		struct alignas(32) segment_animated_scratch_v0
 		{
 			// We store out potential range data in SOA form and we have no W, just XYZ
-			rtm::vector4f segment_range_min_xxxx;
-			rtm::vector4f segment_range_min_yyyy;
-			rtm::vector4f segment_range_min_zzzz;
-			rtm::vector4f segment_range_extent_xxxx;
-			rtm::vector4f segment_range_extent_yyyy;
-			rtm::vector4f segment_range_extent_zzzz;
+			// To facilitate AVX and wider SIMD usage, we store our data interleaved in a single contiguous array
+			// Segment 0 has a base offset of 0 bytes and afterwards every write has a 32 byte offset
+			// Segment 1 has a base offset of 16 bytes and afterwards every write has a 32 byte offset
+
+			// segment_range_min_xxxx0, segment_range_min_xxxx1, segment_range_min_yyyy0, segment_range_min_yyyy1, segment_range_min_zzzz0, segment_range_min_zzzz1
+			rtm::vector4f segment_range_min[6];
+
+			// segment_range_extent_xxxx0, segment_range_extent_xxxx1, segment_range_extent_yyyy0, segment_range_extent_yyyy1, segment_range_extent_zzzz0, segment_range_extent_zzzz1
+			rtm::vector4f segment_range_extent[6];
 
 			// We store our potential constant bit rate samples in SOA form with 16 bit per component
 			// We have 4 components, each 16 bit wide, and we have no W, just XYZ
-			uint8_t constant_sample_data[sizeof(uint16_t) * 4 * 3];
+			//uint8_t constant_sample_data[sizeof(uint16_t) * 4 * 3];
 
 			//uint8_t padding[8];
 		};
 
-		inline ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_segment_range_data(const uint8_t* segment_range_data, segment_animated_scratch_v0& output_scratch)
+#if defined(RTM_SSE2_INTRINSICS)
+		using range_reduction_masks_t = __m128i;
+#elif defined(RTM_NEON_INTRINSICS)
+		using range_reduction_masks_t = int16x8_t;
+#else
+		using range_reduction_masks_t = uint64_t;
+#endif
+
+		inline ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_segment_range_data(const uint8_t* segment_range_data, uint32_t scratch_offset, segment_animated_scratch_v0& output_scratch)
 		{
 			// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
 
@@ -216,16 +227,254 @@ namespace acl
 			// Prefetch 4 samples ahead in all levels of the CPU cache
 			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 63);
 
-			output_scratch.segment_range_min_xxxx = segment_range_min_xxxx;
-			output_scratch.segment_range_min_yyyy = segment_range_min_yyyy;
-			output_scratch.segment_range_min_zzzz = segment_range_min_zzzz;
-			output_scratch.segment_range_extent_xxxx = segment_range_extent_xxxx;
-			output_scratch.segment_range_extent_yyyy = segment_range_extent_yyyy;
-			output_scratch.segment_range_extent_zzzz = segment_range_extent_zzzz;
+#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+			// With AVX, we must duplicate our data for the first segment in case we don't have a second segment
+			if (scratch_offset == 0)
+			{
+				// First segment data is duplicated
+				// Use 256 bit stores to avoid doing too many stores which might stall
+				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_min[0]), _mm256_set_m128(segment_range_min_xxxx, segment_range_min_xxxx));
+				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_min[2]), _mm256_set_m128(segment_range_min_yyyy, segment_range_min_yyyy));
+				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_min[4]), _mm256_set_m128(segment_range_min_zzzz, segment_range_min_zzzz));
+				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_extent[0]), _mm256_set_m128(segment_range_extent_xxxx, segment_range_extent_xxxx));
+				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_extent[2]), _mm256_set_m128(segment_range_extent_yyyy, segment_range_extent_yyyy));
+				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_extent[4]), _mm256_set_m128(segment_range_extent_zzzz, segment_range_extent_zzzz));
+			}
+			else
+			{
+				// Second segment overwrites our data
+				output_scratch.segment_range_min[1] = segment_range_min_xxxx;
+				output_scratch.segment_range_min[3] = segment_range_min_yyyy;
+				output_scratch.segment_range_min[5] = segment_range_min_zzzz;
+				output_scratch.segment_range_extent[1] = segment_range_extent_xxxx;
+				output_scratch.segment_range_extent[3] = segment_range_extent_yyyy;
+				output_scratch.segment_range_extent[5] = segment_range_extent_zzzz;
+			}
+#else
+			output_scratch.segment_range_min[scratch_offset + 0] = segment_range_min_xxxx;
+			output_scratch.segment_range_min[scratch_offset + 2] = segment_range_min_yyyy;
+			output_scratch.segment_range_min[scratch_offset + 4] = segment_range_min_zzzz;
+			output_scratch.segment_range_extent[scratch_offset + 0] = segment_range_extent_xxxx;
+			output_scratch.segment_range_extent[scratch_offset + 2] = segment_range_extent_yyyy;
+			output_scratch.segment_range_extent[scratch_offset + 4] = segment_range_extent_zzzz;
+#endif
 		}
 
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data4(const segment_animated_scratch_v0& segment_scratch, uint32_t scratch_offset, range_reduction_masks_t range_reduction_masks,
+			rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz)
+		{
+			// Load and mask out our segment range data
+			const rtm::vector4f one_v = rtm::vector_set(1.0F);
+
+			rtm::vector4f segment_range_min_xxxx = segment_scratch.segment_range_min[scratch_offset + 0];
+			rtm::vector4f segment_range_min_yyyy = segment_scratch.segment_range_min[scratch_offset + 2];
+			rtm::vector4f segment_range_min_zzzz = segment_scratch.segment_range_min[scratch_offset + 4];
+
+			rtm::vector4f segment_range_extent_xxxx = segment_scratch.segment_range_extent[scratch_offset + 0];
+			rtm::vector4f segment_range_extent_yyyy = segment_scratch.segment_range_extent[scratch_offset + 2];
+			rtm::vector4f segment_range_extent_zzzz = segment_scratch.segment_range_extent[scratch_offset + 4];
+
+#if defined(RTM_SSE2_INTRINSICS)
+			// Mask out the segment min we ignore
+			const rtm::mask4f segment_range_ignore_mask_v = _mm_castsi128_ps(_mm_unpacklo_epi16(range_reduction_masks, range_reduction_masks));
+
+			segment_range_min_xxxx = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_xxxx);
+			segment_range_min_yyyy = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_yyyy);
+			segment_range_min_zzzz = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_zzzz);
+#elif defined(RTM_NEON_INTRINSICS)
+			// Mask out the segment min we ignore
+			const uint32x4_t segment_range_ignore_mask_v = vreinterpretq_u32_s32(vmovl_s16(vget_low_s16(range_reduction_masks)));
+
+			segment_range_min_xxxx = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_xxxx), segment_range_ignore_mask_v));
+			segment_range_min_yyyy = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_yyyy), segment_range_ignore_mask_v));
+			segment_range_min_zzzz = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_zzzz), segment_range_ignore_mask_v));
+#else
+			const rtm::vector4f zero_v = rtm::vector_zero();
+
+			const uint32_t segment_range_mask_u32 = uint32_t(range_reduction_masks);
+			const rtm::mask4f segment_range_mask = rtm::mask_set((segment_range_mask_u32 & 0x000000FF) != 0, (segment_range_mask_u32 & 0x0000FF00) != 0, (segment_range_mask_u32 & 0x00FF0000) != 0, (segment_range_mask_u32 & 0xFF000000) != 0);
+
+			segment_range_min_xxxx = rtm::vector_select(segment_range_mask, zero_v, segment_range_min_xxxx);
+			segment_range_min_yyyy = rtm::vector_select(segment_range_mask, zero_v, segment_range_min_yyyy);
+			segment_range_min_zzzz = rtm::vector_select(segment_range_mask, zero_v, segment_range_min_zzzz);
+#endif
+
+			// Mask out the segment extent we ignore
+			segment_range_extent_xxxx = rtm::vector_select(segment_range_ignore_mask_v, one_v, segment_range_extent_xxxx);
+			segment_range_extent_yyyy = rtm::vector_select(segment_range_ignore_mask_v, one_v, segment_range_extent_yyyy);
+			segment_range_extent_zzzz = rtm::vector_select(segment_range_ignore_mask_v, one_v, segment_range_extent_zzzz);
+
+			// Remap
+			xxxx = rtm::vector_mul_add(xxxx, segment_range_extent_xxxx, segment_range_min_xxxx);
+			yyyy = rtm::vector_mul_add(yyyy, segment_range_extent_yyyy, segment_range_min_yyyy);
+			zzzz = rtm::vector_mul_add(zzzz, segment_range_extent_zzzz, segment_range_min_zzzz);
+		}
+
+#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data_avx(const segment_animated_scratch_v0& segment_scratch,
+			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
+			__m256& xxxx0_xxxx1, __m256& yyyy0_yyyy1, __m256& zzzz0_zzzz1)
+		{
+			// Load and mask out our segment range data
+			const __m256 one_v = _mm256_set1_ps(1.0F);
+
+			__m256 segment_range_min_xxxx0_xxxx1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_min[0]));
+			__m256 segment_range_min_yyyy0_yyyy1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_min[2]));
+			__m256 segment_range_min_zzzz0_zzzz1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_min[4]));
+
+			__m256 segment_range_extent_xxxx0_xxxx1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_extent[0]));
+			__m256 segment_range_extent_yyyy0_yyyy1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_extent[2]));
+			__m256 segment_range_extent_zzzz0_zzzz1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_extent[4]));
+
+			// Mask out the segment min we ignore
+			const __m128 segment_range_ignore_mask_v0 = _mm_castsi128_ps(_mm_unpacklo_epi16(range_reduction_masks0, range_reduction_masks0));
+			const __m128 segment_range_ignore_mask_v1 = _mm_castsi128_ps(_mm_unpacklo_epi16(range_reduction_masks1, range_reduction_masks1));
+
+			const __m256 segment_range_mask0_mask1 = _mm256_set_m128(segment_range_ignore_mask_v1, segment_range_ignore_mask_v0);
+
+			segment_range_min_xxxx0_xxxx1 = _mm256_andnot_ps(segment_range_mask0_mask1, segment_range_min_xxxx0_xxxx1);
+			segment_range_min_yyyy0_yyyy1 = _mm256_andnot_ps(segment_range_mask0_mask1, segment_range_min_yyyy0_yyyy1);
+			segment_range_min_zzzz0_zzzz1 = _mm256_andnot_ps(segment_range_mask0_mask1, segment_range_min_zzzz0_zzzz1);
+
+			segment_range_extent_xxxx0_xxxx1 = _mm256_blendv_ps(segment_range_extent_xxxx0_xxxx1, one_v, segment_range_mask0_mask1);
+			segment_range_extent_yyyy0_yyyy1 = _mm256_blendv_ps(segment_range_extent_yyyy0_yyyy1, one_v, segment_range_mask0_mask1);
+			segment_range_extent_zzzz0_zzzz1 = _mm256_blendv_ps(segment_range_extent_zzzz0_zzzz1, one_v, segment_range_mask0_mask1);
+
+			xxxx0_xxxx1 = _mm256_add_ps(_mm256_mul_ps(xxxx0_xxxx1, segment_range_extent_xxxx0_xxxx1), segment_range_min_xxxx0_xxxx1);
+			yyyy0_yyyy1 = _mm256_add_ps(_mm256_mul_ps(yyyy0_yyyy1, segment_range_extent_yyyy0_yyyy1), segment_range_min_yyyy0_yyyy1);
+			zzzz0_zzzz1 = _mm256_add_ps(_mm256_mul_ps(zzzz0_zzzz1, segment_range_extent_zzzz0_zzzz1), segment_range_min_zzzz0_zzzz1);
+		}
+#endif
+
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data4(const uint8_t* clip_range_data, uint32_t num_to_unpack,
+			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
+			rtm::vector4f& xxxx0, rtm::vector4f& yyyy0, rtm::vector4f& zzzz0,
+			rtm::vector4f& xxxx1, rtm::vector4f& yyyy1, rtm::vector4f& zzzz1)
+		{
+			// Always load 4x rotations, we might contain garbage in a few lanes but it's fine
+			const uint32_t load_size = num_to_unpack * sizeof(float);
+
+#if defined(RTM_SSE2_INTRINSICS)
+			const __m128 clip_range_mask0 = _mm_castsi128_ps(_mm_unpackhi_epi16(range_reduction_masks0, range_reduction_masks0));
+			const __m128 clip_range_mask1 = _mm_castsi128_ps(_mm_unpackhi_epi16(range_reduction_masks1, range_reduction_masks1));
+#elif defined(RTM_NEON_INTRINSICS)
+			const float32x4_t clip_range_mask0 = vreinterpretq_f32_s32(vmovl_s16(vget_high_s16(range_reduction_masks0)));
+			const float32x4_t clip_range_mask1 = vreinterpretq_f32_s32(vmovl_s16(vget_high_s16(range_reduction_masks1)));
+#else
+			const uint32_t clip_range_mask_u32_0 = uint32_t(range_reduction_masks0 >> 32);
+			const uint32_t clip_range_mask_u32_1 = uint32_t(range_reduction_masks1 >> 32);
+			const rtm::mask4f clip_range_mask0 = rtm::mask_set((clip_range_mask_u32_0 & 0x000000FF) != 0, (clip_range_mask_u32_0 & 0x0000FF00) != 0, (clip_range_mask_u32_0 & 0x00FF0000) != 0, (clip_range_mask_u32_0 & 0xFF000000) != 0);
+			const rtm::mask4f clip_range_mask1 = rtm::mask_set((clip_range_mask_u32_1 & 0x000000FF) != 0, (clip_range_mask_u32_1 & 0x0000FF00) != 0, (clip_range_mask_u32_1 & 0x00FF0000) != 0, (clip_range_mask_u32_1 & 0xFF000000) != 0);
+#endif
+
+			const rtm::vector4f clip_range_min_xxxx = rtm::vector_load(clip_range_data + load_size * 0);
+			const rtm::vector4f clip_range_min_yyyy = rtm::vector_load(clip_range_data + load_size * 1);
+			const rtm::vector4f clip_range_min_zzzz = rtm::vector_load(clip_range_data + load_size * 2);
+
+			const rtm::vector4f clip_range_extent_xxxx = rtm::vector_load(clip_range_data + load_size * 3);
+			const rtm::vector4f clip_range_extent_yyyy = rtm::vector_load(clip_range_data + load_size * 4);
+			const rtm::vector4f clip_range_extent_zzzz = rtm::vector_load(clip_range_data + load_size * 5);
+
+			// Mask out the clip ranges we ignore
+#if defined(RTM_SSE2_INTRINSICS)
+			const rtm::vector4f clip_range_min_xxxx0 = _mm_andnot_ps(clip_range_mask0, clip_range_min_xxxx);
+			const rtm::vector4f clip_range_min_yyyy0 = _mm_andnot_ps(clip_range_mask0, clip_range_min_yyyy);
+			const rtm::vector4f clip_range_min_zzzz0 = _mm_andnot_ps(clip_range_mask0, clip_range_min_zzzz);
+
+			const rtm::vector4f clip_range_min_xxxx1 = _mm_andnot_ps(clip_range_mask1, clip_range_min_xxxx);
+			const rtm::vector4f clip_range_min_yyyy1 = _mm_andnot_ps(clip_range_mask1, clip_range_min_yyyy);
+			const rtm::vector4f clip_range_min_zzzz1 = _mm_andnot_ps(clip_range_mask1, clip_range_min_zzzz);
+#elif defined(RTM_NEON_INTRINSICS)
+			const rtm::vector4f clip_range_min_xxxx0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_xxxx), vreinterpretq_u32_f32(clip_range_mask0)));
+			const rtm::vector4f clip_range_min_yyyy0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_yyyy), vreinterpretq_u32_f32(clip_range_mask0)));
+			const rtm::vector4f clip_range_min_zzzz0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_zzzz), vreinterpretq_u32_f32(clip_range_mask0)));
+
+			const rtm::vector4f clip_range_min_xxxx1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_xxxx), vreinterpretq_u32_f32(clip_range_mask1)));
+			const rtm::vector4f clip_range_min_yyyy1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_yyyy), vreinterpretq_u32_f32(clip_range_mask1)));
+			const rtm::vector4f clip_range_min_zzzz1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_zzzz), vreinterpretq_u32_f32(clip_range_mask1)));
+#else
+			const rtm::vector4f zero_v = rtm::vector_zero();
+
+			const rtm::vector4f clip_range_min_xxxx0 = rtm::vector_select(clip_range_mask0, zero_v, clip_range_min_xxxx);
+			const rtm::vector4f clip_range_min_yyyy0 = rtm::vector_select(clip_range_mask0, zero_v, clip_range_min_yyyy);
+			const rtm::vector4f clip_range_min_zzzz0 = rtm::vector_select(clip_range_mask0, zero_v, clip_range_min_zzzz);
+
+			const rtm::vector4f clip_range_min_xxxx1 = rtm::vector_select(clip_range_mask1, zero_v, clip_range_min_xxxx);
+			const rtm::vector4f clip_range_min_yyyy1 = rtm::vector_select(clip_range_mask1, zero_v, clip_range_min_yyyy);
+			const rtm::vector4f clip_range_min_zzzz1 = rtm::vector_select(clip_range_mask1, zero_v, clip_range_min_zzzz);
+#endif
+
+			const rtm::vector4f one_v = rtm::vector_set(1.0F);
+
+			const rtm::vector4f clip_range_extent_xxxx0 = rtm::vector_select(clip_range_mask0, one_v, clip_range_extent_xxxx);
+			const rtm::vector4f clip_range_extent_yyyy0 = rtm::vector_select(clip_range_mask0, one_v, clip_range_extent_yyyy);
+			const rtm::vector4f clip_range_extent_zzzz0 = rtm::vector_select(clip_range_mask0, one_v, clip_range_extent_zzzz);
+
+			const rtm::vector4f clip_range_extent_xxxx1 = rtm::vector_select(clip_range_mask1, one_v, clip_range_extent_xxxx);
+			const rtm::vector4f clip_range_extent_yyyy1 = rtm::vector_select(clip_range_mask1, one_v, clip_range_extent_yyyy);
+			const rtm::vector4f clip_range_extent_zzzz1 = rtm::vector_select(clip_range_mask1, one_v, clip_range_extent_zzzz);
+
+			xxxx0 = rtm::vector_mul_add(xxxx0, clip_range_extent_xxxx0, clip_range_min_xxxx0);
+			yyyy0 = rtm::vector_mul_add(yyyy0, clip_range_extent_yyyy0, clip_range_min_yyyy0);
+			zzzz0 = rtm::vector_mul_add(zzzz0, clip_range_extent_zzzz0, clip_range_min_zzzz0);
+
+			xxxx1 = rtm::vector_mul_add(xxxx1, clip_range_extent_xxxx1, clip_range_min_xxxx1);
+			yyyy1 = rtm::vector_mul_add(yyyy1, clip_range_extent_yyyy1, clip_range_min_yyyy1);
+			zzzz1 = rtm::vector_mul_add(zzzz1, clip_range_extent_zzzz1, clip_range_min_zzzz1);
+		}
+
+#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data_avx(const uint8_t* clip_range_data, uint32_t num_to_unpack,
+			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
+			__m256& xxxx0_xxxx1, __m256& yyyy0_yyyy1, __m256& zzzz0_zzzz1)
+		{
+			const __m256 one_v = _mm256_set1_ps(1.0F);
+
+			// Always load 4x rotations, we might contain garbage in a few lanes but it's fine
+			const uint32_t load_size = num_to_unpack * sizeof(float);
+
+			const __m128 clip_range_mask0 = _mm_castsi128_ps(_mm_unpackhi_epi16(range_reduction_masks0, range_reduction_masks0));
+			const __m128 clip_range_mask1 = _mm_castsi128_ps(_mm_unpackhi_epi16(range_reduction_masks1, range_reduction_masks1));
+
+			const __m256 clip_range_mask0_mask1 = _mm256_set_m128(clip_range_mask1, clip_range_mask0);
+
+			const rtm::vector4f clip_range_min_xxxx = rtm::vector_load(clip_range_data + load_size * 0);
+			const rtm::vector4f clip_range_min_yyyy = rtm::vector_load(clip_range_data + load_size * 1);
+			const rtm::vector4f clip_range_min_zzzz = rtm::vector_load(clip_range_data + load_size * 2);
+
+			const rtm::vector4f clip_range_extent_xxxx = rtm::vector_load(clip_range_data + load_size * 3);
+			const rtm::vector4f clip_range_extent_yyyy = rtm::vector_load(clip_range_data + load_size * 4);
+			const rtm::vector4f clip_range_extent_zzzz = rtm::vector_load(clip_range_data + load_size * 5);
+
+			__m256 clip_range_min_xxxx_xxxx = _mm256_set_m128(clip_range_min_xxxx, clip_range_min_xxxx);
+			__m256 clip_range_min_yyyy_yyyy = _mm256_set_m128(clip_range_min_yyyy, clip_range_min_yyyy);
+			__m256 clip_range_min_zzzz_zzzz = _mm256_set_m128(clip_range_min_zzzz, clip_range_min_zzzz);
+
+			__m256 clip_range_extent_xxxx_xxxx = _mm256_set_m128(clip_range_extent_xxxx, clip_range_extent_xxxx);
+			__m256 clip_range_extent_yyyy_yyyy = _mm256_set_m128(clip_range_extent_yyyy, clip_range_extent_yyyy);
+			__m256 clip_range_extent_zzzz_zzzz = _mm256_set_m128(clip_range_extent_zzzz, clip_range_extent_zzzz);
+
+			// Mask out the clip ranges we ignore
+			clip_range_min_xxxx_xxxx = _mm256_andnot_ps(clip_range_mask0_mask1, clip_range_min_xxxx_xxxx);
+			clip_range_min_yyyy_yyyy = _mm256_andnot_ps(clip_range_mask0_mask1, clip_range_min_yyyy_yyyy);
+			clip_range_min_zzzz_zzzz = _mm256_andnot_ps(clip_range_mask0_mask1, clip_range_min_zzzz_zzzz);
+
+			clip_range_extent_xxxx_xxxx = _mm256_blendv_ps(clip_range_extent_xxxx_xxxx, one_v, clip_range_mask0_mask1);
+			clip_range_extent_yyyy_yyyy = _mm256_blendv_ps(clip_range_extent_yyyy_yyyy, one_v, clip_range_mask0_mask1);
+			clip_range_extent_zzzz_zzzz = _mm256_blendv_ps(clip_range_extent_zzzz_zzzz, one_v, clip_range_mask0_mask1);
+
+			xxxx0_xxxx1 = _mm256_add_ps(_mm256_mul_ps(xxxx0_xxxx1, clip_range_extent_xxxx_xxxx), clip_range_min_xxxx_xxxx);
+			yyyy0_yyyy1 = _mm256_add_ps(_mm256_mul_ps(yyyy0_yyyy1, clip_range_extent_yyyy_yyyy), clip_range_min_yyyy_yyyy);
+			zzzz0_zzzz1 = _mm256_add_ps(_mm256_mul_ps(zzzz0_zzzz1, clip_range_extent_zzzz_zzzz), clip_range_min_zzzz_zzzz);
+		}
+#endif
+
 		template<class decompression_settings_type>
-		inline ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::mask4f RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, const segment_animated_scratch_v0* segment_scratch, rtm::vector4f output_scratch[4],
+		inline ACL_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
@@ -362,97 +611,18 @@ namespace acl
 			// Output our W components right away, either we do not need them or they are good to go (full precision)
 			output_scratch[3] = sample_wwww;
 
-			rtm::mask4f clip_range_ignore_mask_v32f;	// function's return value
+			range_reduction_masks_t range_reduction_masks;	// function's return value
 
 			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 			{
-				// TODO: Move range remapping out of here and do it with AVX together with quat W reconstruction
-
 #if defined(RTM_SSE2_INTRINSICS)
 				const __m128i ignore_masks_v8 = _mm_set_epi32(0, 0, clip_range_ignore_mask, segment_range_ignore_mask);
-				const __m128i ignore_masks_v16 = _mm_unpacklo_epi8(ignore_masks_v8, ignore_masks_v8);
+				range_reduction_masks = _mm_unpacklo_epi8(ignore_masks_v8, ignore_masks_v8);
 #elif defined(RTM_NEON_INTRINSICS)
 				const int8x8_t ignore_masks_v8 = vcreate_s8((uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask);
-				const int16x8_t ignore_masks_v16 = vmovl_s8(ignore_masks_v8);
-#endif
-
-				if (decomp_context.has_segments)
-				{
-					// Load and mask out our segment range data
-					const rtm::vector4f one_v = rtm::vector_set(1.0F);
-
-					rtm::vector4f segment_range_min_xxxx = segment_scratch->segment_range_min_xxxx;
-					rtm::vector4f segment_range_min_yyyy = segment_scratch->segment_range_min_yyyy;
-					rtm::vector4f segment_range_min_zzzz = segment_scratch->segment_range_min_zzzz;
-
-					rtm::vector4f segment_range_extent_xxxx = segment_scratch->segment_range_extent_xxxx;
-					rtm::vector4f segment_range_extent_yyyy = segment_scratch->segment_range_extent_yyyy;
-					rtm::vector4f segment_range_extent_zzzz = segment_scratch->segment_range_extent_zzzz;
-
-#if defined(RTM_SSE2_INTRINSICS)
-					// Mask out the segment min we ignore
-					const rtm::mask4f segment_range_ignore_mask_v = _mm_castsi128_ps(_mm_unpacklo_epi16(ignore_masks_v16, ignore_masks_v16));
-
-					segment_range_min_xxxx = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_xxxx);
-					segment_range_min_yyyy = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_yyyy);
-					segment_range_min_zzzz = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_zzzz);
-#elif defined(RTM_NEON_INTRINSICS)
-					// Mask out the segment min we ignore
-					const uint32x4_t segment_range_ignore_mask_u32 = vreinterpretq_u32_s32(vmovl_s16(vget_low_s16(ignore_masks_v16)));
-					const rtm::mask4f segment_range_ignore_mask_v = vreinterpretq_f32_u32(segment_range_ignore_mask_u32);
-
-					segment_range_min_xxxx = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_xxxx), segment_range_ignore_mask_u32));
-					segment_range_min_yyyy = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_yyyy), segment_range_ignore_mask_u32));
-					segment_range_min_zzzz = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_zzzz), segment_range_ignore_mask_u32));
+				range_reduction_masks = vmovl_s8(ignore_masks_v8);
 #else
-					// Mask out the segment min we ignore
-					if (segment_range_ignore_mask & 0x000000FF)
-					{
-						segment_range_min_xxxx = rtm::vector_set_x(segment_range_min_xxxx, 0.0F);
-						segment_range_min_yyyy = rtm::vector_set_x(segment_range_min_yyyy, 0.0F);
-						segment_range_min_zzzz = rtm::vector_set_x(segment_range_min_zzzz, 0.0F);
-					}
-
-					if (segment_range_ignore_mask & 0x0000FF00)
-					{
-						segment_range_min_xxxx = rtm::vector_set_y(segment_range_min_xxxx, 0.0F);
-						segment_range_min_yyyy = rtm::vector_set_y(segment_range_min_yyyy, 0.0F);
-						segment_range_min_zzzz = rtm::vector_set_y(segment_range_min_zzzz, 0.0F);
-					}
-
-					if (segment_range_ignore_mask & 0x00FF0000)
-					{
-						segment_range_min_xxxx = rtm::vector_set_z(segment_range_min_xxxx, 0.0F);
-						segment_range_min_yyyy = rtm::vector_set_z(segment_range_min_yyyy, 0.0F);
-						segment_range_min_zzzz = rtm::vector_set_z(segment_range_min_zzzz, 0.0F);
-					}
-
-					if (segment_range_ignore_mask & 0xFF000000)
-					{
-						segment_range_min_xxxx = rtm::vector_set_w(segment_range_min_xxxx, 0.0F);
-						segment_range_min_yyyy = rtm::vector_set_w(segment_range_min_yyyy, 0.0F);
-						segment_range_min_zzzz = rtm::vector_set_w(segment_range_min_zzzz, 0.0F);
-					}
-
-					const rtm::mask4f segment_range_ignore_mask_v = rtm::mask_set((segment_range_ignore_mask & 0x000000FF) != 0, (segment_range_ignore_mask & 0x0000FF00) != 0, (segment_range_ignore_mask & 0x00FF0000) != 0, (segment_range_ignore_mask & 0xFF000000) != 0);
-#endif
-
-					// Mask out the segment extent we ignore
-					segment_range_extent_xxxx = rtm::vector_select(segment_range_ignore_mask_v, one_v, segment_range_extent_xxxx);
-					segment_range_extent_yyyy = rtm::vector_select(segment_range_ignore_mask_v, one_v, segment_range_extent_yyyy);
-					segment_range_extent_zzzz = rtm::vector_select(segment_range_ignore_mask_v, one_v, segment_range_extent_zzzz);
-
-					sample_xxxx = rtm::vector_mul_add(sample_xxxx, segment_range_extent_xxxx, segment_range_min_xxxx);
-					sample_yyyy = rtm::vector_mul_add(sample_yyyy, segment_range_extent_yyyy, segment_range_min_yyyy);
-					sample_zzzz = rtm::vector_mul_add(sample_zzzz, segment_range_extent_zzzz, segment_range_min_zzzz);
-				}
-
-#if defined(RTM_SSE2_INTRINSICS)
-				clip_range_ignore_mask_v32f = _mm_castsi128_ps(_mm_unpackhi_epi16(ignore_masks_v16, ignore_masks_v16));
-#elif defined(RTM_NEON_INTRINSICS)
-				clip_range_ignore_mask_v32f = vreinterpretq_f32_s32(vmovl_s16(vget_high_s16(ignore_masks_v16)));
-#else
-				clip_range_ignore_mask_v32f = rtm::mask_set((clip_range_ignore_mask & 0x000000FF) != 0, (clip_range_ignore_mask & 0x0000FF00) != 0, (clip_range_ignore_mask & 0x00FF0000) != 0, (clip_range_ignore_mask & 0xFF000000) != 0);
+				range_reduction_masks = uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask;
 #endif
 
 				// Skip our used segment range data, all groups are padded to 4 elements
@@ -463,15 +633,20 @@ namespace acl
 			}
 			else
 			{
-				// TODO: Optimize for SSE/NEON, codegen for this might not be optimal
-				clip_range_ignore_mask_v32f = rtm::mask_set(0U, 0U, 0U, 0U);	// Won't be used, just initialize it to something
+#if defined(RTM_SSE2_INTRINSICS)
+				range_reduction_masks = _mm_setzero_si128();
+#elif defined(RTM_NEON_INTRINSICS)
+				range_reduction_masks = vcreate_s16(0ULL);
+#else
+				range_reduction_masks = 0ULL;
+#endif
 			}
 
 			output_scratch[0] = sample_xxxx;
 			output_scratch[1] = sample_yyyy;
 			output_scratch[2] = sample_zzzz;
 
-			return clip_range_ignore_mask_v32f;
+			return range_reduction_masks;
 		}
 
 		template<class decompression_settings_type>
@@ -942,9 +1117,7 @@ namespace acl
 
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 
-				segment_animated_scratch_v0 segment_scratch[2];
-				segment_animated_scratch_v0* segment_scratch0 = nullptr;
-				segment_animated_scratch_v0* segment_scratch1 = nullptr;
+				segment_animated_scratch_v0 segment_scratch;
 
 				// We start by unpacking our segment range data into our scratch memory
 				// We often only use a single segment to interpolate, we can avoid redundant work
@@ -952,25 +1125,16 @@ namespace acl
 				{
 					if (decomp_context.has_segments)
 					{
-						unpack_segment_range_data(segment_sampling_context[0].segment_range_data, segment_scratch[0]);
-						segment_scratch0 = &segment_scratch[0];
+						unpack_segment_range_data(segment_sampling_context[0].segment_range_data, 0, segment_scratch);
 
-						if (uses_single_segment)
-						{
-							// We are interpolating within a single segment (common)
-							segment_scratch1 = segment_scratch0;
-						}
-						else
-						{
-							// We are interpolating between two segments (rare)
-							unpack_segment_range_data(segment_sampling_context[1].segment_range_data, segment_scratch[1]);
-							segment_scratch1 = &segment_scratch[1];
-						}
+						// We are interpolating between two segments (rare)
+						if (!uses_single_segment)
+							unpack_segment_range_data(segment_sampling_context[1].segment_range_data, 1, segment_scratch);
 					}
 				}
 
-				const rtm::mask4f clip_range_mask0 = unpack_animated_quat<decompression_settings_type>(decomp_context, segment_scratch0, scratch0, num_to_unpack, segment_sampling_context[0]);
-				const rtm::mask4f clip_range_mask1 = unpack_animated_quat<decompression_settings_type>(decomp_context, segment_scratch1, scratch1, num_to_unpack, segment_sampling_context[1]);
+				const range_reduction_masks_t range_reduction_masks0 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch0, num_to_unpack, segment_sampling_context[0]);
+				const range_reduction_masks_t range_reduction_masks1 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch1, num_to_unpack, segment_sampling_context[1]);
 
 				rtm::vector4f scratch0_xxxx = scratch0[0];
 				rtm::vector4f scratch0_yyyy = scratch0[1];
@@ -993,92 +1157,22 @@ namespace acl
 				// If we have a variable bit rate, we perform range reduction, skip the data we used
 				if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 				{
+					if (decomp_context.has_segments)
+					{
+#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+						remap_segment_range_data_avx(segment_scratch, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
+#else
+						remap_segment_range_data4(segment_scratch, 0, range_reduction_masks0, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
+						remap_segment_range_data4(segment_scratch, uint32_t(!uses_single_segment), range_reduction_masks1, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+#endif
+					}
+
 					const uint8_t* clip_range_data = clip_sampling_context.clip_range_data;
 
-					// Always load 4x rotations, we might contain garbage in a few lanes but it's fine
-					const uint32_t load_size = num_to_unpack * sizeof(float);
-
 #if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
-					__m256 clip_range_mask0_mask1 = _mm256_set_m128(clip_range_mask1, clip_range_mask0);
-#endif
-
-					const rtm::vector4f clip_range_min_xxxx = rtm::vector_load(clip_range_data + load_size * 0);
-					const rtm::vector4f clip_range_min_yyyy = rtm::vector_load(clip_range_data + load_size * 1);
-					const rtm::vector4f clip_range_min_zzzz = rtm::vector_load(clip_range_data + load_size * 2);
-
-					const rtm::vector4f clip_range_extent_xxxx = rtm::vector_load(clip_range_data + load_size * 3);
-					const rtm::vector4f clip_range_extent_yyyy = rtm::vector_load(clip_range_data + load_size * 4);
-					const rtm::vector4f clip_range_extent_zzzz = rtm::vector_load(clip_range_data + load_size * 5);
-
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
-					__m256 clip_range_min_xxxx_xxxx = _mm256_set_m128(clip_range_min_xxxx, clip_range_min_xxxx);
-					__m256 clip_range_min_yyyy_yyyy = _mm256_set_m128(clip_range_min_yyyy, clip_range_min_yyyy);
-					__m256 clip_range_min_zzzz_zzzz = _mm256_set_m128(clip_range_min_zzzz, clip_range_min_zzzz);
-
-					__m256 clip_range_extent_xxxx_xxxx = _mm256_set_m128(clip_range_extent_xxxx, clip_range_extent_xxxx);
-					__m256 clip_range_extent_yyyy_yyyy = _mm256_set_m128(clip_range_extent_yyyy, clip_range_extent_yyyy);
-					__m256 clip_range_extent_zzzz_zzzz = _mm256_set_m128(clip_range_extent_zzzz, clip_range_extent_zzzz);
-#endif
-
-					// Mask out the clip ranges we ignore
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
-					clip_range_min_xxxx_xxxx = _mm256_andnot_ps(clip_range_mask0_mask1, clip_range_min_xxxx_xxxx);
-					clip_range_min_yyyy_yyyy = _mm256_andnot_ps(clip_range_mask0_mask1, clip_range_min_yyyy_yyyy);
-					clip_range_min_zzzz_zzzz = _mm256_andnot_ps(clip_range_mask0_mask1, clip_range_min_zzzz_zzzz);
-#elif defined(RTM_SSE2_INTRINSICS)
-					const rtm::vector4f clip_range_min_xxxx0 = _mm_andnot_ps(clip_range_mask0, clip_range_min_xxxx);
-					const rtm::vector4f clip_range_min_yyyy0 = _mm_andnot_ps(clip_range_mask0, clip_range_min_yyyy);
-					const rtm::vector4f clip_range_min_zzzz0 = _mm_andnot_ps(clip_range_mask0, clip_range_min_zzzz);
-
-					const rtm::vector4f clip_range_min_xxxx1 = _mm_andnot_ps(clip_range_mask1, clip_range_min_xxxx);
-					const rtm::vector4f clip_range_min_yyyy1 = _mm_andnot_ps(clip_range_mask1, clip_range_min_yyyy);
-					const rtm::vector4f clip_range_min_zzzz1 = _mm_andnot_ps(clip_range_mask1, clip_range_min_zzzz);
-#elif defined(RTM_NEON_INTRINSICS)
-					const rtm::vector4f clip_range_min_xxxx0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_xxxx), vreinterpretq_u32_f32(clip_range_mask0)));
-					const rtm::vector4f clip_range_min_yyyy0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_yyyy), vreinterpretq_u32_f32(clip_range_mask0)));
-					const rtm::vector4f clip_range_min_zzzz0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_zzzz), vreinterpretq_u32_f32(clip_range_mask0)));
-
-					const rtm::vector4f clip_range_min_xxxx1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_xxxx), vreinterpretq_u32_f32(clip_range_mask1)));
-					const rtm::vector4f clip_range_min_yyyy1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_yyyy), vreinterpretq_u32_f32(clip_range_mask1)));
-					const rtm::vector4f clip_range_min_zzzz1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_zzzz), vreinterpretq_u32_f32(clip_range_mask1)));
+					remap_clip_range_data_avx(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
 #else
-					const rtm::vector4f zero_v = rtm::vector_zero();
-
-					const rtm::vector4f clip_range_min_xxxx0 = rtm::vector_select(clip_range_mask0, zero_v, clip_range_min_xxxx);
-					const rtm::vector4f clip_range_min_yyyy0 = rtm::vector_select(clip_range_mask0, zero_v, clip_range_min_yyyy);
-					const rtm::vector4f clip_range_min_zzzz0 = rtm::vector_select(clip_range_mask0, zero_v, clip_range_min_zzzz);
-
-					const rtm::vector4f clip_range_min_xxxx1 = rtm::vector_select(clip_range_mask1, zero_v, clip_range_min_xxxx);
-					const rtm::vector4f clip_range_min_yyyy1 = rtm::vector_select(clip_range_mask1, zero_v, clip_range_min_yyyy);
-					const rtm::vector4f clip_range_min_zzzz1 = rtm::vector_select(clip_range_mask1, zero_v, clip_range_min_zzzz);
-#endif
-
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
-					clip_range_extent_xxxx_xxxx = _mm256_blendv_ps(clip_range_extent_xxxx_xxxx, one_v, clip_range_mask0_mask1);
-					clip_range_extent_yyyy_yyyy = _mm256_blendv_ps(clip_range_extent_yyyy_yyyy, one_v, clip_range_mask0_mask1);
-					clip_range_extent_zzzz_zzzz = _mm256_blendv_ps(clip_range_extent_zzzz_zzzz, one_v, clip_range_mask0_mask1);
-
-					scratch_xxxx0_xxxx1 = _mm256_add_ps(_mm256_mul_ps(scratch_xxxx0_xxxx1, clip_range_extent_xxxx_xxxx), clip_range_min_xxxx_xxxx);
-					scratch_yyyy0_yyyy1 = _mm256_add_ps(_mm256_mul_ps(scratch_yyyy0_yyyy1, clip_range_extent_yyyy_yyyy), clip_range_min_yyyy_yyyy);
-					scratch_zzzz0_zzzz1 = _mm256_add_ps(_mm256_mul_ps(scratch_zzzz0_zzzz1, clip_range_extent_zzzz_zzzz), clip_range_min_zzzz_zzzz);
-#else
-					const rtm::vector4f one_v = rtm::vector_set(1.0F);
-
-					const rtm::vector4f clip_range_extent_xxxx0 = rtm::vector_select(clip_range_mask0, one_v, clip_range_extent_xxxx);
-					const rtm::vector4f clip_range_extent_yyyy0 = rtm::vector_select(clip_range_mask0, one_v, clip_range_extent_yyyy);
-					const rtm::vector4f clip_range_extent_zzzz0 = rtm::vector_select(clip_range_mask0, one_v, clip_range_extent_zzzz);
-
-					const rtm::vector4f clip_range_extent_xxxx1 = rtm::vector_select(clip_range_mask1, one_v, clip_range_extent_xxxx);
-					const rtm::vector4f clip_range_extent_yyyy1 = rtm::vector_select(clip_range_mask1, one_v, clip_range_extent_yyyy);
-					const rtm::vector4f clip_range_extent_zzzz1 = rtm::vector_select(clip_range_mask1, one_v, clip_range_extent_zzzz);
-
-					scratch0_xxxx = rtm::vector_mul_add(scratch0_xxxx, clip_range_extent_xxxx0, clip_range_min_xxxx0);
-					scratch0_yyyy = rtm::vector_mul_add(scratch0_yyyy, clip_range_extent_yyyy0, clip_range_min_yyyy0);
-					scratch0_zzzz = rtm::vector_mul_add(scratch0_zzzz, clip_range_extent_zzzz0, clip_range_min_zzzz0);
-
-					scratch1_xxxx = rtm::vector_mul_add(scratch1_xxxx, clip_range_extent_xxxx1, clip_range_min_xxxx1);
-					scratch1_yyyy = rtm::vector_mul_add(scratch1_yyyy, clip_range_extent_yyyy1, clip_range_min_yyyy1);
-					scratch1_zzzz = rtm::vector_mul_add(scratch1_zzzz, clip_range_extent_zzzz1, clip_range_min_zzzz1);
+					remap_clip_range_data4(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 #endif
 
 					// Skip our data
