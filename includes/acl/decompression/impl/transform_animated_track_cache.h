@@ -202,12 +202,14 @@ namespace acl
 			// case we don't need to prefetch it and we can go to the next one. Any offset after the end
 			// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
 			// Prefetch 4 samples ahead in all levels of the CPU cache
-			ACL_IMPL_ANIMATED_PREFETCH(format_per_track_data + 63);
 			ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_track_data_bit_offset / 8) + 63);
 
 			// Update our pointers
 			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 			{
+				// Prefetch 4 samples ahead in all levels of the CPU cache
+				ACL_IMPL_ANIMATED_PREFETCH(format_per_track_data + 63);
+
 				// Skip our used metadata data, all groups are padded to 4 elements
 				segment_sampling_context.format_per_track_data = format_per_track_data + 4;
 			}
