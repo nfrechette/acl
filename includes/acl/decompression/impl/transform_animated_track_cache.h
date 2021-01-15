@@ -1074,7 +1074,12 @@ namespace acl
 
 			void ACL_DISABLE_SECURITY_COOKIE_CHECK initialize(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-				clip_sampling_context.clip_range_data = decomp_context.clip_range_data.add_to(decomp_context.tracks);
+				const uint8_t* clip_range_data = decomp_context.clip_range_data.add_to(decomp_context.tracks);
+				clip_sampling_context.clip_range_data = clip_range_data;
+
+				// Prefetch our clip range data, we'll need it soon
+				ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 0);
+				ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 64);
 
 				segment_sampling_context[0].format_per_track_data = decomp_context.format_per_track_data[0];
 				segment_sampling_context[0].segment_range_data = decomp_context.segment_range_data[0];

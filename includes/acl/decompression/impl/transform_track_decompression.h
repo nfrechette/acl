@@ -49,6 +49,8 @@
 #include <cstdint>
 #include <type_traits>
 
+#define ACL_IMPL_USE_SEEK_PREFETCH
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 #if defined(ACL_COMPILER_MSVC)
@@ -62,6 +64,12 @@ namespace acl
 {
 	namespace acl_impl
 	{
+#if defined(ACL_IMPL_USE_SEEK_PREFETCH)
+#define ACL_IMPL_SEEK_PREFETCH(ptr) memory_prefetch(ptr)
+#else
+#define ACL_IMPL_SEEK_PREFETCH(ptr) (void)(ptr)
+#endif
+
 		template<class decompression_settings_type>
 		constexpr bool is_database_supported_impl()
 		{
@@ -149,6 +157,10 @@ namespace acl
 
 			if (context.sample_time == sample_time)
 				return;
+
+			// Prefetch our bitsets, we'll need them soon when we start decompressing
+			ACL_IMPL_SEEK_PREFETCH(context.default_tracks_bitset.add_to(context.tracks));
+			ACL_IMPL_SEEK_PREFETCH(context.constant_tracks_bitset.add_to(context.tracks));
 
 			context.sample_time = sample_time;
 
@@ -426,12 +438,24 @@ namespace acl
 				}
 			}
 
+			// Prefetch our constant data, we'll need it soon when we start decompressing and we are about to cache miss on the segment headers
+			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(context.rotation_format);
+			const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
+			const uint32_t packed_rotation_size = get_packed_rotation_size(packed_format);
+
+			const uint8_t* constant_data_rotations = context.constant_track_data.add_to(context.tracks);
+			const uint8_t* constant_data_translations = constant_data_rotations + packed_rotation_size * transform_header.num_constant_rotation_samples;
+			ACL_IMPL_SEEK_PREFETCH(constant_data_rotations);
+			ACL_IMPL_SEEK_PREFETCH(constant_data_translations);
+
 			// Cache miss if we don't access the db data
 			transform_header.get_segment_data(*segment_header0, context.format_per_track_data[0], context.segment_range_data[0], context.animated_track_data[0]);
 
 			// More often than not the two segments are identical, when this is the case, just copy our pointers
 			if (segment_header0 != segment_header1)
+			{
 				transform_header.get_segment_data(*segment_header1, context.format_per_track_data[1], context.segment_range_data[1], context.animated_track_data[1]);
+			}
 			else
 			{
 				context.format_per_track_data[1] = context.format_per_track_data[0];
