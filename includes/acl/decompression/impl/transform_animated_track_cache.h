@@ -217,15 +217,14 @@ namespace acl
 			segment_sampling_context.animated_track_data_bit_offset = animated_track_data_bit_offset;
 
 			// Swizzle our samples into SOA form
-			// TODO: Optimize for NEON
-			rtm::vector4f tmp0 = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::a, rtm::mix4::b>(output_scratch[0], output_scratch[1]);
-			rtm::vector4f tmp1 = rtm::vector_mix<rtm::mix4::z, rtm::mix4::w, rtm::mix4::c, rtm::mix4::d>(output_scratch[0], output_scratch[1]);
-			rtm::vector4f tmp2 = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::a, rtm::mix4::b>(output_scratch[2], output_scratch[3]);
-			rtm::vector4f tmp3 = rtm::vector_mix<rtm::mix4::z, rtm::mix4::w, rtm::mix4::c, rtm::mix4::d>(output_scratch[2], output_scratch[3]);
+			rtm::vector4f sample_xxxx;
+			rtm::vector4f sample_yyyy;
+			rtm::vector4f sample_zzzz;
+			rtm::vector4f sample_wwww;
+			RTM_MATRIXF_TRANSPOSE_4X4(output_scratch[0], output_scratch[1], output_scratch[2], output_scratch[3], sample_xxxx, sample_yyyy, sample_zzzz, sample_wwww);
 
-			rtm::vector4f sample_xxxx = rtm::vector_mix<rtm::mix4::x, rtm::mix4::z, rtm::mix4::a, rtm::mix4::c>(tmp0, tmp2);
-			rtm::vector4f sample_yyyy = rtm::vector_mix<rtm::mix4::y, rtm::mix4::w, rtm::mix4::b, rtm::mix4::d>(tmp0, tmp2);
-			rtm::vector4f sample_zzzz = rtm::vector_mix<rtm::mix4::x, rtm::mix4::z, rtm::mix4::a, rtm::mix4::c>(tmp1, tmp3);
+			// Output our W components right away, either we do not need them or they are good to go (full precision)
+			output_scratch[3] = sample_wwww;
 
 			rtm::mask4f clip_range_ignore_mask_v32f;	// function's return value
 
@@ -428,9 +427,6 @@ namespace acl
 			}
 			else
 			{
-				const rtm::vector4f sample_wwww = rtm::vector_mix<rtm::mix4::y, rtm::mix4::w, rtm::mix4::b, rtm::mix4::d>(tmp1, tmp3);
-				output_scratch[3] = sample_wwww;
-
 				// TODO: Optimize for SSE/NEON, codegen for this might not be optimal
 				clip_range_ignore_mask_v32f = rtm::mask_set(0U, 0U, 0U, 0U);	// Won't be used, just initialize it to something
 			}
