@@ -88,8 +88,144 @@ namespace acl
 			uint32_t group_size;
 		};
 
+		struct segment_animated_scratch_v0
+		{
+			// We store out potential range data in SOA form and we have no W, just XYZ
+			rtm::vector4f segment_range_min_xxxx;
+			rtm::vector4f segment_range_min_yyyy;
+			rtm::vector4f segment_range_min_zzzz;
+			rtm::vector4f segment_range_extent_xxxx;
+			rtm::vector4f segment_range_extent_yyyy;
+			rtm::vector4f segment_range_extent_zzzz;
+
+			// We store our potential constant bit rate samples in SOA form with 16 bit per component
+			// We have 4 components, each 16 bit wide, and we have no W, just XYZ
+			uint8_t constant_sample_data[sizeof(uint16_t) * 4 * 3];
+
+			//uint8_t padding[8];
+		};
+
+		inline ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_segment_range_data(const uint8_t* segment_range_data, segment_animated_scratch_v0& output_scratch)
+		{
+			// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
+
+#if defined(RTM_SSE2_INTRINSICS)
+			const __m128i zero = _mm_setzero_si128();
+
+			const __m128i segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8 = _mm_loadu_si128((const __m128i*)segment_range_data);
+			const __m128i segment_range_extent_yyyy_zzzz_u8 = _mm_loadu_si128((const __m128i*)(segment_range_data + 16));
+
+			// Convert from u8 to u32
+			const __m128i segment_range_min_xxxx_yyyy_u16 = _mm_unpacklo_epi8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, zero);
+			const __m128i segment_range_min_zzzz_extent_xxxx_u16 = _mm_unpackhi_epi8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, zero);
+			const __m128i segment_range_extent_yyyy_zzzz_u16 = _mm_unpacklo_epi8(segment_range_extent_yyyy_zzzz_u8, zero);
+
+			__m128i segment_range_min_xxxx_u32 = _mm_unpacklo_epi16(segment_range_min_xxxx_yyyy_u16, zero);
+			__m128i segment_range_min_yyyy_u32 = _mm_unpackhi_epi16(segment_range_min_xxxx_yyyy_u16, zero);
+			__m128i segment_range_min_zzzz_u32 = _mm_unpacklo_epi16(segment_range_min_zzzz_extent_xxxx_u16, zero);
+
+			const __m128i segment_range_extent_xxxx_u32 = _mm_unpackhi_epi16(segment_range_min_zzzz_extent_xxxx_u16, zero);
+			const __m128i segment_range_extent_yyyy_u32 = _mm_unpacklo_epi16(segment_range_extent_yyyy_zzzz_u16, zero);
+			const __m128i segment_range_extent_zzzz_u32 = _mm_unpackhi_epi16(segment_range_extent_yyyy_zzzz_u16, zero);
+
+			__m128 segment_range_min_xxxx = _mm_cvtepi32_ps(segment_range_min_xxxx_u32);
+			__m128 segment_range_min_yyyy = _mm_cvtepi32_ps(segment_range_min_yyyy_u32);
+			__m128 segment_range_min_zzzz = _mm_cvtepi32_ps(segment_range_min_zzzz_u32);
+
+			__m128 segment_range_extent_xxxx = _mm_cvtepi32_ps(segment_range_extent_xxxx_u32);
+			__m128 segment_range_extent_yyyy = _mm_cvtepi32_ps(segment_range_extent_yyyy_u32);
+			__m128 segment_range_extent_zzzz = _mm_cvtepi32_ps(segment_range_extent_zzzz_u32);
+
+			const __m128 normalization_value = _mm_set_ps1(1.0F / 255.0F);
+
+			segment_range_min_xxxx = _mm_mul_ps(segment_range_min_xxxx, normalization_value);
+			segment_range_min_yyyy = _mm_mul_ps(segment_range_min_yyyy, normalization_value);
+			segment_range_min_zzzz = _mm_mul_ps(segment_range_min_zzzz, normalization_value);
+
+			segment_range_extent_xxxx = _mm_mul_ps(segment_range_extent_xxxx, normalization_value);
+			segment_range_extent_yyyy = _mm_mul_ps(segment_range_extent_yyyy, normalization_value);
+			segment_range_extent_zzzz = _mm_mul_ps(segment_range_extent_zzzz, normalization_value);
+#elif defined(RTM_NEON_INTRINSICS)
+			const uint8x16_t segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8 = vld1q_u8(segment_range_data);
+			const uint8x8_t segment_range_extent_yyyy_zzzz_u8 = vld1_u8(segment_range_data + 16);
+
+			// Convert from u8 to u32
+			const uint16x8_t segment_range_min_xxxx_yyyy_u16 = vmovl_u8(vget_low_u8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8));
+			const uint16x8_t segment_range_min_zzzz_extent_xxxx_u16 = vmovl_u8(vget_high_u8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8));
+			const uint16x8_t segment_range_extent_yyyy_zzzz_u16 = vmovl_u8(segment_range_extent_yyyy_zzzz_u8);
+
+			uint32x4_t segment_range_min_xxxx_u32 = vmovl_u16(vget_low_u16(segment_range_min_xxxx_yyyy_u16));
+			uint32x4_t segment_range_min_yyyy_u32 = vmovl_u16(vget_high_u16(segment_range_min_xxxx_yyyy_u16));
+			uint32x4_t segment_range_min_zzzz_u32 = vmovl_u16(vget_low_u16(segment_range_min_zzzz_extent_xxxx_u16));
+
+			const uint32x4_t segment_range_extent_xxxx_u32 = vmovl_u16(vget_high_u16(segment_range_min_zzzz_extent_xxxx_u16));
+			const uint32x4_t segment_range_extent_yyyy_u32 = vmovl_u16(vget_low_u16(segment_range_extent_yyyy_zzzz_u16));
+			const uint32x4_t segment_range_extent_zzzz_u32 = vmovl_u16(vget_high_u16(segment_range_extent_yyyy_zzzz_u16));
+
+			float32x4_t segment_range_min_xxxx = vcvtq_f32_u32(segment_range_min_xxxx_u32);
+			float32x4_t segment_range_min_yyyy = vcvtq_f32_u32(segment_range_min_yyyy_u32);
+			float32x4_t segment_range_min_zzzz = vcvtq_f32_u32(segment_range_min_zzzz_u32);
+
+			float32x4_t segment_range_extent_xxxx = vcvtq_f32_u32(segment_range_extent_xxxx_u32);
+			float32x4_t segment_range_extent_yyyy = vcvtq_f32_u32(segment_range_extent_yyyy_u32);
+			float32x4_t segment_range_extent_zzzz = vcvtq_f32_u32(segment_range_extent_zzzz_u32);
+
+			const float normalization_value = 1.0F / 255.0F;
+
+			segment_range_min_xxxx = vmulq_n_f32(segment_range_min_xxxx, normalization_value);
+			segment_range_min_yyyy = vmulq_n_f32(segment_range_min_yyyy, normalization_value);
+			segment_range_min_zzzz = vmulq_n_f32(segment_range_min_zzzz, normalization_value);
+
+			segment_range_extent_xxxx = vmulq_n_f32(segment_range_extent_xxxx, normalization_value);
+			segment_range_extent_yyyy = vmulq_n_f32(segment_range_extent_yyyy, normalization_value);
+			segment_range_extent_zzzz = vmulq_n_f32(segment_range_extent_zzzz, normalization_value);
+#else
+			rtm::vector4f segment_range_min_xxxx = rtm::vector_set(float(segment_range_data[0]), float(segment_range_data[1]), float(segment_range_data[2]), float(segment_range_data[3]));
+			rtm::vector4f segment_range_min_yyyy = rtm::vector_set(float(segment_range_data[4]), float(segment_range_data[5]), float(segment_range_data[6]), float(segment_range_data[7]));
+			rtm::vector4f segment_range_min_zzzz = rtm::vector_set(float(segment_range_data[8]), float(segment_range_data[9]), float(segment_range_data[10]), float(segment_range_data[11]));
+
+			rtm::vector4f segment_range_extent_xxxx = rtm::vector_set(float(segment_range_data[12]), float(segment_range_data[13]), float(segment_range_data[14]), float(segment_range_data[15]));
+			rtm::vector4f segment_range_extent_yyyy = rtm::vector_set(float(segment_range_data[16]), float(segment_range_data[17]), float(segment_range_data[18]), float(segment_range_data[19]));
+			rtm::vector4f segment_range_extent_zzzz = rtm::vector_set(float(segment_range_data[20]), float(segment_range_data[21]), float(segment_range_data[22]), float(segment_range_data[23]));
+
+			const float normalization_value = 1.0F / 255.0F;
+
+			segment_range_min_xxxx = rtm::vector_mul(segment_range_min_xxxx, normalization_value);
+			segment_range_min_yyyy = rtm::vector_mul(segment_range_min_yyyy, normalization_value);
+			segment_range_min_zzzz = rtm::vector_mul(segment_range_min_zzzz, normalization_value);
+
+			segment_range_extent_xxxx = rtm::vector_mul(segment_range_extent_xxxx, normalization_value);
+			segment_range_extent_yyyy = rtm::vector_mul(segment_range_extent_yyyy, normalization_value);
+			segment_range_extent_zzzz = rtm::vector_mul(segment_range_extent_zzzz, normalization_value);
+#endif
+
+			// Skip our used segment range data, all groups are padded to 4 elements
+			segment_range_data += 6 * 4;
+
+			// Prefetch the next cache line even if we don't have any data left
+			// By the time we unpack again, it will have arrived in the CPU cache
+			// If our format is full precision, we have at most 4 samples per cache line
+			// If our format is drop W, we have at most 5.33 samples per cache line
+
+			// If our pointer was already aligned to a cache line before we unpacked our 4 values,
+			// it now points to the first byte of the next cache line. Any offset between 0-63 will fetch it.
+			// If our pointer had some offset into a cache line, we might have spanned 2 cache lines.
+			// If this happens, we probably already read some data from the next cache line in which
+			// case we don't need to prefetch it and we can go to the next one. Any offset after the end
+			// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
+			// Prefetch 4 samples ahead in all levels of the CPU cache
+			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 63);
+
+			output_scratch.segment_range_min_xxxx = segment_range_min_xxxx;
+			output_scratch.segment_range_min_yyyy = segment_range_min_yyyy;
+			output_scratch.segment_range_min_zzzz = segment_range_min_zzzz;
+			output_scratch.segment_range_extent_xxxx = segment_range_extent_xxxx;
+			output_scratch.segment_range_extent_yyyy = segment_range_extent_yyyy;
+			output_scratch.segment_range_extent_zzzz = segment_range_extent_zzzz;
+		}
+
 		template<class decompression_settings_type>
-		inline ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::mask4f RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
+		inline ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::mask4f RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, const segment_animated_scratch_v0* segment_scratch, rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
@@ -232,8 +368,6 @@ namespace acl
 			{
 				// TODO: Move range remapping out of here and do it with AVX together with quat W reconstruction
 
-				const rtm::vector4f one_v = rtm::vector_set(1.0F);
-
 #if defined(RTM_SSE2_INTRINSICS)
 				const __m128i ignore_masks_v8 = _mm_set_epi32(0, 0, clip_range_ignore_mask, segment_range_ignore_mask);
 				const __m128i ignore_masks_v16 = _mm_unpacklo_epi8(ignore_masks_v8, ignore_masks_v8);
@@ -244,117 +378,33 @@ namespace acl
 
 				if (decomp_context.has_segments)
 				{
-					// TODO: prefetch segment data earlier, as soon as we are done loading
+					// Load and mask out our segment range data
+					const rtm::vector4f one_v = rtm::vector_set(1.0F);
 
-					// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
+					rtm::vector4f segment_range_min_xxxx = segment_scratch->segment_range_min_xxxx;
+					rtm::vector4f segment_range_min_yyyy = segment_scratch->segment_range_min_yyyy;
+					rtm::vector4f segment_range_min_zzzz = segment_scratch->segment_range_min_zzzz;
+
+					rtm::vector4f segment_range_extent_xxxx = segment_scratch->segment_range_extent_xxxx;
+					rtm::vector4f segment_range_extent_yyyy = segment_scratch->segment_range_extent_yyyy;
+					rtm::vector4f segment_range_extent_zzzz = segment_scratch->segment_range_extent_zzzz;
 
 #if defined(RTM_SSE2_INTRINSICS)
-					const __m128i zero = _mm_setzero_si128();
-
-					const __m128i segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8 = _mm_loadu_si128((const __m128i*)segment_range_data);
-					const __m128i segment_range_extent_yyyy_zzzz_u8 = _mm_loadu_si128((const __m128i*)(segment_range_data + 16));
-
-					// Convert from u8 to u32
-					const __m128i segment_range_min_xxxx_yyyy_u16 = _mm_unpacklo_epi8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, zero);
-					const __m128i segment_range_min_zzzz_extent_xxxx_u16 = _mm_unpackhi_epi8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, zero);
-					const __m128i segment_range_extent_yyyy_zzzz_u16 = _mm_unpacklo_epi8(segment_range_extent_yyyy_zzzz_u8, zero);
-
-					__m128i segment_range_min_xxxx_u32 = _mm_unpacklo_epi16(segment_range_min_xxxx_yyyy_u16, zero);
-					__m128i segment_range_min_yyyy_u32 = _mm_unpackhi_epi16(segment_range_min_xxxx_yyyy_u16, zero);
-					__m128i segment_range_min_zzzz_u32 = _mm_unpacklo_epi16(segment_range_min_zzzz_extent_xxxx_u16, zero);
-
-					const __m128i segment_range_extent_xxxx_u32 = _mm_unpackhi_epi16(segment_range_min_zzzz_extent_xxxx_u16, zero);
-					const __m128i segment_range_extent_yyyy_u32 = _mm_unpacklo_epi16(segment_range_extent_yyyy_zzzz_u16, zero);
-					const __m128i segment_range_extent_zzzz_u32 = _mm_unpackhi_epi16(segment_range_extent_yyyy_zzzz_u16, zero);
-
 					// Mask out the segment min we ignore
-					const __m128i segment_range_ignore_mask_u32 = _mm_unpacklo_epi16(ignore_masks_v16, ignore_masks_v16);
+					const rtm::mask4f segment_range_ignore_mask_v = _mm_castsi128_ps(_mm_unpacklo_epi16(ignore_masks_v16, ignore_masks_v16));
 
-					segment_range_min_xxxx_u32 = _mm_andnot_si128(segment_range_ignore_mask_u32, segment_range_min_xxxx_u32);
-					segment_range_min_yyyy_u32 = _mm_andnot_si128(segment_range_ignore_mask_u32, segment_range_min_yyyy_u32);
-					segment_range_min_zzzz_u32 = _mm_andnot_si128(segment_range_ignore_mask_u32, segment_range_min_zzzz_u32);
-
-					__m128 segment_range_min_xxxx = _mm_cvtepi32_ps(segment_range_min_xxxx_u32);
-					__m128 segment_range_min_yyyy = _mm_cvtepi32_ps(segment_range_min_yyyy_u32);
-					__m128 segment_range_min_zzzz = _mm_cvtepi32_ps(segment_range_min_zzzz_u32);
-
-					__m128 segment_range_extent_xxxx = _mm_cvtepi32_ps(segment_range_extent_xxxx_u32);
-					__m128 segment_range_extent_yyyy = _mm_cvtepi32_ps(segment_range_extent_yyyy_u32);
-					__m128 segment_range_extent_zzzz = _mm_cvtepi32_ps(segment_range_extent_zzzz_u32);
-
-					const __m128 normalization_value = _mm_set_ps1(1.0F / 255.0F);
-
-					segment_range_min_xxxx = _mm_mul_ps(segment_range_min_xxxx, normalization_value);
-					segment_range_min_yyyy = _mm_mul_ps(segment_range_min_yyyy, normalization_value);
-					segment_range_min_zzzz = _mm_mul_ps(segment_range_min_zzzz, normalization_value);
-
-					segment_range_extent_xxxx = _mm_mul_ps(segment_range_extent_xxxx, normalization_value);
-					segment_range_extent_yyyy = _mm_mul_ps(segment_range_extent_yyyy, normalization_value);
-					segment_range_extent_zzzz = _mm_mul_ps(segment_range_extent_zzzz, normalization_value);
-
-					const rtm::mask4f segment_range_ignore_mask_v = _mm_castsi128_ps(segment_range_ignore_mask_u32);
+					segment_range_min_xxxx = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_xxxx);
+					segment_range_min_yyyy = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_yyyy);
+					segment_range_min_zzzz = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_zzzz);
 #elif defined(RTM_NEON_INTRINSICS)
-					const uint8x16_t segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8 = vld1q_u8(segment_range_data);
-					const uint8x8_t segment_range_extent_yyyy_zzzz_u8 = vld1_u8(segment_range_data + 16);
-
-					// Convert from u8 to u32
-					const uint16x8_t segment_range_min_xxxx_yyyy_u16 = vmovl_u8(vget_low_u8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8));
-					const uint16x8_t segment_range_min_zzzz_extent_xxxx_u16 = vmovl_u8(vget_high_u8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8));
-					const uint16x8_t segment_range_extent_yyyy_zzzz_u16 = vmovl_u8(segment_range_extent_yyyy_zzzz_u8);
-
-					uint32x4_t segment_range_min_xxxx_u32 = vmovl_u16(vget_low_u16(segment_range_min_xxxx_yyyy_u16));
-					uint32x4_t segment_range_min_yyyy_u32 = vmovl_u16(vget_high_u16(segment_range_min_xxxx_yyyy_u16));
-					uint32x4_t segment_range_min_zzzz_u32 = vmovl_u16(vget_low_u16(segment_range_min_zzzz_extent_xxxx_u16));
-
-					const uint32x4_t segment_range_extent_xxxx_u32 = vmovl_u16(vget_high_u16(segment_range_min_zzzz_extent_xxxx_u16));
-					const uint32x4_t segment_range_extent_yyyy_u32 = vmovl_u16(vget_low_u16(segment_range_extent_yyyy_zzzz_u16));
-					const uint32x4_t segment_range_extent_zzzz_u32 = vmovl_u16(vget_high_u16(segment_range_extent_yyyy_zzzz_u16));
-
 					// Mask out the segment min we ignore
 					const uint32x4_t segment_range_ignore_mask_u32 = vreinterpretq_u32_s32(vmovl_s16(vget_low_s16(ignore_masks_v16)));
-
-					segment_range_min_xxxx_u32 = vbicq_u32(segment_range_min_xxxx_u32, segment_range_ignore_mask_u32);
-					segment_range_min_yyyy_u32 = vbicq_u32(segment_range_min_yyyy_u32, segment_range_ignore_mask_u32);
-					segment_range_min_zzzz_u32 = vbicq_u32(segment_range_min_zzzz_u32, segment_range_ignore_mask_u32);
-
-					float32x4_t segment_range_min_xxxx = vcvtq_f32_u32(segment_range_min_xxxx_u32);
-					float32x4_t segment_range_min_yyyy = vcvtq_f32_u32(segment_range_min_yyyy_u32);
-					float32x4_t segment_range_min_zzzz = vcvtq_f32_u32(segment_range_min_zzzz_u32);
-
-					float32x4_t segment_range_extent_xxxx = vcvtq_f32_u32(segment_range_extent_xxxx_u32);
-					float32x4_t segment_range_extent_yyyy = vcvtq_f32_u32(segment_range_extent_yyyy_u32);
-					float32x4_t segment_range_extent_zzzz = vcvtq_f32_u32(segment_range_extent_zzzz_u32);
-
-					const float normalization_value = 1.0F / 255.0F;
-
-					segment_range_min_xxxx = vmulq_n_f32(segment_range_min_xxxx, normalization_value);
-					segment_range_min_yyyy = vmulq_n_f32(segment_range_min_yyyy, normalization_value);
-					segment_range_min_zzzz = vmulq_n_f32(segment_range_min_zzzz, normalization_value);
-
-					segment_range_extent_xxxx = vmulq_n_f32(segment_range_extent_xxxx, normalization_value);
-					segment_range_extent_yyyy = vmulq_n_f32(segment_range_extent_yyyy, normalization_value);
-					segment_range_extent_zzzz = vmulq_n_f32(segment_range_extent_zzzz, normalization_value);
-
 					const rtm::mask4f segment_range_ignore_mask_v = vreinterpretq_f32_u32(segment_range_ignore_mask_u32);
+
+					segment_range_min_xxxx = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_xxxx), segment_range_ignore_mask_u32));
+					segment_range_min_yyyy = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_yyyy), segment_range_ignore_mask_u32));
+					segment_range_min_zzzz = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_zzzz), segment_range_ignore_mask_u32));
 #else
-					rtm::vector4f segment_range_min_xxxx = rtm::vector_set(float(segment_range_data[0]), float(segment_range_data[1]), float(segment_range_data[2]), float(segment_range_data[3]));
-					rtm::vector4f segment_range_min_yyyy = rtm::vector_set(float(segment_range_data[4]), float(segment_range_data[5]), float(segment_range_data[6]), float(segment_range_data[7]));
-					rtm::vector4f segment_range_min_zzzz = rtm::vector_set(float(segment_range_data[8]), float(segment_range_data[9]), float(segment_range_data[10]), float(segment_range_data[11]));
-
-					rtm::vector4f segment_range_extent_xxxx = rtm::vector_set(float(segment_range_data[12]), float(segment_range_data[13]), float(segment_range_data[14]), float(segment_range_data[15]));
-					rtm::vector4f segment_range_extent_yyyy = rtm::vector_set(float(segment_range_data[16]), float(segment_range_data[17]), float(segment_range_data[18]), float(segment_range_data[19]));
-					rtm::vector4f segment_range_extent_zzzz = rtm::vector_set(float(segment_range_data[20]), float(segment_range_data[21]), float(segment_range_data[22]), float(segment_range_data[23]));
-
-					const float normalization_value = 1.0F / 255.0F;
-
-					segment_range_min_xxxx = rtm::vector_mul(segment_range_min_xxxx, normalization_value);
-					segment_range_min_yyyy = rtm::vector_mul(segment_range_min_yyyy, normalization_value);
-					segment_range_min_zzzz = rtm::vector_mul(segment_range_min_zzzz, normalization_value);
-
-					segment_range_extent_xxxx = rtm::vector_mul(segment_range_extent_xxxx, normalization_value);
-					segment_range_extent_yyyy = rtm::vector_mul(segment_range_extent_yyyy, normalization_value);
-					segment_range_extent_zzzz = rtm::vector_mul(segment_range_extent_zzzz, normalization_value);
-
 					// Mask out the segment min we ignore
 					if (segment_range_ignore_mask & 0x000000FF)
 					{
@@ -410,20 +460,6 @@ namespace acl
 
 				// Update our ptr
 				segment_sampling_context.segment_range_data = segment_range_data;
-
-				// Prefetch the next cache line even if we don't have any data left
-				// By the time we unpack again, it will have arrived in the CPU cache
-				// If our format is full precision, we have at most 4 samples per cache line
-				// If our format is drop W, we have at most 5.33 samples per cache line
-
-				// If our pointer was already aligned to a cache line before we unpacked our 4 values,
-				// it now points to the first byte of the next cache line. Any offset between 0-63 will fetch it.
-				// If our pointer had some offset into a cache line, we might have spanned 2 cache lines.
-				// If this happens, we probably already read some data from the next cache line in which
-				// case we don't need to prefetch it and we can go to the next one. Any offset after the end
-				// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
-				// Prefetch 4 samples ahead in all levels of the CPU cache
-				ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 63);
 			}
 			else
 			{
@@ -835,6 +871,8 @@ namespace acl
 
 			segment_animated_sampling_context_v0 segment_sampling_context[2];
 
+			bool uses_single_segment;	// TODO: Store in decomp context?
+
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void get_rotation_cursor(animated_group_cursor_v0& cursor) const
 			{
 				cursor.clip_sampling_context = clip_sampling_context;
@@ -873,6 +911,8 @@ namespace acl
 				segment_sampling_context[1].animated_track_data = decomp_context.animated_track_data[1];
 				segment_sampling_context[1].animated_track_data_bit_offset = decomp_context.key_frame_bit_offsets[1];
 
+				uses_single_segment = decomp_context.format_per_track_data[0] == decomp_context.format_per_track_data[1];
+
 				const transform_tracks_header& transform_header = get_transform_tracks_header(*decomp_context.tracks);
 
 				rotations.num_left_to_unpack = transform_header.num_animated_rotation_sub_tracks;
@@ -900,8 +940,37 @@ namespace acl
 				uint32_t cache_write_index = rotations.cache_write_index % 8;
 				rotations.cache_write_index += num_to_unpack;
 
-				const rtm::mask4f clip_range_mask0 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch0, num_to_unpack, segment_sampling_context[0]);
-				const rtm::mask4f clip_range_mask1 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch1, num_to_unpack, segment_sampling_context[1]);
+				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
+
+				segment_animated_scratch_v0 segment_scratch[2];
+				segment_animated_scratch_v0* segment_scratch0 = nullptr;
+				segment_animated_scratch_v0* segment_scratch1 = nullptr;
+
+				// We start by unpacking our segment range data into our scratch memory
+				// We often only use a single segment to interpolate, we can avoid redundant work
+				if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+				{
+					if (decomp_context.has_segments)
+					{
+						unpack_segment_range_data(segment_sampling_context[0].segment_range_data, segment_scratch[0]);
+						segment_scratch0 = &segment_scratch[0];
+
+						if (uses_single_segment)
+						{
+							// We are interpolating within a single segment (common)
+							segment_scratch1 = segment_scratch0;
+						}
+						else
+						{
+							// We are interpolating between two segments (rare)
+							unpack_segment_range_data(segment_sampling_context[1].segment_range_data, segment_scratch[1]);
+							segment_scratch1 = &segment_scratch[1];
+						}
+					}
+				}
+
+				const rtm::mask4f clip_range_mask0 = unpack_animated_quat<decompression_settings_type>(decomp_context, segment_scratch0, scratch0, num_to_unpack, segment_sampling_context[0]);
+				const rtm::mask4f clip_range_mask1 = unpack_animated_quat<decompression_settings_type>(decomp_context, segment_scratch1, scratch1, num_to_unpack, segment_sampling_context[1]);
 
 				rtm::vector4f scratch0_xxxx = scratch0[0];
 				rtm::vector4f scratch0_yyyy = scratch0[1];
@@ -922,7 +991,6 @@ namespace acl
 #endif
 
 				// If we have a variable bit rate, we perform range reduction, skip the data we used
-				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 				if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 				{
 					const uint8_t* clip_range_data = clip_sampling_context.clip_range_data;
