@@ -559,6 +559,26 @@ namespace acl
 			interp_wwww = rtm::vector_mul_add(wwww1, alpha, rtm::vector_neg_mul_sub(wwww0, alpha, wwww0));
 		}
 
+		// About 9 cycles with AVX on Skylake
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_normalize4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
+		{
+			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx, xxxx);
+			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy, yyyy);
+			const rtm::vector4f zzzz_squared = rtm::vector_mul(zzzz, zzzz);
+			const rtm::vector4f wwww_squared = rtm::vector_mul(wwww, wwww);
+
+			const rtm::vector4f dot4 = rtm::vector_add(rtm::vector_add(rtm::vector_add(xxxx_squared, yyyy_squared), zzzz_squared), wwww_squared);
+
+			const rtm::vector4f len4 = rtm::vector_sqrt(dot4);
+			const rtm::vector4f inv_len4 = rtm::vector_div(rtm::vector_set(1.0F), len4);
+
+			xxxx = rtm::vector_mul(xxxx, inv_len4);
+			yyyy = rtm::vector_mul(yyyy, inv_len4);
+			zzzz = rtm::vector_mul(zzzz, inv_len4);
+			wwww = rtm::vector_mul(wwww, inv_len4);
+		}
+
 		template<class decompression_settings_type>
 		inline ACL_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
@@ -1307,25 +1327,10 @@ namespace acl
 						interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 
 					// Due to the interpolation, the result might not be anywhere near normalized!
-					// Make sure to normalize afterwards before using
+					// Make sure to normalize afterwards if we need to
 					const bool normalize_rotations = decompression_settings_type::normalize_rotations();
 					if (normalize_rotations)
-					{
-						const rtm::vector4f interp_xxxx_squared = rtm::vector_mul(interp_xxxx, interp_xxxx);
-						const rtm::vector4f interp_yyyy_squared = rtm::vector_mul(interp_yyyy, interp_yyyy);
-						const rtm::vector4f interp_zzzz_squared = rtm::vector_mul(interp_zzzz, interp_zzzz);
-						const rtm::vector4f interp_wwww_squared = rtm::vector_mul(interp_wwww, interp_wwww);
-
-						const rtm::vector4f interp_dot4 = rtm::vector_add(rtm::vector_add(rtm::vector_add(interp_xxxx_squared, interp_yyyy_squared), interp_zzzz_squared), interp_wwww_squared);
-
-						const rtm::vector4f interp_len = rtm::vector_sqrt(interp_dot4);
-						const rtm::vector4f interp_inv_len = rtm::vector_div(rtm::vector_set(1.0F), interp_len);
-
-						interp_xxxx = rtm::vector_mul(interp_xxxx, interp_inv_len);
-						interp_yyyy = rtm::vector_mul(interp_yyyy, interp_inv_len);
-						interp_zzzz = rtm::vector_mul(interp_zzzz, interp_inv_len);
-						interp_wwww = rtm::vector_mul(interp_wwww, interp_inv_len);
-					}
+						quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 
 					// Swizzle out our 4 samples
 					rtm::vector4f sample0;
