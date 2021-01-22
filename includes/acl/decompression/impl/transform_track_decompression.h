@@ -685,18 +685,14 @@ namespace acl
 
 					if (has_scale)
 					{
-						//constant_track_cache.unpack_scale_group();
 						animated_track_cache.unpack_scale_group<scale_adapter>(context);
 					}
 				}
 
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					//const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
 					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-					//const bool is_sample_animated = !is_sample_default & is_sample_constant;
 
-					//if (!is_sample_default && !is_sample_constant)
 					if (!is_sample_constant)
 					{
 						const rtm::quatf rotation = animated_track_cache.consume_rotation();
@@ -713,10 +709,8 @@ namespace acl
 
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					//const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
 					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
 
-					//if (!is_sample_default && !is_sample_constant)
 					if (!is_sample_constant)
 					{
 						const rtm::vector4f translation = animated_track_cache.consume_translation();
@@ -733,10 +727,8 @@ namespace acl
 				if (has_scale)
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					//const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
 					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
 
-					//if (!is_sample_default && !is_sample_constant)
 					if (!is_sample_constant)
 					{
 						const rtm::vector4f scale = animated_track_cache.consume_scale();
