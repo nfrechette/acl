@@ -489,6 +489,39 @@ namespace acl
 		}
 #endif
 
+		// About 31 cycles with AVX on Skylake
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
+		{
+			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx, xxxx);
+			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy, yyyy);
+			const rtm::vector4f zzzz_squared = rtm::vector_mul(zzzz, zzzz);
+			const rtm::vector4f wwww_squared = rtm::vector_sub(rtm::vector_sub(rtm::vector_sub(rtm::vector_set(1.0F), xxxx_squared), yyyy_squared), zzzz_squared);
+
+			// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
+			// to ensure the resulting quaternion is always normalized with a positive W component
+			return rtm::vector_sqrt(rtm::vector_abs(wwww_squared));
+		}
+
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK __m256 RTM_SIMD_CALL quat_from_positive_w_avx8(__m256 xxxx0_xxxx1, __m256 yyyy0_yyyy1, __m256 zzzz0_zzzz1)
+		{
+			const __m256 one_v = _mm256_set1_ps(1.0F);
+
+			const __m256 xxxx0_xxxx1_squared = _mm256_mul_ps(xxxx0_xxxx1, xxxx0_xxxx1);
+			const __m256 yyyy0_yyyy1_squared = _mm256_mul_ps(yyyy0_yyyy1, yyyy0_yyyy1);
+			const __m256 zzzz0_zzzz1_squared = _mm256_mul_ps(zzzz0_zzzz1, zzzz0_zzzz1);
+
+			const __m256 wwww0_wwww1_squared = _mm256_sub_ps(_mm256_sub_ps(_mm256_sub_ps(one_v, xxxx0_xxxx1_squared), yyyy0_yyyy1_squared), zzzz0_zzzz1_squared);
+
+			const __m256i abs_mask = _mm256_set1_epi32(0x7FFFFFFFULL);
+			const __m256 wwww0_wwww1_squared_abs = _mm256_and_ps(wwww0_wwww1_squared, _mm256_castsi256_ps(abs_mask));
+
+			return _mm256_sqrt_ps(wwww0_wwww1_squared_abs);
+		}
+#endif
+
 		template<class decompression_settings_type>
 		inline ACL_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
@@ -1166,8 +1199,6 @@ namespace acl
 				__m256 scratch_xxxx0_xxxx1 = _mm256_set_m128(scratch1_xxxx, scratch0_xxxx);
 				__m256 scratch_yyyy0_yyyy1 = _mm256_set_m128(scratch1_yyyy, scratch0_yyyy);
 				__m256 scratch_zzzz0_zzzz1 = _mm256_set_m128(scratch1_zzzz, scratch0_zzzz);
-
-				const __m256 one_v = _mm256_set1_ps(1.0F);
 #endif
 
 				// If we have a variable bit rate, we perform range reduction, skip the data we used
@@ -1200,69 +1231,28 @@ namespace acl
 					clip_sampling_context.clip_range_data = clip_range_data;
 				}
 
-				// For interpolation later
-				rtm::vector4f xxxx_squared;
-				rtm::vector4f yyyy_squared;
-				rtm::vector4f zzzz_squared;
-
 				// Reconstruct our quaternion W component in SOA
 				if (rotation_format != rotation_format8::quatf_full || !decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 				{
-					// quat_from_positive_w_soa
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
-					const __m256 scratch_xxxx0_xxxx1_squared = _mm256_mul_ps(scratch_xxxx0_xxxx1, scratch_xxxx0_xxxx1);
-					const __m256 scratch_yyyy0_yyyy1_squared = _mm256_mul_ps(scratch_yyyy0_yyyy1, scratch_yyyy0_yyyy1);
-					const __m256 scratch_zzzz0_zzzz1_squared = _mm256_mul_ps(scratch_zzzz0_zzzz1, scratch_zzzz0_zzzz1);
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
+					const __m256 scratch_wwww0_wwww1 = quat_from_positive_w_avx8(scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
 
-					const __m256 scratch_wwww0_wwww1_squared = _mm256_sub_ps(_mm256_sub_ps(_mm256_sub_ps(one_v, scratch_xxxx0_xxxx1_squared), scratch_yyyy0_yyyy1_squared), scratch_zzzz0_zzzz1_squared);
-
-					const __m256i abs_mask = _mm256_set1_epi32(0x7FFFFFFFULL);
-					const __m256 scratch_wwww0_wwww1_squared_abs = _mm256_and_ps(scratch_wwww0_wwww1_squared, _mm256_castsi256_ps(abs_mask));
-
-					__m256 scratch_wwww0_wwww1 = _mm256_sqrt_ps(scratch_wwww0_wwww1_squared_abs);
-
-					// Try and help the compiler hide the latency from the square-root
+					// This is the last AVX step, unpack everything
 					scratch0_xxxx = _mm256_extractf128_ps(scratch_xxxx0_xxxx1, 0);
 					scratch1_xxxx = _mm256_extractf128_ps(scratch_xxxx0_xxxx1, 1);
 					scratch0_yyyy = _mm256_extractf128_ps(scratch_yyyy0_yyyy1, 0);
 					scratch1_yyyy = _mm256_extractf128_ps(scratch_yyyy0_yyyy1, 1);
 					scratch0_zzzz = _mm256_extractf128_ps(scratch_zzzz0_zzzz1, 0);
 					scratch1_zzzz = _mm256_extractf128_ps(scratch_zzzz0_zzzz1, 1);
-
-					xxxx_squared = rtm::vector_mul(scratch0_xxxx, scratch1_xxxx);
-					yyyy_squared = rtm::vector_mul(scratch0_yyyy, scratch1_yyyy);
-					zzzz_squared = rtm::vector_mul(scratch0_zzzz, scratch1_zzzz);
-
 					scratch0_wwww = _mm256_extractf128_ps(scratch_wwww0_wwww1, 0);
 					scratch1_wwww = _mm256_extractf128_ps(scratch_wwww0_wwww1, 1);
 #else
-					const rtm::vector4f scratch0_xxxx_squared = rtm::vector_mul(scratch0_xxxx, scratch0_xxxx);
-					const rtm::vector4f scratch0_yyyy_squared = rtm::vector_mul(scratch0_yyyy, scratch0_yyyy);
-					const rtm::vector4f scratch0_zzzz_squared = rtm::vector_mul(scratch0_zzzz, scratch0_zzzz);
-					const rtm::vector4f scratch0_wwww_squared = rtm::vector_sub(rtm::vector_sub(rtm::vector_sub(rtm::vector_set(1.0F), scratch0_xxxx_squared), scratch0_yyyy_squared), scratch0_zzzz_squared);
-
-					const rtm::vector4f scratch1_xxxx_squared = rtm::vector_mul(scratch1_xxxx, scratch1_xxxx);
-					const rtm::vector4f scratch1_yyyy_squared = rtm::vector_mul(scratch1_yyyy, scratch1_yyyy);
-					const rtm::vector4f scratch1_zzzz_squared = rtm::vector_mul(scratch1_zzzz, scratch1_zzzz);
-					const rtm::vector4f scratch1_wwww_squared = rtm::vector_sub(rtm::vector_sub(rtm::vector_sub(rtm::vector_set(1.0F), scratch1_xxxx_squared), scratch1_yyyy_squared), scratch1_zzzz_squared);
-
-					// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
-					// to ensure the resulting quaternion is always normalized with a positive W component
-					scratch0_wwww = rtm::vector_sqrt(rtm::vector_abs(scratch0_wwww_squared));
-					scratch1_wwww = rtm::vector_sqrt(rtm::vector_abs(scratch1_wwww_squared));
-
-					// Try and help the compiler hide the latency from the square-root
-					xxxx_squared = rtm::vector_mul(scratch0_xxxx, scratch1_xxxx);
-					yyyy_squared = rtm::vector_mul(scratch0_yyyy, scratch1_yyyy);
-					zzzz_squared = rtm::vector_mul(scratch0_zzzz, scratch1_zzzz);
+					scratch0_wwww = quat_from_positive_w4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
+					scratch1_wwww = quat_from_positive_w4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 #endif
 				}
 				else
 				{
-					xxxx_squared = rtm::vector_mul(scratch0_xxxx, scratch1_xxxx);
-					yyyy_squared = rtm::vector_mul(scratch0_yyyy, scratch1_yyyy);
-					zzzz_squared = rtm::vector_mul(scratch0_zzzz, scratch1_zzzz);
-
 					scratch0_wwww = scratch0[3];
 					scratch1_wwww = scratch1[3];
 				}
@@ -1270,9 +1260,9 @@ namespace acl
 				// Interpolate linearly and store our rotations in SOA
 				{
 					// Calculate the vector4 dot product: dot(start, end)
-					//const rtm::vector4f xxxx_squared = rtm::vector_mul(scratch0_xxxx, scratch1_xxxx);
-					//const rtm::vector4f yyyy_squared = rtm::vector_mul(scratch0_yyyy, scratch1_yyyy);
-					//const rtm::vector4f zzzz_squared = rtm::vector_mul(scratch0_zzzz, scratch1_zzzz);
+					const rtm::vector4f xxxx_squared = rtm::vector_mul(scratch0_xxxx, scratch1_xxxx);
+					const rtm::vector4f yyyy_squared = rtm::vector_mul(scratch0_yyyy, scratch1_yyyy);
+					const rtm::vector4f zzzz_squared = rtm::vector_mul(scratch0_zzzz, scratch1_zzzz);
 					const rtm::vector4f wwww_squared = rtm::vector_mul(scratch0_wwww, scratch1_wwww);
 
 					const rtm::vector4f dot4 = rtm::vector_add(rtm::vector_add(rtm::vector_add(xxxx_squared, yyyy_squared), zzzz_squared), wwww_squared);
