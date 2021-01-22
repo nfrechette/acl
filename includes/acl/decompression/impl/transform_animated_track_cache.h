@@ -315,7 +315,7 @@ namespace acl
 
 #if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data_avx(const segment_animated_scratch_v0& segment_scratch,
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data_avx8(const segment_animated_scratch_v0& segment_scratch,
 			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
 			__m256& xxxx0_xxxx1, __m256& yyyy0_yyyy1, __m256& zzzz0_zzzz1)
 		{
@@ -431,7 +431,7 @@ namespace acl
 
 #if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data_avx(const uint8_t* clip_range_data, uint32_t num_to_unpack,
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data_avx8(const uint8_t* clip_range_data, uint32_t num_to_unpack,
 			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
 			__m256& xxxx0_xxxx1, __m256& yyyy0_yyyy1, __m256& zzzz0_zzzz1)
 		{
@@ -1163,7 +1163,7 @@ namespace acl
 					if (decomp_context.has_segments)
 					{
 #if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
-						remap_segment_range_data_avx(segment_scratch, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
+						remap_segment_range_data_avx8(segment_scratch, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
 #else
 						remap_segment_range_data4(segment_scratch, 0, range_reduction_masks0, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
 						remap_segment_range_data4(segment_scratch, uint32_t(!uses_single_segment), range_reduction_masks1, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
@@ -1173,7 +1173,7 @@ namespace acl
 					const uint8_t* clip_range_data = clip_sampling_context.clip_range_data;
 
 #if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
-					remap_clip_range_data_avx(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
+					remap_clip_range_data_avx8(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
 #else
 					remap_clip_range_data4(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 #endif
