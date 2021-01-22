@@ -491,7 +491,7 @@ namespace acl
 
 		// About 31 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f xxxx, rtm::vector4f yyyy, rtm::vector4f zzzz)
 		{
 			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx, xxxx);
 			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy, yyyy);
