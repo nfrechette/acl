@@ -149,8 +149,6 @@ namespace acl
 
 			// Update our pointer
 			constant_data = constant_track_data;
-
-			ACL_IMPL_CONSTANT_PREFETCH(constant_track_data + 63);
 		}
 
 #if defined(ACL_IMPL_VEC3_UNPACK)

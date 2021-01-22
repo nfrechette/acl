@@ -438,15 +438,12 @@ namespace acl
 				}
 			}
 
-			// Prefetch our constant data, we'll need it soon when we start decompressing and we are about to cache miss on the segment headers
-			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(context.rotation_format);
-			const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
-			const uint32_t packed_rotation_size = get_packed_rotation_size(packed_format);
-
-			const uint8_t* constant_data_rotations = context.constant_track_data.add_to(context.tracks);
-			const uint8_t* constant_data_translations = constant_data_rotations + packed_rotation_size * transform_header.num_constant_rotation_samples;
-			ACL_IMPL_SEEK_PREFETCH(constant_data_rotations);
-			ACL_IMPL_SEEK_PREFETCH(constant_data_translations);
+			{
+				// Prefetch our constant rotation data, we'll need it soon when we start decompressing and we are about to cache miss on the segment headers
+				const uint8_t* constant_data_rotations = context.constant_track_data.add_to(context.tracks);
+				ACL_IMPL_SEEK_PREFETCH(constant_data_rotations);
+				ACL_IMPL_SEEK_PREFETCH(constant_data_rotations + 64);
+			}
 
 			// Cache miss if we don't access the db data
 			transform_header.get_segment_data(*segment_header0, context.format_per_track_data[0], context.segment_range_data[0], context.animated_track_data[0]);
@@ -504,10 +501,12 @@ namespace acl
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 
+			const rtm::quatf default_rotation = rtm::quat_identity();
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const bool has_scale = header.get_has_scale();
 			const uint32_t num_tracks = header.num_tracks;
+			const uint64_t num_sub_tracks_per_track = has_scale ? 3 : 2;
 
 			const uint32_t* default_tracks_bitset = context.default_tracks_bitset.add_to(context.tracks);
 			const uint32_t* constant_tracks_bitset = context.constant_tracks_bitset.add_to(context.tracks);
@@ -515,70 +514,112 @@ namespace acl
 			constant_track_cache_v0 constant_track_cache;
 			constant_track_cache.initialize<decompression_settings_type>(context);
 
+			{
+				// By now, our bit sets (1-2 cache lines) constant rotations (2 cache lines) have landed in the L2
+				// We prefetched them ahead in the seek(..) function call and due to cache misses when seeking,
+				// their latency should be fully hidden.
+				// Prefetch our 3rd constant rotation cache line to prime the hardware prefetcher and do the same for constant translations
+
+				ACL_IMPL_SEEK_PREFETCH(constant_track_cache.constant_data_rotations + 128);
+				ACL_IMPL_SEEK_PREFETCH(constant_track_cache.constant_data_translations);
+				ACL_IMPL_SEEK_PREFETCH(constant_track_cache.constant_data_translations + 64);
+				ACL_IMPL_SEEK_PREFETCH(constant_track_cache.constant_data_translations + 128);
+			}
+
 			animated_track_cache_v0 animated_track_cache;
 			animated_track_cache.initialize(context);
 
-			uint32_t sub_track_index = 0;
+			{
+				// Start prefetching the per track metadata of both segments
+				// They might live in a different memory page than the clip's header and constant data
+				// and we need to prime VMEM translation and the TLB
 
+				const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context[0].format_per_track_data;
+				const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context[1].format_per_track_data;
+				ACL_IMPL_SEEK_PREFETCH(per_track_metadata0);
+				ACL_IMPL_SEEK_PREFETCH(per_track_metadata1);
+			}
+
+			// I tried using branchless selection for the default/constant track by building a mask to select
+			// the pointer and branching was often still faster due to branch prediction. It was sometimes slower
+			// but an executive decision has been made to keep the branches until we can show a clear consistent win.
+
+			// I tried caching the bitset in a 64 bit register and simply shifting the bits in but it ended up being slightly
+			// slower more often than not. It seems to impact dependency chains somewhat. Maybe revisit this at some point.
+
+			// Unpack our constant rotation sub-tracks
+			uint32_t sub_track_index = 0;
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
 				if ((track_index % 4) == 0)
 				{
 					// Unpack our next 4 tracks
 					constant_track_cache.unpack_rotation_group<decompression_settings_type>(context);
-					constant_track_cache.unpack_translation_group();
-
-					animated_track_cache.unpack_rotation_group<decompression_settings_type>(context);
-					animated_track_cache.unpack_translation_group<translation_adapter>(context);
-
-					if (has_scale)
-					{
-						constant_track_cache.unpack_scale_group();
-						animated_track_cache.unpack_scale_group<scale_adapter>(context);
-					}
 				}
 
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
 					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
-					rtm::quatf rotation;
-					if (is_sample_default)
-					{
-						rotation = rtm::quat_identity();
-					}
-					else
-					{
-						const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-						if (is_sample_constant)
-							rotation = constant_track_cache.consume_rotation();
-						else
-							rotation = animated_track_cache.consume_rotation();
-					}
+					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
+					const bool is_sample_non_default_constant = !is_sample_default & is_sample_constant;
+
+					rtm::quatf rotation = default_rotation;
+					if (is_sample_non_default_constant)
+						rotation = constant_track_cache.consume_rotation();
 
 					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 					if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index))
 						writer.write_rotation(track_index, rotation);
+				}
+
+				// Skip our rotation, translation, and scale sub-tracks
+				sub_track_index += uint32_t(num_sub_tracks_per_track);
+			}
+
+			// By now, our constant translations (3 cache lines) have landed in L2 after our prefetching has completed
+			// We typically will do enough work above to hide the latency
+			// We do not prefetch our constant scales because scale is fairly rare
+			// Instead, we prefetch our segment range and animated data
+			// The second key frame of animated data might not live in the same memory page even if we use a single segment
+			// so this allows us to prime the TLB as well
+			{
+				const uint8_t* segment_range_data0 = animated_track_cache.segment_sampling_context[0].segment_range_data;
+				const uint8_t* segment_range_data1 = animated_track_cache.segment_sampling_context[1].segment_range_data;
+				const uint8_t* animated_data0 = animated_track_cache.segment_sampling_context[0].animated_track_data;
+				const uint8_t* animated_data1 = animated_track_cache.segment_sampling_context[1].animated_track_data;
+				const uint8_t* frame_animated_data0 = animated_data0 + (animated_track_cache.segment_sampling_context[0].animated_track_data_bit_offset / 8);
+				const uint8_t* frame_animated_data1 = animated_data1 + (animated_track_cache.segment_sampling_context[1].animated_track_data_bit_offset / 8);
+				ACL_IMPL_SEEK_PREFETCH(segment_range_data0);
+				ACL_IMPL_SEEK_PREFETCH(segment_range_data0 + 64);
+				ACL_IMPL_SEEK_PREFETCH(segment_range_data1);
+				ACL_IMPL_SEEK_PREFETCH(segment_range_data1 + 64);
+				ACL_IMPL_SEEK_PREFETCH(frame_animated_data0);
+				ACL_IMPL_SEEK_PREFETCH(frame_animated_data1);
+			}
+
+			// Reset
+			sub_track_index = 0;
+
+			// Unpack our constant translation/scale sub-tracks
+			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+			{
+				{
+					// Skip rotation
 					sub_track_index++;
 				}
 
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
 					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
-					rtm::vector4f translation;
-					if (is_sample_default)
-					{
-						translation = default_translation;
-					}
-					else
-					{
-						const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-						if (is_sample_constant)
-							translation = constant_track_cache.consume_translation();
-						else
-							translation = animated_track_cache.consume_translation();
-					}
+					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
+					const bool is_sample_non_default_constant = !is_sample_default & is_sample_constant;
+
+					rtm::vector4f translation = default_translation;
+
+					if (is_sample_non_default_constant)
+						translation = constant_track_cache.consume_translation();
 
 					ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
 
@@ -591,19 +632,13 @@ namespace acl
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
 					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
-					rtm::vector4f scale;
-					if (is_sample_default)
-					{
-						scale = default_scale;
-					}
-					else
-					{
-						const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-						if (is_sample_constant)
-							scale = constant_track_cache.consume_scale();
-						else
-							scale = animated_track_cache.consume_scale();
-					}
+					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
+					const bool is_sample_non_default_constant = !is_sample_default & is_sample_constant;
+
+					rtm::vector4f scale = default_scale;
+
+					if (is_sample_non_default_constant)
+						scale = constant_track_cache.consume_scale();
 
 					ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
@@ -613,6 +648,107 @@ namespace acl
 				}
 				else if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
 					writer.write_scale(track_index, default_scale);
+			}
+
+			{
+				// By now the first few cache lines of our segment data has landed in the L2
+				// Prefetch ahead some more to prime the hardware prefetcher
+				// We also start prefetching the clip range data since we'll need it soon and we need to prime the TLB
+				// and the hardware prefetcher
+
+				const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context[0].format_per_track_data;
+				const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context[1].format_per_track_data;
+				const uint8_t* animated_data0 = animated_track_cache.segment_sampling_context[0].animated_track_data;
+				const uint8_t* animated_data1 = animated_track_cache.segment_sampling_context[1].animated_track_data;
+				const uint8_t* frame_animated_data0 = animated_data0 + (animated_track_cache.segment_sampling_context[0].animated_track_data_bit_offset / 8);
+				const uint8_t* frame_animated_data1 = animated_data1 + (animated_track_cache.segment_sampling_context[1].animated_track_data_bit_offset / 8);
+
+				ACL_IMPL_SEEK_PREFETCH(per_track_metadata0 + 64);
+				ACL_IMPL_SEEK_PREFETCH(per_track_metadata1 + 64);
+				ACL_IMPL_SEEK_PREFETCH(frame_animated_data0 + 64);
+				ACL_IMPL_SEEK_PREFETCH(frame_animated_data1 + 64);
+				ACL_IMPL_SEEK_PREFETCH(animated_track_cache.clip_sampling_context.clip_range_data);
+				ACL_IMPL_SEEK_PREFETCH(animated_track_cache.clip_sampling_context.clip_range_data + 64);
+			}
+
+			// Reset
+			sub_track_index = 0;
+
+			// Unpack our variable sub-tracks
+			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+			{
+				if ((track_index % 4) == 0)
+				{
+					// Unpack our next 4 tracks
+					animated_track_cache.unpack_rotation_group<decompression_settings_type>(context);
+					animated_track_cache.unpack_translation_group<translation_adapter>(context);
+
+					if (has_scale)
+					{
+						//constant_track_cache.unpack_scale_group();
+						animated_track_cache.unpack_scale_group<scale_adapter>(context);
+					}
+				}
+
+				{
+					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
+					//const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
+					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
+					//const bool is_sample_animated = !is_sample_default & is_sample_constant;
+
+					//if (!is_sample_default && !is_sample_constant)
+					if (!is_sample_constant)
+					{
+						const rtm::quatf rotation = animated_track_cache.consume_rotation();
+
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index))
+							writer.write_rotation(track_index, rotation);
+					}
+
+					sub_track_index++;
+				}
+
+				{
+					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
+					//const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
+					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
+
+					//if (!is_sample_default && !is_sample_constant)
+					if (!is_sample_constant)
+					{
+						const rtm::vector4f translation = animated_track_cache.consume_translation();
+
+						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index))
+							writer.write_translation(track_index, translation);
+					}
+
+					sub_track_index++;
+				}
+
+				if (has_scale)
+				{
+					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
+					//const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
+					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
+
+					//if (!is_sample_default && !is_sample_constant)
+					if (!is_sample_constant)
+					{
+						const rtm::vector4f scale = animated_track_cache.consume_scale();
+
+						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
+							writer.write_scale(track_index, scale);
+					}
+
+					sub_track_index++;
+				}
 			}
 
 			if (decompression_settings_type::disable_fp_exeptions())

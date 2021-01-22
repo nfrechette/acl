@@ -1077,12 +1077,7 @@ namespace acl
 
 			void ACL_DISABLE_SECURITY_COOKIE_CHECK initialize(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-				const uint8_t* clip_range_data = decomp_context.clip_range_data.add_to(decomp_context.tracks);
-				clip_sampling_context.clip_range_data = clip_range_data;
-
-				// Prefetch our clip range data, we'll need it soon
-				ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 0);
-				ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 64);
+				clip_sampling_context.clip_range_data = decomp_context.clip_range_data.add_to(decomp_context.tracks);
 
 				segment_sampling_context[0].format_per_track_data = decomp_context.format_per_track_data[0];
 				segment_sampling_context[0].segment_range_data = decomp_context.segment_range_data[0];
@@ -1183,13 +1178,13 @@ namespace acl
 					remap_clip_range_data4(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 #endif
 
+					// Clip range data is 24-32 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
+					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 128);
+					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 192);
+
 					// Skip our data
 					clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
 					clip_sampling_context.clip_range_data = clip_range_data;
-
-					// Clip range data is 24-32 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
-					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 63);
-					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 127);
 				}
 
 				// For interpolation later
