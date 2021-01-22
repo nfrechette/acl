@@ -522,6 +522,43 @@ namespace acl
 		}
 #endif
 
+		// About 28 cycles with AVX on Skylake
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_lerp4(
+			rtm::vector4f xxxx0, rtm::vector4f yyyy0, rtm::vector4f zzzz0, rtm::vector4f wwww0,
+			rtm::vector4f xxxx1, rtm::vector4f yyyy1, rtm::vector4f zzzz1, rtm::vector4f wwww1,
+			float interpolation_alpha,
+			rtm::vector4f& interp_xxxx, rtm::vector4f& interp_yyyy, rtm::vector4f& interp_zzzz, rtm::vector4f& interp_wwww)
+		{
+			// Calculate the vector4 dot product: dot(start, end)
+			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx0, xxxx1);
+			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy0, yyyy1);
+			const rtm::vector4f zzzz_squared = rtm::vector_mul(zzzz0, zzzz1);
+			const rtm::vector4f wwww_squared = rtm::vector_mul(wwww0, wwww1);
+
+			const rtm::vector4f dot4 = rtm::vector_add(rtm::vector_add(rtm::vector_add(xxxx_squared, yyyy_squared), zzzz_squared), wwww_squared);
+
+			// Calculate the bias, if the dot product is positive or zero, there is no bias
+			// but if it is negative, we want to flip the 'end' rotation XYZW components
+			const rtm::vector4f neg_zero = rtm::vector_set(-0.0F);
+			const rtm::vector4f bias = acl_impl::vector_and(dot4, neg_zero);
+
+			// Apply our bias to the 'end'
+			xxxx1 = acl_impl::vector_xor(xxxx1, bias);
+			yyyy1 = acl_impl::vector_xor(yyyy1, bias);
+			zzzz1 = acl_impl::vector_xor(zzzz1, bias);
+			wwww1 = acl_impl::vector_xor(wwww1, bias);
+
+			// Lerp the rotation after applying the bias
+			// ((1.0 - alpha) * start) + (alpha * (end ^ bias)) == (start - alpha * start) + (alpha * (end ^ bias))
+			const rtm::vector4f alpha = rtm::vector_set(interpolation_alpha);
+
+			interp_xxxx = rtm::vector_mul_add(xxxx1, alpha, rtm::vector_neg_mul_sub(xxxx0, alpha, xxxx0));
+			interp_yyyy = rtm::vector_mul_add(yyyy1, alpha, rtm::vector_neg_mul_sub(yyyy0, alpha, yyyy0));
+			interp_zzzz = rtm::vector_mul_add(zzzz1, alpha, rtm::vector_neg_mul_sub(zzzz0, alpha, zzzz0));
+			interp_wwww = rtm::vector_mul_add(wwww1, alpha, rtm::vector_neg_mul_sub(wwww0, alpha, wwww0));
+		}
+
 		template<class decompression_settings_type>
 		inline ACL_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
@@ -1259,33 +1296,15 @@ namespace acl
 
 				// Interpolate linearly and store our rotations in SOA
 				{
-					// Calculate the vector4 dot product: dot(start, end)
-					const rtm::vector4f xxxx_squared = rtm::vector_mul(scratch0_xxxx, scratch1_xxxx);
-					const rtm::vector4f yyyy_squared = rtm::vector_mul(scratch0_yyyy, scratch1_yyyy);
-					const rtm::vector4f zzzz_squared = rtm::vector_mul(scratch0_zzzz, scratch1_zzzz);
-					const rtm::vector4f wwww_squared = rtm::vector_mul(scratch0_wwww, scratch1_wwww);
-
-					const rtm::vector4f dot4 = rtm::vector_add(rtm::vector_add(rtm::vector_add(xxxx_squared, yyyy_squared), zzzz_squared), wwww_squared);
-
-					// Calculate the bias, if the dot product is positive or zero, there is no bias
-					// but if it is negative, we want to flip the 'end' rotation XYZW components
-					const rtm::vector4f neg_zero = rtm::vector_set(-0.0F);
-					const rtm::vector4f bias = acl_impl::vector_and(dot4, neg_zero);
-
-					// Apply our bias to the 'end'
-					scratch1_xxxx = acl_impl::vector_xor(scratch1_xxxx, bias);
-					scratch1_yyyy = acl_impl::vector_xor(scratch1_yyyy, bias);
-					scratch1_zzzz = acl_impl::vector_xor(scratch1_zzzz, bias);
-					scratch1_wwww = acl_impl::vector_xor(scratch1_wwww, bias);
-
-					// Lerp the rotation after applying the bias
-					// ((1.0 - alpha) * start) + (alpha * (end ^ bias)) == (start - alpha * start) + (alpha * (end ^ bias))
-					const rtm::vector4f alpha = rtm::vector_set(decomp_context.interpolation_alpha);
-
-					rtm::vector4f interp_xxxx = rtm::vector_mul_add(scratch1_xxxx, alpha, rtm::vector_neg_mul_sub(scratch0_xxxx, alpha, scratch0_xxxx));
-					rtm::vector4f interp_yyyy = rtm::vector_mul_add(scratch1_yyyy, alpha, rtm::vector_neg_mul_sub(scratch0_yyyy, alpha, scratch0_yyyy));
-					rtm::vector4f interp_zzzz = rtm::vector_mul_add(scratch1_zzzz, alpha, rtm::vector_neg_mul_sub(scratch0_zzzz, alpha, scratch0_zzzz));
-					rtm::vector4f interp_wwww = rtm::vector_mul_add(scratch1_wwww, alpha, rtm::vector_neg_mul_sub(scratch0_wwww, alpha, scratch0_wwww));
+					// Interpolate our quaternions without normalizing just yet
+					rtm::vector4f interp_xxxx;
+					rtm::vector4f interp_yyyy;
+					rtm::vector4f interp_zzzz;
+					rtm::vector4f interp_wwww;
+					quat_lerp4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww,
+						scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww,
+						decomp_context.interpolation_alpha,
+						interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 
 					// Due to the interpolation, the result might not be anywhere near normalized!
 					// Make sure to normalize afterwards before using
