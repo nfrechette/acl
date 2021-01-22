@@ -38,7 +38,20 @@
 #include <cstdint>
 
 #define ACL_IMPL_USE_ANIMATED_PREFETCH
-//#define ACL_IMPL_USE_AVX_DECOMP
+
+// This defined enables the SIMD 8 wide AVX decompression code path
+// Note that currently, it is often slower than the regular SIMD 4 wide AVX code path
+// On Intel Haswell and AMD Zen2 CPUs, the 8 wide code is measurably slower
+// Perhaps it is faster on newer Intel CPUs but I don't have one to test with
+// Enable at your own risk
+//#define ACL_IMPL_USE_AVX_8_WIDE_DECOMP
+
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
+	#if !defined(RTM_AVX_INTRINSICS)
+		// AVX isn't enabled, disable the 8 wide code path
+		#undef ACL_IMPL_USE_AVX_8_WIDE_DECOMP
+	#endif
+#endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -228,7 +241,7 @@ namespace acl
 			// Prefetch 4 samples ahead in all levels of the CPU cache
 			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 63);
 
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 			// With AVX, we must duplicate our data for the first segment in case we don't have a second segment
 			if (scratch_offset == 0)
 			{
@@ -313,7 +326,7 @@ namespace acl
 			zzzz = rtm::vector_mul_add(zzzz, segment_range_extent_zzzz, segment_range_min_zzzz);
 		}
 
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 		// Force inline this function, we only use it to keep the code readable
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data_avx8(const segment_animated_scratch_v0& segment_scratch,
 			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
@@ -429,7 +442,7 @@ namespace acl
 			zzzz1 = rtm::vector_mul_add(zzzz1, clip_range_extent_zzzz1, clip_range_min_zzzz1);
 		}
 
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 		// Force inline this function, we only use it to keep the code readable
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data_avx8(const uint8_t* clip_range_data, uint32_t num_to_unpack,
 			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
@@ -1149,7 +1162,7 @@ namespace acl
 				rtm::vector4f scratch1_zzzz = scratch1[2];
 				rtm::vector4f scratch1_wwww;
 
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 				__m256 scratch_xxxx0_xxxx1 = _mm256_set_m128(scratch1_xxxx, scratch0_xxxx);
 				__m256 scratch_yyyy0_yyyy1 = _mm256_set_m128(scratch1_yyyy, scratch0_yyyy);
 				__m256 scratch_zzzz0_zzzz1 = _mm256_set_m128(scratch1_zzzz, scratch0_zzzz);
@@ -1162,7 +1175,7 @@ namespace acl
 				{
 					if (decomp_context.has_segments)
 					{
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 						remap_segment_range_data_avx8(segment_scratch, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
 #else
 						remap_segment_range_data4(segment_scratch, 0, range_reduction_masks0, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
@@ -1172,7 +1185,7 @@ namespace acl
 
 					const uint8_t* clip_range_data = clip_sampling_context.clip_range_data;
 
-#if defined(RTM_AVX_INTRINSICS) && defined(ACL_IMPL_USE_AVX_DECOMP)
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 					remap_clip_range_data_avx8(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
 #else
 					remap_clip_range_data4(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
