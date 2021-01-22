@@ -116,6 +116,7 @@ namespace acl
 		using range_reduction_masks_t = uint64_t;
 #endif
 
+		// About 9 cycles with SSE2 on Skylake
 		inline ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_segment_range_data(const uint8_t* segment_range_data, uint32_t scratch_offset, segment_animated_scratch_v0& output_scratch)
 		{
 			// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
@@ -260,6 +261,7 @@ namespace acl
 #endif
 		}
 
+		// About 19 cycles with SSE2 on Skylake
 		// Force inline this function, we only use it to keep the code readable
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data4(const segment_animated_scratch_v0& segment_scratch, uint32_t scratch_offset, range_reduction_masks_t range_reduction_masks,
 			rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz)
@@ -348,6 +350,7 @@ namespace acl
 		}
 #endif
 
+		// About 24 cycles with SSE2 on Skylake
 		// Force inline this function, we only use it to keep the code readable
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data4(const uint8_t* clip_range_data, uint32_t num_to_unpack,
 			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
