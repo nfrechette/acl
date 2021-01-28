@@ -113,12 +113,6 @@ namespace acl
 
 			// segment_range_extent_xxxx0, segment_range_extent_xxxx1, segment_range_extent_yyyy0, segment_range_extent_yyyy1, segment_range_extent_zzzz0, segment_range_extent_zzzz1
 			rtm::vector4f segment_range_extent[6];
-
-			// We store our potential constant bit rate samples in SOA form with 16 bit per component
-			// We have 4 components, each 16 bit wide, and we have no W, just XYZ
-			//uint8_t constant_sample_data[sizeof(uint16_t) * 4 * 3];
-
-			//uint8_t padding[8];
 		};
 
 #if defined(RTM_SSE2_INTRINSICS)
