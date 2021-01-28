@@ -307,7 +307,7 @@ namespace acl
 			return safe_static_cast<uint32_t>(constant_data - constant_data_start);
 		}
 
-		inline void write_animated_sample(const TrackStream& track_stream, uint32_t sample_index, uint8_t* animated_track_data_begin, uint8_t*& out_animated_track_data, uint64_t& out_bit_offset)
+		inline void write_animated_sample(const TrackStream& track_stream, uint32_t sample_index, uint8_t* animated_track_data_begin, uint64_t& out_bit_offset)
 		{
 			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 
@@ -337,7 +337,6 @@ namespace acl
 				}
 
 				out_bit_offset += num_bits_at_bit_rate;
-				out_animated_track_data = animated_track_data_begin + (out_bit_offset / 8);
 			}
 			else
 			{
@@ -359,7 +358,6 @@ namespace acl
 				}
 
 				out_bit_offset += has_w_component ? 128 : 96;
-				out_animated_track_data = animated_track_data_begin + (out_bit_offset / 8);
 			}
 		}
 
@@ -395,7 +393,6 @@ namespace acl
 			alignas(16) uint8_t group_animated_track_data[sizeof(rtm::vector4f) * 4];
 			uint64_t group_bit_offset = 0;
 			uint32_t num_group_samples = 0;
-			uint8_t* dummy_animated_track_data_ptr = nullptr;
 
 			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
 			{
@@ -439,7 +436,7 @@ namespace acl
 					{
 						if (!is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
 						{
-							write_animated_sample(bone_stream.rotations, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
+							write_animated_sample(bone_stream.rotations, sample_index, group_animated_track_data, group_bit_offset);
 							num_group_samples++;
 						}
 					}
@@ -447,7 +444,7 @@ namespace acl
 					{
 						if (!is_constant_bit_rate(bone_stream.translations.get_bit_rate()))
 						{
-							write_animated_sample(bone_stream.translations, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
+							write_animated_sample(bone_stream.translations, sample_index, group_animated_track_data, group_bit_offset);
 							num_group_samples++;
 						}
 					}
@@ -455,7 +452,7 @@ namespace acl
 					{
 						if (!is_constant_bit_rate(bone_stream.scales.get_bit_rate()))
 						{
-							write_animated_sample(bone_stream.scales, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
+							write_animated_sample(bone_stream.scales, sample_index, group_animated_track_data, group_bit_offset);
 							num_group_samples++;
 						}
 					}
