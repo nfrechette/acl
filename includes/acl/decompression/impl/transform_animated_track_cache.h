@@ -596,6 +596,10 @@ namespace acl
 			// For SIMD, can we load constant samples and write them to scratch? Afterwards its the same as packed on 16 bits
 			// We get 4 short branches (test, cmp, 6x loads, 3x ORs, 3x writes, load immediate) followed by a common code path for all 4 samples
 
+			// Maybe we can write in SOA order directly, and we could even write the scaling value per lane, load ones multiply 3 times for xyz in SOA
+
+			// Try inlining the unpacking functions
+
 			for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 			{
 				// Our decompressed rotation as a vector4
