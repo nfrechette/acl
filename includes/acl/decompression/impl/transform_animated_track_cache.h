@@ -746,7 +746,7 @@ namespace acl
 #if defined(RTM_SSE2_INTRINSICS)
 				range_reduction_masks = _mm_setzero_si128();
 #elif defined(RTM_NEON_INTRINSICS)
-				range_reduction_masks = vcreate_s16(0ULL);
+				range_reduction_masks = vcombine_s16(vcreate_s16(0ULL), vcreate_s16(0ULL));
 #else
 				range_reduction_masks = 0ULL;
 #endif
