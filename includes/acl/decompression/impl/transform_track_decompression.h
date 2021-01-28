@@ -776,7 +776,7 @@ namespace acl
 
 			// To decompress a single track, we need a few things:
 			//    - if our rot/trans/scale is the default value, this is a trivial bitset lookup
-			//    - constant and animated sub-tracks need to know which group they below to so it can be unpacked
+			//    - constant and animated sub-tracks need to know which group they belong to so it can be unpacked
 
 			const uint32_t num_tracks_per_bone = has_scale ? 3 : 2;
 			const uint32_t sub_track_index = track_index * num_tracks_per_bone;
