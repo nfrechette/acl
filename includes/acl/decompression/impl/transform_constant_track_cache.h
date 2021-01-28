@@ -218,28 +218,10 @@ namespace acl
 			track_cache_vector4f_v0 scales;
 #endif
 
-#if defined(ACL_IMPL_USE_CONSTANT_GROUPS)
-			// How many we have left to unpack in total
-			uint32_t		num_left_to_unpack_translations;
-			uint32_t		num_left_to_unpack_scales;
-
-			// How many we have cached (faked for translations/scales)
-			uint32_t		num_unpacked_translations = 0;
-			uint32_t		num_unpacked_scales = 0;
-
-			// How many we have left in our group
-			uint32_t		num_group_translations[2];
-			uint32_t		num_group_scales[2];
-
-			const uint8_t*	constant_data;
-			const uint8_t*	constant_data_translations[2];
-			const uint8_t*	constant_data_scales[2];
-#else
 			// Points to our packed sub-track data
 			const uint8_t*	constant_data_rotations;
 			const uint8_t*	constant_data_translations;
 			const uint8_t*	constant_data_scales;
-#endif
 
 			template<class decompression_settings_type>
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void initialize(const persistent_transform_decompression_context_v0& decomp_context)
@@ -253,16 +235,6 @@ namespace acl
 				scales.num_left_to_unpack = transform_header.num_constant_scale_samples;
 #endif
 
-#if defined(ACL_IMPL_USE_CONSTANT_GROUPS)
-				num_left_to_unpack_translations = transform_header.num_constant_translation_samples;
-				num_left_to_unpack_scales = transform_header.num_constant_scale_samples;
-
-				constant_data = decomp_context.constant_track_data;
-				constant_data_translations[0] = constant_data_translations[1] = nullptr;
-				constant_data_scales[0] = constant_data_scales[1] = nullptr;
-				num_group_translations[0] = num_group_translations[1] = 0;
-				num_group_scales[0] = num_group_scales[1] = 0;
-#else
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 				const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
 				const uint32_t packed_rotation_size = get_packed_rotation_size(packed_format);
@@ -271,17 +243,12 @@ namespace acl
 				constant_data_rotations = decomp_context.constant_track_data.add_to(decomp_context.tracks);
 				constant_data_translations = constant_data_rotations + packed_rotation_size * transform_header.num_constant_rotation_samples;
 				constant_data_scales = constant_data_translations + packed_translation_size * transform_header.num_constant_translation_samples;
-#endif
 			}
 
 			template<class decompression_settings_type>
 			ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_rotation_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-#if defined(ACL_IMPL_USE_CONSTANT_GROUPS)
-				unpack_constant_quat<decompression_settings_type>(decomp_context, rotations, constant_data);
-#else
 				unpack_constant_quat<decompression_settings_type>(decomp_context, rotations, constant_data_rotations);
-#endif
 			}
 
 			template<class decompression_settings_type>
@@ -350,25 +317,7 @@ namespace acl
 #if defined(ACL_IMPL_VEC3_UNPACK)
 				unpack_constant_vector3(translations, constant_data_translations);
 #else
-#if defined(ACL_IMPL_USE_CONSTANT_GROUPS)
-				if (num_left_to_unpack_translations == 0 || num_unpacked_translations >= 4)
-					return;	// Enough unpacked or nothing to do
-
-				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack_translations, 4);
-				num_left_to_unpack_translations -= num_to_unpack;
-
-				// If we have data already unpacked, store in index 1 otherwise store in 0
-				const uint32_t unpack_index = num_unpacked_translations > 0 ? 1 : 0;
-				constant_data_translations[unpack_index] = constant_data;
-				num_group_translations[unpack_index] = num_to_unpack;
-				constant_data += sizeof(rtm::float3f) * num_to_unpack;
-
-				num_unpacked_translations += num_to_unpack;
-
-				ACL_IMPL_CONSTANT_PREFETCH(constant_data + 63);
-#else
 				ACL_IMPL_CONSTANT_PREFETCH(constant_data_translations + 63);
-#endif
 #endif
 			}
 
@@ -403,24 +352,9 @@ namespace acl
 				const uint32_t cache_read_index = translations.cache_read_index++;
 				return translations.cached_samples[cache_read_index % 8];
 #else
-#if defined(ACL_IMPL_USE_CONSTANT_GROUPS)
-				const rtm::vector4f sample = rtm::vector_load(constant_data_translations[0]);
-				num_group_translations[0]--;
-				num_unpacked_translations--;
-
-				// If we finished reading from the first group, swap it out otherwise increment our entry
-				if (num_group_translations[0] == 0)
-				{
-					constant_data_translations[0] = constant_data_translations[1];
-					num_group_translations[0] = num_group_translations[1];
-				}
-				else
-					constant_data_translations[0] += sizeof(rtm::float3f);
-#else
 				const rtm::vector4f sample = rtm::vector_load(constant_data_translations);
 				ACL_ASSERT(rtm::vector_is_finite3(sample), "Sample is not valid!");
 				constant_data_translations += sizeof(rtm::float3f);
-#endif
 				return sample;
 #endif
 			}
@@ -430,25 +364,7 @@ namespace acl
 #if defined(ACL_IMPL_VEC3_UNPACK)
 				unpack_constant_vector3(scales, constant_data_scales);
 #else
-#if defined(ACL_IMPL_USE_CONSTANT_GROUPS)
-				if (num_left_to_unpack_scales == 0 || num_unpacked_scales >= 4)
-					return;	// Enough unpacked or nothing to do
-
-				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack_scales, 4);
-				num_left_to_unpack_scales -= num_to_unpack;
-
-				// If we have data already unpacked, store in index 1 otherwise store in 0
-				const uint32_t unpack_index = num_unpacked_scales > 0 ? 1 : 0;
-				constant_data_scales[unpack_index] = constant_data;
-				num_group_scales[unpack_index] = num_to_unpack;
-				constant_data += sizeof(rtm::float3f) * num_to_unpack;
-
-				num_unpacked_scales += num_to_unpack;
-
-				ACL_IMPL_CONSTANT_PREFETCH(constant_data + 63);
-#else
 				ACL_IMPL_CONSTANT_PREFETCH(constant_data_scales + 63);
-#endif
 #endif
 			}
 
@@ -483,23 +399,8 @@ namespace acl
 				const uint32_t cache_read_index = scales.cache_read_index++;
 				return scales.cached_samples[cache_read_index % 8];
 #else
-#if defined(ACL_IMPL_USE_CONSTANT_GROUPS)
-				const rtm::vector4f scale = rtm::vector_load(constant_data_scales[0]);
-				num_group_scales[0]--;
-				num_unpacked_scales--;
-
-				// If we finished reading from the first group, swap it out otherwise increment our entry
-				if (num_group_scales[0] == 0)
-				{
-					constant_data_scales[0] = constant_data_scales[1];
-					num_group_scales[0] = num_group_scales[1];
-				}
-				else
-					constant_data_scales[0] += sizeof(rtm::float3f);
-#else
 				const rtm::vector4f scale = rtm::vector_load(constant_data_scales);
 				constant_data_scales += sizeof(rtm::float3f);
-#endif
 				return scale;
 #endif
 			}

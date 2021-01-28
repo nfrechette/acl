@@ -208,86 +208,6 @@ namespace acl
 
 			const uint8_t* constant_data_start = constant_data;
 
-#if defined(ACL_IMPL_USE_CONSTANT_GROUPS)
-			// Data is ordered in groups of 4 constant sub-tracks (e.g rot0, rot1, rot2, rot3)
-			// Order depends on animated track order. If we have 6 constant rotation tracks before the first constant
-			// translation track, we'll have 8 constant rotation sub-tracks followed by 4 constant translation sub-tracks.
-			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
-			// This is because we always process 4 constant sub-tracks at a time and cache the results.
-
-			// Groups are written in the order of first use and as such are sorted by their lowest sub-track index.
-
-			// If our rotation format drops the W component, we swizzle the data to store XXXX, YYYY, ZZZZ
-			const bool swizzle_rotations = get_rotation_variant(rotation_format) == rotation_variant8::quat_drop_w;
-
-			float xxxx_group[4];
-			float yyyy_group[4];
-			float zzzz_group[4];
-			rtm::vector4f constant_group4[4];
-			rtm::float3f constant_group3[4];
-
-			auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
-			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
-
-				if (group_type == animation_track_type8::rotation)
-				{
-					if (swizzle_rotations)
-					{
-						const rtm::vector4f sample = bone_stream.rotations.get_raw_sample<rtm::vector4f>(0);
-						xxxx_group[group_size] = rtm::vector_get_x(sample);
-						yyyy_group[group_size] = rtm::vector_get_y(sample);
-						zzzz_group[group_size] = rtm::vector_get_z(sample);
-					}
-					else
-					{
-						const rtm::vector4f sample = bone_stream.rotations.get_raw_sample<rtm::vector4f>(0);
-						constant_group4[group_size] = sample;
-					}
-				}
-				else if (group_type == animation_track_type8::translation)
-				{
-					const rtm::vector4f sample = bone_stream.translations.get_raw_sample<rtm::vector4f>(0);
-					rtm::vector_store3(sample, &constant_group3[group_size]);
-				}
-				else
-				{
-					const rtm::vector4f sample = bone_stream.scales.get_raw_sample<rtm::vector4f>(0);
-					rtm::vector_store3(sample, &constant_group3[group_size]);
-				}
-			};
-
-			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
-			{
-				if (group_type == animation_track_type8::rotation)
-				{
-					if (swizzle_rotations)
-					{
-						std::memcpy(constant_data, &xxxx_group[0], group_size * sizeof(float));
-						constant_data += group_size * sizeof(float);
-						std::memcpy(constant_data, &yyyy_group[0], group_size * sizeof(float));
-						constant_data += group_size * sizeof(float);
-						std::memcpy(constant_data, &zzzz_group[0], group_size * sizeof(float));
-						constant_data += group_size * sizeof(float);
-					}
-					else
-					{
-						// If we don't swizzle, we have a full quaternion
-						std::memcpy(constant_data, &constant_group4[0], group_size * sizeof(rtm::vector4f));
-						constant_data += group_size * sizeof(rtm::vector4f);
-					}
-				}
-				else
-				{
-					std::memcpy(constant_data, &constant_group3[0], group_size * sizeof(rtm::float3f));
-					constant_data += group_size * sizeof(rtm::float3f);
-				}
-
-				ACL_ASSERT(constant_data <= constant_data_end, "Invalid constant data offset. Wrote too much data.");
-			};
-
-			constant_group_writer(segment, output_bone_mapping, num_output_bones, group_entry_action, group_flush_action);
-#else
 			// If our rotation format drops the W component, we swizzle the data to store XXXX, YYYY, ZZZZ
 			const bool swizzle_rotations = get_rotation_variant(rotation_format) == rotation_variant8::quat_drop_w;
 			float xxxx[4];
@@ -382,7 +302,6 @@ namespace acl
 					}
 				}
 			}
-#endif
 
 			ACL_ASSERT(constant_data == constant_data_end, "Invalid constant data offset. Wrote too little data.");
 			return safe_static_cast<uint32_t>(constant_data - constant_data_start);

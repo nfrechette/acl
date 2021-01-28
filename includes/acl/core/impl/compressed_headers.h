@@ -36,9 +36,6 @@
 #include <atomic>
 #include <cstdint>
 
-// This is a bit slower because of the added bookkeeping when we unpack
-//#define ACL_IMPL_USE_CONSTANT_GROUPS
-
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
