@@ -36,7 +36,6 @@
 #include <cstdint>
 
 #define ACL_IMPL_USE_CONSTANT_PREFETCH
-//#define ACL_IMPL_VEC3_UNPACK
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -151,72 +150,9 @@ namespace acl
 			constant_data = constant_track_data;
 		}
 
-#if defined(ACL_IMPL_VEC3_UNPACK)
-		inline void unpack_constant_vector3(track_cache_vector4f_v0& track_cache, const uint8_t*& constant_data)
-		{
-			uint32_t num_left_to_unpack = track_cache.num_left_to_unpack;
-			if (num_left_to_unpack == 0)
-				return;	// Nothing left to do, we are done
-
-			const uint32_t packed_size = get_packed_vector_size(vector_format8::vector3f_full);
-
-			// If we have less than 4 cached samples, unpack 4 more and prefetch the next cache line
-			const uint32_t num_cached = track_cache.get_num_cached();
-			if (num_cached < 4)
-			{
-				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 4);
-				num_left_to_unpack -= num_to_unpack;
-				track_cache.num_left_to_unpack = num_left_to_unpack;
-
-				// Write index will be either 0 or 4 here since we always unpack 4 at a time
-				uint32_t cache_write_index = track_cache.cache_write_index % 8;
-				track_cache.cache_write_index += num_to_unpack;
-
-				const uint8_t* constant_track_data = constant_data;
-
-				for (uint32_t unpack_index = num_to_unpack; unpack_index != 0; --unpack_index)
-				{
-					// Unpack
-					// Constant vector3 tracks store the remaining sample with full precision
-					const rtm::vector4f sample = unpack_vector3_96_unsafe(constant_track_data);
-					ACL_ASSERT(rtm::vector_is_finite3(sample), "Vector3 is not valid!");
-
-					// TODO: Fill in W component with something sensible?
-
-					// Cache
-					track_cache.cached_samples[cache_write_index] = sample;
-					cache_write_index++;
-
-					// Update our read ptr
-					constant_track_data += packed_size;
-				}
-
-				constant_data = constant_track_data;
-
-				// Prefetch the next cache line even if we don't have any data left
-				// By the time we unpack again, it will have arrived in the CPU cache
-				// With our full precision format, we have at most 5.33 samples per cache line
-
-				// If our pointer was already aligned to a cache line before we unpacked our 4 values,
-				// it now points to the first byte of the next cache line. Any offset between 0-63 will fetch it.
-				// If our pointer had some offset into a cache line, we might have spanned 2 cache lines.
-				// If this happens, we probably already read some data from the next cache line in which
-				// case we don't need to prefetch it and we can go to the next one. Any offset after the end
-				// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
-				// Prefetch 4 samples ahead in all levels of the CPU cache
-				ACL_IMPL_CONSTANT_PREFETCH(constant_track_data + 63);
-			}
-		}
-#endif
-
 		struct constant_track_cache_v0
 		{
 			track_cache_quatf_v0 rotations;
-
-#if defined(ACL_IMPL_VEC3_UNPACK)
-			track_cache_vector4f_v0 translations;
-			track_cache_vector4f_v0 scales;
-#endif
 
 			// Points to our packed sub-track data
 			const uint8_t*	constant_data_rotations;
@@ -229,11 +165,6 @@ namespace acl
 				const transform_tracks_header& transform_header = get_transform_tracks_header(*decomp_context.tracks);
 
 				rotations.num_left_to_unpack = transform_header.num_constant_rotation_samples;
-
-#if defined(ACL_IMPL_VEC3_UNPACK)
-				translations.num_left_to_unpack = transform_header.num_constant_translation_samples;
-				scales.num_left_to_unpack = transform_header.num_constant_scale_samples;
-#endif
 
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 				const rotation_format8 packed_format = is_rotation_format_variable(rotation_format) ? get_highest_variant_precision(get_rotation_variant(rotation_format)) : rotation_format;
@@ -314,11 +245,7 @@ namespace acl
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_translation_group()
 			{
-#if defined(ACL_IMPL_VEC3_UNPACK)
-				unpack_constant_vector3(translations, constant_data_translations);
-#else
 				ACL_IMPL_CONSTANT_PREFETCH(constant_data_translations + 63);
-#endif
 			}
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_groups(uint32_t num_groups_to_skip)
@@ -347,25 +274,15 @@ namespace acl
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL consume_translation()
 			{
-#if defined(ACL_IMPL_VEC3_UNPACK)
-				ACL_ASSERT(translations.cache_read_index < translations.cache_write_index, "Attempting to consume a constant sample that isn't cached");
-				const uint32_t cache_read_index = translations.cache_read_index++;
-				return translations.cached_samples[cache_read_index % 8];
-#else
 				const rtm::vector4f sample = rtm::vector_load(constant_data_translations);
 				ACL_ASSERT(rtm::vector_is_finite3(sample), "Sample is not valid!");
 				constant_data_translations += sizeof(rtm::float3f);
 				return sample;
-#endif
 			}
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_scale_group()
 			{
-#if defined(ACL_IMPL_VEC3_UNPACK)
-				unpack_constant_vector3(scales, constant_data_scales);
-#else
 				ACL_IMPL_CONSTANT_PREFETCH(constant_data_scales + 63);
-#endif
 			}
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip)
@@ -394,15 +311,9 @@ namespace acl
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL consume_scale()
 			{
-#if defined(ACL_IMPL_VEC3_UNPACK)
-				ACL_ASSERT(scales.cache_read_index < scales.cache_write_index, "Attempting to consume a constant sample that isn't cached");
-				const uint32_t cache_read_index = scales.cache_read_index++;
-				return scales.cached_samples[cache_read_index % 8];
-#else
 				const rtm::vector4f scale = rtm::vector_load(constant_data_scales);
 				constant_data_scales += sizeof(rtm::float3f);
 				return scale;
-#endif
 			}
 		};
 	}
