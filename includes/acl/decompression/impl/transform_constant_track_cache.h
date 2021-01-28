@@ -49,107 +49,6 @@ namespace acl
 
 	namespace acl_impl
 	{
-		template<class decompression_settings_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_constant_quat(const persistent_transform_decompression_context_v0& decomp_context, track_cache_quatf_v0& track_cache, const uint8_t*& constant_data)
-		{
-			// Prefetch the next cache line even if we don't have any data left
-			// By the time we unpack again, it will have arrived in the CPU cache
-			// If our format is full precision, we have at most 4 samples per cache line
-			// If our format is drop W, we have at most 5.33 samples per cache line
-
-			// If our pointer was already aligned to a cache line before we unpacked our 4 values,
-			// it now points to the first byte of the next cache line. Any offset between 0-63 will fetch it.
-			// If our pointer had some offset into a cache line, we might have spanned 2 cache lines.
-			// If this happens, we probably already read some data from the next cache line in which
-			// case we don't need to prefetch it and we can go to the next one. Any offset after the end
-			// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
-			// Prefetch 4 samples ahead in all levels of the CPU cache
-
-			uint32_t num_left_to_unpack = track_cache.num_left_to_unpack;
-			if (num_left_to_unpack == 0)
-				return;	// Nothing left to do, we are done
-
-						// If we have less than 4 cached samples, unpack 4 more and prefetch the next cache line
-			const uint32_t num_cached = track_cache.get_num_cached();
-			if (num_cached >= 4)
-				return;	// Enough cached, nothing to do
-
-			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
-
-			const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 4);
-			num_left_to_unpack -= num_to_unpack;
-			track_cache.num_left_to_unpack = num_left_to_unpack;
-
-			// Write index will be either 0 or 4 here since we always unpack 4 at a time
-			uint32_t cache_write_index = track_cache.cache_write_index % 8;
-			track_cache.cache_write_index += num_to_unpack;
-
-			const uint8_t* constant_track_data = constant_data;
-
-			if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
-			{
-				for (uint32_t unpack_index = num_to_unpack; unpack_index != 0; --unpack_index)
-				{
-					// Unpack
-					const rtm::quatf sample = unpack_quat_128(constant_track_data);
-
-					ACL_ASSERT(rtm::quat_is_finite(sample), "Rotation is not valid!");
-					ACL_ASSERT(rtm::quat_is_normalized(sample), "Rotation is not normalized!");
-
-					// Cache
-					track_cache.cached_samples[cache_write_index] = sample;
-					cache_write_index++;
-
-					// Update our read ptr
-					constant_track_data += sizeof(rtm::float4f);
-				}
-			}
-			else
-			{
-				// Unpack
-				// Always load 4x rotations, we might contain garbage in a few lanes but it's fine
-				const uint32_t load_size = num_to_unpack * sizeof(float);
-
-				const rtm::vector4f xxxx = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 0));
-				const rtm::vector4f yyyy = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 1));
-				const rtm::vector4f zzzz = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 2));
-
-				// Update our read ptr
-				constant_track_data += load_size * 3;
-
-				// quat_from_positive_w_soa
-				const rtm::vector4f wwww_squared = rtm::vector_sub(rtm::vector_sub(rtm::vector_sub(rtm::vector_set(1.0F), rtm::vector_mul(xxxx, xxxx)), rtm::vector_mul(yyyy, yyyy)), rtm::vector_mul(zzzz, zzzz));
-
-				// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
-				// to ensure the resulting quaternion is always normalized with a positive W component
-				const rtm::vector4f wwww = rtm::vector_sqrt(rtm::vector_abs(wwww_squared));
-
-				rtm::vector4f sample0;
-				rtm::vector4f sample1;
-				rtm::vector4f sample2;
-				rtm::vector4f sample3;
-				RTM_MATRIXF_TRANSPOSE_4X4(xxxx, yyyy, zzzz, wwww, sample0, sample1, sample2, sample3);
-
-				// Cache
-				rtm::quatf* cache_ptr = &track_cache.cached_samples[cache_write_index];
-				cache_ptr[0] = rtm::vector_to_quat(sample0);
-				cache_ptr[1] = rtm::vector_to_quat(sample1);
-				cache_ptr[2] = rtm::vector_to_quat(sample2);
-				cache_ptr[3] = rtm::vector_to_quat(sample3);
-
-#if defined(ACL_HAS_ASSERT_CHECKS)
-				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
-				{
-					ACL_ASSERT(rtm::quat_is_finite(track_cache.cached_samples[cache_write_index + unpack_index]), "Rotation is not valid!");
-					ACL_ASSERT(rtm::quat_is_normalized(track_cache.cached_samples[cache_write_index + unpack_index]), "Rotation is not normalized!");
-				}
-#endif
-			}
-
-			// Update our pointer
-			constant_data = constant_track_data;
-		}
-
 		struct constant_track_cache_v0
 		{
 			track_cache_quatf_v0 rotations;
@@ -179,7 +78,102 @@ namespace acl
 			template<class decompression_settings_type>
 			ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_rotation_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-				unpack_constant_quat<decompression_settings_type>(decomp_context, rotations, constant_data_rotations);
+				// Prefetch the next cache line even if we don't have any data left
+				// By the time we unpack again, it will have arrived in the CPU cache
+				// If our format is full precision, we have at most 4 samples per cache line
+				// If our format is drop W, we have at most 5.33 samples per cache line
+
+				// If our pointer was already aligned to a cache line before we unpacked our 4 values,
+				// it now points to the first byte of the next cache line. Any offset between 0-63 will fetch it.
+				// If our pointer had some offset into a cache line, we might have spanned 2 cache lines.
+				// If this happens, we probably already read some data from the next cache line in which
+				// case we don't need to prefetch it and we can go to the next one. Any offset after the end
+				// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
+				// Prefetch 4 samples ahead in all levels of the CPU cache
+
+				uint32_t num_left_to_unpack = rotations.num_left_to_unpack;
+				if (num_left_to_unpack == 0)
+					return;	// Nothing left to do, we are done
+
+							// If we have less than 4 cached samples, unpack 4 more and prefetch the next cache line
+				const uint32_t num_cached = rotations.get_num_cached();
+				if (num_cached >= 4)
+					return;	// Enough cached, nothing to do
+
+				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
+
+				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 4);
+				num_left_to_unpack -= num_to_unpack;
+				rotations.num_left_to_unpack = num_left_to_unpack;
+
+				// Write index will be either 0 or 4 here since we always unpack 4 at a time
+				uint32_t cache_write_index = rotations.cache_write_index % 8;
+				rotations.cache_write_index += num_to_unpack;
+
+				const uint8_t* constant_track_data = constant_data_rotations;
+
+				if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+				{
+					for (uint32_t unpack_index = num_to_unpack; unpack_index != 0; --unpack_index)
+					{
+						// Unpack
+						const rtm::quatf sample = unpack_quat_128(constant_track_data);
+
+						ACL_ASSERT(rtm::quat_is_finite(sample), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(sample), "Rotation is not normalized!");
+
+						// Cache
+						rotations.cached_samples[cache_write_index] = sample;
+						cache_write_index++;
+
+						// Update our read ptr
+						constant_track_data += sizeof(rtm::float4f);
+					}
+				}
+				else
+				{
+					// Unpack
+					// Always load 4x rotations, we might contain garbage in a few lanes but it's fine
+					const uint32_t load_size = num_to_unpack * sizeof(float);
+
+					const rtm::vector4f xxxx = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 0));
+					const rtm::vector4f yyyy = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 1));
+					const rtm::vector4f zzzz = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 2));
+
+					// Update our read ptr
+					constant_track_data += load_size * 3;
+
+					// quat_from_positive_w_soa
+					const rtm::vector4f wwww_squared = rtm::vector_sub(rtm::vector_sub(rtm::vector_sub(rtm::vector_set(1.0F), rtm::vector_mul(xxxx, xxxx)), rtm::vector_mul(yyyy, yyyy)), rtm::vector_mul(zzzz, zzzz));
+
+					// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
+					// to ensure the resulting quaternion is always normalized with a positive W component
+					const rtm::vector4f wwww = rtm::vector_sqrt(rtm::vector_abs(wwww_squared));
+
+					rtm::vector4f sample0;
+					rtm::vector4f sample1;
+					rtm::vector4f sample2;
+					rtm::vector4f sample3;
+					RTM_MATRIXF_TRANSPOSE_4X4(xxxx, yyyy, zzzz, wwww, sample0, sample1, sample2, sample3);
+
+					// Cache
+					rtm::quatf* cache_ptr = &rotations.cached_samples[cache_write_index];
+					cache_ptr[0] = rtm::vector_to_quat(sample0);
+					cache_ptr[1] = rtm::vector_to_quat(sample1);
+					cache_ptr[2] = rtm::vector_to_quat(sample2);
+					cache_ptr[3] = rtm::vector_to_quat(sample3);
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
+					for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
+					{
+						ACL_ASSERT(rtm::quat_is_finite(rotations.cached_samples[cache_write_index + unpack_index]), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotations.cached_samples[cache_write_index + unpack_index]), "Rotation is not normalized!");
+					}
+#endif
+				}
+
+				// Update our pointer
+				constant_data_rotations = constant_track_data;
 			}
 
 			template<class decompression_settings_type>
@@ -243,11 +237,6 @@ namespace acl
 				return rotations.cached_samples[cache_read_index % 8];
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_translation_group()
-			{
-				ACL_IMPL_CONSTANT_PREFETCH(constant_data_translations + 63);
-			}
-
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_groups(uint32_t num_groups_to_skip)
 			{
 				const uint8_t* constant_track_data = constant_data_translations;
@@ -278,11 +267,6 @@ namespace acl
 				ACL_ASSERT(rtm::vector_is_finite3(sample), "Sample is not valid!");
 				constant_data_translations += sizeof(rtm::float3f);
 				return sample;
-			}
-
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_scale_group()
-			{
-				ACL_IMPL_CONSTANT_PREFETCH(constant_data_scales + 63);
 			}
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip)
