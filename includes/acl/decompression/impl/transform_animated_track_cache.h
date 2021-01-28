@@ -46,6 +46,8 @@
 // Enable at your own risk
 //#define ACL_IMPL_USE_AVX_8_WIDE_DECOMP
 
+#define ACL_IMPL_UNROLL_VAR_UNPACK
+
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 	#if !defined(RTM_AVX_INTRINSICS)
 		// AVX isn't enabled, disable the 8 wide code path
@@ -114,11 +116,16 @@ namespace acl
 			// segment_range_extent_xxxx0, segment_range_extent_xxxx1, segment_range_extent_yyyy0, segment_range_extent_yyyy1, segment_range_extent_zzzz0, segment_range_extent_zzzz1
 			rtm::vector4f segment_range_extent[6];
 
-			// We store our potential constant bit rate samples in SOA form with 16 bit per component
-			// We have 4 components, each 16 bit wide, and we have no W, just XYZ
-			//uint8_t constant_sample_data[sizeof(uint16_t) * 4 * 3];
+#if defined(ACL_IMPL_UNROLL_VAR_UNPACK)
+			// We store our potential constant bit rate samples in AOS form with 16 bit per component
+			// We have 3 components (XYZ, no W), each 16 bit wide, and we have 4 samples with 2 segments
+			// Segment 0 has a base offset of 0 bytes
+			// Segment 1 has a base offset of 32 bytes
+			// Each segment uses 24 bytes but we pad to 32
 
-			//uint8_t padding[8];
+			// constant_sample0_xyz0, constant_sample1_xyz0, constant_sample1_xyz0, constant_sample1_xyz0, padding (8 bytes), constant_sample0_xyz1, constant_sample1_xyz1, constant_sample1_xyz1, constant_sample1_xyz1, padding (8 bytes)
+			uint8_t constant_sample_data[64];
+#endif
 		};
 
 #if defined(RTM_SSE2_INTRINSICS)
@@ -130,6 +137,7 @@ namespace acl
 #endif
 
 		// About 9 cycles with AVX on Skylake
+		// Constant unpacking adds about 9 cycles
 		inline ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_segment_range_data(const uint8_t* segment_range_data, uint32_t scratch_offset, segment_animated_scratch_v0& output_scratch)
 		{
 			// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
@@ -139,6 +147,104 @@ namespace acl
 
 			const __m128i segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8 = _mm_loadu_si128((const __m128i*)segment_range_data);
 			const __m128i segment_range_extent_yyyy_zzzz_u8 = _mm_loadu_si128((const __m128i*)(segment_range_data + 16));
+
+#if defined(ACL_IMPL_UNROLL_VAR_UNPACK)
+			// Our constant sample value is packed 8 bits in each group in the sample's lane
+			// To load our sample, we need to load: (min.x[unpack_index] << 8) | min.y[unpack_index], (min.z[unpack_index] << 8) | extent.x[unpack_index], (extent.y[unpack_index] << 8) | extent.z[unpack_index]
+			// This is more complicated than if we were in AOS form but constant bit rates are somewhat rare while nearly every sample
+			// has segment range information which is a lot simpler to load in SOA form
+			// Keep things in big endian order since we swap later
+
+			const uint16_t x0 = (uint16_t(segment_range_data[4]) << 8) | segment_range_data[0];
+			const uint16_t x1 = (uint16_t(segment_range_data[5]) << 8) | segment_range_data[1];
+			const uint16_t x2 = (uint16_t(segment_range_data[6]) << 8) | segment_range_data[2];
+			const uint16_t x3 = (uint16_t(segment_range_data[7]) << 8) | segment_range_data[3];
+
+			const uint16_t y0 = (uint16_t(segment_range_data[12]) << 8) | segment_range_data[8];
+			const uint16_t y1 = (uint16_t(segment_range_data[13]) << 8) | segment_range_data[9];
+			const uint16_t y2 = (uint16_t(segment_range_data[14]) << 8) | segment_range_data[10];
+			const uint16_t y3 = (uint16_t(segment_range_data[15]) << 8) | segment_range_data[11];
+
+			const uint16_t z0 = (uint16_t(segment_range_data[20]) << 8) | segment_range_data[16];
+			const uint16_t z1 = (uint16_t(segment_range_data[21]) << 8) | segment_range_data[17];
+			const uint16_t z2 = (uint16_t(segment_range_data[22]) << 8) | segment_range_data[18];
+			const uint16_t z3 = (uint16_t(segment_range_data[23]) << 8) | segment_range_data[19];
+
+			uint16_t* constant_sample_scratch = reinterpret_cast<uint16_t*>(&output_scratch.constant_sample_data[scratch_offset * 32]);
+			constant_sample_scratch[0] = x0;
+			constant_sample_scratch[1] = y0;
+			constant_sample_scratch[2] = z0;
+
+			constant_sample_scratch[3] = x1;
+			constant_sample_scratch[4] = y1;
+			constant_sample_scratch[5] = z1;
+
+			constant_sample_scratch[6] = x2;
+			constant_sample_scratch[7] = y2;
+			constant_sample_scratch[8] = z2;
+
+			constant_sample_scratch[9] = x3;
+			constant_sample_scratch[10] = y3;
+			constant_sample_scratch[11] = z3;
+
+#if 0
+			const __m128i segment_range_min_yyyy_zzzz_extent_xxxx_u8 = _mm_srli_si128(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, 4);
+			const __m128i segment_range_extent_zzzz_u8 = _mm_srli_si128(segment_range_extent_yyyy_zzzz_u8, 4);
+
+			// Unpack in the low part of the register the 4x components: [x0 x1 x2 x3, ?? ?? ?? ??], [y0 y1 y2 y3, ?? ?? ?? ??], [z0 z1 z2 z3, ?? ?? ?? ??]
+			const __m128i constant_sample_x0x1x2x3_u16 = _mm_unpacklo_epi8(segment_range_min_yyyy_zzzz_extent_xxxx_u8, segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8);
+			const __m128i constant_sample_y0y1y2y3_u16 = _mm_unpackhi_epi8(segment_range_min_yyyy_zzzz_extent_xxxx_u8, segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8);
+			const __m128i constant_sample_z0z1z2z3_u16 = _mm_unpacklo_epi8(segment_range_extent_zzzz_u8, segment_range_extent_yyyy_zzzz_u8);
+
+			// We now have to swizzle our u16 values into AOS: [x0 y0 z0 x1 y1 z1 x2 y2], [z2 x3 y3 z3 ?? ?? ?? ??]
+			const __m128i constant_sample_z0z0_z1z1_z2z2_z3z3_u16 = _mm_unpacklo_epi16(constant_sample_z0z1z2z3_u16, constant_sample_z0z1z2z3_u16);
+
+			// We wish to store our constant samples in AOS to mirror the variable packed data
+			const __m128i constant_sample_x0y0_x1y1_x2y2_x3y3_u16 = _mm_unpacklo_epi16(constant_sample_x0x1x2x3_u16, constant_sample_y0y1y2y3_u16);
+			const __m128i constant_sample_x1y1_x2y2_x3y3_u16 = _mm_srli_si128(constant_sample_x0y0_x1y1_x2y2_x3y3_u16, 4);
+			const __m128i constant_sample_x0y0z0z1_x1y1z2z3_u16 = _mm_unpacklo_epi32(constant_sample_x0y0_x1y1_x2y2_x3y3_u16, constant_sample_z0z1z2z3_u16);
+			const __m128i constant_sample_x2y2z2z3_x3y3_u16 = _mm_unpackhi_epi32(constant_sample_x0y0_x1y1_x2y2_x3y3_u16, constant_sample_z0z1z2z3_u16);
+
+			// Perform an aligned store, it's safe
+			_mm_store_si128(reinterpret_cast<__m128i*>(&output_scratch.constant_sample_data[0]), constant_sample_xxxx_yyyy_zzzz_u16);
+
+			const uint16_t tmp1[] =
+			{
+				uint16_t((uint16_t(segment_range_data[0]) << 8) | uint16_t(segment_range_data[4])),
+				uint16_t((uint16_t(segment_range_data[8]) << 8) | uint16_t(segment_range_data[12])),
+				uint16_t((uint16_t(segment_range_data[16]) << 8) | uint16_t(segment_range_data[20])),
+
+				uint16_t((uint16_t(segment_range_data[1]) << 8) | uint16_t(segment_range_data[5])),
+				uint16_t((uint16_t(segment_range_data[9]) << 8) | uint16_t(segment_range_data[13])),
+				uint16_t((uint16_t(segment_range_data[17]) << 8) | uint16_t(segment_range_data[21])),
+
+				uint16_t((uint16_t(segment_range_data[2]) << 8) | uint16_t(segment_range_data[6])),
+				uint16_t((uint16_t(segment_range_data[10]) << 8) | uint16_t(segment_range_data[14])),
+				uint16_t((uint16_t(segment_range_data[18]) << 8) | uint16_t(segment_range_data[22])),
+
+				uint16_t((uint16_t(segment_range_data[3]) << 8) | uint16_t(segment_range_data[7])),
+				uint16_t((uint16_t(segment_range_data[11]) << 8) | uint16_t(segment_range_data[15])),
+				uint16_t((uint16_t(segment_range_data[19]) << 8) | uint16_t(segment_range_data[23])),
+			}; (void)tmp1;
+
+			const uint16_t* tmp = reinterpret_cast<const uint16_t*>(&output_scratch.constant_sample_data[0]); (void)tmp;
+			ACL_ASSERT(tmp[0] == tmp1[0], "!!"); // x0
+			ACL_ASSERT(tmp[1] == tmp1[1], "!!"); // y0
+			ACL_ASSERT(tmp[2] == tmp1[2], "!!"); // z0
+
+			ACL_ASSERT(tmp[3] == tmp1[3], "!!"); // x1
+			ACL_ASSERT(tmp[4] == tmp1[4], "!!"); // y1
+			ACL_ASSERT(tmp[5] == tmp1[5], "!!"); // z1
+
+			ACL_ASSERT(tmp[6] == tmp1[6], "!!"); // x2
+			ACL_ASSERT(tmp[7] == tmp1[7], "!!"); // y2
+			ACL_ASSERT(tmp[8] == tmp1[8], "!!"); // z2
+
+			ACL_ASSERT(tmp[9] == tmp1[9], "!!"); // x3
+			ACL_ASSERT(tmp[10] == tmp1[10], "!!"); // y3
+			ACL_ASSERT(tmp[11] == tmp1[11], "!!"); // z3
+#endif
+#endif
 
 			// Convert from u8 to u32
 			const __m128i segment_range_min_xxxx_yyyy_u16 = _mm_unpacklo_epi8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, zero);
@@ -580,7 +686,8 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline ACL_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
+		inline ACL_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context,
+			rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
@@ -588,13 +695,47 @@ namespace acl
 			uint32_t segment_range_ignore_mask = 0;
 			uint32_t clip_range_ignore_mask = 0;
 
+			// Current format is like this:
+			// Packed in groups of 4 of the same sub-track type (e.g rot, rot, rot, rot)
+			// Per track metadata (1 byte per sub-track entry, 4 bytes per group) comes first
+			// Segment range data (6 bytes per sub-track entry, 24 bytes per group) comes second
+			// When using variable bit rates with multiple segments, both are used and touched but with raw data (drop w or full) we need neither
+			// If we have a single segment, there is no segment range data (no constant bit rate either) but we still have per sub-track metadata
+			// Each sub-track thus needs 7 bytes, and we need 28 bytes per group. Two groups fit per cache line: 56 bytes.
+			// Packing them together reduces the amount of prefetching we need to do from 2 to 1 cache line still with plenty of work to hide the latency
+			// It also avoids the need to track our 'segment range data' pointer since it is per track + 4 bytes when present
+			//
+			// If we have segment range data, we should unpack it first and swizzle our constant samples first, store them in scratch
+			// For now, ignore which lanes are required in our SOA form, store our 4x constant samples (3x vec4, might be garbage if not really constant)
+			// and our range data (3x vec4 min, 3x vec4 extent)
+			// If both segments we use are the same, we can re-use our values and avoid unpacking the second segment (most common case!)
+			// This will also reduce the amount of redundant prefetching we do
+			// Once that is done, we can move the segment range remapping outside this function into the caller and perform it with AVX with the W reconstruction
+
 			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
 			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
 			const uint8_t* animated_track_data = segment_sampling_context.animated_track_data;
 			uint32_t animated_track_data_bit_offset = segment_sampling_context.animated_track_data_bit_offset;
 
+			// TODO:
 			// For SIMD, can we load constant samples and write them to scratch? Afterwards its the same as packed on 16 bits
-			// We get 4 short branches (test, cmp, 6x loads, 3x ORs, 3x writes, load immediate) followed by a common code path for all 4 samples
+			// We get 4 short branches (test, cmp, 6x loads, 3x ORs, 3x writes) followed by a common code path for all 4 samples
+			// Similarly, the raw 32 bit unpacking can be done as variable unpacking, we'll do a bit more work with 64 bit loads instead of 32 bit
+			// but we can avoid the loop and branches for better pipelining
+			// We can build a mask of which sample was raw and doesn't need conversion from int->float
+			// This still forces us to load our 4 samples in AOS form one by one and to swizzle into SOA
+			//
+			// Currently, unpacking a constant sample takes: 6 loads, 3 shifts, 3 OR, 3 SIMD MOV/SET, 1 cvt, 1 fmul = 17 instructions
+			// Unpacking a raw sample takes: 1 shift, 1 AND, 3 loads, 3 byte swaps, 6 shifts, 3 SIMD MOV/SET, 1 cycle cast = 18 instructions
+			// Unpacking a variable sample takes: 1 sub, 2 loads, 3 shifts, 3 loads, 3 byte swaps, 3 AND, 3 sub, 3 shifts, 2 add, 3 SIMD MOV/SET, 1 and, 1 cvt, 1 fmul = 29 instructions
+			// The final swizzle is 5-6 instructions with SSE (4 with NEON)
+			//
+			// To be able to unpack directly in SOA form, we need to rework things
+			// Instead of broadcasting the mask/inv_max_value across all SIMD lanes, we need to build it
+			// from our 4 bit rates (4 instructions with SSE each)
+			// The reads are re-ordered but otherwise remain the same
+			// This simplifies shifting. In AOS each component shift is different because it depends on the bit offset.
+			// In SOA form, the byte and shift offsets are much more predictable
 
 			for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 			{
@@ -713,6 +854,424 @@ namespace acl
 			rtm::vector4f sample_zzzz;
 			rtm::vector4f sample_wwww;
 			RTM_MATRIXF_TRANSPOSE_4X4(output_scratch[0], output_scratch[1], output_scratch[2], output_scratch[3], sample_xxxx, sample_yyyy, sample_zzzz, sample_wwww);
+
+			// Output our W components right away, either we do not need them or they are good to go (full precision)
+			output_scratch[3] = sample_wwww;
+
+			range_reduction_masks_t range_reduction_masks;	// function's return value
+
+			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+			{
+#if defined(RTM_SSE2_INTRINSICS)
+				const __m128i ignore_masks_v8 = _mm_set_epi32(0, 0, clip_range_ignore_mask, segment_range_ignore_mask);
+				range_reduction_masks = _mm_unpacklo_epi8(ignore_masks_v8, ignore_masks_v8);
+#elif defined(RTM_NEON_INTRINSICS)
+				const int8x8_t ignore_masks_v8 = vcreate_s8((uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask);
+				range_reduction_masks = vmovl_s8(ignore_masks_v8);
+#else
+				range_reduction_masks = uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask;
+#endif
+
+				// Skip our used segment range data, all groups are padded to 4 elements
+				segment_range_data += 6 * 4;
+
+				// Update our ptr
+				segment_sampling_context.segment_range_data = segment_range_data;
+			}
+			else
+			{
+#if defined(RTM_SSE2_INTRINSICS)
+				range_reduction_masks = _mm_setzero_si128();
+#elif defined(RTM_NEON_INTRINSICS)
+				range_reduction_masks = vcreate_s16(0ULL);
+#else
+				range_reduction_masks = 0ULL;
+#endif
+			}
+
+			output_scratch[0] = sample_xxxx;
+			output_scratch[1] = sample_yyyy;
+			output_scratch[2] = sample_zzzz;
+
+			return range_reduction_masks;
+		}
+
+		template<class decompression_settings_type>
+		inline ACL_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_quat2(const persistent_transform_decompression_context_v0& decomp_context,
+			const segment_animated_scratch_v0& segment_scratch, uint32_t scratch_offset,
+			rtm::vector4f output_scratch[4],
+			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
+		{
+			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
+
+			uint32_t segment_range_ignore_mask = 0;
+			uint32_t clip_range_ignore_mask = 0;
+
+			// Current format is like this:
+			// Packed in groups of 4 of the same sub-track type (e.g rot, rot, rot, rot)
+			// Per track metadata (1 byte per sub-track entry, 4 bytes per group) comes first
+			// Segment range data (6 bytes per sub-track entry, 24 bytes per group) comes second
+			// When using variable bit rates with multiple segments, both are used and touched but with raw data (drop w or full) we need neither
+			// If we have a single segment, there is no segment range data (no constant bit rate either) but we still have per sub-track metadata
+			// Each sub-track thus needs 7 bytes, and we need 28 bytes per group. Two groups fit per cache line: 56 bytes.
+			// Packing them together reduces the amount of prefetching we need to do from 2 to 1 cache line still with plenty of work to hide the latency
+			// It also avoids the need to track our 'segment range data' pointer since it is per track + 4 bytes when present
+			//
+			// If we have segment range data, we should unpack it first and swizzle our constant samples first, store them in scratch
+			// For now, ignore which lanes are required in our SOA form, store our 4x constant samples (3x vec4, might be garbage if not really constant)
+			// and our range data (3x vec4 min, 3x vec4 extent)
+			// If both segments we use are the same, we can re-use our values and avoid unpacking the second segment (most common case!)
+			// This will also reduce the amount of redundant prefetching we do
+			// Once that is done, we can move the segment range remapping outside this function into the caller and perform it with AVX with the W reconstruction
+
+			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
+			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
+			const uint8_t* animated_track_data = segment_sampling_context.animated_track_data;
+			uint32_t animated_track_data_bit_offset = segment_sampling_context.animated_track_data_bit_offset;
+
+			// TODO:
+			// For SIMD, can we load constant samples and write them to scratch? Afterwards its the same as packed on 16 bits
+			// We get 4 short branches (test, cmp, 6x loads, 3x ORs, 3x writes) followed by a common code path for all 4 samples
+			// Similarly, the raw 32 bit unpacking can be done as variable unpacking, we'll do a bit more work with 64 bit loads instead of 32 bit
+			// but we can avoid the loop and branches for better pipelining
+			// We can build a mask of which sample was raw and doesn't need conversion from int->float
+			// This still forces us to load our 4 samples in AOS form one by one and to swizzle into SOA
+			//
+			// Currently, unpacking a constant sample takes: 6 loads, 3 shifts, 3 OR, 3 SIMD MOV/SET, 1 cvt, 1 fmul = 17 instructions
+			// Unpacking a raw sample takes: 1 shift, 1 AND, 3 loads, 3 byte swaps, 6 shifts, 3 SIMD MOV/SET, 1 cycle cast = 18 instructions
+			// Unpacking a variable sample takes: 1 sub, 2 loads, 3 shifts, 3 loads, 3 byte swaps, 3 AND, 3 sub, 3 shifts, 2 add, 3 SIMD MOV/SET, 1 and, 1 cvt, 1 fmul = 29 instructions
+			// The final swizzle is 5-6 instructions with SSE (4 with NEON)
+			//
+			// To be able to unpack directly in SOA form, we need to rework things
+			// Instead of broadcasting the mask/inv_max_value across all SIMD lanes, we need to build it
+			// from our 4 bit rates (4 instructions with SSE each)
+			// The reads are re-ordered but otherwise remain the same
+			// This simplifies shifting. In AOS each component shift is different because it depends on the bit offset.
+			// In SOA form, the byte and shift offsets are much more predictable
+
+#if 0
+			for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
+			{
+				// Our decompressed rotation as a vector4
+				rtm::vector4f rotation_as_vec;
+
+				if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+				{
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[unpack_index];
+
+					uint32_t sample_segment_range_ignore_mask;
+					uint32_t sample_clip_range_ignore_mask;
+
+					if (num_bits_at_bit_rate == 0)	// Constant bit rate
+					{
+						// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
+						// Our constant sample value is packed 8 bits in each group in the sample's lane
+						// To load our sample, we need to load: (min.x[unpack_index] << 8) | min.y[unpack_index], (min.z[unpack_index] << 8) | extent.x[unpack_index], (extent.y[unpack_index] << 8) | extent.z[unpack_index]
+						// This is more complicated than if we were in AOS form but constant bit rates are somewhat rare while nearly every sample
+						// has segment range information which is a lot simpler to load in SOA form
+						const uint8_t* shifted_segment_range_data = segment_range_data + unpack_index;
+						const uint32_t x = (uint32_t(shifted_segment_range_data[0]) << 8) | shifted_segment_range_data[4];
+						const uint32_t y = (uint32_t(shifted_segment_range_data[8]) << 8) | shifted_segment_range_data[12];
+						const uint32_t z = (uint32_t(shifted_segment_range_data[16]) << 8) | shifted_segment_range_data[20];
+
+#if defined(RTM_SSE2_INTRINSICS)
+						// TODO: Use SIMD for this
+
+						// Load min.xxxx, min.yyyy, 8 bytes, offset by our sample index such that the first byte is our sample
+						// Unpack low and interleave xxxx, yyyy, we end up with sample.x in our first lane as uint16_t
+						// Unpack low to convert to uint32_t, sample.x lives in lane 0, repeat for sample.yz
+						// Total of 2x loads (re-use first load and interleave high for sample.y), 5x unpack
+						// Merge sample.xy together (1x shuffle)
+						// Merge sample.xyz together (1x shuffle)
+						// Convert to floats and normalize
+						__m128i xyz = _mm_setr_epi32(x, y, z, 0);
+						__m128 xyzf = _mm_cvtepi32_ps(xyz);
+						rotation_as_vec = _mm_mul_ps(xyzf, _mm_set_ps1(1.0F / 65535.0F));
+#elif defined(RTM_NEON_INTRINSICS)
+						uint32x4_t xyz = vcombine_u32(vcreate_u32((uint64_t(y) << 32) | x), vcreate_u32(z));
+						float32x4_t xyzf = vcvtq_f32_u32(xyz);
+						rotation_as_vec = vmulq_n_f32(xyzf, 1.0F / 65535.0F);
+#else
+						const rtm::vector4f xyz = rtm::vector_set(float(x), float(y), float(z), 0.0F);
+						rotation_as_vec = rtm::vector_mul(xyz, 1.0F / 65535.0F);
+#endif
+
+						sample_segment_range_ignore_mask = 0xFF;	// Ignore segment range
+						sample_clip_range_ignore_mask = 0x00;
+					}
+					else if (num_bits_at_bit_rate == 32)			// Raw bit rate
+					{
+						rotation_as_vec = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
+						animated_track_data_bit_offset += 96;
+						sample_segment_range_ignore_mask = 0xFF;	// Ignore segment range
+						sample_clip_range_ignore_mask = 0xFF;		// Ignore clip range
+					}
+					else
+					{
+						rotation_as_vec = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+						animated_track_data_bit_offset += num_bits_at_bit_rate * 3;
+						sample_segment_range_ignore_mask = 0x00;
+						sample_clip_range_ignore_mask = 0x00;
+					}
+
+					// Masks are used in little endian format so the first sample is in the LSB end
+					segment_range_ignore_mask |= sample_segment_range_ignore_mask << (unpack_index * 8);
+					clip_range_ignore_mask |= sample_clip_range_ignore_mask << (unpack_index * 8);
+				}
+				else
+				{
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+					{
+						rotation_as_vec = unpack_vector4_128_unsafe(animated_track_data, animated_track_data_bit_offset);
+						animated_track_data_bit_offset += 128;
+					}
+					else // rotation_format8::quatf_drop_w_full
+					{
+						rotation_as_vec = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
+						animated_track_data_bit_offset += 96;
+					}
+				}
+
+				output_scratch[unpack_index] = rotation_as_vec;
+			}
+#else
+			rtm::vector4f sample_xxxx;
+			rtm::vector4f sample_yyyy;
+			rtm::vector4f sample_zzzz;
+			rtm::vector4f sample_wwww;
+
+			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+			{
+				const uint8_t* constant_sample_data = &segment_scratch.constant_sample_data[scratch_offset * 32];
+
+				uint32_t num_bits_at_bit_rate0 = format_per_track_data[0];
+				uint32_t num_bits_at_bit_rate1 = format_per_track_data[1];
+				uint32_t num_bits_at_bit_rate2 = format_per_track_data[2];
+				uint32_t num_bits_at_bit_rate3 = format_per_track_data[3];
+
+				uint32_t animated_bit_offset = animated_track_data_bit_offset;
+
+				const uint8_t* sample_data_ptr0 = num_bits_at_bit_rate0 == 0 ? constant_sample_data : animated_track_data;
+				const uint32_t sample_bit_offset0 = num_bits_at_bit_rate0 == 0 ? 0 : animated_bit_offset;
+				const uint32_t sample_segment_range_ignore_mask0 = (num_bits_at_bit_rate0 == 0) | (num_bits_at_bit_rate0 == 32) ? 0x000000FF : 0x00000000;
+				const uint32_t sample_clip_range_ignore_mask0 = num_bits_at_bit_rate0 == 32 ? 0x000000FF : 0x00000000;
+				animated_bit_offset += num_bits_at_bit_rate0 == 0 ? 0 : (num_bits_at_bit_rate0 * 3);
+				num_bits_at_bit_rate0 = num_bits_at_bit_rate0 == 0 ? 16 : num_bits_at_bit_rate0;
+
+				const uint8_t* sample_data_ptr1 = num_bits_at_bit_rate1 == 0 ? constant_sample_data : animated_track_data;
+				const uint32_t sample_bit_offset1 = num_bits_at_bit_rate1 == 0 ? 48 : animated_bit_offset;
+				const uint32_t sample_segment_range_ignore_mask1 = (num_bits_at_bit_rate1 == 0) | (num_bits_at_bit_rate1 == 32) ? 0x0000FF00 : 0x00000000;
+				const uint32_t sample_clip_range_ignore_mask1 = num_bits_at_bit_rate1 == 32 ? 0x0000FF00 : 0x00000000;
+				animated_bit_offset += num_bits_at_bit_rate1 == 0 ? 0 : (num_bits_at_bit_rate1 * 3);
+				num_bits_at_bit_rate1 = num_bits_at_bit_rate1 == 0 ? 16 : num_bits_at_bit_rate1;
+
+				const uint8_t* sample_data_ptr2 = num_bits_at_bit_rate2 == 0 ? constant_sample_data : animated_track_data;
+				const uint32_t sample_bit_offset2 = num_bits_at_bit_rate2 == 0 ? 96 : animated_bit_offset;
+				const uint32_t sample_segment_range_ignore_mask2 = (num_bits_at_bit_rate2 == 0) | (num_bits_at_bit_rate2 == 32) ? 0x00FF0000 : 0x00000000;
+				const uint32_t sample_clip_range_ignore_mask2 = num_bits_at_bit_rate2 == 32 ? 0x00FF0000 : 0x00000000;
+				animated_bit_offset += num_bits_at_bit_rate2 == 0 ? 0 : (num_bits_at_bit_rate2 * 3);
+				num_bits_at_bit_rate2 = num_bits_at_bit_rate2 == 0 ? 16 : num_bits_at_bit_rate2;
+
+				const uint8_t* sample_data_ptr3 = num_bits_at_bit_rate3 == 0 ? constant_sample_data : animated_track_data;
+				const uint32_t sample_bit_offset3 = num_bits_at_bit_rate3 == 0 ? 144 : animated_bit_offset;
+				const uint32_t sample_segment_range_ignore_mask3 = (num_bits_at_bit_rate3 == 0) | (num_bits_at_bit_rate3 == 32) ? 0xFF000000 : 0x00000000;
+				const uint32_t sample_clip_range_ignore_mask3 = num_bits_at_bit_rate3 == 32 ? 0xFF000000 : 0x00000000;
+				animated_bit_offset += num_bits_at_bit_rate3 == 0 ? 0 : (num_bits_at_bit_rate3 * 3);
+				num_bits_at_bit_rate3 = num_bits_at_bit_rate3 == 0 ? 16 : num_bits_at_bit_rate3;
+
+				// Build up our range mapping masks
+				// Masks are used in little endian format so the first sample is in the LSB end
+				segment_range_ignore_mask = sample_segment_range_ignore_mask0 | sample_segment_range_ignore_mask1 | sample_segment_range_ignore_mask2 | sample_segment_range_ignore_mask3;
+				clip_range_ignore_mask = sample_clip_range_ignore_mask0 | sample_clip_range_ignore_mask1 | sample_clip_range_ignore_mask2 | sample_clip_range_ignore_mask3;
+
+				// Update our final offset
+				animated_track_data_bit_offset = animated_bit_offset;
+
+				const uint32_t bit_shift0 = 64 - num_bits_at_bit_rate0;
+				const uint32_t bit_shift1 = 64 - num_bits_at_bit_rate1;
+				const uint32_t bit_shift2 = 64 - num_bits_at_bit_rate2;
+				const uint32_t bit_shift3 = 64 - num_bits_at_bit_rate3;
+
+				const uint32_t x0_byte_offset = (sample_bit_offset0 + 0) / 8;
+				const uint32_t y0_byte_offset = (sample_bit_offset0 + num_bits_at_bit_rate0) / 8;
+				const uint32_t z0_byte_offset = (sample_bit_offset0 + num_bits_at_bit_rate0 + num_bits_at_bit_rate0) / 8;
+
+				const uint32_t x0_bit_offset = (sample_bit_offset0 + 0) % 8;
+				const uint32_t y0_bit_offset = (sample_bit_offset0 + num_bits_at_bit_rate0) % 8;
+				const uint32_t z0_bit_offset = (sample_bit_offset0 + num_bits_at_bit_rate0 + num_bits_at_bit_rate0) % 8;
+
+				uint64_t x0_u64 = unaligned_load<uint64_t>(sample_data_ptr0 + x0_byte_offset);
+				x0_u64 = byte_swap(x0_u64);
+				x0_u64 <<= x0_bit_offset;
+				x0_u64 >>= bit_shift0;
+
+				uint64_t y0_u64 = unaligned_load<uint64_t>(sample_data_ptr0 + y0_byte_offset);
+				y0_u64 = byte_swap(y0_u64);
+				y0_u64 <<= y0_bit_offset;
+				y0_u64 >>= bit_shift0;
+
+				uint64_t z0_u64 = unaligned_load<uint64_t>(sample_data_ptr0 + z0_byte_offset);
+				z0_u64 = byte_swap(z0_u64);
+				z0_u64 <<= z0_bit_offset;
+				z0_u64 >>= bit_shift0;
+
+				const uint32_t x0 = uint32_t(x0_u64);
+				const uint32_t y0 = uint32_t(y0_u64);
+				const uint32_t z0 = uint32_t(z0_u64);
+
+				const uint32_t x1_byte_offset = (sample_bit_offset1 + 0) / 8;
+				const uint32_t y1_byte_offset = (sample_bit_offset1 + num_bits_at_bit_rate1) / 8;
+				const uint32_t z1_byte_offset = (sample_bit_offset1 + num_bits_at_bit_rate1 + num_bits_at_bit_rate1) / 8;
+
+				const uint32_t x1_bit_offset = (sample_bit_offset1 + 0) % 8;
+				const uint32_t y1_bit_offset = (sample_bit_offset1 + num_bits_at_bit_rate1) % 8;
+				const uint32_t z1_bit_offset = (sample_bit_offset1 + num_bits_at_bit_rate1 + num_bits_at_bit_rate1) % 8;
+
+				uint64_t x1_u64 = unaligned_load<uint64_t>(sample_data_ptr1 + x1_byte_offset);
+				x1_u64 = byte_swap(x1_u64);
+				x1_u64 <<= x1_bit_offset;
+				x1_u64 >>= bit_shift1;
+
+				uint64_t y1_u64 = unaligned_load<uint64_t>(sample_data_ptr1 + y1_byte_offset);
+				y1_u64 = byte_swap(y1_u64);
+				y1_u64 <<= y1_bit_offset;
+				y1_u64 >>= bit_shift1;
+
+				uint64_t z1_u64 = unaligned_load<uint64_t>(sample_data_ptr1 + z1_byte_offset);
+				z1_u64 = byte_swap(z1_u64);
+				z1_u64 <<= z1_bit_offset;
+				z1_u64 >>= bit_shift1;
+
+				const uint32_t x1 = uint32_t(x1_u64);
+				const uint32_t y1 = uint32_t(y1_u64);
+				const uint32_t z1 = uint32_t(z1_u64);
+
+				const uint32_t x2_byte_offset = (sample_bit_offset2 + 0) / 8;
+				const uint32_t y2_byte_offset = (sample_bit_offset2 + num_bits_at_bit_rate2) / 8;
+				const uint32_t z2_byte_offset = (sample_bit_offset2 + num_bits_at_bit_rate2 + num_bits_at_bit_rate2) / 8;
+
+				const uint32_t x2_bit_offset = (sample_bit_offset2 + 0) % 8;
+				const uint32_t y2_bit_offset = (sample_bit_offset2 + num_bits_at_bit_rate2) % 8;
+				const uint32_t z2_bit_offset = (sample_bit_offset2 + num_bits_at_bit_rate2 + num_bits_at_bit_rate2) % 8;
+
+				uint64_t x2_u64 = unaligned_load<uint64_t>(sample_data_ptr2 + x2_byte_offset);
+				x2_u64 = byte_swap(x2_u64);
+				x2_u64 <<= x2_bit_offset;
+				x2_u64 >>= bit_shift2;
+
+				uint64_t y2_u64 = unaligned_load<uint64_t>(sample_data_ptr2 + y2_byte_offset);
+				y2_u64 = byte_swap(y2_u64);
+				y2_u64 <<= y2_bit_offset;
+				y2_u64 >>= bit_shift2;
+
+				uint64_t z2_u64 = unaligned_load<uint64_t>(sample_data_ptr2 + z2_byte_offset);
+				z2_u64 = byte_swap(z2_u64);
+				z2_u64 <<= z2_bit_offset;
+				z2_u64 >>= bit_shift2;
+
+				const uint32_t x2 = uint32_t(x2_u64);
+				const uint32_t y2 = uint32_t(y2_u64);
+				const uint32_t z2 = uint32_t(z2_u64);
+
+				const uint32_t x3_byte_offset = (sample_bit_offset3 + 0) / 8;
+				const uint32_t y3_byte_offset = (sample_bit_offset3 + num_bits_at_bit_rate3) / 8;
+				const uint32_t z3_byte_offset = (sample_bit_offset3 + num_bits_at_bit_rate3 + num_bits_at_bit_rate3) / 8;
+
+				const uint32_t x3_bit_offset = (sample_bit_offset3 + 0) % 8;
+				const uint32_t y3_bit_offset = (sample_bit_offset3 + num_bits_at_bit_rate3) % 8;
+				const uint32_t z3_bit_offset = (sample_bit_offset3 + num_bits_at_bit_rate3 + num_bits_at_bit_rate3) % 8;
+
+				uint64_t x3_u64 = unaligned_load<uint64_t>(sample_data_ptr3 + x3_byte_offset);
+				x3_u64 = byte_swap(x3_u64);
+				x3_u64 <<= x3_bit_offset;
+				x3_u64 >>= bit_shift3;
+
+				uint64_t y3_u64 = unaligned_load<uint64_t>(sample_data_ptr3 + y3_byte_offset);
+				y3_u64 = byte_swap(y3_u64);
+				y3_u64 <<= y3_bit_offset;
+				y3_u64 >>= bit_shift3;
+
+				uint64_t z3_u64 = unaligned_load<uint64_t>(sample_data_ptr3 + z3_byte_offset);
+				z3_u64 = byte_swap(z3_u64);
+				z3_u64 <<= z3_bit_offset;
+				z3_u64 >>= bit_shift3;
+
+				const uint32_t x3 = uint32_t(x3_u64);
+				const uint32_t y3 = uint32_t(y3_u64);
+				const uint32_t z3 = uint32_t(z3_u64);
+
+				// Build our mask to strip the leading bits we don't need
+				//const uint32_t mask0 = num_bits_at_bit_rate0 == 32 ? ~0U : ((1 << num_bits_at_bit_rate0) - 1);
+				//const uint32_t mask1 = num_bits_at_bit_rate1 == 32 ? ~0U : ((1 << num_bits_at_bit_rate1) - 1);
+				//const uint32_t mask2 = num_bits_at_bit_rate2 == 32 ? ~0U : ((1 << num_bits_at_bit_rate2) - 1);
+				//const uint32_t mask3 = num_bits_at_bit_rate3 == 32 ? ~0U : ((1 << num_bits_at_bit_rate3) - 1);
+
+				//const __m128i mask = _mm_set_epi32(mask3, mask2, mask1, mask0);
+
+				__m128i sample_xxxx_u32 = _mm_set_epi32(x3, x2, x1, x0);
+				__m128i sample_yyyy_u32 = _mm_set_epi32(y3, y2, y1, y0);
+				__m128i sample_zzzz_u32 = _mm_set_epi32(z3, z2, z1, z0);
+
+				//sample_xxxx = _mm_and_si128(sample_xxxx, mask);
+
+				// Convert our integers or keep our original value depending on the bit rate
+				const rtm::mask4f is_raw_bit_rate = rtm::mask_set(num_bits_at_bit_rate0 == 32, num_bits_at_bit_rate1 == 32, num_bits_at_bit_rate2 == 32, num_bits_at_bit_rate3 == 32);
+				const __m128 inv_max_value = _mm_div_ps(_mm_set_ps1(1.0F), _mm_set_ps(float((1 << num_bits_at_bit_rate3) - 1), float((1 << num_bits_at_bit_rate2) - 1), float((1 << num_bits_at_bit_rate1) - 1), float((1 << num_bits_at_bit_rate0) - 1)));
+
+				sample_xxxx = rtm::vector_select(is_raw_bit_rate, _mm_castsi128_ps(sample_xxxx_u32), _mm_mul_ps(_mm_cvtepi32_ps(sample_xxxx_u32), inv_max_value));
+				sample_yyyy = rtm::vector_select(is_raw_bit_rate, _mm_castsi128_ps(sample_yyyy_u32), _mm_mul_ps(_mm_cvtepi32_ps(sample_yyyy_u32), inv_max_value));
+				sample_zzzz = rtm::vector_select(is_raw_bit_rate, _mm_castsi128_ps(sample_zzzz_u32), _mm_mul_ps(_mm_cvtepi32_ps(sample_zzzz_u32), inv_max_value));
+				sample_wwww = inv_max_value;	// Set some garbage, not needed
+			}
+			else
+			{
+				// Our decompressed rotation as a vector4
+				rtm::vector4f rotation_as_vec = rtm::vector_zero();
+				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
+				{
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+					{
+						rotation_as_vec = unpack_vector4_128_unsafe(animated_track_data, animated_track_data_bit_offset);
+						animated_track_data_bit_offset += 128;
+					}
+					else // rotation_format8::quatf_drop_w_full
+					{
+						rotation_as_vec = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
+						animated_track_data_bit_offset += 96;
+					}
+
+					output_scratch[unpack_index] = rotation_as_vec;
+				}
+
+				RTM_MATRIXF_TRANSPOSE_4X4(output_scratch[0], output_scratch[1], output_scratch[2], output_scratch[3], sample_xxxx, sample_yyyy, sample_zzzz, sample_wwww);
+			}
+#endif
+
+			// Prefetch the next cache line even if we don't have any data left
+			// By the time we unpack again, it will have arrived in the CPU cache
+			// If our format is full precision, we have at most 4 samples per cache line
+			// If our format is drop W, we have at most 5.33 samples per cache line
+
+			// If our pointer was already aligned to a cache line before we unpacked our 4 values,
+			// it now points to the first byte of the next cache line. Any offset between 0-63 will fetch it.
+			// If our pointer had some offset into a cache line, we might have spanned 2 cache lines.
+			// If this happens, we probably already read some data from the next cache line in which
+			// case we don't need to prefetch it and we can go to the next one. Any offset after the end
+			// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
+			// Prefetch 4 samples ahead in all levels of the CPU cache
+			ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_track_data_bit_offset / 8) + 63);
+
+			// Update our pointers
+			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+			{
+				// Prefetch 4 samples ahead in all levels of the CPU cache
+				ACL_IMPL_ANIMATED_PREFETCH(format_per_track_data + 63);
+
+				// Skip our used metadata data, all groups are padded to 4 elements
+				segment_sampling_context.format_per_track_data = format_per_track_data + 4;
+			}
+
+			segment_sampling_context.animated_track_data_bit_offset = animated_track_data_bit_offset;
 
 			// Output our W components right away, either we do not need them or they are good to go (full precision)
 			output_scratch[3] = sample_wwww;
@@ -1201,6 +1760,14 @@ namespace acl
 				scales.num_left_to_unpack = transform_header.num_animated_scale_sub_tracks;
 			}
 
+			// Cache miss is ~150 cycles so ideally we want to prefetch 120-150 cycles ahead to hide the cost
+			// We have to be careful how many prefetches are in flight to avoid saturating and stalling
+			// Modern Intel can support about ~10 cache misses but modern ARM can support much more at 20-25, aim for 8
+			// since we also cache miss on other stuff harder to control (code, constants, etc)
+			// Do we do enough work with rotations to prefetch the clip range data before we unpack the segment range data?
+			// We do enough for for sure to prefetch the next group but if we wish to reorder our data to keep single track decompression
+			// fast, how do we prefetch in the right order? Just look it up since we'll stall on memory anyway (probably)?
+
 			template<class decompression_settings_type>
 			void ACL_DISABLE_SECURITY_COOKIE_CHECK unpack_rotation_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
@@ -1239,8 +1806,86 @@ namespace acl
 					}
 				}
 
+#if 0
+				const segment_animated_sampling_context_v0 ref_s0 = segment_sampling_context[0];
+				const segment_animated_sampling_context_v0 ref_s1 = segment_sampling_context[1];
+				segment_animated_sampling_context_v0 s0 = segment_sampling_context[0];
+				segment_animated_sampling_context_v0 s1 = segment_sampling_context[1];
+				rtm::vector4f tmp0_[4]; (void)tmp0_;
+				rtm::vector4f tmp1_[4]; (void)tmp1_;
+
+				segment_sampling_context[0] = ref_s0;
+				segment_sampling_context[1] = ref_s1;
+				s0 = ref_s0;
+				s1 = ref_s1;
+
 				const range_reduction_masks_t range_reduction_masks0 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch0, num_to_unpack, segment_sampling_context[0]);
 				const range_reduction_masks_t range_reduction_masks1 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch1, num_to_unpack, segment_sampling_context[1]);
+				const range_reduction_masks_t range_reduction_masks0_ = unpack_animated_quat2<decompression_settings_type>(decomp_context, segment_scratch, 0, tmp0_, num_to_unpack, s0);
+				const range_reduction_masks_t range_reduction_masks1_ = unpack_animated_quat2<decompression_settings_type>(decomp_context, segment_scratch, uint32_t(!uses_single_segment), tmp1_, num_to_unpack, s1);
+
+				//ACL_ASSERT(std::memcmp(reinterpret_cast<uint8_t*>(&range_reduction_masks0) + (4 - num_to_unpack) * 2, &range_reduction_masks0_, sizeof(range_reduction_masks_t)) == 0, "??");
+				//ACL_ASSERT(std::memcmp(&range_reduction_masks1, &range_reduction_masks1_, sizeof(range_reduction_masks_t)) == 0, "??");
+
+				switch (num_to_unpack)
+				{
+				case 1:
+					ACL_ASSERT(float(rtm::vector_get_x(scratch0[0])) == float(rtm::vector_get_x(tmp0_[0])), "??");
+					ACL_ASSERT(float(rtm::vector_get_x(scratch0[1])) == float(rtm::vector_get_x(tmp0_[1])), "??");
+					ACL_ASSERT(float(rtm::vector_get_x(scratch0[2])) == float(rtm::vector_get_x(tmp0_[2])), "??");
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						ACL_ASSERT(float(rtm::vector_get_x(scratch0[3])) == float(rtm::vector_get_x(tmp0_[3])), "??");
+
+					ACL_ASSERT(float(rtm::vector_get_x(scratch1[0])) == float(rtm::vector_get_x(tmp1_[0])), "??");
+					ACL_ASSERT(float(rtm::vector_get_x(scratch1[1])) == float(rtm::vector_get_x(tmp1_[1])), "??");
+					ACL_ASSERT(float(rtm::vector_get_x(scratch1[2])) == float(rtm::vector_get_x(tmp1_[2])), "??");
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						ACL_ASSERT(float(rtm::vector_get_x(scratch1[3])) == float(rtm::vector_get_x(tmp1_[3])), "??");
+					break;
+				case 2:
+					ACL_ASSERT(rtm::vector_all_near_equal2(scratch0[0], tmp0_[0]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal2(scratch0[1], tmp0_[1]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal2(scratch0[2], tmp0_[2]), "??");
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						ACL_ASSERT(rtm::vector_all_near_equal2(scratch0[3], tmp0_[3]), "??");
+
+					ACL_ASSERT(rtm::vector_all_near_equal2(scratch1[0], tmp1_[0]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal2(scratch1[1], tmp1_[1]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal2(scratch1[2], tmp1_[2]), "??");
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						ACL_ASSERT(rtm::vector_all_near_equal2(scratch1[3], tmp1_[3]), "??");
+					break;
+				case 3:
+					ACL_ASSERT(rtm::vector_all_near_equal3(scratch0[0], tmp0_[0]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal3(scratch0[1], tmp0_[1]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal3(scratch0[2], tmp0_[2]), "??");
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						ACL_ASSERT(rtm::vector_all_near_equal3(scratch0[3], tmp0_[3]), "??");
+
+					ACL_ASSERT(rtm::vector_all_near_equal3(scratch1[0], tmp1_[0]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal3(scratch1[1], tmp1_[1]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal3(scratch1[2], tmp1_[2]), "??");
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						ACL_ASSERT(rtm::vector_all_near_equal3(scratch1[3], tmp1_[3]), "??");
+					break;
+				case 4:
+					ACL_ASSERT(rtm::vector_all_near_equal(scratch0[0], tmp0_[0]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal(scratch0[1], tmp0_[1]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal(scratch0[2], tmp0_[2]), "??");
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						ACL_ASSERT(rtm::vector_all_near_equal(scratch0[3], tmp0_[3]), "??");
+
+					ACL_ASSERT(rtm::vector_all_near_equal(scratch1[0], tmp1_[0]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal(scratch1[1], tmp1_[1]), "??");
+					ACL_ASSERT(rtm::vector_all_near_equal(scratch1[2], tmp1_[2]), "??");
+					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						ACL_ASSERT(rtm::vector_all_near_equal(scratch1[3], tmp1_[3]), "??");
+					break;
+				}
+#else
+				const range_reduction_masks_t range_reduction_masks0 = unpack_animated_quat2<decompression_settings_type>(decomp_context, segment_scratch, 0, scratch0, num_to_unpack, segment_sampling_context[0]);
+				const range_reduction_masks_t range_reduction_masks1 = unpack_animated_quat2<decompression_settings_type>(decomp_context, segment_scratch, uint32_t(!uses_single_segment), scratch1, num_to_unpack, segment_sampling_context[1]);
+#endif
 
 				rtm::vector4f scratch0_xxxx = scratch0[0];
 				rtm::vector4f scratch0_yyyy = scratch0[1];
