@@ -308,11 +308,11 @@ namespace acl
 			const rtm::vector4f zero_v = rtm::vector_zero();
 
 			const uint32_t segment_range_mask_u32 = uint32_t(range_reduction_masks);
-			const rtm::mask4f segment_range_mask = rtm::mask_set((segment_range_mask_u32 & 0x000000FF) != 0, (segment_range_mask_u32 & 0x0000FF00) != 0, (segment_range_mask_u32 & 0x00FF0000) != 0, (segment_range_mask_u32 & 0xFF000000) != 0);
+			const rtm::mask4f segment_range_ignore_mask_v = rtm::mask_set((segment_range_mask_u32 & 0x000000FF) != 0, (segment_range_mask_u32 & 0x0000FF00) != 0, (segment_range_mask_u32 & 0x00FF0000) != 0, (segment_range_mask_u32 & 0xFF000000) != 0);
 
-			segment_range_min_xxxx = rtm::vector_select(segment_range_mask, zero_v, segment_range_min_xxxx);
-			segment_range_min_yyyy = rtm::vector_select(segment_range_mask, zero_v, segment_range_min_yyyy);
-			segment_range_min_zzzz = rtm::vector_select(segment_range_mask, zero_v, segment_range_min_zzzz);
+			segment_range_min_xxxx = rtm::vector_select(segment_range_ignore_mask_v, zero_v, segment_range_min_xxxx);
+			segment_range_min_yyyy = rtm::vector_select(segment_range_ignore_mask_v, zero_v, segment_range_min_yyyy);
+			segment_range_min_zzzz = rtm::vector_select(segment_range_ignore_mask_v, zero_v, segment_range_min_zzzz);
 #endif
 
 			// Mask out the segment extent we ignore
@@ -732,7 +732,7 @@ namespace acl
 				const int8x8_t ignore_masks_v8 = vcreate_s8((uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask);
 				range_reduction_masks = vmovl_s8(ignore_masks_v8);
 #else
-				range_reduction_masks = uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask;
+				range_reduction_masks = (uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask;
 #endif
 
 				// Skip our used segment range data, all groups are padded to 4 elements
