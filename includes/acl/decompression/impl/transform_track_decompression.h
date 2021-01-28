@@ -474,12 +474,9 @@ namespace acl
 			context.key_frame_bit_offsets[1] = segment_key_frame1 * segment_header1->animated_pose_bit_size;
 		}
 
-		// TODO: Stage bitset decomp
+
 		// TODO: Merge the per track format and segment range info into a single buffer? Less to prefetch and used together
-		// TODO: How do we hide the cache miss after the seek to read the segment header? What work can we do while we prefetch?
 		// TODO: Port vector3 decomp to use SOA
-		// TODO: Unroll quat unpacking and convert to SOA
-		// TODO: Use AVX where we can
 		// TODO: Remove segment data alignment, no longer required?
 
 
