@@ -307,7 +307,7 @@ namespace acl
 			return safe_static_cast<uint32_t>(constant_data - constant_data_start);
 		}
 
-		inline void write_animated_track_data(const TrackStream& track_stream, uint32_t sample_index, uint8_t* animated_track_data_begin, uint8_t*& out_animated_track_data, uint64_t& out_bit_offset)
+		inline void write_animated_sample(const TrackStream& track_stream, uint32_t sample_index, uint8_t* animated_track_data_begin, uint8_t*& out_animated_track_data, uint64_t& out_bit_offset)
 		{
 			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 
@@ -439,7 +439,7 @@ namespace acl
 					{
 						if (!is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
 						{
-							write_animated_track_data(bone_stream.rotations, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
+							write_animated_sample(bone_stream.rotations, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
 							num_group_samples++;
 						}
 					}
@@ -447,7 +447,7 @@ namespace acl
 					{
 						if (!is_constant_bit_rate(bone_stream.translations.get_bit_rate()))
 						{
-							write_animated_track_data(bone_stream.translations, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
+							write_animated_sample(bone_stream.translations, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
 							num_group_samples++;
 						}
 					}
@@ -455,7 +455,7 @@ namespace acl
 					{
 						if (!is_constant_bit_rate(bone_stream.scales.get_bit_rate()))
 						{
-							write_animated_track_data(bone_stream.scales, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
+							write_animated_sample(bone_stream.scales, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
 							num_group_samples++;
 						}
 					}
