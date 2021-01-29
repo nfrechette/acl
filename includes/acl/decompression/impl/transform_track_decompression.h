@@ -681,9 +681,7 @@ namespace acl
 					animated_track_cache.unpack_translation_group<translation_adapter>(context);
 
 					if (has_scale)
-					{
 						animated_track_cache.unpack_scale_group<scale_adapter>(context);
-					}
 				}
 
 				{
