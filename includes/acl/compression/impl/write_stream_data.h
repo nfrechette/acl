@@ -391,7 +391,6 @@ namespace acl
 			// The largest sample is a full precision vector4f, we can contain at most 4 samples
 			alignas(16) uint8_t group_animated_track_data[sizeof(rtm::vector4f) * 4];
 			uint64_t group_bit_offset = 0;
-			uint32_t num_group_samples = 0;
 
 			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
 			{
@@ -412,7 +411,6 @@ namespace acl
 
 				bit_offset += group_bit_offset;
 				group_bit_offset = 0;
-				num_group_samples = 0;
 
 				animated_track_data = animated_track_data_begin + (bit_offset / 8);
 
@@ -430,26 +428,17 @@ namespace acl
 					if (group_type == animation_track_type8::rotation)
 					{
 						if (!is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
-						{
 							write_animated_sample(bone_stream.rotations, sample_index, group_animated_track_data, group_bit_offset);
-							num_group_samples++;
-						}
 					}
 					else if (group_type == animation_track_type8::translation)
 					{
 						if (!is_constant_bit_rate(bone_stream.translations.get_bit_rate()))
-						{
 							write_animated_sample(bone_stream.translations, sample_index, group_animated_track_data, group_bit_offset);
-							num_group_samples++;
-						}
 					}
 					else
 					{
 						if (!is_constant_bit_rate(bone_stream.scales.get_bit_rate()))
-						{
 							write_animated_sample(bone_stream.scales, sample_index, group_animated_track_data, group_bit_offset);
-							num_group_samples++;
-						}
 					}
 				};
 
