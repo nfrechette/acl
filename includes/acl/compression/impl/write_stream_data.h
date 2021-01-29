@@ -374,7 +374,6 @@ namespace acl
 
 			const uint8_t* animated_track_data_start = animated_track_data;
 			uint64_t bit_offset = 0;
-			uint32_t num_samples = 0;
 
 			// Data is sorted first by time, second by bone.
 			// This ensures that all bones are contiguous in memory when we sample a particular time.
@@ -423,8 +422,6 @@ namespace acl
 			// TODO: Use a group writer context object to avoid alloc/free/work in loop for every sample when it doesn't change
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
-				num_samples++;
-
 				auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 				{
 					(void)group_size;
@@ -462,7 +459,7 @@ namespace acl
 			if (bit_offset != 0)
 				animated_track_data = animated_track_data_begin + ((bit_offset + 7) / 8);
 
-			ACL_ASSERT((bit_offset == 0 && num_samples == 0) || ((bit_offset / num_samples) == segment.animated_pose_bit_size), "Unexpected number of bits written");
+			ACL_ASSERT((bit_offset == 0 && segment.num_samples == 0) || ((bit_offset / segment.num_samples) == segment.animated_pose_bit_size), "Unexpected number of bits written");
 			ACL_ASSERT(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
 			return safe_static_cast<uint32_t>(animated_track_data - animated_track_data_start);
 		}
