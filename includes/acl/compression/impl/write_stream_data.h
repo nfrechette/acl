@@ -407,9 +407,7 @@ namespace acl
 			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
 			{
 				(void)group_type;
-
-				if (group_size == 0)
-					return;	// Empty group, skip
+				(void)group_size;
 
 				memcpy_bits(animated_track_data_begin, bit_offset, &group_animated_track_data[0], 0, group_bit_offset);
 
