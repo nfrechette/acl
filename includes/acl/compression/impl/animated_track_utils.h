@@ -190,7 +190,7 @@ namespace acl
 					{
 						const uint32_t bone_index = output_bone_mapping[rotation_output_index];
 
-						if (group_filter_action(animation_track_type8::rotation, bone_index))
+						if (group_filter_action(group_type, bone_index))
 							group_entry_action(group_type, group_size++, bone_index);
 					}
 				}
@@ -200,7 +200,7 @@ namespace acl
 					{
 						const uint32_t bone_index = output_bone_mapping[translation_output_index];
 
-						if (group_filter_action(animation_track_type8::translation, bone_index))
+						if (group_filter_action(group_type, bone_index))
 							group_entry_action(group_type, group_size++, bone_index);
 					}
 				}
@@ -210,7 +210,7 @@ namespace acl
 					{
 						const uint32_t bone_index = output_bone_mapping[scale_output_index];
 
-						if (group_filter_action(animation_track_type8::scale, bone_index))
+						if (group_filter_action(group_type, bone_index))
 							group_entry_action(group_type, group_size++, bone_index);
 					}
 				}
