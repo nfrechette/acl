@@ -594,6 +594,8 @@ namespace acl
 
 			// Try inlining the unpacking functions
 
+			// Can we delay the swizzling after we are done unpacking both segments to avoid the extra load/store?
+
 			for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 			{
 				// Our decompressed rotation as a vector4
