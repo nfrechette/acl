@@ -164,6 +164,14 @@ namespace acl
 			const std::function<void(animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)>& group_entry_action,
 			const std::function<void(animation_track_type8 group_type, uint32_t group_size)>& group_flush_action)
 		{
+			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
+			// Order depends on animated track order. If we have 6 animated rotation tracks before the first animated
+			// translation track, we'll have 8 animated rotation sub-tracks followed by 4 animated translation sub-tracks.
+			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
+			// This is because we always process 4 animated sub-tracks at a time and cache the results.
+
+			// Groups are written in the order of first use and as such are sorted by their lowest sub-track index.
+
 			uint32_t num_groups = 0;
 			animation_track_type8* sub_track_groups = calculate_sub_track_groups(segment, output_bone_mapping, num_output_bones, num_groups, group_filter_action);
 
