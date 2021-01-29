@@ -344,7 +344,7 @@ namespace acl
 			uint32_t result = 0;
 
 			for (const SegmentContext& segment : clip.segment_iterator())
-				result += align_to(segment.animated_rotation_bit_size, 8) / 8;	// Convert bits to bytes;
+				result += align_to(segment.animated_rotation_bit_size * segment.num_samples, 8) / 8;	// Convert bits to bytes;
 
 			return result;
 		}
@@ -354,7 +354,7 @@ namespace acl
 			uint32_t result = 0;
 
 			for (const SegmentContext& segment : clip.segment_iterator())
-				result += align_to(segment.animated_translation_bit_size, 8) / 8;	// Convert bits to bytes;
+				result += align_to(segment.animated_translation_bit_size * segment.num_samples, 8) / 8;	// Convert bits to bytes;
 
 			return result;
 		}
@@ -364,7 +364,7 @@ namespace acl
 			uint32_t result = 0;
 
 			for (const SegmentContext& segment : clip.segment_iterator())
-				result += align_to(segment.animated_scale_bit_size, 8) / 8;	// Convert bits to bytes;
+				result += align_to(segment.animated_scale_bit_size * segment.num_samples, 8) / 8;	// Convert bits to bytes;
 
 			return result;
 		}

@@ -141,13 +141,12 @@ namespace acl
 						calculate_animated_data_size(bone_stream.scales, num_animated_pose_scale_data_bits);
 				}
 
-				const uint32_t num_samples = segment.num_samples;
 				const uint32_t num_animated_pose_bits = num_animated_pose_rotation_data_bits + num_animated_pose_translation_data_bits + num_animated_pose_scale_data_bits;
-				const uint32_t num_animated_data_bits = num_animated_pose_bits * num_samples;
+				const uint32_t num_animated_data_bits = num_animated_pose_bits * segment.num_samples;
 
-				segment.animated_rotation_bit_size = num_animated_pose_rotation_data_bits * num_samples;
-				segment.animated_translation_bit_size = num_animated_pose_translation_data_bits * num_samples;
-				segment.animated_scale_bit_size = num_animated_pose_scale_data_bits * num_samples;
+				segment.animated_rotation_bit_size = num_animated_pose_rotation_data_bits;
+				segment.animated_translation_bit_size = num_animated_pose_translation_data_bits;
+				segment.animated_scale_bit_size = num_animated_pose_scale_data_bits;
 				segment.animated_data_size = align_to(num_animated_data_bits, 8) / 8;
 				segment.animated_pose_bit_size = num_animated_pose_bits;
 			}
