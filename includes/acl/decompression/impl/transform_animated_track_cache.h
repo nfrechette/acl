@@ -1460,7 +1460,7 @@ namespace acl
 				if (num_left_to_unpack == 0)
 					return;	// Nothing left to do, we are done
 
-							// If we have less than 4 cached samples, unpack 4 more and prefetch the next cache line
+				// If we have less than 4 cached samples, unpack 4 more and prefetch the next cache line
 				const uint32_t num_cached = translations.get_num_cached();
 				if (num_cached >= 4)
 					return;	// Enough cached, nothing to do
@@ -1580,7 +1580,7 @@ namespace acl
 				if (num_left_to_unpack == 0)
 					return;	// Nothing left to do, we are done
 
-							// If we have less than 4 cached samples, unpack 4 more and prefetch the next cache line
+				// If we have less than 4 cached samples, unpack 4 more and prefetch the next cache line
 				const uint32_t num_cached = scales.get_num_cached();
 				if (num_cached >= 4)
 					return;	// Enough cached, nothing to do
