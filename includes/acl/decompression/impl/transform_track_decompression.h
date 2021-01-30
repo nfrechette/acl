@@ -544,6 +544,18 @@ namespace acl
 			// I tried caching the bitset in a 64 bit register and simply shifting the bits in but it ended up being slightly
 			// slower more often than not. It seems to impact dependency chains somewhat. Maybe revisit this at some point.
 
+			// TODO: The first time we iterate over the bit set, unpack it into our output pose as a temporary buffer
+			// We can build a linked list
+			// Store on the stack the first animated rot/trans/scale
+			// For its rot/trans/scale, write instead the index of the next animated rot/trans/scale
+			// We can even unpack it first on its own
+			// Writer can expose this with something like write_rotation_index/read_rotation_index
+			// The writer can then allocate a separate buffer for this or re-use the pose buffer
+			// When the time comes to write our animated samples, we can unpack 4, grab the next 4 entries from the linked
+			// list and write our samples. We can do this until all samples are written which should be faster than iterating a bit set
+			// since it'll allow us to quickly skip entries we don't care about. The same scheme can be used for constant/default tracks.
+			// When we unpack our bitset, we can also count the number of entries for each type to help iterate
+
 			// Unpack our constant rotation sub-tracks
 			uint32_t sub_track_index = 0;
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
@@ -566,6 +578,8 @@ namespace acl
 
 					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
+
+					// TODO: Revisit how we do the track skipping, we could skip the whole loop or the bitset stuff
 
 					if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index))
 						writer.write_rotation(track_index, rotation);
