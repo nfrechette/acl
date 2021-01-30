@@ -503,7 +503,7 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const bool has_scale = header.get_has_scale();
 			const uint32_t num_tracks = header.num_tracks;
-			const uint64_t num_sub_tracks_per_track = has_scale ? 3 : 2;
+			const uint32_t num_sub_tracks_per_track = has_scale ? 3 : 2;
 
 			const uint32_t* default_tracks_bitset = context.default_tracks_bitset.add_to(context.tracks);
 			const uint32_t* constant_tracks_bitset = context.constant_tracks_bitset.add_to(context.tracks);
@@ -572,7 +572,7 @@ namespace acl
 				}
 
 				// Skip our rotation, translation, and scale sub-tracks
-				sub_track_index += uint32_t(num_sub_tracks_per_track);
+				sub_track_index += num_sub_tracks_per_track;
 			}
 
 			// By now, our constant translations (3 cache lines) have landed in L2 after our prefetching has completed
