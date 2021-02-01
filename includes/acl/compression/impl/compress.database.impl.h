@@ -445,6 +445,8 @@ namespace acl
 				const uint32_t animated_pose_bit_size = headers[segment_index].animated_pose_bit_size;
 
 				out_headers[segment_index].animated_pose_bit_size = animated_pose_bit_size;
+				out_headers[segment_index].animated_rotation_bit_size = headers[segment_index].animated_rotation_bit_size;
+				out_headers[segment_index].animated_translation_bit_size = headers[segment_index].animated_translation_bit_size;
 				out_headers[segment_index].segment_data = segment_data_offset;
 				out_headers[segment_index].sample_indices = build_sample_indices(tier_mapping, tracks_index, segment_index);
 
@@ -550,11 +552,8 @@ namespace acl
 				// Range data follows constant data, use that to calculate our size
 				const uint32_t constant_data_size = (uint32_t)input_transforms_header.clip_range_data_offset - (uint32_t)input_transforms_header.constant_track_data_offset;
 
-				// Animated group size type data follows the range data, use that to calculate our size
-				const uint32_t clip_range_data_size = (uint32_t)input_transforms_header.animated_group_types_offset - (uint32_t)input_transforms_header.clip_range_data_offset;
-
-				// The data from our first segment follows the animated group types, use that to calculate our size
-				const uint32_t animated_group_types_size = (uint32_t)input_segment_headers[0].segment_data - (uint32_t)input_transforms_header.animated_group_types_offset;
+				// The data from our first segment follows the clip range data, use that to calculate our size
+				const uint32_t clip_range_data_size = (uint32_t)input_segment_headers[0].segment_data - (uint32_t)input_transforms_header.clip_range_data_offset;
 
 				// Calculate the new size of our clip
 				uint32_t buffer_size = 0;
@@ -579,7 +578,6 @@ namespace acl
 				buffer_size += constant_data_size;									// Constant track data
 				buffer_size = align_to(buffer_size, 4);								// Align range data
 				buffer_size += clip_range_data_size;								// Range data
-				buffer_size += animated_group_types_size;							// Our animated group types
 
 				// Per segment data
 				for (uint32_t segment_index = 0; segment_index < input_transforms_header.num_segments; ++segment_index)
@@ -673,7 +671,6 @@ namespace acl
 				transforms_header->constant_tracks_bitset_offset = transforms_header->default_tracks_bitset_offset + bitset_desc.get_num_bytes();
 				transforms_header->constant_track_data_offset = align_to(transforms_header->constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
 				transforms_header->clip_range_data_offset = align_to(transforms_header->constant_track_data_offset + constant_data_size, 4);
-				transforms_header->animated_group_types_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
 
 				// Copy our segment start indices, they do not change
 				if (input_transforms_header.has_multiple_segments())
@@ -688,7 +685,7 @@ namespace acl
 				clip_header_offset += sizeof(database_runtime_segment_header) * input_transforms_header.num_segments;
 
 				// Write our new segment headers
-				const uint32_t segment_data_base_offset = transforms_header->animated_group_types_offset + animated_group_types_size;
+				const uint32_t segment_data_base_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
 				write_segment_headers(tier_mapping, list_index, input_transforms_header, input_segment_headers, segment_data_base_offset, transforms_header->get_segment_tier0_headers());
 
 				// Copy our bitsets, they do not change
@@ -700,9 +697,6 @@ namespace acl
 
 				// Copy our clip range data, it does not change
 				std::memcpy(transforms_header->get_clip_range_data(), input_transforms_header.get_clip_range_data(), clip_range_data_size);
-
-				// Copy our animated group type data, it does not change
-				std::memcpy(transforms_header->get_animated_group_types(), input_transforms_header.get_animated_group_types(), animated_group_types_size);
 
 				// Write our new segment data
 				write_segment_data(tier_mapping, list_index, input_transforms_header, input_segment_headers, *transforms_header, transforms_header->get_segment_tier0_headers());

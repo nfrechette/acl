@@ -514,21 +514,6 @@ namespace acl
 
 			return safe_static_cast<uint32_t>(format_per_track_data - format_per_track_data_start);
 		}
-
-		inline uint32_t write_animated_group_types(const animation_track_type8* animated_sub_track_groups, uint32_t num_animated_groups, animation_track_type8* animated_sub_track_groups_data, uint32_t animated_sub_track_groups_data_size)
-		{
-			(void)animated_sub_track_groups_data_size;
-
-			const animation_track_type8* animated_sub_track_groups_data_start = animated_sub_track_groups_data;
-
-			std::memcpy(animated_sub_track_groups_data, animated_sub_track_groups, sizeof(animation_track_type8) * num_animated_groups);
-			animated_sub_track_groups_data += num_animated_groups;
-			animated_sub_track_groups_data[0] = static_cast<animation_track_type8>(0xFF);	// Terminator
-			animated_sub_track_groups_data++;
-
-			ACL_ASSERT(animated_sub_track_groups_data == animated_sub_track_groups_data_start + animated_sub_track_groups_data_size, "Too little or too much data written");
-			return static_cast<uint32_t>(animated_sub_track_groups_data - animated_sub_track_groups_data_start);
-		}
 	}
 }
 

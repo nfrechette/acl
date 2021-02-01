@@ -157,6 +157,10 @@ namespace acl
 			// Number of bits used by a fully animated pose (excludes default/constant tracks).
 			uint32_t						animated_pose_bit_size;
 
+			// Number of bits used by a fully animated pose per sub-track type (excludes default/constant tracks).
+			uint32_t						animated_rotation_bit_size;
+			uint32_t						animated_translation_bit_size;
+
 			// Offset to the animated segment data, relative to the start of the transform_tracks_header
 			// Segment data is partitioned as follows:
 			//    - format per variable track (no alignment)
@@ -176,6 +180,10 @@ namespace acl
 
 			// Number of bits used by a fully animated pose (excludes default/constant tracks).
 			uint32_t						animated_pose_bit_size;
+
+			// Number of bits used by a fully animated pose per sub-track type (excludes default/constant tracks).
+			uint32_t						animated_rotation_bit_size;
+			uint32_t						animated_translation_bit_size;
 
 			// Offset to the animated segment data, relative to the start of the transform_tracks_header
 			// Segment data is partitioned as follows:
@@ -258,9 +266,6 @@ namespace acl
 			// Offset to the clip range data.
 			ptr_offset32<uint8_t>			clip_range_data_offset;					// TODO: Make this offset optional? Only present if normalized
 
-			// Offset to the animated group types. Ends with an invalid group type of 0xFF.
-			ptr_offset32<animation_track_type8>	animated_group_types_offset;
-
 			//////////////////////////////////////////////////////////////////////////
 
 			bool							has_multiple_segments() const { return num_segments > 1; }
@@ -279,9 +284,6 @@ namespace acl
 
 			segment_tier0_header*			get_segment_tier0_headers() { return segment_tier0_headers_offset.add_to(this); }
 			const segment_tier0_header*		get_segment_tier0_headers() const { return segment_tier0_headers_offset.add_to(this); }
-
-			animation_track_type8*			get_animated_group_types() { return animated_group_types_offset.add_to(this); }
-			const animation_track_type8*	get_animated_group_types() const { return animated_group_types_offset.add_to(this); }
 
 			uint32_t*						get_default_tracks_bitset() { return default_tracks_bitset_offset.add_to(this); }
 			const uint32_t*					get_default_tracks_bitset() const { return default_tracks_bitset_offset.add_to(this); }

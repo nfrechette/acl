@@ -42,49 +42,54 @@ namespace acl
 	{
 		struct alignas(64) persistent_transform_decompression_context_v0
 		{
-			// Clip related data							//   offsets
+			// Clip related data								//   offsets
 			// Only member used to detect if we are initialized, must be first
-			const compressed_tracks* tracks;				//   0 |   0
+			const compressed_tracks* tracks;					//   0 |   0
 
 			// Database context, optional
-			const database_context_v0* db;					//   4 |   8
+			const database_context_v0* db;						//   4 |   8
 
 			// Offsets relative to the 'tracks' pointer
-			ptr_offset32<uint32_t> constant_tracks_bitset;	//   8 |  16
-			ptr_offset32<uint8_t> constant_track_data;		//  12 |  20
-			ptr_offset32<uint32_t> default_tracks_bitset;	//  16 |  24
-			ptr_offset32<uint8_t> clip_range_data;			//  20 |  28
+			ptr_offset32<uint32_t> constant_tracks_bitset;		//   8 |  16
+			ptr_offset32<uint8_t> constant_track_data;			//  12 |  20
+			ptr_offset32<uint32_t> default_tracks_bitset;		//  16 |  24
+			ptr_offset32<uint8_t> clip_range_data;				//  20 |  28
 
-			float clip_duration;							//  24 |  32
+			float clip_duration;								//  24 |  32
 
-			bitset_description bitset_desc;					//  28 |  36
+			bitset_description bitset_desc;						//  28 |  36
 
-			uint32_t clip_hash;								//  32 |  40
+			uint32_t clip_hash;									//  32 |  40
 
-			rotation_format8 rotation_format;				//  36 |  44
-			vector_format8 translation_format;				//  37 |  45
-			vector_format8 scale_format;					//  38 |  46
-			range_reduction_flags8 range_reduction;			//  39 |  47
+			rotation_format8 rotation_format;					//  36 |  44
+			vector_format8 translation_format;					//  37 |  45
+			vector_format8 scale_format;						//  38 |  46
+			range_reduction_flags8 range_reduction;				//  39 |  47
 
-			uint8_t num_rotation_components;				//  40 |  48
-			uint8_t has_segments;							//  41 |  49
+			uint8_t has_scale;									//  40 |  48
+			uint8_t has_segments;								//  41 |  49
+			uint8_t num_sub_tracks_per_track;					//  42 |  50
 
-			uint8_t padding0[2];							//  42 |  50
+			uint8_t padding0[1];								//  43 |  51
 
 			// Seeking related data
-			float sample_time;								//  44 |  52
+			float sample_time;									//  44 |  52
 
-			const uint8_t* format_per_track_data[2];		//  48 |  56
-			const uint8_t* segment_range_data[2];			//  56 |  72
-			const uint8_t* animated_track_data[2];			//  64 |  88
+			// Offsets relative to the 'tracks' pointer
+			ptr_offset32<segment_header> segment_offsets[2];	//  48 |  56
 
-			uint32_t key_frame_bit_offsets[2];				//  72 | 104
+			const uint8_t* format_per_track_data[2];			//  56 |  64
+			const uint8_t* segment_range_data[2];				//  64 |  80
+			const uint8_t* animated_track_data[2];				//  72 |  96
 
-			float interpolation_alpha;						//  80 | 112
+			// Offsets relative to the 'animated_track_data' pointers
+			uint32_t key_frame_bit_offsets[2];					//  80 | 112
 
-			uint8_t padding1[sizeof(void*) == 4 ? 44 : 12];	//  84 | 116
+			float interpolation_alpha;							//  88 | 120
 
-			//									Total size:	   128 | 128
+			uint8_t padding1[sizeof(void*) == 4 ? 36 : 4];		//  92 | 124
+
+			//										Total size:	   128 | 128
 
 			//////////////////////////////////////////////////////////////////////////
 

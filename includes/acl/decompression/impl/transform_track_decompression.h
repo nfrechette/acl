@@ -108,13 +108,6 @@ namespace acl
 			context.constant_track_data = ptr_offset32<uint8_t>(&tracks, transform_header.get_constant_track_data());
 			context.clip_range_data = ptr_offset32<uint8_t>(&tracks, transform_header.get_clip_range_data());
 
-			for (uint32_t key_frame_index = 0; key_frame_index < 2; ++key_frame_index)
-			{
-				context.format_per_track_data[key_frame_index] = nullptr;
-				context.segment_range_data[key_frame_index] = nullptr;
-				context.animated_track_data[key_frame_index] = nullptr;
-			}
-
 			const bool has_scale = header.get_has_scale();
 			const uint32_t num_tracks_per_bone = has_scale ? 3 : 2;
 			context.bitset_desc = bitset_description::make_from_num_bits(header.num_tracks * num_tracks_per_bone);
@@ -131,8 +124,9 @@ namespace acl
 			context.translation_format = translation_format;
 			context.scale_format = scale_format;
 			context.range_reduction = range_reduction;
-			context.num_rotation_components = rotation_format == rotation_format8::quatf_full ? 4 : 3;
+			context.has_scale = has_scale;
 			context.has_segments = transform_header.has_multiple_segments();
+			context.num_sub_tracks_per_track = uint8_t(num_tracks_per_bone);
 
 			return true;
 		}
@@ -472,6 +466,9 @@ namespace acl
 
 			context.key_frame_bit_offsets[0] = segment_key_frame0 * segment_header0->animated_pose_bit_size;
 			context.key_frame_bit_offsets[1] = segment_key_frame1 * segment_header1->animated_pose_bit_size;
+
+			context.segment_offsets[0] = ptr_offset32<segment_header>(context.tracks, segment_header0);
+			context.segment_offsets[1] = ptr_offset32<segment_header>(context.tracks, segment_header1);
 		}
 
 
@@ -501,9 +498,9 @@ namespace acl
 			const rtm::quatf default_rotation = rtm::quat_identity();
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
-			const bool has_scale = header.get_has_scale();
+			const bool has_scale = context.has_scale;
 			const uint32_t num_tracks = header.num_tracks;
-			const uint32_t num_sub_tracks_per_track = has_scale ? 3 : 2;
+			const uint32_t num_sub_tracks_per_track = context.num_sub_tracks_per_track;
 
 			const uint32_t* default_tracks_bitset = context.default_tracks_bitset.add_to(context.tracks);
 			const uint32_t* constant_tracks_bitset = context.constant_tracks_bitset.add_to(context.tracks);
@@ -524,15 +521,15 @@ namespace acl
 			}
 
 			animated_track_cache_v0 animated_track_cache;
-			animated_track_cache.initialize(context);
+			animated_track_cache.initialize<decompression_settings_type, translation_adapter>(context);
 
 			{
 				// Start prefetching the per track metadata of both segments
 				// They might live in a different memory page than the clip's header and constant data
 				// and we need to prime VMEM translation and the TLB
 
-				const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context[0].format_per_track_data;
-				const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context[1].format_per_track_data;
+				const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context_rotations[0].format_per_track_data;
+				const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context_rotations[1].format_per_track_data;
 				ACL_IMPL_SEEK_PREFETCH(per_track_metadata0);
 				ACL_IMPL_SEEK_PREFETCH(per_track_metadata1);
 			}
@@ -557,8 +554,7 @@ namespace acl
 			// When we unpack our bitset, we can also count the number of entries for each type to help iterate
 
 			// Unpack our constant rotation sub-tracks
-			uint32_t sub_track_index = 0;
-			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+			for (uint32_t track_index = 0, sub_track_index = 0; track_index < num_tracks; ++track_index)
 			{
 				if ((track_index % 4) == 0)
 				{
@@ -596,12 +592,13 @@ namespace acl
 			// The second key frame of animated data might not live in the same memory page even if we use a single segment
 			// so this allows us to prime the TLB as well
 			{
-				const uint8_t* segment_range_data0 = animated_track_cache.segment_sampling_context[0].segment_range_data;
-				const uint8_t* segment_range_data1 = animated_track_cache.segment_sampling_context[1].segment_range_data;
-				const uint8_t* animated_data0 = animated_track_cache.segment_sampling_context[0].animated_track_data;
-				const uint8_t* animated_data1 = animated_track_cache.segment_sampling_context[1].animated_track_data;
-				const uint8_t* frame_animated_data0 = animated_data0 + (animated_track_cache.segment_sampling_context[0].animated_track_data_bit_offset / 8);
-				const uint8_t* frame_animated_data1 = animated_data1 + (animated_track_cache.segment_sampling_context[1].animated_track_data_bit_offset / 8);
+				const uint8_t* segment_range_data0 = animated_track_cache.segment_sampling_context_rotations[0].segment_range_data;
+				const uint8_t* segment_range_data1 = animated_track_cache.segment_sampling_context_rotations[1].segment_range_data;
+				const uint8_t* animated_data0 = animated_track_cache.segment_sampling_context_rotations[0].animated_track_data;
+				const uint8_t* animated_data1 = animated_track_cache.segment_sampling_context_rotations[1].animated_track_data;
+				const uint8_t* frame_animated_data0 = animated_data0 + (animated_track_cache.segment_sampling_context_rotations[0].animated_track_data_bit_offset / 8);
+				const uint8_t* frame_animated_data1 = animated_data1 + (animated_track_cache.segment_sampling_context_rotations[1].animated_track_data_bit_offset / 8);
+
 				ACL_IMPL_SEEK_PREFETCH(segment_range_data0);
 				ACL_IMPL_SEEK_PREFETCH(segment_range_data0 + 64);
 				ACL_IMPL_SEEK_PREFETCH(segment_range_data1);
@@ -610,17 +607,9 @@ namespace acl
 				ACL_IMPL_SEEK_PREFETCH(frame_animated_data1);
 			}
 
-			// Reset
-			sub_track_index = 0;
-
 			// Unpack our constant translation/scale sub-tracks
-			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+			for (uint32_t track_index = 0, sub_track_index = 1; track_index < num_tracks; ++track_index)
 			{
-				{
-					// Skip rotation
-					sub_track_index++;
-				}
-
 				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
 					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
@@ -636,12 +625,11 @@ namespace acl
 
 					if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index))
 						writer.write_translation(track_index, translation);
-					sub_track_index++;
 				}
 
 				if (has_scale)
 				{
-					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
+					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index + 1);
 					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
 					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
 					const bool is_sample_non_default_constant = !is_sample_default & is_sample_constant;
@@ -655,10 +643,11 @@ namespace acl
 
 					if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
 						writer.write_scale(track_index, scale);
-					sub_track_index++;
 				}
 				else if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
 					writer.write_scale(track_index, default_scale);
+
+				sub_track_index += num_sub_tracks_per_track;
 			}
 
 			{
@@ -667,74 +656,83 @@ namespace acl
 				// We also start prefetching the clip range data since we'll need it soon and we need to prime the TLB
 				// and the hardware prefetcher
 
-				const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context[0].format_per_track_data;
-				const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context[1].format_per_track_data;
-				const uint8_t* animated_data0 = animated_track_cache.segment_sampling_context[0].animated_track_data;
-				const uint8_t* animated_data1 = animated_track_cache.segment_sampling_context[1].animated_track_data;
-				const uint8_t* frame_animated_data0 = animated_data0 + (animated_track_cache.segment_sampling_context[0].animated_track_data_bit_offset / 8);
-				const uint8_t* frame_animated_data1 = animated_data1 + (animated_track_cache.segment_sampling_context[1].animated_track_data_bit_offset / 8);
+				const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context_rotations[0].format_per_track_data;
+				const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context_rotations[1].format_per_track_data;
+				const uint8_t* animated_data0 = animated_track_cache.segment_sampling_context_rotations[0].animated_track_data;
+				const uint8_t* animated_data1 = animated_track_cache.segment_sampling_context_rotations[1].animated_track_data;
+				const uint8_t* frame_animated_data0 = animated_data0 + (animated_track_cache.segment_sampling_context_rotations[0].animated_track_data_bit_offset / 8);
+				const uint8_t* frame_animated_data1 = animated_data1 + (animated_track_cache.segment_sampling_context_rotations[1].animated_track_data_bit_offset / 8);
 
 				ACL_IMPL_SEEK_PREFETCH(per_track_metadata0 + 64);
 				ACL_IMPL_SEEK_PREFETCH(per_track_metadata1 + 64);
 				ACL_IMPL_SEEK_PREFETCH(frame_animated_data0 + 64);
 				ACL_IMPL_SEEK_PREFETCH(frame_animated_data1 + 64);
-				ACL_IMPL_SEEK_PREFETCH(animated_track_cache.clip_sampling_context.clip_range_data);
-				ACL_IMPL_SEEK_PREFETCH(animated_track_cache.clip_sampling_context.clip_range_data + 64);
+				ACL_IMPL_SEEK_PREFETCH(animated_track_cache.clip_sampling_context_rotations.clip_range_data);
+				ACL_IMPL_SEEK_PREFETCH(animated_track_cache.clip_sampling_context_rotations.clip_range_data + 64);
+
+				// TODO: Can we prefetch the translation data ahead instead to prime the TLB?
 			}
 
-			// Reset
-			sub_track_index = 0;
-
 			// Unpack our variable sub-tracks
-			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+			// TODO: Unpack 4, then iterate over tracks to write?
+			// Can we keep the rotations in registers? Does it matter?
+
+			// Unpack rotations first
+			for (uint32_t track_index = 0, sub_track_index = 0; track_index < num_tracks; ++track_index)
 			{
+				// Unpack our next 4 tracks
 				if ((track_index % 4) == 0)
-				{
-					// Unpack our next 4 tracks
 					animated_track_cache.unpack_rotation_group<decompression_settings_type>(context);
+
+				const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
+				const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
+
+				if (!is_sample_constant)
+				{
+					const rtm::quatf rotation = animated_track_cache.consume_rotation();
+
+					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
+
+					if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index))
+						writer.write_rotation(track_index, rotation);
+				}
+
+				sub_track_index += num_sub_tracks_per_track;
+			}
+
+			// Unpack translations second
+			for (uint32_t track_index = 0, sub_track_index = 1; track_index < num_tracks; ++track_index)
+			{
+				// Unpack our next 4 tracks
+				if ((track_index % 4) == 0)
 					animated_track_cache.unpack_translation_group<translation_adapter>(context);
 
-					if (has_scale)
+				const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
+				const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
+
+				if (!is_sample_constant)
+				{
+					const rtm::vector4f translation = animated_track_cache.consume_translation();
+
+					ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+					if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index))
+						writer.write_translation(track_index, translation);
+				}
+
+				sub_track_index += num_sub_tracks_per_track;
+			}
+
+			// Unpack scales last
+			if (has_scale)
+			{
+				for (uint32_t track_index = 0, sub_track_index = 2; track_index < num_tracks; ++track_index)
+				{
+					// Unpack our next 4 tracks
+					if ((track_index % 4) == 0)
 						animated_track_cache.unpack_scale_group<scale_adapter>(context);
-				}
 
-				{
-					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-
-					if (!is_sample_constant)
-					{
-						const rtm::quatf rotation = animated_track_cache.consume_rotation();
-
-						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index))
-							writer.write_rotation(track_index, rotation);
-					}
-
-					sub_track_index++;
-				}
-
-				{
-					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-
-					if (!is_sample_constant)
-					{
-						const rtm::vector4f translation = animated_track_cache.consume_translation();
-
-						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
-
-						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index))
-							writer.write_translation(track_index, translation);
-					}
-
-					sub_track_index++;
-				}
-
-				if (has_scale)
-				{
 					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
 					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
 
@@ -748,7 +746,7 @@ namespace acl
 							writer.write_scale(track_index, scale);
 					}
 
-					sub_track_index++;
+					sub_track_index += num_sub_tracks_per_track;
 				}
 			}
 
@@ -781,7 +779,7 @@ namespace acl
 			const rtm::quatf default_rotation = rtm::quat_identity();
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = rtm::vector_set(float(tracks_header_.get_default_scale()));
-			const bool has_scale = tracks_header_.get_has_scale();
+			const bool has_scale = context.has_scale;
 
 			const uint32_t* default_tracks_bitset = context.default_tracks_bitset.add_to(context.tracks);
 			const uint32_t* constant_tracks_bitset = context.constant_tracks_bitset.add_to(context.tracks);
@@ -790,8 +788,8 @@ namespace acl
 			//    - if our rot/trans/scale is the default value, this is a trivial bitset lookup
 			//    - constant and animated sub-tracks need to know which group they belong to so it can be unpacked
 
-			const uint32_t num_tracks_per_bone = has_scale ? 3 : 2;
-			const uint32_t sub_track_index = track_index * num_tracks_per_bone;
+			const uint32_t num_sub_tracks_per_track = context.num_sub_tracks_per_track;
+			const uint32_t sub_track_index = track_index * num_sub_tracks_per_track;
 
 			const bitset_index_ref rotation_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 0);
 			const bitset_index_ref translation_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 1);
@@ -900,15 +898,16 @@ namespace acl
 				}
 			}
 
-			uint32_t rotation_group_index = 0;
-			uint32_t translation_group_index = 0;
-			uint32_t scale_group_index = 0;
+			uint32_t rotation_group_sample_index = 0;
+			uint32_t translation_group_sample_index = 0;
+			uint32_t scale_group_sample_index = 0;
 
 			constant_track_cache_v0 constant_track_cache;
 
 			// Skip the constant track data
 			if (is_rotation_constant || is_translation_constant || is_scale_constant)
 			{
+				// TODO: Can we init just what we need?
 				constant_track_cache.initialize<decompression_settings_type>(context);
 
 				// Calculate how many constant groups of each sub-track type we need to skip
@@ -923,7 +922,7 @@ namespace acl
 					if (num_rotation_constant_groups_to_skip != 0)
 						constant_track_cache.skip_rotation_groups<decompression_settings_type>(context, num_rotation_constant_groups_to_skip);
 
-					rotation_group_index = num_constant_rotations_packed % 4;
+					rotation_group_sample_index = num_constant_rotations_packed % 4;
 				}
 
 				if (is_translation_constant)
@@ -933,7 +932,7 @@ namespace acl
 					if (num_translation_constant_groups_to_skip != 0)
 						constant_track_cache.skip_translation_groups(num_translation_constant_groups_to_skip);
 
-					translation_group_index = num_constant_translations_packed % 4;
+					translation_group_sample_index = num_constant_translations_packed % 4;
 				}
 
 				if (is_scale_constant)
@@ -943,99 +942,43 @@ namespace acl
 					if (num_scale_constant_groups_to_skip != 0)
 						constant_track_cache.skip_scale_groups(num_scale_constant_groups_to_skip);
 
-					scale_group_index = num_constant_scales_packed % 4;
+					scale_group_sample_index = num_constant_scales_packed % 4;
 				}
-			}
-			else
-			{
-				// Fake init to avoid compiler warning...
-				constant_track_cache.rotations.num_left_to_unpack = 0;
-				constant_track_cache.constant_data_rotations = nullptr;
-				constant_track_cache.constant_data_translations = nullptr;
-				constant_track_cache.constant_data_scales = nullptr;
 			}
 
 			animated_track_cache_v0 animated_track_cache;
-			animated_group_cursor_v0 rotation_group_cursor;
-			animated_group_cursor_v0 translation_group_cursor;
-			animated_group_cursor_v0 scale_group_cursor;
 
 			// Skip the animated track data
 			if (is_rotation_animated || is_translation_animated || is_scale_animated)
 			{
-				animated_track_cache.initialize(context);
-
-				// Calculate how many animated groups of each sub-track type we need to skip
-				// Skipping animated groups is a bit more complicated because they are interleaved in the order
-				// they are needed
-
-				// Tracks that are default are also constant
-				const uint32_t num_animated_rotations = track_index - num_constant_rotations;
+				// TODO: Can we init just what we need?
+				animated_track_cache.initialize<decompression_settings_type, translation_adapter>(context);
 
 				if (is_rotation_animated)
-					rotation_group_index = num_animated_rotations % 4;
-
-				const uint32_t num_animated_translations = track_index - num_constant_translations;
+				{
+					const uint32_t num_animated_rotations = track_index - num_constant_rotations;
+					rotation_group_sample_index = num_animated_rotations % 4;
+					const uint32_t num_groups_to_skip = num_animated_rotations / 4;
+					if (num_groups_to_skip != 0)
+						animated_track_cache.skip_rotation_groups<decompression_settings_type>(context, num_groups_to_skip);
+				}
 
 				if (is_translation_animated)
-					translation_group_index = num_animated_translations % 4;
-
-				const uint32_t num_animated_scales = has_scale ? (track_index - num_constant_scales) : 0;
+				{
+					const uint32_t num_animated_translations = track_index - num_constant_translations;
+					translation_group_sample_index = num_animated_translations % 4;
+					const uint32_t num_groups_to_skip = num_animated_translations / 4;
+					if (num_groups_to_skip != 0)
+						animated_track_cache.skip_translation_groups<translation_adapter>(context, num_groups_to_skip);
+				}
 
 				if (is_scale_animated)
-					scale_group_index = num_animated_scales % 4;
-
-				uint32_t num_rotations_to_unpack = is_rotation_animated ? num_animated_rotations : ~0U;
-				uint32_t num_translations_to_unpack = is_translation_animated ? num_animated_translations : ~0U;
-				uint32_t num_scales_to_unpack = is_scale_animated ? num_animated_scales : ~0U;
-
-				uint32_t num_animated_groups_to_unpack = is_rotation_animated + is_translation_animated + is_scale_animated;
-
-				const transform_tracks_header& transform_header = get_transform_tracks_header(*context.tracks);
-				const animation_track_type8* group_types = transform_header.get_animated_group_types();
-
-				while (num_animated_groups_to_unpack != 0)
 				{
-					const animation_track_type8 group_type = *group_types;
-					group_types++;
-					ACL_ASSERT(group_type != static_cast<animation_track_type8>(0xFF), "Reached terminator");
-
-					if (group_type == animation_track_type8::rotation)
-					{
-						if (num_rotations_to_unpack < 4)
-						{
-							// This is the group we need, cache our cursor
-							animated_track_cache.get_rotation_cursor(rotation_group_cursor);
-							num_animated_groups_to_unpack--;
-						}
-
-						animated_track_cache.skip_rotation_group<decompression_settings_type>(context);
-						num_rotations_to_unpack -= 4;
-					}
-					else if (group_type == animation_track_type8::translation)
-					{
-						if (num_translations_to_unpack < 4)
-						{
-							// This is the group we need, cache our cursor
-							animated_track_cache.get_translation_cursor(translation_group_cursor);
-							num_animated_groups_to_unpack--;
-						}
-
-						animated_track_cache.skip_translation_group<translation_adapter>(context);
-						num_translations_to_unpack -= 4;
-					}
-					else // scale
-					{
-						if (num_scales_to_unpack < 4)
-						{
-							// This is the group we need, cache our cursor
-							animated_track_cache.get_scale_cursor(scale_group_cursor);
-							num_animated_groups_to_unpack--;
-						}
-
-						animated_track_cache.skip_scale_group<scale_adapter>(context);
-						num_scales_to_unpack -= 4;
-					}
+					const uint32_t num_animated_scales = track_index - num_constant_scales;
+					scale_group_sample_index = num_animated_scales % 4;
+					const uint32_t num_groups_to_skip = num_animated_scales / 4;
+					if (num_groups_to_skip != 0)
+						animated_track_cache.skip_scale_groups<scale_adapter>(context, num_groups_to_skip);
 				}
 			}
 
@@ -1046,9 +989,9 @@ namespace acl
 				if (is_rotation_default)
 					rotation = default_rotation;
 				else if (is_rotation_constant)
-					rotation = constant_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_index);
+					rotation = constant_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 				else
-					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_cursor, rotation_group_index);
+					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 
 				writer.write_rotation(track_index, rotation);
 			}
@@ -1058,9 +1001,9 @@ namespace acl
 				if (is_translation_default)
 					translation = default_translation;
 				else if (is_translation_constant)
-					translation = constant_track_cache.unpack_translation_within_group(translation_group_index);
+					translation = constant_track_cache.unpack_translation_within_group(translation_group_sample_index);
 				else
-					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_cursor, translation_group_index);
+					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index);
 
 				writer.write_translation(track_index, translation);
 			}
@@ -1070,9 +1013,9 @@ namespace acl
 				if (is_scale_default)
 					scale = default_scale;
 				else if (is_scale_constant)
-					scale = constant_track_cache.unpack_scale_within_group(scale_group_index);
+					scale = constant_track_cache.unpack_scale_within_group(scale_group_sample_index);
 				else
-					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_cursor, scale_group_index);
+					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index);
 
 				writer.write_scale(track_index, scale);
 			}

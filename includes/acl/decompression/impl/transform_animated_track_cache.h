@@ -94,13 +94,6 @@ namespace acl
 			uint32_t animated_track_data_bit_offset;	// Bit offset of the current animated sub-track
 		};
 
-		struct animated_group_cursor_v0
-		{
-			clip_animated_sampling_context_v0 clip_sampling_context;
-			segment_animated_sampling_context_v0 segment_sampling_context[2];
-			uint32_t group_size;
-		};
-
 		struct alignas(32) segment_animated_scratch_v0
 		{
 			// We store out potential range data in SOA form and we have no W, just XYZ
@@ -1148,53 +1141,104 @@ namespace acl
 			rtm::vector4f scratch0[4];
 			rtm::vector4f scratch1[4];
 
-			clip_animated_sampling_context_v0 clip_sampling_context;
+			clip_animated_sampling_context_v0 clip_sampling_context_rotations;
+			clip_animated_sampling_context_v0 clip_sampling_context_translations;
+			clip_animated_sampling_context_v0 clip_sampling_context_scales;
 
-			segment_animated_sampling_context_v0 segment_sampling_context[2];
+			segment_animated_sampling_context_v0 segment_sampling_context_rotations[2];
+			segment_animated_sampling_context_v0 segment_sampling_context_translations[2];
+			segment_animated_sampling_context_v0 segment_sampling_context_scales[2];
 
 			bool uses_single_segment;	// TODO: Store in decomp context?
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void get_rotation_cursor(animated_group_cursor_v0& cursor) const
-			{
-				cursor.clip_sampling_context = clip_sampling_context;
-				cursor.segment_sampling_context[0] = segment_sampling_context[0];
-				cursor.segment_sampling_context[1] = segment_sampling_context[1];
-				cursor.group_size = std::min<uint32_t>(rotations.num_left_to_unpack, 4);
-			}
-
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void get_translation_cursor(animated_group_cursor_v0& cursor) const
-			{
-				cursor.clip_sampling_context = clip_sampling_context;
-				cursor.segment_sampling_context[0] = segment_sampling_context[0];
-				cursor.segment_sampling_context[1] = segment_sampling_context[1];
-				cursor.group_size = std::min<uint32_t>(translations.num_left_to_unpack, 4);
-			}
-
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void get_scale_cursor(animated_group_cursor_v0& cursor) const
-			{
-				cursor.clip_sampling_context = clip_sampling_context;
-				cursor.segment_sampling_context[0] = segment_sampling_context[0];
-				cursor.segment_sampling_context[1] = segment_sampling_context[1];
-				cursor.group_size = std::min<uint32_t>(scales.num_left_to_unpack, 4);
-			}
-
+			template<class decompression_settings_type, class decompression_settings_translation_adapter_type>
 			void ACL_DISABLE_SECURITY_COOKIE_CHECK initialize(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-				clip_sampling_context.clip_range_data = decomp_context.clip_range_data.add_to(decomp_context.tracks);
-
-				segment_sampling_context[0].format_per_track_data = decomp_context.format_per_track_data[0];
-				segment_sampling_context[0].segment_range_data = decomp_context.segment_range_data[0];
-				segment_sampling_context[0].animated_track_data = decomp_context.animated_track_data[0];
-				segment_sampling_context[0].animated_track_data_bit_offset = decomp_context.key_frame_bit_offsets[0];
-
-				segment_sampling_context[1].format_per_track_data = decomp_context.format_per_track_data[1];
-				segment_sampling_context[1].segment_range_data = decomp_context.segment_range_data[1];
-				segment_sampling_context[1].animated_track_data = decomp_context.animated_track_data[1];
-				segment_sampling_context[1].animated_track_data_bit_offset = decomp_context.key_frame_bit_offsets[1];
-
-				uses_single_segment = decomp_context.format_per_track_data[0] == decomp_context.format_per_track_data[1];
-
 				const transform_tracks_header& transform_header = get_transform_tracks_header(*decomp_context.tracks);
+
+				const segment_header* segment0 = decomp_context.segment_offsets[0].add_to(decomp_context.tracks);
+				const segment_header* segment1 = decomp_context.segment_offsets[1].add_to(decomp_context.tracks);
+
+				const uint8_t* animated_track_data0 = decomp_context.animated_track_data[0];
+				const uint8_t* animated_track_data1 = decomp_context.animated_track_data[1];
+
+				uses_single_segment = animated_track_data0 == animated_track_data1;
+
+				const uint8_t* clip_range_data_rotations = decomp_context.clip_range_data.add_to(decomp_context.tracks);
+				clip_sampling_context_rotations.clip_range_data = clip_range_data_rotations;
+
+				const uint8_t* format_per_track_data_rotations0 = decomp_context.format_per_track_data[0];
+				const uint8_t* segment_range_data_rotations0 = decomp_context.segment_range_data[0];
+				const uint32_t animated_track_data_bit_offset_rotations0 = decomp_context.key_frame_bit_offsets[0];
+				segment_sampling_context_rotations[0].format_per_track_data = format_per_track_data_rotations0;
+				segment_sampling_context_rotations[0].segment_range_data = segment_range_data_rotations0;
+				segment_sampling_context_rotations[0].animated_track_data = animated_track_data0;
+				segment_sampling_context_rotations[0].animated_track_data_bit_offset = animated_track_data_bit_offset_rotations0;
+
+				const uint8_t* format_per_track_data_rotations1 = decomp_context.format_per_track_data[1];
+				const uint8_t* segment_range_data_rotations1 = decomp_context.segment_range_data[1];
+				const uint32_t animated_track_data_bit_offset_rotations1 = decomp_context.key_frame_bit_offsets[1];
+				segment_sampling_context_rotations[1].format_per_track_data = format_per_track_data_rotations1;
+				segment_sampling_context_rotations[1].segment_range_data = segment_range_data_rotations1;
+				segment_sampling_context_rotations[1].animated_track_data = animated_track_data1;
+				segment_sampling_context_rotations[1].animated_track_data_bit_offset = animated_track_data_bit_offset_rotations1;
+
+				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
+				const bool are_rotations_variable = rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable);
+
+				const uint32_t num_animated_rotation_sub_tracks_padded = align_to(transform_header.num_animated_rotation_sub_tracks, 4);
+
+				// Rotation range data follows translations, no padding
+				const uint32_t rotation_clip_range_data_size = are_rotations_variable ? (sizeof(rtm::float3f) * 2) : 0;
+				const uint8_t* clip_range_data_translations = clip_range_data_rotations + (transform_header.num_animated_rotation_sub_tracks * rotation_clip_range_data_size);
+				clip_sampling_context_translations.clip_range_data = clip_range_data_translations;
+
+				// Rotation metadata is padded to 4 sub-tracks (1 byte each)
+				const uint32_t rotation_per_track_metadata_size = are_rotations_variable ? 1 : 0;
+				const uint8_t* format_per_track_data_translations0 = format_per_track_data_rotations0 + (num_animated_rotation_sub_tracks_padded * rotation_per_track_metadata_size);
+				const uint8_t* format_per_track_data_translations1 = format_per_track_data_rotations1 + (num_animated_rotation_sub_tracks_padded * rotation_per_track_metadata_size);
+				segment_sampling_context_translations[0].format_per_track_data = format_per_track_data_translations0;
+				segment_sampling_context_translations[1].format_per_track_data = format_per_track_data_translations1;
+
+				// Rotation range data is padded to 4 sub-tracks (6 bytes each)
+				const uint32_t rotation_segment_range_data_size = are_rotations_variable ? 6 : 0;
+				const uint8_t* segment_range_data_translations0 = segment_range_data_rotations0 + (num_animated_rotation_sub_tracks_padded * rotation_segment_range_data_size);
+				const uint8_t* segment_range_data_translations1 = segment_range_data_rotations1 + (num_animated_rotation_sub_tracks_padded * rotation_segment_range_data_size);
+				segment_sampling_context_translations[0].segment_range_data = segment_range_data_translations0;
+				segment_sampling_context_translations[1].segment_range_data = segment_range_data_translations1;
+
+				// Every sub-track uses the same base animated track data pointer
+				segment_sampling_context_translations[0].animated_track_data = animated_track_data0;
+				segment_sampling_context_translations[1].animated_track_data = animated_track_data1;
+
+				const uint32_t animated_track_data_bit_offset_translations0 = animated_track_data_bit_offset_rotations0 + segment0->animated_rotation_bit_size;
+				const uint32_t animated_track_data_bit_offset_translations1 = animated_track_data_bit_offset_rotations1 + segment1->animated_rotation_bit_size;
+				segment_sampling_context_translations[0].animated_track_data_bit_offset = animated_track_data_bit_offset_translations0;
+				segment_sampling_context_translations[1].animated_track_data_bit_offset = animated_track_data_bit_offset_translations1;
+
+				if (decomp_context.has_scale)
+				{
+					const vector_format8 translation_format = get_vector_format<decompression_settings_translation_adapter_type>(decompression_settings_translation_adapter_type::get_vector_format(decomp_context));
+					const bool are_translations_variable = translation_format == vector_format8::vector3f_variable && decompression_settings_translation_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable);
+
+					// Scale data just follows the translation data without any extra padding
+					const uint32_t translation_clip_range_data_size = are_translations_variable ? (sizeof(rtm::float3f) * 2) : 0;
+					clip_sampling_context_scales.clip_range_data = clip_range_data_translations + (transform_header.num_animated_translation_sub_tracks * translation_clip_range_data_size);
+
+					const uint32_t translation_per_track_metadata_size = are_translations_variable ? 1 : 0;
+					segment_sampling_context_scales[0].format_per_track_data = format_per_track_data_translations0 + (transform_header.num_animated_translation_sub_tracks * translation_per_track_metadata_size);
+					segment_sampling_context_scales[1].format_per_track_data = format_per_track_data_translations1 + (transform_header.num_animated_translation_sub_tracks * translation_per_track_metadata_size);
+
+					const uint32_t translation_segment_range_data_size = are_translations_variable ? 6 : 0;
+					segment_sampling_context_scales[0].segment_range_data = segment_range_data_translations0 + (transform_header.num_animated_translation_sub_tracks * translation_segment_range_data_size);
+					segment_sampling_context_scales[1].segment_range_data = segment_range_data_translations1 + (transform_header.num_animated_translation_sub_tracks * translation_segment_range_data_size);
+
+					segment_sampling_context_scales[0].animated_track_data = animated_track_data0;
+					segment_sampling_context_scales[1].animated_track_data = animated_track_data1;
+
+					segment_sampling_context_scales[0].animated_track_data_bit_offset = animated_track_data_bit_offset_translations0 + segment0->animated_translation_bit_size;
+					segment_sampling_context_scales[1].animated_track_data_bit_offset = animated_track_data_bit_offset_translations1 + segment1->animated_translation_bit_size;
+				}
 
 				rotations.num_left_to_unpack = transform_header.num_animated_rotation_sub_tracks;
 				translations.num_left_to_unpack = transform_header.num_animated_translation_sub_tracks;
@@ -1231,16 +1275,16 @@ namespace acl
 				{
 					if (decomp_context.has_segments)
 					{
-						unpack_segment_range_data(segment_sampling_context[0].segment_range_data, 0, segment_scratch);
+						unpack_segment_range_data(segment_sampling_context_rotations[0].segment_range_data, 0, segment_scratch);
 
 						// We are interpolating between two segments (rare)
 						if (!uses_single_segment)
-							unpack_segment_range_data(segment_sampling_context[1].segment_range_data, 1, segment_scratch);
+							unpack_segment_range_data(segment_sampling_context_rotations[1].segment_range_data, 1, segment_scratch);
 					}
 				}
 
-				const range_reduction_masks_t range_reduction_masks0 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch0, num_to_unpack, segment_sampling_context[0]);
-				const range_reduction_masks_t range_reduction_masks1 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch1, num_to_unpack, segment_sampling_context[1]);
+				const range_reduction_masks_t range_reduction_masks0 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch0, num_to_unpack, segment_sampling_context_rotations[0]);
+				const range_reduction_masks_t range_reduction_masks1 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch1, num_to_unpack, segment_sampling_context_rotations[1]);
 
 				rtm::vector4f scratch0_xxxx = scratch0[0];
 				rtm::vector4f scratch0_yyyy = scratch0[1];
@@ -1271,7 +1315,7 @@ namespace acl
 #endif
 					}
 
-					const uint8_t* clip_range_data = clip_sampling_context.clip_range_data;
+					const uint8_t* clip_range_data = clip_sampling_context_rotations.clip_range_data;
 
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 					remap_clip_range_data_avx8(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
@@ -1285,7 +1329,7 @@ namespace acl
 
 					// Skip our data
 					clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
-					clip_sampling_context.clip_range_data = clip_range_data;
+					clip_sampling_context_rotations.clip_range_data = clip_range_data;
 				}
 
 				// Reconstruct our quaternion W component in SOA
@@ -1349,77 +1393,95 @@ namespace acl
 			}
 
 			template<class decompression_settings_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_rotation_group(const persistent_transform_decompression_context_v0& decomp_context)
+			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_rotation_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
 			{
 				const uint32_t num_left_to_unpack = rotations.num_left_to_unpack;
-				ACL_ASSERT(num_left_to_unpack != 0, "Cannot skip rotations that aren't present");
+				const uint32_t num_to_skip = num_groups_to_skip * 4;
+				ACL_ASSERT(num_to_skip < num_left_to_unpack, "Cannot skip rotations that aren't present");
 
-				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 4);
-				rotations.num_left_to_unpack = num_left_to_unpack - num_to_unpack;
+				rotations.num_left_to_unpack = num_left_to_unpack - num_to_skip;
 
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 				if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 				{
-					const uint8_t* format_per_track_data0 = segment_sampling_context[0].format_per_track_data;
-					const uint8_t* format_per_track_data1 = segment_sampling_context[1].format_per_track_data;
+					const uint8_t* format_per_track_data0 = segment_sampling_context_rotations[0].format_per_track_data;
+					const uint8_t* format_per_track_data1 = segment_sampling_context_rotations[1].format_per_track_data;
 
-					uint32_t group_size0 = 0;
-					uint32_t group_size1 = 0;
+					// TODO: Do the same with NEON
+#if defined(RTM_AVX_INTRINSICS)
+					__m128i zero = _mm_setzero_si128();
+					__m128i group_bit_size_per_component0_v = zero;
+					__m128i group_bit_size_per_component1_v = zero;
 
-					// Fall-through intentional
-					switch (num_to_unpack)
+					// We add 4 at a time in SIMD
+					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
 					{
-					default:
-					case 4:
-						group_size0 += format_per_track_data0[3];
-						group_size1 += format_per_track_data1[3];
-						ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
-					case 3:
-						group_size0 += format_per_track_data0[2];
-						group_size1 += format_per_track_data1[2];
-						ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
-					case 2:
-						group_size0 += format_per_track_data0[1];
-						group_size1 += format_per_track_data1[1];
-						ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
-					case 1:
-						group_size0 += format_per_track_data0[0];
-						group_size1 += format_per_track_data1[0];
+						const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + (group_index * 4)));
+						const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + (group_index * 4)));
+
+						group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero));
+						group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero));
 					}
 
-					// Per track data and segment range are always padded to 4 samples
-					segment_sampling_context[0].format_per_track_data += 4;
-					segment_sampling_context[0].segment_range_data += 6 * 4;
-					segment_sampling_context[0].animated_track_data_bit_offset += group_size0 * 3;
-					segment_sampling_context[1].format_per_track_data += 4;
-					segment_sampling_context[1].segment_range_data += 6 * 4;
-					segment_sampling_context[1].animated_track_data_bit_offset += group_size1 * 3;
+					// Now we sum horizontally
+					group_bit_size_per_component0_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component0_v, group_bit_size_per_component0_v), group_bit_size_per_component0_v);
+					group_bit_size_per_component1_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component1_v, group_bit_size_per_component1_v), group_bit_size_per_component1_v);
 
-					clip_sampling_context.clip_range_data += sizeof(rtm::float3f) * 2 * num_to_unpack;
+					const uint32_t group_bit_size_per_component0 = _mm_cvtsi128_si32(group_bit_size_per_component0_v);
+					const uint32_t group_bit_size_per_component1 = _mm_cvtsi128_si32(group_bit_size_per_component1_v);
+#else
+					uint32_t group_bit_size_per_component0 = 0;
+					uint32_t group_bit_size_per_component1 = 0;
+
+					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
+					{
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 0];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 0];
+
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 1];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 1];
+
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 2];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 2];
+
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 3];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 3];
+					}
+#endif
+
+					// Per track data and segment range are always padded to 4 samples
+					segment_sampling_context_rotations[0].format_per_track_data += num_groups_to_skip * 4;
+					segment_sampling_context_rotations[0].segment_range_data += num_groups_to_skip * 6 * 4;
+					segment_sampling_context_rotations[0].animated_track_data_bit_offset += group_bit_size_per_component0 * 3;
+
+					segment_sampling_context_rotations[1].format_per_track_data += num_groups_to_skip * 4;
+					segment_sampling_context_rotations[1].segment_range_data += num_groups_to_skip * 6 * 4;
+					segment_sampling_context_rotations[1].animated_track_data_bit_offset += group_bit_size_per_component1 * 3;
+
+					clip_sampling_context_rotations.clip_range_data += sizeof(rtm::float3f) * 2 * 4 * num_groups_to_skip;
 				}
 				else
 				{
-					uint32_t group_size;
+					uint32_t group_bit_size;
 					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
-						group_size = 32 * 4 * num_to_unpack;
+						group_bit_size = 32 * 4 * 4 * num_groups_to_skip;
 					else // drop w full
-						group_size = 32 * 3 * num_to_unpack;
+						group_bit_size = 32 * 3 * 4 * num_groups_to_skip;
 
-					segment_sampling_context[0].animated_track_data_bit_offset += group_size;
-					segment_sampling_context[1].animated_track_data_bit_offset += group_size;
+					segment_sampling_context_rotations[0].animated_track_data_bit_offset += group_bit_size;
+					segment_sampling_context_rotations[1].animated_track_data_bit_offset += group_bit_size;
 				}
 			}
 
 			template<class decompression_settings_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, const animated_group_cursor_v0& group_cursor, uint32_t unpack_index)
+			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
 			{
-				ACL_ASSERT(unpack_index < group_cursor.group_size, "Cannot unpack sample that isn't present");
+				ACL_ASSERT(unpack_index < rotations.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
-				const clip_animated_sampling_context_v0& cursor_clip_sampling_context = group_cursor.clip_sampling_context;
-				const uint32_t group_size = group_cursor.group_size;
+				const uint32_t group_size = std::min<uint32_t>(rotations.num_left_to_unpack, 4);
 
-				const rtm::vector4f sample_as_vec0 = unpack_single_animated_quat<decompression_settings_type>(decomp_context, unpack_index, group_size, cursor_clip_sampling_context, group_cursor.segment_sampling_context[0]);
-				const rtm::vector4f sample_as_vec1 = unpack_single_animated_quat<decompression_settings_type>(decomp_context, unpack_index, group_size, cursor_clip_sampling_context, group_cursor.segment_sampling_context[1]);
+				const rtm::vector4f sample_as_vec0 = unpack_single_animated_quat<decompression_settings_type>(decomp_context, unpack_index, group_size, clip_sampling_context_rotations, segment_sampling_context_rotations[0]);
+				const rtm::vector4f sample_as_vec1 = unpack_single_animated_quat<decompression_settings_type>(decomp_context, unpack_index, group_size, clip_sampling_context_rotations, segment_sampling_context_rotations[1]);
 
 				rtm::quatf sample0;
 				rtm::quatf sample1;
@@ -1473,8 +1535,8 @@ namespace acl
 				uint32_t cache_write_index = translations.cache_write_index % 8;
 				translations.cache_write_index += num_to_unpack;
 
-				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context, segment_sampling_context[0]);
-				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context, segment_sampling_context[1]);
+				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[0]);
+				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[1]);
 
 				const float interpolation_alpha = decomp_context.interpolation_alpha;
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
@@ -1490,78 +1552,94 @@ namespace acl
 
 				// If we have some range reduction, skip the data we read
 				if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::translations))
-					clip_sampling_context.clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
+					clip_sampling_context_translations.clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
 
 				// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
-				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context.clip_range_data + 63);
-				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context.clip_range_data + 127);
+				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_translations.clip_range_data + 63);
+				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_translations.clip_range_data + 127);
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_group(const persistent_transform_decompression_context_v0& decomp_context)
+			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
 			{
 				const uint32_t num_left_to_unpack = translations.num_left_to_unpack;
-				ACL_ASSERT(num_left_to_unpack != 0, "Cannot skip translations that aren't present");
+				const uint32_t num_to_skip = num_groups_to_skip * 4;
+				ACL_ASSERT(num_to_skip < num_left_to_unpack, "Cannot skip translations that aren't present");
 
-				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 4);
-				translations.num_left_to_unpack = num_left_to_unpack - num_to_unpack;
+				translations.num_left_to_unpack = num_left_to_unpack - num_to_skip;
 
 				const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
 				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
 				{
-					const uint8_t* format_per_track_data0 = segment_sampling_context[0].format_per_track_data;
-					const uint8_t* format_per_track_data1 = segment_sampling_context[1].format_per_track_data;
+					const uint8_t* format_per_track_data0 = segment_sampling_context_translations[0].format_per_track_data;
+					const uint8_t* format_per_track_data1 = segment_sampling_context_translations[1].format_per_track_data;
 
-					uint32_t group_size0 = 0;
-					uint32_t group_size1 = 0;
+					// TODO: Do the same with NEON
+#if defined(RTM_AVX_INTRINSICS)
+					__m128i zero = _mm_setzero_si128();
+					__m128i group_bit_size_per_component0_v = zero;
+					__m128i group_bit_size_per_component1_v = zero;
 
-					// Fall-through intentional
-					switch (num_to_unpack)
+					// We add 4 at a time in SIMD
+					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
 					{
-					default:
-					case 4:
-						group_size0 += format_per_track_data0[3];
-						group_size1 += format_per_track_data1[3];
-						ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
-					case 3:
-						group_size0 += format_per_track_data0[2];
-						group_size1 += format_per_track_data1[2];
-						ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
-					case 2:
-						group_size0 += format_per_track_data0[1];
-						group_size1 += format_per_track_data1[1];
-						ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
-					case 1:
-						group_size0 += format_per_track_data0[0];
-						group_size1 += format_per_track_data1[0];
+						const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + (group_index * 4)));
+						const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + (group_index * 4)));
+
+						group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero));
+						group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero));
 					}
 
-					segment_sampling_context[0].format_per_track_data += num_to_unpack;
-					segment_sampling_context[0].segment_range_data += 6 * num_to_unpack;
-					segment_sampling_context[0].animated_track_data_bit_offset += group_size0 * 3;
-					segment_sampling_context[1].format_per_track_data += num_to_unpack;
-					segment_sampling_context[1].segment_range_data += 6 * num_to_unpack;
-					segment_sampling_context[1].animated_track_data_bit_offset += group_size1 * 3;
+					// Now we sum horizontally
+					group_bit_size_per_component0_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component0_v, group_bit_size_per_component0_v), group_bit_size_per_component0_v);
+					group_bit_size_per_component1_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component1_v, group_bit_size_per_component1_v), group_bit_size_per_component1_v);
 
-					clip_sampling_context.clip_range_data += sizeof(rtm::float3f) * 2 * num_to_unpack;
+					const uint32_t group_bit_size_per_component0 = _mm_cvtsi128_si32(group_bit_size_per_component0_v);
+					const uint32_t group_bit_size_per_component1 = _mm_cvtsi128_si32(group_bit_size_per_component1_v);
+#else
+					uint32_t group_bit_size_per_component0 = 0;
+					uint32_t group_bit_size_per_component1 = 0;
+
+					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
+					{
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 0];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 0];
+
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 1];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 1];
+
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 2];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 2];
+
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 3];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 3];
+					}
+#endif
+
+					segment_sampling_context_translations[0].format_per_track_data += num_groups_to_skip * 4;
+					segment_sampling_context_translations[0].segment_range_data += num_groups_to_skip * 6 * 4;
+					segment_sampling_context_translations[0].animated_track_data_bit_offset += group_bit_size_per_component0 * 3;
+					segment_sampling_context_translations[1].format_per_track_data += num_groups_to_skip * 4;
+					segment_sampling_context_translations[1].segment_range_data += num_groups_to_skip * 6 * 4;
+					segment_sampling_context_translations[1].animated_track_data_bit_offset += group_bit_size_per_component1 * 3;
+
+					clip_sampling_context_translations.clip_range_data += sizeof(rtm::float3f) * 2 * 4 * num_groups_to_skip;
 				}
 				else
 				{
-					const uint32_t group_size = 32 * 3 * num_to_unpack;
-					segment_sampling_context[0].animated_track_data_bit_offset += group_size;
-					segment_sampling_context[1].animated_track_data_bit_offset += group_size;
+					const uint32_t group_bit_size = 32 * 3 * 4 * num_groups_to_skip;
+					segment_sampling_context_translations[0].animated_track_data_bit_offset += group_bit_size;
+					segment_sampling_context_translations[1].animated_track_data_bit_offset += group_bit_size;
 				}
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(const persistent_transform_decompression_context_v0& decomp_context, const animated_group_cursor_v0& group_cursor, uint32_t unpack_index)
+			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
 			{
-				ACL_ASSERT(unpack_index < group_cursor.group_size, "Cannot unpack sample that isn't present");
+				ACL_ASSERT(unpack_index < translations.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
-				const clip_animated_sampling_context_v0& cursor_clip_sampling_context = group_cursor.clip_sampling_context;
-
-				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, cursor_clip_sampling_context, group_cursor.segment_sampling_context[0]);
-				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, cursor_clip_sampling_context, group_cursor.segment_sampling_context[1]);
+				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_translations, segment_sampling_context_translations[0]);
+				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_translations, segment_sampling_context_translations[1]);
 
 				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
@@ -1593,8 +1671,8 @@ namespace acl
 				uint32_t cache_write_index = scales.cache_write_index % 8;
 				scales.cache_write_index += num_to_unpack;
 
-				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context, segment_sampling_context[0]);
-				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context, segment_sampling_context[1]);
+				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[0]);
+				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[1]);
 
 				const float interpolation_alpha = decomp_context.interpolation_alpha;
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
@@ -1610,74 +1688,96 @@ namespace acl
 
 				// If we have some range reduction, skip the data we read
 				if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::scales))
-					clip_sampling_context.clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
+					clip_sampling_context_scales.clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
 
 				// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
-				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context.clip_range_data + 63);
-				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context.clip_range_data + 127);
+				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_scales.clip_range_data + 63);
+				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_scales.clip_range_data + 127);
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_group(const persistent_transform_decompression_context_v0& decomp_context)
+			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
 			{
 				const uint32_t num_left_to_unpack = scales.num_left_to_unpack;
-				ACL_ASSERT(num_left_to_unpack != 0, "Cannot skip scales that aren't present");
+				const uint32_t num_to_skip = num_groups_to_skip * 4;
+				ACL_ASSERT(num_to_skip < num_left_to_unpack, "Cannot skip scales that aren't present");
 
-				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 4);
-				scales.num_left_to_unpack = num_left_to_unpack - num_to_unpack;
+				scales.num_left_to_unpack = num_left_to_unpack - num_to_skip;
 
 				const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
 				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
 				{
-					const uint8_t* format_per_track_data0 = segment_sampling_context[0].format_per_track_data;
-					const uint8_t* format_per_track_data1 = segment_sampling_context[1].format_per_track_data;
+					const uint8_t* format_per_track_data0 = segment_sampling_context_scales[0].format_per_track_data;
+					const uint8_t* format_per_track_data1 = segment_sampling_context_scales[1].format_per_track_data;
 
-					uint32_t group_size0 = 0;
-					uint32_t group_size1 = 0;
+					// TODO: Do the same with NEON
+#if defined(RTM_AVX_INTRINSICS)
+					__m128i zero = _mm_setzero_si128();
+					__m128i group_bit_size_per_component0_v = zero;
+					__m128i group_bit_size_per_component1_v = zero;
 
-					// Fall-through intentional
-					switch (num_to_unpack)
+					// We add 4 at a time in SIMD
+					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
 					{
-					default:
-					case 4:
-						group_size0 += format_per_track_data0[3];
-						group_size1 += format_per_track_data1[3];
-						ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
-					case 3:
-						group_size0 += format_per_track_data0[2];
-						group_size1 += format_per_track_data1[2];
-						ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
-					case 2:
-						group_size0 += format_per_track_data0[1];
-						group_size1 += format_per_track_data1[1];
-						ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
-					case 1:
-						group_size0 += format_per_track_data0[0];
-						group_size1 += format_per_track_data1[0];
+						const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + (group_index * 4)));
+						const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + (group_index * 4)));
+
+						group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero));
+						group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero));
 					}
 
-					segment_sampling_context[0].format_per_track_data += num_to_unpack;
-					segment_sampling_context[0].segment_range_data += 6 * num_to_unpack;
-					segment_sampling_context[0].animated_track_data_bit_offset += group_size0 * 3;
-					segment_sampling_context[1].format_per_track_data += num_to_unpack;
-					segment_sampling_context[1].segment_range_data += 6 * num_to_unpack;
-					segment_sampling_context[1].animated_track_data_bit_offset += group_size1 * 3;
+					// Now we sum horizontally
+					group_bit_size_per_component0_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component0_v, group_bit_size_per_component0_v), group_bit_size_per_component0_v);
+					group_bit_size_per_component1_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component1_v, group_bit_size_per_component1_v), group_bit_size_per_component1_v);
 
-					clip_sampling_context.clip_range_data += sizeof(rtm::float3f) * 2 * num_to_unpack;
+					const uint32_t group_bit_size_per_component0 = _mm_cvtsi128_si32(group_bit_size_per_component0_v);
+					const uint32_t group_bit_size_per_component1 = _mm_cvtsi128_si32(group_bit_size_per_component1_v);
+#else
+					uint32_t group_bit_size_per_component0 = 0;
+					uint32_t group_bit_size_per_component1 = 0;
+
+					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
+					{
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 0];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 0];
+
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 1];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 1];
+
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 2];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 2];
+
+						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 3];
+						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 3];
+					}
+#endif
+
+					segment_sampling_context_scales[0].format_per_track_data += num_groups_to_skip * 4;
+					segment_sampling_context_scales[0].segment_range_data += num_groups_to_skip * 6 * 4;
+					segment_sampling_context_scales[0].animated_track_data_bit_offset += group_bit_size_per_component0 * 3;
+					segment_sampling_context_scales[1].format_per_track_data += num_groups_to_skip * 4;
+					segment_sampling_context_scales[1].segment_range_data += num_groups_to_skip * 6 * 4;
+					segment_sampling_context_scales[1].animated_track_data_bit_offset += group_bit_size_per_component1 * 3;
+
+					clip_sampling_context_scales.clip_range_data += sizeof(rtm::float3f) * 2 * 4 * num_groups_to_skip;
 				}
 				else
 				{
-					const uint32_t group_size = 32 * 3 * num_to_unpack;
-					segment_sampling_context[0].animated_track_data_bit_offset += group_size;
-					segment_sampling_context[1].animated_track_data_bit_offset += group_size;
+					const uint32_t group_bit_size = 32 * 3 * 4 * num_groups_to_skip;
+					segment_sampling_context_scales[0].animated_track_data_bit_offset += group_bit_size;
+					segment_sampling_context_scales[1].animated_track_data_bit_offset += group_bit_size;
 				}
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(const persistent_transform_decompression_context_v0& decomp_context, const animated_group_cursor_v0& group_cursor, uint32_t unpack_index)
+			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
 			{
-				// Same as translation but a different adapter
-				return unpack_translation_within_group<decompression_settings_adapter_type>(decomp_context, group_cursor, unpack_index);
+				ACL_ASSERT(unpack_index < scales.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
+
+				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[0]);
+				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[1]);
+
+				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL consume_scale()
