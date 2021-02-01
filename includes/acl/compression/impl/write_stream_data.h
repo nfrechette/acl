@@ -378,12 +378,8 @@ namespace acl
 			// This ensures that all bones are contiguous in memory when we sample a particular time.
 
 			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
-			// Order depends on animated track order. If we have 6 animated rotation tracks before the first animated
-			// translation track, we'll have 8 animated rotation sub-tracks followed by 4 animated translation sub-tracks.
-			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
-			// This is because we always process 4 animated sub-tracks at a time and cache the results.
-
-			// Groups are written in the order of first use and as such are sorted by their lowest sub-track index.
+			// Groups are sorted per sub-track type. All rotation groups come first followed by translations then scales.
+			// The last group of each sub-track may or may not have padding. The last group might be less than 4 sub-tracks.
 
 			// For animated samples, when we have a constant bit rate (bit rate 0), we do not store samples
 			// and as such the group that contains that sub-track won't contain 4 samples.
@@ -464,12 +460,8 @@ namespace acl
 			const uint8_t* format_per_track_data_start = format_per_track_data;
 
 			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
-			// Order depends on animated track order. If we have 6 animated rotation tracks before the first animated
-			// translation track, we'll have 8 animated rotation sub-tracks followed by 4 animated translation sub-tracks.
-			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
-			// This is because we always process 4 animated sub-tracks at a time and cache the results.
-
-			// Groups are written in the order of first use and as such are sorted by their lowest sub-track index.
+			// Groups are sorted per sub-track type. All rotation groups come first followed by translations then scales.
+			// The last group of each sub-track may or may not have padding. The last group might be less than 4 sub-tracks.
 
 			// To keep decompression simpler, rotations are padded to 4 elements even if the last group is partial
 			uint8_t format_per_track_group[4];
