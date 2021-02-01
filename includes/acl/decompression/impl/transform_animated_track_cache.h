@@ -1458,13 +1458,15 @@ namespace acl
 					uint32_t group_bit_size_per_component1;
 					count_animated_group_bit_size(format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
-					// Per track data and segment range are always padded to 4 samples
-					segment_sampling_context_rotations[0].format_per_track_data += num_groups_to_skip * 4;
-					segment_sampling_context_rotations[0].segment_range_data += num_groups_to_skip * 6 * 4;
+					const uint32_t format_per_track_data_skip_size = num_groups_to_skip * 4;
+					const uint32_t segment_range_data_skip_size = num_groups_to_skip * 6 * 4;
+
+					segment_sampling_context_rotations[0].format_per_track_data = format_per_track_data0 + format_per_track_data_skip_size;
+					segment_sampling_context_rotations[0].segment_range_data += segment_range_data_skip_size;
 					segment_sampling_context_rotations[0].animated_track_data_bit_offset += group_bit_size_per_component0 * 3;
 
-					segment_sampling_context_rotations[1].format_per_track_data += num_groups_to_skip * 4;
-					segment_sampling_context_rotations[1].segment_range_data += num_groups_to_skip * 6 * 4;
+					segment_sampling_context_rotations[1].format_per_track_data = format_per_track_data1 + format_per_track_data_skip_size;
+					segment_sampling_context_rotations[1].segment_range_data += segment_range_data_skip_size;
 					segment_sampling_context_rotations[1].animated_track_data_bit_offset += group_bit_size_per_component1 * 3;
 
 					clip_sampling_context_rotations.clip_range_data += sizeof(rtm::float3f) * 2 * 4 * num_groups_to_skip;
@@ -1587,11 +1589,15 @@ namespace acl
 					uint32_t group_bit_size_per_component1;
 					count_animated_group_bit_size(format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
-					segment_sampling_context_translations[0].format_per_track_data += num_groups_to_skip * 4;
-					segment_sampling_context_translations[0].segment_range_data += num_groups_to_skip * 6 * 4;
+					const uint32_t format_per_track_data_skip_size = num_groups_to_skip * 4;
+					const uint32_t segment_range_data_skip_size = num_groups_to_skip * 6 * 4;
+
+					segment_sampling_context_translations[0].format_per_track_data = format_per_track_data0 + format_per_track_data_skip_size;
+					segment_sampling_context_translations[0].segment_range_data += segment_range_data_skip_size;
 					segment_sampling_context_translations[0].animated_track_data_bit_offset += group_bit_size_per_component0 * 3;
-					segment_sampling_context_translations[1].format_per_track_data += num_groups_to_skip * 4;
-					segment_sampling_context_translations[1].segment_range_data += num_groups_to_skip * 6 * 4;
+
+					segment_sampling_context_translations[1].format_per_track_data = format_per_track_data1 + format_per_track_data_skip_size;
+					segment_sampling_context_translations[1].segment_range_data += segment_range_data_skip_size;
 					segment_sampling_context_translations[1].animated_track_data_bit_offset += group_bit_size_per_component1 * 3;
 
 					clip_sampling_context_translations.clip_range_data += sizeof(rtm::float3f) * 2 * 4 * num_groups_to_skip;
@@ -1685,11 +1691,15 @@ namespace acl
 					uint32_t group_bit_size_per_component1;
 					count_animated_group_bit_size(format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
-					segment_sampling_context_scales[0].format_per_track_data += num_groups_to_skip * 4;
-					segment_sampling_context_scales[0].segment_range_data += num_groups_to_skip * 6 * 4;
+					const uint32_t format_per_track_data_skip_size = num_groups_to_skip * 4;
+					const uint32_t segment_range_data_skip_size = num_groups_to_skip * 6 * 4;
+
+					segment_sampling_context_scales[0].format_per_track_data = format_per_track_data0 + format_per_track_data_skip_size;
+					segment_sampling_context_scales[0].segment_range_data += segment_range_data_skip_size;
 					segment_sampling_context_scales[0].animated_track_data_bit_offset += group_bit_size_per_component0 * 3;
-					segment_sampling_context_scales[1].format_per_track_data += num_groups_to_skip * 4;
-					segment_sampling_context_scales[1].segment_range_data += num_groups_to_skip * 6 * 4;
+
+					segment_sampling_context_scales[1].format_per_track_data = format_per_track_data1 + format_per_track_data_skip_size;
+					segment_sampling_context_scales[1].segment_range_data += segment_range_data_skip_size;
 					segment_sampling_context_scales[1].animated_track_data_bit_offset += group_bit_size_per_component1 * 3;
 
 					clip_sampling_context_scales.clip_range_data += sizeof(rtm::float3f) * 2 * 4 * num_groups_to_skip;
