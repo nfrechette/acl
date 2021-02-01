@@ -154,17 +154,6 @@ namespace acl
 			uint32_t num_animated_variable_sub_tracks_padded = 0;
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(lossy_clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, &num_animated_variable_sub_tracks_padded);
 
-			auto animated_group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
-			{
-				const BoneStreams& bone_stream = lossy_clip_context.segments[0].bone_streams[bone_index];
-				if (group_type == animation_track_type8::rotation)
-					return !bone_stream.is_rotation_constant;
-				else if (group_type == animation_track_type8::translation)
-					return !bone_stream.is_translation_constant;
-				else
-					return !bone_stream.is_scale_constant;
-			};
-
 			const uint32_t num_sub_tracks_per_bone = lossy_clip_context.has_scale ? 3 : 2;
 			const uint32_t num_sub_tracks = num_output_bones * num_sub_tracks_per_bone;
 			const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_sub_tracks);
