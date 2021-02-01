@@ -1131,6 +1131,57 @@ namespace acl
 			return sample;
 		}
 
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void count_animated_group_bit_size(
+			const uint8_t* format_per_track_data0, const uint8_t* format_per_track_data1, uint32_t num_groups_to_skip,
+			uint32_t& out_group_bit_size_per_component0, uint32_t& out_group_bit_size_per_component1)
+		{
+			// TODO: Do the same with NEON
+#if defined(RTM_AVX_INTRINSICS)
+			__m128i zero = _mm_setzero_si128();
+			__m128i group_bit_size_per_component0_v = zero;
+			__m128i group_bit_size_per_component1_v = zero;
+
+			// We add 4 at a time in SIMD
+			for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
+			{
+				const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + (group_index * 4)));
+				const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + (group_index * 4)));
+
+				group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero));
+				group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero));
+			}
+
+			// Now we sum horizontally
+			group_bit_size_per_component0_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component0_v, group_bit_size_per_component0_v), group_bit_size_per_component0_v);
+			group_bit_size_per_component1_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component1_v, group_bit_size_per_component1_v), group_bit_size_per_component1_v);
+
+			out_group_bit_size_per_component0 = _mm_cvtsi128_si32(group_bit_size_per_component0_v);
+			out_group_bit_size_per_component1 = _mm_cvtsi128_si32(group_bit_size_per_component1_v);
+#else
+			uint32_t group_bit_size_per_component0 = 0;
+			uint32_t group_bit_size_per_component1 = 0;
+
+			for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
+			{
+				group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 0];
+				group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 0];
+
+				group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 1];
+				group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 1];
+
+				group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 2];
+				group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 2];
+
+				group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 3];
+				group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 3];
+			}
+
+			out_group_bit_size_per_component0 = group_bit_size_per_component0;
+			out_group_bit_size_per_component1 = group_bit_size_per_component1;
+#endif
+		}
+
 		struct animated_track_cache_v0
 		{
 			track_cache_quatf_v0 rotations;
@@ -1403,47 +1454,9 @@ namespace acl
 					const uint8_t* format_per_track_data0 = segment_sampling_context_rotations[0].format_per_track_data;
 					const uint8_t* format_per_track_data1 = segment_sampling_context_rotations[1].format_per_track_data;
 
-					// TODO: Do the same with NEON
-#if defined(RTM_AVX_INTRINSICS)
-					__m128i zero = _mm_setzero_si128();
-					__m128i group_bit_size_per_component0_v = zero;
-					__m128i group_bit_size_per_component1_v = zero;
-
-					// We add 4 at a time in SIMD
-					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
-					{
-						const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + (group_index * 4)));
-						const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + (group_index * 4)));
-
-						group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero));
-						group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero));
-					}
-
-					// Now we sum horizontally
-					group_bit_size_per_component0_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component0_v, group_bit_size_per_component0_v), group_bit_size_per_component0_v);
-					group_bit_size_per_component1_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component1_v, group_bit_size_per_component1_v), group_bit_size_per_component1_v);
-
-					const uint32_t group_bit_size_per_component0 = _mm_cvtsi128_si32(group_bit_size_per_component0_v);
-					const uint32_t group_bit_size_per_component1 = _mm_cvtsi128_si32(group_bit_size_per_component1_v);
-#else
-					uint32_t group_bit_size_per_component0 = 0;
-					uint32_t group_bit_size_per_component1 = 0;
-
-					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
-					{
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 0];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 0];
-
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 1];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 1];
-
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 2];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 2];
-
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 3];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 3];
-					}
-#endif
+					uint32_t group_bit_size_per_component0;
+					uint32_t group_bit_size_per_component1;
+					count_animated_group_bit_size(format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
 					// Per track data and segment range are always padded to 4 samples
 					segment_sampling_context_rotations[0].format_per_track_data += num_groups_to_skip * 4;
@@ -1570,47 +1583,9 @@ namespace acl
 					const uint8_t* format_per_track_data0 = segment_sampling_context_translations[0].format_per_track_data;
 					const uint8_t* format_per_track_data1 = segment_sampling_context_translations[1].format_per_track_data;
 
-					// TODO: Do the same with NEON
-#if defined(RTM_AVX_INTRINSICS)
-					__m128i zero = _mm_setzero_si128();
-					__m128i group_bit_size_per_component0_v = zero;
-					__m128i group_bit_size_per_component1_v = zero;
-
-					// We add 4 at a time in SIMD
-					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
-					{
-						const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + (group_index * 4)));
-						const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + (group_index * 4)));
-
-						group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero));
-						group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero));
-					}
-
-					// Now we sum horizontally
-					group_bit_size_per_component0_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component0_v, group_bit_size_per_component0_v), group_bit_size_per_component0_v);
-					group_bit_size_per_component1_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component1_v, group_bit_size_per_component1_v), group_bit_size_per_component1_v);
-
-					const uint32_t group_bit_size_per_component0 = _mm_cvtsi128_si32(group_bit_size_per_component0_v);
-					const uint32_t group_bit_size_per_component1 = _mm_cvtsi128_si32(group_bit_size_per_component1_v);
-#else
-					uint32_t group_bit_size_per_component0 = 0;
-					uint32_t group_bit_size_per_component1 = 0;
-
-					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
-					{
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 0];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 0];
-
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 1];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 1];
-
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 2];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 2];
-
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 3];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 3];
-					}
-#endif
+					uint32_t group_bit_size_per_component0;
+					uint32_t group_bit_size_per_component1;
+					count_animated_group_bit_size(format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
 					segment_sampling_context_translations[0].format_per_track_data += num_groups_to_skip * 4;
 					segment_sampling_context_translations[0].segment_range_data += num_groups_to_skip * 6 * 4;
@@ -1706,47 +1681,9 @@ namespace acl
 					const uint8_t* format_per_track_data0 = segment_sampling_context_scales[0].format_per_track_data;
 					const uint8_t* format_per_track_data1 = segment_sampling_context_scales[1].format_per_track_data;
 
-					// TODO: Do the same with NEON
-#if defined(RTM_AVX_INTRINSICS)
-					__m128i zero = _mm_setzero_si128();
-					__m128i group_bit_size_per_component0_v = zero;
-					__m128i group_bit_size_per_component1_v = zero;
-
-					// We add 4 at a time in SIMD
-					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
-					{
-						const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + (group_index * 4)));
-						const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + (group_index * 4)));
-
-						group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero));
-						group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero));
-					}
-
-					// Now we sum horizontally
-					group_bit_size_per_component0_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component0_v, group_bit_size_per_component0_v), group_bit_size_per_component0_v);
-					group_bit_size_per_component1_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component1_v, group_bit_size_per_component1_v), group_bit_size_per_component1_v);
-
-					const uint32_t group_bit_size_per_component0 = _mm_cvtsi128_si32(group_bit_size_per_component0_v);
-					const uint32_t group_bit_size_per_component1 = _mm_cvtsi128_si32(group_bit_size_per_component1_v);
-#else
-					uint32_t group_bit_size_per_component0 = 0;
-					uint32_t group_bit_size_per_component1 = 0;
-
-					for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
-					{
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 0];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 0];
-
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 1];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 1];
-
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 2];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 2];
-
-						group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 3];
-						group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 3];
-					}
-#endif
+					uint32_t group_bit_size_per_component0;
+					uint32_t group_bit_size_per_component1;
+					count_animated_group_bit_size(format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
 					segment_sampling_context_scales[0].format_per_track_data += num_groups_to_skip * 4;
 					segment_sampling_context_scales[0].segment_range_data += num_groups_to_skip * 6 * 4;
