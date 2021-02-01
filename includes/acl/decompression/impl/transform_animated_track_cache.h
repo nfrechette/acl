@@ -1149,8 +1149,6 @@ namespace acl
 			segment_animated_sampling_context_v0 segment_sampling_context_translations[2];
 			segment_animated_sampling_context_v0 segment_sampling_context_scales[2];
 
-			bool uses_single_segment;	// TODO: Store in decomp context?
-
 			template<class decompression_settings_type, class decompression_settings_translation_adapter_type>
 			void ACL_DISABLE_SECURITY_COOKIE_CHECK initialize(const persistent_transform_decompression_context_v0& decomp_context)
 			{
@@ -1161,8 +1159,6 @@ namespace acl
 
 				const uint8_t* animated_track_data0 = decomp_context.animated_track_data[0];
 				const uint8_t* animated_track_data1 = decomp_context.animated_track_data[1];
-
-				uses_single_segment = animated_track_data0 == animated_track_data1;
 
 				const uint8_t* clip_range_data_rotations = decomp_context.clip_range_data.add_to(decomp_context.tracks);
 				clip_sampling_context_rotations.clip_range_data = clip_range_data_rotations;
@@ -1278,7 +1274,7 @@ namespace acl
 						unpack_segment_range_data(segment_sampling_context_rotations[0].segment_range_data, 0, segment_scratch);
 
 						// We are interpolating between two segments (rare)
-						if (!uses_single_segment)
+						if (!decomp_context.uses_single_segment)
 							unpack_segment_range_data(segment_sampling_context_rotations[1].segment_range_data, 1, segment_scratch);
 					}
 				}
@@ -1311,7 +1307,7 @@ namespace acl
 						remap_segment_range_data_avx8(segment_scratch, range_reduction_masks0, range_reduction_masks1, scratch_xxxx0_xxxx1, scratch_yyyy0_yyyy1, scratch_zzzz0_zzzz1);
 #else
 						remap_segment_range_data4(segment_scratch, 0, range_reduction_masks0, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
-						remap_segment_range_data4(segment_scratch, uint32_t(!uses_single_segment), range_reduction_masks1, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+						remap_segment_range_data4(segment_scratch, uint32_t(!decomp_context.uses_single_segment), range_reduction_masks1, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 #endif
 					}
 

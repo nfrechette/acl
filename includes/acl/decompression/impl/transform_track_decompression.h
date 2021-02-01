@@ -439,11 +439,14 @@ namespace acl
 				ACL_IMPL_SEEK_PREFETCH(constant_data_rotations + 64);
 			}
 
+			const bool uses_single_segment = segment_header0 == segment_header1;
+			context.uses_single_segment = uses_single_segment;
+
 			// Cache miss if we don't access the db data
 			transform_header.get_segment_data(*segment_header0, context.format_per_track_data[0], context.segment_range_data[0], context.animated_track_data[0]);
 
 			// More often than not the two segments are identical, when this is the case, just copy our pointers
-			if (segment_header0 != segment_header1)
+			if (!uses_single_segment)
 			{
 				transform_header.get_segment_data(*segment_header1, context.format_per_track_data[1], context.segment_range_data[1], context.animated_track_data[1]);
 			}

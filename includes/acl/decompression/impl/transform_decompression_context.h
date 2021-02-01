@@ -70,9 +70,9 @@ namespace acl
 			uint8_t has_segments;								//  41 |  49
 			uint8_t num_sub_tracks_per_track;					//  42 |  50
 
-			uint8_t padding0[1];								//  43 |  51
-
 			// Seeking related data
+			uint8_t uses_single_segment;						//  43 |  51
+
 			float sample_time;									//  44 |  52
 
 			// Offsets relative to the 'tracks' pointer
