@@ -127,7 +127,7 @@ namespace acl
 			{
 				// Normalize our samples into the clip wide ranges per bone
 				normalize_clip_streams(lossy_clip_context, range_reduction);
-				clip_range_data_size = get_stream_range_data_size(lossy_clip_context, range_reduction, settings.rotation_format);
+				clip_range_data_size = get_clip_range_data_size(lossy_clip_context, range_reduction, settings.rotation_format);
 			}
 
 			segment_streams(allocator, lossy_clip_context, settings.segmenting);

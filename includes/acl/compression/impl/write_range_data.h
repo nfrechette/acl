@@ -49,7 +49,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline uint32_t get_stream_range_data_size(const clip_context& clip, range_reduction_flags8 range_reduction, rotation_format8 rotation_format)
+		inline uint32_t get_clip_range_data_size(const clip_context& clip, range_reduction_flags8 range_reduction, rotation_format8 rotation_format)
 		{
 			const uint32_t rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
 			const uint32_t translation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) ? k_clip_range_reduction_vector3_range_size : 0;
