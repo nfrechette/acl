@@ -32,14 +32,14 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Werror)				# Treat warnings as e
 
 # Exceptions are not enabled by default, enable them
 target_compile_options(${PROJECT_NAME} PRIVATE -fexceptions)
-target_link_libraries(${PROJECT_NAME} "-s DISABLE_EXCEPTION_CATCHING=0")
+target_link_libraries(${PROJECT_NAME} PRIVATE "-s DISABLE_EXCEPTION_CATCHING=0")
 
-target_link_libraries(${PROJECT_NAME} "-s NODERAWFS=1")				# Enable the raw node file system
-target_link_libraries(${PROJECT_NAME} -lnodefs.js)					# Link the node file system
+target_link_libraries(${PROJECT_NAME} PRIVATE "-s NODERAWFS=1")				# Enable the raw node file system
+target_link_libraries(${PROJECT_NAME} PRIVATE -lnodefs.js)					# Link the node file system
 
-target_link_libraries(${PROJECT_NAME} "-s ENVIRONMENT=node")		# Force the environment to node
+target_link_libraries(${PROJECT_NAME} PRIVATE "-s ENVIRONMENT=node")		# Force the environment to node
 
-target_link_libraries(${PROJECT_NAME} "-s ALLOW_MEMORY_GROWTH=1")	# Allow dynamic memory allocation
+target_link_libraries(${PROJECT_NAME} PRIVATE "-s ALLOW_MEMORY_GROWTH=1")	# Allow dynamic memory allocation
 
 # Setup Catch2 so we can find and execute the unit tests with CTest
 set(OptionalCatchTestLauncher node)
