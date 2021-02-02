@@ -163,6 +163,10 @@ namespace acl
 
 			uint32_t format_per_track_data_size = 0;
 			uint32_t num_animated_variable_rotations = 0;
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+			uint32_t num_animated_variable_translations = 0;
+			uint32_t num_animated_variable_scales = 0;
+#endif
 
 			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
 			{
@@ -175,17 +179,41 @@ namespace acl
 					num_animated_variable_rotations++;
 				}
 
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+				if (!bone_stream.is_translation_constant && is_translation_variable)
+				{
+					format_per_track_data_size++;
+					num_animated_variable_translations++;
+				}
+
+				if (!bone_stream.is_scale_constant && is_scale_variable)
+				{
+					format_per_track_data_size++;
+					num_animated_variable_scales++;
+				}
+#else
 				if (!bone_stream.is_translation_constant && is_translation_variable)
 					format_per_track_data_size++;
 
 				if (!bone_stream.is_scale_constant && is_scale_variable)
 					format_per_track_data_size++;
+#endif
 			}
 
 			// Rotations are padded for alignment
 			const uint32_t num_partial_rotations = num_animated_variable_rotations % 4;
 			if (num_partial_rotations != 0)
 				format_per_track_data_size += 4 - num_partial_rotations;
+
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+			const uint32_t num_partial_translations = num_animated_variable_translations % 4;
+			if (num_partial_translations != 0)
+				format_per_track_data_size += 4 - num_partial_translations;
+
+			const uint32_t num_partial_scales = num_animated_variable_scales % 4;
+			if (num_partial_scales != 0)
+				format_per_track_data_size += 4 - num_partial_scales;
+#endif
 
 			if (out_num_animated_variable_sub_tracks_padded != nullptr)
 				*out_num_animated_variable_sub_tracks_padded = format_per_track_data_size;	// 1 byte per sub-track
@@ -463,7 +491,7 @@ namespace acl
 			// Groups are sorted per sub-track type. All rotation groups come first followed by translations then scales.
 			// The last group of each sub-track may or may not have padding. The last group might be less than 4 sub-tracks.
 
-			// To keep decompression simpler, rotations are padded to 4 elements even if the last group is partial
+			// To keep decompression simpler, groups are padded to 4 elements even if the last group is partial
 			uint8_t format_per_track_group[4];
 
 			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
@@ -490,9 +518,17 @@ namespace acl
 
 			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
 			{
+				(void)group_type;
+				(void)group_size;
+
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+				std::memcpy(format_per_track_data, &format_per_track_group[0], 4);
+				format_per_track_data += 4;
+#else
 				const uint32_t copy_size = group_type == animation_track_type8::rotation ? 4 : group_size;
 				std::memcpy(format_per_track_data, &format_per_track_group[0], copy_size);
 				format_per_track_data += copy_size;
+#endif
 
 				// Zero out the temporary buffer for the final group to not contain partial garbage
 				std::memset(&format_per_track_group[0], 0, sizeof(format_per_track_group));

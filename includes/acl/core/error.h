@@ -26,6 +26,8 @@
 
 #include "acl/core/impl/compiler_utils.h"
 
+//#define ACL_IMPL_SOA_VEC3_UNPACK
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 //////////////////////////////////////////////////////////////////////////

@@ -367,6 +367,11 @@ namespace acl
 				uint32_t range_data_size = 0;
 				uint32_t range_data_rotation_num = 0;
 
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+				uint32_t range_data_translation_num = 0;
+				uint32_t range_data_scale_num = 0;
+#endif
+
 				for (uint32_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				{
 					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
@@ -380,17 +385,41 @@ namespace acl
 						range_data_rotation_num++;
 					}
 
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) && !bone_stream.is_translation_constant)
+					{
+						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
+						range_data_translation_num++;
+					}
+
+					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) && !bone_stream.is_scale_constant)
+					{
+						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
+						range_data_scale_num++;
+					}
+#else
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) && !bone_stream.is_translation_constant)
 						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
 
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) && !bone_stream.is_scale_constant)
 						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
+#endif
 				}
 
 				// The last partial rotation group is padded to 4 elements to keep decompression fast
 				const uint32_t partial_group_size_rotation = range_data_rotation_num % 4;
 				if (partial_group_size_rotation != 0)
 					range_data_size += (4 - partial_group_size_rotation) * k_segment_range_reduction_num_bytes_per_component * 6;
+
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+				const uint32_t partial_group_size_translation = range_data_translation_num % 4;
+				if (partial_group_size_translation != 0)
+					range_data_size += (4 - partial_group_size_translation) * k_segment_range_reduction_num_bytes_per_component * 6;
+
+				const uint32_t partial_group_size_scale = range_data_scale_num % 4;
+				if (partial_group_size_scale != 0)
+					range_data_size += (4 - partial_group_size_scale) * k_segment_range_reduction_num_bytes_per_component * 6;
+#endif
 
 				segment.range_data_size = range_data_size;
 			}

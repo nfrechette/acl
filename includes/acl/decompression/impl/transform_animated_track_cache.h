@@ -55,6 +55,51 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+// TODO: Move this into RTM!
+#if defined(RTM_NEON_INTRINSICS)
+	//////////////////////////////////////////////////////////////////////////
+	// Transposes a 3x4 matrix.
+	// All inputs and outputs must be rtm::vector4f.
+	//////////////////////////////////////////////////////////////////////////
+	#define RTM_MATRIXF_TRANSPOSE_3X4(input_xyzw0, input_xyzw1, input_xyzw2, output_xxx, output_yyy, output_zzz, output_www) \
+		do { \
+			const float32x4x2_t x0x2y0y2_z0z2w0w2 = vzipq_f32(input_xyzw0, input_xyzw2); \
+			const float32x4x2_t x1x1y1y1_z1z1w1w1 = vzipq_f32(input_xyzw1, input_xyzw1); \
+			const float32x4x2_t x0x1x2x1_y0y1y2y1 = vzipq_f32(x0x2y0y2_z0z2w0w2.val[0], x1x1y1y1_z1z1w1w1.val[0]); \
+			const float32x4x2_t z0z1z2z1_w0w1w2w1 = vzipq_f32(x0x2y0y2_z0z2w0w2.val[1], x1x1y1y1_z1z1w1w1.val[1]); \
+			(output_xxx) = x0x1x2x1_y0y1y2y1.val[0]; \
+			(output_yyy) = x0x1x2x1_y0y1y2y1.val[1]; \
+			(output_zzz) = z0z1z2z1_w0w1w2w1.val[0]; \
+			(output_www) = z0z1z2z1_w0w1w2w1.val[1]; \
+		} while(0)
+#elif defined(RTM_SSE2_INTRINSICS)
+	//////////////////////////////////////////////////////////////////////////
+	// Transposes a 3x4 matrix.
+	// All inputs and outputs must be rtm::vector4f.
+	//////////////////////////////////////////////////////////////////////////
+	#define RTM_MATRIXF_TRANSPOSE_3X4(input_xyzw0, input_xyzw1, input_xyzw2, output_xxx, output_yyy, output_zzz, output_www) \
+		do { \
+			const __m128 x0y0x1y1 = _mm_shuffle_ps((input_xyzw0), (input_xyzw1), _MM_SHUFFLE(1, 0, 1, 0)); \
+			const __m128 z0w0z1w1 = _mm_shuffle_ps((input_xyzw0), (input_xyzw1), _MM_SHUFFLE(3, 2, 3, 2)); \
+			(output_xxx) = _mm_shuffle_ps(x0y0x1y1, (input_xyzw2), _MM_SHUFFLE(0, 0, 2, 0)); \
+			(output_yyy) = _mm_shuffle_ps(x0y0x1y1, (input_xyzw2), _MM_SHUFFLE(1, 1, 3, 1)); \
+			(output_zzz) = _mm_shuffle_ps(z0w0z1w1, (input_xyzw2), _MM_SHUFFLE(2, 2, 2, 0)); \
+			(output_www) = _mm_shuffle_ps(z0w0z1w1, (input_xyzw2), _MM_SHUFFLE(3, 3, 3, 1)); \
+		} while(0)
+#else
+	//////////////////////////////////////////////////////////////////////////
+	// Transposes a 3x4 matrix.
+	// All inputs and outputs must be rtm::vector4f.
+	//////////////////////////////////////////////////////////////////////////
+	#define RTM_MATRIXF_TRANSPOSE_3X4(input_xyzw0, input_xyzw1, input_xyzw2, output_xxx, output_yyy, output_zzz, output_www) \
+		do { \
+			(output_xxx) = rtm::vector4f { (input_xyzw0).x, (input_xyzw1).x, (input_xyzw2).x, (input_xyzw2).x }; \
+			(output_yyy) = rtm::vector4f { (input_xyzw0).y, (input_xyzw1).y, (input_xyzw2).y, (input_xyzw2).y }; \
+			(output_zzz) = rtm::vector4f { (input_xyzw0).z, (input_xyzw1).z, (input_xyzw2).z, (input_xyzw2).z }; \
+			(output_www) = rtm::vector4f { (input_xyzw0).w, (input_xyzw1).w, (input_xyzw2).w, (input_xyzw2).w }; \
+		} while(0)
+#endif
+
 namespace acl
 {
 	namespace acl_impl
@@ -546,6 +591,21 @@ namespace acl
 			interp_wwww = rtm::vector_mul_add(wwww1, alpha, rtm::vector_neg_mul_sub(wwww0, alpha, wwww0));
 		}
 
+		// Force inline this function, we only use it to keep the code readable
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL vector_lerp3(
+			rtm::vector4f xxxx0, rtm::vector4f yyyy0, rtm::vector4f zzzz0,
+			rtm::vector4f xxxx1, rtm::vector4f yyyy1, rtm::vector4f zzzz1,
+			float interpolation_alpha,
+			rtm::vector4f& interp_xxxx, rtm::vector4f& interp_yyyy, rtm::vector4f& interp_zzzz)
+		{
+			// ((1.0 - alpha) * start) + (alpha * end) == (start - alpha * start) + (alpha * end)
+			const rtm::vector4f alpha = rtm::vector_set(interpolation_alpha);
+
+			interp_xxxx = rtm::vector_mul_add(xxxx1, alpha, rtm::vector_neg_mul_sub(xxxx0, alpha, xxxx0));
+			interp_yyyy = rtm::vector_mul_add(yyyy1, alpha, rtm::vector_neg_mul_sub(yyyy0, alpha, yyyy0));
+			interp_zzzz = rtm::vector_mul_add(zzzz1, alpha, rtm::vector_neg_mul_sub(zzzz0, alpha, zzzz0));
+		}
+
 		// About 9 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_normalize4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
@@ -916,6 +976,7 @@ namespace acl
 			return rotation_as_vec;
 		}
 
+#if !defined(ACL_IMPL_SOA_VEC3_UNPACK)
 		template<class decompression_settings_adapter_type>
 		inline ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_animated_vector3(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack,
@@ -1032,7 +1093,172 @@ namespace acl
 			ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_track_data_bit_offset / 8) + 63);
 			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 63);
 		}
+#else
+		template<class decompression_settings_adapter_type>
+		inline ACL_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_vector3(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
+			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
+		{
+			const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
 
+			uint32_t segment_range_ignore_mask = 0;
+			uint32_t clip_range_ignore_mask = 0;
+
+			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
+			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
+			const uint8_t* animated_track_data = segment_sampling_context.animated_track_data;
+			uint32_t animated_track_data_bit_offset = segment_sampling_context.animated_track_data_bit_offset;
+
+			for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
+			{
+				uint32_t sample_segment_range_ignore_mask;
+				uint32_t sample_clip_range_ignore_mask;
+
+				rtm::vector4f sample;
+				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+				{
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[unpack_index];
+
+					if (num_bits_at_bit_rate == 0)	// Constant bit rate
+					{
+						// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
+						// Our constant sample value is packed 8 bits in each group in the sample's lane
+						// To load our sample, we need to load: (min.x[unpack_index] << 8) | min.y[unpack_index], (min.z[unpack_index] << 8) | extent.x[unpack_index], (extent.y[unpack_index] << 8) | extent.z[unpack_index]
+						// This is more complicated than if we were in AOS form but constant bit rates are somewhat rare while nearly every sample
+						// has segment range information which is a lot simpler to load in SOA form
+						const uint8_t* shifted_segment_range_data = segment_range_data + unpack_index;
+						const uint32_t x = (uint32_t(shifted_segment_range_data[0]) << 8) | shifted_segment_range_data[4];
+						const uint32_t y = (uint32_t(shifted_segment_range_data[8]) << 8) | shifted_segment_range_data[12];
+						const uint32_t z = (uint32_t(shifted_segment_range_data[16]) << 8) | shifted_segment_range_data[20];
+
+#if defined(RTM_SSE2_INTRINSICS)
+						// TODO: Use SIMD for this
+
+						// Load min.xxxx, min.yyyy, 8 bytes, offset by our sample index such that the first byte is our sample
+						// Unpack low and interleave xxxx, yyyy, we end up with sample.x in our first lane as uint16_t
+						// Unpack low to convert to uint32_t, sample.x lives in lane 0, repeat for sample.yz
+						// Total of 2x loads (re-use first load and interleave high for sample.y), 5x unpack
+						// Merge sample.xy together (1x shuffle)
+						// Merge sample.xyz together (1x shuffle)
+						// Convert to floats and normalize
+						__m128i xyz = _mm_setr_epi32(x, y, z, 0);
+						__m128 xyzf = _mm_cvtepi32_ps(xyz);
+						sample = _mm_mul_ps(xyzf, _mm_set_ps1(1.0F / 65535.0F));
+#elif defined(RTM_NEON_INTRINSICS)
+						uint32x4_t xyz = vcombine_u32(vcreate_u32((uint64_t(y) << 32) | x), vcreate_u32(z));
+						float32x4_t xyzf = vcvtq_f32_u32(xyz);
+						sample = vmulq_n_f32(xyzf, 1.0F / 65535.0F);
+#else
+						const rtm::vector4f xyz = rtm::vector_set(float(x), float(y), float(z), 0.0F);
+						sample = rtm::vector_mul(xyz, 1.0F / 65535.0F);
+#endif
+
+						sample_segment_range_ignore_mask = 0xFF;	// Ignore segment range
+						sample_clip_range_ignore_mask = 0x00;
+					}
+					else if (num_bits_at_bit_rate == 32)	// Raw bit rate
+					{
+						sample = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
+						animated_track_data_bit_offset += 96;
+						sample_segment_range_ignore_mask = 0xFF;	// Ignore segment range
+						sample_clip_range_ignore_mask = 0xFF;		// Ignore clip range
+					}
+					else
+					{
+						sample = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+						animated_track_data_bit_offset += num_bits_at_bit_rate * 3;
+						sample_segment_range_ignore_mask = 0x00;
+						sample_clip_range_ignore_mask = 0x00;
+					}
+
+					// Masks are used in little endian format so the first sample is in the LSB end
+					segment_range_ignore_mask |= sample_segment_range_ignore_mask << (unpack_index * 8);
+					clip_range_ignore_mask |= sample_clip_range_ignore_mask << (unpack_index * 8);
+				}
+				else // vector_format8::vector3f_full
+				{
+					sample = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
+					animated_track_data_bit_offset += 96;
+				}
+
+				output_scratch[unpack_index] = sample;
+			}
+
+			// Prefetch the next cache line even if we don't have any data left
+			// By the time we unpack again, it will have arrived in the CPU cache
+			// If our format is full precision, we have at most 4 samples per cache line
+			// If our format is drop W, we have at most 5.33 samples per cache line
+
+			// If our pointer was already aligned to a cache line before we unpacked our 4 values,
+			// it now points to the first byte of the next cache line. Any offset between 0-63 will fetch it.
+			// If our pointer had some offset into a cache line, we might have spanned 2 cache lines.
+			// If this happens, we probably already read some data from the next cache line in which
+			// case we don't need to prefetch it and we can go to the next one. Any offset after the end
+			// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
+			// Prefetch 4 samples ahead in all levels of the CPU cache
+			ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_track_data_bit_offset / 8) + 63);
+
+			// Update our pointers
+			if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+			{
+				// Prefetch 4 samples ahead in all levels of the CPU cache
+				ACL_IMPL_ANIMATED_PREFETCH(format_per_track_data + 63);
+
+				// Skip our used metadata data, all groups are padded to 4 elements
+				segment_sampling_context.format_per_track_data = format_per_track_data + 4;
+			}
+
+			segment_sampling_context.animated_track_data_bit_offset = animated_track_data_bit_offset;
+
+#if 0
+			// Swizzle our samples into SOA form
+			rtm::vector4f sample_xxxx;
+			rtm::vector4f sample_yyyy;
+			rtm::vector4f sample_zzzz;
+			RTM_MATRIXF_TRANSPOSE_4X3(output_scratch[0], output_scratch[1], output_scratch[2], output_scratch[3], sample_xxxx, sample_yyyy, sample_zzzz);
+#endif
+
+			range_reduction_masks_t range_reduction_masks;	// function's return value
+
+			if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+			{
+#if defined(RTM_SSE2_INTRINSICS)
+				const __m128i ignore_masks_v8 = _mm_set_epi32(0, 0, clip_range_ignore_mask, segment_range_ignore_mask);
+				range_reduction_masks = _mm_unpacklo_epi8(ignore_masks_v8, ignore_masks_v8);
+#elif defined(RTM_NEON_INTRINSICS)
+				const int8x8_t ignore_masks_v8 = vcreate_s8((uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask);
+				range_reduction_masks = vmovl_s8(ignore_masks_v8);
+#else
+				range_reduction_masks = (uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask;
+#endif
+
+				// Skip our used segment range data, all groups are padded to 4 elements
+				segment_range_data += 6 * 4;
+
+				// Update our ptr
+				segment_sampling_context.segment_range_data = segment_range_data;
+			}
+			else
+			{
+#if defined(RTM_SSE2_INTRINSICS)
+				range_reduction_masks = _mm_setzero_si128();
+#elif defined(RTM_NEON_INTRINSICS)
+				range_reduction_masks = vcombine_s16(vcreate_s16(0ULL), vcreate_s16(0ULL));
+#else
+				range_reduction_masks = 0ULL;
+#endif
+			}
+
+#if 0
+			output_scratch[0] = sample_xxxx;
+			output_scratch[1] = sample_yyyy;
+			output_scratch[2] = sample_zzzz;
+#endif
+
+			return range_reduction_masks;
+		}
+#endif
+
+#if !defined(ACL_IMPL_SOA_VEC3_UNPACK)
 		template<class decompression_settings_adapter_type>
 		inline ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_single_animated_vector3(const persistent_transform_decompression_context_v0& decomp_context,
 			uint32_t unpack_index,
@@ -1130,6 +1356,167 @@ namespace acl
 			ACL_ASSERT(rtm::vector_is_finite3(sample), "Vector3 is not valid!");
 			return sample;
 		}
+#else
+		template<class decompression_settings_adapter_type>
+		inline ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_single_animated_vector3(const persistent_transform_decompression_context_v0& decomp_context,
+			uint32_t unpack_index, uint32_t group_size,
+			const clip_animated_sampling_context_v0& clip_sampling_context, const segment_animated_sampling_context_v0& segment_sampling_context)
+		{
+			const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
+
+			uint32_t segment_range_ignore_mask = 0;
+			uint32_t clip_range_ignore_mask = 0;
+
+			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
+			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
+			const uint8_t* animated_track_data = segment_sampling_context.animated_track_data;
+			uint32_t animated_track_data_bit_offset = segment_sampling_context.animated_track_data_bit_offset;
+
+			rtm::vector4f sample;
+			if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+			{
+				// Fall-through intentional
+				uint32_t skip_size = 0;
+				switch (unpack_index)
+				{
+				default:
+				case 3:
+					skip_size += format_per_track_data[2];
+					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
+				case 2:
+					skip_size += format_per_track_data[1];
+					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
+				case 1:
+					skip_size += format_per_track_data[0];
+					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
+				case 0:
+					// Nothing to skip
+					(void)skip_size;
+				}
+
+				// Skip prior samples
+				animated_track_data_bit_offset += skip_size * 3;
+
+				const uint32_t num_bits_at_bit_rate = format_per_track_data[unpack_index];
+
+				if (num_bits_at_bit_rate == 0)	// Constant bit rate
+				{
+					// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
+					// Our constant sample value is packed 8 bits in each group in the sample's lane
+					// To load our sample, we need to load: (min.x[unpack_index] << 8) | min.y[unpack_index], (min.z[unpack_index] << 8) | extent.x[unpack_index], (extent.y[unpack_index] << 8) | extent.z[unpack_index]
+					// This is more complicated than if we were in AOS form but constant bit rates are somewhat rare while nearly every sample
+					// has segment range information which is a lot simpler to load in SOA form
+					const uint8_t* shifted_segment_range_data = segment_range_data + unpack_index;
+					const uint32_t x = (uint32_t(shifted_segment_range_data[0]) << 8) | shifted_segment_range_data[4];
+					const uint32_t y = (uint32_t(shifted_segment_range_data[8]) << 8) | shifted_segment_range_data[12];
+					const uint32_t z = (uint32_t(shifted_segment_range_data[16]) << 8) | shifted_segment_range_data[20];
+
+#if defined(RTM_SSE2_INTRINSICS)
+					// TODO: Use SIMD for this
+
+					// Load min.xxxx, min.yyyy, 8 bytes, offset by our sample index such that the first byte is our sample
+					// Unpack low and interleave xxxx, yyyy, we end up with sample.x in our first lane as uint16_t
+					// Unpack low to convert to uint32_t, sample.x lives in lane 0, repeat for sample.yz
+					// Total of 2x loads (re-use first load and interleave high for sample.y), 5x unpack
+					// Merge sample.xy together (1x shuffle)
+					// Merge sample.xyz together (1x shuffle)
+					// Convert to floats and normalize
+					__m128i xyz = _mm_setr_epi32(x, y, z, 0);
+					__m128 xyzf = _mm_cvtepi32_ps(xyz);
+					sample = _mm_mul_ps(xyzf, _mm_set_ps1(1.0F / 65535.0F));
+#elif defined(RTM_NEON_INTRINSICS)
+					uint32x4_t xyz = vcombine_u32(vcreate_u32((uint64_t(y) << 32) | x), vcreate_u32(z));
+					float32x4_t xyzf = vcvtq_f32_u32(xyz);
+					sample = vmulq_n_f32(xyzf, 1.0F / 65535.0F);
+#else
+					const rtm::vector4f xyz = rtm::vector_set(float(x), float(y), float(z), 0.0F);
+					sample = rtm::vector_mul(xyz, 1.0F / 65535.0F);
+#endif
+
+					segment_range_ignore_mask = 0xFF;	// Ignore segment range
+					clip_range_ignore_mask = 0x00;
+				}
+				else if (num_bits_at_bit_rate == 32)	// Raw bit rate
+				{
+					sample = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
+					segment_range_ignore_mask = 0xFF;	// Ignore segment range
+					clip_range_ignore_mask = 0xFF;		// Ignore clip range
+				}
+				else
+				{
+					sample = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+					segment_range_ignore_mask = 0x00;
+					clip_range_ignore_mask = 0x00;
+				}
+			}
+			else // vector_format8::vector3f_full
+			{
+				animated_track_data_bit_offset += unpack_index * 96;
+				sample = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
+			}
+
+			// Remap within our ranges
+			if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+			{
+				if (decomp_context.has_segments && segment_range_ignore_mask == 0)
+				{
+					// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
+					segment_range_data += unpack_index;	// Offset to our sample
+
+					const uint32_t min_x = segment_range_data[0];
+					const uint32_t min_y = segment_range_data[4];
+					const uint32_t min_z = segment_range_data[8];
+
+					const uint32_t extent_x = segment_range_data[12];
+					const uint32_t extent_y = segment_range_data[16];
+					const uint32_t extent_z = segment_range_data[20];
+
+#if defined(RTM_SSE2_INTRINSICS)
+					__m128i min_u32 = _mm_setr_epi32(min_x, min_y, min_z, 0);
+					__m128i extent_u32 = _mm_setr_epi32(extent_x, extent_y, extent_z, 0);
+
+					rtm::vector4f segment_range_min = _mm_cvtepi32_ps(min_u32);
+					rtm::vector4f segment_range_extent = _mm_cvtepi32_ps(extent_u32);
+#elif defined(RTM_NEON_INTRINSICS)
+					uint32x4_t min_u32 = vcombine_u32(vcreate_u32((uint64_t(min_y) << 32) | min_x), vcreate_u32(min_z));
+					uint32x4_t extent_u32 = vcombine_u32(vcreate_u32((uint64_t(extent_y) << 32) | extent_x), vcreate_u32(extent_z));
+
+					rtm::vector4f segment_range_min = vcvtq_f32_u32(min_u32);
+					rtm::vector4f segment_range_extent = vcvtq_f32_u32(extent_u32);
+#else
+					rtm::vector4f segment_range_min = rtm::vector_set(float(min_x), float(min_y), float(min_z), 0.0F);
+					rtm::vector4f segment_range_extent = rtm::vector_set(float(extent_x), float(extent_y), float(extent_z), 0.0F);
+#endif
+
+					const float normalization_scale = 1.0F / 255.0F;
+					segment_range_min = rtm::vector_mul(segment_range_min, normalization_scale);
+					segment_range_extent = rtm::vector_mul(segment_range_extent, normalization_scale);
+
+					sample = rtm::vector_mul_add(sample, segment_range_extent, segment_range_min);
+				}
+
+				if (clip_range_ignore_mask == 0)
+				{
+					const float* clip_range_data = reinterpret_cast<const float*>(clip_sampling_context.clip_range_data) + unpack_index;	// Offset to our sample
+
+					const float min_x = clip_range_data[group_size * 0];
+					const float min_y = clip_range_data[group_size * 1];
+					const float min_z = clip_range_data[group_size * 2];
+					const rtm::vector4f clip_range_min = rtm::vector_set(min_x, min_y, min_z, 0.0F);
+
+					const float extent_x = clip_range_data[group_size * 3];
+					const float extent_y = clip_range_data[group_size * 4];
+					const float extent_z = clip_range_data[group_size * 5];
+					const rtm::vector4f clip_range_extent = rtm::vector_set(extent_x, extent_y, extent_z, 0.0F);
+
+					sample = rtm::vector_mul_add(sample, clip_range_extent, clip_range_min);
+				}
+			}
+
+			ACL_ASSERT(rtm::vector_is_finite3(sample), "Vector3 is not valid!");
+			return sample;
+		}
+#endif
 
 		// Force inline this function, we only use it to keep the code readable
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void count_animated_group_bit_size(
@@ -1268,10 +1655,23 @@ namespace acl
 					const vector_format8 translation_format = get_vector_format<decompression_settings_translation_adapter_type>(decompression_settings_translation_adapter_type::get_vector_format(decomp_context));
 					const bool are_translations_variable = translation_format == vector_format8::vector3f_variable && decompression_settings_translation_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable);
 
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+					const uint32_t num_animated_translation_sub_tracks_padded = align_to(transform_header.num_animated_translation_sub_tracks, 4);
+#endif
+
 					// Scale data just follows the translation data without any extra padding
 					const uint32_t translation_clip_range_data_size = are_translations_variable ? (sizeof(rtm::float3f) * 2) : 0;
 					clip_sampling_context_scales.clip_range_data = clip_range_data_translations + (transform_header.num_animated_translation_sub_tracks * translation_clip_range_data_size);
 
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+					const uint32_t translation_per_track_metadata_size = are_translations_variable ? 1 : 0;
+					segment_sampling_context_scales[0].format_per_track_data = format_per_track_data_translations0 + (num_animated_translation_sub_tracks_padded * translation_per_track_metadata_size);
+					segment_sampling_context_scales[1].format_per_track_data = format_per_track_data_translations1 + (num_animated_translation_sub_tracks_padded * translation_per_track_metadata_size);
+
+					const uint32_t translation_segment_range_data_size = are_translations_variable ? 6 : 0;
+					segment_sampling_context_scales[0].segment_range_data = segment_range_data_translations0 + (num_animated_translation_sub_tracks_padded * translation_segment_range_data_size);
+					segment_sampling_context_scales[1].segment_range_data = segment_range_data_translations1 + (num_animated_translation_sub_tracks_padded * translation_segment_range_data_size);
+#else
 					const uint32_t translation_per_track_metadata_size = are_translations_variable ? 1 : 0;
 					segment_sampling_context_scales[0].format_per_track_data = format_per_track_data_translations0 + (transform_header.num_animated_translation_sub_tracks * translation_per_track_metadata_size);
 					segment_sampling_context_scales[1].format_per_track_data = format_per_track_data_translations1 + (transform_header.num_animated_translation_sub_tracks * translation_per_track_metadata_size);
@@ -1279,6 +1679,7 @@ namespace acl
 					const uint32_t translation_segment_range_data_size = are_translations_variable ? 6 : 0;
 					segment_sampling_context_scales[0].segment_range_data = segment_range_data_translations0 + (transform_header.num_animated_translation_sub_tracks * translation_segment_range_data_size);
 					segment_sampling_context_scales[1].segment_range_data = segment_range_data_translations1 + (transform_header.num_animated_translation_sub_tracks * translation_segment_range_data_size);
+#endif
 
 					segment_sampling_context_scales[0].animated_track_data = animated_track_data0;
 					segment_sampling_context_scales[1].animated_track_data = animated_track_data1;
@@ -1546,6 +1947,97 @@ namespace acl
 				uint32_t cache_write_index = translations.cache_write_index % 8;
 				translations.cache_write_index += num_to_unpack;
 
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+				const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
+
+				segment_animated_scratch_v0 segment_scratch;
+
+				// We start by unpacking our segment range data into our scratch memory
+				// We often only use a single segment to interpolate, we can avoid redundant work
+				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+				{
+					if (decomp_context.has_segments)
+					{
+						unpack_segment_range_data(segment_sampling_context_translations[0].segment_range_data, 0, segment_scratch);
+
+						// We are interpolating between two segments (rare)
+						if (!decomp_context.uses_single_segment)
+							unpack_segment_range_data(segment_sampling_context_translations[1].segment_range_data, 1, segment_scratch);
+					}
+				}
+
+				const range_reduction_masks_t range_reduction_masks0 = unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, segment_sampling_context_translations[0]);
+				const range_reduction_masks_t range_reduction_masks1 = unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, segment_sampling_context_translations[1]);
+
+#if 0
+				rtm::vector4f scratch0_xxxx = scratch0[0];
+				rtm::vector4f scratch0_yyyy = scratch0[1];
+				rtm::vector4f scratch0_zzzz = scratch0[2];
+
+				rtm::vector4f scratch1_xxxx = scratch1[0];
+				rtm::vector4f scratch1_yyyy = scratch1[1];
+				rtm::vector4f scratch1_zzzz = scratch1[2];
+#else
+				// Swizzle our samples into SOA form
+				rtm::vector4f scratch0_xxxx;
+				rtm::vector4f scratch0_yyyy;
+				rtm::vector4f scratch0_zzzz;
+				RTM_MATRIXF_TRANSPOSE_4X3(scratch0[0], scratch0[1], scratch0[2], scratch0[3], scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
+
+				rtm::vector4f scratch1_xxxx;
+				rtm::vector4f scratch1_yyyy;
+				rtm::vector4f scratch1_zzzz;
+				RTM_MATRIXF_TRANSPOSE_4X3(scratch1[0], scratch1[1], scratch1[2], scratch1[3], scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+#endif
+
+				// If we have a variable bit rate, we perform range reduction, skip the data we used
+				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+				{
+					if (decomp_context.has_segments)
+					{
+						remap_segment_range_data4(segment_scratch, 0, range_reduction_masks0, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
+						remap_segment_range_data4(segment_scratch, uint32_t(!decomp_context.uses_single_segment), range_reduction_masks1, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+					}
+
+					const uint8_t* clip_range_data = clip_sampling_context_translations.clip_range_data;
+
+					remap_clip_range_data4(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+
+					// Clip range data is 24-32 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
+					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 128);
+					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 192);
+
+					// Skip our data
+					clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
+					clip_sampling_context_translations.clip_range_data = clip_range_data;
+				}
+
+				// Interpolate linearly and store our rotations in SOA
+				{
+					// Interpolate our vector3s
+					rtm::vector4f interp_xxxx;
+					rtm::vector4f interp_yyyy;
+					rtm::vector4f interp_zzzz;
+					vector_lerp3(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz,
+						scratch1_xxxx, scratch1_yyyy, scratch1_zzzz,
+						decomp_context.interpolation_alpha,
+						interp_xxxx, interp_yyyy, interp_zzzz);
+
+					// Swizzle out our 4 samples
+					rtm::vector4f sample0;
+					rtm::vector4f sample1;
+					rtm::vector4f sample2;
+					rtm::vector4f sample3;
+					RTM_MATRIXF_TRANSPOSE_3X4(interp_xxxx, interp_yyyy, interp_zzzz, sample0, sample1, sample2, sample3);
+
+					rtm::quatf* cache_ptr = &translations.cached_samples[cache_write_index];
+
+					cache_ptr[0] = rtm::vector_to_quat(sample0);
+					cache_ptr[1] = rtm::vector_to_quat(sample1);
+					cache_ptr[2] = rtm::vector_to_quat(sample2);
+					cache_ptr[3] = rtm::vector_to_quat(sample3);
+				}
+#else
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[0]);
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[1]);
 
@@ -1568,6 +2060,7 @@ namespace acl
 				// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
 				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_translations.clip_range_data + 63);
 				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_translations.clip_range_data + 127);
+#endif
 			}
 
 			template<class decompression_settings_adapter_type>
@@ -1615,8 +2108,15 @@ namespace acl
 			{
 				ACL_ASSERT(unpack_index < translations.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+				const uint32_t group_size = std::min<uint32_t>(translations.num_left_to_unpack, 4);
+
+				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, group_size, clip_sampling_context_translations, segment_sampling_context_translations[0]);
+				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, group_size, clip_sampling_context_translations, segment_sampling_context_translations[1]);
+#else
 				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_translations, segment_sampling_context_translations[0]);
 				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_translations, segment_sampling_context_translations[1]);
+#endif
 
 				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
@@ -1648,6 +2148,97 @@ namespace acl
 				uint32_t cache_write_index = scales.cache_write_index % 8;
 				scales.cache_write_index += num_to_unpack;
 
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+				const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
+
+				segment_animated_scratch_v0 segment_scratch;
+
+				// We start by unpacking our segment range data into our scratch memory
+				// We often only use a single segment to interpolate, we can avoid redundant work
+				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+				{
+					if (decomp_context.has_segments)
+					{
+						unpack_segment_range_data(segment_sampling_context_scales[0].segment_range_data, 0, segment_scratch);
+
+						// We are interpolating between two segments (rare)
+						if (!decomp_context.uses_single_segment)
+							unpack_segment_range_data(segment_sampling_context_scales[1].segment_range_data, 1, segment_scratch);
+					}
+				}
+
+				const range_reduction_masks_t range_reduction_masks0 = unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, segment_sampling_context_scales[0]);
+				const range_reduction_masks_t range_reduction_masks1 = unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, segment_sampling_context_scales[1]);
+
+#if 0
+				rtm::vector4f scratch0_xxxx = scratch0[0];
+				rtm::vector4f scratch0_yyyy = scratch0[1];
+				rtm::vector4f scratch0_zzzz = scratch0[2];
+
+				rtm::vector4f scratch1_xxxx = scratch1[0];
+				rtm::vector4f scratch1_yyyy = scratch1[1];
+				rtm::vector4f scratch1_zzzz = scratch1[2];
+#else
+				// Swizzle our samples into SOA form
+				rtm::vector4f scratch0_xxxx;
+				rtm::vector4f scratch0_yyyy;
+				rtm::vector4f scratch0_zzzz;
+				RTM_MATRIXF_TRANSPOSE_4X3(scratch0[0], scratch0[1], scratch0[2], scratch0[3], scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
+
+				rtm::vector4f scratch1_xxxx;
+				rtm::vector4f scratch1_yyyy;
+				rtm::vector4f scratch1_zzzz;
+				RTM_MATRIXF_TRANSPOSE_4X3(scratch1[0], scratch1[1], scratch1[2], scratch1[3], scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+#endif
+
+				// If we have a variable bit rate, we perform range reduction, skip the data we used
+				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+				{
+					if (decomp_context.has_segments)
+					{
+						remap_segment_range_data4(segment_scratch, 0, range_reduction_masks0, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
+						remap_segment_range_data4(segment_scratch, uint32_t(!decomp_context.uses_single_segment), range_reduction_masks1, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+					}
+
+					const uint8_t* clip_range_data = clip_sampling_context_scales.clip_range_data;
+
+					remap_clip_range_data4(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+
+					// Clip range data is 24-32 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
+					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 128);
+					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 192);
+
+					// Skip our data
+					clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
+					clip_sampling_context_scales.clip_range_data = clip_range_data;
+				}
+
+				// Interpolate linearly and store our rotations in SOA
+				{
+					// Interpolate our vector3s
+					rtm::vector4f interp_xxxx;
+					rtm::vector4f interp_yyyy;
+					rtm::vector4f interp_zzzz;
+					vector_lerp3(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz,
+						scratch1_xxxx, scratch1_yyyy, scratch1_zzzz,
+						decomp_context.interpolation_alpha,
+						interp_xxxx, interp_yyyy, interp_zzzz);
+
+					// Swizzle out our 4 samples
+					rtm::vector4f sample0;
+					rtm::vector4f sample1;
+					rtm::vector4f sample2;
+					rtm::vector4f sample3;
+					RTM_MATRIXF_TRANSPOSE_3X4(interp_xxxx, interp_yyyy, interp_zzzz, sample0, sample1, sample2, sample3);
+
+					rtm::quatf* cache_ptr = &scales.cached_samples[cache_write_index];
+
+					cache_ptr[0] = rtm::vector_to_quat(sample0);
+					cache_ptr[1] = rtm::vector_to_quat(sample1);
+					cache_ptr[2] = rtm::vector_to_quat(sample2);
+					cache_ptr[3] = rtm::vector_to_quat(sample3);
+				}
+#else
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[0]);
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[1]);
 
@@ -1670,6 +2261,7 @@ namespace acl
 				// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
 				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_scales.clip_range_data + 63);
 				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_scales.clip_range_data + 127);
+#endif
 			}
 
 			template<class decompression_settings_adapter_type>
@@ -1717,8 +2309,15 @@ namespace acl
 			{
 				ACL_ASSERT(unpack_index < scales.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
+#if defined(ACL_IMPL_SOA_VEC3_UNPACK)
+				const uint32_t group_size = std::min<uint32_t>(scales.num_left_to_unpack, 4);
+
+				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, group_size, clip_sampling_context_scales, segment_sampling_context_scales[0]);
+				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, group_size, clip_sampling_context_scales, segment_sampling_context_scales[1]);
+#else
 				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[0]);
 				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[1]);
+#endif
 
 				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
