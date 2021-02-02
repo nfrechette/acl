@@ -25,8 +25,8 @@ add_executable(${PROJECT_NAME} ${ALL_TEST_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILES}
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../../external/catch2/contrib")
 include(CTest)
-include(ParseAndAddCatchTests)
-ParseAndAddCatchTests(${PROJECT_NAME})
+include(Catch)
+catch_discover_tests(${PROJECT_NAME})
 
 setup_default_compiler_flags(${PROJECT_NAME})
 
