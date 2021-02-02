@@ -45,7 +45,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 // Throwing:
 //    In order to enable the throwing behavior, simply define the macro ACL_ON_ASSERT_THROW:
 //    #define ACL_ON_ASSERT_THROW
-//    Note that the type of the exception thrown is std::runtime_error.
+//    Note that the type of the exception thrown is acl::runtime_assert.
 //
 // Custom function:
 //    In order to enable the custom function calling behavior, define the macro ACL_ON_ASSERT_CUSTOM
