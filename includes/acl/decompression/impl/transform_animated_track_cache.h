@@ -1182,6 +1182,12 @@ namespace acl
 #endif
 		}
 
+		// Performance notes:
+		//    - Using SOA after unpacking vec3 appears to be slightly slower. Full groups aren't super common
+		//      because animated translation/scale isn't common. But even with clips with lots of full groups,
+		//      SOA remains slightly slower. It seems the longer dependency chains offsets the gain from
+		//      using all SIMD lanes.
+
 		struct animated_track_cache_v0
 		{
 			track_cache_quatf_v0 rotations;

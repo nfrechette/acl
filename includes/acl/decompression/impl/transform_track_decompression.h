@@ -476,8 +476,8 @@ namespace acl
 
 
 		// TODO: Merge the per track format and segment range info into a single buffer? Less to prefetch and used together
-		// TODO: Port vector3 decomp to use SOA
 		// TODO: Remove segment data alignment, no longer required?
+		// TODO: Remove unpack prefetches?
 
 
 		template<class decompression_settings_type, class track_writer_type>
