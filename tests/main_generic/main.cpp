@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #define CATCH_CONFIG_RUNNER
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #ifdef _WIN32
 #include <conio.h>

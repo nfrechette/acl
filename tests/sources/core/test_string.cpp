@@ -22,7 +22,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 // Enable allocation tracking
 #define ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS
