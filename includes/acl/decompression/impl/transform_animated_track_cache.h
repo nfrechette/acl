@@ -1171,6 +1171,9 @@ namespace acl
 		//      because animated translation/scale isn't common. But even with clips with lots of full groups,
 		//      SOA remains slightly slower. It seems the longer dependency chains offsets the gain from
 		//      using all SIMD lanes.
+		//    - Removing the unpack prefetches seems to harm performance, especially on mobile
+		//      I also tried reworking them to be more optimal for single segment usage but while I could get
+		//      a small win on desktop, mobile remained underperforming.
 
 		struct animated_track_cache_v0
 		{
