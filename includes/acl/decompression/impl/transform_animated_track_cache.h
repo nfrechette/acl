@@ -1173,7 +1173,7 @@ namespace acl
 		//      using all SIMD lanes.
 		//    - Removing the unpack prefetches seems to harm performance, especially on mobile
 		//      I also tried reworking them to be more optimal for single segment usage but while I could get
-		//      a small win on desktop, mobile remained underperforming.
+		//      a small win on desktop, mobile remained under performing.
 
 		struct animated_track_cache_v0
 		{
