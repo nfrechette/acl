@@ -587,8 +587,6 @@ namespace acl
 
 			// Try inlining the unpacking functions
 
-			// Can we delay the swizzling after we are done unpacking both segments to avoid the extra load/store?
-
 			for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 			{
 				// Our decompressed rotation as a vector4
@@ -700,16 +698,6 @@ namespace acl
 
 			segment_sampling_context.animated_track_data_bit_offset = animated_track_data_bit_offset;
 
-			// Swizzle our samples into SOA form
-			rtm::vector4f sample_xxxx;
-			rtm::vector4f sample_yyyy;
-			rtm::vector4f sample_zzzz;
-			rtm::vector4f sample_wwww;
-			RTM_MATRIXF_TRANSPOSE_4X4(output_scratch[0], output_scratch[1], output_scratch[2], output_scratch[3], sample_xxxx, sample_yyyy, sample_zzzz, sample_wwww);
-
-			// Output our W components right away, either we do not need them or they are good to go (full precision)
-			output_scratch[3] = sample_wwww;
-
 			range_reduction_masks_t range_reduction_masks;	// function's return value
 
 			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
@@ -740,10 +728,6 @@ namespace acl
 				range_reduction_masks = 0ULL;
 #endif
 			}
-
-			output_scratch[0] = sample_xxxx;
-			output_scratch[1] = sample_yyyy;
-			output_scratch[2] = sample_zzzz;
 
 			return range_reduction_masks;
 		}
@@ -1339,15 +1323,18 @@ namespace acl
 				const range_reduction_masks_t range_reduction_masks0 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch0, num_to_unpack, segment_sampling_context_rotations[0]);
 				const range_reduction_masks_t range_reduction_masks1 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch1, num_to_unpack, segment_sampling_context_rotations[1]);
 
-				rtm::vector4f scratch0_xxxx = scratch0[0];
-				rtm::vector4f scratch0_yyyy = scratch0[1];
-				rtm::vector4f scratch0_zzzz = scratch0[2];
+				// Swizzle our samples into SOA form
+				rtm::vector4f scratch0_xxxx;
+				rtm::vector4f scratch0_yyyy;
+				rtm::vector4f scratch0_zzzz;
 				rtm::vector4f scratch0_wwww;
+				RTM_MATRIXF_TRANSPOSE_4X4(scratch0[0], scratch0[1], scratch0[2], scratch0[3], scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww);
 
-				rtm::vector4f scratch1_xxxx = scratch1[0];
-				rtm::vector4f scratch1_yyyy = scratch1[1];
-				rtm::vector4f scratch1_zzzz = scratch1[2];
+				rtm::vector4f scratch1_xxxx;
+				rtm::vector4f scratch1_yyyy;
+				rtm::vector4f scratch1_zzzz;
 				rtm::vector4f scratch1_wwww;
+				RTM_MATRIXF_TRANSPOSE_4X4(scratch1[0], scratch1[1], scratch1[2], scratch1[3], scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww);
 
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 				__m256 scratch_xxxx0_xxxx1 = _mm256_set_m128(scratch1_xxxx, scratch0_xxxx);
@@ -1404,11 +1391,6 @@ namespace acl
 					scratch0_wwww = quat_from_positive_w4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
 					scratch1_wwww = quat_from_positive_w4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 #endif
-				}
-				else
-				{
-					scratch0_wwww = scratch0[3];
-					scratch1_wwww = scratch1[3];
 				}
 
 				// Interpolate linearly and store our rotations in SOA
