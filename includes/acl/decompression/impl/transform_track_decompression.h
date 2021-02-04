@@ -574,9 +574,6 @@ namespace acl
 					if (is_sample_non_default_constant)
 						rotation = constant_track_cache.consume_rotation();
 
-					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
 					// TODO: Revisit how we do the track skipping, we could skip the whole loop or the bitset stuff
 
 					if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index))
