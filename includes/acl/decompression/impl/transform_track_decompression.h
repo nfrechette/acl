@@ -622,7 +622,7 @@ namespace acl
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
-			animated_track_cache_v0 animated_track_cache, track_writer_type& writer)
+			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
@@ -862,7 +862,7 @@ namespace acl
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
-			animated_track_cache_v0 animated_track_cache, track_writer_type& writer)
+			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
@@ -1098,7 +1098,7 @@ namespace acl
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
-			animated_track_cache_v0 animated_track_cache, track_writer_type& writer)
+			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
