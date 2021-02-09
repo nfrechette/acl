@@ -1196,7 +1196,7 @@ namespace acl
 			const rtm::quatf default_rotation = rtm::quat_identity();
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
-			const bool has_scale = context.has_scale;
+			const uint32_t has_scale = context.has_scale;
 			const uint32_t num_tracks = header.num_tracks;
 
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
@@ -1402,7 +1402,7 @@ namespace acl
 			const rtm::quatf default_rotation = rtm::quat_identity();
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = rtm::vector_set(float(tracks_header_.get_default_scale()));
-			const bool has_scale = context.has_scale;
+			const uint32_t has_scale = context.has_scale;
 
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
@@ -1412,7 +1412,11 @@ namespace acl
 
 			// If we have no scale, we'll load the rotation sub-track types and mask it out to avoid branching, forcing it to be the default value
 			const packed_sub_track_types* scale_sub_track_types = has_scale ? (translation_sub_track_types + num_sub_track_entries) : sub_track_types;
-			const uint32_t scale_sub_track_mask = has_scale ? 0xFFFFFFFF : 0x00000000;
+
+			// Build a mask to strip out the scale sub-track types if we have no scale present
+			// has_scale is either 0 or 1, negating yields 0 (0x00000000) or -1 (0xFFFFFFFF)
+			// Equivalent to: has_scale ? 0xFFFFFFFF : 0x00000000
+			const uint32_t scale_sub_track_mask = -int32_t(has_scale);
 
 			const uint32_t sub_track_entry_index = track_index / 16;
 			const uint32_t packed_index = track_index % 16;
