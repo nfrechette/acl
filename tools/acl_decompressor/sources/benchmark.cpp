@@ -44,7 +44,6 @@
 // Constants
 
 static constexpr uint32_t k_cpu_cache_size = 8 * 1024 * 1024;	// Assume a 8 MB cache which is common for L3 modules (iPad, Zen2)
-static constexpr uint32_t k_page_size = 4 * 1024;				// 4 KB is standard
 
 // In practice, CPUs do not always evict the least recently used cache line.
 // To ensure every cache line is evicted, we allocate our buffer 4x larger than the CPU cache.

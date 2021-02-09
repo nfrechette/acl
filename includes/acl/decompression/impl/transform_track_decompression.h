@@ -104,14 +104,11 @@ namespace acl
 			context.clip_duration = calculate_duration(header.num_samples, header.sample_rate);
 			context.sample_time = -1.0F;
 
-			const bool has_scale = header.get_has_scale();
-
 			context.rotation_format = rotation_format;
 			context.translation_format = translation_format;
 			context.scale_format = scale_format;
-			context.has_scale = has_scale;
+			context.has_scale = header.get_has_scale();
 			context.has_segments = transform_header.has_multiple_segments();
-			context.num_sub_tracks_per_track = has_scale ? 3 : 2;
 
 			return true;
 		}
@@ -1201,7 +1198,6 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const bool has_scale = context.has_scale;
 			const uint32_t num_tracks = header.num_tracks;
-			const uint32_t num_sub_tracks_per_track = context.num_sub_tracks_per_track;
 
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
@@ -1417,9 +1413,6 @@ namespace acl
 			// If we have no scale, we'll load the rotation sub-track types and mask it out to avoid branching, forcing it to be the default value
 			const packed_sub_track_types* scale_sub_track_types = has_scale ? (translation_sub_track_types + num_sub_track_entries) : sub_track_types;
 			const uint32_t scale_sub_track_mask = has_scale ? 0xFFFFFFFF : 0x00000000;
-
-			const uint32_t num_sub_tracks_per_track = context.num_sub_tracks_per_track;
-			const uint32_t sub_track_index = track_index * num_sub_tracks_per_track;
 
 			const uint32_t sub_track_entry_index = track_index / 16;
 			const uint32_t packed_index = track_index % 16;

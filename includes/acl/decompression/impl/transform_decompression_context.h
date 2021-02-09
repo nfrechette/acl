@@ -59,9 +59,8 @@ namespace acl
 
 			uint8_t has_scale;									//  19 |  27
 			uint8_t has_segments;								//  20 |  28
-			uint8_t num_sub_tracks_per_track;					//  21 |  29
 
-			uint8_t padding0[21];								//  22 |  30
+			uint8_t padding0[22];								//  21 |  29
 
 			// Seeking related data
 			uint8_t uses_single_segment;						//  43 |  51
