@@ -1288,7 +1288,7 @@ namespace acl
 			template<class decompression_settings_type>
 			void ACL_DISABLE_SECURITY_COOKIE_CHECK unpack_rotation_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-				uint32_t num_left_to_unpack = rotations.num_left_to_unpack;
+				const uint32_t num_left_to_unpack = rotations.num_left_to_unpack;
 				if (num_left_to_unpack == 0)
 					return;	// Nothing left to do, we are done
 
@@ -1298,11 +1298,10 @@ namespace acl
 					return;	// Enough cached, nothing to do
 
 				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 4);
-				num_left_to_unpack -= num_to_unpack;
-				rotations.num_left_to_unpack = num_left_to_unpack;
+				rotations.num_left_to_unpack = num_left_to_unpack - num_to_unpack;
 
 				// Write index will be either 0 or 4 here since we always unpack 4 at a time
-				uint32_t cache_write_index = rotations.cache_write_index % 8;
+				const uint32_t cache_write_index = rotations.cache_write_index % 8;
 				rotations.cache_write_index += num_to_unpack;
 
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
@@ -1520,7 +1519,7 @@ namespace acl
 			template<class decompression_settings_adapter_type>
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_translation_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-				uint32_t num_left_to_unpack = translations.num_left_to_unpack;
+				const uint32_t num_left_to_unpack = translations.num_left_to_unpack;
 				if (num_left_to_unpack == 0)
 					return;	// Nothing left to do, we are done
 
@@ -1530,17 +1529,17 @@ namespace acl
 					return;	// Enough cached, nothing to do
 
 				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 4);
-				num_left_to_unpack -= num_to_unpack;
-				translations.num_left_to_unpack = num_left_to_unpack;
+				translations.num_left_to_unpack = num_left_to_unpack - num_to_unpack;
 
 				// Write index will be either 0 or 4 here since we always unpack 4 at a time
-				uint32_t cache_write_index = translations.cache_write_index % 8;
+				const uint32_t cache_write_index = translations.cache_write_index % 8;
 				translations.cache_write_index += num_to_unpack;
 
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[0]);
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[1]);
 
-				const float interpolation_alpha = decomp_context.interpolation_alpha;
+				const rtm::scalarf interpolation_alpha = rtm::scalar_set(decomp_context.interpolation_alpha);
+				rtm::vector4f* cache_ptr = &translations.cached_samples[cache_write_index];
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
 					const rtm::vector4f sample0 = scratch0[unpack_index];
@@ -1548,8 +1547,7 @@ namespace acl
 
 					const rtm::vector4f sample = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
 
-					translations.cached_samples[cache_write_index] = sample;
-					cache_write_index++;
+					cache_ptr[unpack_index] = sample;
 				}
 
 				// If we have some range reduction, skip the data we read
@@ -1622,7 +1620,7 @@ namespace acl
 			template<class decompression_settings_adapter_type>
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_scale_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-				uint32_t num_left_to_unpack = scales.num_left_to_unpack;
+				const uint32_t num_left_to_unpack = scales.num_left_to_unpack;
 				if (num_left_to_unpack == 0)
 					return;	// Nothing left to do, we are done
 
@@ -1632,17 +1630,17 @@ namespace acl
 					return;	// Enough cached, nothing to do
 
 				const uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 4);
-				num_left_to_unpack -= num_to_unpack;
-				scales.num_left_to_unpack = num_left_to_unpack;
+				scales.num_left_to_unpack = num_left_to_unpack - num_to_unpack;
 
 				// Write index will be either 0 or 4 here since we always unpack 4 at a time
-				uint32_t cache_write_index = scales.cache_write_index % 8;
+				const uint32_t cache_write_index = scales.cache_write_index % 8;
 				scales.cache_write_index += num_to_unpack;
 
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[0]);
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[1]);
 
-				const float interpolation_alpha = decomp_context.interpolation_alpha;
+				const rtm::scalarf interpolation_alpha = rtm::scalar_set(decomp_context.interpolation_alpha);
+				rtm::vector4f* cache_ptr = &scales.cached_samples[cache_write_index];
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
 					const rtm::vector4f sample0 = scratch0[unpack_index];
@@ -1650,8 +1648,7 @@ namespace acl
 
 					const rtm::vector4f sample = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
 
-					scales.cached_samples[cache_write_index] = sample;
-					cache_write_index++;
+					cache_ptr[unpack_index] = sample;
 				}
 
 				// If we have some range reduction, skip the data we read
