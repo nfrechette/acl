@@ -1082,7 +1082,7 @@ namespace acl
 
 						uint8_t* animated_data = segment_chunk_header.samples_offset.add_to(bulk_data);
 						const uint32_t size = write_segment_data(segment_frames, num_segment_frames, animated_data);
-						ACL_ASSERT(size == segment_data_size, "Unexpected segment data size"); (void)size;
+						ACL_ASSERT(size == segment_data_size, "Unexpected segment data size"); (void)size; (void)segment_data_size;
 
 						chunk_segment_index++;
 					}

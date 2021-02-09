@@ -226,6 +226,8 @@ static void benchmark_decompression(benchmark::State& state)
 	uint8_t flush_value = 2;
 	for (auto _ : state)
 	{
+		(void)_;
+
 		const auto start = std::chrono::high_resolution_clock::now();
 
 		const float sample_time = sample_times[current_sample_index];
