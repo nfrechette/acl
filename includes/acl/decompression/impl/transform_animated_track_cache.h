@@ -500,7 +500,7 @@ namespace acl
 
 		// About 31 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f xxxx, rtm::vector4f yyyy, rtm::vector4f zzzz)
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
 		{
 			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx, xxxx);
 			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy, yyyy);
@@ -534,8 +534,8 @@ namespace acl
 		// About 28 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_lerp4(
-			rtm::vector4f xxxx0, rtm::vector4f yyyy0, rtm::vector4f zzzz0, rtm::vector4f wwww0,
-			rtm::vector4f xxxx1, rtm::vector4f yyyy1, rtm::vector4f zzzz1, rtm::vector4f wwww1,
+			rtm::vector4f_arg0 xxxx0, rtm::vector4f_arg1 yyyy0, rtm::vector4f_arg2 zzzz0, rtm::vector4f_arg3 wwww0,
+			rtm::vector4f_arg4 xxxx1, rtm::vector4f_arg5 yyyy1, rtm::vector4f_arg6 zzzz1, rtm::vector4f_arg7 wwww1,
 			float interpolation_alpha,
 			rtm::vector4f& interp_xxxx, rtm::vector4f& interp_yyyy, rtm::vector4f& interp_zzzz, rtm::vector4f& interp_wwww)
 		{
@@ -553,19 +553,19 @@ namespace acl
 			const rtm::vector4f bias = acl_impl::vector_and(dot4, neg_zero);
 
 			// Apply our bias to the 'end'
-			xxxx1 = acl_impl::vector_xor(xxxx1, bias);
-			yyyy1 = acl_impl::vector_xor(yyyy1, bias);
-			zzzz1 = acl_impl::vector_xor(zzzz1, bias);
-			wwww1 = acl_impl::vector_xor(wwww1, bias);
+			const rtm::vector4f xxxx1_with_bias = acl_impl::vector_xor(xxxx1, bias);
+			const rtm::vector4f yyyy1_with_bias = acl_impl::vector_xor(yyyy1, bias);
+			const rtm::vector4f zzzz1_with_bias = acl_impl::vector_xor(zzzz1, bias);
+			const rtm::vector4f wwww1_with_bias = acl_impl::vector_xor(wwww1, bias);
 
 			// Lerp the rotation after applying the bias
 			// ((1.0 - alpha) * start) + (alpha * (end ^ bias)) == (start - alpha * start) + (alpha * (end ^ bias))
 			const rtm::vector4f alpha = rtm::vector_set(interpolation_alpha);
 
-			interp_xxxx = rtm::vector_mul_add(xxxx1, alpha, rtm::vector_neg_mul_sub(xxxx0, alpha, xxxx0));
-			interp_yyyy = rtm::vector_mul_add(yyyy1, alpha, rtm::vector_neg_mul_sub(yyyy0, alpha, yyyy0));
-			interp_zzzz = rtm::vector_mul_add(zzzz1, alpha, rtm::vector_neg_mul_sub(zzzz0, alpha, zzzz0));
-			interp_wwww = rtm::vector_mul_add(wwww1, alpha, rtm::vector_neg_mul_sub(wwww0, alpha, wwww0));
+			interp_xxxx = rtm::vector_mul_add(xxxx1_with_bias, alpha, rtm::vector_neg_mul_sub(xxxx0, alpha, xxxx0));
+			interp_yyyy = rtm::vector_mul_add(yyyy1_with_bias, alpha, rtm::vector_neg_mul_sub(yyyy0, alpha, yyyy0));
+			interp_zzzz = rtm::vector_mul_add(zzzz1_with_bias, alpha, rtm::vector_neg_mul_sub(zzzz0, alpha, zzzz0));
+			interp_wwww = rtm::vector_mul_add(wwww1_with_bias, alpha, rtm::vector_neg_mul_sub(wwww0, alpha, wwww0));
 		}
 
 		// About 9 cycles with AVX on Skylake

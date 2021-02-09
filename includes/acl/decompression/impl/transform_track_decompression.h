@@ -471,7 +471,7 @@ namespace acl
 		template<class track_writer_type>
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
-			rtm::quatf default_rotation, track_writer_type& writer)
+			rtm::quatf_arg0 default_rotation, track_writer_type& writer)
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
@@ -707,7 +707,7 @@ namespace acl
 		template<class track_writer_type>
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
-			rtm::vector4f default_translation, track_writer_type& writer)
+			rtm::vector4f_arg0 default_translation, track_writer_type& writer)
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
@@ -943,7 +943,7 @@ namespace acl
 		template<class track_writer_type>
 		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
-			rtm::vector4f default_scale, track_writer_type& writer)
+			rtm::vector4f_arg0 default_scale, track_writer_type& writer)
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
