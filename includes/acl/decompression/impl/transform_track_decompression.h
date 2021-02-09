@@ -1202,8 +1202,13 @@ namespace acl
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 			const uint32_t num_padded_sub_tracks = (num_sub_track_entries * k_num_sub_tracks_per_packed_entry) - num_tracks;
-			const uint32_t padding_mask = ~(0xFFFFFFFF >> ((k_num_sub_tracks_per_packed_entry - num_padded_sub_tracks) * 2));
 			const uint32_t last_entry_index = num_sub_track_entries - 1;
+
+			// Build a mask to strip the extra sub-tracks we don't need that live in the padding
+			// They are set to 0 which means they would be 'default' sub-tracks but they don't really exist
+			// If we have no padding, we retain every sub-track
+			// Sub-tracks that are kept have their bits set to 1 to mask them with logical AND later
+			const uint32_t padding_mask = num_padded_sub_tracks != 0 ? ~(0xFFFFFFFF >> ((k_num_sub_tracks_per_packed_entry - num_padded_sub_tracks) * 2)) : 0xFFFFFFFF;
 
 			const packed_sub_track_types* rotation_sub_track_types = sub_track_types;
 			const packed_sub_track_types* translation_sub_track_types = rotation_sub_track_types + num_sub_track_entries;
@@ -1449,7 +1454,12 @@ namespace acl
 
 			const uint32_t last_entry_index = track_index / k_num_sub_tracks_per_packed_entry;
 			const uint32_t num_padded_sub_tracks = ((last_entry_index + 1) * k_num_sub_tracks_per_packed_entry) - track_index;
-			const uint32_t padding_mask = (0xFFFFFFFF >> ((k_num_sub_tracks_per_packed_entry - num_padded_sub_tracks) * 2));
+
+			// Build a mask to strip the extra sub-tracks we don't need that live in the padding
+			// They are set to 0 which means they would be 'default' sub-tracks but they don't really exist
+			// If we have no padding, we retain every sub-track
+			// Sub-tracks that are kept have their bits set to 0 to mask them with logical ANDNOT later
+			const uint32_t padding_mask = num_padded_sub_tracks != 0 ? (0xFFFFFFFF >> ((k_num_sub_tracks_per_packed_entry - num_padded_sub_tracks) * 2)) : 0x00000000;
 
 			for (uint32_t sub_track_entry_index_ = 0; sub_track_entry_index_ <= last_entry_index; ++sub_track_entry_index_)
 			{
