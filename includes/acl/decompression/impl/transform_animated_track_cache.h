@@ -39,6 +39,21 @@
 
 #define ACL_IMPL_USE_ANIMATED_PREFETCH
 
+// On x86/x64 platforms the prefetching instruction can have a long latency and it requires
+// a few other registers to compute the address which is problematic when registers are scarce.
+// As such, we attempt to hide the prefetching behind longer latency instructions like square-roots
+// and divisions.
+// On other platforms (e.g. ARM), the instruction is cheaper and we have more registers which gives
+// the compiler more freedom to hide the address calculation cost between other instructions.
+// Because the CPU is generally slower as well, we want to prefetch as soon as possible without
+// waiting for the next expensive instruction.
+// If your target CPU has a high clock rate, you might benefit from disabling early prefetching
+#if !defined(ACL_NO_EARLY_PREFETCHING) && !defined(ACL_IMPL_PREFETCH_EARLY)
+	#if !defined(RTM_SSE2_INTRINSICS)
+		#define ACL_IMPL_PREFETCH_EARLY
+	#endif
+#endif
+
 // This defined enables the SIMD 8 wide AVX decompression code path
 // Note that currently, it is often slower than the regular SIMD 4 wide AVX code path
 // On Intel Haswell and AMD Zen2 CPUs, the 8 wide code is measurably slower
@@ -211,9 +226,7 @@ namespace acl
 			segment_range_extent_zzzz = rtm::vector_mul(segment_range_extent_zzzz, normalization_value);
 #endif
 
-			// Skip our used segment range data, all groups are padded to 4 elements
-			segment_range_data += 6 * 4;
-
+#if defined(ACL_IMPL_PREFETCH_EARLY)
 			// Prefetch the next cache line even if we don't have any data left
 			// By the time we unpack again, it will have arrived in the CPU cache
 			// If our format is full precision, we have at most 4 samples per cache line
@@ -226,7 +239,8 @@ namespace acl
 			// case we don't need to prefetch it and we can go to the next one. Any offset after the end
 			// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
 			// Prefetch 4 samples ahead in all levels of the CPU cache
-			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 63);
+			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 64);
+#endif
 
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 			// With AVX, we must duplicate our data for the first segment in case we don't have a second segment
@@ -684,13 +698,17 @@ namespace acl
 			// case we don't need to prefetch it and we can go to the next one. Any offset after the end
 			// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
 			// Prefetch 4 samples ahead in all levels of the CPU cache
+#if defined(ACL_IMPL_PREFETCH_EARLY)
 			ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_track_data_bit_offset / 8) + 63);
+#endif
 
 			// Update our pointers
 			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 			{
-				// Prefetch 4 samples ahead in all levels of the CPU cache
-				ACL_IMPL_ANIMATED_PREFETCH(format_per_track_data + 63);
+#if defined(ACL_IMPL_PREFETCH_EARLY)
+				// Prefetch the next cache line in all levels of the CPU cache
+				ACL_IMPL_ANIMATED_PREFETCH(format_per_track_data + 64);
+#endif
 
 				// Skip our used metadata data, all groups are padded to 4 elements
 				segment_sampling_context.format_per_track_data = format_per_track_data + 4;
@@ -1012,9 +1030,9 @@ namespace acl
 			// case we don't need to prefetch it and we can go to the next one. Any offset after the end
 			// of this cache line will fetch it. For safety, we prefetch 63 bytes ahead.
 			// Prefetch 4 samples ahead in all levels of the CPU cache
-			ACL_IMPL_ANIMATED_PREFETCH(format_per_track_data + 63);
+			ACL_IMPL_ANIMATED_PREFETCH(format_per_track_data + 60);
 			ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_track_data_bit_offset / 8) + 63);
-			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 63);
+			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 48);
 		}
 
 		template<class decompression_settings_adapter_type>
@@ -1319,6 +1337,12 @@ namespace acl
 						// We are interpolating between two segments (rare)
 						if (!decomp_context.uses_single_segment)
 							unpack_segment_range_data(segment_sampling_context_rotations[1].segment_range_data, 1, segment_scratch);
+
+#if !defined(ACL_IMPL_PREFETCH_EARLY)
+						// Our segment range data takes 24 bytes per group (4 samples, 6 bytes each), each cache line fits 2.67 groups
+						// Prefetch every time while alternating between both segments
+						ACL_IMPL_ANIMATED_PREFETCH(segment_sampling_context_rotations[cache_write_index % 2].segment_range_data + 64);
+#endif
 					}
 				}
 
@@ -1365,13 +1389,15 @@ namespace acl
 					remap_clip_range_data4(clip_range_data, num_to_unpack, range_reduction_masks0, range_reduction_masks1, scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 #endif
 
-					// Clip range data is 24-32 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
-					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 128);
-					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 192);
-
 					// Skip our data
 					clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
 					clip_sampling_context_rotations.clip_range_data = clip_range_data;
+
+#if defined(ACL_IMPL_PREFETCH_EARLY)
+					// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
+					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 64);
+					ACL_IMPL_ANIMATED_PREFETCH(clip_range_data + 128);
+#endif
 				}
 
 				// Reconstruct our quaternion W component in SOA
@@ -1391,7 +1417,35 @@ namespace acl
 					scratch1_wwww = _mm256_extractf128_ps(scratch_wwww0_wwww1, 1);
 #else
 					scratch0_wwww = quat_from_positive_w4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
+
+#if !defined(ACL_IMPL_PREFETCH_EARLY)
+					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+					{
+						// Our segment per track metadata takes 4 bytes per group (4 samples, 1 byte each), each cache line fits 16 groups
+						// Prefetch every other 8th group
+						// We prefetch here because we have a square-root in quat_from_positive_w4(..) that we'll wait after
+						// This allows us to insert the prefetch basically for free in its shadow
+						// Branching is faster than prefetching every time and alternating between the two
+						if (cache_write_index == 0)
+							ACL_IMPL_ANIMATED_PREFETCH(segment_sampling_context_rotations[0].format_per_track_data + 64);
+						else if (cache_write_index == 4)
+							ACL_IMPL_ANIMATED_PREFETCH(segment_sampling_context_rotations[1].format_per_track_data + 64);
+					}
+#endif
+
 					scratch1_wwww = quat_from_positive_w4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+
+#if !defined(ACL_IMPL_PREFETCH_EARLY)
+					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+					{
+						// Our clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
+						// Each group is 96 bytes (4 samples, 24 bytes each), each cache line fits 0.67 groups
+						// We prefetch here because we have a square-root in quat_from_positive_w4(..) that we'll wait after
+						// This allows us to insert the prefetch basically for free in its shadow
+						ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_rotations.clip_range_data + 64);
+						ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_rotations.clip_range_data + 128);
+					}
+#endif
 #endif
 				}
 
@@ -1412,6 +1466,23 @@ namespace acl
 					const bool normalize_rotations = decompression_settings_type::normalize_rotations();
 					if (normalize_rotations)
 						quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
+
+#if !defined(ACL_IMPL_PREFETCH_EARLY)
+					{
+						// Our animated variable bit packed data uses at most 32 bits per component
+						// When we use raw data, that means each group uses 64 bytes (4 bytes per component, 4 components, 4 samples in group), we have 1 group per cache line
+						// When we use variable data, the highest bit rate uses 32 bits per component and thus our upper bound is 48 bytes per group (4 bytes per component, 3 components, 4 samples in group), we have 1.33 group per cache line
+						// In practice, the highest bit rate is rare and the second higher uses 19 bits per component which brings us to 28.5 bytes per group, leading to 2.24 group per cache line
+						// We prefetch both key frames every time to help hide TLB miss latency in large clips
+						// We prefetch here because we have a square-root and division in quat_normalize4(..) that we'll wait after
+						// This allows us to insert the prefetch basically for free in their shadow
+						const uint8_t* animated_track_data = segment_sampling_context_rotations[0].animated_track_data + 64;	// One cache line ahead
+						const uint32_t animated_bit_offset0 = segment_sampling_context_rotations[0].animated_track_data_bit_offset;
+						const uint32_t animated_bit_offset1 = segment_sampling_context_rotations[1].animated_track_data_bit_offset;
+						ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_bit_offset0 / 8));
+						ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_bit_offset1 / 8));
+					}
+#endif
 
 					// Swizzle out our 4 samples
 					rtm::vector4f sample0;
@@ -1550,13 +1621,16 @@ namespace acl
 					cache_ptr[unpack_index] = sample;
 				}
 
-				// If we have some range reduction, skip the data we read
-				if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::translations))
+				// If we have clip range data, skip it
+				const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
+				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+				{
 					clip_sampling_context_translations.clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
 
-				// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
-				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_translations.clip_range_data + 63);
-				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_translations.clip_range_data + 127);
+					// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
+					ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_translations.clip_range_data + 64);
+					ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_translations.clip_range_data + 128);
+				}
 			}
 
 			template<class decompression_settings_adapter_type>
@@ -1651,13 +1725,16 @@ namespace acl
 					cache_ptr[unpack_index] = sample;
 				}
 
-				// If we have some range reduction, skip the data we read
-				if (are_any_enum_flags_set(decomp_context.range_reduction, range_reduction_flags8::scales))
+				// If we have clip range data, skip it
+				const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
+				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
+				{
 					clip_sampling_context_scales.clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
 
-				// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
-				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_scales.clip_range_data + 63);
-				ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_scales.clip_range_data + 127);
+					// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
+					ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_scales.clip_range_data + 64);
+					ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_scales.clip_range_data + 128);
+				}
 			}
 
 			template<class decompression_settings_adapter_type>
