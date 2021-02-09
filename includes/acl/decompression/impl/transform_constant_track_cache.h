@@ -70,7 +70,7 @@ namespace acl
 				const uint32_t packed_rotation_size = get_packed_rotation_size(packed_format);
 				const uint32_t packed_translation_size = get_packed_vector_size(vector_format8::vector3f_full);
 
-				constant_data_rotations = decomp_context.constant_track_data.add_to(decomp_context.tracks);
+				constant_data_rotations = transform_header.get_constant_track_data();
 				constant_data_translations = constant_data_rotations + packed_rotation_size * transform_header.num_constant_rotation_samples;
 				constant_data_scales = constant_data_translations + packed_translation_size * transform_header.num_constant_translation_samples;
 			}

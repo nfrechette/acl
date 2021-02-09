@@ -46,8 +46,8 @@
 #include "acl/compression/impl/segment_streams.h"
 #include "acl/compression/impl/write_segment_data.h"
 #include "acl/compression/impl/write_stats.h"
-#include "acl/compression/impl/write_stream_bitsets.h"
 #include "acl/compression/impl/write_stream_data.h"
+#include "acl/compression/impl/write_sub_track_types.h"
 #include "acl/compression/impl/write_track_metadata.h"
 
 #include <cstdint>
@@ -155,8 +155,14 @@ namespace acl
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(lossy_clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, &num_animated_variable_sub_tracks_padded);
 
 			const uint32_t num_sub_tracks_per_bone = lossy_clip_context.has_scale ? 3 : 2;
-			const uint32_t num_sub_tracks = num_output_bones * num_sub_tracks_per_bone;
-			const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_sub_tracks);
+
+			// Calculate how many sub-track packed entries we have
+			// Each sub-track is 2 bits packed within a 32 bit entry
+			// For each sub-track type, we round up to simplify bookkeeping
+			// For example, if we have 3 tracks made up of rotation/translation we'll have one entry for each with unused padding
+			// All rotation types come first, followed by all translation types, and with scale types at the end when present
+			const uint32_t num_sub_track_entries = ((num_output_bones + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry) * num_sub_tracks_per_bone;
+			const uint32_t packed_sub_track_buffer_size = num_sub_track_entries * sizeof(packed_sub_track_types);
 
 			// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
 			const uint32_t segment_start_indices_size = lossy_clip_context.num_segments > 1 ? (sizeof(uint32_t) * (lossy_clip_context.num_segments + 1)) : 0;
@@ -174,12 +180,11 @@ namespace acl
 			buffer_size += segment_start_indices_size;							// Segment start indices
 			buffer_size = align_to(buffer_size, 4);								// Align segment headers
 			buffer_size += segment_headers_size;								// Segment headers
-			buffer_size = align_to(buffer_size, 4);								// Align bitsets
+			buffer_size = align_to(buffer_size, 4);								// Align sub-track types
 
 			const uint32_t clip_segment_header_size = buffer_size - clip_header_size;
 
-			buffer_size += bitset_desc.get_num_bytes();							// Default tracks bitset
-			buffer_size += bitset_desc.get_num_bytes();							// Constant tracks bitset
+			buffer_size += packed_sub_track_buffer_size;						// Packed sub-track types sorted by type
 			buffer_size = align_to(buffer_size, 4);								// Align constant track data
 			buffer_size += constant_data_size;									// Constant track data
 			buffer_size = align_to(buffer_size, 4);								// Align range data
@@ -294,9 +299,8 @@ namespace acl
 			const uint32_t segment_start_indices_offset = align_to<uint32_t>(sizeof(transform_tracks_header), 4);	// Relative to the start of our transform_tracks_header
 			transforms_header->database_header_offset = invalid_ptr_offset();
 			transforms_header->segment_headers_offset = align_to(segment_start_indices_offset + segment_start_indices_size, 4);
-			transforms_header->default_tracks_bitset_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
-			transforms_header->constant_tracks_bitset_offset = transforms_header->default_tracks_bitset_offset + bitset_desc.get_num_bytes();
-			transforms_header->constant_track_data_offset = align_to(transforms_header->constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
+			transforms_header->sub_track_types_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
+			transforms_header->constant_track_data_offset = align_to(transforms_header->sub_track_types_offset + packed_sub_track_buffer_size, 4);
 			transforms_header->clip_range_data_offset = align_to(transforms_header->constant_track_data_offset + constant_data_size, 4);
 
 			uint32_t written_segment_start_indices_size = 0;
@@ -306,9 +310,8 @@ namespace acl
 			const uint32_t segment_data_start_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
 			const uint32_t written_segment_headers_size = write_segment_headers(lossy_clip_context, settings, transforms_header->get_segment_headers(), segment_data_start_offset);
 
-			uint32_t written_bitset_size = 0;
-			written_bitset_size += write_default_track_bitset(lossy_clip_context, transforms_header->get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
-			written_bitset_size += write_constant_track_bitset(lossy_clip_context, transforms_header->get_constant_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
+			uint32_t written_sub_track_buffer_size = 0;
+			written_sub_track_buffer_size += write_packed_sub_track_types(lossy_clip_context, transforms_header->get_sub_track_types(), output_bone_mapping, num_output_bones);
 
 			uint32_t written_constant_data_size = 0;
 			if (constant_data_size != 0)
@@ -392,8 +395,8 @@ namespace acl
 				buffer += written_segment_start_indices_size;
 				buffer = align_to(buffer, 4);								// Align segment headers
 				buffer += written_segment_headers_size;
-				buffer = align_to(buffer, 4);								// Align bitsets
-				buffer += written_bitset_size;
+				buffer = align_to(buffer, 4);								// Align sub-track types
+				buffer += written_sub_track_buffer_size;
 				buffer = align_to(buffer, 4);								// Align constant track data
 				buffer += written_constant_data_size;
 				buffer = align_to(buffer, 4);								// Align range data
@@ -415,7 +418,7 @@ namespace acl
 				ACL_ASSERT(written_segment_start_indices_size == segment_start_indices_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_segment_headers_size == segment_headers_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_segment_data_size == segment_data_size, "Wrote too little or too much data");
-				ACL_ASSERT(written_bitset_size == (bitset_desc.get_num_bytes() * 2), "Wrote too little or too much data");
+				ACL_ASSERT(written_sub_track_buffer_size == packed_sub_track_buffer_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_constant_data_size == constant_data_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_clip_range_data_size == clip_range_data_size, "Wrote too little or too much data");
 				ACL_ASSERT(writter_metadata_track_list_name_size == metadata_track_list_name_size, "Wrote too little or too much data");
@@ -434,7 +437,7 @@ namespace acl
 #else
 			(void)written_segment_start_indices_size;
 			(void)written_segment_headers_size;
-			(void)written_bitset_size;
+			(void)written_sub_track_buffer_size;
 			(void)written_constant_data_size;
 			(void)written_clip_range_data_size;
 			(void)written_segment_data_size;

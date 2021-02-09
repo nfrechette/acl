@@ -49,26 +49,19 @@ namespace acl
 			// Database context, optional
 			const database_context_v0* db;						//   4 |   8
 
-			// Offsets relative to the 'tracks' pointer
-			ptr_offset32<uint32_t> constant_tracks_bitset;		//   8 |  16
-			ptr_offset32<uint8_t> constant_track_data;			//  12 |  20
-			ptr_offset32<uint32_t> default_tracks_bitset;		//  16 |  24
-			ptr_offset32<uint8_t> clip_range_data;				//  20 |  28
+			uint32_t clip_hash;									//   8 |  16
 
-			float clip_duration;								//  24 |  32
+			float clip_duration;								//  12 |  20
 
-			bitset_description bitset_desc;						//  28 |  36
+			rotation_format8 rotation_format;					//  16 |  24
+			vector_format8 translation_format;					//  17 |  25
+			vector_format8 scale_format;						//  18 |  26
 
-			uint32_t clip_hash;									//  32 |  40
+			uint8_t has_scale;									//  19 |  27
+			uint8_t has_segments;								//  20 |  28
+			uint8_t num_sub_tracks_per_track;					//  21 |  29
 
-			rotation_format8 rotation_format;					//  36 |  44
-			vector_format8 translation_format;					//  37 |  45
-			vector_format8 scale_format;						//  38 |  46
-			range_reduction_flags8 range_reduction;				//  39 |  47
-
-			uint8_t has_scale;									//  40 |  48
-			uint8_t has_segments;								//  41 |  49
-			uint8_t num_sub_tracks_per_track;					//  42 |  50
+			uint8_t padding0[21];								//  22 |  30
 
 			// Seeking related data
 			uint8_t uses_single_segment;						//  43 |  51

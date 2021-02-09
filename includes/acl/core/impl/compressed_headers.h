@@ -229,6 +229,18 @@ namespace acl
 			const database_runtime_clip_header*				get_clip_header(const void* base) const { return clip_header_offset.add_to(base); }
 		};
 
+		//////////////////////////////////////////////////////////////////////////
+		// A 32 bit integer that contains packed sub-track types.
+		// Each sub-track type is packed on 2 bits starting with the MSB.
+		// 0 = default/padding, 1 = constant, 2 = animated
+		//////////////////////////////////////////////////////////////////////////
+		struct packed_sub_track_types
+		{
+			uint32_t types;
+		};
+
+		const uint32_t k_num_sub_tracks_per_packed_entry = 16;	// 2 bits each within a 32 bit entry
+
 		// Header for transform 'compressed_tracks'
 		struct transform_tracks_header
 		{
@@ -239,12 +251,12 @@ namespace acl
 			uint32_t						num_animated_variable_sub_tracks;		// Might be padded with dummy tracks for alignment
 			uint32_t						num_animated_rotation_sub_tracks;
 			uint32_t						num_animated_translation_sub_tracks;
-			uint32_t						num_animated_scale_sub_tracks;			// TODO: Not needed?
+			uint32_t						num_animated_scale_sub_tracks;
 
 			// The number of constant sub-track samples stored, does not include default samples
 			uint32_t						num_constant_rotation_samples;
 			uint32_t						num_constant_translation_samples;
-			uint32_t						num_constant_scale_samples;				// TODO: Not needed?
+			uint32_t						num_constant_scale_samples;
 
 			// Offset to the database metadata header.
 			ptr_offset32<tracks_database_header>	database_header_offset;
@@ -256,15 +268,14 @@ namespace acl
 				ptr_offset32<segment_tier0_header>	segment_tier0_headers_offset;
 			};
 
-			// Offsets to the default/constant tracks bitsets.
-			ptr_offset32<uint32_t>			default_tracks_bitset_offset;
-			ptr_offset32<uint32_t>			constant_tracks_bitset_offset;
+			// Offset to the packed sub-track types.
+			ptr_offset32<packed_sub_track_types>	sub_track_types_offset;
 
 			// Offset to the constant tracks data.
 			ptr_offset32<uint8_t>			constant_track_data_offset;
 
 			// Offset to the clip range data.
-			ptr_offset32<uint8_t>			clip_range_data_offset;					// TODO: Make this offset optional? Only present if normalized
+			ptr_offset32<uint8_t>			clip_range_data_offset;					// TODO: Make this offset optional? Only present if using variable bit rate
 
 			//////////////////////////////////////////////////////////////////////////
 
@@ -285,11 +296,8 @@ namespace acl
 			segment_tier0_header*			get_segment_tier0_headers() { return segment_tier0_headers_offset.add_to(this); }
 			const segment_tier0_header*		get_segment_tier0_headers() const { return segment_tier0_headers_offset.add_to(this); }
 
-			uint32_t*						get_default_tracks_bitset() { return default_tracks_bitset_offset.add_to(this); }
-			const uint32_t*					get_default_tracks_bitset() const { return default_tracks_bitset_offset.add_to(this); }
-
-			uint32_t*						get_constant_tracks_bitset() { return constant_tracks_bitset_offset.add_to(this); }
-			const uint32_t*					get_constant_tracks_bitset() const { return constant_tracks_bitset_offset.add_to(this); }
+			packed_sub_track_types*			get_sub_track_types() { return sub_track_types_offset.add_to(this); }
+			const packed_sub_track_types*	get_sub_track_types() const { return sub_track_types_offset.add_to(this); }
 
 			uint8_t*						get_constant_track_data() { return constant_track_data_offset.add_to(this); }
 			const uint8_t*					get_constant_track_data() const { return constant_track_data_offset.add_to(this); }

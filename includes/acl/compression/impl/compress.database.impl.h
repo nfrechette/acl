@@ -542,8 +542,14 @@ namespace acl
 				const optional_metadata_header& input_metadata_header = get_optional_metadata_header(*input_tracks);
 
 				const uint32_t num_sub_tracks_per_bone = input_header.get_has_scale() ? 3 : 2;
-				const uint32_t num_sub_tracks = input_header.num_tracks * num_sub_tracks_per_bone;
-				const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_sub_tracks);
+
+				// Calculate how many sub-track packed entries we have
+				// Each sub-track is 2 bits packed within a 32 bit entry
+				// For each sub-track type, we round up to simplify bookkeeping
+				// For example, if we have 3 tracks made up of rotation/translation we'll have one entry for each with unused padding
+				// All rotation types come first, followed by all translation types, and with scale types at the end when present
+				const uint32_t num_sub_track_entries = ((input_header.num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry) * num_sub_tracks_per_bone;
+				const uint32_t packed_sub_track_buffer_size = num_sub_track_entries * sizeof(packed_sub_track_types);
 
 				// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
 				const uint32_t segment_start_indices_size = clip_error.num_segments > 1 ? (sizeof(uint32_t) * (clip_error.num_segments + 1)) : 0;
@@ -571,9 +577,8 @@ namespace acl
 				buffer_size = align_to(buffer_size, 4);								// Align database header
 				buffer_size += sizeof(tracks_database_header);						// Database header
 
-				buffer_size = align_to(buffer_size, 4);								// Align bitsets
-				buffer_size += bitset_desc.get_num_bytes();							// Default tracks bitset
-				buffer_size += bitset_desc.get_num_bytes();							// Constant tracks bitset
+				buffer_size = align_to(buffer_size, 4);								// Align sub-track types
+				buffer_size += packed_sub_track_buffer_size;						// Packed sub-track types sorted by type
 				buffer_size = align_to(buffer_size, 4);								// Align constant track data
 				buffer_size += constant_data_size;									// Constant track data
 				buffer_size = align_to(buffer_size, 4);								// Align range data
@@ -667,9 +672,8 @@ namespace acl
 				const uint32_t segment_start_indices_offset = align_to<uint32_t>(sizeof(transform_tracks_header), 4);	// Relative to the start of our transform_tracks_header
 				transforms_header->database_header_offset = align_to(segment_start_indices_offset + segment_start_indices_size, 4);
 				transforms_header->segment_headers_offset = align_to(transforms_header->database_header_offset + sizeof(tracks_database_header), 4);
-				transforms_header->default_tracks_bitset_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
-				transforms_header->constant_tracks_bitset_offset = transforms_header->default_tracks_bitset_offset + bitset_desc.get_num_bytes();
-				transforms_header->constant_track_data_offset = align_to(transforms_header->constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
+				transforms_header->sub_track_types_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
+				transforms_header->constant_track_data_offset = align_to(transforms_header->sub_track_types_offset + packed_sub_track_buffer_size, 4);
 				transforms_header->clip_range_data_offset = align_to(transforms_header->constant_track_data_offset + constant_data_size, 4);
 
 				// Copy our segment start indices, they do not change
@@ -688,9 +692,8 @@ namespace acl
 				const uint32_t segment_data_base_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
 				write_segment_headers(tier_mapping, list_index, input_transforms_header, input_segment_headers, segment_data_base_offset, transforms_header->get_segment_tier0_headers());
 
-				// Copy our bitsets, they do not change
-				std::memcpy(transforms_header->get_default_tracks_bitset(), input_transforms_header.get_default_tracks_bitset(), bitset_desc.get_num_bytes());
-				std::memcpy(transforms_header->get_constant_tracks_bitset(), input_transforms_header.get_constant_tracks_bitset(), bitset_desc.get_num_bytes());
+				// Copy our sub-track types, they do not change
+				std::memcpy(transforms_header->get_sub_track_types(), input_transforms_header.get_sub_track_types(), packed_sub_track_buffer_size);
 
 				// Copy our constant track data, it does not change
 				std::memcpy(transforms_header->get_constant_track_data(), input_transforms_header.get_constant_track_data(), constant_data_size);

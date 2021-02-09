@@ -1204,7 +1204,7 @@ namespace acl
 				const uint8_t* animated_track_data0 = decomp_context.animated_track_data[0];
 				const uint8_t* animated_track_data1 = decomp_context.animated_track_data[1];
 
-				const uint8_t* clip_range_data_rotations = decomp_context.clip_range_data.add_to(decomp_context.tracks);
+				const uint8_t* clip_range_data_rotations = transform_header.get_clip_range_data();
 				clip_sampling_context_rotations.clip_range_data = clip_range_data_rotations;
 
 				const uint8_t* format_per_track_data_rotations0 = decomp_context.format_per_track_data[0];

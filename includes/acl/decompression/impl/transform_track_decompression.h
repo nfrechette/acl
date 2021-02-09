@@ -103,30 +103,15 @@ namespace acl
 			context.clip_hash = tracks.get_hash();
 			context.clip_duration = calculate_duration(header.num_samples, header.sample_rate);
 			context.sample_time = -1.0F;
-			context.default_tracks_bitset = ptr_offset32<uint32_t>(&tracks, transform_header.get_default_tracks_bitset());
-			context.constant_tracks_bitset = ptr_offset32<uint32_t>(&tracks, transform_header.get_constant_tracks_bitset());
-			context.constant_track_data = ptr_offset32<uint8_t>(&tracks, transform_header.get_constant_track_data());
-			context.clip_range_data = ptr_offset32<uint8_t>(&tracks, transform_header.get_clip_range_data());
 
 			const bool has_scale = header.get_has_scale();
-			const uint32_t num_tracks_per_bone = has_scale ? 3 : 2;
-			context.bitset_desc = bitset_description::make_from_num_bits(header.num_tracks * num_tracks_per_bone);
-
-			range_reduction_flags8 range_reduction = range_reduction_flags8::none;
-			if (is_rotation_format_variable(rotation_format))
-				range_reduction |= range_reduction_flags8::rotations;
-			if (is_vector_format_variable(translation_format))
-				range_reduction |= range_reduction_flags8::translations;
-			if (is_vector_format_variable(scale_format))
-				range_reduction |= range_reduction_flags8::scales;
 
 			context.rotation_format = rotation_format;
 			context.translation_format = translation_format;
 			context.scale_format = scale_format;
-			context.range_reduction = range_reduction;
 			context.has_scale = has_scale;
 			context.has_segments = transform_header.has_multiple_segments();
-			context.num_sub_tracks_per_track = uint8_t(num_tracks_per_bone);
+			context.num_sub_tracks_per_track = has_scale ? 3 : 2;
 
 			return true;
 		}
@@ -152,14 +137,20 @@ namespace acl
 			if (context.sample_time == sample_time)
 				return;
 
-			// Prefetch our bitsets, we'll need them soon when we start decompressing
-			ACL_IMPL_SEEK_PREFETCH(context.default_tracks_bitset.add_to(context.tracks));
-			ACL_IMPL_SEEK_PREFETCH(context.constant_tracks_bitset.add_to(context.tracks));
-
-			context.sample_time = sample_time;
-
 			const tracks_header& header = get_tracks_header(*context.tracks);
 			const transform_tracks_header& transform_header = get_transform_tracks_header(*context.tracks);
+
+			// Prefetch our sub-track types, we'll need them soon when we start decompressing
+			// Most clips will have their sub-track types fit into 1 or 2 cache lines, we'll prefetch 2
+			// to be safe
+			{
+				const uint8_t* sub_track_types = reinterpret_cast<const uint8_t*>(transform_header.get_sub_track_types());
+
+				ACL_IMPL_SEEK_PREFETCH(sub_track_types);
+				ACL_IMPL_SEEK_PREFETCH(sub_track_types + 64);
+			}
+
+			context.sample_time = sample_time;
 
 			uint32_t key_frame0;
 			uint32_t key_frame1;
@@ -434,7 +425,7 @@ namespace acl
 
 			{
 				// Prefetch our constant rotation data, we'll need it soon when we start decompressing and we are about to cache miss on the segment headers
-				const uint8_t* constant_data_rotations = context.constant_track_data.add_to(context.tracks);
+				const uint8_t* constant_data_rotations = transform_header.get_constant_track_data();
 				ACL_IMPL_SEEK_PREFETCH(constant_data_rotations);
 				ACL_IMPL_SEEK_PREFETCH(constant_data_rotations + 64);
 			}
@@ -479,6 +470,714 @@ namespace acl
 		// TODO: Remove segment data alignment, no longer required?
 
 
+		// Force inline this function, we only use it to keep the code readable
+		template<class track_writer_type>
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
+			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
+			rtm::quatf default_rotation, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = rotation_sub_track_types[entry_index].types;
+
+				// Mask out everything but default sub-tracks, this way we can early out when we iterate
+				// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+				// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+				// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+				// Finally, we mask out everything but the second bit for each sub-track
+				// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+				// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+				packed_entry = (~packed_entry - 0x55555555) & 0xAAAAAAAA;
+
+				// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+				const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xFFFFFFFF;
+				packed_entry &= entry_padding_mask;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no default sub-tracks, skip it
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index0))
+							writer.write_rotation(track_index0, default_rotation);
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index1))
+							writer.write_rotation(track_index1, default_rotation);
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index2))
+							writer.write_rotation(track_index2, default_rotation);
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index3))
+							writer.write_rotation(track_index3, default_rotation);
+					}
+				}
+			}
+		}
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class decompression_settings_type, class track_writer_type>
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
+			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
+			const persistent_transform_decompression_context_v0& context,
+			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = rotation_sub_track_types[entry_index].types;
+
+				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
+				packed_entry &= 0x55555555;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0x55000000) == 0)
+						continue;	// This group contains no constant sub-tracks, skip it
+
+					// Unpack our next 4 tracks
+					constant_track_cache.unpack_rotation_group<decompression_settings_type>(context);
+
+					if ((packed_group & 0x40000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+						const rtm::quatf rotation = constant_track_cache.consume_rotation();
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index0))
+							writer.write_rotation(track_index0, rotation);
+					}
+
+					if ((packed_group & 0x10000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+						const rtm::quatf rotation = constant_track_cache.consume_rotation();
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index1))
+							writer.write_rotation(track_index1, rotation);
+					}
+
+					if ((packed_group & 0x04000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+						const rtm::quatf rotation = constant_track_cache.consume_rotation();
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index2))
+							writer.write_rotation(track_index2, rotation);
+					}
+
+					if ((packed_group & 0x01000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+						const rtm::quatf rotation = constant_track_cache.consume_rotation();
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index3))
+							writer.write_rotation(track_index3, rotation);
+					}
+				}
+			}
+		}
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class decompression_settings_type, class track_writer_type>
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
+			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
+			const persistent_transform_decompression_context_v0& context,
+			animated_track_cache_v0 animated_track_cache, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = rotation_sub_track_types[entry_index].types;
+
+				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
+				packed_entry &= 0xAAAAAAAA;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no animated sub-tracks, skip it
+
+					// Unpack our next 4 tracks
+					animated_track_cache.unpack_rotation_group<decompression_settings_type>(context);
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+						const rtm::quatf rotation = animated_track_cache.consume_rotation();
+
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index0))
+							writer.write_rotation(track_index0, rotation);
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+						const rtm::quatf rotation = animated_track_cache.consume_rotation();
+
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index1))
+							writer.write_rotation(track_index1, rotation);
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+						const rtm::quatf rotation = animated_track_cache.consume_rotation();
+
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index2))
+							writer.write_rotation(track_index2, rotation);
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+						const rtm::quatf rotation = animated_track_cache.consume_rotation();
+
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
+
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index3))
+							writer.write_rotation(track_index3, rotation);
+					}
+				}
+			}
+		}
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class track_writer_type>
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
+			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
+			rtm::vector4f default_translation, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = translation_sub_track_types[entry_index].types;
+
+				// Mask out everything but default sub-tracks, this way we can early out when we iterate
+				// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+				// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+				// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+				// Finally, we mask out everything but the second bit for each sub-track
+				// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+				// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+				packed_entry = (~packed_entry - 0x55555555) & 0xAAAAAAAA;
+
+				// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+				const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xFFFFFFFF;
+				packed_entry &= entry_padding_mask;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no default sub-tracks, skip it
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index0))
+							writer.write_translation(track_index0, default_translation);
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index1))
+							writer.write_translation(track_index1, default_translation);
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index2))
+							writer.write_translation(track_index2, default_translation);
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index3))
+							writer.write_translation(track_index3, default_translation);
+					}
+				}
+			}
+		}
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class track_writer_type>
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_translation_sub_tracks(
+			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index,
+			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = translation_sub_track_types[entry_index].types;
+
+				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
+				packed_entry &= 0x55555555;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0x55000000) == 0)
+						continue;	// This group contains no constant sub-tracks, skip it
+
+					if ((packed_group & 0x40000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+						const rtm::vector4f translation = constant_track_cache.consume_translation();
+
+						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index0))
+							writer.write_translation(track_index0, translation);
+					}
+
+					if ((packed_group & 0x10000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+						const rtm::vector4f translation = constant_track_cache.consume_translation();
+
+						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index1))
+							writer.write_translation(track_index1, translation);
+					}
+
+					if ((packed_group & 0x04000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+						const rtm::vector4f translation = constant_track_cache.consume_translation();
+
+						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index2))
+							writer.write_translation(track_index2, translation);
+					}
+
+					if ((packed_group & 0x01000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+						const rtm::vector4f translation = constant_track_cache.consume_translation();
+
+						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index3))
+							writer.write_translation(track_index3, translation);
+					}
+				}
+			}
+		}
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class translation_adapter, class track_writer_type>
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_translation_sub_tracks(
+			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index,
+			const persistent_transform_decompression_context_v0& context,
+			animated_track_cache_v0 animated_track_cache, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = translation_sub_track_types[entry_index].types;
+
+				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
+				packed_entry &= 0xAAAAAAAA;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no animated sub-tracks, skip it
+
+					// Unpack our next 4 tracks
+					animated_track_cache.unpack_translation_group<translation_adapter>(context);
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+						const rtm::vector4f translation = animated_track_cache.consume_translation();
+
+						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index0))
+							writer.write_translation(track_index0, translation);
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+						const rtm::vector4f translation = animated_track_cache.consume_translation();
+
+						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index1))
+							writer.write_translation(track_index1, translation);
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+						const rtm::vector4f translation = animated_track_cache.consume_translation();
+
+						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index2))
+							writer.write_translation(track_index2, translation);
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+						const rtm::vector4f translation = animated_track_cache.consume_translation();
+
+						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index3))
+							writer.write_translation(track_index3, translation);
+					}
+				}
+			}
+		}
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class track_writer_type>
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
+			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
+			rtm::vector4f default_scale, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = scale_sub_track_types[entry_index].types;
+
+				// Mask out everything but default sub-tracks, this way we can early out when we iterate
+				// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+				// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+				// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+				// Finally, we mask out everything but the second bit for each sub-track
+				// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+				// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+				packed_entry = (~packed_entry - 0x55555555) & 0xAAAAAAAA;
+
+				// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+				const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xFFFFFFFF;
+				packed_entry &= entry_padding_mask;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no default sub-tracks, skip it
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index0))
+							writer.write_scale(track_index0, default_scale);
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index1))
+							writer.write_scale(track_index1, default_scale);
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index2))
+							writer.write_scale(track_index2, default_scale);
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index3))
+							writer.write_scale(track_index3, default_scale);
+					}
+				}
+			}
+		}
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class track_writer_type>
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_scale_sub_tracks(
+			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
+			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = scale_sub_track_types[entry_index].types;
+
+				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
+				packed_entry &= 0x55555555;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0x55000000) == 0)
+						continue;	// This group contains no constant sub-tracks, skip it
+
+					if ((packed_group & 0x40000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+						const rtm::vector4f scale = constant_track_cache.consume_scale();
+
+						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index0))
+							writer.write_scale(track_index0, scale);
+					}
+
+					if ((packed_group & 0x10000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+						const rtm::vector4f scale = constant_track_cache.consume_scale();
+
+						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index1))
+							writer.write_scale(track_index1, scale);
+					}
+
+					if ((packed_group & 0x04000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+						const rtm::vector4f scale = constant_track_cache.consume_scale();
+
+						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index2))
+							writer.write_scale(track_index2, scale);
+					}
+
+					if ((packed_group & 0x01000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+						const rtm::vector4f scale = constant_track_cache.consume_scale();
+
+						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index3))
+							writer.write_scale(track_index3, scale);
+					}
+				}
+			}
+		}
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class scale_adapter, class track_writer_type>
+		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_scale_sub_tracks(
+			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
+			const persistent_transform_decompression_context_v0& context,
+			animated_track_cache_v0 animated_track_cache, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = scale_sub_track_types[entry_index].types;
+
+				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
+				packed_entry &= 0xAAAAAAAA;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no animated sub-tracks, skip it
+
+					// Unpack our next 4 tracks
+					animated_track_cache.unpack_scale_group<scale_adapter>(context);
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+						const rtm::vector4f scale = animated_track_cache.consume_scale();
+
+						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index0))
+							writer.write_scale(track_index0, scale);
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+						const rtm::vector4f scale = animated_track_cache.consume_scale();
+
+						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index1))
+							writer.write_scale(track_index1, scale);
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+						const rtm::vector4f scale = animated_track_cache.consume_scale();
+
+						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index2))
+							writer.write_scale(track_index2, scale);
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+						const rtm::vector4f scale = animated_track_cache.consume_scale();
+
+						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index3))
+							writer.write_scale(track_index3, scale);
+					}
+				}
+			}
+		}
+
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_tracks_v0(const persistent_transform_decompression_context_v0& context, track_writer_type& writer)
 		{
@@ -504,8 +1203,15 @@ namespace acl
 			const uint32_t num_tracks = header.num_tracks;
 			const uint32_t num_sub_tracks_per_track = context.num_sub_tracks_per_track;
 
-			const uint32_t* default_tracks_bitset = context.default_tracks_bitset.add_to(context.tracks);
-			const uint32_t* constant_tracks_bitset = context.constant_tracks_bitset.add_to(context.tracks);
+			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
+			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
+			const uint32_t num_padded_sub_tracks = (num_sub_track_entries * k_num_sub_tracks_per_packed_entry) - num_tracks;
+			const uint32_t padding_mask = ~(0xFFFFFFFF >> ((k_num_sub_tracks_per_packed_entry - num_padded_sub_tracks) * 2));
+			const uint32_t last_entry_index = num_sub_track_entries - 1;
+
+			const packed_sub_track_types* rotation_sub_track_types = sub_track_types;
+			const packed_sub_track_types* translation_sub_track_types = rotation_sub_track_types + num_sub_track_entries;
+			const packed_sub_track_types* scale_sub_track_types = translation_sub_track_types + num_sub_track_entries;
 
 			constant_track_cache_v0 constant_track_cache;
 			constant_track_cache.initialize<decompression_settings_type>(context);
@@ -530,20 +1236,11 @@ namespace acl
 				// They might live in a different memory page than the clip's header and constant data
 				// and we need to prime VMEM translation and the TLB
 
-				const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context_rotations[0].format_per_track_data;
-				const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context_rotations[1].format_per_track_data;
-				ACL_IMPL_SEEK_PREFETCH(per_track_metadata0);
-				ACL_IMPL_SEEK_PREFETCH(per_track_metadata1);
+				ACL_IMPL_SEEK_PREFETCH(context.format_per_track_data[0]);
+				ACL_IMPL_SEEK_PREFETCH(context.format_per_track_data[1]);
 			}
 
-			// I tried using branchless selection for the default/constant track by building a mask to select
-			// the pointer and branching was often still faster due to branch prediction. It was sometimes slower
-			// but an executive decision has been made to keep the branches until we can show a clear consistent win.
-
-			// I tried caching the bitset in a 64 bit register and simply shifting the bits in but it ended up being slightly
-			// slower more often than not. It seems to impact dependency chains somewhat. Maybe revisit this at some point.
-
-			// TODO: The first time we iterate over the bit set, unpack it into our output pose as a temporary buffer
+			// TODO: The first time we iterate over the sub-track types, unpack it into our output pose as a temporary buffer
 			// We can build a linked list
 			// Store on the stack the first animated rot/trans/scale
 			// For its rot/trans/scale, write instead the index of the next animated rot/trans/scale
@@ -555,34 +1252,13 @@ namespace acl
 			// since it'll allow us to quickly skip entries we don't care about. The same scheme can be used for constant/default tracks.
 			// When we unpack our bitset, we can also count the number of entries for each type to help iterate
 
+			// Unpack our default rotation sub-tracks
+			// Default rotation sub-tracks are uncommon, this shouldn't take much more than 50 cycles
+			unpack_default_rotation_sub_tracks(rotation_sub_track_types, last_entry_index, padding_mask, default_rotation, writer);
+
 			// Unpack our constant rotation sub-tracks
-			for (uint32_t track_index = 0, sub_track_index = 0; track_index < num_tracks; ++track_index)
-			{
-				if ((track_index % 4) == 0)
-				{
-					// Unpack our next 4 tracks
-					constant_track_cache.unpack_rotation_group<decompression_settings_type>(context);
-				}
-
-				{
-					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
-					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-					const bool is_sample_non_default_constant = !is_sample_default & is_sample_constant;
-
-					rtm::quatf rotation = default_rotation;
-					if (is_sample_non_default_constant)
-						rotation = constant_track_cache.consume_rotation();
-
-					// TODO: Revisit how we do the track skipping, we could skip the whole loop or the bitset stuff
-
-					if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index))
-						writer.write_rotation(track_index, rotation);
-				}
-
-				// Skip our rotation, translation, and scale sub-tracks
-				sub_track_index += num_sub_tracks_per_track;
-			}
+			// Constant rotation sub-tracks are very common, this should take at least 200 cycles
+			unpack_constant_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, constant_track_cache, writer);
 
 			// By now, our constant translations (3 cache lines) have landed in L2 after our prefetching has completed
 			// We typically will do enough work above to hide the latency
@@ -606,47 +1282,33 @@ namespace acl
 				ACL_IMPL_SEEK_PREFETCH(frame_animated_data1);
 			}
 
-			// Unpack our constant translation/scale sub-tracks
-			for (uint32_t track_index = 0, sub_track_index = 1; track_index < num_tracks; ++track_index)
+			// Unpack our default translation sub-tracks
+			// Default translation sub-tracks are rare, this shouldn't take much more than 50 cycles
+			unpack_default_translation_sub_tracks(translation_sub_track_types, last_entry_index, padding_mask, default_translation, writer);
+
+			// Unpack our constant translation sub-tracks
+			// Constant translation sub-tracks are very common, this should take at least 200 cycles
+			unpack_constant_translation_sub_tracks(translation_sub_track_types, last_entry_index, constant_track_cache, writer);
+
+			if (has_scale)
 			{
+				// Unpack our default scale sub-tracks
+				// Scale sub-tracks are almost always default, this should take at least 200 cycles
+				unpack_default_scale_sub_tracks(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
+
+				// Unpack our constant scale sub-tracks
+				// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
+				unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
+			}
+			else
+			{
+				// No scale present, everything is just the default value
+				// This shouldn't take much more than 50 cycles
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 				{
-					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
-					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-					const bool is_sample_non_default_constant = !is_sample_default & is_sample_constant;
-
-					rtm::vector4f translation = default_translation;
-
-					if (is_sample_non_default_constant)
-						translation = constant_track_cache.consume_translation();
-
-					ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
-
-					if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index))
-						writer.write_translation(track_index, translation);
-				}
-
-				if (has_scale)
-				{
-					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index + 1);
-					const bool is_sample_default = bitset_test(default_tracks_bitset, track_index_bit_ref);
-					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-					const bool is_sample_non_default_constant = !is_sample_default & is_sample_constant;
-
-					rtm::vector4f scale = default_scale;
-
-					if (is_sample_non_default_constant)
-						scale = constant_track_cache.consume_scale();
-
-					ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
-
 					if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
-						writer.write_scale(track_index, scale);
+						writer.write_scale(track_index, default_scale);
 				}
-				else if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
-					writer.write_scale(track_index, default_scale);
-
-				sub_track_index += num_sub_tracks_per_track;
 			}
 
 			{
@@ -673,85 +1335,50 @@ namespace acl
 			}
 
 			// Unpack our variable sub-tracks
+			// Sub-track data is sorted by type: rotations ... translations ... scales ...
+			// We process everything linearly in order, this should help the hardware prefetcher work with us
+			// We use quite a few memory streams:
+			//    - segment per track metadata: 1 per segment
+			//    - segment range data: 1 per segment
+			//    - animated frame data: 2 (might be in different segments or in database)
+			//    - clip range data: 1
+			// We thus need between 5 and 7 memory streams which is a lot.
+			// This is why the unpacking code uses manual software prefetching to ensure prefetching happens.
+			// Removing the manual prefetching slows down the execution on Zen2 and a Pixel 3.
+			// Quite a few of these memory streams might live in separate memory pages if the clip is large
+			// and might thus require TLB misses
+
 			// TODO: Unpack 4, then iterate over tracks to write?
 			// Can we keep the rotations in registers? Does it matter?
 
 			// Unpack rotations first
-			for (uint32_t track_index = 0, sub_track_index = 0; track_index < num_tracks; ++track_index)
-			{
-				// Unpack our next 4 tracks
-				if ((track_index % 4) == 0)
-					animated_track_cache.unpack_rotation_group<decompression_settings_type>(context);
-
-				const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-				const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-
-				if (!is_sample_constant)
-				{
-					const rtm::quatf rotation = animated_track_cache.consume_rotation();
-
-					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-					if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index))
-						writer.write_rotation(track_index, rotation);
-				}
-
-				sub_track_index += num_sub_tracks_per_track;
-			}
+			// Animated rotation sub-tracks are very common, this should take at least 400 cycles
+			unpack_animated_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, animated_track_cache, writer);
 
 			// Unpack translations second
-			for (uint32_t track_index = 0, sub_track_index = 1; track_index < num_tracks; ++track_index)
-			{
-				// Unpack our next 4 tracks
-				if ((track_index % 4) == 0)
-					animated_track_cache.unpack_translation_group<translation_adapter>(context);
-
-				const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-				const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-
-				if (!is_sample_constant)
-				{
-					const rtm::vector4f translation = animated_track_cache.consume_translation();
-
-					ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
-
-					if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index))
-						writer.write_translation(track_index, translation);
-				}
-
-				sub_track_index += num_sub_tracks_per_track;
-			}
+			// Animated translation sub-tracks are common, this should take at least 200 cycles
+			unpack_animated_translation_sub_tracks<translation_adapter>(translation_sub_track_types, last_entry_index, context, animated_track_cache, writer);
 
 			// Unpack scales last
+			// Animated scale sub-tracks are very rare, this shouldn't take much more than 100 cycles
 			if (has_scale)
-			{
-				for (uint32_t track_index = 0, sub_track_index = 2; track_index < num_tracks; ++track_index)
-				{
-					// Unpack our next 4 tracks
-					if ((track_index % 4) == 0)
-						animated_track_cache.unpack_scale_group<scale_adapter>(context);
-
-					const bitset_index_ref track_index_bit_ref(context.bitset_desc, sub_track_index);
-					const bool is_sample_constant = bitset_test(constant_tracks_bitset, track_index_bit_ref);
-
-					if (!is_sample_constant)
-					{
-						const rtm::vector4f scale = animated_track_cache.consume_scale();
-
-						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
-
-						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
-							writer.write_scale(track_index, scale);
-					}
-
-					sub_track_index += num_sub_tracks_per_track;
-				}
-			}
+				unpack_animated_scale_sub_tracks<scale_adapter>(scale_sub_track_types, last_entry_index, context, animated_track_cache, writer);
 
 			if (decompression_settings_type::disable_fp_exeptions())
 				restore_fp_exceptions(fp_env);
 		}
+
+		// We only initialize some variables when we need them which prompts the compiler to complain
+		// The usage is perfectly safe and because this code is VERY hot and needs to be as fast as possible,
+		// we disable the warning to avoid zeroing out things we don't need
+#if defined(ACL_COMPILER_MSVC)
+		#pragma warning(push)
+		// warning C4701: potentially uninitialized local variable
+		#pragma warning(disable : 4701)
+#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+		//#pragma GCC diagnostic push
+		//#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_track_v0(const persistent_transform_decompression_context_v0& context, uint32_t track_index, track_writer_type& writer)
@@ -761,9 +1388,10 @@ namespace acl
 				return;	// Invalid sample time, we didn't seek yet
 
 			const tracks_header& tracks_header_ = get_tracks_header(*context.tracks);
-			ACL_ASSERT(track_index < tracks_header_.num_tracks, "Invalid track index");
+			const uint32_t num_tracks = tracks_header_.num_tracks;
+			ACL_ASSERT(track_index < num_tracks, "Invalid track index");
 
-			if (track_index >= tracks_header_.num_tracks)
+			if (track_index >= num_tracks)
 				return;	// Invalid track index
 
 			// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
@@ -780,25 +1408,33 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(tracks_header_.get_default_scale()));
 			const bool has_scale = context.has_scale;
 
-			const uint32_t* default_tracks_bitset = context.default_tracks_bitset.add_to(context.tracks);
-			const uint32_t* constant_tracks_bitset = context.constant_tracks_bitset.add_to(context.tracks);
+			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
+			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 
-			// To decompress a single track, we need a few things:
-			//    - if our rot/trans/scale is the default value, this is a trivial bitset lookup
-			//    - constant and animated sub-tracks need to know which group they belong to so it can be unpacked
+			const packed_sub_track_types* rotation_sub_track_types = sub_track_types;
+			const packed_sub_track_types* translation_sub_track_types = rotation_sub_track_types + num_sub_track_entries;
+
+			// If we have no scale, we'll load the rotation sub-track types and mask it out to avoid branching, forcing it to be the default value
+			const packed_sub_track_types* scale_sub_track_types = has_scale ? (translation_sub_track_types + num_sub_track_entries) : sub_track_types;
+			const uint32_t scale_sub_track_mask = has_scale ? 0xFFFFFFFF : 0x00000000;
 
 			const uint32_t num_sub_tracks_per_track = context.num_sub_tracks_per_track;
 			const uint32_t sub_track_index = track_index * num_sub_tracks_per_track;
 
-			const bitset_index_ref rotation_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 0);
-			const bitset_index_ref translation_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 1);
-			const bitset_index_ref scale_sub_track_index_bit_ref(context.bitset_desc, sub_track_index + 2);
+			const uint32_t sub_track_entry_index = track_index / 16;
+			const uint32_t packed_index = track_index % 16;
 
-			const bool is_rotation_default = bitset_test(default_tracks_bitset, rotation_sub_track_index_bit_ref);
-			const bool is_translation_default = bitset_test(default_tracks_bitset, translation_sub_track_index_bit_ref);
-			const bool is_scale_default = has_scale ? bitset_test(default_tracks_bitset, scale_sub_track_index_bit_ref) : true;
+			// Shift our sub-track types so that the sub-track we care about ends up in the LSB position
+			const uint32_t packed_shift = (15 - packed_index) * 2;
 
-			if (is_rotation_default && is_translation_default && is_scale_default)
+			const uint32_t rotation_sub_track_type = (rotation_sub_track_types[sub_track_entry_index].types >> packed_shift) & 0x3;
+			const uint32_t translation_sub_track_type = (translation_sub_track_types[sub_track_entry_index].types >> packed_shift) & 0x3;
+			const uint32_t scale_sub_track_type = scale_sub_track_mask & (scale_sub_track_types[sub_track_entry_index].types >> packed_shift) & 0x3;
+
+			// Combine all three so we can quickly test if all are default and if any are constant/animated
+			const uint32_t combined_sub_track_type = rotation_sub_track_type | translation_sub_track_type | scale_sub_track_type;
+
+			if (combined_sub_track_type == 0)
 			{
 				// Everything is default
 				writer.write_rotation(track_index, default_rotation);
@@ -807,174 +1443,111 @@ namespace acl
 				return;
 			}
 
-			const bool is_rotation_constant = !is_rotation_default && bitset_test(constant_tracks_bitset, rotation_sub_track_index_bit_ref);
-			const bool is_translation_constant = !is_translation_default && bitset_test(constant_tracks_bitset, translation_sub_track_index_bit_ref);
-			const bool is_scale_constant = !is_scale_default && has_scale ? bitset_test(constant_tracks_bitset, scale_sub_track_index_bit_ref) : false;
-
-			const bool is_rotation_animated = !is_rotation_default && !is_rotation_constant;
-			const bool is_translation_animated = !is_translation_default && !is_translation_constant;
-			const bool is_scale_animated = !is_scale_default && !is_scale_constant;
-
-			uint32_t num_default_rotations = 0;
-			uint32_t num_default_translations = 0;
-			uint32_t num_default_scales = 0;
 			uint32_t num_constant_rotations = 0;
 			uint32_t num_constant_translations = 0;
 			uint32_t num_constant_scales = 0;
+			uint32_t num_animated_rotations = 0;
+			uint32_t num_animated_translations = 0;
+			uint32_t num_animated_scales = 0;
 
-			if (has_scale)
+			const uint32_t last_entry_index = track_index / k_num_sub_tracks_per_packed_entry;
+			const uint32_t num_padded_sub_tracks = ((last_entry_index + 1) * k_num_sub_tracks_per_packed_entry) - track_index;
+			const uint32_t padding_mask = (0xFFFFFFFF >> ((k_num_sub_tracks_per_packed_entry - num_padded_sub_tracks) * 2));
+
+			for (uint32_t sub_track_entry_index_ = 0; sub_track_entry_index_ <= last_entry_index; ++sub_track_entry_index_)
 			{
-				uint32_t rotation_track_bit_mask = 0x92492492;		// b100100100..
-				uint32_t translation_track_bit_mask = 0x49249249;	// b010010010..
-				uint32_t scale_track_bit_mask = 0x24924924;			// b001001001..
+				// Our last entry might contain more information than we need so we strip the padding we don't need
+				const uint32_t entry_padding_mask = (sub_track_entry_index_ == last_entry_index) ? padding_mask : 0x00000000;
 
-				const uint32_t last_offset = sub_track_index / 32;
-				uint32_t offset = 0;
-				for (; offset < last_offset; ++offset)
-				{
-					const uint32_t default_value = default_tracks_bitset[offset];
-					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
-					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
-					num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
+				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+				const uint32_t rotation_sub_track_type_ = and_not(entry_padding_mask, rotation_sub_track_types[sub_track_entry_index_].types);
+				const uint32_t translation_sub_track_type_ = and_not(entry_padding_mask, translation_sub_track_types[sub_track_entry_index_].types);
+				const uint32_t scale_sub_track_type_ = scale_sub_track_mask & and_not(entry_padding_mask, scale_sub_track_types[sub_track_entry_index_].types);
 
-					const uint32_t constant_value = constant_tracks_bitset[offset];
-					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
-					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
-					num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
+				num_constant_rotations += count_set_bits(rotation_sub_track_type_ & 0x55555555);
+				num_animated_rotations += count_set_bits(rotation_sub_track_type_ & 0xAAAAAAAA);
 
-					// Because the number of tracks in a 32 bit value isn't a multiple of the number of tracks we have (3),
-					// we have to cycle the masks. There are 3 possible masks, just swap them.
-					const uint32_t old_rotation_track_bit_mask = rotation_track_bit_mask;
-					rotation_track_bit_mask = translation_track_bit_mask;
-					translation_track_bit_mask = scale_track_bit_mask;
-					scale_track_bit_mask = old_rotation_track_bit_mask;
-				}
+				num_constant_translations += count_set_bits(translation_sub_track_type_ & 0x55555555);
+				num_animated_translations += count_set_bits(translation_sub_track_type_ & 0xAAAAAAAA);
 
-				const uint32_t remaining_tracks = sub_track_index % 32;
-				if (remaining_tracks != 0)
-				{
-					const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
-					const uint32_t default_value = and_not(not_up_to_track_mask, default_tracks_bitset[offset]);
-					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
-					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
-					num_default_scales += count_set_bits(default_value & scale_track_bit_mask);
-
-					const uint32_t constant_value = and_not(not_up_to_track_mask, constant_tracks_bitset[offset]);
-					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
-					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
-					num_constant_scales += count_set_bits(constant_value & scale_track_bit_mask);
-				}
-			}
-			else
-			{
-				const uint32_t rotation_track_bit_mask = 0xAAAAAAAA;		// b10101010..
-				const uint32_t translation_track_bit_mask = 0x55555555;		// b01010101..
-
-				const uint32_t last_offset = sub_track_index / 32;
-				uint32_t offset = 0;
-				for (; offset < last_offset; ++offset)
-				{
-					const uint32_t default_value = default_tracks_bitset[offset];
-					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
-					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
-
-					const uint32_t constant_value = constant_tracks_bitset[offset];
-					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
-					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
-				}
-
-				const uint32_t remaining_tracks = sub_track_index % 32;
-				if (remaining_tracks != 0)
-				{
-					const uint32_t not_up_to_track_mask = ((1 << (32 - remaining_tracks)) - 1);
-					const uint32_t default_value = and_not(not_up_to_track_mask, default_tracks_bitset[offset]);
-					num_default_rotations += count_set_bits(default_value & rotation_track_bit_mask);
-					num_default_translations += count_set_bits(default_value & translation_track_bit_mask);
-
-					const uint32_t constant_value = and_not(not_up_to_track_mask, constant_tracks_bitset[offset]);
-					num_constant_rotations += count_set_bits(constant_value & rotation_track_bit_mask);
-					num_constant_translations += count_set_bits(constant_value & translation_track_bit_mask);
-				}
+				num_constant_scales += count_set_bits(scale_sub_track_type_ & 0x55555555);
+				num_animated_scales += count_set_bits(scale_sub_track_type_ & 0xAAAAAAAA);
 			}
 
-			uint32_t rotation_group_sample_index = 0;
-			uint32_t translation_group_sample_index = 0;
-			uint32_t scale_group_sample_index = 0;
+			uint32_t rotation_group_sample_index;
+			uint32_t translation_group_sample_index;
+			uint32_t scale_group_sample_index;
 
 			constant_track_cache_v0 constant_track_cache;
 
 			// Skip the constant track data
-			if (is_rotation_constant || is_translation_constant || is_scale_constant)
+			if ((combined_sub_track_type & 1) != 0)
 			{
 				// TODO: Can we init just what we need?
 				constant_track_cache.initialize<decompression_settings_type>(context);
 
 				// Calculate how many constant groups of each sub-track type we need to skip
 				// Constant groups are easy to skip since they are contiguous in memory, we can just skip N trivially
-				// Tracks that are default are also constant
 
 				// Unpack the groups we need and skip the tracks before us
-				if (is_rotation_constant)
+				if (rotation_sub_track_type & 1)
 				{
-					const uint32_t num_constant_rotations_packed = num_constant_rotations - num_default_rotations;
-					const uint32_t num_rotation_constant_groups_to_skip = num_constant_rotations_packed / 4;
+					rotation_group_sample_index = num_constant_rotations % 4;
+
+					const uint32_t num_rotation_constant_groups_to_skip = num_constant_rotations / 4;
 					if (num_rotation_constant_groups_to_skip != 0)
 						constant_track_cache.skip_rotation_groups<decompression_settings_type>(context, num_rotation_constant_groups_to_skip);
-
-					rotation_group_sample_index = num_constant_rotations_packed % 4;
 				}
 
-				if (is_translation_constant)
+				if (translation_sub_track_type & 1)
 				{
-					const uint32_t num_constant_translations_packed = num_constant_translations - num_default_translations;
-					const uint32_t num_translation_constant_groups_to_skip = num_constant_translations_packed / 4;
+					translation_group_sample_index = num_constant_translations % 4;
+
+					const uint32_t num_translation_constant_groups_to_skip = num_constant_translations / 4;
 					if (num_translation_constant_groups_to_skip != 0)
 						constant_track_cache.skip_translation_groups(num_translation_constant_groups_to_skip);
-
-					translation_group_sample_index = num_constant_translations_packed % 4;
 				}
 
-				if (is_scale_constant)
+				if (scale_sub_track_type & 1)
 				{
-					const uint32_t num_constant_scales_packed = num_constant_scales - num_default_scales;
-					const uint32_t num_scale_constant_groups_to_skip = num_constant_scales_packed / 4;
+					scale_group_sample_index = num_constant_scales % 4;
+
+					const uint32_t num_scale_constant_groups_to_skip = num_constant_scales / 4;
 					if (num_scale_constant_groups_to_skip != 0)
 						constant_track_cache.skip_scale_groups(num_scale_constant_groups_to_skip);
-
-					scale_group_sample_index = num_constant_scales_packed % 4;
 				}
 			}
 
 			animated_track_cache_v0 animated_track_cache;
 
 			// Skip the animated track data
-			if (is_rotation_animated || is_translation_animated || is_scale_animated)
+			if ((combined_sub_track_type & 2) != 0)
 			{
 				// TODO: Can we init just what we need?
 				animated_track_cache.initialize<decompression_settings_type, translation_adapter>(context);
 
-				if (is_rotation_animated)
+				if (rotation_sub_track_type & 2)
 				{
-					const uint32_t num_animated_rotations = track_index - num_constant_rotations;
 					rotation_group_sample_index = num_animated_rotations % 4;
+
 					const uint32_t num_groups_to_skip = num_animated_rotations / 4;
 					if (num_groups_to_skip != 0)
 						animated_track_cache.skip_rotation_groups<decompression_settings_type>(context, num_groups_to_skip);
 				}
 
-				if (is_translation_animated)
+				if (translation_sub_track_type & 2)
 				{
-					const uint32_t num_animated_translations = track_index - num_constant_translations;
 					translation_group_sample_index = num_animated_translations % 4;
+
 					const uint32_t num_groups_to_skip = num_animated_translations / 4;
 					if (num_groups_to_skip != 0)
 						animated_track_cache.skip_translation_groups<translation_adapter>(context, num_groups_to_skip);
 				}
 
-				if (is_scale_animated)
+				if (scale_sub_track_type & 2)
 				{
-					const uint32_t num_animated_scales = track_index - num_constant_scales;
 					scale_group_sample_index = num_animated_scales % 4;
+
 					const uint32_t num_groups_to_skip = num_animated_scales / 4;
 					if (num_groups_to_skip != 0)
 						animated_track_cache.skip_scale_groups<scale_adapter>(context, num_groups_to_skip);
@@ -985,9 +1558,9 @@ namespace acl
 
 			{
 				rtm::quatf rotation;
-				if (is_rotation_default)
+				if (rotation_sub_track_type == 0)
 					rotation = default_rotation;
-				else if (is_rotation_constant)
+				else if (rotation_sub_track_type & 1)
 					rotation = constant_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 				else
 					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
@@ -997,9 +1570,9 @@ namespace acl
 
 			{
 				rtm::vector4f translation;
-				if (is_translation_default)
+				if (translation_sub_track_type == 0)
 					translation = default_translation;
-				else if (is_translation_constant)
+				else if (translation_sub_track_type & 1)
 					translation = constant_track_cache.unpack_translation_within_group(translation_group_sample_index);
 				else
 					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index);
@@ -1009,9 +1582,9 @@ namespace acl
 
 			{
 				rtm::vector4f scale;
-				if (is_scale_default)
+				if (scale_sub_track_type == 0)
 					scale = default_scale;
-				else if (is_scale_constant)
+				else if (scale_sub_track_type & 1)
 					scale = constant_track_cache.unpack_scale_within_group(scale_group_sample_index);
 				else
 					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index);
@@ -1022,6 +1595,13 @@ namespace acl
 			if (decompression_settings_type::disable_fp_exeptions())
 				restore_fp_exceptions(fp_env);
 		}
+
+		// Restore our warnings
+#if defined(ACL_COMPILER_MSVC)
+		#pragma warning(pop)
+#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+		//#pragma GCC diagnostic pop
+#endif
 	}
 }
 
