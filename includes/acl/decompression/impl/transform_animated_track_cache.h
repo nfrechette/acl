@@ -70,6 +70,14 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+// We only initialize some variables when we need them which prompts the compiler to complain
+// The usage is perfectly safe and because this code is VERY hot and needs to be as fast as possible,
+// we disable the warning to avoid zeroing out things we don't need
+#if defined(ACL_COMPILER_GCC)
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
 namespace acl
 {
 	namespace acl_impl
@@ -1797,5 +1805,9 @@ namespace acl
 		};
 	}
 }
+
+#if defined(ACL_COMPILER_GCC)
+	#pragma GCC diagnostic pop
+#endif
 
 ACL_IMPL_FILE_PRAGMA_POP

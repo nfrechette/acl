@@ -1371,9 +1371,9 @@ namespace acl
 		#pragma warning(push)
 		// warning C4701: potentially uninitialized local variable
 		#pragma warning(disable : 4701)
-#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
-		//#pragma GCC diagnostic push
-		//#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#elif defined(ACL_COMPILER_GCC)
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
 		template<class decompression_settings_type, class track_writer_type>
@@ -1596,8 +1596,8 @@ namespace acl
 		// Restore our warnings
 #if defined(ACL_COMPILER_MSVC)
 		#pragma warning(pop)
-#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
-		//#pragma GCC diagnostic pop
+#elif defined(ACL_COMPILER_GCC)
+		#pragma GCC diagnostic pop
 #endif
 	}
 }
