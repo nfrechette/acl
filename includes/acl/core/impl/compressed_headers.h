@@ -398,8 +398,8 @@ namespace acl
 			std::atomic<uint64_t>			tier_metadata[2];
 		};
 
-		// Header for runtime database clips
-		struct database_runtime_clip_header
+		// Header for runtime database clips, 8 byte alignment to match database_runtime_segment_header
+		struct alignas(8) database_runtime_clip_header
 		{
 			// Hash of the compressed clip stored in this entry
 			uint32_t						clip_hash;
