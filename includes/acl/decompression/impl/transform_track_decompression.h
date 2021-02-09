@@ -552,10 +552,9 @@ namespace acl
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
-				uint32_t packed_entry = rotation_sub_track_types[entry_index].types;
-
 				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
-				packed_entry &= 0x55555555;
+				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+				uint32_t packed_entry = and_not(~0x55555555U, rotation_sub_track_types[entry_index].types);
 
 				uint32_t curr_entry_track_index = track_index;
 
@@ -626,10 +625,9 @@ namespace acl
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
-				uint32_t packed_entry = rotation_sub_track_types[entry_index].types;
-
 				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
-				packed_entry &= 0xAAAAAAAA;
+				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+				uint32_t packed_entry = and_not(~0xAAAAAAAAU, rotation_sub_track_types[entry_index].types);
 
 				uint32_t curr_entry_track_index = track_index;
 
@@ -787,10 +785,9 @@ namespace acl
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
-				uint32_t packed_entry = translation_sub_track_types[entry_index].types;
-
 				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
-				packed_entry &= 0x55555555;
+				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+				uint32_t packed_entry = and_not(~0x55555555U, translation_sub_track_types[entry_index].types);
 
 				uint32_t curr_entry_track_index = track_index;
 
@@ -866,10 +863,9 @@ namespace acl
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
-				uint32_t packed_entry = translation_sub_track_types[entry_index].types;
-
 				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
-				packed_entry &= 0xAAAAAAAA;
+				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+				uint32_t packed_entry = and_not(~0xAAAAAAAAU, translation_sub_track_types[entry_index].types);
 
 				uint32_t curr_entry_track_index = track_index;
 
@@ -1023,10 +1019,9 @@ namespace acl
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
-				uint32_t packed_entry = scale_sub_track_types[entry_index].types;
-
 				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
-				packed_entry &= 0x55555555;
+				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+				uint32_t packed_entry = and_not(~0x55555555U, scale_sub_track_types[entry_index].types);
 
 				uint32_t curr_entry_track_index = track_index;
 
@@ -1102,10 +1097,9 @@ namespace acl
 		{
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
-				uint32_t packed_entry = scale_sub_track_types[entry_index].types;
-
 				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
-				packed_entry &= 0xAAAAAAAA;
+				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+				uint32_t packed_entry = and_not(~0xAAAAAAAAU, scale_sub_track_types[entry_index].types);
 
 				uint32_t curr_entry_track_index = track_index;
 
