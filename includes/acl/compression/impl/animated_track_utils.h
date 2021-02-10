@@ -84,137 +84,45 @@ namespace acl
 			get_num_sub_tracks(segment, animated_group_filter_action, out_num_animated_rotation_sub_tracks, out_num_animated_translation_sub_tracks, out_num_animated_scale_sub_tracks);
 		}
 
-		inline animation_track_type8* calculate_sub_track_groups(const SegmentContext& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones, uint32_t& out_num_groups,
-			const std::function<bool(animation_track_type8 group_type, uint32_t bone_index)>& group_filter_action)
-		{
-			uint32_t num_rotation_sub_tracks = 0;
-			uint32_t num_translation_sub_tracks = 0;
-			uint32_t num_scale_sub_tracks = 0;
-			get_num_sub_tracks(segment, group_filter_action, num_rotation_sub_tracks, num_translation_sub_tracks, num_scale_sub_tracks);
-
-			const uint32_t num_rotation_groups = (num_rotation_sub_tracks + 3) / 4;
-			const uint32_t num_translation_groups = (num_translation_sub_tracks + 3) / 4;
-			const uint32_t num_scale_groups = (num_scale_sub_tracks + 3) / 4;
-			const uint32_t num_groups = num_rotation_groups + num_translation_groups + num_scale_groups;
-
-			animation_track_type8* sub_track_groups = allocate_type_array<animation_track_type8>(*segment.clip->allocator, num_groups);
-			std::memset(sub_track_groups, 0xFF, num_groups * sizeof(animation_track_type8));
-
-			// Simulate reading in groups of 4
-			uint32_t num_cached_rotations = 0;
-			uint32_t num_left_rotations = num_rotation_sub_tracks;
-
-			uint32_t num_cached_translations = 0;
-			uint32_t num_left_translations = num_translation_sub_tracks;
-
-			uint32_t num_cached_scales = 0;
-			uint32_t num_left_scales = num_scale_sub_tracks;
-
-			uint32_t current_group_index = 0;
-
-			for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
-			{
-				if ((output_index % 4) == 0)
-				{
-					if (num_cached_rotations < 4 && num_left_rotations != 0)
-					{
-						sub_track_groups[current_group_index++] = animation_track_type8::rotation;
-						const uint32_t num_unpacked = std::min<uint32_t>(num_left_rotations, 4);
-						num_left_rotations -= num_unpacked;
-						num_cached_rotations += num_unpacked;
-					}
-
-					if (num_cached_translations < 4 && num_left_translations != 0)
-					{
-						sub_track_groups[current_group_index++] = animation_track_type8::translation;
-						const uint32_t num_unpacked = std::min<uint32_t>(num_left_translations, 4);
-						num_left_translations -= num_unpacked;
-						num_cached_translations += num_unpacked;
-					}
-
-					if (num_cached_scales < 4 && num_left_scales != 0)
-					{
-						sub_track_groups[current_group_index++] = animation_track_type8::scale;
-						const uint32_t num_unpacked = std::min<uint32_t>(num_left_scales, 4);
-						num_left_scales -= num_unpacked;
-						num_cached_scales += num_unpacked;
-					}
-				}
-
-				const uint32_t bone_index = output_bone_mapping[output_index];
-
-				if (group_filter_action(animation_track_type8::rotation, bone_index))
-					num_cached_rotations--;		// Consumed
-
-				if (group_filter_action(animation_track_type8::translation, bone_index))
-					num_cached_translations--;	// Consumed
-
-				if (group_filter_action(animation_track_type8::scale, bone_index))
-					num_cached_scales--;		// Consumed
-			}
-
-			ACL_ASSERT(current_group_index == num_groups, "Unexpected number of groups written");
-
-			out_num_groups = num_groups;
-			return sub_track_groups;
-		}
-
 		inline void group_writer(const SegmentContext& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
 			const std::function<bool(animation_track_type8 group_type, uint32_t bone_index)>& group_filter_action,
 			const std::function<void(animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)>& group_entry_action,
 			const std::function<void(animation_track_type8 group_type, uint32_t group_size)>& group_flush_action)
 		{
-			uint32_t num_groups = 0;
-			animation_track_type8* sub_track_groups = calculate_sub_track_groups(segment, output_bone_mapping, num_output_bones, num_groups, group_filter_action);
+			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
+			// Groups are sorted per sub-track type. All rotation groups come first followed by translations then scales.
+			// The last group of each sub-track may or may not have padding. The last group might be less than 4 sub-tracks.
 
-			uint32_t group_size = 0;
-
-			uint32_t rotation_output_index = 0;
-			uint32_t translation_output_index = 0;
-			uint32_t scale_output_index = 0;
-			for (uint32_t group_index = 0; group_index < num_groups; ++group_index)
+			const auto group_writer_impl = [output_bone_mapping, num_output_bones, &group_filter_action, &group_entry_action, &group_flush_action](animation_track_type8 group_type)
 			{
-				const animation_track_type8 group_type = sub_track_groups[group_index];
+				uint32_t group_size = 0;
 
-				if (group_type == animation_track_type8::rotation)
+				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 				{
-					for (; group_size < 4 && rotation_output_index < num_output_bones; ++rotation_output_index)
-					{
-						const uint32_t bone_index = output_bone_mapping[rotation_output_index];
+					const uint32_t bone_index = output_bone_mapping[output_index];
 
-						if (group_filter_action(animation_track_type8::rotation, bone_index))
-							group_entry_action(group_type, group_size++, bone_index);
-					}
-				}
-				else if (group_type == animation_track_type8::translation)
-				{
-					for (; group_size < 4 && translation_output_index < num_output_bones; ++translation_output_index)
-					{
-						const uint32_t bone_index = output_bone_mapping[translation_output_index];
+					if (group_filter_action(group_type, bone_index))
+						group_entry_action(group_type, group_size++, bone_index);
 
-						if (group_filter_action(animation_track_type8::translation, bone_index))
-							group_entry_action(group_type, group_size++, bone_index);
-					}
-				}
-				else // scale
-				{
-					for (; group_size < 4 && scale_output_index < num_output_bones; ++scale_output_index)
+					if (group_size == 4)
 					{
-						const uint32_t bone_index = output_bone_mapping[scale_output_index];
-
-						if (group_filter_action(animation_track_type8::scale, bone_index))
-							group_entry_action(group_type, group_size++, bone_index);
+						// Group full, write it out and move onto to the next group
+						group_flush_action(group_type, group_size);
+						group_size = 0;
 					}
 				}
 
-				ACL_ASSERT(group_size != 0, "Group cannot be empty");
+				// If group has leftover tracks, write it out
+				if (group_size != 0)
+					group_flush_action(group_type, group_size);
+			};
 
-				// Group full or we ran out of tracks, write it out and move onto to the next group
-				group_flush_action(group_type, group_size);
-				group_size = 0;
-			}
+			// Output sub-tracks in natural order: rot, trans, scale
+			group_writer_impl(animation_track_type8::rotation);
+			group_writer_impl(animation_track_type8::translation);
 
-			deallocate_type_array(*segment.clip->allocator, sub_track_groups, num_groups);
+			if (segment.clip->has_scale)
+				group_writer_impl(animation_track_type8::scale);
 		}
 
 		inline void animated_group_writer(const SegmentContext& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
@@ -234,24 +142,6 @@ namespace acl
 			};
 
 			group_writer(segment, output_bone_mapping, num_output_bones, animated_group_filter_action, group_entry_action, group_flush_action);
-		}
-
-		inline void constant_group_writer(const SegmentContext& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
-			const std::function<void(animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)>& group_entry_action,
-			const std::function<void(animation_track_type8 group_type, uint32_t group_size)>& group_flush_action)
-		{
-			const auto constant_group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
-			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
-				if (group_type == animation_track_type8::rotation)
-					return !bone_stream.is_rotation_default && bone_stream.is_rotation_constant;
-				else if (group_type == animation_track_type8::translation)
-					return !bone_stream.is_translation_default && bone_stream.is_translation_constant;
-				else
-					return !bone_stream.is_scale_default && bone_stream.is_scale_constant;
-			};
-
-			group_writer(segment, output_bone_mapping, num_output_bones, constant_group_filter_action, group_entry_action, group_flush_action);
 		}
 	}
 }

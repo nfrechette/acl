@@ -141,13 +141,12 @@ namespace acl
 						calculate_animated_data_size(bone_stream.scales, num_animated_pose_scale_data_bits);
 				}
 
-				const uint32_t num_samples = segment.num_samples;
 				const uint32_t num_animated_pose_bits = num_animated_pose_rotation_data_bits + num_animated_pose_translation_data_bits + num_animated_pose_scale_data_bits;
-				const uint32_t num_animated_data_bits = num_animated_pose_bits * num_samples;
+				const uint32_t num_animated_data_bits = num_animated_pose_bits * segment.num_samples;
 
-				segment.animated_rotation_bit_size = num_animated_pose_rotation_data_bits * num_samples;
-				segment.animated_translation_bit_size = num_animated_pose_translation_data_bits * num_samples;
-				segment.animated_scale_bit_size = num_animated_pose_scale_data_bits * num_samples;
+				segment.animated_rotation_bit_size = num_animated_pose_rotation_data_bits;
+				segment.animated_translation_bit_size = num_animated_pose_translation_data_bits;
+				segment.animated_scale_bit_size = num_animated_pose_scale_data_bits;
 				segment.animated_data_size = align_to(num_animated_data_bits, 8) / 8;
 				segment.animated_pose_bit_size = num_animated_pose_bits;
 			}
@@ -208,86 +207,6 @@ namespace acl
 
 			const uint8_t* constant_data_start = constant_data;
 
-#if defined(ACL_IMPL_USE_CONSTANT_GROUPS)
-			// Data is ordered in groups of 4 constant sub-tracks (e.g rot0, rot1, rot2, rot3)
-			// Order depends on animated track order. If we have 6 constant rotation tracks before the first constant
-			// translation track, we'll have 8 constant rotation sub-tracks followed by 4 constant translation sub-tracks.
-			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
-			// This is because we always process 4 constant sub-tracks at a time and cache the results.
-
-			// Groups are written in the order of first use and as such are sorted by their lowest sub-track index.
-
-			// If our rotation format drops the W component, we swizzle the data to store XXXX, YYYY, ZZZZ
-			const bool swizzle_rotations = get_rotation_variant(rotation_format) == rotation_variant8::quat_drop_w;
-
-			float xxxx_group[4];
-			float yyyy_group[4];
-			float zzzz_group[4];
-			rtm::vector4f constant_group4[4];
-			rtm::float3f constant_group3[4];
-
-			auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
-			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
-
-				if (group_type == animation_track_type8::rotation)
-				{
-					if (swizzle_rotations)
-					{
-						const rtm::vector4f sample = bone_stream.rotations.get_raw_sample<rtm::vector4f>(0);
-						xxxx_group[group_size] = rtm::vector_get_x(sample);
-						yyyy_group[group_size] = rtm::vector_get_y(sample);
-						zzzz_group[group_size] = rtm::vector_get_z(sample);
-					}
-					else
-					{
-						const rtm::vector4f sample = bone_stream.rotations.get_raw_sample<rtm::vector4f>(0);
-						constant_group4[group_size] = sample;
-					}
-				}
-				else if (group_type == animation_track_type8::translation)
-				{
-					const rtm::vector4f sample = bone_stream.translations.get_raw_sample<rtm::vector4f>(0);
-					rtm::vector_store3(sample, &constant_group3[group_size]);
-				}
-				else
-				{
-					const rtm::vector4f sample = bone_stream.scales.get_raw_sample<rtm::vector4f>(0);
-					rtm::vector_store3(sample, &constant_group3[group_size]);
-				}
-			};
-
-			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
-			{
-				if (group_type == animation_track_type8::rotation)
-				{
-					if (swizzle_rotations)
-					{
-						std::memcpy(constant_data, &xxxx_group[0], group_size * sizeof(float));
-						constant_data += group_size * sizeof(float);
-						std::memcpy(constant_data, &yyyy_group[0], group_size * sizeof(float));
-						constant_data += group_size * sizeof(float);
-						std::memcpy(constant_data, &zzzz_group[0], group_size * sizeof(float));
-						constant_data += group_size * sizeof(float);
-					}
-					else
-					{
-						// If we don't swizzle, we have a full quaternion
-						std::memcpy(constant_data, &constant_group4[0], group_size * sizeof(rtm::vector4f));
-						constant_data += group_size * sizeof(rtm::vector4f);
-					}
-				}
-				else
-				{
-					std::memcpy(constant_data, &constant_group3[0], group_size * sizeof(rtm::float3f));
-					constant_data += group_size * sizeof(rtm::float3f);
-				}
-
-				ACL_ASSERT(constant_data <= constant_data_end, "Invalid constant data offset. Wrote too much data.");
-			};
-
-			constant_group_writer(segment, output_bone_mapping, num_output_bones, group_entry_action, group_flush_action);
-#else
 			// If our rotation format drops the W component, we swizzle the data to store XXXX, YYYY, ZZZZ
 			const bool swizzle_rotations = get_rotation_variant(rotation_format) == rotation_variant8::quat_drop_w;
 			float xxxx[4];
@@ -382,13 +301,12 @@ namespace acl
 					}
 				}
 			}
-#endif
 
 			ACL_ASSERT(constant_data == constant_data_end, "Invalid constant data offset. Wrote too little data.");
 			return safe_static_cast<uint32_t>(constant_data - constant_data_start);
 		}
 
-		inline void write_animated_track_data(const TrackStream& track_stream, uint32_t sample_index, uint8_t* animated_track_data_begin, uint8_t*& out_animated_track_data, uint64_t& out_bit_offset)
+		inline void write_animated_sample(const TrackStream& track_stream, uint32_t sample_index, uint8_t* animated_track_data_begin, uint64_t& out_bit_offset)
 		{
 			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 
@@ -418,7 +336,6 @@ namespace acl
 				}
 
 				out_bit_offset += num_bits_at_bit_rate;
-				out_animated_track_data = animated_track_data_begin + (out_bit_offset / 8);
 			}
 			else
 			{
@@ -440,7 +357,6 @@ namespace acl
 				}
 
 				out_bit_offset += has_w_component ? 128 : 96;
-				out_animated_track_data = animated_track_data_begin + (out_bit_offset / 8);
 			}
 		}
 
@@ -457,26 +373,19 @@ namespace acl
 
 			const uint8_t* animated_track_data_start = animated_track_data;
 			uint64_t bit_offset = 0;
-			uint32_t num_samples = 0;
 
 			// Data is sorted first by time, second by bone.
 			// This ensures that all bones are contiguous in memory when we sample a particular time.
 
 			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
-			// Order depends on animated track order. If we have 6 animated rotation tracks before the first animated
-			// translation track, we'll have 8 animated rotation sub-tracks followed by 4 animated translation sub-tracks.
-			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
-			// This is because we always process 4 animated sub-tracks at a time and cache the results.
-
-			// Groups are written in the order of first use and as such are sorted by their lowest sub-track index.
+			// Groups are sorted per sub-track type. All rotation groups come first followed by translations then scales.
+			// The last group of each sub-track may or may not have padding. The last group might be less than 4 sub-tracks.
 
 			// For animated samples, when we have a constant bit rate (bit rate 0), we do not store samples
 			// and as such the group that contains that sub-track won't contain 4 samples.
 			// The largest sample is a full precision vector4f, we can contain at most 4 samples
 			alignas(16) uint8_t group_animated_track_data[sizeof(rtm::vector4f) * 4];
 			uint64_t group_bit_offset = 0;
-			uint32_t num_group_samples = 0;
-			uint8_t* dummy_animated_track_data_ptr = nullptr;
 
 			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
 			{
@@ -491,15 +400,12 @@ namespace acl
 			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
 			{
 				(void)group_type;
-
-				if (group_size == 0)
-					return;	// Empty group, skip
+				(void)group_size;
 
 				memcpy_bits(animated_track_data_begin, bit_offset, &group_animated_track_data[0], 0, group_bit_offset);
 
 				bit_offset += group_bit_offset;
 				group_bit_offset = 0;
-				num_group_samples = 0;
 
 				animated_track_data = animated_track_data_begin + (bit_offset / 8);
 
@@ -509,8 +415,6 @@ namespace acl
 			// TODO: Use a group writer context object to avoid alloc/free/work in loop for every sample when it doesn't change
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
-				num_samples++;
-
 				auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 				{
 					(void)group_size;
@@ -519,26 +423,17 @@ namespace acl
 					if (group_type == animation_track_type8::rotation)
 					{
 						if (!is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
-						{
-							write_animated_track_data(bone_stream.rotations, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
-							num_group_samples++;
-						}
+							write_animated_sample(bone_stream.rotations, sample_index, group_animated_track_data, group_bit_offset);
 					}
 					else if (group_type == animation_track_type8::translation)
 					{
 						if (!is_constant_bit_rate(bone_stream.translations.get_bit_rate()))
-						{
-							write_animated_track_data(bone_stream.translations, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
-							num_group_samples++;
-						}
+							write_animated_sample(bone_stream.translations, sample_index, group_animated_track_data, group_bit_offset);
 					}
 					else
 					{
 						if (!is_constant_bit_rate(bone_stream.scales.get_bit_rate()))
-						{
-							write_animated_track_data(bone_stream.scales, sample_index, group_animated_track_data, dummy_animated_track_data_ptr, group_bit_offset);
-							num_group_samples++;
-						}
+							write_animated_sample(bone_stream.scales, sample_index, group_animated_track_data, group_bit_offset);
 					}
 				};
 
@@ -548,7 +443,7 @@ namespace acl
 			if (bit_offset != 0)
 				animated_track_data = animated_track_data_begin + ((bit_offset + 7) / 8);
 
-			ACL_ASSERT((bit_offset == 0 && num_samples == 0) || ((bit_offset / num_samples) == segment.animated_pose_bit_size), "Unexpected number of bits written");
+			ACL_ASSERT((bit_offset == 0 && segment.num_samples == 0) || ((bit_offset / segment.num_samples) == segment.animated_pose_bit_size), "Unexpected number of bits written");
 			ACL_ASSERT(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
 			return safe_static_cast<uint32_t>(animated_track_data - animated_track_data_start);
 		}
@@ -565,12 +460,8 @@ namespace acl
 			const uint8_t* format_per_track_data_start = format_per_track_data;
 
 			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
-			// Order depends on animated track order. If we have 6 animated rotation tracks before the first animated
-			// translation track, we'll have 8 animated rotation sub-tracks followed by 4 animated translation sub-tracks.
-			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
-			// This is because we always process 4 animated sub-tracks at a time and cache the results.
-
-			// Groups are written in the order of first use and as such are sorted by their lowest sub-track index.
+			// Groups are sorted per sub-track type. All rotation groups come first followed by translations then scales.
+			// The last group of each sub-track may or may not have padding. The last group might be less than 4 sub-tracks.
 
 			// To keep decompression simpler, rotations are padded to 4 elements even if the last group is partial
 			uint8_t format_per_track_group[4];
@@ -614,21 +505,6 @@ namespace acl
 			ACL_ASSERT(format_per_track_data == format_per_track_data_end, "Invalid format per track data offset. Wrote too little data.");
 
 			return safe_static_cast<uint32_t>(format_per_track_data - format_per_track_data_start);
-		}
-
-		inline uint32_t write_animated_group_types(const animation_track_type8* animated_sub_track_groups, uint32_t num_animated_groups, animation_track_type8* animated_sub_track_groups_data, uint32_t animated_sub_track_groups_data_size)
-		{
-			(void)animated_sub_track_groups_data_size;
-
-			const animation_track_type8* animated_sub_track_groups_data_start = animated_sub_track_groups_data;
-
-			std::memcpy(animated_sub_track_groups_data, animated_sub_track_groups, sizeof(animation_track_type8) * num_animated_groups);
-			animated_sub_track_groups_data += num_animated_groups;
-			animated_sub_track_groups_data[0] = static_cast<animation_track_type8>(0xFF);	// Terminator
-			animated_sub_track_groups_data++;
-
-			ACL_ASSERT(animated_sub_track_groups_data == animated_sub_track_groups_data_start + animated_sub_track_groups_data_size, "Too little or too much data written");
-			return static_cast<uint32_t>(animated_sub_track_groups_data - animated_sub_track_groups_data_start);
 		}
 	}
 }

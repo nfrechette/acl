@@ -46,8 +46,8 @@
 #include "acl/compression/impl/segment_streams.h"
 #include "acl/compression/impl/write_segment_data.h"
 #include "acl/compression/impl/write_stats.h"
-#include "acl/compression/impl/write_stream_bitsets.h"
 #include "acl/compression/impl/write_stream_data.h"
+#include "acl/compression/impl/write_sub_track_types.h"
 #include "acl/compression/impl/write_track_metadata.h"
 
 #include <cstdint>
@@ -127,7 +127,7 @@ namespace acl
 			{
 				// Normalize our samples into the clip wide ranges per bone
 				normalize_clip_streams(lossy_clip_context, range_reduction);
-				clip_range_data_size = get_stream_range_data_size(lossy_clip_context, range_reduction, settings.rotation_format);
+				clip_range_data_size = get_clip_range_data_size(lossy_clip_context, range_reduction, settings.rotation_format);
 			}
 
 			segment_streams(allocator, lossy_clip_context, settings.segmenting);
@@ -154,24 +154,15 @@ namespace acl
 			uint32_t num_animated_variable_sub_tracks_padded = 0;
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(lossy_clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, &num_animated_variable_sub_tracks_padded);
 
-			auto animated_group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
-			{
-				const BoneStreams& bone_stream = lossy_clip_context.segments[0].bone_streams[bone_index];
-				if (group_type == animation_track_type8::rotation)
-					return !bone_stream.is_rotation_constant;
-				else if (group_type == animation_track_type8::translation)
-					return !bone_stream.is_translation_constant;
-				else
-					return !bone_stream.is_scale_constant;
-			};
-
-			uint32_t num_animated_groups = 0;
-			animation_track_type8* animated_sub_track_groups = calculate_sub_track_groups(lossy_clip_context.segments[0], output_bone_mapping, num_output_bones, num_animated_groups, animated_group_filter_action);
-			const uint32_t animated_group_types_size = sizeof(animation_track_type8) * (num_animated_groups + 1);	// Includes terminator
-
 			const uint32_t num_sub_tracks_per_bone = lossy_clip_context.has_scale ? 3 : 2;
-			const uint32_t num_sub_tracks = num_output_bones * num_sub_tracks_per_bone;
-			const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_sub_tracks);
+
+			// Calculate how many sub-track packed entries we have
+			// Each sub-track is 2 bits packed within a 32 bit entry
+			// For each sub-track type, we round up to simplify bookkeeping
+			// For example, if we have 3 tracks made up of rotation/translation we'll have one entry for each with unused padding
+			// All rotation types come first, followed by all translation types, and with scale types at the end when present
+			const uint32_t num_sub_track_entries = ((num_output_bones + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry) * num_sub_tracks_per_bone;
+			const uint32_t packed_sub_track_buffer_size = num_sub_track_entries * sizeof(packed_sub_track_types);
 
 			// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
 			const uint32_t segment_start_indices_size = lossy_clip_context.num_segments > 1 ? (sizeof(uint32_t) * (lossy_clip_context.num_segments + 1)) : 0;
@@ -189,17 +180,15 @@ namespace acl
 			buffer_size += segment_start_indices_size;							// Segment start indices
 			buffer_size = align_to(buffer_size, 4);								// Align segment headers
 			buffer_size += segment_headers_size;								// Segment headers
-			buffer_size = align_to(buffer_size, 4);								// Align bitsets
+			buffer_size = align_to(buffer_size, 4);								// Align sub-track types
 
 			const uint32_t clip_segment_header_size = buffer_size - clip_header_size;
 
-			buffer_size += bitset_desc.get_num_bytes();							// Default tracks bitset
-			buffer_size += bitset_desc.get_num_bytes();							// Constant tracks bitset
+			buffer_size += packed_sub_track_buffer_size;						// Packed sub-track types sorted by type
 			buffer_size = align_to(buffer_size, 4);								// Align constant track data
 			buffer_size += constant_data_size;									// Constant track data
 			buffer_size = align_to(buffer_size, 4);								// Align range data
 			buffer_size += clip_range_data_size;								// Range data
-			buffer_size += animated_group_types_size;							// Our animated group types
 
 			const uint32_t clip_data_size = buffer_size - clip_segment_header_size - clip_header_size;
 
@@ -310,22 +299,19 @@ namespace acl
 			const uint32_t segment_start_indices_offset = align_to<uint32_t>(sizeof(transform_tracks_header), 4);	// Relative to the start of our transform_tracks_header
 			transforms_header->database_header_offset = invalid_ptr_offset();
 			transforms_header->segment_headers_offset = align_to(segment_start_indices_offset + segment_start_indices_size, 4);
-			transforms_header->default_tracks_bitset_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
-			transforms_header->constant_tracks_bitset_offset = transforms_header->default_tracks_bitset_offset + bitset_desc.get_num_bytes();
-			transforms_header->constant_track_data_offset = align_to(transforms_header->constant_tracks_bitset_offset + bitset_desc.get_num_bytes(), 4);
+			transforms_header->sub_track_types_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
+			transforms_header->constant_track_data_offset = align_to(transforms_header->sub_track_types_offset + packed_sub_track_buffer_size, 4);
 			transforms_header->clip_range_data_offset = align_to(transforms_header->constant_track_data_offset + constant_data_size, 4);
-			transforms_header->animated_group_types_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
 
 			uint32_t written_segment_start_indices_size = 0;
 			if (lossy_clip_context.num_segments > 1)
 				written_segment_start_indices_size = write_segment_start_indices(lossy_clip_context, transforms_header->get_segment_start_indices());
 
-			const uint32_t segment_data_start_offset = transforms_header->animated_group_types_offset + animated_group_types_size;
+			const uint32_t segment_data_start_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
 			const uint32_t written_segment_headers_size = write_segment_headers(lossy_clip_context, settings, transforms_header->get_segment_headers(), segment_data_start_offset);
 
-			uint32_t written_bitset_size = 0;
-			written_bitset_size += write_default_track_bitset(lossy_clip_context, transforms_header->get_default_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
-			written_bitset_size += write_constant_track_bitset(lossy_clip_context, transforms_header->get_constant_tracks_bitset(), bitset_desc, output_bone_mapping, num_output_bones);
+			uint32_t written_sub_track_buffer_size = 0;
+			written_sub_track_buffer_size += write_packed_sub_track_types(lossy_clip_context, transforms_header->get_sub_track_types(), output_bone_mapping, num_output_bones);
 
 			uint32_t written_constant_data_size = 0;
 			if (constant_data_size != 0)
@@ -334,8 +320,6 @@ namespace acl
 			uint32_t written_clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
 				written_clip_range_data_size = write_clip_range_data(lossy_clip_context, range_reduction, transforms_header->get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
-
-			const uint32_t written_animated_group_types_size = write_animated_group_types(animated_sub_track_groups, num_animated_groups, transforms_header->get_animated_group_types(), animated_group_types_size);
 
 			const uint32_t written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, transforms_header->get_segment_headers(), *transforms_header, output_bone_mapping, num_output_bones);
 
@@ -411,13 +395,12 @@ namespace acl
 				buffer += written_segment_start_indices_size;
 				buffer = align_to(buffer, 4);								// Align segment headers
 				buffer += written_segment_headers_size;
-				buffer = align_to(buffer, 4);								// Align bitsets
-				buffer += written_bitset_size;
+				buffer = align_to(buffer, 4);								// Align sub-track types
+				buffer += written_sub_track_buffer_size;
 				buffer = align_to(buffer, 4);								// Align constant track data
 				buffer += written_constant_data_size;
 				buffer = align_to(buffer, 4);								// Align range data
 				buffer += written_clip_range_data_size;
-				buffer += written_animated_group_types_size;
 				buffer += written_segment_data_size;
 
 				if (metadata_size != 0)
@@ -435,10 +418,9 @@ namespace acl
 				ACL_ASSERT(written_segment_start_indices_size == segment_start_indices_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_segment_headers_size == segment_headers_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_segment_data_size == segment_data_size, "Wrote too little or too much data");
-				ACL_ASSERT(written_bitset_size == (bitset_desc.get_num_bytes() * 2), "Wrote too little or too much data");
+				ACL_ASSERT(written_sub_track_buffer_size == packed_sub_track_buffer_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_constant_data_size == constant_data_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_clip_range_data_size == clip_range_data_size, "Wrote too little or too much data");
-				ACL_ASSERT(written_animated_group_types_size == animated_group_types_size, "Wrote too little or too much data");
 				ACL_ASSERT(writter_metadata_track_list_name_size == metadata_track_list_name_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_metadata_track_names_size == metadata_track_names_size, "Wrote too little or too much data");
 				ACL_ASSERT(written_metadata_parent_track_indices_size == metadata_parent_track_indices_size, "Wrote too little or too much data");
@@ -455,11 +437,10 @@ namespace acl
 #else
 			(void)written_segment_start_indices_size;
 			(void)written_segment_headers_size;
-			(void)written_bitset_size;
+			(void)written_sub_track_buffer_size;
 			(void)written_constant_data_size;
 			(void)written_clip_range_data_size;
 			(void)written_segment_data_size;
-			(void)written_animated_group_types_size;
 			(void)segment_data_size;
 			(void)buffer_start;
 #endif
@@ -471,7 +452,6 @@ namespace acl
 				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, range_reduction, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
 #endif
 
-			deallocate_type_array(allocator, animated_sub_track_groups, num_animated_groups);
 			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
 			destroy_clip_context(lossy_clip_context);
 			destroy_clip_context(raw_clip_context);

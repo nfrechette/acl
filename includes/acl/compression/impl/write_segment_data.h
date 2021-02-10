@@ -76,6 +76,8 @@ namespace acl
 				ACL_ASSERT(header.animated_pose_bit_size == 0, "Buffer overrun detected");
 
 				header.animated_pose_bit_size = segment.animated_pose_bit_size;
+				header.animated_rotation_bit_size = segment.animated_rotation_bit_size;
+				header.animated_translation_bit_size = segment.animated_translation_bit_size;
 				header.segment_data = segment_data_offset;
 
 				segment_data_offset = align_to(segment_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes

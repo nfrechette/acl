@@ -155,4 +155,15 @@
     </Expand>
   </Type>
 
+  <Type Name="acl::acl_impl::packed_sub_track_types">
+    <Expand>
+      <IndexListItems>
+        <Size>16</Size>
+        <ValueNode Condition="((types >> ((15 - $i) * 2)) &amp; 0x3) == 0">"default"</ValueNode>
+        <ValueNode Condition="((types >> ((15 - $i) * 2)) &amp; 0x3) == 1">"constant"</ValueNode>
+        <ValueNode Condition="((types >> ((15 - $i) * 2)) &amp; 0x3) == 2">"animated"</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>

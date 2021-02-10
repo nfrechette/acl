@@ -464,7 +464,7 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(db01->contains(*db_tracks01[1]), "Database should contain our clip");
 	}
 
-	// Reference error with the bulk data inline and everything loaded
+	// Reference error without the database with everything highest quality
 	track_error high_quality_tier_error_ref;
 	{
 		acl::decompression_context<debug_transform_decompression_settings_with_db> context;

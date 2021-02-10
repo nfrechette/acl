@@ -40,19 +40,40 @@
 #include <string>
 #include <vector>
 
-// TODO: get an official CPU cache size
-#if defined(RTM_SSE2_INTRINSICS)
-	static constexpr uint32_t k_cache_size = 33 * 1024 * 1024;		// Assume 32 MB cache
-	static constexpr uint32_t k_num_tlb_entries = 4000;
-#elif defined(__ANDROID__)
-	static constexpr uint32_t k_cache_size = 3 * 1024 * 1024;		// Pixel 3 has 2 MB cache
-	static constexpr uint32_t k_num_tlb_entries = 100;
-#else
-	static constexpr uint32_t k_cache_size = 9 * 1024 * 1024;		// iPad Pro has 8 MB cache
-	static constexpr uint32_t k_num_tlb_entries = 2000;
-#endif
+//////////////////////////////////////////////////////////////////////////
+// Constants
 
-static constexpr uint32_t k_page_size = 4 * 1024;	// 4 KB is standard
+static constexpr uint32_t k_cpu_cache_size = 8 * 1024 * 1024;	// Assume a 8 MB cache which is common for L3 modules (iPad, Zen2)
+
+// In practice, CPUs do not always evict the least recently used cache line.
+// To ensure every cache line is evicted, we allocate our buffer 4x larger than the CPU cache.
+// We use a custom memset function to make sure that streaming writes aren't used which would
+// bypass the CPU cache and not evict anything.
+static constexpr uint32_t k_flush_buffer_size = k_cpu_cache_size * 4;
+
+// The VMEM Level 1 translation has 512 entries each spanning 1 GB. We'll assume that in the real world
+// there is a reasonable chance that memory touched will live within the same 1 GB region and thus be
+// in some level of the CPU cache.
+
+// The VMEM Level 2 translation has 512 entries each spanning 2 MB.
+// This means the cache line we load to find a page offset contains a span of 16 MB within it (a cache
+// line contains 8 entries).
+// To ensure we don't touch cache lines that belong to our input buffer as we flush the CPU cache,
+// we add sufficient padding at both ends of the flush buffer. Since we'll access it linearly,
+// the hardware prefetcher might pull in cache lines ahead. We assume it won't pull more than 4 cache
+// lines ahead. This means we need this much padding on each end: 4 * 16 MB = 64 MB
+static constexpr uint32_t k_vmem_padding = 16 * 1024 * 1024;
+static constexpr uint32_t k_padded_flush_buffer_size = k_vmem_padding + k_flush_buffer_size + k_vmem_padding;
+
+// We allocate 100 copies of the compressed clip and align them to reduce the flush cost
+// by flushing only when we loop around. We pad each copy to 16 MB to ensure no VMEM entry sharing in L2.
+// A compressed clip that takes less than 160 MB would end up using 16 MB * 100 = 1.56 GB
+static constexpr uint32_t k_num_copies = 220;
+
+// Align our clip copy buffer to a 2 MB boundary to further reduce VMEM noise
+static constexpr uint32_t k_clip_buffer_alignment = 2 * 1024 * 1024;
+
+//////////////////////////////////////////////////////////////////////////
 
 enum class PlaybackDirection
 {
@@ -74,11 +95,11 @@ struct benchmark_state
 
 	acl::compressed_tracks** decompression_instances = nullptr;
 	acl::decompression_context<acl::default_transform_decompression_settings>* decompression_contexts = nullptr;
-	uint8_t* clip_mega_buffer = nullptr;
+	uint8_t* clip_copy_buffer = nullptr;
+	uint8_t* flush_buffer = nullptr;
 
-	uint32_t num_copies = 0;
 	uint32_t pose_size = 0;
-	uint32_t clip_buffer_size = 0;
+	uint32_t clip_copy_buffer_size = 0;
 };
 
 acl::ansi_allocator s_allocator;
@@ -86,72 +107,74 @@ static benchmark_state s_benchmark_state;
 
 void clear_benchmark_state()
 {
-	acl::deallocate_type_array(s_allocator, s_benchmark_state.decompression_contexts, s_benchmark_state.num_copies);
-	acl::deallocate_type_array(s_allocator, s_benchmark_state.decompression_instances, s_benchmark_state.num_copies);
-	acl::deallocate_type_array(s_allocator, s_benchmark_state.clip_mega_buffer, s_benchmark_state.num_copies * size_t(s_benchmark_state.clip_buffer_size));
+	acl::deallocate_type_array(s_allocator, s_benchmark_state.decompression_contexts, k_num_copies);
+	acl::deallocate_type_array(s_allocator, s_benchmark_state.decompression_instances, k_num_copies);
+	acl::deallocate_type_array(s_allocator, s_benchmark_state.clip_copy_buffer, s_benchmark_state.clip_copy_buffer_size);
+	acl::deallocate_type_array(s_allocator, s_benchmark_state.flush_buffer, k_padded_flush_buffer_size);
 
 	s_benchmark_state = benchmark_state();
 }
 
+static void allocate_static_buffers()
+{
+	if (s_benchmark_state.flush_buffer != nullptr)
+		return;	// Already allocated
+
+	s_benchmark_state.decompression_instances = acl::allocate_type_array<acl::compressed_tracks*>(s_allocator, k_num_copies);
+	s_benchmark_state.decompression_contexts = acl::allocate_type_array<acl::decompression_context<acl::default_transform_decompression_settings>>(s_allocator, k_num_copies);
+	s_benchmark_state.flush_buffer = acl::allocate_type_array<uint8_t>(s_allocator, k_padded_flush_buffer_size);
+}
+
 static void setup_benchmark_state(acl::compressed_tracks& compressed_tracks)
 {
+	allocate_static_buffers();
+
 	const uint32_t num_tracks = compressed_tracks.get_num_tracks();
 	const uint32_t compressed_size = compressed_tracks.get_size();
 
 	const uint32_t num_bytes_per_track = (4 + 3 + 3) * sizeof(float);	// Rotation, Translation, Scale
 	const uint32_t pose_size = num_tracks * num_bytes_per_track;
 
-	// We want to divide our CPU cache into the number of poses it can hold
-	const uint32_t num_poses_in_cpu_cache = (k_cache_size + pose_size - 1) / pose_size;
+	// Each clip is rounded up to a multiple of our VMEM padding
+	const uint32_t padded_clip_size = acl::align_to(compressed_size, k_vmem_padding);
+	const uint32_t clip_buffer_size = padded_clip_size * k_num_copies;
 
-	// We want our CPU cache to be cold when we decompress so we duplicate the clip and switch every iteration.
-	// Each decompression call will interpolate 2 poses, assume we touch 'pose_size * 2' bytes and at least once memory page.
-	const uint32_t num_copies = std::max<uint32_t>((num_poses_in_cpu_cache + 1) / 2, k_num_tlb_entries);
+	acl::compressed_tracks** decompression_instances = s_benchmark_state.decompression_instances;
+	acl::decompression_context<acl::default_transform_decompression_settings>* decompression_contexts = s_benchmark_state.decompression_contexts;
+	uint8_t* clip_copy_buffer = s_benchmark_state.clip_copy_buffer;
 
-	// Align each buffer to a large multiple of our page size to avoid virtual memory translation noise.
-	// When we decompress, our memory is sure to be cold and we want to make it reasonably cold.
-	// This is why we use multiple clips to avoid the CPU cache being re-used.
-	// However, that is not where it stops. When we hit a cache miss, we also need to translate the
-	// virtual address used into a physical address. To do this, the CPU first checks if it already
-	// translated an address in the same memory page. This is why we pad the buffer to make sure the
-	// next clip in memory doesn't share a page. If we have a TLB miss, it triggers the hardware
-	// page walk. This in turn uses the virtual address to lookup in a series of tables where the physical
-	// memory lies. On x64, this series of tables is 4 (or 5) levels deep and they live in physical memory. Reading
-	// them can in turn trigger cache misses and TLB misses. They can also be prefetched by the hardware
-	// since their memory is just ordinary data that lives in the CPU cache and RAM like everything else.
-	// To force as many cache misses there as possible and to minimize the impact of prefetching, we thus
-	// align each buffer to spread them out in memory.
-	const uint32_t clip_buffer_alignment = k_page_size * 32;
+	if (clip_buffer_size > s_benchmark_state.clip_copy_buffer_size)
+	{
+		// Allocate our new clip copy buffer
+		clip_copy_buffer = acl::allocate_type_array_aligned<uint8_t>(s_allocator, clip_buffer_size, k_clip_buffer_alignment);
 
-	// Make sure to pad our buffers with a page size to avoid TLB noise
-	// Also make sure we can contain at least one full pose to handle memcpy decompression
-	const uint32_t clip_buffer_size = acl::align_to(std::max<uint32_t>(compressed_size, pose_size), clip_buffer_alignment);
+		s_benchmark_state.clip_copy_buffer = clip_copy_buffer;
+		s_benchmark_state.clip_copy_buffer_size = clip_buffer_size;
+	}
 
-	printf("Pose size: %u, num copies: %u\n", pose_size, num_copies);
-
-	acl::compressed_tracks** decompression_instances = acl::allocate_type_array<acl::compressed_tracks*>(s_allocator, num_copies);
-	uint8_t* clip_mega_buffer = acl::allocate_type_array_aligned<uint8_t>(s_allocator, num_copies * size_t(clip_buffer_size), k_page_size);
+	printf("Pose size: %u bytes, clip size: %.2f MB\n", pose_size, double(compressed_size) / (1024.0 * 1024.0));
 
 	// Create our copies
-	for (uint32_t copy_index = 0; copy_index < num_copies; ++copy_index)
+	for (uint32_t copy_index = 0; copy_index < k_num_copies; ++copy_index)
 	{
-		uint8_t* buffer = clip_mega_buffer + copy_index * size_t(clip_buffer_size);
+		uint8_t* buffer = clip_copy_buffer + (copy_index * padded_clip_size);
 		std::memcpy(buffer, &compressed_tracks, compressed_size);
 
 		decompression_instances[copy_index] = reinterpret_cast<acl::compressed_tracks*>(buffer);
 	}
 
-	acl::decompression_context<acl::default_transform_decompression_settings>* decompression_contexts = acl::allocate_type_array<acl::decompression_context<acl::default_transform_decompression_settings>>(s_allocator, num_copies);
-	for (uint32_t instance_index = 0; instance_index < num_copies; ++instance_index)
+	// Create our decompression contexts
+	for (uint32_t instance_index = 0; instance_index < k_num_copies; ++instance_index)
 		decompression_contexts[instance_index].initialize(*decompression_instances[instance_index]);
 
 	s_benchmark_state.compressed_tracks = &compressed_tracks;
-	s_benchmark_state.decompression_instances = decompression_instances;
-	s_benchmark_state.decompression_contexts = decompression_contexts;
-	s_benchmark_state.clip_mega_buffer = clip_mega_buffer;
-	s_benchmark_state.num_copies = num_copies;
 	s_benchmark_state.pose_size = pose_size;
-	s_benchmark_state.clip_buffer_size = clip_buffer_size;
+}
+
+static void memset_impl(uint8_t* buffer, size_t buffer_size, uint8_t value)
+{
+	for (uint8_t* ptr = buffer; ptr < buffer + buffer_size; ++ptr)
+		*ptr = value;
 }
 
 static void benchmark_decompression(benchmark::State& state)
@@ -161,11 +184,7 @@ static void benchmark_decompression(benchmark::State& state)
 	const DecompressionFunction decompression_function = static_cast<DecompressionFunction>(state.range(2));
 
 	if (s_benchmark_state.compressed_tracks != &compressed_tracks)
-	{
-		// We have a new clip, clear out our old state and start over
-		clear_benchmark_state();
-		setup_benchmark_state(compressed_tracks);
-	}
+		setup_benchmark_state(compressed_tracks);	// We have a new clip, setup everything
 
 	const float duration = compressed_tracks.get_duration();
 
@@ -192,16 +211,24 @@ static void benchmark_decompression(benchmark::State& state)
 
 	acl::compressed_tracks** decompression_instances = s_benchmark_state.decompression_instances;
 	acl::decompression_context<acl::default_transform_decompression_settings>* decompression_contexts = s_benchmark_state.decompression_contexts;
-	const uint32_t num_copies = s_benchmark_state.num_copies;
+	uint8_t* flush_buffer = s_benchmark_state.flush_buffer;
 	const uint32_t pose_size = s_benchmark_state.pose_size;
 
 	const uint32_t num_tracks = compressed_tracks.get_num_tracks();
 	acl::acl_impl::debug_track_writer pose_writer(s_allocator, acl::track_type8::qvvf, num_tracks);
 
+	// Flush the CPU cache
+	memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);
+
 	uint32_t current_context_index = 0;
 	uint32_t current_sample_index = 0;
+	uint8_t flush_value = 2;
 	for (auto _ : state)
 	{
+		(void)_;
+
+		const auto start = std::chrono::high_resolution_clock::now();
+
 		const float sample_time = sample_times[current_sample_index];
 
 		acl::decompression_context<acl::default_transform_decompression_settings>& context = decompression_contexts[current_context_index];
@@ -221,15 +248,23 @@ static void benchmark_decompression(benchmark::State& state)
 			break;
 		}
 
+		const auto end = std::chrono::high_resolution_clock::now();
+		const auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+		state.SetIterationTime(elapsed_seconds.count());
+
 		// Move on to the next context and sample
 		// We only move on to the next sample once every context has been touched
-		++current_context_index;
-		if (current_context_index >= num_copies)
+		current_context_index++;
+		if (current_context_index >= k_num_copies)
 		{
 			current_context_index = 0;
-			++current_sample_index;
+			current_sample_index++;
+
 			if (current_sample_index >= k_num_decompression_samples)
 				current_sample_index = 0;
+
+			// Flush the CPU cache
+			memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, flush_value++);
 		}
 	}
 
@@ -387,16 +422,14 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	bench->ArgNames({ "", "Dir", "Func" });
 
 	// Sometimes the numbers are slightly different from run to run, we'll run a few times
-	bench->Repetitions(20);
+	bench->Repetitions(3);
 
-	bench->ComputeStatistics("min", [](const std::vector<double>& v)
-	{
-		return *std::min_element(std::begin(v), std::end(v));
-	});
-	bench->ComputeStatistics("max", [](const std::vector<double>& v)
-	{
-		return *std::max_element(std::begin(v), std::end(v));
-	});
+	// Use manual timing since we clear the CPU cache explicitly
+	bench->UseManualTime();
+
+	// Add min/max tracking
+	bench->ComputeStatistics("min", [](const std::vector<double>& v) { return *std::min_element(std::begin(v), std::end(v)); });
+	bench->ComputeStatistics("max", [](const std::vector<double>& v) { return *std::max_element(std::begin(v), std::end(v)); });
 
 	out_compressed_clips.push_back(compressed_tracks);
 	return true;

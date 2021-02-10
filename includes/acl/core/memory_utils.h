@@ -288,6 +288,9 @@ namespace acl
 	// We copy bits assuming big-endian ordering for 'dest' and 'src'
 	inline void memcpy_bits(void* dest, uint64_t dest_bit_offset, const void* src, uint64_t src_bit_offset, uint64_t num_bits_to_copy)
 	{
+		if (num_bits_to_copy == 0)
+			return;	// Nothing to copy
+
 		while (true)
 		{
 			uint64_t src_byte_offset = src_bit_offset / 8;

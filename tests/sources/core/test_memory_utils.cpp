@@ -22,7 +22,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #include <acl/core/memory_utils.h>
 
@@ -165,6 +165,17 @@ TEST_CASE("memcpy_bits", "[core][memory]")
 
 	memcpy_bits(&dest, 0, &src, 0, 64);
 	CHECK(dest == uint64_t(~0ULL));
+
+	dest = 0;
+	src = uint64_t(~0ULL);
+	memcpy_bits(&dest, 0, &src, 0, 0);
+	CHECK(dest == 0);
+
+	memcpy_bits(&dest, 0, nullptr, 0, 0);
+	CHECK(dest == 0);
+
+	memcpy_bits(nullptr, 0, &src, 0, 0);
+	CHECK(dest == 0);
 }
 
 enum class UnsignedEnum : uint32_t

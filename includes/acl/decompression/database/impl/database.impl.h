@@ -53,10 +53,11 @@ namespace acl
 			const uint32_t low_bitset_size = low_desc.get_num_bytes();
 
 			uint32_t runtime_data_size = 0;
-			runtime_data_size += medium_bitset_size;	// Loaded chunks
-			runtime_data_size += medium_bitset_size;	// Streaming chunks
-			runtime_data_size += low_bitset_size;		// Loaded chunks
-			runtime_data_size += low_bitset_size;		// Streaming chunks
+			runtime_data_size += medium_bitset_size;			// Loaded chunks
+			runtime_data_size += medium_bitset_size;			// Streaming chunks
+			runtime_data_size += low_bitset_size;				// Loaded chunks
+			runtime_data_size += low_bitset_size;				// Streaming chunks
+			runtime_data_size = align_to(runtime_data_size, 8);	// Align runtime headers
 			runtime_data_size += num_clips * sizeof(database_runtime_clip_header);
 			runtime_data_size += num_segments * sizeof(database_runtime_segment_header);
 
@@ -122,7 +123,7 @@ namespace acl
 		// Allocate a single buffer for everything we need. This is faster to allocate and it ensures better virtual
 		// memory locality which should help reduce the cost of TLB misses.
 		const uint32_t runtime_data_size = acl_impl::calculate_runtime_data_size(database);
-		uint8_t* runtime_data_buffer = allocate_type_array<uint8_t>(allocator, runtime_data_size);
+		uint8_t* runtime_data_buffer = allocate_type_array_aligned<uint8_t>(allocator, runtime_data_size, 16);
 
 		// Initialize everything to 0
 		std::memset(runtime_data_buffer, 0, runtime_data_size);
@@ -139,7 +140,7 @@ namespace acl
 		m_context.streaming_chunks[1] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += low_bitset_size;
 
-		m_context.clip_segment_headers = runtime_data_buffer;
+		m_context.clip_segment_headers = align_to(runtime_data_buffer, 8);	// Align runtime headers
 
 		// Copy our clip hashes to setup our headers
 		const uint32_t num_clips = header.num_clips;
@@ -250,7 +251,7 @@ namespace acl
 		// Allocate a single buffer for everything we need. This is faster to allocate and it ensures better virtual
 		// memory locality which should help reduce the cost of TLB misses.
 		const uint32_t runtime_data_size = acl_impl::calculate_runtime_data_size(database);
-		uint8_t* runtime_data_buffer = allocate_type_array<uint8_t>(allocator, runtime_data_size);
+		uint8_t* runtime_data_buffer = allocate_type_array_aligned<uint8_t>(allocator, runtime_data_size, 16);
 
 		// Initialize everything to 0
 		std::memset(runtime_data_buffer, 0, runtime_data_size);
@@ -267,7 +268,7 @@ namespace acl
 		m_context.streaming_chunks[1] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += low_bitset_size;
 
-		m_context.clip_segment_headers = runtime_data_buffer;
+		m_context.clip_segment_headers = align_to(runtime_data_buffer, 8);	// Align runtime headers
 
 		// Copy our clip hashes to setup our headers
 		const uint32_t num_clips = header.num_clips;

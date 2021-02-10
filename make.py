@@ -305,7 +305,6 @@ def do_generate_solution(build_dir, cmake_script_dir, test_data_dir, decomp_data
 	if compiler == 'emscripten':
 		cmake_cmd = 'emcmake cmake .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(build_dir, ' '.join(extra_switches))
 	else:
-		cmake_cmd = 'cmake .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(build_dir, ' '.join(extra_switches))
 		cmake_generator = get_generator(compiler, cpu)
 		if not cmake_generator:
 			print('Using default generator')
@@ -316,12 +315,14 @@ def do_generate_solution(build_dir, cmake_script_dir, test_data_dir, decomp_data
 				generator_suffix = 'Clang CL'
 
 			print('Using generator: {} {}'.format(cmake_generator, generator_suffix))
-			cmake_cmd += ' -G "{}"'.format(cmake_generator)
+			extra_switches.append('-G "{}"'.format(cmake_generator))
 
 		cmake_arch = get_architecture(compiler, cpu)
 		if cmake_arch:
 			print('Using architecture: {}'.format(cmake_arch))
-			cmake_cmd += ' -A {}'.format(cmake_arch)
+			extra_switches.append('-A {}'.format(cmake_arch))
+
+		cmake_cmd = 'cmake .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(build_dir, ' '.join(extra_switches))
 
 	result = subprocess.call(cmake_cmd, shell=True)
 	if result != 0:
@@ -748,7 +749,7 @@ def do_regression_tests_cmake(test_data_dir, args):
 
 				all_threads_done = True
 				for thread in threads:
-					if thread.isAlive():
+					if thread.is_alive():
 						all_threads_done = False
 
 				if all_threads_done:
