@@ -238,7 +238,7 @@ namespace acl
 				return sample;
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL consume_rotation()
+			ACL_DISABLE_SECURITY_COOKIE_CHECK const rtm::quatf& RTM_SIMD_CALL consume_rotation()
 			{
 				ACL_ASSERT(rotations.cache_read_index < rotations.cache_write_index, "Attempting to consume a constant sample that isn't cached");
 				const uint32_t cache_read_index = rotations.cache_read_index++;
@@ -269,12 +269,11 @@ namespace acl
 				return sample;
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL consume_translation()
+			ACL_DISABLE_SECURITY_COOKIE_CHECK const uint8_t* consume_translation()
 			{
-				const rtm::vector4f sample = rtm::vector_load(constant_data_translations);
-				ACL_ASSERT(rtm::vector_is_finite3(sample), "Sample is not valid!");
+				const uint8_t* sample_ptr = constant_data_translations;
 				constant_data_translations += sizeof(rtm::float3f);
-				return sample;
+				return sample_ptr;
 			}
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip)
@@ -301,11 +300,11 @@ namespace acl
 				return sample;
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL consume_scale()
+			ACL_DISABLE_SECURITY_COOKIE_CHECK const uint8_t* consume_scale()
 			{
-				const rtm::vector4f scale = rtm::vector_load(constant_data_scales);
+				const uint8_t* sample_ptr = constant_data_scales;
 				constant_data_scales += sizeof(rtm::float3f);
-				return scale;
+				return sample_ptr;
 			}
 		};
 	}

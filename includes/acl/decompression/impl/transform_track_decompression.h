@@ -580,7 +580,7 @@ namespace acl
 					if ((packed_group & 0x40000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::quatf rotation = constant_track_cache.consume_rotation();
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
 
 						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index0))
 							writer.write_rotation(track_index0, rotation);
@@ -589,7 +589,7 @@ namespace acl
 					if ((packed_group & 0x10000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::quatf rotation = constant_track_cache.consume_rotation();
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
 
 						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index1))
 							writer.write_rotation(track_index1, rotation);
@@ -598,7 +598,7 @@ namespace acl
 					if ((packed_group & 0x04000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::quatf rotation = constant_track_cache.consume_rotation();
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
 
 						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index2))
 							writer.write_rotation(track_index2, rotation);
@@ -607,7 +607,7 @@ namespace acl
 					if ((packed_group & 0x01000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::quatf rotation = constant_track_cache.consume_rotation();
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
 
 						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index3))
 							writer.write_rotation(track_index3, rotation);
@@ -653,7 +653,7 @@ namespace acl
 					if ((packed_group & 0x80000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::quatf rotation = animated_track_cache.consume_rotation();
+						const rtm::quatf& rotation = animated_track_cache.consume_rotation();
 
 						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
@@ -665,7 +665,7 @@ namespace acl
 					if ((packed_group & 0x20000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::quatf rotation = animated_track_cache.consume_rotation();
+						const rtm::quatf& rotation = animated_track_cache.consume_rotation();
 
 						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
@@ -677,7 +677,7 @@ namespace acl
 					if ((packed_group & 0x08000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::quatf rotation = animated_track_cache.consume_rotation();
+						const rtm::quatf& rotation = animated_track_cache.consume_rotation();
 
 						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
@@ -689,7 +689,7 @@ namespace acl
 					if ((packed_group & 0x02000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::quatf rotation = animated_track_cache.consume_rotation();
+						const rtm::quatf& rotation = animated_track_cache.consume_rotation();
 
 						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
@@ -810,45 +810,57 @@ namespace acl
 					if ((packed_group & 0x40000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::vector4f translation = constant_track_cache.consume_translation();
-
-						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+						const uint8_t* translation_ptr = constant_track_cache.consume_translation();
 
 						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index0))
+						{
+							const rtm::vector4f translation = rtm::vector_load(translation_ptr);
+							ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
 							writer.write_translation(track_index0, translation);
+						}
 					}
 
 					if ((packed_group & 0x10000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::vector4f translation = constant_track_cache.consume_translation();
-
-						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+						const uint8_t* translation_ptr = constant_track_cache.consume_translation();
 
 						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index1))
+						{
+							const rtm::vector4f translation = rtm::vector_load(translation_ptr);
+							ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
 							writer.write_translation(track_index1, translation);
+						}
 					}
 
 					if ((packed_group & 0x04000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::vector4f translation = constant_track_cache.consume_translation();
-
-						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+						const uint8_t* translation_ptr = constant_track_cache.consume_translation();
 
 						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index2))
+						{
+							const rtm::vector4f translation = rtm::vector_load(translation_ptr);
+							ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
 							writer.write_translation(track_index2, translation);
+						}
 					}
 
 					if ((packed_group & 0x01000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::vector4f translation = constant_track_cache.consume_translation();
-
-						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+						const uint8_t* translation_ptr = constant_track_cache.consume_translation();
 
 						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index3))
+						{
+							const rtm::vector4f translation = rtm::vector_load(translation_ptr);
+							ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
+
 							writer.write_translation(track_index3, translation);
+						}
 					}
 				}
 			}
@@ -891,7 +903,7 @@ namespace acl
 					if ((packed_group & 0x80000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::vector4f translation = animated_track_cache.consume_translation();
+						const rtm::vector4f& translation = animated_track_cache.consume_translation();
 
 						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
 
@@ -902,7 +914,7 @@ namespace acl
 					if ((packed_group & 0x20000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::vector4f translation = animated_track_cache.consume_translation();
+						const rtm::vector4f& translation = animated_track_cache.consume_translation();
 
 						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
 
@@ -913,7 +925,7 @@ namespace acl
 					if ((packed_group & 0x08000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::vector4f translation = animated_track_cache.consume_translation();
+						const rtm::vector4f& translation = animated_track_cache.consume_translation();
 
 						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
 
@@ -924,7 +936,7 @@ namespace acl
 					if ((packed_group & 0x02000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::vector4f translation = animated_track_cache.consume_translation();
+						const rtm::vector4f& translation = animated_track_cache.consume_translation();
 
 						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
 
@@ -1044,45 +1056,57 @@ namespace acl
 					if ((packed_group & 0x40000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::vector4f scale = constant_track_cache.consume_scale();
-
-						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+						const uint8_t* scale_ptr = constant_track_cache.consume_scale();
 
 						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index0))
+						{
+							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
 							writer.write_scale(track_index0, scale);
+						}
 					}
 
 					if ((packed_group & 0x10000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::vector4f scale = constant_track_cache.consume_scale();
-
-						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+						const uint8_t* scale_ptr = constant_track_cache.consume_scale();
 
 						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index1))
+						{
+							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
 							writer.write_scale(track_index1, scale);
+						}
 					}
 
 					if ((packed_group & 0x04000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::vector4f scale = constant_track_cache.consume_scale();
-
-						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+						const uint8_t* scale_ptr = constant_track_cache.consume_scale();
 
 						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index2))
+						{
+							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
 							writer.write_scale(track_index2, scale);
+						}
 					}
 
 					if ((packed_group & 0x01000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::vector4f scale = constant_track_cache.consume_scale();
-
-						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+						const uint8_t* scale_ptr = constant_track_cache.consume_scale();
 
 						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index3))
+						{
+							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
+
 							writer.write_scale(track_index3, scale);
+						}
 					}
 				}
 			}
@@ -1125,7 +1149,7 @@ namespace acl
 					if ((packed_group & 0x80000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::vector4f scale = animated_track_cache.consume_scale();
+						const rtm::vector4f& scale = animated_track_cache.consume_scale();
 
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
@@ -1136,7 +1160,7 @@ namespace acl
 					if ((packed_group & 0x20000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::vector4f scale = animated_track_cache.consume_scale();
+						const rtm::vector4f& scale = animated_track_cache.consume_scale();
 
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
@@ -1147,7 +1171,7 @@ namespace acl
 					if ((packed_group & 0x08000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::vector4f scale = animated_track_cache.consume_scale();
+						const rtm::vector4f& scale = animated_track_cache.consume_scale();
 
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
@@ -1158,7 +1182,7 @@ namespace acl
 					if ((packed_group & 0x02000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::vector4f scale = animated_track_cache.consume_scale();
+						const rtm::vector4f& scale = animated_track_cache.consume_scale();
 
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
