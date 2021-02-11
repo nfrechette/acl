@@ -1203,9 +1203,9 @@ namespace acl
 
 		struct animated_track_cache_v0
 		{
-			track_cache_quatf_v0 rotations;
-			track_cache_vector4f_v0 translations;
-			track_cache_vector4f_v0 scales;
+			track_cache_quatf_v0<8> rotations;
+			track_cache_vector4f_v0<8> translations;
+			track_cache_vector4f_v0<8> scales;
 
 			// Scratch space when we decompress our samples before we interpolate
 			rtm::vector4f scratch0[4];
