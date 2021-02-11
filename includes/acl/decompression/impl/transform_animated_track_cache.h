@@ -1588,7 +1588,7 @@ namespace acl
 					return quat_lerp_no_normalization(sample0, sample1, decomp_context.interpolation_alpha);
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL consume_rotation()
+			ACL_DISABLE_SECURITY_COOKIE_CHECK const rtm::quatf& consume_rotation()
 			{
 				ACL_ASSERT(rotations.cache_read_index < rotations.cache_write_index, "Attempting to consume an animated sample that isn't cached");
 				const uint32_t cache_read_index = rotations.cache_read_index++;
@@ -1692,7 +1692,7 @@ namespace acl
 				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL consume_translation()
+			ACL_DISABLE_SECURITY_COOKIE_CHECK const rtm::vector4f& consume_translation()
 			{
 				ACL_ASSERT(translations.cache_read_index < translations.cache_write_index, "Attempting to consume an animated sample that isn't cached");
 				const uint32_t cache_read_index = translations.cache_read_index++;
@@ -1796,7 +1796,7 @@ namespace acl
 				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL consume_scale()
+			ACL_DISABLE_SECURITY_COOKIE_CHECK const rtm::vector4f& consume_scale()
 			{
 				ACL_ASSERT(scales.cache_read_index < scales.cache_write_index, "Attempting to consume an animated sample that isn't cached");
 				const uint32_t cache_read_index = scales.cache_read_index++;
