@@ -561,6 +561,9 @@ namespace acl
 				// We might early out below, always skip 16 tracks
 				track_index += 16;
 
+				// Unpack our next 16 tracks
+				constant_track_cache.unpack_rotation_group<decompression_settings_type>(context);
+
 				// Process 4 sub-tracks at a time
 				while (packed_entry != 0)
 				{
@@ -573,9 +576,6 @@ namespace acl
 
 					if ((packed_group & 0x55000000) == 0)
 						continue;	// This group contains no constant sub-tracks, skip it
-
-					// Unpack our next 4 tracks
-					constant_track_cache.unpack_rotation_group<decompression_settings_type>(context);
 
 					if ((packed_group & 0x40000000) != 0)
 					{

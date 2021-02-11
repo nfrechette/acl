@@ -37,21 +37,24 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		template<typename cached_type>
+		template<typename cached_type, uint32_t cache_size>
 		struct track_cache_v0
 		{
 			// Our cached type
 			using type = typename cached_type::type;
 
+			// Our cache size
+			static constexpr uint32_t k_cache_size = cache_size;
+
 			// Our cached values
-			type			cached_samples[8];
+			type			cached_samples[cache_size];
 
 			// The index to write the next cache entry when we unpack
-			// Effective index value is modulo 8 what is stored here, guaranteed to never wrap
+			// Effective index value is modulo k_cache_size what is stored here, guaranteed to never wrap
 			uint32_t		cache_write_index = 0;
 
 			// The index to read the next cache entry when we consume
-			// Effective index value is modulo 8 what is stored here, guaranteed to never wrap
+			// Effective index value is modulo k_cache_size what is stored here, guaranteed to never wrap
 			uint32_t		cache_read_index = 0;
 
 			// How many we have left to unpack in total
@@ -74,8 +77,11 @@ namespace acl
 			using type = rtm::vector4f;
 		};
 
-		using track_cache_quatf_v0 = track_cache_v0<track_cache_quatf_trait>;
-		using track_cache_vector4f_v0 = track_cache_v0<track_cache_vector4f_trait>;
+		template<uint32_t cache_size>
+		using track_cache_quatf_v0 = track_cache_v0<track_cache_quatf_trait, cache_size>;
+
+		template<uint32_t cache_size>
+		using track_cache_vector4f_v0 = track_cache_v0<track_cache_vector4f_trait, cache_size>;
 	}
 }
 ACL_IMPL_FILE_PRAGMA_POP
