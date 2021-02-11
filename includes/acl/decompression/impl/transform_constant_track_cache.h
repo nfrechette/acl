@@ -175,15 +175,13 @@ namespace acl
 				}
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
-				const rtm::quatf* cache_test_ptr = &rotations.cached_samples[cache_write_index];
-				while (cache_test_ptr != cache_ptr)
+				num_to_unpack = std::min<uint32_t>(num_left_to_unpack, k_half_cache_size);
+				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
-					const rtm::quatf rotation = *cache_test_ptr;
+					const rtm::quatf rotation = rotations.cached_samples[cache_write_index + unpack_index];
 
 					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-					cache_test_ptr++;
 				}
 #endif
 
