@@ -67,10 +67,7 @@ namespace acl
 			// CMU has 64.41%, Paragon has 47.69%, and Fortnite has 62.84%.
 			// Following these numbers, it is common for clips to have at least 10 constant rotation samples to unpack.
 
-			static constexpr uint32_t k_cache_size = 32;
-			static constexpr uint32_t k_half_cache_size = k_cache_size / 2;
-
-			track_cache_quatf_v0<k_cache_size> rotations;
+			track_cache_quatf_v0<32> rotations;
 
 			// Points to our packed sub-track data
 			const uint8_t*	constant_data_rotations;
@@ -103,16 +100,16 @@ namespace acl
 
 				// If we have less than half our cache filled with samples, unpack some more
 				const uint32_t num_cached = rotations.get_num_cached();
-				if (num_cached >= k_half_cache_size)
+				if (num_cached >= 16)
 					return;	// Enough cached, nothing to do
 
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 
-				uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, k_half_cache_size);
+				uint32_t num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 16);
 				rotations.num_left_to_unpack = num_left_to_unpack - num_to_unpack;
 
-				// Write index will be either 0 or k_half_cache_size here since we always unpack k_half_cache_size at a time
-				const uint32_t cache_write_index = rotations.cache_write_index % k_cache_size;
+				// Write index will be either 0 or 16 here since we always unpack 16 at a time
+				const uint32_t cache_write_index = rotations.cache_write_index % 32;
 				rotations.cache_write_index += num_to_unpack;
 
 				const uint8_t* constant_track_data = constant_data_rotations;
@@ -175,7 +172,7 @@ namespace acl
 				}
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
-				num_to_unpack = std::min<uint32_t>(num_left_to_unpack, k_half_cache_size);
+				num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 16);
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
 					const rtm::quatf rotation = rotations.cached_samples[cache_write_index + unpack_index];
@@ -247,7 +244,7 @@ namespace acl
 			{
 				ACL_ASSERT(rotations.cache_read_index < rotations.cache_write_index, "Attempting to consume a constant sample that isn't cached");
 				const uint32_t cache_read_index = rotations.cache_read_index++;
-				return rotations.cached_samples[cache_read_index % k_cache_size];
+				return rotations.cached_samples[cache_read_index % 32];
 			}
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_groups(uint32_t num_groups_to_skip)
