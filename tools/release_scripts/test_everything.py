@@ -1,5 +1,6 @@
 import os
 import platform
+import shutil
 import subprocess
 import sys
 
@@ -7,7 +8,38 @@ def get_platform_compilers():
 	if platform.system() == 'Windows':
 		return [ 'vs2015', 'vs2017', 'vs2019' ]
 	elif platform.system() == 'Linux':
-		return [ 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11' ]
+		compilers = []
+		if shutil.which('g++-5'):
+			compilers.append('gcc5')
+		if shutil.which('g++-6'):
+			compilers.append('gcc6')
+		if shutil.which('g++-7'):
+			compilers.append('gcc7')
+		if shutil.which('g++-8'):
+			compilers.append('gcc8')
+		if shutil.which('g++-9'):
+			compilers.append('gcc9')
+		if shutil.which('g++-10'):
+			compilers.append('gcc10')
+
+		if shutil.which('clang++-4.0'):
+			compilers.append('clang4')
+		if shutil.which('clang++-5.0'):
+			compilers.append('clang5')
+		if shutil.which('clang++-6.0'):
+			compilers.append('clang6')
+		if shutil.which('clang++-7'):
+			compilers.append('clang7')
+		if shutil.which('clang++-8'):
+			compilers.append('clang8')
+		if shutil.which('clang++-9'):
+			compilers.append('clang9')
+		if shutil.which('clang++-10'):
+			compilers.append('clang10')
+		if shutil.which('clang++-11'):
+			compilers.append('clang11')
+
+		return compilers
 	elif platform.system() == 'Darwin':
 		return [ 'osx' ]
 	else:
@@ -32,6 +64,11 @@ if __name__ == "__main__":
 	compilers = get_platform_compilers()
 	simd_opts = [ '', '-avx', '-nosimd', '-nosjson' ]
 	python_exe = get_python_exe_name()
+
+	if platform.system() == 'Darwin':
+		result = subprocess.check_output(['xcodebuild', '-version']).decode("utf-8")
+		if 'Xcode 11' in result:
+			archs.remove('x86')
 
 	cmd_args = []
 	for config in configs:
