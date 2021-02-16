@@ -46,7 +46,6 @@
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/compress.h"
 #include "acl/compression/transform_pose_utils.h"	// Just to test compilation
-#include "acl/compression/impl/write_decompression_stats.h"
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
 
@@ -136,7 +135,6 @@ struct Options
 	bool			compression_level_specified;
 
 	bool			regression_testing;
-	bool			profile_decompression;
 	bool			exhaustive_compression;
 
 	bool			use_matrix_error_metric;
@@ -171,7 +169,6 @@ struct Options
 		, compression_level(compression_level8::lowest)
 		, compression_level_specified(false)
 		, regression_testing(false)
-		, profile_decompression(false)
 		, exhaustive_compression(false)
 		, use_matrix_error_metric(false)
 		, is_bind_pose_relative(false)
@@ -218,7 +215,6 @@ static constexpr const char* k_stats_output_option = "-stats";
 static constexpr const char* k_bin_output_option = "-out=";
 static constexpr const char* k_compression_level_option = "-level=";
 static constexpr const char* k_regression_test_option = "-test";
-static constexpr const char* k_profile_decompression_option = "-decomp";
 static constexpr const char* k_exhaustive_compression_option = "-exhaustive";
 static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
@@ -338,13 +334,6 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
-		option_length = std::strlen(k_profile_decompression_option);
-		if (std::strncmp(argument, k_profile_decompression_option, option_length) == 0)
-		{
-			options.profile_decompression = true;
-			continue;
-		}
-
 		option_length = std::strlen(k_exhaustive_compression_option);
 		if (std::strncmp(argument, k_exhaustive_compression_option, option_length) == 0)
 		{
@@ -427,12 +416,6 @@ static bool parse_options(int argc, char** argv, Options& options)
 		return false;
 	}
 
-	if (options.profile_decompression && options.exhaustive_compression)
-	{
-		printf("Exhaustive compression is not supported with decompression profiling.\n");
-		return false;
-	}
-
 	return true;
 }
 
@@ -501,9 +484,6 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
-
-			if (are_any_enum_flags_set(logging, stat_logging::summary_decompression))
-				acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_tracks_, logging, *stats_writer);
 		}
 #endif
 
@@ -613,10 +593,6 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
-
-			// TODO: measure decompression performance
-			//if (are_any_enum_flags_set(logging, stat_logging::summary_decompression))
-				//write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
 		}
 #endif
 
@@ -957,14 +933,6 @@ static int safe_main_impl(int argc, char* argv[])
 	if (!parse_options(argc, argv, options))
 		return -1;
 
-	if (options.profile_decompression)
-	{
-#if defined(_WIN32)
-		// Set the process affinity to core 2, we'll use core 0 for the python script
-		SetProcessAffinityMask(GetCurrentProcess(), 1 << 2);
-#endif
-	}
-
 #if defined(ACL_USE_SJSON)
 	ansi_allocator allocator;
 	track_array_qvvf transform_tracks;
@@ -1078,55 +1046,9 @@ static int safe_main_impl(int argc, char* argv[])
 		if (options.stat_exhaustive_output)
 			logging |= stat_logging::exhaustive;
 
-		if (options.profile_decompression)
-			logging |= stat_logging::summary_decompression | stat_logging::exhaustive_decompression;
-
 		if (is_input_acl_bin_file)
 		{
-#if defined(SJSON_CPP_WRITER)
-			if (options.profile_decompression && runs_writer != nullptr)
-			{
-				// Disable floating point exceptions since decompression assumes it
-				scope_disable_fp_exceptions fp_off;
-
-				settings = get_default_compression_settings();
-
-#if defined(__ANDROID__)
-				const compressed_tracks* compressed_clip = make_compressed_tracks(options.input_buffer);
-				ACL_ASSERT(compressed_clip != nullptr, "Compressed clip is invalid");
-				if (compressed_clip == nullptr)
-					return;	// Compressed clip is invalid, early out to avoid crash
-
-				runs_writer->push([&](sjson::ObjectWriter& writer)
-				{
-					acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, writer);
-				});
-#else
-				std::ifstream input_file_stream(options.input_filename, std::ios_base::in | std::ios_base::binary);
-				if (input_file_stream.is_open())
-				{
-					input_file_stream.seekg(0, std::ios_base::end);
-					const size_t buffer_size = size_t(input_file_stream.tellg());
-					input_file_stream.seekg(0, std::ios_base::beg);
-
-					char* buffer = (char*)allocator.allocate(buffer_size, alignof(compressed_tracks));
-					input_file_stream.read(buffer, buffer_size);
-
-					const compressed_tracks* compressed_clip = make_compressed_tracks(buffer);
-					ACL_ASSERT(compressed_clip != nullptr, "Compressed clip is invalid");
-					if (compressed_clip == nullptr)
-						return;	// Compressed clip is invalid, early out to avoid crash
-
-					runs_writer->push([&](sjson::ObjectWriter& writer)
-					{
-						acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, writer);
-					});
-
-					allocator.deallocate(buffer, buffer_size);
-				}
-#endif
-			}
-#endif
+			// todo
 		}
 		else if (sjson_type == sjson_file_type::raw_clip)
 		{

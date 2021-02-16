@@ -39,8 +39,6 @@ namespace acl
 		summary						= 0x0001,
 		detailed					= 0x0002 | summary,
 		exhaustive					= 0x0004 | detailed,
-		summary_decompression		= 0x0010,
-		exhaustive_decompression	= 0x0020,
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(stat_logging)
