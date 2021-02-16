@@ -458,8 +458,8 @@ namespace acl
 			default:
 			case additive_clip_format8::none:			return "additive_qvvf_transform_error_metric<none>";
 			case additive_clip_format8::relative:		return "additive_qvvf_transform_error_metric<relative>";
-			case additive_clip_format8::additive0:	return "additive_qvvf_transform_error_metric<additive0>";
-			case additive_clip_format8::additive1:	return "additive_qvvf_transform_error_metric<additive1>";
+			case additive_clip_format8::additive0:		return "additive_qvvf_transform_error_metric<additive0>";
+			case additive_clip_format8::additive1:		return "additive_qvvf_transform_error_metric<additive1>";
 			}
 		}
 
