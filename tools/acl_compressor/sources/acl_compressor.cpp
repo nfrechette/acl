@@ -669,12 +669,16 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 #endif
 
 	if (file == nullptr)
+	{
+		printf("Failed to open input file\n");
 		return false;
+	}
 
 	// Make sure to enable buffering with a large buffer
 	const int setvbuf_result = setvbuf(file, NULL, _IOFBF, 1 * 1024 * 1024);
 	if (setvbuf_result != 0)
 	{
+		printf("Failed to set input file buffering settings\n");
 		fclose(file);
 		return false;
 	}
@@ -682,6 +686,7 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 	const int fseek_result = fseek(file, 0, SEEK_END);
 	if (fseek_result != 0)
 	{
+		printf("Failed to seek in input file\n");
 		fclose(file);
 		return false;
 	}
@@ -694,6 +699,7 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 
 	if (file_size == static_cast<size_t>(-1L))
 	{
+		printf("Failed to read input file size\n");
 		fclose(file);
 		return false;
 	}
@@ -706,6 +712,7 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 
 	if (result != file_size)
 	{
+		printf("Failed to read input file\n");
 		deallocate_type_array(allocator, sjson_file_buffer, file_size);
 		return false;
 	}
