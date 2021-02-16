@@ -1571,7 +1571,8 @@ namespace acl
 					}
 
 					// Make sure we aren't larger than the new chunk we just created
-					ACL_ASSERT((chunk_size + chunk_description.size + simd_padding - last_chunk_padding) < max_chunk_size, "Chunk size is too large");
+					// Note that the last chunk might be larger since we can't split a segment's data
+					ACL_ASSERT((chunk_index == (num_db_chunks - 1)) || ((chunk_size + chunk_description.size + simd_padding - last_chunk_padding) < max_chunk_size), "Chunk size is too large");
 
 					// Update our chunk size and remove the padding if present and the chunk header since we have our own
 					chunk_size += chunk_description.size - last_chunk_padding - sizeof(database_chunk_header);
@@ -1806,7 +1807,8 @@ namespace acl
 						}
 
 						// Make sure we aren't larger than the new chunk we just created
-						ACL_ASSERT((tmp_chunk_size + db_chunk_description.size + simd_padding - last_chunk_padding) < max_chunk_size, "Chunk size is too large");
+						// Note that the last chunk might be larger since we can't split a segment's data
+						ACL_ASSERT((chunk_index == (num_db_chunks - 1)) || ((tmp_chunk_size + db_chunk_description.size + simd_padding - last_chunk_padding) < max_chunk_size), "Chunk size is too large");
 
 						if (bulk_data != nullptr)
 						{
