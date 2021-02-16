@@ -26,10 +26,11 @@
 
 // Included only once from compress.h
 
-#include "acl/core/iallocator.h"
+#include "acl/core/bitset.h"
 #include "acl/core/compressed_database.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
+#include "acl/core/iallocator.h"
 
 #include <cstdint>
 
