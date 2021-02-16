@@ -119,34 +119,6 @@ namespace acl
 	//    out_stripped_database:			The new database without the specified quality tier.
 	//////////////////////////////////////////////////////////////////////////
 	error_result strip_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database);
-
-	//////////////////////////////////////////////////////////////////////////
-	// A pair of pointers to a compressed tracks instance and its database.
-	//////////////////////////////////////////////////////////////////////////
-	struct database_merge_mapping
-	{
-		// The compressed tracks and its associated compressed database
-		compressed_tracks* tracks;
-		const compressed_database* database;
-
-		// Checks if the mapping is valid
-		error_result is_valid() const;
-	};
-
-	//////////////////////////////////////////////////////////////////////////
-	// Merges the provided compressed databases together into a new instance.
-	// The input databases are left unchanged (read only) and will no longer be
-	// referenced by the compressed_tracks instances provided.
-	// The input compressed_tracks instances will be updated to point to the new merged
-	// database.
-	//
-	//    allocator:						The allocator instance to use to allocate the new database.
-	//    settings:							The compression database settings to use
-	//    merge_mappings:					The mappings to merge together into our new database.
-	//    num_merge_mappings:				The number of mappings to merge together.
-	//    out_merged_compressed_database:	The resulting merged database. The caller owns the returned memory and must free it.
-	//////////////////////////////////////////////////////////////////////////
-	error_result merge_compressed_databases(iallocator& allocator, const compression_database_settings& settings, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, compressed_database*& out_merged_compressed_database);
 }
 
 #include "acl/compression/impl/compress.database.impl.h"

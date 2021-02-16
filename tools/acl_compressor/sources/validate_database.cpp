@@ -569,64 +569,12 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy0), db_tracks0[0], db_tracks0[0]->get_size());
 	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy1), db_tracks1[0], db_tracks1[0]->get_size());
 
-	// Merge our everything into a new database
-	database_merge_mapping mappings[2];
-	mappings[0].tracks = compressed_tracks_copy0;
-	mappings[0].database = db0;
-	mappings[1].tracks = compressed_tracks_copy1;
-	mappings[1].database = db1;
-
-	compressed_database* merged_db = nullptr;
-	const error_result merge_result = merge_compressed_databases(allocator, settings, &mappings[0], 2, merged_db);
-	ACL_ASSERT(merge_result.empty(), "Failed to merge databases");
-	ACL_ASSERT(merged_db->is_valid(true).empty(), "Failed to merge database");
-
-	ACL_ASSERT(merged_db->contains(*compressed_tracks_copy0), "New database should contain our clip");
-	ACL_ASSERT(merged_db->contains(*compressed_tracks_copy1), "New database should contain our clip");
-
-	{
-		acl::decompression_context<debug_transform_decompression_settings_with_db> context0;
-		acl::decompression_context<debug_transform_decompression_settings_with_db> context1;
-		acl::database_context<acl::debug_database_settings> db_context;
-
-		bool initialized = db_context.initialize(allocator, *merged_db);
-		initialized = initialized && context0.initialize(*compressed_tracks_copy0, db_context);
-		initialized = initialized && context1.initialize(*compressed_tracks_copy1, db_context);
-		ACL_ASSERT(initialized, "Failed to initialize decompression context");
-
-		const track_error error_tier1_ref_merged0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(error_tier1_ref_merged0.error, high_quality_tier_error_ref.error, 1.0E-4F), "Reference error should be equal to merged error");
-		const track_error error_tier1_ref_merged1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(error_tier1_ref_merged1.error, high_quality_tier_error_ref.error, 1.0E-4F), "Reference error should be equal to merged error");
-	}
-
-	// Split the database bulk data out
-	compressed_database* split_merged_db = nullptr;
-	uint8_t* split_merged_db_bulk_data_medium = nullptr;
-	uint8_t* split_merged_db_bulk_data_low = nullptr;
-	const error_result split_merge_result = split_compressed_database_bulk_data(allocator, *merged_db, split_merged_db, split_merged_db_bulk_data_medium, split_merged_db_bulk_data_low);
-	ACL_ASSERT(split_merge_result.empty(), "Failed to split merged database");
-	ACL_ASSERT(split_merged_db->is_valid(true).empty(), "Failed to split merged database");
-
-	ACL_ASSERT(split_merged_db->contains(*compressed_tracks_copy0), "New database should contain our clip");
-	ACL_ASSERT(split_merged_db->contains(*compressed_tracks_copy1), "New database should contain our clip");
-
-	// Measure the tier error through simulated streaming
-	validate_db_streaming(allocator, raw_tracks, additive_base_tracks, error_metric, high_quality_tier_error_ref, *compressed_tracks_copy0, *compressed_tracks_copy1, *split_merged_db, split_merged_db_bulk_data_medium, split_merged_db_bulk_data_low);
-
-	// Measure the tier error when stripping
-	validate_db_stripping(allocator, raw_tracks, additive_base_tracks, error_metric, *compressed_tracks_copy0, *compressed_tracks_copy1, *split_merged_db, split_merged_db_bulk_data_medium, split_merged_db_bulk_data_low);
-
 	// Free our memory
 	allocator.deallocate(split_db_bulk_data_medium, split_db->get_bulk_data_size(quality_tier::medium_importance));
 	allocator.deallocate(split_db_bulk_data_low, split_db->get_bulk_data_size(quality_tier::lowest_importance));
 	allocator.deallocate(split_db, split_db->get_size());
 	allocator.deallocate(compressed_tracks_copy0, compressed_tracks_copy0->get_size());
 	allocator.deallocate(compressed_tracks_copy1, compressed_tracks_copy1->get_size());
-	allocator.deallocate(split_merged_db_bulk_data_medium, split_merged_db->get_bulk_data_size(quality_tier::medium_importance));
-	allocator.deallocate(split_merged_db_bulk_data_low, split_merged_db->get_bulk_data_size(quality_tier::lowest_importance));
-	allocator.deallocate(split_merged_db, split_merged_db->get_size());
-	allocator.deallocate(merged_db, merged_db->get_size());
 	allocator.deallocate(db_tracks0[0], db_tracks0[0]->get_size());
 	allocator.deallocate(db_tracks1[0], db_tracks1[0]->get_size());
 	allocator.deallocate(db_tracks01[0], db_tracks01[0]->get_size());
