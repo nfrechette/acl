@@ -1647,14 +1647,14 @@ namespace acl
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[0]);
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[1]);
 
-				const rtm::scalarf interpolation_alpha = rtm::scalar_set(decomp_context.interpolation_alpha);
+				const rtm::vector4f interpolation_alpha = rtm::vector_set(decomp_context.interpolation_alpha);
 				rtm::vector4f* cache_ptr = &translations.cached_samples[cache_write_index];
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
 					const rtm::vector4f sample0 = scratch0[unpack_index];
 					const rtm::vector4f sample1 = scratch1[unpack_index];
 
-					const rtm::vector4f sample = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
+					const rtm::vector4f sample = vector_lerp(sample0, sample1, interpolation_alpha);
 
 					cache_ptr[unpack_index] = sample;
 				}
@@ -1751,14 +1751,14 @@ namespace acl
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[0]);
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[1]);
 
-				const rtm::scalarf interpolation_alpha = rtm::scalar_set(decomp_context.interpolation_alpha);
+				const rtm::vector4f interpolation_alpha = rtm::vector_set(decomp_context.interpolation_alpha);
 				rtm::vector4f* cache_ptr = &scales.cached_samples[cache_write_index];
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
 					const rtm::vector4f sample0 = scratch0[unpack_index];
 					const rtm::vector4f sample1 = scratch1[unpack_index];
 
-					const rtm::vector4f sample = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
+					const rtm::vector4f sample = vector_lerp(sample0, sample1, interpolation_alpha);
 
 					cache_ptr[unpack_index] = sample;
 				}
