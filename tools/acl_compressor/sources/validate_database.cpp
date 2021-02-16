@@ -148,31 +148,34 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 
 	{
 		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(high_quality_tier_error0.error == high_quality_tier_error_ref.error, "High quality tier split error should be equal to high quality tier inline");
+		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error0.error, high_quality_tier_error_ref.error, 1.0E-4F), "High quality tier split error should be equal to high quality tier inline");
 		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(high_quality_tier_error1.error == high_quality_tier_error_ref.error, "High quality tier split error should be equal to high quality tier inline");
+		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error1.error, high_quality_tier_error_ref.error, 1.0E-4F), "High quality tier split error should be equal to high quality tier inline");
 	}
 
 	// Stream out our medium importance tier, we'll have mixed quality
 	stream_out_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
-	const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-	ACL_ASSERT(mixed_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Mixed quality split error should be higher or equal to high quality tier inline");
-	const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-	ACL_ASSERT(mixed_quality_tier_error1.error >= high_quality_tier_error_ref.error, "Mixed quality split error should be higher or equal to high quality tier inline");
+	{
+		// Not guaranteed to always be the case due to linear interpolation
+		//const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
+		//const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
 
-	// Not guaranteed to always be the case due to linear interpolation
-	//ACL_ASSERT(low_quality_tier_error0.error >= mixed_quality_tier_error0.error, "Low quality tier split error should be higher or equal to mixed quality split error");
-	//ACL_ASSERT(low_quality_tier_error1.error >= mixed_quality_tier_error1.error, "Low quality tier split error should be higher or equal to mixed quality split error");
+		//ACL_ASSERT(mixed_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Mixed quality split error should be higher or equal to high quality tier inline");
+		//ACL_ASSERT(mixed_quality_tier_error1.error >= high_quality_tier_error_ref.error, "Mixed quality split error should be higher or equal to high quality tier inline");
+
+		//ACL_ASSERT(low_quality_tier_error0.error >= mixed_quality_tier_error0.error, "Low quality tier split error should be higher or equal to mixed quality split error");
+		//ACL_ASSERT(low_quality_tier_error1.error >= mixed_quality_tier_error1.error, "Low quality tier split error should be higher or equal to mixed quality split error");
+	}
 
 	// Stream in our medium importance tier, restoring the full high quality
 	stream_in_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
 	{
 		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(high_quality_tier_error0.error == high_quality_tier_error_ref.error, "High quality tier split error should be equal to high quality tier inline");
+		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error0.error, high_quality_tier_error_ref.error, 1.0E-4F), "High quality tier split error should be equal to high quality tier inline");
 		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(high_quality_tier_error1.error == high_quality_tier_error_ref.error, "High quality tier split error should be equal to high quality tier inline");
+		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error1.error, high_quality_tier_error_ref.error, 1.0E-4F), "High quality tier split error should be equal to high quality tier inline");
 	}
 
 	// Stream out our low importance tier, restoring medium quality
@@ -511,7 +514,7 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0.error == high_quality_tier_error_ref.error, "Database 0 should have the same error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, 1.0E-4F), "Database 0 should have the same error");
 	}
 
 	{
@@ -523,7 +526,7 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier1.error == high_quality_tier_error_ref.error, "Database 1 should have the same error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, 1.0E-4F), "Database 1 should have the same error");
 	}
 
 	{
@@ -537,10 +540,10 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier0.error == high_quality_tier_error_ref.error, "Database 01 should have the same error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, 1.0E-4F), "Database 01 should have the same error");
 
 		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(error_tier1.error == high_quality_tier_error_ref.error, "Database 01 should have the same error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, 1.0E-4F), "Database 01 should have the same error");
 	}
 
 	// Split the database bulk data out
@@ -592,9 +595,9 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier1_ref_merged0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(high_quality_tier_error_ref.error == error_tier1_ref_merged0.error, "Reference error should be equal to merged error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier1_ref_merged0.error, high_quality_tier_error_ref.error, 1.0E-4F), "Reference error should be equal to merged error");
 		const track_error error_tier1_ref_merged1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(high_quality_tier_error_ref.error == error_tier1_ref_merged1.error, "Reference error should be equal to merged error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier1_ref_merged1.error, high_quality_tier_error_ref.error, 1.0E-4F), "Reference error should be equal to merged error");
 	}
 
 	// Split the database bulk data out
