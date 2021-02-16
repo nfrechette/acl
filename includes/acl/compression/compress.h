@@ -149,8 +149,9 @@ namespace acl
 	error_result merge_compressed_databases(iallocator& allocator, const compression_database_settings& settings, const database_merge_mapping* merge_mappings, uint32_t num_merge_mappings, compressed_database*& out_merged_compressed_database);
 }
 
-#include "acl/compression/impl/compress.scalar.impl.h"
 #include "acl/compression/impl/compress.database.impl.h"
+#include "acl/compression/impl/compress.scalar.impl.h"
+#include "acl/compression/impl/compress.transform.impl.h"
 #include "acl/compression/impl/compress.impl.h"
 
 ACL_IMPL_FILE_PRAGMA_POP
