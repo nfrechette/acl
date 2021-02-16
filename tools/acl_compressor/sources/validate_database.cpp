@@ -429,11 +429,37 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		allocator.deallocate(db_neither1, db_neither1->get_size());
 }
 
+static bool has_zero_scale(const track_array_qvvf& raw_tracks)
+{
+	const float threshold = 1.0E-6F;
+	const rtm::vector4f zero = rtm::vector_zero();
+	const uint32_t num_samples_per_track = raw_tracks.get_num_samples_per_track();
+
+	for (const track_qvvf& raw_track : raw_tracks)
+	{
+		for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
+		{
+			const rtm::qvvf& sample = raw_track[sample_index];
+			if (rtm::vector_any_near_equal3(sample.scale, zero, threshold))
+				return true;
+		}
+	}
+
+	return false;
+}
+
 void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks,
 	const compression_database_settings& settings, const itransform_error_metric& error_metric,
 	const compressed_tracks& compressed_tracks0, const compressed_tracks& compressed_tracks1)
 {
 	using namespace acl_impl;
+
+	// When we have a database, we are forced to linearly interpolate our keys which means
+	// we can end up with slightly different values than we otherwise would.
+	// When this happens, zero scale ends up being non-zero and the results can end up vastly different.
+	// Don't validate our database if we have zero scale.
+	if (has_zero_scale(raw_tracks))
+		return;
 
 	// Disable floating point exceptions since decompression assumes it
 	scope_disable_fp_exceptions fp_off;
