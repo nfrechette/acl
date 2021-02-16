@@ -157,6 +157,20 @@ namespace acl
 				: (decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full) ? vector_format8::vector3f_full
 					: vector_format8::vector3f_variable);
 		}
+
+		// Returns whether or not we should interpolate our samples
+		// If we support more than one format, we'll assume that we always need to interpolate
+		// and if we support only the raw format, we'll check if we need to based on the interpolation alpha
+		template<class decompression_settings_type>
+		constexpr bool should_interpolate_samples(rotation_format8 format, float interpolation_alpha)
+		{
+			return num_supported_rotation_formats<decompression_settings_type>() > 1
+				// More than one format is supported, always interpolate
+				? true
+				// If our format is raw, only interpolate if our alpha isn't <= 0.0 or >= 1.0
+				// otherwise we always interpolate
+				: format == rotation_format8::quatf_full ? (interpolation_alpha > 0.0F && interpolation_alpha < 1.0F) : true;
+		}
 	}
 }
 
