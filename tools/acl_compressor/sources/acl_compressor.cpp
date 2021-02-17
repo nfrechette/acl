@@ -565,8 +565,8 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 
 		compression_settings settings;
 
-		// When regression testing, we include all the metadata
-		if (options.regression_testing)
+		// When regression testing or writing to a binary output, we include all the metadata
+		if (options.regression_testing || options.output_bin_filename != nullptr)
 		{
 			settings.include_track_list_name = true;
 			settings.include_track_names = true;
