@@ -704,8 +704,15 @@ static bool read_acl_bin_file(iallocator& allocator, const Options& options, acl
 	char* tracks_data = nullptr;
 	size_t file_size = 0;
 
+#if defined(__ANDROID__)
+	// Duplicate the data on android so we can free it normally later
+	tracks_data = allocate_type_array_aligned<char>(allocator, options.input_buffer_size, 64);
+	file_size = options.input_buffer_size;
+	std::memcpy(tracks_data, options.input_buffer, options.input_buffer_size);
+#else
 	if (!read_file(allocator, options.input_filename, tracks_data, file_size))
 		return false;
+#endif
 
 	out_tracks = reinterpret_cast<acl::compressed_tracks*>(tracks_data);
 	if (out_tracks->is_valid(true).any() || file_size != out_tracks->get_size())

@@ -142,11 +142,6 @@ extern "C" jint Java_com_acl_regression_1tests_MainActivity_nativeMain(JNIEnv* e
 			const std::string& clip_filename = clips[clip_index];
 
 			const int is_input_acl_bin_file = is_acl_bin_file(clip_filename.c_str()) ? 1 : 0;
-			if (is_input_acl_bin_file)
-			{
-				__android_log_print(ANDROID_LOG_ERROR, "acl", "Binary ACL clip not supported: %s (%d / %d)", clip_filename.c_str(), clip_index + 1, num_clips);
-				continue;
-			}
 
 			void* clip_buffer;
 			size_t clip_buffer_size;
