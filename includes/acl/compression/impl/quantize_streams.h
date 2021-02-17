@@ -687,7 +687,13 @@ namespace acl
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
+#if defined(ACL_COMPILER_MSVC) && defined(_M_IX86) && defined(ACL_COMPILER_MSVC_2015)
+				// VS2015 fails to generate the right x86 assembly, branch instead
+				(void)calculate_error_impl;
+				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
+#else
 				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
+#endif
 
 				max_error = rtm::scalar_max(max_error, error);
 				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error, error_threshold))
@@ -772,7 +778,13 @@ namespace acl
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
+#if defined(ACL_COMPILER_MSVC) && defined(_M_IX86) && defined(ACL_COMPILER_MSVC_2015)
+				// VS2015 fails to generate the right x86 assembly, branch instead
+				(void)calculate_error_impl;
+				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
+#else
 				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
+#endif
 
 				max_error = rtm::scalar_max(max_error, error);
 				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error, error_threshold))
@@ -1674,7 +1686,14 @@ namespace acl
 							calculate_error_args.transform1 = context.lossy_object_pose + (bone_index * context.metric_transform_size);
 							calculate_error_args.construct_sphere_shell(target_bone.shell_distance);
 
+#if defined(ACL_COMPILER_MSVC) && defined(_M_IX86) && defined(ACL_COMPILER_MSVC_2015)
+							// VS2015 fails to generate the right x86 assembly, branch instead
+							(void)calculate_error_impl;
+							const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
+#else
 							const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
+#endif
+
 							max_contributing_error = rtm::scalar_max(max_contributing_error, error);
 						}
 					}
