@@ -51,6 +51,17 @@
 //////////////////////////////////////////////////////////////////////////
 #if defined(_MSC_VER) && !defined(__clang__)
 	#define ACL_COMPILER_MSVC
+
+	#if _MSC_VER < 1900
+		#warning This version of visual studio isn't officially supported
+	#elif _MSC_VER == 1900
+		#define ACL_COMPILER_MSVC_2015
+	#elif _MSC_VER < 1920
+		#define ACL_COMPILER_MSVC_2017
+	#else
+		// Assume we are the latest version
+		#define ACL_COMPILER_MSVC_2019
+	#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////
