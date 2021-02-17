@@ -45,6 +45,7 @@
 #include "acl/core/string.h"
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/compress.h"
+#include "acl/compression/convert.h"
 #include "acl/compression/transform_pose_utils.h"	// Just to test compilation
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
@@ -255,7 +256,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 			options.input_filename = argument + option_length;
 			if (!is_acl_sjson_file(options.input_filename) && !is_acl_bin_file(options.input_filename))
 			{
-				printf("Input file must be an ACL SJSON file of the form: [*.acl.sjson] or a binary ACL file of the form: [*.acl.bin]\n");
+				printf("Input file must be an ACL SJSON file of the form: [*.acl.sjson] or a binary ACL file of the form: [*.acl]\n");
 				return false;
 			}
 #endif
@@ -633,26 +634,17 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		try_algorithm_impl(nullptr);
 }
 
-static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
-	sjson_file_type& out_file_type,
-	sjson_raw_clip& out_raw_clip,
-	sjson_raw_track_list& out_raw_track_list)
+static bool read_file(iallocator& allocator, const char* input_filename, char*& out_buffer, size_t& out_file_size)
 {
-	char* sjson_file_buffer = nullptr;
-	size_t file_size = 0;
-
-#if defined(__ANDROID__)
-	clip_reader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
-#else
 	// Use the raw C API with a large buffer to ensure this is as fast as possible
 	std::FILE* file = nullptr;
 
 #ifdef _WIN32
 	char path[64 * 1024] = { 0 };
-	snprintf(path, get_array_size(path), "\\\\?\\%s", options.input_filename);
+	snprintf(path, get_array_size(path), "\\\\?\\%s", input_filename);
 	fopen_s(&file, path, "rb");
 #else
-	file = fopen(options.input_filename, "rb");
+	file = fopen(input_filename, "rb");
 #endif
 
 	if (file == nullptr)
@@ -679,12 +671,12 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 	}
 
 #ifdef _WIN32
-	file_size = static_cast<size_t>(_ftelli64(file));
+	out_file_size = static_cast<size_t>(_ftelli64(file));
 #else
-	file_size = static_cast<size_t>(ftello(file));
+	out_file_size = static_cast<size_t>(ftello(file));
 #endif
 
-	if (file_size == static_cast<size_t>(-1L))
+	if (out_file_size == static_cast<size_t>(-1L))
 	{
 		printf("Failed to read input file size\n");
 		fclose(file);
@@ -693,16 +685,52 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 
 	rewind(file);
 
-	sjson_file_buffer = allocate_type_array<char>(allocator, file_size);
-	const size_t result = fread(sjson_file_buffer, 1, file_size, file);
+	out_buffer = allocate_type_array_aligned<char>(allocator, out_file_size, 64);
+	const size_t result = fread(out_buffer, 1, out_file_size, file);
 	fclose(file);
 
-	if (result != file_size)
+	if (result != out_file_size)
 	{
 		printf("Failed to read input file\n");
-		deallocate_type_array(allocator, sjson_file_buffer, file_size);
+		deallocate_type_array(allocator, out_buffer, out_file_size);
 		return false;
 	}
+
+	return true;
+}
+
+static bool read_acl_bin_file(iallocator& allocator, const Options& options, acl::compressed_tracks*& out_tracks)
+{
+	char* tracks_data = nullptr;
+	size_t file_size = 0;
+
+	if (!read_file(allocator, options.input_filename, tracks_data, file_size))
+		return false;
+
+	out_tracks = reinterpret_cast<acl::compressed_tracks*>(tracks_data);
+	if (out_tracks->is_valid(true).any() || file_size != out_tracks->get_size())
+	{
+		printf("Invalid binary ACL file provided\n");
+		deallocate_type_array(allocator, tracks_data, file_size);
+		return false;
+	}
+
+	return true;
+}
+
+static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
+	sjson_file_type& out_file_type,
+	sjson_raw_clip& out_raw_clip,
+	sjson_raw_track_list& out_raw_track_list)
+{
+	char* sjson_file_buffer = nullptr;
+	size_t file_size = 0;
+
+#if defined(__ANDROID__)
+	clip_reader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
+#else
+	if (!read_file(allocator, options.input_filename, sjson_file_buffer, file_size))
+		return false;
 
 	clip_reader reader(allocator, sjson_file_buffer, file_size - 1);
 #endif
@@ -950,6 +978,7 @@ static int safe_main_impl(int argc, char* argv[])
 	track_array_qvvf base_clip;
 	additive_clip_format8 additive_format = additive_clip_format8::none;
 	track_qvvf bind_pose;
+	track_array scalar_tracks;
 
 #if defined(__ANDROID__)
 	const bool is_input_acl_bin_file = options.input_buffer_binary;
@@ -965,7 +994,40 @@ static int safe_main_impl(int argc, char* argv[])
 	sjson_raw_clip sjson_clip;
 	sjson_raw_track_list sjson_track_list;
 
-	if (!is_input_acl_bin_file)
+	if (is_input_acl_bin_file)
+	{
+		acl::compressed_tracks* bin_tracks = nullptr;
+		if (!read_acl_bin_file(allocator, options, bin_tracks))
+			return -1;
+
+		if (bin_tracks->get_track_type() == track_type8::qvvf)
+		{
+			const acl::error_result result = acl::convert_track_list(allocator, *bin_tracks, transform_tracks);
+			if (result.any())
+			{
+				printf("Failed to convert input binary track list\n");
+				deallocate_type_array(allocator, bin_tracks, bin_tracks->get_size());
+				return -1;
+			}
+
+			sjson_type = sjson_file_type::raw_clip;
+		}
+		else
+		{
+			const acl::error_result result = acl::convert_track_list(allocator, *bin_tracks, scalar_tracks);
+			if (result.any())
+			{
+				printf("Failed to convert input binary track list\n");
+				deallocate_type_array(allocator, bin_tracks, bin_tracks->get_size());
+				return -1;
+			}
+
+			sjson_type = sjson_file_type::raw_track_list;
+		}
+
+		deallocate_type_array(allocator, bin_tracks, bin_tracks->get_size());
+	}
+	else
 	{
 		if (!read_acl_sjson_file(allocator, options, sjson_type, sjson_clip, sjson_track_list))
 			return -1;
@@ -976,6 +1038,7 @@ static int safe_main_impl(int argc, char* argv[])
 		bind_pose = std::move(sjson_clip.bind_pose);
 		use_external_config = sjson_clip.has_settings;
 		settings = sjson_clip.settings;
+		scalar_tracks = std::move(sjson_track_list.track_list);
 	}
 
 #if DEBUG_MEGA_LARGE_CLIP
@@ -1025,7 +1088,7 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = true;
 	}
 
-	if (!is_input_acl_bin_file && sjson_type == sjson_file_type::raw_clip)
+	if (sjson_type == sjson_file_type::raw_clip)
 	{
 		// Grab whatever clip we might have read from the sjson file and cast the const away so we can manage the memory
 		if (base_clip.is_empty() && !bind_pose.is_empty())
@@ -1057,11 +1120,7 @@ static int safe_main_impl(int argc, char* argv[])
 		if (options.stat_exhaustive_output)
 			logging |= stat_logging::exhaustive;
 
-		if (is_input_acl_bin_file)
-		{
-			// todo
-		}
-		else if (sjson_type == sjson_file_type::raw_clip)
+		if (sjson_type == sjson_file_type::raw_clip)
 		{
 			if (use_external_config)
 			{
@@ -1126,7 +1185,7 @@ static int safe_main_impl(int argc, char* argv[])
 		}
 		else if (sjson_type == sjson_file_type::raw_track_list)
 		{
-			try_algorithm(options, allocator, sjson_track_list.track_list, logging, runs_writer, regression_error_threshold);
+			try_algorithm(options, allocator, scalar_tracks, logging, runs_writer, regression_error_threshold);
 		}
 	};
 
