@@ -6,7 +6,7 @@ import sys
 
 def get_platform_compilers():
 	if platform.system() == 'Windows':
-		return [ 'vs2015', 'vs2017', 'vs2019' ]
+		return [ 'vs2015', 'vs2017', 'vs2019', 'vs2019-clang' ]
 	elif platform.system() == 'Linux':
 		compilers = []
 		if shutil.which('g++-5'):
@@ -91,6 +91,12 @@ if __name__ == "__main__":
 			args = [python_exe, 'make.py', '-compiler', 'vs2019', '-cpu', 'arm64', '-config', config, '-build', '-clean']
 			cmd_args.append([x for x in args if x])
 			args = [python_exe, 'make.py', '-compiler', 'vs2019', '-cpu', 'arm64', '-config', config, '-build', '-clean', '-nosimd']
+			cmd_args.append([x for x in args if x])
+
+			# Android ARM64
+			args = [python_exe, 'make.py', '-compiler', 'android', '-cpu', 'arm64', '-config', config, '-build', '-clean']
+			cmd_args.append([x for x in args if x])
+			args = [python_exe, 'make.py', '-compiler', 'android', '-cpu', 'arm64', '-config', config, '-build', '-clean', '-nosimd']
 			cmd_args.append([x for x in args if x])
 	elif platform.system() == 'Darwin':
 		for config in configs:
