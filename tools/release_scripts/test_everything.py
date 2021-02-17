@@ -121,7 +121,10 @@ if __name__ == "__main__":
 	for args in cmd_args:
 		print('Running command: "{}" ...'.format(" ".join(args)))
 		try:
-			subprocess.check_output(args)
+			if 'android' in args:
+				subprocess.check_call(args)
+			else:
+				subprocess.check_output(args)
 		except subprocess.CalledProcessError as e:
 			print('Failed command: {}'.format(" ".join(args)))
 			print(e.output.decode(sys.stdout.encoding))
