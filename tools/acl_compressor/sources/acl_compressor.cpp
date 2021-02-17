@@ -520,7 +520,14 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 
 		if (options.output_bin_filename != nullptr)
 		{
-			std::ofstream output_file_stream(options.output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+#ifdef _WIN32
+			char output_bin_filename[64 * 1024] = { 0 };
+			snprintf(output_bin_filename, get_array_size(output_bin_filename), "\\\\?\\%s", options.output_bin_filename);
+#else
+			const char* output_bin_filename = options.output_bin_filename;
+#endif
+
+			std::ofstream output_file_stream(output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 			if (output_file_stream.is_open())
 				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
 		}
@@ -603,7 +610,14 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 
 		if (options.output_bin_filename != nullptr)
 		{
-			std::ofstream output_file_stream(options.output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+#ifdef _WIN32
+			char output_bin_filename[64 * 1024] = { 0 };
+			snprintf(output_bin_filename, get_array_size(output_bin_filename), "\\\\?\\%s", options.output_bin_filename);
+#else
+			const char* output_bin_filename = options.output_bin_filename;
+#endif
+
+			std::ofstream output_file_stream(output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 			if (output_file_stream.is_open())
 				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
 		}
