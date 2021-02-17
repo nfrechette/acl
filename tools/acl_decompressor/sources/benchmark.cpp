@@ -412,13 +412,19 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 
 	// Dynamically register our benchmark
 	benchmark::internal::Benchmark* bench = benchmark::internal::RegisterBenchmarkInternal(new benchmark::internal::FunctionBenchmark(clip_name.c_str(), benchmark_decompression));
-	bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::Memcpy });
+
 	bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose });
 	bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressBone });
-	bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressPose });
-	bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressBone });
-	bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressPose });
-	bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressBone });
+
+	// These are for debugging purposes and aren't measured as often
+	// By design, ACL's performance should be consistent regardless of the playback direction
+	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::Memcpy });
+	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressPose });
+	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressBone });
+	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressPose });
+	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressBone });
+
+	// Name our arguments
 	bench->ArgNames({ "", "Dir", "Func" });
 
 	// Sometimes the numbers are slightly different from run to run, we'll run a few times
