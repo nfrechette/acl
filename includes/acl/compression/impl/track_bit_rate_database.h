@@ -377,7 +377,7 @@ namespace acl
 			const uint32_t num_cached_tracks = num_transforms * m_num_entries_per_transform;
 
 			m_bitset_desc = bitset_description::make_from_num_bits(num_samples_per_track);
-			m_bitref_constant = bitset_index_ref(m_bitset_desc, 0);
+			m_bitref_constant = num_samples_per_track != 0 ? bitset_index_ref(m_bitset_desc, 0) : bitset_index_ref();
 
 			m_rotation_format = rotation_format;
 			m_translation_format = translation_format;

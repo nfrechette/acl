@@ -180,8 +180,7 @@ namespace acl
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
 			const float sample_rate = track_list.get_sample_rate();
 
-			ACL_ASSERT(num_transforms > 0, "Track array has no tracks!");
-			ACL_ASSERT(num_samples > 0, "Track array has no samples!");
+			ACL_ASSERT(num_transforms != 0, "Track array has no tracks!");
 
 			// Create a single segment with the whole clip
 			out_clip_context.segments = allocate_type_array<SegmentContext>(allocator, 1);
@@ -247,7 +246,7 @@ namespace acl
 				}
 
 				{
-					const rtm::qvvf& first_transform = track[0];
+					const rtm::qvvf first_transform = num_samples != 0 ? track[0] : rtm::qvv_identity();
 					const rtm::quatf first_rotation = rtm::quat_normalize(first_transform.rotation);
 
 					// If we request raw data, use a 0.0 threshold for safety
@@ -255,11 +254,11 @@ namespace acl
 					const float constant_translation_threshold = settings.translation_format != vector_format8::vector3f_full ? desc.constant_translation_threshold : 0.0F;
 					const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
 
-					bone_stream.is_rotation_constant = num_samples == 1;
+					bone_stream.is_rotation_constant = num_samples <= 1;
 					bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(first_rotation, constant_rotation_threshold_angle);
-					bone_stream.is_translation_constant = num_samples == 1;
+					bone_stream.is_translation_constant = num_samples <= 1;
 					bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(first_transform.translation, rtm::vector_zero(), constant_translation_threshold);
-					bone_stream.is_scale_constant = num_samples == 1;
+					bone_stream.is_scale_constant = num_samples <= 1;
 					bone_stream.is_scale_default = bone_stream.is_scale_constant && rtm::vector_all_near_equal3(first_transform.scale, default_scale, constant_scale_threshold);
 				}
 

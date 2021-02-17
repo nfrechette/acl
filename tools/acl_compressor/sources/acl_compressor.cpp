@@ -441,9 +441,6 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
-		if (transform_tracks.get_num_samples_per_track() == 0)
-			return;
-
 		// When regression testing or writing to a binary output, we include all the metadata
 		if (options.regression_testing || options.output_bin_filename != nullptr)
 		{

@@ -128,7 +128,7 @@ namespace acl
 
 			~TrackStream()
 			{
-				if (m_allocator != nullptr && m_num_samples != 0)
+				if (m_allocator != nullptr)
 					m_allocator->deallocate(m_samples, m_sample_size * m_num_samples + k_padding);
 			}
 
