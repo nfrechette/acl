@@ -53,7 +53,7 @@
 	#define ACL_COMPILER_MSVC
 
 	#if _MSC_VER < 1900
-		#warning This version of visual studio isn't officially supported
+		#pragma message("Warning: This version of visual studio isn't officially supported")
 	#elif _MSC_VER == 1900
 		#define ACL_COMPILER_MSVC_2015
 	#elif _MSC_VER < 1920
