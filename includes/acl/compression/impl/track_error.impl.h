@@ -129,11 +129,11 @@ namespace acl
 		inline track_error calculate_scalar_track_error(iallocator& allocator, const calculate_track_error_args& args)
 		{
 			const uint32_t num_samples = args.num_samples;
-			if (args.num_samples == 0)
+			if (num_samples == 0)
 				return track_error();	// Cannot measure any error
 
 			const uint32_t num_tracks = args.num_tracks;
-			if (args.num_tracks == 0)
+			if (num_tracks == 0)
 				return track_error();	// Cannot measure any error
 
 			track_error result;
