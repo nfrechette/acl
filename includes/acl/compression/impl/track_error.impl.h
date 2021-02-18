@@ -206,8 +206,6 @@ namespace acl
 		inline track_error calculate_transform_track_error(iallocator& allocator, const calculate_track_error_args& args)
 		{
 			ACL_ASSERT(args.error_metric != nullptr, "Must have an error metric");
-			ACL_ASSERT(args.get_parent_index, "Must be able to query the parent track index");
-			ACL_ASSERT(args.get_shell_distance, "Must be able to query the shell distance");
 
 			const uint32_t num_samples = args.num_samples;
 			if (num_samples == 0)
@@ -554,7 +552,7 @@ namespace acl
 				, output_bone_mapping(nullptr)
 				, num_output_bones(0)
 			{
-				output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks, num_output_bones);
+				output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks__, num_output_bones);
 			}
 
 			virtual ~error_calculation_adapter() override
@@ -603,7 +601,7 @@ namespace acl
 				}
 			}
 
-			virtual bool has_additive_base() const override { return !additive_base_tracks.is_empty(); }
+			virtual bool has_additive_base() const override { return !additive_base_tracks_.is_empty(); }
 			virtual void sample_tracks_base(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
 				additive_base_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
