@@ -93,7 +93,11 @@ if __name__ == "__main__":
 			args = [python_exe, 'make.py', '-compiler', 'vs2019', '-cpu', 'arm64', '-config', config, '-build', '-clean', '-nosimd']
 			cmd_args.append([x for x in args if x])
 
-			# Android ARM64
+			# Android
+			args = [python_exe, 'make.py', '-compiler', 'android', '-cpu', 'armv7', '-config', config, '-build', '-clean']
+			cmd_args.append([x for x in args if x])
+			args = [python_exe, 'make.py', '-compiler', 'android', '-cpu', 'armv7', '-config', config, '-build', '-clean', '-nosimd']
+			cmd_args.append([x for x in args if x])
 			args = [python_exe, 'make.py', '-compiler', 'android', '-cpu', 'arm64', '-config', config, '-build', '-clean']
 			cmd_args.append([x for x in args if x])
 			args = [python_exe, 'make.py', '-compiler', 'android', '-cpu', 'arm64', '-config', config, '-build', '-clean', '-nosimd']
