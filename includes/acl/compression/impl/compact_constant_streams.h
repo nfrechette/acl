@@ -64,10 +64,13 @@ namespace acl
 				}
 			};
 
+			const uint32_t num_samples = rotations.get_num_samples();
+			if (num_samples <= 1)
+				return true;
+
 			const rtm::quatf ref_rotation = sample_to_quat(rotations, 0);
 			const rtm::quatf inv_ref_rotation = rtm::quat_conjugate(ref_rotation);
 
-			const uint32_t num_samples = rotations.get_num_samples();
 			for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
 			{
 				const rtm::quatf rotation = sample_to_quat(rotations, sample_index);
@@ -85,6 +88,7 @@ namespace acl
 			SegmentContext& segment = context.segments[0];
 
 			const uint32_t num_bones = context.num_bones;
+			const uint32_t num_samples = context.num_samples;
 			const rtm::vector4f default_scale = get_default_scale(context.additive_format);
 			uint32_t num_default_bone_scales = 0;
 
@@ -109,7 +113,7 @@ namespace acl
 				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle))
 				{
 					RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
-					rtm::vector4f rotation = bone_stream.rotations.get_raw_sample<rtm::vector4f>(0);
+					rtm::vector4f rotation = num_samples != 0 ? bone_stream.rotations.get_raw_sample<rtm::vector4f>(0) : rtm::quat_to_vector((rtm::quatf)rtm::quat_identity());
 					constant_stream.set_raw_sample(0, rotation);
 
 					bone_stream.rotations = std::move(constant_stream);
@@ -122,7 +126,7 @@ namespace acl
 				if (bone_range.translation.is_constant(constant_translation_threshold))
 				{
 					TranslationTrackStream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
-					rtm::vector4f translation = bone_stream.translations.get_raw_sample<rtm::vector4f>(0);
+					rtm::vector4f translation = num_samples != 0 ? bone_stream.translations.get_raw_sample<rtm::vector4f>(0) : rtm::vector_zero();
 					constant_stream.set_raw_sample(0, translation);
 
 					bone_stream.translations = std::move(constant_stream);
@@ -135,7 +139,7 @@ namespace acl
 				if (bone_range.scale.is_constant(constant_scale_threshold))
 				{
 					ScaleTrackStream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
-					rtm::vector4f scale = bone_stream.scales.get_raw_sample<rtm::vector4f>(0);
+					rtm::vector4f scale = num_samples != 0 ? bone_stream.scales.get_raw_sample<rtm::vector4f>(0) : default_scale;
 					constant_stream.set_raw_sample(0, scale);
 
 					bone_stream.scales = std::move(constant_stream);

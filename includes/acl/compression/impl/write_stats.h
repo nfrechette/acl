@@ -30,7 +30,6 @@
 #include "acl/core/utils.h"
 #include "acl/core/variable_bit_rates.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/core/impl/memory_cache.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/track_error.h"
 #include "acl/compression/impl/clip_context.h"

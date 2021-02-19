@@ -45,6 +45,12 @@ namespace acl
 		{
 			// Disable normalization. This is only safe if we know the input data is already normalized!
 			static constexpr bool normalize_rotations() { return false; }
+
+			// Only support raw formats. This ensures we don't interpolate when we can avoid it to maintain the original
+			// accuracy and it strips the code we don't need for faster decompression.
+			static constexpr bool is_rotation_format_supported(rotation_format8 format) { return format == rotation_format8::quatf_full; }
+			static constexpr bool is_translation_format_supported(vector_format8 format) { return format == vector_format8::vector3f_full; }
+			static constexpr bool is_scale_format_supported(vector_format8 format) { return format == vector_format8::vector3f_full; }
 		};
 	}
 

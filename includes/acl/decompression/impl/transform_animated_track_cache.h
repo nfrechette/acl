@@ -1459,21 +1459,37 @@ namespace acl
 
 				// Interpolate linearly and store our rotations in SOA
 				{
-					// Interpolate our quaternions without normalizing just yet
 					rtm::vector4f interp_xxxx;
 					rtm::vector4f interp_yyyy;
 					rtm::vector4f interp_zzzz;
 					rtm::vector4f interp_wwww;
-					quat_lerp4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww,
-						scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww,
-						decomp_context.interpolation_alpha,
-						interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 
-					// Due to the interpolation, the result might not be anywhere near normalized!
-					// Make sure to normalize afterwards if we need to
-					const bool normalize_rotations = decompression_settings_type::normalize_rotations();
-					if (normalize_rotations)
-						quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
+					const bool should_interpolate = should_interpolate_samples<decompression_settings_type>(rotation_format, decomp_context.interpolation_alpha);
+					if (should_interpolate)
+					{
+						// Interpolate our quaternions without normalizing just yet
+						quat_lerp4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww,
+							scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww,
+							decomp_context.interpolation_alpha,
+							interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
+
+						// Due to the interpolation, the result might not be anywhere near normalized!
+						// Make sure to normalize afterwards if we need to
+						const bool normalize_rotations = decompression_settings_type::normalize_rotations();
+						if (normalize_rotations)
+							quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
+					}
+					else
+					{
+						// If we don't interpolate, just pick the sample we need, it is already normalized after reconstructing
+						// the W component or it was raw to begin with
+						const rtm::mask4f use_sample0 = rtm::vector_less_equal(rtm::vector_set(decomp_context.interpolation_alpha), rtm::vector_zero());
+
+						interp_xxxx = rtm::vector_select(use_sample0, scratch0_xxxx, scratch1_xxxx);
+						interp_yyyy = rtm::vector_select(use_sample0, scratch0_yyyy, scratch1_yyyy);
+						interp_zzzz = rtm::vector_select(use_sample0, scratch0_zzzz, scratch1_zzzz);
+						interp_wwww = rtm::vector_select(use_sample0, scratch0_wwww, scratch1_wwww);
+					}
 
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
 					{
@@ -1579,13 +1595,27 @@ namespace acl
 					sample1 = rtm::vector_to_quat(sample_as_vec1);
 				}
 
-				// Due to the interpolation, the result might not be anywhere near normalized!
-				// Make sure to normalize afterwards before using
-				const bool normalize_rotations = decompression_settings_type::normalize_rotations();
-				if (normalize_rotations)
-					return rtm::quat_lerp(sample0, sample1, decomp_context.interpolation_alpha);
+				rtm::quatf result;
+
+				const bool should_interpolate = should_interpolate_samples<decompression_settings_type>(rotation_format, decomp_context.interpolation_alpha);
+				if (should_interpolate)
+				{
+					// Due to the interpolation, the result might not be anywhere near normalized!
+					// Make sure to normalize afterwards before using
+					const bool normalize_rotations = decompression_settings_type::normalize_rotations();
+					if (normalize_rotations)
+						result = rtm::quat_lerp(sample0, sample1, decomp_context.interpolation_alpha);
+					else
+						result = quat_lerp_no_normalization(sample0, sample1, decomp_context.interpolation_alpha);
+				}
 				else
-					return quat_lerp_no_normalization(sample0, sample1, decomp_context.interpolation_alpha);
+				{
+					// If we don't interpolate, just pick the sample we need, it is already normalized after reconstructing
+					// the W component or it was raw to begin with
+					result = decomp_context.interpolation_alpha <= 0.0F ? sample0 : sample1;
+				}
+
+				return result;
 			}
 
 			ACL_DISABLE_SECURITY_COOKIE_CHECK const rtm::quatf& consume_rotation()
@@ -1617,14 +1647,14 @@ namespace acl
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[0]);
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_translations, segment_sampling_context_translations[1]);
 
-				const rtm::scalarf interpolation_alpha = rtm::scalar_set(decomp_context.interpolation_alpha);
+				const rtm::vector4f interpolation_alpha = rtm::vector_set(decomp_context.interpolation_alpha);
 				rtm::vector4f* cache_ptr = &translations.cached_samples[cache_write_index];
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
 					const rtm::vector4f sample0 = scratch0[unpack_index];
 					const rtm::vector4f sample1 = scratch1[unpack_index];
 
-					const rtm::vector4f sample = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
+					const rtm::vector4f sample = vector_lerp(sample0, sample1, interpolation_alpha);
 
 					cache_ptr[unpack_index] = sample;
 				}
@@ -1721,14 +1751,14 @@ namespace acl
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[0]);
 				unpack_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[1]);
 
-				const rtm::scalarf interpolation_alpha = rtm::scalar_set(decomp_context.interpolation_alpha);
+				const rtm::vector4f interpolation_alpha = rtm::vector_set(decomp_context.interpolation_alpha);
 				rtm::vector4f* cache_ptr = &scales.cached_samples[cache_write_index];
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
 					const rtm::vector4f sample0 = scratch0[unpack_index];
 					const rtm::vector4f sample1 = scratch1[unpack_index];
 
-					const rtm::vector4f sample = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
+					const rtm::vector4f sample = vector_lerp(sample0, sample1, interpolation_alpha);
 
 					cache_ptr[unpack_index] = sample;
 				}

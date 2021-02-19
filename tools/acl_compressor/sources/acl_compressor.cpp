@@ -45,8 +45,8 @@
 #include "acl/core/string.h"
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/compress.h"
+#include "acl/compression/convert.h"
 #include "acl/compression/transform_pose_utils.h"	// Just to test compilation
-#include "acl/compression/impl/write_decompression_stats.h"
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
 
@@ -136,7 +136,6 @@ struct Options
 	bool			compression_level_specified;
 
 	bool			regression_testing;
-	bool			profile_decompression;
 	bool			exhaustive_compression;
 
 	bool			use_matrix_error_metric;
@@ -171,7 +170,6 @@ struct Options
 		, compression_level(compression_level8::lowest)
 		, compression_level_specified(false)
 		, regression_testing(false)
-		, profile_decompression(false)
 		, exhaustive_compression(false)
 		, use_matrix_error_metric(false)
 		, is_bind_pose_relative(false)
@@ -218,7 +216,6 @@ static constexpr const char* k_stats_output_option = "-stats";
 static constexpr const char* k_bin_output_option = "-out=";
 static constexpr const char* k_compression_level_option = "-level=";
 static constexpr const char* k_regression_test_option = "-test";
-static constexpr const char* k_profile_decompression_option = "-decomp";
 static constexpr const char* k_exhaustive_compression_option = "-exhaustive";
 static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
@@ -259,7 +256,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 			options.input_filename = argument + option_length;
 			if (!is_acl_sjson_file(options.input_filename) && !is_acl_bin_file(options.input_filename))
 			{
-				printf("Input file must be an ACL SJSON file of the form: [*.acl.sjson] or a binary ACL file of the form: [*.acl.bin]\n");
+				printf("Input file must be an ACL SJSON file of the form: [*.acl.sjson] or a binary ACL file of the form: [*.acl]\n");
 				return false;
 			}
 #endif
@@ -335,13 +332,6 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_regression_test_option, option_length) == 0)
 		{
 			options.regression_testing = true;
-			continue;
-		}
-
-		option_length = std::strlen(k_profile_decompression_option);
-		if (std::strncmp(argument, k_profile_decompression_option, option_length) == 0)
-		{
-			options.profile_decompression = true;
 			continue;
 		}
 
@@ -427,12 +417,6 @@ static bool parse_options(int argc, char** argv, Options& options)
 		return false;
 	}
 
-	if (options.profile_decompression && options.exhaustive_compression)
-	{
-		printf("Exhaustive compression is not supported with decompression profiling.\n");
-		return false;
-	}
-
 	return true;
 }
 
@@ -458,9 +442,6 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 
 	auto try_algorithm_impl = [&](sjson::ObjectWriter* stats_writer)
 	{
-		if (transform_tracks.get_num_samples_per_track() == 0)
-			return;
-
 		// When regression testing or writing to a binary output, we include all the metadata
 		if (options.regression_testing || options.output_bin_filename != nullptr)
 		{
@@ -501,9 +482,6 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
-
-			if (are_any_enum_flags_set(logging, stat_logging::summary_decompression))
-				acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_tracks_, logging, *stats_writer);
 		}
 #endif
 
@@ -543,7 +521,14 @@ static void try_algorithm(const Options& options, iallocator& allocator, track_a
 
 		if (options.output_bin_filename != nullptr)
 		{
-			std::ofstream output_file_stream(options.output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+#ifdef _WIN32
+			char output_bin_filename[64 * 1024] = { 0 };
+			snprintf(output_bin_filename, get_array_size(output_bin_filename), "\\\\?\\%s", options.output_bin_filename);
+#else
+			const char* output_bin_filename = options.output_bin_filename;
+#endif
+
+			std::ofstream output_file_stream(output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 			if (output_file_stream.is_open())
 				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
 		}
@@ -581,8 +566,8 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 
 		compression_settings settings;
 
-		// When regression testing, we include all the metadata
-		if (options.regression_testing)
+		// When regression testing or writing to a binary output, we include all the metadata
+		if (options.regression_testing || options.output_bin_filename != nullptr)
 		{
 			settings.include_track_list_name = true;
 			settings.include_track_names = true;
@@ -613,10 +598,6 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
-
-			// TODO: measure decompression performance
-			//if (are_any_enum_flags_set(logging, stat_logging::summary_decompression))
-				//write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
 		}
 #endif
 
@@ -630,7 +611,14 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 
 		if (options.output_bin_filename != nullptr)
 		{
-			std::ofstream output_file_stream(options.output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+#ifdef _WIN32
+			char output_bin_filename[64 * 1024] = { 0 };
+			snprintf(output_bin_filename, get_array_size(output_bin_filename), "\\\\?\\%s", options.output_bin_filename);
+#else
+			const char* output_bin_filename = options.output_bin_filename;
+#endif
+
+			std::ofstream output_file_stream(output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 			if (output_file_stream.is_open())
 				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
 		}
@@ -646,6 +634,97 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		try_algorithm_impl(nullptr);
 }
 
+static bool read_file(iallocator& allocator, const char* input_filename, char*& out_buffer, size_t& out_file_size)
+{
+	// Use the raw C API with a large buffer to ensure this is as fast as possible
+	std::FILE* file = nullptr;
+
+#ifdef _WIN32
+	char path[64 * 1024] = { 0 };
+	snprintf(path, get_array_size(path), "\\\\?\\%s", input_filename);
+	fopen_s(&file, path, "rb");
+#else
+	file = fopen(input_filename, "rb");
+#endif
+
+	if (file == nullptr)
+	{
+		printf("Failed to open input file\n");
+		return false;
+	}
+
+	// Make sure to enable buffering with a large buffer
+	const int setvbuf_result = setvbuf(file, NULL, _IOFBF, 1 * 1024 * 1024);
+	if (setvbuf_result != 0)
+	{
+		printf("Failed to set input file buffering settings\n");
+		fclose(file);
+		return false;
+	}
+
+	const int fseek_result = fseek(file, 0, SEEK_END);
+	if (fseek_result != 0)
+	{
+		printf("Failed to seek in input file\n");
+		fclose(file);
+		return false;
+	}
+
+#ifdef _WIN32
+	out_file_size = static_cast<size_t>(_ftelli64(file));
+#else
+	out_file_size = static_cast<size_t>(ftello(file));
+#endif
+
+	if (out_file_size == static_cast<size_t>(-1L))
+	{
+		printf("Failed to read input file size\n");
+		fclose(file);
+		return false;
+	}
+
+	rewind(file);
+
+	out_buffer = allocate_type_array_aligned<char>(allocator, out_file_size, 64);
+	const size_t result = fread(out_buffer, 1, out_file_size, file);
+	fclose(file);
+
+	if (result != out_file_size)
+	{
+		printf("Failed to read input file\n");
+		deallocate_type_array(allocator, out_buffer, out_file_size);
+		return false;
+	}
+
+	return true;
+}
+
+static bool read_acl_bin_file(iallocator& allocator, const Options& options, acl::compressed_tracks*& out_tracks)
+{
+	char* tracks_data = nullptr;
+	size_t file_size = 0;
+
+#if defined(__ANDROID__)
+	// Duplicate the data on android so we can free it normally later
+	tracks_data = allocate_type_array_aligned<char>(allocator, options.input_buffer_size, 64);
+	file_size = options.input_buffer_size;
+	std::memcpy(tracks_data, options.input_buffer, options.input_buffer_size);
+#else
+	if (!read_file(allocator, options.input_filename, tracks_data, file_size))
+		return false;
+#endif
+
+	out_tracks = reinterpret_cast<acl::compressed_tracks*>(tracks_data);
+	if (out_tracks->is_valid(true).any() || file_size != out_tracks->get_size())
+	{
+		printf("Invalid binary ACL file provided\n");
+		deallocate_type_array(allocator, tracks_data, file_size);
+		return false;
+	}
+
+	return true;
+}
+
 static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 	sjson_file_type& out_file_type,
 	sjson_raw_clip& out_raw_clip,
@@ -657,58 +736,8 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 #if defined(__ANDROID__)
 	clip_reader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
 #else
-	// Use the raw C API with a large buffer to ensure this is as fast as possible
-	std::FILE* file = nullptr;
-
-#ifdef _WIN32
-	char path[64 * 1024] = { 0 };
-	snprintf(path, get_array_size(path), "\\\\?\\%s", options.input_filename);
-	fopen_s(&file, path, "rb");
-#else
-	file = fopen(options.input_filename, "rb");
-#endif
-
-	if (file == nullptr)
+	if (!read_file(allocator, options.input_filename, sjson_file_buffer, file_size))
 		return false;
-
-	// Make sure to enable buffering with a large buffer
-	const int setvbuf_result = setvbuf(file, NULL, _IOFBF, 1 * 1024 * 1024);
-	if (setvbuf_result != 0)
-	{
-		fclose(file);
-		return false;
-	}
-
-	const int fseek_result = fseek(file, 0, SEEK_END);
-	if (fseek_result != 0)
-	{
-		fclose(file);
-		return false;
-	}
-
-#ifdef _WIN32
-	file_size = static_cast<size_t>(_ftelli64(file));
-#else
-	file_size = static_cast<size_t>(ftello(file));
-#endif
-
-	if (file_size == static_cast<size_t>(-1L))
-	{
-		fclose(file);
-		return false;
-	}
-
-	rewind(file);
-
-	sjson_file_buffer = allocate_type_array<char>(allocator, file_size);
-	const size_t result = fread(sjson_file_buffer, 1, file_size, file);
-	fclose(file);
-
-	if (result != file_size)
-	{
-		deallocate_type_array(allocator, sjson_file_buffer, file_size);
-		return false;
-	}
 
 	clip_reader reader(allocator, sjson_file_buffer, file_size - 1);
 #endif
@@ -950,20 +979,13 @@ static int safe_main_impl(int argc, char* argv[])
 	if (!parse_options(argc, argv, options))
 		return -1;
 
-	if (options.profile_decompression)
-	{
-#if defined(_WIN32)
-		// Set the process affinity to core 2, we'll use core 0 for the python script
-		SetProcessAffinityMask(GetCurrentProcess(), 1 << 2);
-#endif
-	}
-
 #if defined(ACL_USE_SJSON)
 	ansi_allocator allocator;
 	track_array_qvvf transform_tracks;
 	track_array_qvvf base_clip;
 	additive_clip_format8 additive_format = additive_clip_format8::none;
 	track_qvvf bind_pose;
+	track_array scalar_tracks;
 
 #if defined(__ANDROID__)
 	const bool is_input_acl_bin_file = options.input_buffer_binary;
@@ -979,7 +1001,40 @@ static int safe_main_impl(int argc, char* argv[])
 	sjson_raw_clip sjson_clip;
 	sjson_raw_track_list sjson_track_list;
 
-	if (!is_input_acl_bin_file)
+	if (is_input_acl_bin_file)
+	{
+		acl::compressed_tracks* bin_tracks = nullptr;
+		if (!read_acl_bin_file(allocator, options, bin_tracks))
+			return -1;
+
+		if (bin_tracks->get_track_type() == track_type8::qvvf)
+		{
+			const acl::error_result result = acl::convert_track_list(allocator, *bin_tracks, transform_tracks);
+			if (result.any())
+			{
+				printf("Failed to convert input binary track list\n");
+				deallocate_type_array(allocator, bin_tracks, bin_tracks->get_size());
+				return -1;
+			}
+
+			sjson_type = sjson_file_type::raw_clip;
+		}
+		else
+		{
+			const acl::error_result result = acl::convert_track_list(allocator, *bin_tracks, scalar_tracks);
+			if (result.any())
+			{
+				printf("Failed to convert input binary track list\n");
+				deallocate_type_array(allocator, bin_tracks, bin_tracks->get_size());
+				return -1;
+			}
+
+			sjson_type = sjson_file_type::raw_track_list;
+		}
+
+		deallocate_type_array(allocator, bin_tracks, bin_tracks->get_size());
+	}
+	else
 	{
 		if (!read_acl_sjson_file(allocator, options, sjson_type, sjson_clip, sjson_track_list))
 			return -1;
@@ -990,6 +1045,7 @@ static int safe_main_impl(int argc, char* argv[])
 		bind_pose = std::move(sjson_clip.bind_pose);
 		use_external_config = sjson_clip.has_settings;
 		settings = sjson_clip.settings;
+		scalar_tracks = std::move(sjson_track_list.track_list);
 	}
 
 #if DEBUG_MEGA_LARGE_CLIP
@@ -1039,7 +1095,7 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = true;
 	}
 
-	if (!is_input_acl_bin_file && sjson_type == sjson_file_type::raw_clip)
+	if (sjson_type == sjson_file_type::raw_clip)
 	{
 		// Grab whatever clip we might have read from the sjson file and cast the const away so we can manage the memory
 		if (base_clip.is_empty() && !bind_pose.is_empty())
@@ -1071,57 +1127,7 @@ static int safe_main_impl(int argc, char* argv[])
 		if (options.stat_exhaustive_output)
 			logging |= stat_logging::exhaustive;
 
-		if (options.profile_decompression)
-			logging |= stat_logging::summary_decompression | stat_logging::exhaustive_decompression;
-
-		if (is_input_acl_bin_file)
-		{
-#if defined(SJSON_CPP_WRITER)
-			if (options.profile_decompression && runs_writer != nullptr)
-			{
-				// Disable floating point exceptions since decompression assumes it
-				scope_disable_fp_exceptions fp_off;
-
-				settings = get_default_compression_settings();
-
-#if defined(__ANDROID__)
-				const compressed_tracks* compressed_clip = make_compressed_tracks(options.input_buffer);
-				ACL_ASSERT(compressed_clip != nullptr, "Compressed clip is invalid");
-				if (compressed_clip == nullptr)
-					return;	// Compressed clip is invalid, early out to avoid crash
-
-				runs_writer->push([&](sjson::ObjectWriter& writer)
-				{
-					acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, writer);
-				});
-#else
-				std::ifstream input_file_stream(options.input_filename, std::ios_base::in | std::ios_base::binary);
-				if (input_file_stream.is_open())
-				{
-					input_file_stream.seekg(0, std::ios_base::end);
-					const size_t buffer_size = size_t(input_file_stream.tellg());
-					input_file_stream.seekg(0, std::ios_base::beg);
-
-					char* buffer = (char*)allocator.allocate(buffer_size, alignof(compressed_tracks));
-					input_file_stream.read(buffer, buffer_size);
-
-					const compressed_tracks* compressed_clip = make_compressed_tracks(buffer);
-					ACL_ASSERT(compressed_clip != nullptr, "Compressed clip is invalid");
-					if (compressed_clip == nullptr)
-						return;	// Compressed clip is invalid, early out to avoid crash
-
-					runs_writer->push([&](sjson::ObjectWriter& writer)
-					{
-						acl_impl::write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, writer);
-					});
-
-					allocator.deallocate(buffer, buffer_size);
-				}
-#endif
-			}
-#endif
-		}
-		else if (sjson_type == sjson_file_type::raw_clip)
+		if (sjson_type == sjson_file_type::raw_clip)
 		{
 			if (use_external_config)
 			{
@@ -1186,7 +1192,7 @@ static int safe_main_impl(int argc, char* argv[])
 		}
 		else if (sjson_type == sjson_file_type::raw_track_list)
 		{
-			try_algorithm(options, allocator, sjson_track_list.track_list, logging, runs_writer, regression_error_threshold);
+			try_algorithm(options, allocator, scalar_tracks, logging, runs_writer, regression_error_threshold);
 		}
 	};
 

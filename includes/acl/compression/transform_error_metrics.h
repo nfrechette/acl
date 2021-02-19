@@ -284,7 +284,7 @@ namespace acl
 				if (parent_transform_index == k_invalid_track_index)
 					obj_transform = local_transforms_[transform_index];	// Just copy the root as-is, it has no parent and thus local and object space transforms are equal
 				else
-					obj_transform = rtm::qvv_mul(local_transforms_[transform_index], out_object_transforms_[parent_transform_index]);
+					obj_transform = rtm::qvv_normalize(rtm::qvv_mul(local_transforms_[transform_index], out_object_transforms_[parent_transform_index]));
 
 				out_object_transforms_[transform_index] = obj_transform;
 			}
@@ -307,7 +307,7 @@ namespace acl
 				if (parent_transform_index == k_invalid_track_index)
 					obj_transform = local_transforms_[transform_index];	// Just copy the root as-is, it has no parent and thus local and object space transforms are equal
 				else
-					obj_transform = rtm::qvv_mul_no_scale(local_transforms_[transform_index], out_object_transforms_[parent_transform_index]);
+					obj_transform = rtm::qvv_normalize(rtm::qvv_mul_no_scale(local_transforms_[transform_index], out_object_transforms_[parent_transform_index]));
 
 				out_object_transforms_[transform_index] = obj_transform;
 			}
@@ -458,8 +458,8 @@ namespace acl
 			default:
 			case additive_clip_format8::none:			return "additive_qvvf_transform_error_metric<none>";
 			case additive_clip_format8::relative:		return "additive_qvvf_transform_error_metric<relative>";
-			case additive_clip_format8::additive0:	return "additive_qvvf_transform_error_metric<additive0>";
-			case additive_clip_format8::additive1:	return "additive_qvvf_transform_error_metric<additive1>";
+			case additive_clip_format8::additive0:		return "additive_qvvf_transform_error_metric<additive0>";
+			case additive_clip_format8::additive1:		return "additive_qvvf_transform_error_metric<additive1>";
 			}
 		}
 

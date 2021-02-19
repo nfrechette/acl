@@ -40,7 +40,6 @@
 #include <rtm/vector4f.h>
 
 #include <cstdint>
-#include <functional>
 
 namespace acl
 {
@@ -97,9 +96,47 @@ namespace acl
 			return error;
 		}
 
+		struct ierror_calculation_adapter
+		{
+			virtual ~ierror_calculation_adapter() {}
+
+			// Scalar and transforms, mandatory
+			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) = 0;
+			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) = 0;
+
+			// Scalar and transforms, optional
+			virtual uint32_t get_output_index(uint32_t track_index) { return track_index; }
+
+			// Transforms only, mandatory
+			virtual uint32_t get_parent_index(uint32_t track_index) { (void)track_index; return k_invalid_track_index; }
+			virtual float get_shell_distance(uint32_t track_index) { (void)track_index; return 0.0F; }
+
+			// Transforms only, optional
+			virtual void remap_output(debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped)
+			{
+				(void)track_writer0;
+				std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer1.tracks_typed.qvvf, sizeof(rtm::qvvf) * track_writer1.num_tracks);
+			}
+
+			// Transform only, optional, additive base support
+			virtual bool has_additive_base() const { return false; }
+			virtual void sample_tracks_base(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
+			{
+				(void)sample_time;
+				(void)rounding_policy;
+				(void)track_writer;
+			}
+		};
+
 		struct calculate_track_error_args
 		{
+			calculate_track_error_args(ierror_calculation_adapter& adapter_)
+				: adapter(adapter_)
+			{
+			}
+
 			// Scalar and transforms
+			ierror_calculation_adapter& adapter;
 			uint32_t num_samples = 0;
 			uint32_t num_tracks = 0;
 			float duration = 0.0F;
@@ -107,33 +144,22 @@ namespace acl
 			track_type8 track_type = track_type8::float1f;
 			sample_rounding_policy rounding_policy = sample_rounding_policy::nearest;
 
-			std::function<void(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)> sample_tracks0;
-			std::function<void(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)> sample_tracks1;
-
 			// Transforms only
 			const itransform_error_metric* error_metric = nullptr;
-			std::function<uint32_t(uint32_t track_index)> get_parent_index;
-			std::function<float(uint32_t track_index)> get_shell_distance;
 
 			// Optional
 			uint32_t base_num_samples = 0;
 			float base_duration = 0.0F;
-
-
-			std::function<void(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)> sample_tracks_base;
-			std::function<uint32_t(uint32_t track_index)> get_output_index;
-
-			std::function<void(debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped)> remap_output;
 		};
 
 		inline track_error calculate_scalar_track_error(iallocator& allocator, const calculate_track_error_args& args)
 		{
 			const uint32_t num_samples = args.num_samples;
-			if (args.num_samples == 0)
+			if (num_samples == 0)
 				return track_error();	// Cannot measure any error
 
 			const uint32_t num_tracks = args.num_tracks;
-			if (args.num_tracks == 0)
+			if (num_tracks == 0)
 				return track_error();	// Cannot measure any error
 
 			track_error result;
@@ -152,13 +178,13 @@ namespace acl
 			{
 				const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
-				args.sample_tracks0(sample_time, rounding_policy, tracks_writer0);
-				args.sample_tracks1(sample_time, rounding_policy, tracks_writer1);
+				args.adapter.sample_tracks0(sample_time, rounding_policy, tracks_writer0);
+				args.adapter.sample_tracks1(sample_time, rounding_policy, tracks_writer1);
 
 				// Validate decompress_tracks
 				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 				{
-					const uint32_t output_index = args.get_output_index ? args.get_output_index(track_index) : track_index;
+					const uint32_t output_index = args.adapter.get_output_index(track_index);
 					if (output_index == k_invalid_track_index)
 						continue;	// Track is being stripped, ignore it
 
@@ -180,8 +206,6 @@ namespace acl
 		inline track_error calculate_transform_track_error(iallocator& allocator, const calculate_track_error_args& args)
 		{
 			ACL_ASSERT(args.error_metric != nullptr, "Must have an error metric");
-			ACL_ASSERT(args.get_parent_index, "Must be able to query the parent track index");
-			ACL_ASSERT(args.get_shell_distance, "Must be able to query the shell distance");
 
 			const uint32_t num_samples = args.num_samples;
 			if (num_samples == 0)
@@ -197,6 +221,7 @@ namespace acl
 			const uint32_t additive_num_samples = args.base_num_samples;
 			const float additive_duration = args.base_duration;
 			const sample_rounding_policy rounding_policy = args.rounding_policy;
+			const bool has_additive_base = args.adapter.has_additive_base();
 
 			// Always calculate the error with scale, slower but we don't need to know if we have scale or not
 			const bool has_scale = true;
@@ -226,7 +251,7 @@ namespace acl
 
 			for (uint32_t transform_index = 0; transform_index < num_tracks; ++transform_index)
 			{
-				const uint32_t parent_index = args.get_parent_index(transform_index);
+				const uint32_t parent_index = args.adapter.get_parent_index(transform_index);
 				parent_transform_indices[transform_index] = parent_index;
 				self_transform_indices[transform_index] = transform_index;
 			}
@@ -275,14 +300,11 @@ namespace acl
 				const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, clip_duration);
 
 				// Sample our tracks
-				args.sample_tracks0(sample_time, rounding_policy, tracks_writer0);
-				args.sample_tracks1(sample_time, rounding_policy, tracks_writer1);
+				args.adapter.sample_tracks0(sample_time, rounding_policy, tracks_writer0);
+				args.adapter.sample_tracks1(sample_time, rounding_policy, tracks_writer1);
 
 				// Maybe remap them
-				if (args.remap_output)
-					args.remap_output(tracks_writer0, tracks_writer1, tracks_writer1_remapped);
-				else
-					std::memcpy(tracks_writer1_remapped.tracks_typed.qvvf, tracks_writer1.tracks_typed.qvvf, sizeof(rtm::qvvf) * num_tracks);
+				args.adapter.remap_output(tracks_writer0, tracks_writer1, tracks_writer1_remapped);
 
 				if (needs_conversion)
 				{
@@ -290,11 +312,11 @@ namespace acl
 					error_metric.convert_transforms(convert_transforms_args_lossy, lossy_local_pose_converted);
 				}
 
-				if (args.sample_tracks_base)
+				if (has_additive_base)
 				{
 					const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
 					const float additive_sample_time = additive_num_samples > 1 ? (normalized_sample_time * additive_duration) : 0.0F;
-					args.sample_tracks_base(additive_sample_time, rounding_policy, tracks_writer_base);
+					args.adapter.sample_tracks_base(additive_sample_time, rounding_policy, tracks_writer_base);
 
 					if (needs_conversion)
 						error_metric.convert_transforms(convert_transforms_args_base, base_local_pose_converted);
@@ -308,7 +330,7 @@ namespace acl
 
 				for (uint32_t bone_index = 0; bone_index < num_tracks; ++bone_index)
 				{
-					const float shell_distance = args.get_shell_distance(bone_index);
+					const float shell_distance = args.adapter.get_shell_distance(bone_index);
 
 					itransform_error_metric::calculate_error_args calculate_error_args;
 					calculate_error_args.transform0 = raw_object_pose + (bone_index * transform_size);
@@ -358,7 +380,38 @@ namespace acl
 		if (raw_tracks.get_track_type() == track_type8::qvvf)
 			return invalid_track_error();	// Only supports scalar tracks
 
-		calculate_track_error_args args;
+		struct error_calculation_adapter final : public ierror_calculation_adapter
+		{
+			const track_array& raw_tracks_;
+			decompression_context_type& context_;
+
+			error_calculation_adapter(const track_array& raw_tracks__, decompression_context_type& context__)
+				: raw_tracks_(raw_tracks__)
+				, context_(context__)
+			{
+			}
+
+			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
+			}
+
+			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				context_.seek(sample_time, rounding_policy);
+				context_.decompress_tracks(track_writer);
+			}
+
+			virtual uint32_t get_output_index(uint32_t track_index) override
+			{
+				const track& track_ = raw_tracks_[track_index];
+				return track_.get_output_index();
+			}
+		};
+
+		error_calculation_adapter adapter(raw_tracks, context);
+
+		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks.get_num_samples_per_track();
 		args.num_tracks = raw_tracks.get_num_tracks();
 		args.duration = raw_tracks.get_duration();
@@ -367,23 +420,6 @@ namespace acl
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
 		args.rounding_policy = sample_rounding_policy::nearest;
-
-		args.sample_tracks0 = [&raw_tracks](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			raw_tracks.sample_tracks(sample_time, rounding_policy, track_writer);
-		};
-
-		args.sample_tracks1 = [&context](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			context.seek(sample_time, rounding_policy);
-			context.decompress_tracks(track_writer);
-		};
-
-		args.get_output_index = [&raw_tracks](uint32_t track_index)
-		{
-			const track& track_ = raw_tracks[track_index];
-			return track_.get_output_index();
-		};
 
 		return calculate_scalar_track_error(allocator, args);
 	}
@@ -396,7 +432,75 @@ namespace acl
 		ACL_ASSERT(raw_tracks.is_valid().empty(), "Raw tracks are invalid");
 		ACL_ASSERT(context.is_initialized(), "Context isn't initialized");
 
-		calculate_track_error_args args;
+		struct error_calculation_adapter final : public ierror_calculation_adapter
+		{
+			const track_array& raw_tracks_;
+			decompression_context_type& context_;
+			iallocator& allocator_;
+
+			uint32_t* output_bone_mapping;
+			uint32_t num_output_bones;
+
+			error_calculation_adapter(iallocator& allocator__, const track_array& raw_tracks__, decompression_context_type& context__)
+				: raw_tracks_(raw_tracks__)
+				, context_(context__)
+				, allocator_(allocator__)
+				, output_bone_mapping(nullptr)
+				, num_output_bones(0)
+			{
+				output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks__, num_output_bones);
+			}
+
+			virtual ~error_calculation_adapter() override
+			{
+				deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
+			}
+
+			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
+			}
+
+			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				context_.seek(sample_time, rounding_policy);
+				context_.decompress_tracks(track_writer);
+			}
+
+			virtual uint32_t get_output_index(uint32_t track_index) override
+			{
+				const track& track_ = raw_tracks_[track_index];
+				return track_.get_output_index();
+			}
+
+			virtual uint32_t get_parent_index(uint32_t track_index) override
+			{
+				const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks_[track_index]);
+				return track_.get_description().parent_index;
+			}
+
+			virtual float get_shell_distance(uint32_t track_index) override
+			{
+				const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks_[track_index]);
+				return track_.get_description().shell_distance;
+			}
+
+			virtual void remap_output(debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped) override
+			{
+				// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
+				// the data is available
+				std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer0.tracks_typed.qvvf, sizeof(rtm::qvvf) * track_writer_remapped.num_tracks);
+				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
+				{
+					const uint32_t bone_index = output_bone_mapping[output_index];
+					track_writer_remapped.tracks_typed.qvvf[bone_index] = track_writer1.tracks_typed.qvvf[output_index];
+				}
+			}
+		};
+
+		error_calculation_adapter adapter(allocator, raw_tracks, context);
+
+		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks.get_num_samples_per_track();
 		args.num_tracks = raw_tracks.get_num_tracks();
 		args.duration = raw_tracks.get_duration();
@@ -414,60 +518,12 @@ namespace acl
 			args.rounding_policy = sample_rounding_policy::none;
 		}
 
-		args.sample_tracks0 = [&raw_tracks](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			raw_tracks.sample_tracks(sample_time, rounding_policy, track_writer);
-		};
-
-		args.sample_tracks1 = [&context](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			context.seek(sample_time, rounding_policy);
-			context.decompress_tracks(track_writer);
-		};
-
-		args.get_output_index = [&raw_tracks](uint32_t track_index)
-		{
-			const track& track_ = raw_tracks[track_index];
-			return track_.get_output_index();
-		};
-
 		if (raw_tracks.get_track_type() != track_type8::qvvf)
 			return calculate_scalar_track_error(allocator, args);
 
-		uint32_t num_output_bones = 0;
-		uint32_t* output_bone_mapping = create_output_track_mapping(allocator, raw_tracks, num_output_bones);
-
 		args.error_metric = &error_metric;
 
-		args.get_parent_index = [&raw_tracks](uint32_t track_index)
-		{
-			const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks[track_index]);
-			return track_.get_description().parent_index;
-		};
-
-		args.get_shell_distance = [&raw_tracks](uint32_t track_index)
-		{
-			const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks[track_index]);
-			return track_.get_description().shell_distance;
-		};
-
-		args.remap_output = [output_bone_mapping, num_output_bones](debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped)
-		{
-			// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
-			// the data is available
-			std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer0.tracks_typed.qvvf, sizeof(rtm::qvvf) * track_writer_remapped.num_tracks);
-			for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
-			{
-				const uint32_t bone_index = output_bone_mapping[output_index];
-				track_writer_remapped.tracks_typed.qvvf[bone_index] = track_writer1.tracks_typed.qvvf[output_index];
-			}
-		};
-
-		const track_error result = calculate_transform_track_error(allocator, args);
-
-		deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
-
-		return result;
+		return calculate_transform_track_error(allocator, args);
 	}
 
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type>>
@@ -478,7 +534,83 @@ namespace acl
 		ACL_ASSERT(raw_tracks.is_valid().empty(), "Raw tracks are invalid");
 		ACL_ASSERT(context.is_initialized(), "Context isn't initialized");
 
-		calculate_track_error_args args;
+		struct error_calculation_adapter final : public ierror_calculation_adapter
+		{
+			const track_array& raw_tracks_;
+			decompression_context_type& context_;
+			const track_array_qvvf& additive_base_tracks_;
+
+			iallocator& allocator_;
+			uint32_t* output_bone_mapping;
+			uint32_t num_output_bones;
+
+			error_calculation_adapter(iallocator& allocator__, const track_array& raw_tracks__, decompression_context_type& context__, const track_array_qvvf& additive_base_tracks__)
+				: raw_tracks_(raw_tracks__)
+				, context_(context__)
+				, additive_base_tracks_(additive_base_tracks__)
+				, allocator_(allocator__)
+				, output_bone_mapping(nullptr)
+				, num_output_bones(0)
+			{
+				output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks__, num_output_bones);
+			}
+
+			virtual ~error_calculation_adapter() override
+			{
+				deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
+			}
+
+			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
+			}
+
+			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				context_.seek(sample_time, rounding_policy);
+				context_.decompress_tracks(track_writer);
+			}
+
+			virtual uint32_t get_output_index(uint32_t track_index) override
+			{
+				const track& track_ = raw_tracks_[track_index];
+				return track_.get_output_index();
+			}
+
+			virtual uint32_t get_parent_index(uint32_t track_index) override
+			{
+				const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks_[track_index]);
+				return track_.get_description().parent_index;
+			}
+
+			virtual float get_shell_distance(uint32_t track_index) override
+			{
+				const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks_[track_index]);
+				return track_.get_description().shell_distance;
+			}
+
+			virtual void remap_output(debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped) override
+			{
+				// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
+				// the data is available
+				std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer0.tracks_typed.qvvf, sizeof(rtm::qvvf) * track_writer_remapped.num_tracks);
+				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
+				{
+					const uint32_t bone_index = output_bone_mapping[output_index];
+					track_writer_remapped.tracks_typed.qvvf[bone_index] = track_writer1.tracks_typed.qvvf[output_index];
+				}
+			}
+
+			virtual bool has_additive_base() const override { return !additive_base_tracks_.is_empty(); }
+			virtual void sample_tracks_base(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				additive_base_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
+			}
+		};
+
+		error_calculation_adapter adapter(allocator, raw_tracks, context, additive_base_tracks);
+
+		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks.get_num_samples_per_track();
 		args.num_tracks = raw_tracks.get_num_tracks();
 		args.duration = raw_tracks.get_duration();
@@ -496,68 +628,15 @@ namespace acl
 			args.rounding_policy = sample_rounding_policy::none;
 		}
 
-		args.sample_tracks0 = [&raw_tracks](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			raw_tracks.sample_tracks(sample_time, rounding_policy, track_writer);
-		};
-
-		args.sample_tracks1 = [&context](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			context.seek(sample_time, rounding_policy);
-			context.decompress_tracks(track_writer);
-		};
-
-		args.get_output_index = [&raw_tracks](uint32_t track_index)
-		{
-			const track& track_ = raw_tracks[track_index];
-			return track_.get_output_index();
-		};
-
-		uint32_t num_output_bones = 0;
-		uint32_t* output_bone_mapping = create_output_track_mapping(allocator, raw_tracks, num_output_bones);
-
 		args.error_metric = &error_metric;
-
-		args.get_parent_index = [&raw_tracks](uint32_t track_index)
-		{
-			const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks[track_index]);
-			return track_.get_description().parent_index;
-		};
-
-		args.get_shell_distance = [&raw_tracks](uint32_t track_index)
-		{
-			const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks[track_index]);
-			return track_.get_description().shell_distance;
-		};
-
-		args.remap_output = [output_bone_mapping, num_output_bones](debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped)
-		{
-			// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
-			// the data is available
-			std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer0.tracks_typed.qvvf, sizeof(rtm::qvvf) * track_writer_remapped.num_tracks);
-			for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
-			{
-				const uint32_t bone_index = output_bone_mapping[output_index];
-				track_writer_remapped.tracks_typed.qvvf[bone_index] = track_writer1.tracks_typed.qvvf[output_index];
-			}
-		};
 
 		if (!additive_base_tracks.is_empty())
 		{
 			args.base_num_samples = additive_base_tracks.get_num_samples_per_track();
 			args.base_duration = additive_base_tracks.get_duration();
-
-			args.sample_tracks_base = [&additive_base_tracks](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-			{
-				additive_base_tracks.sample_tracks(sample_time, rounding_policy, track_writer);
-			};
 		}
 
-		const track_error result = calculate_transform_track_error(allocator, args);
-
-		deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
-
-		return result;
+		return calculate_transform_track_error(allocator, args);
 	}
 
 	template<class decompression_context_type0, class decompression_context_type1, acl_impl::is_decompression_context<decompression_context_type0>, acl_impl::is_decompression_context<decompression_context_type1>>
@@ -573,7 +652,33 @@ namespace acl
 		if (tracks0->get_track_type() == track_type8::qvvf)
 			return invalid_track_error();	// Only supports scalar tracks
 
-		calculate_track_error_args args;
+		struct error_calculation_adapter final : public ierror_calculation_adapter
+		{
+			decompression_context_type0& context0_;
+			decompression_context_type1& context1_;
+
+			error_calculation_adapter(decompression_context_type0& context0__, decompression_context_type1& context1__)
+				: context0_(context0__)
+				, context1_(context1__)
+			{
+			}
+
+			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				context0_.seek(sample_time, rounding_policy);
+				context0_.decompress_tracks(track_writer);
+			}
+
+			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				context1_.seek(sample_time, rounding_policy);
+				context1_.decompress_tracks(track_writer);
+			}
+		};
+
+		error_calculation_adapter adapter(context0, context1);
+
+		calculate_track_error_args args(adapter);
 		args.num_samples = tracks0->get_num_samples_per_track();
 		args.num_tracks = tracks0->get_num_tracks();
 		args.duration = tracks0->get_duration();
@@ -591,18 +696,6 @@ namespace acl
 			args.rounding_policy = sample_rounding_policy::none;
 		}
 
-		args.sample_tracks0 = [&context0](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			context0.seek(sample_time, rounding_policy);
-			context0.decompress_tracks(track_writer);
-		};
-
-		args.sample_tracks1 = [&context1](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			context1.seek(sample_time, rounding_policy);
-			context1.decompress_tracks(track_writer);
-		};
-
 		return calculate_scalar_track_error(allocator, args);
 	}
 
@@ -616,7 +709,31 @@ namespace acl
 		if (raw_tracks0.get_track_type() == track_type8::qvvf)
 			return invalid_track_error();	// Only supports scalar tracks
 
-		calculate_track_error_args args;
+		struct error_calculation_adapter final : public ierror_calculation_adapter
+		{
+			const track_array& raw_tracks0_;
+			const track_array& raw_tracks1_;
+
+			error_calculation_adapter(const track_array& raw_tracks0__, const track_array& raw_tracks1__)
+				: raw_tracks0_(raw_tracks0__)
+				, raw_tracks1_(raw_tracks1__)
+			{
+			}
+
+			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				raw_tracks0_.sample_tracks(sample_time, rounding_policy, track_writer);
+			}
+
+			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				raw_tracks1_.sample_tracks(sample_time, rounding_policy, track_writer);
+			}
+		};
+
+		error_calculation_adapter adapter(raw_tracks0, raw_tracks1);
+
+		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks0.get_num_samples_per_track();
 		args.num_tracks = raw_tracks0.get_num_tracks();
 		args.duration = raw_tracks0.get_duration();
@@ -625,16 +742,6 @@ namespace acl
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
 		args.rounding_policy = sample_rounding_policy::nearest;
-
-		args.sample_tracks0 = [&raw_tracks0](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			raw_tracks0.sample_tracks(sample_time, rounding_policy, track_writer);
-		};
-
-		args.sample_tracks1 = [&raw_tracks1](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			raw_tracks1.sample_tracks(sample_time, rounding_policy, track_writer);
-		};
 
 		return calculate_scalar_track_error(allocator, args);
 	}
@@ -646,7 +753,43 @@ namespace acl
 		ACL_ASSERT(raw_tracks0.is_valid().empty(), "Raw tracks are invalid");
 		ACL_ASSERT(raw_tracks1.is_valid().empty(), "Raw tracks are invalid");
 
-		calculate_track_error_args args;
+		struct error_calculation_adapter final : public ierror_calculation_adapter
+		{
+			const track_array& raw_tracks0_;
+			const track_array& raw_tracks1_;
+
+			error_calculation_adapter(const track_array& raw_tracks0__, const track_array& raw_tracks1__)
+				: raw_tracks0_(raw_tracks0__)
+				, raw_tracks1_(raw_tracks1__)
+			{
+			}
+
+			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				raw_tracks0_.sample_tracks(sample_time, rounding_policy, track_writer);
+			}
+
+			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+			{
+				raw_tracks1_.sample_tracks(sample_time, rounding_policy, track_writer);
+			}
+
+			virtual uint32_t get_parent_index(uint32_t track_index) override
+			{
+				const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks0_[track_index]);
+				return track_.get_description().parent_index;
+			}
+
+			virtual float get_shell_distance(uint32_t track_index) override
+			{
+				const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks0_[track_index]);
+				return track_.get_description().shell_distance;
+			}
+		};
+
+		error_calculation_adapter adapter(raw_tracks0, raw_tracks1);
+
+		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks0.get_num_samples_per_track();
 		args.num_tracks = raw_tracks0.get_num_tracks();
 		args.duration = raw_tracks0.get_duration();
@@ -656,32 +799,10 @@ namespace acl
 		// We use the nearest sample to accurately measure the loss that happened, if any
 		args.rounding_policy = sample_rounding_policy::nearest;
 
-		args.sample_tracks0 = [&raw_tracks0](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			raw_tracks0.sample_tracks(sample_time, rounding_policy, track_writer);
-		};
-
-		args.sample_tracks1 = [&raw_tracks1](float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer)
-		{
-			raw_tracks1.sample_tracks(sample_time, rounding_policy, track_writer);
-		};
-
 		if (raw_tracks0.get_track_type() != track_type8::qvvf)
 			return calculate_scalar_track_error(allocator, args);
 
 		args.error_metric = &error_metric;
-
-		args.get_parent_index = [&raw_tracks0](uint32_t track_index)
-		{
-			const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks0[track_index]);
-			return track_.get_description().parent_index;
-		};
-
-		args.get_shell_distance = [&raw_tracks0](uint32_t track_index)
-		{
-			const track_qvvf& track_ = track_cast<track_qvvf>(raw_tracks0[track_index]);
-			return track_.get_description().shell_distance;
-		};
 
 		return calculate_transform_track_error(allocator, args);
 	}

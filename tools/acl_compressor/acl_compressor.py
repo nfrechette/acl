@@ -318,11 +318,14 @@ def compress_clips(options):
 		stat_dirname = dirpath.replace(acl_dir, stat_dir)
 
 		for filename in filenames:
-			if not filename.endswith('.acl.sjson'):
+			if not (filename.endswith('.acl.sjson') or filename.endswith('.acl')):
 				continue
 
 			acl_filename = os.path.join(dirpath, filename)
-			stat_filename = os.path.join(stat_dirname, filename.replace('.acl.sjson', '_stats.sjson'))
+			if filename.endswith('.acl.sjson'):
+				stat_filename = os.path.join(stat_dirname, filename.replace('.acl.sjson', '_stats.sjson'))
+			else:
+				stat_filename = os.path.join(stat_dirname, filename.replace('.acl', '_stats.sjson'))
 
 			stat_files.append(stat_filename)
 
@@ -337,7 +340,10 @@ def compress_clips(options):
 			cmd = '{} -acl="{}" -stats="{}" -level={}'.format(compressor_exe_path, acl_filename, stat_filename, options['level'])
 
 			if out_dir:
-				out_filename = os.path.join(options['out'], filename.replace('.acl.sjson', '.acl'))
+				if filename.endswith('.acl.sjson'):
+					out_filename = os.path.join(options['out'], filename.replace('.acl.sjson', '.acl'))
+				else:
+					out_filename = os.path.join(options['out'], filename)
 				cmd = '{} -out="{}"'.format(cmd, out_filename)
 
 			if options['stat_detailed']:

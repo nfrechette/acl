@@ -33,7 +33,10 @@
 
 #include <sjson/parser.h>
 
-#include "acl_compressor.h"
+#include <benchmark/benchmark.h>
+#include <sjson/parser.h>
+
+#include <benchmark.h>
 
 static int get_bundle_resource_path(const char* resource_filename, char* out_path, size_t path_max_size)
 {
@@ -49,37 +52,7 @@ static int get_bundle_resource_path(const char* resource_filename, char* out_pat
 	return 0;
 }
 
-static int parse_metadata(const char* buffer, size_t buffer_size, std::vector<std::string>& out_configs, std::vector<std::string>& out_clips)
-{
-	sjson::Parser parser(buffer, buffer_size);
-
-	if (!parser.array_begins("configs"))
-		return -100;
-
-	while (!parser.try_array_ends())
-	{
-		sjson::StringView config_filename;
-		if (parser.read(&config_filename, 1))
-			out_configs.push_back(std::string(config_filename.c_str(), config_filename.size()));
-	}
-
-	if (!parser.array_begins("clips"))
-		return -500;
-
-	while (!parser.try_array_ends())
-	{
-		sjson::StringView clip_filename;
-		if (parser.read(&clip_filename, 1))
-			out_clips.push_back(std::string(clip_filename.c_str(), clip_filename.size()));
-	}
-
-	if (!parser.remainder_is_comments_and_whitespace())
-		return -1000;
-
-	return 0;
-}
-
-static int read_metadata(std::vector<std::string>& out_configs, std::vector<std::string>& out_clips)
+static int read_metadata(std::string& out_clip_dir, std::vector<std::string>& out_clips)
 {
 	char metadata_path[1024];
 	int result = get_bundle_resource_path("metadata.sjson", metadata_path, sizeof(metadata_path));
@@ -91,83 +64,81 @@ static int read_metadata(std::vector<std::string>& out_configs, std::vector<std:
 	buffer << t.rdbuf();
 	std::string str = buffer.str();
 
-	result = parse_metadata(str.c_str(), str.size(), out_configs, out_clips);
-	if (result != 0)
+	if (!parse_metadata(str.c_str(), str.size(), out_clip_dir, out_clips))
+	{
 		printf("Failed to parse metadata\n");
+		return -1;
+	}
 
-	return result;
+	return 0;
+}
+
+static int read_clip(const std::string& clip_filename, std::vector<unsigned char>& out_buffer)
+{
+	char clip_path[1024];
+	int result = get_bundle_resource_path(clip_filename.c_str(), clip_path, 1024);
+	if (result != 0)
+		return result;
+
+	std::ifstream t(clip_path, std::ios::binary);
+	out_buffer = std::vector<unsigned char>(std::istreambuf_iterator<char>(t), {});
+
+	return out_buffer.empty() ? -1 : 0;
 }
 
 int main(int argc, char* argv[])
 {
-	std::vector<std::string> configs;
+	std::string clip_dir;
 	std::vector<std::string> clips;
-	int result = read_metadata(configs, clips);
+	int result = read_metadata(clip_dir, clips);
 	if (result != 0)
 		return result;
-
-	// Only decompress with a single configuration for now
-	configs.erase(std::remove_if(configs.begin(), configs.end(), [](const std::string& config_filename) { return config_filename != "uniformly_sampled_quant_medium.config.sjson"; }), configs.end());
 
 	char output_directory[1024];
 	std::strcpy(output_directory, getenv("HOME"));
 	std::strcat(output_directory, "/Documents");
 
-	const int num_configs = (int)configs.size();
-	const int num_clips = (int)clips.size();
+	const std::string output_filename = std::string(output_directory) + "/benchmark_results.json";
+
+	std::vector<acl::compressed_tracks*> compressed_clips;
+	for (const std::string& clip : clips)
+	{
+		std::vector<unsigned char> buffer;
+		if (read_clip(clip, buffer) != 0)
+		{
+			printf("Failed to read clip %s!\n", clip.c_str());
+			continue;
+		}
+
+		const acl::compressed_tracks* raw_tracks = reinterpret_cast<const acl::compressed_tracks*>(buffer.data());
+
+		prepare_clip(clip, *raw_tracks, compressed_clips);
+	}
+
+	const int num_failed_decompression = int(clips.size() - compressed_clips.size());
 
 	char argv_0_executable_name[64];
-	char argv_1_profile_decompression[64];
-	char argv_2_stat_output[1024];
-	char argv_3_config_path[1024];
-	char argv_4_clip_path[1024];
-	char* compressor_argv[5] = { argv_0_executable_name, argv_1_profile_decompression, argv_2_stat_output, argv_3_config_path, argv_4_clip_path };
-	snprintf(argv_0_executable_name, 64, "iOS Bundle");
-	snprintf(argv_1_profile_decompression, 64, "-decomp");
+	snprintf(argv_0_executable_name, sizeof(argv_0_executable_name), "iOS Bundle");
 
-	int num_failed_decompression = 0;
+	char argv_1_benchmark_out[2048];
+	snprintf(argv_1_benchmark_out, sizeof(argv_1_benchmark_out), "--benchmark_out=%s", output_filename.c_str());
 
-	for (int config_index = 0; config_index < num_configs; ++config_index)
-	{
-		const std::string& config_filename = configs[config_index];
-		printf("Performing decompression profiling for configuration: %s (%d / %d)\n", config_filename.c_str(), config_index + 1, num_configs);
+	char argv_2_benchmark_out_format[64];
+	snprintf(argv_2_benchmark_out_format, sizeof(argv_2_benchmark_out_format), "--benchmark_out_format=json");
 
-		char config_path[1024];
-		if (get_bundle_resource_path(config_filename.c_str(), config_path, 1024) != 0)
-			continue;
+	int bench_argc = 3;
+	char* bench_argv[3] = { argv_0_executable_name, argv_1_benchmark_out, argv_2_benchmark_out_format };
 
-		snprintf(argv_3_config_path, 1024, "-config=%s", config_path);
+	benchmark::Initialize(&bench_argc, bench_argv);
 
-		for (int clip_index = 0; clip_index < num_clips; ++clip_index)
-		{
-			const std::string& clip_filename = clips[clip_index];
+	// Run benchmarks
+	benchmark::RunSpecifiedBenchmarks();
 
-			char clip_path[1024];
-			if (get_bundle_resource_path(clip_filename.c_str(), clip_path, 1024) != 0)
-				continue;
+	// Clean up
+	clear_benchmark_state();
 
-			snprintf(argv_4_clip_path, 1024, "-acl=%s", clip_path);
-
-			size_t clip_base_name_length = 0;
-			while (clip_filename[clip_base_name_length] != '.')
-				clip_base_name_length++;
-
-			char clip_basename[256];
-			std::strncpy(clip_basename, clip_filename.c_str(), clip_base_name_length);
-			clip_basename[clip_base_name_length] = 0;
-
-			snprintf(argv_2_stat_output, 1024, "-stats=%s/%s_stats.sjson", output_directory, clip_basename);
-
-			result = main_impl(5, compressor_argv);
-			if (result != 0)
-			{
-				num_failed_decompression++;
-				printf("Failed decompression for clip: %s (%d / %d)\n", clip_filename.c_str(), clip_index + 1, num_clips);
-			}
-			else
-				printf("Successful decompression for clip: %s (%d / %d)\n", clip_filename.c_str(), clip_index + 1, num_clips);
-		}
-	}
+	for (acl::compressed_tracks* compressed_tracks : compressed_clips)
+		s_allocator.deallocate(compressed_tracks, compressed_tracks->get_size());
 
 	if (num_failed_decompression != 0)
 		printf("Number of decompression failures: %d\n", num_failed_decompression);

@@ -31,7 +31,6 @@
 #include "acl/compression/impl/segment_context.h"
 
 #include <cstdint>
-#include <functional>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -39,8 +38,12 @@ namespace acl
 {
 	namespace acl_impl
 	{
+		// We use template arguments to support lambdas and avoid using std::function since they might allocate memory
+		// without using our allocator.
+		// group_filter_action_type = std::function<bool(animation_track_type8 group_type, uint32_t bone_index)>
+		template<typename group_filter_action_type>
 		inline void get_num_sub_tracks(const SegmentContext& segment,
-			const std::function<bool(animation_track_type8 group_type, uint32_t bone_index)>& group_filter_action,
+			group_filter_action_type& group_filter_action,
 			uint32_t& out_num_rotation_sub_tracks, uint32_t& out_num_translation_sub_tracks, uint32_t& out_num_scale_sub_tracks)
 		{
 			uint32_t num_rotation_sub_tracks = 0;
@@ -84,10 +87,14 @@ namespace acl
 			get_num_sub_tracks(segment, animated_group_filter_action, out_num_animated_rotation_sub_tracks, out_num_animated_translation_sub_tracks, out_num_animated_scale_sub_tracks);
 		}
 
+		// We use template arguments to support lambdas and avoid using std::function since they might allocate memory
+		// without using our allocator.
+		// group_filter_action_type = std::function<bool(animation_track_type8 group_type, uint32_t bone_index)>
+		// group_entry_action_type = std::function<void(animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)>
+		// group_flush_action_type = std::function<void(animation_track_type8 group_type, uint32_t group_size)>
+		template<typename group_filter_action_type, typename group_entry_action_type, typename group_flush_action_type>
 		inline void group_writer(const SegmentContext& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
-			const std::function<bool(animation_track_type8 group_type, uint32_t bone_index)>& group_filter_action,
-			const std::function<void(animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)>& group_entry_action,
-			const std::function<void(animation_track_type8 group_type, uint32_t group_size)>& group_flush_action)
+			group_filter_action_type& group_filter_action, group_entry_action_type& group_entry_action, group_flush_action_type& group_flush_action)
 		{
 			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
 			// Groups are sorted per sub-track type. All rotation groups come first followed by translations then scales.
@@ -125,10 +132,14 @@ namespace acl
 				group_writer_impl(animation_track_type8::scale);
 		}
 
+		// We use template arguments to support lambdas and avoid using std::function since they might allocate memory
+		// without using our allocator.
+		// group_filter_action_type = std::function<bool(animation_track_type8 group_type, uint32_t bone_index)>
+		// group_entry_action_type = std::function<void(animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)>
+		// group_flush_action_type = std::function<void(animation_track_type8 group_type, uint32_t group_size)>
+		template<typename group_filter_action_type, typename group_entry_action_type, typename group_flush_action_type>
 		inline void animated_group_writer(const SegmentContext& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
-			const std::function<bool(animation_track_type8 group_type, uint32_t bone_index)>& group_filter_action,
-			const std::function<void(animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)>& group_entry_action,
-			const std::function<void(animation_track_type8 group_type, uint32_t group_size)>& group_flush_action)
+			group_filter_action_type& group_filter_action, group_entry_action_type& group_entry_action, group_flush_action_type& group_flush_action)
 		{
 			const auto animated_group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
 			{
