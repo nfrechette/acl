@@ -44,6 +44,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Romain-Piquois",
+      "name": "Romain-Piquois",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3689912?v=4",
+      "profile": "https://github.com/Romain-Piquois",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
