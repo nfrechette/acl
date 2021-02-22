@@ -1,0 +1,27 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "CodyDWJones",
+      "name": "CodyDWJones",
+      "avatar_url": "https://avatars.githubusercontent.com/u/28773740?v=4",
+      "profile": "https://github.com/CodyDWJones",
+      "contributions": [
+        "code",
+        "data",
+        "maintenance",
+        "tool"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "acl",
+  "projectOwner": "nfrechette",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}
