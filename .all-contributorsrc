@@ -25,6 +25,16 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "tirpidz",
+      "name": "Martin Turcotte",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9991876?v=4",
+      "profile": "https://github.com/tirpidz",
+      "contributions": [
+        "code",
+        "tool"
+      ]
     }
   ],
   "contributorsPerLine": 7,
