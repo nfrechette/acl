@@ -53,6 +53,18 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "janisozaur",
+      "name": "Michał Janiszewski",
+      "avatar_url": "https://avatars.githubusercontent.com/u/550290?v=4",
+      "profile": "https://github.com/janisozaur",
+      "contributions": [
+        "code",
+        "tool",
+        "maintenance",
+        "infra"
+      ]
     }
   ],
   "contributorsPerLine": 7,
