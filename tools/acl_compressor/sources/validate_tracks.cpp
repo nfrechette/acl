@@ -210,7 +210,7 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 			if (output_index == k_invalid_track_index)
 				continue;	// Track is being stripped, ignore it
 
-							// We use the nearest sample to accurately measure the loss that happened, if any
+			// We use the nearest sample to accurately measure the loss that happened, if any
 			raw_tracks.sample_track(track_index, sample_time, sample_rounding_policy::nearest, raw_track_writer);
 			context.decompress_track(output_index, lossy_track_writer);
 
