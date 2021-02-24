@@ -773,7 +773,7 @@ def do_regression_tests(build_dir, test_data_dir, args):
 	else:
 		do_regression_tests_cmake(test_data_dir, args)
 
-def do_run_bench_android():
+def do_run_bench_android(build_dir, args):
 	# Switch our working directory to where we built everything
 	working_dir = os.path.join(build_dir, 'tools', 'acl_decompressor', 'main_android')
 	os.chdir(working_dir)
@@ -833,14 +833,14 @@ def do_run_bench_native(build_dir, test_data_dir):
 	if result != 0:
 		sys.exit(result)
 
-def do_run_bench(build_dir, test_data_dir):
+def do_run_bench(build_dir, test_data_dir, args):
 	if args.compiler == 'ios':
 		return	# Not supported on iOS
 
 	print('Running benchmark ...')
 
 	if args.compiler == 'android':
-		do_run_bench_android()
+		do_run_bench_android(build_dir, args)
 	else:
 		do_run_bench_native(build_dir, test_data_dir)
 
@@ -888,7 +888,7 @@ if __name__ == "__main__":
 		do_regression_tests(build_dir, test_data_dir, args)
 
 	if args.run_bench:
-		do_run_bench(build_dir, test_data_dir)
+		do_run_bench(build_dir, test_data_dir, args)
 
 	if args.pull_bench:
 		do_pull_bench_android(build_dir)
