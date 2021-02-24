@@ -475,25 +475,9 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 			{
 				const rtm::qvvf raw_sample = *reinterpret_cast<const rtm::qvvf*>(raw_track[sample_index]);
 				const rtm::qvvf compressed_sample = writer.read_qvv(track_index);
-				#if 0
-				if (!rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0F))
-				{
-					printf("Track %u, Sample %u\n", track_index, sample_index);
-					printf("R: [%f, %f, %f, %f], [%f, %f, %f], [%f, %f, %f]\n",
-						(float)rtm::quat_get_x(raw_sample.rotation), (float)rtm::quat_get_y(raw_sample.rotation), (float)rtm::quat_get_z(raw_sample.rotation), (float)rtm::quat_get_w(raw_sample.rotation),
-						(float)rtm::vector_get_x(raw_sample.translation), (float)rtm::vector_get_y(raw_sample.translation), (float)rtm::vector_get_z(raw_sample.translation),
-						(float)rtm::vector_get_x(raw_sample.scale), (float)rtm::vector_get_y(raw_sample.scale), (float)rtm::vector_get_z(raw_sample.scale));
-					printf("C: [%f, %f, %f, %f], [%f, %f, %f], [%f, %f, %f]\n",
-						(float)rtm::quat_get_x(compressed_sample.rotation), (float)rtm::quat_get_y(compressed_sample.rotation), (float)rtm::quat_get_z(compressed_sample.rotation), (float)rtm::quat_get_w(compressed_sample.rotation),
-						(float)rtm::vector_get_x(compressed_sample.translation), (float)rtm::vector_get_y(compressed_sample.translation), (float)rtm::vector_get_z(compressed_sample.translation),
-						(float)rtm::vector_get_x(compressed_sample.scale), (float)rtm::vector_get_y(compressed_sample.scale), (float)rtm::vector_get_z(compressed_sample.scale));
-					static int foobar = 0;
-					foobar++;
-				}
-				#endif
+
 				// Rotations can differ a bit due to how we normalize during interpolation
-				//ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(raw_sample.rotation), rtm::quat_to_vector(compressed_sample.rotation), 0.0001F), "Failed to sample bone index: %u", bone_index);
-				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0F), "Unexpected sample");
+				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0001F), "Unexpected sample");
 				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.translation, compressed_sample.translation, 0.0F), "Unexpected sample");
 				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.scale, compressed_sample.scale, 0.0F), "Unexpected sample");
 				break;
