@@ -46,7 +46,7 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 
 	// When intrinsics aren't used with x86, the floating point arithmetic falls back to
 	// using x87 instructions. When this happens, depending on how code is generated some
-	// small innacuracies can pop up because rounding happens when we store to memory.
+	// small inaccuracies can pop up because rounding happens when we store to memory.
 	// The full pose decompression stores samples into the stack while working with them
 	// while the single track decompression does not which causes the issue.
 	// With SSE2 and NEON, there are no such rounding issues.
