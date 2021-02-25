@@ -264,7 +264,7 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 	// Strip medium tier
 	if (db.has_bulk_data(quality_tier::medium_importance))
 	{
-		const error_result result = strip_quality_tier(allocator, db, quality_tier::medium_importance, db_no_medium);
+		const error_result result = strip_database_quality_tier(allocator, db, quality_tier::medium_importance, db_no_medium);
 		ACL_ASSERT(result.empty(), result.c_str());
 
 		decompression_context<debug_transform_decompression_settings_with_db> context0;
@@ -320,7 +320,7 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 	// Strip lowest tier
 	if (db.has_bulk_data(quality_tier::lowest_importance))
 	{
-		const error_result result = strip_quality_tier(allocator, db, quality_tier::lowest_importance, db_no_low);
+		const error_result result = strip_database_quality_tier(allocator, db, quality_tier::lowest_importance, db_no_low);
 		ACL_ASSERT(result.empty(), result.c_str());
 
 		decompression_context<debug_transform_decompression_settings_with_db> context0;
@@ -379,9 +379,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		ACL_ASSERT(db_no_medium != nullptr, "Expected a valid database");
 		ACL_ASSERT(db_no_low != nullptr, "Expected a valid database");
 
-		error_result result = strip_quality_tier(allocator, *db_no_medium, quality_tier::lowest_importance, db_neither0);
+		error_result result = strip_database_quality_tier(allocator, *db_no_medium, quality_tier::lowest_importance, db_neither0);
 		ACL_ASSERT(result.empty(), result.c_str());
-		result = strip_quality_tier(allocator, *db_no_low, quality_tier::medium_importance, db_neither1);
+		result = strip_database_quality_tier(allocator, *db_no_low, quality_tier::medium_importance, db_neither1);
 		ACL_ASSERT(result.empty(), result.c_str());
 		ACL_ASSERT(db_neither0->get_hash() == db_neither1->get_hash(), "Stripping order should not matter");
 
@@ -576,7 +576,7 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 	compressed_database* split_db = nullptr;
 	uint8_t* split_db_bulk_data_medium = nullptr;
 	uint8_t* split_db_bulk_data_low = nullptr;
-	const error_result split_result = split_compressed_database_bulk_data(allocator, *db01, split_db, split_db_bulk_data_medium, split_db_bulk_data_low);
+	const error_result split_result = split_database_bulk_data(allocator, *db01, split_db, split_db_bulk_data_medium, split_db_bulk_data_low);
 	ACL_ASSERT(split_result.empty(), "Failed to split database");
 	ACL_ASSERT(split_db->is_valid(true).empty(), "Failed to split database");
 

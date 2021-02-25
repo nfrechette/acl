@@ -1285,7 +1285,7 @@ namespace acl
 		return error_result();
 	}
 
-	inline error_result split_compressed_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low)
+	inline error_result split_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low)
 	{
 		using namespace acl_impl;
 
@@ -1343,7 +1343,7 @@ namespace acl
 		return error_result();
 	}
 
-	inline error_result strip_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database)
+	inline error_result strip_database_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database)
 	{
 		using namespace acl_impl;
 
