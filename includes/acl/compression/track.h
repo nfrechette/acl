@@ -31,11 +31,13 @@
 #include "acl/core/track_traits.h"
 #include "acl/core/track_types.h"
 
+#include <rtm/math.h>
+
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(push)
 	// warning C4582: 'union': constructor is not implicitly called (/Wall)
 	// This is fine because a track is empty until it is constructed with a valid description.
@@ -352,7 +354,7 @@ namespace acl
 
 #include "acl/compression/impl/track.impl.h"
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(pop)
 #endif
 

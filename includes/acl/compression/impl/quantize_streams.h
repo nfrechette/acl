@@ -687,7 +687,7 @@ namespace acl
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
-#if defined(ACL_COMPILER_MSVC) && defined(_M_IX86) && defined(ACL_COMPILER_MSVC_2015)
+#if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
 				(void)calculate_error_impl;
 				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
@@ -778,7 +778,7 @@ namespace acl
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
-#if defined(ACL_COMPILER_MSVC) && defined(_M_IX86) && defined(ACL_COMPILER_MSVC_2015)
+#if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
 				(void)calculate_error_impl;
 				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
@@ -1686,7 +1686,7 @@ namespace acl
 							calculate_error_args.transform1 = context.lossy_object_pose + (bone_index * context.metric_transform_size);
 							calculate_error_args.construct_sphere_shell(target_bone.shell_distance);
 
-#if defined(ACL_COMPILER_MSVC) && defined(_M_IX86) && defined(ACL_COMPILER_MSVC_2015)
+#if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 							// VS2015 fails to generate the right x86 assembly, branch instead
 							(void)calculate_error_impl;
 							const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);

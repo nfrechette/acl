@@ -36,7 +36,7 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(push)
 	// warning C4582: 'union': constructor is not implicitly called (/Wall)
 	// This is fine because a context is empty until it is constructed with a valid clip.
@@ -178,7 +178,7 @@ namespace acl
 	}
 }
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(pop)
 #endif
 

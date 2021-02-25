@@ -37,14 +37,14 @@
 #include <algorithm>
 
 // For byte swapping intrinsics
-#if defined(_MSC_VER)
+#if defined(RTM_COMPILER_MSVC)
 	#include <cstdlib>
 #elif defined(__APPLE__)
 	#include <libkern/OSByteOrder.h>
 #endif
 
 // For __prefetch
-#if defined(RTM_NEON64_INTRINSICS) && defined(ACL_COMPILER_MSVC)
+#if defined(RTM_NEON64_INTRINSICS) && defined(RTM_COMPILER_MSVC)
 	#include <intrin.h>
 #endif
 
@@ -169,7 +169,7 @@ namespace acl
 		return memory_impl::safe_int_to_ptr_cast_impl<DestPtrType, SrcType>::cast(input);
 	}
 
-#if defined(ACL_COMPILER_GCC)
+#if defined(RTM_COMPILER_GCC)
 	// GCC sometimes complains about comparisons being always true due to partial template
 	// evaluation. Disable that warning since we know it is safe.
 	#pragma GCC diagnostic push
@@ -228,7 +228,7 @@ namespace acl
 		return static_cast<DstType>(input);
 	}
 
-#if defined(ACL_COMPILER_GCC)
+#if defined(RTM_COMPILER_GCC)
 	#pragma GCC diagnostic pop
 #endif
 
@@ -243,11 +243,11 @@ namespace acl
 
 	inline uint16_t byte_swap(uint16_t value)
 	{
-#if defined(_MSC_VER)
+#if defined(RTM_COMPILER_MSVC)
 		return _byteswap_ushort(value);
 #elif defined(__APPLE__)
 		return OSSwapInt16(value);
-#elif defined(__GNUC__) || defined(__clang__)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return __builtin_bswap16(value);
 #else
 		return (value & 0x00FF) << 8 | (value & 0xFF00) >> 8;
@@ -256,11 +256,11 @@ namespace acl
 
 	inline uint32_t byte_swap(uint32_t value)
 	{
-#if defined(_MSC_VER)
+#if defined(RTM_COMPILER_MSVC)
 		return _byteswap_ulong(value);
 #elif defined(__APPLE__)
 		return OSSwapInt32(value);
-#elif defined(__GNUC__) || defined(__clang__)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return __builtin_bswap32(value);
 #else
 		value = (value & 0x0000FFFF) << 16 | (value & 0xFFFF0000) >> 16;
@@ -271,11 +271,11 @@ namespace acl
 
 	inline uint64_t byte_swap(uint64_t value)
 	{
-#if defined(_MSC_VER)
+#if defined(RTM_COMPILER_MSVC)
 		return _byteswap_uint64(value);
 #elif defined(__APPLE__)
 		return OSSwapInt64(value);
-#elif defined(__GNUC__) || defined(__clang__)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return __builtin_bswap64(value);
 #else
 		value = (value & 0x00000000FFFFFFFF) << 32 | (value & 0xFFFFFFFF00000000) >> 32;
@@ -353,9 +353,9 @@ namespace acl
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		_mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T0);
-#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		__builtin_prefetch(ptr, 0, 3);
-#elif defined(RTM_NEON64_INTRINSICS) && defined(ACL_COMPILER_MSVC)
+#elif defined(RTM_NEON64_INTRINSICS) && defined(RTM_COMPILER_MSVC)
 		__prefetch(ptr);
 #else
 		(void)ptr;

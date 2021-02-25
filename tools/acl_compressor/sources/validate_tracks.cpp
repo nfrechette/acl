@@ -50,7 +50,7 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 	// The full pose decompression stores samples into the stack while working with them
 	// while the single track decompression does not which causes the issue.
 	// With SSE2 and NEON, there are no such rounding issues.
-#if defined(RTM_NO_INTRINSICS) && (defined(_M_IX86) || defined(__i386__))	// TODO: Use RTM_ARCH* macros for this
+#if !defined(RTM_SSE2_INTRINSICS) && defined(RTM_ARCH_X86)
 	const float quat_error_threshold = 0.001F;
 	const float vec3_error_threshold = 0.0001F;
 #else

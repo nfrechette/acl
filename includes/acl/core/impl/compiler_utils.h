@@ -24,6 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <rtm/impl/compiler_utils.h>
+
 #include <type_traits>
 
 #if !defined(__GNUG__) || defined(_LIBCPP_VERSION) || defined(_GLIBCXX_USE_CXX11_ABI)
@@ -33,44 +35,12 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////
-// Macro to identify GCC
-//////////////////////////////////////////////////////////////////////////
-#if defined(__GNUG__) && !defined(__clang__)
-	#define ACL_COMPILER_GCC
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-// Macro to identify Clang
-//////////////////////////////////////////////////////////////////////////
-#if defined(__clang__)
-	#define ACL_COMPILER_CLANG
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-// Macro to identify MSVC
-//////////////////////////////////////////////////////////////////////////
-#if defined(_MSC_VER) && !defined(__clang__)
-	#define ACL_COMPILER_MSVC
-
-	#if _MSC_VER < 1900
-		#pragma message("Warning: This version of visual studio isn't officially supported")
-	#elif _MSC_VER == 1900
-		#define ACL_COMPILER_MSVC_2015
-	#elif _MSC_VER < 1920
-		#define ACL_COMPILER_MSVC_2017
-	#else
-		// Assume we are the latest version
-		#define ACL_COMPILER_MSVC_2019
-	#endif
-#endif
-
-//////////////////////////////////////////////////////////////////////////
 // Because this library is made entirely of headers, we have no control over the
 // compilation flags used. However, in some cases, certain options must be forced.
 // To do this, every header is wrapped in two macros to push and pop the necessary
 // pragmas.
 //////////////////////////////////////////////////////////////////////////
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
 		/* Disable fast math, it can hurt precision for little to no performance gain due to the high level of hand tuned optimizations. */ \
 		__pragma(float_control(precise, on, push))
@@ -80,27 +50,6 @@
 #else
 	#define ACL_IMPL_FILE_PRAGMA_PUSH
 	#define ACL_IMPL_FILE_PRAGMA_POP
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-// In some cases, for performance reasons, we wish to disable stack security
-// check cookies. This macro serves this purpose.
-//////////////////////////////////////////////////////////////////////////
-#if defined(ACL_COMPILER_MSVC)
-	#define ACL_DISABLE_SECURITY_COOKIE_CHECK __declspec(safebuffers)
-#else
-	#define ACL_DISABLE_SECURITY_COOKIE_CHECK
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-// Force inline macros for when it is necessary.
-//////////////////////////////////////////////////////////////////////////
-#if defined(ACL_COMPILER_MSVC)
-	#define ACL_FORCE_INLINE __forceinline
-#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
-	#define ACL_FORCE_INLINE __attribute__((always_inline)) inline
-#else
-	#define ACL_FORCE_INLINE inline
 #endif
 
 namespace acl
@@ -134,7 +83,7 @@ namespace acl
 // Silence compiler warnings within switch cases that fall through
 // Note: C++17 has [[fallthrough]];
 //////////////////////////////////////////////////////////////////////////
-#if defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+#if defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 	#if defined(__has_attribute) && __has_attribute(fallthrough)
 		#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL __attribute__ ((fallthrough))
 	#else

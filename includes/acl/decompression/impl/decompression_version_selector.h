@@ -58,19 +58,19 @@ namespace acl
 			static constexpr bool is_version_supported(compressed_tracks_version16 version) { return version == compressed_tracks_version16::v02_00_00; }
 
 			template<class decompression_settings_type, class context_type, class database_settings_type>
-			ACL_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database); }
+			RTM_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database); }
 
 			template<class context_type>
-			ACL_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0(context, tracks); }
+			RTM_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0(context, tracks); }
 
 			template<class decompression_settings_type, class context_type>
-			ACL_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy); }
+			RTM_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy); }
 
 			template<class decompression_settings_type, class track_writer_type, class context_type>
-			ACL_FORCE_INLINE static void decompress_tracks(context_type& context, track_writer_type& writer) { acl_impl::decompress_tracks_v0<decompression_settings_type>(context, writer); }
+			RTM_FORCE_INLINE static void decompress_tracks(context_type& context, track_writer_type& writer) { acl_impl::decompress_tracks_v0<decompression_settings_type>(context, writer); }
 
 			template<class decompression_settings_type, class track_writer_type, class context_type>
-			ACL_FORCE_INLINE static void decompress_track(context_type& context, uint32_t track_index, track_writer_type& writer) { acl_impl::decompress_track_v0<decompression_settings_type>(context, track_index, writer); }
+			RTM_FORCE_INLINE static void decompress_track(context_type& context, uint32_t track_index, track_writer_type& writer) { acl_impl::decompress_track_v0<decompression_settings_type>(context, track_index, writer); }
 		};
 
 		//////////////////////////////////////////////////////////////////////////

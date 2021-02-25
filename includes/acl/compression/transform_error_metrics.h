@@ -267,7 +267,7 @@ namespace acl
 		virtual size_t get_transform_size(bool has_scale) const override { (void)has_scale; return sizeof(rtm::qvvf); }
 		virtual bool needs_conversion(bool has_scale) const override { (void)has_scale; return false; }
 
-		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override
 		{
 			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
 			const uint32_t* parent_transform_indices = args.parent_transform_indices;
@@ -290,7 +290,7 @@ namespace acl
 			}
 		}
 
-		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space_no_scale(const local_to_object_space_args& args, void* out_object_transforms) const override
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space_no_scale(const local_to_object_space_args& args, void* out_object_transforms) const override
 		{
 			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
 			const uint32_t* parent_transform_indices = args.parent_transform_indices;
@@ -313,7 +313,7 @@ namespace acl
 			}
 		}
 
-		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const override
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const override
 		{
 			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.transform0);
 			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
@@ -338,7 +338,7 @@ namespace acl
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
-		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const override
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const override
 		{
 			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.transform0);
 			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
@@ -375,7 +375,7 @@ namespace acl
 		virtual size_t get_transform_size(bool has_scale) const override { return has_scale ? sizeof(rtm::matrix3x4f) : sizeof(rtm::qvvf); }
 		virtual bool needs_conversion(bool has_scale) const override { return has_scale; }
 
-		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override
 		{
 			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
 			const rtm::qvvf* transforms_ = args.transforms;
@@ -393,7 +393,7 @@ namespace acl
 			}
 		}
 
-		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override
 		{
 			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
 			const uint32_t* parent_transform_indices = args.parent_transform_indices;
@@ -416,7 +416,7 @@ namespace acl
 			}
 		}
 
-		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const override
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const override
 		{
 			const rtm::matrix3x4f& raw_transform_ = *static_cast<const rtm::matrix3x4f*>(args.transform0);
 			const rtm::matrix3x4f& lossy_transform_ = *static_cast<const rtm::matrix3x4f*>(args.transform1);
@@ -463,7 +463,7 @@ namespace acl
 			}
 		}
 
-		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK void apply_additive_to_base(const apply_additive_to_base_args& args, void* out_transforms) const override
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void apply_additive_to_base(const apply_additive_to_base_args& args, void* out_transforms) const override
 		{
 			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
 			const rtm::qvvf* local_transforms_ = static_cast<const rtm::qvvf*>(args.local_transforms);
@@ -483,7 +483,7 @@ namespace acl
 			}
 		}
 
-		virtual ACL_DISABLE_SECURITY_COOKIE_CHECK void apply_additive_to_base_no_scale(const apply_additive_to_base_args& args, void* out_transforms) const override
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void apply_additive_to_base_no_scale(const apply_additive_to_base_args& args, void* out_transforms) const override
 		{
 			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
 			const rtm::qvvf* local_transforms_ = static_cast<const rtm::qvvf*>(args.local_transforms);
