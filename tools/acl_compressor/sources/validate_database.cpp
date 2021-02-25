@@ -111,6 +111,19 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	const compressed_tracks& tracks0, const compressed_tracks& tracks1,
 	const compressed_database& db, const uint8_t* db_bulk_data_medium, const uint8_t* db_bulk_data_low)
 {
+	// Our desired error threshold
+	// When intrinsics aren't used with x86, the floating point arithmetic falls back to
+	// using x87 instructions. When this happens, depending on how code is generated some
+	// small inaccuracies can pop up because rounding happens when we store to memory.
+	// The full pose decompression stores samples into the stack while working with them
+	// while the single track decompression does not which causes the issue.
+	// With SSE2 and NEON, there are no such rounding issues.
+#if !defined(RTM_SSE2_INTRINSICS) && defined(RTM_ARCH_X86)
+	const float threshold = 1.0E-3F;
+#else
+	const float threshold = 1.0E-4F;
+#endif
+
 	decompression_context<debug_transform_decompression_settings_with_db> context0;
 	decompression_context<debug_transform_decompression_settings_with_db> context1;
 	database_context<acl::debug_database_settings> db_context;
@@ -148,9 +161,9 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 
 	{
 		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error0.error, high_quality_tier_error_ref.error, 1.0E-4F), "High quality tier split error should be equal to high quality tier inline");
+		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error0.error, high_quality_tier_error_ref.error, threshold), "High quality tier split error should be equal to high quality tier inline");
 		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error1.error, high_quality_tier_error_ref.error, 1.0E-4F), "High quality tier split error should be equal to high quality tier inline");
+		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error1.error, high_quality_tier_error_ref.error, threshold), "High quality tier split error should be equal to high quality tier inline");
 	}
 
 	// Stream out our medium importance tier, we'll have mixed quality
@@ -173,9 +186,9 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 
 	{
 		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error0.error, high_quality_tier_error_ref.error, 1.0E-4F), "High quality tier split error should be equal to high quality tier inline");
+		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error0.error, high_quality_tier_error_ref.error, threshold), "High quality tier split error should be equal to high quality tier inline");
 		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error1.error, high_quality_tier_error_ref.error, 1.0E-4F), "High quality tier split error should be equal to high quality tier inline");
+		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error1.error, high_quality_tier_error_ref.error, threshold), "High quality tier split error should be equal to high quality tier inline");
 	}
 
 	// Stream out our low importance tier, restoring medium quality
@@ -467,6 +480,19 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 	// Disable floating point exceptions since decompression assumes it
 	scope_disable_fp_exceptions fp_off;
 
+	// Our desired error threshold
+	// When intrinsics aren't used with x86, the floating point arithmetic falls back to
+	// using x87 instructions. When this happens, depending on how code is generated some
+	// small inaccuracies can pop up because rounding happens when we store to memory.
+	// The full pose decompression stores samples into the stack while working with them
+	// while the single track decompression does not which causes the issue.
+	// With SSE2 and NEON, there are no such rounding issues.
+#if !defined(RTM_SSE2_INTRINSICS) && defined(RTM_ARCH_X86)
+	const float threshold = 1.0E-3F;
+#else
+	const float threshold = 1.0E-4F;
+#endif
+
 	// Build our databases
 	const compressed_tracks* input_tracks[2] = { &compressed_tracks0, &compressed_tracks1 };
 
@@ -514,7 +540,7 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, 1.0E-4F), "Database 0 should have the same error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, threshold), "Database 0 should have the same error");
 	}
 
 	{
@@ -526,7 +552,7 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, 1.0E-4F), "Database 1 should have the same error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, threshold), "Database 1 should have the same error");
 	}
 
 	{
@@ -540,10 +566,10 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, 1.0E-4F), "Database 01 should have the same error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, threshold), "Database 01 should have the same error");
 
 		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, 1.0E-4F), "Database 01 should have the same error");
+		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, threshold), "Database 01 should have the same error");
 	}
 
 	// Split the database bulk data out
