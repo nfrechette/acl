@@ -39,16 +39,16 @@ namespace acl
 		class iterator_impl
 		{
 		public:
-			using ItemPtr = typename std::conditional<is_const, const item_type*, item_type*>::type;
+			using item_ptr_type = typename std::conditional<is_const, const item_type*, item_type*>::type;
 
-			constexpr iterator_impl(ItemPtr items, size_t num_items) : m_items(items), m_num_items(num_items) {}
+			constexpr iterator_impl(item_ptr_type items, size_t num_items) : m_items(items), m_num_items(num_items) {}
 
-			constexpr ItemPtr begin() const { return m_items; }
-			constexpr ItemPtr end() const { return m_items + m_num_items; }
+			constexpr item_ptr_type begin() const { return m_items; }
+			constexpr item_ptr_type end() const { return m_items + m_num_items; }
 
 		private:
-			ItemPtr		m_items;
-			size_t		m_num_items;
+			item_ptr_type	m_items;
+			size_t			m_num_items;
 		};
 	}
 

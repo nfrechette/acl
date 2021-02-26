@@ -32,67 +32,67 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 // This macro defines common operators for manipulating bit flags
 
-#define ACL_IMPL_ENUM_FLAGS_OPERATORS(EnumType) \
-	constexpr EnumType operator|(EnumType lhs, EnumType rhs) \
+#define ACL_IMPL_ENUM_FLAGS_OPERATORS(enum_type) \
+	constexpr enum_type operator|(enum_type lhs, enum_type rhs) \
 	{ \
-		using IntegralType = typename std::underlying_type<EnumType>::type; \
-		using RawType = typename std::make_unsigned<IntegralType>::type; \
-		return static_cast<EnumType>(static_cast<RawType>(lhs) | static_cast<RawType>(rhs)); \
+		using integral_type = typename std::underlying_type<enum_type>::type; \
+		using raw_type = typename std::make_unsigned<integral_type>::type; \
+		return static_cast<enum_type>(static_cast<raw_type>(lhs) | static_cast<raw_type>(rhs)); \
 	} \
-	inline void operator|=(EnumType& lhs, EnumType rhs) \
+	inline void operator|=(enum_type& lhs, enum_type rhs) \
 	{ \
-		using IntegralType = typename std::underlying_type<EnumType>::type; \
-		using RawType = typename std::make_unsigned<IntegralType>::type; \
-		lhs = static_cast<EnumType>(static_cast<RawType>(lhs) | static_cast<RawType>(rhs)); \
+		using integral_type = typename std::underlying_type<enum_type>::type; \
+		using raw_type = typename std::make_unsigned<integral_type>::type; \
+		lhs = static_cast<enum_type>(static_cast<raw_type>(lhs) | static_cast<raw_type>(rhs)); \
 	} \
-	constexpr EnumType operator&(EnumType lhs, EnumType rhs) \
+	constexpr enum_type operator&(enum_type lhs, enum_type rhs) \
 	{ \
-		using IntegralType = typename std::underlying_type<EnumType>::type; \
-		using RawType = typename std::make_unsigned<IntegralType>::type; \
-		return static_cast<EnumType>(static_cast<RawType>(lhs) & static_cast<RawType>(rhs)); \
+		using integral_type = typename std::underlying_type<enum_type>::type; \
+		using raw_type = typename std::make_unsigned<integral_type>::type; \
+		return static_cast<enum_type>(static_cast<raw_type>(lhs) & static_cast<raw_type>(rhs)); \
 	} \
-	inline void operator&=(EnumType& lhs, EnumType rhs) \
+	inline void operator&=(enum_type& lhs, enum_type rhs) \
 	{ \
-		using IntegralType = typename std::underlying_type<EnumType>::type; \
-		using RawType = typename std::make_unsigned<IntegralType>::type; \
-		lhs = static_cast<EnumType>(static_cast<RawType>(lhs) & static_cast<RawType>(rhs)); \
+		using integral_type = typename std::underlying_type<enum_type>::type; \
+		using raw_type = typename std::make_unsigned<integral_type>::type; \
+		lhs = static_cast<enum_type>(static_cast<raw_type>(lhs) & static_cast<raw_type>(rhs)); \
 	} \
-	constexpr EnumType operator^(EnumType lhs, EnumType rhs) \
+	constexpr enum_type operator^(enum_type lhs, enum_type rhs) \
 	{ \
-		using IntegralType = typename std::underlying_type<EnumType>::type; \
-		using RawType = typename std::make_unsigned<IntegralType>::type; \
-		return static_cast<EnumType>(static_cast<RawType>(lhs) ^ static_cast<RawType>(rhs)); \
+		using integral_type = typename std::underlying_type<enum_type>::type; \
+		using raw_type = typename std::make_unsigned<integral_type>::type; \
+		return static_cast<enum_type>(static_cast<raw_type>(lhs) ^ static_cast<raw_type>(rhs)); \
 	} \
-	inline void operator^=(EnumType& lhs, EnumType rhs) \
+	inline void operator^=(enum_type& lhs, enum_type rhs) \
 	{ \
-		using IntegralType = typename std::underlying_type<EnumType>::type; \
-		using RawType = typename std::make_unsigned<IntegralType>::type; \
-		lhs = static_cast<EnumType>(static_cast<RawType>(lhs) ^ static_cast<RawType>(rhs)); \
+		using integral_type = typename std::underlying_type<enum_type>::type; \
+		using raw_type = typename std::make_unsigned<integral_type>::type; \
+		lhs = static_cast<enum_type>(static_cast<raw_type>(lhs) ^ static_cast<raw_type>(rhs)); \
 	} \
-	constexpr EnumType operator~(EnumType rhs) \
+	constexpr enum_type operator~(enum_type rhs) \
 	{ \
-		using IntegralType = typename std::underlying_type<EnumType>::type; \
-		using RawType = typename std::make_unsigned<IntegralType>::type; \
-		return static_cast<EnumType>(~static_cast<RawType>(rhs)); \
+		using integral_type = typename std::underlying_type<enum_type>::type; \
+		using raw_type = typename std::make_unsigned<integral_type>::type; \
+		return static_cast<enum_type>(~static_cast<raw_type>(rhs)); \
 	}
 
 namespace acl
 {
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns true if any of the requested flags are set.
-	template<typename EnumType>
-	constexpr bool are_any_enum_flags_set(EnumType flags, EnumType flags_to_test)
+	template<typename enum_type>
+	constexpr bool are_any_enum_flags_set(enum_type flags, enum_type flags_to_test)
 	{
-		using IntegralType = typename std::underlying_type<EnumType>::type;
+		using IntegralType = typename std::underlying_type<enum_type>::type;
 		return static_cast<IntegralType>(flags & flags_to_test) != 0;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns true if all of the requested flags are set.
-	template<typename EnumType>
-	constexpr bool are_all_enum_flags_set(EnumType flags, EnumType flags_to_test)
+	template<typename enum_type>
+	constexpr bool are_all_enum_flags_set(enum_type flags, enum_type flags_to_test)
 	{
-		using IntegralType = typename std::underlying_type<EnumType>::type;
+		using IntegralType = typename std::underlying_type<enum_type>::type;
 		return static_cast<IntegralType>(flags & flags_to_test) == static_cast<IntegralType>(flags_to_test);
 	}
 }
