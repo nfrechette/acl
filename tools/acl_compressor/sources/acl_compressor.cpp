@@ -403,7 +403,7 @@ extern void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	const compressed_tracks& compressed_tracks0, const compressed_tracks& compressed_tracks1);
 #endif
 
-static void try_algorithm(const Options& options, iallocator& allocator, track_array_qvvf& transform_tracks,
+static void try_algorithm(const Options& options, iallocator& allocator, const track_array_qvvf& transform_tracks,
 	const track_array_qvvf& additive_base, additive_clip_format8 additive_format,
 	compression_settings settings, const compression_database_settings& database_settings,
 	stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)

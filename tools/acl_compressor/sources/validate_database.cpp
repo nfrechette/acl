@@ -45,7 +45,7 @@ struct debug_transform_decompression_settings_with_db : public acl::debug_transf
 	using database_settings_type = acl::debug_database_settings;
 };
 
-static void stream_in_database_tier(database_context<debug_database_settings>& context, debug_database_streamer& streamer, const compressed_database& db, quality_tier tier)
+static void stream_in_database_tier(database_context<debug_database_settings>& context, const debug_database_streamer& streamer, const compressed_database& db, quality_tier tier)
 {
 	const uint32_t num_chunks = db.get_num_chunks(tier);
 
@@ -72,7 +72,7 @@ static void stream_in_database_tier(database_context<debug_database_settings>& c
 	ACL_ASSERT(is_streamed_in, "Failed to stream in tier");
 }
 
-static void stream_out_database_tier(database_context<debug_database_settings>& context, debug_database_streamer& streamer, const compressed_database& db, quality_tier tier)
+static void stream_out_database_tier(database_context<debug_database_settings>& context, const debug_database_streamer& streamer, const compressed_database& db, quality_tier tier)
 {
 	const uint8_t* streamer_bulk_data = streamer.get_bulk_data(tier);
 	const uint32_t num_chunks = db.get_num_chunks(tier);

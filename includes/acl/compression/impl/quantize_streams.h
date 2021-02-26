@@ -1725,7 +1725,7 @@ namespace acl
 			std::sort(contributing_error, contributing_error + num_frames, sort_predicate);
 		}
 
-		inline void quantize_streams(iallocator& allocator, clip_context& clip, const compression_settings& settings, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, output_stats& out_stats)
+		inline void quantize_streams(iallocator& allocator, clip_context& clip, const compression_settings& settings, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const output_stats& out_stats)
 		{
 			(void)out_stats;
 
