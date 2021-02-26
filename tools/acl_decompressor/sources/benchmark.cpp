@@ -430,6 +430,9 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	// Sometimes the numbers are slightly different from run to run, we'll run a few times
 	bench->Repetitions(3);
 
+	// Our benchmark has a very low standard deviation, there is no need to run 100k+ times
+	bench->Iterations(10000);
+
 	// Use manual timing since we clear the CPU cache explicitly
 	bench->UseManualTime();
 
