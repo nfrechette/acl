@@ -150,6 +150,8 @@ namespace acl
 				, scale_format(settings_.scale_format)
 				, compression_level(settings_.level)
 				, raw_bone_streams(raw_clip_.segments[0].bone_streams)
+				, lossy_transforms_start(nullptr)
+				, lossy_transforms_end(nullptr)
 				, num_bones_in_chain(0)
 			{
 				local_query.bind(bit_rate_database);
@@ -162,8 +164,6 @@ namespace acl
 				additive_local_pose = clip_.has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones) : nullptr;
 				raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-				lossy_transforms_start = nullptr;
-				lossy_transforms_end = nullptr;
 				raw_local_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
 				base_local_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
 				raw_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
