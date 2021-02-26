@@ -625,7 +625,7 @@ static bool read_file(iallocator& allocator, const char* input_filename, char*& 
 	}
 
 	// Make sure to enable buffering with a large buffer
-	const int setvbuf_result = setvbuf(file, NULL, _IOFBF, 1 * 1024 * 1024);
+	const int setvbuf_result = setvbuf(file, nullptr, _IOFBF, 1 * 1024 * 1024);
 	if (setvbuf_result != 0)
 	{
 		printf("Failed to set input file buffering settings\n");
