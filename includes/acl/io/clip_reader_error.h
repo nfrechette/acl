@@ -48,9 +48,7 @@ namespace acl
 			InvalidTrackType,
 		};
 
-		clip_reader_error()
-		{
-		}
+		clip_reader_error() noexcept = default;
 
 		clip_reader_error(const sjson::ParserError& e)
 		{

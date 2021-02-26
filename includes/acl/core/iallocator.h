@@ -50,11 +50,8 @@ namespace acl
 	public:
 		static constexpr size_t k_default_alignment = 16;
 
-		iallocator() {}
-		virtual ~iallocator() {}
-
-		iallocator(const iallocator&) = delete;
-		iallocator& operator=(const iallocator&) = delete;
+		iallocator() noexcept = default;
+		virtual ~iallocator() = default;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Allocates memory with the specified size and alignment.

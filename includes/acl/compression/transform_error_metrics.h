@@ -50,7 +50,7 @@ namespace acl
 	class itransform_error_metric
 	{
 	public:
-		virtual ~itransform_error_metric() {}
+		virtual ~itransform_error_metric() = default;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the unique name of the error metric.

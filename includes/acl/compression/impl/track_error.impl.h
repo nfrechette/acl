@@ -98,7 +98,7 @@ namespace acl
 
 		struct ierror_calculation_adapter
 		{
-			virtual ~ierror_calculation_adapter() {}
+			virtual ~ierror_calculation_adapter() = default;
 
 			// Scalar and transforms, mandatory
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) = 0;
