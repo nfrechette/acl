@@ -209,9 +209,9 @@ namespace acl
 			track_desc_scalarf		scalar;
 			track_desc_transformf	transform;
 
-			track_desc_untyped() {}
-			explicit track_desc_untyped(const track_desc_scalarf& desc) : scalar(desc) {}
-			explicit track_desc_untyped(const track_desc_transformf& desc) : transform(desc) {}
+			track_desc_untyped() noexcept {};
+			explicit track_desc_untyped(const track_desc_scalarf& desc) noexcept : scalar(desc) {}
+			explicit track_desc_untyped(const track_desc_transformf& desc) noexcept : transform(desc) {}
 		};
 
 		track_desc_untyped		m_desc;				// The track description
