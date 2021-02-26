@@ -109,7 +109,10 @@ namespace acl
 					const uint32_t bone_index = output_bone_mapping[output_index];
 
 					if (group_filter_action(group_type, bone_index))
-						group_entry_action(group_type, group_size++, bone_index);
+					{
+						group_entry_action(group_type, group_size, bone_index);
+						group_size++;
+					}
 
 					if (group_size == 4)
 					{
