@@ -1210,7 +1210,7 @@ int main_impl(int argc, char* argv[])
 	scope_enable_fp_exceptions fp_on;
 
 	int result = -1;
-#if defined(ACL_ON_ASSERT_THROW) || defined(SJSON_CPP_ON_ASSERT_THROW)
+#if defined(ACL_ON_ASSERT_THROW) || defined(SJSON_CPP_ON_ASSERT_THROW) || defined(RTM_ON_ASSERT_THROW)
 	try
 #endif
 	{
@@ -1219,14 +1219,21 @@ int main_impl(int argc, char* argv[])
 #if defined(ACL_ON_ASSERT_THROW)
 	catch (const runtime_assert& exception)
 	{
-		printf("Assert occurred: %s\n", exception.what());
+		printf("ACL assert occurred: %s\n", exception.what());
 		result = -1;
 	}
 #endif
 #if defined(SJSON_CPP_ON_ASSERT_THROW)
 	catch (const sjson::runtime_assert& exception)
 	{
-		printf("Assert occurred: %s\n", exception.what());
+		printf("sjson-cpp assert occurred: %s\n", exception.what());
+		result = -1;
+	}
+#endif
+#if defined(RTM_ON_ASSERT_THROW)
+	catch (const rtm::runtime_assert& exception)
+	{
+		printf("RTM assert occurred: %s\n", exception.what());
 		result = -1;
 	}
 #endif
