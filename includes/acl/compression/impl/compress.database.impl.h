@@ -152,6 +152,9 @@ namespace acl
 				deallocate_type_array(allocator, contributing_error_per_clip, num_compressed_tracks);
 			}
 
+			frame_assignment_context(const frame_assignment_context&) = delete;
+			frame_assignment_context& operator=(const frame_assignment_context&) = delete;
+
 			database_tier_mapping& get_tier_mapping(quality_tier tier) { return mappings[(uint32_t)tier]; }
 			const database_tier_mapping& get_tier_mapping(quality_tier tier) const { return mappings[(uint32_t)tier]; }
 

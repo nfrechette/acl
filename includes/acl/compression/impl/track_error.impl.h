@@ -454,6 +454,9 @@ namespace acl
 				deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
 			}
 
+			error_calculation_adapter(const error_calculation_adapter&) = delete;
+			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
+
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
 				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
@@ -555,6 +558,9 @@ namespace acl
 			{
 				deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
 			}
+
+			error_calculation_adapter(const error_calculation_adapter&) = delete;
+			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
