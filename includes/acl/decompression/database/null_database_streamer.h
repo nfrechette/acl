@@ -51,8 +51,6 @@ namespace acl
 			ACL_ASSERT(bulk_data != nullptr, "Bulk data buffer cannot be null");
 		}
 
-		virtual ~null_database_streamer() {}
-
 		virtual bool is_initialized() const override { return m_bulk_data_size == 0 || m_bulk_data != nullptr; }
 
 		virtual const uint8_t* get_bulk_data(quality_tier tier) const override
