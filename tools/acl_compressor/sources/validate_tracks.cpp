@@ -482,6 +482,9 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.scale, compressed_sample.scale, 0.0F), "Unexpected sample");
 				break;
 			}
+			default:
+				ACL_ASSERT(false, "Unsupported track type");
+				break;
 			}
 		}
 	}
