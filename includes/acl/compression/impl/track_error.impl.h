@@ -98,7 +98,7 @@ namespace acl
 
 		struct ierror_calculation_adapter
 		{
-			virtual ~ierror_calculation_adapter() {}
+			virtual ~ierror_calculation_adapter() = default;
 
 			// Scalar and transforms, mandatory
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) = 0;
@@ -130,7 +130,7 @@ namespace acl
 
 		struct calculate_track_error_args
 		{
-			calculate_track_error_args(ierror_calculation_adapter& adapter_)
+			explicit calculate_track_error_args(ierror_calculation_adapter& adapter_)
 				: adapter(adapter_)
 			{
 			}
@@ -445,8 +445,6 @@ namespace acl
 				: raw_tracks_(raw_tracks__)
 				, context_(context__)
 				, allocator_(allocator__)
-				, output_bone_mapping(nullptr)
-				, num_output_bones(0)
 			{
 				output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks__, num_output_bones);
 			}
@@ -455,6 +453,9 @@ namespace acl
 			{
 				deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
 			}
+
+			error_calculation_adapter(const error_calculation_adapter&) = delete;
+			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
@@ -549,8 +550,6 @@ namespace acl
 				, context_(context__)
 				, additive_base_tracks_(additive_base_tracks__)
 				, allocator_(allocator__)
-				, output_bone_mapping(nullptr)
-				, num_output_bones(0)
 			{
 				output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks__, num_output_bones);
 			}
@@ -559,6 +558,9 @@ namespace acl
 			{
 				deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
 			}
+
+			error_calculation_adapter(const error_calculation_adapter&) = delete;
+			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{

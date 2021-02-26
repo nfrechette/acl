@@ -607,7 +607,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream)
+		RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream)
 		{
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
@@ -648,7 +648,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_rotation_variable, rotation_format8 rotation_format)
+		RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_rotation_variable, rotation_format8 rotation_format)
 		{
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
@@ -708,7 +708,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, const BoneStreams& bone_stream)
+		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, const BoneStreams& bone_stream)
 		{
 			rtm::vector4f translation;
 			if (bone_stream.is_translation_default)
@@ -749,7 +749,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_translation_variable, vector_format8 translation_format)
+		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_translation_variable, vector_format8 translation_format)
 		{
 			rtm::vector4f translation;
 			if (bone_stream.is_translation_default)
@@ -802,7 +802,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_scale(const sample_context& context, const BoneStreams& bone_stream, rtm::vector4f_arg0 default_scale)
+		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_scale(const sample_context& context, const BoneStreams& bone_stream, rtm::vector4f_arg0 default_scale)
 		{
 			rtm::vector4f scale;
 			if (bone_stream.is_scale_default)
@@ -843,7 +843,7 @@ namespace acl
 		}
 
 		template<SampleDistribution8 distribution>
-		ACL_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_scale(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_scale_variable, vector_format8 scale_format, rtm::vector4f_arg0 default_scale)
+		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_scale(const sample_context& context, const BoneStreams& bone_stream, const BoneStreams& raw_bone_stream, bool is_scale_variable, vector_format8 scale_format, rtm::vector4f_arg0 default_scale)
 		{
 			rtm::vector4f scale;
 			if (bone_stream.is_scale_default)

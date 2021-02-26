@@ -65,9 +65,9 @@ namespace acl
 		rotation_format8 rotation;
 		vector_format8 vector;
 
-		track_format8() {}
-		explicit track_format8(rotation_format8 format) : rotation(format) {}
-		explicit track_format8(vector_format8 format) : vector(format) {}
+		track_format8() noexcept {}
+		explicit track_format8(rotation_format8 format) noexcept : rotation(format) {}
+		explicit track_format8(vector_format8 format) noexcept : vector(format) {}
 	};
 
 	enum class animation_track_type8 : uint8_t

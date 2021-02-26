@@ -85,18 +85,16 @@ namespace acl
 			// Groups are sorted per sub-track type. All rotation groups come first followed by translations then scales.
 			// The last group of each sub-track may or may not have padding. The last group might be less than 4 sub-tracks.
 
-#if defined(ACL_HAS_ASSERT_CHECKS)
-			const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
-#endif
-
 			const uint8_t* range_data_start = range_data;
+			const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
+
 			const rotation_format8 rotation_format = segment.bone_streams[0].rotations.get_rotation_format();	// The same for every track
 
 			// Each range entry is a min/extent at most sizeof(float4f) each, 32 bytes total max per sub-track, 4 sub-tracks per group
 			rtm::vector4f range_group_min[4];
 			rtm::vector4f range_group_extent[4];
 
-			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
+			auto group_filter_action = [range_reduction](animation_track_type8 group_type, uint32_t bone_index)
 			{
 				(void)bone_index;
 
@@ -108,7 +106,7 @@ namespace acl
 					return are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales);
 			};
 
-			auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
+			auto group_entry_action = [&clip, &range_group_min, &range_group_extent](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 			{
 				if (group_type == animation_track_type8::rotation)
 				{
@@ -142,7 +140,7 @@ namespace acl
 				}
 			};
 
-			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
+			auto group_flush_action = [rotation_format, &range_data, range_data_end, &range_group_min, &range_group_extent](animation_track_type8 group_type, uint32_t group_size)
 			{
 				if (group_type == animation_track_type8::rotation)
 				{
@@ -219,18 +217,15 @@ namespace acl
 			// value = (normalized value * range extent) + range min
 			// normalized value = (value - range min) / range extent
 
-#if defined(ACL_HAS_ASSERT_CHECKS)
-			const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
-#endif
-
 			const uint8_t* range_data_start = range_data;
+			const uint8_t* range_data_end = add_offset_to_ptr<uint8_t>(range_data, range_data_size);
 
 			// For rotations contains: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
 			// For trans/scale: min0.xyz, extent0.xyz, min1.xyz, extent1.xyz, min2.xyz, extent2.xyz, min3.xyz, extent3.xyz
 			// To keep decompression simpler, rotations are padded to 4 elements even if the last group is partial
 			alignas(16) uint8_t range_data_group[6 * 4] = { 0 };
 
-			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
+			auto group_filter_action = [range_reduction](animation_track_type8 group_type, uint32_t bone_index)
 			{
 				(void)bone_index;
 
@@ -242,7 +237,7 @@ namespace acl
 					return are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales);
 			};
 
-			auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
+			auto group_entry_action = [&segment, &range_data_group](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 			{
 				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
@@ -323,7 +318,7 @@ namespace acl
 				}
 			};
 
-			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
+			auto group_flush_action = [&range_data, range_data_end, &range_data_group](animation_track_type8 group_type, uint32_t group_size)
 			{
 				const uint32_t copy_size = group_type == animation_track_type8::rotation ? 4 : group_size;
 				std::memcpy(range_data, &range_data_group[0], copy_size * 6);

@@ -25,6 +25,14 @@ You can seek anywhere in a track list but you will need to handle looping manual
 
 Every decompression function supported by the context is prefixed with `decompress_*`. A `track_writer` is used for optimized output writing. You can implement your own and coerce to your own math types. The type is templated on the `decompress_*` functions in order to be easily inlined.
 
+The API is the same for scalar and joint transform tracks. For optimal code generation, ensure the decompression settings used are tuned to the expected data. See the header where it is defined for more information.
+
 ## Floating point exceptions
 
 For performance reasons, the decompression code assumes that the caller has already disabled all floating point exceptions. This avoids the need to save/restore them with every call. ACL provides helpers in [acl/core/floating_point_exceptions.h](..\includes\acl\core\floating_point_exceptions.h) to assist and optionally this behavior can be controlled by overriding `decompression_settings::disable_fp_exeptions()`.
+
+## Backwards compatibility
+
+By default, decompression will support every ACL version prior to and including ACL 2.0. If you wish to only support a single version and to strip the unnecessary code, you can specify your own decompression settings struct along with the desired `static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::any; }` implementation.
+
+*There is no backwards compatibility support for ACL 1.3 and earlier.*

@@ -106,7 +106,7 @@ namespace acl
 	//    out_bulk_data_medium:				The new database's bulk data for the medium importance tier.
 	//    out_bulk_data_low:				The new database's bulk data for the low importance tier.
 	//////////////////////////////////////////////////////////////////////////
-	error_result split_compressed_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low);
+	error_result split_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Takes a compressed database and strips the specified quality tier from it.
@@ -118,7 +118,7 @@ namespace acl
 	//    tier:								The quality tier to strip.
 	//    out_stripped_database:			The new database without the specified quality tier.
 	//////////////////////////////////////////////////////////////////////////
-	error_result strip_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database);
+	error_result strip_database_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database);
 }
 
 #include "acl/compression/impl/compress.database.impl.h"

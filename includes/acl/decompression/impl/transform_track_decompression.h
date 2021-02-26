@@ -53,7 +53,7 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(push)
 	// warning C4127: conditional expression is constant
 	// This is fine, the optimizer will strip the code away when it can, but it isn't always constant in practice
@@ -469,7 +469,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			rtm::quatf_arg0 default_rotation, track_writer_type& writer)
 		{
@@ -545,7 +545,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_type, class track_writer_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
@@ -618,7 +618,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_type, class track_writer_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
@@ -703,7 +703,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			rtm::vector4f_arg0 default_translation, track_writer_type& writer)
 		{
@@ -779,7 +779,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_translation_sub_tracks(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index,
 			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
 		{
@@ -868,7 +868,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class translation_adapter, class track_writer_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_translation_sub_tracks(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
@@ -949,7 +949,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			rtm::vector4f_arg0 default_scale, track_writer_type& writer)
 		{
@@ -1025,7 +1025,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_scale_sub_tracks(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
 			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
 		{
@@ -1114,7 +1114,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class scale_adapter, class track_writer_type>
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_scale_sub_tracks(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
@@ -1390,11 +1390,11 @@ namespace acl
 		// We only initialize some variables when we need them which prompts the compiler to complain
 		// The usage is perfectly safe and because this code is VERY hot and needs to be as fast as possible,
 		// we disable the warning to avoid zeroing out things we don't need
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 		#pragma warning(push)
 		// warning C4701: potentially uninitialized local variable
 		#pragma warning(disable : 4701)
-#elif defined(ACL_COMPILER_GCC)
+#elif defined(RTM_COMPILER_GCC)
 		#pragma GCC diagnostic push
 		#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
@@ -1622,15 +1622,15 @@ namespace acl
 		}
 
 		// Restore our warnings
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 		#pragma warning(pop)
-#elif defined(ACL_COMPILER_GCC)
+#elif defined(RTM_COMPILER_GCC)
 		#pragma GCC diagnostic pop
 #endif
 	}
 }
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(pop)
 #endif
 

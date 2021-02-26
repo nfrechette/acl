@@ -152,6 +152,9 @@ namespace acl
 				deallocate_type_array(allocator, contributing_error_per_clip, num_compressed_tracks);
 			}
 
+			frame_assignment_context(const frame_assignment_context&) = delete;
+			frame_assignment_context& operator=(const frame_assignment_context&) = delete;
+
 			database_tier_mapping& get_tier_mapping(quality_tier tier) { return mappings[(uint32_t)tier]; }
 			const database_tier_mapping& get_tier_mapping(quality_tier tier) const { return mappings[(uint32_t)tier]; }
 
@@ -1132,7 +1135,7 @@ namespace acl
 			raw_buffer_header* database_buffer_header = safe_ptr_cast<raw_buffer_header>(database_buffer);
 			database_buffer += sizeof(raw_buffer_header);
 
-			uint8_t* db_header_start = database_buffer;
+			const uint8_t* db_header_start = database_buffer;
 			database_header* db_header = safe_ptr_cast<database_header>(database_buffer);
 			database_buffer += sizeof(database_header);
 
@@ -1285,7 +1288,7 @@ namespace acl
 		return error_result();
 	}
 
-	inline error_result split_compressed_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low)
+	inline error_result split_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low)
 	{
 		using namespace acl_impl;
 
@@ -1343,7 +1346,7 @@ namespace acl
 		return error_result();
 	}
 
-	inline error_result strip_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database)
+	inline error_result strip_database_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database)
 	{
 		using namespace acl_impl;
 
@@ -1393,7 +1396,7 @@ namespace acl
 		raw_buffer_header* database_buffer_header = safe_ptr_cast<raw_buffer_header>(database_buffer);
 		database_buffer += sizeof(raw_buffer_header);
 
-		uint8_t* db_header_start = database_buffer;
+		const uint8_t* db_header_start = database_buffer;
 		database_header* db_header = safe_ptr_cast<database_header>(database_buffer);
 		database_buffer += sizeof(database_header);
 

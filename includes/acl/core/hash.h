@@ -103,7 +103,11 @@ namespace acl
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns the 32 bit hash of the provided string.
 	// The null terminator not included in the hash.
-	inline uint32_t hash32(const char* str) { return hash32(str, std::strlen(str)); }
+	inline uint32_t hash32(const char* str)
+	{
+		const size_t buffer_size = str != nullptr ? std::strlen(str) : 0;
+		return hash32(str, buffer_size);
+	}
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns the 64 bit hash of the provided buffer and size in bytes.
@@ -122,7 +126,11 @@ namespace acl
 	////////////////////////////////////////////////////////////////////////////////
 	// Returns the 64 bit hash of the provided string.
 	// The null terminator not included in the hash.
-	inline uint64_t hash64(const char* str) { return hash64(str, std::strlen(str)); }
+	inline uint64_t hash64(const char* str)
+	{
+		const size_t buffer_size = str != nullptr ? std::strlen(str) : 0;
+		return hash64(str, buffer_size);
+	}
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Combines two hashes into a new one.

@@ -73,7 +73,7 @@ namespace acl
 		inline void get_num_animated_sub_tracks(const SegmentContext& segment,
 			uint32_t& out_num_animated_rotation_sub_tracks, uint32_t& out_num_animated_translation_sub_tracks, uint32_t& out_num_animated_scale_sub_tracks)
 		{
-			const auto animated_group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
+			const auto animated_group_filter_action = [&segment](animation_track_type8 group_type, uint32_t bone_index)
 			{
 				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
@@ -109,7 +109,10 @@ namespace acl
 					const uint32_t bone_index = output_bone_mapping[output_index];
 
 					if (group_filter_action(group_type, bone_index))
-						group_entry_action(group_type, group_size++, bone_index);
+					{
+						group_entry_action(group_type, group_size, bone_index);
+						group_size++;
+					}
 
 					if (group_size == 4)
 					{
@@ -141,7 +144,7 @@ namespace acl
 		inline void animated_group_writer(const SegmentContext& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
 			group_filter_action_type& group_filter_action, group_entry_action_type& group_entry_action, group_flush_action_type& group_flush_action)
 		{
-			const auto animated_group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
+			const auto animated_group_filter_action = [&segment, &group_filter_action](animation_track_type8 group_type, uint32_t bone_index)
 			{
 				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)

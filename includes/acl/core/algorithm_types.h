@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
@@ -86,6 +87,10 @@ namespace acl
 	// out_type: On success, it will contain the the parsed algorithm type otherwise it is left untouched.
 	inline bool get_algorithm_type(const char* type, algorithm_type8& out_type)
 	{
+		ACL_ASSERT(type != nullptr, "Algorithm type name cannot be null");
+		if (type == nullptr)
+			return false;
+
 		const char* uniformly_sampled_name = "UniformlySampled";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
 		const char* uniformly_sampled_name_new = "uniformly_sampled";
 		if (std::strncmp(type, uniformly_sampled_name, std::strlen(uniformly_sampled_name)) == 0

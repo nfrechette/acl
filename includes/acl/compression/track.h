@@ -31,11 +31,13 @@
 #include "acl/core/track_traits.h"
 #include "acl/core/track_types.h"
 
+#include <rtm/math.h>
+
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(push)
 	// warning C4582: 'union': constructor is not implicitly called (/Wall)
 	// This is fine because a track is empty until it is constructed with a valid description.
@@ -207,9 +209,9 @@ namespace acl
 			track_desc_scalarf		scalar;
 			track_desc_transformf	transform;
 
-			track_desc_untyped() {}
-			explicit track_desc_untyped(const track_desc_scalarf& desc) : scalar(desc) {}
-			explicit track_desc_untyped(const track_desc_transformf& desc) : transform(desc) {}
+			track_desc_untyped() noexcept {};
+			explicit track_desc_untyped(const track_desc_scalarf& desc) noexcept : scalar(desc) {}
+			explicit track_desc_untyped(const track_desc_transformf& desc) noexcept : transform(desc) {}
 		};
 
 		track_desc_untyped		m_desc;				// The track description
@@ -352,7 +354,7 @@ namespace acl
 
 #include "acl/compression/impl/track.impl.h"
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(pop)
 #endif
 

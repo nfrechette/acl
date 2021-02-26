@@ -42,7 +42,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 // We only initialize some variables when we need them which prompts the compiler to complain
 // The usage is perfectly safe and because this code is VERY hot and needs to be as fast as possible,
 // we disable the warning to avoid zeroing out things we don't need
-#if defined(ACL_COMPILER_GCC)
+#if defined(RTM_COMPILER_GCC)
 	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
@@ -75,7 +75,7 @@ namespace acl
 			const uint8_t*	constant_data_scales;
 
 			template<class decompression_settings_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void initialize(const persistent_transform_decompression_context_v0& decomp_context)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void initialize(const persistent_transform_decompression_context_v0& decomp_context)
 			{
 				const transform_tracks_header& transform_header = get_transform_tracks_header(*decomp_context.tracks);
 
@@ -92,7 +92,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_type>
-			ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_rotation_group(const persistent_transform_decompression_context_v0& decomp_context)
+			RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void unpack_rotation_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
 				const uint32_t num_left_to_unpack = rotations.num_left_to_unpack;
 				if (num_left_to_unpack == 0)
@@ -187,7 +187,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_rotation_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_rotation_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
 			{
 				// We only support skipping full groups
 				const uint32_t num_left_to_unpack = rotations.num_left_to_unpack;
@@ -211,7 +211,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index) const
 			{
 				ACL_ASSERT(unpack_index < rotations.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
@@ -240,14 +240,14 @@ namespace acl
 				return sample;
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK const rtm::quatf& RTM_SIMD_CALL consume_rotation()
+			RTM_DISABLE_SECURITY_COOKIE_CHECK const rtm::quatf& RTM_SIMD_CALL consume_rotation()
 			{
 				ACL_ASSERT(rotations.cache_read_index < rotations.cache_write_index, "Attempting to consume a constant sample that isn't cached");
 				const uint32_t cache_read_index = rotations.cache_read_index++;
 				return rotations.cached_samples[cache_read_index % 32];
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_groups(uint32_t num_groups_to_skip)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_groups(uint32_t num_groups_to_skip)
 			{
 				const uint8_t* constant_track_data = constant_data_translations;
 
@@ -261,7 +261,7 @@ namespace acl
 				ACL_IMPL_CONSTANT_PREFETCH(constant_track_data);
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(uint32_t unpack_index) const
 			{
 				ACL_ASSERT(unpack_index < 4, "Cannot unpack sample that isn't present");
 
@@ -271,14 +271,14 @@ namespace acl
 				return sample;
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK const uint8_t* consume_translation()
+			RTM_DISABLE_SECURITY_COOKIE_CHECK const uint8_t* consume_translation()
 			{
 				const uint8_t* sample_ptr = constant_data_translations;
 				constant_data_translations += sizeof(rtm::float3f);
 				return sample_ptr;
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip)
 			{
 				const uint8_t* constant_track_data = constant_data_scales;
 
@@ -292,7 +292,7 @@ namespace acl
 				ACL_IMPL_CONSTANT_PREFETCH(constant_track_data);
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(uint32_t unpack_index) const
 			{
 				ACL_ASSERT(unpack_index < 4, "Cannot unpack sample that isn't present");
 
@@ -302,7 +302,7 @@ namespace acl
 				return sample;
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK const uint8_t* consume_scale()
+			RTM_DISABLE_SECURITY_COOKIE_CHECK const uint8_t* consume_scale()
 			{
 				const uint8_t* sample_ptr = constant_data_scales;
 				constant_data_scales += sizeof(rtm::float3f);
@@ -312,7 +312,7 @@ namespace acl
 	}
 }
 
-#if defined(ACL_COMPILER_GCC)
+#if defined(RTM_COMPILER_GCC)
 	#pragma GCC diagnostic pop
 #endif
 

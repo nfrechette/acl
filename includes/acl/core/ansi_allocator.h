@@ -71,7 +71,7 @@ namespace acl
 #endif
 		{}
 
-		virtual ~ansi_allocator()
+		virtual ~ansi_allocator() override
 		{
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
 			if (!m_debug_allocations.empty())

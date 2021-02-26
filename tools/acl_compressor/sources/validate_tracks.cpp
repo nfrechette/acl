@@ -46,11 +46,11 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 
 	// When intrinsics aren't used with x86, the floating point arithmetic falls back to
 	// using x87 instructions. When this happens, depending on how code is generated some
-	// small innacuracies can pop up because rounding happens when we store to memory.
+	// small inaccuracies can pop up because rounding happens when we store to memory.
 	// The full pose decompression stores samples into the stack while working with them
 	// while the single track decompression does not which causes the issue.
 	// With SSE2 and NEON, there are no such rounding issues.
-#if defined(RTM_NO_INTRINSICS) && (defined(_M_IX86) || defined(__i386__))	// TODO: Use RTM_ARCH* macros for this
+#if !defined(RTM_SSE2_INTRINSICS) && defined(RTM_ARCH_X86)
 	const float quat_error_threshold = 0.001F;
 	const float vec3_error_threshold = 0.0001F;
 #else
@@ -210,7 +210,7 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 			if (output_index == k_invalid_track_index)
 				continue;	// Track is being stripped, ignore it
 
-							// We use the nearest sample to accurately measure the loss that happened, if any
+			// We use the nearest sample to accurately measure the loss that happened, if any
 			raw_tracks.sample_track(track_index, sample_time, sample_rounding_policy::nearest, raw_track_writer);
 			context.decompress_track(output_index, lossy_track_writer);
 
@@ -475,29 +475,16 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 			{
 				const rtm::qvvf raw_sample = *reinterpret_cast<const rtm::qvvf*>(raw_track[sample_index]);
 				const rtm::qvvf compressed_sample = writer.read_qvv(track_index);
-				#if 0
-				if (!rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0F))
-				{
-					printf("Track %u, Sample %u\n", track_index, sample_index);
-					printf("R: [%f, %f, %f, %f], [%f, %f, %f], [%f, %f, %f]\n",
-						(float)rtm::quat_get_x(raw_sample.rotation), (float)rtm::quat_get_y(raw_sample.rotation), (float)rtm::quat_get_z(raw_sample.rotation), (float)rtm::quat_get_w(raw_sample.rotation),
-						(float)rtm::vector_get_x(raw_sample.translation), (float)rtm::vector_get_y(raw_sample.translation), (float)rtm::vector_get_z(raw_sample.translation),
-						(float)rtm::vector_get_x(raw_sample.scale), (float)rtm::vector_get_y(raw_sample.scale), (float)rtm::vector_get_z(raw_sample.scale));
-					printf("C: [%f, %f, %f, %f], [%f, %f, %f], [%f, %f, %f]\n",
-						(float)rtm::quat_get_x(compressed_sample.rotation), (float)rtm::quat_get_y(compressed_sample.rotation), (float)rtm::quat_get_z(compressed_sample.rotation), (float)rtm::quat_get_w(compressed_sample.rotation),
-						(float)rtm::vector_get_x(compressed_sample.translation), (float)rtm::vector_get_y(compressed_sample.translation), (float)rtm::vector_get_z(compressed_sample.translation),
-						(float)rtm::vector_get_x(compressed_sample.scale), (float)rtm::vector_get_y(compressed_sample.scale), (float)rtm::vector_get_z(compressed_sample.scale));
-					static int foobar = 0;
-					foobar++;
-				}
-				#endif
+
 				// Rotations can differ a bit due to how we normalize during interpolation
-				//ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(raw_sample.rotation), rtm::quat_to_vector(compressed_sample.rotation), 0.0001F), "Failed to sample bone index: %u", bone_index);
-				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0F), "Unexpected sample");
+				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0001F), "Unexpected sample");
 				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.translation, compressed_sample.translation, 0.0F), "Unexpected sample");
 				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.scale, compressed_sample.scale, 0.0F), "Unexpected sample");
 				break;
 			}
+			default:
+				ACL_ASSERT(false, "Unsupported track type");
+				break;
 			}
 		}
 	}

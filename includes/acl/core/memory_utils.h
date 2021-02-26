@@ -37,14 +37,14 @@
 #include <algorithm>
 
 // For byte swapping intrinsics
-#if defined(_MSC_VER)
+#if defined(RTM_COMPILER_MSVC)
 	#include <cstdlib>
 #elif defined(__APPLE__)
 	#include <libkern/OSByteOrder.h>
 #endif
 
 // For __prefetch
-#if defined(RTM_NEON64_INTRINSICS) && defined(ACL_COMPILER_MSVC)
+#if defined(RTM_NEON64_INTRINSICS) && defined(RTM_COMPILER_MSVC)
 	#include <intrin.h>
 #endif
 
@@ -64,60 +64,60 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Various miscellaneous utilities related to alignment
 
-	constexpr bool is_power_of_two(size_t input)
+	RTM_FORCE_INLINE constexpr bool is_power_of_two(size_t input)
 	{
 		return input != 0 && (input & (input - 1)) == 0;
 	}
 
 	template<typename Type>
-	constexpr bool is_alignment_valid(size_t alignment)
+	RTM_FORCE_INLINE constexpr bool is_alignment_valid(size_t alignment)
 	{
 		return is_power_of_two(alignment) && alignment >= alignof(Type);
 	}
 
 	template<typename PtrType>
-	inline bool is_aligned_to(PtrType* value, size_t alignment)
+	RTM_FORCE_INLINE bool is_aligned_to(PtrType* value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return (reinterpret_cast<intptr_t>(value) & (alignment - 1)) == 0;
 	}
 
 	template<typename IntegralType>
-	inline bool is_aligned_to(IntegralType value, size_t alignment)
+	RTM_FORCE_INLINE bool is_aligned_to(IntegralType value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return (static_cast<size_t>(value) & (alignment - 1)) == 0;
 	}
 
 	template<typename PtrType>
-	constexpr bool is_aligned(PtrType* value)
+	RTM_FORCE_INLINE constexpr bool is_aligned(PtrType* value)
 	{
 		return is_aligned_to(value, alignof(PtrType));
 	}
 
 	template<typename PtrType>
-	inline PtrType* align_to(PtrType* value, size_t alignment)
+	RTM_FORCE_INLINE PtrType* align_to(PtrType* value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return reinterpret_cast<PtrType*>((reinterpret_cast<intptr_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
 	template<typename IntegralType>
-	inline IntegralType align_to(IntegralType value, size_t alignment)
+	RTM_FORCE_INLINE IntegralType align_to(IntegralType value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return static_cast<IntegralType>((static_cast<size_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
 	template<typename PreviousMemberType, typename NextMemberType>
-	constexpr size_t get_required_padding()
+	RTM_FORCE_INLINE constexpr size_t get_required_padding()
 	{
 		// align_to(sizeof(PreviousMemberType), alignof(NextMemberType)) - sizeof(PreviousMemberType)
 		return ((sizeof(PreviousMemberType) + (alignof(NextMemberType) - 1)) & ~(alignof(NextMemberType)- 1)) - sizeof(PreviousMemberType);
 	}
 
 	template<typename ElementType, size_t num_elements>
-	constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
+	RTM_FORCE_INLINE constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
 
 	//////////////////////////////////////////////////////////////////////////
 	// Type safe casting
@@ -127,7 +127,7 @@ namespace acl
 		template<typename DestPtrType, typename SrcType>
 		struct safe_ptr_to_ptr_cast_impl
 		{
-			inline static DestPtrType* cast(SrcType* input)
+			RTM_FORCE_INLINE static DestPtrType* cast(SrcType* input)
 			{
 				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
 				return reinterpret_cast<DestPtrType*>(input);
@@ -137,13 +137,13 @@ namespace acl
 		template<typename SrcType>
 		struct safe_ptr_to_ptr_cast_impl<void, SrcType>
 		{
-			static constexpr void* cast(SrcType* input) { return input; }
+			RTM_FORCE_INLINE static constexpr void* cast(SrcType* input) { return input; }
 		};
 
 		template<typename DestPtrType, typename SrcType>
 		struct safe_int_to_ptr_cast_impl
 		{
-			inline static DestPtrType* cast(SrcType input)
+			RTM_FORCE_INLINE static DestPtrType* cast(SrcType input)
 			{
 				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
 				return reinterpret_cast<DestPtrType*>(input);
@@ -153,23 +153,23 @@ namespace acl
 		template<typename SrcType>
 		struct safe_int_to_ptr_cast_impl<void, SrcType>
 		{
-			static constexpr void* cast(SrcType input) { return reinterpret_cast<void*>(input); }
+			RTM_FORCE_INLINE static constexpr void* cast(SrcType input) { return reinterpret_cast<void*>(input); }
 		};
 	}
 
 	template<typename DestPtrType, typename SrcType>
-	inline DestPtrType* safe_ptr_cast(SrcType* input)
+	RTM_FORCE_INLINE DestPtrType* safe_ptr_cast(SrcType* input)
 	{
 		return memory_impl::safe_ptr_to_ptr_cast_impl<DestPtrType, SrcType>::cast(input);
 	}
 
 	template<typename DestPtrType, typename SrcType>
-	inline DestPtrType* safe_ptr_cast(SrcType input)
+	RTM_FORCE_INLINE DestPtrType* safe_ptr_cast(SrcType input)
 	{
 		return memory_impl::safe_int_to_ptr_cast_impl<DestPtrType, SrcType>::cast(input);
 	}
 
-#if defined(ACL_COMPILER_GCC)
+#if defined(RTM_COMPILER_GCC)
 	// GCC sometimes complains about comparisons being always true due to partial template
 	// evaluation. Disable that warning since we know it is safe.
 	#pragma GCC diagnostic push
@@ -187,7 +187,7 @@ namespace acl
 		template<typename DstType, typename SrcType, bool is_floating_point = false>
 		struct is_static_cast_safe_s
 		{
-			static bool test(SrcType input)
+			RTM_FORCE_INLINE static bool test(SrcType input)
 			{
 				using SrcRealType = typename safe_underlying_type<SrcType, std::is_enum<SrcType>::value>::type;
 
@@ -203,14 +203,14 @@ namespace acl
 		template<typename DstType, typename SrcType>
 		struct is_static_cast_safe_s<DstType, SrcType, true>
 		{
-			static bool test(SrcType input)
+			RTM_FORCE_INLINE static bool test(SrcType input)
 			{
 				return SrcType(DstType(input)) == input;
 			}
 		};
 
 		template<typename DstType, typename SrcType>
-		inline bool is_static_cast_safe(SrcType input)
+		RTM_FORCE_INLINE bool is_static_cast_safe(SrcType input)
 		{
 			// TODO: In C++17 this should be folded to constexpr if
 			return is_static_cast_safe_s<DstType, SrcType, static_condition<(std::is_floating_point<SrcType>::value || std::is_floating_point<DstType>::value)>::test()>::test(input);
@@ -218,7 +218,7 @@ namespace acl
 	}
 
 	template<typename DstType, typename SrcType>
-	inline DstType safe_static_cast(SrcType input)
+	RTM_FORCE_INLINE DstType safe_static_cast(SrcType input)
 	{
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		const bool is_safe = memory_impl::is_static_cast_safe<DstType, SrcType>(input);
@@ -228,7 +228,7 @@ namespace acl
 		return static_cast<DstType>(input);
 	}
 
-#if defined(ACL_COMPILER_GCC)
+#if defined(RTM_COMPILER_GCC)
 	#pragma GCC diagnostic pop
 #endif
 
@@ -236,31 +236,31 @@ namespace acl
 	// Endian and raw memory support
 
 	template<typename OutputPtrType, typename InputPtrType, typename offset_type>
-	inline OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, offset_type offset)
+	RTM_FORCE_INLINE OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, offset_type offset)
 	{
 		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
 	}
 
-	inline uint16_t byte_swap(uint16_t value)
+	RTM_FORCE_INLINE uint16_t byte_swap(uint16_t value)
 	{
-#if defined(_MSC_VER)
+#if defined(RTM_COMPILER_MSVC)
 		return _byteswap_ushort(value);
 #elif defined(__APPLE__)
 		return OSSwapInt16(value);
-#elif defined(__GNUC__) || defined(__clang__)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return __builtin_bswap16(value);
 #else
 		return (value & 0x00FF) << 8 | (value & 0xFF00) >> 8;
 #endif
 	}
 
-	inline uint32_t byte_swap(uint32_t value)
+	RTM_FORCE_INLINE uint32_t byte_swap(uint32_t value)
 	{
-#if defined(_MSC_VER)
+#if defined(RTM_COMPILER_MSVC)
 		return _byteswap_ulong(value);
 #elif defined(__APPLE__)
 		return OSSwapInt32(value);
-#elif defined(__GNUC__) || defined(__clang__)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return __builtin_bswap32(value);
 #else
 		value = (value & 0x0000FFFF) << 16 | (value & 0xFFFF0000) >> 16;
@@ -269,13 +269,13 @@ namespace acl
 #endif
 	}
 
-	inline uint64_t byte_swap(uint64_t value)
+	RTM_FORCE_INLINE uint64_t byte_swap(uint64_t value)
 	{
-#if defined(_MSC_VER)
+#if defined(RTM_COMPILER_MSVC)
 		return _byteswap_uint64(value);
 #elif defined(__APPLE__)
 		return OSSwapInt64(value);
-#elif defined(__GNUC__) || defined(__clang__)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return __builtin_bswap64(value);
 #else
 		value = (value & 0x00000000FFFFFFFF) << 32 | (value & 0xFFFFFFFF00000000) >> 32;
@@ -329,7 +329,7 @@ namespace acl
 	}
 
 	template<typename data_type>
-	inline data_type unaligned_load(const void* input)
+	RTM_FORCE_INLINE data_type unaligned_load(const void* input)
 	{
 		data_type result;
 		std::memcpy(&result, input, sizeof(data_type));
@@ -337,25 +337,25 @@ namespace acl
 	}
 
 	template<typename data_type>
-	inline data_type aligned_load(const void* input)
+	RTM_FORCE_INLINE data_type aligned_load(const void* input)
 	{
 		return *safe_ptr_cast<const data_type, const void*>(input);
 	}
 
 	template<typename data_type>
-	inline void unaligned_write(data_type input, void* output)
+	RTM_FORCE_INLINE void unaligned_write(data_type input, void* output)
 	{
 		std::memcpy(output, &input, sizeof(data_type));
 	}
 
 	// TODO: Add support for streaming prefetch (ptr, 0, 0) for arm
-	inline void memory_prefetch(const void* ptr)
+	RTM_FORCE_INLINE void memory_prefetch(const void* ptr)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		_mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T0);
-#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		__builtin_prefetch(ptr, 0, 3);
-#elif defined(RTM_NEON64_INTRINSICS) && defined(ACL_COMPILER_MSVC)
+#elif defined(RTM_NEON64_INTRINSICS) && defined(RTM_COMPILER_MSVC)
 		__prefetch(ptr);
 #else
 		(void)ptr;

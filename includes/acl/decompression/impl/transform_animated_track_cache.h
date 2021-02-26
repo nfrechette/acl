@@ -73,7 +73,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 // We only initialize some variables when we need them which prompts the compiler to complain
 // The usage is perfectly safe and because this code is VERY hot and needs to be as fast as possible,
 // we disable the warning to avoid zeroing out things we don't need
-#if defined(ACL_COMPILER_GCC)
+#if defined(RTM_COMPILER_GCC)
 	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
@@ -140,7 +140,7 @@ namespace acl
 #endif
 
 		// About 9 cycles with AVX on Skylake
-		inline ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_segment_range_data(const uint8_t* segment_range_data, uint32_t scratch_offset, segment_animated_scratch_v0& output_scratch)
+		inline RTM_DISABLE_SECURITY_COOKIE_CHECK void unpack_segment_range_data(const uint8_t* segment_range_data, uint32_t scratch_offset, segment_animated_scratch_v0& output_scratch)
 		{
 			// Segment range is packed: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
 
@@ -285,7 +285,7 @@ namespace acl
 
 		// About 19 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data4(const segment_animated_scratch_v0& segment_scratch, uint32_t scratch_offset, range_reduction_masks_t range_reduction_masks,
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data4(const segment_animated_scratch_v0& segment_scratch, uint32_t scratch_offset, range_reduction_masks_t range_reduction_masks,
 			rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz)
 		{
 			// Load and mask out our segment range data
@@ -337,7 +337,7 @@ namespace acl
 
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data_avx8(const segment_animated_scratch_v0& segment_scratch,
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_segment_range_data_avx8(const segment_animated_scratch_v0& segment_scratch,
 			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
 			__m256& xxxx0_xxxx1, __m256& yyyy0_yyyy1, __m256& zzzz0_zzzz1)
 		{
@@ -374,7 +374,7 @@ namespace acl
 
 		// About 24 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data4(const uint8_t* clip_range_data, uint32_t num_to_unpack,
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data4(const uint8_t* clip_range_data, uint32_t num_to_unpack,
 			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
 			rtm::vector4f& xxxx0, rtm::vector4f& yyyy0, rtm::vector4f& zzzz0,
 			rtm::vector4f& xxxx1, rtm::vector4f& yyyy1, rtm::vector4f& zzzz1)
@@ -453,7 +453,7 @@ namespace acl
 
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data_avx8(const uint8_t* clip_range_data, uint32_t num_to_unpack,
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL remap_clip_range_data_avx8(const uint8_t* clip_range_data, uint32_t num_to_unpack,
 			range_reduction_masks_t range_reduction_masks0, range_reduction_masks_t range_reduction_masks1,
 			__m256& xxxx0_xxxx1, __m256& yyyy0_yyyy1, __m256& zzzz0_zzzz1)
 		{
@@ -500,7 +500,7 @@ namespace acl
 
 		// About 31 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
 		{
 			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx, xxxx);
 			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy, yyyy);
@@ -514,7 +514,7 @@ namespace acl
 
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK __m256 RTM_SIMD_CALL quat_from_positive_w_avx8(__m256 xxxx0_xxxx1, __m256 yyyy0_yyyy1, __m256 zzzz0_zzzz1)
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK __m256 RTM_SIMD_CALL quat_from_positive_w_avx8(__m256 xxxx0_xxxx1, __m256 yyyy0_yyyy1, __m256 zzzz0_zzzz1)
 		{
 			const __m256 one_v = _mm256_set1_ps(1.0F);
 
@@ -533,7 +533,7 @@ namespace acl
 
 		// About 28 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_lerp4(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_lerp4(
 			rtm::vector4f_arg0 xxxx0, rtm::vector4f_arg1 yyyy0, rtm::vector4f_arg2 zzzz0, rtm::vector4f_arg3 wwww0,
 			rtm::vector4f_arg4 xxxx1, rtm::vector4f_arg5 yyyy1, rtm::vector4f_arg6 zzzz1, rtm::vector4f_arg7 wwww1,
 			float interpolation_alpha,
@@ -550,13 +550,13 @@ namespace acl
 			// Calculate the bias, if the dot product is positive or zero, there is no bias
 			// but if it is negative, we want to flip the 'end' rotation XYZW components
 			const rtm::vector4f neg_zero = rtm::vector_set(-0.0F);
-			const rtm::vector4f bias = acl_impl::vector_and(dot4, neg_zero);
+			const rtm::vector4f bias = rtm::vector_and(dot4, neg_zero);
 
 			// Apply our bias to the 'end'
-			const rtm::vector4f xxxx1_with_bias = acl_impl::vector_xor(xxxx1, bias);
-			const rtm::vector4f yyyy1_with_bias = acl_impl::vector_xor(yyyy1, bias);
-			const rtm::vector4f zzzz1_with_bias = acl_impl::vector_xor(zzzz1, bias);
-			const rtm::vector4f wwww1_with_bias = acl_impl::vector_xor(wwww1, bias);
+			const rtm::vector4f xxxx1_with_bias = rtm::vector_xor(xxxx1, bias);
+			const rtm::vector4f yyyy1_with_bias = rtm::vector_xor(yyyy1, bias);
+			const rtm::vector4f zzzz1_with_bias = rtm::vector_xor(zzzz1, bias);
+			const rtm::vector4f wwww1_with_bias = rtm::vector_xor(wwww1, bias);
 
 			// Lerp the rotation after applying the bias
 			// ((1.0 - alpha) * start) + (alpha * (end ^ bias)) == (start - alpha * start) + (alpha * (end ^ bias))
@@ -570,7 +570,7 @@ namespace acl
 
 		// About 9 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_normalize4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_normalize4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
 		{
 			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx, xxxx);
 			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy, yyyy);
@@ -589,7 +589,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline ACL_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
+		inline RTM_DISABLE_SECURITY_COOKIE_CHECK range_reduction_masks_t RTM_SIMD_CALL unpack_animated_quat(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
@@ -759,7 +759,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_single_animated_quat(const persistent_transform_decompression_context_v0& decomp_context,
+		inline RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_single_animated_quat(const persistent_transform_decompression_context_v0& decomp_context,
 			uint32_t unpack_index, uint32_t group_size,
 			const clip_animated_sampling_context_v0& clip_sampling_context, const segment_animated_sampling_context_v0& segment_sampling_context)
 		{
@@ -927,7 +927,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_adapter_type>
-		inline ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_animated_vector3(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
+		inline RTM_DISABLE_SECURITY_COOKIE_CHECK void unpack_animated_vector3(const persistent_transform_decompression_context_v0& decomp_context, rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack,
 			const clip_animated_sampling_context_v0& clip_sampling_context, segment_animated_sampling_context_v0& segment_sampling_context)
 		{
@@ -1044,7 +1044,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_adapter_type>
-		inline ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_single_animated_vector3(const persistent_transform_decompression_context_v0& decomp_context,
+		inline RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_single_animated_vector3(const persistent_transform_decompression_context_v0& decomp_context,
 			uint32_t unpack_index,
 			const clip_animated_sampling_context_v0& clip_sampling_context, const segment_animated_sampling_context_v0& segment_sampling_context)
 		{
@@ -1142,7 +1142,7 @@ namespace acl
 		}
 
 		// Force inline this function, we only use it to keep the code readable
-		ACL_FORCE_INLINE ACL_DISABLE_SECURITY_COOKIE_CHECK void count_animated_group_bit_size(
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void count_animated_group_bit_size(
 			const uint8_t* format_per_track_data0, const uint8_t* format_per_track_data1, uint32_t num_groups_to_skip,
 			uint32_t& out_group_bit_size_per_component0, uint32_t& out_group_bit_size_per_component1)
 		{
@@ -1220,7 +1220,7 @@ namespace acl
 			segment_animated_sampling_context_v0 segment_sampling_context_scales[2];
 
 			template<class decompression_settings_type, class decompression_settings_translation_adapter_type>
-			void ACL_DISABLE_SECURITY_COOKIE_CHECK initialize(const persistent_transform_decompression_context_v0& decomp_context)
+			void RTM_DISABLE_SECURITY_COOKIE_CHECK initialize(const persistent_transform_decompression_context_v0& decomp_context)
 			{
 				const transform_tracks_header& transform_header = get_transform_tracks_header(*decomp_context.tracks);
 
@@ -1312,7 +1312,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_type>
-			void ACL_DISABLE_SECURITY_COOKIE_CHECK unpack_rotation_group(const persistent_transform_decompression_context_v0& decomp_context)
+			void RTM_DISABLE_SECURITY_COOKIE_CHECK unpack_rotation_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
 				const uint32_t num_left_to_unpack = rotations.num_left_to_unpack;
 				if (num_left_to_unpack == 0)
@@ -1525,7 +1525,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_rotation_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_rotation_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
 			{
 				const uint32_t num_left_to_unpack = rotations.num_left_to_unpack;
 				const uint32_t num_to_skip = num_groups_to_skip * 4;
@@ -1570,7 +1570,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
 			{
 				ACL_ASSERT(unpack_index < rotations.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
@@ -1618,7 +1618,7 @@ namespace acl
 				return result;
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK const rtm::quatf& consume_rotation()
+			RTM_DISABLE_SECURITY_COOKIE_CHECK const rtm::quatf& consume_rotation()
 			{
 				ACL_ASSERT(rotations.cache_read_index < rotations.cache_write_index, "Attempting to consume an animated sample that isn't cached");
 				const uint32_t cache_read_index = rotations.cache_read_index++;
@@ -1626,7 +1626,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_translation_group(const persistent_transform_decompression_context_v0& decomp_context)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void unpack_translation_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
 				const uint32_t num_left_to_unpack = translations.num_left_to_unpack;
 				if (num_left_to_unpack == 0)
@@ -1654,7 +1654,7 @@ namespace acl
 					const rtm::vector4f sample0 = scratch0[unpack_index];
 					const rtm::vector4f sample1 = scratch1[unpack_index];
 
-					const rtm::vector4f sample = vector_lerp(sample0, sample1, interpolation_alpha);
+					const rtm::vector4f sample = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
 
 					cache_ptr[unpack_index] = sample;
 				}
@@ -1672,7 +1672,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
 			{
 				const uint32_t num_left_to_unpack = translations.num_left_to_unpack;
 				const uint32_t num_to_skip = num_groups_to_skip * 4;
@@ -1712,7 +1712,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
 			{
 				ACL_ASSERT(unpack_index < translations.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
@@ -1722,7 +1722,7 @@ namespace acl
 				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK const rtm::vector4f& consume_translation()
+			RTM_DISABLE_SECURITY_COOKIE_CHECK const rtm::vector4f& consume_translation()
 			{
 				ACL_ASSERT(translations.cache_read_index < translations.cache_write_index, "Attempting to consume an animated sample that isn't cached");
 				const uint32_t cache_read_index = translations.cache_read_index++;
@@ -1730,7 +1730,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void unpack_scale_group(const persistent_transform_decompression_context_v0& decomp_context)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void unpack_scale_group(const persistent_transform_decompression_context_v0& decomp_context)
 			{
 				const uint32_t num_left_to_unpack = scales.num_left_to_unpack;
 				if (num_left_to_unpack == 0)
@@ -1758,7 +1758,7 @@ namespace acl
 					const rtm::vector4f sample0 = scratch0[unpack_index];
 					const rtm::vector4f sample1 = scratch1[unpack_index];
 
-					const rtm::vector4f sample = vector_lerp(sample0, sample1, interpolation_alpha);
+					const rtm::vector4f sample = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
 
 					cache_ptr[unpack_index] = sample;
 				}
@@ -1776,7 +1776,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
 			{
 				const uint32_t num_left_to_unpack = scales.num_left_to_unpack;
 				const uint32_t num_to_skip = num_groups_to_skip * 4;
@@ -1816,7 +1816,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_adapter_type>
-			ACL_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
 			{
 				ACL_ASSERT(unpack_index < scales.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
@@ -1826,7 +1826,7 @@ namespace acl
 				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
 
-			ACL_DISABLE_SECURITY_COOKIE_CHECK const rtm::vector4f& consume_scale()
+			RTM_DISABLE_SECURITY_COOKIE_CHECK const rtm::vector4f& consume_scale()
 			{
 				ACL_ASSERT(scales.cache_read_index < scales.cache_write_index, "Attempting to consume an animated sample that isn't cached");
 				const uint32_t cache_read_index = scales.cache_read_index++;
@@ -1836,7 +1836,7 @@ namespace acl
 	}
 }
 
-#if defined(ACL_COMPILER_GCC)
+#if defined(RTM_COMPILER_GCC)
 	#pragma GCC diagnostic pop
 #endif
 

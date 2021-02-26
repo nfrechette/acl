@@ -150,6 +150,8 @@ namespace acl
 				, scale_format(settings_.scale_format)
 				, compression_level(settings_.level)
 				, raw_bone_streams(raw_clip_.segments[0].bone_streams)
+				, lossy_transforms_start(nullptr)
+				, lossy_transforms_end(nullptr)
 				, num_bones_in_chain(0)
 			{
 				local_query.bind(bit_rate_database);
@@ -162,8 +164,6 @@ namespace acl
 				additive_local_pose = clip_.has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones) : nullptr;
 				raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-				lossy_transforms_start = nullptr;
-				lossy_transforms_end = nullptr;
 				raw_local_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
 				base_local_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
 				raw_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
@@ -687,7 +687,7 @@ namespace acl
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
-#if defined(ACL_COMPILER_MSVC) && defined(_M_IX86) && defined(ACL_COMPILER_MSVC_2015)
+#if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
 				(void)calculate_error_impl;
 				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
@@ -778,7 +778,7 @@ namespace acl
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
-#if defined(ACL_COMPILER_MSVC) && defined(_M_IX86) && defined(ACL_COMPILER_MSVC_2015)
+#if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
 				(void)calculate_error_impl;
 				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
@@ -1686,7 +1686,7 @@ namespace acl
 							calculate_error_args.transform1 = context.lossy_object_pose + (bone_index * context.metric_transform_size);
 							calculate_error_args.construct_sphere_shell(target_bone.shell_distance);
 
-#if defined(ACL_COMPILER_MSVC) && defined(_M_IX86) && defined(ACL_COMPILER_MSVC_2015)
+#if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 							// VS2015 fails to generate the right x86 assembly, branch instead
 							(void)calculate_error_impl;
 							const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
@@ -1725,7 +1725,7 @@ namespace acl
 			std::sort(contributing_error, contributing_error + num_frames, sort_predicate);
 		}
 
-		inline void quantize_streams(iallocator& allocator, clip_context& clip, const compression_settings& settings, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, output_stats& out_stats)
+		inline void quantize_streams(iallocator& allocator, clip_context& clip, const compression_settings& settings, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const output_stats& out_stats)
 		{
 			(void)out_stats;
 

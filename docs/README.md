@@ -11,7 +11,9 @@ ACL aims to support a few core algorithms that are well suited for production us
 *  [Creating a raw track list](creating_a_raw_track_list.md)
 *  [Compressing tracks](compressing_raw_tracks.md)
 *  [Decompressing tracks](decompressing_a_track_list.md)
+*  [Database and streaming support](database_support.md)
 *  [Other considerations](misc_integration_details.md)
+*  [Migrating from an earlier ACL version](migrating.md)
 
 See how it's integrated into Unreal Engine 4 [here](https://github.com/nfrechette/acl-ue4-plugin)!
 

@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
 #include "acl/core/error_result.h"
 #include "acl/core/memory_utils.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -135,6 +136,10 @@ namespace acl
 		};
 
 		static_assert(get_array_size(k_track_type_names) == (size_t)track_type8::qvvf + 1, "Unexpected array size");
+
+		ACL_ASSERT(type != nullptr, "Track type name cannot be null");
+		if (type == nullptr)
+			return false;
 
 		for (size_t type_index = 0; type_index < get_array_size(k_track_type_names); ++type_index)
 		{

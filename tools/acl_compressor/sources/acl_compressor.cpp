@@ -115,70 +115,43 @@ using namespace acl;
 struct Options
 {
 #if defined(__ANDROID__)
-	const char*		input_buffer;
-	size_t			input_buffer_size;
-	bool			input_buffer_binary;
-	const char*		config_buffer;
-	size_t			config_buffer_size;
+	const char*		input_buffer					= nullptr;
+	size_t			input_buffer_size				= 0;
+	bool			input_buffer_binary				= false;
+	const char*		config_buffer					= nullptr;
+	size_t			config_buffer_size				= 0;
 #else
-	const char*		input_filename;
-	const char*		config_filename;
+	const char*		input_filename					= nullptr;
+	const char*		config_filename					= nullptr;
 #endif
 
-	bool			do_output_stats;
-	const char*		output_stats_filename;
-	std::FILE*		output_stats_file;
+	bool			do_output_stats					= false;
+	const char*		output_stats_filename			= nullptr;
+	std::FILE*		output_stats_file				= nullptr;
 
-	const char*		output_bin_filename;
-	const char*		output_db_filename;
+	const char*		output_bin_filename				= nullptr;
+	const char*		output_db_filename				= nullptr;
 
-	compression_level8	compression_level;
-	bool			compression_level_specified;
+	compression_level8	compression_level			= compression_level8::lowest;
+	bool			compression_level_specified		= false;
 
-	bool			regression_testing;
-	bool			exhaustive_compression;
+	bool			regression_testing				= false;
+	bool			exhaustive_compression			= false;
 
-	bool			use_matrix_error_metric;
+	bool			use_matrix_error_metric			= false;
 
-	bool			is_bind_pose_relative;
-	bool			is_bind_pose_additive0;
-	bool			is_bind_pose_additive1;
+	bool			is_bind_pose_relative			= false;
+	bool			is_bind_pose_additive0			= false;
+	bool			is_bind_pose_additive1			= false;
 
-	bool			split_into_database;
+	bool			split_into_database				= false;
 
-	bool			stat_detailed_output;
-	bool			stat_exhaustive_output;
+	bool			stat_detailed_output			= false;
+	bool			stat_exhaustive_output			= false;
 
 	//////////////////////////////////////////////////////////////////////////
 
-	Options() noexcept
-#if defined(__ANDROID__)
-		: input_buffer(nullptr)
-		, input_buffer_size(0)
-		, input_buffer_binary(false)
-		, config_buffer(nullptr)
-		, config_buffer_size(0)
-#else
-		: input_filename(nullptr)
-		, config_filename(nullptr)
-#endif
-		, do_output_stats(false)
-		, output_stats_filename(nullptr)
-		, output_stats_file(nullptr)
-		, output_bin_filename(nullptr)
-		, output_db_filename(nullptr)
-		, compression_level(compression_level8::lowest)
-		, compression_level_specified(false)
-		, regression_testing(false)
-		, exhaustive_compression(false)
-		, use_matrix_error_metric(false)
-		, is_bind_pose_relative(false)
-		, is_bind_pose_additive0(false)
-		, is_bind_pose_additive1(false)
-		, split_into_database(false)
-		, stat_detailed_output(false)
-		, stat_exhaustive_output(false)
-	{}
+	Options() noexcept = default;
 
 	~Options()
 	{
@@ -186,9 +159,7 @@ struct Options
 			std::fclose(output_stats_file);
 	}
 
-	Options(Options&& other) noexcept = default;
 	Options(const Options&) = delete;
-	Options& operator=(Options&& other) noexcept = default;
 	Options& operator=(const Options&) = delete;
 
 	void open_output_stats_file()
@@ -227,13 +198,13 @@ static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive
 
 bool is_acl_sjson_file(const char* filename)
 {
-	const size_t filename_len = std::strlen(filename);
+	const size_t filename_len = filename != nullptr ? std::strlen(filename) : 0;
 	return filename_len >= 10 && strncmp(filename + filename_len - 10, ".acl.sjson", 10) == 0;
 }
 
 bool is_acl_bin_file(const char* filename)
 {
-	const size_t filename_len = std::strlen(filename);
+	const size_t filename_len = filename != nullptr ? std::strlen(filename) : 0;
 	return filename_len >= 4 && strncmp(filename + filename_len - 4, ".acl", 4) == 0;
 }
 
@@ -432,7 +403,7 @@ extern void validate_db(iallocator& allocator, const track_array_qvvf& raw_track
 	const compressed_tracks& compressed_tracks0, const compressed_tracks& compressed_tracks1);
 #endif
 
-static void try_algorithm(const Options& options, iallocator& allocator, track_array_qvvf& transform_tracks,
+static void try_algorithm(const Options& options, iallocator& allocator, const track_array_qvvf& transform_tracks,
 	const track_array_qvvf& additive_base, additive_clip_format8 additive_format,
 	compression_settings settings, const compression_database_settings& database_settings,
 	stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
@@ -654,7 +625,7 @@ static bool read_file(iallocator& allocator, const char* input_filename, char*& 
 	}
 
 	// Make sure to enable buffering with a large buffer
-	const int setvbuf_result = setvbuf(file, NULL, _IOFBF, 1 * 1024 * 1024);
+	const int setvbuf_result = setvbuf(file, nullptr, _IOFBF, 1 * 1024 * 1024);
 	if (setvbuf_result != 0)
 	{
 		printf("Failed to set input file buffering settings\n");
@@ -1239,7 +1210,7 @@ int main_impl(int argc, char* argv[])
 	scope_enable_fp_exceptions fp_on;
 
 	int result = -1;
-#if defined(ACL_ON_ASSERT_THROW) || defined(SJSON_CPP_ON_ASSERT_THROW)
+#if defined(ACL_ON_ASSERT_THROW) || defined(SJSON_CPP_ON_ASSERT_THROW) || defined(RTM_ON_ASSERT_THROW)
 	try
 #endif
 	{
@@ -1248,14 +1219,21 @@ int main_impl(int argc, char* argv[])
 #if defined(ACL_ON_ASSERT_THROW)
 	catch (const runtime_assert& exception)
 	{
-		printf("Assert occurred: %s\n", exception.what());
+		printf("ACL assert occurred: %s\n", exception.what());
 		result = -1;
 	}
 #endif
 #if defined(SJSON_CPP_ON_ASSERT_THROW)
 	catch (const sjson::runtime_assert& exception)
 	{
-		printf("Assert occurred: %s\n", exception.what());
+		printf("sjson-cpp assert occurred: %s\n", exception.what());
+		result = -1;
+	}
+#endif
+#if defined(RTM_ON_ASSERT_THROW)
+	catch (const rtm::runtime_assert& exception)
+	{
+		printf("RTM assert occurred: %s\n", exception.what());
 		result = -1;
 	}
 #endif

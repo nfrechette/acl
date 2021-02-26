@@ -63,7 +63,7 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(push)
 	// warning C4146: unary minus operator applied to unsigned type, result still unsigned
 	// This is fine because we use bitwise arithmetic and rely on the fact that unsigned
@@ -139,10 +139,10 @@ namespace acl
 	{
 #if defined(ACL_USE_POPCOUNT)
 		return _lzcnt_u32(value);
-#elif defined(ACL_COMPILER_MSVC)
+#elif defined(RTM_COMPILER_MSVC)
 		unsigned long first_set_bit_index;
 		return _BitScanReverse(&first_set_bit_index, value) ? (31 - first_set_bit_index) : 32;
-#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return value != 0 ? __builtin_clz(value) : 32;
 #else
 		value = value | (value >> 1);
@@ -160,10 +160,10 @@ namespace acl
 	{
 #if defined(ACL_BMI_INTRINSICS)
 		return _tzcnt_u32(value);
-#elif defined(ACL_COMPILER_MSVC)
+#elif defined(RTM_COMPILER_MSVC)
 		unsigned long first_set_bit_index;
 		return _BitScanForward(&first_set_bit_index, value) ? first_set_bit_index : 32;
-#elif defined(ACL_COMPILER_GCC) || defined(ACL_COMPILER_CLANG)
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return value != 0 ? __builtin_ctz(value) : 32;
 #else
 		return value != 0 ? (31 - count_leading_zeros(value & -value)) : 32;
@@ -187,7 +187,7 @@ namespace acl
 	{
 #if defined(ACL_BMI_INTRINSICS)
 		// Use BMI
-#if defined(ACL_COMPILER_GCC) && !defined(_andn_u32)
+#if defined(RTM_COMPILER_GCC) && !defined(_andn_u32)
 		return __andn_u32(not_value, and_value);	// GCC doesn't define the right intrinsic symbol
 #else
 		return _andn_u32(not_value, and_value);
@@ -198,7 +198,7 @@ namespace acl
 	}
 }
 
-#if defined(ACL_COMPILER_MSVC)
+#if defined(RTM_COMPILER_MSVC)
 	#pragma warning(pop)
 #endif
 
