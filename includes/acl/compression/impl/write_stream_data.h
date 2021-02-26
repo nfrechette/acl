@@ -367,11 +367,9 @@ namespace acl
 
 			uint8_t* animated_track_data_begin = animated_track_data;
 
-#if defined(ACL_HAS_ASSERT_CHECKS)
-			const uint8_t* animated_track_data_end = add_offset_to_ptr<uint8_t>(animated_track_data, animated_data_size);
-#endif
-
 			const uint8_t* animated_track_data_start = animated_track_data;
+			const uint8_t* animated_track_data_end = add_offset_to_ptr<uint8_t>(animated_track_data, animated_data_size);
+
 			uint64_t bit_offset = 0;
 
 			// Data is sorted first by time, second by bone.
@@ -387,7 +385,7 @@ namespace acl
 			alignas(16) uint8_t group_animated_track_data[sizeof(rtm::vector4f) * 4];
 			uint64_t group_bit_offset = 0;
 
-			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
+			auto group_filter_action = [](animation_track_type8 group_type, uint32_t bone_index)
 			{
 				(void)group_type;
 				(void)bone_index;
@@ -397,7 +395,7 @@ namespace acl
 				return true;
 			};
 
-			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
+			auto group_flush_action = [animated_track_data_begin, &bit_offset, &group_animated_track_data, &group_bit_offset, &animated_track_data, animated_track_data_end](animation_track_type8 group_type, uint32_t group_size)
 			{
 				(void)group_type;
 				(void)group_size;
@@ -415,7 +413,7 @@ namespace acl
 			// TODO: Use a group writer context object to avoid alloc/free/work in loop for every sample when it doesn't change
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
-				auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
+				auto group_entry_action = [&segment, sample_index, &group_animated_track_data, &group_bit_offset](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 				{
 					(void)group_size;
 
@@ -453,11 +451,8 @@ namespace acl
 			ACL_ASSERT(format_per_track_data != nullptr, "'format_per_track_data' cannot be null!");
 			(void)format_per_track_data_size;
 
-#if defined(ACL_HAS_ASSERT_CHECKS)
-			const uint8_t* format_per_track_data_end = add_offset_to_ptr<uint8_t>(format_per_track_data, format_per_track_data_size);
-#endif
-
 			const uint8_t* format_per_track_data_start = format_per_track_data;
+			const uint8_t* format_per_track_data_end = add_offset_to_ptr<uint8_t>(format_per_track_data, format_per_track_data_size);
 
 			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
 			// Groups are sorted per sub-track type. All rotation groups come first followed by translations then scales.
@@ -466,7 +461,7 @@ namespace acl
 			// To keep decompression simpler, rotations are padded to 4 elements even if the last group is partial
 			uint8_t format_per_track_group[4];
 
-			auto group_filter_action = [&](animation_track_type8 group_type, uint32_t bone_index)
+			auto group_filter_action = [&segment](animation_track_type8 group_type, uint32_t bone_index)
 			{
 				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
@@ -477,7 +472,7 @@ namespace acl
 					return bone_stream.scales.is_bit_rate_variable();
 			};
 
-			auto group_entry_action = [&](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
+			auto group_entry_action = [&segment, &format_per_track_group](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 			{
 				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
@@ -488,7 +483,7 @@ namespace acl
 					format_per_track_group[group_size] = (uint8_t)get_num_bits_at_bit_rate(bone_stream.scales.get_bit_rate());
 			};
 
-			auto group_flush_action = [&](animation_track_type8 group_type, uint32_t group_size)
+			auto group_flush_action = [&format_per_track_data, format_per_track_data_end, &format_per_track_group](animation_track_type8 group_type, uint32_t group_size)
 			{
 				const uint32_t copy_size = group_type == animation_track_type8::rotation ? 4 : group_size;
 				std::memcpy(format_per_track_data, &format_per_track_group[0], copy_size);
