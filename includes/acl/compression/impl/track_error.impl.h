@@ -445,8 +445,6 @@ namespace acl
 				: raw_tracks_(raw_tracks__)
 				, context_(context__)
 				, allocator_(allocator__)
-				, output_bone_mapping(nullptr)
-				, num_output_bones(0)
 			{
 				output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks__, num_output_bones);
 			}
@@ -549,8 +547,6 @@ namespace acl
 				, context_(context__)
 				, additive_base_tracks_(additive_base_tracks__)
 				, allocator_(allocator__)
-				, output_bone_mapping(nullptr)
-				, num_output_bones(0)
 			{
 				output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks__, num_output_bones);
 			}
