@@ -211,7 +211,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_type>
-			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index) const
 			{
 				ACL_ASSERT(unpack_index < rotations.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
@@ -261,7 +261,7 @@ namespace acl
 				ACL_IMPL_CONSTANT_PREFETCH(constant_track_data);
 			}
 
-			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(uint32_t unpack_index) const
 			{
 				ACL_ASSERT(unpack_index < 4, "Cannot unpack sample that isn't present");
 
@@ -292,7 +292,7 @@ namespace acl
 				ACL_IMPL_CONSTANT_PREFETCH(constant_track_data);
 			}
 
-			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(uint32_t unpack_index) const
 			{
 				ACL_ASSERT(unpack_index < 4, "Cannot unpack sample that isn't present");
 
