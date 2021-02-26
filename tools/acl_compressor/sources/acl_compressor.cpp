@@ -159,9 +159,7 @@ struct Options
 			std::fclose(output_stats_file);
 	}
 
-	Options(Options&& other) noexcept = default;
 	Options(const Options&) = delete;
-	Options& operator=(Options&& other) noexcept = default;
 	Options& operator=(const Options&) = delete;
 
 	void open_output_stats_file()
