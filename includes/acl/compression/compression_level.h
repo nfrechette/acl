@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
@@ -70,6 +71,10 @@ namespace acl
 	// Returns the compression level from its string representation.
 	inline bool get_compression_level(const char* level_name, compression_level8& out_level)
 	{
+		ACL_ASSERT(level_name != nullptr, "Level name cannot be null");
+		if (level_name == nullptr)
+			return false;
+
 		const char* level_lowest = "Lowest";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
 		const char* level_lowest_new = "lowest";
 		if (std::strncmp(level_name, level_lowest, std::strlen(level_lowest)) == 0

@@ -25,6 +25,8 @@
 
 // Included only once from track_formats.h
 
+#include "acl/core/error.h"
+
 #include <cstdint>
 #include <cstring>
 
@@ -43,6 +45,10 @@ namespace acl
 
 	inline bool get_rotation_format(const char* format, rotation_format8& out_format)
 	{
+		ACL_ASSERT(format != nullptr, "Rotation format name cannot be null");
+		if (format == nullptr)
+			return false;
+
 		const char* quat_128_format = "Quat_128";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
 		const char* quatf_full_format = "quatf_full";
 		if (std::strncmp(format, quat_128_format, std::strlen(quat_128_format)) == 0
@@ -80,6 +86,10 @@ namespace acl
 
 	inline bool get_vector_format(const char* format, vector_format8& out_format)
 	{
+		ACL_ASSERT(format != nullptr, "Vector format name cannot be null");
+		if (format == nullptr)
+			return false;
+
 		const char* vector3_96_format = "Vector3_96";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
 		const char* vector3f_full_format = "vector3f_full";
 		if (std::strncmp(format, vector3_96_format, std::strlen(vector3_96_format)) == 0

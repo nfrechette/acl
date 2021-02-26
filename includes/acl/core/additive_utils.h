@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <rtm/qvvf.h>
@@ -75,6 +76,10 @@ namespace acl
 
 	inline bool get_additive_clip_format(const char* format, additive_clip_format8& out_format)
 	{
+		ACL_ASSERT(format != nullptr, "Format name cannot be null");
+		if (format == nullptr)
+			return false;
+
 		const char* none_format = "None";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in 3.0
 		const char* none_format_new = "none";
 		if (std::strncmp(format, none_format, std::strlen(none_format)) == 0
