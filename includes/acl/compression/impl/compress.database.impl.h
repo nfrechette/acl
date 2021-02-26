@@ -1132,7 +1132,7 @@ namespace acl
 			raw_buffer_header* database_buffer_header = safe_ptr_cast<raw_buffer_header>(database_buffer);
 			database_buffer += sizeof(raw_buffer_header);
 
-			uint8_t* db_header_start = database_buffer;
+			const uint8_t* db_header_start = database_buffer;
 			database_header* db_header = safe_ptr_cast<database_header>(database_buffer);
 			database_buffer += sizeof(database_header);
 
@@ -1393,7 +1393,7 @@ namespace acl
 		raw_buffer_header* database_buffer_header = safe_ptr_cast<raw_buffer_header>(database_buffer);
 		database_buffer += sizeof(raw_buffer_header);
 
-		uint8_t* db_header_start = database_buffer;
+		const uint8_t* db_header_start = database_buffer;
 		database_header* db_header = safe_ptr_cast<database_header>(database_buffer);
 		database_buffer += sizeof(database_header);
 

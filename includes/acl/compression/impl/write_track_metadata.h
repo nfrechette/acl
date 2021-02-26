@@ -192,7 +192,7 @@ namespace acl
 		{
 			ACL_ASSERT(out_contributing_error == nullptr || clip.num_samples == 0 || out_contributing_error[0].index == 0, "Buffer overrun detected");
 
-			uint8_t* output_buffer = reinterpret_cast<uint8_t*>(out_contributing_error);
+			const uint8_t* output_buffer = reinterpret_cast<const uint8_t*>(out_contributing_error);
 			const uint8_t* output_buffer_start = output_buffer;
 			frame_contributing_error* contributing_error = out_contributing_error;
 

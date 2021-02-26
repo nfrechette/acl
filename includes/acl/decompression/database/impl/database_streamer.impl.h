@@ -71,7 +71,7 @@ namespace acl
 					if (bulk_data_ == nullptr)
 					{
 						// This is the first stream in request, our bulk data should be allocated now, query and cache it
-						database_streamer* streamer_ = context.streamers[tier_index_];
+						const database_streamer* streamer_ = context.streamers[tier_index_];
 						bulk_data_ = streamer_->get_bulk_data(tier);
 						ACL_ASSERT(bulk_data_ != nullptr, "Bulk data should be allocated when we stream in");
 
@@ -94,8 +94,10 @@ namespace acl
 						{
 							const database_chunk_segment_header& chunk_segment_header = chunk_segment_headers[segment_index];
 
-							database_runtime_clip_header* clip_header = chunk_segment_header.get_clip_header(context.clip_segment_headers);
-							ACL_ASSERT(clip_header->clip_hash == chunk_segment_header.clip_hash, "Unexpected clip hash"); (void)clip_header;
+#if defined(ACL_HAS_ASSERT_CHECKS)
+							const database_runtime_clip_header* clip_header = chunk_segment_header.get_clip_header(context.clip_segment_headers);
+							ACL_ASSERT(clip_header->clip_hash == chunk_segment_header.clip_hash, "Unexpected clip hash");
+#endif
 
 							database_runtime_segment_header* segment_header = chunk_segment_header.get_segment_header(context.clip_segment_headers);
 							ACL_ASSERT(segment_header->tier_metadata[tier_index_].load(std::memory_order::memory_order_relaxed) == 0, "Tier metadata should not be initialized");

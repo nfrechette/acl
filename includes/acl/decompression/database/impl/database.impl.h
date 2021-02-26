@@ -166,8 +166,10 @@ namespace acl
 			{
 				const acl_impl::database_chunk_segment_header& chunk_segment_header = chunk_segment_headers[segment_index];
 
-				acl_impl::database_runtime_clip_header* clip_header = chunk_segment_header.get_clip_header(m_context.clip_segment_headers);
-				ACL_ASSERT(clip_header->clip_hash == chunk_segment_header.clip_hash, "Unexpected clip hash"); (void)clip_header;
+#if defined(ACL_HAS_ASSERT_CHECKS)
+				const acl_impl::database_runtime_clip_header* clip_header = chunk_segment_header.get_clip_header(m_context.clip_segment_headers);
+				ACL_ASSERT(clip_header->clip_hash == chunk_segment_header.clip_hash, "Unexpected clip hash");
+#endif
 
 				acl_impl::database_runtime_segment_header* segment_header = chunk_segment_header.get_segment_header(m_context.clip_segment_headers);
 				ACL_ASSERT(segment_header->tier_metadata[0].load(std::memory_order::memory_order_relaxed) == 0, "Tier metadata should not be initialized");
@@ -190,8 +192,10 @@ namespace acl
 			{
 				const acl_impl::database_chunk_segment_header& chunk_segment_header = chunk_segment_headers[segment_index];
 
-				acl_impl::database_runtime_clip_header* clip_header = chunk_segment_header.get_clip_header(m_context.clip_segment_headers);
-				ACL_ASSERT(clip_header->clip_hash == chunk_segment_header.clip_hash, "Unexpected clip hash"); (void)clip_header;
+#if defined(ACL_HAS_ASSERT_CHECKS)
+				const acl_impl::database_runtime_clip_header* clip_header = chunk_segment_header.get_clip_header(m_context.clip_segment_headers);
+				ACL_ASSERT(clip_header->clip_hash == chunk_segment_header.clip_hash, "Unexpected clip hash");
+#endif
 
 				acl_impl::database_runtime_segment_header* segment_header = chunk_segment_header.get_segment_header(m_context.clip_segment_headers);
 				ACL_ASSERT(segment_header->tier_metadata[1].load(std::memory_order::memory_order_relaxed) == 0, "Tier metadata should not be initialized");
@@ -554,8 +558,10 @@ namespace acl
 			{
 				const acl_impl::database_chunk_segment_header& chunk_segment_header = chunk_segment_headers[segment_index];
 
-				acl_impl::database_runtime_clip_header* clip_header = chunk_segment_header.get_clip_header(m_context.clip_segment_headers);
-				ACL_ASSERT(clip_header->clip_hash == chunk_segment_header.clip_hash, "Unexpected clip hash"); (void)clip_header;
+#if defined(ACL_HAS_ASSERT_CHECKS)
+				const acl_impl::database_runtime_clip_header* clip_header = chunk_segment_header.get_clip_header(m_context.clip_segment_headers);
+				ACL_ASSERT(clip_header->clip_hash == chunk_segment_header.clip_hash, "Unexpected clip hash");
+#endif
 
 				acl_impl::database_runtime_segment_header* segment_header = chunk_segment_header.get_segment_header(m_context.clip_segment_headers);
 				const uint64_t tier_metadata = (uint64_t(chunk_segment_header.samples_offset) << 32) | chunk_segment_header.sample_indices;
