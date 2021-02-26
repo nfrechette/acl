@@ -39,7 +39,7 @@ namespace acl
 		class iterator_impl
 		{
 		public:
-			typedef typename std::conditional<is_const, const item_type*, item_type*>::type ItemPtr;
+			using ItemPtr = typename std::conditional<is_const, const item_type*, item_type*>::type;
 
 			constexpr iterator_impl(ItemPtr items, size_t num_items) : m_items(items), m_num_items(num_items) {}
 
