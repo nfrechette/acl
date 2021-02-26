@@ -130,7 +130,7 @@ namespace acl
 
 		struct calculate_track_error_args
 		{
-			calculate_track_error_args(ierror_calculation_adapter& adapter_)
+			explicit calculate_track_error_args(ierror_calculation_adapter& adapter_)
 				: adapter(adapter_)
 			{
 			}
