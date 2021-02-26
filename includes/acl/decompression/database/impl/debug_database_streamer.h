@@ -53,7 +53,7 @@ namespace acl
 		{
 		}
 
-		virtual ~debug_database_streamer()
+		virtual ~debug_database_streamer() override
 		{
 			deallocate_type_array(m_allocator, m_streamed_bulk_data, m_bulk_data_size);
 		}
