@@ -553,7 +553,7 @@ namespace acl
 					goto error;
 
 				uint32_t parent_index = k_invalid_track_index;
-				if (tracks != nullptr && parent.size() != 0)
+				if (tracks != nullptr && !parent.empty())
 				{
 					parent_index = find_bone(parent);
 					if (parent_index == k_invalid_track_index)
