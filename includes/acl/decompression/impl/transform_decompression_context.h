@@ -118,9 +118,9 @@ namespace acl
 		template<class decompression_settings_type>
 		constexpr int32_t num_supported_rotation_formats()
 		{
-			return decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full)
-				+ decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full)
-				+ decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable);
+			return int32_t(decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+				+ int32_t(decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full))
+				+ int32_t(decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable));
 		}
 
 		// Returns the statically known rotation format supported if we only support one, otherwise we return the input value
@@ -141,8 +141,8 @@ namespace acl
 		template<class decompression_settings_adapter_type>
 		constexpr int32_t num_supported_vector_formats()
 		{
-			return decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full)
-				+ decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable);
+			return int32_t(decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full))
+				+ int32_t(decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable));
 		}
 
 		// Returns the statically known vector format supported if we only support one, otherwise we return the input value
