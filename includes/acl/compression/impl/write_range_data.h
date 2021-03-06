@@ -193,7 +193,7 @@ namespace acl
 					}
 				}
 
-				ACL_ASSERT(range_data <= range_data_end, "Invalid range data offset. Wrote too little data.");
+				ACL_ASSERT(range_data <= range_data_end, "Invalid range data offset. Wrote too little data."); (void)range_data_end;
 			};
 
 			animated_group_writer(segment, output_bone_mapping, num_output_bones, group_filter_action, group_entry_action, group_flush_action);
@@ -327,7 +327,7 @@ namespace acl
 				// Zero out the temporary buffer for the final group to not contain partial garbage
 				std::memset(&range_data_group[0], 0, sizeof(range_data_group));
 
-				ACL_ASSERT(range_data <= range_data_end, "Invalid range data offset. Wrote too little data.");
+				ACL_ASSERT(range_data <= range_data_end, "Invalid range data offset. Wrote too little data."); (void)range_data_end;
 			};
 
 			animated_group_writer(segment, output_bone_mapping, num_output_bones, group_filter_action, group_entry_action, group_flush_action);
