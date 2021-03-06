@@ -407,7 +407,7 @@ namespace acl
 
 				animated_track_data = animated_track_data_begin + (bit_offset / 8);
 
-				ACL_ASSERT(animated_track_data <= animated_track_data_end, "Invalid animated track data offset. Wrote too much data.");
+				ACL_ASSERT(animated_track_data <= animated_track_data_end, "Invalid animated track data offset. Wrote too much data."); (void)animated_track_data_end;
 			};
 
 			// TODO: Use a group writer context object to avoid alloc/free/work in loop for every sample when it doesn't change
@@ -492,7 +492,7 @@ namespace acl
 				// Zero out the temporary buffer for the final group to not contain partial garbage
 				std::memset(&format_per_track_group[0], 0, sizeof(format_per_track_group));
 
-				ACL_ASSERT(format_per_track_data <= format_per_track_data_end, "Invalid format per track data offset. Wrote too much data.");
+				ACL_ASSERT(format_per_track_data <= format_per_track_data_end, "Invalid format per track data offset. Wrote too much data."); (void)format_per_track_data_end;
 			};
 
 			animated_group_writer(segment, output_bone_mapping, num_output_bones, group_filter_action, group_entry_action, group_flush_action);
