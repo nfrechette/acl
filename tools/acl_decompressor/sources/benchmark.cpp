@@ -89,12 +89,21 @@ enum class DecompressionFunction
 	Memcpy,
 };
 
+struct benchmark_transform_decompression_settings final : public acl::default_transform_decompression_settings
+{
+	// Only support our latest version
+	static constexpr acl::compressed_tracks_version16 version_supported() { return acl::compressed_tracks_version16::latest; }
+
+	// No need for safety checks
+	static constexpr bool skip_initialize_safety_checks() { return true; }
+};
+
 struct benchmark_state
 {
 	acl::compressed_tracks* compressed_tracks = nullptr;	// Original clip
 
 	acl::compressed_tracks** decompression_instances = nullptr;
-	acl::decompression_context<acl::default_transform_decompression_settings>* decompression_contexts = nullptr;
+	acl::decompression_context<benchmark_transform_decompression_settings>* decompression_contexts = nullptr;
 	uint8_t* clip_copy_buffer = nullptr;
 	uint8_t* flush_buffer = nullptr;
 
@@ -121,7 +130,7 @@ static void allocate_static_buffers()
 		return;	// Already allocated
 
 	s_benchmark_state.decompression_instances = acl::allocate_type_array<acl::compressed_tracks*>(s_allocator, k_num_copies);
-	s_benchmark_state.decompression_contexts = acl::allocate_type_array<acl::decompression_context<acl::default_transform_decompression_settings>>(s_allocator, k_num_copies);
+	s_benchmark_state.decompression_contexts = acl::allocate_type_array<acl::decompression_context<benchmark_transform_decompression_settings>>(s_allocator, k_num_copies);
 	s_benchmark_state.flush_buffer = acl::allocate_type_array<uint8_t>(s_allocator, k_padded_flush_buffer_size);
 }
 
@@ -140,7 +149,7 @@ static void setup_benchmark_state(acl::compressed_tracks& compressed_tracks)
 	const uint32_t clip_buffer_size = padded_clip_size * k_num_copies;
 
 	acl::compressed_tracks** decompression_instances = s_benchmark_state.decompression_instances;
-	acl::decompression_context<acl::default_transform_decompression_settings>* decompression_contexts = s_benchmark_state.decompression_contexts;
+	acl::decompression_context<benchmark_transform_decompression_settings>* decompression_contexts = s_benchmark_state.decompression_contexts;
 	uint8_t* clip_copy_buffer = s_benchmark_state.clip_copy_buffer;
 
 	if (clip_buffer_size > s_benchmark_state.clip_copy_buffer_size)
@@ -210,7 +219,7 @@ static void benchmark_decompression(benchmark::State& state)
 	}
 
 	acl::compressed_tracks** decompression_instances = s_benchmark_state.decompression_instances;
-	acl::decompression_context<acl::default_transform_decompression_settings>* decompression_contexts = s_benchmark_state.decompression_contexts;
+	acl::decompression_context<benchmark_transform_decompression_settings>* decompression_contexts = s_benchmark_state.decompression_contexts;
 	uint8_t* flush_buffer = s_benchmark_state.flush_buffer;
 	const uint32_t pose_size = s_benchmark_state.pose_size;
 
@@ -231,7 +240,7 @@ static void benchmark_decompression(benchmark::State& state)
 
 		const float sample_time = sample_times[current_sample_index];
 
-		acl::decompression_context<acl::default_transform_decompression_settings>& context = decompression_contexts[current_context_index];
+		acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[current_context_index];
 		context.seek(sample_time, acl::sample_rounding_policy::none);
 
 		switch (decompression_function)
