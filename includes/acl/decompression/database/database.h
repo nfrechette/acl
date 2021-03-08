@@ -153,6 +153,9 @@ namespace acl
 		acl_impl::database_context_v0 m_context;
 
 		static_assert(std::is_base_of<database_settings, settings_type>::value, "database_settings_type must derive from database_settings!");
+
+		// TODO: I'd like to assert here but we use a dummy pointer to init the decompression context which triggers this
+		//static_assert(settings_type::version_supported() != compressed_tracks_version16::none, "database_settings_type must support at least one version");
 	};
 }
 
