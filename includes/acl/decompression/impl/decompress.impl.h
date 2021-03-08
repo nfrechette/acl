@@ -57,12 +57,12 @@ namespace acl
 		if (!is_valid)
 			return false;	// Invalid compressed tracks instance
 
-		ACL_ASSERT(algorithm_version_type::is_version_supported(tracks.get_version()), "Unsupported version");
-		if (!algorithm_version_type::is_version_supported(tracks.get_version()))
+		ACL_ASSERT(version_impl_type::is_version_supported(tracks.get_version()), "Unsupported version");
+		if (!version_impl_type::is_version_supported(tracks.get_version()))
 			return false;
 
 		const database_context<db_settings_type>* database = nullptr;
-		return algorithm_version_type::template initialize<decompression_settings_type>(m_context, tracks, database);
+		return version_impl_type::template initialize<decompression_settings_type>(m_context, tracks, database);
 	}
 
 	template<class decompression_settings_type>
@@ -78,20 +78,20 @@ namespace acl
 		if (!is_valid)
 			return false;	// Invalid compressed database instance
 
-		ACL_ASSERT(algorithm_version_type::is_version_supported(tracks.get_version()), "Unsupported version");
-		if (!algorithm_version_type::is_version_supported(tracks.get_version()))
+		ACL_ASSERT(version_impl_type::is_version_supported(tracks.get_version()), "Unsupported version");
+		if (!version_impl_type::is_version_supported(tracks.get_version()))
 			return false;
 
 		if (!database.contains(tracks))
 			return false;
 
-		return algorithm_version_type::template initialize<decompression_settings_type>(m_context, tracks, &database);
+		return version_impl_type::template initialize<decompression_settings_type>(m_context, tracks, &database);
 	}
 
 	template<class decompression_settings_type>
 	inline bool decompression_context<decompression_settings_type>::is_dirty(const compressed_tracks& tracks) const
 	{
-		return algorithm_version_type::template is_dirty(m_context, tracks);
+		return version_impl_type::template is_dirty(m_context, tracks);
 	}
 
 	template<class decompression_settings_type>
@@ -103,7 +103,7 @@ namespace acl
 		if (!m_context.is_initialized())
 			return;	// Context is not initialized
 
-		algorithm_version_type::template seek<decompression_settings_type>(m_context, sample_time, rounding_policy);
+		version_impl_type::template seek<decompression_settings_type>(m_context, sample_time, rounding_policy);
 	}
 
 	template<class decompression_settings_type>
@@ -116,7 +116,7 @@ namespace acl
 		if (!m_context.is_initialized())
 			return;	// Context is not initialized
 
-		algorithm_version_type::template decompress_tracks<decompression_settings_type>(m_context, writer);
+		version_impl_type::template decompress_tracks<decompression_settings_type>(m_context, writer);
 	}
 
 	template<class decompression_settings_type>
@@ -129,6 +129,6 @@ namespace acl
 		if (!m_context.is_initialized())
 			return;	// Context is not initialized
 
-		algorithm_version_type::template decompress_track<decompression_settings_type>(m_context, track_index, writer);
+		version_impl_type::template decompress_track<decompression_settings_type>(m_context, track_index, writer);
 	}
 }
