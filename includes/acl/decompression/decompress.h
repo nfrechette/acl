@@ -142,7 +142,7 @@ namespace acl
 		using context_type = typename acl_impl::persistent_decompression_context_selector<k_supports_scalar_tracks, k_supports_transform_tracks>::type;
 
 		// The type of our algorithm implementation based on the supported version
-		using algorithm_version_type = acl_impl::decompression_version_selector<settings_type::version_supported()>;
+		using version_impl_type = acl_impl::decompression_version_selector<settings_type::version_supported()>;
 
 		// Internal context data
 		context_type m_context;
