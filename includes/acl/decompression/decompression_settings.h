@@ -100,6 +100,16 @@ namespace acl
 		static constexpr bool normalize_rotations() { return true; }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Whether safety checks are performed when we initialize our context.
+		// When safety checks are disabled, initialization never fails even if it is invalid.
+		// This is meant as a performance optimization for shipping executables with all
+		// unnecessary checks removed.
+		// ENABLE AT YOUR OWN RISK!
+		// Disabled by default for safety.
+		// Must be static constexpr!
+		static constexpr bool skip_initialize_safety_checks() { return false; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// The database settings to use when decompressing.
 		using database_settings_type = null_database_settings;
 	};
