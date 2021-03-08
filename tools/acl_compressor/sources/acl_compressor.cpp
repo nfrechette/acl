@@ -686,7 +686,7 @@ static bool read_acl_bin_file(iallocator& allocator, const Options& options, acl
 #endif
 
 	out_tracks = reinterpret_cast<acl::compressed_tracks*>(tracks_data);
-	if (out_tracks->is_valid(true).any() || file_size != out_tracks->get_size())
+	if (file_size != out_tracks->get_size() || out_tracks->is_valid(true).any())
 	{
 		printf("Invalid binary ACL file provided\n");
 		deallocate_type_array(allocator, tracks_data, file_size);
