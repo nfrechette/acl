@@ -149,6 +149,8 @@ namespace acl
 
 		static_assert(std::is_base_of<decompression_settings, settings_type>::value, "decompression_settings_type must derive from decompression_settings!");
 		static_assert(std::is_base_of<database_settings, db_settings_type>::value, "database_settings_type must derive from database_settings!");
+		static_assert(settings_type::version_supported() != compressed_tracks_version16::none, "decompression_settings_type must support at least one version");
+		static_assert(db_settings_type::version_supported() == compressed_tracks_version16::none || db_settings_type::version_supported() == settings_type::version_supported(), "database_settings_type's supported version must be none or match the supported version from decompression_settings_type");
 	};
 
 	//////////////////////////////////////////////////////////////////////////
