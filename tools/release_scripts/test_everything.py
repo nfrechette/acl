@@ -79,6 +79,11 @@ if __name__ == "__main__":
 					if config != 'debug':
 						# Regression testing is too slow in debug and not really necessary
 						args.append('-regression_test')
+
+						# Build the benchmark project in release x64 for one compiler variant per platform
+						if simd == '' and compiler in ['vs2019', 'gcc9', 'clang11', 'osx'] and arch == 'x64':
+							args.append('-bench')
+
 					cmd_args.append([x for x in args if x])
 
 	if platform.system() == 'Windows':
@@ -99,6 +104,8 @@ if __name__ == "__main__":
 			args = [python_exe, 'make.py', '-compiler', 'android', '-cpu', 'armv7', '-config', config, '-build', '-clean', '-nosimd']
 			cmd_args.append([x for x in args if x])
 			args = [python_exe, 'make.py', '-compiler', 'android', '-cpu', 'arm64', '-config', config, '-build', '-clean']
+			if config != 'debug':
+				args.append('-bench')
 			cmd_args.append([x for x in args if x])
 			args = [python_exe, 'make.py', '-compiler', 'android', '-cpu', 'arm64', '-config', config, '-build', '-clean', '-nosimd']
 			cmd_args.append([x for x in args if x])
@@ -106,6 +113,8 @@ if __name__ == "__main__":
 		for config in configs:
 			# iOS
 			args = [python_exe, 'make.py', '-compiler', 'ios', '-config', config, '-build', '-clean']
+			if config != 'debug':
+				args.append('-bench')
 			cmd_args.append([x for x in args if x])
 			args = [python_exe, 'make.py', '-compiler', 'ios', '-config', config, '-build', '-clean', '-nosimd']
 			cmd_args.append([x for x in args if x])
