@@ -122,7 +122,7 @@ namespace acl
 		// Iterator begin() and end() implementations.
 		track* begin() { return m_tracks; }
 		const track* begin() const { return m_tracks; }
-		const track* end() { return m_tracks + m_num_tracks; }
+		track* end() { return m_tracks + m_num_tracks; }
 		const track* end() const { return m_tracks + m_num_tracks; }
 
 		//////////////////////////////////////////////////////////////////////////
@@ -230,7 +230,7 @@ namespace acl
 		// Iterator begin() and end() implementations.
 		track_member_type* begin() { return track_cast<track_member_type>(m_tracks); }
 		const track_member_type* begin() const { return track_cast<track_member_type>(m_tracks); }
-		const track_member_type* end() { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
+		track_member_type* end() { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
 		const track_member_type* end() const { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
 	};
 
