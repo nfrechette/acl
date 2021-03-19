@@ -513,10 +513,21 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		db_result = build_database(allocator, settings, &input_tracks[0], 2, db_tracks01, db01);
 		ACL_ASSERT(db_result.empty(), db_result.c_str());
 
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C6011: Dereferencing NULL pointer 'db_tracks0[0]'. 
+	// This is fine, ignore it
+	#pragma warning(disable : 6011)
+#endif
+
 		ACL_ASSERT(db0->contains(*db_tracks0[0]), "Database should contain our clip");
 		ACL_ASSERT(db1->contains(*db_tracks1[0]), "Database should contain our clip");
 		ACL_ASSERT(db01->contains(*db_tracks01[0]), "Database should contain our clip");
 		ACL_ASSERT(db01->contains(*db_tracks01[1]), "Database should contain our clip");
+
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
 	}
 
 	// Reference error without the database with everything highest quality
