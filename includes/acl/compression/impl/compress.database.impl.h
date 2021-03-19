@@ -111,20 +111,22 @@ namespace acl
 					const optional_metadata_header& metadata_header = get_optional_metadata_header(*tracks);
 					const frame_contributing_error* contributing_errors = metadata_header.get_contributing_error(*tracks);
 
+					const uint32_t num_segments = has_multiple_segments ? transform_header.num_segments : 1;	// HACK to avoid static analysis warning
+
 					clip_contributing_error& clip_error = contributing_error_per_clip[list_index];
-					clip_error.segments = allocate_type_array<segment_contriguting_error>(allocator_, transform_header.num_segments);
-					clip_error.num_segments = transform_header.num_segments;
+					clip_error.segments = allocate_type_array<segment_contriguting_error>(allocator_, num_segments);
+					clip_error.num_segments = num_segments;
 					clip_error.num_frames = 0;
 					clip_error.num_assigned = 0;
 
-					for (uint32_t segment_index = 0; segment_index < transform_header.num_segments; ++segment_index)
+					for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 					{
 						const uint32_t segment_start_frame_index = has_multiple_segments ? segment_start_indices[segment_index] : 0;
 
 						uint32_t num_segment_frames;
-						if (transform_header.num_segments == 1)
+						if (num_segments == 1)
 							num_segment_frames = header.num_samples;	// Only one segment, it has every frame
-						else if (segment_index + 1 == transform_header.num_segments)
+						else if (segment_index + 1 == num_segments)
 							num_segment_frames = header.num_samples - segment_start_indices[segment_index];	// Last segment has the remaining frames
 						else
 							num_segment_frames = segment_start_indices[segment_index + 1] - segment_start_indices[segment_index];
