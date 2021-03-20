@@ -360,7 +360,7 @@ namespace acl
 			const track& track_ = m_tracks[track_index];
 
 			if (track_type == track_type8::qvvf)
-				total_size += num_samples * 10 * sizeof(float);	// 4 rotation floats, 3 translation floats, 3 scale floats
+				total_size += num_samples * 10 * uint32_t(sizeof(float));	// 4 rotation floats, 3 translation floats, 3 scale floats
 			else
 				total_size += num_samples * track_.get_sample_size();
 		}

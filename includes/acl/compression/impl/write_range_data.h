@@ -320,7 +320,7 @@ namespace acl
 
 			auto group_flush_action = [&range_data, range_data_end, &range_data_group](animation_track_type8 group_type, uint32_t group_size)
 			{
-				const uint32_t copy_size = group_type == animation_track_type8::rotation ? 4 : group_size;
+				const size_t copy_size = group_type == animation_track_type8::rotation ? 4 : group_size;
 				std::memcpy(range_data, &range_data_group[0], copy_size * 6);
 				range_data += copy_size * 6;
 

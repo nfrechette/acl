@@ -300,7 +300,8 @@ namespace acl
 			{
 				// Calculate which bones are leaf bones that have no children
 				bitset_description bone_bitset_desc = bitset_description::make_from_num_bits(num_transforms);
-				uint32_t* is_leaf_bitset = allocate_type_array<uint32_t>(allocator, bone_bitset_desc.get_size());
+				const size_t bitset_size = bone_bitset_desc.get_size();
+				uint32_t* is_leaf_bitset = allocate_type_array<uint32_t>(allocator, bitset_size);
 				bitset_reset(is_leaf_bitset, bone_bitset_desc, false);
 
 				// By default  and if we find a child, we'll mark it as non-leaf
@@ -330,7 +331,7 @@ namespace acl
 				const uint32_t num_leaf_transforms = bitset_count_set_bits(is_leaf_bitset, bone_bitset_desc);
 				out_clip_context.num_leaf_transforms = num_leaf_transforms;
 
-				uint32_t* leaf_transform_chains = allocate_type_array<uint32_t>(allocator, size_t(num_leaf_transforms) * bone_bitset_desc.get_size());
+				uint32_t* leaf_transform_chains = allocate_type_array<uint32_t>(allocator, num_leaf_transforms * bitset_size);
 				out_clip_context.leaf_transform_chains = leaf_transform_chains;
 
 				uint32_t leaf_index = 0;
@@ -339,7 +340,7 @@ namespace acl
 					if (!bitset_test(is_leaf_bitset, bone_bitset_desc, transform_index))
 						continue;	// Skip non-leaf bones
 
-					uint32_t* bone_chain = leaf_transform_chains + (leaf_index * bone_bitset_desc.get_size());
+					uint32_t* bone_chain = leaf_transform_chains + (leaf_index * bitset_size);
 					bitset_reset(bone_chain, bone_bitset_desc, false);
 
 					uint32_t chain_bone_index = transform_index;
@@ -361,7 +362,7 @@ namespace acl
 
 				ACL_ASSERT(num_root_bones > 0, "No root bone found. The root bones must have a parent index = 0xFFFF");
 				ACL_ASSERT(leaf_index == num_leaf_transforms, "Invalid number of leaf bone found");
-				deallocate_type_array(allocator, is_leaf_bitset, bone_bitset_desc.get_size());
+				deallocate_type_array(allocator, is_leaf_bitset, bitset_size);
 			}
 
 			return are_samples_valid;

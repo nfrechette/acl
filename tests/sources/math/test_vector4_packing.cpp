@@ -174,7 +174,7 @@ TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
 					{
 						const uint8_t offset = offsets[offset_idx];
 
-						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 4);
+						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, size_t(num_bits) * 4);
 						vec1 = unpack_vector4_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
 						if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 							num_errors++;
@@ -403,7 +403,7 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 					{
 						const uint8_t offset = offsets[offset_idx];
 
-						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 3);
+						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, size_t(num_bits) * 3);
 						vec1 = unpack_vector3_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
 						if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 							num_errors++;
@@ -422,7 +422,7 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 					{
 						const uint8_t offset = offsets[offset_idx];
 
-						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 3);
+						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, size_t(num_bits) * 3);
 						vec1 = unpack_vector3_sXX_unsafe(num_bits, &tmp0.buffer[0], offset);
 						if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 							num_errors++;
@@ -538,7 +538,7 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 					{
 						const uint8_t offset = offsets[offset_idx];
 
-						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 4);
+						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, size_t(num_bits) * 4);
 						vec1 = unpack_vector2_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
 						if (!vector_all_near_equal2(vec0, vec1, 1.0E-6F))
 							num_errors++;

@@ -144,7 +144,7 @@ TEST_CASE("unpack_scalarf_uXX_unsafe", "[math][scalar][packing]")
 					{
 						const uint8_t offset = offsets[offset_idx];
 
-						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, num_bits * 4);
+						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, size_t(num_bits) * 4);
 						scalar1 = unpack_scalarf_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
 						if (!scalar_near_equal(vector_get_x(vec0), scalar_cast(scalar1), 1.0E-6F))
 							num_errors++;
