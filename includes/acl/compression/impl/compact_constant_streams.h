@@ -125,7 +125,7 @@ namespace acl
 
 				if (bone_range.translation.is_constant(constant_translation_threshold))
 				{
-					TranslationTrackStream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
+					translation_track_stream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
 					rtm::vector4f translation = num_samples != 0 ? bone_stream.translations.get_raw_sample<rtm::vector4f>(0) : rtm::vector_zero();
 					constant_stream.set_raw_sample(0, translation);
 
