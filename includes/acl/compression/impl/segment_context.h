@@ -47,7 +47,7 @@ namespace acl
 		{
 			clip_context* clip;
 			transform_streams* bone_streams;
-			BoneRanges* ranges;
+			transform_range* ranges;
 			frame_contributing_error* contributing_error;	// Optional if we request it in the compression settings
 
 			uint32_t num_samples;

@@ -133,7 +133,7 @@ namespace acl
 			{
 				if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate))
 				{
-					const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
 					const rtm::vector4f segment_range_min = segment_bone_range.rotation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.rotation.get_extent();
@@ -141,7 +141,7 @@ namespace acl
 					packed_rotation = rtm::vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
 				}
 
-				const BoneRanges& clip_bone_range = clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
 
 				const rtm::vector4f clip_range_min = clip_bone_range.rotation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
@@ -184,7 +184,7 @@ namespace acl
 
 			if (is_constant_bit_rate(bit_rate))
 			{
-				const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 				const rtm::vector4f normalized_rotation = normalize_sample(rotation, clip_bone_range.rotation);
 
 				packed_rotation = decay_vector3_u48(normalized_rotation);
@@ -198,7 +198,7 @@ namespace acl
 			{
 				if (segment->are_rotations_normalized && !is_constant_bit_rate(bit_rate))
 				{
-					const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
 					const rtm::vector4f segment_range_min = segment_bone_range.rotation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.rotation.get_extent();
@@ -206,7 +206,7 @@ namespace acl
 					packed_rotation = rtm::vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
 				}
 
-				const BoneRanges& clip_bone_range = clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
 
 				const rtm::vector4f clip_range_min = clip_bone_range.rotation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
@@ -248,7 +248,7 @@ namespace acl
 			{
 				if (segment->are_rotations_normalized)
 				{
-					const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
 					const rtm::vector4f segment_range_min = segment_bone_range.rotation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.rotation.get_extent();
@@ -256,7 +256,7 @@ namespace acl
 					packed_rotation = rtm::vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
 				}
 
-				const BoneRanges& clip_bone_range = clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
 
 				const rtm::vector4f clip_range_min = clip_bone_range.rotation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
@@ -288,7 +288,7 @@ namespace acl
 			{
 				if (segment->are_translations_normalized && !is_constant_bit_rate(bit_rate))
 				{
-					const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
 					const rtm::vector4f segment_range_min = segment_bone_range.translation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.translation.get_extent();
@@ -296,7 +296,7 @@ namespace acl
 					packed_translation = rtm::vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
 				}
 
-				const BoneRanges& clip_bone_range = clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
 
 				const rtm::vector4f clip_range_min = clip_bone_range.translation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.translation.get_extent();
@@ -333,7 +333,7 @@ namespace acl
 			{
 				ACL_ASSERT(segment->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
-				const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 				const rtm::vector4f normalized_translation = normalize_sample(translation, clip_bone_range.translation);
 
 				packed_translation = decay_vector3_u48(normalized_translation);
@@ -350,7 +350,7 @@ namespace acl
 			{
 				if (segment->are_translations_normalized && !is_constant_bit_rate(bit_rate))
 				{
-					const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
 					const rtm::vector4f segment_range_min = segment_bone_range.translation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.translation.get_extent();
@@ -358,7 +358,7 @@ namespace acl
 					packed_translation = rtm::vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
 				}
 
-				const BoneRanges& clip_bone_range = clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
 
 				const rtm::vector4f clip_range_min = clip_bone_range.translation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.translation.get_extent();
@@ -398,7 +398,7 @@ namespace acl
 			{
 				if (segment->are_translations_normalized)
 				{
-					const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
 					rtm::vector4f segment_range_min = segment_bone_range.translation.get_min();
 					rtm::vector4f segment_range_extent = segment_bone_range.translation.get_extent();
@@ -406,7 +406,7 @@ namespace acl
 					packed_translation = rtm::vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
 				}
 
-				const BoneRanges& clip_bone_range = clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
 
 				rtm::vector4f clip_range_min = clip_bone_range.translation.get_min();
 				rtm::vector4f clip_range_extent = clip_bone_range.translation.get_extent();
@@ -437,7 +437,7 @@ namespace acl
 			{
 				if (segment->are_scales_normalized && !is_constant_bit_rate(bit_rate))
 				{
-					const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
 					const rtm::vector4f segment_range_min = segment_bone_range.scale.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.scale.get_extent();
@@ -445,7 +445,7 @@ namespace acl
 					packed_scale = rtm::vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
 				}
 
-				const BoneRanges& clip_bone_range = clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
 
 				const rtm::vector4f clip_range_min = clip_bone_range.scale.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.scale.get_extent();
@@ -482,7 +482,7 @@ namespace acl
 			{
 				ACL_ASSERT(segment->are_scales_normalized, "Translations must be normalized to support variable bit rates.");
 
-				const BoneRanges& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 				const rtm::vector4f normalized_scale = normalize_sample(scale, clip_bone_range.scale);
 
 				packed_scale = decay_vector3_u48(normalized_scale);
@@ -499,7 +499,7 @@ namespace acl
 			{
 				if (segment->are_scales_normalized && !is_constant_bit_rate(bit_rate))
 				{
-					const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
 					const rtm::vector4f segment_range_min = segment_bone_range.scale.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.scale.get_extent();
@@ -507,7 +507,7 @@ namespace acl
 					packed_scale = rtm::vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
 				}
 
-				const BoneRanges& clip_bone_range = clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
 
 				const rtm::vector4f clip_range_min = clip_bone_range.scale.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.scale.get_extent();
@@ -547,7 +547,7 @@ namespace acl
 			{
 				if (segment->are_scales_normalized)
 				{
-					const BoneRanges& segment_bone_range = segment->ranges[bone_steams.bone_index];
+					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
 					rtm::vector4f segment_range_min = segment_bone_range.scale.get_min();
 					rtm::vector4f segment_range_extent = segment_bone_range.scale.get_extent();
@@ -555,7 +555,7 @@ namespace acl
 					packed_scale = rtm::vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
 				}
 
-				const BoneRanges& clip_bone_range = clip->ranges[bone_steams.bone_index];
+				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
 
 				rtm::vector4f clip_range_min = clip_bone_range.scale.get_min();
 				rtm::vector4f clip_range_extent = clip_bone_range.scale.get_extent();
