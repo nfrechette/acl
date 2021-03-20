@@ -289,7 +289,7 @@ namespace acl
 			quantization_context& operator=(quantization_context&&) = delete;
 		};
 
-		inline void quantize_fixed_rotation_stream(iallocator& allocator, const RotationTrackStream& raw_stream, rotation_format8 rotation_format, RotationTrackStream& out_quantized_stream)
+		inline void quantize_fixed_rotation_stream(iallocator& allocator, const rotation_track_stream& raw_stream, rotation_format8 rotation_format, rotation_track_stream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -297,7 +297,7 @@ namespace acl
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t rotation_sample_size = get_packed_rotation_size(rotation_format);
 			const float sample_rate = raw_stream.get_sample_rate();
-			RotationTrackStream quantized_stream(allocator, num_samples, rotation_sample_size, sample_rate, rotation_format);
+			rotation_track_stream quantized_stream(allocator, num_samples, rotation_sample_size, sample_rate, rotation_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -335,7 +335,7 @@ namespace acl
 			quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, rotation_format, bone_stream.rotations);
 		}
 
-		inline void quantize_variable_rotation_stream(quantization_context& context, const RotationTrackStream& raw_clip_stream, const RotationTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, RotationTrackStream& out_quantized_stream)
+		inline void quantize_variable_rotation_stream(quantization_context& context, const rotation_track_stream& raw_clip_stream, const rotation_track_stream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, rotation_track_stream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -343,7 +343,7 @@ namespace acl
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const float sample_rate = raw_segment_stream.get_sample_rate();
-			RotationTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, rotation_format8::quatf_drop_w_variable, bit_rate);
+			rotation_track_stream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, rotation_format8::quatf_drop_w_variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
 			{
