@@ -168,7 +168,7 @@ namespace acl
 
 			const uint32_t num_segments = transform_header.num_segments;
 
-			const bool is_database_supported = is_database_supported_impl<decompression_settings_type>();
+			constexpr bool is_database_supported = is_database_supported_impl<decompression_settings_type>();
 			ACL_ASSERT(is_database_supported || !context.tracks->has_database(), "Cannot have a database when it isn't supported");
 
 			const bool has_database = is_database_supported && context.tracks->has_database();

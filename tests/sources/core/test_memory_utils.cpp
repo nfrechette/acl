@@ -108,8 +108,8 @@ TEST_CASE("misc tests", "[core][memory]")
 		float tmp[2];
 	};
 
-	const size_t padding0 = get_required_padding<float, Align8>();
-	const size_t padding1 = get_required_padding<uint8_t, Align8>();
+	constexpr size_t padding0 = get_required_padding<float, Align8>();
+	constexpr size_t padding1 = get_required_padding<uint8_t, Align8>();
 	CHECK(padding0 == 4);
 	CHECK(padding1 == 7);
 

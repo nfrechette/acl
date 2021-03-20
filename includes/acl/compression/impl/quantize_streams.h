@@ -1544,7 +1544,7 @@ namespace acl
 			const uint32_t num_frames = context.num_samples;
 			const uint32_t num_bones = context.num_bones;
 			const bitset_description desc = bitset_description::make_from_num_bits<32>();
-			const float infinity = std::numeric_limits<float>::infinity();
+			constexpr float infinity = std::numeric_limits<float>::infinity();
 
 			frame_contributing_error* contributing_error = context.segment->contributing_error;
 			uint32_t frames_retained = ~0U;	// By default, every frame is present
