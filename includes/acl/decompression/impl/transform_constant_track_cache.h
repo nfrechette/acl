@@ -47,6 +47,13 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 	#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C26495: Variable '...' is uninitialized. Always initialize a member variable (type.6).
+	// We explicitly control initialization
+	#pragma warning(disable : 26495)
+#endif
+
 namespace acl
 {
 #if defined(ACL_IMPL_USE_CONSTANT_PREFETCH)
@@ -311,6 +318,10 @@ namespace acl
 		};
 	}
 }
+
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
 
 #if defined(RTM_COMPILER_GCC)
 	#pragma GCC diagnostic pop

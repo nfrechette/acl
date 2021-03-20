@@ -43,6 +43,9 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 	// This is fine because a track is empty until it is constructed with a valid description.
 	// Afterwards, access is typesafe.
 	#pragma warning(disable : 4582)
+	// warning C26495: Variable '...' is uninitialized. Always initialize a member variable (type.6).
+	// We explicitly control initialization
+	#pragma warning(disable : 26495)
 #endif
 
 namespace acl

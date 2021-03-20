@@ -30,6 +30,13 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C26495: Variable '...' is uninitialized. Always initialize a member variable (type.6).
+	// We explicitly control initialization
+	#pragma warning(disable : 26495)
+#endif
+
 namespace acl
 {
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
@@ -109,5 +116,9 @@ namespace acl
 }
 
 #include "acl/core/impl/track_formats.impl.h"
+
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
 
 ACL_IMPL_FILE_PRAGMA_POP
