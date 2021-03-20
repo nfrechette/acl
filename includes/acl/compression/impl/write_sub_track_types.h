@@ -42,7 +42,7 @@ namespace acl
 			ACL_ASSERT(out_packed_types != nullptr, "'out_packed_types' cannot be null!");
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 			uint32_t packed_entry_index = 0;
 			uint32_t packed_entry_size = 0;

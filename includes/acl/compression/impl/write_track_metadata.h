@@ -198,7 +198,7 @@ namespace acl
 
 			// Write the contributing error for each frame by iterating over our segments to retrieve it
 			// Values are thus sorted per segment
-			for (const SegmentContext& segment : clip.segment_iterator())
+			for (const segment_context& segment : clip.segment_iterator())
 			{
 				for (uint32_t frame_index = 0; frame_index < segment.num_samples; ++frame_index)
 				{

@@ -116,7 +116,7 @@ namespace acl
 		// Gets a rotation sample from the format/bit rate stored
 		inline rtm::quatf RTM_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 		{
-			const SegmentContext* segment = bone_steams.segment;
+			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
 
 			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
@@ -155,7 +155,7 @@ namespace acl
 		// Gets a rotation sample at the specified bit rate
 		inline rtm::quatf RTM_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 		{
-			const SegmentContext* segment = bone_steams.segment;
+			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
 			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 
@@ -220,7 +220,7 @@ namespace acl
 		// Gets a rotation sample with the desired format
 		inline rtm::quatf RTM_SIMD_CALL get_rotation_sample(const BoneStreams& bone_steams, uint32_t sample_index, rotation_format8 desired_format)
 		{
-			const SegmentContext* segment = bone_steams.segment;
+			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
 
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
@@ -270,7 +270,7 @@ namespace acl
 		// Gets a translation sample from the format/bit rate stored
 		inline rtm::vector4f RTM_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 		{
-			const SegmentContext* segment = bone_steams.segment;
+			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
 			const bool are_translations_normalized = clip->are_translations_normalized;
 
@@ -310,7 +310,7 @@ namespace acl
 		// Gets a translation sample at the specified bit rate
 		inline rtm::vector4f RTM_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 		{
-			const SegmentContext* segment = bone_steams.segment;
+			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
 			const vector_format8 format = bone_steams.translations.get_vector_format();
 
@@ -372,7 +372,7 @@ namespace acl
 		// Gets a translation sample with the desired format
 		inline rtm::vector4f RTM_SIMD_CALL get_translation_sample(const BoneStreams& bone_steams, uint32_t sample_index, vector_format8 desired_format)
 		{
-			const SegmentContext* segment = bone_steams.segment;
+			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
 			const bool are_translations_normalized = clip->are_translations_normalized && !bone_steams.is_translation_constant;
 			const uint8_t* quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
@@ -420,7 +420,7 @@ namespace acl
 		// Gets a scale sample from the format/bit rate stored
 		inline rtm::vector4f RTM_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index)
 		{
-			const SegmentContext* segment = bone_steams.segment;
+			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
 
 			const vector_format8 format = bone_steams.scales.get_vector_format();
@@ -459,7 +459,7 @@ namespace acl
 		// Gets a scale sample at the specified bit rate
 		inline rtm::vector4f RTM_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, const BoneStreams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 		{
-			const SegmentContext* segment = bone_steams.segment;
+			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
 			const vector_format8 format = bone_steams.scales.get_vector_format();
 
@@ -521,7 +521,7 @@ namespace acl
 		// Gets a scale sample with the desired format
 		inline rtm::vector4f RTM_SIMD_CALL get_scale_sample(const BoneStreams& bone_steams, uint32_t sample_index, vector_format8 desired_format)
 		{
-			const SegmentContext* segment = bone_steams.segment;
+			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
 			const bool are_scales_normalized = clip->are_scales_normalized && !bone_steams.is_scale_constant;
 			const uint8_t* quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
@@ -576,7 +576,7 @@ namespace acl
 			BoneBitRate bit_rates;
 		};
 
-		inline uint32_t get_uniform_sample_key(const SegmentContext& segment, float sample_time)
+		inline uint32_t get_uniform_sample_key(const segment_context& segment, float sample_time)
 		{
 			uint32_t key0 = 0;
 			uint32_t key1 = 0;
@@ -695,7 +695,7 @@ namespace acl
 
 		inline void sample_streams(const BoneStreams* bone_streams, uint32_t num_bones, float sample_time, rtm::qvvf* out_local_pose)
 		{
-			const SegmentContext* segment_context = bone_streams->segment;
+			const segment_context* segment_context = bone_streams->segment;
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
@@ -724,7 +724,7 @@ namespace acl
 		{
 			(void)num_bones;
 
-			const SegmentContext* segment_context = bone_streams->segment;
+			const segment_context* segment_context = bone_streams->segment;
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
@@ -749,7 +749,7 @@ namespace acl
 		{
 			(void)num_bones;
 
-			const SegmentContext* segment_context = bone_streams->segment;
+			const segment_context* segment_context = bone_streams->segment;
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
@@ -782,7 +782,7 @@ namespace acl
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
 			const bool is_scale_variable = is_vector_format_variable(scale_format);
 
-			const SegmentContext* segment_context = bone_streams->segment;
+			const segment_context* segment_context = bone_streams->segment;
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
@@ -817,7 +817,7 @@ namespace acl
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
 			const bool is_scale_variable = is_vector_format_variable(scale_format);
 
-			const SegmentContext* segment_context = bone_streams->segment;
+			const segment_context* segment_context = bone_streams->segment;
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 
@@ -848,7 +848,7 @@ namespace acl
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
 			const bool is_scale_variable = is_vector_format_variable(scale_format);
 
-			const SegmentContext* segment_context = bone_streams->segment;
+			const segment_context* segment_context = bone_streams->segment;
 			const rtm::vector4f default_scale = get_default_scale(segment_context->clip->additive_format);
 			const bool has_scale = segment_context->clip->has_scale;
 

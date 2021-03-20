@@ -61,7 +61,7 @@ namespace acl
 			}
 		}
 
-		inline void convert_rotation_streams(iallocator& allocator, SegmentContext& segment, rotation_format8 rotation_format)
+		inline void convert_rotation_streams(iallocator& allocator, segment_context& segment, rotation_format8 rotation_format)
 		{
 			const rotation_format8 high_precision_format = get_rotation_variant(rotation_format) == rotation_variant8::quat ? rotation_format8::quatf_full : rotation_format8::quatf_drop_w_full;
 
@@ -102,7 +102,7 @@ namespace acl
 
 		inline void convert_rotation_streams(iallocator& allocator, clip_context& context, rotation_format8 rotation_format)
 		{
-			for (SegmentContext& segment : context.segment_iterator())
+			for (segment_context& segment : context.segment_iterator())
 				convert_rotation_streams(allocator, segment, rotation_format);
 		}
 	}

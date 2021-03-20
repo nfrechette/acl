@@ -867,7 +867,7 @@ namespace acl
 			ACL_ASSERT(num_transforms > 0, "Cannot write to empty output local pose");
 			(void)num_transforms;
 
-			const SegmentContext* segment_context = m_mutable_bone_streams->segment;
+			const segment_context* segment_context = m_mutable_bone_streams->segment;
 
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
@@ -890,7 +890,7 @@ namespace acl
 			ACL_ASSERT(num_transforms > 0, "Cannot write to empty output local pose");
 			(void)num_transforms;
 
-			const SegmentContext* segment_context = m_mutable_bone_streams->segment;
+			const segment_context* segment_context = m_mutable_bone_streams->segment;
 
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
@@ -923,7 +923,7 @@ namespace acl
 			ACL_ASSERT(num_transforms == m_num_transforms, "Expected the same number of pose transforms");
 			(void)num_transforms;
 
-			const SegmentContext* segment_context = m_mutable_bone_streams->segment;
+			const segment_context* segment_context = m_mutable_bone_streams->segment;
 
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 

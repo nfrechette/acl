@@ -57,7 +57,7 @@ namespace acl
 			uint32_t range_data_size = 0;
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
 			{
 				if (!bone_stream.is_rotation_constant)
@@ -76,7 +76,7 @@ namespace acl
 		inline uint32_t write_clip_range_data(const clip_context& clip, range_reduction_flags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 			(void)range_reduction;
 			(void)range_data_size;
@@ -203,7 +203,7 @@ namespace acl
 			return safe_static_cast<uint32_t>(range_data - range_data_start);
 		}
 
-		inline uint32_t write_segment_range_data(const SegmentContext& segment, range_reduction_flags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_segment_range_data(const segment_context& segment, range_reduction_flags8 range_reduction, uint8_t* range_data, uint32_t range_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			ACL_ASSERT(range_data != nullptr, "'range_data' cannot be null!");
 			(void)range_reduction;

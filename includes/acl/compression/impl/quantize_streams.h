@@ -73,7 +73,7 @@ namespace acl
 			clip_context& clip;
 			const clip_context& raw_clip;
 			const clip_context& additive_base_clip;
-			SegmentContext* segment;
+			segment_context* segment;
 			BoneStreams* bone_streams;
 			const transform_metadata* metadata;
 			uint32_t num_bones;
@@ -202,7 +202,7 @@ namespace acl
 				deallocate_type_array(allocator, chain_bone_indices, num_bones);
 			}
 
-			void set_segment(SegmentContext& segment_)
+			void set_segment(segment_context& segment_)
 			{
 				segment = &segment_;
 				bone_streams = segment_.bone_streams;
@@ -1086,7 +1086,7 @@ namespace acl
 			return num_bones_in_chain;
 		}
 
-		inline void initialize_bone_bit_rates(const SegmentContext& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, BoneBitRate* out_bit_rate_per_bone)
+		inline void initialize_bone_bit_rates(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, BoneBitRate* out_bit_rate_per_bone)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -1736,7 +1736,7 @@ namespace acl
 
 			quantization_context context(allocator, clip, raw_clip_context, additive_base_clip_context, settings);
 
-			for (SegmentContext& segment : clip.segment_iterator())
+			for (segment_context& segment : clip.segment_iterator())
 			{
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
 				printf("Quantizing segment %u...\n", segment.segment_index);
