@@ -52,6 +52,9 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 	// warning C26495: Variable '...' is uninitialized. Always initialize a member variable (type.6).
 	// We explicitly control initialization
 	#pragma warning(disable : 26495)
+	// warning C26451: Arithmetic overflow: Using operator '*' on a 4 byte value and then casting the result to a 8 byte value. Cast the value to the wider type before calling operator '*' to avoid overflow (io.2).
+	// We can't overflow because compressed clips cannot contain more than 4 GB worth of data
+	#pragma warning(disable : 26451)
 	// warning C6385: Reading invalid data from '...':  the readable size is '512' bytes, but '528' bytes may be read.
 	// We properly handle overflow, this is a false positive
 	#pragma warning(disable : 6385)
