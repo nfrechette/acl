@@ -317,21 +317,21 @@ namespace acl
 
 		struct BoneStreams
 		{
-			SegmentContext* segment;
-			uint32_t bone_index;
-			uint32_t parent_bone_index;
-			uint32_t output_index;
+			SegmentContext* segment					= nullptr;
+			uint32_t bone_index						= k_invalid_track_index;
+			uint32_t parent_bone_index				= k_invalid_track_index;
+			uint32_t output_index					= k_invalid_track_index;
 
 			RotationTrackStream rotations;
 			TranslationTrackStream translations;
 			ScaleTrackStream scales;
 
-			bool is_rotation_constant;
-			bool is_rotation_default;
-			bool is_translation_constant;
-			bool is_translation_default;
-			bool is_scale_constant;
-			bool is_scale_default;
+			bool is_rotation_constant				= false;
+			bool is_rotation_default				= false;
+			bool is_translation_constant			= false;
+			bool is_translation_default				= false;
+			bool is_scale_constant					= false;
+			bool is_scale_default					= false;
 
 			bool is_stripped_from_output() const { return output_index == k_invalid_track_index; }
 

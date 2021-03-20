@@ -66,11 +66,11 @@ namespace acl
 		track_array_qvvf track_list;
 
 		track_array_qvvf additive_base_track_list;
-		additive_clip_format8 additive_format;
+		additive_clip_format8 additive_format = additive_clip_format8::none;
 
 		track_qvvf bind_pose;
 
-		bool has_settings;
+		bool has_settings = false;
 		compression_settings settings;
 	};
 
@@ -82,7 +82,7 @@ namespace acl
 
 		track_qvvf bind_pose;
 
-		bool has_settings;
+		bool has_settings = false;
 		compression_settings settings;
 	};
 
@@ -94,13 +94,6 @@ namespace acl
 		clip_reader(iallocator& allocator, const char* sjson_input, size_t input_length)
 			: m_allocator(allocator)
 			, m_parser(sjson_input, input_length)
-			, m_error()
-			, m_version(0)
-			, m_num_samples(0)
-			, m_sample_rate(0.0F)
-			, m_is_binary_exact(false)
-			, m_bone_names(nullptr)
-			, m_num_bones(0)
 		{
 		}
 
@@ -180,24 +173,24 @@ namespace acl
 		sjson::Parser m_parser;
 		clip_reader_error m_error;
 
-		uint32_t m_version;
-		uint32_t m_num_samples;
-		float m_sample_rate;
+		uint32_t m_version								= 0;
+		uint32_t m_num_samples							= 0;
+		float m_sample_rate								= 0.0F;
 		sjson::StringView m_clip_name;
-		bool m_is_binary_exact;
-		additive_clip_format8 m_additive_format;
+		bool m_is_binary_exact							= false;
+		additive_clip_format8 m_additive_format			= additive_clip_format8::none;
 		sjson::StringView m_additive_base_name;
-		uint32_t m_additive_base_num_samples;
-		float m_additive_base_sample_rate;
+		uint32_t m_additive_base_num_samples			= 0;
+		float m_additive_base_sample_rate				= 0.0F;
 
-		bool m_has_settings;
-		float m_constant_rotation_threshold_angle;
-		float m_constant_translation_threshold;
-		float m_constant_scale_threshold;
-		float m_error_threshold;
+		bool m_has_settings								= false;
+		float m_constant_rotation_threshold_angle		= 0.0F;
+		float m_constant_translation_threshold			= 0.0F;
+		float m_constant_scale_threshold				= 0.0F;
+		float m_error_threshold							= 0.0F;
 
-		sjson::StringView* m_bone_names;
-		uint32_t m_num_bones;
+		sjson::StringView* m_bone_names					= nullptr;
+		uint32_t m_num_bones							= 0;
 
 		string convert_string(const sjson::StringView& str) const
 		{
