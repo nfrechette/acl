@@ -62,24 +62,24 @@ namespace acl
 				return m_samples + offset;
 			}
 
-			template<typename SampleType>
-			SampleType RTM_SIMD_CALL get_raw_sample(uint32_t sample_index) const
+			template<typename sample_type>
+			sample_type RTM_SIMD_CALL get_raw_sample(uint32_t sample_index) const
 			{
 				const uint8_t* ptr = get_raw_sample_ptr(sample_index);
-				return *safe_ptr_cast<const SampleType>(ptr);
+				return *safe_ptr_cast<const sample_type>(ptr);
 			}
 
 #if defined(RTM_NO_INTRINSICS)
-			template<typename SampleType>
-			void RTM_SIMD_CALL set_raw_sample(uint32_t sample_index, const SampleType& sample)
+			template<typename sample_type>
+			void RTM_SIMD_CALL set_raw_sample(uint32_t sample_index, const sample_type& sample)
 #else
-			template<typename SampleType>
-			void RTM_SIMD_CALL set_raw_sample(uint32_t sample_index, SampleType sample)
+			template<typename sample_type>
+			void RTM_SIMD_CALL set_raw_sample(uint32_t sample_index, sample_type sample)
 #endif
 			{
-				ACL_ASSERT(m_sample_size == sizeof(SampleType), "Unexpected sample size. %u != %zu", m_sample_size, sizeof(SampleType));
+				ACL_ASSERT(m_sample_size == sizeof(sample_type), "Unexpected sample size. %u != %zu", m_sample_size, sizeof(sample_type));
 				uint8_t* ptr = get_raw_sample_ptr(sample_index);
-				*safe_ptr_cast<SampleType>(ptr) = sample;
+				*safe_ptr_cast<sample_type>(ptr) = sample;
 			}
 
 			uint32_t get_num_samples() const { return m_num_samples; }
