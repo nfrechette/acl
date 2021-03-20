@@ -47,17 +47,17 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Simple iterator utility class to allow easy looping
-		class BoneChainIterator
+		class bone_chain_iterator
 		{
 		public:
-			BoneChainIterator(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint32_t bone_index, uint32_t offset)
+			bone_chain_iterator(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint32_t bone_index, uint32_t offset)
 				: m_bone_chain(bone_chain)
 				, m_bone_chain_desc(bone_chain_desc)
 				, m_bone_index(bone_index)
 				, m_offset(offset)
 			{}
 
-			BoneChainIterator& operator++()
+			bone_chain_iterator& operator++()
 			{
 				ACL_ASSERT(m_offset <= m_bone_index, "Cannot increment the iterator, it is no longer valid");
 
@@ -81,8 +81,8 @@ namespace acl
 
 			// We only compare the offset in the bone chain. Two iterators on the same bone index
 			// from two different or equal chains will be equal.
-			bool operator==(const BoneChainIterator& other) const { return m_offset == other.m_offset; }
-			bool operator!=(const BoneChainIterator& other) const { return m_offset != other.m_offset; }
+			bool operator==(const bone_chain_iterator& other) const { return m_offset == other.m_offset; }
+			bool operator!=(const bone_chain_iterator& other) const { return m_offset != other.m_offset; }
 
 		private:
 			const uint32_t*		m_bone_chain;
@@ -113,8 +113,8 @@ namespace acl
 				m_root_index = root_index;
 			}
 
-			acl_impl::BoneChainIterator begin() const { return acl_impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_root_index); }
-			acl_impl::BoneChainIterator end() const { return acl_impl::BoneChainIterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_bone_index + 1); }
+			acl_impl::bone_chain_iterator begin() const { return acl_impl::bone_chain_iterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_root_index); }
+			acl_impl::bone_chain_iterator end() const { return acl_impl::bone_chain_iterator(m_bone_chain, m_bone_chain_desc, m_bone_index, m_bone_index + 1); }
 
 			const uint32_t*		m_bone_chain;
 			bitset_description	m_bone_chain_desc;
