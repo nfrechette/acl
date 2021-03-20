@@ -97,9 +97,9 @@ namespace acl
 		// A bone chain allows looping over all bones up to a specific bone starting
 		// at the root bone.
 		//////////////////////////////////////////////////////////////////////////
-		struct BoneChain
+		struct bone_chain
 		{
-			BoneChain(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint32_t bone_index)
+			bone_chain(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint32_t bone_index)
 				: m_bone_chain(bone_chain)
 				, m_bone_chain_desc(bone_chain_desc)
 				, m_bone_index(bone_index)
@@ -166,11 +166,11 @@ namespace acl
 			iterator<segment_context> segment_iterator() { return iterator<segment_context>(segments, num_segments); }
 			const_iterator<segment_context> segment_iterator() const { return const_iterator<segment_context>(segments, num_segments); }
 
-			BoneChain get_bone_chain(uint32_t bone_index) const
+			bone_chain get_bone_chain(uint32_t bone_index) const
 			{
 				ACL_ASSERT(bone_index < num_bones, "Invalid bone index: %u >= %u", bone_index, num_bones);
 				const transform_metadata& meta = metadata[bone_index];
-				return BoneChain(meta.transform_chain, bitset_description::make_from_num_bits(num_bones), bone_index);
+				return bone_chain(meta.transform_chain, bitset_description::make_from_num_bits(num_bones), bone_index);
 			}
 		};
 
