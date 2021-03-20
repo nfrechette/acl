@@ -45,7 +45,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		class TrackStream
+		class track_stream
 		{
 		public:
 			uint8_t* get_raw_sample_ptr(uint32_t sample_index)
@@ -99,9 +99,9 @@ namespace acl
 			}
 
 		protected:
-			TrackStream(animation_track_type8 type, track_format8 format) noexcept : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_sample_rate(0.0F), m_type(type), m_format(format), m_bit_rate(0) {}
+			track_stream(animation_track_type8 type, track_format8 format) noexcept : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_sample_rate(0.0F), m_type(type), m_format(format), m_bit_rate(0) {}
 
-			TrackStream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, animation_track_type8 type, track_format8 format, uint8_t bit_rate)
+			track_stream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, animation_track_type8 type, track_format8 format, uint8_t bit_rate)
 				: m_allocator(&allocator)
 				, m_samples(reinterpret_cast<uint8_t*>(allocator.allocate(sample_size * size_t(num_samples) + k_padding, 16)))
 				, m_num_samples(num_samples)
@@ -112,8 +112,8 @@ namespace acl
 				, m_bit_rate(bit_rate)
 			{}
 
-			TrackStream(const TrackStream&) = delete;
-			TrackStream(TrackStream&& other) noexcept
+			track_stream(const track_stream&) = delete;
+			track_stream(track_stream&& other) noexcept
 				: m_allocator(other.m_allocator)
 				, m_samples(other.m_samples)
 				, m_num_samples(other.m_num_samples)
@@ -123,17 +123,17 @@ namespace acl
 				, m_format(other.m_format)
 				, m_bit_rate(other.m_bit_rate)
 			{
-				new(&other) TrackStream(other.m_type, other.m_format);
+				new(&other) track_stream(other.m_type, other.m_format);
 			}
 
-			~TrackStream()
+			~track_stream()
 			{
 				if (m_allocator != nullptr)
 					m_allocator->deallocate(m_samples, m_sample_size * size_t(m_num_samples) + k_padding);
 			}
 
-			TrackStream& operator=(const TrackStream&) = delete;
-			TrackStream& operator=(TrackStream&& rhs) noexcept
+			track_stream& operator=(const track_stream&) = delete;
+			track_stream& operator=(track_stream&& rhs) noexcept
 			{
 				std::swap(m_allocator, rhs.m_allocator);
 				std::swap(m_samples, rhs.m_samples);
@@ -146,7 +146,7 @@ namespace acl
 				return *this;
 			}
 
-			void duplicate(TrackStream& copy) const
+			void duplicate(track_stream& copy) const
 			{
 				ACL_ASSERT(copy.m_type == m_type, "Attempting to duplicate streams with incompatible types!");
 				if (m_allocator != nullptr)
@@ -177,90 +177,90 @@ namespace acl
 			uint8_t					m_bit_rate;
 			};
 
-		class RotationTrackStream final : public TrackStream
+		class RotationTrackStream final : public track_stream
 		{
 		public:
-			RotationTrackStream() noexcept : TrackStream(animation_track_type8::rotation, track_format8(rotation_format8::quatf_full)) {}
+			RotationTrackStream() noexcept : track_stream(animation_track_type8::rotation, track_format8(rotation_format8::quatf_full)) {}
 			RotationTrackStream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, rotation_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
-				: TrackStream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::rotation, track_format8(format), bit_rate)
+				: track_stream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::rotation, track_format8(format), bit_rate)
 			{}
 			RotationTrackStream(const RotationTrackStream&) = delete;
 			RotationTrackStream(RotationTrackStream&& other) noexcept
-				: TrackStream(static_cast<TrackStream&&>(other))
+				: track_stream(static_cast<track_stream&&>(other))
 			{}
 			~RotationTrackStream() = default;
 
 			RotationTrackStream& operator=(const RotationTrackStream&) = delete;
 			RotationTrackStream& operator=(RotationTrackStream&& rhs) noexcept
 			{
-				TrackStream::operator=(static_cast<TrackStream&&>(rhs));
+				track_stream::operator=(static_cast<track_stream&&>(rhs));
 				return *this;
 			}
 
 			RotationTrackStream duplicate() const
 			{
 				RotationTrackStream copy;
-				TrackStream::duplicate(copy);
+				track_stream::duplicate(copy);
 				return copy;
 			}
 
 			rotation_format8 get_rotation_format() const { return m_format.rotation; }
 		};
 
-		class TranslationTrackStream final : public TrackStream
+		class TranslationTrackStream final : public track_stream
 		{
 		public:
-			TranslationTrackStream() noexcept : TrackStream(animation_track_type8::translation, track_format8(vector_format8::vector3f_full)) {}
+			TranslationTrackStream() noexcept : track_stream(animation_track_type8::translation, track_format8(vector_format8::vector3f_full)) {}
 			TranslationTrackStream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, vector_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
-				: TrackStream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::translation, track_format8(format), bit_rate)
+				: track_stream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::translation, track_format8(format), bit_rate)
 			{}
 			TranslationTrackStream(const TranslationTrackStream&) = delete;
 			TranslationTrackStream(TranslationTrackStream&& other) noexcept
-				: TrackStream(static_cast<TrackStream&&>(other))
+				: track_stream(static_cast<track_stream&&>(other))
 			{}
 			~TranslationTrackStream() = default;
 
 			TranslationTrackStream& operator=(const TranslationTrackStream&) = delete;
 			TranslationTrackStream& operator=(TranslationTrackStream&& rhs) noexcept
 			{
-				TrackStream::operator=(static_cast<TrackStream&&>(rhs));
+				track_stream::operator=(static_cast<track_stream&&>(rhs));
 				return *this;
 			}
 
 			TranslationTrackStream duplicate() const
 			{
 				TranslationTrackStream copy;
-				TrackStream::duplicate(copy);
+				track_stream::duplicate(copy);
 				return copy;
 			}
 
 			vector_format8 get_vector_format() const { return m_format.vector; }
 		};
 
-		class ScaleTrackStream final : public TrackStream
+		class ScaleTrackStream final : public track_stream
 		{
 		public:
-			ScaleTrackStream() noexcept : TrackStream(animation_track_type8::scale, track_format8(vector_format8::vector3f_full)) {}
+			ScaleTrackStream() noexcept : track_stream(animation_track_type8::scale, track_format8(vector_format8::vector3f_full)) {}
 			ScaleTrackStream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, vector_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
-				: TrackStream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::scale, track_format8(format), bit_rate)
+				: track_stream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::scale, track_format8(format), bit_rate)
 			{}
 			ScaleTrackStream(const ScaleTrackStream&) = delete;
 			ScaleTrackStream(ScaleTrackStream&& other) noexcept
-				: TrackStream(static_cast<TrackStream&&>(other))
+				: track_stream(static_cast<track_stream&&>(other))
 			{}
 			~ScaleTrackStream() = default;
 
 			ScaleTrackStream& operator=(const ScaleTrackStream&) = delete;
 			ScaleTrackStream& operator=(ScaleTrackStream&& rhs) noexcept
 			{
-				TrackStream::operator=(static_cast<TrackStream&&>(rhs));
+				track_stream::operator=(static_cast<track_stream&&>(rhs));
 				return *this;
 			}
 
 			ScaleTrackStream duplicate() const
 			{
 				ScaleTrackStream copy;
-				TrackStream::duplicate(copy);
+				track_stream::duplicate(copy);
 				return copy;
 			}
 

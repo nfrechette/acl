@@ -98,14 +98,14 @@ namespace acl
 			out_num_constant_scale_samples = num_constant_scale_samples;
 		}
 
-		inline void get_animated_variable_bit_rate_data_size(const TrackStream& track_stream, uint32_t& out_num_animated_pose_bits)
+		inline void get_animated_variable_bit_rate_data_size(const track_stream& track_stream, uint32_t& out_num_animated_pose_bits)
 		{
 			const uint8_t bit_rate = track_stream.get_bit_rate();
 			const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 			out_num_animated_pose_bits += num_bits_at_bit_rate;
 		}
 
-		inline void calculate_animated_data_size(const TrackStream& track_stream, uint32_t& num_animated_pose_bits)
+		inline void calculate_animated_data_size(const track_stream& track_stream, uint32_t& num_animated_pose_bits)
 		{
 			if (track_stream.is_bit_rate_variable())
 			{
@@ -306,7 +306,7 @@ namespace acl
 			return safe_static_cast<uint32_t>(constant_data - constant_data_start);
 		}
 
-		inline void write_animated_sample(const TrackStream& track_stream, uint32_t sample_index, uint8_t* animated_track_data_begin, uint64_t& out_bit_offset)
+		inline void write_animated_sample(const track_stream& track_stream, uint32_t sample_index, uint8_t* animated_track_data_begin, uint64_t& out_bit_offset)
 		{
 			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 
