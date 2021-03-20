@@ -1482,7 +1482,7 @@ namespace acl
 
 						// Due to the interpolation, the result might not be anywhere near normalized!
 						// Make sure to normalize afterwards if we need to
-						const bool normalize_rotations = decompression_settings_type::normalize_rotations();
+						constexpr bool normalize_rotations = decompression_settings_type::normalize_rotations();
 						if (normalize_rotations)
 							quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 					}
@@ -1609,7 +1609,7 @@ namespace acl
 				{
 					// Due to the interpolation, the result might not be anywhere near normalized!
 					// Make sure to normalize afterwards before using
-					const bool normalize_rotations = decompression_settings_type::normalize_rotations();
+					constexpr bool normalize_rotations = decompression_settings_type::normalize_rotations();
 					if (normalize_rotations)
 						result = rtm::quat_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 					else
