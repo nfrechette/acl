@@ -138,7 +138,7 @@ namespace acl
 
 				if (bone_range.scale.is_constant(constant_scale_threshold))
 				{
-					ScaleTrackStream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
+					scale_track_stream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
 					rtm::vector4f scale = num_samples != 0 ? bone_stream.scales.get_raw_sample<rtm::vector4f>(0) : default_scale;
 					constant_stream.set_raw_sample(0, scale);
 

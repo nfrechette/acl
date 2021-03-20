@@ -160,7 +160,7 @@ namespace acl
 					else
 					{
 						const uint32_t sample_size = clip_bone_stream.scales.get_sample_size();
-						ScaleTrackStream scales(allocator, num_samples_in_segment, sample_size, clip_bone_stream.scales.get_sample_rate(), clip_bone_stream.scales.get_vector_format(), clip_bone_stream.scales.get_bit_rate());
+						scale_track_stream scales(allocator, num_samples_in_segment, sample_size, clip_bone_stream.scales.get_sample_rate(), clip_bone_stream.scales.get_vector_format(), clip_bone_stream.scales.get_bit_rate());
 						std::memcpy(scales.get_raw_sample_ptr(0), clip_bone_stream.scales.get_raw_sample_ptr(clip_sample_index), size_t(num_samples_in_segment) * sample_size);
 
 						segment_bone_stream.scales = std::move(scales);

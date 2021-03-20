@@ -237,29 +237,29 @@ namespace acl
 			vector_format8 get_vector_format() const { return m_format.vector; }
 		};
 
-		class ScaleTrackStream final : public track_stream
+		class scale_track_stream final : public track_stream
 		{
 		public:
-			ScaleTrackStream() noexcept : track_stream(animation_track_type8::scale, track_format8(vector_format8::vector3f_full)) {}
-			ScaleTrackStream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, vector_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
+			scale_track_stream() noexcept : track_stream(animation_track_type8::scale, track_format8(vector_format8::vector3f_full)) {}
+			scale_track_stream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, vector_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
 				: track_stream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::scale, track_format8(format), bit_rate)
 			{}
-			ScaleTrackStream(const ScaleTrackStream&) = delete;
-			ScaleTrackStream(ScaleTrackStream&& other) noexcept
+			scale_track_stream(const scale_track_stream&) = delete;
+			scale_track_stream(scale_track_stream&& other) noexcept
 				: track_stream(static_cast<track_stream&&>(other))
 			{}
-			~ScaleTrackStream() = default;
+			~scale_track_stream() = default;
 
-			ScaleTrackStream& operator=(const ScaleTrackStream&) = delete;
-			ScaleTrackStream& operator=(ScaleTrackStream&& rhs) noexcept
+			scale_track_stream& operator=(const scale_track_stream&) = delete;
+			scale_track_stream& operator=(scale_track_stream&& rhs) noexcept
 			{
 				track_stream::operator=(static_cast<track_stream&&>(rhs));
 				return *this;
 			}
 
-			ScaleTrackStream duplicate() const
+			scale_track_stream duplicate() const
 			{
-				ScaleTrackStream copy;
+				scale_track_stream copy;
 				track_stream::duplicate(copy);
 				return copy;
 			}
@@ -324,7 +324,7 @@ namespace acl
 
 			rotation_track_stream rotations;
 			translation_track_stream translations;
-			ScaleTrackStream scales;
+			scale_track_stream scales;
 
 			bool is_rotation_constant				= false;
 			bool is_rotation_default				= false;
