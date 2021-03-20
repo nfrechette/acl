@@ -132,33 +132,33 @@ namespace acl
 
 		struct clip_context
 		{
-			SegmentContext* segments;
-			BoneRanges* ranges;
-			transform_metadata* metadata;
-			uint32_t* leaf_transform_chains;
+			SegmentContext* segments					= nullptr;
+			BoneRanges* ranges							= nullptr;
+			transform_metadata* metadata				= nullptr;
+			uint32_t* leaf_transform_chains				= nullptr;
 
-			uint32_t num_segments;
-			uint32_t num_bones;
-			uint32_t num_samples;
-			float sample_rate;
+			uint32_t num_segments						= 0;
+			uint32_t num_bones							= 0;
+			uint32_t num_samples						= 0;
+			float sample_rate							= 0.0F;
 
-			float duration;
+			float duration								= 0.0F;
 
-			bool are_rotations_normalized;
-			bool are_translations_normalized;
-			bool are_scales_normalized;
-			bool has_scale;
-			bool has_additive_base;
+			bool are_rotations_normalized				= false;
+			bool are_translations_normalized			= false;
+			bool are_scales_normalized					= false;
+			bool has_scale								= false;
+			bool has_additive_base						= false;
 
-			additive_clip_format8 additive_format;
+			additive_clip_format8 additive_format		= additive_clip_format8::none;
 
-			uint32_t num_leaf_transforms;
+			uint32_t num_leaf_transforms				= 0;
 
-			iallocator* allocator = nullptr;	// Never null if the context is initialized
+			iallocator* allocator						= nullptr;	// Never null if the context is initialized
 
 			// Stat tracking
-			uint32_t decomp_touched_bytes;
-			uint32_t decomp_touched_cache_lines;
+			uint32_t decomp_touched_bytes				= 0;
+			uint32_t decomp_touched_cache_lines			= 0;
 
 			//////////////////////////////////////////////////////////////////////////
 

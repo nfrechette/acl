@@ -56,7 +56,7 @@ namespace acl
 			frame_tier_mapping* frames = nullptr;	// Frames mapped to this tier
 			uint32_t num_frames = 0;				// Number of frames mapped to this tier
 
-			quality_tier tier;					// Actual tier
+			quality_tier tier = quality_tier::highest_importance;	// Actual tier
 
 			bool is_empty() const { return num_frames == 0; }
 		};

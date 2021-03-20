@@ -122,7 +122,7 @@ namespace acl
 
 			uint32_t* chain_bone_indices;			// 1 per transform
 			uint32_t num_bones_in_chain;
-			uint32_t padding1;	// unused
+			uint32_t padding1 = 0;					// unused
 
 			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const clip_context& additive_base_clip_, const compression_settings& settings_)
 				: allocator(allocator_)
