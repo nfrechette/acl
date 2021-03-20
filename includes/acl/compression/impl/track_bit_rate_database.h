@@ -198,13 +198,8 @@ namespace acl
 
 			void find_cache_entries(uint32_t track_index, const BoneBitRate& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index);
 
-			template<SampleDistribution8 distribution>
 			RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, uint32_t rotation_cache_index);
-
-			template<SampleDistribution8 distribution>
 			RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, uint32_t translation_cache_index);
-
-			template<SampleDistribution8 distribution>
 			RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_scale(const sample_context& context, uint32_t scale_cache_index);
 
 			struct transform_cache_entry
@@ -639,7 +634,6 @@ namespace acl
 			ACL_ASSERT(m_generation_id < (0xFFFFFFFFU - 8), "Generation ID is about to wrap, bad things will happen");
 		}
 
-		template<SampleDistribution8 distribution>
 		RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL track_bit_rate_database::sample_rotation(const sample_context& context, uint32_t rotation_cache_index)
 		{
 			const uint32_t track_index = context.track_index;
@@ -671,9 +665,7 @@ namespace acl
 					else
 						rotation = get_rotation_sample(m_raw_bone_streams[track_index], 0, m_rotation_format);
 
-					// If we are uniform, normalize now. Variable will interpolate and normalize after.
-					if (static_condition<distribution == SampleDistribution8::Uniform>::test())
-						rotation = rtm::quat_normalize(rotation);
+					rotation = rtm::quat_normalize(rotation);
 
 					cached_samples[0] = rotation;
 					bitset_set(validity_bitset, m_bitref_constant, true);
@@ -690,31 +682,11 @@ namespace acl
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index_);
 				rtm::quatf* cached_samples = safe_ptr_cast<rtm::quatf>(m_data + (m_track_size * rotation_cache_index_));
 
-				uint32_t key0;
-				uint32_t key1;
-				float interpolation_alpha;
-				if (static_condition<distribution == SampleDistribution8::Variable>::test())
-				{
-					const uint32_t num_samples = bone_stream.rotations.get_num_samples();
-					const float sample_rate = bone_stream.rotations.get_sample_rate();
-
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
-				}
-				else
-				{
-					key0 = context.sample_key;
-					key1 = 0;
-					interpolation_alpha = 0.0F;
-				}
-
-				rtm::quatf sample0;
-				rtm::quatf sample1;
-
-				const bitset_index_ref bitref0(m_bitset_desc, key0);
+				const bitset_index_ref bitref0(m_bitset_desc, context.sample_key);
 				if (bitset_test(validity_bitset, bitref0))
 				{
 					// Cached
-					sample0 = cached_samples[key0];
+					rotation = cached_samples[context.sample_key];
 
 #if ACL_IMPL_DEBUG_DATABASE_IMPL
 					printf("Hit cache for sample %u for rotation track %u at bit rate %u...\n", key0, track_index, context.bit_rates.rotation);
@@ -724,62 +696,24 @@ namespace acl
 				{
 					// Not cached
 					if (m_is_rotation_variable)
-						sample0 = get_rotation_sample(bone_stream, raw_bone_stream, key0, context.bit_rates.rotation);
+						rotation = get_rotation_sample(bone_stream, raw_bone_stream, context.sample_key, context.bit_rates.rotation);
 					else
-						sample0 = get_rotation_sample(bone_stream, key0, m_rotation_format);
+						rotation = get_rotation_sample(bone_stream, context.sample_key, m_rotation_format);
 
-					// If we are uniform, normalize now. Variable will interpolate and normalize after.
-					if (static_condition<distribution == SampleDistribution8::Uniform>::test())
-						sample0 = rtm::quat_normalize(sample0);
+					rotation = rtm::quat_normalize(rotation);
 
-					cached_samples[key0] = sample0;
+					cached_samples[context.sample_key] = rotation;
 					bitset_set(validity_bitset, bitref0, true);
 
 #if ACL_IMPL_DEBUG_DATABASE_IMPL
-					printf("Cached sample %u for rotation track %u at bit rate %u (%.5f, %.5f, %.5f, %.5f)...\n", key0, track_index, context.bit_rates.rotation, quat_get_x(sample0), quat_get_y(sample0), quat_get_z(sample0), quat_get_w(sample0));
+					printf("Cached sample %u for rotation track %u at bit rate %u (%.5f, %.5f, %.5f, %.5f)...\n", context.sample_key, track_index, context.bit_rates.rotation, quat_get_x(rotation), quat_get_y(rotation), quat_get_z(rotation), quat_get_w(rotation));
 #endif
-				}
-
-				if (static_condition<distribution == SampleDistribution8::Variable>::test())
-				{
-					const bitset_index_ref bitref1(m_bitset_desc, key1);
-					if (bitset_test(validity_bitset, bitref1))
-					{
-						// Cached
-						sample1 = cached_samples[key1];
-
-#if ACL_IMPL_DEBUG_DATABASE_IMPL
-						printf("Hit cache for sample %u for rotation track %u at bit rate %u...\n", key1, track_index, context.bit_rates.rotation);
-#endif
-					}
-					else
-					{
-						// Not cached
-						if (m_is_rotation_variable)
-							sample1 = get_rotation_sample(bone_stream, raw_bone_stream, key1, context.bit_rates.rotation);
-						else
-							sample1 = get_rotation_sample(bone_stream, key1, m_rotation_format);
-
-						cached_samples[key1] = sample1;
-						bitset_set(validity_bitset, bitref1, true);
-
-#if ACL_IMPL_DEBUG_DATABASE_IMPL
-						printf("Cached sample %u for rotation track %u at bit rate %u (%.5f, %.5f, %.5f, %.5f)...\n", key1, track_index, context.bit_rates.rotation, quat_get_x(sample1), quat_get_y(sample1), quat_get_z(sample1), quat_get_w(sample1));
-#endif
-					}
-
-					rotation = rtm::quat_lerp(sample0, sample1, interpolation_alpha);
-				}
-				else
-				{
-					rotation = sample0;
 				}
 			}
 
 			return rotation;
 		}
 
-		template<SampleDistribution8 distribution>
 		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL track_bit_rate_database::sample_translation(const sample_context& context, uint32_t translation_cache_index)
 		{
 			const uint32_t track_index = context.track_index;
@@ -823,31 +757,11 @@ namespace acl
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index_);
 				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * translation_cache_index_));
 
-				uint32_t key0;
-				uint32_t key1;
-				float interpolation_alpha;
-				if (static_condition<distribution == SampleDistribution8::Variable>::test())
-				{
-					const uint32_t num_samples = bone_stream.translations.get_num_samples();
-					const float sample_rate = bone_stream.translations.get_sample_rate();
-
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
-				}
-				else
-				{
-					key0 = context.sample_key;
-					key1 = 0;
-					interpolation_alpha = 0.0F;
-				}
-
-				rtm::vector4f sample0;
-				rtm::vector4f sample1;
-
-				const bitset_index_ref bitref0(m_bitset_desc, key0);
+				const bitset_index_ref bitref0(m_bitset_desc, context.sample_key);
 				if (bitset_test(validity_bitset, bitref0))
 				{
 					// Cached
-					sample0 = cached_samples[key0];
+					translation = cached_samples[context.sample_key];
 
 #if ACL_IMPL_DEBUG_DATABASE_IMPL
 					printf("Hit cache for sample %u for translation track %u at bit rate %u...\n", key0, track_index, context.bit_rates.translation);
@@ -857,58 +771,22 @@ namespace acl
 				{
 					// Not cached
 					if (m_is_translation_variable)
-						sample0 = get_translation_sample(bone_stream, raw_bone_stream, key0, context.bit_rates.translation);
+						translation = get_translation_sample(bone_stream, raw_bone_stream, context.sample_key, context.bit_rates.translation);
 					else
-						sample0 = get_translation_sample(bone_stream, key0, m_translation_format);
+						translation = get_translation_sample(bone_stream, context.sample_key, m_translation_format);
 
-					cached_samples[key0] = sample0;
+					cached_samples[context.sample_key] = translation;
 					bitset_set(validity_bitset, bitref0, true);
 
 #if ACL_IMPL_DEBUG_DATABASE_IMPL
-					printf("Cached sample %u for translation track %u at bit rate %u (%.5f, %.5f, %.5f)...\n", key0, track_index, context.bit_rates.translation, vector_get_x(sample0), vector_get_y(sample0), vector_get_z(sample0));
+					printf("Cached sample %u for translation track %u at bit rate %u (%.5f, %.5f, %.5f)...\n", context.sample_key, track_index, context.bit_rates.translation, vector_get_x(translation), vector_get_y(translation), vector_get_z(translation));
 #endif
-				}
-
-				if (static_condition<distribution == SampleDistribution8::Variable>::test())
-				{
-					const bitset_index_ref bitref1(m_bitset_desc, key1);
-					if (bitset_test(validity_bitset, bitref1))
-					{
-						// Cached
-						sample1 = cached_samples[key1];
-
-#if ACL_IMPL_DEBUG_DATABASE_IMPL
-						printf("Hit cache for sample %u for translation track %u at bit rate %u...\n", key1, track_index, context.bit_rates.translation);
-#endif
-					}
-					else
-					{
-						// Not cached
-						if (m_is_translation_variable)
-							sample1 = get_translation_sample(bone_stream, raw_bone_stream, key1, context.bit_rates.translation);
-						else
-							sample1 = get_translation_sample(bone_stream, key1, m_translation_format);
-
-						cached_samples[key1] = sample1;
-						bitset_set(validity_bitset, bitref1, true);
-
-#if ACL_IMPL_DEBUG_DATABASE_IMPL
-						printf("Cached sample %u for translation track %u at bit rate %u (%.5f, %.5f, %.5f)...\n", key1, track_index, context.bit_rates.translation, vector_get_x(sample1), vector_get_y(sample1), vector_get_z(sample1));
-#endif
-					}
-
-					translation = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
-				}
-				else
-				{
-					translation = sample0;
 				}
 			}
 
 			return translation;
 		}
 
-		template<SampleDistribution8 distribution>
 		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL track_bit_rate_database::sample_scale(const sample_context& context, uint32_t scale_cache_index)
 		{
 			const uint32_t track_index = context.track_index;
@@ -952,31 +830,11 @@ namespace acl
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index_);
 				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * scale_cache_index_));
 
-				uint32_t key0;
-				uint32_t key1;
-				float interpolation_alpha;
-				if (static_condition<distribution == SampleDistribution8::Variable>::test())
-				{
-					const uint32_t num_samples = bone_stream.scales.get_num_samples();
-					const float sample_rate = bone_stream.scales.get_sample_rate();
-
-					find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, context.sample_time, sample_rounding_policy::none, key0, key1, interpolation_alpha);
-				}
-				else
-				{
-					key0 = context.sample_key;
-					key1 = 0;
-					interpolation_alpha = 0.0F;
-				}
-
-				rtm::vector4f sample0;
-				rtm::vector4f sample1;
-
-				const bitset_index_ref bitref0(m_bitset_desc, key0);
+				const bitset_index_ref bitref0(m_bitset_desc, context.sample_key);
 				if (bitset_test(validity_bitset, bitref0))
 				{
 					// Cached
-					sample0 = cached_samples[key0];
+					scale = cached_samples[context.sample_key];
 
 #if ACL_IMPL_DEBUG_DATABASE_IMPL
 					printf("Hit cache for sample %u for translation track %u at bit rate %u...\n", key0, track_index, context.bit_rates.scale);
@@ -986,51 +844,16 @@ namespace acl
 				{
 					// Not cached
 					if (m_is_scale_variable)
-						sample0 = get_scale_sample(bone_stream, raw_bone_stream, key0, context.bit_rates.scale);
+						scale = get_scale_sample(bone_stream, raw_bone_stream, context.sample_key, context.bit_rates.scale);
 					else
-						sample0 = get_scale_sample(bone_stream, key0, m_scale_format);
+						scale = get_scale_sample(bone_stream, context.sample_key, m_scale_format);
 
-					cached_samples[key0] = sample0;
+					cached_samples[context.sample_key] = scale;
 					bitset_set(validity_bitset, bitref0, true);
 
 #if ACL_IMPL_DEBUG_DATABASE_IMPL
-					printf("Cached sample %u for translation track %u at bit rate %u (%.5f, %.5f, %.5f)...\n", key0, track_index, context.bit_rates.scale, vector_get_x(sample0), vector_get_y(sample0), vector_get_z(sample0));
+					printf("Cached sample %u for translation track %u at bit rate %u (%.5f, %.5f, %.5f)...\n", context.sample_key, track_index, context.bit_rates.scale, vector_get_x(scale), vector_get_y(scale), vector_get_z(scale));
 #endif
-				}
-
-				if (static_condition<distribution == SampleDistribution8::Variable>::test())
-				{
-					const bitset_index_ref bitref1(m_bitset_desc, key1);
-					if (bitset_test(validity_bitset, bitref1))
-					{
-						// Cached
-						sample1 = cached_samples[key1];
-
-#if ACL_IMPL_DEBUG_DATABASE_IMPL
-						printf("Hit cache for sample %u for translation track %u at bit rate %u...\n", key1, track_index, context.bit_rates.scale);
-#endif
-					}
-					else
-					{
-						// Not cached
-						if (m_is_scale_variable)
-							sample1 = get_scale_sample(bone_stream, raw_bone_stream, key1, context.bit_rates.scale);
-						else
-							sample1 = get_scale_sample(bone_stream, key1, m_scale_format);
-
-						cached_samples[key1] = sample1;
-						bitset_set(validity_bitset, bitref1, true);
-
-#if ACL_IMPL_DEBUG_DATABASE_IMPL
-						printf("Cached sample %u for translation track %u at bit rate %u (%.5f, %.5f, %.5f)...\n", key1, track_index, context.bit_rates.scale, vector_get_x(sample1), vector_get_y(sample1), vector_get_z(sample1));
-#endif
-					}
-
-					scale = rtm::vector_lerp(sample0, sample1, interpolation_alpha);
-				}
-				else
-				{
-					scale = sample0;
 				}
 			}
 
@@ -1046,11 +869,7 @@ namespace acl
 
 			const SegmentContext* segment_context = m_mutable_bone_streams->segment;
 
-			uint32_t sample_key;
-			if (segment_context->distribution == SampleDistribution8::Uniform)
-				sample_key = get_uniform_sample_key(*segment_context, sample_time);
-			else
-				sample_key = 0;
+			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
 			sample_context context;
 			context.track_index = query.m_track_index;
@@ -1058,21 +877,9 @@ namespace acl
 			context.sample_time = sample_time;
 			context.bit_rates = query.m_bit_rates;
 
-			rtm::quatf rotation;
-			rtm::vector4f translation;
-			rtm::vector4f scale;
-			if (segment_context->distribution == SampleDistribution8::Uniform)
-			{
-				rotation = sample_rotation<SampleDistribution8::Uniform>(context, query.m_rotation_cache_index);
-				translation = sample_translation<SampleDistribution8::Uniform>(context, query.m_translation_cache_index);
-				scale = sample_scale<SampleDistribution8::Uniform>(context, query.m_scale_cache_index);
-			}
-			else
-			{
-				rotation = sample_rotation<SampleDistribution8::Variable>(context, query.m_rotation_cache_index);
-				translation = sample_translation<SampleDistribution8::Variable>(context, query.m_translation_cache_index);
-				scale = sample_scale<SampleDistribution8::Variable>(context, query.m_scale_cache_index);
-			}
+			const rtm::quatf rotation = sample_rotation(context, query.m_rotation_cache_index);
+			const rtm::vector4f translation = sample_translation(context, query.m_translation_cache_index);
+			const rtm::vector4f scale = sample_scale(context, query.m_scale_cache_index);
 
 			out_local_pose[query.m_track_index] = rtm::qvv_set(rotation, translation, scale);
 		}
@@ -1085,53 +892,27 @@ namespace acl
 
 			const SegmentContext* segment_context = m_mutable_bone_streams->segment;
 
-			uint32_t sample_key;
-			if (segment_context->distribution == SampleDistribution8::Uniform)
-				sample_key = get_uniform_sample_key(*segment_context, sample_time);
-			else
-				sample_key = 0;
+			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
 			sample_context context;
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
 
-			if (segment_context->distribution == SampleDistribution8::Uniform)
+			uint32_t current_track_index = query.m_track_index;
+			while (current_track_index != k_invalid_track_index)
 			{
-				uint32_t current_track_index = query.m_track_index;
-				while (current_track_index != k_invalid_track_index)
-				{
-					const BoneStreams& bone_stream = m_mutable_bone_streams[current_track_index];
-					const hierarchical_track_query::transform_indices& indices = query.m_indices[current_track_index];
+				const BoneStreams& bone_stream = m_mutable_bone_streams[current_track_index];
+				const hierarchical_track_query::transform_indices& indices = query.m_indices[current_track_index];
 
-					context.track_index = current_track_index;
-					context.bit_rates = query.m_bit_rates[current_track_index];
+				context.track_index = current_track_index;
+				context.bit_rates = query.m_bit_rates[current_track_index];
 
-					const rtm::quatf rotation = sample_rotation<SampleDistribution8::Uniform>(context, indices.rotation_cache_index);
-					const rtm::vector4f translation = sample_translation<SampleDistribution8::Uniform>(context, indices.translation_cache_index);
-					const rtm::vector4f scale = sample_scale<SampleDistribution8::Uniform>(context, indices.scale_cache_index);
+				const rtm::quatf rotation = sample_rotation(context, indices.rotation_cache_index);
+				const rtm::vector4f translation = sample_translation(context, indices.translation_cache_index);
+				const rtm::vector4f scale = sample_scale(context, indices.scale_cache_index);
 
-					out_local_pose[current_track_index] = rtm::qvv_set(rotation, translation, scale);
-					current_track_index = bone_stream.parent_bone_index;
-				}
-			}
-			else
-			{
-				uint32_t current_track_index = query.m_track_index;
-				while (current_track_index != k_invalid_track_index)
-				{
-					const BoneStreams& bone_stream = m_mutable_bone_streams[current_track_index];
-					const hierarchical_track_query::transform_indices& indices = query.m_indices[current_track_index];
-
-					context.track_index = current_track_index;
-					context.bit_rates = query.m_bit_rates[current_track_index];
-
-					const rtm::quatf rotation = sample_rotation<SampleDistribution8::Variable>(context, indices.rotation_cache_index);
-					const rtm::vector4f translation = sample_translation<SampleDistribution8::Variable>(context, indices.translation_cache_index);
-					const rtm::vector4f scale = sample_scale<SampleDistribution8::Variable>(context, indices.scale_cache_index);
-
-					out_local_pose[current_track_index] = rtm::qvv_set(rotation, translation, scale);
-					current_track_index = bone_stream.parent_bone_index;
-				}
+				out_local_pose[current_track_index] = rtm::qvv_set(rotation, translation, scale);
+				current_track_index = bone_stream.parent_bone_index;
 			}
 		}
 
@@ -1144,47 +925,24 @@ namespace acl
 
 			const SegmentContext* segment_context = m_mutable_bone_streams->segment;
 
-			uint32_t sample_key;
-			if (segment_context->distribution == SampleDistribution8::Uniform)
-				sample_key = get_uniform_sample_key(*segment_context, sample_time);
-			else
-				sample_key = 0;
+			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
 			sample_context context;
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
 
-			if (segment_context->distribution == SampleDistribution8::Uniform)
+			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
-				{
-					const every_track_query::transform_indices& indices = query.m_indices[transform_index];
+				const every_track_query::transform_indices& indices = query.m_indices[transform_index];
 
-					context.track_index = transform_index;
-					context.bit_rates = query.m_bit_rates[transform_index];
+				context.track_index = transform_index;
+				context.bit_rates = query.m_bit_rates[transform_index];
 
-					const rtm::quatf rotation = sample_rotation<SampleDistribution8::Uniform>(context, indices.rotation_cache_index);
-					const rtm::vector4f translation = sample_translation<SampleDistribution8::Uniform>(context, indices.translation_cache_index);
-					const rtm::vector4f scale = sample_scale<SampleDistribution8::Uniform>(context, indices.scale_cache_index);
+				const rtm::quatf rotation = sample_rotation(context, indices.rotation_cache_index);
+				const rtm::vector4f translation = sample_translation(context, indices.translation_cache_index);
+				const rtm::vector4f scale = sample_scale(context, indices.scale_cache_index);
 
-					out_local_pose[transform_index] = rtm::qvv_set(rotation, translation, scale);
-				}
-			}
-			else
-			{
-				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
-				{
-					const every_track_query::transform_indices& indices = query.m_indices[transform_index];
-
-					context.track_index = transform_index;
-					context.bit_rates = query.m_bit_rates[transform_index];
-
-					const rtm::quatf rotation = sample_rotation<SampleDistribution8::Variable>(context, indices.rotation_cache_index);
-					const rtm::vector4f translation = sample_translation<SampleDistribution8::Variable>(context, indices.translation_cache_index);
-					const rtm::vector4f scale = sample_scale<SampleDistribution8::Variable>(context, indices.scale_cache_index);
-
-					out_local_pose[transform_index] = rtm::qvv_set(rotation, translation, scale);
-				}
+				out_local_pose[transform_index] = rtm::qvv_set(rotation, translation, scale);
 			}
 		}
 
