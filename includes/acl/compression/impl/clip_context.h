@@ -283,7 +283,6 @@ namespace acl
 			segment.num_bones = num_transforms;
 			segment.clip_sample_offset = 0;
 			segment.segment_index = 0;
-			segment.distribution = SampleDistribution8::Uniform;
 			segment.are_rotations_normalized = false;
 			segment.are_translations_normalized = false;
 			segment.are_scales_normalized = false;

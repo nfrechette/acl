@@ -106,7 +106,6 @@ namespace acl
 				segment.num_samples = num_samples_in_segment;
 				segment.clip_sample_offset = clip_sample_index;
 				segment.segment_index = segment_index;
-				segment.distribution = SampleDistribution8::Uniform;
 				segment.are_rotations_normalized = false;
 				segment.are_translations_normalized = false;
 				segment.are_scales_normalized = false;
