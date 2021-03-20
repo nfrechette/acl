@@ -1165,8 +1165,9 @@ namespace acl
 			// We add 4 at a time in SIMD
 			for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
 			{
-				const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + (group_index * 4)));
-				const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + (group_index * 4)));
+				const uint32_t group_offset = group_index * 4;
+				const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + group_offset));
+				const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + group_offset));
 
 				group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero));
 				group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero));
