@@ -207,29 +207,29 @@ namespace acl
 			rotation_format8 get_rotation_format() const { return m_format.rotation; }
 		};
 
-		class TranslationTrackStream final : public track_stream
+		class translation_track_stream final : public track_stream
 		{
 		public:
-			TranslationTrackStream() noexcept : track_stream(animation_track_type8::translation, track_format8(vector_format8::vector3f_full)) {}
-			TranslationTrackStream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, vector_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
+			translation_track_stream() noexcept : track_stream(animation_track_type8::translation, track_format8(vector_format8::vector3f_full)) {}
+			translation_track_stream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, vector_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
 				: track_stream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::translation, track_format8(format), bit_rate)
 			{}
-			TranslationTrackStream(const TranslationTrackStream&) = delete;
-			TranslationTrackStream(TranslationTrackStream&& other) noexcept
+			translation_track_stream(const translation_track_stream&) = delete;
+			translation_track_stream(translation_track_stream&& other) noexcept
 				: track_stream(static_cast<track_stream&&>(other))
 			{}
-			~TranslationTrackStream() = default;
+			~translation_track_stream() = default;
 
-			TranslationTrackStream& operator=(const TranslationTrackStream&) = delete;
-			TranslationTrackStream& operator=(TranslationTrackStream&& rhs) noexcept
+			translation_track_stream& operator=(const translation_track_stream&) = delete;
+			translation_track_stream& operator=(translation_track_stream&& rhs) noexcept
 			{
 				track_stream::operator=(static_cast<track_stream&&>(rhs));
 				return *this;
 			}
 
-			TranslationTrackStream duplicate() const
+			translation_track_stream duplicate() const
 			{
-				TranslationTrackStream copy;
+				translation_track_stream copy;
 				track_stream::duplicate(copy);
 				return copy;
 			}
@@ -323,7 +323,7 @@ namespace acl
 			uint32_t output_index					= k_invalid_track_index;
 
 			rotation_track_stream rotations;
-			TranslationTrackStream translations;
+			translation_track_stream translations;
 			ScaleTrackStream scales;
 
 			bool is_rotation_constant				= false;
