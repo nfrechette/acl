@@ -511,7 +511,7 @@ namespace acl
 				quantize_variable_translation_stream(context, raw_bone_stream.translations, bone_stream.translations, bone_range, bit_rate, bone_stream.translations);
 		}
 
-		inline void quantize_fixed_scale_stream(iallocator& allocator, const ScaleTrackStream& raw_stream, vector_format8 scale_format, ScaleTrackStream& out_quantized_stream)
+		inline void quantize_fixed_scale_stream(iallocator& allocator, const scale_track_stream& raw_stream, vector_format8 scale_format, scale_track_stream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -520,7 +520,7 @@ namespace acl
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t sample_size = get_packed_vector_size(scale_format);
 			const float sample_rate = raw_stream.get_sample_rate();
-			ScaleTrackStream quantized_stream(allocator, num_samples, sample_size, sample_rate, scale_format);
+			scale_track_stream quantized_stream(allocator, num_samples, sample_size, sample_rate, scale_format);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -558,7 +558,7 @@ namespace acl
 			quantize_fixed_scale_stream(context.allocator, bone_stream.scales, format, bone_stream.scales);
 		}
 
-		inline void quantize_variable_scale_stream(quantization_context& context, const ScaleTrackStream& raw_clip_stream, const ScaleTrackStream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, ScaleTrackStream& out_quantized_stream)
+		inline void quantize_variable_scale_stream(quantization_context& context, const scale_track_stream& raw_clip_stream, const scale_track_stream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, scale_track_stream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -567,7 +567,7 @@ namespace acl
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const float sample_rate = raw_segment_stream.get_sample_rate();
-			ScaleTrackStream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, vector_format8::vector3f_variable, bit_rate);
+			scale_track_stream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, vector_format8::vector3f_variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
 			{
