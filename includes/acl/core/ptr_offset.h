@@ -54,7 +54,15 @@ namespace acl
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Constructs a valid offset with the specified value.
-		constexpr ptr_offset(size_t value) : m_value(safe_static_cast<offset_type>(value)) {}
+		// Expanded to avoid overflow warnings during assignment.
+		constexpr ptr_offset(uint64_t value) : m_value(safe_static_cast<offset_type>(value)) {}
+		constexpr ptr_offset(int64_t value) : m_value(safe_static_cast<offset_type>(value)) {}
+		constexpr ptr_offset(uint32_t value) : m_value(safe_static_cast<offset_type>(value)) {}
+		constexpr ptr_offset(int32_t value) : m_value(safe_static_cast<offset_type>(value)) {}
+		constexpr ptr_offset(uint16_t value) : m_value(safe_static_cast<offset_type>(value)) {}
+		constexpr ptr_offset(int16_t value) : m_value(safe_static_cast<offset_type>(value)) {}
+		constexpr ptr_offset(uint8_t value) : m_value(safe_static_cast<offset_type>(value)) {}
+		constexpr ptr_offset(int8_t value) : m_value(safe_static_cast<offset_type>(value)) {}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs a valid offset from a base pointer and another pointer part of the same aggregate.
