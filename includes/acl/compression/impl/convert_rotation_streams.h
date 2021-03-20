@@ -65,7 +65,7 @@ namespace acl
 		{
 			const rotation_format8 high_precision_format = get_rotation_variant(rotation_format) == rotation_variant8::quat ? rotation_format8::quatf_full : rotation_format8::quatf_drop_w_full;
 
-			for (BoneStreams& bone_stream : segment.bone_iterator())
+			for (transform_streams& bone_stream : segment.bone_iterator())
 			{
 				// We convert our rotation stream in place. We assume that the original format is quatf_full stored as rtm::quatf
 				// For all other formats, we keep the same sample size and either keep Quat_32 or use rtm::vector4f

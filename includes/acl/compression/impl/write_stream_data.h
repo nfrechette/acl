@@ -51,7 +51,7 @@ namespace acl
 
 			for (uint32_t bone_index = 0; bone_index < clip.num_bones; ++bone_index)
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				if (bone_stream.output_index == k_invalid_track_index)
 					continue;	// Stripped
 
@@ -79,7 +79,7 @@ namespace acl
 
 			for (uint32_t bone_index = 0; bone_index < clip.num_bones; ++bone_index)
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				if (bone_stream.output_index == k_invalid_track_index)
 					continue;	// Stripped
 
@@ -129,7 +129,7 @@ namespace acl
 				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 				{
 					const uint32_t bone_index = output_bone_mapping[output_index];
-					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+					const transform_streams& bone_stream = segment.bone_streams[bone_index];
 
 					if (!bone_stream.is_rotation_constant)
 						calculate_animated_data_size(bone_stream.rotations, num_animated_pose_rotation_data_bits);
@@ -164,7 +164,7 @@ namespace acl
 			uint32_t format_per_track_data_size = 0;
 			uint32_t num_animated_variable_rotations = 0;
 
-			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			for (const transform_streams& bone_stream : segment.const_bone_iterator())
 			{
 				if (bone_stream.is_stripped_from_output())
 					continue;
@@ -218,7 +218,7 @@ namespace acl
 			for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 			{
 				const uint32_t bone_index = output_bone_mapping[output_index];
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 
 				if (!bone_stream.is_rotation_default && bone_stream.is_rotation_constant)
 				{
@@ -269,7 +269,7 @@ namespace acl
 			for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 			{
 				const uint32_t bone_index = output_bone_mapping[output_index];
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 
 				if (!bone_stream.is_translation_default && bone_stream.is_translation_constant)
 				{
@@ -288,7 +288,7 @@ namespace acl
 				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 				{
 					const uint32_t bone_index = output_bone_mapping[output_index];
-					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+					const transform_streams& bone_stream = segment.bone_streams[bone_index];
 
 					if (!bone_stream.is_scale_default && bone_stream.is_scale_constant)
 					{
@@ -417,7 +417,7 @@ namespace acl
 				{
 					(void)group_size;
 
-					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+					const transform_streams& bone_stream = segment.bone_streams[bone_index];
 					if (group_type == animation_track_type8::rotation)
 					{
 						if (!is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
@@ -463,7 +463,7 @@ namespace acl
 
 			auto group_filter_action = [&segment](animation_track_type8 group_type, uint32_t bone_index)
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
 					return bone_stream.rotations.is_bit_rate_variable();
 				else if (group_type == animation_track_type8::translation)
@@ -474,7 +474,7 @@ namespace acl
 
 			auto group_entry_action = [&segment, &format_per_track_group](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
 					format_per_track_group[group_size] = (uint8_t)get_num_bits_at_bit_rate(bone_stream.rotations.get_bit_rate());
 				else if (group_type == animation_track_type8::translation)

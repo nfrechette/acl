@@ -60,7 +60,7 @@ namespace acl
 				}
 
 				const uint32_t bone_index = output_bone_mapping[output_index];
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 
 				uint32_t packed_type;
 				if (bone_stream.is_rotation_default)
@@ -95,7 +95,7 @@ namespace acl
 				}
 
 				const uint32_t bone_index = output_bone_mapping[output_index];
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 
 				uint32_t packed_type;
 				if (bone_stream.is_translation_default)
@@ -132,7 +132,7 @@ namespace acl
 					}
 
 					const uint32_t bone_index = output_bone_mapping[output_index];
-					const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+					const transform_streams& bone_stream = segment.bone_streams[bone_index];
 
 					uint32_t packed_type;
 					if (bone_stream.is_scale_default)

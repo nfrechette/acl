@@ -315,7 +315,7 @@ namespace acl
 
 		struct segment_context;
 
-		struct BoneStreams
+		struct transform_streams
 		{
 			segment_context* segment					= nullptr;
 			uint32_t bone_index						= k_invalid_track_index;
@@ -335,9 +335,9 @@ namespace acl
 
 			bool is_stripped_from_output() const { return output_index == k_invalid_track_index; }
 
-			BoneStreams duplicate() const
+			transform_streams duplicate() const
 			{
-				BoneStreams copy;
+				transform_streams copy;
 				copy.segment = segment;
 				copy.bone_index = bone_index;
 				copy.parent_bone_index = parent_bone_index;
