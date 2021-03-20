@@ -177,29 +177,29 @@ namespace acl
 			uint8_t					m_bit_rate;
 			};
 
-		class RotationTrackStream final : public track_stream
+		class rotation_track_stream final : public track_stream
 		{
 		public:
-			RotationTrackStream() noexcept : track_stream(animation_track_type8::rotation, track_format8(rotation_format8::quatf_full)) {}
-			RotationTrackStream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, rotation_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
+			rotation_track_stream() noexcept : track_stream(animation_track_type8::rotation, track_format8(rotation_format8::quatf_full)) {}
+			rotation_track_stream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, rotation_format8 format, uint8_t bit_rate = k_invalid_bit_rate)
 				: track_stream(allocator, num_samples, sample_size, sample_rate, animation_track_type8::rotation, track_format8(format), bit_rate)
 			{}
-			RotationTrackStream(const RotationTrackStream&) = delete;
-			RotationTrackStream(RotationTrackStream&& other) noexcept
+			rotation_track_stream(const rotation_track_stream&) = delete;
+			rotation_track_stream(rotation_track_stream&& other) noexcept
 				: track_stream(static_cast<track_stream&&>(other))
 			{}
-			~RotationTrackStream() = default;
+			~rotation_track_stream() = default;
 
-			RotationTrackStream& operator=(const RotationTrackStream&) = delete;
-			RotationTrackStream& operator=(RotationTrackStream&& rhs) noexcept
+			rotation_track_stream& operator=(const rotation_track_stream&) = delete;
+			rotation_track_stream& operator=(rotation_track_stream&& rhs) noexcept
 			{
 				track_stream::operator=(static_cast<track_stream&&>(rhs));
 				return *this;
 			}
 
-			RotationTrackStream duplicate() const
+			rotation_track_stream duplicate() const
 			{
-				RotationTrackStream copy;
+				rotation_track_stream copy;
 				track_stream::duplicate(copy);
 				return copy;
 			}
@@ -322,7 +322,7 @@ namespace acl
 			uint32_t parent_bone_index				= k_invalid_track_index;
 			uint32_t output_index					= k_invalid_track_index;
 
-			RotationTrackStream rotations;
+			rotation_track_stream rotations;
 			TranslationTrackStream translations;
 			ScaleTrackStream scales;
 

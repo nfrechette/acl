@@ -41,13 +41,13 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline bool is_rotation_track_constant(const RotationTrackStream& rotations, float threshold_angle)
+		inline bool is_rotation_track_constant(const rotation_track_stream& rotations, float threshold_angle)
 		{
 			// Calculating the average rotation and comparing every rotation in the track to it
 			// to determine if we are within the threshold seems overkill. We can't use the min/max for the range
 			// either because neither of those represents a valid rotation. Instead we grab
 			// the first rotation, and compare everything else to it.
-			auto sample_to_quat = [](const RotationTrackStream& track, uint32_t sample_index)
+			auto sample_to_quat = [](const rotation_track_stream& track, uint32_t sample_index)
 			{
 				const rtm::vector4f rotation = track.get_raw_sample<rtm::vector4f>(sample_index);
 
@@ -112,7 +112,7 @@ namespace acl
 
 				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle))
 				{
-					RotationTrackStream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
+					rotation_track_stream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
 					rtm::vector4f rotation = num_samples != 0 ? bone_stream.rotations.get_raw_sample<rtm::vector4f>(0) : rtm::quat_to_vector((rtm::quatf)rtm::quat_identity());
 					constant_stream.set_raw_sample(0, rotation);
 
