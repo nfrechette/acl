@@ -165,9 +165,7 @@ namespace acl
 
 	private:
 		clip_reader(const clip_reader&) = delete;
-		clip_reader(clip_reader&&) = delete;
 		clip_reader& operator=(const clip_reader&) = delete;
-		clip_reader& operator=(clip_reader&&) = delete;
 
 		iallocator& m_allocator;
 		sjson::Parser m_parser;
