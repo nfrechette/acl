@@ -43,7 +43,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline TrackStreamRange calculate_track_range(const TrackStream& stream, bool is_vector4)
+		inline TrackStreamRange calculate_track_range(const track_stream& stream, bool is_vector4)
 		{
 			rtm::vector4f min = rtm::vector_set(1e10F);
 			rtm::vector4f max = rtm::vector_set(-1e10F);
