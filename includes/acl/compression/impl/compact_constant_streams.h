@@ -85,7 +85,7 @@ namespace acl
 		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const track_array_qvvf& track_list, const compression_settings& settings)
 		{
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
-			SegmentContext& segment = context.segments[0];
+			segment_context& segment = context.segments[0];
 
 			const uint32_t num_bones = context.num_bones;
 			const uint32_t num_samples = context.num_samples;

@@ -132,7 +132,7 @@ namespace acl
 
 		struct clip_context
 		{
-			SegmentContext* segments					= nullptr;
+			segment_context* segments					= nullptr;
 			BoneRanges* ranges							= nullptr;
 			transform_metadata* metadata				= nullptr;
 			uint32_t* leaf_transform_chains				= nullptr;
@@ -163,8 +163,8 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 
 			bool is_initialized() const { return allocator != nullptr; }
-			iterator<SegmentContext> segment_iterator() { return iterator<SegmentContext>(segments, num_segments); }
-			const_iterator<SegmentContext> segment_iterator() const { return const_iterator<SegmentContext>(segments, num_segments); }
+			iterator<segment_context> segment_iterator() { return iterator<segment_context>(segments, num_segments); }
+			const_iterator<segment_context> segment_iterator() const { return const_iterator<segment_context>(segments, num_segments); }
 
 			BoneChain get_bone_chain(uint32_t bone_index) const
 			{
@@ -183,7 +183,7 @@ namespace acl
 			ACL_ASSERT(num_transforms != 0, "Track array has no tracks!");
 
 			// Create a single segment with the whole clip
-			out_clip_context.segments = allocate_type_array<SegmentContext>(allocator, 1);
+			out_clip_context.segments = allocate_type_array<segment_context>(allocator, 1);
 			out_clip_context.ranges = nullptr;
 			out_clip_context.metadata = allocate_type_array<transform_metadata>(allocator, num_transforms);
 			out_clip_context.leaf_transform_chains = nullptr;
@@ -204,7 +204,7 @@ namespace acl
 			bool are_samples_valid = true;
 			const rtm::vector4f default_scale = get_default_scale(additive_format);
 
-			SegmentContext& segment = out_clip_context.segments[0];
+			segment_context& segment = out_clip_context.segments[0];
 
 			BoneStreams* bone_streams = allocate_type_array<BoneStreams>(allocator, num_transforms);
 
@@ -374,7 +374,7 @@ namespace acl
 
 			iallocator& allocator = *context.allocator;
 
-			for (SegmentContext& segment : context.segment_iterator())
+			for (segment_context& segment : context.segment_iterator())
 				destroy_segment_context(allocator, segment);
 
 			deallocate_type_array(allocator, context.segments, context.num_segments);
@@ -385,7 +385,7 @@ namespace acl
 			deallocate_type_array(allocator, context.leaf_transform_chains, size_t(context.num_leaf_transforms) * bone_bitset_desc.get_size());
 		}
 
-		constexpr bool segment_context_has_scale(const SegmentContext& segment) { return segment.clip->has_scale; }
+		constexpr bool segment_context_has_scale(const segment_context& segment) { return segment.clip->has_scale; }
 		constexpr bool bone_streams_has_scale(const BoneStreams& bone_streams) { return segment_context_has_scale(*bone_streams.segment); }
 	}
 }

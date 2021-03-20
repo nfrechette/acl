@@ -88,8 +88,8 @@ namespace acl
 
 			ACL_ASSERT(num_segments != 1, "Expected a number of segments greater than 1.");
 
-			SegmentContext* clip_segment = clip.segments;
-			clip.segments = allocate_type_array<SegmentContext>(allocator, num_segments);
+			segment_context* clip_segment = clip.segments;
+			clip.segments = allocate_type_array<segment_context>(allocator, num_segments);
 			clip.num_segments = num_segments;
 
 			uint32_t clip_sample_index = 0;
@@ -97,7 +97,7 @@ namespace acl
 			{
 				const uint32_t num_samples_in_segment = num_samples_per_segment[segment_index];
 
-				SegmentContext& segment = clip.segments[segment_index];
+				segment_context& segment = clip.segments[segment_index];
 				segment.clip = &clip;
 				segment.bone_streams = allocate_type_array<BoneStreams>(allocator, clip.num_bones);
 				segment.ranges = nullptr;

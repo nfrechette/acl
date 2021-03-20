@@ -49,7 +49,7 @@ namespace acl
 			const uint32_t num_segments = clip.num_segments;
 			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 			{
-				const SegmentContext& segment = clip.segments[segment_index];
+				const segment_context& segment = clip.segments[segment_index];
 				segment_start_indices[segment_index] = segment.clip_sample_offset;
 				size_written += sizeof(uint32_t);
 			}
@@ -70,7 +70,7 @@ namespace acl
 			uint32_t segment_data_offset = segment_data_start_offset;
 			for (uint32_t segment_index = 0; segment_index < clip.num_segments; ++segment_index)
 			{
-				const SegmentContext& segment = clip.segments[segment_index];
+				const segment_context& segment = clip.segments[segment_index];
 				segment_header& header = segment_headers[segment_index];
 
 				ACL_ASSERT(header.animated_pose_bit_size == 0, "Buffer overrun detected");
@@ -100,7 +100,7 @@ namespace acl
 			const uint32_t num_segments = clip.num_segments;
 			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 			{
-				const SegmentContext& segment = clip.segments[segment_index];
+				const segment_context& segment = clip.segments[segment_index];
 				segment_header& segment_header_ = segment_headers[segment_index];
 
 				uint8_t* format_per_track_data = nullptr;

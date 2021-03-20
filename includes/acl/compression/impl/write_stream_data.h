@@ -45,7 +45,7 @@ namespace acl
 		inline uint32_t get_constant_data_size(const clip_context& clip)
 		{
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 			uint32_t constant_data_size = 0;
 
@@ -75,7 +75,7 @@ namespace acl
 			uint32_t num_constant_scale_samples = 0;
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 			for (uint32_t bone_index = 0; bone_index < clip.num_bones; ++bone_index)
 			{
@@ -120,7 +120,7 @@ namespace acl
 
 		inline void calculate_animated_data_size(clip_context& clip, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
-			for (SegmentContext& segment : clip.segment_iterator())
+			for (segment_context& segment : clip.segment_iterator())
 			{
 				uint32_t num_animated_pose_rotation_data_bits = 0;
 				uint32_t num_animated_pose_translation_data_bits = 0;
@@ -159,7 +159,7 @@ namespace acl
 			const bool is_scale_variable = is_vector_format_variable(scale_format);
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 			uint32_t format_per_track_data_size = 0;
 			uint32_t num_animated_variable_rotations = 0;
@@ -199,7 +199,7 @@ namespace acl
 			(void)constant_data_size;
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 			const uint8_t* constant_data_end = add_offset_to_ptr<uint8_t>(constant_data, constant_data_size);
@@ -360,7 +360,7 @@ namespace acl
 			}
 		}
 
-		inline uint32_t write_animated_track_data(const SegmentContext& segment, uint8_t* animated_track_data, uint32_t animated_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_animated_track_data(const segment_context& segment, uint8_t* animated_track_data, uint32_t animated_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			ACL_ASSERT(animated_track_data != nullptr, "'animated_track_data' cannot be null!");
 			(void)animated_data_size;
@@ -446,7 +446,7 @@ namespace acl
 			return safe_static_cast<uint32_t>(animated_track_data - animated_track_data_start);
 		}
 
-		inline uint32_t write_format_per_track_data(const SegmentContext& segment, uint8_t* format_per_track_data, uint32_t format_per_track_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_format_per_track_data(const segment_context& segment, uint8_t* format_per_track_data, uint32_t format_per_track_data_size, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			ACL_ASSERT(format_per_track_data != nullptr, "'format_per_track_data' cannot be null!");
 			(void)format_per_track_data_size;

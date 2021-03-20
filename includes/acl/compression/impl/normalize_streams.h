@@ -67,7 +67,7 @@ namespace acl
 			return TrackStreamRange::from_min_max(min, max);
 		}
 
-		inline void extract_bone_ranges_impl(const SegmentContext& segment, BoneRanges* bone_ranges)
+		inline void extract_bone_ranges_impl(const segment_context& segment, BoneRanges* bone_ranges)
 		{
 			const bool has_scale = segment_context_has_scale(segment);
 
@@ -91,7 +91,7 @@ namespace acl
 			context.ranges = allocate_type_array<BoneRanges>(allocator, context.num_bones);
 
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
-			const SegmentContext& segment = context.segments[0];
+			const segment_context& segment = context.segments[0];
 
 			acl_impl::extract_bone_ranges_impl(segment, context.ranges);
 		}
@@ -146,7 +146,7 @@ namespace acl
 				return TrackStreamRange::from_min_extent(padded_range_min, padded_range_extent);
 			};
 
-			for (SegmentContext& segment : context.segment_iterator())
+			for (segment_context& segment : context.segment_iterator())
 			{
 				segment.ranges = allocate_type_array<BoneRanges>(allocator, segment.num_bones);
 
@@ -318,7 +318,7 @@ namespace acl
 		inline void normalize_clip_streams(clip_context& context, range_reduction_flags8 range_reduction)
 		{
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
-			SegmentContext& segment = context.segments[0];
+			segment_context& segment = context.segments[0];
 
 			const bool has_scale = segment_context_has_scale(segment);
 
@@ -343,7 +343,7 @@ namespace acl
 
 		inline void normalize_segment_streams(clip_context& context, range_reduction_flags8 range_reduction)
 		{
-			for (SegmentContext& segment : context.segment_iterator())
+			for (segment_context& segment : context.segment_iterator())
 			{
 				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations))
 				{

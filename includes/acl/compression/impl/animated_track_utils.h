@@ -42,7 +42,7 @@ namespace acl
 		// without using our allocator.
 		// group_filter_action_type = std::function<bool(animation_track_type8 group_type, uint32_t bone_index)>
 		template<typename group_filter_action_type>
-		inline void get_num_sub_tracks(const SegmentContext& segment,
+		inline void get_num_sub_tracks(const segment_context& segment,
 			group_filter_action_type& group_filter_action,
 			uint32_t& out_num_rotation_sub_tracks, uint32_t& out_num_translation_sub_tracks, uint32_t& out_num_scale_sub_tracks)
 		{
@@ -70,7 +70,7 @@ namespace acl
 			out_num_scale_sub_tracks = num_scale_sub_tracks;
 		}
 
-		inline void get_num_animated_sub_tracks(const SegmentContext& segment,
+		inline void get_num_animated_sub_tracks(const segment_context& segment,
 			uint32_t& out_num_animated_rotation_sub_tracks, uint32_t& out_num_animated_translation_sub_tracks, uint32_t& out_num_animated_scale_sub_tracks)
 		{
 			const auto animated_group_filter_action = [&segment](animation_track_type8 group_type, uint32_t bone_index)
@@ -93,7 +93,7 @@ namespace acl
 		// group_entry_action_type = std::function<void(animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)>
 		// group_flush_action_type = std::function<void(animation_track_type8 group_type, uint32_t group_size)>
 		template<typename group_filter_action_type, typename group_entry_action_type, typename group_flush_action_type>
-		inline void group_writer(const SegmentContext& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
+		inline void group_writer(const segment_context& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
 			group_filter_action_type& group_filter_action, group_entry_action_type& group_entry_action, group_flush_action_type& group_flush_action)
 		{
 			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
@@ -141,7 +141,7 @@ namespace acl
 		// group_entry_action_type = std::function<void(animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)>
 		// group_flush_action_type = std::function<void(animation_track_type8 group_type, uint32_t group_size)>
 		template<typename group_filter_action_type, typename group_entry_action_type, typename group_flush_action_type>
-		inline void animated_group_writer(const SegmentContext& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
+		inline void animated_group_writer(const segment_context& segment, const uint32_t* output_bone_mapping, uint32_t num_output_bones,
 			group_filter_action_type& group_filter_action, group_entry_action_type& group_entry_action, group_flush_action_type& group_flush_action)
 		{
 			const auto animated_group_filter_action = [&segment, &group_filter_action](animation_track_type8 group_type, uint32_t bone_index)

@@ -205,7 +205,7 @@ namespace acl
 			}
 
 			// Per segment data
-			for (SegmentContext& segment : lossy_clip_context.segment_iterator())
+			for (segment_context& segment : lossy_clip_context.segment_iterator())
 			{
 				const uint32_t header_start = buffer_size;
 

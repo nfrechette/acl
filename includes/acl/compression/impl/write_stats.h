@@ -45,7 +45,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline void write_summary_segment_stats(const SegmentContext& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, sjson::ObjectWriter& writer)
+		inline void write_summary_segment_stats(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, sjson::ObjectWriter& writer)
 		{
 			writer["segment_index"] = segment.segment_index;
 			writer["num_samples"] = segment.num_samples;
@@ -63,7 +63,7 @@ namespace acl
 			writer["animated_frame_size"] = double(segment.animated_data_size) / double(segment.num_samples);
 		}
 
-		inline void write_detailed_segment_stats(const SegmentContext& segment, sjson::ObjectWriter& writer)
+		inline void write_detailed_segment_stats(const segment_context& segment, sjson::ObjectWriter& writer)
 		{
 			uint32_t bit_rate_counts[k_num_bit_rates] = { 0 };
 
@@ -98,7 +98,7 @@ namespace acl
 			writer["decomp_touched_cache_lines"] = segment.clip->decomp_touched_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 		}
 
-		inline void write_exhaustive_segment_stats(iallocator& allocator, const SegmentContext& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array_qvvf& track_list, sjson::ObjectWriter& writer)
+		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array_qvvf& track_list, sjson::ObjectWriter& writer)
 		{
 			const uint32_t num_bones = raw_clip_context.num_bones;
 			const bool has_scale = segment_context_has_scale(segment);
@@ -243,7 +243,7 @@ namespace acl
 			const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 			uint32_t result = 0;
 
@@ -272,7 +272,7 @@ namespace acl
 				return 0;
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 			uint32_t result = 0;
 
@@ -298,7 +298,7 @@ namespace acl
 				return 0;
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 			uint32_t result = 0;
 
@@ -321,7 +321,7 @@ namespace acl
 				return 0;
 
 			// Only use the first segment, it contains the necessary information
-			const SegmentContext& segment = clip.segments[0];
+			const segment_context& segment = clip.segments[0];
 
 			uint32_t result = 0;
 
@@ -342,7 +342,7 @@ namespace acl
 		{
 			uint32_t result = 0;
 
-			for (const SegmentContext& segment : clip.segment_iterator())
+			for (const segment_context& segment : clip.segment_iterator())
 				result += align_to(segment.animated_rotation_bit_size * segment.num_samples, 8) / 8;	// Convert bits to bytes;
 
 			return result;
@@ -352,7 +352,7 @@ namespace acl
 		{
 			uint32_t result = 0;
 
-			for (const SegmentContext& segment : clip.segment_iterator())
+			for (const segment_context& segment : clip.segment_iterator())
 				result += align_to(segment.animated_translation_bit_size * segment.num_samples, 8) / 8;	// Convert bits to bytes;
 
 			return result;
@@ -362,7 +362,7 @@ namespace acl
 		{
 			uint32_t result = 0;
 
-			for (const SegmentContext& segment : clip.segment_iterator())
+			for (const segment_context& segment : clip.segment_iterator())
 				result += align_to(segment.animated_scale_bit_size * segment.num_samples, 8) / 8;	// Convert bits to bytes;
 
 			return result;
@@ -372,7 +372,7 @@ namespace acl
 		{
 			uint32_t result = 0;
 
-			for (const SegmentContext& segment : clip.segment_iterator())
+			for (const segment_context& segment : clip.segment_iterator())
 				result += segment.animated_data_size;
 
 			return result;
@@ -533,7 +533,7 @@ namespace acl
 
 			writer["segments"] = [&](sjson::ArrayWriter& segments_writer)
 			{
-				for (const SegmentContext& segment : clip.segment_iterator())
+				for (const segment_context& segment : clip.segment_iterator())
 				{
 					segments_writer.push([&](sjson::ObjectWriter& segment_writer)
 						{

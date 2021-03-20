@@ -43,7 +43,7 @@ namespace acl
 	{
 		struct clip_context;
 
-		struct SegmentContext
+		struct segment_context
 		{
 			clip_context* clip;
 			BoneStreams* bone_streams;
@@ -75,7 +75,7 @@ namespace acl
 			const_iterator<BoneStreams> const_bone_iterator() const { return const_iterator<BoneStreams>(bone_streams, num_bones); }
 		};
 
-		inline void destroy_segment_context(iallocator& allocator, SegmentContext& segment)
+		inline void destroy_segment_context(iallocator& allocator, segment_context& segment)
 		{
 			deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
 			deallocate_type_array(allocator, segment.ranges, segment.num_bones);
