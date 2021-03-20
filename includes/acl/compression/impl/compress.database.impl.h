@@ -523,7 +523,7 @@ namespace acl
 						continue;	// This is not the segment we care about
 
 					// Append this frame
-					const uint64_t input_animated_bit_offset = frame.segment_frame_index * frame.frame_bit_size;
+					const uint32_t input_animated_bit_offset = frame.segment_frame_index * frame.frame_bit_size;
 					memcpy_bits(output_animated_data, output_animated_bit_offset, input_animated_data, input_animated_bit_offset, frame.frame_bit_size);
 					output_animated_bit_offset += frame.frame_bit_size;
 				}
@@ -558,7 +558,7 @@ namespace acl
 				const uint32_t packed_sub_track_buffer_size = num_sub_track_entries * sizeof(packed_sub_track_types);
 
 				// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
-				const uint32_t segment_start_indices_size = clip_error.num_segments > 1 ? (sizeof(uint32_t) * (clip_error.num_segments + 1)) : 0;
+				const uint32_t segment_start_indices_size = clip_error.num_segments > 1 ? (uint32_t(sizeof(uint32_t)) * (clip_error.num_segments + 1)) : 0;
 				const uint32_t segment_headers_size = sizeof(segment_tier0_header) * clip_error.num_segments;
 
 				// Range data follows constant data, use that to calculate our size
@@ -862,7 +862,8 @@ namespace acl
 			{
 				const frame_tier_mapping& frame = frames[frame_index];
 
-				memcpy_bits(out_segment_data, num_bits_written, frame.animated_data, frame.segment_frame_index * frame.frame_bit_size, frame.frame_bit_size);
+				const uint32_t frame_bit_offset = frame.segment_frame_index * frame.frame_bit_size;
+				memcpy_bits(out_segment_data, num_bits_written, frame.animated_data, frame_bit_offset, frame.frame_bit_size);
 				num_bits_written += frame.frame_bit_size;
 			}
 
@@ -896,7 +897,7 @@ namespace acl
 
 					const uint32_t segment_data_bit_size = calculate_segment_animated_data_bit_size(segment_frames, num_segment_frames);
 					const uint32_t segment_data_size = (segment_data_bit_size + 7) / 8;
-					ACL_ASSERT(segment_data_size + simd_padding + sizeof(database_chunk_segment_header) <= max_chunk_size, "Segment is larger than our max chunk size");
+					ACL_ASSERT(segment_data_size + simd_padding + uint32_t(sizeof(database_chunk_segment_header)) <= max_chunk_size, "Segment is larger than our max chunk size");
 
 					const uint32_t new_chunk_size = chunk_size + segment_data_size + simd_padding + sizeof(database_chunk_segment_header);
 					if (new_chunk_size >= max_chunk_size)
@@ -982,7 +983,7 @@ namespace acl
 
 					const uint32_t segment_data_bit_size = calculate_segment_animated_data_bit_size(segment_frames, num_segment_frames);
 					const uint32_t segment_data_size = (segment_data_bit_size + 7) / 8;
-					ACL_ASSERT(segment_data_size + simd_padding + sizeof(database_chunk_segment_header) <= max_chunk_size, "Segment is larger than our max chunk size");
+					ACL_ASSERT(segment_data_size + simd_padding + uint32_t(sizeof(database_chunk_segment_header)) <= max_chunk_size, "Segment is larger than our max chunk size");
 
 					const uint32_t new_chunk_size = chunk_size + segment_data_size + simd_padding + sizeof(database_chunk_segment_header);
 					if (new_chunk_size >= max_chunk_size)

@@ -165,7 +165,7 @@ namespace acl
 			const uint32_t packed_sub_track_buffer_size = num_sub_track_entries * sizeof(packed_sub_track_types);
 
 			// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
-			const uint32_t segment_start_indices_size = lossy_clip_context.num_segments > 1 ? (sizeof(uint32_t) * (lossy_clip_context.num_segments + 1)) : 0;
+			const uint32_t segment_start_indices_size = lossy_clip_context.num_segments > 1 ? (uint32_t(sizeof(uint32_t)) * (lossy_clip_context.num_segments + 1)) : 0;
 			const uint32_t segment_headers_size = sizeof(segment_header) * lossy_clip_context.num_segments;
 
 			uint32_t buffer_size = 0;

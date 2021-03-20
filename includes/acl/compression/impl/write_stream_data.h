@@ -313,7 +313,7 @@ namespace acl
 			if (track_stream.is_bit_rate_variable())
 			{
 				const uint8_t bit_rate = track_stream.get_bit_rate();
-				const uint64_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
 
 				// Track is constant, our constant sample is stored in the range information
 				ACL_ASSERT(!is_constant_bit_rate(bit_rate), "Cannot write constant variable track data");

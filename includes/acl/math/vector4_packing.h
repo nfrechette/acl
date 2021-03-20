@@ -231,7 +231,9 @@ namespace acl
 
 		uint32_t vector_u32 = vector_w << (32 - num_bits);
 		vector_u32 = byte_swap(vector_u32);
-		memcpy_bits(out_vector_data, num_bits * 3, &vector_u32, 0, num_bits);
+
+		const uint32_t bit_offset = num_bits * 3;
+		memcpy_bits(out_vector_data, bit_offset, &vector_u32, 0, num_bits);
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it

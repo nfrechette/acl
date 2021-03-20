@@ -457,6 +457,8 @@ namespace acl
 			const uint32_t base_rotation_offset = base_track_offset + (0 * k_num_bit_rates_cached_per_track);
 			const uint32_t base_translation_offset = base_track_offset + (1 * k_num_bit_rates_cached_per_track);
 
+			const size_t bitset_size = m_bitset_desc.get_size();
+
 			transform_cache_entry& entry = m_transforms[track_index];
 
 			uint32_t rotation_cache_index;
@@ -469,7 +471,7 @@ namespace acl
 				if (entry.rotation_generation_ids[0] == 0)
 				{
 					// The first time around, we invalidate all our cached samples and they will remain valid until we change segment
-					uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index);
+					uint32_t* validity_bitset = m_track_entry_bitsets + (bitset_size * rotation_cache_index);
 					bitset_reset(validity_bitset, m_bitset_desc, false);
 
 					entry.rotation_generation_ids[0] = m_generation_id++;
@@ -504,7 +506,7 @@ namespace acl
 					entry.rotation_bit_rates.bit_rates[oldest_index] = bit_rates.rotation;
 					entry.rotation_generation_ids[oldest_index] = m_generation_id++;
 
-					uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index);
+					uint32_t* validity_bitset = m_track_entry_bitsets + (bitset_size * rotation_cache_index);
 					bitset_reset(validity_bitset, m_bitset_desc, false);
 
 #if ACL_IMPL_DEBUG_DATABASE_IMPL
@@ -525,7 +527,7 @@ namespace acl
 				if (entry.translation_generation_ids[0] == 0)
 				{
 					// The first time around, we invalidate all our cached samples and they will remain valid until we change segment
-					uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index);
+					uint32_t* validity_bitset = m_track_entry_bitsets + (bitset_size * translation_cache_index);
 					bitset_reset(validity_bitset, m_bitset_desc, false);
 
 					entry.translation_generation_ids[0] = m_generation_id++;
@@ -560,7 +562,7 @@ namespace acl
 					entry.translation_bit_rates.bit_rates[oldest_index] = bit_rates.translation;
 					entry.translation_generation_ids[oldest_index] = m_generation_id++;
 
-					uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index);
+					uint32_t* validity_bitset = m_track_entry_bitsets + (bitset_size * translation_cache_index);
 					bitset_reset(validity_bitset, m_bitset_desc, false);
 
 #if ACL_IMPL_DEBUG_DATABASE_IMPL
@@ -587,7 +589,7 @@ namespace acl
 					if (entry.scale_generation_ids[0] == 0)
 					{
 						// The first time around, we invalidate all our cached samples and they will remain valid until we change segment
-						uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index);
+						uint32_t* validity_bitset = m_track_entry_bitsets + (bitset_size * scale_cache_index);
 						bitset_reset(validity_bitset, m_bitset_desc, false);
 
 						entry.scale_generation_ids[0] = m_generation_id++;
@@ -622,7 +624,7 @@ namespace acl
 						entry.scale_bit_rates.bit_rates[oldest_index] = bit_rates.scale;
 						entry.scale_generation_ids[oldest_index] = m_generation_id++;
 
-						uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index);
+						uint32_t* validity_bitset = m_track_entry_bitsets + (bitset_size * scale_cache_index);
 						bitset_reset(validity_bitset, m_bitset_desc, false);
 
 #if ACL_IMPL_DEBUG_DATABASE_IMPL
@@ -642,14 +644,15 @@ namespace acl
 		{
 			const uint32_t track_index = context.track_index;
 			const BoneStreams& bone_stream = m_mutable_bone_streams[track_index];
+			const size_t rotation_cache_index_ = rotation_cache_index;
 
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
 				rotation = rtm::quat_identity();
 			else if (bone_stream.is_rotation_constant)
 			{
-				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index);
-				rtm::quatf* cached_samples = safe_ptr_cast<rtm::quatf>(m_data + (m_track_size * rotation_cache_index));
+				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index_);
+				rtm::quatf* cached_samples = safe_ptr_cast<rtm::quatf>(m_data + (m_track_size * rotation_cache_index_));
 
 				if (bitset_test(validity_bitset, m_bitref_constant))
 				{
@@ -684,8 +687,8 @@ namespace acl
 			{
 				const BoneStreams& raw_bone_stream = m_raw_bone_streams[track_index];
 
-				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index);
-				rtm::quatf* cached_samples = safe_ptr_cast<rtm::quatf>(m_data + (m_track_size * rotation_cache_index));
+				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index_);
+				rtm::quatf* cached_samples = safe_ptr_cast<rtm::quatf>(m_data + (m_track_size * rotation_cache_index_));
 
 				uint32_t key0;
 				uint32_t key1;
@@ -781,14 +784,15 @@ namespace acl
 		{
 			const uint32_t track_index = context.track_index;
 			const BoneStreams& bone_stream = m_mutable_bone_streams[track_index];
+			const size_t translation_cache_index_ = translation_cache_index;
 
 			rtm::vector4f translation;
 			if (bone_stream.is_translation_default)
 				translation = rtm::vector_zero();
 			else if (bone_stream.is_translation_constant)
 			{
-				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index);
-				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * translation_cache_index));
+				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index_);
+				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * translation_cache_index_));
 
 				if (bitset_test(validity_bitset, m_bitref_constant))
 				{
@@ -816,8 +820,8 @@ namespace acl
 			{
 				const BoneStreams& raw_bone_stream = m_raw_bone_streams[track_index];
 
-				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index);
-				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * translation_cache_index));
+				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index_);
+				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * translation_cache_index_));
 
 				uint32_t key0;
 				uint32_t key1;
@@ -909,14 +913,15 @@ namespace acl
 		{
 			const uint32_t track_index = context.track_index;
 			const BoneStreams& bone_stream = m_mutable_bone_streams[track_index];
+			const size_t scale_cache_index_ = scale_cache_index;
 
 			rtm::vector4f scale;
 			if (bone_stream.is_scale_default)
 				scale = m_default_scale;
 			else if (bone_stream.is_scale_constant)
 			{
-				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index);
-				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * scale_cache_index));
+				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index_);
+				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * scale_cache_index_));
 
 				if (bitset_test(validity_bitset, m_bitref_constant))
 				{
@@ -944,8 +949,8 @@ namespace acl
 			{
 				const BoneStreams& raw_bone_stream = m_raw_bone_streams[track_index];
 
-				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index);
-				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * scale_cache_index));
+				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index_);
+				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * scale_cache_index_));
 
 				uint32_t key0;
 				uint32_t key1;

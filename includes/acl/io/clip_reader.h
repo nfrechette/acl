@@ -925,7 +925,7 @@ namespace acl
 							if (m_parser.read(values, num_components))
 							{
 								const rtm::float4f value = hex_to_float4f(values, num_components);
-								std::memcpy(track_samples_typed.float1f + (sample_index * num_components), &value, sizeof(float) * num_components);
+								std::memcpy(track_samples_typed.float1f + (size_t(sample_index) * num_components), &value, sizeof(float) * num_components);
 							}
 							else
 								has_error = true;
@@ -962,7 +962,7 @@ namespace acl
 							if (m_parser.read(values, num_components))
 							{
 								const rtm::float4f value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3]) };
-								std::memcpy(track_samples_typed.float1f + (sample_index * num_components), &value, sizeof(float) * num_components);
+								std::memcpy(track_samples_typed.float1f + (size_t(sample_index) * num_components), &value, sizeof(float) * num_components);
 							}
 							else
 								has_error = true;

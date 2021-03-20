@@ -225,7 +225,7 @@ namespace acl
 			uint32_t result = 0;
 
 			// Segment start indices and headers
-			result += clip.num_segments > 1 ? (sizeof(uint32_t) * (clip.num_segments + 1)) : 0;
+			result += clip.num_segments > 1 ? (uint32_t(sizeof(uint32_t)) * (clip.num_segments + 1)) : 0;
 			result += segment_header_size * clip.num_segments;
 
 			// Default/constant track bit sets
