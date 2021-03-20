@@ -515,8 +515,8 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 
 #if defined(RTM_COMPILER_MSVC)
 	#pragma warning(push)
-	// warning C6011: Dereferencing NULL pointer 'db_tracks0[0]'. 
-	// This is fine, ignore it
+	// warning C6011: Dereferencing NULL pointer '...'.
+	// Crashing is fine since this is used for regression testing
 	#pragma warning(disable : 6011)
 #endif
 
@@ -603,8 +603,23 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 	// Duplicate our clips so we can modify them
 	compressed_tracks* compressed_tracks_copy0 = safe_ptr_cast<compressed_tracks>(allocate_type_array_aligned<uint8_t>(allocator, db_tracks0[0]->get_size(), alignof(compressed_tracks)));
 	compressed_tracks* compressed_tracks_copy1 = safe_ptr_cast<compressed_tracks>(allocate_type_array_aligned<uint8_t>(allocator, db_tracks1[0]->get_size(), alignof(compressed_tracks)));
+
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C6011: Dereferencing NULL pointer '...'.
+	// Crashing is fine since this is used for regression testing
+	#pragma warning(disable : 6011)
+	// warning C6387: '...' could be '0':  this does not adhere to the specification for the function 'memcpy'. See line 523 for an earlier location where this can occur
+	// Pointers will never be null and if they are, we'll crash which is fine in a regression test
+	#pragma warning(disable : 6387)
+#endif
+
 	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy0), db_tracks0[0], db_tracks0[0]->get_size());
 	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy1), db_tracks1[0], db_tracks1[0]->get_size());
+
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
 
 	// Free our memory
 	allocator.deallocate(split_db_bulk_data_medium, split_db->get_bulk_data_size(quality_tier::medium_importance));
