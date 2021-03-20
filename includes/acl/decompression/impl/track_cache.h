@@ -33,6 +33,13 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(push)
+	// warning C26495: Variable '...' is uninitialized. Always initialize a member variable (type.6).
+	// We explicitly control initialization
+	#pragma warning(disable : 26495)
+#endif
+
 namespace acl
 {
 	namespace acl_impl
@@ -84,4 +91,9 @@ namespace acl
 		using track_cache_vector4f_v0 = track_cache_v0<track_cache_vector4f_trait, cache_size>;
 	}
 }
+
+#if defined(RTM_COMPILER_MSVC)
+	#pragma warning(pop)
+#endif
+
 ACL_IMPL_FILE_PRAGMA_POP
