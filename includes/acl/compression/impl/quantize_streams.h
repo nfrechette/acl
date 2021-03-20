@@ -1077,7 +1077,7 @@ namespace acl
 
 		inline uint32_t calculate_bone_chain_indices(const clip_context& clip, uint32_t bone_index, uint32_t* out_chain_bone_indices)
 		{
-			const BoneChain bone_chain = clip.get_bone_chain(bone_index);
+			const bone_chain bone_chain = clip.get_bone_chain(bone_index);
 
 			uint32_t num_bones_in_chain = 0;
 			for (uint32_t chain_bone_index : bone_chain)
