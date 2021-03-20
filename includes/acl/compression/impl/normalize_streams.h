@@ -43,7 +43,7 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline TrackStreamRange calculate_track_range(const track_stream& stream, bool is_vector4)
+		inline track_stream_range calculate_track_range(const track_stream& stream, bool is_vector4)
 		{
 			rtm::vector4f min = rtm::vector_set(1e10F);
 			rtm::vector4f max = rtm::vector_set(-1e10F);
@@ -64,7 +64,7 @@ namespace acl
 				max = rtm::vector_set_w(max, 0.0F);
 			}
 
-			return TrackStreamRange::from_min_max(min, max);
+			return track_stream_range::from_min_max(min, max);
 		}
 
 		inline void extract_bone_ranges_impl(const segment_context& segment, BoneRanges* bone_ranges)
@@ -82,7 +82,7 @@ namespace acl
 				if (has_scale)
 					bone_range.scale = calculate_track_range(bone_stream.scales, false);
 				else
-					bone_range.scale = TrackStreamRange();
+					bone_range.scale = track_stream_range();
 			}
 		}
 
@@ -106,7 +106,7 @@ namespace acl
 
 			// Segment ranges are always normalized and live between [0.0 ... 1.0]
 
-			auto fixup_range = [&](const TrackStreamRange& range)
+			auto fixup_range = [&](const track_stream_range& range)
 			{
 				// In our compressed format, we store the minimum value of the track range quantized on 8 bits.
 				// To get the best accuracy, we pick the value closest to the true minimum that is slightly lower.
@@ -143,7 +143,7 @@ namespace acl
 				const rtm::mask4f is_extent0_higher_mask = rtm::vector_greater_equal(padded_range_extent0, range_max);
 				const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
 
-				return TrackStreamRange::from_min_extent(padded_range_min, padded_range_extent);
+				return track_stream_range::from_min_extent(padded_range_min, padded_range_extent);
 			};
 
 			for (segment_context& segment : context.segment_iterator())
@@ -169,7 +169,7 @@ namespace acl
 			}
 		}
 
-		inline rtm::vector4f RTM_SIMD_CALL normalize_sample(rtm::vector4f_arg0 sample, const TrackStreamRange& range)
+		inline rtm::vector4f RTM_SIMD_CALL normalize_sample(rtm::vector4f_arg0 sample, const track_stream_range& range)
 		{
 			const rtm::vector4f range_min = range.get_min();
 			const rtm::vector4f range_extent = range.get_extent();

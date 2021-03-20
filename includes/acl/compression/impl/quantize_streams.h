@@ -335,7 +335,7 @@ namespace acl
 			quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, rotation_format, bone_stream.rotations);
 		}
 
-		inline void quantize_variable_rotation_stream(quantization_context& context, const rotation_track_stream& raw_clip_stream, const rotation_track_stream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, rotation_track_stream& out_quantized_stream)
+		inline void quantize_variable_rotation_stream(quantization_context& context, const rotation_track_stream& raw_clip_stream, const rotation_track_stream& raw_segment_stream, const track_stream_range& clip_range, uint8_t bit_rate, rotation_track_stream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -392,7 +392,7 @@ namespace acl
 
 			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
 			const rotation_format8 highest_bit_rate = get_highest_variant_precision(rotation_variant8::quat_drop_w);
-			const TrackStreamRange& bone_range = context.clip.ranges[bone_index].rotation;
+			const track_stream_range& bone_range = context.clip.ranges[bone_index].rotation;
 
 			// If our format is variable, we keep them fixed at the highest bit rate in the variant
 			if (bone_stream.is_rotation_constant)
@@ -448,7 +448,7 @@ namespace acl
 			quantize_fixed_translation_stream(context.allocator, bone_stream.translations, format, bone_stream.translations);
 		}
 
-		inline void quantize_variable_translation_stream(quantization_context& context, const translation_track_stream& raw_clip_stream, const translation_track_stream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, translation_track_stream& out_quantized_stream)
+		inline void quantize_variable_translation_stream(quantization_context& context, const translation_track_stream& raw_clip_stream, const translation_track_stream& raw_segment_stream, const track_stream_range& clip_range, uint8_t bit_rate, translation_track_stream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -501,7 +501,7 @@ namespace acl
 			if (bone_stream.is_translation_default)
 				return;
 
-			const TrackStreamRange& bone_range = context.clip.ranges[bone_index].translation;
+			const track_stream_range& bone_range = context.clip.ranges[bone_index].translation;
 			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
 
 			// Constant translation tracks store the remaining sample with full precision
@@ -558,7 +558,7 @@ namespace acl
 			quantize_fixed_scale_stream(context.allocator, bone_stream.scales, format, bone_stream.scales);
 		}
 
-		inline void quantize_variable_scale_stream(quantization_context& context, const scale_track_stream& raw_clip_stream, const scale_track_stream& raw_segment_stream, const TrackStreamRange& clip_range, uint8_t bit_rate, scale_track_stream& out_quantized_stream)
+		inline void quantize_variable_scale_stream(quantization_context& context, const scale_track_stream& raw_clip_stream, const scale_track_stream& raw_segment_stream, const track_stream_range& clip_range, uint8_t bit_rate, scale_track_stream& out_quantized_stream)
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
@@ -611,7 +611,7 @@ namespace acl
 			if (bone_stream.is_scale_default)
 				return;
 
-			const TrackStreamRange& bone_range = context.clip.ranges[bone_index].scale;
+			const track_stream_range& bone_range = context.clip.ranges[bone_index].scale;
 			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
 
 			// Constant scale tracks store the remaining sample with full precision

@@ -270,20 +270,20 @@ namespace acl
 		// For a rotation track, the extent only tells us if the track is constant or not
 		// since the min/max we maintain aren't valid rotations.
 		// Similarly, the center isn't a valid rotation and is meaningless.
-		class TrackStreamRange
+		class track_stream_range
 		{
 		public:
-			static TrackStreamRange RTM_SIMD_CALL from_min_max(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max)
+			static track_stream_range RTM_SIMD_CALL from_min_max(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max)
 			{
-				return TrackStreamRange(min, rtm::vector_sub(max, min));
+				return track_stream_range(min, rtm::vector_sub(max, min));
 			}
 
-			static TrackStreamRange RTM_SIMD_CALL from_min_extent(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
+			static track_stream_range RTM_SIMD_CALL from_min_extent(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
 			{
-				return TrackStreamRange(min, extent);
+				return track_stream_range(min, extent);
 			}
 
-			TrackStreamRange()
+			track_stream_range()
 				: m_min(rtm::vector_zero())
 				, m_extent(rtm::vector_zero())
 			{}
@@ -297,7 +297,7 @@ namespace acl
 			bool is_constant(float threshold) const { return rtm::vector_all_less_than(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
 
 		private:
-			TrackStreamRange(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
+			track_stream_range(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
 				: m_min(min)
 				, m_extent(extent)
 			{}
@@ -308,9 +308,9 @@ namespace acl
 
 		struct BoneRanges
 		{
-			TrackStreamRange rotation;
-			TrackStreamRange translation;
-			TrackStreamRange scale;
+			track_stream_range rotation;
+			track_stream_range translation;
+			track_stream_range scale;
 		};
 
 		struct segment_context;
