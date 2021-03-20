@@ -66,7 +66,7 @@ namespace acl
 			}
 
 			void bind(track_bit_rate_database& database);
-			void build(uint32_t track_index, const BoneBitRate* bit_rates, const BoneStreams* bone_streams);
+			void build(uint32_t track_index, const BoneBitRate* bit_rates, const transform_streams* bone_streams);
 
 		private:
 			hierarchical_track_query(const hierarchical_track_query&) = delete;
@@ -181,10 +181,10 @@ namespace acl
 		class track_bit_rate_database
 		{
 		public:
-			track_bit_rate_database(iallocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
+			track_bit_rate_database(iallocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const transform_streams* bone_streams, const transform_streams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
 			~track_bit_rate_database();
 
-			void set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
+			void set_segment(const transform_streams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
 
 			void sample(const single_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
 			void sample(const hierarchical_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
@@ -232,8 +232,8 @@ namespace acl
 			rtm::vector4f		m_default_scale;
 
 			iallocator&			m_allocator;
-			const BoneStreams*	m_mutable_bone_streams;
-			const BoneStreams*	m_raw_bone_streams;
+			const transform_streams*	m_mutable_bone_streams;
+			const transform_streams*	m_raw_bone_streams;
 
 			uint32_t			m_num_transforms;
 			uint32_t			m_num_samples_per_track;
@@ -280,7 +280,7 @@ namespace acl
 			m_num_transforms = database.m_num_transforms;
 		}
 
-		inline void hierarchical_track_query::build(uint32_t track_index, const BoneBitRate* bit_rates, const BoneStreams* bone_streams)
+		inline void hierarchical_track_query::build(uint32_t track_index, const BoneBitRate* bit_rates, const transform_streams* bone_streams)
 		{
 			ACL_ASSERT(m_database != nullptr, "Query not bound to a database");
 			ACL_ASSERT(track_index < m_num_transforms, "Invalid track index");
@@ -296,7 +296,7 @@ namespace acl
 
 				m_database->find_cache_entries(current_track_index, current_bit_rates, indices.rotation_cache_index, indices.translation_cache_index, indices.scale_cache_index);
 
-				const BoneStreams& bone_stream = bone_streams[current_track_index];
+				const transform_streams& bone_stream = bone_streams[current_track_index];
 				current_track_index = bone_stream.parent_bone_index;
 			}
 		}
@@ -352,7 +352,7 @@ namespace acl
 			return -1;
 		}
 
-		inline track_bit_rate_database::track_bit_rate_database(iallocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track)
+		inline track_bit_rate_database::track_bit_rate_database(iallocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const transform_streams* bone_streams, const transform_streams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track)
 			: m_allocator(allocator)
 			, m_mutable_bone_streams(bone_streams)
 			, m_raw_bone_streams(raw_bone_steams)
@@ -405,7 +405,7 @@ namespace acl
 			m_allocator.deallocate(m_data, m_data_size);
 		}
 
-		inline void track_bit_rate_database::set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track)
+		inline void track_bit_rate_database::set_segment(const transform_streams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track)
 		{
 			ACL_ASSERT(bone_streams != nullptr, "Bone streams cannot be null");
 			ACL_ASSERT(num_transforms == m_num_transforms, "The number of transforms isn't consistent, we will corrupt the heap");
@@ -637,7 +637,7 @@ namespace acl
 		RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL track_bit_rate_database::sample_rotation(const sample_context& context, uint32_t rotation_cache_index)
 		{
 			const uint32_t track_index = context.track_index;
-			const BoneStreams& bone_stream = m_mutable_bone_streams[track_index];
+			const transform_streams& bone_stream = m_mutable_bone_streams[track_index];
 			const size_t rotation_cache_index_ = rotation_cache_index;
 
 			rtm::quatf rotation;
@@ -677,7 +677,7 @@ namespace acl
 			}
 			else
 			{
-				const BoneStreams& raw_bone_stream = m_raw_bone_streams[track_index];
+				const transform_streams& raw_bone_stream = m_raw_bone_streams[track_index];
 
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index_);
 				rtm::quatf* cached_samples = safe_ptr_cast<rtm::quatf>(m_data + (m_track_size * rotation_cache_index_));
@@ -717,7 +717,7 @@ namespace acl
 		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL track_bit_rate_database::sample_translation(const sample_context& context, uint32_t translation_cache_index)
 		{
 			const uint32_t track_index = context.track_index;
-			const BoneStreams& bone_stream = m_mutable_bone_streams[track_index];
+			const transform_streams& bone_stream = m_mutable_bone_streams[track_index];
 			const size_t translation_cache_index_ = translation_cache_index;
 
 			rtm::vector4f translation;
@@ -752,7 +752,7 @@ namespace acl
 			}
 			else
 			{
-				const BoneStreams& raw_bone_stream = m_raw_bone_streams[track_index];
+				const transform_streams& raw_bone_stream = m_raw_bone_streams[track_index];
 
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index_);
 				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * translation_cache_index_));
@@ -790,7 +790,7 @@ namespace acl
 		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL track_bit_rate_database::sample_scale(const sample_context& context, uint32_t scale_cache_index)
 		{
 			const uint32_t track_index = context.track_index;
-			const BoneStreams& bone_stream = m_mutable_bone_streams[track_index];
+			const transform_streams& bone_stream = m_mutable_bone_streams[track_index];
 			const size_t scale_cache_index_ = scale_cache_index;
 
 			rtm::vector4f scale;
@@ -825,7 +825,7 @@ namespace acl
 			}
 			else
 			{
-				const BoneStreams& raw_bone_stream = m_raw_bone_streams[track_index];
+				const transform_streams& raw_bone_stream = m_raw_bone_streams[track_index];
 
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index_);
 				rtm::vector4f* cached_samples = safe_ptr_cast<rtm::vector4f>(m_data + (m_track_size * scale_cache_index_));
@@ -901,7 +901,7 @@ namespace acl
 			uint32_t current_track_index = query.m_track_index;
 			while (current_track_index != k_invalid_track_index)
 			{
-				const BoneStreams& bone_stream = m_mutable_bone_streams[current_track_index];
+				const transform_streams& bone_stream = m_mutable_bone_streams[current_track_index];
 				const hierarchical_track_query::transform_indices& indices = query.m_indices[current_track_index];
 
 				context.track_index = current_track_index;

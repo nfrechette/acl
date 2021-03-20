@@ -99,7 +99,7 @@ namespace acl
 
 				segment_context& segment = clip.segments[segment_index];
 				segment.clip = &clip;
-				segment.bone_streams = allocate_type_array<BoneStreams>(allocator, clip.num_bones);
+				segment.bone_streams = allocate_type_array<transform_streams>(allocator, clip.num_bones);
 				segment.ranges = nullptr;
 				segment.contributing_error = nullptr;
 				segment.num_bones = clip.num_bones;
@@ -119,8 +119,8 @@ namespace acl
 
 				for (uint32_t bone_index = 0; bone_index < clip.num_bones; ++bone_index)
 				{
-					const BoneStreams& clip_bone_stream = clip_segment->bone_streams[bone_index];
-					BoneStreams& segment_bone_stream = segment.bone_streams[bone_index];
+					const transform_streams& clip_bone_stream = clip_segment->bone_streams[bone_index];
+					transform_streams& segment_bone_stream = segment.bone_streams[bone_index];
 
 					segment_bone_stream.segment = &segment;
 					segment_bone_stream.bone_index = bone_index;

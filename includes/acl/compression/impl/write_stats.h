@@ -67,7 +67,7 @@ namespace acl
 		{
 			uint32_t bit_rate_counts[k_num_bit_rates] = { 0 };
 
-			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			for (const transform_streams& bone_stream : segment.const_bone_iterator())
 			{
 				const uint8_t rotation_bit_rate = bone_stream.rotations.get_bit_rate();
 				if (rotation_bit_rate != k_invalid_bit_rate)
@@ -247,7 +247,7 @@ namespace acl
 
 			uint32_t result = 0;
 
-			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			for (const transform_streams& bone_stream : segment.const_bone_iterator())
 			{
 				if (bone_stream.is_stripped_from_output())
 					continue;
@@ -276,7 +276,7 @@ namespace acl
 
 			uint32_t result = 0;
 
-			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			for (const transform_streams& bone_stream : segment.const_bone_iterator())
 			{
 				if (bone_stream.is_stripped_from_output())
 					continue;
@@ -302,7 +302,7 @@ namespace acl
 
 			uint32_t result = 0;
 
-			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			for (const transform_streams& bone_stream : segment.const_bone_iterator())
 			{
 				if (bone_stream.is_stripped_from_output())
 					continue;
@@ -325,7 +325,7 @@ namespace acl
 
 			uint32_t result = 0;
 
-			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			for (const transform_streams& bone_stream : segment.const_bone_iterator())
 			{
 				if (bone_stream.is_stripped_from_output())
 					continue;
@@ -420,7 +420,7 @@ namespace acl
 				uint32_t num_animated_translation_tracks = 0;
 				uint32_t num_animated_scale_tracks = 0;
 
-				for (const BoneStreams& bone_stream : clip.segments[0].bone_iterator())
+				for (const transform_streams& bone_stream : clip.segments[0].bone_iterator())
 				{
 					if (bone_stream.is_stripped_from_output())
 						continue;

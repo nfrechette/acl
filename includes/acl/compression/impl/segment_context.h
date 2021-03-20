@@ -46,7 +46,7 @@ namespace acl
 		struct segment_context
 		{
 			clip_context* clip;
-			BoneStreams* bone_streams;
+			transform_streams* bone_streams;
 			BoneRanges* ranges;
 			frame_contributing_error* contributing_error;	// Optional if we request it in the compression settings
 
@@ -71,8 +71,8 @@ namespace acl
 			uint32_t total_header_size;
 
 			//////////////////////////////////////////////////////////////////////////
-			iterator<BoneStreams> bone_iterator() { return iterator<BoneStreams>(bone_streams, num_bones); }
-			const_iterator<BoneStreams> const_bone_iterator() const { return const_iterator<BoneStreams>(bone_streams, num_bones); }
+			iterator<transform_streams> bone_iterator() { return iterator<transform_streams>(bone_streams, num_bones); }
+			const_iterator<transform_streams> const_bone_iterator() const { return const_iterator<transform_streams>(bone_streams, num_bones); }
 		};
 
 		inline void destroy_segment_context(iallocator& allocator, segment_context& segment)

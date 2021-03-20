@@ -97,7 +97,7 @@ namespace acl
 			{
 				const track_desc_transformf& desc = track_list[bone_index].get_description();
 
-				BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				transform_streams& bone_stream = segment.bone_streams[bone_index];
 				BoneRanges& bone_range = context.ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)

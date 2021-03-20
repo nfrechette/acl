@@ -206,14 +206,14 @@ namespace acl
 
 			segment_context& segment = out_clip_context.segments[0];
 
-			BoneStreams* bone_streams = allocate_type_array<BoneStreams>(allocator, num_transforms);
+			transform_streams* bone_streams = allocate_type_array<transform_streams>(allocator, num_transforms);
 
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
 				const track_qvvf& track = track_list[transform_index];
 				const track_desc_transformf& desc = track.get_description();
 
-				BoneStreams& bone_stream = bone_streams[transform_index];
+				transform_streams& bone_stream = bone_streams[transform_index];
 
 				bone_stream.segment = &segment;
 				bone_stream.bone_index = transform_index;
@@ -386,7 +386,7 @@ namespace acl
 		}
 
 		constexpr bool segment_context_has_scale(const segment_context& segment) { return segment.clip->has_scale; }
-		constexpr bool bone_streams_has_scale(const BoneStreams& bone_streams) { return segment_context_has_scale(*bone_streams.segment); }
+		constexpr bool bone_streams_has_scale(const transform_streams& bone_streams) { return segment_context_has_scale(*bone_streams.segment); }
 	}
 }
 

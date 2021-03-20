@@ -51,7 +51,7 @@ namespace acl
 			uint32_t num_scale_sub_tracks = 0;
 			for (uint32_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				if (bone_stream.output_index == k_invalid_track_index)
 					continue;	// Stripped
 
@@ -75,7 +75,7 @@ namespace acl
 		{
 			const auto animated_group_filter_action = [&segment](animation_track_type8 group_type, uint32_t bone_index)
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
 					return !bone_stream.is_rotation_constant;
 				else if (group_type == animation_track_type8::translation)
@@ -146,7 +146,7 @@ namespace acl
 		{
 			const auto animated_group_filter_action = [&segment, &group_filter_action](animation_track_type8 group_type, uint32_t bone_index)
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
 					return !bone_stream.is_rotation_constant && group_filter_action(group_type, bone_index);
 				else if (group_type == animation_track_type8::translation)

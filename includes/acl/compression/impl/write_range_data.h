@@ -58,7 +58,7 @@ namespace acl
 
 			// Only use the first segment, it contains the necessary information
 			const segment_context& segment = clip.segments[0];
-			for (const BoneStreams& bone_stream : segment.const_bone_iterator())
+			for (const transform_streams& bone_stream : segment.const_bone_iterator())
 			{
 				if (!bone_stream.is_rotation_constant)
 					range_data_size += rotation_size;
@@ -239,7 +239,7 @@ namespace acl
 
 			auto group_entry_action = [&segment, &range_data_group](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 			{
-				const BoneStreams& bone_stream = segment.bone_streams[bone_index];
+				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
 				{
 					if (is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))

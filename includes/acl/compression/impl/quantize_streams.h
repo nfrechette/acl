@@ -74,7 +74,7 @@ namespace acl
 			const clip_context& raw_clip;
 			const clip_context& additive_base_clip;
 			segment_context* segment;
-			BoneStreams* bone_streams;
+			transform_streams* bone_streams;
 			const transform_metadata* metadata;
 			uint32_t num_bones;
 			const itransform_error_metric* error_metric;
@@ -98,7 +98,7 @@ namespace acl
 			vector_format8 scale_format;
 			compression_level8 compression_level;
 
-			const BoneStreams* raw_bone_streams;
+			const transform_streams* raw_bone_streams;
 
 			rtm::qvvf* additive_local_pose;			// 1 per transform
 			rtm::qvvf* raw_local_pose;				// 1 per transform
@@ -326,7 +326,7 @@ namespace acl
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = context.bone_streams[bone_index];
+			transform_streams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_rotation_default)
@@ -384,13 +384,13 @@ namespace acl
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = context.bone_streams[bone_index];
+			transform_streams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_rotation_default)
 				return;
 
-			const BoneStreams& raw_bone_stream = context.raw_bone_streams[bone_index];
+			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
 			const rotation_format8 highest_bit_rate = get_highest_variant_precision(rotation_variant8::quat_drop_w);
 			const TrackStreamRange& bone_range = context.clip.ranges[bone_index].rotation;
 
@@ -436,7 +436,7 @@ namespace acl
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = context.bone_streams[bone_index];
+			transform_streams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_translation_default)
@@ -495,14 +495,14 @@ namespace acl
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = context.bone_streams[bone_index];
+			transform_streams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_translation_default)
 				return;
 
 			const TrackStreamRange& bone_range = context.clip.ranges[bone_index].translation;
-			const BoneStreams& raw_bone_stream = context.raw_bone_streams[bone_index];
+			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
 
 			// Constant translation tracks store the remaining sample with full precision
 			if (bone_stream.is_translation_constant)
@@ -546,7 +546,7 @@ namespace acl
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = context.bone_streams[bone_index];
+			transform_streams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_scale_default)
@@ -605,14 +605,14 @@ namespace acl
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			BoneStreams& bone_stream = context.bone_streams[bone_index];
+			transform_streams& bone_stream = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
 			if (bone_stream.is_scale_default)
 				return;
 
 			const TrackStreamRange& bone_range = context.clip.ranges[bone_index].scale;
-			const BoneStreams& raw_bone_stream = context.raw_bone_streams[bone_index];
+			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
 
 			// Constant scale tracks store the remaining sample with full precision
 			if (bone_stream.is_scale_constant)
