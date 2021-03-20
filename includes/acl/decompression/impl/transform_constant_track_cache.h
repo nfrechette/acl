@@ -52,6 +52,9 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 	// warning C26495: Variable '...' is uninitialized. Always initialize a member variable (type.6).
 	// We explicitly control initialization
 	#pragma warning(disable : 26495)
+	// warning C6385: Reading invalid data from '...':  the readable size is '512' bytes, but '528' bytes may be read.
+	// We properly handle overflow, this is a false positive
+	#pragma warning(disable : 6385)
 #endif
 
 namespace acl

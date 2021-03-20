@@ -1394,6 +1394,8 @@ namespace acl
 		#pragma warning(push)
 		// warning C4701: potentially uninitialized local variable
 		#pragma warning(disable : 4701)
+		// warning C6001: Using uninitialized memory '...'.
+		#pragma warning(disable : 6001)
 #elif defined(RTM_COMPILER_GCC)
 		#pragma GCC diagnostic push
 		#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
