@@ -98,7 +98,7 @@ namespace acl
 				const track_desc_transformf& desc = track_list[bone_index].get_description();
 
 				transform_streams& bone_stream = segment.bone_streams[bone_index];
-				BoneRanges& bone_range = context.ranges[bone_index];
+				transform_range& bone_range = context.ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));

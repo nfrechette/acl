@@ -67,14 +67,14 @@ namespace acl
 			return track_stream_range::from_min_max(min, max);
 		}
 
-		inline void extract_bone_ranges_impl(const segment_context& segment, BoneRanges* bone_ranges)
+		inline void extract_bone_ranges_impl(const segment_context& segment, transform_range* bone_ranges)
 		{
 			const bool has_scale = segment_context_has_scale(segment);
 
 			for (uint32_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 			{
 				const transform_streams& bone_stream = segment.bone_streams[bone_index];
-				BoneRanges& bone_range = bone_ranges[bone_index];
+				transform_range& bone_range = bone_ranges[bone_index];
 
 				bone_range.rotation = calculate_track_range(bone_stream.rotations, true);
 				bone_range.translation = calculate_track_range(bone_stream.translations, false);
@@ -88,7 +88,7 @@ namespace acl
 
 		inline void extract_clip_bone_ranges(iallocator& allocator, clip_context& context)
 		{
-			context.ranges = allocate_type_array<BoneRanges>(allocator, context.num_bones);
+			context.ranges = allocate_type_array<transform_range>(allocator, context.num_bones);
 
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			const segment_context& segment = context.segments[0];
@@ -148,14 +148,14 @@ namespace acl
 
 			for (segment_context& segment : context.segment_iterator())
 			{
-				segment.ranges = allocate_type_array<BoneRanges>(allocator, segment.num_bones);
+				segment.ranges = allocate_type_array<transform_range>(allocator, segment.num_bones);
 
 				acl_impl::extract_bone_ranges_impl(segment, segment.ranges);
 
 				for (uint32_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				{
 					const transform_streams& bone_stream = segment.bone_streams[bone_index];
-					BoneRanges& bone_range = segment.ranges[bone_index];
+					transform_range& bone_range = segment.ranges[bone_index];
 
 					if (!bone_stream.is_rotation_constant && context.are_rotations_normalized)
 						bone_range.rotation = fixup_range(bone_range.rotation);
@@ -181,7 +181,7 @@ namespace acl
 			return rtm::vector_select(is_range_zero_mask, rtm::vector_zero(), normalized_sample);
 		}
 
-		inline void normalize_rotation_streams(transform_streams* bone_streams, const BoneRanges* bone_ranges, uint32_t num_bones)
+		inline void normalize_rotation_streams(transform_streams* bone_streams, const transform_range* bone_ranges, uint32_t num_bones)
 		{
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
@@ -189,7 +189,7 @@ namespace acl
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				transform_streams& bone_stream = bone_streams[bone_index];
-				const BoneRanges& bone_range = bone_ranges[bone_index];
+				const transform_range& bone_range = bone_ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
@@ -233,7 +233,7 @@ namespace acl
 			}
 		}
 
-		inline void normalize_translation_streams(transform_streams* bone_streams, const BoneRanges* bone_ranges, uint32_t num_bones)
+		inline void normalize_translation_streams(transform_streams* bone_streams, const transform_range* bone_ranges, uint32_t num_bones)
 		{
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
@@ -241,7 +241,7 @@ namespace acl
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				transform_streams& bone_stream = bone_streams[bone_index];
-				const BoneRanges& bone_range = bone_ranges[bone_index];
+				const transform_range& bone_range = bone_ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
@@ -274,7 +274,7 @@ namespace acl
 			}
 		}
 
-		inline void normalize_scale_streams(transform_streams* bone_streams, const BoneRanges* bone_ranges, uint32_t num_bones)
+		inline void normalize_scale_streams(transform_streams* bone_streams, const transform_range* bone_ranges, uint32_t num_bones)
 		{
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
@@ -282,7 +282,7 @@ namespace acl
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				transform_streams& bone_stream = bone_streams[bone_index];
-				const BoneRanges& bone_range = bone_ranges[bone_index];
+				const transform_range& bone_range = bone_ranges[bone_index];
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));

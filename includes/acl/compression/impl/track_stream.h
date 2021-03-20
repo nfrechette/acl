@@ -306,7 +306,7 @@ namespace acl
 			rtm::vector4f	m_extent;
 		};
 
-		struct BoneRanges
+		struct transform_range
 		{
 			track_stream_range rotation;
 			track_stream_range translation;

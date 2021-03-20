@@ -110,7 +110,7 @@ namespace acl
 			{
 				if (group_type == animation_track_type8::rotation)
 				{
-					const BoneRanges& bone_range = clip.ranges[bone_index];
+					const transform_range& bone_range = clip.ranges[bone_index];
 
 					const rtm::vector4f range_min = bone_range.rotation.get_min();
 					const rtm::vector4f range_extent = bone_range.rotation.get_extent();
@@ -120,7 +120,7 @@ namespace acl
 				}
 				else if (group_type == animation_track_type8::translation)
 				{
-					const BoneRanges& bone_range = clip.ranges[bone_index];
+					const transform_range& bone_range = clip.ranges[bone_index];
 
 					const rtm::vector4f range_min = bone_range.translation.get_min();
 					const rtm::vector4f range_extent = bone_range.translation.get_extent();
@@ -130,7 +130,7 @@ namespace acl
 				}
 				else
 				{
-					const BoneRanges& bone_range = clip.ranges[bone_index];
+					const transform_range& bone_range = clip.ranges[bone_index];
 
 					const rtm::vector4f range_min = bone_range.scale.get_min();
 					const rtm::vector4f range_extent = bone_range.scale.get_extent();
@@ -256,7 +256,7 @@ namespace acl
 					}
 					else
 					{
-						const BoneRanges& bone_range = segment.ranges[bone_index];
+						const transform_range& bone_range = segment.ranges[bone_index];
 
 						const rtm::vector4f range_min = bone_range.rotation.get_min();
 						const rtm::vector4f range_extent = bone_range.rotation.get_extent();
@@ -286,7 +286,7 @@ namespace acl
 					}
 					else
 					{
-						const BoneRanges& bone_range = segment.ranges[bone_index];
+						const transform_range& bone_range = segment.ranges[bone_index];
 
 						const rtm::vector4f range_min = bone_range.translation.get_min();
 						const rtm::vector4f range_extent = bone_range.translation.get_extent();
@@ -306,7 +306,7 @@ namespace acl
 					}
 					else
 					{
-						const BoneRanges& bone_range = segment.ranges[bone_index];
+						const transform_range& bone_range = segment.ranges[bone_index];
 
 						const rtm::vector4f range_min = bone_range.scale.get_min();
 						const rtm::vector4f range_extent = bone_range.scale.get_extent();
