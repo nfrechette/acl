@@ -677,7 +677,7 @@ namespace acl
 
 				const uint32_t segment_start_indices_offset = align_to<uint32_t>(sizeof(transform_tracks_header), 4);	// Relative to the start of our transform_tracks_header
 				transforms_header->database_header_offset = align_to(segment_start_indices_offset + segment_start_indices_size, 4);
-				transforms_header->segment_headers_offset = align_to(transforms_header->database_header_offset + sizeof(tracks_database_header), 4);
+				transforms_header->segment_headers_offset = align_to(transforms_header->database_header_offset + uint32_t(sizeof(tracks_database_header)), 4);
 				transforms_header->sub_track_types_offset = align_to(transforms_header->segment_headers_offset + segment_headers_size, 4);
 				transforms_header->constant_track_data_offset = align_to(transforms_header->sub_track_types_offset + packed_sub_track_buffer_size, 4);
 				transforms_header->clip_range_data_offset = align_to(transforms_header->constant_track_data_offset + constant_data_size, 4);
@@ -1154,29 +1154,29 @@ namespace acl
 			db_header->bulk_data_size[1] = bulk_data_low_size;
 			db_header->set_is_bulk_data_inline(true);	// Data is always inline when compressing
 
-			database_buffer = align_to(database_buffer, 4);								// Align chunk descriptions
-			database_buffer += num_medium_chunks * sizeof(database_chunk_description);	// Chunk descriptions
+			database_buffer = align_to(database_buffer, 4);										// Align chunk descriptions
+			database_buffer += num_medium_chunks * sizeof(database_chunk_description);			// Chunk descriptions
 
-			database_buffer = align_to(database_buffer, 4);								// Align chunk descriptions
-			database_buffer += num_low_chunks * sizeof(database_chunk_description);		// Chunk descriptions
+			database_buffer = align_to(database_buffer, 4);										// Align chunk descriptions
+			database_buffer += num_low_chunks * sizeof(database_chunk_description);				// Chunk descriptions
 
-			database_buffer = align_to(database_buffer, 4);								// Align clip hashes
-			db_header->clip_metadata_offset = database_buffer - db_header_start;		// Clip metadata
-			database_buffer += num_tracks * sizeof(database_clip_metadata);				// Clip metadata
+			database_buffer = align_to(database_buffer, 4);										// Align clip hashes
+			db_header->clip_metadata_offset = uint32_t(database_buffer - db_header_start);		// Clip metadata
+			database_buffer += num_tracks * sizeof(database_clip_metadata);						// Clip metadata
 
-			database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
+			database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);		// Align bulk data
 			if (bulk_data_medium_size != 0)
-				db_header->bulk_data_offset[0] = database_buffer - db_header_start;		// Bulk data
+				db_header->bulk_data_offset[0] = uint32_t(database_buffer - db_header_start);	// Bulk data
 			else
 				db_header->bulk_data_offset[0] = invalid_ptr_offset();
-			database_buffer += bulk_data_medium_size;									// Bulk data
+			database_buffer += bulk_data_medium_size;											// Bulk data
 
-			database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
+			database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);		// Align bulk data
 			if (bulk_data_low_size != 0)
-				db_header->bulk_data_offset[1] = database_buffer - db_header_start;		// Bulk data
+				db_header->bulk_data_offset[1] = uint32_t(database_buffer - db_header_start);	// Bulk data
 			else
 				db_header->bulk_data_offset[1] = invalid_ptr_offset();
-			database_buffer += bulk_data_low_size;										// Bulk data
+			database_buffer += bulk_data_low_size;												// Bulk data
 
 			// Write our chunk descriptions
 			const uint32_t num_written_medium_chunks = write_database_chunk_descriptions(context, settings, quality_tier::medium_importance, db_header->get_chunk_descriptions_medium());
@@ -1412,29 +1412,29 @@ namespace acl
 		db_header->bulk_data_offset[tier_index] = invalid_ptr_offset();
 		db_header->bulk_data_hash[tier_index] = hash32(nullptr, 0);
 
-		database_buffer = align_to(database_buffer, 4);								// Align chunk descriptions
-		database_buffer += num_medium_chunks * sizeof(database_chunk_description);	// Chunk descriptions
+		database_buffer = align_to(database_buffer, 4);										// Align chunk descriptions
+		database_buffer += num_medium_chunks * sizeof(database_chunk_description);			// Chunk descriptions
 
-		database_buffer = align_to(database_buffer, 4);								// Align chunk descriptions
-		database_buffer += num_low_chunks * sizeof(database_chunk_description);		// Chunk descriptions
+		database_buffer = align_to(database_buffer, 4);										// Align chunk descriptions
+		database_buffer += num_low_chunks * sizeof(database_chunk_description);				// Chunk descriptions
 
-		database_buffer = align_to(database_buffer, 4);								// Align clip hashes
-		db_header->clip_metadata_offset = database_buffer - db_header_start;		// Clip metadata
-		database_buffer += num_tracks * sizeof(database_clip_metadata);				// Clip metadata
+		database_buffer = align_to(database_buffer, 4);										// Align clip hashes
+		db_header->clip_metadata_offset = uint32_t(database_buffer - db_header_start);		// Clip metadata
+		database_buffer += num_tracks * sizeof(database_clip_metadata);						// Clip metadata
 
-		database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
+		database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);		// Align bulk data
 		if (bulk_data_medium_size != 0)
-			db_header->bulk_data_offset[0] = database_buffer - db_header_start;			// Bulk data
+			db_header->bulk_data_offset[0] = uint32_t(database_buffer - db_header_start);	// Bulk data
 		else
 			db_header->bulk_data_offset[0] = invalid_ptr_offset();
-		database_buffer += bulk_data_medium_size;										// Bulk data
+		database_buffer += bulk_data_medium_size;											// Bulk data
 
-		database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);	// Align bulk data
+		database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);		// Align bulk data
 		if (bulk_data_low_size != 0)
-			db_header->bulk_data_offset[1] = database_buffer - db_header_start;			// Bulk data
+			db_header->bulk_data_offset[1] = uint32_t(database_buffer - db_header_start);	// Bulk data
 		else
 			db_header->bulk_data_offset[1] = invalid_ptr_offset();
-		database_buffer += bulk_data_low_size;											// Bulk data
+		database_buffer += bulk_data_low_size;												// Bulk data
 
 		// Copy our chunk descriptions
 		if (tier != quality_tier::medium_importance)

@@ -142,14 +142,14 @@ namespace acl
 			scalars_header->num_bits_per_frame = num_bits_per_frame;
 
 			const uint8_t* packed_data_start_offset = buffer - sizeof(scalar_tracks_header);	// Relative to our header
-			scalars_header->metadata_per_track = buffer - packed_data_start_offset;
+			scalars_header->metadata_per_track = uint32_t(buffer - packed_data_start_offset);
 			buffer += per_track_metadata_size;
 			buffer = align_to(buffer, 4);
-			scalars_header->track_constant_values = buffer - packed_data_start_offset;
+			scalars_header->track_constant_values = uint32_t(buffer - packed_data_start_offset);
 			buffer += constant_values_size;
-			scalars_header->track_range_values = buffer - packed_data_start_offset;
+			scalars_header->track_range_values = uint32_t(buffer - packed_data_start_offset);
 			buffer += range_values_size;
-			scalars_header->track_animated_values = buffer - packed_data_start_offset;
+			scalars_header->track_animated_values = uint32_t(buffer - packed_data_start_offset);
 			buffer += animated_values_size;
 
 			if (metadata_size != 0)
