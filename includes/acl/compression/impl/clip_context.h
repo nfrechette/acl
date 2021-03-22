@@ -50,9 +50,9 @@ namespace acl
 		class bone_chain_iterator
 		{
 		public:
-			bone_chain_iterator(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint32_t bone_index, uint32_t offset)
-				: m_bone_chain(bone_chain)
-				, m_bone_chain_desc(bone_chain_desc)
+			bone_chain_iterator(const uint32_t* chain, bitset_description chain_desc, uint32_t bone_index, uint32_t offset)
+				: m_bone_chain(chain)
+				, m_bone_chain_desc(chain_desc)
 				, m_bone_index(bone_index)
 				, m_offset(offset)
 			{}
@@ -99,15 +99,15 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		struct bone_chain
 		{
-			bone_chain(const uint32_t* bone_chain, bitset_description bone_chain_desc, uint32_t bone_index)
-				: m_bone_chain(bone_chain)
-				, m_bone_chain_desc(bone_chain_desc)
+			bone_chain(const uint32_t* chain, bitset_description chain_desc, uint32_t bone_index)
+				: m_bone_chain(chain)
+				, m_bone_chain_desc(chain_desc)
 				, m_bone_index(bone_index)
 			{
 				// We don't know where this bone chain starts, find the root bone
 				// TODO: Use clz or similar to find the next set bit starting at the current index
 				uint32_t root_index = 0;
-				while (!bitset_test(bone_chain, bone_chain_desc, root_index))
+				while (!bitset_test(chain, chain_desc, root_index))
 					root_index++;
 
 				m_root_index = root_index;
