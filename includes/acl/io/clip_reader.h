@@ -784,9 +784,13 @@ namespace acl
 				}
 
 				if (num_tracks == 0)
+				{
+					// Found our first track, this is the type we'll use for every track
 					track_list_type = track_type;
+				}
 				else if (track_type != track_list_type)
 				{
+					// Track type doesn't match the type of the first track
 					m_error.error = clip_reader_error::InvalidTrackType;
 					return false;
 				}
