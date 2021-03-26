@@ -146,7 +146,7 @@ namespace acl
 				return *this;
 			}
 
-			void duplicate(track_stream& copy) const
+			void duplicate_impl(track_stream& copy) const
 			{
 				ACL_ASSERT(copy.m_type == m_type, "Attempting to duplicate streams with incompatible types!");
 				if (m_allocator != nullptr)
@@ -200,7 +200,7 @@ namespace acl
 			rotation_track_stream duplicate() const
 			{
 				rotation_track_stream copy;
-				track_stream::duplicate(copy);
+				duplicate_impl(copy);
 				return copy;
 			}
 
@@ -230,7 +230,7 @@ namespace acl
 			translation_track_stream duplicate() const
 			{
 				translation_track_stream copy;
-				track_stream::duplicate(copy);
+				duplicate_impl(copy);
 				return copy;
 			}
 
@@ -260,7 +260,7 @@ namespace acl
 			scale_track_stream duplicate() const
 			{
 				scale_track_stream copy;
-				track_stream::duplicate(copy);
+				duplicate_impl(copy);
 				return copy;
 			}
 
