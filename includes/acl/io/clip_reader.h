@@ -903,6 +903,9 @@ namespace acl
 					break;
 				default:
 					ACL_ASSERT(false, "Unsupported track type");
+					// Initialize our value to itself, we'll never use it
+					// This silences an MSVC static analysis warning
+					track_samples_typed.any = &track_samples_typed;
 					break;
 				}
 
