@@ -512,7 +512,9 @@ void validate_convert(iallocator& allocator, const track_array& raw_tracks)
 
 	track_array new_raw_tracks;
 	result = convert_track_list(allocator, *compressed_tracks_, new_raw_tracks);
-	ACL_ASSERT(result.empty() && !new_raw_tracks.is_empty(), "Convert failed");
+
+	const bool is_input_empty = compressed_tracks_->get_num_tracks() == 0;
+	ACL_ASSERT(result.empty() && new_raw_tracks.is_empty() == is_input_empty, "Convert failed");
 
 	compare_raw_with_compressed(allocator, new_raw_tracks, *compressed_tracks_);
 

@@ -127,6 +127,10 @@ namespace acl
 		template<class decompression_settings_type>
 		inline void seek_v0(persistent_transform_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy)
 		{
+			const tracks_header& header = get_tracks_header(*context.tracks);
+			if (header.num_tracks == 0)
+				return;	// Empty track list
+
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			if (decompression_settings_type::clamp_sample_time())
 				sample_time = rtm::scalar_clamp(sample_time, 0.0F, context.clip_duration);
@@ -134,7 +138,6 @@ namespace acl
 			if (context.sample_time == sample_time)
 				return;
 
-			const tracks_header& header = get_tracks_header(*context.tracks);
 			const transform_tracks_header& transform_header = get_transform_tracks_header(*context.tracks);
 
 			// Prefetch our sub-track types, we'll need them soon when we start decompressing
@@ -1196,6 +1199,11 @@ namespace acl
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_tracks_v0(const persistent_transform_decompression_context_v0& context, track_writer_type& writer)
 		{
+			const tracks_header& header = get_tracks_header(*context.tracks);
+			const uint32_t num_tracks = header.num_tracks;
+			if (num_tracks == 0)
+				return;	// Empty track list
+
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
 			if (context.sample_time < 0.0F)
 				return;	// Invalid sample time, we didn't seek yet
@@ -1206,8 +1214,6 @@ namespace acl
 			if (decompression_settings_type::disable_fp_exeptions())
 				disable_fp_exceptions(fp_env);
 
-			const tracks_header& header = get_tracks_header(*context.tracks);
-
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 
@@ -1215,7 +1221,6 @@ namespace acl
 			const rtm::vector4f default_translation = rtm::vector_zero();
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const uint32_t has_scale = context.has_scale;
-			const uint32_t num_tracks = header.num_tracks;
 
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
@@ -1404,14 +1409,16 @@ namespace acl
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_track_v0(const persistent_transform_decompression_context_v0& context, uint32_t track_index, track_writer_type& writer)
 		{
+			const tracks_header& tracks_header_ = get_tracks_header(*context.tracks);
+			const uint32_t num_tracks = tracks_header_.num_tracks;
+			if (num_tracks == 0)
+				return;	// Empty track list
+
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
 			if (context.sample_time < 0.0F)
 				return;	// Invalid sample time, we didn't seek yet
 
-			const tracks_header& tracks_header_ = get_tracks_header(*context.tracks);
-			const uint32_t num_tracks = tracks_header_.num_tracks;
 			ACL_ASSERT(track_index < num_tracks, "Invalid track index");
-
 			if (track_index >= num_tracks)
 				return;	// Invalid track index
 

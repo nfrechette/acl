@@ -1263,6 +1263,9 @@ namespace acl
 		// Calculate how many frames are movable to the database
 		// A frame is movable if it isn't the first or last frame of a segment
 		const uint32_t num_frames = calculate_num_frames(compressed_tracks_list, num_compressed_tracks);
+		if (num_frames == 0)
+			return error_result("All compressed track lists are empty");
+
 		const uint32_t num_movable_frames = calculate_num_movable_frames(compressed_tracks_list, num_compressed_tracks);
 		ACL_ASSERT(num_movable_frames < num_frames, "Cannot move out more frames than we have");
 

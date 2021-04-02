@@ -1729,6 +1729,9 @@ namespace acl
 		{
 			(void)out_stats;
 
+			if (clip.num_bones == 0)
+				return;
+
 			const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(settings.translation_format);
 			const bool is_scale_variable = is_vector_format_variable(settings.scale_format);

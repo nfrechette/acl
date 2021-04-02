@@ -112,6 +112,10 @@ namespace acl
 		template<class decompression_settings_type>
 		inline void seek_v0(persistent_scalar_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy)
 		{
+			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*context.tracks);
+			if (header.num_samples == 0)
+				return;	// Empty track list
+
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			if (decompression_settings_type::clamp_sample_time())
 				sample_time = rtm::scalar_clamp(sample_time, 0.0F, context.duration);
@@ -120,8 +124,6 @@ namespace acl
 				return;
 
 			context.sample_time = sample_time;
-
-			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*context.tracks);
 
 			uint32_t key_frame0;
 			uint32_t key_frame1;
@@ -136,6 +138,11 @@ namespace acl
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_tracks_v0(const persistent_scalar_decompression_context_v0& context, track_writer_type& writer)
 		{
+			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*context.tracks);
+			const uint32_t num_tracks = header.num_tracks;
+			if (num_tracks == 0)
+				return;	// Empty track list
+
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
 			if (context.sample_time < 0.0F)
 				return;	// Invalid sample time, we didn't seek yet
@@ -146,7 +153,6 @@ namespace acl
 			if (decompression_settings_type::disable_fp_exeptions())
 				disable_fp_exceptions(fp_env);
 
-			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*context.tracks);
 			const acl_impl::scalar_tracks_header& scalars_header = acl_impl::get_scalar_tracks_header(*context.tracks);
 			const rtm::scalarf interpolation_alpha = rtm::scalar_set(context.interpolation_alpha);
 
@@ -159,7 +165,6 @@ namespace acl
 			uint32_t track_bit_offset1 = context.key_frame_bit_offsets[1];
 
 			const track_type8 track_type = header.track_type;
-			const uint32_t num_tracks = header.num_tracks;
 
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
@@ -366,13 +371,15 @@ namespace acl
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_track_v0(const persistent_scalar_decompression_context_v0& context, uint32_t track_index, track_writer_type& writer)
 		{
+			const tracks_header& header = get_tracks_header(*context.tracks);
+			if (header.num_tracks == 0)
+				return;	// Empty track list
+
 			ACL_ASSERT(context.sample_time >= 0.0f, "Context not set to a valid sample time");
 			if (context.sample_time < 0.0F)
 				return;	// Invalid sample time, we didn't seek yet
 
-			const tracks_header& header = get_tracks_header(*context.tracks);
 			ACL_ASSERT(track_index < header.num_tracks, "Invalid track index");
-
 			if (track_index >= header.num_tracks)
 				return;	// Invalid track index
 

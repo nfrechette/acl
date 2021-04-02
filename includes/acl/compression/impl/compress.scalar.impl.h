@@ -130,9 +130,9 @@ namespace acl
 			header->version = compressed_tracks_version16::latest;
 			header->algorithm_type = algorithm_type8::uniformly_sampled;
 			header->track_type = track_list.get_track_type();
-			header->num_tracks = context.num_tracks;
-			header->num_samples = context.num_samples;
-			header->sample_rate = context.sample_rate;
+			header->num_tracks = context.num_output_tracks;
+			header->num_samples = context.num_output_tracks != 0 ? context.num_samples : 0;
+			header->sample_rate = context.num_output_tracks != 0 ? context.sample_rate : 0.0F;
 			header->set_has_metadata(metadata_size != 0);
 
 			// Write our scalar tracks header
