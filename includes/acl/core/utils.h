@@ -69,7 +69,6 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	inline float calculate_duration(uint32_t num_samples, float sample_rate)
 	{
-		ACL_ASSERT(sample_rate > 0.0F, "Invalid sample rate: %f", sample_rate);
 		if (num_samples == 0)
 			return 0.0F;	// No samples means we have no duration
 
@@ -77,6 +76,7 @@ namespace acl
 			return std::numeric_limits<float>::infinity();	// A single sample means we have an indefinite duration (static pose)
 
 		// Otherwise we have some duration
+		ACL_ASSERT(sample_rate > 0.0F, "Invalid sample rate: %f", sample_rate);
 		return float(num_samples - 1) / sample_rate;
 	}
 }
