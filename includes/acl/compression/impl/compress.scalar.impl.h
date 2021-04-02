@@ -89,7 +89,7 @@ namespace acl
 			ACL_ASSERT(is_aligned_to(buffer_size, 4), "Invalid alignment");
 			buffer_size += animated_values_size;									// Animated values
 
-																					// Optional metadata
+			// Optional metadata
 			const uint32_t metadata_start_offset = align_to(buffer_size, 4);
 			const uint32_t metadata_track_list_name_size = settings.include_track_list_name ? write_track_list_name(track_list, nullptr) : 0;
 			const uint32_t metadata_track_names_size = settings.include_track_names ? write_track_names(track_list, context.track_output_indices, context.num_output_tracks, nullptr) : 0;

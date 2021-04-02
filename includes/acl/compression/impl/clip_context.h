@@ -133,7 +133,7 @@ namespace acl
 		struct clip_context
 		{
 			segment_context* segments					= nullptr;
-			transform_range* ranges							= nullptr;
+			transform_range* ranges						= nullptr;
 			transform_metadata* metadata				= nullptr;
 			uint32_t* leaf_transform_chains				= nullptr;
 

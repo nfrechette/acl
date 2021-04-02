@@ -317,7 +317,7 @@ namespace acl
 
 		struct transform_streams
 		{
-			segment_context* segment					= nullptr;
+			segment_context* segment				= nullptr;
 			uint32_t bone_index						= k_invalid_track_index;
 			uint32_t parent_bone_index				= k_invalid_track_index;
 			uint32_t output_index					= k_invalid_track_index;
