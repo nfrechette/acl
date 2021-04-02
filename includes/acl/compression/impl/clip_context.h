@@ -124,10 +124,10 @@ namespace acl
 
 		struct transform_metadata
 		{
-			const uint32_t* transform_chain;
-			uint32_t parent_index;
-			float precision;
-			float shell_distance;
+			const uint32_t* transform_chain				= nullptr;
+			uint32_t parent_index						= k_invalid_track_index;
+			float precision								= 0.0F;
+			float shell_distance						= 0.0F;
 		};
 
 		struct clip_context

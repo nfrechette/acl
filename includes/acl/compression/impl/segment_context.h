@@ -45,30 +45,30 @@ namespace acl
 
 		struct segment_context
 		{
-			clip_context* clip;
-			transform_streams* bone_streams;
-			transform_range* ranges;
-			frame_contributing_error* contributing_error;	// Optional if we request it in the compression settings
+			clip_context* clip								= nullptr;
+			transform_streams* bone_streams					= nullptr;
+			transform_range* ranges							= nullptr;
+			frame_contributing_error* contributing_error	= nullptr;	// Optional if we request it in the compression settings
 
-			uint32_t num_samples;
-			uint32_t num_bones;
+			uint32_t num_samples							= 0;
+			uint32_t num_bones								= 0;
 
-			uint32_t clip_sample_offset;
-			uint32_t segment_index;
+			uint32_t clip_sample_offset						= 0;
+			uint32_t segment_index							= 0;
 
-			bool are_rotations_normalized;
-			bool are_translations_normalized;
-			bool are_scales_normalized;
+			bool are_rotations_normalized					= false;
+			bool are_translations_normalized				= false;
+			bool are_scales_normalized						= false;
 
 			// Stat tracking
-			uint32_t animated_rotation_bit_size;		// Tier 0
-			uint32_t animated_translation_bit_size;		// Tier 0
-			uint32_t animated_scale_bit_size;			// Tier 0
-			uint32_t animated_pose_bit_size;			// Tier 0
-			uint32_t animated_data_size;				// Tier 0
-			uint32_t range_data_size;
-			uint32_t segment_data_size;
-			uint32_t total_header_size;
+			uint32_t animated_rotation_bit_size				= 0;		// Tier 0
+			uint32_t animated_translation_bit_size			= 0;		// Tier 0
+			uint32_t animated_scale_bit_size				= 0;		// Tier 0
+			uint32_t animated_pose_bit_size					= 0;		// Tier 0
+			uint32_t animated_data_size						= 0;		// Tier 0
+			uint32_t range_data_size						= 0;
+			uint32_t segment_data_size						= 0;
+			uint32_t total_header_size						= 0;
 
 			//////////////////////////////////////////////////////////////////////////
 			iterator<transform_streams> bone_iterator() { return iterator<transform_streams>(bone_streams, num_bones); }
