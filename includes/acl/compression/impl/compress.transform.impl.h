@@ -275,8 +275,8 @@ namespace acl
 			header->algorithm_type = algorithm_type8::uniformly_sampled;
 			header->track_type = track_list.get_track_type();
 			header->num_tracks = num_output_bones;
-			header->num_samples = track_list.get_num_samples_per_track();
-			header->sample_rate = track_list.get_sample_rate();
+			header->num_samples = num_output_bones != 0 ? track_list.get_num_samples_per_track() : 0;
+			header->sample_rate = num_output_bones != 0 ? track_list.get_sample_rate() : 0.0F;
 			header->set_rotation_format(settings.rotation_format);
 			header->set_translation_format(settings.translation_format);
 			header->set_scale_format(settings.scale_format);

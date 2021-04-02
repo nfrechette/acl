@@ -180,8 +180,6 @@ namespace acl
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
 			const float sample_rate = track_list.get_sample_rate();
 
-			ACL_ASSERT(num_transforms != 0, "Track array has no tracks!");
-
 			// Create a single segment with the whole clip
 			out_clip_context.segments = allocate_type_array<segment_context>(allocator, 1);
 			out_clip_context.ranges = nullptr;
@@ -296,6 +294,7 @@ namespace acl
 			segment.total_header_size = 0;
 
 			// Initialize our hierarchy information
+			if (num_transforms != 0)
 			{
 				// Calculate which bones are leaf bones that have no children
 				bitset_description bone_bitset_desc = bitset_description::make_from_num_bits(num_transforms);

@@ -470,6 +470,10 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 {
 	using namespace acl_impl;
 
+	// We do not support building empty databases
+	if (compressed_tracks0.get_num_tracks() == 0 || compressed_tracks0.get_num_samples_per_track() == 0)
+		return;
+
 	// When we have a database, we are forced to linearly interpolate our keys which means
 	// we can end up with slightly different values than we otherwise would.
 	// When this happens, zero scale ends up being non-zero and the results can end up vastly different.
