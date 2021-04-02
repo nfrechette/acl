@@ -74,6 +74,12 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 
 	debug_track_writer track_writer(allocator, track_type8::qvvf, num_bones);
 
+	{
+		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
+		context.seek(0.0F, sample_rounding_policy::nearest);
+		context.decompress_tracks(track_writer);
+	}
+
 	// Regression test
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
@@ -131,6 +137,12 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 	debug_track_writer lossy_track_writer(allocator, track_type, num_tracks);
 
 	const rtm::vector4f zero = rtm::vector_zero();
+
+	{
+		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
+		context.seek(0.0F, sample_rounding_policy::nearest);
+		context.decompress_tracks(lossy_tracks_writer);
+	}
 
 	// Regression test
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
