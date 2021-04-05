@@ -1,14 +1,14 @@
 # Carnegie-Mellon University database performance
 
-|                       | v1.3.0 | v1.2.0 | v1.1.0     |
+|                       | v2.0.0 | v1.3.0 | v1.2.0 |
 | --------------------- | ---------- | ---------- | ---------- |
-| **Compressed size**   | 71.00 MB | 71.01 MB | 67.06 MB   |
-| **Compression ratio** | 20.13 : 1 | 20.13 : 1 | 21.31 : 1  |
-| **Compression time**  | 2m 22.3s | 6m 9.71s | 35m 19.96s |
-| **Compression speed**  | 10285.52 KB/sec | 3958.99 KB/sec | 690.43 KB/sec |
-| **Max error**         | 0.0725 cm | 0.0725 cm | 0.0725 cm  |
-| **Error 99<sup>th</sup> percentile** | 0.0089 cm | 0.0089 cm | 0.0090 cm |
-| **Samples below error threshold** | 99.86 % | 99.86 % | 99.83 % |
+| **Compressed size**   | 72.14 MB | 71.00 MB | 71.01 MB |
+| **Compression ratio** | 19.81 : 1 | 20.13 : 1 | 20.13 : 1 |
+| **Compression time**  | 1m 55s | 2m 22.3s | 6m 9.71s |
+| **Compression speed**  | 12727.73 KB/sec | 10285.52 KB/sec | 3958.99 KB/sec |
+| **Max error**         | 0.0725 cm | 0.0725 cm | 0.0725 cm |
+| **Error 99<sup>th</sup> percentile** | 0.0089 cm | 0.0089 cm | 0.0089 cm |
+| **Samples below error threshold** | 99.86 % | 99.86 % | 99.86 % |
 
 *Note: Starting with v1.3.0 measurements have been made with a Ryzen 2950X CPU while prior versions used an Intel i7 6850K.*
 

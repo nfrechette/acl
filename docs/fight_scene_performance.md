@@ -1,14 +1,14 @@
 # Matinee fight scene performance
 
-|                       | v1.3.0 | v1.2.0 | v1.1.0    |
+|                       | v2.0.0 | v1.3.0 | v1.2.0 |
 | --------------------- | --------- | --------- | --------- |
-| **Compressed size**   | 8.18 MB | 8.77 MB | 8.66 MB   |
-| **Compression ratio** | 7.63 : 1 | 7.11 : 1 | 7.20 : 1  |
-| **Compression time**  | 4.89s | 20.27s | 1m 2.62s |
-| **Compression speed**  | 13074.59 KB/sec | 3150.43 KB/sec | 1020.06 KB/sec |
-| **Max error**         | 0.0634 cm | 0.0591 cm | 0.0620 cm |
-| **Error 99<sup>th</sup> percentile** | 0.0201 cm | 0.0382 cm | 0.0255 cm |
-| **Samples below error threshold** | 97.90 % | 94.61 % | 95.03 % |
+| **Compressed size**   | 8.18 MB | 8.18 MB | 8.77 MB |
+| **Compression ratio** | 7.62 : 1 | 7.63 : 1 | 7.11 : 1 |
+| **Compression time**  | 3.86s | 4.89s | 20.27s |
+| **Compression speed**  | 16534.75 KB/sec | 13074.59 KB/sec | 3150.43 KB/sec |
+| **Max error**         | 0.0635 cm | 0.0634 cm | 0.0591 cm |
+| **Error 99<sup>th</sup> percentile** | 0.0201 cm | 0.0201 cm | 0.0382 cm |
+| **Samples below error threshold** | 97.91 % | 97.90 % | 94.61 % |
 
 *Note: Starting with v1.3.0 measurements have been made with a Ryzen 2950X CPU while prior versions used an Intel i7 6850K.*
 

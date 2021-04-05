@@ -1,19 +1,20 @@
 # Paragon database performance
 
-|                       | v1.3.0 | v1.2.0  | v1.1.0        |
+|                       | v2.0.0 | v1.3.0 | v1.2.0  |
 | --------------------- | ------------- | ------------- | ------------- |
-| **Compressed size**   | 208.32 MB | 218.58 MB | 206.65 MB     |
-| **Compression ratio** | 20.53 : 1 | 19.56 : 1 | 20.69 : 1     |
-| **Compression time**  | 10m 23.05s | 28m 56.48s | 7h 14m 54.53s |
-| **Compression speed**  | 7027.87 KB/sec | 2521.62 KB/sec | 167.80 KB/sec |
-| **Max error**         | 2.8669 cm | 4.0184 cm | 7.0175 cm     |
-| **Error 99<sup>th</sup> percentile** | 0.0099 cm | 0.0116 cm | 0.0116 cm |
-| **Samples below error threshold** | 99.04 % | 98.85 % | 98.81 % |
+| **Compressed size**   | 208.93 MB | 208.32 MB | 218.58 MB |
+| **Compression ratio** | 20.47 : 1 | 20.53 : 1 | 19.56 : 1 |
+| **Compression time**  | 8m 10.69s | 10m 23.05s | 28m 56.48s |
+| **Compression speed**  | 8923.56 KB/sec | 7027.87 KB/sec | 2521.62 KB/sec |
+| **Max error**         | 4.1029 cm | 2.8669 cm | 4.0184 cm |
+| **Error 99<sup>th</sup> percentile** | 0.0099 cm | 0.0099 cm | 0.0116 cm |
+| **Samples below error threshold** | 99.04 % | 99.04 % | 98.85 % |
 
 Notes:
 
 *  The error is unusually high and above **1 cm** for **4** exotic clips
 *  Starting with v1.3.0 measurements have been made with a Ryzen 2950X CPU while prior versions used an Intel i7 6850K.
+*  Even though the 'max error' appears to have increased significantly in 2.0.0, the error is not visible to the naked eye due to the exotic nature of the clip it happens in
 
 # Data and method used
 
