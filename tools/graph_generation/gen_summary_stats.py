@@ -38,12 +38,13 @@ if __name__ == "__main__":
 	columns_to_extract_acl_post_v06 = (1, 2, 4, 6, 8)
 	columns_to_extract_ue4 = (0, 1, 3, 4, 5)
 
-	output_csv_file_path_ratios = 'D:\\acl-dev\\tools\\graph_generation\\compression_ratios.csv'
-	output_csv_file_path_ratios_by_raw_size = 'D:\\acl-dev\\tools\\graph_generation\\compression_ratios_by_raw_size.csv'
-	output_csv_file_path_max_errors = 'D:\\acl-dev\\tools\\graph_generation\\max_errors.csv'
-	output_csv_file_path_max_errors_by_raw_size = 'D:\\acl-dev\\tools\\graph_generation\\max_errors_by_raw_size.csv'
-	output_csv_file_path_ratio_vs_max_error = 'D:\\acl-dev\\tools\\graph_generation\\ratio_vs_max_error.csv'
-	output_csv_file_path_durations = 'D:\\acl-dev\\tools\\graph_generation\\durations.csv'
+	output_csv_dir = os.getcwd()
+	output_csv_file_path_ratios = os.path.join(output_csv_dir, 'compression_ratios.csv')
+	output_csv_file_path_ratios_by_raw_size = os.path.join(output_csv_dir, 'compression_ratios_by_raw_size.csv')
+	output_csv_file_path_max_errors = os.path.join(output_csv_dir, 'max_errors.csv')
+	output_csv_file_path_max_errors_by_raw_size = os.path.join(output_csv_dir, 'max_errors_by_raw_size.csv')
+	output_csv_file_path_ratio_vs_max_error = os.path.join(output_csv_dir, 'ratio_vs_max_error.csv')
+	output_csv_file_path_durations = os.path.join(output_csv_dir, 'durations.csv')
 
 	output_csv_data_ratios = []
 	output_csv_data_ratios_by_raw_size = []
