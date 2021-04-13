@@ -1,5 +1,7 @@
+import json
 import numpy
 import os
+import re
 import sys
 
 # This script depends on a SJSON parsing package:
@@ -8,26 +10,45 @@ import sys
 # https://bitbucket.org/Anteru/sjson/src
 import sjson
 
-def get_clip_name(clip_filename):
-	return clip_filename.replace('_stats.sjson', '')
-
-def get_clip_names(stats_dir):
+def get_clip_names(benchmarks):
 	clip_names = []
-	for (dirpath, dirnames, filenames) in os.walk(stats_dir):
-		for filename in filenames:
-			if not filename.endswith('.sjson'):
-				continue
-			clip_names.append(get_clip_name(filename))
-	return sorted(clip_names)
+	for bench in benchmarks:
+		run_name = bench['name']
 
-def get_clip_stat_files(stats_dir):
-	stat_files = []
-	for (dirpath, dirnames, filenames) in os.walk(stats_dir):
-		for filename in filenames:
-			if not filename.endswith('.sjson'):
-				continue
-			stat_files.append((get_clip_name(filename), os.path.join(dirpath, filename)))
-	return sorted(stat_files, key = lambda x: x[0])
+		matches = re.search('^([\w\_]+).acl/', run_name)
+		if matches == None:
+			print('Failed to find the clip name from benchmark run: {}', run_name)
+		else:
+			clip_name = matches.group(1)
+			clip_names.append(clip_name)
+			bench['clip_name'] = clip_name
+
+	return sorted(list(set(clip_names)))
+
+def get_median_runs(clip_name, benchmarks):
+	pose = None
+	bone = None
+	for bench in benchmarks:
+		if bench['clip_name'] != clip_name:
+			continue	# Not our clip
+
+		if 'Dir:0' not in bench['name']:
+			continue	# Wrong direction
+
+		if bench['run_type'] != 'aggregate':
+			continue	# Not an aggregate value
+
+		if bench['aggregate_name'] != 'median':
+			continue	# Not our median
+
+		if 'Func:0' in bench['name']:
+			# Decompress pose
+			pose = bench
+		elif 'Func:1' in bench['name']:
+			# Decompress bone
+			bone = bench
+
+	return (pose, bone)
 
 if __name__ == "__main__":
 	if sys.version_info < (3, 4):
@@ -53,62 +74,56 @@ if __name__ == "__main__":
 	clip_names = []
 
 	pose_cold_csv_file = open('pose_cold_forward_stats.csv', 'w')
-	pose_warm_csv_file = open('pose_warm_forward_stats.csv', 'w')
 	decomp_cold_csv_file = open('decomp_cold_forward_stats.csv', 'w')
+	decomp_cold_mbsec_csv_file = open('decomp_cold_forward_stats_mbsec.csv', 'w')
 
 	for entry in input_sjson_data['inputs']:
 		print('Processing {} ...'.format(entry['stats_dir']))
 
-		if len(clip_names) == 0:
-			clip_names = get_clip_names(entry['stats_dir'])
-			print('Variants,{}'.format(','.join(clip_names)), file = pose_cold_csv_file)
-			print('Variants,{}'.format(','.join(clip_names)), file = pose_warm_csv_file)
-			print('Variants,{}'.format(','.join(clip_names)), file = decomp_cold_csv_file)
+		benchmark_json_file = os.path.join(entry['stats_dir'], 'benchmark_results.json')
+		with open(benchmark_json_file, 'r') as file:
+			json_data = json.loads(file.read())
 
-		platform_playback_csv_file = open('{}_playback_direction_stats.csv'.format(entry['name']), 'w')
+		benchmarks = json_data['benchmarks']
+
+		if len(clip_names) == 0:
+			clip_names = get_clip_names(benchmarks)
+			print('Variants,{}'.format(','.join(clip_names)), file = pose_cold_csv_file)
+			print('Variants,{}'.format(','.join(clip_names)), file = decomp_cold_csv_file)
+			print('Variants,{}'.format(','.join(clip_names)), file = decomp_cold_mbsec_csv_file)
+		else:
+			get_clip_names(benchmarks)
 
 		pose_cold_medians = []
-		pose_warm_medians = []
 		bone_cold_medians = []
+		pose_cold_mbsec = []
+		bone_cold_mbsec = []
 
-		stat_files = get_clip_stat_files(entry['stats_dir'])
-		for (clip_name, stat_filename) in stat_files:
-			print('  Processing {} ...'.format(stat_filename))
+		for clip_name in clip_names:
+			print('  Processing {} ...'.format(clip_name))
 
-			with open(stat_filename, 'r') as file:
-				clip_sjson_data = sjson.loads(file.read())
+			(pose_median_run, bone_median_run) = get_median_runs(clip_name, benchmarks)
 
-			run_data = clip_sjson_data['runs'][0]['decompression_time_per_sample']
-			forward_data = run_data['forward_pose_cold']['data']
-			backward_data = run_data['backward_pose_cold']['data']
-			random_data = run_data['random_pose_cold']['data']
+			# Convert from nanoseconds into microseconds
+			pose_median = pose_median_run['real_time'] / 1000.0
+			bone_median = bone_median_run['real_time'] / 1000.0
 
-			print(clip_name, file = platform_playback_csv_file)
+			pose_cold_medians.append(str(pose_median))
+			bone_cold_medians.append(str(bone_median))
 
-			num_samples = len(forward_data)
-			normalized_sample_times = [ str(i / float(max(num_samples - 1, 1))) for i in range(num_samples) ]
-			print('Normalized Sample Time,{}'.format(','.join(normalized_sample_times)), file = platform_playback_csv_file)
-			# We also convert the elapsed time from milliseconds into microseconds
-			print('Forward,{}'.format(','.join(map(lambda x: str(x * 1000.0), forward_data))), file = platform_playback_csv_file)
-			print('Backward,{}'.format(','.join(map(lambda x: str(x * 1000.0), backward_data))), file = platform_playback_csv_file)
-			print('Random,{}'.format(','.join(map(lambda x: str(x * 1000.0), random_data))), file = platform_playback_csv_file)
-			print(file = platform_playback_csv_file)
+			# Convert from bytes/sec to megabytes/sec
+			pose_speed = pose_median_run['Speed'] / (1024.0 * 1024.0)
+			bone_speed = bone_median_run['Speed'] / (1024.0 * 1024.0)
 
-			pose_cold_medians.append(str(numpy.median(forward_data) * 1000.0))
-
-			forward_data_warm = run_data['forward_pose_warm']['data']
-			pose_warm_medians.append(str(numpy.median(forward_data_warm) * 1000.0))
-
-			forward_data_bone_cold = run_data['forward_bone_cold']['data']
-			bone_cold_medians.append(str(numpy.median(forward_data_bone_cold) * 1000.0))
-
-		platform_playback_csv_file.close()
+			pose_cold_mbsec.append(str(pose_speed))
+			bone_cold_mbsec.append(str(bone_speed))
 
 		print('{},{}'.format(entry['name'], ','.join(pose_cold_medians)), file = pose_cold_csv_file)
-		print('{},{}'.format(entry['name'], ','.join(pose_warm_medians)), file = pose_warm_csv_file)
 		print('{},{}'.format('decompress_pose {}'.format(entry['name']), ','.join(pose_cold_medians)), file = decomp_cold_csv_file)
 		print('{},{}'.format('decompress_bone {}'.format(entry['name']), ','.join(bone_cold_medians)), file = decomp_cold_csv_file)
+		print('{},{}'.format('decompress_pose {}'.format(entry['name']), ','.join(pose_cold_mbsec)), file = decomp_cold_mbsec_csv_file)
+		print('{},{}'.format('decompress_bone {}'.format(entry['name']), ','.join(bone_cold_mbsec)), file = decomp_cold_mbsec_csv_file)
 
 	pose_cold_csv_file.close()
-	pose_warm_csv_file.close()
 	decomp_cold_csv_file.close()
+	decomp_cold_mbsec_csv_file.close()
