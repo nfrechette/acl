@@ -3,36 +3,36 @@ inputs =
 	{
 		header = "VS 2017 x64"
 		name = "vs2017-x64"
-		stats_dir = "D:\\test_animations\\decomp_stats-1.3.0\\decomp-stats-vs2017-x64-1.3.0"
-		version = 1.3
+		stats_dir = "K:\\test_animations\\decomp_stats-2.0.0\\decomp-stats-vs2017-x64-2.0.0"
+		version = 2.0
 		source = "acl"
 	}
 	{
-		header = "Clang 5 x64"
-		name = "clang5-x64"
-		stats_dir = "D:\\test_animations\\decomp_stats-1.3.0\\decomp-stats-clang5-x64-1.3.0"
-		version = 1.3
+		header = "Clang 11 x64"
+		name = "clang11-x64"
+		stats_dir = "K:\\test_animations\\decomp_stats-2.0.0\\decomp-stats-clang11-x64-2.0.0"
+		version = 2.0
 		source = "acl"
 	}
 	{
 		header = "OS X x64"
 		name = "osx-x64"
-		stats_dir = "D:\\test_animations\\decomp_stats-1.3.0\\decomp-stats-osx-x64-1.3.0"
-		version = 1.3
+		stats_dir = "K:\\test_animations\\decomp_stats-2.0.0\\decomp-stats-osx-x64-2.0.0"
+		version = 2.0
 		source = "acl"
 	}
 	{
 		header = "iOS arm64"
 		name = "ios-arm64"
-		stats_dir = "D:\\test_animations\\decomp_stats-1.3.0\\decomp-stats-ios-arm64-1.3.0"
-		version = 1.3
+		stats_dir = "K:\\test_animations\\decomp_stats-2.0.0\\decomp-stats-ios-arm64-2.0.0"
+		version = 2.0
 		source = "acl"
 	}
 	{
 		header = "Android arm64"
 		name = "android-arm64"
-		stats_dir = "D:\\test_animations\\decomp_stats-1.3.0\\decomp-stats-p3-arm64-1.3.0"
-		version = 1.3
+		stats_dir = "K:\\test_animations\\decomp_stats-2.0.0\\decomp-stats-p3-arm64-2.0.0"
+		version = 2.0
 		source = "acl"
 	}
 ]
