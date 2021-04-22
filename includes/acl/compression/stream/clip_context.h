@@ -99,6 +99,12 @@ namespace acl
 		bool has_scale = false;
 		const Vector4_32 default_scale = get_default_scale(clip.get_additive_format());
 
+#ifdef ACL_BIND_POSE
+
+		const bool default_bind_pose = get_default_bind_pose(clip.get_additive_format());
+
+#endif
+
 		SegmentContext& segment = out_clip_context.segments[0];
 
 		BoneStreams* bone_streams = allocate_type_array<BoneStreams>(allocator, num_bones);
@@ -131,11 +137,65 @@ namespace acl
 			}
 
 			bone_stream.is_rotation_constant = num_samples == 1;
+
+#ifdef ACL_BIND_POSE
+
+			if (bone_stream.is_rotation_constant)
+			{
+				const Quat_32 default_bind_rotation_conj = (default_bind_pose) ? quat_conjugate(quat_cast(skel_bone.bind_transform.rotation)) : quat_identity_32();
+				bone_stream.is_rotation_default = quat_near_identity(quat_normalize(quat_mul(quat_cast(bone.rotation_track.get_sample(0)), default_bind_rotation_conj)), settings.constant_rotation_threshold_angle);
+			}
+			else
+			{
+				bone_stream.is_rotation_default = false;
+			}
+			
+#else
+
 			bone_stream.is_rotation_default = bone_stream.is_rotation_constant && quat_near_identity(quat_cast(bone.rotation_track.get_sample(0)), settings.constant_rotation_threshold_angle);
+
+#endif
+
+
 			bone_stream.is_translation_constant = num_samples == 1;
+
+#ifdef ACL_BIND_POSE
+
+			if (bone_stream.is_translation_constant)
+			{
+				const Vector4_32 default_bind_translation = (default_bind_pose) ? vector_cast(skel_bone.bind_transform.translation) : vector_zero_32();
+				bone_stream.is_translation_default = vector_all_near_equal3(vector_cast(bone.translation_track.get_sample(0)), default_bind_translation, settings.constant_translation_threshold);
+			}
+			else
+			{
+				bone_stream.is_translation_default = false;
+			}
+
+#else
+
 			bone_stream.is_translation_default = bone_stream.is_translation_constant && vector_all_near_equal3(vector_cast(bone.translation_track.get_sample(0)), vector_zero_32(), settings.constant_translation_threshold);
+
+#endif
+
 			bone_stream.is_scale_constant = num_samples == 1;
+
+#ifdef ACL_BIND_POSE
+
+			if (bone_stream.is_scale_constant)
+			{
+				const Vector4_32 default_bind_scale = (default_bind_pose) ? vector_cast(skel_bone.bind_transform.scale) : default_scale;
+				bone_stream.is_scale_default = vector_all_near_equal3(vector_cast(bone.scale_track.get_sample(0)), default_bind_scale, settings.constant_scale_threshold);
+			}
+			else
+			{
+				bone_stream.is_scale_default = false;
+			}
+
+#else
+
 			bone_stream.is_scale_default = bone_stream.is_scale_constant && vector_all_near_equal3(vector_cast(bone.scale_track.get_sample(0)), default_scale, settings.constant_scale_threshold);
+
+#endif
 
 			has_scale |= !bone_stream.is_scale_default;
 

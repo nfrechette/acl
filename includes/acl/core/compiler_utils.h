@@ -61,6 +61,48 @@
 	#define ACL_FORCE_INLINE inline
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+//
+// Stock ACL fails unit tests after including missing edge cases, and adding some new ones.
+//
+//////////////////////////////////////////////////////////////////////////
+#define ACL_UNIT_TEST
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Integers between 0 and 2^24 are 100% accurate as floats. Leverage this with a maximum quantization of 24 bits.
+//
+// Floating point */ with 2^x is precision-friendly.  It shifts the exponent without touching the mantissa.  This drives our quantization.
+//
+// Normalizing to 0.0f..1.0F is less accurate than normalizing to -0.5F..0.5F.  The latter range can handle 1/(2^25), which is the error term of 24 bit quantization.
+//
+// If our goal was to minimize error within the range, we'd maximize error at the endpoints, so we could stop here.  However, ACL expects precise endpoints, so we modify the
+// scale accordingly.  Note that division is more accurate than multiply-by-reciprocal when the divisor isn't a power of 2, so we monitor discretization error closely.
+//
+// Always floor after scaling, and before shifting from -halfQ..halfQ to 0..fullQ.  Otherwise, IEEE float addition will round the result before you get a chance to floor it.
+//////////////////////////////////////////////////////////////////////////
+#define ACL_PACKING
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Expand bit rate options, from [3..19] to [1..24].
+//
+//////////////////////////////////////////////////////////////////////////
+#define ACL_BIT_RATE
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Change the definition of "default transform" from "identity transform" to "bind transform", and presume that the bind pose has been set
+// before decompression.
+//
+//////////////////////////////////////////////////////////////////////////
+#define ACL_BIND_POSE
+#ifdef ACL_BIND_POSE
+#define	IF_ACL_BIND_POSE(...) __VA_ARGS__
+#else
+#define	IF_ACL_BIND_POSE(...)
+#endif
+
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////

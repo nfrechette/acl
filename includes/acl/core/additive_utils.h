@@ -111,6 +111,15 @@ namespace acl
 		return additive_format == AdditiveClipFormat8::Additive1 ? vector_zero_32() : vector_set(1.0F);
 	}
 
+#ifdef ACL_BIND_POSE
+
+	inline bool get_default_bind_pose(AdditiveClipFormat8 additive_format)
+	{
+		return (additive_format == AdditiveClipFormat8::None);
+	}
+
+#endif
+
 	inline Transform_32 ACL_SIMD_CALL transform_add0(Transform_32Arg0 base, Transform_32Arg1 additive)
 	{
 		const Quat_32 rotation = quat_mul(additive.rotation, base.rotation);

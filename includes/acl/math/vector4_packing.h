@@ -31,6 +31,13 @@
 #include "acl/math/vector4_32.h"
 #include "acl/math/scalar_packing.h"
 
+#ifdef ACL_PACKING
+
+#include <rtm/mask4i.h>
+#include <rtm/vector4f.h>
+
+#endif
+
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -220,6 +227,27 @@ namespace acl
 		uint32_t vector_z = pack_scalar_unsigned(vector_get_z(vector), num_bits);
 		uint32_t vector_w = pack_scalar_unsigned(vector_get_w(vector), num_bits);
 
+#ifdef ACL_BIT_RATE
+
+		if (64 < num_bits * 3)
+		{
+			uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
+			vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
+			vector_u64 = byte_swap(vector_u64);
+
+			unaligned_write(vector_u64, out_vector_data);
+
+			vector_u64 = static_cast<uint64_t>(vector_z) << (64 - num_bits * 1);
+			vector_u64 |= static_cast<uint64_t>(vector_w) << (64 - num_bits * 2);
+			vector_u64 = byte_swap(vector_u64);
+
+			memcpy_bits(out_vector_data, num_bits * 2, &vector_u64, 0, num_bits * 2);
+
+			return;
+		}
+
+#endif
+
 		uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
 		vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
 		vector_u64 |= static_cast<uint64_t>(vector_z) << (64 - num_bits * 3);
@@ -235,33 +263,82 @@ namespace acl
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector4_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
+
+#ifdef ACL_BIT_RATE
+
+		ACL_ASSERT(num_bits <= 24, "This function does not support reading more than 24 bits per component");
+
+#else
+
 		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
+
+#endif
 
 		struct PackedTableEntry
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
+
+#ifdef ACL_PACKING
+
+				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - ((num_bits_ == 24) ? 0 : 1))))
+				, increment_value(1 << ((num_bits_ == 24) ? 23 : num_bits_))
+
+#else
+
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+
+#endif
+
 				, mask((1 << num_bits_) - 1)
 			{}
 
 			float max_value;
+
+#ifdef ACL_PACKING
+
+			uint32_t increment_value;
+
+#endif
+
 			uint32_t mask;
 		};
 
+#ifdef ACL_BIT_RATE
+
+		// TODO: We technically don't need the first entry, which could save a few bytes
+		alignas(64) static constexpr PackedTableEntry k_packed_constants[25] =
+
+#else
+
 		// TODO: We technically don't need the first 3 entries, which could save a few bytes
 		alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
+
+#endif
 		{
 			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
 			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
 			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
 			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
 			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+
+#ifdef ACL_BIT_RATE
+
+			PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23), PackedTableEntry(24),
+
+#endif
+
 		};
 
 #if defined(ACL_SSE2_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
 		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
 		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
+
+#ifdef ACL_PACKING
+
+		const __m128i increment_value = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].increment_value));
+
+#endif
 
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
@@ -291,9 +368,25 @@ namespace acl
 
 		__m128i int_value = _mm_set_epi32(w32, z32, y32, x32);
 		int_value = _mm_and_si128(int_value, mask);
+
+#ifdef ACL_PACKING
+
+		const __m128i increment_cond = _mm_cmplt_epi32(int_value, increment_value);
+		const __m128i incremented_int_value = _mm_add_epi32(int_value, _mm_set1_epi32(1));
+		int_value = _mm_or_si128(_mm_and_si128(int_value, increment_cond), _mm_andnot_si128(increment_cond, incremented_int_value));
+
+#endif
+
 		const __m128 value = _mm_cvtepi32_ps(int_value);
 		return _mm_mul_ps(value, inv_max_value);
 #elif defined(ACL_NEON_INTRINSICS)
+
+#ifdef ACL_PACKING
+
+		ACL_ASSERT(false, "Not tested yet");
+
+#endif
+
 		const uint32_t bit_shift = 32 - num_bits;
 		uint32x4_t mask = vdupq_n_u32(k_packed_constants[num_bits].mask);
 		float inv_max_value = k_packed_constants[num_bits].max_value;
@@ -335,6 +428,12 @@ namespace acl
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const float inv_max_value = k_packed_constants[num_bits].max_value;
 
+#ifdef ACL_PACKING
+
+		const uint32_t increment_value = k_packed_constants[num_bits].increment_value;
+
+#endif
+
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 		vector_u32 = byte_swap(vector_u32);
@@ -361,7 +460,20 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t w32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
+#ifdef ACL_PACKING
+
+		return vector_mul(vector_set(
+			float(x32 + ((x32 < increment_value) ? 0 : 1)),
+			float(y32 + ((y32 < increment_value) ? 0 : 1)),
+			float(z32 + ((z32 < increment_value) ? 0 : 1)),
+			float(w32 + ((w32 < increment_value) ? 0 : 1))), inv_max_value);
+
+#else
+
 		return vector_mul(vector_set(float(x32), float(y32), float(z32), float(w32)), inv_max_value);
+
+#endif
+
 #endif
 	}
 
@@ -704,13 +816,39 @@ namespace acl
 		const float max_value = float((1 << 16) - 1);
 		const float inv_max_value = 1.0F / max_value;
 
+#ifdef ACL_PACKING
+
+		const Vector4_32 mid_value = vector_set(float(1 << (16 - 1)));
+		const Vector4_32 mid_scale = vector_mul_add(mid_value, vector_set(2.0F), vector_set(-1.0F));
+		const Vector4_32 packed = vector_add(vector_floor(vector_mul(vector_sub(input, vector_set(0.5F)), mid_scale)), mid_value);
+
+#else
+
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(input, max_value));
+
+#endif
+
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
 		return decayed;
 	}
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_s48(Vector4_32Arg0 input)
 	{
+
+#ifdef ACL_PACKING
+
+		const Vector4_32 neg_one = vector_set(-1.0F);
+		ACL_ASSERT(vector_all_greater_equal3(input, neg_one) && vector_all_less_equal3(input, vector_set(1.0F)), "Expected normalized signed input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
+
+		const Vector4_32 mid_value = vector_set(safe_to_float(1 << (16 - 1)));
+		const Vector4_32 mid_scale = vector_mul_add(mid_value, vector_set(2.0F), neg_one);
+		const Vector4_32 packed = vector_add(vector_floor(vector_mul(vector_mul(input, vector_set(0.5F)), mid_scale)), mid_value);
+
+		const float max_value = safe_to_float((1 << 16) - 1);
+		const float inv_max_value = 1.0F / max_value;
+
+#else
+
 		const Vector4_32 half = vector_set(0.5F);
 		const Vector4_32 unsigned_input = vector_mul_add(input, half, half);
 
@@ -720,6 +858,9 @@ namespace acl
 		const float inv_max_value = 1.0F / max_value;
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(unsigned_input, max_value));
+
+#endif
+
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
 		return vector_neg_mul_sub(decayed, -2.0F, vector_set(-1.0F));
 	}
@@ -751,13 +892,48 @@ namespace acl
 		const Vector4_32 max_value = vector_set(max_value_x, max_value_y, max_value_z, max_value_z);
 		const Vector4_32 inv_max_value = vector_reciprocal(max_value);
 
+#ifdef ACL_PACKING
+
+		const float mid_value_x = float(1 << (XBits - 1));
+		const float mid_value_y = float(1 << (YBits - 1));
+		const float mid_value_z = float(1 << (ZBits - 1));
+		const Vector4_32 mid_value = vector_set(mid_value_x, mid_value_y, mid_value_z, mid_value_z);
+		const Vector4_32 mid_scale = vector_mul_add(mid_value, vector_set(2.0F), vector_set(-1.0F));
+		const Vector4_32 packed = vector_add(vector_floor(vector_mul(vector_sub(input, vector_set(0.5F)), mid_scale)), mid_value);
+
+#else
+
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(input, max_value));
+
+#endif
+
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
 		return decayed;
 	}
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_s32(Vector4_32Arg0 input, uint8_t XBits, uint8_t YBits, uint8_t ZBits)
 	{
+
+#ifdef ACL_PACKING
+
+		const Vector4_32 neg_one = vector_set(-1.0F);
+		ACL_ASSERT(vector_all_greater_equal3(input, neg_one) && vector_all_less_equal3(input, vector_set(1.0F)), "Expected normalized signed input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
+
+		const float mid_value_x = float(1 << (XBits - 1));
+		const float mid_value_y = float(1 << (YBits - 1));
+		const float mid_value_z = float(1 << (ZBits - 1));
+		const Vector4_32 mid_value = vector_set(mid_value_x, mid_value_y, mid_value_z, mid_value_z);
+		const Vector4_32 mid_scale = vector_mul_add(mid_value, vector_set(2.0F), neg_one);
+		const Vector4_32 packed = vector_add(vector_floor(vector_mul(vector_mul(input, vector_set(0.5F)), mid_scale)), mid_value);
+
+		const float max_value_x = float((1 << XBits) - 1);
+		const float max_value_y = float((1 << YBits) - 1);
+		const float max_value_z = float((1 << ZBits) - 1);
+		const Vector4_32 max_value = vector_set(max_value_x, max_value_y, max_value_z, max_value_z);
+		const Vector4_32 inv_max_value = vector_reciprocal(max_value);
+
+#else
+
 		const Vector4_32 half = vector_set(0.5F);
 		const Vector4_32 unsigned_input = vector_mul_add(input, half, half);
 
@@ -771,6 +947,9 @@ namespace acl
 		const Vector4_32 inv_max_value = vector_reciprocal(max_value);
 
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(unsigned_input, max_value));
+
+#endif
+		
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
 		return vector_neg_mul_sub(decayed, -2.0F, vector_set(-1.0F));
 	}
@@ -893,6 +1072,26 @@ namespace acl
 		uint32_t vector_y = pack_scalar_unsigned(vector_get_y(vector), num_bits);
 		uint32_t vector_z = pack_scalar_unsigned(vector_get_z(vector), num_bits);
 
+#ifdef ACL_BIT_RATE
+
+		if (64 < num_bits * 3)
+		{
+			uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
+			vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
+			vector_u64 = byte_swap(vector_u64);
+
+			unaligned_write(vector_u64, out_vector_data);
+
+			uint32_t vector_u32 = static_cast<uint32_t>(vector_z) << (32 - num_bits);
+			vector_u32 = byte_swap(vector_u32);
+
+			memcpy_bits(out_vector_data, num_bits * 2, &vector_u32, 0, num_bits);
+
+			return;
+		}
+
+#endif
+
 		uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
 		vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
 		vector_u64 |= static_cast<uint64_t>(vector_z) << (64 - num_bits * 3);
@@ -907,6 +1106,26 @@ namespace acl
 		uint32_t vector_x = pack_scalar_signed(vector_get_x(vector), num_bits);
 		uint32_t vector_y = pack_scalar_signed(vector_get_y(vector), num_bits);
 		uint32_t vector_z = pack_scalar_signed(vector_get_z(vector), num_bits);
+
+#ifdef ACL_BIT_RATE
+
+		if (64 < num_bits * 3)
+		{
+			uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
+			vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
+			vector_u64 = byte_swap(vector_u64);
+
+			unaligned_write(vector_u64, out_vector_data);
+
+			uint32_t vector_u32 = static_cast<uint32_t>(vector_z) << (32 - num_bits);
+			vector_u32 = byte_swap(vector_u32);
+
+			memcpy_bits(out_vector_data, num_bits * 2, &vector_u32, 0, num_bits);
+
+			return;
+		}
+
+#endif
 
 		uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
 		vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
@@ -933,25 +1152,67 @@ namespace acl
 	{
 		ACL_ASSERT(vector_all_greater_equal3(input, vector_zero_32()) && vector_all_less_equal3(input, vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
 
+#ifdef ACL_PACKING
+
+		const Vector4_32 mid_value = vector_set(safe_to_float(1 << (num_bits - 1)));
+		const Vector4_32 mid_scale = vector_mul_add(mid_value, vector_set(2.0F), vector_set(-1.0F));
+		const Vector4_32 packed = vector_add(vector_floor(vector_mul(vector_sub(input, vector_set(0.5F)), mid_scale)), mid_value);
+		if (num_bits == 24)
+		{
+			const rtm::mask4i increment_mask = rtm::vector_less_than(packed, vector_set(safe_to_float(1 << 23)));
+			return vector_mul(rtm::vector_select(increment_mask, packed, vector_add(packed, vector_set(1.0F))), vector_set(1.0F / (1 << 24)));
+		}
+
+#endif
+
 		const float max_value = safe_to_float((1 << num_bits) - 1);
 		const float inv_max_value = 1.0F / max_value;
 
+#ifndef ACL_PACKING
+
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(input, max_value));
+
+#endif
+
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
 		return decayed;
 	}
 
 	inline Vector4_32 ACL_SIMD_CALL decay_vector3_sXX(Vector4_32Arg0 input, uint32_t num_bits)
 	{
+	
+#ifdef ACL_PACKING
+
+		const Vector4_32 neg_one = vector_set(-1.0F);
+		ACL_ASSERT(vector_all_greater_equal3(input, neg_one) && vector_all_less_equal3(input, vector_set(1.0F)), "Expected normalized signed input value: %f, %f, %f", vector_get_x(input), vector_get_y(input), vector_get_z(input));
+
+		const Vector4_32 mid_value = vector_set(safe_to_float(1 << (num_bits - 1)));
+		const Vector4_32 mid_scale = vector_mul_add(mid_value, vector_set(2.0F), neg_one);
+		const Vector4_32 packed = vector_add(vector_floor(vector_mul(vector_mul(input, vector_set(0.5F)), mid_scale)), mid_value);
+		if (num_bits == 24)
+		{
+			const rtm::mask4i increment_mask = rtm::vector_less_than(packed, vector_set(safe_to_float(1 << 23)));
+			return vector_neg_mul_sub(vector_mul(rtm::vector_select(increment_mask, packed, vector_add(packed, vector_set(1.0F))), vector_set(1.0F / (1 << 24))), -2.0F, vector_set(-1.0F));
+		}
+
+#else
+
 		const Vector4_32 half = vector_set(0.5F);
 		const Vector4_32 unsigned_input = vector_mul_add(input, half, half);
 
 		ACL_ASSERT(vector_all_greater_equal3(unsigned_input, vector_zero_32()) && vector_all_less_equal3(unsigned_input, vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", vector_get_x(unsigned_input), vector_get_y(unsigned_input), vector_get_z(unsigned_input));
 
+#endif
+
 		const float max_value = safe_to_float((1 << num_bits) - 1);
 		const float inv_max_value = 1.0F / max_value;
 
+#ifndef ACL_PACKING
+
 		const Vector4_32 packed = vector_symmetric_round(vector_mul(unsigned_input, max_value));
+
+#endif
+
 		const Vector4_32 decayed = vector_mul(packed, inv_max_value);
 		return vector_neg_mul_sub(decayed, -2.0F, vector_set(-1.0F));
 	}
@@ -959,33 +1220,83 @@ namespace acl
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
+
+#ifdef ACL_BIT_RATE
+
+		ACL_ASSERT(num_bits <= 24, "This function does not support reading more than 24 bits per component");
+
+#else
+
 		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
+
+#endif
 
 		struct PackedTableEntry
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
+
+#ifdef ACL_PACKING
+
+				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - ((num_bits_ == 24) ? 0 : 1))))
+				, increment_value(1 << ((num_bits_ == 24) ? 23 : num_bits_))
+
+#else
+
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+
+#endif
+
 				, mask((1 << num_bits_) - 1)
 			{}
 
 			float max_value;
+
+#ifdef ACL_PACKING
+
+			uint32_t increment_value;
+
+#endif
+
 			uint32_t mask;
 		};
 
+#ifdef ACL_BIT_RATE
+
+		// TODO: We technically don't need the first entry, which could save a few bytes
+		alignas(64) static constexpr PackedTableEntry k_packed_constants[25] =
+
+#else
+
 		// TODO: We technically don't need the first 3 entries, which could save a few bytes
 		alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
+
+#endif
+
 		{
 			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
 			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
 			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
 			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
 			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+
+#ifdef ACL_BIT_RATE
+
+			PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23), PackedTableEntry(24),
+
+#endif
+
 		};
 
 #if defined(ACL_SSE2_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
 		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
 		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
+
+#ifdef ACL_PACKING
+
+		const __m128i increment_value = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].increment_value));
+
+#endif
 
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
@@ -1008,9 +1319,25 @@ namespace acl
 
 		__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
 		int_value = _mm_and_si128(int_value, mask);
+
+#ifdef ACL_PACKING
+
+		const __m128i increment_cond = _mm_cmplt_epi32(int_value, increment_value);
+		const __m128i incremented_int_value = _mm_add_epi32(int_value, _mm_set1_epi32(1));
+		int_value = _mm_or_si128(_mm_and_si128(int_value, increment_cond), _mm_andnot_si128(increment_cond, incremented_int_value));
+
+#endif
+
 		const __m128 value = _mm_cvtepi32_ps(int_value);
 		return _mm_mul_ps(value, inv_max_value);
 #elif defined(ACL_NEON_INTRINSICS)
+
+#ifdef ACL_PACKING
+
+		ACL_ASSERT(false, "Not tested yet");
+
+#endif
+
 		const uint32_t bit_shift = 32 - num_bits;
 		uint32x4_t mask = vdupq_n_u32(k_packed_constants[num_bits].mask);
 		float inv_max_value = k_packed_constants[num_bits].max_value;
@@ -1045,6 +1372,12 @@ namespace acl
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const float inv_max_value = k_packed_constants[num_bits].max_value;
 
+#ifdef ACL_PACKING
+
+		const uint32_t increment_value = k_packed_constants[num_bits].increment_value;
+
+#endif
+
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 		vector_u32 = byte_swap(vector_u32);
@@ -1064,14 +1397,29 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
+
+#ifdef ACL_PACKING
+
+		return vector_mul(vector_set(float(x32 + ((x32 < increment_value) ? 0 : 1)), float(y32 + ((y32 < increment_value) ? 0 : 1)), float(z32 + ((z32 < increment_value) ? 0 : 1))), inv_max_value);
+
+#else
+
 		return vector_mul(vector_set(float(x32), float(y32), float(z32)), inv_max_value);
+
+#endif
+
 #endif
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector3_sXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
+
+#ifndef ACL_BIT_RATE
+
 		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
+
+#endif
 
 		const Vector4_32 unsigned_value = unpack_vector3_uXX_unsafe(num_bits, vector_data, bit_offset);
 		return vector_neg_mul_sub(unsigned_value, -2.0F, vector_set(-1.0F));
@@ -1146,33 +1494,83 @@ namespace acl
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline Vector4_32 ACL_SIMD_CALL unpack_vector2_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
+
+#ifdef ACL_BIT_RATE
+
+		ACL_ASSERT(num_bits <= 24, "This function does not support reading more than 24 bits per component");
+
+#else
+
 		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
+
+#endif
 
 		struct PackedTableEntry
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
+
+#ifdef ACL_PACKING
+
+				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - ((num_bits_ == 24)? 0: 1))))
+				, increment_value(1 << ((num_bits_ == 24)? 23: num_bits_))
+
+#else
+
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+
+#endif
+
 				, mask((1 << num_bits_) - 1)
 			{}
 
 			float max_value;
+
+#ifdef ACL_PACKING
+
+			uint32_t increment_value;
+
+#endif
+
 			uint32_t mask;
 		};
 
+#ifdef ACL_BIT_RATE
+
+		// TODO: We technically don't need the first entry, which could save a few bytes
+		alignas(64) static constexpr PackedTableEntry k_packed_constants[25] =
+
+#else
+
 		// TODO: We technically don't need the first 3 entries, which could save a few bytes
 		alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
+
+#endif
+
 		{
 			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
 			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
 			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
 			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
 			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+
+#ifdef ACL_BIT_RATE
+
+			PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23), PackedTableEntry(24),
+
+#endif
+
 		};
 
 #if defined(ACL_SSE2_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
 		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
 		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
+
+#ifdef ACL_PACKING
+
+		const __m128i increment_value = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].increment_value));
+
+#endif
 
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
@@ -1188,9 +1586,25 @@ namespace acl
 
 		__m128i int_value = _mm_set_epi32(y32, x32, y32, x32);
 		int_value = _mm_and_si128(int_value, mask);
+
+#ifdef ACL_PACKING
+
+		const __m128i increment_cond = _mm_cmplt_epi32(int_value, increment_value);
+		const __m128i incremented_int_value = _mm_add_epi32(int_value, _mm_set1_epi32(1));
+		int_value = _mm_or_si128(_mm_and_si128(int_value, increment_cond), _mm_andnot_si128(increment_cond, incremented_int_value));
+
+#endif
+
 		const __m128 value = _mm_cvtepi32_ps(int_value);
 		return _mm_mul_ps(value, inv_max_value);
 #elif defined(ACL_NEON_INTRINSICS)
+
+#ifdef ACL_PACKING
+
+		ACL_ASSERT(false, "Not tested yet");
+
+#endif
+
 		const uint32_t bit_shift = 32 - num_bits;
 		uint32x2_t mask = vdup_n_u32(k_packed_constants[num_bits].mask);
 		float inv_max_value = k_packed_constants[num_bits].max_value;
@@ -1217,6 +1631,12 @@ namespace acl
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const float inv_max_value = k_packed_constants[num_bits].max_value;
 
+#ifdef ACL_PACKING
+
+		const uint32_t increment_value = k_packed_constants[num_bits].increment_value;
+
+#endif
+
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 		vector_u32 = byte_swap(vector_u32);
@@ -1229,7 +1649,16 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
+#ifdef ACL_PACKING
+
+		return vector_mul(vector_set(float(x32 + ((x32 < increment_value)? 0: 1)), float(y32 + ((y32 < increment_value) ? 0 : 1)), 0.0F, 0.0F), inv_max_value);
+
+#else
+
 		return vector_mul(vector_set(float(x32), float(y32), 0.0F, 0.0F), inv_max_value);
+
+#endif
+
 #endif
 	}
 

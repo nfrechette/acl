@@ -225,14 +225,31 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 
 	// Bit rate 0 is reserved for tracks that are constant in a segment
+
+#ifdef ACL_BIT_RATE
+
+	constexpr uint8_t k_bit_rate_num_bits[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 32 };
+
+#else
+
 	constexpr uint8_t k_bit_rate_num_bits[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 };
+
+#endif
 
 	constexpr uint8_t k_invalid_bit_rate = 0xFF;
 	constexpr uint8_t k_lowest_bit_rate = 1;
 	constexpr uint8_t k_highest_bit_rate = sizeof(k_bit_rate_num_bits) - 1;
 	constexpr uint8_t k_num_bit_rates = sizeof(k_bit_rate_num_bits);
 
+#ifdef ACL_BIT_RATE
+
+	static_assert(k_num_bit_rates == 26, "Expecting 26 bit rates");
+
+#else
+
 	static_assert(k_num_bit_rates == 19, "Expecting 19 bit rates");
+
+#endif
 
 	// If all tracks are variable, no need for any extra padding except at the very end of the data
 	// If our tracks are mixed variable/not variable, we need to add some padding to ensure alignment

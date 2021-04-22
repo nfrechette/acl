@@ -76,13 +76,20 @@ namespace acl
 		return true;
 	}
 
-	inline void compact_constant_streams(IAllocator& allocator, ClipContext& clip_context, float rotation_threshold_angle, float translation_threshold, float scale_threshold)
+	inline void compact_constant_streams(IAllocator& allocator, ClipContext& clip_context, float rotation_threshold_angle, float translation_threshold, float scale_threshold IF_ACL_BIND_POSE(, const RigidSkeleton& skeleton))
 	{
 		ACL_ASSERT(clip_context.num_segments == 1, "ClipContext must contain a single segment!");
 		SegmentContext& segment = clip_context.segments[0];
 
 		const uint16_t num_bones = clip_context.num_bones;
 		const Vector4_32 default_scale = get_default_scale(clip_context.additive_format);
+
+#ifdef ACL_BIND_POSE
+
+		const bool default_bind_pose = get_default_bind_pose(clip_context.additive_format);
+
+#endif
+
 		uint16_t num_default_bone_scales = 0;
 
 		// When a stream is constant, we only keep the first sample
@@ -90,6 +97,12 @@ namespace acl
 		{
 			BoneStreams& bone_stream = segment.bone_streams[bone_index];
 			BoneRanges& bone_range = clip_context.ranges[bone_index];
+
+#ifdef ACL_BIND_POSE
+
+			const RigidBone& skel_bone = skeleton.get_bone(bone_index);
+
+#endif
 
 			// We expect all our samples to have the same width of sizeof(Vector4_32)
 			ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(Vector4_32), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(Vector4_32));
@@ -104,7 +117,17 @@ namespace acl
 
 				bone_stream.rotations = std::move(constant_stream);
 				bone_stream.is_rotation_constant = true;
+
+#ifdef ACL_BIND_POSE
+
+				const Quat_32 default_bind_rotation_conj = (default_bind_pose) ? quat_conjugate(quat_cast(skel_bone.bind_transform.rotation)) : quat_identity_32();
+				bone_stream.is_rotation_default = quat_near_identity(quat_normalize(quat_mul(vector_to_quat(rotation), default_bind_rotation_conj)), rotation_threshold_angle);
+				
+#else
+
 				bone_stream.is_rotation_default = quat_near_identity(vector_to_quat(rotation), rotation_threshold_angle);
+
+#endif
 
 				bone_range.rotation = TrackStreamRange::from_min_extent(rotation, vector_zero_32());
 			}
@@ -117,7 +140,17 @@ namespace acl
 
 				bone_stream.translations = std::move(constant_stream);
 				bone_stream.is_translation_constant = true;
+
+#ifdef ACL_BIND_POSE
+
+				const Vector4_32 default_bind_translation = (default_bind_pose) ? vector_cast(skel_bone.bind_transform.translation) : vector_zero_32();
+				bone_stream.is_translation_default = vector_all_near_equal3(translation, default_bind_translation, translation_threshold);
+
+#else
+
 				bone_stream.is_translation_default = vector_all_near_equal3(translation, vector_zero_32(), translation_threshold);
+
+#endif
 
 				bone_range.translation = TrackStreamRange::from_min_extent(translation, vector_zero_32());
 			}
@@ -130,7 +163,17 @@ namespace acl
 
 				bone_stream.scales = std::move(constant_stream);
 				bone_stream.is_scale_constant = true;
+
+#ifdef ACL_BIND_POSE
+
+				const Vector4_32 default_bind_scale = (default_bind_pose) ? vector_cast(skel_bone.bind_transform.scale) : default_scale;
+				bone_stream.is_scale_default = vector_all_near_equal3(scale, default_bind_scale, scale_threshold);
+
+#else
+
 				bone_stream.is_scale_default = vector_all_near_equal3(scale, default_scale, scale_threshold);
+
+#endif
 
 				bone_range.scale = TrackStreamRange::from_min_extent(scale, vector_zero_32());
 

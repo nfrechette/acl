@@ -145,8 +145,8 @@ namespace acl
 
 			void set_segment(const BoneStreams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
 
-			void sample(const single_track_query& query, float sample_time, Transform_32* out_transforms, uint32_t num_transforms);
-			void sample(const hierarchical_track_query& query, float sample_time, Transform_32* out_transforms, uint32_t num_transforms);
+			void sample(const single_track_query& query, float sample_time, Transform_32* out_transforms, uint32_t num_transforms IF_ACL_BIND_POSE(, Transform_32* bind_transforms));
+			void sample(const hierarchical_track_query& query, float sample_time, Transform_32* out_transforms, uint32_t num_transforms IF_ACL_BIND_POSE(, Transform_32* bind_transforms));
 
 		private:
 			track_bit_rate_database(const track_bit_rate_database&) = delete;
@@ -212,6 +212,12 @@ namespace acl
 			bool				m_is_translation_variable;
 			bool				m_is_scale_variable;
 			bool				m_has_scale;
+
+#ifdef ACL_BIND_POSE
+
+			bool				m_default_bind_pose;
+
+#endif
 
 			uint32_t			m_generation_id;
 
@@ -302,6 +308,12 @@ namespace acl
 			const bool has_scale = raw_bone_steams->segment->clip->has_scale;
 			m_has_scale = has_scale;
 			m_default_scale = get_default_scale(bone_streams->segment->clip->additive_format);
+
+#ifdef ACL_BIND_POSE
+
+			m_default_bind_pose = get_default_bind_pose(bone_streams->segment->clip->additive_format);
+
+#endif
 
 			const uint32_t num_tracks_per_transform = has_scale ? 3 : 2;
 			const uint32_t num_entries_per_transform = num_tracks_per_transform * k_num_bit_rates_cached_per_track;
@@ -578,7 +590,17 @@ namespace acl
 
 			Quat_32 rotation;
 			if (bone_stream.is_rotation_default)
+
+#ifdef ACL_BIND_POSE
+
+				rotation = (context.bind_tracks)? context.bind_tracks[context.track_index].rotation: quat_identity_32();
+
+#else
+
 				rotation = quat_identity_32();
+
+#endif
+
 			else if (bone_stream.is_rotation_constant)
 			{
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index);
@@ -717,7 +739,17 @@ namespace acl
 
 			Vector4_32 translation;
 			if (bone_stream.is_translation_default)
+
+#ifdef ACL_BIND_POSE
+
+				translation = (context.bind_tracks) ? context.bind_tracks[context.track_index].translation : vector_zero_32();
+
+#else
+
 				translation = vector_zero_32();
+
+#endif
+
 			else if (bone_stream.is_translation_constant)
 			{
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index);
@@ -845,7 +877,17 @@ namespace acl
 
 			Vector4_32 scale;
 			if (bone_stream.is_scale_default)
+
+#ifdef ACL_BIND_POSE
+
+				scale = (context.bind_tracks) ? context.bind_tracks[context.track_index].scale : m_default_scale;
+
+#else
+
 				scale = m_default_scale;
+
+#endif
+
 			else if (bone_stream.is_scale_constant)
 			{
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index);
@@ -965,7 +1007,7 @@ namespace acl
 			return scale;
 		}
 
-		inline void track_bit_rate_database::sample(const single_track_query& query, float sample_time, Transform_32* out_local_pose, uint32_t num_transforms)
+		inline void track_bit_rate_database::sample(const single_track_query& query, float sample_time, Transform_32* out_local_pose, uint32_t num_transforms IF_ACL_BIND_POSE(, Transform_32* bind_pose))
 		{
 			ACL_ASSERT(query.m_database == this, "Query has not been built for this database");
 			ACL_ASSERT(out_local_pose != nullptr, "Cannot write to null output local pose");
@@ -980,7 +1022,16 @@ namespace acl
 			else
 				sample_key = 0;
 
+#ifdef ACL_BIND_POSE
+
+			sample_context context((m_default_bind_pose)? bind_pose: nullptr);
+
+#else
+
 			sample_context context;
+
+#endif
+
 			context.track_index = query.m_track_index;
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
@@ -1005,7 +1056,7 @@ namespace acl
 			out_local_pose[query.m_track_index] = transform_set(rotation, translation, scale);
 		}
 
-		inline void track_bit_rate_database::sample(const hierarchical_track_query& query, float sample_time, Transform_32* out_local_pose, uint32_t num_transforms)
+		inline void track_bit_rate_database::sample(const hierarchical_track_query& query, float sample_time, Transform_32* out_local_pose, uint32_t num_transforms IF_ACL_BIND_POSE(, Transform_32* bind_pose))
 		{
 			ACL_ASSERT(out_local_pose != nullptr, "Cannot write to null output local pose");
 			ACL_ASSERT(num_transforms > 0, "Cannot write to empty output local pose");
@@ -1019,7 +1070,16 @@ namespace acl
 			else
 				sample_key = 0;
 
+#ifdef ACL_BIND_POSE
+
+			sample_context context((m_default_bind_pose)? bind_pose: nullptr);
+
+#else
+
 			sample_context context;
+
+#endif
+
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
 

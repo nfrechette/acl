@@ -576,35 +576,91 @@ namespace acl
 			sampling_context.key_frame_bit_offsets[0] = m_context.key_frame_bit_offsets[0];
 			sampling_context.key_frame_bit_offsets[1] = m_context.key_frame_bit_offsets[1];
 
+
+#ifdef ACL_BIND_POSE
+
+			const bool default_bind_pose = header.default_bind_pose;
+
+#endif
+
 			const uint16_t num_bones = header.num_bones;
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				if (writer.skip_all_bone_rotations() || writer.skip_bone_rotation(bone_index))
-					skip_over_rotation(m_settings, header, m_context, sampling_context);
+
+#ifdef ACL_BIND_POSE
+
+				if (default_bind_pose && is_default(m_context, sampling_context))
+				{
+					++(sampling_context.track_index);
+				}
 				else
 				{
-					const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
-					writer.write_bone_rotation(bone_index, rotation);
-				}
 
-				if (writer.skip_all_bone_translations() || writer.skip_bone_translation(bone_index))
-					skip_over_vector(translation_adapter, header, m_context, sampling_context);
+#endif
+
+					if (writer.skip_all_bone_rotations() || writer.skip_bone_rotation(bone_index))
+						skip_over_rotation(m_settings, header, m_context, sampling_context);
+					else
+					{
+						const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
+						writer.write_bone_rotation(bone_index, rotation);
+					}
+
+#ifdef ACL_BIND_POSE
+
+				}
+			
+
+				if (default_bind_pose && is_default(m_context, sampling_context))
+				{
+					++(sampling_context.track_index);
+				}
 				else
 				{
-					const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
-					writer.write_bone_translation(bone_index, translation);
-				}
 
-				if (writer.skip_all_bone_scales() || writer.skip_bone_scale(bone_index))
+#endif
+
+					if (writer.skip_all_bone_translations() || writer.skip_bone_translation(bone_index))
+						skip_over_vector(translation_adapter, header, m_context, sampling_context);
+					else
+					{
+						const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
+						writer.write_bone_translation(bone_index, translation);
+					}
+
+#ifdef ACL_BIND_POSE
+
+				}
+				
+				if (default_bind_pose && ((header.has_scale && is_default(m_context, sampling_context)) || !header.has_scale))
 				{
 					if (header.has_scale)
-						skip_over_vector(scale_adapter, header, m_context, sampling_context);
+					{
+						++(sampling_context.track_index);
+					}
 				}
 				else
 				{
-					const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
-					writer.write_bone_scale(bone_index, scale);
+
+#endif
+
+					if (writer.skip_all_bone_scales() || writer.skip_bone_scale(bone_index))
+					{
+						if (header.has_scale)
+							skip_over_vector(scale_adapter, header, m_context, sampling_context);
+					}
+					else
+					{
+						const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
+						writer.write_bone_scale(bone_index, scale);
+					}
+
+#ifdef ACL_BIND_POSE
+
 				}
+
+#endif
+
 			}
 
 			if (m_settings.disable_fp_exeptions())
@@ -804,22 +860,62 @@ namespace acl
 				}
 			}
 
-			if (out_rotation != nullptr)
-				*out_rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
-			else
-				skip_over_rotation(m_settings, header, m_context, sampling_context);
+#ifdef ACL_BIND_POSE
 
-			if (out_translation != nullptr)
-				*out_translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
-			else if (out_scale != nullptr && header.has_scale)
+			const bool default_bind_pose = header.default_bind_pose;
+			if (default_bind_pose && is_default(m_context, sampling_context))
 			{
-				// We'll need to read the scale value that follows, skip the translation we don't need
-				skip_over_vector(translation_adapter, header, m_context, sampling_context);
+				++(sampling_context.track_index);
+			}
+			else
+			{
+
+#endif
+				if (out_rotation != nullptr)
+					*out_rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
+				else
+					skip_over_rotation(m_settings, header, m_context, sampling_context);
+
+#ifdef ACL_BIND_POSE
+
 			}
 
-			if (out_scale != nullptr)
-				*out_scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
-			// No need to skip our last scale, we don't care anymore
+			if (default_bind_pose && is_default(m_context, sampling_context))
+			{
+				++(sampling_context.track_index);
+			}
+			else
+			{
+
+#endif
+
+				if (out_translation != nullptr)
+					*out_translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
+				else if (out_scale != nullptr && header.has_scale)
+				{
+					// We'll need to read the scale value that follows, skip the translation we don't need
+					skip_over_vector(translation_adapter, header, m_context, sampling_context);
+				}
+
+
+#ifdef ACL_BIND_POSE
+
+			}
+
+			if (!(default_bind_pose && is_default(m_context, sampling_context)))
+			{
+
+#endif
+
+				if (out_scale != nullptr)
+					*out_scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
+				// No need to skip our last scale, we don't care anymore
+
+#ifdef ACL_BIND_POSE
+
+			}
+
+#endif
 
 			if (m_settings.disable_fp_exeptions())
 				restore_fp_exceptions(fp_env);

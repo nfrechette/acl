@@ -121,7 +121,7 @@ namespace acl
 			extract_clip_bone_ranges(allocator, clip_context);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, clip_context, settings.constant_rotation_threshold_angle, settings.constant_translation_threshold, settings.constant_scale_threshold);
+			compact_constant_streams(allocator, clip_context, settings.constant_rotation_threshold_angle, settings.constant_translation_threshold, settings.constant_scale_threshold IF_ACL_BIND_POSE(, skeleton));
 
 			uint32_t clip_range_data_size = 0;
 			if (settings.range_reduction != RangeReductionFlags8::None)
@@ -237,6 +237,13 @@ namespace acl
 			header.segment_range_reduction = settings.segmenting.range_reduction;
 			header.has_scale = clip_context.has_scale ? 1 : 0;
 			header.default_scale = additive_base_clip == nullptr || clip.get_additive_format() != AdditiveClipFormat8::Additive1;
+
+#ifdef ACL_BIND_POSE
+
+			header.default_bind_pose = (!additive_base_clip) && (clip.get_additive_format() == AdditiveClipFormat8::None);
+
+#endif
+
 			header.num_samples = num_samples;
 			header.sample_rate = clip.get_sample_rate();
 			header.segment_start_indices_offset = sizeof(ClipHeader);

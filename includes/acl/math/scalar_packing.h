@@ -34,6 +34,26 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+
+#ifdef ACL_PACKING
+
+	inline uint32_t pack_scalar_signed_normalized(float input, uint8_t num_bits)
+	{
+		ACL_ASSERT(num_bits > 0, "Attempting to unpack from too few bits");
+		ACL_ASSERT(num_bits < 25, "Attempting to unpack from too many bits");
+		ACL_ASSERT(input >= -0.5F && input <= 0.5F, "Expected normalized signed input value: %f", input);
+		const float mid_value = safe_to_float(1 << (num_bits - 1));
+		const float max_value = 2.0F*mid_value - 1.0F;
+		return static_cast<uint32_t>(floor(input * max_value) + mid_value);
+	}
+
+	inline uint32_t pack_scalar_unsigned(float input, uint8_t num_bits)
+	{
+		return pack_scalar_signed_normalized(input - 0.5F, num_bits);
+	}
+
+#else
+
 	inline uint32_t pack_scalar_unsigned(float input, uint8_t num_bits)
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to pack on too many bits");
@@ -42,20 +62,56 @@ namespace acl
 		return static_cast<uint32_t>(symmetric_round(input * safe_to_float(max_value)));
 	}
 
+#endif
+
 	inline float unpack_scalar_unsigned(uint32_t input, uint8_t num_bits)
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to unpack from too many bits");
 		const uint32_t max_value = (1 << num_bits) - 1;
 		ACL_ASSERT(input <= max_value, "Input value too large: %ull", input);
+
+#ifdef ACL_PACKING
+
+		if (num_bits == 24)
+		{
+			// Simple precision boost for the highest bitrate.  1-1 mapping between fixed and float, omitting the middle float.
+			// Replicated in vector4_packing.
+			return safe_to_float(input + ((input < (1 << 23))? 0: 1)) / (1 << 24);
+		}
+
+#endif
+
 		// For performance reasons, unpacking is faster when multiplying with the reciprocal
 		const float inv_max_value = 1.0F / safe_to_float(max_value);
+
+#ifdef ACL_PACKING
+
+		// To date, we haven't needed to replicate maximum bounds in vector4_packing.
+		return min(safe_to_float(input) * inv_max_value, 1.0F);
+
+#else
+
 		return safe_to_float(input) * inv_max_value;
+
+#endif
+
 	}
+
+#ifdef ACL_PACKING
+
+	inline uint32_t pack_scalar_signed(float input, uint8_t num_bits)
+	{
+		return pack_scalar_signed_normalized(input * 0.5F, num_bits);
+	}
+
+#else
 
 	inline uint32_t pack_scalar_signed(float input, uint8_t num_bits)
 	{
 		return pack_scalar_unsigned((input * 0.5F) + 0.5F, num_bits);
 	}
+
+#endif
 
 	inline float unpack_scalar_signed(uint32_t input, uint8_t num_bits)
 	{

@@ -2,11 +2,12 @@
 
 import sys
 
-k_bit_rate_num_bits = [ 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 ]
+# ACL_BIT_RATE: Added 1, 2, 20, 21, 22, 23, and 24.
+k_bit_rate_num_bits = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 32 ]
 
-k_highest_bit_rate = 18
+k_highest_bit_rate = 25 # ACL_BIT_RATE: 18 -> 25
 k_lowest_bit_rate = 1
-k_num_bit_rates = 19
+k_num_bit_rates = 26 # ACL_BIT_RATE: 19 -> 26
 k_invalid_bit_rate = 255
 
 # This code assumes that rotations, translations, and scales are packed on 3 components (e.g. quat drop w)

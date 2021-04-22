@@ -195,7 +195,16 @@ namespace acl
 		// Whether the default scale is 0,0,0 or 1,1,1 (bool/bit).
 		uint8_t					default_scale;
 
+#ifdef ACL_BIND_POSE
+
+		// Whether 'default' is defined by the bind pose (bool).  Trumps default_scale.
+		uint8_t					default_bind_pose;
+
+#else
+
 		uint8_t padding[1];
+
+#endif
 
 		// The total number of samples per track our clip contained.
 		uint32_t				num_samples;

@@ -172,7 +172,9 @@ def create_csv(options):
 		csv_data['stats_bit_rate_csv_file'] = stats_bit_rate_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_bit_rate_csv_filename))
-		print('Algorithm Name, 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32', file = stats_bit_rate_csv_file)
+        
+        # ACL_BIT_RATE: Added 1, 2, 20, 21, 22, 23, and 24.
+		print('Algorithm Name, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 32', file = stats_bit_rate_csv_file)
 
 	if options['csv_animated_size']:
 		stats_animated_size_csv_filename = os.path.join(stat_dir, 'stats_animated_size.csv')
@@ -463,7 +465,7 @@ def aggregate_stats(agg_run_stats, run_stats):
 		agg_data['total_duration'] = 0.0
 		agg_data['max_error'] = 0
 		agg_data['num_runs'] = 0
-		agg_data['bit_rates'] = [0] * 19
+		agg_data['bit_rates'] = [0] * 26 # ACL_BIT_RATE: 19 -> 26
 		agg_run_stats[algorithm_uid] = agg_data
 
 	agg_data = agg_run_stats[algorithm_uid]
@@ -476,7 +478,7 @@ def aggregate_stats(agg_run_stats, run_stats):
 	if 'segments' in run_stats and len(run_stats['segments']) > 0:
 		for segment in run_stats['segments']:
 			if 'bit_rate_counts' in segment:
-				for i in range(19):
+				for i in range(26): # ACL_BIT_RATE: 19 -> 26
 					agg_data['bit_rates'][i] += segment['bit_rate_counts'][i]
 
 def track_best_runs(best_runs, run_stats):
@@ -639,7 +641,7 @@ def aggregate_job_stats(agg_job_results, job_results):
 				agg_job_results['agg_run_stats'][key]['total_duration'] += job_results['agg_run_stats'][key]['total_duration']
 				agg_job_results['agg_run_stats'][key]['max_error'] = max(agg_job_results['agg_run_stats'][key]['max_error'], job_results['agg_run_stats'][key]['max_error'])
 				agg_job_results['agg_run_stats'][key]['num_runs'] += job_results['agg_run_stats'][key]['num_runs']
-				for i in range(19):
+				for i in range(26): # ACL_BIT_RATE: 19 -> 26
 					agg_job_results['agg_run_stats'][key]['bit_rates'][i] += job_results['agg_run_stats'][key]['bit_rates'][i]
 
 		if job_results['best_runs']['best_error'] < agg_job_results['best_runs']['best_error']:

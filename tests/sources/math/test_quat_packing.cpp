@@ -48,6 +48,15 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 		REQUIRE(quat_get_y(quat0) == quat_get_y(quat1));
 		REQUIRE(quat_get_z(quat0) == quat_get_z(quat1));
 		REQUIRE(quat_get_w(quat0) == quat_get_w(quat1));
+
+#ifdef ACL_UNIT_TEST
+
+		UnalignedBuffer tmp1;
+		pack_quat_128(quat1, &tmp1.buffer[0]);
+		CHECK(std::memcmp(&tmp0.buffer[0], &tmp1.buffer[0], 16) == 0);
+
+#endif
+
 	}
 
 	{
@@ -58,6 +67,15 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 		REQUIRE(quat_get_y(quat0) == quat_get_y(quat1));
 		REQUIRE(quat_get_z(quat0) == quat_get_z(quat1));
 		REQUIRE(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-4F));
+
+#ifdef ACL_UNIT_TEST
+
+		UnalignedBuffer tmp1;
+		pack_quat_96(quat1, &tmp1.buffer[0]);
+		CHECK(std::memcmp(&tmp0.buffer[0], &tmp1.buffer[0], 12) == 0);
+
+#endif
+
 	}
 
 	{
@@ -68,6 +86,28 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 		REQUIRE(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-4F));
 		REQUIRE(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-4F));
 		REQUIRE(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-4F));
+
+#ifdef ACL_UNIT_TEST
+
+		UnalignedBuffer tmp1;
+		pack_quat_48(quat1, &tmp1.buffer[0]);
+		CHECK(std::memcmp(&tmp0.buffer[0], &tmp1.buffer[0], 6) == 0);
+
+		// We know that unpack_quat_48 uses unpack_vector3_u48_unsafe, which isn't covered by other unit tests, so make sure
+		// that co(dec(x)) == x for all x.
+		uint16_t* data = safe_ptr_cast<uint16_t>(&tmp0.buffer[0]);
+		data[1] = 0;
+		data[2] = 0;
+		const uint32_t max_value = (1 << 16) - 1;
+		for (uint32_t value = 0; value <= max_value; ++value)
+		{
+			data[0] = safe_static_cast<uint16_t>(value);
+			pack_quat_48(unpack_quat_48(&tmp0.buffer[0]), &tmp1.buffer[0]);
+			CHECK(std::memcmp(&tmp0.buffer[0], &tmp1.buffer[0], 6) == 0);
+		}
+
+#endif
+
 	}
 
 	{
@@ -78,6 +118,15 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 		REQUIRE(scalar_near_equal(quat_get_y(quat0), quat_get_y(quat1), 1.0E-3F));
 		REQUIRE(scalar_near_equal(quat_get_z(quat0), quat_get_z(quat1), 1.0E-3F));
 		REQUIRE(scalar_near_equal(quat_get_w(quat0), quat_get_w(quat1), 1.0E-3F));
+
+#ifdef ACL_UNIT_TEST
+
+		UnalignedBuffer tmp1;
+		pack_quat_32(quat1, &tmp1.buffer[0]);
+		CHECK(std::memcmp(&tmp0.buffer[0], &tmp1.buffer[0], 4) == 0);
+
+#endif
+
 	}
 
 	REQUIRE(get_packed_rotation_size(RotationFormat8::Quat_128) == 16);

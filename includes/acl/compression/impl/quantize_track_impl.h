@@ -62,6 +62,13 @@ namespace acl
 
 			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value));
 
+#ifdef ACL_PACKING
+
+			// Invert the other assertion to avoid unreachable code errors.
+			ACL_ASSERT(vector_any_less_than(value, vector_zero()) || vector_any_less_than(rtm::vector_set(1.0F), value), "Not tested yet");
+
+#endif
+
 			const vector4f packed_value = vector_symmetric_round(vector_mul(value, scales.max_value));
 			const vector4f decayed_value = vector_mul(packed_value, scales.inv_max_value);
 			return decayed_value;
@@ -73,6 +80,13 @@ namespace acl
 			using namespace rtm;
 
 			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", vector_get_x(value), vector_get_y(value), vector_get_z(value), vector_get_w(value));
+
+#ifdef ACL_PACKING
+
+			// Invert the other assertion to avoid unreachable code errors.
+			ACL_ASSERT(vector_any_less_than(value, vector_zero()) || vector_any_less_than(rtm::vector_set(1.0F), value), "Not tested yet");
+
+#endif
 
 			return vector_symmetric_round(vector_mul(value, scales.max_value));
 		}

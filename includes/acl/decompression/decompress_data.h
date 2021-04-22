@@ -31,6 +31,18 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+
+#ifdef ACL_BIND_POSE
+
+	template<class DecompressionContextType, class SamplingContextType>
+	inline bool is_default(const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
+	{
+		const BitSetIndexRef track_index_bit_ref(decomp_context.bitset_desc, sampling_context.track_index);
+		return bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
+	}
+
+#endif
+
 	template<class SettingsType, class DecompressionContextType, class SamplingContextType>
 	inline void skip_over_rotation(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
 	{
@@ -336,6 +348,13 @@ namespace acl
 		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 		if (is_sample_default)
 		{
+
+#ifdef ACL_BIND_POSE
+
+			ACL_ASSERT(!(header.default_bind_pose), "You should have skipped this sample before getting here.");
+
+#endif
+
 			out_rotations[0] = quat_identity_32();
 			time_series_type = TimeSeriesType8::ConstantDefault;
 		}
@@ -564,6 +583,13 @@ namespace acl
 		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 		if (is_sample_default)
 		{
+
+#ifdef ACL_BIND_POSE
+
+			ACL_ASSERT(!(header.default_bind_pose), "You should have skipped this sample before getting here.");
+
+#endif
+
 			out_vectors[0] = settings.get_default_value();
 			time_series_type = TimeSeriesType8::ConstantDefault;
 		}
@@ -721,6 +747,13 @@ namespace acl
 		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 		if (is_sample_default)
 		{
+
+#ifdef ACL_BIND_POSE
+
+			ACL_ASSERT(!(header.default_bind_pose), "You should have skipped this sample before getting here.");
+
+#endif
+
 			interpolated_rotation = quat_identity_32();
 		}
 		else
@@ -1055,6 +1088,13 @@ namespace acl
 		const bool is_sample_default = bitset_test(decomp_context.default_tracks_bitset, track_index_bit_ref);
 		if (is_sample_default)
 		{
+
+#ifdef ACL_BIND_POSE
+
+			ACL_ASSERT(!(header.default_bind_pose), "You should have skipped this sample before getting here.");
+
+#endif
+
 			interpolated_vector = settings.get_default_value();
 		}
 		else

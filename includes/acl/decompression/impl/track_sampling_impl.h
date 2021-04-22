@@ -105,7 +105,16 @@ namespace acl
 		// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 		inline rtm::scalarf ACL_SIMD_CALL unpack_scalarf_uXX_unsafe(uint8_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 		{
+
+#ifdef ACL_BIT_RATE
+
+			ACL_ASSERT(num_bits <= 24, "This function does not support reading more than 24 bits per component");
+
+#else
+
 			ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
+
+#endif
 
 			struct PackedTableEntry
 			{
@@ -118,15 +127,38 @@ namespace acl
 				uint32_t mask;
 			};
 
+#ifdef ACL_BIT_RATE
+
+			// TODO: We technically don't need the first entry, which could save a few bytes
+			alignas(64) static constexpr PackedTableEntry k_packed_constants[25] =
+
+#else
+
 			// TODO: We technically don't need the first 3 entries, which could save a few bytes
 			alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
+
+#endif
+
 			{
 				PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
 				PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
 				PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
 				PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
 				PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+
+#ifdef ACL_BIT_RATE
+
+				PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23), PackedTableEntry(24),
+
+#endif
+
 			};
+
+#ifdef ACL_PACKING
+
+			ACL_ASSERT(false, "Not tested yet");
+
+#endif
 
 #if defined(ACL_SSE2_INTRINSICS)
 			const uint32_t bit_shift = 32 - num_bits;

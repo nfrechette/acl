@@ -105,6 +105,21 @@ namespace acl
 		Transform_32* base_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 		Transform_32* lossy_local_pose = allocate_type_array<Transform_32>(allocator, num_bones);
 
+#ifdef ACL_BIND_POSE
+
+		Transform_32* bind_pose = allocate_type_array<Transform_32>(allocator, num_bones);
+		const RigidBone* bones = skeleton.get_bones();
+		for (int i = 0; i < num_bones; ++i)
+		{
+			const Transform_64& src_transform = bones[i].bind_transform;
+			Transform_32& dest_transform = bind_pose[i];
+			dest_transform.rotation = quat_cast(src_transform.rotation);
+			dest_transform.translation = vector_cast(src_transform.translation);
+			dest_transform.scale = vector_cast(src_transform.scale);
+		}
+
+#endif
+
 		const float sample_rate = raw_clip_context.sample_rate;
 		const float ref_duration = calculate_duration(raw_clip_context.num_samples, sample_rate);
 
@@ -116,14 +131,14 @@ namespace acl
 			{
 				const float sample_time = min(float(segment.clip_sample_offset + sample_index) / sample_rate, ref_duration);
 
-				sample_streams(raw_clip_context.segments[0].bone_streams, num_bones, sample_time, raw_local_pose);
-				sample_streams(segment.bone_streams, num_bones, sample_time, lossy_local_pose);
+				sample_streams(raw_clip_context.segments[0].bone_streams, num_bones, sample_time, raw_local_pose IF_ACL_BIND_POSE(, bind_pose));
+				sample_streams(segment.bone_streams, num_bones, sample_time, lossy_local_pose IF_ACL_BIND_POSE(, bind_pose));
 
 				if (raw_clip_context.has_additive_base)
 				{
 					const float normalized_sample_time = additive_base_clip_context.num_samples > 1 ? (sample_time / ref_duration) : 0.0F;
 					const float additive_sample_time = additive_base_clip_context.num_samples > 1 ? (normalized_sample_time * additive_base_clip_context.duration) : 0.0F;
-					sample_streams(additive_base_clip_context.segments[0].bone_streams, num_bones, additive_sample_time, base_local_pose);
+					sample_streams(additive_base_clip_context.segments[0].bone_streams, num_bones, additive_sample_time, base_local_pose IF_ACL_BIND_POSE(, bind_pose));
 				}
 
 				frames_writer.push_newline();
@@ -157,6 +172,13 @@ namespace acl
 		deallocate_type_array(allocator, raw_local_pose, num_bones);
 		deallocate_type_array(allocator, base_local_pose, num_bones);
 		deallocate_type_array(allocator, lossy_local_pose, num_bones);
+
+#ifdef ACL_BIND_POSE
+
+		deallocate_type_array(allocator, bind_pose, num_bones);
+
+#endif
+
 	}
 
 	inline void write_stats(IAllocator& allocator, const AnimationClip& clip, const ClipContext& clip_context, const RigidSkeleton& skeleton,

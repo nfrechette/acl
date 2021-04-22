@@ -603,6 +603,14 @@ namespace acl
 	{
 		struct sample_context
 		{
+
+#ifdef ACL_BIND_POSE
+
+			explicit sample_context(const Transform_32* in_bind_tracks) : bind_tracks(in_bind_tracks) {}
+			const Transform_32* bind_tracks;
+
+#endif
+
 			uint32_t track_index;
 
 			uint32_t sample_key;
@@ -646,7 +654,17 @@ namespace acl
 		{
 			Quat_32 rotation;
 			if (bone_stream.is_rotation_default)
+
+#ifdef ACL_BIND_POSE
+
+				rotation = (context.bind_tracks)? context.bind_tracks[context.track_index].rotation: quat_identity_32();
+
+#else
+
 				rotation = quat_identity_32();
+
+#endif
+
 			else if (bone_stream.is_rotation_constant)
 				rotation = quat_normalize(get_rotation_sample(bone_stream, 0));
 			else
@@ -687,7 +705,17 @@ namespace acl
 		{
 			Quat_32 rotation;
 			if (bone_stream.is_rotation_default)
+
+#ifdef ACL_BIND_POSE
+
+				rotation = (context.bind_tracks) ? context.bind_tracks[context.track_index].rotation : quat_identity_32();
+
+#else
+
 				rotation = quat_identity_32();
+
+#endif
+
 			else if (bone_stream.is_rotation_constant)
 			{
 				if (is_rotation_variable)
@@ -747,7 +775,17 @@ namespace acl
 		{
 			Vector4_32 translation;
 			if (bone_stream.is_translation_default)
+
+#ifdef ACL_BIND_POSE
+
+				translation = (context.bind_tracks) ? context.bind_tracks[context.track_index].translation : vector_zero_32();
+
+#else
+
 				translation = vector_zero_32();
+
+#endif
+
 			else if (bone_stream.is_translation_constant)
 				translation = get_translation_sample(bone_stream, 0);
 			else
@@ -788,7 +826,17 @@ namespace acl
 		{
 			Vector4_32 translation;
 			if (bone_stream.is_translation_default)
+
+#ifdef ACL_BIND_POSE
+
+				translation = (context.bind_tracks) ? context.bind_tracks[context.track_index].translation : vector_zero_32();
+
+#else
+
 				translation = vector_zero_32();
+
+#endif
+
 			else if (bone_stream.is_translation_constant)
 				translation = get_translation_sample(raw_bone_stream, 0, VectorFormat8::Vector3_96);
 			else
@@ -841,7 +889,17 @@ namespace acl
 		{
 			Vector4_32 scale;
 			if (bone_stream.is_scale_default)
+
+#ifdef ACL_BIND_POSE
+
+				scale = (context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
 				scale = default_scale;
+
+#endif
+
 			else if (bone_stream.is_scale_constant)
 				scale = get_scale_sample(bone_stream, 0);
 			else
@@ -882,7 +940,17 @@ namespace acl
 		{
 			Vector4_32 scale;
 			if (bone_stream.is_scale_default)
+
+#ifdef ACL_BIND_POSE
+
+				scale = (context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
 				scale = default_scale;
+
+#endif
+
 			else if (bone_stream.is_scale_constant)
 				scale = get_scale_sample(raw_bone_stream, 0, VectorFormat8::Vector3_96);
 			else
@@ -931,7 +999,7 @@ namespace acl
 		}
 	}
 
-	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, Transform_32* out_local_pose)
+	inline void sample_streams(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, Transform_32* out_local_pose IF_ACL_BIND_POSE(, Transform_32* bind_pose))
 	{
 		const SegmentContext* segment_context = bone_streams->segment;
 		const Vector4_32 default_scale = get_default_scale(segment_context->clip->additive_format);
@@ -943,7 +1011,16 @@ namespace acl
 		else
 			sample_key = 0;
 
+#ifdef ACL_BIND_POSE
+
+		acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format) ? bind_pose : nullptr);
+
+#else
+
 		acl_impl::sample_context context;
+
+#endif
+
 		context.sample_key = sample_key;
 		context.sample_time = sample_time;
 
@@ -957,7 +1034,17 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream);
-				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale) : default_scale;
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale) : 
+
+#ifdef ACL_BIND_POSE
+
+					(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+					default_scale;
+
+#endif
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
@@ -972,14 +1059,24 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream);
-				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale) : default_scale;
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+					(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+					default_scale;
+
+#endif
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
 		}
 	}
 
-	inline void sample_stream(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose)
+	inline void sample_stream(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose IF_ACL_BIND_POSE(, Transform_32* bind_pose))
 	{
 		(void)num_bones;
 
@@ -993,7 +1090,16 @@ namespace acl
 		else
 			sample_key = 0;
 
+#ifdef ACL_BIND_POSE
+
+		acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format) ? bind_pose : nullptr);
+
+#else
+
 		acl_impl::sample_context context;
+
+#endif
+
 		context.track_index = bone_index;
 		context.sample_key = sample_key;
 		context.sample_time = sample_time;
@@ -1007,19 +1113,39 @@ namespace acl
 		{
 			rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream);
 			translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream);
-			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale) : default_scale;
+			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 		}
 		else
 		{
 			rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream);
 			translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream);
-			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale) : default_scale;
+			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 		}
 
 		out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 	}
 
-	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose)
+	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, uint16_t num_bones, float sample_time, uint16_t bone_index, Transform_32* out_local_pose IF_ACL_BIND_POSE(, Transform_32* bind_pose))
 	{
 		(void)num_bones;
 
@@ -1033,7 +1159,16 @@ namespace acl
 		else
 			sample_key = 0;
 
+#ifdef ACL_BIND_POSE
+
+		acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format) ? bind_pose : nullptr);
+
+#else
+
 		acl_impl::sample_context context;
+
+#endif
+
 		context.sample_key = sample_key;
 		context.sample_time = sample_time;
 
@@ -1048,7 +1183,17 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream);
-				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale) : default_scale;
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+					(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+					default_scale;
+
+#endif
 
 				out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;
@@ -1065,7 +1210,17 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream);
-				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale) : default_scale;
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+					(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+					default_scale;
+
+#endif
 
 				out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;
@@ -1073,7 +1228,7 @@ namespace acl
 		}
 	}
 
-	inline void sample_streams(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose)
+	inline void sample_streams(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose IF_ACL_BIND_POSE(, Transform_32* bind_pose))
 	{
 		const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 		const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -1089,7 +1244,16 @@ namespace acl
 		else
 			sample_key = 0;
 
+#ifdef ACL_BIND_POSE
+
+		acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format) ? bind_pose : nullptr);
+
+#else
+
 		acl_impl::sample_context context;
+
+#endif
+
 		context.sample_key = sample_key;
 		context.sample_time = sample_time;
 
@@ -1105,7 +1269,17 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_steam, is_rotation_variable, rotation_format);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_steam, is_translation_variable, translation_format);
-				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale) : default_scale;
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+					(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+					default_scale;
+
+#endif
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
@@ -1122,14 +1296,24 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_steam, is_rotation_variable, rotation_format);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_steam, is_translation_variable, translation_format);
-				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale) : default_scale;
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+					(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+					default_scale;
+
+#endif
 
 				out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 			}
 		}
 	}
 
-	inline void sample_stream(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose)
+	inline void sample_stream(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose IF_ACL_BIND_POSE(, Transform_32* bind_pose))
 	{
 		(void)num_bones;
 
@@ -1147,7 +1331,16 @@ namespace acl
 		else
 			sample_key = 0;
 
+#ifdef ACL_BIND_POSE
+
+		acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format) ? bind_pose : nullptr);
+
+#else
+
 		acl_impl::sample_context context;
+
+#endif
+
 		context.track_index = bone_index;
 		context.sample_key = sample_key;
 		context.sample_time = sample_time;
@@ -1163,19 +1356,39 @@ namespace acl
 		{
 			rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 			translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
+			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 		}
 		else
 		{
 			rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 			translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
+			scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 		}
 
 		out_local_pose[bone_index] = transform_set(rotation, translation, scale);
 	}
 
-	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose)
+	inline void sample_streams_hierarchical(const BoneStreams* bone_streams, const BoneStreams* raw_bone_steams, uint16_t num_bones, float sample_time, uint16_t bone_index, const BoneBitRate* bit_rates, RotationFormat8 rotation_format, VectorFormat8 translation_format, VectorFormat8 scale_format, Transform_32* out_local_pose IF_ACL_BIND_POSE(, Transform_32* bind_pose))
 	{
 		(void)num_bones;
 
@@ -1193,7 +1406,16 @@ namespace acl
 		else
 			sample_key = 0;
 
+#ifdef ACL_BIND_POSE
+
+		acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format) ? bind_pose : nullptr);
+
+#else
+
 		acl_impl::sample_context context;
+
+#endif
+
 		context.sample_key = sample_key;
 		context.sample_time = sample_time;
 
@@ -1210,7 +1432,17 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Uniform>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+					(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+					default_scale;
+
+#endif
 
 				out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;
@@ -1229,7 +1461,17 @@ namespace acl
 
 				const Quat_32 rotation = acl_impl::sample_rotation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 				const Vector4_32 translation = acl_impl::sample_translation<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
+				const Vector4_32 scale = has_scale ? acl_impl::sample_scale<SampleDistribution8::Variable>(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+					(context.bind_tracks) ? context.bind_tracks[context.track_index].scale : default_scale;
+
+#else
+
+					default_scale;
+
+#endif
 
 				out_local_pose[current_bone_index] = transform_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;
