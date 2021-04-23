@@ -430,6 +430,20 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 	Transform_32* base_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 	Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
+#ifdef ACL_BIND_POSE
+
+	ACL_ASSERT(skeleton.get_num_bones() == num_bones, "Clip doesn't match skeleton");
+	for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+	{
+		Transform_32& dest = lossy_pose_transforms[bone_index];
+		const Transform_64& src = skeleton.get_bone(bone_index).bind_transform;
+		dest.rotation = quat_cast(src.rotation);
+		dest.translation = vector_cast(src.translation);
+		dest.scale = vector_cast(src.scale);
+	}
+
+#endif
+
 	DefaultOutputWriter pose_writer(lossy_pose_transforms, num_bones);
 
 	// Regression test
@@ -463,6 +477,13 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			Quat_32 rotation;
+
+#ifdef ACL_BIND_POSE
+
+			rotation = quat_cast(skeleton.get_bone(bone_index).bind_transform.rotation);
+
+#endif
+
 			context.decompress_bone(bone_index, &rotation, nullptr, nullptr);
 			ACL_ASSERT(quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
 		}
@@ -471,6 +492,13 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			Vector4_32 translation;
+
+#ifdef ACL_BIND_POSE
+
+			translation = vector_cast(skeleton.get_bone(bone_index).bind_transform.translation);
+
+#endif
+
 			context.decompress_bone(bone_index, nullptr, &translation, nullptr);
 			ACL_ASSERT(vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
 		}
@@ -479,6 +507,13 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			Vector4_32 scale;
+
+#ifdef ACL_BIND_POSE
+
+			scale = vector_cast(skeleton.get_bone(bone_index).bind_transform.scale);
+
+#endif
+
 			context.decompress_bone(bone_index, nullptr, nullptr, &scale);
 			ACL_ASSERT(vector_all_near_equal3(scale, lossy_pose_transforms[bone_index].scale), "Failed to sample bone index: %u", bone_index);
 		}
@@ -489,6 +524,16 @@ static void validate_accuracy(IAllocator& allocator, const AnimationClip& clip, 
 			Quat_32 rotation;
 			Vector4_32 translation;
 			Vector4_32 scale;
+
+#ifdef ACL_BIND_POSE
+
+			const Transform_64& src = skeleton.get_bone(bone_index).bind_transform;
+			rotation = quat_cast(src.rotation);
+			translation = vector_cast(src.translation);
+			scale = vector_cast(src.scale);
+
+#endif
+
 			context.decompress_bone(bone_index, &rotation, &translation, &scale);
 			ACL_ASSERT(quat_near_equal(rotation, lossy_pose_transforms[bone_index].rotation), "Failed to sample bone index: %u", bone_index);
 			ACL_ASSERT(vector_all_near_equal3(translation, lossy_pose_transforms[bone_index].translation), "Failed to sample bone index: %u", bone_index);
