@@ -28,6 +28,7 @@
 
 #ifdef ACL_UNIT_TEST
 
+#include "acl/core/track_types.h"
 #include <acl/math/vector4_32.h>
 
 #endif
@@ -40,7 +41,7 @@ TEST_CASE("scalar packing math", "[math][scalar][packing]")
 #ifdef ACL_UNIT_TEST
 
 	Vector4_32 vec0;
-	const uint8_t max_num_bits = 24;
+	const uint8_t max_num_bits = k_highest_bit_rate;
 	for (uint8_t num_bits = 1; num_bits <= max_num_bits; ++num_bits)
 	{
 		INFO("num_bits: " << int(num_bits));

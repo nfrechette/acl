@@ -278,7 +278,7 @@ namespace acl
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - ((num_bits_ == 24) ? 0 : 1))))
 				, increment_value(1 << ((num_bits_ == 24) ? 23 : num_bits_))
@@ -294,7 +294,7 @@ namespace acl
 
 			float max_value;
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 			uint32_t increment_value;
 
@@ -334,7 +334,7 @@ namespace acl
 		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
 		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		const __m128i increment_value = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].increment_value));
 
@@ -369,7 +369,7 @@ namespace acl
 		__m128i int_value = _mm_set_epi32(w32, z32, y32, x32);
 		int_value = _mm_and_si128(int_value, mask);
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		const __m128i increment_cond = _mm_cmplt_epi32(int_value, increment_value);
 		const __m128i incremented_int_value = _mm_add_epi32(int_value, _mm_set1_epi32(1));
@@ -381,7 +381,7 @@ namespace acl
 		return _mm_mul_ps(value, inv_max_value);
 #elif defined(ACL_NEON_INTRINSICS)
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		ACL_ASSERT(false, "Not tested yet");
 
@@ -428,7 +428,7 @@ namespace acl
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const float inv_max_value = k_packed_constants[num_bits].max_value;
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		const uint32_t increment_value = k_packed_constants[num_bits].increment_value;
 
@@ -460,7 +460,7 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t w32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		return vector_mul(vector_set(
 			float(x32 + ((x32 < increment_value) ? 0 : 1)),
@@ -1157,11 +1157,16 @@ namespace acl
 		const Vector4_32 mid_value = vector_set(safe_to_float(1 << (num_bits - 1)));
 		const Vector4_32 mid_scale = vector_mul_add(mid_value, vector_set(2.0F), vector_set(-1.0F));
 		const Vector4_32 packed = vector_add(vector_floor(vector_mul(vector_sub(input, vector_set(0.5F)), mid_scale)), mid_value);
+
+#ifdef ACL_BIT_RATE
+
 		if (num_bits == 24)
 		{
 			const rtm::mask4i increment_mask = rtm::vector_less_than(packed, vector_set(safe_to_float(1 << 23)));
 			return vector_mul(rtm::vector_select(increment_mask, packed, vector_add(packed, vector_set(1.0F))), vector_set(1.0F / (1 << 24)));
 		}
+
+#endif
 
 #endif
 
@@ -1189,11 +1194,16 @@ namespace acl
 		const Vector4_32 mid_value = vector_set(safe_to_float(1 << (num_bits - 1)));
 		const Vector4_32 mid_scale = vector_mul_add(mid_value, vector_set(2.0F), neg_one);
 		const Vector4_32 packed = vector_add(vector_floor(vector_mul(vector_mul(input, vector_set(0.5F)), mid_scale)), mid_value);
+
+#ifdef ACL_BIT_RATE
+
 		if (num_bits == 24)
 		{
 			const rtm::mask4i increment_mask = rtm::vector_less_than(packed, vector_set(safe_to_float(1 << 23)));
 			return vector_neg_mul_sub(vector_mul(rtm::vector_select(increment_mask, packed, vector_add(packed, vector_set(1.0F))), vector_set(1.0F / (1 << 24))), -2.0F, vector_set(-1.0F));
 		}
+
+#endif
 
 #else
 
@@ -1235,7 +1245,7 @@ namespace acl
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - ((num_bits_ == 24) ? 0 : 1))))
 				, increment_value(1 << ((num_bits_ == 24) ? 23 : num_bits_))
@@ -1251,7 +1261,7 @@ namespace acl
 
 			float max_value;
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 			uint32_t increment_value;
 
@@ -1292,7 +1302,7 @@ namespace acl
 		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
 		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		const __m128i increment_value = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].increment_value));
 
@@ -1320,7 +1330,7 @@ namespace acl
 		__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
 		int_value = _mm_and_si128(int_value, mask);
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		const __m128i increment_cond = _mm_cmplt_epi32(int_value, increment_value);
 		const __m128i incremented_int_value = _mm_add_epi32(int_value, _mm_set1_epi32(1));
@@ -1332,7 +1342,7 @@ namespace acl
 		return _mm_mul_ps(value, inv_max_value);
 #elif defined(ACL_NEON_INTRINSICS)
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		ACL_ASSERT(false, "Not tested yet");
 
@@ -1372,7 +1382,7 @@ namespace acl
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const float inv_max_value = k_packed_constants[num_bits].max_value;
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		const uint32_t increment_value = k_packed_constants[num_bits].increment_value;
 
@@ -1398,7 +1408,7 @@ namespace acl
 		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		return vector_mul(vector_set(float(x32 + ((x32 < increment_value) ? 0 : 1)), float(y32 + ((y32 < increment_value) ? 0 : 1)), float(z32 + ((z32 < increment_value) ? 0 : 1))), inv_max_value);
 
@@ -1509,7 +1519,7 @@ namespace acl
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - ((num_bits_ == 24)? 0: 1))))
 				, increment_value(1 << ((num_bits_ == 24)? 23: num_bits_))
@@ -1525,7 +1535,7 @@ namespace acl
 
 			float max_value;
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 			uint32_t increment_value;
 
@@ -1566,7 +1576,7 @@ namespace acl
 		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
 		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		const __m128i increment_value = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].increment_value));
 
@@ -1587,7 +1597,7 @@ namespace acl
 		__m128i int_value = _mm_set_epi32(y32, x32, y32, x32);
 		int_value = _mm_and_si128(int_value, mask);
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		const __m128i increment_cond = _mm_cmplt_epi32(int_value, increment_value);
 		const __m128i incremented_int_value = _mm_add_epi32(int_value, _mm_set1_epi32(1));
@@ -1599,7 +1609,7 @@ namespace acl
 		return _mm_mul_ps(value, inv_max_value);
 #elif defined(ACL_NEON_INTRINSICS)
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		ACL_ASSERT(false, "Not tested yet");
 
@@ -1631,7 +1641,7 @@ namespace acl
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const float inv_max_value = k_packed_constants[num_bits].max_value;
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		const uint32_t increment_value = k_packed_constants[num_bits].increment_value;
 
@@ -1649,7 +1659,7 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		return vector_mul(vector_set(float(x32 + ((x32 < increment_value)? 0: 1)), float(y32 + ((y32 < increment_value) ? 0 : 1)), 0.0F, 0.0F), inv_max_value);
 

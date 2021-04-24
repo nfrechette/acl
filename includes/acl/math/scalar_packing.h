@@ -70,7 +70,7 @@ namespace acl
 		const uint32_t max_value = (1 << num_bits) - 1;
 		ACL_ASSERT(input <= max_value, "Input value too large: %ull", input);
 
-#ifdef ACL_PACKING
+#ifdef ACL_BIT_RATE
 
 		if (num_bits == 24)
 		{
