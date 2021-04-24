@@ -119,11 +119,29 @@ namespace acl
 			struct PackedTableEntry
 			{
 				explicit constexpr PackedTableEntry(uint8_t num_bits_)
+
+#ifdef ACL_BIT_RATE
+
+					: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - ((num_bits_ == 24) ? 0 : 1))))
+					, increment_value(1 << ((num_bits_ == 24) ? 23 : num_bits_))
+
+#else
+
 					: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+
+#endif
+
 					, mask((1 << num_bits_) - 1)
 				{}
 
 				float max_value;
+
+#ifdef ACL_BIT_RATE
+
+				uint32_t increment_value;
+
+#endif
+
 				uint32_t mask;
 			};
 
@@ -154,25 +172,41 @@ namespace acl
 
 			};
 
-#ifdef ACL_PACKING
-
-			ACL_ASSERT(false, "Not tested yet");
-
-#endif
-
 #if defined(ACL_SSE2_INTRINSICS)
 			const uint32_t bit_shift = 32 - num_bits;
 			const uint32_t mask = k_packed_constants[num_bits].mask;
 			const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
+
+#ifdef ACL_BIT_RATE
+
+			const uint32_t increment_value = k_packed_constants[num_bits].increment_value;
+
+#endif
 
 			uint32_t byte_offset = bit_offset / 8;
 			uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 			vector_u32 = byte_swap(vector_u32);
 			const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
+#ifdef ACL_BIT_RATE
+
+			const __m128 value = _mm_cvtsi32_ss(inv_max_value, (x32 & mask) + ((x32 < increment_value) ? 0 : 1));
+
+#else
+
 			const __m128 value = _mm_cvtsi32_ss(inv_max_value, x32 & mask);
+
+#endif
+
 			return _mm_mul_ss(value, inv_max_value);
 #elif defined(ACL_NEON_INTRINSICS)
+
+#ifdef ACL_BIT_RATE
+
+			ACL_ASSERT(false, "Not tested yet");
+
+#endif
+
 			const uint32_t bit_shift = 32 - num_bits;
 			const uint32_t mask = k_packed_constants[num_bits].mask;
 			const float inv_max_value = k_packed_constants[num_bits].max_value;
@@ -190,12 +224,27 @@ namespace acl
 			const uint32_t mask = k_packed_constants[num_bits].mask;
 			const float inv_max_value = k_packed_constants[num_bits].max_value;
 
+#ifdef ACL_BIT_RATE
+
+			const uint32_t increment_value = k_packed_constants[num_bits].increment_value;
+
+#endif
+
 			uint32_t byte_offset = bit_offset / 8;
 			uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 			vector_u32 = byte_swap(vector_u32);
 			const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
+#ifdef ACL_BIT_RATE
+
+			return rtm::scalar_set(static_cast<float>(x32 + ((x32 < increment_value) ? 0 : 1)) * inv_max_value);
+
+#else
+
 			return rtm::scalar_set(static_cast<float>(x32) * inv_max_value);
+
+#endif
+
 #endif
 		}
 	}

@@ -44,6 +44,19 @@ namespace acl
 			rtm::vector4f max_value;
 			rtm::vector4f inv_max_value;
 
+#ifdef ACL_PACKING
+
+			rtm::vector4f mid_value;
+			rtm::vector4f mid_scale;
+
+#ifdef ACL_BIT_RATE
+
+			uint32_t m_num_bits;
+
+#endif
+
+#endif
+
 			explicit quantization_scales(uint32_t num_bits)
 			{
 				ACL_ASSERT(num_bits > 0, "Cannot decay with 0 bits");
@@ -52,6 +65,20 @@ namespace acl
 				const float max_value_ = safe_to_float((1 << num_bits) - 1);
 				max_value = rtm::vector_set(max_value_);
 				inv_max_value = rtm::vector_set(1.0F / max_value_);
+
+#ifdef ACL_PACKING
+
+				mid_value = rtm::vector_set(safe_to_float(1 << (num_bits - 1)));
+				mid_scale = rtm::vector_mul_add(mid_value, rtm::vector_set(2.0F), rtm::vector_set(-1.0F));
+
+#ifdef ACL_BIT_RATE
+
+				m_num_bits = num_bits;
+
+#endif
+
+#endif
+
 			}
 		};
 
@@ -64,12 +91,24 @@ namespace acl
 
 #ifdef ACL_PACKING
 
-			// Invert the other assertion to avoid unreachable code errors.
-			ACL_ASSERT(vector_any_less_than(value, vector_zero()) || vector_any_less_than(rtm::vector_set(1.0F), value), "Not tested yet");
+			const vector4f packed_value = vector_add(vector_floor(vector_mul(vector_sub(value, vector_set(0.5F)), scales.mid_scale)), scales.mid_value);
+
+#ifdef ACL_BIT_RATE
+
+			if (scales.m_num_bits == 24)
+			{
+				const rtm::mask4i increment_mask = rtm::vector_less_than(packed_value, vector_set(safe_to_float(1 << 23)));
+				return vector_mul(rtm::vector_select(increment_mask, packed_value, vector_add(packed_value, vector_set(1.0F))), vector_set(1.0F / (1 << 24)));
+			}
 
 #endif
 
+#else
+
 			const vector4f packed_value = vector_symmetric_round(vector_mul(value, scales.max_value));
+
+#endif
+
 			const vector4f decayed_value = vector_mul(packed_value, scales.inv_max_value);
 			return decayed_value;
 		}
@@ -83,12 +122,26 @@ namespace acl
 
 #ifdef ACL_PACKING
 
-			// Invert the other assertion to avoid unreachable code errors.
-			ACL_ASSERT(vector_any_less_than(value, vector_zero()) || vector_any_less_than(rtm::vector_set(1.0F), value), "Not tested yet");
+			const vector4f packed_value = vector_add(vector_floor(vector_mul(vector_sub(value, vector_set(0.5F)), scales.mid_scale)), scales.mid_value);
+
+#ifdef ACL_BIT_RATE
+
+			if (scales.m_num_bits == 24)
+			{
+				const rtm::mask4i increment_mask = rtm::vector_less_than(packed_value, vector_set(safe_to_float(1 << 23)));
+				return rtm::vector_select(increment_mask, packed_value, vector_add(packed_value, vector_set(1.0F)));
+			}
 
 #endif
 
+			return packed_value;
+
+#else
+
 			return vector_symmetric_round(vector_mul(value, scales.max_value));
+
+#endif
+
 		}
 
 		inline void quantize_scalarf_track(track_list_context& context, uint32_t track_index)
