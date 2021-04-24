@@ -41,9 +41,9 @@ TEST_CASE("scalar packing math", "[math][scalar][packing]")
 #ifdef ACL_UNIT_TEST
 
 	Vector4_32 vec0;
-	const uint8_t max_num_bits = k_highest_bit_rate;
-	for (uint8_t num_bits = 1; num_bits <= max_num_bits; ++num_bits)
+	for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
 	{
+		uint8_t num_bits = get_num_bits_at_bit_rate(bit_rate);
 		INFO("num_bits: " << int(num_bits));
 
 #else
