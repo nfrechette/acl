@@ -19,7 +19,7 @@ Here are the platforms we measure on:
 
 We only show a few compilers and architectures to keep the graphs readable.
 
-**Unless otherwise specified, the results are from release [1.3.0](https://github.com/nfrechette/acl/releases/tag/v1.3.0)**
+**Unless otherwise specified, the results are from release [2.0.0](https://github.com/nfrechette/acl/releases/tag/v2.0.0)**
 
 ## Uniformly sampled algorithm
 
@@ -27,9 +27,9 @@ The uniformly sampled algorithm offers consistent performance regardless of the 
 
 | Clip Name    | Forward   | Backward  | Random    |
 | ------------ | --------- | --------- | --------- |
-| 104_30       | 1.745 us  | 1.754 us  | 1.746 us  |
-| Trooper_1    | 3.199 us  | 3.201 us  | 3.236 us  |
-| Trooper_Main | 42.411 us | 41.789 us | 41.640 us |
+| 104_30       | 0.978 us  | 1.010 us  | 1.014 us  |
+| Trooper_1    | 2.432 us  | 2.258 us  | 2.402 us  |
+| Trooper_Main | 30.953 us | 30.658 us | 30.776 us |
 
 As can be seen, the performance is consistent regardless of the playback direction. It also remains consistent regardless of the clip sample rate and the clip playback rate.
 
