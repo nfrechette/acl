@@ -112,35 +112,9 @@ namespace acl
 	};
 
 	//////////////////////////////////////////////////////////////////////////
-	// Encapsulates all the compression settings.
-	struct compression_settings
+	// Encapsulates all the optional metadata compression settings.
+	struct compression_metadata_settings
 	{
-		//////////////////////////////////////////////////////////////////////////
-		// The compression level determines how aggressively we attempt to reduce the memory
-		// footprint. Higher levels will try more permutations and bit rates. The higher
-		// the level, the slower the compression but the smaller the memory footprint.
-		// Transform tracks only.
-		compression_level8 level = compression_level8::low;
-
-		//////////////////////////////////////////////////////////////////////////
-		// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
-		// Defaults to raw: 'quatf_full' and 'vector3f_full'
-		// Transform tracks only.
-		rotation_format8 rotation_format = rotation_format8::quatf_full;
-		vector_format8 translation_format = vector_format8::vector3f_full;
-		vector_format8 scale_format = vector_format8::vector3f_full;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Segmenting settings, if used.
-		// Transform tracks only.
-		compression_segmenting_settings segmenting;
-
-		//////////////////////////////////////////////////////////////////////////
-		// The error metric to use.
-		// Defaults to 'null', this value must be set manually!
-		// Transform tracks only.
-		itransform_error_metric* error_metric = nullptr;
-
 		//////////////////////////////////////////////////////////////////////////
 		// Whether to include the optional metadata for the track list name
 		// Defaults to 'false'
@@ -171,6 +145,50 @@ namespace acl
 		// Transform tracks only
 		// Defaults to 'false'
 		bool include_contributing_error = false;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Calculates a hash from the internal state to uniquely identify a configuration.
+		uint32_t get_hash() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Checks if everything is valid and if it isn't, returns an error string.
+		// Returns nullptr if the settings are valid.
+		error_result is_valid() const;
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// Encapsulates all the compression settings.
+	struct compression_settings
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// The compression level determines how aggressively we attempt to reduce the memory
+		// footprint. Higher levels will try more permutations and bit rates. The higher
+		// the level, the slower the compression but the smaller the memory footprint.
+		// Transform tracks only.
+		compression_level8 level = compression_level8::low;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
+		// Defaults to raw: 'quatf_full' and 'vector3f_full'
+		// Transform tracks only.
+		rotation_format8 rotation_format = rotation_format8::quatf_full;
+		vector_format8 translation_format = vector_format8::vector3f_full;
+		vector_format8 scale_format = vector_format8::vector3f_full;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Segmenting settings, if used.
+		// Transform tracks only.
+		compression_segmenting_settings segmenting;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The error metric to use.
+		// Defaults to 'null', this value must be set manually!
+		// Transform tracks only.
+		itransform_error_metric* error_metric = nullptr;
+
+		//////////////////////////////////////////////////////////////////////////
+		// These are optional metadata that can be added to compressed clips.
+		compression_metadata_settings metadata;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.

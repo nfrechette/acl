@@ -85,6 +85,23 @@ namespace acl
 		return error_result();
 	}
 
+	inline uint32_t compression_metadata_settings::get_hash() const
+	{
+		uint32_t hash_value = 0;
+		hash_value = hash_combine(hash_value, hash32(include_track_list_name));
+		hash_value = hash_combine(hash_value, hash32(include_track_names));
+		hash_value = hash_combine(hash_value, hash32(include_parent_track_indices));
+		hash_value = hash_combine(hash_value, hash32(include_track_descriptions));
+		hash_value = hash_combine(hash_value, hash32(include_contributing_error));
+
+		return hash_value;
+	}
+
+	inline error_result compression_metadata_settings::is_valid() const
+	{
+		return error_result();
+	}
+
 	inline uint32_t compression_settings::get_hash() const
 	{
 		uint32_t hash_value = 0;
@@ -98,11 +115,7 @@ namespace acl
 		if (error_metric != nullptr)
 			hash_value = hash_combine(hash_value, error_metric->get_hash());
 
-		hash_value = hash_combine(hash_value, hash32(include_track_list_name));
-		hash_value = hash_combine(hash_value, hash32(include_track_names));
-		hash_value = hash_combine(hash_value, hash32(include_parent_track_indices));
-		hash_value = hash_combine(hash_value, hash32(include_track_descriptions));
-		hash_value = hash_combine(hash_value, hash32(include_contributing_error));
+		hash_value = hash_combine(hash_value, metadata.get_hash());
 
 		return hash_value;
 	}
@@ -115,6 +128,10 @@ namespace acl
 		const error_result segmenting_result = segmenting.is_valid();
 		if (segmenting_result.any())
 			return segmenting_result;
+
+		const error_result metadata_result = metadata.is_valid();
+		if (metadata_result.any())
+			return metadata_result;
 
 		return error_result();
 	}
