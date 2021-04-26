@@ -70,6 +70,20 @@ namespace acl
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, num_output_bones);
 		Transform_32* lossy_remapped_pose_transforms = allocate_type_array<Transform_32>(allocator, num_bones);
 
+#ifdef ACL_BIND_POSE
+
+		ACL_ASSERT(skeleton.get_num_bones() == num_bones, "Clip doesn't match skeleton");
+		for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			Transform_32& dest = lossy_pose_transforms[bone_index];
+			const Transform_64& src = skeleton.get_bone(bone_index).bind_transform;
+			dest.rotation = quat_cast(src.rotation);
+			dest.translation = vector_cast(src.translation);
+			dest.scale = vector_cast(src.scale);
+		}
+
+#endif
+
 		BoneError bone_error;
 		DefaultOutputWriter pose_writer(lossy_pose_transforms, num_output_bones);
 

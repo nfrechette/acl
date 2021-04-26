@@ -253,12 +253,26 @@ namespace acl
 	}
 
 	template<class DecompressionContextType>
-	inline void write_decompression_performance_stats(IAllocator& allocator, CompressedClip* compressed_clips[k_num_decompression_evaluations], DecompressionContextType* contexts[k_num_decompression_evaluations], StatLogging logging, sjson::ObjectWriter& writer)
+	inline void write_decompression_performance_stats(IAllocator& allocator, CompressedClip* compressed_clips[k_num_decompression_evaluations], DecompressionContextType* contexts[k_num_decompression_evaluations], StatLogging logging, sjson::ObjectWriter& writer IF_ACL_BIND_POSE(, const RigidSkeleton& skeleton))
 	{
 		CPUCacheFlusher* cache_flusher = allocate_type<CPUCacheFlusher>(allocator);
 
 		const ClipHeader& clip_header = get_clip_header(*compressed_clips[0]);
 		Transform_32* lossy_pose_transforms = allocate_type_array<Transform_32>(allocator, clip_header.num_bones);
+
+#ifdef ACL_BIND_POSE
+
+		ACL_ASSERT(skeleton.get_num_bones() == clip_header.num_bones, "Clip doesn't match skeleton");
+		for (uint16_t bone_index = 0; bone_index < clip_header.num_bones; ++bone_index)
+		{
+			Transform_32& dest = lossy_pose_transforms[bone_index];
+			const Transform_64& src = skeleton.get_bone(bone_index).bind_transform;
+			dest.rotation = quat_cast(src.rotation);
+			dest.translation = vector_cast(src.translation);
+			dest.scale = vector_cast(src.scale);
+		}
+
+#endif
 
 		const uint32_t num_bytes_per_bone = (4 + 3 + 3) * sizeof(float);	// Rotation, Translation, Scale
 		writer["pose_size"] = uint32_t(clip_header.num_bones) * num_bytes_per_bone;
@@ -294,7 +308,7 @@ namespace acl
 		deallocate_type(allocator, cache_flusher);
 	}
 
-	inline void write_decompression_performance_stats(IAllocator& allocator, const CompressionSettings& settings, const CompressedClip& compressed_clip, StatLogging logging, sjson::ObjectWriter& writer)
+	inline void write_decompression_performance_stats(IAllocator& allocator, const CompressionSettings& settings, const CompressedClip& compressed_clip, StatLogging logging, sjson::ObjectWriter& writer IF_ACL_BIND_POSE(, const RigidSkeleton& skeleton))
 	{
 		(void)settings;
 
@@ -327,7 +341,7 @@ namespace acl
 			for (uint32_t clip_index = 0; clip_index < k_num_decompression_evaluations; ++clip_index)
 				contexts[clip_index] = uniformly_sampled::make_decompression_context<uniformly_sampled::DefaultDecompressionSettings>(allocator);
 
-			write_decompression_performance_stats(allocator, compressed_clips, contexts, logging, writer);
+			write_decompression_performance_stats(allocator, compressed_clips, contexts, logging, writer IF_ACL_BIND_POSE(, skeleton));
 
 			for (uint32_t pass_index = 0; pass_index < k_num_decompression_evaluations; ++pass_index)
 				contexts[pass_index]->release();

@@ -776,7 +776,7 @@ static void try_algorithm(const Options& options, IAllocator& allocator, const A
 			stats_writer->insert("worst_time", bone_error.sample_time);
 
 			if (are_any_enum_flags_set(logging, StatLogging::SummaryDecompression))
-				write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer);
+				write_decompression_performance_stats(allocator, settings, *compressed_clip, logging, *stats_writer IF_ACL_BIND_POSE(, clip.get_skeleton()));
 		}
 #endif
 
@@ -1309,6 +1309,16 @@ static int safe_main_impl(int argc, char* argv[])
 #if defined(SJSON_CPP_WRITER)
 			if (options.profile_decompression && runs_writer != nullptr)
 			{
+
+#ifdef ACL_BIND_POSE
+
+#ifdef ACL_HAS_ASSERT_CHECKS
+				volatile bool avoidUnreachableWarnings = false;
+				ACL_ASSERT(avoidUnreachableWarnings, "Decompression profiling of binary ACL is unsupported, because we don't know the bind pose.");
+#endif
+
+#else
+
 				// Disable floating point exceptions since decompression assumes it
 				scope_disable_fp_exceptions fp_off;
 
@@ -1344,6 +1354,9 @@ static int safe_main_impl(int argc, char* argv[])
 					allocator.deallocate(buffer, buffer_size);
 				}
 #endif
+
+#endif
+
 			}
 #endif
 		}
