@@ -361,8 +361,8 @@ namespace acl
 			double constant_scale_threshold;
 			double error_threshold;
 
-			double segmenting_ideal_num_samples = double(default_settings.segmenting.ideal_num_samples);
-			double segmenting_max_num_samples = double(default_settings.segmenting.max_num_samples);
+			double segmenting_ideal_num_samples = 0.0;	// Legacy, no longer used
+			double segmenting_max_num_samples = 0.0;	// Legacy, no longer used
 
 			m_parser.try_read("algorithm_name", algorithm_name, get_algorithm_name(algorithm_type8::uniformly_sampled));
 			m_parser.try_read("level", compression_level, get_compression_level_name(default_settings.level));
@@ -379,9 +379,9 @@ namespace acl
 				bool segmenting_rotation_range_reduction;
 				bool segmenting_translation_range_reduction;
 				bool segmenting_scale_range_reduction;
-				m_parser.try_read("enabled", segmenting_enabled, false);	// Legacy, no longer used
-				m_parser.try_read("ideal_num_samples", segmenting_ideal_num_samples, double(default_settings.segmenting.ideal_num_samples));
-				m_parser.try_read("max_num_samples", segmenting_max_num_samples, double(default_settings.segmenting.max_num_samples));
+				m_parser.try_read("enabled", segmenting_enabled, false);											// Legacy, no longer used
+				m_parser.try_read("ideal_num_samples", segmenting_ideal_num_samples, 0.0);							// Legacy, no longer used
+				m_parser.try_read("max_num_samples", segmenting_max_num_samples, 0.0);								// Legacy, no longer used
 				m_parser.try_read("rotation_range_reduction", segmenting_rotation_range_reduction, false);			// Legacy, no longer used
 				m_parser.try_read("translation_range_reduction", segmenting_translation_range_reduction, false);	// Legacy, no longer used
 				m_parser.try_read("scale_range_reduction", segmenting_scale_range_reduction, false);				// Legacy, no longer used
@@ -414,9 +414,6 @@ namespace acl
 
 				if (!get_vector_format(scale_format.c_str(), out_settings->scale_format))
 					goto invalid_value_error;
-
-				out_settings->segmenting.ideal_num_samples = uint32_t(segmenting_ideal_num_samples);
-				out_settings->segmenting.max_num_samples = uint32_t(segmenting_max_num_samples);
 
 				m_constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
 				m_constant_translation_threshold = float(constant_translation_threshold);

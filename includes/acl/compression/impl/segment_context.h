@@ -43,6 +43,39 @@ namespace acl
 	{
 		struct clip_context;
 
+		//////////////////////////////////////////////////////////////////////////
+		// Encapsulates all the compression settings related to segmenting.
+		// Segmenting ensures that large clips are split into smaller segments and
+		// compressed independently to allow a smaller memory footprint as well as
+		// faster compression and decompression.
+		// See also: https://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/
+		struct compression_segmenting_settings
+		{
+			//////////////////////////////////////////////////////////////////////////
+			// How many samples to try and fit in our segments.
+			// Defaults to '16'
+			uint32_t ideal_num_samples = 16;
+
+			//////////////////////////////////////////////////////////////////////////
+			// Maximum number of samples per segment.
+			// Defaults to '31'
+			uint32_t max_num_samples = 31;
+
+			//////////////////////////////////////////////////////////////////////////
+			// Checks if everything is valid and if it isn't, returns an error string.
+			// Returns nullptr if the settings are valid.
+			inline error_result is_valid() const
+			{
+				if (ideal_num_samples < 8)
+					return error_result("ideal_num_samples must be greater or equal to 8");
+
+				if (ideal_num_samples > max_num_samples)
+					return error_result("ideal_num_samples must be smaller or equal to max_num_samples");
+
+				return error_result();
+			}
+		};
+
 		struct segment_context
 		{
 			clip_context* clip								= nullptr;

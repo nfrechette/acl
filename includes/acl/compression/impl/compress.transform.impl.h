@@ -68,6 +68,9 @@ namespace acl
 			scope_profiler compression_time;
 #endif
 
+			// Segmenting settings are an implementation detail
+			compression_segmenting_settings segmenting_settings;
+
 			// If we enable database support, include the metadata we need
 			if (settings.enable_database_support)
 				settings.metadata.include_contributing_error = true;
@@ -78,16 +81,19 @@ namespace acl
 				if (settings.metadata.include_contributing_error)
 					return error_result("Raw tracks have no contributing error");
 
-				settings.segmenting.ideal_num_samples = 0xFFFFFFFF;
-				settings.segmenting.max_num_samples = 0xFFFFFFFF;
+				segmenting_settings.ideal_num_samples = 0xFFFFFFFF;
+				segmenting_settings.max_num_samples = 0xFFFFFFFF;
 			}
 
-			if (settings.metadata.include_contributing_error && settings.segmenting.max_num_samples > 32)
+			if (settings.metadata.include_contributing_error && segmenting_settings.max_num_samples > 32)
 				return error_result("Cannot have more than 32 samples per segment when calculating the contributing error per frame");
 
 			// If we want the optional track descriptions, make sure to include the parent track indices
 			if (settings.metadata.include_track_descriptions)
 				settings.metadata.include_parent_track_indices = true;
+
+			ACL_ASSERT(settings.is_valid().empty(), "Invalid compression settings");
+			ACL_ASSERT(segmenting_settings.is_valid().empty(), "Invalid segmenting settings");
 
 			// Variable bit rate tracks need range reduction
 			// Full precision tracks do not need range reduction since samples are stored raw
@@ -134,7 +140,7 @@ namespace acl
 				clip_range_data_size = get_clip_range_data_size(lossy_clip_context, range_reduction, settings.rotation_format);
 			}
 
-			segment_streams(allocator, lossy_clip_context, settings.segmenting);
+			segment_streams(allocator, lossy_clip_context, segmenting_settings);
 
 			// If we have a single segment, skip segment range reduction since it won't help
 			if (range_reduction != range_reduction_flags8::none && lossy_clip_context.num_segments > 1)
@@ -453,7 +459,7 @@ namespace acl
 			compression_time.stop();
 
 			if (out_stats.logging != stat_logging::none)
-				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, range_reduction, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
+				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, segmenting_settings, range_reduction, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
 #endif
 
 			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);

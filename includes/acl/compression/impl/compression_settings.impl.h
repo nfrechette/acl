@@ -34,25 +34,6 @@
 
 namespace acl
 {
-	inline uint32_t compression_segmenting_settings::get_hash() const
-	{
-		uint32_t hash_value = 0;
-		hash_value = hash_combine(hash_value, hash32(ideal_num_samples));
-		hash_value = hash_combine(hash_value, hash32(max_num_samples));
-		return hash_value;
-	}
-
-	inline error_result compression_segmenting_settings::is_valid() const
-	{
-		if (ideal_num_samples < 8)
-			return error_result("ideal_num_samples must be greater or equal to 8");
-
-		if (ideal_num_samples > max_num_samples)
-			return error_result("ideal_num_samples must be smaller or equal to max_num_samples");
-
-		return error_result();
-	}
-
 	inline uint32_t compression_database_settings::get_hash() const
 	{
 		uint32_t hash_value = 0;
@@ -110,8 +91,6 @@ namespace acl
 		hash_value = hash_combine(hash_value, hash32(translation_format));
 		hash_value = hash_combine(hash_value, hash32(scale_format));
 
-		hash_value = hash_combine(hash_value, segmenting.get_hash());
-
 		if (error_metric != nullptr)
 			hash_value = hash_combine(hash_value, error_metric->get_hash());
 
@@ -125,10 +104,6 @@ namespace acl
 	{
 		if (error_metric == nullptr)
 			return error_result("error_metric cannot be NULL");
-
-		const error_result segmenting_result = segmenting.is_valid();
-		if (segmenting_result.any())
-			return segmenting_result;
 
 		const error_result metadata_result = metadata.is_valid();
 		if (metadata_result.any())

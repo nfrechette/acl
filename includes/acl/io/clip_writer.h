@@ -69,12 +69,6 @@ namespace acl
 				settings_writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 				settings_writer["translation_format"] = get_vector_format_name(settings.translation_format);
 				settings_writer["scale_format"] = get_vector_format_name(settings.scale_format);
-
-				settings_writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
-				{
-					segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
-					segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
-				};
 			};
 			writer.insert_newline();
 		}

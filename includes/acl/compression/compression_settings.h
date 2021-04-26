@@ -42,34 +42,6 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 namespace acl
 {
 	//////////////////////////////////////////////////////////////////////////
-	// Encapsulates all the compression settings related to segmenting.
-	// Segmenting ensures that large clips are split into smaller segments and
-	// compressed independently to allow a smaller memory footprint as well as
-	// faster compression and decompression.
-	// See also: https://nfrechette.github.io/2016/11/10/anim_compression_uniform_segmenting/
-	struct compression_segmenting_settings
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// How many samples to try and fit in our segments.
-		// Defaults to '16'
-		uint32_t ideal_num_samples = 16;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Maximum number of samples per segment.
-		// Defaults to '31'
-		uint32_t max_num_samples = 31;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Calculates a hash from the internal state to uniquely identify a configuration.
-		uint32_t get_hash() const;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Checks if everything is valid and if it isn't, returns an error string.
-		// Returns nullptr if the settings are valid.
-		error_result is_valid() const;
-	};
-
-	//////////////////////////////////////////////////////////////////////////
 	// Encapsulates all the compression settings related to database usage.
 	struct compression_database_settings
 	{
@@ -174,11 +146,6 @@ namespace acl
 		rotation_format8 rotation_format = rotation_format8::quatf_full;
 		vector_format8 translation_format = vector_format8::vector3f_full;
 		vector_format8 scale_format = vector_format8::vector3f_full;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Segmenting settings, if used.
-		// Transform tracks only.
-		compression_segmenting_settings segmenting;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The error metric to use.
