@@ -115,6 +115,7 @@ namespace acl
 		if (error_metric != nullptr)
 			hash_value = hash_combine(hash_value, error_metric->get_hash());
 
+		hash_value = hash_combine(hash_value, enable_database_support);
 		hash_value = hash_combine(hash_value, metadata.get_hash());
 
 		return hash_value;

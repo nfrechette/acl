@@ -187,6 +187,13 @@ namespace acl
 		itransform_error_metric* error_metric = nullptr;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Whether or not to enable database support on the output compressed clip.
+		// This enables the required metadata which will later be stripped once
+		// the database is built.
+		// Transform tracks only.
+		bool enable_database_support = false;
+
+		//////////////////////////////////////////////////////////////////////////
 		// These are optional metadata that can be added to compressed clips.
 		compression_metadata_settings metadata;
 

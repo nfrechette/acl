@@ -68,6 +68,10 @@ namespace acl
 			scope_profiler compression_time;
 #endif
 
+			// If we enable database support, include the metadata we need
+			if (settings.enable_database_support)
+				settings.metadata.include_contributing_error = true;
+
 			// If every track is retains full precision, we disable segmenting since it provides no benefit
 			if (!is_rotation_format_variable(settings.rotation_format) && !is_vector_format_variable(settings.translation_format) && !is_vector_format_variable(settings.scale_format))
 			{
