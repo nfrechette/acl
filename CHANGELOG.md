@@ -1,5 +1,25 @@
 # Significant changes per release
 
+## 1.3.5
+
+*  Gracefully fail compression when we have more than 50000 samples
+*  Update Catch2 to 2.13.1 to work with latest CMake
+
+## 1.3.4
+
+*  Avoid assert when using an additive base with a static pose/single frame
+
+## 1.3.3
+
+*  Fix single track decompression when scale is present with more than one segment
+*  Gracefully fail compression when we have more than 65535 samples
+
+## 1.3.2
+
+*  Fix crash when compressing with an empty track array
+*  Strip unused code when stat logging isn't required
+*  Fix CompressedClip hash to be deterministic
+
 ## 1.3.1
 
 *  Fix bug with scalar track decompression where garbage could be returned
