@@ -1774,7 +1774,7 @@ namespace acl
 					find_optimal_bit_rates(context);
 
 				// If we need the contributing error of each frame, find it now before we quantize
-				if (settings.include_contributing_error)
+				if (settings.metadata.include_contributing_error)
 					find_contributing_error(context);
 
 				// Quantize our streams now that we found the optimal bit rates

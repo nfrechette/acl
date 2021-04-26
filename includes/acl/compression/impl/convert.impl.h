@@ -62,10 +62,10 @@ namespace acl
 		settings.error_metric = &error_metric;
 
 		// Include all the metadata
-		settings.include_track_list_name = true;
-		settings.include_track_names = true;
-		settings.include_parent_track_indices = true;
-		settings.include_track_descriptions = true;
+		settings.metadata.include_track_list_name = true;
+		settings.metadata.include_track_names = true;
+		settings.metadata.include_parent_track_indices = true;
+		settings.metadata.include_track_descriptions = true;
 
 		output_stats stats;
 		return compress_track_list(allocator, track_list, settings, out_compressed_tracks, stats);

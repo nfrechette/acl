@@ -71,19 +71,19 @@ namespace acl
 			// If every track is retains full precision, we disable segmenting since it provides no benefit
 			if (!is_rotation_format_variable(settings.rotation_format) && !is_vector_format_variable(settings.translation_format) && !is_vector_format_variable(settings.scale_format))
 			{
-				if (settings.include_contributing_error)
+				if (settings.metadata.include_contributing_error)
 					return error_result("Raw tracks have no contributing error");
 
 				settings.segmenting.ideal_num_samples = 0xFFFFFFFF;
 				settings.segmenting.max_num_samples = 0xFFFFFFFF;
 			}
 
-			if (settings.include_contributing_error && settings.segmenting.max_num_samples > 32)
+			if (settings.metadata.include_contributing_error && settings.segmenting.max_num_samples > 32)
 				return error_result("Cannot have more than 32 samples per segment when calculating the contributing error per frame");
 
 			// If we want the optional track descriptions, make sure to include the parent track indices
-			if (settings.include_track_descriptions)
-				settings.include_parent_track_indices = true;
+			if (settings.metadata.include_track_descriptions)
+				settings.metadata.include_parent_track_indices = true;
 
 			// Variable bit rate tracks need range reduction
 			// Full precision tracks do not need range reduction since samples are stored raw
@@ -229,11 +229,11 @@ namespace acl
 
 			// Optional metadata
 			const uint32_t metadata_start_offset = align_to(buffer_size, 4);
-			const uint32_t metadata_track_list_name_size = settings.include_track_list_name ? write_track_list_name(track_list, nullptr) : 0;
-			const uint32_t metadata_track_names_size = settings.include_track_names ? write_track_names(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
-			const uint32_t metadata_parent_track_indices_size = settings.include_parent_track_indices ? write_parent_track_indices(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
-			const uint32_t metadata_track_descriptions_size = settings.include_track_descriptions ? write_track_descriptions(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
-			const uint32_t metadata_contributing_error_size = settings.include_contributing_error ? write_contributing_error(lossy_clip_context, nullptr) : 0;
+			const uint32_t metadata_track_list_name_size = settings.metadata.include_track_list_name ? write_track_list_name(track_list, nullptr) : 0;
+			const uint32_t metadata_track_names_size = settings.metadata.include_track_names ? write_track_names(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
+			const uint32_t metadata_parent_track_indices_size = settings.metadata.include_parent_track_indices ? write_parent_track_indices(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
+			const uint32_t metadata_track_descriptions_size = settings.metadata.include_track_descriptions ? write_track_descriptions(track_list, output_bone_mapping, num_output_bones, nullptr) : 0;
+			const uint32_t metadata_contributing_error_size = settings.metadata.include_contributing_error ? write_contributing_error(lossy_clip_context, nullptr) : 0;
 
 			uint32_t metadata_size = 0;
 			metadata_size += metadata_track_list_name_size;
@@ -334,7 +334,7 @@ namespace acl
 				optional_metadata_header* metadata_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
 				uint32_t metadata_offset = metadata_start_offset;	// Relative to the start of our compressed_tracks
 
-				if (settings.include_track_list_name)
+				if (settings.metadata.include_track_list_name)
 				{
 					metadata_header->track_list_name = metadata_offset;
 					writter_metadata_track_list_name_size = write_track_list_name(track_list, metadata_header->get_track_list_name(*out_compressed_tracks));
@@ -343,7 +343,7 @@ namespace acl
 				else
 					metadata_header->track_list_name = invalid_ptr_offset();
 
-				if (settings.include_track_names)
+				if (settings.metadata.include_track_names)
 				{
 					metadata_offset = align_to(metadata_offset, 4);
 					metadata_header->track_name_offsets = metadata_offset;
@@ -353,7 +353,7 @@ namespace acl
 				else
 					metadata_header->track_name_offsets = invalid_ptr_offset();
 
-				if (settings.include_parent_track_indices)
+				if (settings.metadata.include_parent_track_indices)
 				{
 					metadata_offset = align_to(metadata_offset, 4);
 					metadata_header->parent_track_indices = metadata_offset;
@@ -363,7 +363,7 @@ namespace acl
 				else
 					metadata_header->parent_track_indices = invalid_ptr_offset();
 
-				if (settings.include_track_descriptions)
+				if (settings.metadata.include_track_descriptions)
 				{
 					metadata_offset = align_to(metadata_offset, 4);
 					metadata_header->track_descriptions = metadata_offset;
@@ -373,7 +373,7 @@ namespace acl
 				else
 					metadata_header->track_descriptions = invalid_ptr_offset();
 
-				if (settings.include_contributing_error)
+				if (settings.metadata.include_contributing_error)
 				{
 					metadata_offset = align_to(metadata_offset, 4);
 					metadata_header->contributing_error = metadata_offset;

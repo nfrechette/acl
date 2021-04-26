@@ -416,15 +416,15 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		// When regression testing or writing to a binary output, we include all the metadata
 		if (options.regression_testing || options.output_bin_filename != nullptr)
 		{
-			settings.include_track_list_name = true;
-			settings.include_track_names = true;
-			settings.include_parent_track_indices = true;
-			settings.include_track_descriptions = true;
+			settings.metadata.include_track_list_name = true;
+			settings.metadata.include_track_names = true;
+			settings.metadata.include_parent_track_indices = true;
+			settings.metadata.include_track_descriptions = true;
 		}
 
 		// To generate our database, we include the contributing error
 		if (options.split_into_database)
-			settings.include_contributing_error = true;
+			settings.metadata.include_contributing_error = true;
 
 		output_stats stats;
 		stats.logging = logging;
@@ -467,10 +467,10 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			{
 				// Drop all the metadata and make a second copy for testing
 				// This will ensure we have two clips with different hashes
-				settings.include_track_list_name = false;
-				settings.include_track_names = false;
-				settings.include_parent_track_indices = false;
-				settings.include_track_descriptions = false;
+				settings.metadata.include_track_list_name = false;
+				settings.metadata.include_track_names = false;
+				settings.metadata.include_parent_track_indices = false;
+				settings.metadata.include_track_descriptions = false;
 
 				// No logging for second copy
 				output_stats stats1;
@@ -540,9 +540,9 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		// When regression testing or writing to a binary output, we include all the metadata
 		if (options.regression_testing || options.output_bin_filename != nullptr)
 		{
-			settings.include_track_list_name = true;
-			settings.include_track_names = true;
-			settings.include_track_descriptions = true;
+			settings.metadata.include_track_list_name = true;
+			settings.metadata.include_track_names = true;
+			settings.metadata.include_track_descriptions = true;
 		}
 
 		output_stats stats;

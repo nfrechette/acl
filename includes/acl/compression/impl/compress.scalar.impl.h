@@ -91,9 +91,9 @@ namespace acl
 
 			// Optional metadata
 			const uint32_t metadata_start_offset = align_to(buffer_size, 4);
-			const uint32_t metadata_track_list_name_size = settings.include_track_list_name ? write_track_list_name(track_list, nullptr) : 0;
-			const uint32_t metadata_track_names_size = settings.include_track_names ? write_track_names(track_list, context.track_output_indices, context.num_output_tracks, nullptr) : 0;
-			const uint32_t metadata_track_descriptions_size = settings.include_track_descriptions ? write_track_descriptions(track_list, context.track_output_indices, context.num_output_tracks, nullptr) : 0;
+			const uint32_t metadata_track_list_name_size = settings.metadata.include_track_list_name ? write_track_list_name(track_list, nullptr) : 0;
+			const uint32_t metadata_track_names_size = settings.metadata.include_track_names ? write_track_names(track_list, context.track_output_indices, context.num_output_tracks, nullptr) : 0;
+			const uint32_t metadata_track_descriptions_size = settings.metadata.include_track_descriptions ? write_track_descriptions(track_list, context.track_output_indices, context.num_output_tracks, nullptr) : 0;
 
 			uint32_t metadata_size = 0;
 			metadata_size += metadata_track_list_name_size;
@@ -188,7 +188,7 @@ namespace acl
 				optional_metadata_header* metadada_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
 				uint32_t metadata_offset = metadata_start_offset;
 
-				if (settings.include_track_list_name)
+				if (settings.metadata.include_track_list_name)
 				{
 					metadada_header->track_list_name = metadata_offset;
 					writter_metadata_track_list_name_size = write_track_list_name(track_list, metadada_header->get_track_list_name(*out_compressed_tracks));
@@ -197,7 +197,7 @@ namespace acl
 				else
 					metadada_header->track_list_name = invalid_ptr_offset();
 
-				if (settings.include_track_names)
+				if (settings.metadata.include_track_names)
 				{
 					metadata_offset = align_to(metadata_offset, 4);
 					metadada_header->track_name_offsets = metadata_offset;
@@ -209,7 +209,7 @@ namespace acl
 
 				metadada_header->parent_track_indices = invalid_ptr_offset();	// Not supported for scalar tracks
 
-				if (settings.include_track_descriptions)
+				if (settings.metadata.include_track_descriptions)
 				{
 					metadata_offset = align_to(metadata_offset, 4);
 					metadada_header->track_descriptions = metadata_offset;
