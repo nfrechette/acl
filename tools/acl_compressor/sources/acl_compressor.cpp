@@ -422,9 +422,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			settings.metadata.include_track_descriptions = true;
 		}
 
-		// To generate our database, we include the contributing error
-		if (options.split_into_database)
-			settings.metadata.include_contributing_error = true;
+		settings.enable_database_support = options.split_into_database;
 
 		output_stats stats;
 		stats.logging = logging;
