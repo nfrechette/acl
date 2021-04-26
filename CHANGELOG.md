@@ -1,5 +1,19 @@
 # Significant changes per release
 
+## 2.0.0
+
+*  Unified and cleaned up APIs
+*  Cleaned up naming convention to match C++ stdlib, boost
+*  Introduced streaming database support
+*  Decompression profiling now uses Google Benchmark
+*  Decompression has been heavily optimized
+*  Compression has been heavily optimized
+*  First release to support backwards compatibility going forward
+*  Migrated all math to Realtime Math
+*  Clips now support 4 billion samples/tracks
+*  WebAssembly support added through emscripten
+*  Many other improvements
+
 ## 1.3.5
 
 *  Gracefully fail compression when we have more than 50000 samples
