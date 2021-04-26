@@ -379,7 +379,8 @@ namespace acl
 		}
 
 		inline void write_stats(iallocator& allocator, const track_array_qvvf& track_list, const clip_context& clip,
-			const compressed_tracks& compressed_clip, const compression_settings& settings, range_reduction_flags8 range_reduction, const clip_context& raw_clip,
+			const compressed_tracks& compressed_clip, const compression_settings& settings, const compression_segmenting_settings& segmenting_settings,
+			range_reduction_flags8 range_reduction, const clip_context& raw_clip,
 			const clip_context& additive_base_clip_context, const scope_profiler& compression_time,
 			output_stats& stats)
 		{
@@ -527,8 +528,8 @@ namespace acl
 			writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
 			{
 				segmenting_writer["num_segments"] = clip.num_segments;
-				segmenting_writer["ideal_num_samples"] = settings.segmenting.ideal_num_samples;
-				segmenting_writer["max_num_samples"] = settings.segmenting.max_num_samples;
+				segmenting_writer["ideal_num_samples"] = segmenting_settings.ideal_num_samples;
+				segmenting_writer["max_num_samples"] = segmenting_settings.max_num_samples;
 			};
 
 			writer["segments"] = [&](sjson::ArrayWriter& segments_writer)
