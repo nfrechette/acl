@@ -39,7 +39,7 @@ namespace acl
 
 #ifdef ACL_BIT_RATE
 
-	constexpr uint8_t k_local_bit_rate_permutations_no_scale[529][2] =
+	constexpr uint8_t k_local_bit_rate_permutations_no_scale[676][2] =
 	{
 		{ 0, 0 },		// 0 bits per transform
 		{ 0, 1 },		// 3 bits per transform
@@ -294,6 +294,7 @@ namespace acl
 		{ 19, 2 },		// 63 bits per transform
 		{ 20, 1 },		// 63 bits per transform
 		{ 21, 0 },		// 63 bits per transform
+		{ 0, 22 },		// 66 bits per transform
 		{ 1, 21 },		// 66 bits per transform
 		{ 2, 20 },		// 66 bits per transform
 		{ 3, 19 },		// 66 bits per transform
@@ -315,6 +316,9 @@ namespace acl
 		{ 19, 3 },		// 66 bits per transform
 		{ 20, 2 },		// 66 bits per transform
 		{ 21, 1 },		// 66 bits per transform
+		{ 22, 0 },		// 66 bits per transform
+		{ 0, 23 },		// 69 bits per transform
+		{ 1, 22 },		// 69 bits per transform
 		{ 2, 21 },		// 69 bits per transform
 		{ 3, 20 },		// 69 bits per transform
 		{ 4, 19 },		// 69 bits per transform
@@ -335,6 +339,11 @@ namespace acl
 		{ 19, 4 },		// 69 bits per transform
 		{ 20, 3 },		// 69 bits per transform
 		{ 21, 2 },		// 69 bits per transform
+		{ 22, 1 },		// 69 bits per transform
+		{ 23, 0 },		// 69 bits per transform
+		{ 0, 24 },		// 72 bits per transform
+		{ 1, 23 },		// 72 bits per transform
+		{ 2, 22 },		// 72 bits per transform
 		{ 3, 21 },		// 72 bits per transform
 		{ 4, 20 },		// 72 bits per transform
 		{ 5, 19 },		// 72 bits per transform
@@ -354,6 +363,12 @@ namespace acl
 		{ 19, 5 },		// 72 bits per transform
 		{ 20, 4 },		// 72 bits per transform
 		{ 21, 3 },		// 72 bits per transform
+		{ 22, 2 },		// 72 bits per transform
+		{ 23, 1 },		// 72 bits per transform
+		{ 24, 0 },		// 72 bits per transform
+		{ 1, 24 },		// 75 bits per transform
+		{ 2, 23 },		// 75 bits per transform
+		{ 3, 22 },		// 75 bits per transform
 		{ 4, 21 },		// 75 bits per transform
 		{ 5, 20 },		// 75 bits per transform
 		{ 6, 19 },		// 75 bits per transform
@@ -372,6 +387,12 @@ namespace acl
 		{ 19, 6 },		// 75 bits per transform
 		{ 20, 5 },		// 75 bits per transform
 		{ 21, 4 },		// 75 bits per transform
+		{ 22, 3 },		// 75 bits per transform
+		{ 23, 2 },		// 75 bits per transform
+		{ 24, 1 },		// 75 bits per transform
+		{ 2, 24 },		// 78 bits per transform
+		{ 3, 23 },		// 78 bits per transform
+		{ 4, 22 },		// 78 bits per transform
 		{ 5, 21 },		// 78 bits per transform
 		{ 6, 20 },		// 78 bits per transform
 		{ 7, 19 },		// 78 bits per transform
@@ -389,6 +410,12 @@ namespace acl
 		{ 19, 7 },		// 78 bits per transform
 		{ 20, 6 },		// 78 bits per transform
 		{ 21, 5 },		// 78 bits per transform
+		{ 22, 4 },		// 78 bits per transform
+		{ 23, 3 },		// 78 bits per transform
+		{ 24, 2 },		// 78 bits per transform
+		{ 3, 24 },		// 81 bits per transform
+		{ 4, 23 },		// 81 bits per transform
+		{ 5, 22 },		// 81 bits per transform
 		{ 6, 21 },		// 81 bits per transform
 		{ 7, 20 },		// 81 bits per transform
 		{ 8, 19 },		// 81 bits per transform
@@ -405,6 +432,12 @@ namespace acl
 		{ 19, 8 },		// 81 bits per transform
 		{ 20, 7 },		// 81 bits per transform
 		{ 21, 6 },		// 81 bits per transform
+		{ 22, 5 },		// 81 bits per transform
+		{ 23, 4 },		// 81 bits per transform
+		{ 24, 3 },		// 81 bits per transform
+		{ 4, 24 },		// 84 bits per transform
+		{ 5, 23 },		// 84 bits per transform
+		{ 6, 22 },		// 84 bits per transform
 		{ 7, 21 },		// 84 bits per transform
 		{ 8, 20 },		// 84 bits per transform
 		{ 9, 19 },		// 84 bits per transform
@@ -420,6 +453,12 @@ namespace acl
 		{ 19, 9 },		// 84 bits per transform
 		{ 20, 8 },		// 84 bits per transform
 		{ 21, 7 },		// 84 bits per transform
+		{ 22, 6 },		// 84 bits per transform
+		{ 23, 5 },		// 84 bits per transform
+		{ 24, 4 },		// 84 bits per transform
+		{ 5, 24 },		// 87 bits per transform
+		{ 6, 23 },		// 87 bits per transform
+		{ 7, 22 },		// 87 bits per transform
 		{ 8, 21 },		// 87 bits per transform
 		{ 9, 20 },		// 87 bits per transform
 		{ 10, 19 },		// 87 bits per transform
@@ -434,6 +473,12 @@ namespace acl
 		{ 19, 10 },		// 87 bits per transform
 		{ 20, 9 },		// 87 bits per transform
 		{ 21, 8 },		// 87 bits per transform
+		{ 22, 7 },		// 87 bits per transform
+		{ 23, 6 },		// 87 bits per transform
+		{ 24, 5 },		// 87 bits per transform
+		{ 6, 24 },		// 90 bits per transform
+		{ 7, 23 },		// 90 bits per transform
+		{ 8, 22 },		// 90 bits per transform
 		{ 9, 21 },		// 90 bits per transform
 		{ 10, 20 },		// 90 bits per transform
 		{ 11, 19 },		// 90 bits per transform
@@ -447,6 +492,12 @@ namespace acl
 		{ 19, 11 },		// 90 bits per transform
 		{ 20, 10 },		// 90 bits per transform
 		{ 21, 9 },		// 90 bits per transform
+		{ 22, 8 },		// 90 bits per transform
+		{ 23, 7 },		// 90 bits per transform
+		{ 24, 6 },		// 90 bits per transform
+		{ 7, 24 },		// 93 bits per transform
+		{ 8, 23 },		// 93 bits per transform
+		{ 9, 22 },		// 93 bits per transform
 		{ 10, 21 },		// 93 bits per transform
 		{ 11, 20 },		// 93 bits per transform
 		{ 12, 19 },		// 93 bits per transform
@@ -459,7 +510,13 @@ namespace acl
 		{ 19, 12 },		// 93 bits per transform
 		{ 20, 11 },		// 93 bits per transform
 		{ 21, 10 },		// 93 bits per transform
-		{ 0, 22 },		// 96 bits per transform
+		{ 22, 9 },		// 93 bits per transform
+		{ 23, 8 },		// 93 bits per transform
+		{ 24, 7 },		// 93 bits per transform
+		{ 0, 25 },		// 96 bits per transform
+		{ 8, 24 },		// 96 bits per transform
+		{ 9, 23 },		// 96 bits per transform
+		{ 10, 22 },		// 96 bits per transform
 		{ 11, 21 },		// 96 bits per transform
 		{ 12, 20 },		// 96 bits per transform
 		{ 13, 19 },		// 96 bits per transform
@@ -471,8 +528,14 @@ namespace acl
 		{ 19, 13 },		// 96 bits per transform
 		{ 20, 12 },		// 96 bits per transform
 		{ 21, 11 },		// 96 bits per transform
-		{ 22, 0 },		// 96 bits per transform
-		{ 1, 22 },		// 99 bits per transform
+		{ 22, 10 },		// 96 bits per transform
+		{ 23, 9 },		// 96 bits per transform
+		{ 24, 8 },		// 96 bits per transform
+		{ 25, 0 },		// 96 bits per transform
+		{ 1, 25 },		// 99 bits per transform
+		{ 9, 24 },		// 99 bits per transform
+		{ 10, 23 },		// 99 bits per transform
+		{ 11, 22 },		// 99 bits per transform
 		{ 12, 21 },		// 99 bits per transform
 		{ 13, 20 },		// 99 bits per transform
 		{ 14, 19 },		// 99 bits per transform
@@ -483,8 +546,14 @@ namespace acl
 		{ 19, 14 },		// 99 bits per transform
 		{ 20, 13 },		// 99 bits per transform
 		{ 21, 12 },		// 99 bits per transform
-		{ 22, 1 },		// 99 bits per transform
-		{ 2, 22 },		// 102 bits per transform
+		{ 22, 11 },		// 99 bits per transform
+		{ 23, 10 },		// 99 bits per transform
+		{ 24, 9 },		// 99 bits per transform
+		{ 25, 1 },		// 99 bits per transform
+		{ 2, 25 },		// 102 bits per transform
+		{ 10, 24 },		// 102 bits per transform
+		{ 11, 23 },		// 102 bits per transform
+		{ 12, 22 },		// 102 bits per transform
 		{ 13, 21 },		// 102 bits per transform
 		{ 14, 20 },		// 102 bits per transform
 		{ 15, 19 },		// 102 bits per transform
@@ -494,8 +563,14 @@ namespace acl
 		{ 19, 15 },		// 102 bits per transform
 		{ 20, 14 },		// 102 bits per transform
 		{ 21, 13 },		// 102 bits per transform
-		{ 22, 2 },		// 102 bits per transform
-		{ 3, 22 },		// 105 bits per transform
+		{ 22, 12 },		// 102 bits per transform
+		{ 23, 11 },		// 102 bits per transform
+		{ 24, 10 },		// 102 bits per transform
+		{ 25, 2 },		// 102 bits per transform
+		{ 3, 25 },		// 105 bits per transform
+		{ 11, 24 },		// 105 bits per transform
+		{ 12, 23 },		// 105 bits per transform
+		{ 13, 22 },		// 105 bits per transform
 		{ 14, 21 },		// 105 bits per transform
 		{ 15, 20 },		// 105 bits per transform
 		{ 16, 19 },		// 105 bits per transform
@@ -504,8 +579,14 @@ namespace acl
 		{ 19, 16 },		// 105 bits per transform
 		{ 20, 15 },		// 105 bits per transform
 		{ 21, 14 },		// 105 bits per transform
-		{ 22, 3 },		// 105 bits per transform
-		{ 4, 22 },		// 108 bits per transform
+		{ 22, 13 },		// 105 bits per transform
+		{ 23, 12 },		// 105 bits per transform
+		{ 24, 11 },		// 105 bits per transform
+		{ 25, 3 },		// 105 bits per transform
+		{ 4, 25 },		// 108 bits per transform
+		{ 12, 24 },		// 108 bits per transform
+		{ 13, 23 },		// 108 bits per transform
+		{ 14, 22 },		// 108 bits per transform
 		{ 15, 21 },		// 108 bits per transform
 		{ 16, 20 },		// 108 bits per transform
 		{ 17, 19 },		// 108 bits per transform
@@ -513,66 +594,132 @@ namespace acl
 		{ 19, 17 },		// 108 bits per transform
 		{ 20, 16 },		// 108 bits per transform
 		{ 21, 15 },		// 108 bits per transform
-		{ 22, 4 },		// 108 bits per transform
-		{ 5, 22 },		// 111 bits per transform
+		{ 22, 14 },		// 108 bits per transform
+		{ 23, 13 },		// 108 bits per transform
+		{ 24, 12 },		// 108 bits per transform
+		{ 25, 4 },		// 108 bits per transform
+		{ 5, 25 },		// 111 bits per transform
+		{ 13, 24 },		// 111 bits per transform
+		{ 14, 23 },		// 111 bits per transform
+		{ 15, 22 },		// 111 bits per transform
 		{ 16, 21 },		// 111 bits per transform
 		{ 17, 20 },		// 111 bits per transform
 		{ 18, 19 },		// 111 bits per transform
 		{ 19, 18 },		// 111 bits per transform
 		{ 20, 17 },		// 111 bits per transform
 		{ 21, 16 },		// 111 bits per transform
-		{ 22, 5 },		// 111 bits per transform
-		{ 6, 22 },		// 114 bits per transform
+		{ 22, 15 },		// 111 bits per transform
+		{ 23, 14 },		// 111 bits per transform
+		{ 24, 13 },		// 111 bits per transform
+		{ 25, 5 },		// 111 bits per transform
+		{ 6, 25 },		// 114 bits per transform
+		{ 14, 24 },		// 114 bits per transform
+		{ 15, 23 },		// 114 bits per transform
+		{ 16, 22 },		// 114 bits per transform
 		{ 17, 21 },		// 114 bits per transform
 		{ 18, 20 },		// 114 bits per transform
 		{ 19, 19 },		// 114 bits per transform
 		{ 20, 18 },		// 114 bits per transform
 		{ 21, 17 },		// 114 bits per transform
-		{ 22, 6 },		// 114 bits per transform
-		{ 7, 22 },		// 117 bits per transform
+		{ 22, 16 },		// 114 bits per transform
+		{ 23, 15 },		// 114 bits per transform
+		{ 24, 14 },		// 114 bits per transform
+		{ 25, 6 },		// 114 bits per transform
+		{ 7, 25 },		// 117 bits per transform
+		{ 15, 24 },		// 117 bits per transform
+		{ 16, 23 },		// 117 bits per transform
+		{ 17, 22 },		// 117 bits per transform
 		{ 18, 21 },		// 117 bits per transform
 		{ 19, 20 },		// 117 bits per transform
 		{ 20, 19 },		// 117 bits per transform
 		{ 21, 18 },		// 117 bits per transform
-		{ 22, 7 },		// 117 bits per transform
-		{ 8, 22 },		// 120 bits per transform
+		{ 22, 17 },		// 117 bits per transform
+		{ 23, 16 },		// 117 bits per transform
+		{ 24, 15 },		// 117 bits per transform
+		{ 25, 7 },		// 117 bits per transform
+		{ 8, 25 },		// 120 bits per transform
+		{ 16, 24 },		// 120 bits per transform
+		{ 17, 23 },		// 120 bits per transform
+		{ 18, 22 },		// 120 bits per transform
 		{ 19, 21 },		// 120 bits per transform
 		{ 20, 20 },		// 120 bits per transform
 		{ 21, 19 },		// 120 bits per transform
-		{ 22, 8 },		// 120 bits per transform
-		{ 9, 22 },		// 123 bits per transform
+		{ 22, 18 },		// 120 bits per transform
+		{ 23, 17 },		// 120 bits per transform
+		{ 24, 16 },		// 120 bits per transform
+		{ 25, 8 },		// 120 bits per transform
+		{ 9, 25 },		// 123 bits per transform
+		{ 17, 24 },		// 123 bits per transform
+		{ 18, 23 },		// 123 bits per transform
+		{ 19, 22 },		// 123 bits per transform
 		{ 20, 21 },		// 123 bits per transform
 		{ 21, 20 },		// 123 bits per transform
-		{ 22, 9 },		// 123 bits per transform
-		{ 10, 22 },		// 126 bits per transform
+		{ 22, 19 },		// 123 bits per transform
+		{ 23, 18 },		// 123 bits per transform
+		{ 24, 17 },		// 123 bits per transform
+		{ 25, 9 },		// 123 bits per transform
+		{ 10, 25 },		// 126 bits per transform
+		{ 18, 24 },		// 126 bits per transform
+		{ 19, 23 },		// 126 bits per transform
+		{ 20, 22 },		// 126 bits per transform
 		{ 21, 21 },		// 126 bits per transform
-		{ 22, 10 },		// 126 bits per transform
-		{ 11, 22 },		// 129 bits per transform
-		{ 22, 11 },		// 129 bits per transform
-		{ 12, 22 },		// 132 bits per transform
-		{ 22, 12 },		// 132 bits per transform
-		{ 13, 22 },		// 135 bits per transform
-		{ 22, 13 },		// 135 bits per transform
-		{ 14, 22 },		// 138 bits per transform
-		{ 22, 14 },		// 138 bits per transform
-		{ 15, 22 },		// 141 bits per transform
-		{ 22, 15 },		// 141 bits per transform
-		{ 16, 22 },		// 144 bits per transform
-		{ 22, 16 },		// 144 bits per transform
-		{ 17, 22 },		// 147 bits per transform
-		{ 22, 17 },		// 147 bits per transform
-		{ 18, 22 },		// 150 bits per transform
-		{ 22, 18 },		// 150 bits per transform
-		{ 19, 22 },		// 153 bits per transform
-		{ 22, 19 },		// 153 bits per transform
-		{ 20, 22 },		// 156 bits per transform
-		{ 22, 20 },		// 156 bits per transform
-		{ 21, 22 },		// 159 bits per transform
-		{ 22, 21 },		// 159 bits per transform
-		{ 22, 22 },		// 192 bits per transform
+		{ 22, 20 },		// 126 bits per transform
+		{ 23, 19 },		// 126 bits per transform
+		{ 24, 18 },		// 126 bits per transform
+		{ 25, 10 },		// 126 bits per transform
+		{ 11, 25 },		// 129 bits per transform
+		{ 19, 24 },		// 129 bits per transform
+		{ 20, 23 },		// 129 bits per transform
+		{ 21, 22 },		// 129 bits per transform
+		{ 22, 21 },		// 129 bits per transform
+		{ 23, 20 },		// 129 bits per transform
+		{ 24, 19 },		// 129 bits per transform
+		{ 25, 11 },		// 129 bits per transform
+		{ 12, 25 },		// 132 bits per transform
+		{ 20, 24 },		// 132 bits per transform
+		{ 21, 23 },		// 132 bits per transform
+		{ 22, 22 },		// 132 bits per transform
+		{ 23, 21 },		// 132 bits per transform
+		{ 24, 20 },		// 132 bits per transform
+		{ 25, 12 },		// 132 bits per transform
+		{ 13, 25 },		// 135 bits per transform
+		{ 21, 24 },		// 135 bits per transform
+		{ 22, 23 },		// 135 bits per transform
+		{ 23, 22 },		// 135 bits per transform
+		{ 24, 21 },		// 135 bits per transform
+		{ 25, 13 },		// 135 bits per transform
+		{ 14, 25 },		// 138 bits per transform
+		{ 22, 24 },		// 138 bits per transform
+		{ 23, 23 },		// 138 bits per transform
+		{ 24, 22 },		// 138 bits per transform
+		{ 25, 14 },		// 138 bits per transform
+		{ 15, 25 },		// 141 bits per transform
+		{ 23, 24 },		// 141 bits per transform
+		{ 24, 23 },		// 141 bits per transform
+		{ 25, 15 },		// 141 bits per transform
+		{ 16, 25 },		// 144 bits per transform
+		{ 24, 24 },		// 144 bits per transform
+		{ 25, 16 },		// 144 bits per transform
+		{ 17, 25 },		// 147 bits per transform
+		{ 25, 17 },		// 147 bits per transform
+		{ 18, 25 },		// 150 bits per transform
+		{ 25, 18 },		// 150 bits per transform
+		{ 19, 25 },		// 153 bits per transform
+		{ 25, 19 },		// 153 bits per transform
+		{ 20, 25 },		// 156 bits per transform
+		{ 25, 20 },		// 156 bits per transform
+		{ 21, 25 },		// 159 bits per transform
+		{ 25, 21 },		// 159 bits per transform
+		{ 22, 25 },		// 162 bits per transform
+		{ 25, 22 },		// 162 bits per transform
+		{ 23, 25 },		// 165 bits per transform
+		{ 25, 23 },		// 165 bits per transform
+		{ 24, 25 },		// 168 bits per transform
+		{ 25, 24 },		// 168 bits per transform
+		{ 25, 25 },		// 192 bits per transform
 	};
 
-	constexpr uint8_t k_local_bit_rate_permutations[12167][3] =
+	constexpr uint8_t k_local_bit_rate_permutations[17576][3] =
 	{
 		{ 0, 0, 0 },		// 0 bits per transform
 		{ 0, 0, 1 },		// 3 bits per transform
@@ -2598,6 +2745,7 @@ namespace acl
 		{ 20, 0, 1 },		// 63 bits per transform
 		{ 20, 1, 0 },		// 63 bits per transform
 		{ 21, 0, 0 },		// 63 bits per transform
+		{ 0, 0, 22 },		// 66 bits per transform
 		{ 0, 1, 21 },		// 66 bits per transform
 		{ 0, 2, 20 },		// 66 bits per transform
 		{ 0, 3, 19 },		// 66 bits per transform
@@ -2619,6 +2767,7 @@ namespace acl
 		{ 0, 19, 3 },		// 66 bits per transform
 		{ 0, 20, 2 },		// 66 bits per transform
 		{ 0, 21, 1 },		// 66 bits per transform
+		{ 0, 22, 0 },		// 66 bits per transform
 		{ 1, 0, 21 },		// 66 bits per transform
 		{ 1, 1, 20 },		// 66 bits per transform
 		{ 1, 2, 19 },		// 66 bits per transform
@@ -2871,6 +3020,9 @@ namespace acl
 		{ 20, 2, 0 },		// 66 bits per transform
 		{ 21, 0, 1 },		// 66 bits per transform
 		{ 21, 1, 0 },		// 66 bits per transform
+		{ 22, 0, 0 },		// 66 bits per transform
+		{ 0, 0, 23 },		// 69 bits per transform
+		{ 0, 1, 22 },		// 69 bits per transform
 		{ 0, 2, 21 },		// 69 bits per transform
 		{ 0, 3, 20 },		// 69 bits per transform
 		{ 0, 4, 19 },		// 69 bits per transform
@@ -2891,6 +3043,9 @@ namespace acl
 		{ 0, 19, 4 },		// 69 bits per transform
 		{ 0, 20, 3 },		// 69 bits per transform
 		{ 0, 21, 2 },		// 69 bits per transform
+		{ 0, 22, 1 },		// 69 bits per transform
+		{ 0, 23, 0 },		// 69 bits per transform
+		{ 1, 0, 22 },		// 69 bits per transform
 		{ 1, 1, 21 },		// 69 bits per transform
 		{ 1, 2, 20 },		// 69 bits per transform
 		{ 1, 3, 19 },		// 69 bits per transform
@@ -2912,6 +3067,7 @@ namespace acl
 		{ 1, 19, 3 },		// 69 bits per transform
 		{ 1, 20, 2 },		// 69 bits per transform
 		{ 1, 21, 1 },		// 69 bits per transform
+		{ 1, 22, 0 },		// 69 bits per transform
 		{ 2, 0, 21 },		// 69 bits per transform
 		{ 2, 1, 20 },		// 69 bits per transform
 		{ 2, 2, 19 },		// 69 bits per transform
@@ -3162,6 +3318,12 @@ namespace acl
 		{ 21, 0, 2 },		// 69 bits per transform
 		{ 21, 1, 1 },		// 69 bits per transform
 		{ 21, 2, 0 },		// 69 bits per transform
+		{ 22, 0, 1 },		// 69 bits per transform
+		{ 22, 1, 0 },		// 69 bits per transform
+		{ 23, 0, 0 },		// 69 bits per transform
+		{ 0, 0, 24 },		// 72 bits per transform
+		{ 0, 1, 23 },		// 72 bits per transform
+		{ 0, 2, 22 },		// 72 bits per transform
 		{ 0, 3, 21 },		// 72 bits per transform
 		{ 0, 4, 20 },		// 72 bits per transform
 		{ 0, 5, 19 },		// 72 bits per transform
@@ -3181,6 +3343,11 @@ namespace acl
 		{ 0, 19, 5 },		// 72 bits per transform
 		{ 0, 20, 4 },		// 72 bits per transform
 		{ 0, 21, 3 },		// 72 bits per transform
+		{ 0, 22, 2 },		// 72 bits per transform
+		{ 0, 23, 1 },		// 72 bits per transform
+		{ 0, 24, 0 },		// 72 bits per transform
+		{ 1, 0, 23 },		// 72 bits per transform
+		{ 1, 1, 22 },		// 72 bits per transform
 		{ 1, 2, 21 },		// 72 bits per transform
 		{ 1, 3, 20 },		// 72 bits per transform
 		{ 1, 4, 19 },		// 72 bits per transform
@@ -3201,6 +3368,9 @@ namespace acl
 		{ 1, 19, 4 },		// 72 bits per transform
 		{ 1, 20, 3 },		// 72 bits per transform
 		{ 1, 21, 2 },		// 72 bits per transform
+		{ 1, 22, 1 },		// 72 bits per transform
+		{ 1, 23, 0 },		// 72 bits per transform
+		{ 2, 0, 22 },		// 72 bits per transform
 		{ 2, 1, 21 },		// 72 bits per transform
 		{ 2, 2, 20 },		// 72 bits per transform
 		{ 2, 3, 19 },		// 72 bits per transform
@@ -3222,6 +3392,7 @@ namespace acl
 		{ 2, 19, 3 },		// 72 bits per transform
 		{ 2, 20, 2 },		// 72 bits per transform
 		{ 2, 21, 1 },		// 72 bits per transform
+		{ 2, 22, 0 },		// 72 bits per transform
 		{ 3, 0, 21 },		// 72 bits per transform
 		{ 3, 1, 20 },		// 72 bits per transform
 		{ 3, 2, 19 },		// 72 bits per transform
@@ -3469,6 +3640,15 @@ namespace acl
 		{ 21, 1, 2 },		// 72 bits per transform
 		{ 21, 2, 1 },		// 72 bits per transform
 		{ 21, 3, 0 },		// 72 bits per transform
+		{ 22, 0, 2 },		// 72 bits per transform
+		{ 22, 1, 1 },		// 72 bits per transform
+		{ 22, 2, 0 },		// 72 bits per transform
+		{ 23, 0, 1 },		// 72 bits per transform
+		{ 23, 1, 0 },		// 72 bits per transform
+		{ 24, 0, 0 },		// 72 bits per transform
+		{ 0, 1, 24 },		// 75 bits per transform
+		{ 0, 2, 23 },		// 75 bits per transform
+		{ 0, 3, 22 },		// 75 bits per transform
 		{ 0, 4, 21 },		// 75 bits per transform
 		{ 0, 5, 20 },		// 75 bits per transform
 		{ 0, 6, 19 },		// 75 bits per transform
@@ -3487,6 +3667,12 @@ namespace acl
 		{ 0, 19, 6 },		// 75 bits per transform
 		{ 0, 20, 5 },		// 75 bits per transform
 		{ 0, 21, 4 },		// 75 bits per transform
+		{ 0, 22, 3 },		// 75 bits per transform
+		{ 0, 23, 2 },		// 75 bits per transform
+		{ 0, 24, 1 },		// 75 bits per transform
+		{ 1, 0, 24 },		// 75 bits per transform
+		{ 1, 1, 23 },		// 75 bits per transform
+		{ 1, 2, 22 },		// 75 bits per transform
 		{ 1, 3, 21 },		// 75 bits per transform
 		{ 1, 4, 20 },		// 75 bits per transform
 		{ 1, 5, 19 },		// 75 bits per transform
@@ -3506,6 +3692,11 @@ namespace acl
 		{ 1, 19, 5 },		// 75 bits per transform
 		{ 1, 20, 4 },		// 75 bits per transform
 		{ 1, 21, 3 },		// 75 bits per transform
+		{ 1, 22, 2 },		// 75 bits per transform
+		{ 1, 23, 1 },		// 75 bits per transform
+		{ 1, 24, 0 },		// 75 bits per transform
+		{ 2, 0, 23 },		// 75 bits per transform
+		{ 2, 1, 22 },		// 75 bits per transform
 		{ 2, 2, 21 },		// 75 bits per transform
 		{ 2, 3, 20 },		// 75 bits per transform
 		{ 2, 4, 19 },		// 75 bits per transform
@@ -3526,6 +3717,9 @@ namespace acl
 		{ 2, 19, 4 },		// 75 bits per transform
 		{ 2, 20, 3 },		// 75 bits per transform
 		{ 2, 21, 2 },		// 75 bits per transform
+		{ 2, 22, 1 },		// 75 bits per transform
+		{ 2, 23, 0 },		// 75 bits per transform
+		{ 3, 0, 22 },		// 75 bits per transform
 		{ 3, 1, 21 },		// 75 bits per transform
 		{ 3, 2, 20 },		// 75 bits per transform
 		{ 3, 3, 19 },		// 75 bits per transform
@@ -3547,6 +3741,7 @@ namespace acl
 		{ 3, 19, 3 },		// 75 bits per transform
 		{ 3, 20, 2 },		// 75 bits per transform
 		{ 3, 21, 1 },		// 75 bits per transform
+		{ 3, 22, 0 },		// 75 bits per transform
 		{ 4, 0, 21 },		// 75 bits per transform
 		{ 4, 1, 20 },		// 75 bits per transform
 		{ 4, 2, 19 },		// 75 bits per transform
@@ -3790,6 +3985,18 @@ namespace acl
 		{ 21, 2, 2 },		// 75 bits per transform
 		{ 21, 3, 1 },		// 75 bits per transform
 		{ 21, 4, 0 },		// 75 bits per transform
+		{ 22, 0, 3 },		// 75 bits per transform
+		{ 22, 1, 2 },		// 75 bits per transform
+		{ 22, 2, 1 },		// 75 bits per transform
+		{ 22, 3, 0 },		// 75 bits per transform
+		{ 23, 0, 2 },		// 75 bits per transform
+		{ 23, 1, 1 },		// 75 bits per transform
+		{ 23, 2, 0 },		// 75 bits per transform
+		{ 24, 0, 1 },		// 75 bits per transform
+		{ 24, 1, 0 },		// 75 bits per transform
+		{ 0, 2, 24 },		// 78 bits per transform
+		{ 0, 3, 23 },		// 78 bits per transform
+		{ 0, 4, 22 },		// 78 bits per transform
 		{ 0, 5, 21 },		// 78 bits per transform
 		{ 0, 6, 20 },		// 78 bits per transform
 		{ 0, 7, 19 },		// 78 bits per transform
@@ -3807,6 +4014,12 @@ namespace acl
 		{ 0, 19, 7 },		// 78 bits per transform
 		{ 0, 20, 6 },		// 78 bits per transform
 		{ 0, 21, 5 },		// 78 bits per transform
+		{ 0, 22, 4 },		// 78 bits per transform
+		{ 0, 23, 3 },		// 78 bits per transform
+		{ 0, 24, 2 },		// 78 bits per transform
+		{ 1, 1, 24 },		// 78 bits per transform
+		{ 1, 2, 23 },		// 78 bits per transform
+		{ 1, 3, 22 },		// 78 bits per transform
 		{ 1, 4, 21 },		// 78 bits per transform
 		{ 1, 5, 20 },		// 78 bits per transform
 		{ 1, 6, 19 },		// 78 bits per transform
@@ -3825,6 +4038,12 @@ namespace acl
 		{ 1, 19, 6 },		// 78 bits per transform
 		{ 1, 20, 5 },		// 78 bits per transform
 		{ 1, 21, 4 },		// 78 bits per transform
+		{ 1, 22, 3 },		// 78 bits per transform
+		{ 1, 23, 2 },		// 78 bits per transform
+		{ 1, 24, 1 },		// 78 bits per transform
+		{ 2, 0, 24 },		// 78 bits per transform
+		{ 2, 1, 23 },		// 78 bits per transform
+		{ 2, 2, 22 },		// 78 bits per transform
 		{ 2, 3, 21 },		// 78 bits per transform
 		{ 2, 4, 20 },		// 78 bits per transform
 		{ 2, 5, 19 },		// 78 bits per transform
@@ -3844,6 +4063,11 @@ namespace acl
 		{ 2, 19, 5 },		// 78 bits per transform
 		{ 2, 20, 4 },		// 78 bits per transform
 		{ 2, 21, 3 },		// 78 bits per transform
+		{ 2, 22, 2 },		// 78 bits per transform
+		{ 2, 23, 1 },		// 78 bits per transform
+		{ 2, 24, 0 },		// 78 bits per transform
+		{ 3, 0, 23 },		// 78 bits per transform
+		{ 3, 1, 22 },		// 78 bits per transform
 		{ 3, 2, 21 },		// 78 bits per transform
 		{ 3, 3, 20 },		// 78 bits per transform
 		{ 3, 4, 19 },		// 78 bits per transform
@@ -3864,6 +4088,9 @@ namespace acl
 		{ 3, 19, 4 },		// 78 bits per transform
 		{ 3, 20, 3 },		// 78 bits per transform
 		{ 3, 21, 2 },		// 78 bits per transform
+		{ 3, 22, 1 },		// 78 bits per transform
+		{ 3, 23, 0 },		// 78 bits per transform
+		{ 4, 0, 22 },		// 78 bits per transform
 		{ 4, 1, 21 },		// 78 bits per transform
 		{ 4, 2, 20 },		// 78 bits per transform
 		{ 4, 3, 19 },		// 78 bits per transform
@@ -3885,6 +4112,7 @@ namespace acl
 		{ 4, 19, 3 },		// 78 bits per transform
 		{ 4, 20, 2 },		// 78 bits per transform
 		{ 4, 21, 1 },		// 78 bits per transform
+		{ 4, 22, 0 },		// 78 bits per transform
 		{ 5, 0, 21 },		// 78 bits per transform
 		{ 5, 1, 20 },		// 78 bits per transform
 		{ 5, 2, 19 },		// 78 bits per transform
@@ -4123,6 +4351,21 @@ namespace acl
 		{ 21, 3, 2 },		// 78 bits per transform
 		{ 21, 4, 1 },		// 78 bits per transform
 		{ 21, 5, 0 },		// 78 bits per transform
+		{ 22, 0, 4 },		// 78 bits per transform
+		{ 22, 1, 3 },		// 78 bits per transform
+		{ 22, 2, 2 },		// 78 bits per transform
+		{ 22, 3, 1 },		// 78 bits per transform
+		{ 22, 4, 0 },		// 78 bits per transform
+		{ 23, 0, 3 },		// 78 bits per transform
+		{ 23, 1, 2 },		// 78 bits per transform
+		{ 23, 2, 1 },		// 78 bits per transform
+		{ 23, 3, 0 },		// 78 bits per transform
+		{ 24, 0, 2 },		// 78 bits per transform
+		{ 24, 1, 1 },		// 78 bits per transform
+		{ 24, 2, 0 },		// 78 bits per transform
+		{ 0, 3, 24 },		// 81 bits per transform
+		{ 0, 4, 23 },		// 81 bits per transform
+		{ 0, 5, 22 },		// 81 bits per transform
 		{ 0, 6, 21 },		// 81 bits per transform
 		{ 0, 7, 20 },		// 81 bits per transform
 		{ 0, 8, 19 },		// 81 bits per transform
@@ -4139,6 +4382,12 @@ namespace acl
 		{ 0, 19, 8 },		// 81 bits per transform
 		{ 0, 20, 7 },		// 81 bits per transform
 		{ 0, 21, 6 },		// 81 bits per transform
+		{ 0, 22, 5 },		// 81 bits per transform
+		{ 0, 23, 4 },		// 81 bits per transform
+		{ 0, 24, 3 },		// 81 bits per transform
+		{ 1, 2, 24 },		// 81 bits per transform
+		{ 1, 3, 23 },		// 81 bits per transform
+		{ 1, 4, 22 },		// 81 bits per transform
 		{ 1, 5, 21 },		// 81 bits per transform
 		{ 1, 6, 20 },		// 81 bits per transform
 		{ 1, 7, 19 },		// 81 bits per transform
@@ -4156,6 +4405,12 @@ namespace acl
 		{ 1, 19, 7 },		// 81 bits per transform
 		{ 1, 20, 6 },		// 81 bits per transform
 		{ 1, 21, 5 },		// 81 bits per transform
+		{ 1, 22, 4 },		// 81 bits per transform
+		{ 1, 23, 3 },		// 81 bits per transform
+		{ 1, 24, 2 },		// 81 bits per transform
+		{ 2, 1, 24 },		// 81 bits per transform
+		{ 2, 2, 23 },		// 81 bits per transform
+		{ 2, 3, 22 },		// 81 bits per transform
 		{ 2, 4, 21 },		// 81 bits per transform
 		{ 2, 5, 20 },		// 81 bits per transform
 		{ 2, 6, 19 },		// 81 bits per transform
@@ -4174,6 +4429,12 @@ namespace acl
 		{ 2, 19, 6 },		// 81 bits per transform
 		{ 2, 20, 5 },		// 81 bits per transform
 		{ 2, 21, 4 },		// 81 bits per transform
+		{ 2, 22, 3 },		// 81 bits per transform
+		{ 2, 23, 2 },		// 81 bits per transform
+		{ 2, 24, 1 },		// 81 bits per transform
+		{ 3, 0, 24 },		// 81 bits per transform
+		{ 3, 1, 23 },		// 81 bits per transform
+		{ 3, 2, 22 },		// 81 bits per transform
 		{ 3, 3, 21 },		// 81 bits per transform
 		{ 3, 4, 20 },		// 81 bits per transform
 		{ 3, 5, 19 },		// 81 bits per transform
@@ -4193,6 +4454,11 @@ namespace acl
 		{ 3, 19, 5 },		// 81 bits per transform
 		{ 3, 20, 4 },		// 81 bits per transform
 		{ 3, 21, 3 },		// 81 bits per transform
+		{ 3, 22, 2 },		// 81 bits per transform
+		{ 3, 23, 1 },		// 81 bits per transform
+		{ 3, 24, 0 },		// 81 bits per transform
+		{ 4, 0, 23 },		// 81 bits per transform
+		{ 4, 1, 22 },		// 81 bits per transform
 		{ 4, 2, 21 },		// 81 bits per transform
 		{ 4, 3, 20 },		// 81 bits per transform
 		{ 4, 4, 19 },		// 81 bits per transform
@@ -4213,6 +4479,9 @@ namespace acl
 		{ 4, 19, 4 },		// 81 bits per transform
 		{ 4, 20, 3 },		// 81 bits per transform
 		{ 4, 21, 2 },		// 81 bits per transform
+		{ 4, 22, 1 },		// 81 bits per transform
+		{ 4, 23, 0 },		// 81 bits per transform
+		{ 5, 0, 22 },		// 81 bits per transform
 		{ 5, 1, 21 },		// 81 bits per transform
 		{ 5, 2, 20 },		// 81 bits per transform
 		{ 5, 3, 19 },		// 81 bits per transform
@@ -4234,6 +4503,7 @@ namespace acl
 		{ 5, 19, 3 },		// 81 bits per transform
 		{ 5, 20, 2 },		// 81 bits per transform
 		{ 5, 21, 1 },		// 81 bits per transform
+		{ 5, 22, 0 },		// 81 bits per transform
 		{ 6, 0, 21 },		// 81 bits per transform
 		{ 6, 1, 20 },		// 81 bits per transform
 		{ 6, 2, 19 },		// 81 bits per transform
@@ -4466,6 +4736,24 @@ namespace acl
 		{ 21, 4, 2 },		// 81 bits per transform
 		{ 21, 5, 1 },		// 81 bits per transform
 		{ 21, 6, 0 },		// 81 bits per transform
+		{ 22, 0, 5 },		// 81 bits per transform
+		{ 22, 1, 4 },		// 81 bits per transform
+		{ 22, 2, 3 },		// 81 bits per transform
+		{ 22, 3, 2 },		// 81 bits per transform
+		{ 22, 4, 1 },		// 81 bits per transform
+		{ 22, 5, 0 },		// 81 bits per transform
+		{ 23, 0, 4 },		// 81 bits per transform
+		{ 23, 1, 3 },		// 81 bits per transform
+		{ 23, 2, 2 },		// 81 bits per transform
+		{ 23, 3, 1 },		// 81 bits per transform
+		{ 23, 4, 0 },		// 81 bits per transform
+		{ 24, 0, 3 },		// 81 bits per transform
+		{ 24, 1, 2 },		// 81 bits per transform
+		{ 24, 2, 1 },		// 81 bits per transform
+		{ 24, 3, 0 },		// 81 bits per transform
+		{ 0, 4, 24 },		// 84 bits per transform
+		{ 0, 5, 23 },		// 84 bits per transform
+		{ 0, 6, 22 },		// 84 bits per transform
 		{ 0, 7, 21 },		// 84 bits per transform
 		{ 0, 8, 20 },		// 84 bits per transform
 		{ 0, 9, 19 },		// 84 bits per transform
@@ -4481,6 +4769,12 @@ namespace acl
 		{ 0, 19, 9 },		// 84 bits per transform
 		{ 0, 20, 8 },		// 84 bits per transform
 		{ 0, 21, 7 },		// 84 bits per transform
+		{ 0, 22, 6 },		// 84 bits per transform
+		{ 0, 23, 5 },		// 84 bits per transform
+		{ 0, 24, 4 },		// 84 bits per transform
+		{ 1, 3, 24 },		// 84 bits per transform
+		{ 1, 4, 23 },		// 84 bits per transform
+		{ 1, 5, 22 },		// 84 bits per transform
 		{ 1, 6, 21 },		// 84 bits per transform
 		{ 1, 7, 20 },		// 84 bits per transform
 		{ 1, 8, 19 },		// 84 bits per transform
@@ -4497,6 +4791,12 @@ namespace acl
 		{ 1, 19, 8 },		// 84 bits per transform
 		{ 1, 20, 7 },		// 84 bits per transform
 		{ 1, 21, 6 },		// 84 bits per transform
+		{ 1, 22, 5 },		// 84 bits per transform
+		{ 1, 23, 4 },		// 84 bits per transform
+		{ 1, 24, 3 },		// 84 bits per transform
+		{ 2, 2, 24 },		// 84 bits per transform
+		{ 2, 3, 23 },		// 84 bits per transform
+		{ 2, 4, 22 },		// 84 bits per transform
 		{ 2, 5, 21 },		// 84 bits per transform
 		{ 2, 6, 20 },		// 84 bits per transform
 		{ 2, 7, 19 },		// 84 bits per transform
@@ -4514,6 +4814,12 @@ namespace acl
 		{ 2, 19, 7 },		// 84 bits per transform
 		{ 2, 20, 6 },		// 84 bits per transform
 		{ 2, 21, 5 },		// 84 bits per transform
+		{ 2, 22, 4 },		// 84 bits per transform
+		{ 2, 23, 3 },		// 84 bits per transform
+		{ 2, 24, 2 },		// 84 bits per transform
+		{ 3, 1, 24 },		// 84 bits per transform
+		{ 3, 2, 23 },		// 84 bits per transform
+		{ 3, 3, 22 },		// 84 bits per transform
 		{ 3, 4, 21 },		// 84 bits per transform
 		{ 3, 5, 20 },		// 84 bits per transform
 		{ 3, 6, 19 },		// 84 bits per transform
@@ -4532,6 +4838,12 @@ namespace acl
 		{ 3, 19, 6 },		// 84 bits per transform
 		{ 3, 20, 5 },		// 84 bits per transform
 		{ 3, 21, 4 },		// 84 bits per transform
+		{ 3, 22, 3 },		// 84 bits per transform
+		{ 3, 23, 2 },		// 84 bits per transform
+		{ 3, 24, 1 },		// 84 bits per transform
+		{ 4, 0, 24 },		// 84 bits per transform
+		{ 4, 1, 23 },		// 84 bits per transform
+		{ 4, 2, 22 },		// 84 bits per transform
 		{ 4, 3, 21 },		// 84 bits per transform
 		{ 4, 4, 20 },		// 84 bits per transform
 		{ 4, 5, 19 },		// 84 bits per transform
@@ -4551,6 +4863,11 @@ namespace acl
 		{ 4, 19, 5 },		// 84 bits per transform
 		{ 4, 20, 4 },		// 84 bits per transform
 		{ 4, 21, 3 },		// 84 bits per transform
+		{ 4, 22, 2 },		// 84 bits per transform
+		{ 4, 23, 1 },		// 84 bits per transform
+		{ 4, 24, 0 },		// 84 bits per transform
+		{ 5, 0, 23 },		// 84 bits per transform
+		{ 5, 1, 22 },		// 84 bits per transform
 		{ 5, 2, 21 },		// 84 bits per transform
 		{ 5, 3, 20 },		// 84 bits per transform
 		{ 5, 4, 19 },		// 84 bits per transform
@@ -4571,6 +4888,9 @@ namespace acl
 		{ 5, 19, 4 },		// 84 bits per transform
 		{ 5, 20, 3 },		// 84 bits per transform
 		{ 5, 21, 2 },		// 84 bits per transform
+		{ 5, 22, 1 },		// 84 bits per transform
+		{ 5, 23, 0 },		// 84 bits per transform
+		{ 6, 0, 22 },		// 84 bits per transform
 		{ 6, 1, 21 },		// 84 bits per transform
 		{ 6, 2, 20 },		// 84 bits per transform
 		{ 6, 3, 19 },		// 84 bits per transform
@@ -4592,6 +4912,7 @@ namespace acl
 		{ 6, 19, 3 },		// 84 bits per transform
 		{ 6, 20, 2 },		// 84 bits per transform
 		{ 6, 21, 1 },		// 84 bits per transform
+		{ 6, 22, 0 },		// 84 bits per transform
 		{ 7, 0, 21 },		// 84 bits per transform
 		{ 7, 1, 20 },		// 84 bits per transform
 		{ 7, 2, 19 },		// 84 bits per transform
@@ -4817,6 +5138,27 @@ namespace acl
 		{ 21, 5, 2 },		// 84 bits per transform
 		{ 21, 6, 1 },		// 84 bits per transform
 		{ 21, 7, 0 },		// 84 bits per transform
+		{ 22, 0, 6 },		// 84 bits per transform
+		{ 22, 1, 5 },		// 84 bits per transform
+		{ 22, 2, 4 },		// 84 bits per transform
+		{ 22, 3, 3 },		// 84 bits per transform
+		{ 22, 4, 2 },		// 84 bits per transform
+		{ 22, 5, 1 },		// 84 bits per transform
+		{ 22, 6, 0 },		// 84 bits per transform
+		{ 23, 0, 5 },		// 84 bits per transform
+		{ 23, 1, 4 },		// 84 bits per transform
+		{ 23, 2, 3 },		// 84 bits per transform
+		{ 23, 3, 2 },		// 84 bits per transform
+		{ 23, 4, 1 },		// 84 bits per transform
+		{ 23, 5, 0 },		// 84 bits per transform
+		{ 24, 0, 4 },		// 84 bits per transform
+		{ 24, 1, 3 },		// 84 bits per transform
+		{ 24, 2, 2 },		// 84 bits per transform
+		{ 24, 3, 1 },		// 84 bits per transform
+		{ 24, 4, 0 },		// 84 bits per transform
+		{ 0, 5, 24 },		// 87 bits per transform
+		{ 0, 6, 23 },		// 87 bits per transform
+		{ 0, 7, 22 },		// 87 bits per transform
 		{ 0, 8, 21 },		// 87 bits per transform
 		{ 0, 9, 20 },		// 87 bits per transform
 		{ 0, 10, 19 },		// 87 bits per transform
@@ -4831,6 +5173,12 @@ namespace acl
 		{ 0, 19, 10 },		// 87 bits per transform
 		{ 0, 20, 9 },		// 87 bits per transform
 		{ 0, 21, 8 },		// 87 bits per transform
+		{ 0, 22, 7 },		// 87 bits per transform
+		{ 0, 23, 6 },		// 87 bits per transform
+		{ 0, 24, 5 },		// 87 bits per transform
+		{ 1, 4, 24 },		// 87 bits per transform
+		{ 1, 5, 23 },		// 87 bits per transform
+		{ 1, 6, 22 },		// 87 bits per transform
 		{ 1, 7, 21 },		// 87 bits per transform
 		{ 1, 8, 20 },		// 87 bits per transform
 		{ 1, 9, 19 },		// 87 bits per transform
@@ -4846,6 +5194,12 @@ namespace acl
 		{ 1, 19, 9 },		// 87 bits per transform
 		{ 1, 20, 8 },		// 87 bits per transform
 		{ 1, 21, 7 },		// 87 bits per transform
+		{ 1, 22, 6 },		// 87 bits per transform
+		{ 1, 23, 5 },		// 87 bits per transform
+		{ 1, 24, 4 },		// 87 bits per transform
+		{ 2, 3, 24 },		// 87 bits per transform
+		{ 2, 4, 23 },		// 87 bits per transform
+		{ 2, 5, 22 },		// 87 bits per transform
 		{ 2, 6, 21 },		// 87 bits per transform
 		{ 2, 7, 20 },		// 87 bits per transform
 		{ 2, 8, 19 },		// 87 bits per transform
@@ -4862,6 +5216,12 @@ namespace acl
 		{ 2, 19, 8 },		// 87 bits per transform
 		{ 2, 20, 7 },		// 87 bits per transform
 		{ 2, 21, 6 },		// 87 bits per transform
+		{ 2, 22, 5 },		// 87 bits per transform
+		{ 2, 23, 4 },		// 87 bits per transform
+		{ 2, 24, 3 },		// 87 bits per transform
+		{ 3, 2, 24 },		// 87 bits per transform
+		{ 3, 3, 23 },		// 87 bits per transform
+		{ 3, 4, 22 },		// 87 bits per transform
 		{ 3, 5, 21 },		// 87 bits per transform
 		{ 3, 6, 20 },		// 87 bits per transform
 		{ 3, 7, 19 },		// 87 bits per transform
@@ -4879,6 +5239,12 @@ namespace acl
 		{ 3, 19, 7 },		// 87 bits per transform
 		{ 3, 20, 6 },		// 87 bits per transform
 		{ 3, 21, 5 },		// 87 bits per transform
+		{ 3, 22, 4 },		// 87 bits per transform
+		{ 3, 23, 3 },		// 87 bits per transform
+		{ 3, 24, 2 },		// 87 bits per transform
+		{ 4, 1, 24 },		// 87 bits per transform
+		{ 4, 2, 23 },		// 87 bits per transform
+		{ 4, 3, 22 },		// 87 bits per transform
 		{ 4, 4, 21 },		// 87 bits per transform
 		{ 4, 5, 20 },		// 87 bits per transform
 		{ 4, 6, 19 },		// 87 bits per transform
@@ -4897,6 +5263,12 @@ namespace acl
 		{ 4, 19, 6 },		// 87 bits per transform
 		{ 4, 20, 5 },		// 87 bits per transform
 		{ 4, 21, 4 },		// 87 bits per transform
+		{ 4, 22, 3 },		// 87 bits per transform
+		{ 4, 23, 2 },		// 87 bits per transform
+		{ 4, 24, 1 },		// 87 bits per transform
+		{ 5, 0, 24 },		// 87 bits per transform
+		{ 5, 1, 23 },		// 87 bits per transform
+		{ 5, 2, 22 },		// 87 bits per transform
 		{ 5, 3, 21 },		// 87 bits per transform
 		{ 5, 4, 20 },		// 87 bits per transform
 		{ 5, 5, 19 },		// 87 bits per transform
@@ -4916,6 +5288,11 @@ namespace acl
 		{ 5, 19, 5 },		// 87 bits per transform
 		{ 5, 20, 4 },		// 87 bits per transform
 		{ 5, 21, 3 },		// 87 bits per transform
+		{ 5, 22, 2 },		// 87 bits per transform
+		{ 5, 23, 1 },		// 87 bits per transform
+		{ 5, 24, 0 },		// 87 bits per transform
+		{ 6, 0, 23 },		// 87 bits per transform
+		{ 6, 1, 22 },		// 87 bits per transform
 		{ 6, 2, 21 },		// 87 bits per transform
 		{ 6, 3, 20 },		// 87 bits per transform
 		{ 6, 4, 19 },		// 87 bits per transform
@@ -4936,6 +5313,9 @@ namespace acl
 		{ 6, 19, 4 },		// 87 bits per transform
 		{ 6, 20, 3 },		// 87 bits per transform
 		{ 6, 21, 2 },		// 87 bits per transform
+		{ 6, 22, 1 },		// 87 bits per transform
+		{ 6, 23, 0 },		// 87 bits per transform
+		{ 7, 0, 22 },		// 87 bits per transform
 		{ 7, 1, 21 },		// 87 bits per transform
 		{ 7, 2, 20 },		// 87 bits per transform
 		{ 7, 3, 19 },		// 87 bits per transform
@@ -4957,6 +5337,7 @@ namespace acl
 		{ 7, 19, 3 },		// 87 bits per transform
 		{ 7, 20, 2 },		// 87 bits per transform
 		{ 7, 21, 1 },		// 87 bits per transform
+		{ 7, 22, 0 },		// 87 bits per transform
 		{ 8, 0, 21 },		// 87 bits per transform
 		{ 8, 1, 20 },		// 87 bits per transform
 		{ 8, 2, 19 },		// 87 bits per transform
@@ -5174,6 +5555,30 @@ namespace acl
 		{ 21, 6, 2 },		// 87 bits per transform
 		{ 21, 7, 1 },		// 87 bits per transform
 		{ 21, 8, 0 },		// 87 bits per transform
+		{ 22, 0, 7 },		// 87 bits per transform
+		{ 22, 1, 6 },		// 87 bits per transform
+		{ 22, 2, 5 },		// 87 bits per transform
+		{ 22, 3, 4 },		// 87 bits per transform
+		{ 22, 4, 3 },		// 87 bits per transform
+		{ 22, 5, 2 },		// 87 bits per transform
+		{ 22, 6, 1 },		// 87 bits per transform
+		{ 22, 7, 0 },		// 87 bits per transform
+		{ 23, 0, 6 },		// 87 bits per transform
+		{ 23, 1, 5 },		// 87 bits per transform
+		{ 23, 2, 4 },		// 87 bits per transform
+		{ 23, 3, 3 },		// 87 bits per transform
+		{ 23, 4, 2 },		// 87 bits per transform
+		{ 23, 5, 1 },		// 87 bits per transform
+		{ 23, 6, 0 },		// 87 bits per transform
+		{ 24, 0, 5 },		// 87 bits per transform
+		{ 24, 1, 4 },		// 87 bits per transform
+		{ 24, 2, 3 },		// 87 bits per transform
+		{ 24, 3, 2 },		// 87 bits per transform
+		{ 24, 4, 1 },		// 87 bits per transform
+		{ 24, 5, 0 },		// 87 bits per transform
+		{ 0, 6, 24 },		// 90 bits per transform
+		{ 0, 7, 23 },		// 90 bits per transform
+		{ 0, 8, 22 },		// 90 bits per transform
 		{ 0, 9, 21 },		// 90 bits per transform
 		{ 0, 10, 20 },		// 90 bits per transform
 		{ 0, 11, 19 },		// 90 bits per transform
@@ -5187,6 +5592,12 @@ namespace acl
 		{ 0, 19, 11 },		// 90 bits per transform
 		{ 0, 20, 10 },		// 90 bits per transform
 		{ 0, 21, 9 },		// 90 bits per transform
+		{ 0, 22, 8 },		// 90 bits per transform
+		{ 0, 23, 7 },		// 90 bits per transform
+		{ 0, 24, 6 },		// 90 bits per transform
+		{ 1, 5, 24 },		// 90 bits per transform
+		{ 1, 6, 23 },		// 90 bits per transform
+		{ 1, 7, 22 },		// 90 bits per transform
 		{ 1, 8, 21 },		// 90 bits per transform
 		{ 1, 9, 20 },		// 90 bits per transform
 		{ 1, 10, 19 },		// 90 bits per transform
@@ -5201,6 +5612,12 @@ namespace acl
 		{ 1, 19, 10 },		// 90 bits per transform
 		{ 1, 20, 9 },		// 90 bits per transform
 		{ 1, 21, 8 },		// 90 bits per transform
+		{ 1, 22, 7 },		// 90 bits per transform
+		{ 1, 23, 6 },		// 90 bits per transform
+		{ 1, 24, 5 },		// 90 bits per transform
+		{ 2, 4, 24 },		// 90 bits per transform
+		{ 2, 5, 23 },		// 90 bits per transform
+		{ 2, 6, 22 },		// 90 bits per transform
 		{ 2, 7, 21 },		// 90 bits per transform
 		{ 2, 8, 20 },		// 90 bits per transform
 		{ 2, 9, 19 },		// 90 bits per transform
@@ -5216,6 +5633,12 @@ namespace acl
 		{ 2, 19, 9 },		// 90 bits per transform
 		{ 2, 20, 8 },		// 90 bits per transform
 		{ 2, 21, 7 },		// 90 bits per transform
+		{ 2, 22, 6 },		// 90 bits per transform
+		{ 2, 23, 5 },		// 90 bits per transform
+		{ 2, 24, 4 },		// 90 bits per transform
+		{ 3, 3, 24 },		// 90 bits per transform
+		{ 3, 4, 23 },		// 90 bits per transform
+		{ 3, 5, 22 },		// 90 bits per transform
 		{ 3, 6, 21 },		// 90 bits per transform
 		{ 3, 7, 20 },		// 90 bits per transform
 		{ 3, 8, 19 },		// 90 bits per transform
@@ -5232,6 +5655,12 @@ namespace acl
 		{ 3, 19, 8 },		// 90 bits per transform
 		{ 3, 20, 7 },		// 90 bits per transform
 		{ 3, 21, 6 },		// 90 bits per transform
+		{ 3, 22, 5 },		// 90 bits per transform
+		{ 3, 23, 4 },		// 90 bits per transform
+		{ 3, 24, 3 },		// 90 bits per transform
+		{ 4, 2, 24 },		// 90 bits per transform
+		{ 4, 3, 23 },		// 90 bits per transform
+		{ 4, 4, 22 },		// 90 bits per transform
 		{ 4, 5, 21 },		// 90 bits per transform
 		{ 4, 6, 20 },		// 90 bits per transform
 		{ 4, 7, 19 },		// 90 bits per transform
@@ -5249,6 +5678,12 @@ namespace acl
 		{ 4, 19, 7 },		// 90 bits per transform
 		{ 4, 20, 6 },		// 90 bits per transform
 		{ 4, 21, 5 },		// 90 bits per transform
+		{ 4, 22, 4 },		// 90 bits per transform
+		{ 4, 23, 3 },		// 90 bits per transform
+		{ 4, 24, 2 },		// 90 bits per transform
+		{ 5, 1, 24 },		// 90 bits per transform
+		{ 5, 2, 23 },		// 90 bits per transform
+		{ 5, 3, 22 },		// 90 bits per transform
 		{ 5, 4, 21 },		// 90 bits per transform
 		{ 5, 5, 20 },		// 90 bits per transform
 		{ 5, 6, 19 },		// 90 bits per transform
@@ -5267,6 +5702,12 @@ namespace acl
 		{ 5, 19, 6 },		// 90 bits per transform
 		{ 5, 20, 5 },		// 90 bits per transform
 		{ 5, 21, 4 },		// 90 bits per transform
+		{ 5, 22, 3 },		// 90 bits per transform
+		{ 5, 23, 2 },		// 90 bits per transform
+		{ 5, 24, 1 },		// 90 bits per transform
+		{ 6, 0, 24 },		// 90 bits per transform
+		{ 6, 1, 23 },		// 90 bits per transform
+		{ 6, 2, 22 },		// 90 bits per transform
 		{ 6, 3, 21 },		// 90 bits per transform
 		{ 6, 4, 20 },		// 90 bits per transform
 		{ 6, 5, 19 },		// 90 bits per transform
@@ -5286,6 +5727,11 @@ namespace acl
 		{ 6, 19, 5 },		// 90 bits per transform
 		{ 6, 20, 4 },		// 90 bits per transform
 		{ 6, 21, 3 },		// 90 bits per transform
+		{ 6, 22, 2 },		// 90 bits per transform
+		{ 6, 23, 1 },		// 90 bits per transform
+		{ 6, 24, 0 },		// 90 bits per transform
+		{ 7, 0, 23 },		// 90 bits per transform
+		{ 7, 1, 22 },		// 90 bits per transform
 		{ 7, 2, 21 },		// 90 bits per transform
 		{ 7, 3, 20 },		// 90 bits per transform
 		{ 7, 4, 19 },		// 90 bits per transform
@@ -5306,6 +5752,9 @@ namespace acl
 		{ 7, 19, 4 },		// 90 bits per transform
 		{ 7, 20, 3 },		// 90 bits per transform
 		{ 7, 21, 2 },		// 90 bits per transform
+		{ 7, 22, 1 },		// 90 bits per transform
+		{ 7, 23, 0 },		// 90 bits per transform
+		{ 8, 0, 22 },		// 90 bits per transform
 		{ 8, 1, 21 },		// 90 bits per transform
 		{ 8, 2, 20 },		// 90 bits per transform
 		{ 8, 3, 19 },		// 90 bits per transform
@@ -5327,6 +5776,7 @@ namespace acl
 		{ 8, 19, 3 },		// 90 bits per transform
 		{ 8, 20, 2 },		// 90 bits per transform
 		{ 8, 21, 1 },		// 90 bits per transform
+		{ 8, 22, 0 },		// 90 bits per transform
 		{ 9, 0, 21 },		// 90 bits per transform
 		{ 9, 1, 20 },		// 90 bits per transform
 		{ 9, 2, 19 },		// 90 bits per transform
@@ -5535,6 +5985,33 @@ namespace acl
 		{ 21, 7, 2 },		// 90 bits per transform
 		{ 21, 8, 1 },		// 90 bits per transform
 		{ 21, 9, 0 },		// 90 bits per transform
+		{ 22, 0, 8 },		// 90 bits per transform
+		{ 22, 1, 7 },		// 90 bits per transform
+		{ 22, 2, 6 },		// 90 bits per transform
+		{ 22, 3, 5 },		// 90 bits per transform
+		{ 22, 4, 4 },		// 90 bits per transform
+		{ 22, 5, 3 },		// 90 bits per transform
+		{ 22, 6, 2 },		// 90 bits per transform
+		{ 22, 7, 1 },		// 90 bits per transform
+		{ 22, 8, 0 },		// 90 bits per transform
+		{ 23, 0, 7 },		// 90 bits per transform
+		{ 23, 1, 6 },		// 90 bits per transform
+		{ 23, 2, 5 },		// 90 bits per transform
+		{ 23, 3, 4 },		// 90 bits per transform
+		{ 23, 4, 3 },		// 90 bits per transform
+		{ 23, 5, 2 },		// 90 bits per transform
+		{ 23, 6, 1 },		// 90 bits per transform
+		{ 23, 7, 0 },		// 90 bits per transform
+		{ 24, 0, 6 },		// 90 bits per transform
+		{ 24, 1, 5 },		// 90 bits per transform
+		{ 24, 2, 4 },		// 90 bits per transform
+		{ 24, 3, 3 },		// 90 bits per transform
+		{ 24, 4, 2 },		// 90 bits per transform
+		{ 24, 5, 1 },		// 90 bits per transform
+		{ 24, 6, 0 },		// 90 bits per transform
+		{ 0, 7, 24 },		// 93 bits per transform
+		{ 0, 8, 23 },		// 93 bits per transform
+		{ 0, 9, 22 },		// 93 bits per transform
 		{ 0, 10, 21 },		// 93 bits per transform
 		{ 0, 11, 20 },		// 93 bits per transform
 		{ 0, 12, 19 },		// 93 bits per transform
@@ -5547,6 +6024,12 @@ namespace acl
 		{ 0, 19, 12 },		// 93 bits per transform
 		{ 0, 20, 11 },		// 93 bits per transform
 		{ 0, 21, 10 },		// 93 bits per transform
+		{ 0, 22, 9 },		// 93 bits per transform
+		{ 0, 23, 8 },		// 93 bits per transform
+		{ 0, 24, 7 },		// 93 bits per transform
+		{ 1, 6, 24 },		// 93 bits per transform
+		{ 1, 7, 23 },		// 93 bits per transform
+		{ 1, 8, 22 },		// 93 bits per transform
 		{ 1, 9, 21 },		// 93 bits per transform
 		{ 1, 10, 20 },		// 93 bits per transform
 		{ 1, 11, 19 },		// 93 bits per transform
@@ -5560,6 +6043,12 @@ namespace acl
 		{ 1, 19, 11 },		// 93 bits per transform
 		{ 1, 20, 10 },		// 93 bits per transform
 		{ 1, 21, 9 },		// 93 bits per transform
+		{ 1, 22, 8 },		// 93 bits per transform
+		{ 1, 23, 7 },		// 93 bits per transform
+		{ 1, 24, 6 },		// 93 bits per transform
+		{ 2, 5, 24 },		// 93 bits per transform
+		{ 2, 6, 23 },		// 93 bits per transform
+		{ 2, 7, 22 },		// 93 bits per transform
 		{ 2, 8, 21 },		// 93 bits per transform
 		{ 2, 9, 20 },		// 93 bits per transform
 		{ 2, 10, 19 },		// 93 bits per transform
@@ -5574,6 +6063,12 @@ namespace acl
 		{ 2, 19, 10 },		// 93 bits per transform
 		{ 2, 20, 9 },		// 93 bits per transform
 		{ 2, 21, 8 },		// 93 bits per transform
+		{ 2, 22, 7 },		// 93 bits per transform
+		{ 2, 23, 6 },		// 93 bits per transform
+		{ 2, 24, 5 },		// 93 bits per transform
+		{ 3, 4, 24 },		// 93 bits per transform
+		{ 3, 5, 23 },		// 93 bits per transform
+		{ 3, 6, 22 },		// 93 bits per transform
 		{ 3, 7, 21 },		// 93 bits per transform
 		{ 3, 8, 20 },		// 93 bits per transform
 		{ 3, 9, 19 },		// 93 bits per transform
@@ -5589,6 +6084,12 @@ namespace acl
 		{ 3, 19, 9 },		// 93 bits per transform
 		{ 3, 20, 8 },		// 93 bits per transform
 		{ 3, 21, 7 },		// 93 bits per transform
+		{ 3, 22, 6 },		// 93 bits per transform
+		{ 3, 23, 5 },		// 93 bits per transform
+		{ 3, 24, 4 },		// 93 bits per transform
+		{ 4, 3, 24 },		// 93 bits per transform
+		{ 4, 4, 23 },		// 93 bits per transform
+		{ 4, 5, 22 },		// 93 bits per transform
 		{ 4, 6, 21 },		// 93 bits per transform
 		{ 4, 7, 20 },		// 93 bits per transform
 		{ 4, 8, 19 },		// 93 bits per transform
@@ -5605,6 +6106,12 @@ namespace acl
 		{ 4, 19, 8 },		// 93 bits per transform
 		{ 4, 20, 7 },		// 93 bits per transform
 		{ 4, 21, 6 },		// 93 bits per transform
+		{ 4, 22, 5 },		// 93 bits per transform
+		{ 4, 23, 4 },		// 93 bits per transform
+		{ 4, 24, 3 },		// 93 bits per transform
+		{ 5, 2, 24 },		// 93 bits per transform
+		{ 5, 3, 23 },		// 93 bits per transform
+		{ 5, 4, 22 },		// 93 bits per transform
 		{ 5, 5, 21 },		// 93 bits per transform
 		{ 5, 6, 20 },		// 93 bits per transform
 		{ 5, 7, 19 },		// 93 bits per transform
@@ -5622,6 +6129,12 @@ namespace acl
 		{ 5, 19, 7 },		// 93 bits per transform
 		{ 5, 20, 6 },		// 93 bits per transform
 		{ 5, 21, 5 },		// 93 bits per transform
+		{ 5, 22, 4 },		// 93 bits per transform
+		{ 5, 23, 3 },		// 93 bits per transform
+		{ 5, 24, 2 },		// 93 bits per transform
+		{ 6, 1, 24 },		// 93 bits per transform
+		{ 6, 2, 23 },		// 93 bits per transform
+		{ 6, 3, 22 },		// 93 bits per transform
 		{ 6, 4, 21 },		// 93 bits per transform
 		{ 6, 5, 20 },		// 93 bits per transform
 		{ 6, 6, 19 },		// 93 bits per transform
@@ -5640,6 +6153,12 @@ namespace acl
 		{ 6, 19, 6 },		// 93 bits per transform
 		{ 6, 20, 5 },		// 93 bits per transform
 		{ 6, 21, 4 },		// 93 bits per transform
+		{ 6, 22, 3 },		// 93 bits per transform
+		{ 6, 23, 2 },		// 93 bits per transform
+		{ 6, 24, 1 },		// 93 bits per transform
+		{ 7, 0, 24 },		// 93 bits per transform
+		{ 7, 1, 23 },		// 93 bits per transform
+		{ 7, 2, 22 },		// 93 bits per transform
 		{ 7, 3, 21 },		// 93 bits per transform
 		{ 7, 4, 20 },		// 93 bits per transform
 		{ 7, 5, 19 },		// 93 bits per transform
@@ -5659,6 +6178,11 @@ namespace acl
 		{ 7, 19, 5 },		// 93 bits per transform
 		{ 7, 20, 4 },		// 93 bits per transform
 		{ 7, 21, 3 },		// 93 bits per transform
+		{ 7, 22, 2 },		// 93 bits per transform
+		{ 7, 23, 1 },		// 93 bits per transform
+		{ 7, 24, 0 },		// 93 bits per transform
+		{ 8, 0, 23 },		// 93 bits per transform
+		{ 8, 1, 22 },		// 93 bits per transform
 		{ 8, 2, 21 },		// 93 bits per transform
 		{ 8, 3, 20 },		// 93 bits per transform
 		{ 8, 4, 19 },		// 93 bits per transform
@@ -5679,6 +6203,9 @@ namespace acl
 		{ 8, 19, 4 },		// 93 bits per transform
 		{ 8, 20, 3 },		// 93 bits per transform
 		{ 8, 21, 2 },		// 93 bits per transform
+		{ 8, 22, 1 },		// 93 bits per transform
+		{ 8, 23, 0 },		// 93 bits per transform
+		{ 9, 0, 22 },		// 93 bits per transform
 		{ 9, 1, 21 },		// 93 bits per transform
 		{ 9, 2, 20 },		// 93 bits per transform
 		{ 9, 3, 19 },		// 93 bits per transform
@@ -5700,6 +6227,7 @@ namespace acl
 		{ 9, 19, 3 },		// 93 bits per transform
 		{ 9, 20, 2 },		// 93 bits per transform
 		{ 9, 21, 1 },		// 93 bits per transform
+		{ 9, 22, 0 },		// 93 bits per transform
 		{ 10, 0, 21 },		// 93 bits per transform
 		{ 10, 1, 20 },		// 93 bits per transform
 		{ 10, 2, 19 },		// 93 bits per transform
@@ -5898,7 +6426,37 @@ namespace acl
 		{ 21, 8, 2 },		// 93 bits per transform
 		{ 21, 9, 1 },		// 93 bits per transform
 		{ 21, 10, 0 },		// 93 bits per transform
-		{ 0, 0, 22 },		// 96 bits per transform
+		{ 22, 0, 9 },		// 93 bits per transform
+		{ 22, 1, 8 },		// 93 bits per transform
+		{ 22, 2, 7 },		// 93 bits per transform
+		{ 22, 3, 6 },		// 93 bits per transform
+		{ 22, 4, 5 },		// 93 bits per transform
+		{ 22, 5, 4 },		// 93 bits per transform
+		{ 22, 6, 3 },		// 93 bits per transform
+		{ 22, 7, 2 },		// 93 bits per transform
+		{ 22, 8, 1 },		// 93 bits per transform
+		{ 22, 9, 0 },		// 93 bits per transform
+		{ 23, 0, 8 },		// 93 bits per transform
+		{ 23, 1, 7 },		// 93 bits per transform
+		{ 23, 2, 6 },		// 93 bits per transform
+		{ 23, 3, 5 },		// 93 bits per transform
+		{ 23, 4, 4 },		// 93 bits per transform
+		{ 23, 5, 3 },		// 93 bits per transform
+		{ 23, 6, 2 },		// 93 bits per transform
+		{ 23, 7, 1 },		// 93 bits per transform
+		{ 23, 8, 0 },		// 93 bits per transform
+		{ 24, 0, 7 },		// 93 bits per transform
+		{ 24, 1, 6 },		// 93 bits per transform
+		{ 24, 2, 5 },		// 93 bits per transform
+		{ 24, 3, 4 },		// 93 bits per transform
+		{ 24, 4, 3 },		// 93 bits per transform
+		{ 24, 5, 2 },		// 93 bits per transform
+		{ 24, 6, 1 },		// 93 bits per transform
+		{ 24, 7, 0 },		// 93 bits per transform
+		{ 0, 0, 25 },		// 96 bits per transform
+		{ 0, 8, 24 },		// 96 bits per transform
+		{ 0, 9, 23 },		// 96 bits per transform
+		{ 0, 10, 22 },		// 96 bits per transform
 		{ 0, 11, 21 },		// 96 bits per transform
 		{ 0, 12, 20 },		// 96 bits per transform
 		{ 0, 13, 19 },		// 96 bits per transform
@@ -5910,7 +6468,13 @@ namespace acl
 		{ 0, 19, 13 },		// 96 bits per transform
 		{ 0, 20, 12 },		// 96 bits per transform
 		{ 0, 21, 11 },		// 96 bits per transform
-		{ 0, 22, 0 },		// 96 bits per transform
+		{ 0, 22, 10 },		// 96 bits per transform
+		{ 0, 23, 9 },		// 96 bits per transform
+		{ 0, 24, 8 },		// 96 bits per transform
+		{ 0, 25, 0 },		// 96 bits per transform
+		{ 1, 7, 24 },		// 96 bits per transform
+		{ 1, 8, 23 },		// 96 bits per transform
+		{ 1, 9, 22 },		// 96 bits per transform
 		{ 1, 10, 21 },		// 96 bits per transform
 		{ 1, 11, 20 },		// 96 bits per transform
 		{ 1, 12, 19 },		// 96 bits per transform
@@ -5923,6 +6487,12 @@ namespace acl
 		{ 1, 19, 12 },		// 96 bits per transform
 		{ 1, 20, 11 },		// 96 bits per transform
 		{ 1, 21, 10 },		// 96 bits per transform
+		{ 1, 22, 9 },		// 96 bits per transform
+		{ 1, 23, 8 },		// 96 bits per transform
+		{ 1, 24, 7 },		// 96 bits per transform
+		{ 2, 6, 24 },		// 96 bits per transform
+		{ 2, 7, 23 },		// 96 bits per transform
+		{ 2, 8, 22 },		// 96 bits per transform
 		{ 2, 9, 21 },		// 96 bits per transform
 		{ 2, 10, 20 },		// 96 bits per transform
 		{ 2, 11, 19 },		// 96 bits per transform
@@ -5936,6 +6506,12 @@ namespace acl
 		{ 2, 19, 11 },		// 96 bits per transform
 		{ 2, 20, 10 },		// 96 bits per transform
 		{ 2, 21, 9 },		// 96 bits per transform
+		{ 2, 22, 8 },		// 96 bits per transform
+		{ 2, 23, 7 },		// 96 bits per transform
+		{ 2, 24, 6 },		// 96 bits per transform
+		{ 3, 5, 24 },		// 96 bits per transform
+		{ 3, 6, 23 },		// 96 bits per transform
+		{ 3, 7, 22 },		// 96 bits per transform
 		{ 3, 8, 21 },		// 96 bits per transform
 		{ 3, 9, 20 },		// 96 bits per transform
 		{ 3, 10, 19 },		// 96 bits per transform
@@ -5950,6 +6526,12 @@ namespace acl
 		{ 3, 19, 10 },		// 96 bits per transform
 		{ 3, 20, 9 },		// 96 bits per transform
 		{ 3, 21, 8 },		// 96 bits per transform
+		{ 3, 22, 7 },		// 96 bits per transform
+		{ 3, 23, 6 },		// 96 bits per transform
+		{ 3, 24, 5 },		// 96 bits per transform
+		{ 4, 4, 24 },		// 96 bits per transform
+		{ 4, 5, 23 },		// 96 bits per transform
+		{ 4, 6, 22 },		// 96 bits per transform
 		{ 4, 7, 21 },		// 96 bits per transform
 		{ 4, 8, 20 },		// 96 bits per transform
 		{ 4, 9, 19 },		// 96 bits per transform
@@ -5965,6 +6547,12 @@ namespace acl
 		{ 4, 19, 9 },		// 96 bits per transform
 		{ 4, 20, 8 },		// 96 bits per transform
 		{ 4, 21, 7 },		// 96 bits per transform
+		{ 4, 22, 6 },		// 96 bits per transform
+		{ 4, 23, 5 },		// 96 bits per transform
+		{ 4, 24, 4 },		// 96 bits per transform
+		{ 5, 3, 24 },		// 96 bits per transform
+		{ 5, 4, 23 },		// 96 bits per transform
+		{ 5, 5, 22 },		// 96 bits per transform
 		{ 5, 6, 21 },		// 96 bits per transform
 		{ 5, 7, 20 },		// 96 bits per transform
 		{ 5, 8, 19 },		// 96 bits per transform
@@ -5981,6 +6569,12 @@ namespace acl
 		{ 5, 19, 8 },		// 96 bits per transform
 		{ 5, 20, 7 },		// 96 bits per transform
 		{ 5, 21, 6 },		// 96 bits per transform
+		{ 5, 22, 5 },		// 96 bits per transform
+		{ 5, 23, 4 },		// 96 bits per transform
+		{ 5, 24, 3 },		// 96 bits per transform
+		{ 6, 2, 24 },		// 96 bits per transform
+		{ 6, 3, 23 },		// 96 bits per transform
+		{ 6, 4, 22 },		// 96 bits per transform
 		{ 6, 5, 21 },		// 96 bits per transform
 		{ 6, 6, 20 },		// 96 bits per transform
 		{ 6, 7, 19 },		// 96 bits per transform
@@ -5998,6 +6592,12 @@ namespace acl
 		{ 6, 19, 7 },		// 96 bits per transform
 		{ 6, 20, 6 },		// 96 bits per transform
 		{ 6, 21, 5 },		// 96 bits per transform
+		{ 6, 22, 4 },		// 96 bits per transform
+		{ 6, 23, 3 },		// 96 bits per transform
+		{ 6, 24, 2 },		// 96 bits per transform
+		{ 7, 1, 24 },		// 96 bits per transform
+		{ 7, 2, 23 },		// 96 bits per transform
+		{ 7, 3, 22 },		// 96 bits per transform
 		{ 7, 4, 21 },		// 96 bits per transform
 		{ 7, 5, 20 },		// 96 bits per transform
 		{ 7, 6, 19 },		// 96 bits per transform
@@ -6016,6 +6616,12 @@ namespace acl
 		{ 7, 19, 6 },		// 96 bits per transform
 		{ 7, 20, 5 },		// 96 bits per transform
 		{ 7, 21, 4 },		// 96 bits per transform
+		{ 7, 22, 3 },		// 96 bits per transform
+		{ 7, 23, 2 },		// 96 bits per transform
+		{ 7, 24, 1 },		// 96 bits per transform
+		{ 8, 0, 24 },		// 96 bits per transform
+		{ 8, 1, 23 },		// 96 bits per transform
+		{ 8, 2, 22 },		// 96 bits per transform
 		{ 8, 3, 21 },		// 96 bits per transform
 		{ 8, 4, 20 },		// 96 bits per transform
 		{ 8, 5, 19 },		// 96 bits per transform
@@ -6035,6 +6641,11 @@ namespace acl
 		{ 8, 19, 5 },		// 96 bits per transform
 		{ 8, 20, 4 },		// 96 bits per transform
 		{ 8, 21, 3 },		// 96 bits per transform
+		{ 8, 22, 2 },		// 96 bits per transform
+		{ 8, 23, 1 },		// 96 bits per transform
+		{ 8, 24, 0 },		// 96 bits per transform
+		{ 9, 0, 23 },		// 96 bits per transform
+		{ 9, 1, 22 },		// 96 bits per transform
 		{ 9, 2, 21 },		// 96 bits per transform
 		{ 9, 3, 20 },		// 96 bits per transform
 		{ 9, 4, 19 },		// 96 bits per transform
@@ -6055,6 +6666,9 @@ namespace acl
 		{ 9, 19, 4 },		// 96 bits per transform
 		{ 9, 20, 3 },		// 96 bits per transform
 		{ 9, 21, 2 },		// 96 bits per transform
+		{ 9, 22, 1 },		// 96 bits per transform
+		{ 9, 23, 0 },		// 96 bits per transform
+		{ 10, 0, 22 },		// 96 bits per transform
 		{ 10, 1, 21 },		// 96 bits per transform
 		{ 10, 2, 20 },		// 96 bits per transform
 		{ 10, 3, 19 },		// 96 bits per transform
@@ -6076,6 +6690,7 @@ namespace acl
 		{ 10, 19, 3 },		// 96 bits per transform
 		{ 10, 20, 2 },		// 96 bits per transform
 		{ 10, 21, 1 },		// 96 bits per transform
+		{ 10, 22, 0 },		// 96 bits per transform
 		{ 11, 0, 21 },		// 96 bits per transform
 		{ 11, 1, 20 },		// 96 bits per transform
 		{ 11, 2, 19 },		// 96 bits per transform
@@ -6263,8 +6878,41 @@ namespace acl
 		{ 21, 9, 2 },		// 96 bits per transform
 		{ 21, 10, 1 },		// 96 bits per transform
 		{ 21, 11, 0 },		// 96 bits per transform
-		{ 22, 0, 0 },		// 96 bits per transform
-		{ 0, 1, 22 },		// 99 bits per transform
+		{ 22, 0, 10 },		// 96 bits per transform
+		{ 22, 1, 9 },		// 96 bits per transform
+		{ 22, 2, 8 },		// 96 bits per transform
+		{ 22, 3, 7 },		// 96 bits per transform
+		{ 22, 4, 6 },		// 96 bits per transform
+		{ 22, 5, 5 },		// 96 bits per transform
+		{ 22, 6, 4 },		// 96 bits per transform
+		{ 22, 7, 3 },		// 96 bits per transform
+		{ 22, 8, 2 },		// 96 bits per transform
+		{ 22, 9, 1 },		// 96 bits per transform
+		{ 22, 10, 0 },		// 96 bits per transform
+		{ 23, 0, 9 },		// 96 bits per transform
+		{ 23, 1, 8 },		// 96 bits per transform
+		{ 23, 2, 7 },		// 96 bits per transform
+		{ 23, 3, 6 },		// 96 bits per transform
+		{ 23, 4, 5 },		// 96 bits per transform
+		{ 23, 5, 4 },		// 96 bits per transform
+		{ 23, 6, 3 },		// 96 bits per transform
+		{ 23, 7, 2 },		// 96 bits per transform
+		{ 23, 8, 1 },		// 96 bits per transform
+		{ 23, 9, 0 },		// 96 bits per transform
+		{ 24, 0, 8 },		// 96 bits per transform
+		{ 24, 1, 7 },		// 96 bits per transform
+		{ 24, 2, 6 },		// 96 bits per transform
+		{ 24, 3, 5 },		// 96 bits per transform
+		{ 24, 4, 4 },		// 96 bits per transform
+		{ 24, 5, 3 },		// 96 bits per transform
+		{ 24, 6, 2 },		// 96 bits per transform
+		{ 24, 7, 1 },		// 96 bits per transform
+		{ 24, 8, 0 },		// 96 bits per transform
+		{ 25, 0, 0 },		// 96 bits per transform
+		{ 0, 1, 25 },		// 99 bits per transform
+		{ 0, 9, 24 },		// 99 bits per transform
+		{ 0, 10, 23 },		// 99 bits per transform
+		{ 0, 11, 22 },		// 99 bits per transform
 		{ 0, 12, 21 },		// 99 bits per transform
 		{ 0, 13, 20 },		// 99 bits per transform
 		{ 0, 14, 19 },		// 99 bits per transform
@@ -6275,8 +6923,14 @@ namespace acl
 		{ 0, 19, 14 },		// 99 bits per transform
 		{ 0, 20, 13 },		// 99 bits per transform
 		{ 0, 21, 12 },		// 99 bits per transform
-		{ 0, 22, 1 },		// 99 bits per transform
-		{ 1, 0, 22 },		// 99 bits per transform
+		{ 0, 22, 11 },		// 99 bits per transform
+		{ 0, 23, 10 },		// 99 bits per transform
+		{ 0, 24, 9 },		// 99 bits per transform
+		{ 0, 25, 1 },		// 99 bits per transform
+		{ 1, 0, 25 },		// 99 bits per transform
+		{ 1, 8, 24 },		// 99 bits per transform
+		{ 1, 9, 23 },		// 99 bits per transform
+		{ 1, 10, 22 },		// 99 bits per transform
 		{ 1, 11, 21 },		// 99 bits per transform
 		{ 1, 12, 20 },		// 99 bits per transform
 		{ 1, 13, 19 },		// 99 bits per transform
@@ -6288,7 +6942,13 @@ namespace acl
 		{ 1, 19, 13 },		// 99 bits per transform
 		{ 1, 20, 12 },		// 99 bits per transform
 		{ 1, 21, 11 },		// 99 bits per transform
-		{ 1, 22, 0 },		// 99 bits per transform
+		{ 1, 22, 10 },		// 99 bits per transform
+		{ 1, 23, 9 },		// 99 bits per transform
+		{ 1, 24, 8 },		// 99 bits per transform
+		{ 1, 25, 0 },		// 99 bits per transform
+		{ 2, 7, 24 },		// 99 bits per transform
+		{ 2, 8, 23 },		// 99 bits per transform
+		{ 2, 9, 22 },		// 99 bits per transform
 		{ 2, 10, 21 },		// 99 bits per transform
 		{ 2, 11, 20 },		// 99 bits per transform
 		{ 2, 12, 19 },		// 99 bits per transform
@@ -6301,6 +6961,12 @@ namespace acl
 		{ 2, 19, 12 },		// 99 bits per transform
 		{ 2, 20, 11 },		// 99 bits per transform
 		{ 2, 21, 10 },		// 99 bits per transform
+		{ 2, 22, 9 },		// 99 bits per transform
+		{ 2, 23, 8 },		// 99 bits per transform
+		{ 2, 24, 7 },		// 99 bits per transform
+		{ 3, 6, 24 },		// 99 bits per transform
+		{ 3, 7, 23 },		// 99 bits per transform
+		{ 3, 8, 22 },		// 99 bits per transform
 		{ 3, 9, 21 },		// 99 bits per transform
 		{ 3, 10, 20 },		// 99 bits per transform
 		{ 3, 11, 19 },		// 99 bits per transform
@@ -6314,6 +6980,12 @@ namespace acl
 		{ 3, 19, 11 },		// 99 bits per transform
 		{ 3, 20, 10 },		// 99 bits per transform
 		{ 3, 21, 9 },		// 99 bits per transform
+		{ 3, 22, 8 },		// 99 bits per transform
+		{ 3, 23, 7 },		// 99 bits per transform
+		{ 3, 24, 6 },		// 99 bits per transform
+		{ 4, 5, 24 },		// 99 bits per transform
+		{ 4, 6, 23 },		// 99 bits per transform
+		{ 4, 7, 22 },		// 99 bits per transform
 		{ 4, 8, 21 },		// 99 bits per transform
 		{ 4, 9, 20 },		// 99 bits per transform
 		{ 4, 10, 19 },		// 99 bits per transform
@@ -6328,6 +7000,12 @@ namespace acl
 		{ 4, 19, 10 },		// 99 bits per transform
 		{ 4, 20, 9 },		// 99 bits per transform
 		{ 4, 21, 8 },		// 99 bits per transform
+		{ 4, 22, 7 },		// 99 bits per transform
+		{ 4, 23, 6 },		// 99 bits per transform
+		{ 4, 24, 5 },		// 99 bits per transform
+		{ 5, 4, 24 },		// 99 bits per transform
+		{ 5, 5, 23 },		// 99 bits per transform
+		{ 5, 6, 22 },		// 99 bits per transform
 		{ 5, 7, 21 },		// 99 bits per transform
 		{ 5, 8, 20 },		// 99 bits per transform
 		{ 5, 9, 19 },		// 99 bits per transform
@@ -6343,6 +7021,12 @@ namespace acl
 		{ 5, 19, 9 },		// 99 bits per transform
 		{ 5, 20, 8 },		// 99 bits per transform
 		{ 5, 21, 7 },		// 99 bits per transform
+		{ 5, 22, 6 },		// 99 bits per transform
+		{ 5, 23, 5 },		// 99 bits per transform
+		{ 5, 24, 4 },		// 99 bits per transform
+		{ 6, 3, 24 },		// 99 bits per transform
+		{ 6, 4, 23 },		// 99 bits per transform
+		{ 6, 5, 22 },		// 99 bits per transform
 		{ 6, 6, 21 },		// 99 bits per transform
 		{ 6, 7, 20 },		// 99 bits per transform
 		{ 6, 8, 19 },		// 99 bits per transform
@@ -6359,6 +7043,12 @@ namespace acl
 		{ 6, 19, 8 },		// 99 bits per transform
 		{ 6, 20, 7 },		// 99 bits per transform
 		{ 6, 21, 6 },		// 99 bits per transform
+		{ 6, 22, 5 },		// 99 bits per transform
+		{ 6, 23, 4 },		// 99 bits per transform
+		{ 6, 24, 3 },		// 99 bits per transform
+		{ 7, 2, 24 },		// 99 bits per transform
+		{ 7, 3, 23 },		// 99 bits per transform
+		{ 7, 4, 22 },		// 99 bits per transform
 		{ 7, 5, 21 },		// 99 bits per transform
 		{ 7, 6, 20 },		// 99 bits per transform
 		{ 7, 7, 19 },		// 99 bits per transform
@@ -6376,6 +7066,12 @@ namespace acl
 		{ 7, 19, 7 },		// 99 bits per transform
 		{ 7, 20, 6 },		// 99 bits per transform
 		{ 7, 21, 5 },		// 99 bits per transform
+		{ 7, 22, 4 },		// 99 bits per transform
+		{ 7, 23, 3 },		// 99 bits per transform
+		{ 7, 24, 2 },		// 99 bits per transform
+		{ 8, 1, 24 },		// 99 bits per transform
+		{ 8, 2, 23 },		// 99 bits per transform
+		{ 8, 3, 22 },		// 99 bits per transform
 		{ 8, 4, 21 },		// 99 bits per transform
 		{ 8, 5, 20 },		// 99 bits per transform
 		{ 8, 6, 19 },		// 99 bits per transform
@@ -6394,6 +7090,12 @@ namespace acl
 		{ 8, 19, 6 },		// 99 bits per transform
 		{ 8, 20, 5 },		// 99 bits per transform
 		{ 8, 21, 4 },		// 99 bits per transform
+		{ 8, 22, 3 },		// 99 bits per transform
+		{ 8, 23, 2 },		// 99 bits per transform
+		{ 8, 24, 1 },		// 99 bits per transform
+		{ 9, 0, 24 },		// 99 bits per transform
+		{ 9, 1, 23 },		// 99 bits per transform
+		{ 9, 2, 22 },		// 99 bits per transform
 		{ 9, 3, 21 },		// 99 bits per transform
 		{ 9, 4, 20 },		// 99 bits per transform
 		{ 9, 5, 19 },		// 99 bits per transform
@@ -6413,6 +7115,11 @@ namespace acl
 		{ 9, 19, 5 },		// 99 bits per transform
 		{ 9, 20, 4 },		// 99 bits per transform
 		{ 9, 21, 3 },		// 99 bits per transform
+		{ 9, 22, 2 },		// 99 bits per transform
+		{ 9, 23, 1 },		// 99 bits per transform
+		{ 9, 24, 0 },		// 99 bits per transform
+		{ 10, 0, 23 },		// 99 bits per transform
+		{ 10, 1, 22 },		// 99 bits per transform
 		{ 10, 2, 21 },		// 99 bits per transform
 		{ 10, 3, 20 },		// 99 bits per transform
 		{ 10, 4, 19 },		// 99 bits per transform
@@ -6433,6 +7140,9 @@ namespace acl
 		{ 10, 19, 4 },		// 99 bits per transform
 		{ 10, 20, 3 },		// 99 bits per transform
 		{ 10, 21, 2 },		// 99 bits per transform
+		{ 10, 22, 1 },		// 99 bits per transform
+		{ 10, 23, 0 },		// 99 bits per transform
+		{ 11, 0, 22 },		// 99 bits per transform
 		{ 11, 1, 21 },		// 99 bits per transform
 		{ 11, 2, 20 },		// 99 bits per transform
 		{ 11, 3, 19 },		// 99 bits per transform
@@ -6454,6 +7164,7 @@ namespace acl
 		{ 11, 19, 3 },		// 99 bits per transform
 		{ 11, 20, 2 },		// 99 bits per transform
 		{ 11, 21, 1 },		// 99 bits per transform
+		{ 11, 22, 0 },		// 99 bits per transform
 		{ 12, 0, 21 },		// 99 bits per transform
 		{ 12, 1, 20 },		// 99 bits per transform
 		{ 12, 2, 19 },		// 99 bits per transform
@@ -6629,9 +7340,45 @@ namespace acl
 		{ 21, 10, 2 },		// 99 bits per transform
 		{ 21, 11, 1 },		// 99 bits per transform
 		{ 21, 12, 0 },		// 99 bits per transform
-		{ 22, 0, 1 },		// 99 bits per transform
-		{ 22, 1, 0 },		// 99 bits per transform
-		{ 0, 2, 22 },		// 102 bits per transform
+		{ 22, 0, 11 },		// 99 bits per transform
+		{ 22, 1, 10 },		// 99 bits per transform
+		{ 22, 2, 9 },		// 99 bits per transform
+		{ 22, 3, 8 },		// 99 bits per transform
+		{ 22, 4, 7 },		// 99 bits per transform
+		{ 22, 5, 6 },		// 99 bits per transform
+		{ 22, 6, 5 },		// 99 bits per transform
+		{ 22, 7, 4 },		// 99 bits per transform
+		{ 22, 8, 3 },		// 99 bits per transform
+		{ 22, 9, 2 },		// 99 bits per transform
+		{ 22, 10, 1 },		// 99 bits per transform
+		{ 22, 11, 0 },		// 99 bits per transform
+		{ 23, 0, 10 },		// 99 bits per transform
+		{ 23, 1, 9 },		// 99 bits per transform
+		{ 23, 2, 8 },		// 99 bits per transform
+		{ 23, 3, 7 },		// 99 bits per transform
+		{ 23, 4, 6 },		// 99 bits per transform
+		{ 23, 5, 5 },		// 99 bits per transform
+		{ 23, 6, 4 },		// 99 bits per transform
+		{ 23, 7, 3 },		// 99 bits per transform
+		{ 23, 8, 2 },		// 99 bits per transform
+		{ 23, 9, 1 },		// 99 bits per transform
+		{ 23, 10, 0 },		// 99 bits per transform
+		{ 24, 0, 9 },		// 99 bits per transform
+		{ 24, 1, 8 },		// 99 bits per transform
+		{ 24, 2, 7 },		// 99 bits per transform
+		{ 24, 3, 6 },		// 99 bits per transform
+		{ 24, 4, 5 },		// 99 bits per transform
+		{ 24, 5, 4 },		// 99 bits per transform
+		{ 24, 6, 3 },		// 99 bits per transform
+		{ 24, 7, 2 },		// 99 bits per transform
+		{ 24, 8, 1 },		// 99 bits per transform
+		{ 24, 9, 0 },		// 99 bits per transform
+		{ 25, 0, 1 },		// 99 bits per transform
+		{ 25, 1, 0 },		// 99 bits per transform
+		{ 0, 2, 25 },		// 102 bits per transform
+		{ 0, 10, 24 },		// 102 bits per transform
+		{ 0, 11, 23 },		// 102 bits per transform
+		{ 0, 12, 22 },		// 102 bits per transform
 		{ 0, 13, 21 },		// 102 bits per transform
 		{ 0, 14, 20 },		// 102 bits per transform
 		{ 0, 15, 19 },		// 102 bits per transform
@@ -6641,8 +7388,14 @@ namespace acl
 		{ 0, 19, 15 },		// 102 bits per transform
 		{ 0, 20, 14 },		// 102 bits per transform
 		{ 0, 21, 13 },		// 102 bits per transform
-		{ 0, 22, 2 },		// 102 bits per transform
-		{ 1, 1, 22 },		// 102 bits per transform
+		{ 0, 22, 12 },		// 102 bits per transform
+		{ 0, 23, 11 },		// 102 bits per transform
+		{ 0, 24, 10 },		// 102 bits per transform
+		{ 0, 25, 2 },		// 102 bits per transform
+		{ 1, 1, 25 },		// 102 bits per transform
+		{ 1, 9, 24 },		// 102 bits per transform
+		{ 1, 10, 23 },		// 102 bits per transform
+		{ 1, 11, 22 },		// 102 bits per transform
 		{ 1, 12, 21 },		// 102 bits per transform
 		{ 1, 13, 20 },		// 102 bits per transform
 		{ 1, 14, 19 },		// 102 bits per transform
@@ -6653,8 +7406,14 @@ namespace acl
 		{ 1, 19, 14 },		// 102 bits per transform
 		{ 1, 20, 13 },		// 102 bits per transform
 		{ 1, 21, 12 },		// 102 bits per transform
-		{ 1, 22, 1 },		// 102 bits per transform
-		{ 2, 0, 22 },		// 102 bits per transform
+		{ 1, 22, 11 },		// 102 bits per transform
+		{ 1, 23, 10 },		// 102 bits per transform
+		{ 1, 24, 9 },		// 102 bits per transform
+		{ 1, 25, 1 },		// 102 bits per transform
+		{ 2, 0, 25 },		// 102 bits per transform
+		{ 2, 8, 24 },		// 102 bits per transform
+		{ 2, 9, 23 },		// 102 bits per transform
+		{ 2, 10, 22 },		// 102 bits per transform
 		{ 2, 11, 21 },		// 102 bits per transform
 		{ 2, 12, 20 },		// 102 bits per transform
 		{ 2, 13, 19 },		// 102 bits per transform
@@ -6666,7 +7425,13 @@ namespace acl
 		{ 2, 19, 13 },		// 102 bits per transform
 		{ 2, 20, 12 },		// 102 bits per transform
 		{ 2, 21, 11 },		// 102 bits per transform
-		{ 2, 22, 0 },		// 102 bits per transform
+		{ 2, 22, 10 },		// 102 bits per transform
+		{ 2, 23, 9 },		// 102 bits per transform
+		{ 2, 24, 8 },		// 102 bits per transform
+		{ 2, 25, 0 },		// 102 bits per transform
+		{ 3, 7, 24 },		// 102 bits per transform
+		{ 3, 8, 23 },		// 102 bits per transform
+		{ 3, 9, 22 },		// 102 bits per transform
 		{ 3, 10, 21 },		// 102 bits per transform
 		{ 3, 11, 20 },		// 102 bits per transform
 		{ 3, 12, 19 },		// 102 bits per transform
@@ -6679,6 +7444,12 @@ namespace acl
 		{ 3, 19, 12 },		// 102 bits per transform
 		{ 3, 20, 11 },		// 102 bits per transform
 		{ 3, 21, 10 },		// 102 bits per transform
+		{ 3, 22, 9 },		// 102 bits per transform
+		{ 3, 23, 8 },		// 102 bits per transform
+		{ 3, 24, 7 },		// 102 bits per transform
+		{ 4, 6, 24 },		// 102 bits per transform
+		{ 4, 7, 23 },		// 102 bits per transform
+		{ 4, 8, 22 },		// 102 bits per transform
 		{ 4, 9, 21 },		// 102 bits per transform
 		{ 4, 10, 20 },		// 102 bits per transform
 		{ 4, 11, 19 },		// 102 bits per transform
@@ -6692,6 +7463,12 @@ namespace acl
 		{ 4, 19, 11 },		// 102 bits per transform
 		{ 4, 20, 10 },		// 102 bits per transform
 		{ 4, 21, 9 },		// 102 bits per transform
+		{ 4, 22, 8 },		// 102 bits per transform
+		{ 4, 23, 7 },		// 102 bits per transform
+		{ 4, 24, 6 },		// 102 bits per transform
+		{ 5, 5, 24 },		// 102 bits per transform
+		{ 5, 6, 23 },		// 102 bits per transform
+		{ 5, 7, 22 },		// 102 bits per transform
 		{ 5, 8, 21 },		// 102 bits per transform
 		{ 5, 9, 20 },		// 102 bits per transform
 		{ 5, 10, 19 },		// 102 bits per transform
@@ -6706,6 +7483,12 @@ namespace acl
 		{ 5, 19, 10 },		// 102 bits per transform
 		{ 5, 20, 9 },		// 102 bits per transform
 		{ 5, 21, 8 },		// 102 bits per transform
+		{ 5, 22, 7 },		// 102 bits per transform
+		{ 5, 23, 6 },		// 102 bits per transform
+		{ 5, 24, 5 },		// 102 bits per transform
+		{ 6, 4, 24 },		// 102 bits per transform
+		{ 6, 5, 23 },		// 102 bits per transform
+		{ 6, 6, 22 },		// 102 bits per transform
 		{ 6, 7, 21 },		// 102 bits per transform
 		{ 6, 8, 20 },		// 102 bits per transform
 		{ 6, 9, 19 },		// 102 bits per transform
@@ -6721,6 +7504,12 @@ namespace acl
 		{ 6, 19, 9 },		// 102 bits per transform
 		{ 6, 20, 8 },		// 102 bits per transform
 		{ 6, 21, 7 },		// 102 bits per transform
+		{ 6, 22, 6 },		// 102 bits per transform
+		{ 6, 23, 5 },		// 102 bits per transform
+		{ 6, 24, 4 },		// 102 bits per transform
+		{ 7, 3, 24 },		// 102 bits per transform
+		{ 7, 4, 23 },		// 102 bits per transform
+		{ 7, 5, 22 },		// 102 bits per transform
 		{ 7, 6, 21 },		// 102 bits per transform
 		{ 7, 7, 20 },		// 102 bits per transform
 		{ 7, 8, 19 },		// 102 bits per transform
@@ -6737,6 +7526,12 @@ namespace acl
 		{ 7, 19, 8 },		// 102 bits per transform
 		{ 7, 20, 7 },		// 102 bits per transform
 		{ 7, 21, 6 },		// 102 bits per transform
+		{ 7, 22, 5 },		// 102 bits per transform
+		{ 7, 23, 4 },		// 102 bits per transform
+		{ 7, 24, 3 },		// 102 bits per transform
+		{ 8, 2, 24 },		// 102 bits per transform
+		{ 8, 3, 23 },		// 102 bits per transform
+		{ 8, 4, 22 },		// 102 bits per transform
 		{ 8, 5, 21 },		// 102 bits per transform
 		{ 8, 6, 20 },		// 102 bits per transform
 		{ 8, 7, 19 },		// 102 bits per transform
@@ -6754,6 +7549,12 @@ namespace acl
 		{ 8, 19, 7 },		// 102 bits per transform
 		{ 8, 20, 6 },		// 102 bits per transform
 		{ 8, 21, 5 },		// 102 bits per transform
+		{ 8, 22, 4 },		// 102 bits per transform
+		{ 8, 23, 3 },		// 102 bits per transform
+		{ 8, 24, 2 },		// 102 bits per transform
+		{ 9, 1, 24 },		// 102 bits per transform
+		{ 9, 2, 23 },		// 102 bits per transform
+		{ 9, 3, 22 },		// 102 bits per transform
 		{ 9, 4, 21 },		// 102 bits per transform
 		{ 9, 5, 20 },		// 102 bits per transform
 		{ 9, 6, 19 },		// 102 bits per transform
@@ -6772,6 +7573,12 @@ namespace acl
 		{ 9, 19, 6 },		// 102 bits per transform
 		{ 9, 20, 5 },		// 102 bits per transform
 		{ 9, 21, 4 },		// 102 bits per transform
+		{ 9, 22, 3 },		// 102 bits per transform
+		{ 9, 23, 2 },		// 102 bits per transform
+		{ 9, 24, 1 },		// 102 bits per transform
+		{ 10, 0, 24 },		// 102 bits per transform
+		{ 10, 1, 23 },		// 102 bits per transform
+		{ 10, 2, 22 },		// 102 bits per transform
 		{ 10, 3, 21 },		// 102 bits per transform
 		{ 10, 4, 20 },		// 102 bits per transform
 		{ 10, 5, 19 },		// 102 bits per transform
@@ -6791,6 +7598,11 @@ namespace acl
 		{ 10, 19, 5 },		// 102 bits per transform
 		{ 10, 20, 4 },		// 102 bits per transform
 		{ 10, 21, 3 },		// 102 bits per transform
+		{ 10, 22, 2 },		// 102 bits per transform
+		{ 10, 23, 1 },		// 102 bits per transform
+		{ 10, 24, 0 },		// 102 bits per transform
+		{ 11, 0, 23 },		// 102 bits per transform
+		{ 11, 1, 22 },		// 102 bits per transform
 		{ 11, 2, 21 },		// 102 bits per transform
 		{ 11, 3, 20 },		// 102 bits per transform
 		{ 11, 4, 19 },		// 102 bits per transform
@@ -6811,6 +7623,9 @@ namespace acl
 		{ 11, 19, 4 },		// 102 bits per transform
 		{ 11, 20, 3 },		// 102 bits per transform
 		{ 11, 21, 2 },		// 102 bits per transform
+		{ 11, 22, 1 },		// 102 bits per transform
+		{ 11, 23, 0 },		// 102 bits per transform
+		{ 12, 0, 22 },		// 102 bits per transform
 		{ 12, 1, 21 },		// 102 bits per transform
 		{ 12, 2, 20 },		// 102 bits per transform
 		{ 12, 3, 19 },		// 102 bits per transform
@@ -6832,6 +7647,7 @@ namespace acl
 		{ 12, 19, 3 },		// 102 bits per transform
 		{ 12, 20, 2 },		// 102 bits per transform
 		{ 12, 21, 1 },		// 102 bits per transform
+		{ 12, 22, 0 },		// 102 bits per transform
 		{ 13, 0, 21 },		// 102 bits per transform
 		{ 13, 1, 20 },		// 102 bits per transform
 		{ 13, 2, 19 },		// 102 bits per transform
@@ -6994,10 +7810,49 @@ namespace acl
 		{ 21, 11, 2 },		// 102 bits per transform
 		{ 21, 12, 1 },		// 102 bits per transform
 		{ 21, 13, 0 },		// 102 bits per transform
-		{ 22, 0, 2 },		// 102 bits per transform
-		{ 22, 1, 1 },		// 102 bits per transform
-		{ 22, 2, 0 },		// 102 bits per transform
-		{ 0, 3, 22 },		// 105 bits per transform
+		{ 22, 0, 12 },		// 102 bits per transform
+		{ 22, 1, 11 },		// 102 bits per transform
+		{ 22, 2, 10 },		// 102 bits per transform
+		{ 22, 3, 9 },		// 102 bits per transform
+		{ 22, 4, 8 },		// 102 bits per transform
+		{ 22, 5, 7 },		// 102 bits per transform
+		{ 22, 6, 6 },		// 102 bits per transform
+		{ 22, 7, 5 },		// 102 bits per transform
+		{ 22, 8, 4 },		// 102 bits per transform
+		{ 22, 9, 3 },		// 102 bits per transform
+		{ 22, 10, 2 },		// 102 bits per transform
+		{ 22, 11, 1 },		// 102 bits per transform
+		{ 22, 12, 0 },		// 102 bits per transform
+		{ 23, 0, 11 },		// 102 bits per transform
+		{ 23, 1, 10 },		// 102 bits per transform
+		{ 23, 2, 9 },		// 102 bits per transform
+		{ 23, 3, 8 },		// 102 bits per transform
+		{ 23, 4, 7 },		// 102 bits per transform
+		{ 23, 5, 6 },		// 102 bits per transform
+		{ 23, 6, 5 },		// 102 bits per transform
+		{ 23, 7, 4 },		// 102 bits per transform
+		{ 23, 8, 3 },		// 102 bits per transform
+		{ 23, 9, 2 },		// 102 bits per transform
+		{ 23, 10, 1 },		// 102 bits per transform
+		{ 23, 11, 0 },		// 102 bits per transform
+		{ 24, 0, 10 },		// 102 bits per transform
+		{ 24, 1, 9 },		// 102 bits per transform
+		{ 24, 2, 8 },		// 102 bits per transform
+		{ 24, 3, 7 },		// 102 bits per transform
+		{ 24, 4, 6 },		// 102 bits per transform
+		{ 24, 5, 5 },		// 102 bits per transform
+		{ 24, 6, 4 },		// 102 bits per transform
+		{ 24, 7, 3 },		// 102 bits per transform
+		{ 24, 8, 2 },		// 102 bits per transform
+		{ 24, 9, 1 },		// 102 bits per transform
+		{ 24, 10, 0 },		// 102 bits per transform
+		{ 25, 0, 2 },		// 102 bits per transform
+		{ 25, 1, 1 },		// 102 bits per transform
+		{ 25, 2, 0 },		// 102 bits per transform
+		{ 0, 3, 25 },		// 105 bits per transform
+		{ 0, 11, 24 },		// 105 bits per transform
+		{ 0, 12, 23 },		// 105 bits per transform
+		{ 0, 13, 22 },		// 105 bits per transform
 		{ 0, 14, 21 },		// 105 bits per transform
 		{ 0, 15, 20 },		// 105 bits per transform
 		{ 0, 16, 19 },		// 105 bits per transform
@@ -7006,8 +7861,14 @@ namespace acl
 		{ 0, 19, 16 },		// 105 bits per transform
 		{ 0, 20, 15 },		// 105 bits per transform
 		{ 0, 21, 14 },		// 105 bits per transform
-		{ 0, 22, 3 },		// 105 bits per transform
-		{ 1, 2, 22 },		// 105 bits per transform
+		{ 0, 22, 13 },		// 105 bits per transform
+		{ 0, 23, 12 },		// 105 bits per transform
+		{ 0, 24, 11 },		// 105 bits per transform
+		{ 0, 25, 3 },		// 105 bits per transform
+		{ 1, 2, 25 },		// 105 bits per transform
+		{ 1, 10, 24 },		// 105 bits per transform
+		{ 1, 11, 23 },		// 105 bits per transform
+		{ 1, 12, 22 },		// 105 bits per transform
 		{ 1, 13, 21 },		// 105 bits per transform
 		{ 1, 14, 20 },		// 105 bits per transform
 		{ 1, 15, 19 },		// 105 bits per transform
@@ -7017,8 +7878,14 @@ namespace acl
 		{ 1, 19, 15 },		// 105 bits per transform
 		{ 1, 20, 14 },		// 105 bits per transform
 		{ 1, 21, 13 },		// 105 bits per transform
-		{ 1, 22, 2 },		// 105 bits per transform
-		{ 2, 1, 22 },		// 105 bits per transform
+		{ 1, 22, 12 },		// 105 bits per transform
+		{ 1, 23, 11 },		// 105 bits per transform
+		{ 1, 24, 10 },		// 105 bits per transform
+		{ 1, 25, 2 },		// 105 bits per transform
+		{ 2, 1, 25 },		// 105 bits per transform
+		{ 2, 9, 24 },		// 105 bits per transform
+		{ 2, 10, 23 },		// 105 bits per transform
+		{ 2, 11, 22 },		// 105 bits per transform
 		{ 2, 12, 21 },		// 105 bits per transform
 		{ 2, 13, 20 },		// 105 bits per transform
 		{ 2, 14, 19 },		// 105 bits per transform
@@ -7029,8 +7896,14 @@ namespace acl
 		{ 2, 19, 14 },		// 105 bits per transform
 		{ 2, 20, 13 },		// 105 bits per transform
 		{ 2, 21, 12 },		// 105 bits per transform
-		{ 2, 22, 1 },		// 105 bits per transform
-		{ 3, 0, 22 },		// 105 bits per transform
+		{ 2, 22, 11 },		// 105 bits per transform
+		{ 2, 23, 10 },		// 105 bits per transform
+		{ 2, 24, 9 },		// 105 bits per transform
+		{ 2, 25, 1 },		// 105 bits per transform
+		{ 3, 0, 25 },		// 105 bits per transform
+		{ 3, 8, 24 },		// 105 bits per transform
+		{ 3, 9, 23 },		// 105 bits per transform
+		{ 3, 10, 22 },		// 105 bits per transform
 		{ 3, 11, 21 },		// 105 bits per transform
 		{ 3, 12, 20 },		// 105 bits per transform
 		{ 3, 13, 19 },		// 105 bits per transform
@@ -7042,7 +7915,13 @@ namespace acl
 		{ 3, 19, 13 },		// 105 bits per transform
 		{ 3, 20, 12 },		// 105 bits per transform
 		{ 3, 21, 11 },		// 105 bits per transform
-		{ 3, 22, 0 },		// 105 bits per transform
+		{ 3, 22, 10 },		// 105 bits per transform
+		{ 3, 23, 9 },		// 105 bits per transform
+		{ 3, 24, 8 },		// 105 bits per transform
+		{ 3, 25, 0 },		// 105 bits per transform
+		{ 4, 7, 24 },		// 105 bits per transform
+		{ 4, 8, 23 },		// 105 bits per transform
+		{ 4, 9, 22 },		// 105 bits per transform
 		{ 4, 10, 21 },		// 105 bits per transform
 		{ 4, 11, 20 },		// 105 bits per transform
 		{ 4, 12, 19 },		// 105 bits per transform
@@ -7055,6 +7934,12 @@ namespace acl
 		{ 4, 19, 12 },		// 105 bits per transform
 		{ 4, 20, 11 },		// 105 bits per transform
 		{ 4, 21, 10 },		// 105 bits per transform
+		{ 4, 22, 9 },		// 105 bits per transform
+		{ 4, 23, 8 },		// 105 bits per transform
+		{ 4, 24, 7 },		// 105 bits per transform
+		{ 5, 6, 24 },		// 105 bits per transform
+		{ 5, 7, 23 },		// 105 bits per transform
+		{ 5, 8, 22 },		// 105 bits per transform
 		{ 5, 9, 21 },		// 105 bits per transform
 		{ 5, 10, 20 },		// 105 bits per transform
 		{ 5, 11, 19 },		// 105 bits per transform
@@ -7068,6 +7953,12 @@ namespace acl
 		{ 5, 19, 11 },		// 105 bits per transform
 		{ 5, 20, 10 },		// 105 bits per transform
 		{ 5, 21, 9 },		// 105 bits per transform
+		{ 5, 22, 8 },		// 105 bits per transform
+		{ 5, 23, 7 },		// 105 bits per transform
+		{ 5, 24, 6 },		// 105 bits per transform
+		{ 6, 5, 24 },		// 105 bits per transform
+		{ 6, 6, 23 },		// 105 bits per transform
+		{ 6, 7, 22 },		// 105 bits per transform
 		{ 6, 8, 21 },		// 105 bits per transform
 		{ 6, 9, 20 },		// 105 bits per transform
 		{ 6, 10, 19 },		// 105 bits per transform
@@ -7082,6 +7973,12 @@ namespace acl
 		{ 6, 19, 10 },		// 105 bits per transform
 		{ 6, 20, 9 },		// 105 bits per transform
 		{ 6, 21, 8 },		// 105 bits per transform
+		{ 6, 22, 7 },		// 105 bits per transform
+		{ 6, 23, 6 },		// 105 bits per transform
+		{ 6, 24, 5 },		// 105 bits per transform
+		{ 7, 4, 24 },		// 105 bits per transform
+		{ 7, 5, 23 },		// 105 bits per transform
+		{ 7, 6, 22 },		// 105 bits per transform
 		{ 7, 7, 21 },		// 105 bits per transform
 		{ 7, 8, 20 },		// 105 bits per transform
 		{ 7, 9, 19 },		// 105 bits per transform
@@ -7097,6 +7994,12 @@ namespace acl
 		{ 7, 19, 9 },		// 105 bits per transform
 		{ 7, 20, 8 },		// 105 bits per transform
 		{ 7, 21, 7 },		// 105 bits per transform
+		{ 7, 22, 6 },		// 105 bits per transform
+		{ 7, 23, 5 },		// 105 bits per transform
+		{ 7, 24, 4 },		// 105 bits per transform
+		{ 8, 3, 24 },		// 105 bits per transform
+		{ 8, 4, 23 },		// 105 bits per transform
+		{ 8, 5, 22 },		// 105 bits per transform
 		{ 8, 6, 21 },		// 105 bits per transform
 		{ 8, 7, 20 },		// 105 bits per transform
 		{ 8, 8, 19 },		// 105 bits per transform
@@ -7113,6 +8016,12 @@ namespace acl
 		{ 8, 19, 8 },		// 105 bits per transform
 		{ 8, 20, 7 },		// 105 bits per transform
 		{ 8, 21, 6 },		// 105 bits per transform
+		{ 8, 22, 5 },		// 105 bits per transform
+		{ 8, 23, 4 },		// 105 bits per transform
+		{ 8, 24, 3 },		// 105 bits per transform
+		{ 9, 2, 24 },		// 105 bits per transform
+		{ 9, 3, 23 },		// 105 bits per transform
+		{ 9, 4, 22 },		// 105 bits per transform
 		{ 9, 5, 21 },		// 105 bits per transform
 		{ 9, 6, 20 },		// 105 bits per transform
 		{ 9, 7, 19 },		// 105 bits per transform
@@ -7130,6 +8039,12 @@ namespace acl
 		{ 9, 19, 7 },		// 105 bits per transform
 		{ 9, 20, 6 },		// 105 bits per transform
 		{ 9, 21, 5 },		// 105 bits per transform
+		{ 9, 22, 4 },		// 105 bits per transform
+		{ 9, 23, 3 },		// 105 bits per transform
+		{ 9, 24, 2 },		// 105 bits per transform
+		{ 10, 1, 24 },		// 105 bits per transform
+		{ 10, 2, 23 },		// 105 bits per transform
+		{ 10, 3, 22 },		// 105 bits per transform
 		{ 10, 4, 21 },		// 105 bits per transform
 		{ 10, 5, 20 },		// 105 bits per transform
 		{ 10, 6, 19 },		// 105 bits per transform
@@ -7148,6 +8063,12 @@ namespace acl
 		{ 10, 19, 6 },		// 105 bits per transform
 		{ 10, 20, 5 },		// 105 bits per transform
 		{ 10, 21, 4 },		// 105 bits per transform
+		{ 10, 22, 3 },		// 105 bits per transform
+		{ 10, 23, 2 },		// 105 bits per transform
+		{ 10, 24, 1 },		// 105 bits per transform
+		{ 11, 0, 24 },		// 105 bits per transform
+		{ 11, 1, 23 },		// 105 bits per transform
+		{ 11, 2, 22 },		// 105 bits per transform
 		{ 11, 3, 21 },		// 105 bits per transform
 		{ 11, 4, 20 },		// 105 bits per transform
 		{ 11, 5, 19 },		// 105 bits per transform
@@ -7167,6 +8088,11 @@ namespace acl
 		{ 11, 19, 5 },		// 105 bits per transform
 		{ 11, 20, 4 },		// 105 bits per transform
 		{ 11, 21, 3 },		// 105 bits per transform
+		{ 11, 22, 2 },		// 105 bits per transform
+		{ 11, 23, 1 },		// 105 bits per transform
+		{ 11, 24, 0 },		// 105 bits per transform
+		{ 12, 0, 23 },		// 105 bits per transform
+		{ 12, 1, 22 },		// 105 bits per transform
 		{ 12, 2, 21 },		// 105 bits per transform
 		{ 12, 3, 20 },		// 105 bits per transform
 		{ 12, 4, 19 },		// 105 bits per transform
@@ -7187,6 +8113,9 @@ namespace acl
 		{ 12, 19, 4 },		// 105 bits per transform
 		{ 12, 20, 3 },		// 105 bits per transform
 		{ 12, 21, 2 },		// 105 bits per transform
+		{ 12, 22, 1 },		// 105 bits per transform
+		{ 12, 23, 0 },		// 105 bits per transform
+		{ 13, 0, 22 },		// 105 bits per transform
 		{ 13, 1, 21 },		// 105 bits per transform
 		{ 13, 2, 20 },		// 105 bits per transform
 		{ 13, 3, 19 },		// 105 bits per transform
@@ -7208,6 +8137,7 @@ namespace acl
 		{ 13, 19, 3 },		// 105 bits per transform
 		{ 13, 20, 2 },		// 105 bits per transform
 		{ 13, 21, 1 },		// 105 bits per transform
+		{ 13, 22, 0 },		// 105 bits per transform
 		{ 14, 0, 21 },		// 105 bits per transform
 		{ 14, 1, 20 },		// 105 bits per transform
 		{ 14, 2, 19 },		// 105 bits per transform
@@ -7356,11 +8286,53 @@ namespace acl
 		{ 21, 12, 2 },		// 105 bits per transform
 		{ 21, 13, 1 },		// 105 bits per transform
 		{ 21, 14, 0 },		// 105 bits per transform
-		{ 22, 0, 3 },		// 105 bits per transform
-		{ 22, 1, 2 },		// 105 bits per transform
-		{ 22, 2, 1 },		// 105 bits per transform
-		{ 22, 3, 0 },		// 105 bits per transform
-		{ 0, 4, 22 },		// 108 bits per transform
+		{ 22, 0, 13 },		// 105 bits per transform
+		{ 22, 1, 12 },		// 105 bits per transform
+		{ 22, 2, 11 },		// 105 bits per transform
+		{ 22, 3, 10 },		// 105 bits per transform
+		{ 22, 4, 9 },		// 105 bits per transform
+		{ 22, 5, 8 },		// 105 bits per transform
+		{ 22, 6, 7 },		// 105 bits per transform
+		{ 22, 7, 6 },		// 105 bits per transform
+		{ 22, 8, 5 },		// 105 bits per transform
+		{ 22, 9, 4 },		// 105 bits per transform
+		{ 22, 10, 3 },		// 105 bits per transform
+		{ 22, 11, 2 },		// 105 bits per transform
+		{ 22, 12, 1 },		// 105 bits per transform
+		{ 22, 13, 0 },		// 105 bits per transform
+		{ 23, 0, 12 },		// 105 bits per transform
+		{ 23, 1, 11 },		// 105 bits per transform
+		{ 23, 2, 10 },		// 105 bits per transform
+		{ 23, 3, 9 },		// 105 bits per transform
+		{ 23, 4, 8 },		// 105 bits per transform
+		{ 23, 5, 7 },		// 105 bits per transform
+		{ 23, 6, 6 },		// 105 bits per transform
+		{ 23, 7, 5 },		// 105 bits per transform
+		{ 23, 8, 4 },		// 105 bits per transform
+		{ 23, 9, 3 },		// 105 bits per transform
+		{ 23, 10, 2 },		// 105 bits per transform
+		{ 23, 11, 1 },		// 105 bits per transform
+		{ 23, 12, 0 },		// 105 bits per transform
+		{ 24, 0, 11 },		// 105 bits per transform
+		{ 24, 1, 10 },		// 105 bits per transform
+		{ 24, 2, 9 },		// 105 bits per transform
+		{ 24, 3, 8 },		// 105 bits per transform
+		{ 24, 4, 7 },		// 105 bits per transform
+		{ 24, 5, 6 },		// 105 bits per transform
+		{ 24, 6, 5 },		// 105 bits per transform
+		{ 24, 7, 4 },		// 105 bits per transform
+		{ 24, 8, 3 },		// 105 bits per transform
+		{ 24, 9, 2 },		// 105 bits per transform
+		{ 24, 10, 1 },		// 105 bits per transform
+		{ 24, 11, 0 },		// 105 bits per transform
+		{ 25, 0, 3 },		// 105 bits per transform
+		{ 25, 1, 2 },		// 105 bits per transform
+		{ 25, 2, 1 },		// 105 bits per transform
+		{ 25, 3, 0 },		// 105 bits per transform
+		{ 0, 4, 25 },		// 108 bits per transform
+		{ 0, 12, 24 },		// 108 bits per transform
+		{ 0, 13, 23 },		// 108 bits per transform
+		{ 0, 14, 22 },		// 108 bits per transform
 		{ 0, 15, 21 },		// 108 bits per transform
 		{ 0, 16, 20 },		// 108 bits per transform
 		{ 0, 17, 19 },		// 108 bits per transform
@@ -7368,8 +8340,14 @@ namespace acl
 		{ 0, 19, 17 },		// 108 bits per transform
 		{ 0, 20, 16 },		// 108 bits per transform
 		{ 0, 21, 15 },		// 108 bits per transform
-		{ 0, 22, 4 },		// 108 bits per transform
-		{ 1, 3, 22 },		// 108 bits per transform
+		{ 0, 22, 14 },		// 108 bits per transform
+		{ 0, 23, 13 },		// 108 bits per transform
+		{ 0, 24, 12 },		// 108 bits per transform
+		{ 0, 25, 4 },		// 108 bits per transform
+		{ 1, 3, 25 },		// 108 bits per transform
+		{ 1, 11, 24 },		// 108 bits per transform
+		{ 1, 12, 23 },		// 108 bits per transform
+		{ 1, 13, 22 },		// 108 bits per transform
 		{ 1, 14, 21 },		// 108 bits per transform
 		{ 1, 15, 20 },		// 108 bits per transform
 		{ 1, 16, 19 },		// 108 bits per transform
@@ -7378,8 +8356,14 @@ namespace acl
 		{ 1, 19, 16 },		// 108 bits per transform
 		{ 1, 20, 15 },		// 108 bits per transform
 		{ 1, 21, 14 },		// 108 bits per transform
-		{ 1, 22, 3 },		// 108 bits per transform
-		{ 2, 2, 22 },		// 108 bits per transform
+		{ 1, 22, 13 },		// 108 bits per transform
+		{ 1, 23, 12 },		// 108 bits per transform
+		{ 1, 24, 11 },		// 108 bits per transform
+		{ 1, 25, 3 },		// 108 bits per transform
+		{ 2, 2, 25 },		// 108 bits per transform
+		{ 2, 10, 24 },		// 108 bits per transform
+		{ 2, 11, 23 },		// 108 bits per transform
+		{ 2, 12, 22 },		// 108 bits per transform
 		{ 2, 13, 21 },		// 108 bits per transform
 		{ 2, 14, 20 },		// 108 bits per transform
 		{ 2, 15, 19 },		// 108 bits per transform
@@ -7389,8 +8373,14 @@ namespace acl
 		{ 2, 19, 15 },		// 108 bits per transform
 		{ 2, 20, 14 },		// 108 bits per transform
 		{ 2, 21, 13 },		// 108 bits per transform
-		{ 2, 22, 2 },		// 108 bits per transform
-		{ 3, 1, 22 },		// 108 bits per transform
+		{ 2, 22, 12 },		// 108 bits per transform
+		{ 2, 23, 11 },		// 108 bits per transform
+		{ 2, 24, 10 },		// 108 bits per transform
+		{ 2, 25, 2 },		// 108 bits per transform
+		{ 3, 1, 25 },		// 108 bits per transform
+		{ 3, 9, 24 },		// 108 bits per transform
+		{ 3, 10, 23 },		// 108 bits per transform
+		{ 3, 11, 22 },		// 108 bits per transform
 		{ 3, 12, 21 },		// 108 bits per transform
 		{ 3, 13, 20 },		// 108 bits per transform
 		{ 3, 14, 19 },		// 108 bits per transform
@@ -7401,8 +8391,14 @@ namespace acl
 		{ 3, 19, 14 },		// 108 bits per transform
 		{ 3, 20, 13 },		// 108 bits per transform
 		{ 3, 21, 12 },		// 108 bits per transform
-		{ 3, 22, 1 },		// 108 bits per transform
-		{ 4, 0, 22 },		// 108 bits per transform
+		{ 3, 22, 11 },		// 108 bits per transform
+		{ 3, 23, 10 },		// 108 bits per transform
+		{ 3, 24, 9 },		// 108 bits per transform
+		{ 3, 25, 1 },		// 108 bits per transform
+		{ 4, 0, 25 },		// 108 bits per transform
+		{ 4, 8, 24 },		// 108 bits per transform
+		{ 4, 9, 23 },		// 108 bits per transform
+		{ 4, 10, 22 },		// 108 bits per transform
 		{ 4, 11, 21 },		// 108 bits per transform
 		{ 4, 12, 20 },		// 108 bits per transform
 		{ 4, 13, 19 },		// 108 bits per transform
@@ -7414,7 +8410,13 @@ namespace acl
 		{ 4, 19, 13 },		// 108 bits per transform
 		{ 4, 20, 12 },		// 108 bits per transform
 		{ 4, 21, 11 },		// 108 bits per transform
-		{ 4, 22, 0 },		// 108 bits per transform
+		{ 4, 22, 10 },		// 108 bits per transform
+		{ 4, 23, 9 },		// 108 bits per transform
+		{ 4, 24, 8 },		// 108 bits per transform
+		{ 4, 25, 0 },		// 108 bits per transform
+		{ 5, 7, 24 },		// 108 bits per transform
+		{ 5, 8, 23 },		// 108 bits per transform
+		{ 5, 9, 22 },		// 108 bits per transform
 		{ 5, 10, 21 },		// 108 bits per transform
 		{ 5, 11, 20 },		// 108 bits per transform
 		{ 5, 12, 19 },		// 108 bits per transform
@@ -7427,6 +8429,12 @@ namespace acl
 		{ 5, 19, 12 },		// 108 bits per transform
 		{ 5, 20, 11 },		// 108 bits per transform
 		{ 5, 21, 10 },		// 108 bits per transform
+		{ 5, 22, 9 },		// 108 bits per transform
+		{ 5, 23, 8 },		// 108 bits per transform
+		{ 5, 24, 7 },		// 108 bits per transform
+		{ 6, 6, 24 },		// 108 bits per transform
+		{ 6, 7, 23 },		// 108 bits per transform
+		{ 6, 8, 22 },		// 108 bits per transform
 		{ 6, 9, 21 },		// 108 bits per transform
 		{ 6, 10, 20 },		// 108 bits per transform
 		{ 6, 11, 19 },		// 108 bits per transform
@@ -7440,6 +8448,12 @@ namespace acl
 		{ 6, 19, 11 },		// 108 bits per transform
 		{ 6, 20, 10 },		// 108 bits per transform
 		{ 6, 21, 9 },		// 108 bits per transform
+		{ 6, 22, 8 },		// 108 bits per transform
+		{ 6, 23, 7 },		// 108 bits per transform
+		{ 6, 24, 6 },		// 108 bits per transform
+		{ 7, 5, 24 },		// 108 bits per transform
+		{ 7, 6, 23 },		// 108 bits per transform
+		{ 7, 7, 22 },		// 108 bits per transform
 		{ 7, 8, 21 },		// 108 bits per transform
 		{ 7, 9, 20 },		// 108 bits per transform
 		{ 7, 10, 19 },		// 108 bits per transform
@@ -7454,6 +8468,12 @@ namespace acl
 		{ 7, 19, 10 },		// 108 bits per transform
 		{ 7, 20, 9 },		// 108 bits per transform
 		{ 7, 21, 8 },		// 108 bits per transform
+		{ 7, 22, 7 },		// 108 bits per transform
+		{ 7, 23, 6 },		// 108 bits per transform
+		{ 7, 24, 5 },		// 108 bits per transform
+		{ 8, 4, 24 },		// 108 bits per transform
+		{ 8, 5, 23 },		// 108 bits per transform
+		{ 8, 6, 22 },		// 108 bits per transform
 		{ 8, 7, 21 },		// 108 bits per transform
 		{ 8, 8, 20 },		// 108 bits per transform
 		{ 8, 9, 19 },		// 108 bits per transform
@@ -7469,6 +8489,12 @@ namespace acl
 		{ 8, 19, 9 },		// 108 bits per transform
 		{ 8, 20, 8 },		// 108 bits per transform
 		{ 8, 21, 7 },		// 108 bits per transform
+		{ 8, 22, 6 },		// 108 bits per transform
+		{ 8, 23, 5 },		// 108 bits per transform
+		{ 8, 24, 4 },		// 108 bits per transform
+		{ 9, 3, 24 },		// 108 bits per transform
+		{ 9, 4, 23 },		// 108 bits per transform
+		{ 9, 5, 22 },		// 108 bits per transform
 		{ 9, 6, 21 },		// 108 bits per transform
 		{ 9, 7, 20 },		// 108 bits per transform
 		{ 9, 8, 19 },		// 108 bits per transform
@@ -7485,6 +8511,12 @@ namespace acl
 		{ 9, 19, 8 },		// 108 bits per transform
 		{ 9, 20, 7 },		// 108 bits per transform
 		{ 9, 21, 6 },		// 108 bits per transform
+		{ 9, 22, 5 },		// 108 bits per transform
+		{ 9, 23, 4 },		// 108 bits per transform
+		{ 9, 24, 3 },		// 108 bits per transform
+		{ 10, 2, 24 },		// 108 bits per transform
+		{ 10, 3, 23 },		// 108 bits per transform
+		{ 10, 4, 22 },		// 108 bits per transform
 		{ 10, 5, 21 },		// 108 bits per transform
 		{ 10, 6, 20 },		// 108 bits per transform
 		{ 10, 7, 19 },		// 108 bits per transform
@@ -7502,6 +8534,12 @@ namespace acl
 		{ 10, 19, 7 },		// 108 bits per transform
 		{ 10, 20, 6 },		// 108 bits per transform
 		{ 10, 21, 5 },		// 108 bits per transform
+		{ 10, 22, 4 },		// 108 bits per transform
+		{ 10, 23, 3 },		// 108 bits per transform
+		{ 10, 24, 2 },		// 108 bits per transform
+		{ 11, 1, 24 },		// 108 bits per transform
+		{ 11, 2, 23 },		// 108 bits per transform
+		{ 11, 3, 22 },		// 108 bits per transform
 		{ 11, 4, 21 },		// 108 bits per transform
 		{ 11, 5, 20 },		// 108 bits per transform
 		{ 11, 6, 19 },		// 108 bits per transform
@@ -7520,6 +8558,12 @@ namespace acl
 		{ 11, 19, 6 },		// 108 bits per transform
 		{ 11, 20, 5 },		// 108 bits per transform
 		{ 11, 21, 4 },		// 108 bits per transform
+		{ 11, 22, 3 },		// 108 bits per transform
+		{ 11, 23, 2 },		// 108 bits per transform
+		{ 11, 24, 1 },		// 108 bits per transform
+		{ 12, 0, 24 },		// 108 bits per transform
+		{ 12, 1, 23 },		// 108 bits per transform
+		{ 12, 2, 22 },		// 108 bits per transform
 		{ 12, 3, 21 },		// 108 bits per transform
 		{ 12, 4, 20 },		// 108 bits per transform
 		{ 12, 5, 19 },		// 108 bits per transform
@@ -7539,6 +8583,11 @@ namespace acl
 		{ 12, 19, 5 },		// 108 bits per transform
 		{ 12, 20, 4 },		// 108 bits per transform
 		{ 12, 21, 3 },		// 108 bits per transform
+		{ 12, 22, 2 },		// 108 bits per transform
+		{ 12, 23, 1 },		// 108 bits per transform
+		{ 12, 24, 0 },		// 108 bits per transform
+		{ 13, 0, 23 },		// 108 bits per transform
+		{ 13, 1, 22 },		// 108 bits per transform
 		{ 13, 2, 21 },		// 108 bits per transform
 		{ 13, 3, 20 },		// 108 bits per transform
 		{ 13, 4, 19 },		// 108 bits per transform
@@ -7559,6 +8608,9 @@ namespace acl
 		{ 13, 19, 4 },		// 108 bits per transform
 		{ 13, 20, 3 },		// 108 bits per transform
 		{ 13, 21, 2 },		// 108 bits per transform
+		{ 13, 22, 1 },		// 108 bits per transform
+		{ 13, 23, 0 },		// 108 bits per transform
+		{ 14, 0, 22 },		// 108 bits per transform
 		{ 14, 1, 21 },		// 108 bits per transform
 		{ 14, 2, 20 },		// 108 bits per transform
 		{ 14, 3, 19 },		// 108 bits per transform
@@ -7580,6 +8632,7 @@ namespace acl
 		{ 14, 19, 3 },		// 108 bits per transform
 		{ 14, 20, 2 },		// 108 bits per transform
 		{ 14, 21, 1 },		// 108 bits per transform
+		{ 14, 22, 0 },		// 108 bits per transform
 		{ 15, 0, 21 },		// 108 bits per transform
 		{ 15, 1, 20 },		// 108 bits per transform
 		{ 15, 2, 19 },		// 108 bits per transform
@@ -7713,20 +8766,71 @@ namespace acl
 		{ 21, 13, 2 },		// 108 bits per transform
 		{ 21, 14, 1 },		// 108 bits per transform
 		{ 21, 15, 0 },		// 108 bits per transform
-		{ 22, 0, 4 },		// 108 bits per transform
-		{ 22, 1, 3 },		// 108 bits per transform
-		{ 22, 2, 2 },		// 108 bits per transform
-		{ 22, 3, 1 },		// 108 bits per transform
-		{ 22, 4, 0 },		// 108 bits per transform
-		{ 0, 5, 22 },		// 111 bits per transform
+		{ 22, 0, 14 },		// 108 bits per transform
+		{ 22, 1, 13 },		// 108 bits per transform
+		{ 22, 2, 12 },		// 108 bits per transform
+		{ 22, 3, 11 },		// 108 bits per transform
+		{ 22, 4, 10 },		// 108 bits per transform
+		{ 22, 5, 9 },		// 108 bits per transform
+		{ 22, 6, 8 },		// 108 bits per transform
+		{ 22, 7, 7 },		// 108 bits per transform
+		{ 22, 8, 6 },		// 108 bits per transform
+		{ 22, 9, 5 },		// 108 bits per transform
+		{ 22, 10, 4 },		// 108 bits per transform
+		{ 22, 11, 3 },		// 108 bits per transform
+		{ 22, 12, 2 },		// 108 bits per transform
+		{ 22, 13, 1 },		// 108 bits per transform
+		{ 22, 14, 0 },		// 108 bits per transform
+		{ 23, 0, 13 },		// 108 bits per transform
+		{ 23, 1, 12 },		// 108 bits per transform
+		{ 23, 2, 11 },		// 108 bits per transform
+		{ 23, 3, 10 },		// 108 bits per transform
+		{ 23, 4, 9 },		// 108 bits per transform
+		{ 23, 5, 8 },		// 108 bits per transform
+		{ 23, 6, 7 },		// 108 bits per transform
+		{ 23, 7, 6 },		// 108 bits per transform
+		{ 23, 8, 5 },		// 108 bits per transform
+		{ 23, 9, 4 },		// 108 bits per transform
+		{ 23, 10, 3 },		// 108 bits per transform
+		{ 23, 11, 2 },		// 108 bits per transform
+		{ 23, 12, 1 },		// 108 bits per transform
+		{ 23, 13, 0 },		// 108 bits per transform
+		{ 24, 0, 12 },		// 108 bits per transform
+		{ 24, 1, 11 },		// 108 bits per transform
+		{ 24, 2, 10 },		// 108 bits per transform
+		{ 24, 3, 9 },		// 108 bits per transform
+		{ 24, 4, 8 },		// 108 bits per transform
+		{ 24, 5, 7 },		// 108 bits per transform
+		{ 24, 6, 6 },		// 108 bits per transform
+		{ 24, 7, 5 },		// 108 bits per transform
+		{ 24, 8, 4 },		// 108 bits per transform
+		{ 24, 9, 3 },		// 108 bits per transform
+		{ 24, 10, 2 },		// 108 bits per transform
+		{ 24, 11, 1 },		// 108 bits per transform
+		{ 24, 12, 0 },		// 108 bits per transform
+		{ 25, 0, 4 },		// 108 bits per transform
+		{ 25, 1, 3 },		// 108 bits per transform
+		{ 25, 2, 2 },		// 108 bits per transform
+		{ 25, 3, 1 },		// 108 bits per transform
+		{ 25, 4, 0 },		// 108 bits per transform
+		{ 0, 5, 25 },		// 111 bits per transform
+		{ 0, 13, 24 },		// 111 bits per transform
+		{ 0, 14, 23 },		// 111 bits per transform
+		{ 0, 15, 22 },		// 111 bits per transform
 		{ 0, 16, 21 },		// 111 bits per transform
 		{ 0, 17, 20 },		// 111 bits per transform
 		{ 0, 18, 19 },		// 111 bits per transform
 		{ 0, 19, 18 },		// 111 bits per transform
 		{ 0, 20, 17 },		// 111 bits per transform
 		{ 0, 21, 16 },		// 111 bits per transform
-		{ 0, 22, 5 },		// 111 bits per transform
-		{ 1, 4, 22 },		// 111 bits per transform
+		{ 0, 22, 15 },		// 111 bits per transform
+		{ 0, 23, 14 },		// 111 bits per transform
+		{ 0, 24, 13 },		// 111 bits per transform
+		{ 0, 25, 5 },		// 111 bits per transform
+		{ 1, 4, 25 },		// 111 bits per transform
+		{ 1, 12, 24 },		// 111 bits per transform
+		{ 1, 13, 23 },		// 111 bits per transform
+		{ 1, 14, 22 },		// 111 bits per transform
 		{ 1, 15, 21 },		// 111 bits per transform
 		{ 1, 16, 20 },		// 111 bits per transform
 		{ 1, 17, 19 },		// 111 bits per transform
@@ -7734,8 +8838,14 @@ namespace acl
 		{ 1, 19, 17 },		// 111 bits per transform
 		{ 1, 20, 16 },		// 111 bits per transform
 		{ 1, 21, 15 },		// 111 bits per transform
-		{ 1, 22, 4 },		// 111 bits per transform
-		{ 2, 3, 22 },		// 111 bits per transform
+		{ 1, 22, 14 },		// 111 bits per transform
+		{ 1, 23, 13 },		// 111 bits per transform
+		{ 1, 24, 12 },		// 111 bits per transform
+		{ 1, 25, 4 },		// 111 bits per transform
+		{ 2, 3, 25 },		// 111 bits per transform
+		{ 2, 11, 24 },		// 111 bits per transform
+		{ 2, 12, 23 },		// 111 bits per transform
+		{ 2, 13, 22 },		// 111 bits per transform
 		{ 2, 14, 21 },		// 111 bits per transform
 		{ 2, 15, 20 },		// 111 bits per transform
 		{ 2, 16, 19 },		// 111 bits per transform
@@ -7744,8 +8854,14 @@ namespace acl
 		{ 2, 19, 16 },		// 111 bits per transform
 		{ 2, 20, 15 },		// 111 bits per transform
 		{ 2, 21, 14 },		// 111 bits per transform
-		{ 2, 22, 3 },		// 111 bits per transform
-		{ 3, 2, 22 },		// 111 bits per transform
+		{ 2, 22, 13 },		// 111 bits per transform
+		{ 2, 23, 12 },		// 111 bits per transform
+		{ 2, 24, 11 },		// 111 bits per transform
+		{ 2, 25, 3 },		// 111 bits per transform
+		{ 3, 2, 25 },		// 111 bits per transform
+		{ 3, 10, 24 },		// 111 bits per transform
+		{ 3, 11, 23 },		// 111 bits per transform
+		{ 3, 12, 22 },		// 111 bits per transform
 		{ 3, 13, 21 },		// 111 bits per transform
 		{ 3, 14, 20 },		// 111 bits per transform
 		{ 3, 15, 19 },		// 111 bits per transform
@@ -7755,8 +8871,14 @@ namespace acl
 		{ 3, 19, 15 },		// 111 bits per transform
 		{ 3, 20, 14 },		// 111 bits per transform
 		{ 3, 21, 13 },		// 111 bits per transform
-		{ 3, 22, 2 },		// 111 bits per transform
-		{ 4, 1, 22 },		// 111 bits per transform
+		{ 3, 22, 12 },		// 111 bits per transform
+		{ 3, 23, 11 },		// 111 bits per transform
+		{ 3, 24, 10 },		// 111 bits per transform
+		{ 3, 25, 2 },		// 111 bits per transform
+		{ 4, 1, 25 },		// 111 bits per transform
+		{ 4, 9, 24 },		// 111 bits per transform
+		{ 4, 10, 23 },		// 111 bits per transform
+		{ 4, 11, 22 },		// 111 bits per transform
 		{ 4, 12, 21 },		// 111 bits per transform
 		{ 4, 13, 20 },		// 111 bits per transform
 		{ 4, 14, 19 },		// 111 bits per transform
@@ -7767,8 +8889,14 @@ namespace acl
 		{ 4, 19, 14 },		// 111 bits per transform
 		{ 4, 20, 13 },		// 111 bits per transform
 		{ 4, 21, 12 },		// 111 bits per transform
-		{ 4, 22, 1 },		// 111 bits per transform
-		{ 5, 0, 22 },		// 111 bits per transform
+		{ 4, 22, 11 },		// 111 bits per transform
+		{ 4, 23, 10 },		// 111 bits per transform
+		{ 4, 24, 9 },		// 111 bits per transform
+		{ 4, 25, 1 },		// 111 bits per transform
+		{ 5, 0, 25 },		// 111 bits per transform
+		{ 5, 8, 24 },		// 111 bits per transform
+		{ 5, 9, 23 },		// 111 bits per transform
+		{ 5, 10, 22 },		// 111 bits per transform
 		{ 5, 11, 21 },		// 111 bits per transform
 		{ 5, 12, 20 },		// 111 bits per transform
 		{ 5, 13, 19 },		// 111 bits per transform
@@ -7780,7 +8908,13 @@ namespace acl
 		{ 5, 19, 13 },		// 111 bits per transform
 		{ 5, 20, 12 },		// 111 bits per transform
 		{ 5, 21, 11 },		// 111 bits per transform
-		{ 5, 22, 0 },		// 111 bits per transform
+		{ 5, 22, 10 },		// 111 bits per transform
+		{ 5, 23, 9 },		// 111 bits per transform
+		{ 5, 24, 8 },		// 111 bits per transform
+		{ 5, 25, 0 },		// 111 bits per transform
+		{ 6, 7, 24 },		// 111 bits per transform
+		{ 6, 8, 23 },		// 111 bits per transform
+		{ 6, 9, 22 },		// 111 bits per transform
 		{ 6, 10, 21 },		// 111 bits per transform
 		{ 6, 11, 20 },		// 111 bits per transform
 		{ 6, 12, 19 },		// 111 bits per transform
@@ -7793,6 +8927,12 @@ namespace acl
 		{ 6, 19, 12 },		// 111 bits per transform
 		{ 6, 20, 11 },		// 111 bits per transform
 		{ 6, 21, 10 },		// 111 bits per transform
+		{ 6, 22, 9 },		// 111 bits per transform
+		{ 6, 23, 8 },		// 111 bits per transform
+		{ 6, 24, 7 },		// 111 bits per transform
+		{ 7, 6, 24 },		// 111 bits per transform
+		{ 7, 7, 23 },		// 111 bits per transform
+		{ 7, 8, 22 },		// 111 bits per transform
 		{ 7, 9, 21 },		// 111 bits per transform
 		{ 7, 10, 20 },		// 111 bits per transform
 		{ 7, 11, 19 },		// 111 bits per transform
@@ -7806,6 +8946,12 @@ namespace acl
 		{ 7, 19, 11 },		// 111 bits per transform
 		{ 7, 20, 10 },		// 111 bits per transform
 		{ 7, 21, 9 },		// 111 bits per transform
+		{ 7, 22, 8 },		// 111 bits per transform
+		{ 7, 23, 7 },		// 111 bits per transform
+		{ 7, 24, 6 },		// 111 bits per transform
+		{ 8, 5, 24 },		// 111 bits per transform
+		{ 8, 6, 23 },		// 111 bits per transform
+		{ 8, 7, 22 },		// 111 bits per transform
 		{ 8, 8, 21 },		// 111 bits per transform
 		{ 8, 9, 20 },		// 111 bits per transform
 		{ 8, 10, 19 },		// 111 bits per transform
@@ -7820,6 +8966,12 @@ namespace acl
 		{ 8, 19, 10 },		// 111 bits per transform
 		{ 8, 20, 9 },		// 111 bits per transform
 		{ 8, 21, 8 },		// 111 bits per transform
+		{ 8, 22, 7 },		// 111 bits per transform
+		{ 8, 23, 6 },		// 111 bits per transform
+		{ 8, 24, 5 },		// 111 bits per transform
+		{ 9, 4, 24 },		// 111 bits per transform
+		{ 9, 5, 23 },		// 111 bits per transform
+		{ 9, 6, 22 },		// 111 bits per transform
 		{ 9, 7, 21 },		// 111 bits per transform
 		{ 9, 8, 20 },		// 111 bits per transform
 		{ 9, 9, 19 },		// 111 bits per transform
@@ -7835,6 +8987,12 @@ namespace acl
 		{ 9, 19, 9 },		// 111 bits per transform
 		{ 9, 20, 8 },		// 111 bits per transform
 		{ 9, 21, 7 },		// 111 bits per transform
+		{ 9, 22, 6 },		// 111 bits per transform
+		{ 9, 23, 5 },		// 111 bits per transform
+		{ 9, 24, 4 },		// 111 bits per transform
+		{ 10, 3, 24 },		// 111 bits per transform
+		{ 10, 4, 23 },		// 111 bits per transform
+		{ 10, 5, 22 },		// 111 bits per transform
 		{ 10, 6, 21 },		// 111 bits per transform
 		{ 10, 7, 20 },		// 111 bits per transform
 		{ 10, 8, 19 },		// 111 bits per transform
@@ -7851,6 +9009,12 @@ namespace acl
 		{ 10, 19, 8 },		// 111 bits per transform
 		{ 10, 20, 7 },		// 111 bits per transform
 		{ 10, 21, 6 },		// 111 bits per transform
+		{ 10, 22, 5 },		// 111 bits per transform
+		{ 10, 23, 4 },		// 111 bits per transform
+		{ 10, 24, 3 },		// 111 bits per transform
+		{ 11, 2, 24 },		// 111 bits per transform
+		{ 11, 3, 23 },		// 111 bits per transform
+		{ 11, 4, 22 },		// 111 bits per transform
 		{ 11, 5, 21 },		// 111 bits per transform
 		{ 11, 6, 20 },		// 111 bits per transform
 		{ 11, 7, 19 },		// 111 bits per transform
@@ -7868,6 +9032,12 @@ namespace acl
 		{ 11, 19, 7 },		// 111 bits per transform
 		{ 11, 20, 6 },		// 111 bits per transform
 		{ 11, 21, 5 },		// 111 bits per transform
+		{ 11, 22, 4 },		// 111 bits per transform
+		{ 11, 23, 3 },		// 111 bits per transform
+		{ 11, 24, 2 },		// 111 bits per transform
+		{ 12, 1, 24 },		// 111 bits per transform
+		{ 12, 2, 23 },		// 111 bits per transform
+		{ 12, 3, 22 },		// 111 bits per transform
 		{ 12, 4, 21 },		// 111 bits per transform
 		{ 12, 5, 20 },		// 111 bits per transform
 		{ 12, 6, 19 },		// 111 bits per transform
@@ -7886,6 +9056,12 @@ namespace acl
 		{ 12, 19, 6 },		// 111 bits per transform
 		{ 12, 20, 5 },		// 111 bits per transform
 		{ 12, 21, 4 },		// 111 bits per transform
+		{ 12, 22, 3 },		// 111 bits per transform
+		{ 12, 23, 2 },		// 111 bits per transform
+		{ 12, 24, 1 },		// 111 bits per transform
+		{ 13, 0, 24 },		// 111 bits per transform
+		{ 13, 1, 23 },		// 111 bits per transform
+		{ 13, 2, 22 },		// 111 bits per transform
 		{ 13, 3, 21 },		// 111 bits per transform
 		{ 13, 4, 20 },		// 111 bits per transform
 		{ 13, 5, 19 },		// 111 bits per transform
@@ -7905,6 +9081,11 @@ namespace acl
 		{ 13, 19, 5 },		// 111 bits per transform
 		{ 13, 20, 4 },		// 111 bits per transform
 		{ 13, 21, 3 },		// 111 bits per transform
+		{ 13, 22, 2 },		// 111 bits per transform
+		{ 13, 23, 1 },		// 111 bits per transform
+		{ 13, 24, 0 },		// 111 bits per transform
+		{ 14, 0, 23 },		// 111 bits per transform
+		{ 14, 1, 22 },		// 111 bits per transform
 		{ 14, 2, 21 },		// 111 bits per transform
 		{ 14, 3, 20 },		// 111 bits per transform
 		{ 14, 4, 19 },		// 111 bits per transform
@@ -7925,6 +9106,9 @@ namespace acl
 		{ 14, 19, 4 },		// 111 bits per transform
 		{ 14, 20, 3 },		// 111 bits per transform
 		{ 14, 21, 2 },		// 111 bits per transform
+		{ 14, 22, 1 },		// 111 bits per transform
+		{ 14, 23, 0 },		// 111 bits per transform
+		{ 15, 0, 22 },		// 111 bits per transform
 		{ 15, 1, 21 },		// 111 bits per transform
 		{ 15, 2, 20 },		// 111 bits per transform
 		{ 15, 3, 19 },		// 111 bits per transform
@@ -7946,6 +9130,7 @@ namespace acl
 		{ 15, 19, 3 },		// 111 bits per transform
 		{ 15, 20, 2 },		// 111 bits per transform
 		{ 15, 21, 1 },		// 111 bits per transform
+		{ 15, 22, 0 },		// 111 bits per transform
 		{ 16, 0, 21 },		// 111 bits per transform
 		{ 16, 1, 20 },		// 111 bits per transform
 		{ 16, 2, 19 },		// 111 bits per transform
@@ -8063,28 +9248,88 @@ namespace acl
 		{ 21, 14, 2 },		// 111 bits per transform
 		{ 21, 15, 1 },		// 111 bits per transform
 		{ 21, 16, 0 },		// 111 bits per transform
-		{ 22, 0, 5 },		// 111 bits per transform
-		{ 22, 1, 4 },		// 111 bits per transform
-		{ 22, 2, 3 },		// 111 bits per transform
-		{ 22, 3, 2 },		// 111 bits per transform
-		{ 22, 4, 1 },		// 111 bits per transform
-		{ 22, 5, 0 },		// 111 bits per transform
-		{ 0, 6, 22 },		// 114 bits per transform
+		{ 22, 0, 15 },		// 111 bits per transform
+		{ 22, 1, 14 },		// 111 bits per transform
+		{ 22, 2, 13 },		// 111 bits per transform
+		{ 22, 3, 12 },		// 111 bits per transform
+		{ 22, 4, 11 },		// 111 bits per transform
+		{ 22, 5, 10 },		// 111 bits per transform
+		{ 22, 6, 9 },		// 111 bits per transform
+		{ 22, 7, 8 },		// 111 bits per transform
+		{ 22, 8, 7 },		// 111 bits per transform
+		{ 22, 9, 6 },		// 111 bits per transform
+		{ 22, 10, 5 },		// 111 bits per transform
+		{ 22, 11, 4 },		// 111 bits per transform
+		{ 22, 12, 3 },		// 111 bits per transform
+		{ 22, 13, 2 },		// 111 bits per transform
+		{ 22, 14, 1 },		// 111 bits per transform
+		{ 22, 15, 0 },		// 111 bits per transform
+		{ 23, 0, 14 },		// 111 bits per transform
+		{ 23, 1, 13 },		// 111 bits per transform
+		{ 23, 2, 12 },		// 111 bits per transform
+		{ 23, 3, 11 },		// 111 bits per transform
+		{ 23, 4, 10 },		// 111 bits per transform
+		{ 23, 5, 9 },		// 111 bits per transform
+		{ 23, 6, 8 },		// 111 bits per transform
+		{ 23, 7, 7 },		// 111 bits per transform
+		{ 23, 8, 6 },		// 111 bits per transform
+		{ 23, 9, 5 },		// 111 bits per transform
+		{ 23, 10, 4 },		// 111 bits per transform
+		{ 23, 11, 3 },		// 111 bits per transform
+		{ 23, 12, 2 },		// 111 bits per transform
+		{ 23, 13, 1 },		// 111 bits per transform
+		{ 23, 14, 0 },		// 111 bits per transform
+		{ 24, 0, 13 },		// 111 bits per transform
+		{ 24, 1, 12 },		// 111 bits per transform
+		{ 24, 2, 11 },		// 111 bits per transform
+		{ 24, 3, 10 },		// 111 bits per transform
+		{ 24, 4, 9 },		// 111 bits per transform
+		{ 24, 5, 8 },		// 111 bits per transform
+		{ 24, 6, 7 },		// 111 bits per transform
+		{ 24, 7, 6 },		// 111 bits per transform
+		{ 24, 8, 5 },		// 111 bits per transform
+		{ 24, 9, 4 },		// 111 bits per transform
+		{ 24, 10, 3 },		// 111 bits per transform
+		{ 24, 11, 2 },		// 111 bits per transform
+		{ 24, 12, 1 },		// 111 bits per transform
+		{ 24, 13, 0 },		// 111 bits per transform
+		{ 25, 0, 5 },		// 111 bits per transform
+		{ 25, 1, 4 },		// 111 bits per transform
+		{ 25, 2, 3 },		// 111 bits per transform
+		{ 25, 3, 2 },		// 111 bits per transform
+		{ 25, 4, 1 },		// 111 bits per transform
+		{ 25, 5, 0 },		// 111 bits per transform
+		{ 0, 6, 25 },		// 114 bits per transform
+		{ 0, 14, 24 },		// 114 bits per transform
+		{ 0, 15, 23 },		// 114 bits per transform
+		{ 0, 16, 22 },		// 114 bits per transform
 		{ 0, 17, 21 },		// 114 bits per transform
 		{ 0, 18, 20 },		// 114 bits per transform
 		{ 0, 19, 19 },		// 114 bits per transform
 		{ 0, 20, 18 },		// 114 bits per transform
 		{ 0, 21, 17 },		// 114 bits per transform
-		{ 0, 22, 6 },		// 114 bits per transform
-		{ 1, 5, 22 },		// 114 bits per transform
+		{ 0, 22, 16 },		// 114 bits per transform
+		{ 0, 23, 15 },		// 114 bits per transform
+		{ 0, 24, 14 },		// 114 bits per transform
+		{ 0, 25, 6 },		// 114 bits per transform
+		{ 1, 5, 25 },		// 114 bits per transform
+		{ 1, 13, 24 },		// 114 bits per transform
+		{ 1, 14, 23 },		// 114 bits per transform
+		{ 1, 15, 22 },		// 114 bits per transform
 		{ 1, 16, 21 },		// 114 bits per transform
 		{ 1, 17, 20 },		// 114 bits per transform
 		{ 1, 18, 19 },		// 114 bits per transform
 		{ 1, 19, 18 },		// 114 bits per transform
 		{ 1, 20, 17 },		// 114 bits per transform
 		{ 1, 21, 16 },		// 114 bits per transform
-		{ 1, 22, 5 },		// 114 bits per transform
-		{ 2, 4, 22 },		// 114 bits per transform
+		{ 1, 22, 15 },		// 114 bits per transform
+		{ 1, 23, 14 },		// 114 bits per transform
+		{ 1, 24, 13 },		// 114 bits per transform
+		{ 1, 25, 5 },		// 114 bits per transform
+		{ 2, 4, 25 },		// 114 bits per transform
+		{ 2, 12, 24 },		// 114 bits per transform
+		{ 2, 13, 23 },		// 114 bits per transform
+		{ 2, 14, 22 },		// 114 bits per transform
 		{ 2, 15, 21 },		// 114 bits per transform
 		{ 2, 16, 20 },		// 114 bits per transform
 		{ 2, 17, 19 },		// 114 bits per transform
@@ -8092,8 +9337,14 @@ namespace acl
 		{ 2, 19, 17 },		// 114 bits per transform
 		{ 2, 20, 16 },		// 114 bits per transform
 		{ 2, 21, 15 },		// 114 bits per transform
-		{ 2, 22, 4 },		// 114 bits per transform
-		{ 3, 3, 22 },		// 114 bits per transform
+		{ 2, 22, 14 },		// 114 bits per transform
+		{ 2, 23, 13 },		// 114 bits per transform
+		{ 2, 24, 12 },		// 114 bits per transform
+		{ 2, 25, 4 },		// 114 bits per transform
+		{ 3, 3, 25 },		// 114 bits per transform
+		{ 3, 11, 24 },		// 114 bits per transform
+		{ 3, 12, 23 },		// 114 bits per transform
+		{ 3, 13, 22 },		// 114 bits per transform
 		{ 3, 14, 21 },		// 114 bits per transform
 		{ 3, 15, 20 },		// 114 bits per transform
 		{ 3, 16, 19 },		// 114 bits per transform
@@ -8102,8 +9353,14 @@ namespace acl
 		{ 3, 19, 16 },		// 114 bits per transform
 		{ 3, 20, 15 },		// 114 bits per transform
 		{ 3, 21, 14 },		// 114 bits per transform
-		{ 3, 22, 3 },		// 114 bits per transform
-		{ 4, 2, 22 },		// 114 bits per transform
+		{ 3, 22, 13 },		// 114 bits per transform
+		{ 3, 23, 12 },		// 114 bits per transform
+		{ 3, 24, 11 },		// 114 bits per transform
+		{ 3, 25, 3 },		// 114 bits per transform
+		{ 4, 2, 25 },		// 114 bits per transform
+		{ 4, 10, 24 },		// 114 bits per transform
+		{ 4, 11, 23 },		// 114 bits per transform
+		{ 4, 12, 22 },		// 114 bits per transform
 		{ 4, 13, 21 },		// 114 bits per transform
 		{ 4, 14, 20 },		// 114 bits per transform
 		{ 4, 15, 19 },		// 114 bits per transform
@@ -8113,8 +9370,14 @@ namespace acl
 		{ 4, 19, 15 },		// 114 bits per transform
 		{ 4, 20, 14 },		// 114 bits per transform
 		{ 4, 21, 13 },		// 114 bits per transform
-		{ 4, 22, 2 },		// 114 bits per transform
-		{ 5, 1, 22 },		// 114 bits per transform
+		{ 4, 22, 12 },		// 114 bits per transform
+		{ 4, 23, 11 },		// 114 bits per transform
+		{ 4, 24, 10 },		// 114 bits per transform
+		{ 4, 25, 2 },		// 114 bits per transform
+		{ 5, 1, 25 },		// 114 bits per transform
+		{ 5, 9, 24 },		// 114 bits per transform
+		{ 5, 10, 23 },		// 114 bits per transform
+		{ 5, 11, 22 },		// 114 bits per transform
 		{ 5, 12, 21 },		// 114 bits per transform
 		{ 5, 13, 20 },		// 114 bits per transform
 		{ 5, 14, 19 },		// 114 bits per transform
@@ -8125,8 +9388,14 @@ namespace acl
 		{ 5, 19, 14 },		// 114 bits per transform
 		{ 5, 20, 13 },		// 114 bits per transform
 		{ 5, 21, 12 },		// 114 bits per transform
-		{ 5, 22, 1 },		// 114 bits per transform
-		{ 6, 0, 22 },		// 114 bits per transform
+		{ 5, 22, 11 },		// 114 bits per transform
+		{ 5, 23, 10 },		// 114 bits per transform
+		{ 5, 24, 9 },		// 114 bits per transform
+		{ 5, 25, 1 },		// 114 bits per transform
+		{ 6, 0, 25 },		// 114 bits per transform
+		{ 6, 8, 24 },		// 114 bits per transform
+		{ 6, 9, 23 },		// 114 bits per transform
+		{ 6, 10, 22 },		// 114 bits per transform
 		{ 6, 11, 21 },		// 114 bits per transform
 		{ 6, 12, 20 },		// 114 bits per transform
 		{ 6, 13, 19 },		// 114 bits per transform
@@ -8138,7 +9407,13 @@ namespace acl
 		{ 6, 19, 13 },		// 114 bits per transform
 		{ 6, 20, 12 },		// 114 bits per transform
 		{ 6, 21, 11 },		// 114 bits per transform
-		{ 6, 22, 0 },		// 114 bits per transform
+		{ 6, 22, 10 },		// 114 bits per transform
+		{ 6, 23, 9 },		// 114 bits per transform
+		{ 6, 24, 8 },		// 114 bits per transform
+		{ 6, 25, 0 },		// 114 bits per transform
+		{ 7, 7, 24 },		// 114 bits per transform
+		{ 7, 8, 23 },		// 114 bits per transform
+		{ 7, 9, 22 },		// 114 bits per transform
 		{ 7, 10, 21 },		// 114 bits per transform
 		{ 7, 11, 20 },		// 114 bits per transform
 		{ 7, 12, 19 },		// 114 bits per transform
@@ -8151,6 +9426,12 @@ namespace acl
 		{ 7, 19, 12 },		// 114 bits per transform
 		{ 7, 20, 11 },		// 114 bits per transform
 		{ 7, 21, 10 },		// 114 bits per transform
+		{ 7, 22, 9 },		// 114 bits per transform
+		{ 7, 23, 8 },		// 114 bits per transform
+		{ 7, 24, 7 },		// 114 bits per transform
+		{ 8, 6, 24 },		// 114 bits per transform
+		{ 8, 7, 23 },		// 114 bits per transform
+		{ 8, 8, 22 },		// 114 bits per transform
 		{ 8, 9, 21 },		// 114 bits per transform
 		{ 8, 10, 20 },		// 114 bits per transform
 		{ 8, 11, 19 },		// 114 bits per transform
@@ -8164,6 +9445,12 @@ namespace acl
 		{ 8, 19, 11 },		// 114 bits per transform
 		{ 8, 20, 10 },		// 114 bits per transform
 		{ 8, 21, 9 },		// 114 bits per transform
+		{ 8, 22, 8 },		// 114 bits per transform
+		{ 8, 23, 7 },		// 114 bits per transform
+		{ 8, 24, 6 },		// 114 bits per transform
+		{ 9, 5, 24 },		// 114 bits per transform
+		{ 9, 6, 23 },		// 114 bits per transform
+		{ 9, 7, 22 },		// 114 bits per transform
 		{ 9, 8, 21 },		// 114 bits per transform
 		{ 9, 9, 20 },		// 114 bits per transform
 		{ 9, 10, 19 },		// 114 bits per transform
@@ -8178,6 +9465,12 @@ namespace acl
 		{ 9, 19, 10 },		// 114 bits per transform
 		{ 9, 20, 9 },		// 114 bits per transform
 		{ 9, 21, 8 },		// 114 bits per transform
+		{ 9, 22, 7 },		// 114 bits per transform
+		{ 9, 23, 6 },		// 114 bits per transform
+		{ 9, 24, 5 },		// 114 bits per transform
+		{ 10, 4, 24 },		// 114 bits per transform
+		{ 10, 5, 23 },		// 114 bits per transform
+		{ 10, 6, 22 },		// 114 bits per transform
 		{ 10, 7, 21 },		// 114 bits per transform
 		{ 10, 8, 20 },		// 114 bits per transform
 		{ 10, 9, 19 },		// 114 bits per transform
@@ -8193,6 +9486,12 @@ namespace acl
 		{ 10, 19, 9 },		// 114 bits per transform
 		{ 10, 20, 8 },		// 114 bits per transform
 		{ 10, 21, 7 },		// 114 bits per transform
+		{ 10, 22, 6 },		// 114 bits per transform
+		{ 10, 23, 5 },		// 114 bits per transform
+		{ 10, 24, 4 },		// 114 bits per transform
+		{ 11, 3, 24 },		// 114 bits per transform
+		{ 11, 4, 23 },		// 114 bits per transform
+		{ 11, 5, 22 },		// 114 bits per transform
 		{ 11, 6, 21 },		// 114 bits per transform
 		{ 11, 7, 20 },		// 114 bits per transform
 		{ 11, 8, 19 },		// 114 bits per transform
@@ -8209,6 +9508,12 @@ namespace acl
 		{ 11, 19, 8 },		// 114 bits per transform
 		{ 11, 20, 7 },		// 114 bits per transform
 		{ 11, 21, 6 },		// 114 bits per transform
+		{ 11, 22, 5 },		// 114 bits per transform
+		{ 11, 23, 4 },		// 114 bits per transform
+		{ 11, 24, 3 },		// 114 bits per transform
+		{ 12, 2, 24 },		// 114 bits per transform
+		{ 12, 3, 23 },		// 114 bits per transform
+		{ 12, 4, 22 },		// 114 bits per transform
 		{ 12, 5, 21 },		// 114 bits per transform
 		{ 12, 6, 20 },		// 114 bits per transform
 		{ 12, 7, 19 },		// 114 bits per transform
@@ -8226,6 +9531,12 @@ namespace acl
 		{ 12, 19, 7 },		// 114 bits per transform
 		{ 12, 20, 6 },		// 114 bits per transform
 		{ 12, 21, 5 },		// 114 bits per transform
+		{ 12, 22, 4 },		// 114 bits per transform
+		{ 12, 23, 3 },		// 114 bits per transform
+		{ 12, 24, 2 },		// 114 bits per transform
+		{ 13, 1, 24 },		// 114 bits per transform
+		{ 13, 2, 23 },		// 114 bits per transform
+		{ 13, 3, 22 },		// 114 bits per transform
 		{ 13, 4, 21 },		// 114 bits per transform
 		{ 13, 5, 20 },		// 114 bits per transform
 		{ 13, 6, 19 },		// 114 bits per transform
@@ -8244,6 +9555,12 @@ namespace acl
 		{ 13, 19, 6 },		// 114 bits per transform
 		{ 13, 20, 5 },		// 114 bits per transform
 		{ 13, 21, 4 },		// 114 bits per transform
+		{ 13, 22, 3 },		// 114 bits per transform
+		{ 13, 23, 2 },		// 114 bits per transform
+		{ 13, 24, 1 },		// 114 bits per transform
+		{ 14, 0, 24 },		// 114 bits per transform
+		{ 14, 1, 23 },		// 114 bits per transform
+		{ 14, 2, 22 },		// 114 bits per transform
 		{ 14, 3, 21 },		// 114 bits per transform
 		{ 14, 4, 20 },		// 114 bits per transform
 		{ 14, 5, 19 },		// 114 bits per transform
@@ -8263,6 +9580,11 @@ namespace acl
 		{ 14, 19, 5 },		// 114 bits per transform
 		{ 14, 20, 4 },		// 114 bits per transform
 		{ 14, 21, 3 },		// 114 bits per transform
+		{ 14, 22, 2 },		// 114 bits per transform
+		{ 14, 23, 1 },		// 114 bits per transform
+		{ 14, 24, 0 },		// 114 bits per transform
+		{ 15, 0, 23 },		// 114 bits per transform
+		{ 15, 1, 22 },		// 114 bits per transform
 		{ 15, 2, 21 },		// 114 bits per transform
 		{ 15, 3, 20 },		// 114 bits per transform
 		{ 15, 4, 19 },		// 114 bits per transform
@@ -8283,6 +9605,9 @@ namespace acl
 		{ 15, 19, 4 },		// 114 bits per transform
 		{ 15, 20, 3 },		// 114 bits per transform
 		{ 15, 21, 2 },		// 114 bits per transform
+		{ 15, 22, 1 },		// 114 bits per transform
+		{ 15, 23, 0 },		// 114 bits per transform
+		{ 16, 0, 22 },		// 114 bits per transform
 		{ 16, 1, 21 },		// 114 bits per transform
 		{ 16, 2, 20 },		// 114 bits per transform
 		{ 16, 3, 19 },		// 114 bits per transform
@@ -8304,6 +9629,7 @@ namespace acl
 		{ 16, 19, 3 },		// 114 bits per transform
 		{ 16, 20, 2 },		// 114 bits per transform
 		{ 16, 21, 1 },		// 114 bits per transform
+		{ 16, 22, 0 },		// 114 bits per transform
 		{ 17, 0, 21 },		// 114 bits per transform
 		{ 17, 1, 20 },		// 114 bits per transform
 		{ 17, 2, 19 },		// 114 bits per transform
@@ -8404,35 +9730,104 @@ namespace acl
 		{ 21, 15, 2 },		// 114 bits per transform
 		{ 21, 16, 1 },		// 114 bits per transform
 		{ 21, 17, 0 },		// 114 bits per transform
-		{ 22, 0, 6 },		// 114 bits per transform
-		{ 22, 1, 5 },		// 114 bits per transform
-		{ 22, 2, 4 },		// 114 bits per transform
-		{ 22, 3, 3 },		// 114 bits per transform
-		{ 22, 4, 2 },		// 114 bits per transform
-		{ 22, 5, 1 },		// 114 bits per transform
-		{ 22, 6, 0 },		// 114 bits per transform
-		{ 0, 7, 22 },		// 117 bits per transform
+		{ 22, 0, 16 },		// 114 bits per transform
+		{ 22, 1, 15 },		// 114 bits per transform
+		{ 22, 2, 14 },		// 114 bits per transform
+		{ 22, 3, 13 },		// 114 bits per transform
+		{ 22, 4, 12 },		// 114 bits per transform
+		{ 22, 5, 11 },		// 114 bits per transform
+		{ 22, 6, 10 },		// 114 bits per transform
+		{ 22, 7, 9 },		// 114 bits per transform
+		{ 22, 8, 8 },		// 114 bits per transform
+		{ 22, 9, 7 },		// 114 bits per transform
+		{ 22, 10, 6 },		// 114 bits per transform
+		{ 22, 11, 5 },		// 114 bits per transform
+		{ 22, 12, 4 },		// 114 bits per transform
+		{ 22, 13, 3 },		// 114 bits per transform
+		{ 22, 14, 2 },		// 114 bits per transform
+		{ 22, 15, 1 },		// 114 bits per transform
+		{ 22, 16, 0 },		// 114 bits per transform
+		{ 23, 0, 15 },		// 114 bits per transform
+		{ 23, 1, 14 },		// 114 bits per transform
+		{ 23, 2, 13 },		// 114 bits per transform
+		{ 23, 3, 12 },		// 114 bits per transform
+		{ 23, 4, 11 },		// 114 bits per transform
+		{ 23, 5, 10 },		// 114 bits per transform
+		{ 23, 6, 9 },		// 114 bits per transform
+		{ 23, 7, 8 },		// 114 bits per transform
+		{ 23, 8, 7 },		// 114 bits per transform
+		{ 23, 9, 6 },		// 114 bits per transform
+		{ 23, 10, 5 },		// 114 bits per transform
+		{ 23, 11, 4 },		// 114 bits per transform
+		{ 23, 12, 3 },		// 114 bits per transform
+		{ 23, 13, 2 },		// 114 bits per transform
+		{ 23, 14, 1 },		// 114 bits per transform
+		{ 23, 15, 0 },		// 114 bits per transform
+		{ 24, 0, 14 },		// 114 bits per transform
+		{ 24, 1, 13 },		// 114 bits per transform
+		{ 24, 2, 12 },		// 114 bits per transform
+		{ 24, 3, 11 },		// 114 bits per transform
+		{ 24, 4, 10 },		// 114 bits per transform
+		{ 24, 5, 9 },		// 114 bits per transform
+		{ 24, 6, 8 },		// 114 bits per transform
+		{ 24, 7, 7 },		// 114 bits per transform
+		{ 24, 8, 6 },		// 114 bits per transform
+		{ 24, 9, 5 },		// 114 bits per transform
+		{ 24, 10, 4 },		// 114 bits per transform
+		{ 24, 11, 3 },		// 114 bits per transform
+		{ 24, 12, 2 },		// 114 bits per transform
+		{ 24, 13, 1 },		// 114 bits per transform
+		{ 24, 14, 0 },		// 114 bits per transform
+		{ 25, 0, 6 },		// 114 bits per transform
+		{ 25, 1, 5 },		// 114 bits per transform
+		{ 25, 2, 4 },		// 114 bits per transform
+		{ 25, 3, 3 },		// 114 bits per transform
+		{ 25, 4, 2 },		// 114 bits per transform
+		{ 25, 5, 1 },		// 114 bits per transform
+		{ 25, 6, 0 },		// 114 bits per transform
+		{ 0, 7, 25 },		// 117 bits per transform
+		{ 0, 15, 24 },		// 117 bits per transform
+		{ 0, 16, 23 },		// 117 bits per transform
+		{ 0, 17, 22 },		// 117 bits per transform
 		{ 0, 18, 21 },		// 117 bits per transform
 		{ 0, 19, 20 },		// 117 bits per transform
 		{ 0, 20, 19 },		// 117 bits per transform
 		{ 0, 21, 18 },		// 117 bits per transform
-		{ 0, 22, 7 },		// 117 bits per transform
-		{ 1, 6, 22 },		// 117 bits per transform
+		{ 0, 22, 17 },		// 117 bits per transform
+		{ 0, 23, 16 },		// 117 bits per transform
+		{ 0, 24, 15 },		// 117 bits per transform
+		{ 0, 25, 7 },		// 117 bits per transform
+		{ 1, 6, 25 },		// 117 bits per transform
+		{ 1, 14, 24 },		// 117 bits per transform
+		{ 1, 15, 23 },		// 117 bits per transform
+		{ 1, 16, 22 },		// 117 bits per transform
 		{ 1, 17, 21 },		// 117 bits per transform
 		{ 1, 18, 20 },		// 117 bits per transform
 		{ 1, 19, 19 },		// 117 bits per transform
 		{ 1, 20, 18 },		// 117 bits per transform
 		{ 1, 21, 17 },		// 117 bits per transform
-		{ 1, 22, 6 },		// 117 bits per transform
-		{ 2, 5, 22 },		// 117 bits per transform
+		{ 1, 22, 16 },		// 117 bits per transform
+		{ 1, 23, 15 },		// 117 bits per transform
+		{ 1, 24, 14 },		// 117 bits per transform
+		{ 1, 25, 6 },		// 117 bits per transform
+		{ 2, 5, 25 },		// 117 bits per transform
+		{ 2, 13, 24 },		// 117 bits per transform
+		{ 2, 14, 23 },		// 117 bits per transform
+		{ 2, 15, 22 },		// 117 bits per transform
 		{ 2, 16, 21 },		// 117 bits per transform
 		{ 2, 17, 20 },		// 117 bits per transform
 		{ 2, 18, 19 },		// 117 bits per transform
 		{ 2, 19, 18 },		// 117 bits per transform
 		{ 2, 20, 17 },		// 117 bits per transform
 		{ 2, 21, 16 },		// 117 bits per transform
-		{ 2, 22, 5 },		// 117 bits per transform
-		{ 3, 4, 22 },		// 117 bits per transform
+		{ 2, 22, 15 },		// 117 bits per transform
+		{ 2, 23, 14 },		// 117 bits per transform
+		{ 2, 24, 13 },		// 117 bits per transform
+		{ 2, 25, 5 },		// 117 bits per transform
+		{ 3, 4, 25 },		// 117 bits per transform
+		{ 3, 12, 24 },		// 117 bits per transform
+		{ 3, 13, 23 },		// 117 bits per transform
+		{ 3, 14, 22 },		// 117 bits per transform
 		{ 3, 15, 21 },		// 117 bits per transform
 		{ 3, 16, 20 },		// 117 bits per transform
 		{ 3, 17, 19 },		// 117 bits per transform
@@ -8440,8 +9835,14 @@ namespace acl
 		{ 3, 19, 17 },		// 117 bits per transform
 		{ 3, 20, 16 },		// 117 bits per transform
 		{ 3, 21, 15 },		// 117 bits per transform
-		{ 3, 22, 4 },		// 117 bits per transform
-		{ 4, 3, 22 },		// 117 bits per transform
+		{ 3, 22, 14 },		// 117 bits per transform
+		{ 3, 23, 13 },		// 117 bits per transform
+		{ 3, 24, 12 },		// 117 bits per transform
+		{ 3, 25, 4 },		// 117 bits per transform
+		{ 4, 3, 25 },		// 117 bits per transform
+		{ 4, 11, 24 },		// 117 bits per transform
+		{ 4, 12, 23 },		// 117 bits per transform
+		{ 4, 13, 22 },		// 117 bits per transform
 		{ 4, 14, 21 },		// 117 bits per transform
 		{ 4, 15, 20 },		// 117 bits per transform
 		{ 4, 16, 19 },		// 117 bits per transform
@@ -8450,8 +9851,14 @@ namespace acl
 		{ 4, 19, 16 },		// 117 bits per transform
 		{ 4, 20, 15 },		// 117 bits per transform
 		{ 4, 21, 14 },		// 117 bits per transform
-		{ 4, 22, 3 },		// 117 bits per transform
-		{ 5, 2, 22 },		// 117 bits per transform
+		{ 4, 22, 13 },		// 117 bits per transform
+		{ 4, 23, 12 },		// 117 bits per transform
+		{ 4, 24, 11 },		// 117 bits per transform
+		{ 4, 25, 3 },		// 117 bits per transform
+		{ 5, 2, 25 },		// 117 bits per transform
+		{ 5, 10, 24 },		// 117 bits per transform
+		{ 5, 11, 23 },		// 117 bits per transform
+		{ 5, 12, 22 },		// 117 bits per transform
 		{ 5, 13, 21 },		// 117 bits per transform
 		{ 5, 14, 20 },		// 117 bits per transform
 		{ 5, 15, 19 },		// 117 bits per transform
@@ -8461,8 +9868,14 @@ namespace acl
 		{ 5, 19, 15 },		// 117 bits per transform
 		{ 5, 20, 14 },		// 117 bits per transform
 		{ 5, 21, 13 },		// 117 bits per transform
-		{ 5, 22, 2 },		// 117 bits per transform
-		{ 6, 1, 22 },		// 117 bits per transform
+		{ 5, 22, 12 },		// 117 bits per transform
+		{ 5, 23, 11 },		// 117 bits per transform
+		{ 5, 24, 10 },		// 117 bits per transform
+		{ 5, 25, 2 },		// 117 bits per transform
+		{ 6, 1, 25 },		// 117 bits per transform
+		{ 6, 9, 24 },		// 117 bits per transform
+		{ 6, 10, 23 },		// 117 bits per transform
+		{ 6, 11, 22 },		// 117 bits per transform
 		{ 6, 12, 21 },		// 117 bits per transform
 		{ 6, 13, 20 },		// 117 bits per transform
 		{ 6, 14, 19 },		// 117 bits per transform
@@ -8473,8 +9886,14 @@ namespace acl
 		{ 6, 19, 14 },		// 117 bits per transform
 		{ 6, 20, 13 },		// 117 bits per transform
 		{ 6, 21, 12 },		// 117 bits per transform
-		{ 6, 22, 1 },		// 117 bits per transform
-		{ 7, 0, 22 },		// 117 bits per transform
+		{ 6, 22, 11 },		// 117 bits per transform
+		{ 6, 23, 10 },		// 117 bits per transform
+		{ 6, 24, 9 },		// 117 bits per transform
+		{ 6, 25, 1 },		// 117 bits per transform
+		{ 7, 0, 25 },		// 117 bits per transform
+		{ 7, 8, 24 },		// 117 bits per transform
+		{ 7, 9, 23 },		// 117 bits per transform
+		{ 7, 10, 22 },		// 117 bits per transform
 		{ 7, 11, 21 },		// 117 bits per transform
 		{ 7, 12, 20 },		// 117 bits per transform
 		{ 7, 13, 19 },		// 117 bits per transform
@@ -8486,7 +9905,13 @@ namespace acl
 		{ 7, 19, 13 },		// 117 bits per transform
 		{ 7, 20, 12 },		// 117 bits per transform
 		{ 7, 21, 11 },		// 117 bits per transform
-		{ 7, 22, 0 },		// 117 bits per transform
+		{ 7, 22, 10 },		// 117 bits per transform
+		{ 7, 23, 9 },		// 117 bits per transform
+		{ 7, 24, 8 },		// 117 bits per transform
+		{ 7, 25, 0 },		// 117 bits per transform
+		{ 8, 7, 24 },		// 117 bits per transform
+		{ 8, 8, 23 },		// 117 bits per transform
+		{ 8, 9, 22 },		// 117 bits per transform
 		{ 8, 10, 21 },		// 117 bits per transform
 		{ 8, 11, 20 },		// 117 bits per transform
 		{ 8, 12, 19 },		// 117 bits per transform
@@ -8499,6 +9924,12 @@ namespace acl
 		{ 8, 19, 12 },		// 117 bits per transform
 		{ 8, 20, 11 },		// 117 bits per transform
 		{ 8, 21, 10 },		// 117 bits per transform
+		{ 8, 22, 9 },		// 117 bits per transform
+		{ 8, 23, 8 },		// 117 bits per transform
+		{ 8, 24, 7 },		// 117 bits per transform
+		{ 9, 6, 24 },		// 117 bits per transform
+		{ 9, 7, 23 },		// 117 bits per transform
+		{ 9, 8, 22 },		// 117 bits per transform
 		{ 9, 9, 21 },		// 117 bits per transform
 		{ 9, 10, 20 },		// 117 bits per transform
 		{ 9, 11, 19 },		// 117 bits per transform
@@ -8512,6 +9943,12 @@ namespace acl
 		{ 9, 19, 11 },		// 117 bits per transform
 		{ 9, 20, 10 },		// 117 bits per transform
 		{ 9, 21, 9 },		// 117 bits per transform
+		{ 9, 22, 8 },		// 117 bits per transform
+		{ 9, 23, 7 },		// 117 bits per transform
+		{ 9, 24, 6 },		// 117 bits per transform
+		{ 10, 5, 24 },		// 117 bits per transform
+		{ 10, 6, 23 },		// 117 bits per transform
+		{ 10, 7, 22 },		// 117 bits per transform
 		{ 10, 8, 21 },		// 117 bits per transform
 		{ 10, 9, 20 },		// 117 bits per transform
 		{ 10, 10, 19 },		// 117 bits per transform
@@ -8526,6 +9963,12 @@ namespace acl
 		{ 10, 19, 10 },		// 117 bits per transform
 		{ 10, 20, 9 },		// 117 bits per transform
 		{ 10, 21, 8 },		// 117 bits per transform
+		{ 10, 22, 7 },		// 117 bits per transform
+		{ 10, 23, 6 },		// 117 bits per transform
+		{ 10, 24, 5 },		// 117 bits per transform
+		{ 11, 4, 24 },		// 117 bits per transform
+		{ 11, 5, 23 },		// 117 bits per transform
+		{ 11, 6, 22 },		// 117 bits per transform
 		{ 11, 7, 21 },		// 117 bits per transform
 		{ 11, 8, 20 },		// 117 bits per transform
 		{ 11, 9, 19 },		// 117 bits per transform
@@ -8541,6 +9984,12 @@ namespace acl
 		{ 11, 19, 9 },		// 117 bits per transform
 		{ 11, 20, 8 },		// 117 bits per transform
 		{ 11, 21, 7 },		// 117 bits per transform
+		{ 11, 22, 6 },		// 117 bits per transform
+		{ 11, 23, 5 },		// 117 bits per transform
+		{ 11, 24, 4 },		// 117 bits per transform
+		{ 12, 3, 24 },		// 117 bits per transform
+		{ 12, 4, 23 },		// 117 bits per transform
+		{ 12, 5, 22 },		// 117 bits per transform
 		{ 12, 6, 21 },		// 117 bits per transform
 		{ 12, 7, 20 },		// 117 bits per transform
 		{ 12, 8, 19 },		// 117 bits per transform
@@ -8557,6 +10006,12 @@ namespace acl
 		{ 12, 19, 8 },		// 117 bits per transform
 		{ 12, 20, 7 },		// 117 bits per transform
 		{ 12, 21, 6 },		// 117 bits per transform
+		{ 12, 22, 5 },		// 117 bits per transform
+		{ 12, 23, 4 },		// 117 bits per transform
+		{ 12, 24, 3 },		// 117 bits per transform
+		{ 13, 2, 24 },		// 117 bits per transform
+		{ 13, 3, 23 },		// 117 bits per transform
+		{ 13, 4, 22 },		// 117 bits per transform
 		{ 13, 5, 21 },		// 117 bits per transform
 		{ 13, 6, 20 },		// 117 bits per transform
 		{ 13, 7, 19 },		// 117 bits per transform
@@ -8574,6 +10029,12 @@ namespace acl
 		{ 13, 19, 7 },		// 117 bits per transform
 		{ 13, 20, 6 },		// 117 bits per transform
 		{ 13, 21, 5 },		// 117 bits per transform
+		{ 13, 22, 4 },		// 117 bits per transform
+		{ 13, 23, 3 },		// 117 bits per transform
+		{ 13, 24, 2 },		// 117 bits per transform
+		{ 14, 1, 24 },		// 117 bits per transform
+		{ 14, 2, 23 },		// 117 bits per transform
+		{ 14, 3, 22 },		// 117 bits per transform
 		{ 14, 4, 21 },		// 117 bits per transform
 		{ 14, 5, 20 },		// 117 bits per transform
 		{ 14, 6, 19 },		// 117 bits per transform
@@ -8592,6 +10053,12 @@ namespace acl
 		{ 14, 19, 6 },		// 117 bits per transform
 		{ 14, 20, 5 },		// 117 bits per transform
 		{ 14, 21, 4 },		// 117 bits per transform
+		{ 14, 22, 3 },		// 117 bits per transform
+		{ 14, 23, 2 },		// 117 bits per transform
+		{ 14, 24, 1 },		// 117 bits per transform
+		{ 15, 0, 24 },		// 117 bits per transform
+		{ 15, 1, 23 },		// 117 bits per transform
+		{ 15, 2, 22 },		// 117 bits per transform
 		{ 15, 3, 21 },		// 117 bits per transform
 		{ 15, 4, 20 },		// 117 bits per transform
 		{ 15, 5, 19 },		// 117 bits per transform
@@ -8611,6 +10078,11 @@ namespace acl
 		{ 15, 19, 5 },		// 117 bits per transform
 		{ 15, 20, 4 },		// 117 bits per transform
 		{ 15, 21, 3 },		// 117 bits per transform
+		{ 15, 22, 2 },		// 117 bits per transform
+		{ 15, 23, 1 },		// 117 bits per transform
+		{ 15, 24, 0 },		// 117 bits per transform
+		{ 16, 0, 23 },		// 117 bits per transform
+		{ 16, 1, 22 },		// 117 bits per transform
 		{ 16, 2, 21 },		// 117 bits per transform
 		{ 16, 3, 20 },		// 117 bits per transform
 		{ 16, 4, 19 },		// 117 bits per transform
@@ -8631,6 +10103,9 @@ namespace acl
 		{ 16, 19, 4 },		// 117 bits per transform
 		{ 16, 20, 3 },		// 117 bits per transform
 		{ 16, 21, 2 },		// 117 bits per transform
+		{ 16, 22, 1 },		// 117 bits per transform
+		{ 16, 23, 0 },		// 117 bits per transform
+		{ 17, 0, 22 },		// 117 bits per transform
 		{ 17, 1, 21 },		// 117 bits per transform
 		{ 17, 2, 20 },		// 117 bits per transform
 		{ 17, 3, 19 },		// 117 bits per transform
@@ -8652,6 +10127,7 @@ namespace acl
 		{ 17, 19, 3 },		// 117 bits per transform
 		{ 17, 20, 2 },		// 117 bits per transform
 		{ 17, 21, 1 },		// 117 bits per transform
+		{ 17, 22, 0 },		// 117 bits per transform
 		{ 18, 0, 21 },		// 117 bits per transform
 		{ 18, 1, 20 },		// 117 bits per transform
 		{ 18, 2, 19 },		// 117 bits per transform
@@ -8734,41 +10210,119 @@ namespace acl
 		{ 21, 16, 2 },		// 117 bits per transform
 		{ 21, 17, 1 },		// 117 bits per transform
 		{ 21, 18, 0 },		// 117 bits per transform
-		{ 22, 0, 7 },		// 117 bits per transform
-		{ 22, 1, 6 },		// 117 bits per transform
-		{ 22, 2, 5 },		// 117 bits per transform
-		{ 22, 3, 4 },		// 117 bits per transform
-		{ 22, 4, 3 },		// 117 bits per transform
-		{ 22, 5, 2 },		// 117 bits per transform
-		{ 22, 6, 1 },		// 117 bits per transform
-		{ 22, 7, 0 },		// 117 bits per transform
-		{ 0, 8, 22 },		// 120 bits per transform
+		{ 22, 0, 17 },		// 117 bits per transform
+		{ 22, 1, 16 },		// 117 bits per transform
+		{ 22, 2, 15 },		// 117 bits per transform
+		{ 22, 3, 14 },		// 117 bits per transform
+		{ 22, 4, 13 },		// 117 bits per transform
+		{ 22, 5, 12 },		// 117 bits per transform
+		{ 22, 6, 11 },		// 117 bits per transform
+		{ 22, 7, 10 },		// 117 bits per transform
+		{ 22, 8, 9 },		// 117 bits per transform
+		{ 22, 9, 8 },		// 117 bits per transform
+		{ 22, 10, 7 },		// 117 bits per transform
+		{ 22, 11, 6 },		// 117 bits per transform
+		{ 22, 12, 5 },		// 117 bits per transform
+		{ 22, 13, 4 },		// 117 bits per transform
+		{ 22, 14, 3 },		// 117 bits per transform
+		{ 22, 15, 2 },		// 117 bits per transform
+		{ 22, 16, 1 },		// 117 bits per transform
+		{ 22, 17, 0 },		// 117 bits per transform
+		{ 23, 0, 16 },		// 117 bits per transform
+		{ 23, 1, 15 },		// 117 bits per transform
+		{ 23, 2, 14 },		// 117 bits per transform
+		{ 23, 3, 13 },		// 117 bits per transform
+		{ 23, 4, 12 },		// 117 bits per transform
+		{ 23, 5, 11 },		// 117 bits per transform
+		{ 23, 6, 10 },		// 117 bits per transform
+		{ 23, 7, 9 },		// 117 bits per transform
+		{ 23, 8, 8 },		// 117 bits per transform
+		{ 23, 9, 7 },		// 117 bits per transform
+		{ 23, 10, 6 },		// 117 bits per transform
+		{ 23, 11, 5 },		// 117 bits per transform
+		{ 23, 12, 4 },		// 117 bits per transform
+		{ 23, 13, 3 },		// 117 bits per transform
+		{ 23, 14, 2 },		// 117 bits per transform
+		{ 23, 15, 1 },		// 117 bits per transform
+		{ 23, 16, 0 },		// 117 bits per transform
+		{ 24, 0, 15 },		// 117 bits per transform
+		{ 24, 1, 14 },		// 117 bits per transform
+		{ 24, 2, 13 },		// 117 bits per transform
+		{ 24, 3, 12 },		// 117 bits per transform
+		{ 24, 4, 11 },		// 117 bits per transform
+		{ 24, 5, 10 },		// 117 bits per transform
+		{ 24, 6, 9 },		// 117 bits per transform
+		{ 24, 7, 8 },		// 117 bits per transform
+		{ 24, 8, 7 },		// 117 bits per transform
+		{ 24, 9, 6 },		// 117 bits per transform
+		{ 24, 10, 5 },		// 117 bits per transform
+		{ 24, 11, 4 },		// 117 bits per transform
+		{ 24, 12, 3 },		// 117 bits per transform
+		{ 24, 13, 2 },		// 117 bits per transform
+		{ 24, 14, 1 },		// 117 bits per transform
+		{ 24, 15, 0 },		// 117 bits per transform
+		{ 25, 0, 7 },		// 117 bits per transform
+		{ 25, 1, 6 },		// 117 bits per transform
+		{ 25, 2, 5 },		// 117 bits per transform
+		{ 25, 3, 4 },		// 117 bits per transform
+		{ 25, 4, 3 },		// 117 bits per transform
+		{ 25, 5, 2 },		// 117 bits per transform
+		{ 25, 6, 1 },		// 117 bits per transform
+		{ 25, 7, 0 },		// 117 bits per transform
+		{ 0, 8, 25 },		// 120 bits per transform
+		{ 0, 16, 24 },		// 120 bits per transform
+		{ 0, 17, 23 },		// 120 bits per transform
+		{ 0, 18, 22 },		// 120 bits per transform
 		{ 0, 19, 21 },		// 120 bits per transform
 		{ 0, 20, 20 },		// 120 bits per transform
 		{ 0, 21, 19 },		// 120 bits per transform
-		{ 0, 22, 8 },		// 120 bits per transform
-		{ 1, 7, 22 },		// 120 bits per transform
+		{ 0, 22, 18 },		// 120 bits per transform
+		{ 0, 23, 17 },		// 120 bits per transform
+		{ 0, 24, 16 },		// 120 bits per transform
+		{ 0, 25, 8 },		// 120 bits per transform
+		{ 1, 7, 25 },		// 120 bits per transform
+		{ 1, 15, 24 },		// 120 bits per transform
+		{ 1, 16, 23 },		// 120 bits per transform
+		{ 1, 17, 22 },		// 120 bits per transform
 		{ 1, 18, 21 },		// 120 bits per transform
 		{ 1, 19, 20 },		// 120 bits per transform
 		{ 1, 20, 19 },		// 120 bits per transform
 		{ 1, 21, 18 },		// 120 bits per transform
-		{ 1, 22, 7 },		// 120 bits per transform
-		{ 2, 6, 22 },		// 120 bits per transform
+		{ 1, 22, 17 },		// 120 bits per transform
+		{ 1, 23, 16 },		// 120 bits per transform
+		{ 1, 24, 15 },		// 120 bits per transform
+		{ 1, 25, 7 },		// 120 bits per transform
+		{ 2, 6, 25 },		// 120 bits per transform
+		{ 2, 14, 24 },		// 120 bits per transform
+		{ 2, 15, 23 },		// 120 bits per transform
+		{ 2, 16, 22 },		// 120 bits per transform
 		{ 2, 17, 21 },		// 120 bits per transform
 		{ 2, 18, 20 },		// 120 bits per transform
 		{ 2, 19, 19 },		// 120 bits per transform
 		{ 2, 20, 18 },		// 120 bits per transform
 		{ 2, 21, 17 },		// 120 bits per transform
-		{ 2, 22, 6 },		// 120 bits per transform
-		{ 3, 5, 22 },		// 120 bits per transform
+		{ 2, 22, 16 },		// 120 bits per transform
+		{ 2, 23, 15 },		// 120 bits per transform
+		{ 2, 24, 14 },		// 120 bits per transform
+		{ 2, 25, 6 },		// 120 bits per transform
+		{ 3, 5, 25 },		// 120 bits per transform
+		{ 3, 13, 24 },		// 120 bits per transform
+		{ 3, 14, 23 },		// 120 bits per transform
+		{ 3, 15, 22 },		// 120 bits per transform
 		{ 3, 16, 21 },		// 120 bits per transform
 		{ 3, 17, 20 },		// 120 bits per transform
 		{ 3, 18, 19 },		// 120 bits per transform
 		{ 3, 19, 18 },		// 120 bits per transform
 		{ 3, 20, 17 },		// 120 bits per transform
 		{ 3, 21, 16 },		// 120 bits per transform
-		{ 3, 22, 5 },		// 120 bits per transform
-		{ 4, 4, 22 },		// 120 bits per transform
+		{ 3, 22, 15 },		// 120 bits per transform
+		{ 3, 23, 14 },		// 120 bits per transform
+		{ 3, 24, 13 },		// 120 bits per transform
+		{ 3, 25, 5 },		// 120 bits per transform
+		{ 4, 4, 25 },		// 120 bits per transform
+		{ 4, 12, 24 },		// 120 bits per transform
+		{ 4, 13, 23 },		// 120 bits per transform
+		{ 4, 14, 22 },		// 120 bits per transform
 		{ 4, 15, 21 },		// 120 bits per transform
 		{ 4, 16, 20 },		// 120 bits per transform
 		{ 4, 17, 19 },		// 120 bits per transform
@@ -8776,8 +10330,14 @@ namespace acl
 		{ 4, 19, 17 },		// 120 bits per transform
 		{ 4, 20, 16 },		// 120 bits per transform
 		{ 4, 21, 15 },		// 120 bits per transform
-		{ 4, 22, 4 },		// 120 bits per transform
-		{ 5, 3, 22 },		// 120 bits per transform
+		{ 4, 22, 14 },		// 120 bits per transform
+		{ 4, 23, 13 },		// 120 bits per transform
+		{ 4, 24, 12 },		// 120 bits per transform
+		{ 4, 25, 4 },		// 120 bits per transform
+		{ 5, 3, 25 },		// 120 bits per transform
+		{ 5, 11, 24 },		// 120 bits per transform
+		{ 5, 12, 23 },		// 120 bits per transform
+		{ 5, 13, 22 },		// 120 bits per transform
 		{ 5, 14, 21 },		// 120 bits per transform
 		{ 5, 15, 20 },		// 120 bits per transform
 		{ 5, 16, 19 },		// 120 bits per transform
@@ -8786,8 +10346,14 @@ namespace acl
 		{ 5, 19, 16 },		// 120 bits per transform
 		{ 5, 20, 15 },		// 120 bits per transform
 		{ 5, 21, 14 },		// 120 bits per transform
-		{ 5, 22, 3 },		// 120 bits per transform
-		{ 6, 2, 22 },		// 120 bits per transform
+		{ 5, 22, 13 },		// 120 bits per transform
+		{ 5, 23, 12 },		// 120 bits per transform
+		{ 5, 24, 11 },		// 120 bits per transform
+		{ 5, 25, 3 },		// 120 bits per transform
+		{ 6, 2, 25 },		// 120 bits per transform
+		{ 6, 10, 24 },		// 120 bits per transform
+		{ 6, 11, 23 },		// 120 bits per transform
+		{ 6, 12, 22 },		// 120 bits per transform
 		{ 6, 13, 21 },		// 120 bits per transform
 		{ 6, 14, 20 },		// 120 bits per transform
 		{ 6, 15, 19 },		// 120 bits per transform
@@ -8797,8 +10363,14 @@ namespace acl
 		{ 6, 19, 15 },		// 120 bits per transform
 		{ 6, 20, 14 },		// 120 bits per transform
 		{ 6, 21, 13 },		// 120 bits per transform
-		{ 6, 22, 2 },		// 120 bits per transform
-		{ 7, 1, 22 },		// 120 bits per transform
+		{ 6, 22, 12 },		// 120 bits per transform
+		{ 6, 23, 11 },		// 120 bits per transform
+		{ 6, 24, 10 },		// 120 bits per transform
+		{ 6, 25, 2 },		// 120 bits per transform
+		{ 7, 1, 25 },		// 120 bits per transform
+		{ 7, 9, 24 },		// 120 bits per transform
+		{ 7, 10, 23 },		// 120 bits per transform
+		{ 7, 11, 22 },		// 120 bits per transform
 		{ 7, 12, 21 },		// 120 bits per transform
 		{ 7, 13, 20 },		// 120 bits per transform
 		{ 7, 14, 19 },		// 120 bits per transform
@@ -8809,8 +10381,14 @@ namespace acl
 		{ 7, 19, 14 },		// 120 bits per transform
 		{ 7, 20, 13 },		// 120 bits per transform
 		{ 7, 21, 12 },		// 120 bits per transform
-		{ 7, 22, 1 },		// 120 bits per transform
-		{ 8, 0, 22 },		// 120 bits per transform
+		{ 7, 22, 11 },		// 120 bits per transform
+		{ 7, 23, 10 },		// 120 bits per transform
+		{ 7, 24, 9 },		// 120 bits per transform
+		{ 7, 25, 1 },		// 120 bits per transform
+		{ 8, 0, 25 },		// 120 bits per transform
+		{ 8, 8, 24 },		// 120 bits per transform
+		{ 8, 9, 23 },		// 120 bits per transform
+		{ 8, 10, 22 },		// 120 bits per transform
 		{ 8, 11, 21 },		// 120 bits per transform
 		{ 8, 12, 20 },		// 120 bits per transform
 		{ 8, 13, 19 },		// 120 bits per transform
@@ -8822,7 +10400,13 @@ namespace acl
 		{ 8, 19, 13 },		// 120 bits per transform
 		{ 8, 20, 12 },		// 120 bits per transform
 		{ 8, 21, 11 },		// 120 bits per transform
-		{ 8, 22, 0 },		// 120 bits per transform
+		{ 8, 22, 10 },		// 120 bits per transform
+		{ 8, 23, 9 },		// 120 bits per transform
+		{ 8, 24, 8 },		// 120 bits per transform
+		{ 8, 25, 0 },		// 120 bits per transform
+		{ 9, 7, 24 },		// 120 bits per transform
+		{ 9, 8, 23 },		// 120 bits per transform
+		{ 9, 9, 22 },		// 120 bits per transform
 		{ 9, 10, 21 },		// 120 bits per transform
 		{ 9, 11, 20 },		// 120 bits per transform
 		{ 9, 12, 19 },		// 120 bits per transform
@@ -8835,6 +10419,12 @@ namespace acl
 		{ 9, 19, 12 },		// 120 bits per transform
 		{ 9, 20, 11 },		// 120 bits per transform
 		{ 9, 21, 10 },		// 120 bits per transform
+		{ 9, 22, 9 },		// 120 bits per transform
+		{ 9, 23, 8 },		// 120 bits per transform
+		{ 9, 24, 7 },		// 120 bits per transform
+		{ 10, 6, 24 },		// 120 bits per transform
+		{ 10, 7, 23 },		// 120 bits per transform
+		{ 10, 8, 22 },		// 120 bits per transform
 		{ 10, 9, 21 },		// 120 bits per transform
 		{ 10, 10, 20 },		// 120 bits per transform
 		{ 10, 11, 19 },		// 120 bits per transform
@@ -8848,6 +10438,12 @@ namespace acl
 		{ 10, 19, 11 },		// 120 bits per transform
 		{ 10, 20, 10 },		// 120 bits per transform
 		{ 10, 21, 9 },		// 120 bits per transform
+		{ 10, 22, 8 },		// 120 bits per transform
+		{ 10, 23, 7 },		// 120 bits per transform
+		{ 10, 24, 6 },		// 120 bits per transform
+		{ 11, 5, 24 },		// 120 bits per transform
+		{ 11, 6, 23 },		// 120 bits per transform
+		{ 11, 7, 22 },		// 120 bits per transform
 		{ 11, 8, 21 },		// 120 bits per transform
 		{ 11, 9, 20 },		// 120 bits per transform
 		{ 11, 10, 19 },		// 120 bits per transform
@@ -8862,6 +10458,12 @@ namespace acl
 		{ 11, 19, 10 },		// 120 bits per transform
 		{ 11, 20, 9 },		// 120 bits per transform
 		{ 11, 21, 8 },		// 120 bits per transform
+		{ 11, 22, 7 },		// 120 bits per transform
+		{ 11, 23, 6 },		// 120 bits per transform
+		{ 11, 24, 5 },		// 120 bits per transform
+		{ 12, 4, 24 },		// 120 bits per transform
+		{ 12, 5, 23 },		// 120 bits per transform
+		{ 12, 6, 22 },		// 120 bits per transform
 		{ 12, 7, 21 },		// 120 bits per transform
 		{ 12, 8, 20 },		// 120 bits per transform
 		{ 12, 9, 19 },		// 120 bits per transform
@@ -8877,6 +10479,12 @@ namespace acl
 		{ 12, 19, 9 },		// 120 bits per transform
 		{ 12, 20, 8 },		// 120 bits per transform
 		{ 12, 21, 7 },		// 120 bits per transform
+		{ 12, 22, 6 },		// 120 bits per transform
+		{ 12, 23, 5 },		// 120 bits per transform
+		{ 12, 24, 4 },		// 120 bits per transform
+		{ 13, 3, 24 },		// 120 bits per transform
+		{ 13, 4, 23 },		// 120 bits per transform
+		{ 13, 5, 22 },		// 120 bits per transform
 		{ 13, 6, 21 },		// 120 bits per transform
 		{ 13, 7, 20 },		// 120 bits per transform
 		{ 13, 8, 19 },		// 120 bits per transform
@@ -8893,6 +10501,12 @@ namespace acl
 		{ 13, 19, 8 },		// 120 bits per transform
 		{ 13, 20, 7 },		// 120 bits per transform
 		{ 13, 21, 6 },		// 120 bits per transform
+		{ 13, 22, 5 },		// 120 bits per transform
+		{ 13, 23, 4 },		// 120 bits per transform
+		{ 13, 24, 3 },		// 120 bits per transform
+		{ 14, 2, 24 },		// 120 bits per transform
+		{ 14, 3, 23 },		// 120 bits per transform
+		{ 14, 4, 22 },		// 120 bits per transform
 		{ 14, 5, 21 },		// 120 bits per transform
 		{ 14, 6, 20 },		// 120 bits per transform
 		{ 14, 7, 19 },		// 120 bits per transform
@@ -8910,6 +10524,12 @@ namespace acl
 		{ 14, 19, 7 },		// 120 bits per transform
 		{ 14, 20, 6 },		// 120 bits per transform
 		{ 14, 21, 5 },		// 120 bits per transform
+		{ 14, 22, 4 },		// 120 bits per transform
+		{ 14, 23, 3 },		// 120 bits per transform
+		{ 14, 24, 2 },		// 120 bits per transform
+		{ 15, 1, 24 },		// 120 bits per transform
+		{ 15, 2, 23 },		// 120 bits per transform
+		{ 15, 3, 22 },		// 120 bits per transform
 		{ 15, 4, 21 },		// 120 bits per transform
 		{ 15, 5, 20 },		// 120 bits per transform
 		{ 15, 6, 19 },		// 120 bits per transform
@@ -8928,6 +10548,12 @@ namespace acl
 		{ 15, 19, 6 },		// 120 bits per transform
 		{ 15, 20, 5 },		// 120 bits per transform
 		{ 15, 21, 4 },		// 120 bits per transform
+		{ 15, 22, 3 },		// 120 bits per transform
+		{ 15, 23, 2 },		// 120 bits per transform
+		{ 15, 24, 1 },		// 120 bits per transform
+		{ 16, 0, 24 },		// 120 bits per transform
+		{ 16, 1, 23 },		// 120 bits per transform
+		{ 16, 2, 22 },		// 120 bits per transform
 		{ 16, 3, 21 },		// 120 bits per transform
 		{ 16, 4, 20 },		// 120 bits per transform
 		{ 16, 5, 19 },		// 120 bits per transform
@@ -8947,6 +10573,11 @@ namespace acl
 		{ 16, 19, 5 },		// 120 bits per transform
 		{ 16, 20, 4 },		// 120 bits per transform
 		{ 16, 21, 3 },		// 120 bits per transform
+		{ 16, 22, 2 },		// 120 bits per transform
+		{ 16, 23, 1 },		// 120 bits per transform
+		{ 16, 24, 0 },		// 120 bits per transform
+		{ 17, 0, 23 },		// 120 bits per transform
+		{ 17, 1, 22 },		// 120 bits per transform
 		{ 17, 2, 21 },		// 120 bits per transform
 		{ 17, 3, 20 },		// 120 bits per transform
 		{ 17, 4, 19 },		// 120 bits per transform
@@ -8967,6 +10598,9 @@ namespace acl
 		{ 17, 19, 4 },		// 120 bits per transform
 		{ 17, 20, 3 },		// 120 bits per transform
 		{ 17, 21, 2 },		// 120 bits per transform
+		{ 17, 22, 1 },		// 120 bits per transform
+		{ 17, 23, 0 },		// 120 bits per transform
+		{ 18, 0, 22 },		// 120 bits per transform
 		{ 18, 1, 21 },		// 120 bits per transform
 		{ 18, 2, 20 },		// 120 bits per transform
 		{ 18, 3, 19 },		// 120 bits per transform
@@ -8988,6 +10622,7 @@ namespace acl
 		{ 18, 19, 3 },		// 120 bits per transform
 		{ 18, 20, 2 },		// 120 bits per transform
 		{ 18, 21, 1 },		// 120 bits per transform
+		{ 18, 22, 0 },		// 120 bits per transform
 		{ 19, 0, 21 },		// 120 bits per transform
 		{ 19, 1, 20 },		// 120 bits per transform
 		{ 19, 2, 19 },		// 120 bits per transform
@@ -9051,46 +10686,133 @@ namespace acl
 		{ 21, 17, 2 },		// 120 bits per transform
 		{ 21, 18, 1 },		// 120 bits per transform
 		{ 21, 19, 0 },		// 120 bits per transform
-		{ 22, 0, 8 },		// 120 bits per transform
-		{ 22, 1, 7 },		// 120 bits per transform
-		{ 22, 2, 6 },		// 120 bits per transform
-		{ 22, 3, 5 },		// 120 bits per transform
-		{ 22, 4, 4 },		// 120 bits per transform
-		{ 22, 5, 3 },		// 120 bits per transform
-		{ 22, 6, 2 },		// 120 bits per transform
-		{ 22, 7, 1 },		// 120 bits per transform
-		{ 22, 8, 0 },		// 120 bits per transform
-		{ 0, 9, 22 },		// 123 bits per transform
+		{ 22, 0, 18 },		// 120 bits per transform
+		{ 22, 1, 17 },		// 120 bits per transform
+		{ 22, 2, 16 },		// 120 bits per transform
+		{ 22, 3, 15 },		// 120 bits per transform
+		{ 22, 4, 14 },		// 120 bits per transform
+		{ 22, 5, 13 },		// 120 bits per transform
+		{ 22, 6, 12 },		// 120 bits per transform
+		{ 22, 7, 11 },		// 120 bits per transform
+		{ 22, 8, 10 },		// 120 bits per transform
+		{ 22, 9, 9 },		// 120 bits per transform
+		{ 22, 10, 8 },		// 120 bits per transform
+		{ 22, 11, 7 },		// 120 bits per transform
+		{ 22, 12, 6 },		// 120 bits per transform
+		{ 22, 13, 5 },		// 120 bits per transform
+		{ 22, 14, 4 },		// 120 bits per transform
+		{ 22, 15, 3 },		// 120 bits per transform
+		{ 22, 16, 2 },		// 120 bits per transform
+		{ 22, 17, 1 },		// 120 bits per transform
+		{ 22, 18, 0 },		// 120 bits per transform
+		{ 23, 0, 17 },		// 120 bits per transform
+		{ 23, 1, 16 },		// 120 bits per transform
+		{ 23, 2, 15 },		// 120 bits per transform
+		{ 23, 3, 14 },		// 120 bits per transform
+		{ 23, 4, 13 },		// 120 bits per transform
+		{ 23, 5, 12 },		// 120 bits per transform
+		{ 23, 6, 11 },		// 120 bits per transform
+		{ 23, 7, 10 },		// 120 bits per transform
+		{ 23, 8, 9 },		// 120 bits per transform
+		{ 23, 9, 8 },		// 120 bits per transform
+		{ 23, 10, 7 },		// 120 bits per transform
+		{ 23, 11, 6 },		// 120 bits per transform
+		{ 23, 12, 5 },		// 120 bits per transform
+		{ 23, 13, 4 },		// 120 bits per transform
+		{ 23, 14, 3 },		// 120 bits per transform
+		{ 23, 15, 2 },		// 120 bits per transform
+		{ 23, 16, 1 },		// 120 bits per transform
+		{ 23, 17, 0 },		// 120 bits per transform
+		{ 24, 0, 16 },		// 120 bits per transform
+		{ 24, 1, 15 },		// 120 bits per transform
+		{ 24, 2, 14 },		// 120 bits per transform
+		{ 24, 3, 13 },		// 120 bits per transform
+		{ 24, 4, 12 },		// 120 bits per transform
+		{ 24, 5, 11 },		// 120 bits per transform
+		{ 24, 6, 10 },		// 120 bits per transform
+		{ 24, 7, 9 },		// 120 bits per transform
+		{ 24, 8, 8 },		// 120 bits per transform
+		{ 24, 9, 7 },		// 120 bits per transform
+		{ 24, 10, 6 },		// 120 bits per transform
+		{ 24, 11, 5 },		// 120 bits per transform
+		{ 24, 12, 4 },		// 120 bits per transform
+		{ 24, 13, 3 },		// 120 bits per transform
+		{ 24, 14, 2 },		// 120 bits per transform
+		{ 24, 15, 1 },		// 120 bits per transform
+		{ 24, 16, 0 },		// 120 bits per transform
+		{ 25, 0, 8 },		// 120 bits per transform
+		{ 25, 1, 7 },		// 120 bits per transform
+		{ 25, 2, 6 },		// 120 bits per transform
+		{ 25, 3, 5 },		// 120 bits per transform
+		{ 25, 4, 4 },		// 120 bits per transform
+		{ 25, 5, 3 },		// 120 bits per transform
+		{ 25, 6, 2 },		// 120 bits per transform
+		{ 25, 7, 1 },		// 120 bits per transform
+		{ 25, 8, 0 },		// 120 bits per transform
+		{ 0, 9, 25 },		// 123 bits per transform
+		{ 0, 17, 24 },		// 123 bits per transform
+		{ 0, 18, 23 },		// 123 bits per transform
+		{ 0, 19, 22 },		// 123 bits per transform
 		{ 0, 20, 21 },		// 123 bits per transform
 		{ 0, 21, 20 },		// 123 bits per transform
-		{ 0, 22, 9 },		// 123 bits per transform
-		{ 1, 8, 22 },		// 123 bits per transform
+		{ 0, 22, 19 },		// 123 bits per transform
+		{ 0, 23, 18 },		// 123 bits per transform
+		{ 0, 24, 17 },		// 123 bits per transform
+		{ 0, 25, 9 },		// 123 bits per transform
+		{ 1, 8, 25 },		// 123 bits per transform
+		{ 1, 16, 24 },		// 123 bits per transform
+		{ 1, 17, 23 },		// 123 bits per transform
+		{ 1, 18, 22 },		// 123 bits per transform
 		{ 1, 19, 21 },		// 123 bits per transform
 		{ 1, 20, 20 },		// 123 bits per transform
 		{ 1, 21, 19 },		// 123 bits per transform
-		{ 1, 22, 8 },		// 123 bits per transform
-		{ 2, 7, 22 },		// 123 bits per transform
+		{ 1, 22, 18 },		// 123 bits per transform
+		{ 1, 23, 17 },		// 123 bits per transform
+		{ 1, 24, 16 },		// 123 bits per transform
+		{ 1, 25, 8 },		// 123 bits per transform
+		{ 2, 7, 25 },		// 123 bits per transform
+		{ 2, 15, 24 },		// 123 bits per transform
+		{ 2, 16, 23 },		// 123 bits per transform
+		{ 2, 17, 22 },		// 123 bits per transform
 		{ 2, 18, 21 },		// 123 bits per transform
 		{ 2, 19, 20 },		// 123 bits per transform
 		{ 2, 20, 19 },		// 123 bits per transform
 		{ 2, 21, 18 },		// 123 bits per transform
-		{ 2, 22, 7 },		// 123 bits per transform
-		{ 3, 6, 22 },		// 123 bits per transform
+		{ 2, 22, 17 },		// 123 bits per transform
+		{ 2, 23, 16 },		// 123 bits per transform
+		{ 2, 24, 15 },		// 123 bits per transform
+		{ 2, 25, 7 },		// 123 bits per transform
+		{ 3, 6, 25 },		// 123 bits per transform
+		{ 3, 14, 24 },		// 123 bits per transform
+		{ 3, 15, 23 },		// 123 bits per transform
+		{ 3, 16, 22 },		// 123 bits per transform
 		{ 3, 17, 21 },		// 123 bits per transform
 		{ 3, 18, 20 },		// 123 bits per transform
 		{ 3, 19, 19 },		// 123 bits per transform
 		{ 3, 20, 18 },		// 123 bits per transform
 		{ 3, 21, 17 },		// 123 bits per transform
-		{ 3, 22, 6 },		// 123 bits per transform
-		{ 4, 5, 22 },		// 123 bits per transform
+		{ 3, 22, 16 },		// 123 bits per transform
+		{ 3, 23, 15 },		// 123 bits per transform
+		{ 3, 24, 14 },		// 123 bits per transform
+		{ 3, 25, 6 },		// 123 bits per transform
+		{ 4, 5, 25 },		// 123 bits per transform
+		{ 4, 13, 24 },		// 123 bits per transform
+		{ 4, 14, 23 },		// 123 bits per transform
+		{ 4, 15, 22 },		// 123 bits per transform
 		{ 4, 16, 21 },		// 123 bits per transform
 		{ 4, 17, 20 },		// 123 bits per transform
 		{ 4, 18, 19 },		// 123 bits per transform
 		{ 4, 19, 18 },		// 123 bits per transform
 		{ 4, 20, 17 },		// 123 bits per transform
 		{ 4, 21, 16 },		// 123 bits per transform
-		{ 4, 22, 5 },		// 123 bits per transform
-		{ 5, 4, 22 },		// 123 bits per transform
+		{ 4, 22, 15 },		// 123 bits per transform
+		{ 4, 23, 14 },		// 123 bits per transform
+		{ 4, 24, 13 },		// 123 bits per transform
+		{ 4, 25, 5 },		// 123 bits per transform
+		{ 5, 4, 25 },		// 123 bits per transform
+		{ 5, 12, 24 },		// 123 bits per transform
+		{ 5, 13, 23 },		// 123 bits per transform
+		{ 5, 14, 22 },		// 123 bits per transform
 		{ 5, 15, 21 },		// 123 bits per transform
 		{ 5, 16, 20 },		// 123 bits per transform
 		{ 5, 17, 19 },		// 123 bits per transform
@@ -9098,8 +10820,14 @@ namespace acl
 		{ 5, 19, 17 },		// 123 bits per transform
 		{ 5, 20, 16 },		// 123 bits per transform
 		{ 5, 21, 15 },		// 123 bits per transform
-		{ 5, 22, 4 },		// 123 bits per transform
-		{ 6, 3, 22 },		// 123 bits per transform
+		{ 5, 22, 14 },		// 123 bits per transform
+		{ 5, 23, 13 },		// 123 bits per transform
+		{ 5, 24, 12 },		// 123 bits per transform
+		{ 5, 25, 4 },		// 123 bits per transform
+		{ 6, 3, 25 },		// 123 bits per transform
+		{ 6, 11, 24 },		// 123 bits per transform
+		{ 6, 12, 23 },		// 123 bits per transform
+		{ 6, 13, 22 },		// 123 bits per transform
 		{ 6, 14, 21 },		// 123 bits per transform
 		{ 6, 15, 20 },		// 123 bits per transform
 		{ 6, 16, 19 },		// 123 bits per transform
@@ -9108,8 +10836,14 @@ namespace acl
 		{ 6, 19, 16 },		// 123 bits per transform
 		{ 6, 20, 15 },		// 123 bits per transform
 		{ 6, 21, 14 },		// 123 bits per transform
-		{ 6, 22, 3 },		// 123 bits per transform
-		{ 7, 2, 22 },		// 123 bits per transform
+		{ 6, 22, 13 },		// 123 bits per transform
+		{ 6, 23, 12 },		// 123 bits per transform
+		{ 6, 24, 11 },		// 123 bits per transform
+		{ 6, 25, 3 },		// 123 bits per transform
+		{ 7, 2, 25 },		// 123 bits per transform
+		{ 7, 10, 24 },		// 123 bits per transform
+		{ 7, 11, 23 },		// 123 bits per transform
+		{ 7, 12, 22 },		// 123 bits per transform
 		{ 7, 13, 21 },		// 123 bits per transform
 		{ 7, 14, 20 },		// 123 bits per transform
 		{ 7, 15, 19 },		// 123 bits per transform
@@ -9119,8 +10853,14 @@ namespace acl
 		{ 7, 19, 15 },		// 123 bits per transform
 		{ 7, 20, 14 },		// 123 bits per transform
 		{ 7, 21, 13 },		// 123 bits per transform
-		{ 7, 22, 2 },		// 123 bits per transform
-		{ 8, 1, 22 },		// 123 bits per transform
+		{ 7, 22, 12 },		// 123 bits per transform
+		{ 7, 23, 11 },		// 123 bits per transform
+		{ 7, 24, 10 },		// 123 bits per transform
+		{ 7, 25, 2 },		// 123 bits per transform
+		{ 8, 1, 25 },		// 123 bits per transform
+		{ 8, 9, 24 },		// 123 bits per transform
+		{ 8, 10, 23 },		// 123 bits per transform
+		{ 8, 11, 22 },		// 123 bits per transform
 		{ 8, 12, 21 },		// 123 bits per transform
 		{ 8, 13, 20 },		// 123 bits per transform
 		{ 8, 14, 19 },		// 123 bits per transform
@@ -9131,8 +10871,14 @@ namespace acl
 		{ 8, 19, 14 },		// 123 bits per transform
 		{ 8, 20, 13 },		// 123 bits per transform
 		{ 8, 21, 12 },		// 123 bits per transform
-		{ 8, 22, 1 },		// 123 bits per transform
-		{ 9, 0, 22 },		// 123 bits per transform
+		{ 8, 22, 11 },		// 123 bits per transform
+		{ 8, 23, 10 },		// 123 bits per transform
+		{ 8, 24, 9 },		// 123 bits per transform
+		{ 8, 25, 1 },		// 123 bits per transform
+		{ 9, 0, 25 },		// 123 bits per transform
+		{ 9, 8, 24 },		// 123 bits per transform
+		{ 9, 9, 23 },		// 123 bits per transform
+		{ 9, 10, 22 },		// 123 bits per transform
 		{ 9, 11, 21 },		// 123 bits per transform
 		{ 9, 12, 20 },		// 123 bits per transform
 		{ 9, 13, 19 },		// 123 bits per transform
@@ -9144,7 +10890,13 @@ namespace acl
 		{ 9, 19, 13 },		// 123 bits per transform
 		{ 9, 20, 12 },		// 123 bits per transform
 		{ 9, 21, 11 },		// 123 bits per transform
-		{ 9, 22, 0 },		// 123 bits per transform
+		{ 9, 22, 10 },		// 123 bits per transform
+		{ 9, 23, 9 },		// 123 bits per transform
+		{ 9, 24, 8 },		// 123 bits per transform
+		{ 9, 25, 0 },		// 123 bits per transform
+		{ 10, 7, 24 },		// 123 bits per transform
+		{ 10, 8, 23 },		// 123 bits per transform
+		{ 10, 9, 22 },		// 123 bits per transform
 		{ 10, 10, 21 },		// 123 bits per transform
 		{ 10, 11, 20 },		// 123 bits per transform
 		{ 10, 12, 19 },		// 123 bits per transform
@@ -9157,6 +10909,12 @@ namespace acl
 		{ 10, 19, 12 },		// 123 bits per transform
 		{ 10, 20, 11 },		// 123 bits per transform
 		{ 10, 21, 10 },		// 123 bits per transform
+		{ 10, 22, 9 },		// 123 bits per transform
+		{ 10, 23, 8 },		// 123 bits per transform
+		{ 10, 24, 7 },		// 123 bits per transform
+		{ 11, 6, 24 },		// 123 bits per transform
+		{ 11, 7, 23 },		// 123 bits per transform
+		{ 11, 8, 22 },		// 123 bits per transform
 		{ 11, 9, 21 },		// 123 bits per transform
 		{ 11, 10, 20 },		// 123 bits per transform
 		{ 11, 11, 19 },		// 123 bits per transform
@@ -9170,6 +10928,12 @@ namespace acl
 		{ 11, 19, 11 },		// 123 bits per transform
 		{ 11, 20, 10 },		// 123 bits per transform
 		{ 11, 21, 9 },		// 123 bits per transform
+		{ 11, 22, 8 },		// 123 bits per transform
+		{ 11, 23, 7 },		// 123 bits per transform
+		{ 11, 24, 6 },		// 123 bits per transform
+		{ 12, 5, 24 },		// 123 bits per transform
+		{ 12, 6, 23 },		// 123 bits per transform
+		{ 12, 7, 22 },		// 123 bits per transform
 		{ 12, 8, 21 },		// 123 bits per transform
 		{ 12, 9, 20 },		// 123 bits per transform
 		{ 12, 10, 19 },		// 123 bits per transform
@@ -9184,6 +10948,12 @@ namespace acl
 		{ 12, 19, 10 },		// 123 bits per transform
 		{ 12, 20, 9 },		// 123 bits per transform
 		{ 12, 21, 8 },		// 123 bits per transform
+		{ 12, 22, 7 },		// 123 bits per transform
+		{ 12, 23, 6 },		// 123 bits per transform
+		{ 12, 24, 5 },		// 123 bits per transform
+		{ 13, 4, 24 },		// 123 bits per transform
+		{ 13, 5, 23 },		// 123 bits per transform
+		{ 13, 6, 22 },		// 123 bits per transform
 		{ 13, 7, 21 },		// 123 bits per transform
 		{ 13, 8, 20 },		// 123 bits per transform
 		{ 13, 9, 19 },		// 123 bits per transform
@@ -9199,6 +10969,12 @@ namespace acl
 		{ 13, 19, 9 },		// 123 bits per transform
 		{ 13, 20, 8 },		// 123 bits per transform
 		{ 13, 21, 7 },		// 123 bits per transform
+		{ 13, 22, 6 },		// 123 bits per transform
+		{ 13, 23, 5 },		// 123 bits per transform
+		{ 13, 24, 4 },		// 123 bits per transform
+		{ 14, 3, 24 },		// 123 bits per transform
+		{ 14, 4, 23 },		// 123 bits per transform
+		{ 14, 5, 22 },		// 123 bits per transform
 		{ 14, 6, 21 },		// 123 bits per transform
 		{ 14, 7, 20 },		// 123 bits per transform
 		{ 14, 8, 19 },		// 123 bits per transform
@@ -9215,6 +10991,12 @@ namespace acl
 		{ 14, 19, 8 },		// 123 bits per transform
 		{ 14, 20, 7 },		// 123 bits per transform
 		{ 14, 21, 6 },		// 123 bits per transform
+		{ 14, 22, 5 },		// 123 bits per transform
+		{ 14, 23, 4 },		// 123 bits per transform
+		{ 14, 24, 3 },		// 123 bits per transform
+		{ 15, 2, 24 },		// 123 bits per transform
+		{ 15, 3, 23 },		// 123 bits per transform
+		{ 15, 4, 22 },		// 123 bits per transform
 		{ 15, 5, 21 },		// 123 bits per transform
 		{ 15, 6, 20 },		// 123 bits per transform
 		{ 15, 7, 19 },		// 123 bits per transform
@@ -9232,6 +11014,12 @@ namespace acl
 		{ 15, 19, 7 },		// 123 bits per transform
 		{ 15, 20, 6 },		// 123 bits per transform
 		{ 15, 21, 5 },		// 123 bits per transform
+		{ 15, 22, 4 },		// 123 bits per transform
+		{ 15, 23, 3 },		// 123 bits per transform
+		{ 15, 24, 2 },		// 123 bits per transform
+		{ 16, 1, 24 },		// 123 bits per transform
+		{ 16, 2, 23 },		// 123 bits per transform
+		{ 16, 3, 22 },		// 123 bits per transform
 		{ 16, 4, 21 },		// 123 bits per transform
 		{ 16, 5, 20 },		// 123 bits per transform
 		{ 16, 6, 19 },		// 123 bits per transform
@@ -9250,6 +11038,12 @@ namespace acl
 		{ 16, 19, 6 },		// 123 bits per transform
 		{ 16, 20, 5 },		// 123 bits per transform
 		{ 16, 21, 4 },		// 123 bits per transform
+		{ 16, 22, 3 },		// 123 bits per transform
+		{ 16, 23, 2 },		// 123 bits per transform
+		{ 16, 24, 1 },		// 123 bits per transform
+		{ 17, 0, 24 },		// 123 bits per transform
+		{ 17, 1, 23 },		// 123 bits per transform
+		{ 17, 2, 22 },		// 123 bits per transform
 		{ 17, 3, 21 },		// 123 bits per transform
 		{ 17, 4, 20 },		// 123 bits per transform
 		{ 17, 5, 19 },		// 123 bits per transform
@@ -9269,6 +11063,11 @@ namespace acl
 		{ 17, 19, 5 },		// 123 bits per transform
 		{ 17, 20, 4 },		// 123 bits per transform
 		{ 17, 21, 3 },		// 123 bits per transform
+		{ 17, 22, 2 },		// 123 bits per transform
+		{ 17, 23, 1 },		// 123 bits per transform
+		{ 17, 24, 0 },		// 123 bits per transform
+		{ 18, 0, 23 },		// 123 bits per transform
+		{ 18, 1, 22 },		// 123 bits per transform
 		{ 18, 2, 21 },		// 123 bits per transform
 		{ 18, 3, 20 },		// 123 bits per transform
 		{ 18, 4, 19 },		// 123 bits per transform
@@ -9289,6 +11088,9 @@ namespace acl
 		{ 18, 19, 4 },		// 123 bits per transform
 		{ 18, 20, 3 },		// 123 bits per transform
 		{ 18, 21, 2 },		// 123 bits per transform
+		{ 18, 22, 1 },		// 123 bits per transform
+		{ 18, 23, 0 },		// 123 bits per transform
+		{ 19, 0, 22 },		// 123 bits per transform
 		{ 19, 1, 21 },		// 123 bits per transform
 		{ 19, 2, 20 },		// 123 bits per transform
 		{ 19, 3, 19 },		// 123 bits per transform
@@ -9310,6 +11112,7 @@ namespace acl
 		{ 19, 19, 3 },		// 123 bits per transform
 		{ 19, 20, 2 },		// 123 bits per transform
 		{ 19, 21, 1 },		// 123 bits per transform
+		{ 19, 22, 0 },		// 123 bits per transform
 		{ 20, 0, 21 },		// 123 bits per transform
 		{ 20, 1, 20 },		// 123 bits per transform
 		{ 20, 2, 19 },		// 123 bits per transform
@@ -9353,50 +11156,146 @@ namespace acl
 		{ 21, 18, 2 },		// 123 bits per transform
 		{ 21, 19, 1 },		// 123 bits per transform
 		{ 21, 20, 0 },		// 123 bits per transform
-		{ 22, 0, 9 },		// 123 bits per transform
-		{ 22, 1, 8 },		// 123 bits per transform
-		{ 22, 2, 7 },		// 123 bits per transform
-		{ 22, 3, 6 },		// 123 bits per transform
-		{ 22, 4, 5 },		// 123 bits per transform
-		{ 22, 5, 4 },		// 123 bits per transform
-		{ 22, 6, 3 },		// 123 bits per transform
-		{ 22, 7, 2 },		// 123 bits per transform
-		{ 22, 8, 1 },		// 123 bits per transform
-		{ 22, 9, 0 },		// 123 bits per transform
-		{ 0, 10, 22 },		// 126 bits per transform
+		{ 22, 0, 19 },		// 123 bits per transform
+		{ 22, 1, 18 },		// 123 bits per transform
+		{ 22, 2, 17 },		// 123 bits per transform
+		{ 22, 3, 16 },		// 123 bits per transform
+		{ 22, 4, 15 },		// 123 bits per transform
+		{ 22, 5, 14 },		// 123 bits per transform
+		{ 22, 6, 13 },		// 123 bits per transform
+		{ 22, 7, 12 },		// 123 bits per transform
+		{ 22, 8, 11 },		// 123 bits per transform
+		{ 22, 9, 10 },		// 123 bits per transform
+		{ 22, 10, 9 },		// 123 bits per transform
+		{ 22, 11, 8 },		// 123 bits per transform
+		{ 22, 12, 7 },		// 123 bits per transform
+		{ 22, 13, 6 },		// 123 bits per transform
+		{ 22, 14, 5 },		// 123 bits per transform
+		{ 22, 15, 4 },		// 123 bits per transform
+		{ 22, 16, 3 },		// 123 bits per transform
+		{ 22, 17, 2 },		// 123 bits per transform
+		{ 22, 18, 1 },		// 123 bits per transform
+		{ 22, 19, 0 },		// 123 bits per transform
+		{ 23, 0, 18 },		// 123 bits per transform
+		{ 23, 1, 17 },		// 123 bits per transform
+		{ 23, 2, 16 },		// 123 bits per transform
+		{ 23, 3, 15 },		// 123 bits per transform
+		{ 23, 4, 14 },		// 123 bits per transform
+		{ 23, 5, 13 },		// 123 bits per transform
+		{ 23, 6, 12 },		// 123 bits per transform
+		{ 23, 7, 11 },		// 123 bits per transform
+		{ 23, 8, 10 },		// 123 bits per transform
+		{ 23, 9, 9 },		// 123 bits per transform
+		{ 23, 10, 8 },		// 123 bits per transform
+		{ 23, 11, 7 },		// 123 bits per transform
+		{ 23, 12, 6 },		// 123 bits per transform
+		{ 23, 13, 5 },		// 123 bits per transform
+		{ 23, 14, 4 },		// 123 bits per transform
+		{ 23, 15, 3 },		// 123 bits per transform
+		{ 23, 16, 2 },		// 123 bits per transform
+		{ 23, 17, 1 },		// 123 bits per transform
+		{ 23, 18, 0 },		// 123 bits per transform
+		{ 24, 0, 17 },		// 123 bits per transform
+		{ 24, 1, 16 },		// 123 bits per transform
+		{ 24, 2, 15 },		// 123 bits per transform
+		{ 24, 3, 14 },		// 123 bits per transform
+		{ 24, 4, 13 },		// 123 bits per transform
+		{ 24, 5, 12 },		// 123 bits per transform
+		{ 24, 6, 11 },		// 123 bits per transform
+		{ 24, 7, 10 },		// 123 bits per transform
+		{ 24, 8, 9 },		// 123 bits per transform
+		{ 24, 9, 8 },		// 123 bits per transform
+		{ 24, 10, 7 },		// 123 bits per transform
+		{ 24, 11, 6 },		// 123 bits per transform
+		{ 24, 12, 5 },		// 123 bits per transform
+		{ 24, 13, 4 },		// 123 bits per transform
+		{ 24, 14, 3 },		// 123 bits per transform
+		{ 24, 15, 2 },		// 123 bits per transform
+		{ 24, 16, 1 },		// 123 bits per transform
+		{ 24, 17, 0 },		// 123 bits per transform
+		{ 25, 0, 9 },		// 123 bits per transform
+		{ 25, 1, 8 },		// 123 bits per transform
+		{ 25, 2, 7 },		// 123 bits per transform
+		{ 25, 3, 6 },		// 123 bits per transform
+		{ 25, 4, 5 },		// 123 bits per transform
+		{ 25, 5, 4 },		// 123 bits per transform
+		{ 25, 6, 3 },		// 123 bits per transform
+		{ 25, 7, 2 },		// 123 bits per transform
+		{ 25, 8, 1 },		// 123 bits per transform
+		{ 25, 9, 0 },		// 123 bits per transform
+		{ 0, 10, 25 },		// 126 bits per transform
+		{ 0, 18, 24 },		// 126 bits per transform
+		{ 0, 19, 23 },		// 126 bits per transform
+		{ 0, 20, 22 },		// 126 bits per transform
 		{ 0, 21, 21 },		// 126 bits per transform
-		{ 0, 22, 10 },		// 126 bits per transform
-		{ 1, 9, 22 },		// 126 bits per transform
+		{ 0, 22, 20 },		// 126 bits per transform
+		{ 0, 23, 19 },		// 126 bits per transform
+		{ 0, 24, 18 },		// 126 bits per transform
+		{ 0, 25, 10 },		// 126 bits per transform
+		{ 1, 9, 25 },		// 126 bits per transform
+		{ 1, 17, 24 },		// 126 bits per transform
+		{ 1, 18, 23 },		// 126 bits per transform
+		{ 1, 19, 22 },		// 126 bits per transform
 		{ 1, 20, 21 },		// 126 bits per transform
 		{ 1, 21, 20 },		// 126 bits per transform
-		{ 1, 22, 9 },		// 126 bits per transform
-		{ 2, 8, 22 },		// 126 bits per transform
+		{ 1, 22, 19 },		// 126 bits per transform
+		{ 1, 23, 18 },		// 126 bits per transform
+		{ 1, 24, 17 },		// 126 bits per transform
+		{ 1, 25, 9 },		// 126 bits per transform
+		{ 2, 8, 25 },		// 126 bits per transform
+		{ 2, 16, 24 },		// 126 bits per transform
+		{ 2, 17, 23 },		// 126 bits per transform
+		{ 2, 18, 22 },		// 126 bits per transform
 		{ 2, 19, 21 },		// 126 bits per transform
 		{ 2, 20, 20 },		// 126 bits per transform
 		{ 2, 21, 19 },		// 126 bits per transform
-		{ 2, 22, 8 },		// 126 bits per transform
-		{ 3, 7, 22 },		// 126 bits per transform
+		{ 2, 22, 18 },		// 126 bits per transform
+		{ 2, 23, 17 },		// 126 bits per transform
+		{ 2, 24, 16 },		// 126 bits per transform
+		{ 2, 25, 8 },		// 126 bits per transform
+		{ 3, 7, 25 },		// 126 bits per transform
+		{ 3, 15, 24 },		// 126 bits per transform
+		{ 3, 16, 23 },		// 126 bits per transform
+		{ 3, 17, 22 },		// 126 bits per transform
 		{ 3, 18, 21 },		// 126 bits per transform
 		{ 3, 19, 20 },		// 126 bits per transform
 		{ 3, 20, 19 },		// 126 bits per transform
 		{ 3, 21, 18 },		// 126 bits per transform
-		{ 3, 22, 7 },		// 126 bits per transform
-		{ 4, 6, 22 },		// 126 bits per transform
+		{ 3, 22, 17 },		// 126 bits per transform
+		{ 3, 23, 16 },		// 126 bits per transform
+		{ 3, 24, 15 },		// 126 bits per transform
+		{ 3, 25, 7 },		// 126 bits per transform
+		{ 4, 6, 25 },		// 126 bits per transform
+		{ 4, 14, 24 },		// 126 bits per transform
+		{ 4, 15, 23 },		// 126 bits per transform
+		{ 4, 16, 22 },		// 126 bits per transform
 		{ 4, 17, 21 },		// 126 bits per transform
 		{ 4, 18, 20 },		// 126 bits per transform
 		{ 4, 19, 19 },		// 126 bits per transform
 		{ 4, 20, 18 },		// 126 bits per transform
 		{ 4, 21, 17 },		// 126 bits per transform
-		{ 4, 22, 6 },		// 126 bits per transform
-		{ 5, 5, 22 },		// 126 bits per transform
+		{ 4, 22, 16 },		// 126 bits per transform
+		{ 4, 23, 15 },		// 126 bits per transform
+		{ 4, 24, 14 },		// 126 bits per transform
+		{ 4, 25, 6 },		// 126 bits per transform
+		{ 5, 5, 25 },		// 126 bits per transform
+		{ 5, 13, 24 },		// 126 bits per transform
+		{ 5, 14, 23 },		// 126 bits per transform
+		{ 5, 15, 22 },		// 126 bits per transform
 		{ 5, 16, 21 },		// 126 bits per transform
 		{ 5, 17, 20 },		// 126 bits per transform
 		{ 5, 18, 19 },		// 126 bits per transform
 		{ 5, 19, 18 },		// 126 bits per transform
 		{ 5, 20, 17 },		// 126 bits per transform
 		{ 5, 21, 16 },		// 126 bits per transform
-		{ 5, 22, 5 },		// 126 bits per transform
-		{ 6, 4, 22 },		// 126 bits per transform
+		{ 5, 22, 15 },		// 126 bits per transform
+		{ 5, 23, 14 },		// 126 bits per transform
+		{ 5, 24, 13 },		// 126 bits per transform
+		{ 5, 25, 5 },		// 126 bits per transform
+		{ 6, 4, 25 },		// 126 bits per transform
+		{ 6, 12, 24 },		// 126 bits per transform
+		{ 6, 13, 23 },		// 126 bits per transform
+		{ 6, 14, 22 },		// 126 bits per transform
 		{ 6, 15, 21 },		// 126 bits per transform
 		{ 6, 16, 20 },		// 126 bits per transform
 		{ 6, 17, 19 },		// 126 bits per transform
@@ -9404,8 +11303,14 @@ namespace acl
 		{ 6, 19, 17 },		// 126 bits per transform
 		{ 6, 20, 16 },		// 126 bits per transform
 		{ 6, 21, 15 },		// 126 bits per transform
-		{ 6, 22, 4 },		// 126 bits per transform
-		{ 7, 3, 22 },		// 126 bits per transform
+		{ 6, 22, 14 },		// 126 bits per transform
+		{ 6, 23, 13 },		// 126 bits per transform
+		{ 6, 24, 12 },		// 126 bits per transform
+		{ 6, 25, 4 },		// 126 bits per transform
+		{ 7, 3, 25 },		// 126 bits per transform
+		{ 7, 11, 24 },		// 126 bits per transform
+		{ 7, 12, 23 },		// 126 bits per transform
+		{ 7, 13, 22 },		// 126 bits per transform
 		{ 7, 14, 21 },		// 126 bits per transform
 		{ 7, 15, 20 },		// 126 bits per transform
 		{ 7, 16, 19 },		// 126 bits per transform
@@ -9414,8 +11319,14 @@ namespace acl
 		{ 7, 19, 16 },		// 126 bits per transform
 		{ 7, 20, 15 },		// 126 bits per transform
 		{ 7, 21, 14 },		// 126 bits per transform
-		{ 7, 22, 3 },		// 126 bits per transform
-		{ 8, 2, 22 },		// 126 bits per transform
+		{ 7, 22, 13 },		// 126 bits per transform
+		{ 7, 23, 12 },		// 126 bits per transform
+		{ 7, 24, 11 },		// 126 bits per transform
+		{ 7, 25, 3 },		// 126 bits per transform
+		{ 8, 2, 25 },		// 126 bits per transform
+		{ 8, 10, 24 },		// 126 bits per transform
+		{ 8, 11, 23 },		// 126 bits per transform
+		{ 8, 12, 22 },		// 126 bits per transform
 		{ 8, 13, 21 },		// 126 bits per transform
 		{ 8, 14, 20 },		// 126 bits per transform
 		{ 8, 15, 19 },		// 126 bits per transform
@@ -9425,8 +11336,14 @@ namespace acl
 		{ 8, 19, 15 },		// 126 bits per transform
 		{ 8, 20, 14 },		// 126 bits per transform
 		{ 8, 21, 13 },		// 126 bits per transform
-		{ 8, 22, 2 },		// 126 bits per transform
-		{ 9, 1, 22 },		// 126 bits per transform
+		{ 8, 22, 12 },		// 126 bits per transform
+		{ 8, 23, 11 },		// 126 bits per transform
+		{ 8, 24, 10 },		// 126 bits per transform
+		{ 8, 25, 2 },		// 126 bits per transform
+		{ 9, 1, 25 },		// 126 bits per transform
+		{ 9, 9, 24 },		// 126 bits per transform
+		{ 9, 10, 23 },		// 126 bits per transform
+		{ 9, 11, 22 },		// 126 bits per transform
 		{ 9, 12, 21 },		// 126 bits per transform
 		{ 9, 13, 20 },		// 126 bits per transform
 		{ 9, 14, 19 },		// 126 bits per transform
@@ -9437,8 +11354,14 @@ namespace acl
 		{ 9, 19, 14 },		// 126 bits per transform
 		{ 9, 20, 13 },		// 126 bits per transform
 		{ 9, 21, 12 },		// 126 bits per transform
-		{ 9, 22, 1 },		// 126 bits per transform
-		{ 10, 0, 22 },		// 126 bits per transform
+		{ 9, 22, 11 },		// 126 bits per transform
+		{ 9, 23, 10 },		// 126 bits per transform
+		{ 9, 24, 9 },		// 126 bits per transform
+		{ 9, 25, 1 },		// 126 bits per transform
+		{ 10, 0, 25 },		// 126 bits per transform
+		{ 10, 8, 24 },		// 126 bits per transform
+		{ 10, 9, 23 },		// 126 bits per transform
+		{ 10, 10, 22 },		// 126 bits per transform
 		{ 10, 11, 21 },		// 126 bits per transform
 		{ 10, 12, 20 },		// 126 bits per transform
 		{ 10, 13, 19 },		// 126 bits per transform
@@ -9450,7 +11373,13 @@ namespace acl
 		{ 10, 19, 13 },		// 126 bits per transform
 		{ 10, 20, 12 },		// 126 bits per transform
 		{ 10, 21, 11 },		// 126 bits per transform
-		{ 10, 22, 0 },		// 126 bits per transform
+		{ 10, 22, 10 },		// 126 bits per transform
+		{ 10, 23, 9 },		// 126 bits per transform
+		{ 10, 24, 8 },		// 126 bits per transform
+		{ 10, 25, 0 },		// 126 bits per transform
+		{ 11, 7, 24 },		// 126 bits per transform
+		{ 11, 8, 23 },		// 126 bits per transform
+		{ 11, 9, 22 },		// 126 bits per transform
 		{ 11, 10, 21 },		// 126 bits per transform
 		{ 11, 11, 20 },		// 126 bits per transform
 		{ 11, 12, 19 },		// 126 bits per transform
@@ -9463,6 +11392,12 @@ namespace acl
 		{ 11, 19, 12 },		// 126 bits per transform
 		{ 11, 20, 11 },		// 126 bits per transform
 		{ 11, 21, 10 },		// 126 bits per transform
+		{ 11, 22, 9 },		// 126 bits per transform
+		{ 11, 23, 8 },		// 126 bits per transform
+		{ 11, 24, 7 },		// 126 bits per transform
+		{ 12, 6, 24 },		// 126 bits per transform
+		{ 12, 7, 23 },		// 126 bits per transform
+		{ 12, 8, 22 },		// 126 bits per transform
 		{ 12, 9, 21 },		// 126 bits per transform
 		{ 12, 10, 20 },		// 126 bits per transform
 		{ 12, 11, 19 },		// 126 bits per transform
@@ -9476,6 +11411,12 @@ namespace acl
 		{ 12, 19, 11 },		// 126 bits per transform
 		{ 12, 20, 10 },		// 126 bits per transform
 		{ 12, 21, 9 },		// 126 bits per transform
+		{ 12, 22, 8 },		// 126 bits per transform
+		{ 12, 23, 7 },		// 126 bits per transform
+		{ 12, 24, 6 },		// 126 bits per transform
+		{ 13, 5, 24 },		// 126 bits per transform
+		{ 13, 6, 23 },		// 126 bits per transform
+		{ 13, 7, 22 },		// 126 bits per transform
 		{ 13, 8, 21 },		// 126 bits per transform
 		{ 13, 9, 20 },		// 126 bits per transform
 		{ 13, 10, 19 },		// 126 bits per transform
@@ -9490,6 +11431,12 @@ namespace acl
 		{ 13, 19, 10 },		// 126 bits per transform
 		{ 13, 20, 9 },		// 126 bits per transform
 		{ 13, 21, 8 },		// 126 bits per transform
+		{ 13, 22, 7 },		// 126 bits per transform
+		{ 13, 23, 6 },		// 126 bits per transform
+		{ 13, 24, 5 },		// 126 bits per transform
+		{ 14, 4, 24 },		// 126 bits per transform
+		{ 14, 5, 23 },		// 126 bits per transform
+		{ 14, 6, 22 },		// 126 bits per transform
 		{ 14, 7, 21 },		// 126 bits per transform
 		{ 14, 8, 20 },		// 126 bits per transform
 		{ 14, 9, 19 },		// 126 bits per transform
@@ -9505,6 +11452,12 @@ namespace acl
 		{ 14, 19, 9 },		// 126 bits per transform
 		{ 14, 20, 8 },		// 126 bits per transform
 		{ 14, 21, 7 },		// 126 bits per transform
+		{ 14, 22, 6 },		// 126 bits per transform
+		{ 14, 23, 5 },		// 126 bits per transform
+		{ 14, 24, 4 },		// 126 bits per transform
+		{ 15, 3, 24 },		// 126 bits per transform
+		{ 15, 4, 23 },		// 126 bits per transform
+		{ 15, 5, 22 },		// 126 bits per transform
 		{ 15, 6, 21 },		// 126 bits per transform
 		{ 15, 7, 20 },		// 126 bits per transform
 		{ 15, 8, 19 },		// 126 bits per transform
@@ -9521,6 +11474,12 @@ namespace acl
 		{ 15, 19, 8 },		// 126 bits per transform
 		{ 15, 20, 7 },		// 126 bits per transform
 		{ 15, 21, 6 },		// 126 bits per transform
+		{ 15, 22, 5 },		// 126 bits per transform
+		{ 15, 23, 4 },		// 126 bits per transform
+		{ 15, 24, 3 },		// 126 bits per transform
+		{ 16, 2, 24 },		// 126 bits per transform
+		{ 16, 3, 23 },		// 126 bits per transform
+		{ 16, 4, 22 },		// 126 bits per transform
 		{ 16, 5, 21 },		// 126 bits per transform
 		{ 16, 6, 20 },		// 126 bits per transform
 		{ 16, 7, 19 },		// 126 bits per transform
@@ -9538,6 +11497,12 @@ namespace acl
 		{ 16, 19, 7 },		// 126 bits per transform
 		{ 16, 20, 6 },		// 126 bits per transform
 		{ 16, 21, 5 },		// 126 bits per transform
+		{ 16, 22, 4 },		// 126 bits per transform
+		{ 16, 23, 3 },		// 126 bits per transform
+		{ 16, 24, 2 },		// 126 bits per transform
+		{ 17, 1, 24 },		// 126 bits per transform
+		{ 17, 2, 23 },		// 126 bits per transform
+		{ 17, 3, 22 },		// 126 bits per transform
 		{ 17, 4, 21 },		// 126 bits per transform
 		{ 17, 5, 20 },		// 126 bits per transform
 		{ 17, 6, 19 },		// 126 bits per transform
@@ -9556,6 +11521,12 @@ namespace acl
 		{ 17, 19, 6 },		// 126 bits per transform
 		{ 17, 20, 5 },		// 126 bits per transform
 		{ 17, 21, 4 },		// 126 bits per transform
+		{ 17, 22, 3 },		// 126 bits per transform
+		{ 17, 23, 2 },		// 126 bits per transform
+		{ 17, 24, 1 },		// 126 bits per transform
+		{ 18, 0, 24 },		// 126 bits per transform
+		{ 18, 1, 23 },		// 126 bits per transform
+		{ 18, 2, 22 },		// 126 bits per transform
 		{ 18, 3, 21 },		// 126 bits per transform
 		{ 18, 4, 20 },		// 126 bits per transform
 		{ 18, 5, 19 },		// 126 bits per transform
@@ -9575,6 +11546,11 @@ namespace acl
 		{ 18, 19, 5 },		// 126 bits per transform
 		{ 18, 20, 4 },		// 126 bits per transform
 		{ 18, 21, 3 },		// 126 bits per transform
+		{ 18, 22, 2 },		// 126 bits per transform
+		{ 18, 23, 1 },		// 126 bits per transform
+		{ 18, 24, 0 },		// 126 bits per transform
+		{ 19, 0, 23 },		// 126 bits per transform
+		{ 19, 1, 22 },		// 126 bits per transform
 		{ 19, 2, 21 },		// 126 bits per transform
 		{ 19, 3, 20 },		// 126 bits per transform
 		{ 19, 4, 19 },		// 126 bits per transform
@@ -9595,6 +11571,9 @@ namespace acl
 		{ 19, 19, 4 },		// 126 bits per transform
 		{ 19, 20, 3 },		// 126 bits per transform
 		{ 19, 21, 2 },		// 126 bits per transform
+		{ 19, 22, 1 },		// 126 bits per transform
+		{ 19, 23, 0 },		// 126 bits per transform
+		{ 20, 0, 22 },		// 126 bits per transform
 		{ 20, 1, 21 },		// 126 bits per transform
 		{ 20, 2, 20 },		// 126 bits per transform
 		{ 20, 3, 19 },		// 126 bits per transform
@@ -9616,6 +11595,7 @@ namespace acl
 		{ 20, 19, 3 },		// 126 bits per transform
 		{ 20, 20, 2 },		// 126 bits per transform
 		{ 20, 21, 1 },		// 126 bits per transform
+		{ 20, 22, 0 },		// 126 bits per transform
 		{ 21, 0, 21 },		// 126 bits per transform
 		{ 21, 1, 20 },		// 126 bits per transform
 		{ 21, 2, 19 },		// 126 bits per transform
@@ -9638,53 +11618,158 @@ namespace acl
 		{ 21, 19, 2 },		// 126 bits per transform
 		{ 21, 20, 1 },		// 126 bits per transform
 		{ 21, 21, 0 },		// 126 bits per transform
-		{ 22, 0, 10 },		// 126 bits per transform
-		{ 22, 1, 9 },		// 126 bits per transform
-		{ 22, 2, 8 },		// 126 bits per transform
-		{ 22, 3, 7 },		// 126 bits per transform
-		{ 22, 4, 6 },		// 126 bits per transform
-		{ 22, 5, 5 },		// 126 bits per transform
-		{ 22, 6, 4 },		// 126 bits per transform
-		{ 22, 7, 3 },		// 126 bits per transform
-		{ 22, 8, 2 },		// 126 bits per transform
-		{ 22, 9, 1 },		// 126 bits per transform
-		{ 22, 10, 0 },		// 126 bits per transform
-		{ 0, 11, 22 },		// 129 bits per transform
-		{ 0, 22, 11 },		// 129 bits per transform
-		{ 1, 10, 22 },		// 129 bits per transform
+		{ 22, 0, 20 },		// 126 bits per transform
+		{ 22, 1, 19 },		// 126 bits per transform
+		{ 22, 2, 18 },		// 126 bits per transform
+		{ 22, 3, 17 },		// 126 bits per transform
+		{ 22, 4, 16 },		// 126 bits per transform
+		{ 22, 5, 15 },		// 126 bits per transform
+		{ 22, 6, 14 },		// 126 bits per transform
+		{ 22, 7, 13 },		// 126 bits per transform
+		{ 22, 8, 12 },		// 126 bits per transform
+		{ 22, 9, 11 },		// 126 bits per transform
+		{ 22, 10, 10 },		// 126 bits per transform
+		{ 22, 11, 9 },		// 126 bits per transform
+		{ 22, 12, 8 },		// 126 bits per transform
+		{ 22, 13, 7 },		// 126 bits per transform
+		{ 22, 14, 6 },		// 126 bits per transform
+		{ 22, 15, 5 },		// 126 bits per transform
+		{ 22, 16, 4 },		// 126 bits per transform
+		{ 22, 17, 3 },		// 126 bits per transform
+		{ 22, 18, 2 },		// 126 bits per transform
+		{ 22, 19, 1 },		// 126 bits per transform
+		{ 22, 20, 0 },		// 126 bits per transform
+		{ 23, 0, 19 },		// 126 bits per transform
+		{ 23, 1, 18 },		// 126 bits per transform
+		{ 23, 2, 17 },		// 126 bits per transform
+		{ 23, 3, 16 },		// 126 bits per transform
+		{ 23, 4, 15 },		// 126 bits per transform
+		{ 23, 5, 14 },		// 126 bits per transform
+		{ 23, 6, 13 },		// 126 bits per transform
+		{ 23, 7, 12 },		// 126 bits per transform
+		{ 23, 8, 11 },		// 126 bits per transform
+		{ 23, 9, 10 },		// 126 bits per transform
+		{ 23, 10, 9 },		// 126 bits per transform
+		{ 23, 11, 8 },		// 126 bits per transform
+		{ 23, 12, 7 },		// 126 bits per transform
+		{ 23, 13, 6 },		// 126 bits per transform
+		{ 23, 14, 5 },		// 126 bits per transform
+		{ 23, 15, 4 },		// 126 bits per transform
+		{ 23, 16, 3 },		// 126 bits per transform
+		{ 23, 17, 2 },		// 126 bits per transform
+		{ 23, 18, 1 },		// 126 bits per transform
+		{ 23, 19, 0 },		// 126 bits per transform
+		{ 24, 0, 18 },		// 126 bits per transform
+		{ 24, 1, 17 },		// 126 bits per transform
+		{ 24, 2, 16 },		// 126 bits per transform
+		{ 24, 3, 15 },		// 126 bits per transform
+		{ 24, 4, 14 },		// 126 bits per transform
+		{ 24, 5, 13 },		// 126 bits per transform
+		{ 24, 6, 12 },		// 126 bits per transform
+		{ 24, 7, 11 },		// 126 bits per transform
+		{ 24, 8, 10 },		// 126 bits per transform
+		{ 24, 9, 9 },		// 126 bits per transform
+		{ 24, 10, 8 },		// 126 bits per transform
+		{ 24, 11, 7 },		// 126 bits per transform
+		{ 24, 12, 6 },		// 126 bits per transform
+		{ 24, 13, 5 },		// 126 bits per transform
+		{ 24, 14, 4 },		// 126 bits per transform
+		{ 24, 15, 3 },		// 126 bits per transform
+		{ 24, 16, 2 },		// 126 bits per transform
+		{ 24, 17, 1 },		// 126 bits per transform
+		{ 24, 18, 0 },		// 126 bits per transform
+		{ 25, 0, 10 },		// 126 bits per transform
+		{ 25, 1, 9 },		// 126 bits per transform
+		{ 25, 2, 8 },		// 126 bits per transform
+		{ 25, 3, 7 },		// 126 bits per transform
+		{ 25, 4, 6 },		// 126 bits per transform
+		{ 25, 5, 5 },		// 126 bits per transform
+		{ 25, 6, 4 },		// 126 bits per transform
+		{ 25, 7, 3 },		// 126 bits per transform
+		{ 25, 8, 2 },		// 126 bits per transform
+		{ 25, 9, 1 },		// 126 bits per transform
+		{ 25, 10, 0 },		// 126 bits per transform
+		{ 0, 11, 25 },		// 129 bits per transform
+		{ 0, 19, 24 },		// 129 bits per transform
+		{ 0, 20, 23 },		// 129 bits per transform
+		{ 0, 21, 22 },		// 129 bits per transform
+		{ 0, 22, 21 },		// 129 bits per transform
+		{ 0, 23, 20 },		// 129 bits per transform
+		{ 0, 24, 19 },		// 129 bits per transform
+		{ 0, 25, 11 },		// 129 bits per transform
+		{ 1, 10, 25 },		// 129 bits per transform
+		{ 1, 18, 24 },		// 129 bits per transform
+		{ 1, 19, 23 },		// 129 bits per transform
+		{ 1, 20, 22 },		// 129 bits per transform
 		{ 1, 21, 21 },		// 129 bits per transform
-		{ 1, 22, 10 },		// 129 bits per transform
-		{ 2, 9, 22 },		// 129 bits per transform
+		{ 1, 22, 20 },		// 129 bits per transform
+		{ 1, 23, 19 },		// 129 bits per transform
+		{ 1, 24, 18 },		// 129 bits per transform
+		{ 1, 25, 10 },		// 129 bits per transform
+		{ 2, 9, 25 },		// 129 bits per transform
+		{ 2, 17, 24 },		// 129 bits per transform
+		{ 2, 18, 23 },		// 129 bits per transform
+		{ 2, 19, 22 },		// 129 bits per transform
 		{ 2, 20, 21 },		// 129 bits per transform
 		{ 2, 21, 20 },		// 129 bits per transform
-		{ 2, 22, 9 },		// 129 bits per transform
-		{ 3, 8, 22 },		// 129 bits per transform
+		{ 2, 22, 19 },		// 129 bits per transform
+		{ 2, 23, 18 },		// 129 bits per transform
+		{ 2, 24, 17 },		// 129 bits per transform
+		{ 2, 25, 9 },		// 129 bits per transform
+		{ 3, 8, 25 },		// 129 bits per transform
+		{ 3, 16, 24 },		// 129 bits per transform
+		{ 3, 17, 23 },		// 129 bits per transform
+		{ 3, 18, 22 },		// 129 bits per transform
 		{ 3, 19, 21 },		// 129 bits per transform
 		{ 3, 20, 20 },		// 129 bits per transform
 		{ 3, 21, 19 },		// 129 bits per transform
-		{ 3, 22, 8 },		// 129 bits per transform
-		{ 4, 7, 22 },		// 129 bits per transform
+		{ 3, 22, 18 },		// 129 bits per transform
+		{ 3, 23, 17 },		// 129 bits per transform
+		{ 3, 24, 16 },		// 129 bits per transform
+		{ 3, 25, 8 },		// 129 bits per transform
+		{ 4, 7, 25 },		// 129 bits per transform
+		{ 4, 15, 24 },		// 129 bits per transform
+		{ 4, 16, 23 },		// 129 bits per transform
+		{ 4, 17, 22 },		// 129 bits per transform
 		{ 4, 18, 21 },		// 129 bits per transform
 		{ 4, 19, 20 },		// 129 bits per transform
 		{ 4, 20, 19 },		// 129 bits per transform
 		{ 4, 21, 18 },		// 129 bits per transform
-		{ 4, 22, 7 },		// 129 bits per transform
-		{ 5, 6, 22 },		// 129 bits per transform
+		{ 4, 22, 17 },		// 129 bits per transform
+		{ 4, 23, 16 },		// 129 bits per transform
+		{ 4, 24, 15 },		// 129 bits per transform
+		{ 4, 25, 7 },		// 129 bits per transform
+		{ 5, 6, 25 },		// 129 bits per transform
+		{ 5, 14, 24 },		// 129 bits per transform
+		{ 5, 15, 23 },		// 129 bits per transform
+		{ 5, 16, 22 },		// 129 bits per transform
 		{ 5, 17, 21 },		// 129 bits per transform
 		{ 5, 18, 20 },		// 129 bits per transform
 		{ 5, 19, 19 },		// 129 bits per transform
 		{ 5, 20, 18 },		// 129 bits per transform
 		{ 5, 21, 17 },		// 129 bits per transform
-		{ 5, 22, 6 },		// 129 bits per transform
-		{ 6, 5, 22 },		// 129 bits per transform
+		{ 5, 22, 16 },		// 129 bits per transform
+		{ 5, 23, 15 },		// 129 bits per transform
+		{ 5, 24, 14 },		// 129 bits per transform
+		{ 5, 25, 6 },		// 129 bits per transform
+		{ 6, 5, 25 },		// 129 bits per transform
+		{ 6, 13, 24 },		// 129 bits per transform
+		{ 6, 14, 23 },		// 129 bits per transform
+		{ 6, 15, 22 },		// 129 bits per transform
 		{ 6, 16, 21 },		// 129 bits per transform
 		{ 6, 17, 20 },		// 129 bits per transform
 		{ 6, 18, 19 },		// 129 bits per transform
 		{ 6, 19, 18 },		// 129 bits per transform
 		{ 6, 20, 17 },		// 129 bits per transform
 		{ 6, 21, 16 },		// 129 bits per transform
-		{ 6, 22, 5 },		// 129 bits per transform
-		{ 7, 4, 22 },		// 129 bits per transform
+		{ 6, 22, 15 },		// 129 bits per transform
+		{ 6, 23, 14 },		// 129 bits per transform
+		{ 6, 24, 13 },		// 129 bits per transform
+		{ 6, 25, 5 },		// 129 bits per transform
+		{ 7, 4, 25 },		// 129 bits per transform
+		{ 7, 12, 24 },		// 129 bits per transform
+		{ 7, 13, 23 },		// 129 bits per transform
+		{ 7, 14, 22 },		// 129 bits per transform
 		{ 7, 15, 21 },		// 129 bits per transform
 		{ 7, 16, 20 },		// 129 bits per transform
 		{ 7, 17, 19 },		// 129 bits per transform
@@ -9692,8 +11777,14 @@ namespace acl
 		{ 7, 19, 17 },		// 129 bits per transform
 		{ 7, 20, 16 },		// 129 bits per transform
 		{ 7, 21, 15 },		// 129 bits per transform
-		{ 7, 22, 4 },		// 129 bits per transform
-		{ 8, 3, 22 },		// 129 bits per transform
+		{ 7, 22, 14 },		// 129 bits per transform
+		{ 7, 23, 13 },		// 129 bits per transform
+		{ 7, 24, 12 },		// 129 bits per transform
+		{ 7, 25, 4 },		// 129 bits per transform
+		{ 8, 3, 25 },		// 129 bits per transform
+		{ 8, 11, 24 },		// 129 bits per transform
+		{ 8, 12, 23 },		// 129 bits per transform
+		{ 8, 13, 22 },		// 129 bits per transform
 		{ 8, 14, 21 },		// 129 bits per transform
 		{ 8, 15, 20 },		// 129 bits per transform
 		{ 8, 16, 19 },		// 129 bits per transform
@@ -9702,8 +11793,14 @@ namespace acl
 		{ 8, 19, 16 },		// 129 bits per transform
 		{ 8, 20, 15 },		// 129 bits per transform
 		{ 8, 21, 14 },		// 129 bits per transform
-		{ 8, 22, 3 },		// 129 bits per transform
-		{ 9, 2, 22 },		// 129 bits per transform
+		{ 8, 22, 13 },		// 129 bits per transform
+		{ 8, 23, 12 },		// 129 bits per transform
+		{ 8, 24, 11 },		// 129 bits per transform
+		{ 8, 25, 3 },		// 129 bits per transform
+		{ 9, 2, 25 },		// 129 bits per transform
+		{ 9, 10, 24 },		// 129 bits per transform
+		{ 9, 11, 23 },		// 129 bits per transform
+		{ 9, 12, 22 },		// 129 bits per transform
 		{ 9, 13, 21 },		// 129 bits per transform
 		{ 9, 14, 20 },		// 129 bits per transform
 		{ 9, 15, 19 },		// 129 bits per transform
@@ -9713,8 +11810,14 @@ namespace acl
 		{ 9, 19, 15 },		// 129 bits per transform
 		{ 9, 20, 14 },		// 129 bits per transform
 		{ 9, 21, 13 },		// 129 bits per transform
-		{ 9, 22, 2 },		// 129 bits per transform
-		{ 10, 1, 22 },		// 129 bits per transform
+		{ 9, 22, 12 },		// 129 bits per transform
+		{ 9, 23, 11 },		// 129 bits per transform
+		{ 9, 24, 10 },		// 129 bits per transform
+		{ 9, 25, 2 },		// 129 bits per transform
+		{ 10, 1, 25 },		// 129 bits per transform
+		{ 10, 9, 24 },		// 129 bits per transform
+		{ 10, 10, 23 },		// 129 bits per transform
+		{ 10, 11, 22 },		// 129 bits per transform
 		{ 10, 12, 21 },		// 129 bits per transform
 		{ 10, 13, 20 },		// 129 bits per transform
 		{ 10, 14, 19 },		// 129 bits per transform
@@ -9725,8 +11828,14 @@ namespace acl
 		{ 10, 19, 14 },		// 129 bits per transform
 		{ 10, 20, 13 },		// 129 bits per transform
 		{ 10, 21, 12 },		// 129 bits per transform
-		{ 10, 22, 1 },		// 129 bits per transform
-		{ 11, 0, 22 },		// 129 bits per transform
+		{ 10, 22, 11 },		// 129 bits per transform
+		{ 10, 23, 10 },		// 129 bits per transform
+		{ 10, 24, 9 },		// 129 bits per transform
+		{ 10, 25, 1 },		// 129 bits per transform
+		{ 11, 0, 25 },		// 129 bits per transform
+		{ 11, 8, 24 },		// 129 bits per transform
+		{ 11, 9, 23 },		// 129 bits per transform
+		{ 11, 10, 22 },		// 129 bits per transform
 		{ 11, 11, 21 },		// 129 bits per transform
 		{ 11, 12, 20 },		// 129 bits per transform
 		{ 11, 13, 19 },		// 129 bits per transform
@@ -9738,7 +11847,13 @@ namespace acl
 		{ 11, 19, 13 },		// 129 bits per transform
 		{ 11, 20, 12 },		// 129 bits per transform
 		{ 11, 21, 11 },		// 129 bits per transform
-		{ 11, 22, 0 },		// 129 bits per transform
+		{ 11, 22, 10 },		// 129 bits per transform
+		{ 11, 23, 9 },		// 129 bits per transform
+		{ 11, 24, 8 },		// 129 bits per transform
+		{ 11, 25, 0 },		// 129 bits per transform
+		{ 12, 7, 24 },		// 129 bits per transform
+		{ 12, 8, 23 },		// 129 bits per transform
+		{ 12, 9, 22 },		// 129 bits per transform
 		{ 12, 10, 21 },		// 129 bits per transform
 		{ 12, 11, 20 },		// 129 bits per transform
 		{ 12, 12, 19 },		// 129 bits per transform
@@ -9751,6 +11866,12 @@ namespace acl
 		{ 12, 19, 12 },		// 129 bits per transform
 		{ 12, 20, 11 },		// 129 bits per transform
 		{ 12, 21, 10 },		// 129 bits per transform
+		{ 12, 22, 9 },		// 129 bits per transform
+		{ 12, 23, 8 },		// 129 bits per transform
+		{ 12, 24, 7 },		// 129 bits per transform
+		{ 13, 6, 24 },		// 129 bits per transform
+		{ 13, 7, 23 },		// 129 bits per transform
+		{ 13, 8, 22 },		// 129 bits per transform
 		{ 13, 9, 21 },		// 129 bits per transform
 		{ 13, 10, 20 },		// 129 bits per transform
 		{ 13, 11, 19 },		// 129 bits per transform
@@ -9764,6 +11885,12 @@ namespace acl
 		{ 13, 19, 11 },		// 129 bits per transform
 		{ 13, 20, 10 },		// 129 bits per transform
 		{ 13, 21, 9 },		// 129 bits per transform
+		{ 13, 22, 8 },		// 129 bits per transform
+		{ 13, 23, 7 },		// 129 bits per transform
+		{ 13, 24, 6 },		// 129 bits per transform
+		{ 14, 5, 24 },		// 129 bits per transform
+		{ 14, 6, 23 },		// 129 bits per transform
+		{ 14, 7, 22 },		// 129 bits per transform
 		{ 14, 8, 21 },		// 129 bits per transform
 		{ 14, 9, 20 },		// 129 bits per transform
 		{ 14, 10, 19 },		// 129 bits per transform
@@ -9778,6 +11905,12 @@ namespace acl
 		{ 14, 19, 10 },		// 129 bits per transform
 		{ 14, 20, 9 },		// 129 bits per transform
 		{ 14, 21, 8 },		// 129 bits per transform
+		{ 14, 22, 7 },		// 129 bits per transform
+		{ 14, 23, 6 },		// 129 bits per transform
+		{ 14, 24, 5 },		// 129 bits per transform
+		{ 15, 4, 24 },		// 129 bits per transform
+		{ 15, 5, 23 },		// 129 bits per transform
+		{ 15, 6, 22 },		// 129 bits per transform
 		{ 15, 7, 21 },		// 129 bits per transform
 		{ 15, 8, 20 },		// 129 bits per transform
 		{ 15, 9, 19 },		// 129 bits per transform
@@ -9793,6 +11926,12 @@ namespace acl
 		{ 15, 19, 9 },		// 129 bits per transform
 		{ 15, 20, 8 },		// 129 bits per transform
 		{ 15, 21, 7 },		// 129 bits per transform
+		{ 15, 22, 6 },		// 129 bits per transform
+		{ 15, 23, 5 },		// 129 bits per transform
+		{ 15, 24, 4 },		// 129 bits per transform
+		{ 16, 3, 24 },		// 129 bits per transform
+		{ 16, 4, 23 },		// 129 bits per transform
+		{ 16, 5, 22 },		// 129 bits per transform
 		{ 16, 6, 21 },		// 129 bits per transform
 		{ 16, 7, 20 },		// 129 bits per transform
 		{ 16, 8, 19 },		// 129 bits per transform
@@ -9809,6 +11948,12 @@ namespace acl
 		{ 16, 19, 8 },		// 129 bits per transform
 		{ 16, 20, 7 },		// 129 bits per transform
 		{ 16, 21, 6 },		// 129 bits per transform
+		{ 16, 22, 5 },		// 129 bits per transform
+		{ 16, 23, 4 },		// 129 bits per transform
+		{ 16, 24, 3 },		// 129 bits per transform
+		{ 17, 2, 24 },		// 129 bits per transform
+		{ 17, 3, 23 },		// 129 bits per transform
+		{ 17, 4, 22 },		// 129 bits per transform
 		{ 17, 5, 21 },		// 129 bits per transform
 		{ 17, 6, 20 },		// 129 bits per transform
 		{ 17, 7, 19 },		// 129 bits per transform
@@ -9826,6 +11971,12 @@ namespace acl
 		{ 17, 19, 7 },		// 129 bits per transform
 		{ 17, 20, 6 },		// 129 bits per transform
 		{ 17, 21, 5 },		// 129 bits per transform
+		{ 17, 22, 4 },		// 129 bits per transform
+		{ 17, 23, 3 },		// 129 bits per transform
+		{ 17, 24, 2 },		// 129 bits per transform
+		{ 18, 1, 24 },		// 129 bits per transform
+		{ 18, 2, 23 },		// 129 bits per transform
+		{ 18, 3, 22 },		// 129 bits per transform
 		{ 18, 4, 21 },		// 129 bits per transform
 		{ 18, 5, 20 },		// 129 bits per transform
 		{ 18, 6, 19 },		// 129 bits per transform
@@ -9844,6 +11995,12 @@ namespace acl
 		{ 18, 19, 6 },		// 129 bits per transform
 		{ 18, 20, 5 },		// 129 bits per transform
 		{ 18, 21, 4 },		// 129 bits per transform
+		{ 18, 22, 3 },		// 129 bits per transform
+		{ 18, 23, 2 },		// 129 bits per transform
+		{ 18, 24, 1 },		// 129 bits per transform
+		{ 19, 0, 24 },		// 129 bits per transform
+		{ 19, 1, 23 },		// 129 bits per transform
+		{ 19, 2, 22 },		// 129 bits per transform
 		{ 19, 3, 21 },		// 129 bits per transform
 		{ 19, 4, 20 },		// 129 bits per transform
 		{ 19, 5, 19 },		// 129 bits per transform
@@ -9863,6 +12020,11 @@ namespace acl
 		{ 19, 19, 5 },		// 129 bits per transform
 		{ 19, 20, 4 },		// 129 bits per transform
 		{ 19, 21, 3 },		// 129 bits per transform
+		{ 19, 22, 2 },		// 129 bits per transform
+		{ 19, 23, 1 },		// 129 bits per transform
+		{ 19, 24, 0 },		// 129 bits per transform
+		{ 20, 0, 23 },		// 129 bits per transform
+		{ 20, 1, 22 },		// 129 bits per transform
 		{ 20, 2, 21 },		// 129 bits per transform
 		{ 20, 3, 20 },		// 129 bits per transform
 		{ 20, 4, 19 },		// 129 bits per transform
@@ -9883,6 +12045,9 @@ namespace acl
 		{ 20, 19, 4 },		// 129 bits per transform
 		{ 20, 20, 3 },		// 129 bits per transform
 		{ 20, 21, 2 },		// 129 bits per transform
+		{ 20, 22, 1 },		// 129 bits per transform
+		{ 20, 23, 0 },		// 129 bits per transform
+		{ 21, 0, 22 },		// 129 bits per transform
 		{ 21, 1, 21 },		// 129 bits per transform
 		{ 21, 2, 20 },		// 129 bits per transform
 		{ 21, 3, 19 },		// 129 bits per transform
@@ -9904,56 +12069,170 @@ namespace acl
 		{ 21, 19, 3 },		// 129 bits per transform
 		{ 21, 20, 2 },		// 129 bits per transform
 		{ 21, 21, 1 },		// 129 bits per transform
-		{ 22, 0, 11 },		// 129 bits per transform
-		{ 22, 1, 10 },		// 129 bits per transform
-		{ 22, 2, 9 },		// 129 bits per transform
-		{ 22, 3, 8 },		// 129 bits per transform
-		{ 22, 4, 7 },		// 129 bits per transform
-		{ 22, 5, 6 },		// 129 bits per transform
-		{ 22, 6, 5 },		// 129 bits per transform
-		{ 22, 7, 4 },		// 129 bits per transform
-		{ 22, 8, 3 },		// 129 bits per transform
-		{ 22, 9, 2 },		// 129 bits per transform
-		{ 22, 10, 1 },		// 129 bits per transform
-		{ 22, 11, 0 },		// 129 bits per transform
-		{ 0, 12, 22 },		// 132 bits per transform
-		{ 0, 22, 12 },		// 132 bits per transform
-		{ 1, 11, 22 },		// 132 bits per transform
-		{ 1, 22, 11 },		// 132 bits per transform
-		{ 2, 10, 22 },		// 132 bits per transform
+		{ 21, 22, 0 },		// 129 bits per transform
+		{ 22, 0, 21 },		// 129 bits per transform
+		{ 22, 1, 20 },		// 129 bits per transform
+		{ 22, 2, 19 },		// 129 bits per transform
+		{ 22, 3, 18 },		// 129 bits per transform
+		{ 22, 4, 17 },		// 129 bits per transform
+		{ 22, 5, 16 },		// 129 bits per transform
+		{ 22, 6, 15 },		// 129 bits per transform
+		{ 22, 7, 14 },		// 129 bits per transform
+		{ 22, 8, 13 },		// 129 bits per transform
+		{ 22, 9, 12 },		// 129 bits per transform
+		{ 22, 10, 11 },		// 129 bits per transform
+		{ 22, 11, 10 },		// 129 bits per transform
+		{ 22, 12, 9 },		// 129 bits per transform
+		{ 22, 13, 8 },		// 129 bits per transform
+		{ 22, 14, 7 },		// 129 bits per transform
+		{ 22, 15, 6 },		// 129 bits per transform
+		{ 22, 16, 5 },		// 129 bits per transform
+		{ 22, 17, 4 },		// 129 bits per transform
+		{ 22, 18, 3 },		// 129 bits per transform
+		{ 22, 19, 2 },		// 129 bits per transform
+		{ 22, 20, 1 },		// 129 bits per transform
+		{ 22, 21, 0 },		// 129 bits per transform
+		{ 23, 0, 20 },		// 129 bits per transform
+		{ 23, 1, 19 },		// 129 bits per transform
+		{ 23, 2, 18 },		// 129 bits per transform
+		{ 23, 3, 17 },		// 129 bits per transform
+		{ 23, 4, 16 },		// 129 bits per transform
+		{ 23, 5, 15 },		// 129 bits per transform
+		{ 23, 6, 14 },		// 129 bits per transform
+		{ 23, 7, 13 },		// 129 bits per transform
+		{ 23, 8, 12 },		// 129 bits per transform
+		{ 23, 9, 11 },		// 129 bits per transform
+		{ 23, 10, 10 },		// 129 bits per transform
+		{ 23, 11, 9 },		// 129 bits per transform
+		{ 23, 12, 8 },		// 129 bits per transform
+		{ 23, 13, 7 },		// 129 bits per transform
+		{ 23, 14, 6 },		// 129 bits per transform
+		{ 23, 15, 5 },		// 129 bits per transform
+		{ 23, 16, 4 },		// 129 bits per transform
+		{ 23, 17, 3 },		// 129 bits per transform
+		{ 23, 18, 2 },		// 129 bits per transform
+		{ 23, 19, 1 },		// 129 bits per transform
+		{ 23, 20, 0 },		// 129 bits per transform
+		{ 24, 0, 19 },		// 129 bits per transform
+		{ 24, 1, 18 },		// 129 bits per transform
+		{ 24, 2, 17 },		// 129 bits per transform
+		{ 24, 3, 16 },		// 129 bits per transform
+		{ 24, 4, 15 },		// 129 bits per transform
+		{ 24, 5, 14 },		// 129 bits per transform
+		{ 24, 6, 13 },		// 129 bits per transform
+		{ 24, 7, 12 },		// 129 bits per transform
+		{ 24, 8, 11 },		// 129 bits per transform
+		{ 24, 9, 10 },		// 129 bits per transform
+		{ 24, 10, 9 },		// 129 bits per transform
+		{ 24, 11, 8 },		// 129 bits per transform
+		{ 24, 12, 7 },		// 129 bits per transform
+		{ 24, 13, 6 },		// 129 bits per transform
+		{ 24, 14, 5 },		// 129 bits per transform
+		{ 24, 15, 4 },		// 129 bits per transform
+		{ 24, 16, 3 },		// 129 bits per transform
+		{ 24, 17, 2 },		// 129 bits per transform
+		{ 24, 18, 1 },		// 129 bits per transform
+		{ 24, 19, 0 },		// 129 bits per transform
+		{ 25, 0, 11 },		// 129 bits per transform
+		{ 25, 1, 10 },		// 129 bits per transform
+		{ 25, 2, 9 },		// 129 bits per transform
+		{ 25, 3, 8 },		// 129 bits per transform
+		{ 25, 4, 7 },		// 129 bits per transform
+		{ 25, 5, 6 },		// 129 bits per transform
+		{ 25, 6, 5 },		// 129 bits per transform
+		{ 25, 7, 4 },		// 129 bits per transform
+		{ 25, 8, 3 },		// 129 bits per transform
+		{ 25, 9, 2 },		// 129 bits per transform
+		{ 25, 10, 1 },		// 129 bits per transform
+		{ 25, 11, 0 },		// 129 bits per transform
+		{ 0, 12, 25 },		// 132 bits per transform
+		{ 0, 20, 24 },		// 132 bits per transform
+		{ 0, 21, 23 },		// 132 bits per transform
+		{ 0, 22, 22 },		// 132 bits per transform
+		{ 0, 23, 21 },		// 132 bits per transform
+		{ 0, 24, 20 },		// 132 bits per transform
+		{ 0, 25, 12 },		// 132 bits per transform
+		{ 1, 11, 25 },		// 132 bits per transform
+		{ 1, 19, 24 },		// 132 bits per transform
+		{ 1, 20, 23 },		// 132 bits per transform
+		{ 1, 21, 22 },		// 132 bits per transform
+		{ 1, 22, 21 },		// 132 bits per transform
+		{ 1, 23, 20 },		// 132 bits per transform
+		{ 1, 24, 19 },		// 132 bits per transform
+		{ 1, 25, 11 },		// 132 bits per transform
+		{ 2, 10, 25 },		// 132 bits per transform
+		{ 2, 18, 24 },		// 132 bits per transform
+		{ 2, 19, 23 },		// 132 bits per transform
+		{ 2, 20, 22 },		// 132 bits per transform
 		{ 2, 21, 21 },		// 132 bits per transform
-		{ 2, 22, 10 },		// 132 bits per transform
-		{ 3, 9, 22 },		// 132 bits per transform
+		{ 2, 22, 20 },		// 132 bits per transform
+		{ 2, 23, 19 },		// 132 bits per transform
+		{ 2, 24, 18 },		// 132 bits per transform
+		{ 2, 25, 10 },		// 132 bits per transform
+		{ 3, 9, 25 },		// 132 bits per transform
+		{ 3, 17, 24 },		// 132 bits per transform
+		{ 3, 18, 23 },		// 132 bits per transform
+		{ 3, 19, 22 },		// 132 bits per transform
 		{ 3, 20, 21 },		// 132 bits per transform
 		{ 3, 21, 20 },		// 132 bits per transform
-		{ 3, 22, 9 },		// 132 bits per transform
-		{ 4, 8, 22 },		// 132 bits per transform
+		{ 3, 22, 19 },		// 132 bits per transform
+		{ 3, 23, 18 },		// 132 bits per transform
+		{ 3, 24, 17 },		// 132 bits per transform
+		{ 3, 25, 9 },		// 132 bits per transform
+		{ 4, 8, 25 },		// 132 bits per transform
+		{ 4, 16, 24 },		// 132 bits per transform
+		{ 4, 17, 23 },		// 132 bits per transform
+		{ 4, 18, 22 },		// 132 bits per transform
 		{ 4, 19, 21 },		// 132 bits per transform
 		{ 4, 20, 20 },		// 132 bits per transform
 		{ 4, 21, 19 },		// 132 bits per transform
-		{ 4, 22, 8 },		// 132 bits per transform
-		{ 5, 7, 22 },		// 132 bits per transform
+		{ 4, 22, 18 },		// 132 bits per transform
+		{ 4, 23, 17 },		// 132 bits per transform
+		{ 4, 24, 16 },		// 132 bits per transform
+		{ 4, 25, 8 },		// 132 bits per transform
+		{ 5, 7, 25 },		// 132 bits per transform
+		{ 5, 15, 24 },		// 132 bits per transform
+		{ 5, 16, 23 },		// 132 bits per transform
+		{ 5, 17, 22 },		// 132 bits per transform
 		{ 5, 18, 21 },		// 132 bits per transform
 		{ 5, 19, 20 },		// 132 bits per transform
 		{ 5, 20, 19 },		// 132 bits per transform
 		{ 5, 21, 18 },		// 132 bits per transform
-		{ 5, 22, 7 },		// 132 bits per transform
-		{ 6, 6, 22 },		// 132 bits per transform
+		{ 5, 22, 17 },		// 132 bits per transform
+		{ 5, 23, 16 },		// 132 bits per transform
+		{ 5, 24, 15 },		// 132 bits per transform
+		{ 5, 25, 7 },		// 132 bits per transform
+		{ 6, 6, 25 },		// 132 bits per transform
+		{ 6, 14, 24 },		// 132 bits per transform
+		{ 6, 15, 23 },		// 132 bits per transform
+		{ 6, 16, 22 },		// 132 bits per transform
 		{ 6, 17, 21 },		// 132 bits per transform
 		{ 6, 18, 20 },		// 132 bits per transform
 		{ 6, 19, 19 },		// 132 bits per transform
 		{ 6, 20, 18 },		// 132 bits per transform
 		{ 6, 21, 17 },		// 132 bits per transform
-		{ 6, 22, 6 },		// 132 bits per transform
-		{ 7, 5, 22 },		// 132 bits per transform
+		{ 6, 22, 16 },		// 132 bits per transform
+		{ 6, 23, 15 },		// 132 bits per transform
+		{ 6, 24, 14 },		// 132 bits per transform
+		{ 6, 25, 6 },		// 132 bits per transform
+		{ 7, 5, 25 },		// 132 bits per transform
+		{ 7, 13, 24 },		// 132 bits per transform
+		{ 7, 14, 23 },		// 132 bits per transform
+		{ 7, 15, 22 },		// 132 bits per transform
 		{ 7, 16, 21 },		// 132 bits per transform
 		{ 7, 17, 20 },		// 132 bits per transform
 		{ 7, 18, 19 },		// 132 bits per transform
 		{ 7, 19, 18 },		// 132 bits per transform
 		{ 7, 20, 17 },		// 132 bits per transform
 		{ 7, 21, 16 },		// 132 bits per transform
-		{ 7, 22, 5 },		// 132 bits per transform
-		{ 8, 4, 22 },		// 132 bits per transform
+		{ 7, 22, 15 },		// 132 bits per transform
+		{ 7, 23, 14 },		// 132 bits per transform
+		{ 7, 24, 13 },		// 132 bits per transform
+		{ 7, 25, 5 },		// 132 bits per transform
+		{ 8, 4, 25 },		// 132 bits per transform
+		{ 8, 12, 24 },		// 132 bits per transform
+		{ 8, 13, 23 },		// 132 bits per transform
+		{ 8, 14, 22 },		// 132 bits per transform
 		{ 8, 15, 21 },		// 132 bits per transform
 		{ 8, 16, 20 },		// 132 bits per transform
 		{ 8, 17, 19 },		// 132 bits per transform
@@ -9961,8 +12240,14 @@ namespace acl
 		{ 8, 19, 17 },		// 132 bits per transform
 		{ 8, 20, 16 },		// 132 bits per transform
 		{ 8, 21, 15 },		// 132 bits per transform
-		{ 8, 22, 4 },		// 132 bits per transform
-		{ 9, 3, 22 },		// 132 bits per transform
+		{ 8, 22, 14 },		// 132 bits per transform
+		{ 8, 23, 13 },		// 132 bits per transform
+		{ 8, 24, 12 },		// 132 bits per transform
+		{ 8, 25, 4 },		// 132 bits per transform
+		{ 9, 3, 25 },		// 132 bits per transform
+		{ 9, 11, 24 },		// 132 bits per transform
+		{ 9, 12, 23 },		// 132 bits per transform
+		{ 9, 13, 22 },		// 132 bits per transform
 		{ 9, 14, 21 },		// 132 bits per transform
 		{ 9, 15, 20 },		// 132 bits per transform
 		{ 9, 16, 19 },		// 132 bits per transform
@@ -9971,8 +12256,14 @@ namespace acl
 		{ 9, 19, 16 },		// 132 bits per transform
 		{ 9, 20, 15 },		// 132 bits per transform
 		{ 9, 21, 14 },		// 132 bits per transform
-		{ 9, 22, 3 },		// 132 bits per transform
-		{ 10, 2, 22 },		// 132 bits per transform
+		{ 9, 22, 13 },		// 132 bits per transform
+		{ 9, 23, 12 },		// 132 bits per transform
+		{ 9, 24, 11 },		// 132 bits per transform
+		{ 9, 25, 3 },		// 132 bits per transform
+		{ 10, 2, 25 },		// 132 bits per transform
+		{ 10, 10, 24 },		// 132 bits per transform
+		{ 10, 11, 23 },		// 132 bits per transform
+		{ 10, 12, 22 },		// 132 bits per transform
 		{ 10, 13, 21 },		// 132 bits per transform
 		{ 10, 14, 20 },		// 132 bits per transform
 		{ 10, 15, 19 },		// 132 bits per transform
@@ -9982,8 +12273,14 @@ namespace acl
 		{ 10, 19, 15 },		// 132 bits per transform
 		{ 10, 20, 14 },		// 132 bits per transform
 		{ 10, 21, 13 },		// 132 bits per transform
-		{ 10, 22, 2 },		// 132 bits per transform
-		{ 11, 1, 22 },		// 132 bits per transform
+		{ 10, 22, 12 },		// 132 bits per transform
+		{ 10, 23, 11 },		// 132 bits per transform
+		{ 10, 24, 10 },		// 132 bits per transform
+		{ 10, 25, 2 },		// 132 bits per transform
+		{ 11, 1, 25 },		// 132 bits per transform
+		{ 11, 9, 24 },		// 132 bits per transform
+		{ 11, 10, 23 },		// 132 bits per transform
+		{ 11, 11, 22 },		// 132 bits per transform
 		{ 11, 12, 21 },		// 132 bits per transform
 		{ 11, 13, 20 },		// 132 bits per transform
 		{ 11, 14, 19 },		// 132 bits per transform
@@ -9994,8 +12291,14 @@ namespace acl
 		{ 11, 19, 14 },		// 132 bits per transform
 		{ 11, 20, 13 },		// 132 bits per transform
 		{ 11, 21, 12 },		// 132 bits per transform
-		{ 11, 22, 1 },		// 132 bits per transform
-		{ 12, 0, 22 },		// 132 bits per transform
+		{ 11, 22, 11 },		// 132 bits per transform
+		{ 11, 23, 10 },		// 132 bits per transform
+		{ 11, 24, 9 },		// 132 bits per transform
+		{ 11, 25, 1 },		// 132 bits per transform
+		{ 12, 0, 25 },		// 132 bits per transform
+		{ 12, 8, 24 },		// 132 bits per transform
+		{ 12, 9, 23 },		// 132 bits per transform
+		{ 12, 10, 22 },		// 132 bits per transform
 		{ 12, 11, 21 },		// 132 bits per transform
 		{ 12, 12, 20 },		// 132 bits per transform
 		{ 12, 13, 19 },		// 132 bits per transform
@@ -10007,7 +12310,13 @@ namespace acl
 		{ 12, 19, 13 },		// 132 bits per transform
 		{ 12, 20, 12 },		// 132 bits per transform
 		{ 12, 21, 11 },		// 132 bits per transform
-		{ 12, 22, 0 },		// 132 bits per transform
+		{ 12, 22, 10 },		// 132 bits per transform
+		{ 12, 23, 9 },		// 132 bits per transform
+		{ 12, 24, 8 },		// 132 bits per transform
+		{ 12, 25, 0 },		// 132 bits per transform
+		{ 13, 7, 24 },		// 132 bits per transform
+		{ 13, 8, 23 },		// 132 bits per transform
+		{ 13, 9, 22 },		// 132 bits per transform
 		{ 13, 10, 21 },		// 132 bits per transform
 		{ 13, 11, 20 },		// 132 bits per transform
 		{ 13, 12, 19 },		// 132 bits per transform
@@ -10020,6 +12329,12 @@ namespace acl
 		{ 13, 19, 12 },		// 132 bits per transform
 		{ 13, 20, 11 },		// 132 bits per transform
 		{ 13, 21, 10 },		// 132 bits per transform
+		{ 13, 22, 9 },		// 132 bits per transform
+		{ 13, 23, 8 },		// 132 bits per transform
+		{ 13, 24, 7 },		// 132 bits per transform
+		{ 14, 6, 24 },		// 132 bits per transform
+		{ 14, 7, 23 },		// 132 bits per transform
+		{ 14, 8, 22 },		// 132 bits per transform
 		{ 14, 9, 21 },		// 132 bits per transform
 		{ 14, 10, 20 },		// 132 bits per transform
 		{ 14, 11, 19 },		// 132 bits per transform
@@ -10033,6 +12348,12 @@ namespace acl
 		{ 14, 19, 11 },		// 132 bits per transform
 		{ 14, 20, 10 },		// 132 bits per transform
 		{ 14, 21, 9 },		// 132 bits per transform
+		{ 14, 22, 8 },		// 132 bits per transform
+		{ 14, 23, 7 },		// 132 bits per transform
+		{ 14, 24, 6 },		// 132 bits per transform
+		{ 15, 5, 24 },		// 132 bits per transform
+		{ 15, 6, 23 },		// 132 bits per transform
+		{ 15, 7, 22 },		// 132 bits per transform
 		{ 15, 8, 21 },		// 132 bits per transform
 		{ 15, 9, 20 },		// 132 bits per transform
 		{ 15, 10, 19 },		// 132 bits per transform
@@ -10047,6 +12368,12 @@ namespace acl
 		{ 15, 19, 10 },		// 132 bits per transform
 		{ 15, 20, 9 },		// 132 bits per transform
 		{ 15, 21, 8 },		// 132 bits per transform
+		{ 15, 22, 7 },		// 132 bits per transform
+		{ 15, 23, 6 },		// 132 bits per transform
+		{ 15, 24, 5 },		// 132 bits per transform
+		{ 16, 4, 24 },		// 132 bits per transform
+		{ 16, 5, 23 },		// 132 bits per transform
+		{ 16, 6, 22 },		// 132 bits per transform
 		{ 16, 7, 21 },		// 132 bits per transform
 		{ 16, 8, 20 },		// 132 bits per transform
 		{ 16, 9, 19 },		// 132 bits per transform
@@ -10062,6 +12389,12 @@ namespace acl
 		{ 16, 19, 9 },		// 132 bits per transform
 		{ 16, 20, 8 },		// 132 bits per transform
 		{ 16, 21, 7 },		// 132 bits per transform
+		{ 16, 22, 6 },		// 132 bits per transform
+		{ 16, 23, 5 },		// 132 bits per transform
+		{ 16, 24, 4 },		// 132 bits per transform
+		{ 17, 3, 24 },		// 132 bits per transform
+		{ 17, 4, 23 },		// 132 bits per transform
+		{ 17, 5, 22 },		// 132 bits per transform
 		{ 17, 6, 21 },		// 132 bits per transform
 		{ 17, 7, 20 },		// 132 bits per transform
 		{ 17, 8, 19 },		// 132 bits per transform
@@ -10078,6 +12411,12 @@ namespace acl
 		{ 17, 19, 8 },		// 132 bits per transform
 		{ 17, 20, 7 },		// 132 bits per transform
 		{ 17, 21, 6 },		// 132 bits per transform
+		{ 17, 22, 5 },		// 132 bits per transform
+		{ 17, 23, 4 },		// 132 bits per transform
+		{ 17, 24, 3 },		// 132 bits per transform
+		{ 18, 2, 24 },		// 132 bits per transform
+		{ 18, 3, 23 },		// 132 bits per transform
+		{ 18, 4, 22 },		// 132 bits per transform
 		{ 18, 5, 21 },		// 132 bits per transform
 		{ 18, 6, 20 },		// 132 bits per transform
 		{ 18, 7, 19 },		// 132 bits per transform
@@ -10095,6 +12434,12 @@ namespace acl
 		{ 18, 19, 7 },		// 132 bits per transform
 		{ 18, 20, 6 },		// 132 bits per transform
 		{ 18, 21, 5 },		// 132 bits per transform
+		{ 18, 22, 4 },		// 132 bits per transform
+		{ 18, 23, 3 },		// 132 bits per transform
+		{ 18, 24, 2 },		// 132 bits per transform
+		{ 19, 1, 24 },		// 132 bits per transform
+		{ 19, 2, 23 },		// 132 bits per transform
+		{ 19, 3, 22 },		// 132 bits per transform
 		{ 19, 4, 21 },		// 132 bits per transform
 		{ 19, 5, 20 },		// 132 bits per transform
 		{ 19, 6, 19 },		// 132 bits per transform
@@ -10113,6 +12458,12 @@ namespace acl
 		{ 19, 19, 6 },		// 132 bits per transform
 		{ 19, 20, 5 },		// 132 bits per transform
 		{ 19, 21, 4 },		// 132 bits per transform
+		{ 19, 22, 3 },		// 132 bits per transform
+		{ 19, 23, 2 },		// 132 bits per transform
+		{ 19, 24, 1 },		// 132 bits per transform
+		{ 20, 0, 24 },		// 132 bits per transform
+		{ 20, 1, 23 },		// 132 bits per transform
+		{ 20, 2, 22 },		// 132 bits per transform
 		{ 20, 3, 21 },		// 132 bits per transform
 		{ 20, 4, 20 },		// 132 bits per transform
 		{ 20, 5, 19 },		// 132 bits per transform
@@ -10132,6 +12483,11 @@ namespace acl
 		{ 20, 19, 5 },		// 132 bits per transform
 		{ 20, 20, 4 },		// 132 bits per transform
 		{ 20, 21, 3 },		// 132 bits per transform
+		{ 20, 22, 2 },		// 132 bits per transform
+		{ 20, 23, 1 },		// 132 bits per transform
+		{ 20, 24, 0 },		// 132 bits per transform
+		{ 21, 0, 23 },		// 132 bits per transform
+		{ 21, 1, 22 },		// 132 bits per transform
 		{ 21, 2, 21 },		// 132 bits per transform
 		{ 21, 3, 20 },		// 132 bits per transform
 		{ 21, 4, 19 },		// 132 bits per transform
@@ -10152,59 +12508,181 @@ namespace acl
 		{ 21, 19, 4 },		// 132 bits per transform
 		{ 21, 20, 3 },		// 132 bits per transform
 		{ 21, 21, 2 },		// 132 bits per transform
-		{ 22, 0, 12 },		// 132 bits per transform
-		{ 22, 1, 11 },		// 132 bits per transform
-		{ 22, 2, 10 },		// 132 bits per transform
-		{ 22, 3, 9 },		// 132 bits per transform
-		{ 22, 4, 8 },		// 132 bits per transform
-		{ 22, 5, 7 },		// 132 bits per transform
-		{ 22, 6, 6 },		// 132 bits per transform
-		{ 22, 7, 5 },		// 132 bits per transform
-		{ 22, 8, 4 },		// 132 bits per transform
-		{ 22, 9, 3 },		// 132 bits per transform
-		{ 22, 10, 2 },		// 132 bits per transform
-		{ 22, 11, 1 },		// 132 bits per transform
-		{ 22, 12, 0 },		// 132 bits per transform
-		{ 0, 13, 22 },		// 135 bits per transform
-		{ 0, 22, 13 },		// 135 bits per transform
-		{ 1, 12, 22 },		// 135 bits per transform
-		{ 1, 22, 12 },		// 135 bits per transform
-		{ 2, 11, 22 },		// 135 bits per transform
-		{ 2, 22, 11 },		// 135 bits per transform
-		{ 3, 10, 22 },		// 135 bits per transform
+		{ 21, 22, 1 },		// 132 bits per transform
+		{ 21, 23, 0 },		// 132 bits per transform
+		{ 22, 0, 22 },		// 132 bits per transform
+		{ 22, 1, 21 },		// 132 bits per transform
+		{ 22, 2, 20 },		// 132 bits per transform
+		{ 22, 3, 19 },		// 132 bits per transform
+		{ 22, 4, 18 },		// 132 bits per transform
+		{ 22, 5, 17 },		// 132 bits per transform
+		{ 22, 6, 16 },		// 132 bits per transform
+		{ 22, 7, 15 },		// 132 bits per transform
+		{ 22, 8, 14 },		// 132 bits per transform
+		{ 22, 9, 13 },		// 132 bits per transform
+		{ 22, 10, 12 },		// 132 bits per transform
+		{ 22, 11, 11 },		// 132 bits per transform
+		{ 22, 12, 10 },		// 132 bits per transform
+		{ 22, 13, 9 },		// 132 bits per transform
+		{ 22, 14, 8 },		// 132 bits per transform
+		{ 22, 15, 7 },		// 132 bits per transform
+		{ 22, 16, 6 },		// 132 bits per transform
+		{ 22, 17, 5 },		// 132 bits per transform
+		{ 22, 18, 4 },		// 132 bits per transform
+		{ 22, 19, 3 },		// 132 bits per transform
+		{ 22, 20, 2 },		// 132 bits per transform
+		{ 22, 21, 1 },		// 132 bits per transform
+		{ 22, 22, 0 },		// 132 bits per transform
+		{ 23, 0, 21 },		// 132 bits per transform
+		{ 23, 1, 20 },		// 132 bits per transform
+		{ 23, 2, 19 },		// 132 bits per transform
+		{ 23, 3, 18 },		// 132 bits per transform
+		{ 23, 4, 17 },		// 132 bits per transform
+		{ 23, 5, 16 },		// 132 bits per transform
+		{ 23, 6, 15 },		// 132 bits per transform
+		{ 23, 7, 14 },		// 132 bits per transform
+		{ 23, 8, 13 },		// 132 bits per transform
+		{ 23, 9, 12 },		// 132 bits per transform
+		{ 23, 10, 11 },		// 132 bits per transform
+		{ 23, 11, 10 },		// 132 bits per transform
+		{ 23, 12, 9 },		// 132 bits per transform
+		{ 23, 13, 8 },		// 132 bits per transform
+		{ 23, 14, 7 },		// 132 bits per transform
+		{ 23, 15, 6 },		// 132 bits per transform
+		{ 23, 16, 5 },		// 132 bits per transform
+		{ 23, 17, 4 },		// 132 bits per transform
+		{ 23, 18, 3 },		// 132 bits per transform
+		{ 23, 19, 2 },		// 132 bits per transform
+		{ 23, 20, 1 },		// 132 bits per transform
+		{ 23, 21, 0 },		// 132 bits per transform
+		{ 24, 0, 20 },		// 132 bits per transform
+		{ 24, 1, 19 },		// 132 bits per transform
+		{ 24, 2, 18 },		// 132 bits per transform
+		{ 24, 3, 17 },		// 132 bits per transform
+		{ 24, 4, 16 },		// 132 bits per transform
+		{ 24, 5, 15 },		// 132 bits per transform
+		{ 24, 6, 14 },		// 132 bits per transform
+		{ 24, 7, 13 },		// 132 bits per transform
+		{ 24, 8, 12 },		// 132 bits per transform
+		{ 24, 9, 11 },		// 132 bits per transform
+		{ 24, 10, 10 },		// 132 bits per transform
+		{ 24, 11, 9 },		// 132 bits per transform
+		{ 24, 12, 8 },		// 132 bits per transform
+		{ 24, 13, 7 },		// 132 bits per transform
+		{ 24, 14, 6 },		// 132 bits per transform
+		{ 24, 15, 5 },		// 132 bits per transform
+		{ 24, 16, 4 },		// 132 bits per transform
+		{ 24, 17, 3 },		// 132 bits per transform
+		{ 24, 18, 2 },		// 132 bits per transform
+		{ 24, 19, 1 },		// 132 bits per transform
+		{ 24, 20, 0 },		// 132 bits per transform
+		{ 25, 0, 12 },		// 132 bits per transform
+		{ 25, 1, 11 },		// 132 bits per transform
+		{ 25, 2, 10 },		// 132 bits per transform
+		{ 25, 3, 9 },		// 132 bits per transform
+		{ 25, 4, 8 },		// 132 bits per transform
+		{ 25, 5, 7 },		// 132 bits per transform
+		{ 25, 6, 6 },		// 132 bits per transform
+		{ 25, 7, 5 },		// 132 bits per transform
+		{ 25, 8, 4 },		// 132 bits per transform
+		{ 25, 9, 3 },		// 132 bits per transform
+		{ 25, 10, 2 },		// 132 bits per transform
+		{ 25, 11, 1 },		// 132 bits per transform
+		{ 25, 12, 0 },		// 132 bits per transform
+		{ 0, 13, 25 },		// 135 bits per transform
+		{ 0, 21, 24 },		// 135 bits per transform
+		{ 0, 22, 23 },		// 135 bits per transform
+		{ 0, 23, 22 },		// 135 bits per transform
+		{ 0, 24, 21 },		// 135 bits per transform
+		{ 0, 25, 13 },		// 135 bits per transform
+		{ 1, 12, 25 },		// 135 bits per transform
+		{ 1, 20, 24 },		// 135 bits per transform
+		{ 1, 21, 23 },		// 135 bits per transform
+		{ 1, 22, 22 },		// 135 bits per transform
+		{ 1, 23, 21 },		// 135 bits per transform
+		{ 1, 24, 20 },		// 135 bits per transform
+		{ 1, 25, 12 },		// 135 bits per transform
+		{ 2, 11, 25 },		// 135 bits per transform
+		{ 2, 19, 24 },		// 135 bits per transform
+		{ 2, 20, 23 },		// 135 bits per transform
+		{ 2, 21, 22 },		// 135 bits per transform
+		{ 2, 22, 21 },		// 135 bits per transform
+		{ 2, 23, 20 },		// 135 bits per transform
+		{ 2, 24, 19 },		// 135 bits per transform
+		{ 2, 25, 11 },		// 135 bits per transform
+		{ 3, 10, 25 },		// 135 bits per transform
+		{ 3, 18, 24 },		// 135 bits per transform
+		{ 3, 19, 23 },		// 135 bits per transform
+		{ 3, 20, 22 },		// 135 bits per transform
 		{ 3, 21, 21 },		// 135 bits per transform
-		{ 3, 22, 10 },		// 135 bits per transform
-		{ 4, 9, 22 },		// 135 bits per transform
+		{ 3, 22, 20 },		// 135 bits per transform
+		{ 3, 23, 19 },		// 135 bits per transform
+		{ 3, 24, 18 },		// 135 bits per transform
+		{ 3, 25, 10 },		// 135 bits per transform
+		{ 4, 9, 25 },		// 135 bits per transform
+		{ 4, 17, 24 },		// 135 bits per transform
+		{ 4, 18, 23 },		// 135 bits per transform
+		{ 4, 19, 22 },		// 135 bits per transform
 		{ 4, 20, 21 },		// 135 bits per transform
 		{ 4, 21, 20 },		// 135 bits per transform
-		{ 4, 22, 9 },		// 135 bits per transform
-		{ 5, 8, 22 },		// 135 bits per transform
+		{ 4, 22, 19 },		// 135 bits per transform
+		{ 4, 23, 18 },		// 135 bits per transform
+		{ 4, 24, 17 },		// 135 bits per transform
+		{ 4, 25, 9 },		// 135 bits per transform
+		{ 5, 8, 25 },		// 135 bits per transform
+		{ 5, 16, 24 },		// 135 bits per transform
+		{ 5, 17, 23 },		// 135 bits per transform
+		{ 5, 18, 22 },		// 135 bits per transform
 		{ 5, 19, 21 },		// 135 bits per transform
 		{ 5, 20, 20 },		// 135 bits per transform
 		{ 5, 21, 19 },		// 135 bits per transform
-		{ 5, 22, 8 },		// 135 bits per transform
-		{ 6, 7, 22 },		// 135 bits per transform
+		{ 5, 22, 18 },		// 135 bits per transform
+		{ 5, 23, 17 },		// 135 bits per transform
+		{ 5, 24, 16 },		// 135 bits per transform
+		{ 5, 25, 8 },		// 135 bits per transform
+		{ 6, 7, 25 },		// 135 bits per transform
+		{ 6, 15, 24 },		// 135 bits per transform
+		{ 6, 16, 23 },		// 135 bits per transform
+		{ 6, 17, 22 },		// 135 bits per transform
 		{ 6, 18, 21 },		// 135 bits per transform
 		{ 6, 19, 20 },		// 135 bits per transform
 		{ 6, 20, 19 },		// 135 bits per transform
 		{ 6, 21, 18 },		// 135 bits per transform
-		{ 6, 22, 7 },		// 135 bits per transform
-		{ 7, 6, 22 },		// 135 bits per transform
+		{ 6, 22, 17 },		// 135 bits per transform
+		{ 6, 23, 16 },		// 135 bits per transform
+		{ 6, 24, 15 },		// 135 bits per transform
+		{ 6, 25, 7 },		// 135 bits per transform
+		{ 7, 6, 25 },		// 135 bits per transform
+		{ 7, 14, 24 },		// 135 bits per transform
+		{ 7, 15, 23 },		// 135 bits per transform
+		{ 7, 16, 22 },		// 135 bits per transform
 		{ 7, 17, 21 },		// 135 bits per transform
 		{ 7, 18, 20 },		// 135 bits per transform
 		{ 7, 19, 19 },		// 135 bits per transform
 		{ 7, 20, 18 },		// 135 bits per transform
 		{ 7, 21, 17 },		// 135 bits per transform
-		{ 7, 22, 6 },		// 135 bits per transform
-		{ 8, 5, 22 },		// 135 bits per transform
+		{ 7, 22, 16 },		// 135 bits per transform
+		{ 7, 23, 15 },		// 135 bits per transform
+		{ 7, 24, 14 },		// 135 bits per transform
+		{ 7, 25, 6 },		// 135 bits per transform
+		{ 8, 5, 25 },		// 135 bits per transform
+		{ 8, 13, 24 },		// 135 bits per transform
+		{ 8, 14, 23 },		// 135 bits per transform
+		{ 8, 15, 22 },		// 135 bits per transform
 		{ 8, 16, 21 },		// 135 bits per transform
 		{ 8, 17, 20 },		// 135 bits per transform
 		{ 8, 18, 19 },		// 135 bits per transform
 		{ 8, 19, 18 },		// 135 bits per transform
 		{ 8, 20, 17 },		// 135 bits per transform
 		{ 8, 21, 16 },		// 135 bits per transform
-		{ 8, 22, 5 },		// 135 bits per transform
-		{ 9, 4, 22 },		// 135 bits per transform
+		{ 8, 22, 15 },		// 135 bits per transform
+		{ 8, 23, 14 },		// 135 bits per transform
+		{ 8, 24, 13 },		// 135 bits per transform
+		{ 8, 25, 5 },		// 135 bits per transform
+		{ 9, 4, 25 },		// 135 bits per transform
+		{ 9, 12, 24 },		// 135 bits per transform
+		{ 9, 13, 23 },		// 135 bits per transform
+		{ 9, 14, 22 },		// 135 bits per transform
 		{ 9, 15, 21 },		// 135 bits per transform
 		{ 9, 16, 20 },		// 135 bits per transform
 		{ 9, 17, 19 },		// 135 bits per transform
@@ -10212,8 +12690,14 @@ namespace acl
 		{ 9, 19, 17 },		// 135 bits per transform
 		{ 9, 20, 16 },		// 135 bits per transform
 		{ 9, 21, 15 },		// 135 bits per transform
-		{ 9, 22, 4 },		// 135 bits per transform
-		{ 10, 3, 22 },		// 135 bits per transform
+		{ 9, 22, 14 },		// 135 bits per transform
+		{ 9, 23, 13 },		// 135 bits per transform
+		{ 9, 24, 12 },		// 135 bits per transform
+		{ 9, 25, 4 },		// 135 bits per transform
+		{ 10, 3, 25 },		// 135 bits per transform
+		{ 10, 11, 24 },		// 135 bits per transform
+		{ 10, 12, 23 },		// 135 bits per transform
+		{ 10, 13, 22 },		// 135 bits per transform
 		{ 10, 14, 21 },		// 135 bits per transform
 		{ 10, 15, 20 },		// 135 bits per transform
 		{ 10, 16, 19 },		// 135 bits per transform
@@ -10222,8 +12706,14 @@ namespace acl
 		{ 10, 19, 16 },		// 135 bits per transform
 		{ 10, 20, 15 },		// 135 bits per transform
 		{ 10, 21, 14 },		// 135 bits per transform
-		{ 10, 22, 3 },		// 135 bits per transform
-		{ 11, 2, 22 },		// 135 bits per transform
+		{ 10, 22, 13 },		// 135 bits per transform
+		{ 10, 23, 12 },		// 135 bits per transform
+		{ 10, 24, 11 },		// 135 bits per transform
+		{ 10, 25, 3 },		// 135 bits per transform
+		{ 11, 2, 25 },		// 135 bits per transform
+		{ 11, 10, 24 },		// 135 bits per transform
+		{ 11, 11, 23 },		// 135 bits per transform
+		{ 11, 12, 22 },		// 135 bits per transform
 		{ 11, 13, 21 },		// 135 bits per transform
 		{ 11, 14, 20 },		// 135 bits per transform
 		{ 11, 15, 19 },		// 135 bits per transform
@@ -10233,8 +12723,14 @@ namespace acl
 		{ 11, 19, 15 },		// 135 bits per transform
 		{ 11, 20, 14 },		// 135 bits per transform
 		{ 11, 21, 13 },		// 135 bits per transform
-		{ 11, 22, 2 },		// 135 bits per transform
-		{ 12, 1, 22 },		// 135 bits per transform
+		{ 11, 22, 12 },		// 135 bits per transform
+		{ 11, 23, 11 },		// 135 bits per transform
+		{ 11, 24, 10 },		// 135 bits per transform
+		{ 11, 25, 2 },		// 135 bits per transform
+		{ 12, 1, 25 },		// 135 bits per transform
+		{ 12, 9, 24 },		// 135 bits per transform
+		{ 12, 10, 23 },		// 135 bits per transform
+		{ 12, 11, 22 },		// 135 bits per transform
 		{ 12, 12, 21 },		// 135 bits per transform
 		{ 12, 13, 20 },		// 135 bits per transform
 		{ 12, 14, 19 },		// 135 bits per transform
@@ -10245,8 +12741,14 @@ namespace acl
 		{ 12, 19, 14 },		// 135 bits per transform
 		{ 12, 20, 13 },		// 135 bits per transform
 		{ 12, 21, 12 },		// 135 bits per transform
-		{ 12, 22, 1 },		// 135 bits per transform
-		{ 13, 0, 22 },		// 135 bits per transform
+		{ 12, 22, 11 },		// 135 bits per transform
+		{ 12, 23, 10 },		// 135 bits per transform
+		{ 12, 24, 9 },		// 135 bits per transform
+		{ 12, 25, 1 },		// 135 bits per transform
+		{ 13, 0, 25 },		// 135 bits per transform
+		{ 13, 8, 24 },		// 135 bits per transform
+		{ 13, 9, 23 },		// 135 bits per transform
+		{ 13, 10, 22 },		// 135 bits per transform
 		{ 13, 11, 21 },		// 135 bits per transform
 		{ 13, 12, 20 },		// 135 bits per transform
 		{ 13, 13, 19 },		// 135 bits per transform
@@ -10258,7 +12760,13 @@ namespace acl
 		{ 13, 19, 13 },		// 135 bits per transform
 		{ 13, 20, 12 },		// 135 bits per transform
 		{ 13, 21, 11 },		// 135 bits per transform
-		{ 13, 22, 0 },		// 135 bits per transform
+		{ 13, 22, 10 },		// 135 bits per transform
+		{ 13, 23, 9 },		// 135 bits per transform
+		{ 13, 24, 8 },		// 135 bits per transform
+		{ 13, 25, 0 },		// 135 bits per transform
+		{ 14, 7, 24 },		// 135 bits per transform
+		{ 14, 8, 23 },		// 135 bits per transform
+		{ 14, 9, 22 },		// 135 bits per transform
 		{ 14, 10, 21 },		// 135 bits per transform
 		{ 14, 11, 20 },		// 135 bits per transform
 		{ 14, 12, 19 },		// 135 bits per transform
@@ -10271,6 +12779,12 @@ namespace acl
 		{ 14, 19, 12 },		// 135 bits per transform
 		{ 14, 20, 11 },		// 135 bits per transform
 		{ 14, 21, 10 },		// 135 bits per transform
+		{ 14, 22, 9 },		// 135 bits per transform
+		{ 14, 23, 8 },		// 135 bits per transform
+		{ 14, 24, 7 },		// 135 bits per transform
+		{ 15, 6, 24 },		// 135 bits per transform
+		{ 15, 7, 23 },		// 135 bits per transform
+		{ 15, 8, 22 },		// 135 bits per transform
 		{ 15, 9, 21 },		// 135 bits per transform
 		{ 15, 10, 20 },		// 135 bits per transform
 		{ 15, 11, 19 },		// 135 bits per transform
@@ -10284,6 +12798,12 @@ namespace acl
 		{ 15, 19, 11 },		// 135 bits per transform
 		{ 15, 20, 10 },		// 135 bits per transform
 		{ 15, 21, 9 },		// 135 bits per transform
+		{ 15, 22, 8 },		// 135 bits per transform
+		{ 15, 23, 7 },		// 135 bits per transform
+		{ 15, 24, 6 },		// 135 bits per transform
+		{ 16, 5, 24 },		// 135 bits per transform
+		{ 16, 6, 23 },		// 135 bits per transform
+		{ 16, 7, 22 },		// 135 bits per transform
 		{ 16, 8, 21 },		// 135 bits per transform
 		{ 16, 9, 20 },		// 135 bits per transform
 		{ 16, 10, 19 },		// 135 bits per transform
@@ -10298,6 +12818,12 @@ namespace acl
 		{ 16, 19, 10 },		// 135 bits per transform
 		{ 16, 20, 9 },		// 135 bits per transform
 		{ 16, 21, 8 },		// 135 bits per transform
+		{ 16, 22, 7 },		// 135 bits per transform
+		{ 16, 23, 6 },		// 135 bits per transform
+		{ 16, 24, 5 },		// 135 bits per transform
+		{ 17, 4, 24 },		// 135 bits per transform
+		{ 17, 5, 23 },		// 135 bits per transform
+		{ 17, 6, 22 },		// 135 bits per transform
 		{ 17, 7, 21 },		// 135 bits per transform
 		{ 17, 8, 20 },		// 135 bits per transform
 		{ 17, 9, 19 },		// 135 bits per transform
@@ -10313,6 +12839,12 @@ namespace acl
 		{ 17, 19, 9 },		// 135 bits per transform
 		{ 17, 20, 8 },		// 135 bits per transform
 		{ 17, 21, 7 },		// 135 bits per transform
+		{ 17, 22, 6 },		// 135 bits per transform
+		{ 17, 23, 5 },		// 135 bits per transform
+		{ 17, 24, 4 },		// 135 bits per transform
+		{ 18, 3, 24 },		// 135 bits per transform
+		{ 18, 4, 23 },		// 135 bits per transform
+		{ 18, 5, 22 },		// 135 bits per transform
 		{ 18, 6, 21 },		// 135 bits per transform
 		{ 18, 7, 20 },		// 135 bits per transform
 		{ 18, 8, 19 },		// 135 bits per transform
@@ -10329,6 +12861,12 @@ namespace acl
 		{ 18, 19, 8 },		// 135 bits per transform
 		{ 18, 20, 7 },		// 135 bits per transform
 		{ 18, 21, 6 },		// 135 bits per transform
+		{ 18, 22, 5 },		// 135 bits per transform
+		{ 18, 23, 4 },		// 135 bits per transform
+		{ 18, 24, 3 },		// 135 bits per transform
+		{ 19, 2, 24 },		// 135 bits per transform
+		{ 19, 3, 23 },		// 135 bits per transform
+		{ 19, 4, 22 },		// 135 bits per transform
 		{ 19, 5, 21 },		// 135 bits per transform
 		{ 19, 6, 20 },		// 135 bits per transform
 		{ 19, 7, 19 },		// 135 bits per transform
@@ -10346,6 +12884,12 @@ namespace acl
 		{ 19, 19, 7 },		// 135 bits per transform
 		{ 19, 20, 6 },		// 135 bits per transform
 		{ 19, 21, 5 },		// 135 bits per transform
+		{ 19, 22, 4 },		// 135 bits per transform
+		{ 19, 23, 3 },		// 135 bits per transform
+		{ 19, 24, 2 },		// 135 bits per transform
+		{ 20, 1, 24 },		// 135 bits per transform
+		{ 20, 2, 23 },		// 135 bits per transform
+		{ 20, 3, 22 },		// 135 bits per transform
 		{ 20, 4, 21 },		// 135 bits per transform
 		{ 20, 5, 20 },		// 135 bits per transform
 		{ 20, 6, 19 },		// 135 bits per transform
@@ -10364,6 +12908,12 @@ namespace acl
 		{ 20, 19, 6 },		// 135 bits per transform
 		{ 20, 20, 5 },		// 135 bits per transform
 		{ 20, 21, 4 },		// 135 bits per transform
+		{ 20, 22, 3 },		// 135 bits per transform
+		{ 20, 23, 2 },		// 135 bits per transform
+		{ 20, 24, 1 },		// 135 bits per transform
+		{ 21, 0, 24 },		// 135 bits per transform
+		{ 21, 1, 23 },		// 135 bits per transform
+		{ 21, 2, 22 },		// 135 bits per transform
 		{ 21, 3, 21 },		// 135 bits per transform
 		{ 21, 4, 20 },		// 135 bits per transform
 		{ 21, 5, 19 },		// 135 bits per transform
@@ -10383,62 +12933,191 @@ namespace acl
 		{ 21, 19, 5 },		// 135 bits per transform
 		{ 21, 20, 4 },		// 135 bits per transform
 		{ 21, 21, 3 },		// 135 bits per transform
-		{ 22, 0, 13 },		// 135 bits per transform
-		{ 22, 1, 12 },		// 135 bits per transform
-		{ 22, 2, 11 },		// 135 bits per transform
-		{ 22, 3, 10 },		// 135 bits per transform
-		{ 22, 4, 9 },		// 135 bits per transform
-		{ 22, 5, 8 },		// 135 bits per transform
-		{ 22, 6, 7 },		// 135 bits per transform
-		{ 22, 7, 6 },		// 135 bits per transform
-		{ 22, 8, 5 },		// 135 bits per transform
-		{ 22, 9, 4 },		// 135 bits per transform
-		{ 22, 10, 3 },		// 135 bits per transform
-		{ 22, 11, 2 },		// 135 bits per transform
-		{ 22, 12, 1 },		// 135 bits per transform
-		{ 22, 13, 0 },		// 135 bits per transform
-		{ 0, 14, 22 },		// 138 bits per transform
-		{ 0, 22, 14 },		// 138 bits per transform
-		{ 1, 13, 22 },		// 138 bits per transform
-		{ 1, 22, 13 },		// 138 bits per transform
-		{ 2, 12, 22 },		// 138 bits per transform
-		{ 2, 22, 12 },		// 138 bits per transform
-		{ 3, 11, 22 },		// 138 bits per transform
-		{ 3, 22, 11 },		// 138 bits per transform
-		{ 4, 10, 22 },		// 138 bits per transform
+		{ 21, 22, 2 },		// 135 bits per transform
+		{ 21, 23, 1 },		// 135 bits per transform
+		{ 21, 24, 0 },		// 135 bits per transform
+		{ 22, 0, 23 },		// 135 bits per transform
+		{ 22, 1, 22 },		// 135 bits per transform
+		{ 22, 2, 21 },		// 135 bits per transform
+		{ 22, 3, 20 },		// 135 bits per transform
+		{ 22, 4, 19 },		// 135 bits per transform
+		{ 22, 5, 18 },		// 135 bits per transform
+		{ 22, 6, 17 },		// 135 bits per transform
+		{ 22, 7, 16 },		// 135 bits per transform
+		{ 22, 8, 15 },		// 135 bits per transform
+		{ 22, 9, 14 },		// 135 bits per transform
+		{ 22, 10, 13 },		// 135 bits per transform
+		{ 22, 11, 12 },		// 135 bits per transform
+		{ 22, 12, 11 },		// 135 bits per transform
+		{ 22, 13, 10 },		// 135 bits per transform
+		{ 22, 14, 9 },		// 135 bits per transform
+		{ 22, 15, 8 },		// 135 bits per transform
+		{ 22, 16, 7 },		// 135 bits per transform
+		{ 22, 17, 6 },		// 135 bits per transform
+		{ 22, 18, 5 },		// 135 bits per transform
+		{ 22, 19, 4 },		// 135 bits per transform
+		{ 22, 20, 3 },		// 135 bits per transform
+		{ 22, 21, 2 },		// 135 bits per transform
+		{ 22, 22, 1 },		// 135 bits per transform
+		{ 22, 23, 0 },		// 135 bits per transform
+		{ 23, 0, 22 },		// 135 bits per transform
+		{ 23, 1, 21 },		// 135 bits per transform
+		{ 23, 2, 20 },		// 135 bits per transform
+		{ 23, 3, 19 },		// 135 bits per transform
+		{ 23, 4, 18 },		// 135 bits per transform
+		{ 23, 5, 17 },		// 135 bits per transform
+		{ 23, 6, 16 },		// 135 bits per transform
+		{ 23, 7, 15 },		// 135 bits per transform
+		{ 23, 8, 14 },		// 135 bits per transform
+		{ 23, 9, 13 },		// 135 bits per transform
+		{ 23, 10, 12 },		// 135 bits per transform
+		{ 23, 11, 11 },		// 135 bits per transform
+		{ 23, 12, 10 },		// 135 bits per transform
+		{ 23, 13, 9 },		// 135 bits per transform
+		{ 23, 14, 8 },		// 135 bits per transform
+		{ 23, 15, 7 },		// 135 bits per transform
+		{ 23, 16, 6 },		// 135 bits per transform
+		{ 23, 17, 5 },		// 135 bits per transform
+		{ 23, 18, 4 },		// 135 bits per transform
+		{ 23, 19, 3 },		// 135 bits per transform
+		{ 23, 20, 2 },		// 135 bits per transform
+		{ 23, 21, 1 },		// 135 bits per transform
+		{ 23, 22, 0 },		// 135 bits per transform
+		{ 24, 0, 21 },		// 135 bits per transform
+		{ 24, 1, 20 },		// 135 bits per transform
+		{ 24, 2, 19 },		// 135 bits per transform
+		{ 24, 3, 18 },		// 135 bits per transform
+		{ 24, 4, 17 },		// 135 bits per transform
+		{ 24, 5, 16 },		// 135 bits per transform
+		{ 24, 6, 15 },		// 135 bits per transform
+		{ 24, 7, 14 },		// 135 bits per transform
+		{ 24, 8, 13 },		// 135 bits per transform
+		{ 24, 9, 12 },		// 135 bits per transform
+		{ 24, 10, 11 },		// 135 bits per transform
+		{ 24, 11, 10 },		// 135 bits per transform
+		{ 24, 12, 9 },		// 135 bits per transform
+		{ 24, 13, 8 },		// 135 bits per transform
+		{ 24, 14, 7 },		// 135 bits per transform
+		{ 24, 15, 6 },		// 135 bits per transform
+		{ 24, 16, 5 },		// 135 bits per transform
+		{ 24, 17, 4 },		// 135 bits per transform
+		{ 24, 18, 3 },		// 135 bits per transform
+		{ 24, 19, 2 },		// 135 bits per transform
+		{ 24, 20, 1 },		// 135 bits per transform
+		{ 24, 21, 0 },		// 135 bits per transform
+		{ 25, 0, 13 },		// 135 bits per transform
+		{ 25, 1, 12 },		// 135 bits per transform
+		{ 25, 2, 11 },		// 135 bits per transform
+		{ 25, 3, 10 },		// 135 bits per transform
+		{ 25, 4, 9 },		// 135 bits per transform
+		{ 25, 5, 8 },		// 135 bits per transform
+		{ 25, 6, 7 },		// 135 bits per transform
+		{ 25, 7, 6 },		// 135 bits per transform
+		{ 25, 8, 5 },		// 135 bits per transform
+		{ 25, 9, 4 },		// 135 bits per transform
+		{ 25, 10, 3 },		// 135 bits per transform
+		{ 25, 11, 2 },		// 135 bits per transform
+		{ 25, 12, 1 },		// 135 bits per transform
+		{ 25, 13, 0 },		// 135 bits per transform
+		{ 0, 14, 25 },		// 138 bits per transform
+		{ 0, 22, 24 },		// 138 bits per transform
+		{ 0, 23, 23 },		// 138 bits per transform
+		{ 0, 24, 22 },		// 138 bits per transform
+		{ 0, 25, 14 },		// 138 bits per transform
+		{ 1, 13, 25 },		// 138 bits per transform
+		{ 1, 21, 24 },		// 138 bits per transform
+		{ 1, 22, 23 },		// 138 bits per transform
+		{ 1, 23, 22 },		// 138 bits per transform
+		{ 1, 24, 21 },		// 138 bits per transform
+		{ 1, 25, 13 },		// 138 bits per transform
+		{ 2, 12, 25 },		// 138 bits per transform
+		{ 2, 20, 24 },		// 138 bits per transform
+		{ 2, 21, 23 },		// 138 bits per transform
+		{ 2, 22, 22 },		// 138 bits per transform
+		{ 2, 23, 21 },		// 138 bits per transform
+		{ 2, 24, 20 },		// 138 bits per transform
+		{ 2, 25, 12 },		// 138 bits per transform
+		{ 3, 11, 25 },		// 138 bits per transform
+		{ 3, 19, 24 },		// 138 bits per transform
+		{ 3, 20, 23 },		// 138 bits per transform
+		{ 3, 21, 22 },		// 138 bits per transform
+		{ 3, 22, 21 },		// 138 bits per transform
+		{ 3, 23, 20 },		// 138 bits per transform
+		{ 3, 24, 19 },		// 138 bits per transform
+		{ 3, 25, 11 },		// 138 bits per transform
+		{ 4, 10, 25 },		// 138 bits per transform
+		{ 4, 18, 24 },		// 138 bits per transform
+		{ 4, 19, 23 },		// 138 bits per transform
+		{ 4, 20, 22 },		// 138 bits per transform
 		{ 4, 21, 21 },		// 138 bits per transform
-		{ 4, 22, 10 },		// 138 bits per transform
-		{ 5, 9, 22 },		// 138 bits per transform
+		{ 4, 22, 20 },		// 138 bits per transform
+		{ 4, 23, 19 },		// 138 bits per transform
+		{ 4, 24, 18 },		// 138 bits per transform
+		{ 4, 25, 10 },		// 138 bits per transform
+		{ 5, 9, 25 },		// 138 bits per transform
+		{ 5, 17, 24 },		// 138 bits per transform
+		{ 5, 18, 23 },		// 138 bits per transform
+		{ 5, 19, 22 },		// 138 bits per transform
 		{ 5, 20, 21 },		// 138 bits per transform
 		{ 5, 21, 20 },		// 138 bits per transform
-		{ 5, 22, 9 },		// 138 bits per transform
-		{ 6, 8, 22 },		// 138 bits per transform
+		{ 5, 22, 19 },		// 138 bits per transform
+		{ 5, 23, 18 },		// 138 bits per transform
+		{ 5, 24, 17 },		// 138 bits per transform
+		{ 5, 25, 9 },		// 138 bits per transform
+		{ 6, 8, 25 },		// 138 bits per transform
+		{ 6, 16, 24 },		// 138 bits per transform
+		{ 6, 17, 23 },		// 138 bits per transform
+		{ 6, 18, 22 },		// 138 bits per transform
 		{ 6, 19, 21 },		// 138 bits per transform
 		{ 6, 20, 20 },		// 138 bits per transform
 		{ 6, 21, 19 },		// 138 bits per transform
-		{ 6, 22, 8 },		// 138 bits per transform
-		{ 7, 7, 22 },		// 138 bits per transform
+		{ 6, 22, 18 },		// 138 bits per transform
+		{ 6, 23, 17 },		// 138 bits per transform
+		{ 6, 24, 16 },		// 138 bits per transform
+		{ 6, 25, 8 },		// 138 bits per transform
+		{ 7, 7, 25 },		// 138 bits per transform
+		{ 7, 15, 24 },		// 138 bits per transform
+		{ 7, 16, 23 },		// 138 bits per transform
+		{ 7, 17, 22 },		// 138 bits per transform
 		{ 7, 18, 21 },		// 138 bits per transform
 		{ 7, 19, 20 },		// 138 bits per transform
 		{ 7, 20, 19 },		// 138 bits per transform
 		{ 7, 21, 18 },		// 138 bits per transform
-		{ 7, 22, 7 },		// 138 bits per transform
-		{ 8, 6, 22 },		// 138 bits per transform
+		{ 7, 22, 17 },		// 138 bits per transform
+		{ 7, 23, 16 },		// 138 bits per transform
+		{ 7, 24, 15 },		// 138 bits per transform
+		{ 7, 25, 7 },		// 138 bits per transform
+		{ 8, 6, 25 },		// 138 bits per transform
+		{ 8, 14, 24 },		// 138 bits per transform
+		{ 8, 15, 23 },		// 138 bits per transform
+		{ 8, 16, 22 },		// 138 bits per transform
 		{ 8, 17, 21 },		// 138 bits per transform
 		{ 8, 18, 20 },		// 138 bits per transform
 		{ 8, 19, 19 },		// 138 bits per transform
 		{ 8, 20, 18 },		// 138 bits per transform
 		{ 8, 21, 17 },		// 138 bits per transform
-		{ 8, 22, 6 },		// 138 bits per transform
-		{ 9, 5, 22 },		// 138 bits per transform
+		{ 8, 22, 16 },		// 138 bits per transform
+		{ 8, 23, 15 },		// 138 bits per transform
+		{ 8, 24, 14 },		// 138 bits per transform
+		{ 8, 25, 6 },		// 138 bits per transform
+		{ 9, 5, 25 },		// 138 bits per transform
+		{ 9, 13, 24 },		// 138 bits per transform
+		{ 9, 14, 23 },		// 138 bits per transform
+		{ 9, 15, 22 },		// 138 bits per transform
 		{ 9, 16, 21 },		// 138 bits per transform
 		{ 9, 17, 20 },		// 138 bits per transform
 		{ 9, 18, 19 },		// 138 bits per transform
 		{ 9, 19, 18 },		// 138 bits per transform
 		{ 9, 20, 17 },		// 138 bits per transform
 		{ 9, 21, 16 },		// 138 bits per transform
-		{ 9, 22, 5 },		// 138 bits per transform
-		{ 10, 4, 22 },		// 138 bits per transform
+		{ 9, 22, 15 },		// 138 bits per transform
+		{ 9, 23, 14 },		// 138 bits per transform
+		{ 9, 24, 13 },		// 138 bits per transform
+		{ 9, 25, 5 },		// 138 bits per transform
+		{ 10, 4, 25 },		// 138 bits per transform
+		{ 10, 12, 24 },		// 138 bits per transform
+		{ 10, 13, 23 },		// 138 bits per transform
+		{ 10, 14, 22 },		// 138 bits per transform
 		{ 10, 15, 21 },		// 138 bits per transform
 		{ 10, 16, 20 },		// 138 bits per transform
 		{ 10, 17, 19 },		// 138 bits per transform
@@ -10446,8 +13125,14 @@ namespace acl
 		{ 10, 19, 17 },		// 138 bits per transform
 		{ 10, 20, 16 },		// 138 bits per transform
 		{ 10, 21, 15 },		// 138 bits per transform
-		{ 10, 22, 4 },		// 138 bits per transform
-		{ 11, 3, 22 },		// 138 bits per transform
+		{ 10, 22, 14 },		// 138 bits per transform
+		{ 10, 23, 13 },		// 138 bits per transform
+		{ 10, 24, 12 },		// 138 bits per transform
+		{ 10, 25, 4 },		// 138 bits per transform
+		{ 11, 3, 25 },		// 138 bits per transform
+		{ 11, 11, 24 },		// 138 bits per transform
+		{ 11, 12, 23 },		// 138 bits per transform
+		{ 11, 13, 22 },		// 138 bits per transform
 		{ 11, 14, 21 },		// 138 bits per transform
 		{ 11, 15, 20 },		// 138 bits per transform
 		{ 11, 16, 19 },		// 138 bits per transform
@@ -10456,8 +13141,14 @@ namespace acl
 		{ 11, 19, 16 },		// 138 bits per transform
 		{ 11, 20, 15 },		// 138 bits per transform
 		{ 11, 21, 14 },		// 138 bits per transform
-		{ 11, 22, 3 },		// 138 bits per transform
-		{ 12, 2, 22 },		// 138 bits per transform
+		{ 11, 22, 13 },		// 138 bits per transform
+		{ 11, 23, 12 },		// 138 bits per transform
+		{ 11, 24, 11 },		// 138 bits per transform
+		{ 11, 25, 3 },		// 138 bits per transform
+		{ 12, 2, 25 },		// 138 bits per transform
+		{ 12, 10, 24 },		// 138 bits per transform
+		{ 12, 11, 23 },		// 138 bits per transform
+		{ 12, 12, 22 },		// 138 bits per transform
 		{ 12, 13, 21 },		// 138 bits per transform
 		{ 12, 14, 20 },		// 138 bits per transform
 		{ 12, 15, 19 },		// 138 bits per transform
@@ -10467,8 +13158,14 @@ namespace acl
 		{ 12, 19, 15 },		// 138 bits per transform
 		{ 12, 20, 14 },		// 138 bits per transform
 		{ 12, 21, 13 },		// 138 bits per transform
-		{ 12, 22, 2 },		// 138 bits per transform
-		{ 13, 1, 22 },		// 138 bits per transform
+		{ 12, 22, 12 },		// 138 bits per transform
+		{ 12, 23, 11 },		// 138 bits per transform
+		{ 12, 24, 10 },		// 138 bits per transform
+		{ 12, 25, 2 },		// 138 bits per transform
+		{ 13, 1, 25 },		// 138 bits per transform
+		{ 13, 9, 24 },		// 138 bits per transform
+		{ 13, 10, 23 },		// 138 bits per transform
+		{ 13, 11, 22 },		// 138 bits per transform
 		{ 13, 12, 21 },		// 138 bits per transform
 		{ 13, 13, 20 },		// 138 bits per transform
 		{ 13, 14, 19 },		// 138 bits per transform
@@ -10479,8 +13176,14 @@ namespace acl
 		{ 13, 19, 14 },		// 138 bits per transform
 		{ 13, 20, 13 },		// 138 bits per transform
 		{ 13, 21, 12 },		// 138 bits per transform
-		{ 13, 22, 1 },		// 138 bits per transform
-		{ 14, 0, 22 },		// 138 bits per transform
+		{ 13, 22, 11 },		// 138 bits per transform
+		{ 13, 23, 10 },		// 138 bits per transform
+		{ 13, 24, 9 },		// 138 bits per transform
+		{ 13, 25, 1 },		// 138 bits per transform
+		{ 14, 0, 25 },		// 138 bits per transform
+		{ 14, 8, 24 },		// 138 bits per transform
+		{ 14, 9, 23 },		// 138 bits per transform
+		{ 14, 10, 22 },		// 138 bits per transform
 		{ 14, 11, 21 },		// 138 bits per transform
 		{ 14, 12, 20 },		// 138 bits per transform
 		{ 14, 13, 19 },		// 138 bits per transform
@@ -10492,7 +13195,13 @@ namespace acl
 		{ 14, 19, 13 },		// 138 bits per transform
 		{ 14, 20, 12 },		// 138 bits per transform
 		{ 14, 21, 11 },		// 138 bits per transform
-		{ 14, 22, 0 },		// 138 bits per transform
+		{ 14, 22, 10 },		// 138 bits per transform
+		{ 14, 23, 9 },		// 138 bits per transform
+		{ 14, 24, 8 },		// 138 bits per transform
+		{ 14, 25, 0 },		// 138 bits per transform
+		{ 15, 7, 24 },		// 138 bits per transform
+		{ 15, 8, 23 },		// 138 bits per transform
+		{ 15, 9, 22 },		// 138 bits per transform
 		{ 15, 10, 21 },		// 138 bits per transform
 		{ 15, 11, 20 },		// 138 bits per transform
 		{ 15, 12, 19 },		// 138 bits per transform
@@ -10505,6 +13214,12 @@ namespace acl
 		{ 15, 19, 12 },		// 138 bits per transform
 		{ 15, 20, 11 },		// 138 bits per transform
 		{ 15, 21, 10 },		// 138 bits per transform
+		{ 15, 22, 9 },		// 138 bits per transform
+		{ 15, 23, 8 },		// 138 bits per transform
+		{ 15, 24, 7 },		// 138 bits per transform
+		{ 16, 6, 24 },		// 138 bits per transform
+		{ 16, 7, 23 },		// 138 bits per transform
+		{ 16, 8, 22 },		// 138 bits per transform
 		{ 16, 9, 21 },		// 138 bits per transform
 		{ 16, 10, 20 },		// 138 bits per transform
 		{ 16, 11, 19 },		// 138 bits per transform
@@ -10518,6 +13233,12 @@ namespace acl
 		{ 16, 19, 11 },		// 138 bits per transform
 		{ 16, 20, 10 },		// 138 bits per transform
 		{ 16, 21, 9 },		// 138 bits per transform
+		{ 16, 22, 8 },		// 138 bits per transform
+		{ 16, 23, 7 },		// 138 bits per transform
+		{ 16, 24, 6 },		// 138 bits per transform
+		{ 17, 5, 24 },		// 138 bits per transform
+		{ 17, 6, 23 },		// 138 bits per transform
+		{ 17, 7, 22 },		// 138 bits per transform
 		{ 17, 8, 21 },		// 138 bits per transform
 		{ 17, 9, 20 },		// 138 bits per transform
 		{ 17, 10, 19 },		// 138 bits per transform
@@ -10532,6 +13253,12 @@ namespace acl
 		{ 17, 19, 10 },		// 138 bits per transform
 		{ 17, 20, 9 },		// 138 bits per transform
 		{ 17, 21, 8 },		// 138 bits per transform
+		{ 17, 22, 7 },		// 138 bits per transform
+		{ 17, 23, 6 },		// 138 bits per transform
+		{ 17, 24, 5 },		// 138 bits per transform
+		{ 18, 4, 24 },		// 138 bits per transform
+		{ 18, 5, 23 },		// 138 bits per transform
+		{ 18, 6, 22 },		// 138 bits per transform
 		{ 18, 7, 21 },		// 138 bits per transform
 		{ 18, 8, 20 },		// 138 bits per transform
 		{ 18, 9, 19 },		// 138 bits per transform
@@ -10547,6 +13274,12 @@ namespace acl
 		{ 18, 19, 9 },		// 138 bits per transform
 		{ 18, 20, 8 },		// 138 bits per transform
 		{ 18, 21, 7 },		// 138 bits per transform
+		{ 18, 22, 6 },		// 138 bits per transform
+		{ 18, 23, 5 },		// 138 bits per transform
+		{ 18, 24, 4 },		// 138 bits per transform
+		{ 19, 3, 24 },		// 138 bits per transform
+		{ 19, 4, 23 },		// 138 bits per transform
+		{ 19, 5, 22 },		// 138 bits per transform
 		{ 19, 6, 21 },		// 138 bits per transform
 		{ 19, 7, 20 },		// 138 bits per transform
 		{ 19, 8, 19 },		// 138 bits per transform
@@ -10563,6 +13296,12 @@ namespace acl
 		{ 19, 19, 8 },		// 138 bits per transform
 		{ 19, 20, 7 },		// 138 bits per transform
 		{ 19, 21, 6 },		// 138 bits per transform
+		{ 19, 22, 5 },		// 138 bits per transform
+		{ 19, 23, 4 },		// 138 bits per transform
+		{ 19, 24, 3 },		// 138 bits per transform
+		{ 20, 2, 24 },		// 138 bits per transform
+		{ 20, 3, 23 },		// 138 bits per transform
+		{ 20, 4, 22 },		// 138 bits per transform
 		{ 20, 5, 21 },		// 138 bits per transform
 		{ 20, 6, 20 },		// 138 bits per transform
 		{ 20, 7, 19 },		// 138 bits per transform
@@ -10580,6 +13319,12 @@ namespace acl
 		{ 20, 19, 7 },		// 138 bits per transform
 		{ 20, 20, 6 },		// 138 bits per transform
 		{ 20, 21, 5 },		// 138 bits per transform
+		{ 20, 22, 4 },		// 138 bits per transform
+		{ 20, 23, 3 },		// 138 bits per transform
+		{ 20, 24, 2 },		// 138 bits per transform
+		{ 21, 1, 24 },		// 138 bits per transform
+		{ 21, 2, 23 },		// 138 bits per transform
+		{ 21, 3, 22 },		// 138 bits per transform
 		{ 21, 4, 21 },		// 138 bits per transform
 		{ 21, 5, 20 },		// 138 bits per transform
 		{ 21, 6, 19 },		// 138 bits per transform
@@ -10598,65 +13343,199 @@ namespace acl
 		{ 21, 19, 6 },		// 138 bits per transform
 		{ 21, 20, 5 },		// 138 bits per transform
 		{ 21, 21, 4 },		// 138 bits per transform
-		{ 22, 0, 14 },		// 138 bits per transform
-		{ 22, 1, 13 },		// 138 bits per transform
-		{ 22, 2, 12 },		// 138 bits per transform
-		{ 22, 3, 11 },		// 138 bits per transform
-		{ 22, 4, 10 },		// 138 bits per transform
-		{ 22, 5, 9 },		// 138 bits per transform
-		{ 22, 6, 8 },		// 138 bits per transform
-		{ 22, 7, 7 },		// 138 bits per transform
-		{ 22, 8, 6 },		// 138 bits per transform
-		{ 22, 9, 5 },		// 138 bits per transform
-		{ 22, 10, 4 },		// 138 bits per transform
-		{ 22, 11, 3 },		// 138 bits per transform
-		{ 22, 12, 2 },		// 138 bits per transform
-		{ 22, 13, 1 },		// 138 bits per transform
-		{ 22, 14, 0 },		// 138 bits per transform
-		{ 0, 15, 22 },		// 141 bits per transform
-		{ 0, 22, 15 },		// 141 bits per transform
-		{ 1, 14, 22 },		// 141 bits per transform
-		{ 1, 22, 14 },		// 141 bits per transform
-		{ 2, 13, 22 },		// 141 bits per transform
-		{ 2, 22, 13 },		// 141 bits per transform
-		{ 3, 12, 22 },		// 141 bits per transform
-		{ 3, 22, 12 },		// 141 bits per transform
-		{ 4, 11, 22 },		// 141 bits per transform
-		{ 4, 22, 11 },		// 141 bits per transform
-		{ 5, 10, 22 },		// 141 bits per transform
+		{ 21, 22, 3 },		// 138 bits per transform
+		{ 21, 23, 2 },		// 138 bits per transform
+		{ 21, 24, 1 },		// 138 bits per transform
+		{ 22, 0, 24 },		// 138 bits per transform
+		{ 22, 1, 23 },		// 138 bits per transform
+		{ 22, 2, 22 },		// 138 bits per transform
+		{ 22, 3, 21 },		// 138 bits per transform
+		{ 22, 4, 20 },		// 138 bits per transform
+		{ 22, 5, 19 },		// 138 bits per transform
+		{ 22, 6, 18 },		// 138 bits per transform
+		{ 22, 7, 17 },		// 138 bits per transform
+		{ 22, 8, 16 },		// 138 bits per transform
+		{ 22, 9, 15 },		// 138 bits per transform
+		{ 22, 10, 14 },		// 138 bits per transform
+		{ 22, 11, 13 },		// 138 bits per transform
+		{ 22, 12, 12 },		// 138 bits per transform
+		{ 22, 13, 11 },		// 138 bits per transform
+		{ 22, 14, 10 },		// 138 bits per transform
+		{ 22, 15, 9 },		// 138 bits per transform
+		{ 22, 16, 8 },		// 138 bits per transform
+		{ 22, 17, 7 },		// 138 bits per transform
+		{ 22, 18, 6 },		// 138 bits per transform
+		{ 22, 19, 5 },		// 138 bits per transform
+		{ 22, 20, 4 },		// 138 bits per transform
+		{ 22, 21, 3 },		// 138 bits per transform
+		{ 22, 22, 2 },		// 138 bits per transform
+		{ 22, 23, 1 },		// 138 bits per transform
+		{ 22, 24, 0 },		// 138 bits per transform
+		{ 23, 0, 23 },		// 138 bits per transform
+		{ 23, 1, 22 },		// 138 bits per transform
+		{ 23, 2, 21 },		// 138 bits per transform
+		{ 23, 3, 20 },		// 138 bits per transform
+		{ 23, 4, 19 },		// 138 bits per transform
+		{ 23, 5, 18 },		// 138 bits per transform
+		{ 23, 6, 17 },		// 138 bits per transform
+		{ 23, 7, 16 },		// 138 bits per transform
+		{ 23, 8, 15 },		// 138 bits per transform
+		{ 23, 9, 14 },		// 138 bits per transform
+		{ 23, 10, 13 },		// 138 bits per transform
+		{ 23, 11, 12 },		// 138 bits per transform
+		{ 23, 12, 11 },		// 138 bits per transform
+		{ 23, 13, 10 },		// 138 bits per transform
+		{ 23, 14, 9 },		// 138 bits per transform
+		{ 23, 15, 8 },		// 138 bits per transform
+		{ 23, 16, 7 },		// 138 bits per transform
+		{ 23, 17, 6 },		// 138 bits per transform
+		{ 23, 18, 5 },		// 138 bits per transform
+		{ 23, 19, 4 },		// 138 bits per transform
+		{ 23, 20, 3 },		// 138 bits per transform
+		{ 23, 21, 2 },		// 138 bits per transform
+		{ 23, 22, 1 },		// 138 bits per transform
+		{ 23, 23, 0 },		// 138 bits per transform
+		{ 24, 0, 22 },		// 138 bits per transform
+		{ 24, 1, 21 },		// 138 bits per transform
+		{ 24, 2, 20 },		// 138 bits per transform
+		{ 24, 3, 19 },		// 138 bits per transform
+		{ 24, 4, 18 },		// 138 bits per transform
+		{ 24, 5, 17 },		// 138 bits per transform
+		{ 24, 6, 16 },		// 138 bits per transform
+		{ 24, 7, 15 },		// 138 bits per transform
+		{ 24, 8, 14 },		// 138 bits per transform
+		{ 24, 9, 13 },		// 138 bits per transform
+		{ 24, 10, 12 },		// 138 bits per transform
+		{ 24, 11, 11 },		// 138 bits per transform
+		{ 24, 12, 10 },		// 138 bits per transform
+		{ 24, 13, 9 },		// 138 bits per transform
+		{ 24, 14, 8 },		// 138 bits per transform
+		{ 24, 15, 7 },		// 138 bits per transform
+		{ 24, 16, 6 },		// 138 bits per transform
+		{ 24, 17, 5 },		// 138 bits per transform
+		{ 24, 18, 4 },		// 138 bits per transform
+		{ 24, 19, 3 },		// 138 bits per transform
+		{ 24, 20, 2 },		// 138 bits per transform
+		{ 24, 21, 1 },		// 138 bits per transform
+		{ 24, 22, 0 },		// 138 bits per transform
+		{ 25, 0, 14 },		// 138 bits per transform
+		{ 25, 1, 13 },		// 138 bits per transform
+		{ 25, 2, 12 },		// 138 bits per transform
+		{ 25, 3, 11 },		// 138 bits per transform
+		{ 25, 4, 10 },		// 138 bits per transform
+		{ 25, 5, 9 },		// 138 bits per transform
+		{ 25, 6, 8 },		// 138 bits per transform
+		{ 25, 7, 7 },		// 138 bits per transform
+		{ 25, 8, 6 },		// 138 bits per transform
+		{ 25, 9, 5 },		// 138 bits per transform
+		{ 25, 10, 4 },		// 138 bits per transform
+		{ 25, 11, 3 },		// 138 bits per transform
+		{ 25, 12, 2 },		// 138 bits per transform
+		{ 25, 13, 1 },		// 138 bits per transform
+		{ 25, 14, 0 },		// 138 bits per transform
+		{ 0, 15, 25 },		// 141 bits per transform
+		{ 0, 23, 24 },		// 141 bits per transform
+		{ 0, 24, 23 },		// 141 bits per transform
+		{ 0, 25, 15 },		// 141 bits per transform
+		{ 1, 14, 25 },		// 141 bits per transform
+		{ 1, 22, 24 },		// 141 bits per transform
+		{ 1, 23, 23 },		// 141 bits per transform
+		{ 1, 24, 22 },		// 141 bits per transform
+		{ 1, 25, 14 },		// 141 bits per transform
+		{ 2, 13, 25 },		// 141 bits per transform
+		{ 2, 21, 24 },		// 141 bits per transform
+		{ 2, 22, 23 },		// 141 bits per transform
+		{ 2, 23, 22 },		// 141 bits per transform
+		{ 2, 24, 21 },		// 141 bits per transform
+		{ 2, 25, 13 },		// 141 bits per transform
+		{ 3, 12, 25 },		// 141 bits per transform
+		{ 3, 20, 24 },		// 141 bits per transform
+		{ 3, 21, 23 },		// 141 bits per transform
+		{ 3, 22, 22 },		// 141 bits per transform
+		{ 3, 23, 21 },		// 141 bits per transform
+		{ 3, 24, 20 },		// 141 bits per transform
+		{ 3, 25, 12 },		// 141 bits per transform
+		{ 4, 11, 25 },		// 141 bits per transform
+		{ 4, 19, 24 },		// 141 bits per transform
+		{ 4, 20, 23 },		// 141 bits per transform
+		{ 4, 21, 22 },		// 141 bits per transform
+		{ 4, 22, 21 },		// 141 bits per transform
+		{ 4, 23, 20 },		// 141 bits per transform
+		{ 4, 24, 19 },		// 141 bits per transform
+		{ 4, 25, 11 },		// 141 bits per transform
+		{ 5, 10, 25 },		// 141 bits per transform
+		{ 5, 18, 24 },		// 141 bits per transform
+		{ 5, 19, 23 },		// 141 bits per transform
+		{ 5, 20, 22 },		// 141 bits per transform
 		{ 5, 21, 21 },		// 141 bits per transform
-		{ 5, 22, 10 },		// 141 bits per transform
-		{ 6, 9, 22 },		// 141 bits per transform
+		{ 5, 22, 20 },		// 141 bits per transform
+		{ 5, 23, 19 },		// 141 bits per transform
+		{ 5, 24, 18 },		// 141 bits per transform
+		{ 5, 25, 10 },		// 141 bits per transform
+		{ 6, 9, 25 },		// 141 bits per transform
+		{ 6, 17, 24 },		// 141 bits per transform
+		{ 6, 18, 23 },		// 141 bits per transform
+		{ 6, 19, 22 },		// 141 bits per transform
 		{ 6, 20, 21 },		// 141 bits per transform
 		{ 6, 21, 20 },		// 141 bits per transform
-		{ 6, 22, 9 },		// 141 bits per transform
-		{ 7, 8, 22 },		// 141 bits per transform
+		{ 6, 22, 19 },		// 141 bits per transform
+		{ 6, 23, 18 },		// 141 bits per transform
+		{ 6, 24, 17 },		// 141 bits per transform
+		{ 6, 25, 9 },		// 141 bits per transform
+		{ 7, 8, 25 },		// 141 bits per transform
+		{ 7, 16, 24 },		// 141 bits per transform
+		{ 7, 17, 23 },		// 141 bits per transform
+		{ 7, 18, 22 },		// 141 bits per transform
 		{ 7, 19, 21 },		// 141 bits per transform
 		{ 7, 20, 20 },		// 141 bits per transform
 		{ 7, 21, 19 },		// 141 bits per transform
-		{ 7, 22, 8 },		// 141 bits per transform
-		{ 8, 7, 22 },		// 141 bits per transform
+		{ 7, 22, 18 },		// 141 bits per transform
+		{ 7, 23, 17 },		// 141 bits per transform
+		{ 7, 24, 16 },		// 141 bits per transform
+		{ 7, 25, 8 },		// 141 bits per transform
+		{ 8, 7, 25 },		// 141 bits per transform
+		{ 8, 15, 24 },		// 141 bits per transform
+		{ 8, 16, 23 },		// 141 bits per transform
+		{ 8, 17, 22 },		// 141 bits per transform
 		{ 8, 18, 21 },		// 141 bits per transform
 		{ 8, 19, 20 },		// 141 bits per transform
 		{ 8, 20, 19 },		// 141 bits per transform
 		{ 8, 21, 18 },		// 141 bits per transform
-		{ 8, 22, 7 },		// 141 bits per transform
-		{ 9, 6, 22 },		// 141 bits per transform
+		{ 8, 22, 17 },		// 141 bits per transform
+		{ 8, 23, 16 },		// 141 bits per transform
+		{ 8, 24, 15 },		// 141 bits per transform
+		{ 8, 25, 7 },		// 141 bits per transform
+		{ 9, 6, 25 },		// 141 bits per transform
+		{ 9, 14, 24 },		// 141 bits per transform
+		{ 9, 15, 23 },		// 141 bits per transform
+		{ 9, 16, 22 },		// 141 bits per transform
 		{ 9, 17, 21 },		// 141 bits per transform
 		{ 9, 18, 20 },		// 141 bits per transform
 		{ 9, 19, 19 },		// 141 bits per transform
 		{ 9, 20, 18 },		// 141 bits per transform
 		{ 9, 21, 17 },		// 141 bits per transform
-		{ 9, 22, 6 },		// 141 bits per transform
-		{ 10, 5, 22 },		// 141 bits per transform
+		{ 9, 22, 16 },		// 141 bits per transform
+		{ 9, 23, 15 },		// 141 bits per transform
+		{ 9, 24, 14 },		// 141 bits per transform
+		{ 9, 25, 6 },		// 141 bits per transform
+		{ 10, 5, 25 },		// 141 bits per transform
+		{ 10, 13, 24 },		// 141 bits per transform
+		{ 10, 14, 23 },		// 141 bits per transform
+		{ 10, 15, 22 },		// 141 bits per transform
 		{ 10, 16, 21 },		// 141 bits per transform
 		{ 10, 17, 20 },		// 141 bits per transform
 		{ 10, 18, 19 },		// 141 bits per transform
 		{ 10, 19, 18 },		// 141 bits per transform
 		{ 10, 20, 17 },		// 141 bits per transform
 		{ 10, 21, 16 },		// 141 bits per transform
-		{ 10, 22, 5 },		// 141 bits per transform
-		{ 11, 4, 22 },		// 141 bits per transform
+		{ 10, 22, 15 },		// 141 bits per transform
+		{ 10, 23, 14 },		// 141 bits per transform
+		{ 10, 24, 13 },		// 141 bits per transform
+		{ 10, 25, 5 },		// 141 bits per transform
+		{ 11, 4, 25 },		// 141 bits per transform
+		{ 11, 12, 24 },		// 141 bits per transform
+		{ 11, 13, 23 },		// 141 bits per transform
+		{ 11, 14, 22 },		// 141 bits per transform
 		{ 11, 15, 21 },		// 141 bits per transform
 		{ 11, 16, 20 },		// 141 bits per transform
 		{ 11, 17, 19 },		// 141 bits per transform
@@ -10664,8 +13543,14 @@ namespace acl
 		{ 11, 19, 17 },		// 141 bits per transform
 		{ 11, 20, 16 },		// 141 bits per transform
 		{ 11, 21, 15 },		// 141 bits per transform
-		{ 11, 22, 4 },		// 141 bits per transform
-		{ 12, 3, 22 },		// 141 bits per transform
+		{ 11, 22, 14 },		// 141 bits per transform
+		{ 11, 23, 13 },		// 141 bits per transform
+		{ 11, 24, 12 },		// 141 bits per transform
+		{ 11, 25, 4 },		// 141 bits per transform
+		{ 12, 3, 25 },		// 141 bits per transform
+		{ 12, 11, 24 },		// 141 bits per transform
+		{ 12, 12, 23 },		// 141 bits per transform
+		{ 12, 13, 22 },		// 141 bits per transform
 		{ 12, 14, 21 },		// 141 bits per transform
 		{ 12, 15, 20 },		// 141 bits per transform
 		{ 12, 16, 19 },		// 141 bits per transform
@@ -10674,8 +13559,14 @@ namespace acl
 		{ 12, 19, 16 },		// 141 bits per transform
 		{ 12, 20, 15 },		// 141 bits per transform
 		{ 12, 21, 14 },		// 141 bits per transform
-		{ 12, 22, 3 },		// 141 bits per transform
-		{ 13, 2, 22 },		// 141 bits per transform
+		{ 12, 22, 13 },		// 141 bits per transform
+		{ 12, 23, 12 },		// 141 bits per transform
+		{ 12, 24, 11 },		// 141 bits per transform
+		{ 12, 25, 3 },		// 141 bits per transform
+		{ 13, 2, 25 },		// 141 bits per transform
+		{ 13, 10, 24 },		// 141 bits per transform
+		{ 13, 11, 23 },		// 141 bits per transform
+		{ 13, 12, 22 },		// 141 bits per transform
 		{ 13, 13, 21 },		// 141 bits per transform
 		{ 13, 14, 20 },		// 141 bits per transform
 		{ 13, 15, 19 },		// 141 bits per transform
@@ -10685,8 +13576,14 @@ namespace acl
 		{ 13, 19, 15 },		// 141 bits per transform
 		{ 13, 20, 14 },		// 141 bits per transform
 		{ 13, 21, 13 },		// 141 bits per transform
-		{ 13, 22, 2 },		// 141 bits per transform
-		{ 14, 1, 22 },		// 141 bits per transform
+		{ 13, 22, 12 },		// 141 bits per transform
+		{ 13, 23, 11 },		// 141 bits per transform
+		{ 13, 24, 10 },		// 141 bits per transform
+		{ 13, 25, 2 },		// 141 bits per transform
+		{ 14, 1, 25 },		// 141 bits per transform
+		{ 14, 9, 24 },		// 141 bits per transform
+		{ 14, 10, 23 },		// 141 bits per transform
+		{ 14, 11, 22 },		// 141 bits per transform
 		{ 14, 12, 21 },		// 141 bits per transform
 		{ 14, 13, 20 },		// 141 bits per transform
 		{ 14, 14, 19 },		// 141 bits per transform
@@ -10697,8 +13594,14 @@ namespace acl
 		{ 14, 19, 14 },		// 141 bits per transform
 		{ 14, 20, 13 },		// 141 bits per transform
 		{ 14, 21, 12 },		// 141 bits per transform
-		{ 14, 22, 1 },		// 141 bits per transform
-		{ 15, 0, 22 },		// 141 bits per transform
+		{ 14, 22, 11 },		// 141 bits per transform
+		{ 14, 23, 10 },		// 141 bits per transform
+		{ 14, 24, 9 },		// 141 bits per transform
+		{ 14, 25, 1 },		// 141 bits per transform
+		{ 15, 0, 25 },		// 141 bits per transform
+		{ 15, 8, 24 },		// 141 bits per transform
+		{ 15, 9, 23 },		// 141 bits per transform
+		{ 15, 10, 22 },		// 141 bits per transform
 		{ 15, 11, 21 },		// 141 bits per transform
 		{ 15, 12, 20 },		// 141 bits per transform
 		{ 15, 13, 19 },		// 141 bits per transform
@@ -10710,7 +13613,13 @@ namespace acl
 		{ 15, 19, 13 },		// 141 bits per transform
 		{ 15, 20, 12 },		// 141 bits per transform
 		{ 15, 21, 11 },		// 141 bits per transform
-		{ 15, 22, 0 },		// 141 bits per transform
+		{ 15, 22, 10 },		// 141 bits per transform
+		{ 15, 23, 9 },		// 141 bits per transform
+		{ 15, 24, 8 },		// 141 bits per transform
+		{ 15, 25, 0 },		// 141 bits per transform
+		{ 16, 7, 24 },		// 141 bits per transform
+		{ 16, 8, 23 },		// 141 bits per transform
+		{ 16, 9, 22 },		// 141 bits per transform
 		{ 16, 10, 21 },		// 141 bits per transform
 		{ 16, 11, 20 },		// 141 bits per transform
 		{ 16, 12, 19 },		// 141 bits per transform
@@ -10723,6 +13632,12 @@ namespace acl
 		{ 16, 19, 12 },		// 141 bits per transform
 		{ 16, 20, 11 },		// 141 bits per transform
 		{ 16, 21, 10 },		// 141 bits per transform
+		{ 16, 22, 9 },		// 141 bits per transform
+		{ 16, 23, 8 },		// 141 bits per transform
+		{ 16, 24, 7 },		// 141 bits per transform
+		{ 17, 6, 24 },		// 141 bits per transform
+		{ 17, 7, 23 },		// 141 bits per transform
+		{ 17, 8, 22 },		// 141 bits per transform
 		{ 17, 9, 21 },		// 141 bits per transform
 		{ 17, 10, 20 },		// 141 bits per transform
 		{ 17, 11, 19 },		// 141 bits per transform
@@ -10736,6 +13651,12 @@ namespace acl
 		{ 17, 19, 11 },		// 141 bits per transform
 		{ 17, 20, 10 },		// 141 bits per transform
 		{ 17, 21, 9 },		// 141 bits per transform
+		{ 17, 22, 8 },		// 141 bits per transform
+		{ 17, 23, 7 },		// 141 bits per transform
+		{ 17, 24, 6 },		// 141 bits per transform
+		{ 18, 5, 24 },		// 141 bits per transform
+		{ 18, 6, 23 },		// 141 bits per transform
+		{ 18, 7, 22 },		// 141 bits per transform
 		{ 18, 8, 21 },		// 141 bits per transform
 		{ 18, 9, 20 },		// 141 bits per transform
 		{ 18, 10, 19 },		// 141 bits per transform
@@ -10750,6 +13671,12 @@ namespace acl
 		{ 18, 19, 10 },		// 141 bits per transform
 		{ 18, 20, 9 },		// 141 bits per transform
 		{ 18, 21, 8 },		// 141 bits per transform
+		{ 18, 22, 7 },		// 141 bits per transform
+		{ 18, 23, 6 },		// 141 bits per transform
+		{ 18, 24, 5 },		// 141 bits per transform
+		{ 19, 4, 24 },		// 141 bits per transform
+		{ 19, 5, 23 },		// 141 bits per transform
+		{ 19, 6, 22 },		// 141 bits per transform
 		{ 19, 7, 21 },		// 141 bits per transform
 		{ 19, 8, 20 },		// 141 bits per transform
 		{ 19, 9, 19 },		// 141 bits per transform
@@ -10765,6 +13692,12 @@ namespace acl
 		{ 19, 19, 9 },		// 141 bits per transform
 		{ 19, 20, 8 },		// 141 bits per transform
 		{ 19, 21, 7 },		// 141 bits per transform
+		{ 19, 22, 6 },		// 141 bits per transform
+		{ 19, 23, 5 },		// 141 bits per transform
+		{ 19, 24, 4 },		// 141 bits per transform
+		{ 20, 3, 24 },		// 141 bits per transform
+		{ 20, 4, 23 },		// 141 bits per transform
+		{ 20, 5, 22 },		// 141 bits per transform
 		{ 20, 6, 21 },		// 141 bits per transform
 		{ 20, 7, 20 },		// 141 bits per transform
 		{ 20, 8, 19 },		// 141 bits per transform
@@ -10781,6 +13714,12 @@ namespace acl
 		{ 20, 19, 8 },		// 141 bits per transform
 		{ 20, 20, 7 },		// 141 bits per transform
 		{ 20, 21, 6 },		// 141 bits per transform
+		{ 20, 22, 5 },		// 141 bits per transform
+		{ 20, 23, 4 },		// 141 bits per transform
+		{ 20, 24, 3 },		// 141 bits per transform
+		{ 21, 2, 24 },		// 141 bits per transform
+		{ 21, 3, 23 },		// 141 bits per transform
+		{ 21, 4, 22 },		// 141 bits per transform
 		{ 21, 5, 21 },		// 141 bits per transform
 		{ 21, 6, 20 },		// 141 bits per transform
 		{ 21, 7, 19 },		// 141 bits per transform
@@ -10798,68 +13737,204 @@ namespace acl
 		{ 21, 19, 7 },		// 141 bits per transform
 		{ 21, 20, 6 },		// 141 bits per transform
 		{ 21, 21, 5 },		// 141 bits per transform
-		{ 22, 0, 15 },		// 141 bits per transform
-		{ 22, 1, 14 },		// 141 bits per transform
-		{ 22, 2, 13 },		// 141 bits per transform
-		{ 22, 3, 12 },		// 141 bits per transform
-		{ 22, 4, 11 },		// 141 bits per transform
-		{ 22, 5, 10 },		// 141 bits per transform
-		{ 22, 6, 9 },		// 141 bits per transform
-		{ 22, 7, 8 },		// 141 bits per transform
-		{ 22, 8, 7 },		// 141 bits per transform
-		{ 22, 9, 6 },		// 141 bits per transform
-		{ 22, 10, 5 },		// 141 bits per transform
-		{ 22, 11, 4 },		// 141 bits per transform
-		{ 22, 12, 3 },		// 141 bits per transform
-		{ 22, 13, 2 },		// 141 bits per transform
-		{ 22, 14, 1 },		// 141 bits per transform
-		{ 22, 15, 0 },		// 141 bits per transform
-		{ 0, 16, 22 },		// 144 bits per transform
-		{ 0, 22, 16 },		// 144 bits per transform
-		{ 1, 15, 22 },		// 144 bits per transform
-		{ 1, 22, 15 },		// 144 bits per transform
-		{ 2, 14, 22 },		// 144 bits per transform
-		{ 2, 22, 14 },		// 144 bits per transform
-		{ 3, 13, 22 },		// 144 bits per transform
-		{ 3, 22, 13 },		// 144 bits per transform
-		{ 4, 12, 22 },		// 144 bits per transform
-		{ 4, 22, 12 },		// 144 bits per transform
-		{ 5, 11, 22 },		// 144 bits per transform
-		{ 5, 22, 11 },		// 144 bits per transform
-		{ 6, 10, 22 },		// 144 bits per transform
+		{ 21, 22, 4 },		// 141 bits per transform
+		{ 21, 23, 3 },		// 141 bits per transform
+		{ 21, 24, 2 },		// 141 bits per transform
+		{ 22, 1, 24 },		// 141 bits per transform
+		{ 22, 2, 23 },		// 141 bits per transform
+		{ 22, 3, 22 },		// 141 bits per transform
+		{ 22, 4, 21 },		// 141 bits per transform
+		{ 22, 5, 20 },		// 141 bits per transform
+		{ 22, 6, 19 },		// 141 bits per transform
+		{ 22, 7, 18 },		// 141 bits per transform
+		{ 22, 8, 17 },		// 141 bits per transform
+		{ 22, 9, 16 },		// 141 bits per transform
+		{ 22, 10, 15 },		// 141 bits per transform
+		{ 22, 11, 14 },		// 141 bits per transform
+		{ 22, 12, 13 },		// 141 bits per transform
+		{ 22, 13, 12 },		// 141 bits per transform
+		{ 22, 14, 11 },		// 141 bits per transform
+		{ 22, 15, 10 },		// 141 bits per transform
+		{ 22, 16, 9 },		// 141 bits per transform
+		{ 22, 17, 8 },		// 141 bits per transform
+		{ 22, 18, 7 },		// 141 bits per transform
+		{ 22, 19, 6 },		// 141 bits per transform
+		{ 22, 20, 5 },		// 141 bits per transform
+		{ 22, 21, 4 },		// 141 bits per transform
+		{ 22, 22, 3 },		// 141 bits per transform
+		{ 22, 23, 2 },		// 141 bits per transform
+		{ 22, 24, 1 },		// 141 bits per transform
+		{ 23, 0, 24 },		// 141 bits per transform
+		{ 23, 1, 23 },		// 141 bits per transform
+		{ 23, 2, 22 },		// 141 bits per transform
+		{ 23, 3, 21 },		// 141 bits per transform
+		{ 23, 4, 20 },		// 141 bits per transform
+		{ 23, 5, 19 },		// 141 bits per transform
+		{ 23, 6, 18 },		// 141 bits per transform
+		{ 23, 7, 17 },		// 141 bits per transform
+		{ 23, 8, 16 },		// 141 bits per transform
+		{ 23, 9, 15 },		// 141 bits per transform
+		{ 23, 10, 14 },		// 141 bits per transform
+		{ 23, 11, 13 },		// 141 bits per transform
+		{ 23, 12, 12 },		// 141 bits per transform
+		{ 23, 13, 11 },		// 141 bits per transform
+		{ 23, 14, 10 },		// 141 bits per transform
+		{ 23, 15, 9 },		// 141 bits per transform
+		{ 23, 16, 8 },		// 141 bits per transform
+		{ 23, 17, 7 },		// 141 bits per transform
+		{ 23, 18, 6 },		// 141 bits per transform
+		{ 23, 19, 5 },		// 141 bits per transform
+		{ 23, 20, 4 },		// 141 bits per transform
+		{ 23, 21, 3 },		// 141 bits per transform
+		{ 23, 22, 2 },		// 141 bits per transform
+		{ 23, 23, 1 },		// 141 bits per transform
+		{ 23, 24, 0 },		// 141 bits per transform
+		{ 24, 0, 23 },		// 141 bits per transform
+		{ 24, 1, 22 },		// 141 bits per transform
+		{ 24, 2, 21 },		// 141 bits per transform
+		{ 24, 3, 20 },		// 141 bits per transform
+		{ 24, 4, 19 },		// 141 bits per transform
+		{ 24, 5, 18 },		// 141 bits per transform
+		{ 24, 6, 17 },		// 141 bits per transform
+		{ 24, 7, 16 },		// 141 bits per transform
+		{ 24, 8, 15 },		// 141 bits per transform
+		{ 24, 9, 14 },		// 141 bits per transform
+		{ 24, 10, 13 },		// 141 bits per transform
+		{ 24, 11, 12 },		// 141 bits per transform
+		{ 24, 12, 11 },		// 141 bits per transform
+		{ 24, 13, 10 },		// 141 bits per transform
+		{ 24, 14, 9 },		// 141 bits per transform
+		{ 24, 15, 8 },		// 141 bits per transform
+		{ 24, 16, 7 },		// 141 bits per transform
+		{ 24, 17, 6 },		// 141 bits per transform
+		{ 24, 18, 5 },		// 141 bits per transform
+		{ 24, 19, 4 },		// 141 bits per transform
+		{ 24, 20, 3 },		// 141 bits per transform
+		{ 24, 21, 2 },		// 141 bits per transform
+		{ 24, 22, 1 },		// 141 bits per transform
+		{ 24, 23, 0 },		// 141 bits per transform
+		{ 25, 0, 15 },		// 141 bits per transform
+		{ 25, 1, 14 },		// 141 bits per transform
+		{ 25, 2, 13 },		// 141 bits per transform
+		{ 25, 3, 12 },		// 141 bits per transform
+		{ 25, 4, 11 },		// 141 bits per transform
+		{ 25, 5, 10 },		// 141 bits per transform
+		{ 25, 6, 9 },		// 141 bits per transform
+		{ 25, 7, 8 },		// 141 bits per transform
+		{ 25, 8, 7 },		// 141 bits per transform
+		{ 25, 9, 6 },		// 141 bits per transform
+		{ 25, 10, 5 },		// 141 bits per transform
+		{ 25, 11, 4 },		// 141 bits per transform
+		{ 25, 12, 3 },		// 141 bits per transform
+		{ 25, 13, 2 },		// 141 bits per transform
+		{ 25, 14, 1 },		// 141 bits per transform
+		{ 25, 15, 0 },		// 141 bits per transform
+		{ 0, 16, 25 },		// 144 bits per transform
+		{ 0, 24, 24 },		// 144 bits per transform
+		{ 0, 25, 16 },		// 144 bits per transform
+		{ 1, 15, 25 },		// 144 bits per transform
+		{ 1, 23, 24 },		// 144 bits per transform
+		{ 1, 24, 23 },		// 144 bits per transform
+		{ 1, 25, 15 },		// 144 bits per transform
+		{ 2, 14, 25 },		// 144 bits per transform
+		{ 2, 22, 24 },		// 144 bits per transform
+		{ 2, 23, 23 },		// 144 bits per transform
+		{ 2, 24, 22 },		// 144 bits per transform
+		{ 2, 25, 14 },		// 144 bits per transform
+		{ 3, 13, 25 },		// 144 bits per transform
+		{ 3, 21, 24 },		// 144 bits per transform
+		{ 3, 22, 23 },		// 144 bits per transform
+		{ 3, 23, 22 },		// 144 bits per transform
+		{ 3, 24, 21 },		// 144 bits per transform
+		{ 3, 25, 13 },		// 144 bits per transform
+		{ 4, 12, 25 },		// 144 bits per transform
+		{ 4, 20, 24 },		// 144 bits per transform
+		{ 4, 21, 23 },		// 144 bits per transform
+		{ 4, 22, 22 },		// 144 bits per transform
+		{ 4, 23, 21 },		// 144 bits per transform
+		{ 4, 24, 20 },		// 144 bits per transform
+		{ 4, 25, 12 },		// 144 bits per transform
+		{ 5, 11, 25 },		// 144 bits per transform
+		{ 5, 19, 24 },		// 144 bits per transform
+		{ 5, 20, 23 },		// 144 bits per transform
+		{ 5, 21, 22 },		// 144 bits per transform
+		{ 5, 22, 21 },		// 144 bits per transform
+		{ 5, 23, 20 },		// 144 bits per transform
+		{ 5, 24, 19 },		// 144 bits per transform
+		{ 5, 25, 11 },		// 144 bits per transform
+		{ 6, 10, 25 },		// 144 bits per transform
+		{ 6, 18, 24 },		// 144 bits per transform
+		{ 6, 19, 23 },		// 144 bits per transform
+		{ 6, 20, 22 },		// 144 bits per transform
 		{ 6, 21, 21 },		// 144 bits per transform
-		{ 6, 22, 10 },		// 144 bits per transform
-		{ 7, 9, 22 },		// 144 bits per transform
+		{ 6, 22, 20 },		// 144 bits per transform
+		{ 6, 23, 19 },		// 144 bits per transform
+		{ 6, 24, 18 },		// 144 bits per transform
+		{ 6, 25, 10 },		// 144 bits per transform
+		{ 7, 9, 25 },		// 144 bits per transform
+		{ 7, 17, 24 },		// 144 bits per transform
+		{ 7, 18, 23 },		// 144 bits per transform
+		{ 7, 19, 22 },		// 144 bits per transform
 		{ 7, 20, 21 },		// 144 bits per transform
 		{ 7, 21, 20 },		// 144 bits per transform
-		{ 7, 22, 9 },		// 144 bits per transform
-		{ 8, 8, 22 },		// 144 bits per transform
+		{ 7, 22, 19 },		// 144 bits per transform
+		{ 7, 23, 18 },		// 144 bits per transform
+		{ 7, 24, 17 },		// 144 bits per transform
+		{ 7, 25, 9 },		// 144 bits per transform
+		{ 8, 8, 25 },		// 144 bits per transform
+		{ 8, 16, 24 },		// 144 bits per transform
+		{ 8, 17, 23 },		// 144 bits per transform
+		{ 8, 18, 22 },		// 144 bits per transform
 		{ 8, 19, 21 },		// 144 bits per transform
 		{ 8, 20, 20 },		// 144 bits per transform
 		{ 8, 21, 19 },		// 144 bits per transform
-		{ 8, 22, 8 },		// 144 bits per transform
-		{ 9, 7, 22 },		// 144 bits per transform
+		{ 8, 22, 18 },		// 144 bits per transform
+		{ 8, 23, 17 },		// 144 bits per transform
+		{ 8, 24, 16 },		// 144 bits per transform
+		{ 8, 25, 8 },		// 144 bits per transform
+		{ 9, 7, 25 },		// 144 bits per transform
+		{ 9, 15, 24 },		// 144 bits per transform
+		{ 9, 16, 23 },		// 144 bits per transform
+		{ 9, 17, 22 },		// 144 bits per transform
 		{ 9, 18, 21 },		// 144 bits per transform
 		{ 9, 19, 20 },		// 144 bits per transform
 		{ 9, 20, 19 },		// 144 bits per transform
 		{ 9, 21, 18 },		// 144 bits per transform
-		{ 9, 22, 7 },		// 144 bits per transform
-		{ 10, 6, 22 },		// 144 bits per transform
+		{ 9, 22, 17 },		// 144 bits per transform
+		{ 9, 23, 16 },		// 144 bits per transform
+		{ 9, 24, 15 },		// 144 bits per transform
+		{ 9, 25, 7 },		// 144 bits per transform
+		{ 10, 6, 25 },		// 144 bits per transform
+		{ 10, 14, 24 },		// 144 bits per transform
+		{ 10, 15, 23 },		// 144 bits per transform
+		{ 10, 16, 22 },		// 144 bits per transform
 		{ 10, 17, 21 },		// 144 bits per transform
 		{ 10, 18, 20 },		// 144 bits per transform
 		{ 10, 19, 19 },		// 144 bits per transform
 		{ 10, 20, 18 },		// 144 bits per transform
 		{ 10, 21, 17 },		// 144 bits per transform
-		{ 10, 22, 6 },		// 144 bits per transform
-		{ 11, 5, 22 },		// 144 bits per transform
+		{ 10, 22, 16 },		// 144 bits per transform
+		{ 10, 23, 15 },		// 144 bits per transform
+		{ 10, 24, 14 },		// 144 bits per transform
+		{ 10, 25, 6 },		// 144 bits per transform
+		{ 11, 5, 25 },		// 144 bits per transform
+		{ 11, 13, 24 },		// 144 bits per transform
+		{ 11, 14, 23 },		// 144 bits per transform
+		{ 11, 15, 22 },		// 144 bits per transform
 		{ 11, 16, 21 },		// 144 bits per transform
 		{ 11, 17, 20 },		// 144 bits per transform
 		{ 11, 18, 19 },		// 144 bits per transform
 		{ 11, 19, 18 },		// 144 bits per transform
 		{ 11, 20, 17 },		// 144 bits per transform
 		{ 11, 21, 16 },		// 144 bits per transform
-		{ 11, 22, 5 },		// 144 bits per transform
-		{ 12, 4, 22 },		// 144 bits per transform
+		{ 11, 22, 15 },		// 144 bits per transform
+		{ 11, 23, 14 },		// 144 bits per transform
+		{ 11, 24, 13 },		// 144 bits per transform
+		{ 11, 25, 5 },		// 144 bits per transform
+		{ 12, 4, 25 },		// 144 bits per transform
+		{ 12, 12, 24 },		// 144 bits per transform
+		{ 12, 13, 23 },		// 144 bits per transform
+		{ 12, 14, 22 },		// 144 bits per transform
 		{ 12, 15, 21 },		// 144 bits per transform
 		{ 12, 16, 20 },		// 144 bits per transform
 		{ 12, 17, 19 },		// 144 bits per transform
@@ -10867,8 +13942,14 @@ namespace acl
 		{ 12, 19, 17 },		// 144 bits per transform
 		{ 12, 20, 16 },		// 144 bits per transform
 		{ 12, 21, 15 },		// 144 bits per transform
-		{ 12, 22, 4 },		// 144 bits per transform
-		{ 13, 3, 22 },		// 144 bits per transform
+		{ 12, 22, 14 },		// 144 bits per transform
+		{ 12, 23, 13 },		// 144 bits per transform
+		{ 12, 24, 12 },		// 144 bits per transform
+		{ 12, 25, 4 },		// 144 bits per transform
+		{ 13, 3, 25 },		// 144 bits per transform
+		{ 13, 11, 24 },		// 144 bits per transform
+		{ 13, 12, 23 },		// 144 bits per transform
+		{ 13, 13, 22 },		// 144 bits per transform
 		{ 13, 14, 21 },		// 144 bits per transform
 		{ 13, 15, 20 },		// 144 bits per transform
 		{ 13, 16, 19 },		// 144 bits per transform
@@ -10877,8 +13958,14 @@ namespace acl
 		{ 13, 19, 16 },		// 144 bits per transform
 		{ 13, 20, 15 },		// 144 bits per transform
 		{ 13, 21, 14 },		// 144 bits per transform
-		{ 13, 22, 3 },		// 144 bits per transform
-		{ 14, 2, 22 },		// 144 bits per transform
+		{ 13, 22, 13 },		// 144 bits per transform
+		{ 13, 23, 12 },		// 144 bits per transform
+		{ 13, 24, 11 },		// 144 bits per transform
+		{ 13, 25, 3 },		// 144 bits per transform
+		{ 14, 2, 25 },		// 144 bits per transform
+		{ 14, 10, 24 },		// 144 bits per transform
+		{ 14, 11, 23 },		// 144 bits per transform
+		{ 14, 12, 22 },		// 144 bits per transform
 		{ 14, 13, 21 },		// 144 bits per transform
 		{ 14, 14, 20 },		// 144 bits per transform
 		{ 14, 15, 19 },		// 144 bits per transform
@@ -10888,8 +13975,14 @@ namespace acl
 		{ 14, 19, 15 },		// 144 bits per transform
 		{ 14, 20, 14 },		// 144 bits per transform
 		{ 14, 21, 13 },		// 144 bits per transform
-		{ 14, 22, 2 },		// 144 bits per transform
-		{ 15, 1, 22 },		// 144 bits per transform
+		{ 14, 22, 12 },		// 144 bits per transform
+		{ 14, 23, 11 },		// 144 bits per transform
+		{ 14, 24, 10 },		// 144 bits per transform
+		{ 14, 25, 2 },		// 144 bits per transform
+		{ 15, 1, 25 },		// 144 bits per transform
+		{ 15, 9, 24 },		// 144 bits per transform
+		{ 15, 10, 23 },		// 144 bits per transform
+		{ 15, 11, 22 },		// 144 bits per transform
 		{ 15, 12, 21 },		// 144 bits per transform
 		{ 15, 13, 20 },		// 144 bits per transform
 		{ 15, 14, 19 },		// 144 bits per transform
@@ -10900,8 +13993,14 @@ namespace acl
 		{ 15, 19, 14 },		// 144 bits per transform
 		{ 15, 20, 13 },		// 144 bits per transform
 		{ 15, 21, 12 },		// 144 bits per transform
-		{ 15, 22, 1 },		// 144 bits per transform
-		{ 16, 0, 22 },		// 144 bits per transform
+		{ 15, 22, 11 },		// 144 bits per transform
+		{ 15, 23, 10 },		// 144 bits per transform
+		{ 15, 24, 9 },		// 144 bits per transform
+		{ 15, 25, 1 },		// 144 bits per transform
+		{ 16, 0, 25 },		// 144 bits per transform
+		{ 16, 8, 24 },		// 144 bits per transform
+		{ 16, 9, 23 },		// 144 bits per transform
+		{ 16, 10, 22 },		// 144 bits per transform
 		{ 16, 11, 21 },		// 144 bits per transform
 		{ 16, 12, 20 },		// 144 bits per transform
 		{ 16, 13, 19 },		// 144 bits per transform
@@ -10913,7 +14012,13 @@ namespace acl
 		{ 16, 19, 13 },		// 144 bits per transform
 		{ 16, 20, 12 },		// 144 bits per transform
 		{ 16, 21, 11 },		// 144 bits per transform
-		{ 16, 22, 0 },		// 144 bits per transform
+		{ 16, 22, 10 },		// 144 bits per transform
+		{ 16, 23, 9 },		// 144 bits per transform
+		{ 16, 24, 8 },		// 144 bits per transform
+		{ 16, 25, 0 },		// 144 bits per transform
+		{ 17, 7, 24 },		// 144 bits per transform
+		{ 17, 8, 23 },		// 144 bits per transform
+		{ 17, 9, 22 },		// 144 bits per transform
 		{ 17, 10, 21 },		// 144 bits per transform
 		{ 17, 11, 20 },		// 144 bits per transform
 		{ 17, 12, 19 },		// 144 bits per transform
@@ -10926,6 +14031,12 @@ namespace acl
 		{ 17, 19, 12 },		// 144 bits per transform
 		{ 17, 20, 11 },		// 144 bits per transform
 		{ 17, 21, 10 },		// 144 bits per transform
+		{ 17, 22, 9 },		// 144 bits per transform
+		{ 17, 23, 8 },		// 144 bits per transform
+		{ 17, 24, 7 },		// 144 bits per transform
+		{ 18, 6, 24 },		// 144 bits per transform
+		{ 18, 7, 23 },		// 144 bits per transform
+		{ 18, 8, 22 },		// 144 bits per transform
 		{ 18, 9, 21 },		// 144 bits per transform
 		{ 18, 10, 20 },		// 144 bits per transform
 		{ 18, 11, 19 },		// 144 bits per transform
@@ -10939,6 +14050,12 @@ namespace acl
 		{ 18, 19, 11 },		// 144 bits per transform
 		{ 18, 20, 10 },		// 144 bits per transform
 		{ 18, 21, 9 },		// 144 bits per transform
+		{ 18, 22, 8 },		// 144 bits per transform
+		{ 18, 23, 7 },		// 144 bits per transform
+		{ 18, 24, 6 },		// 144 bits per transform
+		{ 19, 5, 24 },		// 144 bits per transform
+		{ 19, 6, 23 },		// 144 bits per transform
+		{ 19, 7, 22 },		// 144 bits per transform
 		{ 19, 8, 21 },		// 144 bits per transform
 		{ 19, 9, 20 },		// 144 bits per transform
 		{ 19, 10, 19 },		// 144 bits per transform
@@ -10953,6 +14070,12 @@ namespace acl
 		{ 19, 19, 10 },		// 144 bits per transform
 		{ 19, 20, 9 },		// 144 bits per transform
 		{ 19, 21, 8 },		// 144 bits per transform
+		{ 19, 22, 7 },		// 144 bits per transform
+		{ 19, 23, 6 },		// 144 bits per transform
+		{ 19, 24, 5 },		// 144 bits per transform
+		{ 20, 4, 24 },		// 144 bits per transform
+		{ 20, 5, 23 },		// 144 bits per transform
+		{ 20, 6, 22 },		// 144 bits per transform
 		{ 20, 7, 21 },		// 144 bits per transform
 		{ 20, 8, 20 },		// 144 bits per transform
 		{ 20, 9, 19 },		// 144 bits per transform
@@ -10968,6 +14091,12 @@ namespace acl
 		{ 20, 19, 9 },		// 144 bits per transform
 		{ 20, 20, 8 },		// 144 bits per transform
 		{ 20, 21, 7 },		// 144 bits per transform
+		{ 20, 22, 6 },		// 144 bits per transform
+		{ 20, 23, 5 },		// 144 bits per transform
+		{ 20, 24, 4 },		// 144 bits per transform
+		{ 21, 3, 24 },		// 144 bits per transform
+		{ 21, 4, 23 },		// 144 bits per transform
+		{ 21, 5, 22 },		// 144 bits per transform
 		{ 21, 6, 21 },		// 144 bits per transform
 		{ 21, 7, 20 },		// 144 bits per transform
 		{ 21, 8, 19 },		// 144 bits per transform
@@ -10984,71 +14113,206 @@ namespace acl
 		{ 21, 19, 8 },		// 144 bits per transform
 		{ 21, 20, 7 },		// 144 bits per transform
 		{ 21, 21, 6 },		// 144 bits per transform
-		{ 22, 0, 16 },		// 144 bits per transform
-		{ 22, 1, 15 },		// 144 bits per transform
-		{ 22, 2, 14 },		// 144 bits per transform
-		{ 22, 3, 13 },		// 144 bits per transform
-		{ 22, 4, 12 },		// 144 bits per transform
-		{ 22, 5, 11 },		// 144 bits per transform
-		{ 22, 6, 10 },		// 144 bits per transform
-		{ 22, 7, 9 },		// 144 bits per transform
-		{ 22, 8, 8 },		// 144 bits per transform
-		{ 22, 9, 7 },		// 144 bits per transform
-		{ 22, 10, 6 },		// 144 bits per transform
-		{ 22, 11, 5 },		// 144 bits per transform
-		{ 22, 12, 4 },		// 144 bits per transform
-		{ 22, 13, 3 },		// 144 bits per transform
-		{ 22, 14, 2 },		// 144 bits per transform
-		{ 22, 15, 1 },		// 144 bits per transform
-		{ 22, 16, 0 },		// 144 bits per transform
-		{ 0, 17, 22 },		// 147 bits per transform
-		{ 0, 22, 17 },		// 147 bits per transform
-		{ 1, 16, 22 },		// 147 bits per transform
-		{ 1, 22, 16 },		// 147 bits per transform
-		{ 2, 15, 22 },		// 147 bits per transform
-		{ 2, 22, 15 },		// 147 bits per transform
-		{ 3, 14, 22 },		// 147 bits per transform
-		{ 3, 22, 14 },		// 147 bits per transform
-		{ 4, 13, 22 },		// 147 bits per transform
-		{ 4, 22, 13 },		// 147 bits per transform
-		{ 5, 12, 22 },		// 147 bits per transform
-		{ 5, 22, 12 },		// 147 bits per transform
-		{ 6, 11, 22 },		// 147 bits per transform
-		{ 6, 22, 11 },		// 147 bits per transform
-		{ 7, 10, 22 },		// 147 bits per transform
+		{ 21, 22, 5 },		// 144 bits per transform
+		{ 21, 23, 4 },		// 144 bits per transform
+		{ 21, 24, 3 },		// 144 bits per transform
+		{ 22, 2, 24 },		// 144 bits per transform
+		{ 22, 3, 23 },		// 144 bits per transform
+		{ 22, 4, 22 },		// 144 bits per transform
+		{ 22, 5, 21 },		// 144 bits per transform
+		{ 22, 6, 20 },		// 144 bits per transform
+		{ 22, 7, 19 },		// 144 bits per transform
+		{ 22, 8, 18 },		// 144 bits per transform
+		{ 22, 9, 17 },		// 144 bits per transform
+		{ 22, 10, 16 },		// 144 bits per transform
+		{ 22, 11, 15 },		// 144 bits per transform
+		{ 22, 12, 14 },		// 144 bits per transform
+		{ 22, 13, 13 },		// 144 bits per transform
+		{ 22, 14, 12 },		// 144 bits per transform
+		{ 22, 15, 11 },		// 144 bits per transform
+		{ 22, 16, 10 },		// 144 bits per transform
+		{ 22, 17, 9 },		// 144 bits per transform
+		{ 22, 18, 8 },		// 144 bits per transform
+		{ 22, 19, 7 },		// 144 bits per transform
+		{ 22, 20, 6 },		// 144 bits per transform
+		{ 22, 21, 5 },		// 144 bits per transform
+		{ 22, 22, 4 },		// 144 bits per transform
+		{ 22, 23, 3 },		// 144 bits per transform
+		{ 22, 24, 2 },		// 144 bits per transform
+		{ 23, 1, 24 },		// 144 bits per transform
+		{ 23, 2, 23 },		// 144 bits per transform
+		{ 23, 3, 22 },		// 144 bits per transform
+		{ 23, 4, 21 },		// 144 bits per transform
+		{ 23, 5, 20 },		// 144 bits per transform
+		{ 23, 6, 19 },		// 144 bits per transform
+		{ 23, 7, 18 },		// 144 bits per transform
+		{ 23, 8, 17 },		// 144 bits per transform
+		{ 23, 9, 16 },		// 144 bits per transform
+		{ 23, 10, 15 },		// 144 bits per transform
+		{ 23, 11, 14 },		// 144 bits per transform
+		{ 23, 12, 13 },		// 144 bits per transform
+		{ 23, 13, 12 },		// 144 bits per transform
+		{ 23, 14, 11 },		// 144 bits per transform
+		{ 23, 15, 10 },		// 144 bits per transform
+		{ 23, 16, 9 },		// 144 bits per transform
+		{ 23, 17, 8 },		// 144 bits per transform
+		{ 23, 18, 7 },		// 144 bits per transform
+		{ 23, 19, 6 },		// 144 bits per transform
+		{ 23, 20, 5 },		// 144 bits per transform
+		{ 23, 21, 4 },		// 144 bits per transform
+		{ 23, 22, 3 },		// 144 bits per transform
+		{ 23, 23, 2 },		// 144 bits per transform
+		{ 23, 24, 1 },		// 144 bits per transform
+		{ 24, 0, 24 },		// 144 bits per transform
+		{ 24, 1, 23 },		// 144 bits per transform
+		{ 24, 2, 22 },		// 144 bits per transform
+		{ 24, 3, 21 },		// 144 bits per transform
+		{ 24, 4, 20 },		// 144 bits per transform
+		{ 24, 5, 19 },		// 144 bits per transform
+		{ 24, 6, 18 },		// 144 bits per transform
+		{ 24, 7, 17 },		// 144 bits per transform
+		{ 24, 8, 16 },		// 144 bits per transform
+		{ 24, 9, 15 },		// 144 bits per transform
+		{ 24, 10, 14 },		// 144 bits per transform
+		{ 24, 11, 13 },		// 144 bits per transform
+		{ 24, 12, 12 },		// 144 bits per transform
+		{ 24, 13, 11 },		// 144 bits per transform
+		{ 24, 14, 10 },		// 144 bits per transform
+		{ 24, 15, 9 },		// 144 bits per transform
+		{ 24, 16, 8 },		// 144 bits per transform
+		{ 24, 17, 7 },		// 144 bits per transform
+		{ 24, 18, 6 },		// 144 bits per transform
+		{ 24, 19, 5 },		// 144 bits per transform
+		{ 24, 20, 4 },		// 144 bits per transform
+		{ 24, 21, 3 },		// 144 bits per transform
+		{ 24, 22, 2 },		// 144 bits per transform
+		{ 24, 23, 1 },		// 144 bits per transform
+		{ 24, 24, 0 },		// 144 bits per transform
+		{ 25, 0, 16 },		// 144 bits per transform
+		{ 25, 1, 15 },		// 144 bits per transform
+		{ 25, 2, 14 },		// 144 bits per transform
+		{ 25, 3, 13 },		// 144 bits per transform
+		{ 25, 4, 12 },		// 144 bits per transform
+		{ 25, 5, 11 },		// 144 bits per transform
+		{ 25, 6, 10 },		// 144 bits per transform
+		{ 25, 7, 9 },		// 144 bits per transform
+		{ 25, 8, 8 },		// 144 bits per transform
+		{ 25, 9, 7 },		// 144 bits per transform
+		{ 25, 10, 6 },		// 144 bits per transform
+		{ 25, 11, 5 },		// 144 bits per transform
+		{ 25, 12, 4 },		// 144 bits per transform
+		{ 25, 13, 3 },		// 144 bits per transform
+		{ 25, 14, 2 },		// 144 bits per transform
+		{ 25, 15, 1 },		// 144 bits per transform
+		{ 25, 16, 0 },		// 144 bits per transform
+		{ 0, 17, 25 },		// 147 bits per transform
+		{ 0, 25, 17 },		// 147 bits per transform
+		{ 1, 16, 25 },		// 147 bits per transform
+		{ 1, 24, 24 },		// 147 bits per transform
+		{ 1, 25, 16 },		// 147 bits per transform
+		{ 2, 15, 25 },		// 147 bits per transform
+		{ 2, 23, 24 },		// 147 bits per transform
+		{ 2, 24, 23 },		// 147 bits per transform
+		{ 2, 25, 15 },		// 147 bits per transform
+		{ 3, 14, 25 },		// 147 bits per transform
+		{ 3, 22, 24 },		// 147 bits per transform
+		{ 3, 23, 23 },		// 147 bits per transform
+		{ 3, 24, 22 },		// 147 bits per transform
+		{ 3, 25, 14 },		// 147 bits per transform
+		{ 4, 13, 25 },		// 147 bits per transform
+		{ 4, 21, 24 },		// 147 bits per transform
+		{ 4, 22, 23 },		// 147 bits per transform
+		{ 4, 23, 22 },		// 147 bits per transform
+		{ 4, 24, 21 },		// 147 bits per transform
+		{ 4, 25, 13 },		// 147 bits per transform
+		{ 5, 12, 25 },		// 147 bits per transform
+		{ 5, 20, 24 },		// 147 bits per transform
+		{ 5, 21, 23 },		// 147 bits per transform
+		{ 5, 22, 22 },		// 147 bits per transform
+		{ 5, 23, 21 },		// 147 bits per transform
+		{ 5, 24, 20 },		// 147 bits per transform
+		{ 5, 25, 12 },		// 147 bits per transform
+		{ 6, 11, 25 },		// 147 bits per transform
+		{ 6, 19, 24 },		// 147 bits per transform
+		{ 6, 20, 23 },		// 147 bits per transform
+		{ 6, 21, 22 },		// 147 bits per transform
+		{ 6, 22, 21 },		// 147 bits per transform
+		{ 6, 23, 20 },		// 147 bits per transform
+		{ 6, 24, 19 },		// 147 bits per transform
+		{ 6, 25, 11 },		// 147 bits per transform
+		{ 7, 10, 25 },		// 147 bits per transform
+		{ 7, 18, 24 },		// 147 bits per transform
+		{ 7, 19, 23 },		// 147 bits per transform
+		{ 7, 20, 22 },		// 147 bits per transform
 		{ 7, 21, 21 },		// 147 bits per transform
-		{ 7, 22, 10 },		// 147 bits per transform
-		{ 8, 9, 22 },		// 147 bits per transform
+		{ 7, 22, 20 },		// 147 bits per transform
+		{ 7, 23, 19 },		// 147 bits per transform
+		{ 7, 24, 18 },		// 147 bits per transform
+		{ 7, 25, 10 },		// 147 bits per transform
+		{ 8, 9, 25 },		// 147 bits per transform
+		{ 8, 17, 24 },		// 147 bits per transform
+		{ 8, 18, 23 },		// 147 bits per transform
+		{ 8, 19, 22 },		// 147 bits per transform
 		{ 8, 20, 21 },		// 147 bits per transform
 		{ 8, 21, 20 },		// 147 bits per transform
-		{ 8, 22, 9 },		// 147 bits per transform
-		{ 9, 8, 22 },		// 147 bits per transform
+		{ 8, 22, 19 },		// 147 bits per transform
+		{ 8, 23, 18 },		// 147 bits per transform
+		{ 8, 24, 17 },		// 147 bits per transform
+		{ 8, 25, 9 },		// 147 bits per transform
+		{ 9, 8, 25 },		// 147 bits per transform
+		{ 9, 16, 24 },		// 147 bits per transform
+		{ 9, 17, 23 },		// 147 bits per transform
+		{ 9, 18, 22 },		// 147 bits per transform
 		{ 9, 19, 21 },		// 147 bits per transform
 		{ 9, 20, 20 },		// 147 bits per transform
 		{ 9, 21, 19 },		// 147 bits per transform
-		{ 9, 22, 8 },		// 147 bits per transform
-		{ 10, 7, 22 },		// 147 bits per transform
+		{ 9, 22, 18 },		// 147 bits per transform
+		{ 9, 23, 17 },		// 147 bits per transform
+		{ 9, 24, 16 },		// 147 bits per transform
+		{ 9, 25, 8 },		// 147 bits per transform
+		{ 10, 7, 25 },		// 147 bits per transform
+		{ 10, 15, 24 },		// 147 bits per transform
+		{ 10, 16, 23 },		// 147 bits per transform
+		{ 10, 17, 22 },		// 147 bits per transform
 		{ 10, 18, 21 },		// 147 bits per transform
 		{ 10, 19, 20 },		// 147 bits per transform
 		{ 10, 20, 19 },		// 147 bits per transform
 		{ 10, 21, 18 },		// 147 bits per transform
-		{ 10, 22, 7 },		// 147 bits per transform
-		{ 11, 6, 22 },		// 147 bits per transform
+		{ 10, 22, 17 },		// 147 bits per transform
+		{ 10, 23, 16 },		// 147 bits per transform
+		{ 10, 24, 15 },		// 147 bits per transform
+		{ 10, 25, 7 },		// 147 bits per transform
+		{ 11, 6, 25 },		// 147 bits per transform
+		{ 11, 14, 24 },		// 147 bits per transform
+		{ 11, 15, 23 },		// 147 bits per transform
+		{ 11, 16, 22 },		// 147 bits per transform
 		{ 11, 17, 21 },		// 147 bits per transform
 		{ 11, 18, 20 },		// 147 bits per transform
 		{ 11, 19, 19 },		// 147 bits per transform
 		{ 11, 20, 18 },		// 147 bits per transform
 		{ 11, 21, 17 },		// 147 bits per transform
-		{ 11, 22, 6 },		// 147 bits per transform
-		{ 12, 5, 22 },		// 147 bits per transform
+		{ 11, 22, 16 },		// 147 bits per transform
+		{ 11, 23, 15 },		// 147 bits per transform
+		{ 11, 24, 14 },		// 147 bits per transform
+		{ 11, 25, 6 },		// 147 bits per transform
+		{ 12, 5, 25 },		// 147 bits per transform
+		{ 12, 13, 24 },		// 147 bits per transform
+		{ 12, 14, 23 },		// 147 bits per transform
+		{ 12, 15, 22 },		// 147 bits per transform
 		{ 12, 16, 21 },		// 147 bits per transform
 		{ 12, 17, 20 },		// 147 bits per transform
 		{ 12, 18, 19 },		// 147 bits per transform
 		{ 12, 19, 18 },		// 147 bits per transform
 		{ 12, 20, 17 },		// 147 bits per transform
 		{ 12, 21, 16 },		// 147 bits per transform
-		{ 12, 22, 5 },		// 147 bits per transform
-		{ 13, 4, 22 },		// 147 bits per transform
+		{ 12, 22, 15 },		// 147 bits per transform
+		{ 12, 23, 14 },		// 147 bits per transform
+		{ 12, 24, 13 },		// 147 bits per transform
+		{ 12, 25, 5 },		// 147 bits per transform
+		{ 13, 4, 25 },		// 147 bits per transform
+		{ 13, 12, 24 },		// 147 bits per transform
+		{ 13, 13, 23 },		// 147 bits per transform
+		{ 13, 14, 22 },		// 147 bits per transform
 		{ 13, 15, 21 },		// 147 bits per transform
 		{ 13, 16, 20 },		// 147 bits per transform
 		{ 13, 17, 19 },		// 147 bits per transform
@@ -11056,8 +14320,14 @@ namespace acl
 		{ 13, 19, 17 },		// 147 bits per transform
 		{ 13, 20, 16 },		// 147 bits per transform
 		{ 13, 21, 15 },		// 147 bits per transform
-		{ 13, 22, 4 },		// 147 bits per transform
-		{ 14, 3, 22 },		// 147 bits per transform
+		{ 13, 22, 14 },		// 147 bits per transform
+		{ 13, 23, 13 },		// 147 bits per transform
+		{ 13, 24, 12 },		// 147 bits per transform
+		{ 13, 25, 4 },		// 147 bits per transform
+		{ 14, 3, 25 },		// 147 bits per transform
+		{ 14, 11, 24 },		// 147 bits per transform
+		{ 14, 12, 23 },		// 147 bits per transform
+		{ 14, 13, 22 },		// 147 bits per transform
 		{ 14, 14, 21 },		// 147 bits per transform
 		{ 14, 15, 20 },		// 147 bits per transform
 		{ 14, 16, 19 },		// 147 bits per transform
@@ -11066,8 +14336,14 @@ namespace acl
 		{ 14, 19, 16 },		// 147 bits per transform
 		{ 14, 20, 15 },		// 147 bits per transform
 		{ 14, 21, 14 },		// 147 bits per transform
-		{ 14, 22, 3 },		// 147 bits per transform
-		{ 15, 2, 22 },		// 147 bits per transform
+		{ 14, 22, 13 },		// 147 bits per transform
+		{ 14, 23, 12 },		// 147 bits per transform
+		{ 14, 24, 11 },		// 147 bits per transform
+		{ 14, 25, 3 },		// 147 bits per transform
+		{ 15, 2, 25 },		// 147 bits per transform
+		{ 15, 10, 24 },		// 147 bits per transform
+		{ 15, 11, 23 },		// 147 bits per transform
+		{ 15, 12, 22 },		// 147 bits per transform
 		{ 15, 13, 21 },		// 147 bits per transform
 		{ 15, 14, 20 },		// 147 bits per transform
 		{ 15, 15, 19 },		// 147 bits per transform
@@ -11077,8 +14353,14 @@ namespace acl
 		{ 15, 19, 15 },		// 147 bits per transform
 		{ 15, 20, 14 },		// 147 bits per transform
 		{ 15, 21, 13 },		// 147 bits per transform
-		{ 15, 22, 2 },		// 147 bits per transform
-		{ 16, 1, 22 },		// 147 bits per transform
+		{ 15, 22, 12 },		// 147 bits per transform
+		{ 15, 23, 11 },		// 147 bits per transform
+		{ 15, 24, 10 },		// 147 bits per transform
+		{ 15, 25, 2 },		// 147 bits per transform
+		{ 16, 1, 25 },		// 147 bits per transform
+		{ 16, 9, 24 },		// 147 bits per transform
+		{ 16, 10, 23 },		// 147 bits per transform
+		{ 16, 11, 22 },		// 147 bits per transform
 		{ 16, 12, 21 },		// 147 bits per transform
 		{ 16, 13, 20 },		// 147 bits per transform
 		{ 16, 14, 19 },		// 147 bits per transform
@@ -11089,8 +14371,14 @@ namespace acl
 		{ 16, 19, 14 },		// 147 bits per transform
 		{ 16, 20, 13 },		// 147 bits per transform
 		{ 16, 21, 12 },		// 147 bits per transform
-		{ 16, 22, 1 },		// 147 bits per transform
-		{ 17, 0, 22 },		// 147 bits per transform
+		{ 16, 22, 11 },		// 147 bits per transform
+		{ 16, 23, 10 },		// 147 bits per transform
+		{ 16, 24, 9 },		// 147 bits per transform
+		{ 16, 25, 1 },		// 147 bits per transform
+		{ 17, 0, 25 },		// 147 bits per transform
+		{ 17, 8, 24 },		// 147 bits per transform
+		{ 17, 9, 23 },		// 147 bits per transform
+		{ 17, 10, 22 },		// 147 bits per transform
 		{ 17, 11, 21 },		// 147 bits per transform
 		{ 17, 12, 20 },		// 147 bits per transform
 		{ 17, 13, 19 },		// 147 bits per transform
@@ -11102,7 +14390,13 @@ namespace acl
 		{ 17, 19, 13 },		// 147 bits per transform
 		{ 17, 20, 12 },		// 147 bits per transform
 		{ 17, 21, 11 },		// 147 bits per transform
-		{ 17, 22, 0 },		// 147 bits per transform
+		{ 17, 22, 10 },		// 147 bits per transform
+		{ 17, 23, 9 },		// 147 bits per transform
+		{ 17, 24, 8 },		// 147 bits per transform
+		{ 17, 25, 0 },		// 147 bits per transform
+		{ 18, 7, 24 },		// 147 bits per transform
+		{ 18, 8, 23 },		// 147 bits per transform
+		{ 18, 9, 22 },		// 147 bits per transform
 		{ 18, 10, 21 },		// 147 bits per transform
 		{ 18, 11, 20 },		// 147 bits per transform
 		{ 18, 12, 19 },		// 147 bits per transform
@@ -11115,6 +14409,12 @@ namespace acl
 		{ 18, 19, 12 },		// 147 bits per transform
 		{ 18, 20, 11 },		// 147 bits per transform
 		{ 18, 21, 10 },		// 147 bits per transform
+		{ 18, 22, 9 },		// 147 bits per transform
+		{ 18, 23, 8 },		// 147 bits per transform
+		{ 18, 24, 7 },		// 147 bits per transform
+		{ 19, 6, 24 },		// 147 bits per transform
+		{ 19, 7, 23 },		// 147 bits per transform
+		{ 19, 8, 22 },		// 147 bits per transform
 		{ 19, 9, 21 },		// 147 bits per transform
 		{ 19, 10, 20 },		// 147 bits per transform
 		{ 19, 11, 19 },		// 147 bits per transform
@@ -11128,6 +14428,12 @@ namespace acl
 		{ 19, 19, 11 },		// 147 bits per transform
 		{ 19, 20, 10 },		// 147 bits per transform
 		{ 19, 21, 9 },		// 147 bits per transform
+		{ 19, 22, 8 },		// 147 bits per transform
+		{ 19, 23, 7 },		// 147 bits per transform
+		{ 19, 24, 6 },		// 147 bits per transform
+		{ 20, 5, 24 },		// 147 bits per transform
+		{ 20, 6, 23 },		// 147 bits per transform
+		{ 20, 7, 22 },		// 147 bits per transform
 		{ 20, 8, 21 },		// 147 bits per transform
 		{ 20, 9, 20 },		// 147 bits per transform
 		{ 20, 10, 19 },		// 147 bits per transform
@@ -11142,6 +14448,12 @@ namespace acl
 		{ 20, 19, 10 },		// 147 bits per transform
 		{ 20, 20, 9 },		// 147 bits per transform
 		{ 20, 21, 8 },		// 147 bits per transform
+		{ 20, 22, 7 },		// 147 bits per transform
+		{ 20, 23, 6 },		// 147 bits per transform
+		{ 20, 24, 5 },		// 147 bits per transform
+		{ 21, 4, 24 },		// 147 bits per transform
+		{ 21, 5, 23 },		// 147 bits per transform
+		{ 21, 6, 22 },		// 147 bits per transform
 		{ 21, 7, 21 },		// 147 bits per transform
 		{ 21, 8, 20 },		// 147 bits per transform
 		{ 21, 9, 19 },		// 147 bits per transform
@@ -11157,74 +14469,206 @@ namespace acl
 		{ 21, 19, 9 },		// 147 bits per transform
 		{ 21, 20, 8 },		// 147 bits per transform
 		{ 21, 21, 7 },		// 147 bits per transform
-		{ 22, 0, 17 },		// 147 bits per transform
-		{ 22, 1, 16 },		// 147 bits per transform
-		{ 22, 2, 15 },		// 147 bits per transform
-		{ 22, 3, 14 },		// 147 bits per transform
-		{ 22, 4, 13 },		// 147 bits per transform
-		{ 22, 5, 12 },		// 147 bits per transform
-		{ 22, 6, 11 },		// 147 bits per transform
-		{ 22, 7, 10 },		// 147 bits per transform
-		{ 22, 8, 9 },		// 147 bits per transform
-		{ 22, 9, 8 },		// 147 bits per transform
-		{ 22, 10, 7 },		// 147 bits per transform
-		{ 22, 11, 6 },		// 147 bits per transform
-		{ 22, 12, 5 },		// 147 bits per transform
-		{ 22, 13, 4 },		// 147 bits per transform
-		{ 22, 14, 3 },		// 147 bits per transform
-		{ 22, 15, 2 },		// 147 bits per transform
-		{ 22, 16, 1 },		// 147 bits per transform
-		{ 22, 17, 0 },		// 147 bits per transform
-		{ 0, 18, 22 },		// 150 bits per transform
-		{ 0, 22, 18 },		// 150 bits per transform
-		{ 1, 17, 22 },		// 150 bits per transform
-		{ 1, 22, 17 },		// 150 bits per transform
-		{ 2, 16, 22 },		// 150 bits per transform
-		{ 2, 22, 16 },		// 150 bits per transform
-		{ 3, 15, 22 },		// 150 bits per transform
-		{ 3, 22, 15 },		// 150 bits per transform
-		{ 4, 14, 22 },		// 150 bits per transform
-		{ 4, 22, 14 },		// 150 bits per transform
-		{ 5, 13, 22 },		// 150 bits per transform
-		{ 5, 22, 13 },		// 150 bits per transform
-		{ 6, 12, 22 },		// 150 bits per transform
-		{ 6, 22, 12 },		// 150 bits per transform
-		{ 7, 11, 22 },		// 150 bits per transform
-		{ 7, 22, 11 },		// 150 bits per transform
-		{ 8, 10, 22 },		// 150 bits per transform
+		{ 21, 22, 6 },		// 147 bits per transform
+		{ 21, 23, 5 },		// 147 bits per transform
+		{ 21, 24, 4 },		// 147 bits per transform
+		{ 22, 3, 24 },		// 147 bits per transform
+		{ 22, 4, 23 },		// 147 bits per transform
+		{ 22, 5, 22 },		// 147 bits per transform
+		{ 22, 6, 21 },		// 147 bits per transform
+		{ 22, 7, 20 },		// 147 bits per transform
+		{ 22, 8, 19 },		// 147 bits per transform
+		{ 22, 9, 18 },		// 147 bits per transform
+		{ 22, 10, 17 },		// 147 bits per transform
+		{ 22, 11, 16 },		// 147 bits per transform
+		{ 22, 12, 15 },		// 147 bits per transform
+		{ 22, 13, 14 },		// 147 bits per transform
+		{ 22, 14, 13 },		// 147 bits per transform
+		{ 22, 15, 12 },		// 147 bits per transform
+		{ 22, 16, 11 },		// 147 bits per transform
+		{ 22, 17, 10 },		// 147 bits per transform
+		{ 22, 18, 9 },		// 147 bits per transform
+		{ 22, 19, 8 },		// 147 bits per transform
+		{ 22, 20, 7 },		// 147 bits per transform
+		{ 22, 21, 6 },		// 147 bits per transform
+		{ 22, 22, 5 },		// 147 bits per transform
+		{ 22, 23, 4 },		// 147 bits per transform
+		{ 22, 24, 3 },		// 147 bits per transform
+		{ 23, 2, 24 },		// 147 bits per transform
+		{ 23, 3, 23 },		// 147 bits per transform
+		{ 23, 4, 22 },		// 147 bits per transform
+		{ 23, 5, 21 },		// 147 bits per transform
+		{ 23, 6, 20 },		// 147 bits per transform
+		{ 23, 7, 19 },		// 147 bits per transform
+		{ 23, 8, 18 },		// 147 bits per transform
+		{ 23, 9, 17 },		// 147 bits per transform
+		{ 23, 10, 16 },		// 147 bits per transform
+		{ 23, 11, 15 },		// 147 bits per transform
+		{ 23, 12, 14 },		// 147 bits per transform
+		{ 23, 13, 13 },		// 147 bits per transform
+		{ 23, 14, 12 },		// 147 bits per transform
+		{ 23, 15, 11 },		// 147 bits per transform
+		{ 23, 16, 10 },		// 147 bits per transform
+		{ 23, 17, 9 },		// 147 bits per transform
+		{ 23, 18, 8 },		// 147 bits per transform
+		{ 23, 19, 7 },		// 147 bits per transform
+		{ 23, 20, 6 },		// 147 bits per transform
+		{ 23, 21, 5 },		// 147 bits per transform
+		{ 23, 22, 4 },		// 147 bits per transform
+		{ 23, 23, 3 },		// 147 bits per transform
+		{ 23, 24, 2 },		// 147 bits per transform
+		{ 24, 1, 24 },		// 147 bits per transform
+		{ 24, 2, 23 },		// 147 bits per transform
+		{ 24, 3, 22 },		// 147 bits per transform
+		{ 24, 4, 21 },		// 147 bits per transform
+		{ 24, 5, 20 },		// 147 bits per transform
+		{ 24, 6, 19 },		// 147 bits per transform
+		{ 24, 7, 18 },		// 147 bits per transform
+		{ 24, 8, 17 },		// 147 bits per transform
+		{ 24, 9, 16 },		// 147 bits per transform
+		{ 24, 10, 15 },		// 147 bits per transform
+		{ 24, 11, 14 },		// 147 bits per transform
+		{ 24, 12, 13 },		// 147 bits per transform
+		{ 24, 13, 12 },		// 147 bits per transform
+		{ 24, 14, 11 },		// 147 bits per transform
+		{ 24, 15, 10 },		// 147 bits per transform
+		{ 24, 16, 9 },		// 147 bits per transform
+		{ 24, 17, 8 },		// 147 bits per transform
+		{ 24, 18, 7 },		// 147 bits per transform
+		{ 24, 19, 6 },		// 147 bits per transform
+		{ 24, 20, 5 },		// 147 bits per transform
+		{ 24, 21, 4 },		// 147 bits per transform
+		{ 24, 22, 3 },		// 147 bits per transform
+		{ 24, 23, 2 },		// 147 bits per transform
+		{ 24, 24, 1 },		// 147 bits per transform
+		{ 25, 0, 17 },		// 147 bits per transform
+		{ 25, 1, 16 },		// 147 bits per transform
+		{ 25, 2, 15 },		// 147 bits per transform
+		{ 25, 3, 14 },		// 147 bits per transform
+		{ 25, 4, 13 },		// 147 bits per transform
+		{ 25, 5, 12 },		// 147 bits per transform
+		{ 25, 6, 11 },		// 147 bits per transform
+		{ 25, 7, 10 },		// 147 bits per transform
+		{ 25, 8, 9 },		// 147 bits per transform
+		{ 25, 9, 8 },		// 147 bits per transform
+		{ 25, 10, 7 },		// 147 bits per transform
+		{ 25, 11, 6 },		// 147 bits per transform
+		{ 25, 12, 5 },		// 147 bits per transform
+		{ 25, 13, 4 },		// 147 bits per transform
+		{ 25, 14, 3 },		// 147 bits per transform
+		{ 25, 15, 2 },		// 147 bits per transform
+		{ 25, 16, 1 },		// 147 bits per transform
+		{ 25, 17, 0 },		// 147 bits per transform
+		{ 0, 18, 25 },		// 150 bits per transform
+		{ 0, 25, 18 },		// 150 bits per transform
+		{ 1, 17, 25 },		// 150 bits per transform
+		{ 1, 25, 17 },		// 150 bits per transform
+		{ 2, 16, 25 },		// 150 bits per transform
+		{ 2, 24, 24 },		// 150 bits per transform
+		{ 2, 25, 16 },		// 150 bits per transform
+		{ 3, 15, 25 },		// 150 bits per transform
+		{ 3, 23, 24 },		// 150 bits per transform
+		{ 3, 24, 23 },		// 150 bits per transform
+		{ 3, 25, 15 },		// 150 bits per transform
+		{ 4, 14, 25 },		// 150 bits per transform
+		{ 4, 22, 24 },		// 150 bits per transform
+		{ 4, 23, 23 },		// 150 bits per transform
+		{ 4, 24, 22 },		// 150 bits per transform
+		{ 4, 25, 14 },		// 150 bits per transform
+		{ 5, 13, 25 },		// 150 bits per transform
+		{ 5, 21, 24 },		// 150 bits per transform
+		{ 5, 22, 23 },		// 150 bits per transform
+		{ 5, 23, 22 },		// 150 bits per transform
+		{ 5, 24, 21 },		// 150 bits per transform
+		{ 5, 25, 13 },		// 150 bits per transform
+		{ 6, 12, 25 },		// 150 bits per transform
+		{ 6, 20, 24 },		// 150 bits per transform
+		{ 6, 21, 23 },		// 150 bits per transform
+		{ 6, 22, 22 },		// 150 bits per transform
+		{ 6, 23, 21 },		// 150 bits per transform
+		{ 6, 24, 20 },		// 150 bits per transform
+		{ 6, 25, 12 },		// 150 bits per transform
+		{ 7, 11, 25 },		// 150 bits per transform
+		{ 7, 19, 24 },		// 150 bits per transform
+		{ 7, 20, 23 },		// 150 bits per transform
+		{ 7, 21, 22 },		// 150 bits per transform
+		{ 7, 22, 21 },		// 150 bits per transform
+		{ 7, 23, 20 },		// 150 bits per transform
+		{ 7, 24, 19 },		// 150 bits per transform
+		{ 7, 25, 11 },		// 150 bits per transform
+		{ 8, 10, 25 },		// 150 bits per transform
+		{ 8, 18, 24 },		// 150 bits per transform
+		{ 8, 19, 23 },		// 150 bits per transform
+		{ 8, 20, 22 },		// 150 bits per transform
 		{ 8, 21, 21 },		// 150 bits per transform
-		{ 8, 22, 10 },		// 150 bits per transform
-		{ 9, 9, 22 },		// 150 bits per transform
+		{ 8, 22, 20 },		// 150 bits per transform
+		{ 8, 23, 19 },		// 150 bits per transform
+		{ 8, 24, 18 },		// 150 bits per transform
+		{ 8, 25, 10 },		// 150 bits per transform
+		{ 9, 9, 25 },		// 150 bits per transform
+		{ 9, 17, 24 },		// 150 bits per transform
+		{ 9, 18, 23 },		// 150 bits per transform
+		{ 9, 19, 22 },		// 150 bits per transform
 		{ 9, 20, 21 },		// 150 bits per transform
 		{ 9, 21, 20 },		// 150 bits per transform
-		{ 9, 22, 9 },		// 150 bits per transform
-		{ 10, 8, 22 },		// 150 bits per transform
+		{ 9, 22, 19 },		// 150 bits per transform
+		{ 9, 23, 18 },		// 150 bits per transform
+		{ 9, 24, 17 },		// 150 bits per transform
+		{ 9, 25, 9 },		// 150 bits per transform
+		{ 10, 8, 25 },		// 150 bits per transform
+		{ 10, 16, 24 },		// 150 bits per transform
+		{ 10, 17, 23 },		// 150 bits per transform
+		{ 10, 18, 22 },		// 150 bits per transform
 		{ 10, 19, 21 },		// 150 bits per transform
 		{ 10, 20, 20 },		// 150 bits per transform
 		{ 10, 21, 19 },		// 150 bits per transform
-		{ 10, 22, 8 },		// 150 bits per transform
-		{ 11, 7, 22 },		// 150 bits per transform
+		{ 10, 22, 18 },		// 150 bits per transform
+		{ 10, 23, 17 },		// 150 bits per transform
+		{ 10, 24, 16 },		// 150 bits per transform
+		{ 10, 25, 8 },		// 150 bits per transform
+		{ 11, 7, 25 },		// 150 bits per transform
+		{ 11, 15, 24 },		// 150 bits per transform
+		{ 11, 16, 23 },		// 150 bits per transform
+		{ 11, 17, 22 },		// 150 bits per transform
 		{ 11, 18, 21 },		// 150 bits per transform
 		{ 11, 19, 20 },		// 150 bits per transform
 		{ 11, 20, 19 },		// 150 bits per transform
 		{ 11, 21, 18 },		// 150 bits per transform
-		{ 11, 22, 7 },		// 150 bits per transform
-		{ 12, 6, 22 },		// 150 bits per transform
+		{ 11, 22, 17 },		// 150 bits per transform
+		{ 11, 23, 16 },		// 150 bits per transform
+		{ 11, 24, 15 },		// 150 bits per transform
+		{ 11, 25, 7 },		// 150 bits per transform
+		{ 12, 6, 25 },		// 150 bits per transform
+		{ 12, 14, 24 },		// 150 bits per transform
+		{ 12, 15, 23 },		// 150 bits per transform
+		{ 12, 16, 22 },		// 150 bits per transform
 		{ 12, 17, 21 },		// 150 bits per transform
 		{ 12, 18, 20 },		// 150 bits per transform
 		{ 12, 19, 19 },		// 150 bits per transform
 		{ 12, 20, 18 },		// 150 bits per transform
 		{ 12, 21, 17 },		// 150 bits per transform
-		{ 12, 22, 6 },		// 150 bits per transform
-		{ 13, 5, 22 },		// 150 bits per transform
+		{ 12, 22, 16 },		// 150 bits per transform
+		{ 12, 23, 15 },		// 150 bits per transform
+		{ 12, 24, 14 },		// 150 bits per transform
+		{ 12, 25, 6 },		// 150 bits per transform
+		{ 13, 5, 25 },		// 150 bits per transform
+		{ 13, 13, 24 },		// 150 bits per transform
+		{ 13, 14, 23 },		// 150 bits per transform
+		{ 13, 15, 22 },		// 150 bits per transform
 		{ 13, 16, 21 },		// 150 bits per transform
 		{ 13, 17, 20 },		// 150 bits per transform
 		{ 13, 18, 19 },		// 150 bits per transform
 		{ 13, 19, 18 },		// 150 bits per transform
 		{ 13, 20, 17 },		// 150 bits per transform
 		{ 13, 21, 16 },		// 150 bits per transform
-		{ 13, 22, 5 },		// 150 bits per transform
-		{ 14, 4, 22 },		// 150 bits per transform
+		{ 13, 22, 15 },		// 150 bits per transform
+		{ 13, 23, 14 },		// 150 bits per transform
+		{ 13, 24, 13 },		// 150 bits per transform
+		{ 13, 25, 5 },		// 150 bits per transform
+		{ 14, 4, 25 },		// 150 bits per transform
+		{ 14, 12, 24 },		// 150 bits per transform
+		{ 14, 13, 23 },		// 150 bits per transform
+		{ 14, 14, 22 },		// 150 bits per transform
 		{ 14, 15, 21 },		// 150 bits per transform
 		{ 14, 16, 20 },		// 150 bits per transform
 		{ 14, 17, 19 },		// 150 bits per transform
@@ -11232,8 +14676,14 @@ namespace acl
 		{ 14, 19, 17 },		// 150 bits per transform
 		{ 14, 20, 16 },		// 150 bits per transform
 		{ 14, 21, 15 },		// 150 bits per transform
-		{ 14, 22, 4 },		// 150 bits per transform
-		{ 15, 3, 22 },		// 150 bits per transform
+		{ 14, 22, 14 },		// 150 bits per transform
+		{ 14, 23, 13 },		// 150 bits per transform
+		{ 14, 24, 12 },		// 150 bits per transform
+		{ 14, 25, 4 },		// 150 bits per transform
+		{ 15, 3, 25 },		// 150 bits per transform
+		{ 15, 11, 24 },		// 150 bits per transform
+		{ 15, 12, 23 },		// 150 bits per transform
+		{ 15, 13, 22 },		// 150 bits per transform
 		{ 15, 14, 21 },		// 150 bits per transform
 		{ 15, 15, 20 },		// 150 bits per transform
 		{ 15, 16, 19 },		// 150 bits per transform
@@ -11242,8 +14692,14 @@ namespace acl
 		{ 15, 19, 16 },		// 150 bits per transform
 		{ 15, 20, 15 },		// 150 bits per transform
 		{ 15, 21, 14 },		// 150 bits per transform
-		{ 15, 22, 3 },		// 150 bits per transform
-		{ 16, 2, 22 },		// 150 bits per transform
+		{ 15, 22, 13 },		// 150 bits per transform
+		{ 15, 23, 12 },		// 150 bits per transform
+		{ 15, 24, 11 },		// 150 bits per transform
+		{ 15, 25, 3 },		// 150 bits per transform
+		{ 16, 2, 25 },		// 150 bits per transform
+		{ 16, 10, 24 },		// 150 bits per transform
+		{ 16, 11, 23 },		// 150 bits per transform
+		{ 16, 12, 22 },		// 150 bits per transform
 		{ 16, 13, 21 },		// 150 bits per transform
 		{ 16, 14, 20 },		// 150 bits per transform
 		{ 16, 15, 19 },		// 150 bits per transform
@@ -11253,8 +14709,14 @@ namespace acl
 		{ 16, 19, 15 },		// 150 bits per transform
 		{ 16, 20, 14 },		// 150 bits per transform
 		{ 16, 21, 13 },		// 150 bits per transform
-		{ 16, 22, 2 },		// 150 bits per transform
-		{ 17, 1, 22 },		// 150 bits per transform
+		{ 16, 22, 12 },		// 150 bits per transform
+		{ 16, 23, 11 },		// 150 bits per transform
+		{ 16, 24, 10 },		// 150 bits per transform
+		{ 16, 25, 2 },		// 150 bits per transform
+		{ 17, 1, 25 },		// 150 bits per transform
+		{ 17, 9, 24 },		// 150 bits per transform
+		{ 17, 10, 23 },		// 150 bits per transform
+		{ 17, 11, 22 },		// 150 bits per transform
 		{ 17, 12, 21 },		// 150 bits per transform
 		{ 17, 13, 20 },		// 150 bits per transform
 		{ 17, 14, 19 },		// 150 bits per transform
@@ -11265,8 +14727,14 @@ namespace acl
 		{ 17, 19, 14 },		// 150 bits per transform
 		{ 17, 20, 13 },		// 150 bits per transform
 		{ 17, 21, 12 },		// 150 bits per transform
-		{ 17, 22, 1 },		// 150 bits per transform
-		{ 18, 0, 22 },		// 150 bits per transform
+		{ 17, 22, 11 },		// 150 bits per transform
+		{ 17, 23, 10 },		// 150 bits per transform
+		{ 17, 24, 9 },		// 150 bits per transform
+		{ 17, 25, 1 },		// 150 bits per transform
+		{ 18, 0, 25 },		// 150 bits per transform
+		{ 18, 8, 24 },		// 150 bits per transform
+		{ 18, 9, 23 },		// 150 bits per transform
+		{ 18, 10, 22 },		// 150 bits per transform
 		{ 18, 11, 21 },		// 150 bits per transform
 		{ 18, 12, 20 },		// 150 bits per transform
 		{ 18, 13, 19 },		// 150 bits per transform
@@ -11278,7 +14746,13 @@ namespace acl
 		{ 18, 19, 13 },		// 150 bits per transform
 		{ 18, 20, 12 },		// 150 bits per transform
 		{ 18, 21, 11 },		// 150 bits per transform
-		{ 18, 22, 0 },		// 150 bits per transform
+		{ 18, 22, 10 },		// 150 bits per transform
+		{ 18, 23, 9 },		// 150 bits per transform
+		{ 18, 24, 8 },		// 150 bits per transform
+		{ 18, 25, 0 },		// 150 bits per transform
+		{ 19, 7, 24 },		// 150 bits per transform
+		{ 19, 8, 23 },		// 150 bits per transform
+		{ 19, 9, 22 },		// 150 bits per transform
 		{ 19, 10, 21 },		// 150 bits per transform
 		{ 19, 11, 20 },		// 150 bits per transform
 		{ 19, 12, 19 },		// 150 bits per transform
@@ -11291,6 +14765,12 @@ namespace acl
 		{ 19, 19, 12 },		// 150 bits per transform
 		{ 19, 20, 11 },		// 150 bits per transform
 		{ 19, 21, 10 },		// 150 bits per transform
+		{ 19, 22, 9 },		// 150 bits per transform
+		{ 19, 23, 8 },		// 150 bits per transform
+		{ 19, 24, 7 },		// 150 bits per transform
+		{ 20, 6, 24 },		// 150 bits per transform
+		{ 20, 7, 23 },		// 150 bits per transform
+		{ 20, 8, 22 },		// 150 bits per transform
 		{ 20, 9, 21 },		// 150 bits per transform
 		{ 20, 10, 20 },		// 150 bits per transform
 		{ 20, 11, 19 },		// 150 bits per transform
@@ -11304,6 +14784,12 @@ namespace acl
 		{ 20, 19, 11 },		// 150 bits per transform
 		{ 20, 20, 10 },		// 150 bits per transform
 		{ 20, 21, 9 },		// 150 bits per transform
+		{ 20, 22, 8 },		// 150 bits per transform
+		{ 20, 23, 7 },		// 150 bits per transform
+		{ 20, 24, 6 },		// 150 bits per transform
+		{ 21, 5, 24 },		// 150 bits per transform
+		{ 21, 6, 23 },		// 150 bits per transform
+		{ 21, 7, 22 },		// 150 bits per transform
 		{ 21, 8, 21 },		// 150 bits per transform
 		{ 21, 9, 20 },		// 150 bits per transform
 		{ 21, 10, 19 },		// 150 bits per transform
@@ -11318,77 +14804,206 @@ namespace acl
 		{ 21, 19, 10 },		// 150 bits per transform
 		{ 21, 20, 9 },		// 150 bits per transform
 		{ 21, 21, 8 },		// 150 bits per transform
-		{ 22, 0, 18 },		// 150 bits per transform
-		{ 22, 1, 17 },		// 150 bits per transform
-		{ 22, 2, 16 },		// 150 bits per transform
-		{ 22, 3, 15 },		// 150 bits per transform
-		{ 22, 4, 14 },		// 150 bits per transform
-		{ 22, 5, 13 },		// 150 bits per transform
-		{ 22, 6, 12 },		// 150 bits per transform
-		{ 22, 7, 11 },		// 150 bits per transform
-		{ 22, 8, 10 },		// 150 bits per transform
-		{ 22, 9, 9 },		// 150 bits per transform
-		{ 22, 10, 8 },		// 150 bits per transform
-		{ 22, 11, 7 },		// 150 bits per transform
-		{ 22, 12, 6 },		// 150 bits per transform
-		{ 22, 13, 5 },		// 150 bits per transform
-		{ 22, 14, 4 },		// 150 bits per transform
-		{ 22, 15, 3 },		// 150 bits per transform
-		{ 22, 16, 2 },		// 150 bits per transform
-		{ 22, 17, 1 },		// 150 bits per transform
-		{ 22, 18, 0 },		// 150 bits per transform
-		{ 0, 19, 22 },		// 153 bits per transform
-		{ 0, 22, 19 },		// 153 bits per transform
-		{ 1, 18, 22 },		// 153 bits per transform
-		{ 1, 22, 18 },		// 153 bits per transform
-		{ 2, 17, 22 },		// 153 bits per transform
-		{ 2, 22, 17 },		// 153 bits per transform
-		{ 3, 16, 22 },		// 153 bits per transform
-		{ 3, 22, 16 },		// 153 bits per transform
-		{ 4, 15, 22 },		// 153 bits per transform
-		{ 4, 22, 15 },		// 153 bits per transform
-		{ 5, 14, 22 },		// 153 bits per transform
-		{ 5, 22, 14 },		// 153 bits per transform
-		{ 6, 13, 22 },		// 153 bits per transform
-		{ 6, 22, 13 },		// 153 bits per transform
-		{ 7, 12, 22 },		// 153 bits per transform
-		{ 7, 22, 12 },		// 153 bits per transform
-		{ 8, 11, 22 },		// 153 bits per transform
-		{ 8, 22, 11 },		// 153 bits per transform
-		{ 9, 10, 22 },		// 153 bits per transform
+		{ 21, 22, 7 },		// 150 bits per transform
+		{ 21, 23, 6 },		// 150 bits per transform
+		{ 21, 24, 5 },		// 150 bits per transform
+		{ 22, 4, 24 },		// 150 bits per transform
+		{ 22, 5, 23 },		// 150 bits per transform
+		{ 22, 6, 22 },		// 150 bits per transform
+		{ 22, 7, 21 },		// 150 bits per transform
+		{ 22, 8, 20 },		// 150 bits per transform
+		{ 22, 9, 19 },		// 150 bits per transform
+		{ 22, 10, 18 },		// 150 bits per transform
+		{ 22, 11, 17 },		// 150 bits per transform
+		{ 22, 12, 16 },		// 150 bits per transform
+		{ 22, 13, 15 },		// 150 bits per transform
+		{ 22, 14, 14 },		// 150 bits per transform
+		{ 22, 15, 13 },		// 150 bits per transform
+		{ 22, 16, 12 },		// 150 bits per transform
+		{ 22, 17, 11 },		// 150 bits per transform
+		{ 22, 18, 10 },		// 150 bits per transform
+		{ 22, 19, 9 },		// 150 bits per transform
+		{ 22, 20, 8 },		// 150 bits per transform
+		{ 22, 21, 7 },		// 150 bits per transform
+		{ 22, 22, 6 },		// 150 bits per transform
+		{ 22, 23, 5 },		// 150 bits per transform
+		{ 22, 24, 4 },		// 150 bits per transform
+		{ 23, 3, 24 },		// 150 bits per transform
+		{ 23, 4, 23 },		// 150 bits per transform
+		{ 23, 5, 22 },		// 150 bits per transform
+		{ 23, 6, 21 },		// 150 bits per transform
+		{ 23, 7, 20 },		// 150 bits per transform
+		{ 23, 8, 19 },		// 150 bits per transform
+		{ 23, 9, 18 },		// 150 bits per transform
+		{ 23, 10, 17 },		// 150 bits per transform
+		{ 23, 11, 16 },		// 150 bits per transform
+		{ 23, 12, 15 },		// 150 bits per transform
+		{ 23, 13, 14 },		// 150 bits per transform
+		{ 23, 14, 13 },		// 150 bits per transform
+		{ 23, 15, 12 },		// 150 bits per transform
+		{ 23, 16, 11 },		// 150 bits per transform
+		{ 23, 17, 10 },		// 150 bits per transform
+		{ 23, 18, 9 },		// 150 bits per transform
+		{ 23, 19, 8 },		// 150 bits per transform
+		{ 23, 20, 7 },		// 150 bits per transform
+		{ 23, 21, 6 },		// 150 bits per transform
+		{ 23, 22, 5 },		// 150 bits per transform
+		{ 23, 23, 4 },		// 150 bits per transform
+		{ 23, 24, 3 },		// 150 bits per transform
+		{ 24, 2, 24 },		// 150 bits per transform
+		{ 24, 3, 23 },		// 150 bits per transform
+		{ 24, 4, 22 },		// 150 bits per transform
+		{ 24, 5, 21 },		// 150 bits per transform
+		{ 24, 6, 20 },		// 150 bits per transform
+		{ 24, 7, 19 },		// 150 bits per transform
+		{ 24, 8, 18 },		// 150 bits per transform
+		{ 24, 9, 17 },		// 150 bits per transform
+		{ 24, 10, 16 },		// 150 bits per transform
+		{ 24, 11, 15 },		// 150 bits per transform
+		{ 24, 12, 14 },		// 150 bits per transform
+		{ 24, 13, 13 },		// 150 bits per transform
+		{ 24, 14, 12 },		// 150 bits per transform
+		{ 24, 15, 11 },		// 150 bits per transform
+		{ 24, 16, 10 },		// 150 bits per transform
+		{ 24, 17, 9 },		// 150 bits per transform
+		{ 24, 18, 8 },		// 150 bits per transform
+		{ 24, 19, 7 },		// 150 bits per transform
+		{ 24, 20, 6 },		// 150 bits per transform
+		{ 24, 21, 5 },		// 150 bits per transform
+		{ 24, 22, 4 },		// 150 bits per transform
+		{ 24, 23, 3 },		// 150 bits per transform
+		{ 24, 24, 2 },		// 150 bits per transform
+		{ 25, 0, 18 },		// 150 bits per transform
+		{ 25, 1, 17 },		// 150 bits per transform
+		{ 25, 2, 16 },		// 150 bits per transform
+		{ 25, 3, 15 },		// 150 bits per transform
+		{ 25, 4, 14 },		// 150 bits per transform
+		{ 25, 5, 13 },		// 150 bits per transform
+		{ 25, 6, 12 },		// 150 bits per transform
+		{ 25, 7, 11 },		// 150 bits per transform
+		{ 25, 8, 10 },		// 150 bits per transform
+		{ 25, 9, 9 },		// 150 bits per transform
+		{ 25, 10, 8 },		// 150 bits per transform
+		{ 25, 11, 7 },		// 150 bits per transform
+		{ 25, 12, 6 },		// 150 bits per transform
+		{ 25, 13, 5 },		// 150 bits per transform
+		{ 25, 14, 4 },		// 150 bits per transform
+		{ 25, 15, 3 },		// 150 bits per transform
+		{ 25, 16, 2 },		// 150 bits per transform
+		{ 25, 17, 1 },		// 150 bits per transform
+		{ 25, 18, 0 },		// 150 bits per transform
+		{ 0, 19, 25 },		// 153 bits per transform
+		{ 0, 25, 19 },		// 153 bits per transform
+		{ 1, 18, 25 },		// 153 bits per transform
+		{ 1, 25, 18 },		// 153 bits per transform
+		{ 2, 17, 25 },		// 153 bits per transform
+		{ 2, 25, 17 },		// 153 bits per transform
+		{ 3, 16, 25 },		// 153 bits per transform
+		{ 3, 24, 24 },		// 153 bits per transform
+		{ 3, 25, 16 },		// 153 bits per transform
+		{ 4, 15, 25 },		// 153 bits per transform
+		{ 4, 23, 24 },		// 153 bits per transform
+		{ 4, 24, 23 },		// 153 bits per transform
+		{ 4, 25, 15 },		// 153 bits per transform
+		{ 5, 14, 25 },		// 153 bits per transform
+		{ 5, 22, 24 },		// 153 bits per transform
+		{ 5, 23, 23 },		// 153 bits per transform
+		{ 5, 24, 22 },		// 153 bits per transform
+		{ 5, 25, 14 },		// 153 bits per transform
+		{ 6, 13, 25 },		// 153 bits per transform
+		{ 6, 21, 24 },		// 153 bits per transform
+		{ 6, 22, 23 },		// 153 bits per transform
+		{ 6, 23, 22 },		// 153 bits per transform
+		{ 6, 24, 21 },		// 153 bits per transform
+		{ 6, 25, 13 },		// 153 bits per transform
+		{ 7, 12, 25 },		// 153 bits per transform
+		{ 7, 20, 24 },		// 153 bits per transform
+		{ 7, 21, 23 },		// 153 bits per transform
+		{ 7, 22, 22 },		// 153 bits per transform
+		{ 7, 23, 21 },		// 153 bits per transform
+		{ 7, 24, 20 },		// 153 bits per transform
+		{ 7, 25, 12 },		// 153 bits per transform
+		{ 8, 11, 25 },		// 153 bits per transform
+		{ 8, 19, 24 },		// 153 bits per transform
+		{ 8, 20, 23 },		// 153 bits per transform
+		{ 8, 21, 22 },		// 153 bits per transform
+		{ 8, 22, 21 },		// 153 bits per transform
+		{ 8, 23, 20 },		// 153 bits per transform
+		{ 8, 24, 19 },		// 153 bits per transform
+		{ 8, 25, 11 },		// 153 bits per transform
+		{ 9, 10, 25 },		// 153 bits per transform
+		{ 9, 18, 24 },		// 153 bits per transform
+		{ 9, 19, 23 },		// 153 bits per transform
+		{ 9, 20, 22 },		// 153 bits per transform
 		{ 9, 21, 21 },		// 153 bits per transform
-		{ 9, 22, 10 },		// 153 bits per transform
-		{ 10, 9, 22 },		// 153 bits per transform
+		{ 9, 22, 20 },		// 153 bits per transform
+		{ 9, 23, 19 },		// 153 bits per transform
+		{ 9, 24, 18 },		// 153 bits per transform
+		{ 9, 25, 10 },		// 153 bits per transform
+		{ 10, 9, 25 },		// 153 bits per transform
+		{ 10, 17, 24 },		// 153 bits per transform
+		{ 10, 18, 23 },		// 153 bits per transform
+		{ 10, 19, 22 },		// 153 bits per transform
 		{ 10, 20, 21 },		// 153 bits per transform
 		{ 10, 21, 20 },		// 153 bits per transform
-		{ 10, 22, 9 },		// 153 bits per transform
-		{ 11, 8, 22 },		// 153 bits per transform
+		{ 10, 22, 19 },		// 153 bits per transform
+		{ 10, 23, 18 },		// 153 bits per transform
+		{ 10, 24, 17 },		// 153 bits per transform
+		{ 10, 25, 9 },		// 153 bits per transform
+		{ 11, 8, 25 },		// 153 bits per transform
+		{ 11, 16, 24 },		// 153 bits per transform
+		{ 11, 17, 23 },		// 153 bits per transform
+		{ 11, 18, 22 },		// 153 bits per transform
 		{ 11, 19, 21 },		// 153 bits per transform
 		{ 11, 20, 20 },		// 153 bits per transform
 		{ 11, 21, 19 },		// 153 bits per transform
-		{ 11, 22, 8 },		// 153 bits per transform
-		{ 12, 7, 22 },		// 153 bits per transform
+		{ 11, 22, 18 },		// 153 bits per transform
+		{ 11, 23, 17 },		// 153 bits per transform
+		{ 11, 24, 16 },		// 153 bits per transform
+		{ 11, 25, 8 },		// 153 bits per transform
+		{ 12, 7, 25 },		// 153 bits per transform
+		{ 12, 15, 24 },		// 153 bits per transform
+		{ 12, 16, 23 },		// 153 bits per transform
+		{ 12, 17, 22 },		// 153 bits per transform
 		{ 12, 18, 21 },		// 153 bits per transform
 		{ 12, 19, 20 },		// 153 bits per transform
 		{ 12, 20, 19 },		// 153 bits per transform
 		{ 12, 21, 18 },		// 153 bits per transform
-		{ 12, 22, 7 },		// 153 bits per transform
-		{ 13, 6, 22 },		// 153 bits per transform
+		{ 12, 22, 17 },		// 153 bits per transform
+		{ 12, 23, 16 },		// 153 bits per transform
+		{ 12, 24, 15 },		// 153 bits per transform
+		{ 12, 25, 7 },		// 153 bits per transform
+		{ 13, 6, 25 },		// 153 bits per transform
+		{ 13, 14, 24 },		// 153 bits per transform
+		{ 13, 15, 23 },		// 153 bits per transform
+		{ 13, 16, 22 },		// 153 bits per transform
 		{ 13, 17, 21 },		// 153 bits per transform
 		{ 13, 18, 20 },		// 153 bits per transform
 		{ 13, 19, 19 },		// 153 bits per transform
 		{ 13, 20, 18 },		// 153 bits per transform
 		{ 13, 21, 17 },		// 153 bits per transform
-		{ 13, 22, 6 },		// 153 bits per transform
-		{ 14, 5, 22 },		// 153 bits per transform
+		{ 13, 22, 16 },		// 153 bits per transform
+		{ 13, 23, 15 },		// 153 bits per transform
+		{ 13, 24, 14 },		// 153 bits per transform
+		{ 13, 25, 6 },		// 153 bits per transform
+		{ 14, 5, 25 },		// 153 bits per transform
+		{ 14, 13, 24 },		// 153 bits per transform
+		{ 14, 14, 23 },		// 153 bits per transform
+		{ 14, 15, 22 },		// 153 bits per transform
 		{ 14, 16, 21 },		// 153 bits per transform
 		{ 14, 17, 20 },		// 153 bits per transform
 		{ 14, 18, 19 },		// 153 bits per transform
 		{ 14, 19, 18 },		// 153 bits per transform
 		{ 14, 20, 17 },		// 153 bits per transform
 		{ 14, 21, 16 },		// 153 bits per transform
-		{ 14, 22, 5 },		// 153 bits per transform
-		{ 15, 4, 22 },		// 153 bits per transform
+		{ 14, 22, 15 },		// 153 bits per transform
+		{ 14, 23, 14 },		// 153 bits per transform
+		{ 14, 24, 13 },		// 153 bits per transform
+		{ 14, 25, 5 },		// 153 bits per transform
+		{ 15, 4, 25 },		// 153 bits per transform
+		{ 15, 12, 24 },		// 153 bits per transform
+		{ 15, 13, 23 },		// 153 bits per transform
+		{ 15, 14, 22 },		// 153 bits per transform
 		{ 15, 15, 21 },		// 153 bits per transform
 		{ 15, 16, 20 },		// 153 bits per transform
 		{ 15, 17, 19 },		// 153 bits per transform
@@ -11396,8 +15011,14 @@ namespace acl
 		{ 15, 19, 17 },		// 153 bits per transform
 		{ 15, 20, 16 },		// 153 bits per transform
 		{ 15, 21, 15 },		// 153 bits per transform
-		{ 15, 22, 4 },		// 153 bits per transform
-		{ 16, 3, 22 },		// 153 bits per transform
+		{ 15, 22, 14 },		// 153 bits per transform
+		{ 15, 23, 13 },		// 153 bits per transform
+		{ 15, 24, 12 },		// 153 bits per transform
+		{ 15, 25, 4 },		// 153 bits per transform
+		{ 16, 3, 25 },		// 153 bits per transform
+		{ 16, 11, 24 },		// 153 bits per transform
+		{ 16, 12, 23 },		// 153 bits per transform
+		{ 16, 13, 22 },		// 153 bits per transform
 		{ 16, 14, 21 },		// 153 bits per transform
 		{ 16, 15, 20 },		// 153 bits per transform
 		{ 16, 16, 19 },		// 153 bits per transform
@@ -11406,8 +15027,14 @@ namespace acl
 		{ 16, 19, 16 },		// 153 bits per transform
 		{ 16, 20, 15 },		// 153 bits per transform
 		{ 16, 21, 14 },		// 153 bits per transform
-		{ 16, 22, 3 },		// 153 bits per transform
-		{ 17, 2, 22 },		// 153 bits per transform
+		{ 16, 22, 13 },		// 153 bits per transform
+		{ 16, 23, 12 },		// 153 bits per transform
+		{ 16, 24, 11 },		// 153 bits per transform
+		{ 16, 25, 3 },		// 153 bits per transform
+		{ 17, 2, 25 },		// 153 bits per transform
+		{ 17, 10, 24 },		// 153 bits per transform
+		{ 17, 11, 23 },		// 153 bits per transform
+		{ 17, 12, 22 },		// 153 bits per transform
 		{ 17, 13, 21 },		// 153 bits per transform
 		{ 17, 14, 20 },		// 153 bits per transform
 		{ 17, 15, 19 },		// 153 bits per transform
@@ -11417,8 +15044,14 @@ namespace acl
 		{ 17, 19, 15 },		// 153 bits per transform
 		{ 17, 20, 14 },		// 153 bits per transform
 		{ 17, 21, 13 },		// 153 bits per transform
-		{ 17, 22, 2 },		// 153 bits per transform
-		{ 18, 1, 22 },		// 153 bits per transform
+		{ 17, 22, 12 },		// 153 bits per transform
+		{ 17, 23, 11 },		// 153 bits per transform
+		{ 17, 24, 10 },		// 153 bits per transform
+		{ 17, 25, 2 },		// 153 bits per transform
+		{ 18, 1, 25 },		// 153 bits per transform
+		{ 18, 9, 24 },		// 153 bits per transform
+		{ 18, 10, 23 },		// 153 bits per transform
+		{ 18, 11, 22 },		// 153 bits per transform
 		{ 18, 12, 21 },		// 153 bits per transform
 		{ 18, 13, 20 },		// 153 bits per transform
 		{ 18, 14, 19 },		// 153 bits per transform
@@ -11429,8 +15062,14 @@ namespace acl
 		{ 18, 19, 14 },		// 153 bits per transform
 		{ 18, 20, 13 },		// 153 bits per transform
 		{ 18, 21, 12 },		// 153 bits per transform
-		{ 18, 22, 1 },		// 153 bits per transform
-		{ 19, 0, 22 },		// 153 bits per transform
+		{ 18, 22, 11 },		// 153 bits per transform
+		{ 18, 23, 10 },		// 153 bits per transform
+		{ 18, 24, 9 },		// 153 bits per transform
+		{ 18, 25, 1 },		// 153 bits per transform
+		{ 19, 0, 25 },		// 153 bits per transform
+		{ 19, 8, 24 },		// 153 bits per transform
+		{ 19, 9, 23 },		// 153 bits per transform
+		{ 19, 10, 22 },		// 153 bits per transform
 		{ 19, 11, 21 },		// 153 bits per transform
 		{ 19, 12, 20 },		// 153 bits per transform
 		{ 19, 13, 19 },		// 153 bits per transform
@@ -11442,7 +15081,13 @@ namespace acl
 		{ 19, 19, 13 },		// 153 bits per transform
 		{ 19, 20, 12 },		// 153 bits per transform
 		{ 19, 21, 11 },		// 153 bits per transform
-		{ 19, 22, 0 },		// 153 bits per transform
+		{ 19, 22, 10 },		// 153 bits per transform
+		{ 19, 23, 9 },		// 153 bits per transform
+		{ 19, 24, 8 },		// 153 bits per transform
+		{ 19, 25, 0 },		// 153 bits per transform
+		{ 20, 7, 24 },		// 153 bits per transform
+		{ 20, 8, 23 },		// 153 bits per transform
+		{ 20, 9, 22 },		// 153 bits per transform
 		{ 20, 10, 21 },		// 153 bits per transform
 		{ 20, 11, 20 },		// 153 bits per transform
 		{ 20, 12, 19 },		// 153 bits per transform
@@ -11455,6 +15100,12 @@ namespace acl
 		{ 20, 19, 12 },		// 153 bits per transform
 		{ 20, 20, 11 },		// 153 bits per transform
 		{ 20, 21, 10 },		// 153 bits per transform
+		{ 20, 22, 9 },		// 153 bits per transform
+		{ 20, 23, 8 },		// 153 bits per transform
+		{ 20, 24, 7 },		// 153 bits per transform
+		{ 21, 6, 24 },		// 153 bits per transform
+		{ 21, 7, 23 },		// 153 bits per transform
+		{ 21, 8, 22 },		// 153 bits per transform
 		{ 21, 9, 21 },		// 153 bits per transform
 		{ 21, 10, 20 },		// 153 bits per transform
 		{ 21, 11, 19 },		// 153 bits per transform
@@ -11468,80 +15119,206 @@ namespace acl
 		{ 21, 19, 11 },		// 153 bits per transform
 		{ 21, 20, 10 },		// 153 bits per transform
 		{ 21, 21, 9 },		// 153 bits per transform
-		{ 22, 0, 19 },		// 153 bits per transform
-		{ 22, 1, 18 },		// 153 bits per transform
-		{ 22, 2, 17 },		// 153 bits per transform
-		{ 22, 3, 16 },		// 153 bits per transform
-		{ 22, 4, 15 },		// 153 bits per transform
-		{ 22, 5, 14 },		// 153 bits per transform
-		{ 22, 6, 13 },		// 153 bits per transform
-		{ 22, 7, 12 },		// 153 bits per transform
-		{ 22, 8, 11 },		// 153 bits per transform
-		{ 22, 9, 10 },		// 153 bits per transform
-		{ 22, 10, 9 },		// 153 bits per transform
-		{ 22, 11, 8 },		// 153 bits per transform
-		{ 22, 12, 7 },		// 153 bits per transform
-		{ 22, 13, 6 },		// 153 bits per transform
-		{ 22, 14, 5 },		// 153 bits per transform
-		{ 22, 15, 4 },		// 153 bits per transform
-		{ 22, 16, 3 },		// 153 bits per transform
-		{ 22, 17, 2 },		// 153 bits per transform
-		{ 22, 18, 1 },		// 153 bits per transform
-		{ 22, 19, 0 },		// 153 bits per transform
-		{ 0, 20, 22 },		// 156 bits per transform
-		{ 0, 22, 20 },		// 156 bits per transform
-		{ 1, 19, 22 },		// 156 bits per transform
-		{ 1, 22, 19 },		// 156 bits per transform
-		{ 2, 18, 22 },		// 156 bits per transform
-		{ 2, 22, 18 },		// 156 bits per transform
-		{ 3, 17, 22 },		// 156 bits per transform
-		{ 3, 22, 17 },		// 156 bits per transform
-		{ 4, 16, 22 },		// 156 bits per transform
-		{ 4, 22, 16 },		// 156 bits per transform
-		{ 5, 15, 22 },		// 156 bits per transform
-		{ 5, 22, 15 },		// 156 bits per transform
-		{ 6, 14, 22 },		// 156 bits per transform
-		{ 6, 22, 14 },		// 156 bits per transform
-		{ 7, 13, 22 },		// 156 bits per transform
-		{ 7, 22, 13 },		// 156 bits per transform
-		{ 8, 12, 22 },		// 156 bits per transform
-		{ 8, 22, 12 },		// 156 bits per transform
-		{ 9, 11, 22 },		// 156 bits per transform
-		{ 9, 22, 11 },		// 156 bits per transform
-		{ 10, 10, 22 },		// 156 bits per transform
+		{ 21, 22, 8 },		// 153 bits per transform
+		{ 21, 23, 7 },		// 153 bits per transform
+		{ 21, 24, 6 },		// 153 bits per transform
+		{ 22, 5, 24 },		// 153 bits per transform
+		{ 22, 6, 23 },		// 153 bits per transform
+		{ 22, 7, 22 },		// 153 bits per transform
+		{ 22, 8, 21 },		// 153 bits per transform
+		{ 22, 9, 20 },		// 153 bits per transform
+		{ 22, 10, 19 },		// 153 bits per transform
+		{ 22, 11, 18 },		// 153 bits per transform
+		{ 22, 12, 17 },		// 153 bits per transform
+		{ 22, 13, 16 },		// 153 bits per transform
+		{ 22, 14, 15 },		// 153 bits per transform
+		{ 22, 15, 14 },		// 153 bits per transform
+		{ 22, 16, 13 },		// 153 bits per transform
+		{ 22, 17, 12 },		// 153 bits per transform
+		{ 22, 18, 11 },		// 153 bits per transform
+		{ 22, 19, 10 },		// 153 bits per transform
+		{ 22, 20, 9 },		// 153 bits per transform
+		{ 22, 21, 8 },		// 153 bits per transform
+		{ 22, 22, 7 },		// 153 bits per transform
+		{ 22, 23, 6 },		// 153 bits per transform
+		{ 22, 24, 5 },		// 153 bits per transform
+		{ 23, 4, 24 },		// 153 bits per transform
+		{ 23, 5, 23 },		// 153 bits per transform
+		{ 23, 6, 22 },		// 153 bits per transform
+		{ 23, 7, 21 },		// 153 bits per transform
+		{ 23, 8, 20 },		// 153 bits per transform
+		{ 23, 9, 19 },		// 153 bits per transform
+		{ 23, 10, 18 },		// 153 bits per transform
+		{ 23, 11, 17 },		// 153 bits per transform
+		{ 23, 12, 16 },		// 153 bits per transform
+		{ 23, 13, 15 },		// 153 bits per transform
+		{ 23, 14, 14 },		// 153 bits per transform
+		{ 23, 15, 13 },		// 153 bits per transform
+		{ 23, 16, 12 },		// 153 bits per transform
+		{ 23, 17, 11 },		// 153 bits per transform
+		{ 23, 18, 10 },		// 153 bits per transform
+		{ 23, 19, 9 },		// 153 bits per transform
+		{ 23, 20, 8 },		// 153 bits per transform
+		{ 23, 21, 7 },		// 153 bits per transform
+		{ 23, 22, 6 },		// 153 bits per transform
+		{ 23, 23, 5 },		// 153 bits per transform
+		{ 23, 24, 4 },		// 153 bits per transform
+		{ 24, 3, 24 },		// 153 bits per transform
+		{ 24, 4, 23 },		// 153 bits per transform
+		{ 24, 5, 22 },		// 153 bits per transform
+		{ 24, 6, 21 },		// 153 bits per transform
+		{ 24, 7, 20 },		// 153 bits per transform
+		{ 24, 8, 19 },		// 153 bits per transform
+		{ 24, 9, 18 },		// 153 bits per transform
+		{ 24, 10, 17 },		// 153 bits per transform
+		{ 24, 11, 16 },		// 153 bits per transform
+		{ 24, 12, 15 },		// 153 bits per transform
+		{ 24, 13, 14 },		// 153 bits per transform
+		{ 24, 14, 13 },		// 153 bits per transform
+		{ 24, 15, 12 },		// 153 bits per transform
+		{ 24, 16, 11 },		// 153 bits per transform
+		{ 24, 17, 10 },		// 153 bits per transform
+		{ 24, 18, 9 },		// 153 bits per transform
+		{ 24, 19, 8 },		// 153 bits per transform
+		{ 24, 20, 7 },		// 153 bits per transform
+		{ 24, 21, 6 },		// 153 bits per transform
+		{ 24, 22, 5 },		// 153 bits per transform
+		{ 24, 23, 4 },		// 153 bits per transform
+		{ 24, 24, 3 },		// 153 bits per transform
+		{ 25, 0, 19 },		// 153 bits per transform
+		{ 25, 1, 18 },		// 153 bits per transform
+		{ 25, 2, 17 },		// 153 bits per transform
+		{ 25, 3, 16 },		// 153 bits per transform
+		{ 25, 4, 15 },		// 153 bits per transform
+		{ 25, 5, 14 },		// 153 bits per transform
+		{ 25, 6, 13 },		// 153 bits per transform
+		{ 25, 7, 12 },		// 153 bits per transform
+		{ 25, 8, 11 },		// 153 bits per transform
+		{ 25, 9, 10 },		// 153 bits per transform
+		{ 25, 10, 9 },		// 153 bits per transform
+		{ 25, 11, 8 },		// 153 bits per transform
+		{ 25, 12, 7 },		// 153 bits per transform
+		{ 25, 13, 6 },		// 153 bits per transform
+		{ 25, 14, 5 },		// 153 bits per transform
+		{ 25, 15, 4 },		// 153 bits per transform
+		{ 25, 16, 3 },		// 153 bits per transform
+		{ 25, 17, 2 },		// 153 bits per transform
+		{ 25, 18, 1 },		// 153 bits per transform
+		{ 25, 19, 0 },		// 153 bits per transform
+		{ 0, 20, 25 },		// 156 bits per transform
+		{ 0, 25, 20 },		// 156 bits per transform
+		{ 1, 19, 25 },		// 156 bits per transform
+		{ 1, 25, 19 },		// 156 bits per transform
+		{ 2, 18, 25 },		// 156 bits per transform
+		{ 2, 25, 18 },		// 156 bits per transform
+		{ 3, 17, 25 },		// 156 bits per transform
+		{ 3, 25, 17 },		// 156 bits per transform
+		{ 4, 16, 25 },		// 156 bits per transform
+		{ 4, 24, 24 },		// 156 bits per transform
+		{ 4, 25, 16 },		// 156 bits per transform
+		{ 5, 15, 25 },		// 156 bits per transform
+		{ 5, 23, 24 },		// 156 bits per transform
+		{ 5, 24, 23 },		// 156 bits per transform
+		{ 5, 25, 15 },		// 156 bits per transform
+		{ 6, 14, 25 },		// 156 bits per transform
+		{ 6, 22, 24 },		// 156 bits per transform
+		{ 6, 23, 23 },		// 156 bits per transform
+		{ 6, 24, 22 },		// 156 bits per transform
+		{ 6, 25, 14 },		// 156 bits per transform
+		{ 7, 13, 25 },		// 156 bits per transform
+		{ 7, 21, 24 },		// 156 bits per transform
+		{ 7, 22, 23 },		// 156 bits per transform
+		{ 7, 23, 22 },		// 156 bits per transform
+		{ 7, 24, 21 },		// 156 bits per transform
+		{ 7, 25, 13 },		// 156 bits per transform
+		{ 8, 12, 25 },		// 156 bits per transform
+		{ 8, 20, 24 },		// 156 bits per transform
+		{ 8, 21, 23 },		// 156 bits per transform
+		{ 8, 22, 22 },		// 156 bits per transform
+		{ 8, 23, 21 },		// 156 bits per transform
+		{ 8, 24, 20 },		// 156 bits per transform
+		{ 8, 25, 12 },		// 156 bits per transform
+		{ 9, 11, 25 },		// 156 bits per transform
+		{ 9, 19, 24 },		// 156 bits per transform
+		{ 9, 20, 23 },		// 156 bits per transform
+		{ 9, 21, 22 },		// 156 bits per transform
+		{ 9, 22, 21 },		// 156 bits per transform
+		{ 9, 23, 20 },		// 156 bits per transform
+		{ 9, 24, 19 },		// 156 bits per transform
+		{ 9, 25, 11 },		// 156 bits per transform
+		{ 10, 10, 25 },		// 156 bits per transform
+		{ 10, 18, 24 },		// 156 bits per transform
+		{ 10, 19, 23 },		// 156 bits per transform
+		{ 10, 20, 22 },		// 156 bits per transform
 		{ 10, 21, 21 },		// 156 bits per transform
-		{ 10, 22, 10 },		// 156 bits per transform
-		{ 11, 9, 22 },		// 156 bits per transform
+		{ 10, 22, 20 },		// 156 bits per transform
+		{ 10, 23, 19 },		// 156 bits per transform
+		{ 10, 24, 18 },		// 156 bits per transform
+		{ 10, 25, 10 },		// 156 bits per transform
+		{ 11, 9, 25 },		// 156 bits per transform
+		{ 11, 17, 24 },		// 156 bits per transform
+		{ 11, 18, 23 },		// 156 bits per transform
+		{ 11, 19, 22 },		// 156 bits per transform
 		{ 11, 20, 21 },		// 156 bits per transform
 		{ 11, 21, 20 },		// 156 bits per transform
-		{ 11, 22, 9 },		// 156 bits per transform
-		{ 12, 8, 22 },		// 156 bits per transform
+		{ 11, 22, 19 },		// 156 bits per transform
+		{ 11, 23, 18 },		// 156 bits per transform
+		{ 11, 24, 17 },		// 156 bits per transform
+		{ 11, 25, 9 },		// 156 bits per transform
+		{ 12, 8, 25 },		// 156 bits per transform
+		{ 12, 16, 24 },		// 156 bits per transform
+		{ 12, 17, 23 },		// 156 bits per transform
+		{ 12, 18, 22 },		// 156 bits per transform
 		{ 12, 19, 21 },		// 156 bits per transform
 		{ 12, 20, 20 },		// 156 bits per transform
 		{ 12, 21, 19 },		// 156 bits per transform
-		{ 12, 22, 8 },		// 156 bits per transform
-		{ 13, 7, 22 },		// 156 bits per transform
+		{ 12, 22, 18 },		// 156 bits per transform
+		{ 12, 23, 17 },		// 156 bits per transform
+		{ 12, 24, 16 },		// 156 bits per transform
+		{ 12, 25, 8 },		// 156 bits per transform
+		{ 13, 7, 25 },		// 156 bits per transform
+		{ 13, 15, 24 },		// 156 bits per transform
+		{ 13, 16, 23 },		// 156 bits per transform
+		{ 13, 17, 22 },		// 156 bits per transform
 		{ 13, 18, 21 },		// 156 bits per transform
 		{ 13, 19, 20 },		// 156 bits per transform
 		{ 13, 20, 19 },		// 156 bits per transform
 		{ 13, 21, 18 },		// 156 bits per transform
-		{ 13, 22, 7 },		// 156 bits per transform
-		{ 14, 6, 22 },		// 156 bits per transform
+		{ 13, 22, 17 },		// 156 bits per transform
+		{ 13, 23, 16 },		// 156 bits per transform
+		{ 13, 24, 15 },		// 156 bits per transform
+		{ 13, 25, 7 },		// 156 bits per transform
+		{ 14, 6, 25 },		// 156 bits per transform
+		{ 14, 14, 24 },		// 156 bits per transform
+		{ 14, 15, 23 },		// 156 bits per transform
+		{ 14, 16, 22 },		// 156 bits per transform
 		{ 14, 17, 21 },		// 156 bits per transform
 		{ 14, 18, 20 },		// 156 bits per transform
 		{ 14, 19, 19 },		// 156 bits per transform
 		{ 14, 20, 18 },		// 156 bits per transform
 		{ 14, 21, 17 },		// 156 bits per transform
-		{ 14, 22, 6 },		// 156 bits per transform
-		{ 15, 5, 22 },		// 156 bits per transform
+		{ 14, 22, 16 },		// 156 bits per transform
+		{ 14, 23, 15 },		// 156 bits per transform
+		{ 14, 24, 14 },		// 156 bits per transform
+		{ 14, 25, 6 },		// 156 bits per transform
+		{ 15, 5, 25 },		// 156 bits per transform
+		{ 15, 13, 24 },		// 156 bits per transform
+		{ 15, 14, 23 },		// 156 bits per transform
+		{ 15, 15, 22 },		// 156 bits per transform
 		{ 15, 16, 21 },		// 156 bits per transform
 		{ 15, 17, 20 },		// 156 bits per transform
 		{ 15, 18, 19 },		// 156 bits per transform
 		{ 15, 19, 18 },		// 156 bits per transform
 		{ 15, 20, 17 },		// 156 bits per transform
 		{ 15, 21, 16 },		// 156 bits per transform
-		{ 15, 22, 5 },		// 156 bits per transform
-		{ 16, 4, 22 },		// 156 bits per transform
+		{ 15, 22, 15 },		// 156 bits per transform
+		{ 15, 23, 14 },		// 156 bits per transform
+		{ 15, 24, 13 },		// 156 bits per transform
+		{ 15, 25, 5 },		// 156 bits per transform
+		{ 16, 4, 25 },		// 156 bits per transform
+		{ 16, 12, 24 },		// 156 bits per transform
+		{ 16, 13, 23 },		// 156 bits per transform
+		{ 16, 14, 22 },		// 156 bits per transform
 		{ 16, 15, 21 },		// 156 bits per transform
 		{ 16, 16, 20 },		// 156 bits per transform
 		{ 16, 17, 19 },		// 156 bits per transform
@@ -11549,8 +15326,14 @@ namespace acl
 		{ 16, 19, 17 },		// 156 bits per transform
 		{ 16, 20, 16 },		// 156 bits per transform
 		{ 16, 21, 15 },		// 156 bits per transform
-		{ 16, 22, 4 },		// 156 bits per transform
-		{ 17, 3, 22 },		// 156 bits per transform
+		{ 16, 22, 14 },		// 156 bits per transform
+		{ 16, 23, 13 },		// 156 bits per transform
+		{ 16, 24, 12 },		// 156 bits per transform
+		{ 16, 25, 4 },		// 156 bits per transform
+		{ 17, 3, 25 },		// 156 bits per transform
+		{ 17, 11, 24 },		// 156 bits per transform
+		{ 17, 12, 23 },		// 156 bits per transform
+		{ 17, 13, 22 },		// 156 bits per transform
 		{ 17, 14, 21 },		// 156 bits per transform
 		{ 17, 15, 20 },		// 156 bits per transform
 		{ 17, 16, 19 },		// 156 bits per transform
@@ -11559,8 +15342,14 @@ namespace acl
 		{ 17, 19, 16 },		// 156 bits per transform
 		{ 17, 20, 15 },		// 156 bits per transform
 		{ 17, 21, 14 },		// 156 bits per transform
-		{ 17, 22, 3 },		// 156 bits per transform
-		{ 18, 2, 22 },		// 156 bits per transform
+		{ 17, 22, 13 },		// 156 bits per transform
+		{ 17, 23, 12 },		// 156 bits per transform
+		{ 17, 24, 11 },		// 156 bits per transform
+		{ 17, 25, 3 },		// 156 bits per transform
+		{ 18, 2, 25 },		// 156 bits per transform
+		{ 18, 10, 24 },		// 156 bits per transform
+		{ 18, 11, 23 },		// 156 bits per transform
+		{ 18, 12, 22 },		// 156 bits per transform
 		{ 18, 13, 21 },		// 156 bits per transform
 		{ 18, 14, 20 },		// 156 bits per transform
 		{ 18, 15, 19 },		// 156 bits per transform
@@ -11570,8 +15359,14 @@ namespace acl
 		{ 18, 19, 15 },		// 156 bits per transform
 		{ 18, 20, 14 },		// 156 bits per transform
 		{ 18, 21, 13 },		// 156 bits per transform
-		{ 18, 22, 2 },		// 156 bits per transform
-		{ 19, 1, 22 },		// 156 bits per transform
+		{ 18, 22, 12 },		// 156 bits per transform
+		{ 18, 23, 11 },		// 156 bits per transform
+		{ 18, 24, 10 },		// 156 bits per transform
+		{ 18, 25, 2 },		// 156 bits per transform
+		{ 19, 1, 25 },		// 156 bits per transform
+		{ 19, 9, 24 },		// 156 bits per transform
+		{ 19, 10, 23 },		// 156 bits per transform
+		{ 19, 11, 22 },		// 156 bits per transform
 		{ 19, 12, 21 },		// 156 bits per transform
 		{ 19, 13, 20 },		// 156 bits per transform
 		{ 19, 14, 19 },		// 156 bits per transform
@@ -11582,8 +15377,14 @@ namespace acl
 		{ 19, 19, 14 },		// 156 bits per transform
 		{ 19, 20, 13 },		// 156 bits per transform
 		{ 19, 21, 12 },		// 156 bits per transform
-		{ 19, 22, 1 },		// 156 bits per transform
-		{ 20, 0, 22 },		// 156 bits per transform
+		{ 19, 22, 11 },		// 156 bits per transform
+		{ 19, 23, 10 },		// 156 bits per transform
+		{ 19, 24, 9 },		// 156 bits per transform
+		{ 19, 25, 1 },		// 156 bits per transform
+		{ 20, 0, 25 },		// 156 bits per transform
+		{ 20, 8, 24 },		// 156 bits per transform
+		{ 20, 9, 23 },		// 156 bits per transform
+		{ 20, 10, 22 },		// 156 bits per transform
 		{ 20, 11, 21 },		// 156 bits per transform
 		{ 20, 12, 20 },		// 156 bits per transform
 		{ 20, 13, 19 },		// 156 bits per transform
@@ -11595,7 +15396,13 @@ namespace acl
 		{ 20, 19, 13 },		// 156 bits per transform
 		{ 20, 20, 12 },		// 156 bits per transform
 		{ 20, 21, 11 },		// 156 bits per transform
-		{ 20, 22, 0 },		// 156 bits per transform
+		{ 20, 22, 10 },		// 156 bits per transform
+		{ 20, 23, 9 },		// 156 bits per transform
+		{ 20, 24, 8 },		// 156 bits per transform
+		{ 20, 25, 0 },		// 156 bits per transform
+		{ 21, 7, 24 },		// 156 bits per transform
+		{ 21, 8, 23 },		// 156 bits per transform
+		{ 21, 9, 22 },		// 156 bits per transform
 		{ 21, 10, 21 },		// 156 bits per transform
 		{ 21, 11, 20 },		// 156 bits per transform
 		{ 21, 12, 19 },		// 156 bits per transform
@@ -11608,83 +15415,206 @@ namespace acl
 		{ 21, 19, 12 },		// 156 bits per transform
 		{ 21, 20, 11 },		// 156 bits per transform
 		{ 21, 21, 10 },		// 156 bits per transform
-		{ 22, 0, 20 },		// 156 bits per transform
-		{ 22, 1, 19 },		// 156 bits per transform
-		{ 22, 2, 18 },		// 156 bits per transform
-		{ 22, 3, 17 },		// 156 bits per transform
-		{ 22, 4, 16 },		// 156 bits per transform
-		{ 22, 5, 15 },		// 156 bits per transform
-		{ 22, 6, 14 },		// 156 bits per transform
-		{ 22, 7, 13 },		// 156 bits per transform
-		{ 22, 8, 12 },		// 156 bits per transform
-		{ 22, 9, 11 },		// 156 bits per transform
-		{ 22, 10, 10 },		// 156 bits per transform
-		{ 22, 11, 9 },		// 156 bits per transform
-		{ 22, 12, 8 },		// 156 bits per transform
-		{ 22, 13, 7 },		// 156 bits per transform
-		{ 22, 14, 6 },		// 156 bits per transform
-		{ 22, 15, 5 },		// 156 bits per transform
-		{ 22, 16, 4 },		// 156 bits per transform
-		{ 22, 17, 3 },		// 156 bits per transform
-		{ 22, 18, 2 },		// 156 bits per transform
-		{ 22, 19, 1 },		// 156 bits per transform
-		{ 22, 20, 0 },		// 156 bits per transform
-		{ 0, 21, 22 },		// 159 bits per transform
-		{ 0, 22, 21 },		// 159 bits per transform
-		{ 1, 20, 22 },		// 159 bits per transform
-		{ 1, 22, 20 },		// 159 bits per transform
-		{ 2, 19, 22 },		// 159 bits per transform
-		{ 2, 22, 19 },		// 159 bits per transform
-		{ 3, 18, 22 },		// 159 bits per transform
-		{ 3, 22, 18 },		// 159 bits per transform
-		{ 4, 17, 22 },		// 159 bits per transform
-		{ 4, 22, 17 },		// 159 bits per transform
-		{ 5, 16, 22 },		// 159 bits per transform
-		{ 5, 22, 16 },		// 159 bits per transform
-		{ 6, 15, 22 },		// 159 bits per transform
-		{ 6, 22, 15 },		// 159 bits per transform
-		{ 7, 14, 22 },		// 159 bits per transform
-		{ 7, 22, 14 },		// 159 bits per transform
-		{ 8, 13, 22 },		// 159 bits per transform
-		{ 8, 22, 13 },		// 159 bits per transform
-		{ 9, 12, 22 },		// 159 bits per transform
-		{ 9, 22, 12 },		// 159 bits per transform
-		{ 10, 11, 22 },		// 159 bits per transform
-		{ 10, 22, 11 },		// 159 bits per transform
-		{ 11, 10, 22 },		// 159 bits per transform
+		{ 21, 22, 9 },		// 156 bits per transform
+		{ 21, 23, 8 },		// 156 bits per transform
+		{ 21, 24, 7 },		// 156 bits per transform
+		{ 22, 6, 24 },		// 156 bits per transform
+		{ 22, 7, 23 },		// 156 bits per transform
+		{ 22, 8, 22 },		// 156 bits per transform
+		{ 22, 9, 21 },		// 156 bits per transform
+		{ 22, 10, 20 },		// 156 bits per transform
+		{ 22, 11, 19 },		// 156 bits per transform
+		{ 22, 12, 18 },		// 156 bits per transform
+		{ 22, 13, 17 },		// 156 bits per transform
+		{ 22, 14, 16 },		// 156 bits per transform
+		{ 22, 15, 15 },		// 156 bits per transform
+		{ 22, 16, 14 },		// 156 bits per transform
+		{ 22, 17, 13 },		// 156 bits per transform
+		{ 22, 18, 12 },		// 156 bits per transform
+		{ 22, 19, 11 },		// 156 bits per transform
+		{ 22, 20, 10 },		// 156 bits per transform
+		{ 22, 21, 9 },		// 156 bits per transform
+		{ 22, 22, 8 },		// 156 bits per transform
+		{ 22, 23, 7 },		// 156 bits per transform
+		{ 22, 24, 6 },		// 156 bits per transform
+		{ 23, 5, 24 },		// 156 bits per transform
+		{ 23, 6, 23 },		// 156 bits per transform
+		{ 23, 7, 22 },		// 156 bits per transform
+		{ 23, 8, 21 },		// 156 bits per transform
+		{ 23, 9, 20 },		// 156 bits per transform
+		{ 23, 10, 19 },		// 156 bits per transform
+		{ 23, 11, 18 },		// 156 bits per transform
+		{ 23, 12, 17 },		// 156 bits per transform
+		{ 23, 13, 16 },		// 156 bits per transform
+		{ 23, 14, 15 },		// 156 bits per transform
+		{ 23, 15, 14 },		// 156 bits per transform
+		{ 23, 16, 13 },		// 156 bits per transform
+		{ 23, 17, 12 },		// 156 bits per transform
+		{ 23, 18, 11 },		// 156 bits per transform
+		{ 23, 19, 10 },		// 156 bits per transform
+		{ 23, 20, 9 },		// 156 bits per transform
+		{ 23, 21, 8 },		// 156 bits per transform
+		{ 23, 22, 7 },		// 156 bits per transform
+		{ 23, 23, 6 },		// 156 bits per transform
+		{ 23, 24, 5 },		// 156 bits per transform
+		{ 24, 4, 24 },		// 156 bits per transform
+		{ 24, 5, 23 },		// 156 bits per transform
+		{ 24, 6, 22 },		// 156 bits per transform
+		{ 24, 7, 21 },		// 156 bits per transform
+		{ 24, 8, 20 },		// 156 bits per transform
+		{ 24, 9, 19 },		// 156 bits per transform
+		{ 24, 10, 18 },		// 156 bits per transform
+		{ 24, 11, 17 },		// 156 bits per transform
+		{ 24, 12, 16 },		// 156 bits per transform
+		{ 24, 13, 15 },		// 156 bits per transform
+		{ 24, 14, 14 },		// 156 bits per transform
+		{ 24, 15, 13 },		// 156 bits per transform
+		{ 24, 16, 12 },		// 156 bits per transform
+		{ 24, 17, 11 },		// 156 bits per transform
+		{ 24, 18, 10 },		// 156 bits per transform
+		{ 24, 19, 9 },		// 156 bits per transform
+		{ 24, 20, 8 },		// 156 bits per transform
+		{ 24, 21, 7 },		// 156 bits per transform
+		{ 24, 22, 6 },		// 156 bits per transform
+		{ 24, 23, 5 },		// 156 bits per transform
+		{ 24, 24, 4 },		// 156 bits per transform
+		{ 25, 0, 20 },		// 156 bits per transform
+		{ 25, 1, 19 },		// 156 bits per transform
+		{ 25, 2, 18 },		// 156 bits per transform
+		{ 25, 3, 17 },		// 156 bits per transform
+		{ 25, 4, 16 },		// 156 bits per transform
+		{ 25, 5, 15 },		// 156 bits per transform
+		{ 25, 6, 14 },		// 156 bits per transform
+		{ 25, 7, 13 },		// 156 bits per transform
+		{ 25, 8, 12 },		// 156 bits per transform
+		{ 25, 9, 11 },		// 156 bits per transform
+		{ 25, 10, 10 },		// 156 bits per transform
+		{ 25, 11, 9 },		// 156 bits per transform
+		{ 25, 12, 8 },		// 156 bits per transform
+		{ 25, 13, 7 },		// 156 bits per transform
+		{ 25, 14, 6 },		// 156 bits per transform
+		{ 25, 15, 5 },		// 156 bits per transform
+		{ 25, 16, 4 },		// 156 bits per transform
+		{ 25, 17, 3 },		// 156 bits per transform
+		{ 25, 18, 2 },		// 156 bits per transform
+		{ 25, 19, 1 },		// 156 bits per transform
+		{ 25, 20, 0 },		// 156 bits per transform
+		{ 0, 21, 25 },		// 159 bits per transform
+		{ 0, 25, 21 },		// 159 bits per transform
+		{ 1, 20, 25 },		// 159 bits per transform
+		{ 1, 25, 20 },		// 159 bits per transform
+		{ 2, 19, 25 },		// 159 bits per transform
+		{ 2, 25, 19 },		// 159 bits per transform
+		{ 3, 18, 25 },		// 159 bits per transform
+		{ 3, 25, 18 },		// 159 bits per transform
+		{ 4, 17, 25 },		// 159 bits per transform
+		{ 4, 25, 17 },		// 159 bits per transform
+		{ 5, 16, 25 },		// 159 bits per transform
+		{ 5, 24, 24 },		// 159 bits per transform
+		{ 5, 25, 16 },		// 159 bits per transform
+		{ 6, 15, 25 },		// 159 bits per transform
+		{ 6, 23, 24 },		// 159 bits per transform
+		{ 6, 24, 23 },		// 159 bits per transform
+		{ 6, 25, 15 },		// 159 bits per transform
+		{ 7, 14, 25 },		// 159 bits per transform
+		{ 7, 22, 24 },		// 159 bits per transform
+		{ 7, 23, 23 },		// 159 bits per transform
+		{ 7, 24, 22 },		// 159 bits per transform
+		{ 7, 25, 14 },		// 159 bits per transform
+		{ 8, 13, 25 },		// 159 bits per transform
+		{ 8, 21, 24 },		// 159 bits per transform
+		{ 8, 22, 23 },		// 159 bits per transform
+		{ 8, 23, 22 },		// 159 bits per transform
+		{ 8, 24, 21 },		// 159 bits per transform
+		{ 8, 25, 13 },		// 159 bits per transform
+		{ 9, 12, 25 },		// 159 bits per transform
+		{ 9, 20, 24 },		// 159 bits per transform
+		{ 9, 21, 23 },		// 159 bits per transform
+		{ 9, 22, 22 },		// 159 bits per transform
+		{ 9, 23, 21 },		// 159 bits per transform
+		{ 9, 24, 20 },		// 159 bits per transform
+		{ 9, 25, 12 },		// 159 bits per transform
+		{ 10, 11, 25 },		// 159 bits per transform
+		{ 10, 19, 24 },		// 159 bits per transform
+		{ 10, 20, 23 },		// 159 bits per transform
+		{ 10, 21, 22 },		// 159 bits per transform
+		{ 10, 22, 21 },		// 159 bits per transform
+		{ 10, 23, 20 },		// 159 bits per transform
+		{ 10, 24, 19 },		// 159 bits per transform
+		{ 10, 25, 11 },		// 159 bits per transform
+		{ 11, 10, 25 },		// 159 bits per transform
+		{ 11, 18, 24 },		// 159 bits per transform
+		{ 11, 19, 23 },		// 159 bits per transform
+		{ 11, 20, 22 },		// 159 bits per transform
 		{ 11, 21, 21 },		// 159 bits per transform
-		{ 11, 22, 10 },		// 159 bits per transform
-		{ 12, 9, 22 },		// 159 bits per transform
+		{ 11, 22, 20 },		// 159 bits per transform
+		{ 11, 23, 19 },		// 159 bits per transform
+		{ 11, 24, 18 },		// 159 bits per transform
+		{ 11, 25, 10 },		// 159 bits per transform
+		{ 12, 9, 25 },		// 159 bits per transform
+		{ 12, 17, 24 },		// 159 bits per transform
+		{ 12, 18, 23 },		// 159 bits per transform
+		{ 12, 19, 22 },		// 159 bits per transform
 		{ 12, 20, 21 },		// 159 bits per transform
 		{ 12, 21, 20 },		// 159 bits per transform
-		{ 12, 22, 9 },		// 159 bits per transform
-		{ 13, 8, 22 },		// 159 bits per transform
+		{ 12, 22, 19 },		// 159 bits per transform
+		{ 12, 23, 18 },		// 159 bits per transform
+		{ 12, 24, 17 },		// 159 bits per transform
+		{ 12, 25, 9 },		// 159 bits per transform
+		{ 13, 8, 25 },		// 159 bits per transform
+		{ 13, 16, 24 },		// 159 bits per transform
+		{ 13, 17, 23 },		// 159 bits per transform
+		{ 13, 18, 22 },		// 159 bits per transform
 		{ 13, 19, 21 },		// 159 bits per transform
 		{ 13, 20, 20 },		// 159 bits per transform
 		{ 13, 21, 19 },		// 159 bits per transform
-		{ 13, 22, 8 },		// 159 bits per transform
-		{ 14, 7, 22 },		// 159 bits per transform
+		{ 13, 22, 18 },		// 159 bits per transform
+		{ 13, 23, 17 },		// 159 bits per transform
+		{ 13, 24, 16 },		// 159 bits per transform
+		{ 13, 25, 8 },		// 159 bits per transform
+		{ 14, 7, 25 },		// 159 bits per transform
+		{ 14, 15, 24 },		// 159 bits per transform
+		{ 14, 16, 23 },		// 159 bits per transform
+		{ 14, 17, 22 },		// 159 bits per transform
 		{ 14, 18, 21 },		// 159 bits per transform
 		{ 14, 19, 20 },		// 159 bits per transform
 		{ 14, 20, 19 },		// 159 bits per transform
 		{ 14, 21, 18 },		// 159 bits per transform
-		{ 14, 22, 7 },		// 159 bits per transform
-		{ 15, 6, 22 },		// 159 bits per transform
+		{ 14, 22, 17 },		// 159 bits per transform
+		{ 14, 23, 16 },		// 159 bits per transform
+		{ 14, 24, 15 },		// 159 bits per transform
+		{ 14, 25, 7 },		// 159 bits per transform
+		{ 15, 6, 25 },		// 159 bits per transform
+		{ 15, 14, 24 },		// 159 bits per transform
+		{ 15, 15, 23 },		// 159 bits per transform
+		{ 15, 16, 22 },		// 159 bits per transform
 		{ 15, 17, 21 },		// 159 bits per transform
 		{ 15, 18, 20 },		// 159 bits per transform
 		{ 15, 19, 19 },		// 159 bits per transform
 		{ 15, 20, 18 },		// 159 bits per transform
 		{ 15, 21, 17 },		// 159 bits per transform
-		{ 15, 22, 6 },		// 159 bits per transform
-		{ 16, 5, 22 },		// 159 bits per transform
+		{ 15, 22, 16 },		// 159 bits per transform
+		{ 15, 23, 15 },		// 159 bits per transform
+		{ 15, 24, 14 },		// 159 bits per transform
+		{ 15, 25, 6 },		// 159 bits per transform
+		{ 16, 5, 25 },		// 159 bits per transform
+		{ 16, 13, 24 },		// 159 bits per transform
+		{ 16, 14, 23 },		// 159 bits per transform
+		{ 16, 15, 22 },		// 159 bits per transform
 		{ 16, 16, 21 },		// 159 bits per transform
 		{ 16, 17, 20 },		// 159 bits per transform
 		{ 16, 18, 19 },		// 159 bits per transform
 		{ 16, 19, 18 },		// 159 bits per transform
 		{ 16, 20, 17 },		// 159 bits per transform
 		{ 16, 21, 16 },		// 159 bits per transform
-		{ 16, 22, 5 },		// 159 bits per transform
-		{ 17, 4, 22 },		// 159 bits per transform
+		{ 16, 22, 15 },		// 159 bits per transform
+		{ 16, 23, 14 },		// 159 bits per transform
+		{ 16, 24, 13 },		// 159 bits per transform
+		{ 16, 25, 5 },		// 159 bits per transform
+		{ 17, 4, 25 },		// 159 bits per transform
+		{ 17, 12, 24 },		// 159 bits per transform
+		{ 17, 13, 23 },		// 159 bits per transform
+		{ 17, 14, 22 },		// 159 bits per transform
 		{ 17, 15, 21 },		// 159 bits per transform
 		{ 17, 16, 20 },		// 159 bits per transform
 		{ 17, 17, 19 },		// 159 bits per transform
@@ -11692,8 +15622,14 @@ namespace acl
 		{ 17, 19, 17 },		// 159 bits per transform
 		{ 17, 20, 16 },		// 159 bits per transform
 		{ 17, 21, 15 },		// 159 bits per transform
-		{ 17, 22, 4 },		// 159 bits per transform
-		{ 18, 3, 22 },		// 159 bits per transform
+		{ 17, 22, 14 },		// 159 bits per transform
+		{ 17, 23, 13 },		// 159 bits per transform
+		{ 17, 24, 12 },		// 159 bits per transform
+		{ 17, 25, 4 },		// 159 bits per transform
+		{ 18, 3, 25 },		// 159 bits per transform
+		{ 18, 11, 24 },		// 159 bits per transform
+		{ 18, 12, 23 },		// 159 bits per transform
+		{ 18, 13, 22 },		// 159 bits per transform
 		{ 18, 14, 21 },		// 159 bits per transform
 		{ 18, 15, 20 },		// 159 bits per transform
 		{ 18, 16, 19 },		// 159 bits per transform
@@ -11702,8 +15638,14 @@ namespace acl
 		{ 18, 19, 16 },		// 159 bits per transform
 		{ 18, 20, 15 },		// 159 bits per transform
 		{ 18, 21, 14 },		// 159 bits per transform
-		{ 18, 22, 3 },		// 159 bits per transform
-		{ 19, 2, 22 },		// 159 bits per transform
+		{ 18, 22, 13 },		// 159 bits per transform
+		{ 18, 23, 12 },		// 159 bits per transform
+		{ 18, 24, 11 },		// 159 bits per transform
+		{ 18, 25, 3 },		// 159 bits per transform
+		{ 19, 2, 25 },		// 159 bits per transform
+		{ 19, 10, 24 },		// 159 bits per transform
+		{ 19, 11, 23 },		// 159 bits per transform
+		{ 19, 12, 22 },		// 159 bits per transform
 		{ 19, 13, 21 },		// 159 bits per transform
 		{ 19, 14, 20 },		// 159 bits per transform
 		{ 19, 15, 19 },		// 159 bits per transform
@@ -11713,8 +15655,14 @@ namespace acl
 		{ 19, 19, 15 },		// 159 bits per transform
 		{ 19, 20, 14 },		// 159 bits per transform
 		{ 19, 21, 13 },		// 159 bits per transform
-		{ 19, 22, 2 },		// 159 bits per transform
-		{ 20, 1, 22 },		// 159 bits per transform
+		{ 19, 22, 12 },		// 159 bits per transform
+		{ 19, 23, 11 },		// 159 bits per transform
+		{ 19, 24, 10 },		// 159 bits per transform
+		{ 19, 25, 2 },		// 159 bits per transform
+		{ 20, 1, 25 },		// 159 bits per transform
+		{ 20, 9, 24 },		// 159 bits per transform
+		{ 20, 10, 23 },		// 159 bits per transform
+		{ 20, 11, 22 },		// 159 bits per transform
 		{ 20, 12, 21 },		// 159 bits per transform
 		{ 20, 13, 20 },		// 159 bits per transform
 		{ 20, 14, 19 },		// 159 bits per transform
@@ -11725,8 +15673,14 @@ namespace acl
 		{ 20, 19, 14 },		// 159 bits per transform
 		{ 20, 20, 13 },		// 159 bits per transform
 		{ 20, 21, 12 },		// 159 bits per transform
-		{ 20, 22, 1 },		// 159 bits per transform
-		{ 21, 0, 22 },		// 159 bits per transform
+		{ 20, 22, 11 },		// 159 bits per transform
+		{ 20, 23, 10 },		// 159 bits per transform
+		{ 20, 24, 9 },		// 159 bits per transform
+		{ 20, 25, 1 },		// 159 bits per transform
+		{ 21, 0, 25 },		// 159 bits per transform
+		{ 21, 8, 24 },		// 159 bits per transform
+		{ 21, 9, 23 },		// 159 bits per transform
+		{ 21, 10, 22 },		// 159 bits per transform
 		{ 21, 11, 21 },		// 159 bits per transform
 		{ 21, 12, 20 },		// 159 bits per transform
 		{ 21, 13, 19 },		// 159 bits per transform
@@ -11738,85 +15692,207 @@ namespace acl
 		{ 21, 19, 13 },		// 159 bits per transform
 		{ 21, 20, 12 },		// 159 bits per transform
 		{ 21, 21, 11 },		// 159 bits per transform
-		{ 21, 22, 0 },		// 159 bits per transform
-		{ 22, 0, 21 },		// 159 bits per transform
-		{ 22, 1, 20 },		// 159 bits per transform
-		{ 22, 2, 19 },		// 159 bits per transform
-		{ 22, 3, 18 },		// 159 bits per transform
-		{ 22, 4, 17 },		// 159 bits per transform
-		{ 22, 5, 16 },		// 159 bits per transform
-		{ 22, 6, 15 },		// 159 bits per transform
-		{ 22, 7, 14 },		// 159 bits per transform
-		{ 22, 8, 13 },		// 159 bits per transform
-		{ 22, 9, 12 },		// 159 bits per transform
-		{ 22, 10, 11 },		// 159 bits per transform
-		{ 22, 11, 10 },		// 159 bits per transform
-		{ 22, 12, 9 },		// 159 bits per transform
-		{ 22, 13, 8 },		// 159 bits per transform
-		{ 22, 14, 7 },		// 159 bits per transform
-		{ 22, 15, 6 },		// 159 bits per transform
-		{ 22, 16, 5 },		// 159 bits per transform
-		{ 22, 17, 4 },		// 159 bits per transform
-		{ 22, 18, 3 },		// 159 bits per transform
-		{ 22, 19, 2 },		// 159 bits per transform
-		{ 22, 20, 1 },		// 159 bits per transform
-		{ 22, 21, 0 },		// 159 bits per transform
-		{ 1, 21, 22 },		// 162 bits per transform
-		{ 1, 22, 21 },		// 162 bits per transform
-		{ 2, 20, 22 },		// 162 bits per transform
-		{ 2, 22, 20 },		// 162 bits per transform
-		{ 3, 19, 22 },		// 162 bits per transform
-		{ 3, 22, 19 },		// 162 bits per transform
-		{ 4, 18, 22 },		// 162 bits per transform
-		{ 4, 22, 18 },		// 162 bits per transform
-		{ 5, 17, 22 },		// 162 bits per transform
-		{ 5, 22, 17 },		// 162 bits per transform
-		{ 6, 16, 22 },		// 162 bits per transform
-		{ 6, 22, 16 },		// 162 bits per transform
-		{ 7, 15, 22 },		// 162 bits per transform
-		{ 7, 22, 15 },		// 162 bits per transform
-		{ 8, 14, 22 },		// 162 bits per transform
-		{ 8, 22, 14 },		// 162 bits per transform
-		{ 9, 13, 22 },		// 162 bits per transform
-		{ 9, 22, 13 },		// 162 bits per transform
-		{ 10, 12, 22 },		// 162 bits per transform
-		{ 10, 22, 12 },		// 162 bits per transform
-		{ 11, 11, 22 },		// 162 bits per transform
-		{ 11, 22, 11 },		// 162 bits per transform
-		{ 12, 10, 22 },		// 162 bits per transform
+		{ 21, 22, 10 },		// 159 bits per transform
+		{ 21, 23, 9 },		// 159 bits per transform
+		{ 21, 24, 8 },		// 159 bits per transform
+		{ 21, 25, 0 },		// 159 bits per transform
+		{ 22, 7, 24 },		// 159 bits per transform
+		{ 22, 8, 23 },		// 159 bits per transform
+		{ 22, 9, 22 },		// 159 bits per transform
+		{ 22, 10, 21 },		// 159 bits per transform
+		{ 22, 11, 20 },		// 159 bits per transform
+		{ 22, 12, 19 },		// 159 bits per transform
+		{ 22, 13, 18 },		// 159 bits per transform
+		{ 22, 14, 17 },		// 159 bits per transform
+		{ 22, 15, 16 },		// 159 bits per transform
+		{ 22, 16, 15 },		// 159 bits per transform
+		{ 22, 17, 14 },		// 159 bits per transform
+		{ 22, 18, 13 },		// 159 bits per transform
+		{ 22, 19, 12 },		// 159 bits per transform
+		{ 22, 20, 11 },		// 159 bits per transform
+		{ 22, 21, 10 },		// 159 bits per transform
+		{ 22, 22, 9 },		// 159 bits per transform
+		{ 22, 23, 8 },		// 159 bits per transform
+		{ 22, 24, 7 },		// 159 bits per transform
+		{ 23, 6, 24 },		// 159 bits per transform
+		{ 23, 7, 23 },		// 159 bits per transform
+		{ 23, 8, 22 },		// 159 bits per transform
+		{ 23, 9, 21 },		// 159 bits per transform
+		{ 23, 10, 20 },		// 159 bits per transform
+		{ 23, 11, 19 },		// 159 bits per transform
+		{ 23, 12, 18 },		// 159 bits per transform
+		{ 23, 13, 17 },		// 159 bits per transform
+		{ 23, 14, 16 },		// 159 bits per transform
+		{ 23, 15, 15 },		// 159 bits per transform
+		{ 23, 16, 14 },		// 159 bits per transform
+		{ 23, 17, 13 },		// 159 bits per transform
+		{ 23, 18, 12 },		// 159 bits per transform
+		{ 23, 19, 11 },		// 159 bits per transform
+		{ 23, 20, 10 },		// 159 bits per transform
+		{ 23, 21, 9 },		// 159 bits per transform
+		{ 23, 22, 8 },		// 159 bits per transform
+		{ 23, 23, 7 },		// 159 bits per transform
+		{ 23, 24, 6 },		// 159 bits per transform
+		{ 24, 5, 24 },		// 159 bits per transform
+		{ 24, 6, 23 },		// 159 bits per transform
+		{ 24, 7, 22 },		// 159 bits per transform
+		{ 24, 8, 21 },		// 159 bits per transform
+		{ 24, 9, 20 },		// 159 bits per transform
+		{ 24, 10, 19 },		// 159 bits per transform
+		{ 24, 11, 18 },		// 159 bits per transform
+		{ 24, 12, 17 },		// 159 bits per transform
+		{ 24, 13, 16 },		// 159 bits per transform
+		{ 24, 14, 15 },		// 159 bits per transform
+		{ 24, 15, 14 },		// 159 bits per transform
+		{ 24, 16, 13 },		// 159 bits per transform
+		{ 24, 17, 12 },		// 159 bits per transform
+		{ 24, 18, 11 },		// 159 bits per transform
+		{ 24, 19, 10 },		// 159 bits per transform
+		{ 24, 20, 9 },		// 159 bits per transform
+		{ 24, 21, 8 },		// 159 bits per transform
+		{ 24, 22, 7 },		// 159 bits per transform
+		{ 24, 23, 6 },		// 159 bits per transform
+		{ 24, 24, 5 },		// 159 bits per transform
+		{ 25, 0, 21 },		// 159 bits per transform
+		{ 25, 1, 20 },		// 159 bits per transform
+		{ 25, 2, 19 },		// 159 bits per transform
+		{ 25, 3, 18 },		// 159 bits per transform
+		{ 25, 4, 17 },		// 159 bits per transform
+		{ 25, 5, 16 },		// 159 bits per transform
+		{ 25, 6, 15 },		// 159 bits per transform
+		{ 25, 7, 14 },		// 159 bits per transform
+		{ 25, 8, 13 },		// 159 bits per transform
+		{ 25, 9, 12 },		// 159 bits per transform
+		{ 25, 10, 11 },		// 159 bits per transform
+		{ 25, 11, 10 },		// 159 bits per transform
+		{ 25, 12, 9 },		// 159 bits per transform
+		{ 25, 13, 8 },		// 159 bits per transform
+		{ 25, 14, 7 },		// 159 bits per transform
+		{ 25, 15, 6 },		// 159 bits per transform
+		{ 25, 16, 5 },		// 159 bits per transform
+		{ 25, 17, 4 },		// 159 bits per transform
+		{ 25, 18, 3 },		// 159 bits per transform
+		{ 25, 19, 2 },		// 159 bits per transform
+		{ 25, 20, 1 },		// 159 bits per transform
+		{ 25, 21, 0 },		// 159 bits per transform
+		{ 0, 22, 25 },		// 162 bits per transform
+		{ 0, 25, 22 },		// 162 bits per transform
+		{ 1, 21, 25 },		// 162 bits per transform
+		{ 1, 25, 21 },		// 162 bits per transform
+		{ 2, 20, 25 },		// 162 bits per transform
+		{ 2, 25, 20 },		// 162 bits per transform
+		{ 3, 19, 25 },		// 162 bits per transform
+		{ 3, 25, 19 },		// 162 bits per transform
+		{ 4, 18, 25 },		// 162 bits per transform
+		{ 4, 25, 18 },		// 162 bits per transform
+		{ 5, 17, 25 },		// 162 bits per transform
+		{ 5, 25, 17 },		// 162 bits per transform
+		{ 6, 16, 25 },		// 162 bits per transform
+		{ 6, 24, 24 },		// 162 bits per transform
+		{ 6, 25, 16 },		// 162 bits per transform
+		{ 7, 15, 25 },		// 162 bits per transform
+		{ 7, 23, 24 },		// 162 bits per transform
+		{ 7, 24, 23 },		// 162 bits per transform
+		{ 7, 25, 15 },		// 162 bits per transform
+		{ 8, 14, 25 },		// 162 bits per transform
+		{ 8, 22, 24 },		// 162 bits per transform
+		{ 8, 23, 23 },		// 162 bits per transform
+		{ 8, 24, 22 },		// 162 bits per transform
+		{ 8, 25, 14 },		// 162 bits per transform
+		{ 9, 13, 25 },		// 162 bits per transform
+		{ 9, 21, 24 },		// 162 bits per transform
+		{ 9, 22, 23 },		// 162 bits per transform
+		{ 9, 23, 22 },		// 162 bits per transform
+		{ 9, 24, 21 },		// 162 bits per transform
+		{ 9, 25, 13 },		// 162 bits per transform
+		{ 10, 12, 25 },		// 162 bits per transform
+		{ 10, 20, 24 },		// 162 bits per transform
+		{ 10, 21, 23 },		// 162 bits per transform
+		{ 10, 22, 22 },		// 162 bits per transform
+		{ 10, 23, 21 },		// 162 bits per transform
+		{ 10, 24, 20 },		// 162 bits per transform
+		{ 10, 25, 12 },		// 162 bits per transform
+		{ 11, 11, 25 },		// 162 bits per transform
+		{ 11, 19, 24 },		// 162 bits per transform
+		{ 11, 20, 23 },		// 162 bits per transform
+		{ 11, 21, 22 },		// 162 bits per transform
+		{ 11, 22, 21 },		// 162 bits per transform
+		{ 11, 23, 20 },		// 162 bits per transform
+		{ 11, 24, 19 },		// 162 bits per transform
+		{ 11, 25, 11 },		// 162 bits per transform
+		{ 12, 10, 25 },		// 162 bits per transform
+		{ 12, 18, 24 },		// 162 bits per transform
+		{ 12, 19, 23 },		// 162 bits per transform
+		{ 12, 20, 22 },		// 162 bits per transform
 		{ 12, 21, 21 },		// 162 bits per transform
-		{ 12, 22, 10 },		// 162 bits per transform
-		{ 13, 9, 22 },		// 162 bits per transform
+		{ 12, 22, 20 },		// 162 bits per transform
+		{ 12, 23, 19 },		// 162 bits per transform
+		{ 12, 24, 18 },		// 162 bits per transform
+		{ 12, 25, 10 },		// 162 bits per transform
+		{ 13, 9, 25 },		// 162 bits per transform
+		{ 13, 17, 24 },		// 162 bits per transform
+		{ 13, 18, 23 },		// 162 bits per transform
+		{ 13, 19, 22 },		// 162 bits per transform
 		{ 13, 20, 21 },		// 162 bits per transform
 		{ 13, 21, 20 },		// 162 bits per transform
-		{ 13, 22, 9 },		// 162 bits per transform
-		{ 14, 8, 22 },		// 162 bits per transform
+		{ 13, 22, 19 },		// 162 bits per transform
+		{ 13, 23, 18 },		// 162 bits per transform
+		{ 13, 24, 17 },		// 162 bits per transform
+		{ 13, 25, 9 },		// 162 bits per transform
+		{ 14, 8, 25 },		// 162 bits per transform
+		{ 14, 16, 24 },		// 162 bits per transform
+		{ 14, 17, 23 },		// 162 bits per transform
+		{ 14, 18, 22 },		// 162 bits per transform
 		{ 14, 19, 21 },		// 162 bits per transform
 		{ 14, 20, 20 },		// 162 bits per transform
 		{ 14, 21, 19 },		// 162 bits per transform
-		{ 14, 22, 8 },		// 162 bits per transform
-		{ 15, 7, 22 },		// 162 bits per transform
+		{ 14, 22, 18 },		// 162 bits per transform
+		{ 14, 23, 17 },		// 162 bits per transform
+		{ 14, 24, 16 },		// 162 bits per transform
+		{ 14, 25, 8 },		// 162 bits per transform
+		{ 15, 7, 25 },		// 162 bits per transform
+		{ 15, 15, 24 },		// 162 bits per transform
+		{ 15, 16, 23 },		// 162 bits per transform
+		{ 15, 17, 22 },		// 162 bits per transform
 		{ 15, 18, 21 },		// 162 bits per transform
 		{ 15, 19, 20 },		// 162 bits per transform
 		{ 15, 20, 19 },		// 162 bits per transform
 		{ 15, 21, 18 },		// 162 bits per transform
-		{ 15, 22, 7 },		// 162 bits per transform
-		{ 16, 6, 22 },		// 162 bits per transform
+		{ 15, 22, 17 },		// 162 bits per transform
+		{ 15, 23, 16 },		// 162 bits per transform
+		{ 15, 24, 15 },		// 162 bits per transform
+		{ 15, 25, 7 },		// 162 bits per transform
+		{ 16, 6, 25 },		// 162 bits per transform
+		{ 16, 14, 24 },		// 162 bits per transform
+		{ 16, 15, 23 },		// 162 bits per transform
+		{ 16, 16, 22 },		// 162 bits per transform
 		{ 16, 17, 21 },		// 162 bits per transform
 		{ 16, 18, 20 },		// 162 bits per transform
 		{ 16, 19, 19 },		// 162 bits per transform
 		{ 16, 20, 18 },		// 162 bits per transform
 		{ 16, 21, 17 },		// 162 bits per transform
-		{ 16, 22, 6 },		// 162 bits per transform
-		{ 17, 5, 22 },		// 162 bits per transform
+		{ 16, 22, 16 },		// 162 bits per transform
+		{ 16, 23, 15 },		// 162 bits per transform
+		{ 16, 24, 14 },		// 162 bits per transform
+		{ 16, 25, 6 },		// 162 bits per transform
+		{ 17, 5, 25 },		// 162 bits per transform
+		{ 17, 13, 24 },		// 162 bits per transform
+		{ 17, 14, 23 },		// 162 bits per transform
+		{ 17, 15, 22 },		// 162 bits per transform
 		{ 17, 16, 21 },		// 162 bits per transform
 		{ 17, 17, 20 },		// 162 bits per transform
 		{ 17, 18, 19 },		// 162 bits per transform
 		{ 17, 19, 18 },		// 162 bits per transform
 		{ 17, 20, 17 },		// 162 bits per transform
 		{ 17, 21, 16 },		// 162 bits per transform
-		{ 17, 22, 5 },		// 162 bits per transform
-		{ 18, 4, 22 },		// 162 bits per transform
+		{ 17, 22, 15 },		// 162 bits per transform
+		{ 17, 23, 14 },		// 162 bits per transform
+		{ 17, 24, 13 },		// 162 bits per transform
+		{ 17, 25, 5 },		// 162 bits per transform
+		{ 18, 4, 25 },		// 162 bits per transform
+		{ 18, 12, 24 },		// 162 bits per transform
+		{ 18, 13, 23 },		// 162 bits per transform
+		{ 18, 14, 22 },		// 162 bits per transform
 		{ 18, 15, 21 },		// 162 bits per transform
 		{ 18, 16, 20 },		// 162 bits per transform
 		{ 18, 17, 19 },		// 162 bits per transform
@@ -11824,8 +15900,14 @@ namespace acl
 		{ 18, 19, 17 },		// 162 bits per transform
 		{ 18, 20, 16 },		// 162 bits per transform
 		{ 18, 21, 15 },		// 162 bits per transform
-		{ 18, 22, 4 },		// 162 bits per transform
-		{ 19, 3, 22 },		// 162 bits per transform
+		{ 18, 22, 14 },		// 162 bits per transform
+		{ 18, 23, 13 },		// 162 bits per transform
+		{ 18, 24, 12 },		// 162 bits per transform
+		{ 18, 25, 4 },		// 162 bits per transform
+		{ 19, 3, 25 },		// 162 bits per transform
+		{ 19, 11, 24 },		// 162 bits per transform
+		{ 19, 12, 23 },		// 162 bits per transform
+		{ 19, 13, 22 },		// 162 bits per transform
 		{ 19, 14, 21 },		// 162 bits per transform
 		{ 19, 15, 20 },		// 162 bits per transform
 		{ 19, 16, 19 },		// 162 bits per transform
@@ -11834,8 +15916,14 @@ namespace acl
 		{ 19, 19, 16 },		// 162 bits per transform
 		{ 19, 20, 15 },		// 162 bits per transform
 		{ 19, 21, 14 },		// 162 bits per transform
-		{ 19, 22, 3 },		// 162 bits per transform
-		{ 20, 2, 22 },		// 162 bits per transform
+		{ 19, 22, 13 },		// 162 bits per transform
+		{ 19, 23, 12 },		// 162 bits per transform
+		{ 19, 24, 11 },		// 162 bits per transform
+		{ 19, 25, 3 },		// 162 bits per transform
+		{ 20, 2, 25 },		// 162 bits per transform
+		{ 20, 10, 24 },		// 162 bits per transform
+		{ 20, 11, 23 },		// 162 bits per transform
+		{ 20, 12, 22 },		// 162 bits per transform
 		{ 20, 13, 21 },		// 162 bits per transform
 		{ 20, 14, 20 },		// 162 bits per transform
 		{ 20, 15, 19 },		// 162 bits per transform
@@ -11845,8 +15933,14 @@ namespace acl
 		{ 20, 19, 15 },		// 162 bits per transform
 		{ 20, 20, 14 },		// 162 bits per transform
 		{ 20, 21, 13 },		// 162 bits per transform
-		{ 20, 22, 2 },		// 162 bits per transform
-		{ 21, 1, 22 },		// 162 bits per transform
+		{ 20, 22, 12 },		// 162 bits per transform
+		{ 20, 23, 11 },		// 162 bits per transform
+		{ 20, 24, 10 },		// 162 bits per transform
+		{ 20, 25, 2 },		// 162 bits per transform
+		{ 21, 1, 25 },		// 162 bits per transform
+		{ 21, 9, 24 },		// 162 bits per transform
+		{ 21, 10, 23 },		// 162 bits per transform
+		{ 21, 11, 22 },		// 162 bits per transform
 		{ 21, 12, 21 },		// 162 bits per transform
 		{ 21, 13, 20 },		// 162 bits per transform
 		{ 21, 14, 19 },		// 162 bits per transform
@@ -11857,84 +15951,209 @@ namespace acl
 		{ 21, 19, 14 },		// 162 bits per transform
 		{ 21, 20, 13 },		// 162 bits per transform
 		{ 21, 21, 12 },		// 162 bits per transform
-		{ 21, 22, 1 },		// 162 bits per transform
-		{ 22, 1, 21 },		// 162 bits per transform
-		{ 22, 2, 20 },		// 162 bits per transform
-		{ 22, 3, 19 },		// 162 bits per transform
-		{ 22, 4, 18 },		// 162 bits per transform
-		{ 22, 5, 17 },		// 162 bits per transform
-		{ 22, 6, 16 },		// 162 bits per transform
-		{ 22, 7, 15 },		// 162 bits per transform
-		{ 22, 8, 14 },		// 162 bits per transform
-		{ 22, 9, 13 },		// 162 bits per transform
-		{ 22, 10, 12 },		// 162 bits per transform
-		{ 22, 11, 11 },		// 162 bits per transform
-		{ 22, 12, 10 },		// 162 bits per transform
-		{ 22, 13, 9 },		// 162 bits per transform
-		{ 22, 14, 8 },		// 162 bits per transform
-		{ 22, 15, 7 },		// 162 bits per transform
-		{ 22, 16, 6 },		// 162 bits per transform
-		{ 22, 17, 5 },		// 162 bits per transform
-		{ 22, 18, 4 },		// 162 bits per transform
-		{ 22, 19, 3 },		// 162 bits per transform
-		{ 22, 20, 2 },		// 162 bits per transform
-		{ 22, 21, 1 },		// 162 bits per transform
-		{ 2, 21, 22 },		// 165 bits per transform
-		{ 2, 22, 21 },		// 165 bits per transform
-		{ 3, 20, 22 },		// 165 bits per transform
-		{ 3, 22, 20 },		// 165 bits per transform
-		{ 4, 19, 22 },		// 165 bits per transform
-		{ 4, 22, 19 },		// 165 bits per transform
-		{ 5, 18, 22 },		// 165 bits per transform
-		{ 5, 22, 18 },		// 165 bits per transform
-		{ 6, 17, 22 },		// 165 bits per transform
-		{ 6, 22, 17 },		// 165 bits per transform
-		{ 7, 16, 22 },		// 165 bits per transform
-		{ 7, 22, 16 },		// 165 bits per transform
-		{ 8, 15, 22 },		// 165 bits per transform
-		{ 8, 22, 15 },		// 165 bits per transform
-		{ 9, 14, 22 },		// 165 bits per transform
-		{ 9, 22, 14 },		// 165 bits per transform
-		{ 10, 13, 22 },		// 165 bits per transform
-		{ 10, 22, 13 },		// 165 bits per transform
-		{ 11, 12, 22 },		// 165 bits per transform
-		{ 11, 22, 12 },		// 165 bits per transform
-		{ 12, 11, 22 },		// 165 bits per transform
-		{ 12, 22, 11 },		// 165 bits per transform
-		{ 13, 10, 22 },		// 165 bits per transform
+		{ 21, 22, 11 },		// 162 bits per transform
+		{ 21, 23, 10 },		// 162 bits per transform
+		{ 21, 24, 9 },		// 162 bits per transform
+		{ 21, 25, 1 },		// 162 bits per transform
+		{ 22, 0, 25 },		// 162 bits per transform
+		{ 22, 8, 24 },		// 162 bits per transform
+		{ 22, 9, 23 },		// 162 bits per transform
+		{ 22, 10, 22 },		// 162 bits per transform
+		{ 22, 11, 21 },		// 162 bits per transform
+		{ 22, 12, 20 },		// 162 bits per transform
+		{ 22, 13, 19 },		// 162 bits per transform
+		{ 22, 14, 18 },		// 162 bits per transform
+		{ 22, 15, 17 },		// 162 bits per transform
+		{ 22, 16, 16 },		// 162 bits per transform
+		{ 22, 17, 15 },		// 162 bits per transform
+		{ 22, 18, 14 },		// 162 bits per transform
+		{ 22, 19, 13 },		// 162 bits per transform
+		{ 22, 20, 12 },		// 162 bits per transform
+		{ 22, 21, 11 },		// 162 bits per transform
+		{ 22, 22, 10 },		// 162 bits per transform
+		{ 22, 23, 9 },		// 162 bits per transform
+		{ 22, 24, 8 },		// 162 bits per transform
+		{ 22, 25, 0 },		// 162 bits per transform
+		{ 23, 7, 24 },		// 162 bits per transform
+		{ 23, 8, 23 },		// 162 bits per transform
+		{ 23, 9, 22 },		// 162 bits per transform
+		{ 23, 10, 21 },		// 162 bits per transform
+		{ 23, 11, 20 },		// 162 bits per transform
+		{ 23, 12, 19 },		// 162 bits per transform
+		{ 23, 13, 18 },		// 162 bits per transform
+		{ 23, 14, 17 },		// 162 bits per transform
+		{ 23, 15, 16 },		// 162 bits per transform
+		{ 23, 16, 15 },		// 162 bits per transform
+		{ 23, 17, 14 },		// 162 bits per transform
+		{ 23, 18, 13 },		// 162 bits per transform
+		{ 23, 19, 12 },		// 162 bits per transform
+		{ 23, 20, 11 },		// 162 bits per transform
+		{ 23, 21, 10 },		// 162 bits per transform
+		{ 23, 22, 9 },		// 162 bits per transform
+		{ 23, 23, 8 },		// 162 bits per transform
+		{ 23, 24, 7 },		// 162 bits per transform
+		{ 24, 6, 24 },		// 162 bits per transform
+		{ 24, 7, 23 },		// 162 bits per transform
+		{ 24, 8, 22 },		// 162 bits per transform
+		{ 24, 9, 21 },		// 162 bits per transform
+		{ 24, 10, 20 },		// 162 bits per transform
+		{ 24, 11, 19 },		// 162 bits per transform
+		{ 24, 12, 18 },		// 162 bits per transform
+		{ 24, 13, 17 },		// 162 bits per transform
+		{ 24, 14, 16 },		// 162 bits per transform
+		{ 24, 15, 15 },		// 162 bits per transform
+		{ 24, 16, 14 },		// 162 bits per transform
+		{ 24, 17, 13 },		// 162 bits per transform
+		{ 24, 18, 12 },		// 162 bits per transform
+		{ 24, 19, 11 },		// 162 bits per transform
+		{ 24, 20, 10 },		// 162 bits per transform
+		{ 24, 21, 9 },		// 162 bits per transform
+		{ 24, 22, 8 },		// 162 bits per transform
+		{ 24, 23, 7 },		// 162 bits per transform
+		{ 24, 24, 6 },		// 162 bits per transform
+		{ 25, 0, 22 },		// 162 bits per transform
+		{ 25, 1, 21 },		// 162 bits per transform
+		{ 25, 2, 20 },		// 162 bits per transform
+		{ 25, 3, 19 },		// 162 bits per transform
+		{ 25, 4, 18 },		// 162 bits per transform
+		{ 25, 5, 17 },		// 162 bits per transform
+		{ 25, 6, 16 },		// 162 bits per transform
+		{ 25, 7, 15 },		// 162 bits per transform
+		{ 25, 8, 14 },		// 162 bits per transform
+		{ 25, 9, 13 },		// 162 bits per transform
+		{ 25, 10, 12 },		// 162 bits per transform
+		{ 25, 11, 11 },		// 162 bits per transform
+		{ 25, 12, 10 },		// 162 bits per transform
+		{ 25, 13, 9 },		// 162 bits per transform
+		{ 25, 14, 8 },		// 162 bits per transform
+		{ 25, 15, 7 },		// 162 bits per transform
+		{ 25, 16, 6 },		// 162 bits per transform
+		{ 25, 17, 5 },		// 162 bits per transform
+		{ 25, 18, 4 },		// 162 bits per transform
+		{ 25, 19, 3 },		// 162 bits per transform
+		{ 25, 20, 2 },		// 162 bits per transform
+		{ 25, 21, 1 },		// 162 bits per transform
+		{ 25, 22, 0 },		// 162 bits per transform
+		{ 0, 23, 25 },		// 165 bits per transform
+		{ 0, 25, 23 },		// 165 bits per transform
+		{ 1, 22, 25 },		// 165 bits per transform
+		{ 1, 25, 22 },		// 165 bits per transform
+		{ 2, 21, 25 },		// 165 bits per transform
+		{ 2, 25, 21 },		// 165 bits per transform
+		{ 3, 20, 25 },		// 165 bits per transform
+		{ 3, 25, 20 },		// 165 bits per transform
+		{ 4, 19, 25 },		// 165 bits per transform
+		{ 4, 25, 19 },		// 165 bits per transform
+		{ 5, 18, 25 },		// 165 bits per transform
+		{ 5, 25, 18 },		// 165 bits per transform
+		{ 6, 17, 25 },		// 165 bits per transform
+		{ 6, 25, 17 },		// 165 bits per transform
+		{ 7, 16, 25 },		// 165 bits per transform
+		{ 7, 24, 24 },		// 165 bits per transform
+		{ 7, 25, 16 },		// 165 bits per transform
+		{ 8, 15, 25 },		// 165 bits per transform
+		{ 8, 23, 24 },		// 165 bits per transform
+		{ 8, 24, 23 },		// 165 bits per transform
+		{ 8, 25, 15 },		// 165 bits per transform
+		{ 9, 14, 25 },		// 165 bits per transform
+		{ 9, 22, 24 },		// 165 bits per transform
+		{ 9, 23, 23 },		// 165 bits per transform
+		{ 9, 24, 22 },		// 165 bits per transform
+		{ 9, 25, 14 },		// 165 bits per transform
+		{ 10, 13, 25 },		// 165 bits per transform
+		{ 10, 21, 24 },		// 165 bits per transform
+		{ 10, 22, 23 },		// 165 bits per transform
+		{ 10, 23, 22 },		// 165 bits per transform
+		{ 10, 24, 21 },		// 165 bits per transform
+		{ 10, 25, 13 },		// 165 bits per transform
+		{ 11, 12, 25 },		// 165 bits per transform
+		{ 11, 20, 24 },		// 165 bits per transform
+		{ 11, 21, 23 },		// 165 bits per transform
+		{ 11, 22, 22 },		// 165 bits per transform
+		{ 11, 23, 21 },		// 165 bits per transform
+		{ 11, 24, 20 },		// 165 bits per transform
+		{ 11, 25, 12 },		// 165 bits per transform
+		{ 12, 11, 25 },		// 165 bits per transform
+		{ 12, 19, 24 },		// 165 bits per transform
+		{ 12, 20, 23 },		// 165 bits per transform
+		{ 12, 21, 22 },		// 165 bits per transform
+		{ 12, 22, 21 },		// 165 bits per transform
+		{ 12, 23, 20 },		// 165 bits per transform
+		{ 12, 24, 19 },		// 165 bits per transform
+		{ 12, 25, 11 },		// 165 bits per transform
+		{ 13, 10, 25 },		// 165 bits per transform
+		{ 13, 18, 24 },		// 165 bits per transform
+		{ 13, 19, 23 },		// 165 bits per transform
+		{ 13, 20, 22 },		// 165 bits per transform
 		{ 13, 21, 21 },		// 165 bits per transform
-		{ 13, 22, 10 },		// 165 bits per transform
-		{ 14, 9, 22 },		// 165 bits per transform
+		{ 13, 22, 20 },		// 165 bits per transform
+		{ 13, 23, 19 },		// 165 bits per transform
+		{ 13, 24, 18 },		// 165 bits per transform
+		{ 13, 25, 10 },		// 165 bits per transform
+		{ 14, 9, 25 },		// 165 bits per transform
+		{ 14, 17, 24 },		// 165 bits per transform
+		{ 14, 18, 23 },		// 165 bits per transform
+		{ 14, 19, 22 },		// 165 bits per transform
 		{ 14, 20, 21 },		// 165 bits per transform
 		{ 14, 21, 20 },		// 165 bits per transform
-		{ 14, 22, 9 },		// 165 bits per transform
-		{ 15, 8, 22 },		// 165 bits per transform
+		{ 14, 22, 19 },		// 165 bits per transform
+		{ 14, 23, 18 },		// 165 bits per transform
+		{ 14, 24, 17 },		// 165 bits per transform
+		{ 14, 25, 9 },		// 165 bits per transform
+		{ 15, 8, 25 },		// 165 bits per transform
+		{ 15, 16, 24 },		// 165 bits per transform
+		{ 15, 17, 23 },		// 165 bits per transform
+		{ 15, 18, 22 },		// 165 bits per transform
 		{ 15, 19, 21 },		// 165 bits per transform
 		{ 15, 20, 20 },		// 165 bits per transform
 		{ 15, 21, 19 },		// 165 bits per transform
-		{ 15, 22, 8 },		// 165 bits per transform
-		{ 16, 7, 22 },		// 165 bits per transform
+		{ 15, 22, 18 },		// 165 bits per transform
+		{ 15, 23, 17 },		// 165 bits per transform
+		{ 15, 24, 16 },		// 165 bits per transform
+		{ 15, 25, 8 },		// 165 bits per transform
+		{ 16, 7, 25 },		// 165 bits per transform
+		{ 16, 15, 24 },		// 165 bits per transform
+		{ 16, 16, 23 },		// 165 bits per transform
+		{ 16, 17, 22 },		// 165 bits per transform
 		{ 16, 18, 21 },		// 165 bits per transform
 		{ 16, 19, 20 },		// 165 bits per transform
 		{ 16, 20, 19 },		// 165 bits per transform
 		{ 16, 21, 18 },		// 165 bits per transform
-		{ 16, 22, 7 },		// 165 bits per transform
-		{ 17, 6, 22 },		// 165 bits per transform
+		{ 16, 22, 17 },		// 165 bits per transform
+		{ 16, 23, 16 },		// 165 bits per transform
+		{ 16, 24, 15 },		// 165 bits per transform
+		{ 16, 25, 7 },		// 165 bits per transform
+		{ 17, 6, 25 },		// 165 bits per transform
+		{ 17, 14, 24 },		// 165 bits per transform
+		{ 17, 15, 23 },		// 165 bits per transform
+		{ 17, 16, 22 },		// 165 bits per transform
 		{ 17, 17, 21 },		// 165 bits per transform
 		{ 17, 18, 20 },		// 165 bits per transform
 		{ 17, 19, 19 },		// 165 bits per transform
 		{ 17, 20, 18 },		// 165 bits per transform
 		{ 17, 21, 17 },		// 165 bits per transform
-		{ 17, 22, 6 },		// 165 bits per transform
-		{ 18, 5, 22 },		// 165 bits per transform
+		{ 17, 22, 16 },		// 165 bits per transform
+		{ 17, 23, 15 },		// 165 bits per transform
+		{ 17, 24, 14 },		// 165 bits per transform
+		{ 17, 25, 6 },		// 165 bits per transform
+		{ 18, 5, 25 },		// 165 bits per transform
+		{ 18, 13, 24 },		// 165 bits per transform
+		{ 18, 14, 23 },		// 165 bits per transform
+		{ 18, 15, 22 },		// 165 bits per transform
 		{ 18, 16, 21 },		// 165 bits per transform
 		{ 18, 17, 20 },		// 165 bits per transform
 		{ 18, 18, 19 },		// 165 bits per transform
 		{ 18, 19, 18 },		// 165 bits per transform
 		{ 18, 20, 17 },		// 165 bits per transform
 		{ 18, 21, 16 },		// 165 bits per transform
-		{ 18, 22, 5 },		// 165 bits per transform
-		{ 19, 4, 22 },		// 165 bits per transform
+		{ 18, 22, 15 },		// 165 bits per transform
+		{ 18, 23, 14 },		// 165 bits per transform
+		{ 18, 24, 13 },		// 165 bits per transform
+		{ 18, 25, 5 },		// 165 bits per transform
+		{ 19, 4, 25 },		// 165 bits per transform
+		{ 19, 12, 24 },		// 165 bits per transform
+		{ 19, 13, 23 },		// 165 bits per transform
+		{ 19, 14, 22 },		// 165 bits per transform
 		{ 19, 15, 21 },		// 165 bits per transform
 		{ 19, 16, 20 },		// 165 bits per transform
 		{ 19, 17, 19 },		// 165 bits per transform
@@ -11942,8 +16161,14 @@ namespace acl
 		{ 19, 19, 17 },		// 165 bits per transform
 		{ 19, 20, 16 },		// 165 bits per transform
 		{ 19, 21, 15 },		// 165 bits per transform
-		{ 19, 22, 4 },		// 165 bits per transform
-		{ 20, 3, 22 },		// 165 bits per transform
+		{ 19, 22, 14 },		// 165 bits per transform
+		{ 19, 23, 13 },		// 165 bits per transform
+		{ 19, 24, 12 },		// 165 bits per transform
+		{ 19, 25, 4 },		// 165 bits per transform
+		{ 20, 3, 25 },		// 165 bits per transform
+		{ 20, 11, 24 },		// 165 bits per transform
+		{ 20, 12, 23 },		// 165 bits per transform
+		{ 20, 13, 22 },		// 165 bits per transform
 		{ 20, 14, 21 },		// 165 bits per transform
 		{ 20, 15, 20 },		// 165 bits per transform
 		{ 20, 16, 19 },		// 165 bits per transform
@@ -11952,8 +16177,14 @@ namespace acl
 		{ 20, 19, 16 },		// 165 bits per transform
 		{ 20, 20, 15 },		// 165 bits per transform
 		{ 20, 21, 14 },		// 165 bits per transform
-		{ 20, 22, 3 },		// 165 bits per transform
-		{ 21, 2, 22 },		// 165 bits per transform
+		{ 20, 22, 13 },		// 165 bits per transform
+		{ 20, 23, 12 },		// 165 bits per transform
+		{ 20, 24, 11 },		// 165 bits per transform
+		{ 20, 25, 3 },		// 165 bits per transform
+		{ 21, 2, 25 },		// 165 bits per transform
+		{ 21, 10, 24 },		// 165 bits per transform
+		{ 21, 11, 23 },		// 165 bits per transform
+		{ 21, 12, 22 },		// 165 bits per transform
 		{ 21, 13, 21 },		// 165 bits per transform
 		{ 21, 14, 20 },		// 165 bits per transform
 		{ 21, 15, 19 },		// 165 bits per transform
@@ -11963,83 +16194,211 @@ namespace acl
 		{ 21, 19, 15 },		// 165 bits per transform
 		{ 21, 20, 14 },		// 165 bits per transform
 		{ 21, 21, 13 },		// 165 bits per transform
-		{ 21, 22, 2 },		// 165 bits per transform
-		{ 22, 2, 21 },		// 165 bits per transform
-		{ 22, 3, 20 },		// 165 bits per transform
-		{ 22, 4, 19 },		// 165 bits per transform
-		{ 22, 5, 18 },		// 165 bits per transform
-		{ 22, 6, 17 },		// 165 bits per transform
-		{ 22, 7, 16 },		// 165 bits per transform
-		{ 22, 8, 15 },		// 165 bits per transform
-		{ 22, 9, 14 },		// 165 bits per transform
-		{ 22, 10, 13 },		// 165 bits per transform
-		{ 22, 11, 12 },		// 165 bits per transform
-		{ 22, 12, 11 },		// 165 bits per transform
-		{ 22, 13, 10 },		// 165 bits per transform
-		{ 22, 14, 9 },		// 165 bits per transform
-		{ 22, 15, 8 },		// 165 bits per transform
-		{ 22, 16, 7 },		// 165 bits per transform
-		{ 22, 17, 6 },		// 165 bits per transform
-		{ 22, 18, 5 },		// 165 bits per transform
-		{ 22, 19, 4 },		// 165 bits per transform
-		{ 22, 20, 3 },		// 165 bits per transform
-		{ 22, 21, 2 },		// 165 bits per transform
-		{ 3, 21, 22 },		// 168 bits per transform
-		{ 3, 22, 21 },		// 168 bits per transform
-		{ 4, 20, 22 },		// 168 bits per transform
-		{ 4, 22, 20 },		// 168 bits per transform
-		{ 5, 19, 22 },		// 168 bits per transform
-		{ 5, 22, 19 },		// 168 bits per transform
-		{ 6, 18, 22 },		// 168 bits per transform
-		{ 6, 22, 18 },		// 168 bits per transform
-		{ 7, 17, 22 },		// 168 bits per transform
-		{ 7, 22, 17 },		// 168 bits per transform
-		{ 8, 16, 22 },		// 168 bits per transform
-		{ 8, 22, 16 },		// 168 bits per transform
-		{ 9, 15, 22 },		// 168 bits per transform
-		{ 9, 22, 15 },		// 168 bits per transform
-		{ 10, 14, 22 },		// 168 bits per transform
-		{ 10, 22, 14 },		// 168 bits per transform
-		{ 11, 13, 22 },		// 168 bits per transform
-		{ 11, 22, 13 },		// 168 bits per transform
-		{ 12, 12, 22 },		// 168 bits per transform
-		{ 12, 22, 12 },		// 168 bits per transform
-		{ 13, 11, 22 },		// 168 bits per transform
-		{ 13, 22, 11 },		// 168 bits per transform
-		{ 14, 10, 22 },		// 168 bits per transform
+		{ 21, 22, 12 },		// 165 bits per transform
+		{ 21, 23, 11 },		// 165 bits per transform
+		{ 21, 24, 10 },		// 165 bits per transform
+		{ 21, 25, 2 },		// 165 bits per transform
+		{ 22, 1, 25 },		// 165 bits per transform
+		{ 22, 9, 24 },		// 165 bits per transform
+		{ 22, 10, 23 },		// 165 bits per transform
+		{ 22, 11, 22 },		// 165 bits per transform
+		{ 22, 12, 21 },		// 165 bits per transform
+		{ 22, 13, 20 },		// 165 bits per transform
+		{ 22, 14, 19 },		// 165 bits per transform
+		{ 22, 15, 18 },		// 165 bits per transform
+		{ 22, 16, 17 },		// 165 bits per transform
+		{ 22, 17, 16 },		// 165 bits per transform
+		{ 22, 18, 15 },		// 165 bits per transform
+		{ 22, 19, 14 },		// 165 bits per transform
+		{ 22, 20, 13 },		// 165 bits per transform
+		{ 22, 21, 12 },		// 165 bits per transform
+		{ 22, 22, 11 },		// 165 bits per transform
+		{ 22, 23, 10 },		// 165 bits per transform
+		{ 22, 24, 9 },		// 165 bits per transform
+		{ 22, 25, 1 },		// 165 bits per transform
+		{ 23, 0, 25 },		// 165 bits per transform
+		{ 23, 8, 24 },		// 165 bits per transform
+		{ 23, 9, 23 },		// 165 bits per transform
+		{ 23, 10, 22 },		// 165 bits per transform
+		{ 23, 11, 21 },		// 165 bits per transform
+		{ 23, 12, 20 },		// 165 bits per transform
+		{ 23, 13, 19 },		// 165 bits per transform
+		{ 23, 14, 18 },		// 165 bits per transform
+		{ 23, 15, 17 },		// 165 bits per transform
+		{ 23, 16, 16 },		// 165 bits per transform
+		{ 23, 17, 15 },		// 165 bits per transform
+		{ 23, 18, 14 },		// 165 bits per transform
+		{ 23, 19, 13 },		// 165 bits per transform
+		{ 23, 20, 12 },		// 165 bits per transform
+		{ 23, 21, 11 },		// 165 bits per transform
+		{ 23, 22, 10 },		// 165 bits per transform
+		{ 23, 23, 9 },		// 165 bits per transform
+		{ 23, 24, 8 },		// 165 bits per transform
+		{ 23, 25, 0 },		// 165 bits per transform
+		{ 24, 7, 24 },		// 165 bits per transform
+		{ 24, 8, 23 },		// 165 bits per transform
+		{ 24, 9, 22 },		// 165 bits per transform
+		{ 24, 10, 21 },		// 165 bits per transform
+		{ 24, 11, 20 },		// 165 bits per transform
+		{ 24, 12, 19 },		// 165 bits per transform
+		{ 24, 13, 18 },		// 165 bits per transform
+		{ 24, 14, 17 },		// 165 bits per transform
+		{ 24, 15, 16 },		// 165 bits per transform
+		{ 24, 16, 15 },		// 165 bits per transform
+		{ 24, 17, 14 },		// 165 bits per transform
+		{ 24, 18, 13 },		// 165 bits per transform
+		{ 24, 19, 12 },		// 165 bits per transform
+		{ 24, 20, 11 },		// 165 bits per transform
+		{ 24, 21, 10 },		// 165 bits per transform
+		{ 24, 22, 9 },		// 165 bits per transform
+		{ 24, 23, 8 },		// 165 bits per transform
+		{ 24, 24, 7 },		// 165 bits per transform
+		{ 25, 0, 23 },		// 165 bits per transform
+		{ 25, 1, 22 },		// 165 bits per transform
+		{ 25, 2, 21 },		// 165 bits per transform
+		{ 25, 3, 20 },		// 165 bits per transform
+		{ 25, 4, 19 },		// 165 bits per transform
+		{ 25, 5, 18 },		// 165 bits per transform
+		{ 25, 6, 17 },		// 165 bits per transform
+		{ 25, 7, 16 },		// 165 bits per transform
+		{ 25, 8, 15 },		// 165 bits per transform
+		{ 25, 9, 14 },		// 165 bits per transform
+		{ 25, 10, 13 },		// 165 bits per transform
+		{ 25, 11, 12 },		// 165 bits per transform
+		{ 25, 12, 11 },		// 165 bits per transform
+		{ 25, 13, 10 },		// 165 bits per transform
+		{ 25, 14, 9 },		// 165 bits per transform
+		{ 25, 15, 8 },		// 165 bits per transform
+		{ 25, 16, 7 },		// 165 bits per transform
+		{ 25, 17, 6 },		// 165 bits per transform
+		{ 25, 18, 5 },		// 165 bits per transform
+		{ 25, 19, 4 },		// 165 bits per transform
+		{ 25, 20, 3 },		// 165 bits per transform
+		{ 25, 21, 2 },		// 165 bits per transform
+		{ 25, 22, 1 },		// 165 bits per transform
+		{ 25, 23, 0 },		// 165 bits per transform
+		{ 0, 24, 25 },		// 168 bits per transform
+		{ 0, 25, 24 },		// 168 bits per transform
+		{ 1, 23, 25 },		// 168 bits per transform
+		{ 1, 25, 23 },		// 168 bits per transform
+		{ 2, 22, 25 },		// 168 bits per transform
+		{ 2, 25, 22 },		// 168 bits per transform
+		{ 3, 21, 25 },		// 168 bits per transform
+		{ 3, 25, 21 },		// 168 bits per transform
+		{ 4, 20, 25 },		// 168 bits per transform
+		{ 4, 25, 20 },		// 168 bits per transform
+		{ 5, 19, 25 },		// 168 bits per transform
+		{ 5, 25, 19 },		// 168 bits per transform
+		{ 6, 18, 25 },		// 168 bits per transform
+		{ 6, 25, 18 },		// 168 bits per transform
+		{ 7, 17, 25 },		// 168 bits per transform
+		{ 7, 25, 17 },		// 168 bits per transform
+		{ 8, 16, 25 },		// 168 bits per transform
+		{ 8, 24, 24 },		// 168 bits per transform
+		{ 8, 25, 16 },		// 168 bits per transform
+		{ 9, 15, 25 },		// 168 bits per transform
+		{ 9, 23, 24 },		// 168 bits per transform
+		{ 9, 24, 23 },		// 168 bits per transform
+		{ 9, 25, 15 },		// 168 bits per transform
+		{ 10, 14, 25 },		// 168 bits per transform
+		{ 10, 22, 24 },		// 168 bits per transform
+		{ 10, 23, 23 },		// 168 bits per transform
+		{ 10, 24, 22 },		// 168 bits per transform
+		{ 10, 25, 14 },		// 168 bits per transform
+		{ 11, 13, 25 },		// 168 bits per transform
+		{ 11, 21, 24 },		// 168 bits per transform
+		{ 11, 22, 23 },		// 168 bits per transform
+		{ 11, 23, 22 },		// 168 bits per transform
+		{ 11, 24, 21 },		// 168 bits per transform
+		{ 11, 25, 13 },		// 168 bits per transform
+		{ 12, 12, 25 },		// 168 bits per transform
+		{ 12, 20, 24 },		// 168 bits per transform
+		{ 12, 21, 23 },		// 168 bits per transform
+		{ 12, 22, 22 },		// 168 bits per transform
+		{ 12, 23, 21 },		// 168 bits per transform
+		{ 12, 24, 20 },		// 168 bits per transform
+		{ 12, 25, 12 },		// 168 bits per transform
+		{ 13, 11, 25 },		// 168 bits per transform
+		{ 13, 19, 24 },		// 168 bits per transform
+		{ 13, 20, 23 },		// 168 bits per transform
+		{ 13, 21, 22 },		// 168 bits per transform
+		{ 13, 22, 21 },		// 168 bits per transform
+		{ 13, 23, 20 },		// 168 bits per transform
+		{ 13, 24, 19 },		// 168 bits per transform
+		{ 13, 25, 11 },		// 168 bits per transform
+		{ 14, 10, 25 },		// 168 bits per transform
+		{ 14, 18, 24 },		// 168 bits per transform
+		{ 14, 19, 23 },		// 168 bits per transform
+		{ 14, 20, 22 },		// 168 bits per transform
 		{ 14, 21, 21 },		// 168 bits per transform
-		{ 14, 22, 10 },		// 168 bits per transform
-		{ 15, 9, 22 },		// 168 bits per transform
+		{ 14, 22, 20 },		// 168 bits per transform
+		{ 14, 23, 19 },		// 168 bits per transform
+		{ 14, 24, 18 },		// 168 bits per transform
+		{ 14, 25, 10 },		// 168 bits per transform
+		{ 15, 9, 25 },		// 168 bits per transform
+		{ 15, 17, 24 },		// 168 bits per transform
+		{ 15, 18, 23 },		// 168 bits per transform
+		{ 15, 19, 22 },		// 168 bits per transform
 		{ 15, 20, 21 },		// 168 bits per transform
 		{ 15, 21, 20 },		// 168 bits per transform
-		{ 15, 22, 9 },		// 168 bits per transform
-		{ 16, 8, 22 },		// 168 bits per transform
+		{ 15, 22, 19 },		// 168 bits per transform
+		{ 15, 23, 18 },		// 168 bits per transform
+		{ 15, 24, 17 },		// 168 bits per transform
+		{ 15, 25, 9 },		// 168 bits per transform
+		{ 16, 8, 25 },		// 168 bits per transform
+		{ 16, 16, 24 },		// 168 bits per transform
+		{ 16, 17, 23 },		// 168 bits per transform
+		{ 16, 18, 22 },		// 168 bits per transform
 		{ 16, 19, 21 },		// 168 bits per transform
 		{ 16, 20, 20 },		// 168 bits per transform
 		{ 16, 21, 19 },		// 168 bits per transform
-		{ 16, 22, 8 },		// 168 bits per transform
-		{ 17, 7, 22 },		// 168 bits per transform
+		{ 16, 22, 18 },		// 168 bits per transform
+		{ 16, 23, 17 },		// 168 bits per transform
+		{ 16, 24, 16 },		// 168 bits per transform
+		{ 16, 25, 8 },		// 168 bits per transform
+		{ 17, 7, 25 },		// 168 bits per transform
+		{ 17, 15, 24 },		// 168 bits per transform
+		{ 17, 16, 23 },		// 168 bits per transform
+		{ 17, 17, 22 },		// 168 bits per transform
 		{ 17, 18, 21 },		// 168 bits per transform
 		{ 17, 19, 20 },		// 168 bits per transform
 		{ 17, 20, 19 },		// 168 bits per transform
 		{ 17, 21, 18 },		// 168 bits per transform
-		{ 17, 22, 7 },		// 168 bits per transform
-		{ 18, 6, 22 },		// 168 bits per transform
+		{ 17, 22, 17 },		// 168 bits per transform
+		{ 17, 23, 16 },		// 168 bits per transform
+		{ 17, 24, 15 },		// 168 bits per transform
+		{ 17, 25, 7 },		// 168 bits per transform
+		{ 18, 6, 25 },		// 168 bits per transform
+		{ 18, 14, 24 },		// 168 bits per transform
+		{ 18, 15, 23 },		// 168 bits per transform
+		{ 18, 16, 22 },		// 168 bits per transform
 		{ 18, 17, 21 },		// 168 bits per transform
 		{ 18, 18, 20 },		// 168 bits per transform
 		{ 18, 19, 19 },		// 168 bits per transform
 		{ 18, 20, 18 },		// 168 bits per transform
 		{ 18, 21, 17 },		// 168 bits per transform
-		{ 18, 22, 6 },		// 168 bits per transform
-		{ 19, 5, 22 },		// 168 bits per transform
+		{ 18, 22, 16 },		// 168 bits per transform
+		{ 18, 23, 15 },		// 168 bits per transform
+		{ 18, 24, 14 },		// 168 bits per transform
+		{ 18, 25, 6 },		// 168 bits per transform
+		{ 19, 5, 25 },		// 168 bits per transform
+		{ 19, 13, 24 },		// 168 bits per transform
+		{ 19, 14, 23 },		// 168 bits per transform
+		{ 19, 15, 22 },		// 168 bits per transform
 		{ 19, 16, 21 },		// 168 bits per transform
 		{ 19, 17, 20 },		// 168 bits per transform
 		{ 19, 18, 19 },		// 168 bits per transform
 		{ 19, 19, 18 },		// 168 bits per transform
 		{ 19, 20, 17 },		// 168 bits per transform
 		{ 19, 21, 16 },		// 168 bits per transform
-		{ 19, 22, 5 },		// 168 bits per transform
-		{ 20, 4, 22 },		// 168 bits per transform
+		{ 19, 22, 15 },		// 168 bits per transform
+		{ 19, 23, 14 },		// 168 bits per transform
+		{ 19, 24, 13 },		// 168 bits per transform
+		{ 19, 25, 5 },		// 168 bits per transform
+		{ 20, 4, 25 },		// 168 bits per transform
+		{ 20, 12, 24 },		// 168 bits per transform
+		{ 20, 13, 23 },		// 168 bits per transform
+		{ 20, 14, 22 },		// 168 bits per transform
 		{ 20, 15, 21 },		// 168 bits per transform
 		{ 20, 16, 20 },		// 168 bits per transform
 		{ 20, 17, 19 },		// 168 bits per transform
@@ -12047,8 +16406,14 @@ namespace acl
 		{ 20, 19, 17 },		// 168 bits per transform
 		{ 20, 20, 16 },		// 168 bits per transform
 		{ 20, 21, 15 },		// 168 bits per transform
-		{ 20, 22, 4 },		// 168 bits per transform
-		{ 21, 3, 22 },		// 168 bits per transform
+		{ 20, 22, 14 },		// 168 bits per transform
+		{ 20, 23, 13 },		// 168 bits per transform
+		{ 20, 24, 12 },		// 168 bits per transform
+		{ 20, 25, 4 },		// 168 bits per transform
+		{ 21, 3, 25 },		// 168 bits per transform
+		{ 21, 11, 24 },		// 168 bits per transform
+		{ 21, 12, 23 },		// 168 bits per transform
+		{ 21, 13, 22 },		// 168 bits per transform
 		{ 21, 14, 21 },		// 168 bits per transform
 		{ 21, 15, 20 },		// 168 bits per transform
 		{ 21, 16, 19 },		// 168 bits per transform
@@ -12057,82 +16422,211 @@ namespace acl
 		{ 21, 19, 16 },		// 168 bits per transform
 		{ 21, 20, 15 },		// 168 bits per transform
 		{ 21, 21, 14 },		// 168 bits per transform
-		{ 21, 22, 3 },		// 168 bits per transform
-		{ 22, 3, 21 },		// 168 bits per transform
-		{ 22, 4, 20 },		// 168 bits per transform
-		{ 22, 5, 19 },		// 168 bits per transform
-		{ 22, 6, 18 },		// 168 bits per transform
-		{ 22, 7, 17 },		// 168 bits per transform
-		{ 22, 8, 16 },		// 168 bits per transform
-		{ 22, 9, 15 },		// 168 bits per transform
-		{ 22, 10, 14 },		// 168 bits per transform
-		{ 22, 11, 13 },		// 168 bits per transform
-		{ 22, 12, 12 },		// 168 bits per transform
-		{ 22, 13, 11 },		// 168 bits per transform
-		{ 22, 14, 10 },		// 168 bits per transform
-		{ 22, 15, 9 },		// 168 bits per transform
-		{ 22, 16, 8 },		// 168 bits per transform
-		{ 22, 17, 7 },		// 168 bits per transform
-		{ 22, 18, 6 },		// 168 bits per transform
-		{ 22, 19, 5 },		// 168 bits per transform
-		{ 22, 20, 4 },		// 168 bits per transform
-		{ 22, 21, 3 },		// 168 bits per transform
-		{ 4, 21, 22 },		// 171 bits per transform
-		{ 4, 22, 21 },		// 171 bits per transform
-		{ 5, 20, 22 },		// 171 bits per transform
-		{ 5, 22, 20 },		// 171 bits per transform
-		{ 6, 19, 22 },		// 171 bits per transform
-		{ 6, 22, 19 },		// 171 bits per transform
-		{ 7, 18, 22 },		// 171 bits per transform
-		{ 7, 22, 18 },		// 171 bits per transform
-		{ 8, 17, 22 },		// 171 bits per transform
-		{ 8, 22, 17 },		// 171 bits per transform
-		{ 9, 16, 22 },		// 171 bits per transform
-		{ 9, 22, 16 },		// 171 bits per transform
-		{ 10, 15, 22 },		// 171 bits per transform
-		{ 10, 22, 15 },		// 171 bits per transform
-		{ 11, 14, 22 },		// 171 bits per transform
-		{ 11, 22, 14 },		// 171 bits per transform
-		{ 12, 13, 22 },		// 171 bits per transform
-		{ 12, 22, 13 },		// 171 bits per transform
-		{ 13, 12, 22 },		// 171 bits per transform
-		{ 13, 22, 12 },		// 171 bits per transform
-		{ 14, 11, 22 },		// 171 bits per transform
-		{ 14, 22, 11 },		// 171 bits per transform
-		{ 15, 10, 22 },		// 171 bits per transform
+		{ 21, 22, 13 },		// 168 bits per transform
+		{ 21, 23, 12 },		// 168 bits per transform
+		{ 21, 24, 11 },		// 168 bits per transform
+		{ 21, 25, 3 },		// 168 bits per transform
+		{ 22, 2, 25 },		// 168 bits per transform
+		{ 22, 10, 24 },		// 168 bits per transform
+		{ 22, 11, 23 },		// 168 bits per transform
+		{ 22, 12, 22 },		// 168 bits per transform
+		{ 22, 13, 21 },		// 168 bits per transform
+		{ 22, 14, 20 },		// 168 bits per transform
+		{ 22, 15, 19 },		// 168 bits per transform
+		{ 22, 16, 18 },		// 168 bits per transform
+		{ 22, 17, 17 },		// 168 bits per transform
+		{ 22, 18, 16 },		// 168 bits per transform
+		{ 22, 19, 15 },		// 168 bits per transform
+		{ 22, 20, 14 },		// 168 bits per transform
+		{ 22, 21, 13 },		// 168 bits per transform
+		{ 22, 22, 12 },		// 168 bits per transform
+		{ 22, 23, 11 },		// 168 bits per transform
+		{ 22, 24, 10 },		// 168 bits per transform
+		{ 22, 25, 2 },		// 168 bits per transform
+		{ 23, 1, 25 },		// 168 bits per transform
+		{ 23, 9, 24 },		// 168 bits per transform
+		{ 23, 10, 23 },		// 168 bits per transform
+		{ 23, 11, 22 },		// 168 bits per transform
+		{ 23, 12, 21 },		// 168 bits per transform
+		{ 23, 13, 20 },		// 168 bits per transform
+		{ 23, 14, 19 },		// 168 bits per transform
+		{ 23, 15, 18 },		// 168 bits per transform
+		{ 23, 16, 17 },		// 168 bits per transform
+		{ 23, 17, 16 },		// 168 bits per transform
+		{ 23, 18, 15 },		// 168 bits per transform
+		{ 23, 19, 14 },		// 168 bits per transform
+		{ 23, 20, 13 },		// 168 bits per transform
+		{ 23, 21, 12 },		// 168 bits per transform
+		{ 23, 22, 11 },		// 168 bits per transform
+		{ 23, 23, 10 },		// 168 bits per transform
+		{ 23, 24, 9 },		// 168 bits per transform
+		{ 23, 25, 1 },		// 168 bits per transform
+		{ 24, 0, 25 },		// 168 bits per transform
+		{ 24, 8, 24 },		// 168 bits per transform
+		{ 24, 9, 23 },		// 168 bits per transform
+		{ 24, 10, 22 },		// 168 bits per transform
+		{ 24, 11, 21 },		// 168 bits per transform
+		{ 24, 12, 20 },		// 168 bits per transform
+		{ 24, 13, 19 },		// 168 bits per transform
+		{ 24, 14, 18 },		// 168 bits per transform
+		{ 24, 15, 17 },		// 168 bits per transform
+		{ 24, 16, 16 },		// 168 bits per transform
+		{ 24, 17, 15 },		// 168 bits per transform
+		{ 24, 18, 14 },		// 168 bits per transform
+		{ 24, 19, 13 },		// 168 bits per transform
+		{ 24, 20, 12 },		// 168 bits per transform
+		{ 24, 21, 11 },		// 168 bits per transform
+		{ 24, 22, 10 },		// 168 bits per transform
+		{ 24, 23, 9 },		// 168 bits per transform
+		{ 24, 24, 8 },		// 168 bits per transform
+		{ 24, 25, 0 },		// 168 bits per transform
+		{ 25, 0, 24 },		// 168 bits per transform
+		{ 25, 1, 23 },		// 168 bits per transform
+		{ 25, 2, 22 },		// 168 bits per transform
+		{ 25, 3, 21 },		// 168 bits per transform
+		{ 25, 4, 20 },		// 168 bits per transform
+		{ 25, 5, 19 },		// 168 bits per transform
+		{ 25, 6, 18 },		// 168 bits per transform
+		{ 25, 7, 17 },		// 168 bits per transform
+		{ 25, 8, 16 },		// 168 bits per transform
+		{ 25, 9, 15 },		// 168 bits per transform
+		{ 25, 10, 14 },		// 168 bits per transform
+		{ 25, 11, 13 },		// 168 bits per transform
+		{ 25, 12, 12 },		// 168 bits per transform
+		{ 25, 13, 11 },		// 168 bits per transform
+		{ 25, 14, 10 },		// 168 bits per transform
+		{ 25, 15, 9 },		// 168 bits per transform
+		{ 25, 16, 8 },		// 168 bits per transform
+		{ 25, 17, 7 },		// 168 bits per transform
+		{ 25, 18, 6 },		// 168 bits per transform
+		{ 25, 19, 5 },		// 168 bits per transform
+		{ 25, 20, 4 },		// 168 bits per transform
+		{ 25, 21, 3 },		// 168 bits per transform
+		{ 25, 22, 2 },		// 168 bits per transform
+		{ 25, 23, 1 },		// 168 bits per transform
+		{ 25, 24, 0 },		// 168 bits per transform
+		{ 1, 24, 25 },		// 171 bits per transform
+		{ 1, 25, 24 },		// 171 bits per transform
+		{ 2, 23, 25 },		// 171 bits per transform
+		{ 2, 25, 23 },		// 171 bits per transform
+		{ 3, 22, 25 },		// 171 bits per transform
+		{ 3, 25, 22 },		// 171 bits per transform
+		{ 4, 21, 25 },		// 171 bits per transform
+		{ 4, 25, 21 },		// 171 bits per transform
+		{ 5, 20, 25 },		// 171 bits per transform
+		{ 5, 25, 20 },		// 171 bits per transform
+		{ 6, 19, 25 },		// 171 bits per transform
+		{ 6, 25, 19 },		// 171 bits per transform
+		{ 7, 18, 25 },		// 171 bits per transform
+		{ 7, 25, 18 },		// 171 bits per transform
+		{ 8, 17, 25 },		// 171 bits per transform
+		{ 8, 25, 17 },		// 171 bits per transform
+		{ 9, 16, 25 },		// 171 bits per transform
+		{ 9, 24, 24 },		// 171 bits per transform
+		{ 9, 25, 16 },		// 171 bits per transform
+		{ 10, 15, 25 },		// 171 bits per transform
+		{ 10, 23, 24 },		// 171 bits per transform
+		{ 10, 24, 23 },		// 171 bits per transform
+		{ 10, 25, 15 },		// 171 bits per transform
+		{ 11, 14, 25 },		// 171 bits per transform
+		{ 11, 22, 24 },		// 171 bits per transform
+		{ 11, 23, 23 },		// 171 bits per transform
+		{ 11, 24, 22 },		// 171 bits per transform
+		{ 11, 25, 14 },		// 171 bits per transform
+		{ 12, 13, 25 },		// 171 bits per transform
+		{ 12, 21, 24 },		// 171 bits per transform
+		{ 12, 22, 23 },		// 171 bits per transform
+		{ 12, 23, 22 },		// 171 bits per transform
+		{ 12, 24, 21 },		// 171 bits per transform
+		{ 12, 25, 13 },		// 171 bits per transform
+		{ 13, 12, 25 },		// 171 bits per transform
+		{ 13, 20, 24 },		// 171 bits per transform
+		{ 13, 21, 23 },		// 171 bits per transform
+		{ 13, 22, 22 },		// 171 bits per transform
+		{ 13, 23, 21 },		// 171 bits per transform
+		{ 13, 24, 20 },		// 171 bits per transform
+		{ 13, 25, 12 },		// 171 bits per transform
+		{ 14, 11, 25 },		// 171 bits per transform
+		{ 14, 19, 24 },		// 171 bits per transform
+		{ 14, 20, 23 },		// 171 bits per transform
+		{ 14, 21, 22 },		// 171 bits per transform
+		{ 14, 22, 21 },		// 171 bits per transform
+		{ 14, 23, 20 },		// 171 bits per transform
+		{ 14, 24, 19 },		// 171 bits per transform
+		{ 14, 25, 11 },		// 171 bits per transform
+		{ 15, 10, 25 },		// 171 bits per transform
+		{ 15, 18, 24 },		// 171 bits per transform
+		{ 15, 19, 23 },		// 171 bits per transform
+		{ 15, 20, 22 },		// 171 bits per transform
 		{ 15, 21, 21 },		// 171 bits per transform
-		{ 15, 22, 10 },		// 171 bits per transform
-		{ 16, 9, 22 },		// 171 bits per transform
+		{ 15, 22, 20 },		// 171 bits per transform
+		{ 15, 23, 19 },		// 171 bits per transform
+		{ 15, 24, 18 },		// 171 bits per transform
+		{ 15, 25, 10 },		// 171 bits per transform
+		{ 16, 9, 25 },		// 171 bits per transform
+		{ 16, 17, 24 },		// 171 bits per transform
+		{ 16, 18, 23 },		// 171 bits per transform
+		{ 16, 19, 22 },		// 171 bits per transform
 		{ 16, 20, 21 },		// 171 bits per transform
 		{ 16, 21, 20 },		// 171 bits per transform
-		{ 16, 22, 9 },		// 171 bits per transform
-		{ 17, 8, 22 },		// 171 bits per transform
+		{ 16, 22, 19 },		// 171 bits per transform
+		{ 16, 23, 18 },		// 171 bits per transform
+		{ 16, 24, 17 },		// 171 bits per transform
+		{ 16, 25, 9 },		// 171 bits per transform
+		{ 17, 8, 25 },		// 171 bits per transform
+		{ 17, 16, 24 },		// 171 bits per transform
+		{ 17, 17, 23 },		// 171 bits per transform
+		{ 17, 18, 22 },		// 171 bits per transform
 		{ 17, 19, 21 },		// 171 bits per transform
 		{ 17, 20, 20 },		// 171 bits per transform
 		{ 17, 21, 19 },		// 171 bits per transform
-		{ 17, 22, 8 },		// 171 bits per transform
-		{ 18, 7, 22 },		// 171 bits per transform
+		{ 17, 22, 18 },		// 171 bits per transform
+		{ 17, 23, 17 },		// 171 bits per transform
+		{ 17, 24, 16 },		// 171 bits per transform
+		{ 17, 25, 8 },		// 171 bits per transform
+		{ 18, 7, 25 },		// 171 bits per transform
+		{ 18, 15, 24 },		// 171 bits per transform
+		{ 18, 16, 23 },		// 171 bits per transform
+		{ 18, 17, 22 },		// 171 bits per transform
 		{ 18, 18, 21 },		// 171 bits per transform
 		{ 18, 19, 20 },		// 171 bits per transform
 		{ 18, 20, 19 },		// 171 bits per transform
 		{ 18, 21, 18 },		// 171 bits per transform
-		{ 18, 22, 7 },		// 171 bits per transform
-		{ 19, 6, 22 },		// 171 bits per transform
+		{ 18, 22, 17 },		// 171 bits per transform
+		{ 18, 23, 16 },		// 171 bits per transform
+		{ 18, 24, 15 },		// 171 bits per transform
+		{ 18, 25, 7 },		// 171 bits per transform
+		{ 19, 6, 25 },		// 171 bits per transform
+		{ 19, 14, 24 },		// 171 bits per transform
+		{ 19, 15, 23 },		// 171 bits per transform
+		{ 19, 16, 22 },		// 171 bits per transform
 		{ 19, 17, 21 },		// 171 bits per transform
 		{ 19, 18, 20 },		// 171 bits per transform
 		{ 19, 19, 19 },		// 171 bits per transform
 		{ 19, 20, 18 },		// 171 bits per transform
 		{ 19, 21, 17 },		// 171 bits per transform
-		{ 19, 22, 6 },		// 171 bits per transform
-		{ 20, 5, 22 },		// 171 bits per transform
+		{ 19, 22, 16 },		// 171 bits per transform
+		{ 19, 23, 15 },		// 171 bits per transform
+		{ 19, 24, 14 },		// 171 bits per transform
+		{ 19, 25, 6 },		// 171 bits per transform
+		{ 20, 5, 25 },		// 171 bits per transform
+		{ 20, 13, 24 },		// 171 bits per transform
+		{ 20, 14, 23 },		// 171 bits per transform
+		{ 20, 15, 22 },		// 171 bits per transform
 		{ 20, 16, 21 },		// 171 bits per transform
 		{ 20, 17, 20 },		// 171 bits per transform
 		{ 20, 18, 19 },		// 171 bits per transform
 		{ 20, 19, 18 },		// 171 bits per transform
 		{ 20, 20, 17 },		// 171 bits per transform
 		{ 20, 21, 16 },		// 171 bits per transform
-		{ 20, 22, 5 },		// 171 bits per transform
-		{ 21, 4, 22 },		// 171 bits per transform
+		{ 20, 22, 15 },		// 171 bits per transform
+		{ 20, 23, 14 },		// 171 bits per transform
+		{ 20, 24, 13 },		// 171 bits per transform
+		{ 20, 25, 5 },		// 171 bits per transform
+		{ 21, 4, 25 },		// 171 bits per transform
+		{ 21, 12, 24 },		// 171 bits per transform
+		{ 21, 13, 23 },		// 171 bits per transform
+		{ 21, 14, 22 },		// 171 bits per transform
 		{ 21, 15, 21 },		// 171 bits per transform
 		{ 21, 16, 20 },		// 171 bits per transform
 		{ 21, 17, 19 },		// 171 bits per transform
@@ -12140,607 +16634,1669 @@ namespace acl
 		{ 21, 19, 17 },		// 171 bits per transform
 		{ 21, 20, 16 },		// 171 bits per transform
 		{ 21, 21, 15 },		// 171 bits per transform
-		{ 21, 22, 4 },		// 171 bits per transform
-		{ 22, 4, 21 },		// 171 bits per transform
-		{ 22, 5, 20 },		// 171 bits per transform
-		{ 22, 6, 19 },		// 171 bits per transform
-		{ 22, 7, 18 },		// 171 bits per transform
-		{ 22, 8, 17 },		// 171 bits per transform
-		{ 22, 9, 16 },		// 171 bits per transform
-		{ 22, 10, 15 },		// 171 bits per transform
-		{ 22, 11, 14 },		// 171 bits per transform
-		{ 22, 12, 13 },		// 171 bits per transform
-		{ 22, 13, 12 },		// 171 bits per transform
-		{ 22, 14, 11 },		// 171 bits per transform
-		{ 22, 15, 10 },		// 171 bits per transform
-		{ 22, 16, 9 },		// 171 bits per transform
-		{ 22, 17, 8 },		// 171 bits per transform
-		{ 22, 18, 7 },		// 171 bits per transform
-		{ 22, 19, 6 },		// 171 bits per transform
-		{ 22, 20, 5 },		// 171 bits per transform
-		{ 22, 21, 4 },		// 171 bits per transform
-		{ 5, 21, 22 },		// 174 bits per transform
-		{ 5, 22, 21 },		// 174 bits per transform
-		{ 6, 20, 22 },		// 174 bits per transform
-		{ 6, 22, 20 },		// 174 bits per transform
-		{ 7, 19, 22 },		// 174 bits per transform
-		{ 7, 22, 19 },		// 174 bits per transform
-		{ 8, 18, 22 },		// 174 bits per transform
-		{ 8, 22, 18 },		// 174 bits per transform
-		{ 9, 17, 22 },		// 174 bits per transform
-		{ 9, 22, 17 },		// 174 bits per transform
-		{ 10, 16, 22 },		// 174 bits per transform
-		{ 10, 22, 16 },		// 174 bits per transform
-		{ 11, 15, 22 },		// 174 bits per transform
-		{ 11, 22, 15 },		// 174 bits per transform
-		{ 12, 14, 22 },		// 174 bits per transform
-		{ 12, 22, 14 },		// 174 bits per transform
-		{ 13, 13, 22 },		// 174 bits per transform
-		{ 13, 22, 13 },		// 174 bits per transform
-		{ 14, 12, 22 },		// 174 bits per transform
-		{ 14, 22, 12 },		// 174 bits per transform
-		{ 15, 11, 22 },		// 174 bits per transform
-		{ 15, 22, 11 },		// 174 bits per transform
-		{ 16, 10, 22 },		// 174 bits per transform
+		{ 21, 22, 14 },		// 171 bits per transform
+		{ 21, 23, 13 },		// 171 bits per transform
+		{ 21, 24, 12 },		// 171 bits per transform
+		{ 21, 25, 4 },		// 171 bits per transform
+		{ 22, 3, 25 },		// 171 bits per transform
+		{ 22, 11, 24 },		// 171 bits per transform
+		{ 22, 12, 23 },		// 171 bits per transform
+		{ 22, 13, 22 },		// 171 bits per transform
+		{ 22, 14, 21 },		// 171 bits per transform
+		{ 22, 15, 20 },		// 171 bits per transform
+		{ 22, 16, 19 },		// 171 bits per transform
+		{ 22, 17, 18 },		// 171 bits per transform
+		{ 22, 18, 17 },		// 171 bits per transform
+		{ 22, 19, 16 },		// 171 bits per transform
+		{ 22, 20, 15 },		// 171 bits per transform
+		{ 22, 21, 14 },		// 171 bits per transform
+		{ 22, 22, 13 },		// 171 bits per transform
+		{ 22, 23, 12 },		// 171 bits per transform
+		{ 22, 24, 11 },		// 171 bits per transform
+		{ 22, 25, 3 },		// 171 bits per transform
+		{ 23, 2, 25 },		// 171 bits per transform
+		{ 23, 10, 24 },		// 171 bits per transform
+		{ 23, 11, 23 },		// 171 bits per transform
+		{ 23, 12, 22 },		// 171 bits per transform
+		{ 23, 13, 21 },		// 171 bits per transform
+		{ 23, 14, 20 },		// 171 bits per transform
+		{ 23, 15, 19 },		// 171 bits per transform
+		{ 23, 16, 18 },		// 171 bits per transform
+		{ 23, 17, 17 },		// 171 bits per transform
+		{ 23, 18, 16 },		// 171 bits per transform
+		{ 23, 19, 15 },		// 171 bits per transform
+		{ 23, 20, 14 },		// 171 bits per transform
+		{ 23, 21, 13 },		// 171 bits per transform
+		{ 23, 22, 12 },		// 171 bits per transform
+		{ 23, 23, 11 },		// 171 bits per transform
+		{ 23, 24, 10 },		// 171 bits per transform
+		{ 23, 25, 2 },		// 171 bits per transform
+		{ 24, 1, 25 },		// 171 bits per transform
+		{ 24, 9, 24 },		// 171 bits per transform
+		{ 24, 10, 23 },		// 171 bits per transform
+		{ 24, 11, 22 },		// 171 bits per transform
+		{ 24, 12, 21 },		// 171 bits per transform
+		{ 24, 13, 20 },		// 171 bits per transform
+		{ 24, 14, 19 },		// 171 bits per transform
+		{ 24, 15, 18 },		// 171 bits per transform
+		{ 24, 16, 17 },		// 171 bits per transform
+		{ 24, 17, 16 },		// 171 bits per transform
+		{ 24, 18, 15 },		// 171 bits per transform
+		{ 24, 19, 14 },		// 171 bits per transform
+		{ 24, 20, 13 },		// 171 bits per transform
+		{ 24, 21, 12 },		// 171 bits per transform
+		{ 24, 22, 11 },		// 171 bits per transform
+		{ 24, 23, 10 },		// 171 bits per transform
+		{ 24, 24, 9 },		// 171 bits per transform
+		{ 24, 25, 1 },		// 171 bits per transform
+		{ 25, 1, 24 },		// 171 bits per transform
+		{ 25, 2, 23 },		// 171 bits per transform
+		{ 25, 3, 22 },		// 171 bits per transform
+		{ 25, 4, 21 },		// 171 bits per transform
+		{ 25, 5, 20 },		// 171 bits per transform
+		{ 25, 6, 19 },		// 171 bits per transform
+		{ 25, 7, 18 },		// 171 bits per transform
+		{ 25, 8, 17 },		// 171 bits per transform
+		{ 25, 9, 16 },		// 171 bits per transform
+		{ 25, 10, 15 },		// 171 bits per transform
+		{ 25, 11, 14 },		// 171 bits per transform
+		{ 25, 12, 13 },		// 171 bits per transform
+		{ 25, 13, 12 },		// 171 bits per transform
+		{ 25, 14, 11 },		// 171 bits per transform
+		{ 25, 15, 10 },		// 171 bits per transform
+		{ 25, 16, 9 },		// 171 bits per transform
+		{ 25, 17, 8 },		// 171 bits per transform
+		{ 25, 18, 7 },		// 171 bits per transform
+		{ 25, 19, 6 },		// 171 bits per transform
+		{ 25, 20, 5 },		// 171 bits per transform
+		{ 25, 21, 4 },		// 171 bits per transform
+		{ 25, 22, 3 },		// 171 bits per transform
+		{ 25, 23, 2 },		// 171 bits per transform
+		{ 25, 24, 1 },		// 171 bits per transform
+		{ 2, 24, 25 },		// 174 bits per transform
+		{ 2, 25, 24 },		// 174 bits per transform
+		{ 3, 23, 25 },		// 174 bits per transform
+		{ 3, 25, 23 },		// 174 bits per transform
+		{ 4, 22, 25 },		// 174 bits per transform
+		{ 4, 25, 22 },		// 174 bits per transform
+		{ 5, 21, 25 },		// 174 bits per transform
+		{ 5, 25, 21 },		// 174 bits per transform
+		{ 6, 20, 25 },		// 174 bits per transform
+		{ 6, 25, 20 },		// 174 bits per transform
+		{ 7, 19, 25 },		// 174 bits per transform
+		{ 7, 25, 19 },		// 174 bits per transform
+		{ 8, 18, 25 },		// 174 bits per transform
+		{ 8, 25, 18 },		// 174 bits per transform
+		{ 9, 17, 25 },		// 174 bits per transform
+		{ 9, 25, 17 },		// 174 bits per transform
+		{ 10, 16, 25 },		// 174 bits per transform
+		{ 10, 24, 24 },		// 174 bits per transform
+		{ 10, 25, 16 },		// 174 bits per transform
+		{ 11, 15, 25 },		// 174 bits per transform
+		{ 11, 23, 24 },		// 174 bits per transform
+		{ 11, 24, 23 },		// 174 bits per transform
+		{ 11, 25, 15 },		// 174 bits per transform
+		{ 12, 14, 25 },		// 174 bits per transform
+		{ 12, 22, 24 },		// 174 bits per transform
+		{ 12, 23, 23 },		// 174 bits per transform
+		{ 12, 24, 22 },		// 174 bits per transform
+		{ 12, 25, 14 },		// 174 bits per transform
+		{ 13, 13, 25 },		// 174 bits per transform
+		{ 13, 21, 24 },		// 174 bits per transform
+		{ 13, 22, 23 },		// 174 bits per transform
+		{ 13, 23, 22 },		// 174 bits per transform
+		{ 13, 24, 21 },		// 174 bits per transform
+		{ 13, 25, 13 },		// 174 bits per transform
+		{ 14, 12, 25 },		// 174 bits per transform
+		{ 14, 20, 24 },		// 174 bits per transform
+		{ 14, 21, 23 },		// 174 bits per transform
+		{ 14, 22, 22 },		// 174 bits per transform
+		{ 14, 23, 21 },		// 174 bits per transform
+		{ 14, 24, 20 },		// 174 bits per transform
+		{ 14, 25, 12 },		// 174 bits per transform
+		{ 15, 11, 25 },		// 174 bits per transform
+		{ 15, 19, 24 },		// 174 bits per transform
+		{ 15, 20, 23 },		// 174 bits per transform
+		{ 15, 21, 22 },		// 174 bits per transform
+		{ 15, 22, 21 },		// 174 bits per transform
+		{ 15, 23, 20 },		// 174 bits per transform
+		{ 15, 24, 19 },		// 174 bits per transform
+		{ 15, 25, 11 },		// 174 bits per transform
+		{ 16, 10, 25 },		// 174 bits per transform
+		{ 16, 18, 24 },		// 174 bits per transform
+		{ 16, 19, 23 },		// 174 bits per transform
+		{ 16, 20, 22 },		// 174 bits per transform
 		{ 16, 21, 21 },		// 174 bits per transform
-		{ 16, 22, 10 },		// 174 bits per transform
-		{ 17, 9, 22 },		// 174 bits per transform
+		{ 16, 22, 20 },		// 174 bits per transform
+		{ 16, 23, 19 },		// 174 bits per transform
+		{ 16, 24, 18 },		// 174 bits per transform
+		{ 16, 25, 10 },		// 174 bits per transform
+		{ 17, 9, 25 },		// 174 bits per transform
+		{ 17, 17, 24 },		// 174 bits per transform
+		{ 17, 18, 23 },		// 174 bits per transform
+		{ 17, 19, 22 },		// 174 bits per transform
 		{ 17, 20, 21 },		// 174 bits per transform
 		{ 17, 21, 20 },		// 174 bits per transform
-		{ 17, 22, 9 },		// 174 bits per transform
-		{ 18, 8, 22 },		// 174 bits per transform
+		{ 17, 22, 19 },		// 174 bits per transform
+		{ 17, 23, 18 },		// 174 bits per transform
+		{ 17, 24, 17 },		// 174 bits per transform
+		{ 17, 25, 9 },		// 174 bits per transform
+		{ 18, 8, 25 },		// 174 bits per transform
+		{ 18, 16, 24 },		// 174 bits per transform
+		{ 18, 17, 23 },		// 174 bits per transform
+		{ 18, 18, 22 },		// 174 bits per transform
 		{ 18, 19, 21 },		// 174 bits per transform
 		{ 18, 20, 20 },		// 174 bits per transform
 		{ 18, 21, 19 },		// 174 bits per transform
-		{ 18, 22, 8 },		// 174 bits per transform
-		{ 19, 7, 22 },		// 174 bits per transform
+		{ 18, 22, 18 },		// 174 bits per transform
+		{ 18, 23, 17 },		// 174 bits per transform
+		{ 18, 24, 16 },		// 174 bits per transform
+		{ 18, 25, 8 },		// 174 bits per transform
+		{ 19, 7, 25 },		// 174 bits per transform
+		{ 19, 15, 24 },		// 174 bits per transform
+		{ 19, 16, 23 },		// 174 bits per transform
+		{ 19, 17, 22 },		// 174 bits per transform
 		{ 19, 18, 21 },		// 174 bits per transform
 		{ 19, 19, 20 },		// 174 bits per transform
 		{ 19, 20, 19 },		// 174 bits per transform
 		{ 19, 21, 18 },		// 174 bits per transform
-		{ 19, 22, 7 },		// 174 bits per transform
-		{ 20, 6, 22 },		// 174 bits per transform
+		{ 19, 22, 17 },		// 174 bits per transform
+		{ 19, 23, 16 },		// 174 bits per transform
+		{ 19, 24, 15 },		// 174 bits per transform
+		{ 19, 25, 7 },		// 174 bits per transform
+		{ 20, 6, 25 },		// 174 bits per transform
+		{ 20, 14, 24 },		// 174 bits per transform
+		{ 20, 15, 23 },		// 174 bits per transform
+		{ 20, 16, 22 },		// 174 bits per transform
 		{ 20, 17, 21 },		// 174 bits per transform
 		{ 20, 18, 20 },		// 174 bits per transform
 		{ 20, 19, 19 },		// 174 bits per transform
 		{ 20, 20, 18 },		// 174 bits per transform
 		{ 20, 21, 17 },		// 174 bits per transform
-		{ 20, 22, 6 },		// 174 bits per transform
-		{ 21, 5, 22 },		// 174 bits per transform
+		{ 20, 22, 16 },		// 174 bits per transform
+		{ 20, 23, 15 },		// 174 bits per transform
+		{ 20, 24, 14 },		// 174 bits per transform
+		{ 20, 25, 6 },		// 174 bits per transform
+		{ 21, 5, 25 },		// 174 bits per transform
+		{ 21, 13, 24 },		// 174 bits per transform
+		{ 21, 14, 23 },		// 174 bits per transform
+		{ 21, 15, 22 },		// 174 bits per transform
 		{ 21, 16, 21 },		// 174 bits per transform
 		{ 21, 17, 20 },		// 174 bits per transform
 		{ 21, 18, 19 },		// 174 bits per transform
 		{ 21, 19, 18 },		// 174 bits per transform
 		{ 21, 20, 17 },		// 174 bits per transform
 		{ 21, 21, 16 },		// 174 bits per transform
-		{ 21, 22, 5 },		// 174 bits per transform
-		{ 22, 5, 21 },		// 174 bits per transform
-		{ 22, 6, 20 },		// 174 bits per transform
-		{ 22, 7, 19 },		// 174 bits per transform
-		{ 22, 8, 18 },		// 174 bits per transform
-		{ 22, 9, 17 },		// 174 bits per transform
-		{ 22, 10, 16 },		// 174 bits per transform
-		{ 22, 11, 15 },		// 174 bits per transform
-		{ 22, 12, 14 },		// 174 bits per transform
-		{ 22, 13, 13 },		// 174 bits per transform
-		{ 22, 14, 12 },		// 174 bits per transform
-		{ 22, 15, 11 },		// 174 bits per transform
-		{ 22, 16, 10 },		// 174 bits per transform
-		{ 22, 17, 9 },		// 174 bits per transform
-		{ 22, 18, 8 },		// 174 bits per transform
-		{ 22, 19, 7 },		// 174 bits per transform
-		{ 22, 20, 6 },		// 174 bits per transform
-		{ 22, 21, 5 },		// 174 bits per transform
-		{ 6, 21, 22 },		// 177 bits per transform
-		{ 6, 22, 21 },		// 177 bits per transform
-		{ 7, 20, 22 },		// 177 bits per transform
-		{ 7, 22, 20 },		// 177 bits per transform
-		{ 8, 19, 22 },		// 177 bits per transform
-		{ 8, 22, 19 },		// 177 bits per transform
-		{ 9, 18, 22 },		// 177 bits per transform
-		{ 9, 22, 18 },		// 177 bits per transform
-		{ 10, 17, 22 },		// 177 bits per transform
-		{ 10, 22, 17 },		// 177 bits per transform
-		{ 11, 16, 22 },		// 177 bits per transform
-		{ 11, 22, 16 },		// 177 bits per transform
-		{ 12, 15, 22 },		// 177 bits per transform
-		{ 12, 22, 15 },		// 177 bits per transform
-		{ 13, 14, 22 },		// 177 bits per transform
-		{ 13, 22, 14 },		// 177 bits per transform
-		{ 14, 13, 22 },		// 177 bits per transform
-		{ 14, 22, 13 },		// 177 bits per transform
-		{ 15, 12, 22 },		// 177 bits per transform
-		{ 15, 22, 12 },		// 177 bits per transform
-		{ 16, 11, 22 },		// 177 bits per transform
-		{ 16, 22, 11 },		// 177 bits per transform
-		{ 17, 10, 22 },		// 177 bits per transform
+		{ 21, 22, 15 },		// 174 bits per transform
+		{ 21, 23, 14 },		// 174 bits per transform
+		{ 21, 24, 13 },		// 174 bits per transform
+		{ 21, 25, 5 },		// 174 bits per transform
+		{ 22, 4, 25 },		// 174 bits per transform
+		{ 22, 12, 24 },		// 174 bits per transform
+		{ 22, 13, 23 },		// 174 bits per transform
+		{ 22, 14, 22 },		// 174 bits per transform
+		{ 22, 15, 21 },		// 174 bits per transform
+		{ 22, 16, 20 },		// 174 bits per transform
+		{ 22, 17, 19 },		// 174 bits per transform
+		{ 22, 18, 18 },		// 174 bits per transform
+		{ 22, 19, 17 },		// 174 bits per transform
+		{ 22, 20, 16 },		// 174 bits per transform
+		{ 22, 21, 15 },		// 174 bits per transform
+		{ 22, 22, 14 },		// 174 bits per transform
+		{ 22, 23, 13 },		// 174 bits per transform
+		{ 22, 24, 12 },		// 174 bits per transform
+		{ 22, 25, 4 },		// 174 bits per transform
+		{ 23, 3, 25 },		// 174 bits per transform
+		{ 23, 11, 24 },		// 174 bits per transform
+		{ 23, 12, 23 },		// 174 bits per transform
+		{ 23, 13, 22 },		// 174 bits per transform
+		{ 23, 14, 21 },		// 174 bits per transform
+		{ 23, 15, 20 },		// 174 bits per transform
+		{ 23, 16, 19 },		// 174 bits per transform
+		{ 23, 17, 18 },		// 174 bits per transform
+		{ 23, 18, 17 },		// 174 bits per transform
+		{ 23, 19, 16 },		// 174 bits per transform
+		{ 23, 20, 15 },		// 174 bits per transform
+		{ 23, 21, 14 },		// 174 bits per transform
+		{ 23, 22, 13 },		// 174 bits per transform
+		{ 23, 23, 12 },		// 174 bits per transform
+		{ 23, 24, 11 },		// 174 bits per transform
+		{ 23, 25, 3 },		// 174 bits per transform
+		{ 24, 2, 25 },		// 174 bits per transform
+		{ 24, 10, 24 },		// 174 bits per transform
+		{ 24, 11, 23 },		// 174 bits per transform
+		{ 24, 12, 22 },		// 174 bits per transform
+		{ 24, 13, 21 },		// 174 bits per transform
+		{ 24, 14, 20 },		// 174 bits per transform
+		{ 24, 15, 19 },		// 174 bits per transform
+		{ 24, 16, 18 },		// 174 bits per transform
+		{ 24, 17, 17 },		// 174 bits per transform
+		{ 24, 18, 16 },		// 174 bits per transform
+		{ 24, 19, 15 },		// 174 bits per transform
+		{ 24, 20, 14 },		// 174 bits per transform
+		{ 24, 21, 13 },		// 174 bits per transform
+		{ 24, 22, 12 },		// 174 bits per transform
+		{ 24, 23, 11 },		// 174 bits per transform
+		{ 24, 24, 10 },		// 174 bits per transform
+		{ 24, 25, 2 },		// 174 bits per transform
+		{ 25, 2, 24 },		// 174 bits per transform
+		{ 25, 3, 23 },		// 174 bits per transform
+		{ 25, 4, 22 },		// 174 bits per transform
+		{ 25, 5, 21 },		// 174 bits per transform
+		{ 25, 6, 20 },		// 174 bits per transform
+		{ 25, 7, 19 },		// 174 bits per transform
+		{ 25, 8, 18 },		// 174 bits per transform
+		{ 25, 9, 17 },		// 174 bits per transform
+		{ 25, 10, 16 },		// 174 bits per transform
+		{ 25, 11, 15 },		// 174 bits per transform
+		{ 25, 12, 14 },		// 174 bits per transform
+		{ 25, 13, 13 },		// 174 bits per transform
+		{ 25, 14, 12 },		// 174 bits per transform
+		{ 25, 15, 11 },		// 174 bits per transform
+		{ 25, 16, 10 },		// 174 bits per transform
+		{ 25, 17, 9 },		// 174 bits per transform
+		{ 25, 18, 8 },		// 174 bits per transform
+		{ 25, 19, 7 },		// 174 bits per transform
+		{ 25, 20, 6 },		// 174 bits per transform
+		{ 25, 21, 5 },		// 174 bits per transform
+		{ 25, 22, 4 },		// 174 bits per transform
+		{ 25, 23, 3 },		// 174 bits per transform
+		{ 25, 24, 2 },		// 174 bits per transform
+		{ 3, 24, 25 },		// 177 bits per transform
+		{ 3, 25, 24 },		// 177 bits per transform
+		{ 4, 23, 25 },		// 177 bits per transform
+		{ 4, 25, 23 },		// 177 bits per transform
+		{ 5, 22, 25 },		// 177 bits per transform
+		{ 5, 25, 22 },		// 177 bits per transform
+		{ 6, 21, 25 },		// 177 bits per transform
+		{ 6, 25, 21 },		// 177 bits per transform
+		{ 7, 20, 25 },		// 177 bits per transform
+		{ 7, 25, 20 },		// 177 bits per transform
+		{ 8, 19, 25 },		// 177 bits per transform
+		{ 8, 25, 19 },		// 177 bits per transform
+		{ 9, 18, 25 },		// 177 bits per transform
+		{ 9, 25, 18 },		// 177 bits per transform
+		{ 10, 17, 25 },		// 177 bits per transform
+		{ 10, 25, 17 },		// 177 bits per transform
+		{ 11, 16, 25 },		// 177 bits per transform
+		{ 11, 24, 24 },		// 177 bits per transform
+		{ 11, 25, 16 },		// 177 bits per transform
+		{ 12, 15, 25 },		// 177 bits per transform
+		{ 12, 23, 24 },		// 177 bits per transform
+		{ 12, 24, 23 },		// 177 bits per transform
+		{ 12, 25, 15 },		// 177 bits per transform
+		{ 13, 14, 25 },		// 177 bits per transform
+		{ 13, 22, 24 },		// 177 bits per transform
+		{ 13, 23, 23 },		// 177 bits per transform
+		{ 13, 24, 22 },		// 177 bits per transform
+		{ 13, 25, 14 },		// 177 bits per transform
+		{ 14, 13, 25 },		// 177 bits per transform
+		{ 14, 21, 24 },		// 177 bits per transform
+		{ 14, 22, 23 },		// 177 bits per transform
+		{ 14, 23, 22 },		// 177 bits per transform
+		{ 14, 24, 21 },		// 177 bits per transform
+		{ 14, 25, 13 },		// 177 bits per transform
+		{ 15, 12, 25 },		// 177 bits per transform
+		{ 15, 20, 24 },		// 177 bits per transform
+		{ 15, 21, 23 },		// 177 bits per transform
+		{ 15, 22, 22 },		// 177 bits per transform
+		{ 15, 23, 21 },		// 177 bits per transform
+		{ 15, 24, 20 },		// 177 bits per transform
+		{ 15, 25, 12 },		// 177 bits per transform
+		{ 16, 11, 25 },		// 177 bits per transform
+		{ 16, 19, 24 },		// 177 bits per transform
+		{ 16, 20, 23 },		// 177 bits per transform
+		{ 16, 21, 22 },		// 177 bits per transform
+		{ 16, 22, 21 },		// 177 bits per transform
+		{ 16, 23, 20 },		// 177 bits per transform
+		{ 16, 24, 19 },		// 177 bits per transform
+		{ 16, 25, 11 },		// 177 bits per transform
+		{ 17, 10, 25 },		// 177 bits per transform
+		{ 17, 18, 24 },		// 177 bits per transform
+		{ 17, 19, 23 },		// 177 bits per transform
+		{ 17, 20, 22 },		// 177 bits per transform
 		{ 17, 21, 21 },		// 177 bits per transform
-		{ 17, 22, 10 },		// 177 bits per transform
-		{ 18, 9, 22 },		// 177 bits per transform
+		{ 17, 22, 20 },		// 177 bits per transform
+		{ 17, 23, 19 },		// 177 bits per transform
+		{ 17, 24, 18 },		// 177 bits per transform
+		{ 17, 25, 10 },		// 177 bits per transform
+		{ 18, 9, 25 },		// 177 bits per transform
+		{ 18, 17, 24 },		// 177 bits per transform
+		{ 18, 18, 23 },		// 177 bits per transform
+		{ 18, 19, 22 },		// 177 bits per transform
 		{ 18, 20, 21 },		// 177 bits per transform
 		{ 18, 21, 20 },		// 177 bits per transform
-		{ 18, 22, 9 },		// 177 bits per transform
-		{ 19, 8, 22 },		// 177 bits per transform
+		{ 18, 22, 19 },		// 177 bits per transform
+		{ 18, 23, 18 },		// 177 bits per transform
+		{ 18, 24, 17 },		// 177 bits per transform
+		{ 18, 25, 9 },		// 177 bits per transform
+		{ 19, 8, 25 },		// 177 bits per transform
+		{ 19, 16, 24 },		// 177 bits per transform
+		{ 19, 17, 23 },		// 177 bits per transform
+		{ 19, 18, 22 },		// 177 bits per transform
 		{ 19, 19, 21 },		// 177 bits per transform
 		{ 19, 20, 20 },		// 177 bits per transform
 		{ 19, 21, 19 },		// 177 bits per transform
-		{ 19, 22, 8 },		// 177 bits per transform
-		{ 20, 7, 22 },		// 177 bits per transform
+		{ 19, 22, 18 },		// 177 bits per transform
+		{ 19, 23, 17 },		// 177 bits per transform
+		{ 19, 24, 16 },		// 177 bits per transform
+		{ 19, 25, 8 },		// 177 bits per transform
+		{ 20, 7, 25 },		// 177 bits per transform
+		{ 20, 15, 24 },		// 177 bits per transform
+		{ 20, 16, 23 },		// 177 bits per transform
+		{ 20, 17, 22 },		// 177 bits per transform
 		{ 20, 18, 21 },		// 177 bits per transform
 		{ 20, 19, 20 },		// 177 bits per transform
 		{ 20, 20, 19 },		// 177 bits per transform
 		{ 20, 21, 18 },		// 177 bits per transform
-		{ 20, 22, 7 },		// 177 bits per transform
-		{ 21, 6, 22 },		// 177 bits per transform
+		{ 20, 22, 17 },		// 177 bits per transform
+		{ 20, 23, 16 },		// 177 bits per transform
+		{ 20, 24, 15 },		// 177 bits per transform
+		{ 20, 25, 7 },		// 177 bits per transform
+		{ 21, 6, 25 },		// 177 bits per transform
+		{ 21, 14, 24 },		// 177 bits per transform
+		{ 21, 15, 23 },		// 177 bits per transform
+		{ 21, 16, 22 },		// 177 bits per transform
 		{ 21, 17, 21 },		// 177 bits per transform
 		{ 21, 18, 20 },		// 177 bits per transform
 		{ 21, 19, 19 },		// 177 bits per transform
 		{ 21, 20, 18 },		// 177 bits per transform
 		{ 21, 21, 17 },		// 177 bits per transform
-		{ 21, 22, 6 },		// 177 bits per transform
-		{ 22, 6, 21 },		// 177 bits per transform
-		{ 22, 7, 20 },		// 177 bits per transform
-		{ 22, 8, 19 },		// 177 bits per transform
-		{ 22, 9, 18 },		// 177 bits per transform
-		{ 22, 10, 17 },		// 177 bits per transform
-		{ 22, 11, 16 },		// 177 bits per transform
-		{ 22, 12, 15 },		// 177 bits per transform
-		{ 22, 13, 14 },		// 177 bits per transform
-		{ 22, 14, 13 },		// 177 bits per transform
-		{ 22, 15, 12 },		// 177 bits per transform
-		{ 22, 16, 11 },		// 177 bits per transform
-		{ 22, 17, 10 },		// 177 bits per transform
-		{ 22, 18, 9 },		// 177 bits per transform
-		{ 22, 19, 8 },		// 177 bits per transform
-		{ 22, 20, 7 },		// 177 bits per transform
-		{ 22, 21, 6 },		// 177 bits per transform
-		{ 7, 21, 22 },		// 180 bits per transform
-		{ 7, 22, 21 },		// 180 bits per transform
-		{ 8, 20, 22 },		// 180 bits per transform
-		{ 8, 22, 20 },		// 180 bits per transform
-		{ 9, 19, 22 },		// 180 bits per transform
-		{ 9, 22, 19 },		// 180 bits per transform
-		{ 10, 18, 22 },		// 180 bits per transform
-		{ 10, 22, 18 },		// 180 bits per transform
-		{ 11, 17, 22 },		// 180 bits per transform
-		{ 11, 22, 17 },		// 180 bits per transform
-		{ 12, 16, 22 },		// 180 bits per transform
-		{ 12, 22, 16 },		// 180 bits per transform
-		{ 13, 15, 22 },		// 180 bits per transform
-		{ 13, 22, 15 },		// 180 bits per transform
-		{ 14, 14, 22 },		// 180 bits per transform
-		{ 14, 22, 14 },		// 180 bits per transform
-		{ 15, 13, 22 },		// 180 bits per transform
-		{ 15, 22, 13 },		// 180 bits per transform
-		{ 16, 12, 22 },		// 180 bits per transform
-		{ 16, 22, 12 },		// 180 bits per transform
-		{ 17, 11, 22 },		// 180 bits per transform
-		{ 17, 22, 11 },		// 180 bits per transform
-		{ 18, 10, 22 },		// 180 bits per transform
+		{ 21, 22, 16 },		// 177 bits per transform
+		{ 21, 23, 15 },		// 177 bits per transform
+		{ 21, 24, 14 },		// 177 bits per transform
+		{ 21, 25, 6 },		// 177 bits per transform
+		{ 22, 5, 25 },		// 177 bits per transform
+		{ 22, 13, 24 },		// 177 bits per transform
+		{ 22, 14, 23 },		// 177 bits per transform
+		{ 22, 15, 22 },		// 177 bits per transform
+		{ 22, 16, 21 },		// 177 bits per transform
+		{ 22, 17, 20 },		// 177 bits per transform
+		{ 22, 18, 19 },		// 177 bits per transform
+		{ 22, 19, 18 },		// 177 bits per transform
+		{ 22, 20, 17 },		// 177 bits per transform
+		{ 22, 21, 16 },		// 177 bits per transform
+		{ 22, 22, 15 },		// 177 bits per transform
+		{ 22, 23, 14 },		// 177 bits per transform
+		{ 22, 24, 13 },		// 177 bits per transform
+		{ 22, 25, 5 },		// 177 bits per transform
+		{ 23, 4, 25 },		// 177 bits per transform
+		{ 23, 12, 24 },		// 177 bits per transform
+		{ 23, 13, 23 },		// 177 bits per transform
+		{ 23, 14, 22 },		// 177 bits per transform
+		{ 23, 15, 21 },		// 177 bits per transform
+		{ 23, 16, 20 },		// 177 bits per transform
+		{ 23, 17, 19 },		// 177 bits per transform
+		{ 23, 18, 18 },		// 177 bits per transform
+		{ 23, 19, 17 },		// 177 bits per transform
+		{ 23, 20, 16 },		// 177 bits per transform
+		{ 23, 21, 15 },		// 177 bits per transform
+		{ 23, 22, 14 },		// 177 bits per transform
+		{ 23, 23, 13 },		// 177 bits per transform
+		{ 23, 24, 12 },		// 177 bits per transform
+		{ 23, 25, 4 },		// 177 bits per transform
+		{ 24, 3, 25 },		// 177 bits per transform
+		{ 24, 11, 24 },		// 177 bits per transform
+		{ 24, 12, 23 },		// 177 bits per transform
+		{ 24, 13, 22 },		// 177 bits per transform
+		{ 24, 14, 21 },		// 177 bits per transform
+		{ 24, 15, 20 },		// 177 bits per transform
+		{ 24, 16, 19 },		// 177 bits per transform
+		{ 24, 17, 18 },		// 177 bits per transform
+		{ 24, 18, 17 },		// 177 bits per transform
+		{ 24, 19, 16 },		// 177 bits per transform
+		{ 24, 20, 15 },		// 177 bits per transform
+		{ 24, 21, 14 },		// 177 bits per transform
+		{ 24, 22, 13 },		// 177 bits per transform
+		{ 24, 23, 12 },		// 177 bits per transform
+		{ 24, 24, 11 },		// 177 bits per transform
+		{ 24, 25, 3 },		// 177 bits per transform
+		{ 25, 3, 24 },		// 177 bits per transform
+		{ 25, 4, 23 },		// 177 bits per transform
+		{ 25, 5, 22 },		// 177 bits per transform
+		{ 25, 6, 21 },		// 177 bits per transform
+		{ 25, 7, 20 },		// 177 bits per transform
+		{ 25, 8, 19 },		// 177 bits per transform
+		{ 25, 9, 18 },		// 177 bits per transform
+		{ 25, 10, 17 },		// 177 bits per transform
+		{ 25, 11, 16 },		// 177 bits per transform
+		{ 25, 12, 15 },		// 177 bits per transform
+		{ 25, 13, 14 },		// 177 bits per transform
+		{ 25, 14, 13 },		// 177 bits per transform
+		{ 25, 15, 12 },		// 177 bits per transform
+		{ 25, 16, 11 },		// 177 bits per transform
+		{ 25, 17, 10 },		// 177 bits per transform
+		{ 25, 18, 9 },		// 177 bits per transform
+		{ 25, 19, 8 },		// 177 bits per transform
+		{ 25, 20, 7 },		// 177 bits per transform
+		{ 25, 21, 6 },		// 177 bits per transform
+		{ 25, 22, 5 },		// 177 bits per transform
+		{ 25, 23, 4 },		// 177 bits per transform
+		{ 25, 24, 3 },		// 177 bits per transform
+		{ 4, 24, 25 },		// 180 bits per transform
+		{ 4, 25, 24 },		// 180 bits per transform
+		{ 5, 23, 25 },		// 180 bits per transform
+		{ 5, 25, 23 },		// 180 bits per transform
+		{ 6, 22, 25 },		// 180 bits per transform
+		{ 6, 25, 22 },		// 180 bits per transform
+		{ 7, 21, 25 },		// 180 bits per transform
+		{ 7, 25, 21 },		// 180 bits per transform
+		{ 8, 20, 25 },		// 180 bits per transform
+		{ 8, 25, 20 },		// 180 bits per transform
+		{ 9, 19, 25 },		// 180 bits per transform
+		{ 9, 25, 19 },		// 180 bits per transform
+		{ 10, 18, 25 },		// 180 bits per transform
+		{ 10, 25, 18 },		// 180 bits per transform
+		{ 11, 17, 25 },		// 180 bits per transform
+		{ 11, 25, 17 },		// 180 bits per transform
+		{ 12, 16, 25 },		// 180 bits per transform
+		{ 12, 24, 24 },		// 180 bits per transform
+		{ 12, 25, 16 },		// 180 bits per transform
+		{ 13, 15, 25 },		// 180 bits per transform
+		{ 13, 23, 24 },		// 180 bits per transform
+		{ 13, 24, 23 },		// 180 bits per transform
+		{ 13, 25, 15 },		// 180 bits per transform
+		{ 14, 14, 25 },		// 180 bits per transform
+		{ 14, 22, 24 },		// 180 bits per transform
+		{ 14, 23, 23 },		// 180 bits per transform
+		{ 14, 24, 22 },		// 180 bits per transform
+		{ 14, 25, 14 },		// 180 bits per transform
+		{ 15, 13, 25 },		// 180 bits per transform
+		{ 15, 21, 24 },		// 180 bits per transform
+		{ 15, 22, 23 },		// 180 bits per transform
+		{ 15, 23, 22 },		// 180 bits per transform
+		{ 15, 24, 21 },		// 180 bits per transform
+		{ 15, 25, 13 },		// 180 bits per transform
+		{ 16, 12, 25 },		// 180 bits per transform
+		{ 16, 20, 24 },		// 180 bits per transform
+		{ 16, 21, 23 },		// 180 bits per transform
+		{ 16, 22, 22 },		// 180 bits per transform
+		{ 16, 23, 21 },		// 180 bits per transform
+		{ 16, 24, 20 },		// 180 bits per transform
+		{ 16, 25, 12 },		// 180 bits per transform
+		{ 17, 11, 25 },		// 180 bits per transform
+		{ 17, 19, 24 },		// 180 bits per transform
+		{ 17, 20, 23 },		// 180 bits per transform
+		{ 17, 21, 22 },		// 180 bits per transform
+		{ 17, 22, 21 },		// 180 bits per transform
+		{ 17, 23, 20 },		// 180 bits per transform
+		{ 17, 24, 19 },		// 180 bits per transform
+		{ 17, 25, 11 },		// 180 bits per transform
+		{ 18, 10, 25 },		// 180 bits per transform
+		{ 18, 18, 24 },		// 180 bits per transform
+		{ 18, 19, 23 },		// 180 bits per transform
+		{ 18, 20, 22 },		// 180 bits per transform
 		{ 18, 21, 21 },		// 180 bits per transform
-		{ 18, 22, 10 },		// 180 bits per transform
-		{ 19, 9, 22 },		// 180 bits per transform
+		{ 18, 22, 20 },		// 180 bits per transform
+		{ 18, 23, 19 },		// 180 bits per transform
+		{ 18, 24, 18 },		// 180 bits per transform
+		{ 18, 25, 10 },		// 180 bits per transform
+		{ 19, 9, 25 },		// 180 bits per transform
+		{ 19, 17, 24 },		// 180 bits per transform
+		{ 19, 18, 23 },		// 180 bits per transform
+		{ 19, 19, 22 },		// 180 bits per transform
 		{ 19, 20, 21 },		// 180 bits per transform
 		{ 19, 21, 20 },		// 180 bits per transform
-		{ 19, 22, 9 },		// 180 bits per transform
-		{ 20, 8, 22 },		// 180 bits per transform
+		{ 19, 22, 19 },		// 180 bits per transform
+		{ 19, 23, 18 },		// 180 bits per transform
+		{ 19, 24, 17 },		// 180 bits per transform
+		{ 19, 25, 9 },		// 180 bits per transform
+		{ 20, 8, 25 },		// 180 bits per transform
+		{ 20, 16, 24 },		// 180 bits per transform
+		{ 20, 17, 23 },		// 180 bits per transform
+		{ 20, 18, 22 },		// 180 bits per transform
 		{ 20, 19, 21 },		// 180 bits per transform
 		{ 20, 20, 20 },		// 180 bits per transform
 		{ 20, 21, 19 },		// 180 bits per transform
-		{ 20, 22, 8 },		// 180 bits per transform
-		{ 21, 7, 22 },		// 180 bits per transform
+		{ 20, 22, 18 },		// 180 bits per transform
+		{ 20, 23, 17 },		// 180 bits per transform
+		{ 20, 24, 16 },		// 180 bits per transform
+		{ 20, 25, 8 },		// 180 bits per transform
+		{ 21, 7, 25 },		// 180 bits per transform
+		{ 21, 15, 24 },		// 180 bits per transform
+		{ 21, 16, 23 },		// 180 bits per transform
+		{ 21, 17, 22 },		// 180 bits per transform
 		{ 21, 18, 21 },		// 180 bits per transform
 		{ 21, 19, 20 },		// 180 bits per transform
 		{ 21, 20, 19 },		// 180 bits per transform
 		{ 21, 21, 18 },		// 180 bits per transform
-		{ 21, 22, 7 },		// 180 bits per transform
-		{ 22, 7, 21 },		// 180 bits per transform
-		{ 22, 8, 20 },		// 180 bits per transform
-		{ 22, 9, 19 },		// 180 bits per transform
-		{ 22, 10, 18 },		// 180 bits per transform
-		{ 22, 11, 17 },		// 180 bits per transform
-		{ 22, 12, 16 },		// 180 bits per transform
-		{ 22, 13, 15 },		// 180 bits per transform
-		{ 22, 14, 14 },		// 180 bits per transform
-		{ 22, 15, 13 },		// 180 bits per transform
-		{ 22, 16, 12 },		// 180 bits per transform
-		{ 22, 17, 11 },		// 180 bits per transform
-		{ 22, 18, 10 },		// 180 bits per transform
-		{ 22, 19, 9 },		// 180 bits per transform
-		{ 22, 20, 8 },		// 180 bits per transform
-		{ 22, 21, 7 },		// 180 bits per transform
-		{ 8, 21, 22 },		// 183 bits per transform
-		{ 8, 22, 21 },		// 183 bits per transform
-		{ 9, 20, 22 },		// 183 bits per transform
-		{ 9, 22, 20 },		// 183 bits per transform
-		{ 10, 19, 22 },		// 183 bits per transform
-		{ 10, 22, 19 },		// 183 bits per transform
-		{ 11, 18, 22 },		// 183 bits per transform
-		{ 11, 22, 18 },		// 183 bits per transform
-		{ 12, 17, 22 },		// 183 bits per transform
-		{ 12, 22, 17 },		// 183 bits per transform
-		{ 13, 16, 22 },		// 183 bits per transform
-		{ 13, 22, 16 },		// 183 bits per transform
-		{ 14, 15, 22 },		// 183 bits per transform
-		{ 14, 22, 15 },		// 183 bits per transform
-		{ 15, 14, 22 },		// 183 bits per transform
-		{ 15, 22, 14 },		// 183 bits per transform
-		{ 16, 13, 22 },		// 183 bits per transform
-		{ 16, 22, 13 },		// 183 bits per transform
-		{ 17, 12, 22 },		// 183 bits per transform
-		{ 17, 22, 12 },		// 183 bits per transform
-		{ 18, 11, 22 },		// 183 bits per transform
-		{ 18, 22, 11 },		// 183 bits per transform
-		{ 19, 10, 22 },		// 183 bits per transform
+		{ 21, 22, 17 },		// 180 bits per transform
+		{ 21, 23, 16 },		// 180 bits per transform
+		{ 21, 24, 15 },		// 180 bits per transform
+		{ 21, 25, 7 },		// 180 bits per transform
+		{ 22, 6, 25 },		// 180 bits per transform
+		{ 22, 14, 24 },		// 180 bits per transform
+		{ 22, 15, 23 },		// 180 bits per transform
+		{ 22, 16, 22 },		// 180 bits per transform
+		{ 22, 17, 21 },		// 180 bits per transform
+		{ 22, 18, 20 },		// 180 bits per transform
+		{ 22, 19, 19 },		// 180 bits per transform
+		{ 22, 20, 18 },		// 180 bits per transform
+		{ 22, 21, 17 },		// 180 bits per transform
+		{ 22, 22, 16 },		// 180 bits per transform
+		{ 22, 23, 15 },		// 180 bits per transform
+		{ 22, 24, 14 },		// 180 bits per transform
+		{ 22, 25, 6 },		// 180 bits per transform
+		{ 23, 5, 25 },		// 180 bits per transform
+		{ 23, 13, 24 },		// 180 bits per transform
+		{ 23, 14, 23 },		// 180 bits per transform
+		{ 23, 15, 22 },		// 180 bits per transform
+		{ 23, 16, 21 },		// 180 bits per transform
+		{ 23, 17, 20 },		// 180 bits per transform
+		{ 23, 18, 19 },		// 180 bits per transform
+		{ 23, 19, 18 },		// 180 bits per transform
+		{ 23, 20, 17 },		// 180 bits per transform
+		{ 23, 21, 16 },		// 180 bits per transform
+		{ 23, 22, 15 },		// 180 bits per transform
+		{ 23, 23, 14 },		// 180 bits per transform
+		{ 23, 24, 13 },		// 180 bits per transform
+		{ 23, 25, 5 },		// 180 bits per transform
+		{ 24, 4, 25 },		// 180 bits per transform
+		{ 24, 12, 24 },		// 180 bits per transform
+		{ 24, 13, 23 },		// 180 bits per transform
+		{ 24, 14, 22 },		// 180 bits per transform
+		{ 24, 15, 21 },		// 180 bits per transform
+		{ 24, 16, 20 },		// 180 bits per transform
+		{ 24, 17, 19 },		// 180 bits per transform
+		{ 24, 18, 18 },		// 180 bits per transform
+		{ 24, 19, 17 },		// 180 bits per transform
+		{ 24, 20, 16 },		// 180 bits per transform
+		{ 24, 21, 15 },		// 180 bits per transform
+		{ 24, 22, 14 },		// 180 bits per transform
+		{ 24, 23, 13 },		// 180 bits per transform
+		{ 24, 24, 12 },		// 180 bits per transform
+		{ 24, 25, 4 },		// 180 bits per transform
+		{ 25, 4, 24 },		// 180 bits per transform
+		{ 25, 5, 23 },		// 180 bits per transform
+		{ 25, 6, 22 },		// 180 bits per transform
+		{ 25, 7, 21 },		// 180 bits per transform
+		{ 25, 8, 20 },		// 180 bits per transform
+		{ 25, 9, 19 },		// 180 bits per transform
+		{ 25, 10, 18 },		// 180 bits per transform
+		{ 25, 11, 17 },		// 180 bits per transform
+		{ 25, 12, 16 },		// 180 bits per transform
+		{ 25, 13, 15 },		// 180 bits per transform
+		{ 25, 14, 14 },		// 180 bits per transform
+		{ 25, 15, 13 },		// 180 bits per transform
+		{ 25, 16, 12 },		// 180 bits per transform
+		{ 25, 17, 11 },		// 180 bits per transform
+		{ 25, 18, 10 },		// 180 bits per transform
+		{ 25, 19, 9 },		// 180 bits per transform
+		{ 25, 20, 8 },		// 180 bits per transform
+		{ 25, 21, 7 },		// 180 bits per transform
+		{ 25, 22, 6 },		// 180 bits per transform
+		{ 25, 23, 5 },		// 180 bits per transform
+		{ 25, 24, 4 },		// 180 bits per transform
+		{ 5, 24, 25 },		// 183 bits per transform
+		{ 5, 25, 24 },		// 183 bits per transform
+		{ 6, 23, 25 },		// 183 bits per transform
+		{ 6, 25, 23 },		// 183 bits per transform
+		{ 7, 22, 25 },		// 183 bits per transform
+		{ 7, 25, 22 },		// 183 bits per transform
+		{ 8, 21, 25 },		// 183 bits per transform
+		{ 8, 25, 21 },		// 183 bits per transform
+		{ 9, 20, 25 },		// 183 bits per transform
+		{ 9, 25, 20 },		// 183 bits per transform
+		{ 10, 19, 25 },		// 183 bits per transform
+		{ 10, 25, 19 },		// 183 bits per transform
+		{ 11, 18, 25 },		// 183 bits per transform
+		{ 11, 25, 18 },		// 183 bits per transform
+		{ 12, 17, 25 },		// 183 bits per transform
+		{ 12, 25, 17 },		// 183 bits per transform
+		{ 13, 16, 25 },		// 183 bits per transform
+		{ 13, 24, 24 },		// 183 bits per transform
+		{ 13, 25, 16 },		// 183 bits per transform
+		{ 14, 15, 25 },		// 183 bits per transform
+		{ 14, 23, 24 },		// 183 bits per transform
+		{ 14, 24, 23 },		// 183 bits per transform
+		{ 14, 25, 15 },		// 183 bits per transform
+		{ 15, 14, 25 },		// 183 bits per transform
+		{ 15, 22, 24 },		// 183 bits per transform
+		{ 15, 23, 23 },		// 183 bits per transform
+		{ 15, 24, 22 },		// 183 bits per transform
+		{ 15, 25, 14 },		// 183 bits per transform
+		{ 16, 13, 25 },		// 183 bits per transform
+		{ 16, 21, 24 },		// 183 bits per transform
+		{ 16, 22, 23 },		// 183 bits per transform
+		{ 16, 23, 22 },		// 183 bits per transform
+		{ 16, 24, 21 },		// 183 bits per transform
+		{ 16, 25, 13 },		// 183 bits per transform
+		{ 17, 12, 25 },		// 183 bits per transform
+		{ 17, 20, 24 },		// 183 bits per transform
+		{ 17, 21, 23 },		// 183 bits per transform
+		{ 17, 22, 22 },		// 183 bits per transform
+		{ 17, 23, 21 },		// 183 bits per transform
+		{ 17, 24, 20 },		// 183 bits per transform
+		{ 17, 25, 12 },		// 183 bits per transform
+		{ 18, 11, 25 },		// 183 bits per transform
+		{ 18, 19, 24 },		// 183 bits per transform
+		{ 18, 20, 23 },		// 183 bits per transform
+		{ 18, 21, 22 },		// 183 bits per transform
+		{ 18, 22, 21 },		// 183 bits per transform
+		{ 18, 23, 20 },		// 183 bits per transform
+		{ 18, 24, 19 },		// 183 bits per transform
+		{ 18, 25, 11 },		// 183 bits per transform
+		{ 19, 10, 25 },		// 183 bits per transform
+		{ 19, 18, 24 },		// 183 bits per transform
+		{ 19, 19, 23 },		// 183 bits per transform
+		{ 19, 20, 22 },		// 183 bits per transform
 		{ 19, 21, 21 },		// 183 bits per transform
-		{ 19, 22, 10 },		// 183 bits per transform
-		{ 20, 9, 22 },		// 183 bits per transform
+		{ 19, 22, 20 },		// 183 bits per transform
+		{ 19, 23, 19 },		// 183 bits per transform
+		{ 19, 24, 18 },		// 183 bits per transform
+		{ 19, 25, 10 },		// 183 bits per transform
+		{ 20, 9, 25 },		// 183 bits per transform
+		{ 20, 17, 24 },		// 183 bits per transform
+		{ 20, 18, 23 },		// 183 bits per transform
+		{ 20, 19, 22 },		// 183 bits per transform
 		{ 20, 20, 21 },		// 183 bits per transform
 		{ 20, 21, 20 },		// 183 bits per transform
-		{ 20, 22, 9 },		// 183 bits per transform
-		{ 21, 8, 22 },		// 183 bits per transform
+		{ 20, 22, 19 },		// 183 bits per transform
+		{ 20, 23, 18 },		// 183 bits per transform
+		{ 20, 24, 17 },		// 183 bits per transform
+		{ 20, 25, 9 },		// 183 bits per transform
+		{ 21, 8, 25 },		// 183 bits per transform
+		{ 21, 16, 24 },		// 183 bits per transform
+		{ 21, 17, 23 },		// 183 bits per transform
+		{ 21, 18, 22 },		// 183 bits per transform
 		{ 21, 19, 21 },		// 183 bits per transform
 		{ 21, 20, 20 },		// 183 bits per transform
 		{ 21, 21, 19 },		// 183 bits per transform
-		{ 21, 22, 8 },		// 183 bits per transform
-		{ 22, 8, 21 },		// 183 bits per transform
-		{ 22, 9, 20 },		// 183 bits per transform
-		{ 22, 10, 19 },		// 183 bits per transform
-		{ 22, 11, 18 },		// 183 bits per transform
-		{ 22, 12, 17 },		// 183 bits per transform
-		{ 22, 13, 16 },		// 183 bits per transform
-		{ 22, 14, 15 },		// 183 bits per transform
-		{ 22, 15, 14 },		// 183 bits per transform
-		{ 22, 16, 13 },		// 183 bits per transform
-		{ 22, 17, 12 },		// 183 bits per transform
-		{ 22, 18, 11 },		// 183 bits per transform
-		{ 22, 19, 10 },		// 183 bits per transform
-		{ 22, 20, 9 },		// 183 bits per transform
-		{ 22, 21, 8 },		// 183 bits per transform
-		{ 9, 21, 22 },		// 186 bits per transform
-		{ 9, 22, 21 },		// 186 bits per transform
-		{ 10, 20, 22 },		// 186 bits per transform
-		{ 10, 22, 20 },		// 186 bits per transform
-		{ 11, 19, 22 },		// 186 bits per transform
-		{ 11, 22, 19 },		// 186 bits per transform
-		{ 12, 18, 22 },		// 186 bits per transform
-		{ 12, 22, 18 },		// 186 bits per transform
-		{ 13, 17, 22 },		// 186 bits per transform
-		{ 13, 22, 17 },		// 186 bits per transform
-		{ 14, 16, 22 },		// 186 bits per transform
-		{ 14, 22, 16 },		// 186 bits per transform
-		{ 15, 15, 22 },		// 186 bits per transform
-		{ 15, 22, 15 },		// 186 bits per transform
-		{ 16, 14, 22 },		// 186 bits per transform
-		{ 16, 22, 14 },		// 186 bits per transform
-		{ 17, 13, 22 },		// 186 bits per transform
-		{ 17, 22, 13 },		// 186 bits per transform
-		{ 18, 12, 22 },		// 186 bits per transform
-		{ 18, 22, 12 },		// 186 bits per transform
-		{ 19, 11, 22 },		// 186 bits per transform
-		{ 19, 22, 11 },		// 186 bits per transform
-		{ 20, 10, 22 },		// 186 bits per transform
+		{ 21, 22, 18 },		// 183 bits per transform
+		{ 21, 23, 17 },		// 183 bits per transform
+		{ 21, 24, 16 },		// 183 bits per transform
+		{ 21, 25, 8 },		// 183 bits per transform
+		{ 22, 7, 25 },		// 183 bits per transform
+		{ 22, 15, 24 },		// 183 bits per transform
+		{ 22, 16, 23 },		// 183 bits per transform
+		{ 22, 17, 22 },		// 183 bits per transform
+		{ 22, 18, 21 },		// 183 bits per transform
+		{ 22, 19, 20 },		// 183 bits per transform
+		{ 22, 20, 19 },		// 183 bits per transform
+		{ 22, 21, 18 },		// 183 bits per transform
+		{ 22, 22, 17 },		// 183 bits per transform
+		{ 22, 23, 16 },		// 183 bits per transform
+		{ 22, 24, 15 },		// 183 bits per transform
+		{ 22, 25, 7 },		// 183 bits per transform
+		{ 23, 6, 25 },		// 183 bits per transform
+		{ 23, 14, 24 },		// 183 bits per transform
+		{ 23, 15, 23 },		// 183 bits per transform
+		{ 23, 16, 22 },		// 183 bits per transform
+		{ 23, 17, 21 },		// 183 bits per transform
+		{ 23, 18, 20 },		// 183 bits per transform
+		{ 23, 19, 19 },		// 183 bits per transform
+		{ 23, 20, 18 },		// 183 bits per transform
+		{ 23, 21, 17 },		// 183 bits per transform
+		{ 23, 22, 16 },		// 183 bits per transform
+		{ 23, 23, 15 },		// 183 bits per transform
+		{ 23, 24, 14 },		// 183 bits per transform
+		{ 23, 25, 6 },		// 183 bits per transform
+		{ 24, 5, 25 },		// 183 bits per transform
+		{ 24, 13, 24 },		// 183 bits per transform
+		{ 24, 14, 23 },		// 183 bits per transform
+		{ 24, 15, 22 },		// 183 bits per transform
+		{ 24, 16, 21 },		// 183 bits per transform
+		{ 24, 17, 20 },		// 183 bits per transform
+		{ 24, 18, 19 },		// 183 bits per transform
+		{ 24, 19, 18 },		// 183 bits per transform
+		{ 24, 20, 17 },		// 183 bits per transform
+		{ 24, 21, 16 },		// 183 bits per transform
+		{ 24, 22, 15 },		// 183 bits per transform
+		{ 24, 23, 14 },		// 183 bits per transform
+		{ 24, 24, 13 },		// 183 bits per transform
+		{ 24, 25, 5 },		// 183 bits per transform
+		{ 25, 5, 24 },		// 183 bits per transform
+		{ 25, 6, 23 },		// 183 bits per transform
+		{ 25, 7, 22 },		// 183 bits per transform
+		{ 25, 8, 21 },		// 183 bits per transform
+		{ 25, 9, 20 },		// 183 bits per transform
+		{ 25, 10, 19 },		// 183 bits per transform
+		{ 25, 11, 18 },		// 183 bits per transform
+		{ 25, 12, 17 },		// 183 bits per transform
+		{ 25, 13, 16 },		// 183 bits per transform
+		{ 25, 14, 15 },		// 183 bits per transform
+		{ 25, 15, 14 },		// 183 bits per transform
+		{ 25, 16, 13 },		// 183 bits per transform
+		{ 25, 17, 12 },		// 183 bits per transform
+		{ 25, 18, 11 },		// 183 bits per transform
+		{ 25, 19, 10 },		// 183 bits per transform
+		{ 25, 20, 9 },		// 183 bits per transform
+		{ 25, 21, 8 },		// 183 bits per transform
+		{ 25, 22, 7 },		// 183 bits per transform
+		{ 25, 23, 6 },		// 183 bits per transform
+		{ 25, 24, 5 },		// 183 bits per transform
+		{ 6, 24, 25 },		// 186 bits per transform
+		{ 6, 25, 24 },		// 186 bits per transform
+		{ 7, 23, 25 },		// 186 bits per transform
+		{ 7, 25, 23 },		// 186 bits per transform
+		{ 8, 22, 25 },		// 186 bits per transform
+		{ 8, 25, 22 },		// 186 bits per transform
+		{ 9, 21, 25 },		// 186 bits per transform
+		{ 9, 25, 21 },		// 186 bits per transform
+		{ 10, 20, 25 },		// 186 bits per transform
+		{ 10, 25, 20 },		// 186 bits per transform
+		{ 11, 19, 25 },		// 186 bits per transform
+		{ 11, 25, 19 },		// 186 bits per transform
+		{ 12, 18, 25 },		// 186 bits per transform
+		{ 12, 25, 18 },		// 186 bits per transform
+		{ 13, 17, 25 },		// 186 bits per transform
+		{ 13, 25, 17 },		// 186 bits per transform
+		{ 14, 16, 25 },		// 186 bits per transform
+		{ 14, 24, 24 },		// 186 bits per transform
+		{ 14, 25, 16 },		// 186 bits per transform
+		{ 15, 15, 25 },		// 186 bits per transform
+		{ 15, 23, 24 },		// 186 bits per transform
+		{ 15, 24, 23 },		// 186 bits per transform
+		{ 15, 25, 15 },		// 186 bits per transform
+		{ 16, 14, 25 },		// 186 bits per transform
+		{ 16, 22, 24 },		// 186 bits per transform
+		{ 16, 23, 23 },		// 186 bits per transform
+		{ 16, 24, 22 },		// 186 bits per transform
+		{ 16, 25, 14 },		// 186 bits per transform
+		{ 17, 13, 25 },		// 186 bits per transform
+		{ 17, 21, 24 },		// 186 bits per transform
+		{ 17, 22, 23 },		// 186 bits per transform
+		{ 17, 23, 22 },		// 186 bits per transform
+		{ 17, 24, 21 },		// 186 bits per transform
+		{ 17, 25, 13 },		// 186 bits per transform
+		{ 18, 12, 25 },		// 186 bits per transform
+		{ 18, 20, 24 },		// 186 bits per transform
+		{ 18, 21, 23 },		// 186 bits per transform
+		{ 18, 22, 22 },		// 186 bits per transform
+		{ 18, 23, 21 },		// 186 bits per transform
+		{ 18, 24, 20 },		// 186 bits per transform
+		{ 18, 25, 12 },		// 186 bits per transform
+		{ 19, 11, 25 },		// 186 bits per transform
+		{ 19, 19, 24 },		// 186 bits per transform
+		{ 19, 20, 23 },		// 186 bits per transform
+		{ 19, 21, 22 },		// 186 bits per transform
+		{ 19, 22, 21 },		// 186 bits per transform
+		{ 19, 23, 20 },		// 186 bits per transform
+		{ 19, 24, 19 },		// 186 bits per transform
+		{ 19, 25, 11 },		// 186 bits per transform
+		{ 20, 10, 25 },		// 186 bits per transform
+		{ 20, 18, 24 },		// 186 bits per transform
+		{ 20, 19, 23 },		// 186 bits per transform
+		{ 20, 20, 22 },		// 186 bits per transform
 		{ 20, 21, 21 },		// 186 bits per transform
-		{ 20, 22, 10 },		// 186 bits per transform
-		{ 21, 9, 22 },		// 186 bits per transform
+		{ 20, 22, 20 },		// 186 bits per transform
+		{ 20, 23, 19 },		// 186 bits per transform
+		{ 20, 24, 18 },		// 186 bits per transform
+		{ 20, 25, 10 },		// 186 bits per transform
+		{ 21, 9, 25 },		// 186 bits per transform
+		{ 21, 17, 24 },		// 186 bits per transform
+		{ 21, 18, 23 },		// 186 bits per transform
+		{ 21, 19, 22 },		// 186 bits per transform
 		{ 21, 20, 21 },		// 186 bits per transform
 		{ 21, 21, 20 },		// 186 bits per transform
-		{ 21, 22, 9 },		// 186 bits per transform
-		{ 22, 9, 21 },		// 186 bits per transform
-		{ 22, 10, 20 },		// 186 bits per transform
-		{ 22, 11, 19 },		// 186 bits per transform
-		{ 22, 12, 18 },		// 186 bits per transform
-		{ 22, 13, 17 },		// 186 bits per transform
-		{ 22, 14, 16 },		// 186 bits per transform
-		{ 22, 15, 15 },		// 186 bits per transform
-		{ 22, 16, 14 },		// 186 bits per transform
-		{ 22, 17, 13 },		// 186 bits per transform
-		{ 22, 18, 12 },		// 186 bits per transform
-		{ 22, 19, 11 },		// 186 bits per transform
-		{ 22, 20, 10 },		// 186 bits per transform
-		{ 22, 21, 9 },		// 186 bits per transform
-		{ 10, 21, 22 },		// 189 bits per transform
-		{ 10, 22, 21 },		// 189 bits per transform
-		{ 11, 20, 22 },		// 189 bits per transform
-		{ 11, 22, 20 },		// 189 bits per transform
-		{ 12, 19, 22 },		// 189 bits per transform
-		{ 12, 22, 19 },		// 189 bits per transform
-		{ 13, 18, 22 },		// 189 bits per transform
-		{ 13, 22, 18 },		// 189 bits per transform
-		{ 14, 17, 22 },		// 189 bits per transform
-		{ 14, 22, 17 },		// 189 bits per transform
-		{ 15, 16, 22 },		// 189 bits per transform
-		{ 15, 22, 16 },		// 189 bits per transform
-		{ 16, 15, 22 },		// 189 bits per transform
-		{ 16, 22, 15 },		// 189 bits per transform
-		{ 17, 14, 22 },		// 189 bits per transform
-		{ 17, 22, 14 },		// 189 bits per transform
-		{ 18, 13, 22 },		// 189 bits per transform
-		{ 18, 22, 13 },		// 189 bits per transform
-		{ 19, 12, 22 },		// 189 bits per transform
-		{ 19, 22, 12 },		// 189 bits per transform
-		{ 20, 11, 22 },		// 189 bits per transform
-		{ 20, 22, 11 },		// 189 bits per transform
-		{ 21, 10, 22 },		// 189 bits per transform
+		{ 21, 22, 19 },		// 186 bits per transform
+		{ 21, 23, 18 },		// 186 bits per transform
+		{ 21, 24, 17 },		// 186 bits per transform
+		{ 21, 25, 9 },		// 186 bits per transform
+		{ 22, 8, 25 },		// 186 bits per transform
+		{ 22, 16, 24 },		// 186 bits per transform
+		{ 22, 17, 23 },		// 186 bits per transform
+		{ 22, 18, 22 },		// 186 bits per transform
+		{ 22, 19, 21 },		// 186 bits per transform
+		{ 22, 20, 20 },		// 186 bits per transform
+		{ 22, 21, 19 },		// 186 bits per transform
+		{ 22, 22, 18 },		// 186 bits per transform
+		{ 22, 23, 17 },		// 186 bits per transform
+		{ 22, 24, 16 },		// 186 bits per transform
+		{ 22, 25, 8 },		// 186 bits per transform
+		{ 23, 7, 25 },		// 186 bits per transform
+		{ 23, 15, 24 },		// 186 bits per transform
+		{ 23, 16, 23 },		// 186 bits per transform
+		{ 23, 17, 22 },		// 186 bits per transform
+		{ 23, 18, 21 },		// 186 bits per transform
+		{ 23, 19, 20 },		// 186 bits per transform
+		{ 23, 20, 19 },		// 186 bits per transform
+		{ 23, 21, 18 },		// 186 bits per transform
+		{ 23, 22, 17 },		// 186 bits per transform
+		{ 23, 23, 16 },		// 186 bits per transform
+		{ 23, 24, 15 },		// 186 bits per transform
+		{ 23, 25, 7 },		// 186 bits per transform
+		{ 24, 6, 25 },		// 186 bits per transform
+		{ 24, 14, 24 },		// 186 bits per transform
+		{ 24, 15, 23 },		// 186 bits per transform
+		{ 24, 16, 22 },		// 186 bits per transform
+		{ 24, 17, 21 },		// 186 bits per transform
+		{ 24, 18, 20 },		// 186 bits per transform
+		{ 24, 19, 19 },		// 186 bits per transform
+		{ 24, 20, 18 },		// 186 bits per transform
+		{ 24, 21, 17 },		// 186 bits per transform
+		{ 24, 22, 16 },		// 186 bits per transform
+		{ 24, 23, 15 },		// 186 bits per transform
+		{ 24, 24, 14 },		// 186 bits per transform
+		{ 24, 25, 6 },		// 186 bits per transform
+		{ 25, 6, 24 },		// 186 bits per transform
+		{ 25, 7, 23 },		// 186 bits per transform
+		{ 25, 8, 22 },		// 186 bits per transform
+		{ 25, 9, 21 },		// 186 bits per transform
+		{ 25, 10, 20 },		// 186 bits per transform
+		{ 25, 11, 19 },		// 186 bits per transform
+		{ 25, 12, 18 },		// 186 bits per transform
+		{ 25, 13, 17 },		// 186 bits per transform
+		{ 25, 14, 16 },		// 186 bits per transform
+		{ 25, 15, 15 },		// 186 bits per transform
+		{ 25, 16, 14 },		// 186 bits per transform
+		{ 25, 17, 13 },		// 186 bits per transform
+		{ 25, 18, 12 },		// 186 bits per transform
+		{ 25, 19, 11 },		// 186 bits per transform
+		{ 25, 20, 10 },		// 186 bits per transform
+		{ 25, 21, 9 },		// 186 bits per transform
+		{ 25, 22, 8 },		// 186 bits per transform
+		{ 25, 23, 7 },		// 186 bits per transform
+		{ 25, 24, 6 },		// 186 bits per transform
+		{ 7, 24, 25 },		// 189 bits per transform
+		{ 7, 25, 24 },		// 189 bits per transform
+		{ 8, 23, 25 },		// 189 bits per transform
+		{ 8, 25, 23 },		// 189 bits per transform
+		{ 9, 22, 25 },		// 189 bits per transform
+		{ 9, 25, 22 },		// 189 bits per transform
+		{ 10, 21, 25 },		// 189 bits per transform
+		{ 10, 25, 21 },		// 189 bits per transform
+		{ 11, 20, 25 },		// 189 bits per transform
+		{ 11, 25, 20 },		// 189 bits per transform
+		{ 12, 19, 25 },		// 189 bits per transform
+		{ 12, 25, 19 },		// 189 bits per transform
+		{ 13, 18, 25 },		// 189 bits per transform
+		{ 13, 25, 18 },		// 189 bits per transform
+		{ 14, 17, 25 },		// 189 bits per transform
+		{ 14, 25, 17 },		// 189 bits per transform
+		{ 15, 16, 25 },		// 189 bits per transform
+		{ 15, 24, 24 },		// 189 bits per transform
+		{ 15, 25, 16 },		// 189 bits per transform
+		{ 16, 15, 25 },		// 189 bits per transform
+		{ 16, 23, 24 },		// 189 bits per transform
+		{ 16, 24, 23 },		// 189 bits per transform
+		{ 16, 25, 15 },		// 189 bits per transform
+		{ 17, 14, 25 },		// 189 bits per transform
+		{ 17, 22, 24 },		// 189 bits per transform
+		{ 17, 23, 23 },		// 189 bits per transform
+		{ 17, 24, 22 },		// 189 bits per transform
+		{ 17, 25, 14 },		// 189 bits per transform
+		{ 18, 13, 25 },		// 189 bits per transform
+		{ 18, 21, 24 },		// 189 bits per transform
+		{ 18, 22, 23 },		// 189 bits per transform
+		{ 18, 23, 22 },		// 189 bits per transform
+		{ 18, 24, 21 },		// 189 bits per transform
+		{ 18, 25, 13 },		// 189 bits per transform
+		{ 19, 12, 25 },		// 189 bits per transform
+		{ 19, 20, 24 },		// 189 bits per transform
+		{ 19, 21, 23 },		// 189 bits per transform
+		{ 19, 22, 22 },		// 189 bits per transform
+		{ 19, 23, 21 },		// 189 bits per transform
+		{ 19, 24, 20 },		// 189 bits per transform
+		{ 19, 25, 12 },		// 189 bits per transform
+		{ 20, 11, 25 },		// 189 bits per transform
+		{ 20, 19, 24 },		// 189 bits per transform
+		{ 20, 20, 23 },		// 189 bits per transform
+		{ 20, 21, 22 },		// 189 bits per transform
+		{ 20, 22, 21 },		// 189 bits per transform
+		{ 20, 23, 20 },		// 189 bits per transform
+		{ 20, 24, 19 },		// 189 bits per transform
+		{ 20, 25, 11 },		// 189 bits per transform
+		{ 21, 10, 25 },		// 189 bits per transform
+		{ 21, 18, 24 },		// 189 bits per transform
+		{ 21, 19, 23 },		// 189 bits per transform
+		{ 21, 20, 22 },		// 189 bits per transform
 		{ 21, 21, 21 },		// 189 bits per transform
-		{ 21, 22, 10 },		// 189 bits per transform
-		{ 22, 10, 21 },		// 189 bits per transform
-		{ 22, 11, 20 },		// 189 bits per transform
-		{ 22, 12, 19 },		// 189 bits per transform
-		{ 22, 13, 18 },		// 189 bits per transform
-		{ 22, 14, 17 },		// 189 bits per transform
-		{ 22, 15, 16 },		// 189 bits per transform
-		{ 22, 16, 15 },		// 189 bits per transform
-		{ 22, 17, 14 },		// 189 bits per transform
-		{ 22, 18, 13 },		// 189 bits per transform
-		{ 22, 19, 12 },		// 189 bits per transform
-		{ 22, 20, 11 },		// 189 bits per transform
-		{ 22, 21, 10 },		// 189 bits per transform
-		{ 0, 22, 22 },		// 192 bits per transform
-		{ 11, 21, 22 },		// 192 bits per transform
-		{ 11, 22, 21 },		// 192 bits per transform
-		{ 12, 20, 22 },		// 192 bits per transform
-		{ 12, 22, 20 },		// 192 bits per transform
-		{ 13, 19, 22 },		// 192 bits per transform
-		{ 13, 22, 19 },		// 192 bits per transform
-		{ 14, 18, 22 },		// 192 bits per transform
-		{ 14, 22, 18 },		// 192 bits per transform
-		{ 15, 17, 22 },		// 192 bits per transform
-		{ 15, 22, 17 },		// 192 bits per transform
-		{ 16, 16, 22 },		// 192 bits per transform
-		{ 16, 22, 16 },		// 192 bits per transform
-		{ 17, 15, 22 },		// 192 bits per transform
-		{ 17, 22, 15 },		// 192 bits per transform
-		{ 18, 14, 22 },		// 192 bits per transform
-		{ 18, 22, 14 },		// 192 bits per transform
-		{ 19, 13, 22 },		// 192 bits per transform
-		{ 19, 22, 13 },		// 192 bits per transform
-		{ 20, 12, 22 },		// 192 bits per transform
-		{ 20, 22, 12 },		// 192 bits per transform
-		{ 21, 11, 22 },		// 192 bits per transform
-		{ 21, 22, 11 },		// 192 bits per transform
-		{ 22, 0, 22 },		// 192 bits per transform
-		{ 22, 11, 21 },		// 192 bits per transform
-		{ 22, 12, 20 },		// 192 bits per transform
-		{ 22, 13, 19 },		// 192 bits per transform
-		{ 22, 14, 18 },		// 192 bits per transform
-		{ 22, 15, 17 },		// 192 bits per transform
-		{ 22, 16, 16 },		// 192 bits per transform
-		{ 22, 17, 15 },		// 192 bits per transform
-		{ 22, 18, 14 },		// 192 bits per transform
-		{ 22, 19, 13 },		// 192 bits per transform
-		{ 22, 20, 12 },		// 192 bits per transform
-		{ 22, 21, 11 },		// 192 bits per transform
-		{ 22, 22, 0 },		// 192 bits per transform
-		{ 1, 22, 22 },		// 195 bits per transform
-		{ 12, 21, 22 },		// 195 bits per transform
-		{ 12, 22, 21 },		// 195 bits per transform
-		{ 13, 20, 22 },		// 195 bits per transform
-		{ 13, 22, 20 },		// 195 bits per transform
-		{ 14, 19, 22 },		// 195 bits per transform
-		{ 14, 22, 19 },		// 195 bits per transform
-		{ 15, 18, 22 },		// 195 bits per transform
-		{ 15, 22, 18 },		// 195 bits per transform
-		{ 16, 17, 22 },		// 195 bits per transform
-		{ 16, 22, 17 },		// 195 bits per transform
-		{ 17, 16, 22 },		// 195 bits per transform
-		{ 17, 22, 16 },		// 195 bits per transform
-		{ 18, 15, 22 },		// 195 bits per transform
-		{ 18, 22, 15 },		// 195 bits per transform
-		{ 19, 14, 22 },		// 195 bits per transform
-		{ 19, 22, 14 },		// 195 bits per transform
-		{ 20, 13, 22 },		// 195 bits per transform
-		{ 20, 22, 13 },		// 195 bits per transform
-		{ 21, 12, 22 },		// 195 bits per transform
-		{ 21, 22, 12 },		// 195 bits per transform
-		{ 22, 1, 22 },		// 195 bits per transform
-		{ 22, 12, 21 },		// 195 bits per transform
-		{ 22, 13, 20 },		// 195 bits per transform
-		{ 22, 14, 19 },		// 195 bits per transform
-		{ 22, 15, 18 },		// 195 bits per transform
-		{ 22, 16, 17 },		// 195 bits per transform
-		{ 22, 17, 16 },		// 195 bits per transform
-		{ 22, 18, 15 },		// 195 bits per transform
-		{ 22, 19, 14 },		// 195 bits per transform
-		{ 22, 20, 13 },		// 195 bits per transform
-		{ 22, 21, 12 },		// 195 bits per transform
-		{ 22, 22, 1 },		// 195 bits per transform
-		{ 2, 22, 22 },		// 198 bits per transform
-		{ 13, 21, 22 },		// 198 bits per transform
-		{ 13, 22, 21 },		// 198 bits per transform
-		{ 14, 20, 22 },		// 198 bits per transform
-		{ 14, 22, 20 },		// 198 bits per transform
-		{ 15, 19, 22 },		// 198 bits per transform
-		{ 15, 22, 19 },		// 198 bits per transform
-		{ 16, 18, 22 },		// 198 bits per transform
-		{ 16, 22, 18 },		// 198 bits per transform
-		{ 17, 17, 22 },		// 198 bits per transform
-		{ 17, 22, 17 },		// 198 bits per transform
-		{ 18, 16, 22 },		// 198 bits per transform
-		{ 18, 22, 16 },		// 198 bits per transform
-		{ 19, 15, 22 },		// 198 bits per transform
-		{ 19, 22, 15 },		// 198 bits per transform
-		{ 20, 14, 22 },		// 198 bits per transform
-		{ 20, 22, 14 },		// 198 bits per transform
-		{ 21, 13, 22 },		// 198 bits per transform
-		{ 21, 22, 13 },		// 198 bits per transform
-		{ 22, 2, 22 },		// 198 bits per transform
-		{ 22, 13, 21 },		// 198 bits per transform
-		{ 22, 14, 20 },		// 198 bits per transform
-		{ 22, 15, 19 },		// 198 bits per transform
-		{ 22, 16, 18 },		// 198 bits per transform
-		{ 22, 17, 17 },		// 198 bits per transform
-		{ 22, 18, 16 },		// 198 bits per transform
-		{ 22, 19, 15 },		// 198 bits per transform
-		{ 22, 20, 14 },		// 198 bits per transform
-		{ 22, 21, 13 },		// 198 bits per transform
-		{ 22, 22, 2 },		// 198 bits per transform
-		{ 3, 22, 22 },		// 201 bits per transform
-		{ 14, 21, 22 },		// 201 bits per transform
-		{ 14, 22, 21 },		// 201 bits per transform
-		{ 15, 20, 22 },		// 201 bits per transform
-		{ 15, 22, 20 },		// 201 bits per transform
-		{ 16, 19, 22 },		// 201 bits per transform
-		{ 16, 22, 19 },		// 201 bits per transform
-		{ 17, 18, 22 },		// 201 bits per transform
-		{ 17, 22, 18 },		// 201 bits per transform
-		{ 18, 17, 22 },		// 201 bits per transform
-		{ 18, 22, 17 },		// 201 bits per transform
-		{ 19, 16, 22 },		// 201 bits per transform
-		{ 19, 22, 16 },		// 201 bits per transform
-		{ 20, 15, 22 },		// 201 bits per transform
-		{ 20, 22, 15 },		// 201 bits per transform
-		{ 21, 14, 22 },		// 201 bits per transform
-		{ 21, 22, 14 },		// 201 bits per transform
-		{ 22, 3, 22 },		// 201 bits per transform
-		{ 22, 14, 21 },		// 201 bits per transform
-		{ 22, 15, 20 },		// 201 bits per transform
-		{ 22, 16, 19 },		// 201 bits per transform
-		{ 22, 17, 18 },		// 201 bits per transform
-		{ 22, 18, 17 },		// 201 bits per transform
-		{ 22, 19, 16 },		// 201 bits per transform
-		{ 22, 20, 15 },		// 201 bits per transform
-		{ 22, 21, 14 },		// 201 bits per transform
-		{ 22, 22, 3 },		// 201 bits per transform
-		{ 4, 22, 22 },		// 204 bits per transform
-		{ 15, 21, 22 },		// 204 bits per transform
-		{ 15, 22, 21 },		// 204 bits per transform
-		{ 16, 20, 22 },		// 204 bits per transform
-		{ 16, 22, 20 },		// 204 bits per transform
-		{ 17, 19, 22 },		// 204 bits per transform
-		{ 17, 22, 19 },		// 204 bits per transform
-		{ 18, 18, 22 },		// 204 bits per transform
-		{ 18, 22, 18 },		// 204 bits per transform
-		{ 19, 17, 22 },		// 204 bits per transform
-		{ 19, 22, 17 },		// 204 bits per transform
-		{ 20, 16, 22 },		// 204 bits per transform
-		{ 20, 22, 16 },		// 204 bits per transform
-		{ 21, 15, 22 },		// 204 bits per transform
-		{ 21, 22, 15 },		// 204 bits per transform
-		{ 22, 4, 22 },		// 204 bits per transform
-		{ 22, 15, 21 },		// 204 bits per transform
-		{ 22, 16, 20 },		// 204 bits per transform
-		{ 22, 17, 19 },		// 204 bits per transform
-		{ 22, 18, 18 },		// 204 bits per transform
-		{ 22, 19, 17 },		// 204 bits per transform
-		{ 22, 20, 16 },		// 204 bits per transform
-		{ 22, 21, 15 },		// 204 bits per transform
-		{ 22, 22, 4 },		// 204 bits per transform
-		{ 5, 22, 22 },		// 207 bits per transform
-		{ 16, 21, 22 },		// 207 bits per transform
-		{ 16, 22, 21 },		// 207 bits per transform
-		{ 17, 20, 22 },		// 207 bits per transform
-		{ 17, 22, 20 },		// 207 bits per transform
-		{ 18, 19, 22 },		// 207 bits per transform
-		{ 18, 22, 19 },		// 207 bits per transform
-		{ 19, 18, 22 },		// 207 bits per transform
-		{ 19, 22, 18 },		// 207 bits per transform
-		{ 20, 17, 22 },		// 207 bits per transform
-		{ 20, 22, 17 },		// 207 bits per transform
-		{ 21, 16, 22 },		// 207 bits per transform
-		{ 21, 22, 16 },		// 207 bits per transform
-		{ 22, 5, 22 },		// 207 bits per transform
-		{ 22, 16, 21 },		// 207 bits per transform
-		{ 22, 17, 20 },		// 207 bits per transform
-		{ 22, 18, 19 },		// 207 bits per transform
-		{ 22, 19, 18 },		// 207 bits per transform
-		{ 22, 20, 17 },		// 207 bits per transform
-		{ 22, 21, 16 },		// 207 bits per transform
-		{ 22, 22, 5 },		// 207 bits per transform
-		{ 6, 22, 22 },		// 210 bits per transform
-		{ 17, 21, 22 },		// 210 bits per transform
-		{ 17, 22, 21 },		// 210 bits per transform
-		{ 18, 20, 22 },		// 210 bits per transform
-		{ 18, 22, 20 },		// 210 bits per transform
-		{ 19, 19, 22 },		// 210 bits per transform
-		{ 19, 22, 19 },		// 210 bits per transform
-		{ 20, 18, 22 },		// 210 bits per transform
-		{ 20, 22, 18 },		// 210 bits per transform
-		{ 21, 17, 22 },		// 210 bits per transform
-		{ 21, 22, 17 },		// 210 bits per transform
-		{ 22, 6, 22 },		// 210 bits per transform
-		{ 22, 17, 21 },		// 210 bits per transform
-		{ 22, 18, 20 },		// 210 bits per transform
-		{ 22, 19, 19 },		// 210 bits per transform
-		{ 22, 20, 18 },		// 210 bits per transform
-		{ 22, 21, 17 },		// 210 bits per transform
-		{ 22, 22, 6 },		// 210 bits per transform
-		{ 7, 22, 22 },		// 213 bits per transform
-		{ 18, 21, 22 },		// 213 bits per transform
-		{ 18, 22, 21 },		// 213 bits per transform
-		{ 19, 20, 22 },		// 213 bits per transform
-		{ 19, 22, 20 },		// 213 bits per transform
-		{ 20, 19, 22 },		// 213 bits per transform
-		{ 20, 22, 19 },		// 213 bits per transform
-		{ 21, 18, 22 },		// 213 bits per transform
-		{ 21, 22, 18 },		// 213 bits per transform
-		{ 22, 7, 22 },		// 213 bits per transform
-		{ 22, 18, 21 },		// 213 bits per transform
-		{ 22, 19, 20 },		// 213 bits per transform
-		{ 22, 20, 19 },		// 213 bits per transform
-		{ 22, 21, 18 },		// 213 bits per transform
-		{ 22, 22, 7 },		// 213 bits per transform
-		{ 8, 22, 22 },		// 216 bits per transform
-		{ 19, 21, 22 },		// 216 bits per transform
-		{ 19, 22, 21 },		// 216 bits per transform
-		{ 20, 20, 22 },		// 216 bits per transform
-		{ 20, 22, 20 },		// 216 bits per transform
-		{ 21, 19, 22 },		// 216 bits per transform
-		{ 21, 22, 19 },		// 216 bits per transform
-		{ 22, 8, 22 },		// 216 bits per transform
-		{ 22, 19, 21 },		// 216 bits per transform
-		{ 22, 20, 20 },		// 216 bits per transform
-		{ 22, 21, 19 },		// 216 bits per transform
-		{ 22, 22, 8 },		// 216 bits per transform
-		{ 9, 22, 22 },		// 219 bits per transform
-		{ 20, 21, 22 },		// 219 bits per transform
-		{ 20, 22, 21 },		// 219 bits per transform
-		{ 21, 20, 22 },		// 219 bits per transform
-		{ 21, 22, 20 },		// 219 bits per transform
-		{ 22, 9, 22 },		// 219 bits per transform
-		{ 22, 20, 21 },		// 219 bits per transform
-		{ 22, 21, 20 },		// 219 bits per transform
-		{ 22, 22, 9 },		// 219 bits per transform
-		{ 10, 22, 22 },		// 222 bits per transform
-		{ 21, 21, 22 },		// 222 bits per transform
-		{ 21, 22, 21 },		// 222 bits per transform
-		{ 22, 10, 22 },		// 222 bits per transform
-		{ 22, 21, 21 },		// 222 bits per transform
-		{ 22, 22, 10 },		// 222 bits per transform
-		{ 11, 22, 22 },		// 225 bits per transform
-		{ 22, 11, 22 },		// 225 bits per transform
-		{ 22, 22, 11 },		// 225 bits per transform
-		{ 12, 22, 22 },		// 228 bits per transform
-		{ 22, 12, 22 },		// 228 bits per transform
-		{ 22, 22, 12 },		// 228 bits per transform
-		{ 13, 22, 22 },		// 231 bits per transform
-		{ 22, 13, 22 },		// 231 bits per transform
-		{ 22, 22, 13 },		// 231 bits per transform
-		{ 14, 22, 22 },		// 234 bits per transform
-		{ 22, 14, 22 },		// 234 bits per transform
-		{ 22, 22, 14 },		// 234 bits per transform
-		{ 15, 22, 22 },		// 237 bits per transform
-		{ 22, 15, 22 },		// 237 bits per transform
-		{ 22, 22, 15 },		// 237 bits per transform
-		{ 16, 22, 22 },		// 240 bits per transform
-		{ 22, 16, 22 },		// 240 bits per transform
-		{ 22, 22, 16 },		// 240 bits per transform
-		{ 17, 22, 22 },		// 243 bits per transform
-		{ 22, 17, 22 },		// 243 bits per transform
-		{ 22, 22, 17 },		// 243 bits per transform
-		{ 18, 22, 22 },		// 246 bits per transform
-		{ 22, 18, 22 },		// 246 bits per transform
-		{ 22, 22, 18 },		// 246 bits per transform
-		{ 19, 22, 22 },		// 249 bits per transform
-		{ 22, 19, 22 },		// 249 bits per transform
-		{ 22, 22, 19 },		// 249 bits per transform
-		{ 20, 22, 22 },		// 252 bits per transform
-		{ 22, 20, 22 },		// 252 bits per transform
-		{ 22, 22, 20 },		// 252 bits per transform
-		{ 21, 22, 22 },		// 255 bits per transform
-		{ 22, 21, 22 },		// 255 bits per transform
-		{ 22, 22, 21 },		// 255 bits per transform
-		{ 22, 22, 22 },		// 288 bits per transform
+		{ 21, 22, 20 },		// 189 bits per transform
+		{ 21, 23, 19 },		// 189 bits per transform
+		{ 21, 24, 18 },		// 189 bits per transform
+		{ 21, 25, 10 },		// 189 bits per transform
+		{ 22, 9, 25 },		// 189 bits per transform
+		{ 22, 17, 24 },		// 189 bits per transform
+		{ 22, 18, 23 },		// 189 bits per transform
+		{ 22, 19, 22 },		// 189 bits per transform
+		{ 22, 20, 21 },		// 189 bits per transform
+		{ 22, 21, 20 },		// 189 bits per transform
+		{ 22, 22, 19 },		// 189 bits per transform
+		{ 22, 23, 18 },		// 189 bits per transform
+		{ 22, 24, 17 },		// 189 bits per transform
+		{ 22, 25, 9 },		// 189 bits per transform
+		{ 23, 8, 25 },		// 189 bits per transform
+		{ 23, 16, 24 },		// 189 bits per transform
+		{ 23, 17, 23 },		// 189 bits per transform
+		{ 23, 18, 22 },		// 189 bits per transform
+		{ 23, 19, 21 },		// 189 bits per transform
+		{ 23, 20, 20 },		// 189 bits per transform
+		{ 23, 21, 19 },		// 189 bits per transform
+		{ 23, 22, 18 },		// 189 bits per transform
+		{ 23, 23, 17 },		// 189 bits per transform
+		{ 23, 24, 16 },		// 189 bits per transform
+		{ 23, 25, 8 },		// 189 bits per transform
+		{ 24, 7, 25 },		// 189 bits per transform
+		{ 24, 15, 24 },		// 189 bits per transform
+		{ 24, 16, 23 },		// 189 bits per transform
+		{ 24, 17, 22 },		// 189 bits per transform
+		{ 24, 18, 21 },		// 189 bits per transform
+		{ 24, 19, 20 },		// 189 bits per transform
+		{ 24, 20, 19 },		// 189 bits per transform
+		{ 24, 21, 18 },		// 189 bits per transform
+		{ 24, 22, 17 },		// 189 bits per transform
+		{ 24, 23, 16 },		// 189 bits per transform
+		{ 24, 24, 15 },		// 189 bits per transform
+		{ 24, 25, 7 },		// 189 bits per transform
+		{ 25, 7, 24 },		// 189 bits per transform
+		{ 25, 8, 23 },		// 189 bits per transform
+		{ 25, 9, 22 },		// 189 bits per transform
+		{ 25, 10, 21 },		// 189 bits per transform
+		{ 25, 11, 20 },		// 189 bits per transform
+		{ 25, 12, 19 },		// 189 bits per transform
+		{ 25, 13, 18 },		// 189 bits per transform
+		{ 25, 14, 17 },		// 189 bits per transform
+		{ 25, 15, 16 },		// 189 bits per transform
+		{ 25, 16, 15 },		// 189 bits per transform
+		{ 25, 17, 14 },		// 189 bits per transform
+		{ 25, 18, 13 },		// 189 bits per transform
+		{ 25, 19, 12 },		// 189 bits per transform
+		{ 25, 20, 11 },		// 189 bits per transform
+		{ 25, 21, 10 },		// 189 bits per transform
+		{ 25, 22, 9 },		// 189 bits per transform
+		{ 25, 23, 8 },		// 189 bits per transform
+		{ 25, 24, 7 },		// 189 bits per transform
+		{ 0, 25, 25 },		// 192 bits per transform
+		{ 8, 24, 25 },		// 192 bits per transform
+		{ 8, 25, 24 },		// 192 bits per transform
+		{ 9, 23, 25 },		// 192 bits per transform
+		{ 9, 25, 23 },		// 192 bits per transform
+		{ 10, 22, 25 },		// 192 bits per transform
+		{ 10, 25, 22 },		// 192 bits per transform
+		{ 11, 21, 25 },		// 192 bits per transform
+		{ 11, 25, 21 },		// 192 bits per transform
+		{ 12, 20, 25 },		// 192 bits per transform
+		{ 12, 25, 20 },		// 192 bits per transform
+		{ 13, 19, 25 },		// 192 bits per transform
+		{ 13, 25, 19 },		// 192 bits per transform
+		{ 14, 18, 25 },		// 192 bits per transform
+		{ 14, 25, 18 },		// 192 bits per transform
+		{ 15, 17, 25 },		// 192 bits per transform
+		{ 15, 25, 17 },		// 192 bits per transform
+		{ 16, 16, 25 },		// 192 bits per transform
+		{ 16, 24, 24 },		// 192 bits per transform
+		{ 16, 25, 16 },		// 192 bits per transform
+		{ 17, 15, 25 },		// 192 bits per transform
+		{ 17, 23, 24 },		// 192 bits per transform
+		{ 17, 24, 23 },		// 192 bits per transform
+		{ 17, 25, 15 },		// 192 bits per transform
+		{ 18, 14, 25 },		// 192 bits per transform
+		{ 18, 22, 24 },		// 192 bits per transform
+		{ 18, 23, 23 },		// 192 bits per transform
+		{ 18, 24, 22 },		// 192 bits per transform
+		{ 18, 25, 14 },		// 192 bits per transform
+		{ 19, 13, 25 },		// 192 bits per transform
+		{ 19, 21, 24 },		// 192 bits per transform
+		{ 19, 22, 23 },		// 192 bits per transform
+		{ 19, 23, 22 },		// 192 bits per transform
+		{ 19, 24, 21 },		// 192 bits per transform
+		{ 19, 25, 13 },		// 192 bits per transform
+		{ 20, 12, 25 },		// 192 bits per transform
+		{ 20, 20, 24 },		// 192 bits per transform
+		{ 20, 21, 23 },		// 192 bits per transform
+		{ 20, 22, 22 },		// 192 bits per transform
+		{ 20, 23, 21 },		// 192 bits per transform
+		{ 20, 24, 20 },		// 192 bits per transform
+		{ 20, 25, 12 },		// 192 bits per transform
+		{ 21, 11, 25 },		// 192 bits per transform
+		{ 21, 19, 24 },		// 192 bits per transform
+		{ 21, 20, 23 },		// 192 bits per transform
+		{ 21, 21, 22 },		// 192 bits per transform
+		{ 21, 22, 21 },		// 192 bits per transform
+		{ 21, 23, 20 },		// 192 bits per transform
+		{ 21, 24, 19 },		// 192 bits per transform
+		{ 21, 25, 11 },		// 192 bits per transform
+		{ 22, 10, 25 },		// 192 bits per transform
+		{ 22, 18, 24 },		// 192 bits per transform
+		{ 22, 19, 23 },		// 192 bits per transform
+		{ 22, 20, 22 },		// 192 bits per transform
+		{ 22, 21, 21 },		// 192 bits per transform
+		{ 22, 22, 20 },		// 192 bits per transform
+		{ 22, 23, 19 },		// 192 bits per transform
+		{ 22, 24, 18 },		// 192 bits per transform
+		{ 22, 25, 10 },		// 192 bits per transform
+		{ 23, 9, 25 },		// 192 bits per transform
+		{ 23, 17, 24 },		// 192 bits per transform
+		{ 23, 18, 23 },		// 192 bits per transform
+		{ 23, 19, 22 },		// 192 bits per transform
+		{ 23, 20, 21 },		// 192 bits per transform
+		{ 23, 21, 20 },		// 192 bits per transform
+		{ 23, 22, 19 },		// 192 bits per transform
+		{ 23, 23, 18 },		// 192 bits per transform
+		{ 23, 24, 17 },		// 192 bits per transform
+		{ 23, 25, 9 },		// 192 bits per transform
+		{ 24, 8, 25 },		// 192 bits per transform
+		{ 24, 16, 24 },		// 192 bits per transform
+		{ 24, 17, 23 },		// 192 bits per transform
+		{ 24, 18, 22 },		// 192 bits per transform
+		{ 24, 19, 21 },		// 192 bits per transform
+		{ 24, 20, 20 },		// 192 bits per transform
+		{ 24, 21, 19 },		// 192 bits per transform
+		{ 24, 22, 18 },		// 192 bits per transform
+		{ 24, 23, 17 },		// 192 bits per transform
+		{ 24, 24, 16 },		// 192 bits per transform
+		{ 24, 25, 8 },		// 192 bits per transform
+		{ 25, 0, 25 },		// 192 bits per transform
+		{ 25, 8, 24 },		// 192 bits per transform
+		{ 25, 9, 23 },		// 192 bits per transform
+		{ 25, 10, 22 },		// 192 bits per transform
+		{ 25, 11, 21 },		// 192 bits per transform
+		{ 25, 12, 20 },		// 192 bits per transform
+		{ 25, 13, 19 },		// 192 bits per transform
+		{ 25, 14, 18 },		// 192 bits per transform
+		{ 25, 15, 17 },		// 192 bits per transform
+		{ 25, 16, 16 },		// 192 bits per transform
+		{ 25, 17, 15 },		// 192 bits per transform
+		{ 25, 18, 14 },		// 192 bits per transform
+		{ 25, 19, 13 },		// 192 bits per transform
+		{ 25, 20, 12 },		// 192 bits per transform
+		{ 25, 21, 11 },		// 192 bits per transform
+		{ 25, 22, 10 },		// 192 bits per transform
+		{ 25, 23, 9 },		// 192 bits per transform
+		{ 25, 24, 8 },		// 192 bits per transform
+		{ 25, 25, 0 },		// 192 bits per transform
+		{ 1, 25, 25 },		// 195 bits per transform
+		{ 9, 24, 25 },		// 195 bits per transform
+		{ 9, 25, 24 },		// 195 bits per transform
+		{ 10, 23, 25 },		// 195 bits per transform
+		{ 10, 25, 23 },		// 195 bits per transform
+		{ 11, 22, 25 },		// 195 bits per transform
+		{ 11, 25, 22 },		// 195 bits per transform
+		{ 12, 21, 25 },		// 195 bits per transform
+		{ 12, 25, 21 },		// 195 bits per transform
+		{ 13, 20, 25 },		// 195 bits per transform
+		{ 13, 25, 20 },		// 195 bits per transform
+		{ 14, 19, 25 },		// 195 bits per transform
+		{ 14, 25, 19 },		// 195 bits per transform
+		{ 15, 18, 25 },		// 195 bits per transform
+		{ 15, 25, 18 },		// 195 bits per transform
+		{ 16, 17, 25 },		// 195 bits per transform
+		{ 16, 25, 17 },		// 195 bits per transform
+		{ 17, 16, 25 },		// 195 bits per transform
+		{ 17, 24, 24 },		// 195 bits per transform
+		{ 17, 25, 16 },		// 195 bits per transform
+		{ 18, 15, 25 },		// 195 bits per transform
+		{ 18, 23, 24 },		// 195 bits per transform
+		{ 18, 24, 23 },		// 195 bits per transform
+		{ 18, 25, 15 },		// 195 bits per transform
+		{ 19, 14, 25 },		// 195 bits per transform
+		{ 19, 22, 24 },		// 195 bits per transform
+		{ 19, 23, 23 },		// 195 bits per transform
+		{ 19, 24, 22 },		// 195 bits per transform
+		{ 19, 25, 14 },		// 195 bits per transform
+		{ 20, 13, 25 },		// 195 bits per transform
+		{ 20, 21, 24 },		// 195 bits per transform
+		{ 20, 22, 23 },		// 195 bits per transform
+		{ 20, 23, 22 },		// 195 bits per transform
+		{ 20, 24, 21 },		// 195 bits per transform
+		{ 20, 25, 13 },		// 195 bits per transform
+		{ 21, 12, 25 },		// 195 bits per transform
+		{ 21, 20, 24 },		// 195 bits per transform
+		{ 21, 21, 23 },		// 195 bits per transform
+		{ 21, 22, 22 },		// 195 bits per transform
+		{ 21, 23, 21 },		// 195 bits per transform
+		{ 21, 24, 20 },		// 195 bits per transform
+		{ 21, 25, 12 },		// 195 bits per transform
+		{ 22, 11, 25 },		// 195 bits per transform
+		{ 22, 19, 24 },		// 195 bits per transform
+		{ 22, 20, 23 },		// 195 bits per transform
+		{ 22, 21, 22 },		// 195 bits per transform
+		{ 22, 22, 21 },		// 195 bits per transform
+		{ 22, 23, 20 },		// 195 bits per transform
+		{ 22, 24, 19 },		// 195 bits per transform
+		{ 22, 25, 11 },		// 195 bits per transform
+		{ 23, 10, 25 },		// 195 bits per transform
+		{ 23, 18, 24 },		// 195 bits per transform
+		{ 23, 19, 23 },		// 195 bits per transform
+		{ 23, 20, 22 },		// 195 bits per transform
+		{ 23, 21, 21 },		// 195 bits per transform
+		{ 23, 22, 20 },		// 195 bits per transform
+		{ 23, 23, 19 },		// 195 bits per transform
+		{ 23, 24, 18 },		// 195 bits per transform
+		{ 23, 25, 10 },		// 195 bits per transform
+		{ 24, 9, 25 },		// 195 bits per transform
+		{ 24, 17, 24 },		// 195 bits per transform
+		{ 24, 18, 23 },		// 195 bits per transform
+		{ 24, 19, 22 },		// 195 bits per transform
+		{ 24, 20, 21 },		// 195 bits per transform
+		{ 24, 21, 20 },		// 195 bits per transform
+		{ 24, 22, 19 },		// 195 bits per transform
+		{ 24, 23, 18 },		// 195 bits per transform
+		{ 24, 24, 17 },		// 195 bits per transform
+		{ 24, 25, 9 },		// 195 bits per transform
+		{ 25, 1, 25 },		// 195 bits per transform
+		{ 25, 9, 24 },		// 195 bits per transform
+		{ 25, 10, 23 },		// 195 bits per transform
+		{ 25, 11, 22 },		// 195 bits per transform
+		{ 25, 12, 21 },		// 195 bits per transform
+		{ 25, 13, 20 },		// 195 bits per transform
+		{ 25, 14, 19 },		// 195 bits per transform
+		{ 25, 15, 18 },		// 195 bits per transform
+		{ 25, 16, 17 },		// 195 bits per transform
+		{ 25, 17, 16 },		// 195 bits per transform
+		{ 25, 18, 15 },		// 195 bits per transform
+		{ 25, 19, 14 },		// 195 bits per transform
+		{ 25, 20, 13 },		// 195 bits per transform
+		{ 25, 21, 12 },		// 195 bits per transform
+		{ 25, 22, 11 },		// 195 bits per transform
+		{ 25, 23, 10 },		// 195 bits per transform
+		{ 25, 24, 9 },		// 195 bits per transform
+		{ 25, 25, 1 },		// 195 bits per transform
+		{ 2, 25, 25 },		// 198 bits per transform
+		{ 10, 24, 25 },		// 198 bits per transform
+		{ 10, 25, 24 },		// 198 bits per transform
+		{ 11, 23, 25 },		// 198 bits per transform
+		{ 11, 25, 23 },		// 198 bits per transform
+		{ 12, 22, 25 },		// 198 bits per transform
+		{ 12, 25, 22 },		// 198 bits per transform
+		{ 13, 21, 25 },		// 198 bits per transform
+		{ 13, 25, 21 },		// 198 bits per transform
+		{ 14, 20, 25 },		// 198 bits per transform
+		{ 14, 25, 20 },		// 198 bits per transform
+		{ 15, 19, 25 },		// 198 bits per transform
+		{ 15, 25, 19 },		// 198 bits per transform
+		{ 16, 18, 25 },		// 198 bits per transform
+		{ 16, 25, 18 },		// 198 bits per transform
+		{ 17, 17, 25 },		// 198 bits per transform
+		{ 17, 25, 17 },		// 198 bits per transform
+		{ 18, 16, 25 },		// 198 bits per transform
+		{ 18, 24, 24 },		// 198 bits per transform
+		{ 18, 25, 16 },		// 198 bits per transform
+		{ 19, 15, 25 },		// 198 bits per transform
+		{ 19, 23, 24 },		// 198 bits per transform
+		{ 19, 24, 23 },		// 198 bits per transform
+		{ 19, 25, 15 },		// 198 bits per transform
+		{ 20, 14, 25 },		// 198 bits per transform
+		{ 20, 22, 24 },		// 198 bits per transform
+		{ 20, 23, 23 },		// 198 bits per transform
+		{ 20, 24, 22 },		// 198 bits per transform
+		{ 20, 25, 14 },		// 198 bits per transform
+		{ 21, 13, 25 },		// 198 bits per transform
+		{ 21, 21, 24 },		// 198 bits per transform
+		{ 21, 22, 23 },		// 198 bits per transform
+		{ 21, 23, 22 },		// 198 bits per transform
+		{ 21, 24, 21 },		// 198 bits per transform
+		{ 21, 25, 13 },		// 198 bits per transform
+		{ 22, 12, 25 },		// 198 bits per transform
+		{ 22, 20, 24 },		// 198 bits per transform
+		{ 22, 21, 23 },		// 198 bits per transform
+		{ 22, 22, 22 },		// 198 bits per transform
+		{ 22, 23, 21 },		// 198 bits per transform
+		{ 22, 24, 20 },		// 198 bits per transform
+		{ 22, 25, 12 },		// 198 bits per transform
+		{ 23, 11, 25 },		// 198 bits per transform
+		{ 23, 19, 24 },		// 198 bits per transform
+		{ 23, 20, 23 },		// 198 bits per transform
+		{ 23, 21, 22 },		// 198 bits per transform
+		{ 23, 22, 21 },		// 198 bits per transform
+		{ 23, 23, 20 },		// 198 bits per transform
+		{ 23, 24, 19 },		// 198 bits per transform
+		{ 23, 25, 11 },		// 198 bits per transform
+		{ 24, 10, 25 },		// 198 bits per transform
+		{ 24, 18, 24 },		// 198 bits per transform
+		{ 24, 19, 23 },		// 198 bits per transform
+		{ 24, 20, 22 },		// 198 bits per transform
+		{ 24, 21, 21 },		// 198 bits per transform
+		{ 24, 22, 20 },		// 198 bits per transform
+		{ 24, 23, 19 },		// 198 bits per transform
+		{ 24, 24, 18 },		// 198 bits per transform
+		{ 24, 25, 10 },		// 198 bits per transform
+		{ 25, 2, 25 },		// 198 bits per transform
+		{ 25, 10, 24 },		// 198 bits per transform
+		{ 25, 11, 23 },		// 198 bits per transform
+		{ 25, 12, 22 },		// 198 bits per transform
+		{ 25, 13, 21 },		// 198 bits per transform
+		{ 25, 14, 20 },		// 198 bits per transform
+		{ 25, 15, 19 },		// 198 bits per transform
+		{ 25, 16, 18 },		// 198 bits per transform
+		{ 25, 17, 17 },		// 198 bits per transform
+		{ 25, 18, 16 },		// 198 bits per transform
+		{ 25, 19, 15 },		// 198 bits per transform
+		{ 25, 20, 14 },		// 198 bits per transform
+		{ 25, 21, 13 },		// 198 bits per transform
+		{ 25, 22, 12 },		// 198 bits per transform
+		{ 25, 23, 11 },		// 198 bits per transform
+		{ 25, 24, 10 },		// 198 bits per transform
+		{ 25, 25, 2 },		// 198 bits per transform
+		{ 3, 25, 25 },		// 201 bits per transform
+		{ 11, 24, 25 },		// 201 bits per transform
+		{ 11, 25, 24 },		// 201 bits per transform
+		{ 12, 23, 25 },		// 201 bits per transform
+		{ 12, 25, 23 },		// 201 bits per transform
+		{ 13, 22, 25 },		// 201 bits per transform
+		{ 13, 25, 22 },		// 201 bits per transform
+		{ 14, 21, 25 },		// 201 bits per transform
+		{ 14, 25, 21 },		// 201 bits per transform
+		{ 15, 20, 25 },		// 201 bits per transform
+		{ 15, 25, 20 },		// 201 bits per transform
+		{ 16, 19, 25 },		// 201 bits per transform
+		{ 16, 25, 19 },		// 201 bits per transform
+		{ 17, 18, 25 },		// 201 bits per transform
+		{ 17, 25, 18 },		// 201 bits per transform
+		{ 18, 17, 25 },		// 201 bits per transform
+		{ 18, 25, 17 },		// 201 bits per transform
+		{ 19, 16, 25 },		// 201 bits per transform
+		{ 19, 24, 24 },		// 201 bits per transform
+		{ 19, 25, 16 },		// 201 bits per transform
+		{ 20, 15, 25 },		// 201 bits per transform
+		{ 20, 23, 24 },		// 201 bits per transform
+		{ 20, 24, 23 },		// 201 bits per transform
+		{ 20, 25, 15 },		// 201 bits per transform
+		{ 21, 14, 25 },		// 201 bits per transform
+		{ 21, 22, 24 },		// 201 bits per transform
+		{ 21, 23, 23 },		// 201 bits per transform
+		{ 21, 24, 22 },		// 201 bits per transform
+		{ 21, 25, 14 },		// 201 bits per transform
+		{ 22, 13, 25 },		// 201 bits per transform
+		{ 22, 21, 24 },		// 201 bits per transform
+		{ 22, 22, 23 },		// 201 bits per transform
+		{ 22, 23, 22 },		// 201 bits per transform
+		{ 22, 24, 21 },		// 201 bits per transform
+		{ 22, 25, 13 },		// 201 bits per transform
+		{ 23, 12, 25 },		// 201 bits per transform
+		{ 23, 20, 24 },		// 201 bits per transform
+		{ 23, 21, 23 },		// 201 bits per transform
+		{ 23, 22, 22 },		// 201 bits per transform
+		{ 23, 23, 21 },		// 201 bits per transform
+		{ 23, 24, 20 },		// 201 bits per transform
+		{ 23, 25, 12 },		// 201 bits per transform
+		{ 24, 11, 25 },		// 201 bits per transform
+		{ 24, 19, 24 },		// 201 bits per transform
+		{ 24, 20, 23 },		// 201 bits per transform
+		{ 24, 21, 22 },		// 201 bits per transform
+		{ 24, 22, 21 },		// 201 bits per transform
+		{ 24, 23, 20 },		// 201 bits per transform
+		{ 24, 24, 19 },		// 201 bits per transform
+		{ 24, 25, 11 },		// 201 bits per transform
+		{ 25, 3, 25 },		// 201 bits per transform
+		{ 25, 11, 24 },		// 201 bits per transform
+		{ 25, 12, 23 },		// 201 bits per transform
+		{ 25, 13, 22 },		// 201 bits per transform
+		{ 25, 14, 21 },		// 201 bits per transform
+		{ 25, 15, 20 },		// 201 bits per transform
+		{ 25, 16, 19 },		// 201 bits per transform
+		{ 25, 17, 18 },		// 201 bits per transform
+		{ 25, 18, 17 },		// 201 bits per transform
+		{ 25, 19, 16 },		// 201 bits per transform
+		{ 25, 20, 15 },		// 201 bits per transform
+		{ 25, 21, 14 },		// 201 bits per transform
+		{ 25, 22, 13 },		// 201 bits per transform
+		{ 25, 23, 12 },		// 201 bits per transform
+		{ 25, 24, 11 },		// 201 bits per transform
+		{ 25, 25, 3 },		// 201 bits per transform
+		{ 4, 25, 25 },		// 204 bits per transform
+		{ 12, 24, 25 },		// 204 bits per transform
+		{ 12, 25, 24 },		// 204 bits per transform
+		{ 13, 23, 25 },		// 204 bits per transform
+		{ 13, 25, 23 },		// 204 bits per transform
+		{ 14, 22, 25 },		// 204 bits per transform
+		{ 14, 25, 22 },		// 204 bits per transform
+		{ 15, 21, 25 },		// 204 bits per transform
+		{ 15, 25, 21 },		// 204 bits per transform
+		{ 16, 20, 25 },		// 204 bits per transform
+		{ 16, 25, 20 },		// 204 bits per transform
+		{ 17, 19, 25 },		// 204 bits per transform
+		{ 17, 25, 19 },		// 204 bits per transform
+		{ 18, 18, 25 },		// 204 bits per transform
+		{ 18, 25, 18 },		// 204 bits per transform
+		{ 19, 17, 25 },		// 204 bits per transform
+		{ 19, 25, 17 },		// 204 bits per transform
+		{ 20, 16, 25 },		// 204 bits per transform
+		{ 20, 24, 24 },		// 204 bits per transform
+		{ 20, 25, 16 },		// 204 bits per transform
+		{ 21, 15, 25 },		// 204 bits per transform
+		{ 21, 23, 24 },		// 204 bits per transform
+		{ 21, 24, 23 },		// 204 bits per transform
+		{ 21, 25, 15 },		// 204 bits per transform
+		{ 22, 14, 25 },		// 204 bits per transform
+		{ 22, 22, 24 },		// 204 bits per transform
+		{ 22, 23, 23 },		// 204 bits per transform
+		{ 22, 24, 22 },		// 204 bits per transform
+		{ 22, 25, 14 },		// 204 bits per transform
+		{ 23, 13, 25 },		// 204 bits per transform
+		{ 23, 21, 24 },		// 204 bits per transform
+		{ 23, 22, 23 },		// 204 bits per transform
+		{ 23, 23, 22 },		// 204 bits per transform
+		{ 23, 24, 21 },		// 204 bits per transform
+		{ 23, 25, 13 },		// 204 bits per transform
+		{ 24, 12, 25 },		// 204 bits per transform
+		{ 24, 20, 24 },		// 204 bits per transform
+		{ 24, 21, 23 },		// 204 bits per transform
+		{ 24, 22, 22 },		// 204 bits per transform
+		{ 24, 23, 21 },		// 204 bits per transform
+		{ 24, 24, 20 },		// 204 bits per transform
+		{ 24, 25, 12 },		// 204 bits per transform
+		{ 25, 4, 25 },		// 204 bits per transform
+		{ 25, 12, 24 },		// 204 bits per transform
+		{ 25, 13, 23 },		// 204 bits per transform
+		{ 25, 14, 22 },		// 204 bits per transform
+		{ 25, 15, 21 },		// 204 bits per transform
+		{ 25, 16, 20 },		// 204 bits per transform
+		{ 25, 17, 19 },		// 204 bits per transform
+		{ 25, 18, 18 },		// 204 bits per transform
+		{ 25, 19, 17 },		// 204 bits per transform
+		{ 25, 20, 16 },		// 204 bits per transform
+		{ 25, 21, 15 },		// 204 bits per transform
+		{ 25, 22, 14 },		// 204 bits per transform
+		{ 25, 23, 13 },		// 204 bits per transform
+		{ 25, 24, 12 },		// 204 bits per transform
+		{ 25, 25, 4 },		// 204 bits per transform
+		{ 5, 25, 25 },		// 207 bits per transform
+		{ 13, 24, 25 },		// 207 bits per transform
+		{ 13, 25, 24 },		// 207 bits per transform
+		{ 14, 23, 25 },		// 207 bits per transform
+		{ 14, 25, 23 },		// 207 bits per transform
+		{ 15, 22, 25 },		// 207 bits per transform
+		{ 15, 25, 22 },		// 207 bits per transform
+		{ 16, 21, 25 },		// 207 bits per transform
+		{ 16, 25, 21 },		// 207 bits per transform
+		{ 17, 20, 25 },		// 207 bits per transform
+		{ 17, 25, 20 },		// 207 bits per transform
+		{ 18, 19, 25 },		// 207 bits per transform
+		{ 18, 25, 19 },		// 207 bits per transform
+		{ 19, 18, 25 },		// 207 bits per transform
+		{ 19, 25, 18 },		// 207 bits per transform
+		{ 20, 17, 25 },		// 207 bits per transform
+		{ 20, 25, 17 },		// 207 bits per transform
+		{ 21, 16, 25 },		// 207 bits per transform
+		{ 21, 24, 24 },		// 207 bits per transform
+		{ 21, 25, 16 },		// 207 bits per transform
+		{ 22, 15, 25 },		// 207 bits per transform
+		{ 22, 23, 24 },		// 207 bits per transform
+		{ 22, 24, 23 },		// 207 bits per transform
+		{ 22, 25, 15 },		// 207 bits per transform
+		{ 23, 14, 25 },		// 207 bits per transform
+		{ 23, 22, 24 },		// 207 bits per transform
+		{ 23, 23, 23 },		// 207 bits per transform
+		{ 23, 24, 22 },		// 207 bits per transform
+		{ 23, 25, 14 },		// 207 bits per transform
+		{ 24, 13, 25 },		// 207 bits per transform
+		{ 24, 21, 24 },		// 207 bits per transform
+		{ 24, 22, 23 },		// 207 bits per transform
+		{ 24, 23, 22 },		// 207 bits per transform
+		{ 24, 24, 21 },		// 207 bits per transform
+		{ 24, 25, 13 },		// 207 bits per transform
+		{ 25, 5, 25 },		// 207 bits per transform
+		{ 25, 13, 24 },		// 207 bits per transform
+		{ 25, 14, 23 },		// 207 bits per transform
+		{ 25, 15, 22 },		// 207 bits per transform
+		{ 25, 16, 21 },		// 207 bits per transform
+		{ 25, 17, 20 },		// 207 bits per transform
+		{ 25, 18, 19 },		// 207 bits per transform
+		{ 25, 19, 18 },		// 207 bits per transform
+		{ 25, 20, 17 },		// 207 bits per transform
+		{ 25, 21, 16 },		// 207 bits per transform
+		{ 25, 22, 15 },		// 207 bits per transform
+		{ 25, 23, 14 },		// 207 bits per transform
+		{ 25, 24, 13 },		// 207 bits per transform
+		{ 25, 25, 5 },		// 207 bits per transform
+		{ 6, 25, 25 },		// 210 bits per transform
+		{ 14, 24, 25 },		// 210 bits per transform
+		{ 14, 25, 24 },		// 210 bits per transform
+		{ 15, 23, 25 },		// 210 bits per transform
+		{ 15, 25, 23 },		// 210 bits per transform
+		{ 16, 22, 25 },		// 210 bits per transform
+		{ 16, 25, 22 },		// 210 bits per transform
+		{ 17, 21, 25 },		// 210 bits per transform
+		{ 17, 25, 21 },		// 210 bits per transform
+		{ 18, 20, 25 },		// 210 bits per transform
+		{ 18, 25, 20 },		// 210 bits per transform
+		{ 19, 19, 25 },		// 210 bits per transform
+		{ 19, 25, 19 },		// 210 bits per transform
+		{ 20, 18, 25 },		// 210 bits per transform
+		{ 20, 25, 18 },		// 210 bits per transform
+		{ 21, 17, 25 },		// 210 bits per transform
+		{ 21, 25, 17 },		// 210 bits per transform
+		{ 22, 16, 25 },		// 210 bits per transform
+		{ 22, 24, 24 },		// 210 bits per transform
+		{ 22, 25, 16 },		// 210 bits per transform
+		{ 23, 15, 25 },		// 210 bits per transform
+		{ 23, 23, 24 },		// 210 bits per transform
+		{ 23, 24, 23 },		// 210 bits per transform
+		{ 23, 25, 15 },		// 210 bits per transform
+		{ 24, 14, 25 },		// 210 bits per transform
+		{ 24, 22, 24 },		// 210 bits per transform
+		{ 24, 23, 23 },		// 210 bits per transform
+		{ 24, 24, 22 },		// 210 bits per transform
+		{ 24, 25, 14 },		// 210 bits per transform
+		{ 25, 6, 25 },		// 210 bits per transform
+		{ 25, 14, 24 },		// 210 bits per transform
+		{ 25, 15, 23 },		// 210 bits per transform
+		{ 25, 16, 22 },		// 210 bits per transform
+		{ 25, 17, 21 },		// 210 bits per transform
+		{ 25, 18, 20 },		// 210 bits per transform
+		{ 25, 19, 19 },		// 210 bits per transform
+		{ 25, 20, 18 },		// 210 bits per transform
+		{ 25, 21, 17 },		// 210 bits per transform
+		{ 25, 22, 16 },		// 210 bits per transform
+		{ 25, 23, 15 },		// 210 bits per transform
+		{ 25, 24, 14 },		// 210 bits per transform
+		{ 25, 25, 6 },		// 210 bits per transform
+		{ 7, 25, 25 },		// 213 bits per transform
+		{ 15, 24, 25 },		// 213 bits per transform
+		{ 15, 25, 24 },		// 213 bits per transform
+		{ 16, 23, 25 },		// 213 bits per transform
+		{ 16, 25, 23 },		// 213 bits per transform
+		{ 17, 22, 25 },		// 213 bits per transform
+		{ 17, 25, 22 },		// 213 bits per transform
+		{ 18, 21, 25 },		// 213 bits per transform
+		{ 18, 25, 21 },		// 213 bits per transform
+		{ 19, 20, 25 },		// 213 bits per transform
+		{ 19, 25, 20 },		// 213 bits per transform
+		{ 20, 19, 25 },		// 213 bits per transform
+		{ 20, 25, 19 },		// 213 bits per transform
+		{ 21, 18, 25 },		// 213 bits per transform
+		{ 21, 25, 18 },		// 213 bits per transform
+		{ 22, 17, 25 },		// 213 bits per transform
+		{ 22, 25, 17 },		// 213 bits per transform
+		{ 23, 16, 25 },		// 213 bits per transform
+		{ 23, 24, 24 },		// 213 bits per transform
+		{ 23, 25, 16 },		// 213 bits per transform
+		{ 24, 15, 25 },		// 213 bits per transform
+		{ 24, 23, 24 },		// 213 bits per transform
+		{ 24, 24, 23 },		// 213 bits per transform
+		{ 24, 25, 15 },		// 213 bits per transform
+		{ 25, 7, 25 },		// 213 bits per transform
+		{ 25, 15, 24 },		// 213 bits per transform
+		{ 25, 16, 23 },		// 213 bits per transform
+		{ 25, 17, 22 },		// 213 bits per transform
+		{ 25, 18, 21 },		// 213 bits per transform
+		{ 25, 19, 20 },		// 213 bits per transform
+		{ 25, 20, 19 },		// 213 bits per transform
+		{ 25, 21, 18 },		// 213 bits per transform
+		{ 25, 22, 17 },		// 213 bits per transform
+		{ 25, 23, 16 },		// 213 bits per transform
+		{ 25, 24, 15 },		// 213 bits per transform
+		{ 25, 25, 7 },		// 213 bits per transform
+		{ 8, 25, 25 },		// 216 bits per transform
+		{ 16, 24, 25 },		// 216 bits per transform
+		{ 16, 25, 24 },		// 216 bits per transform
+		{ 17, 23, 25 },		// 216 bits per transform
+		{ 17, 25, 23 },		// 216 bits per transform
+		{ 18, 22, 25 },		// 216 bits per transform
+		{ 18, 25, 22 },		// 216 bits per transform
+		{ 19, 21, 25 },		// 216 bits per transform
+		{ 19, 25, 21 },		// 216 bits per transform
+		{ 20, 20, 25 },		// 216 bits per transform
+		{ 20, 25, 20 },		// 216 bits per transform
+		{ 21, 19, 25 },		// 216 bits per transform
+		{ 21, 25, 19 },		// 216 bits per transform
+		{ 22, 18, 25 },		// 216 bits per transform
+		{ 22, 25, 18 },		// 216 bits per transform
+		{ 23, 17, 25 },		// 216 bits per transform
+		{ 23, 25, 17 },		// 216 bits per transform
+		{ 24, 16, 25 },		// 216 bits per transform
+		{ 24, 24, 24 },		// 216 bits per transform
+		{ 24, 25, 16 },		// 216 bits per transform
+		{ 25, 8, 25 },		// 216 bits per transform
+		{ 25, 16, 24 },		// 216 bits per transform
+		{ 25, 17, 23 },		// 216 bits per transform
+		{ 25, 18, 22 },		// 216 bits per transform
+		{ 25, 19, 21 },		// 216 bits per transform
+		{ 25, 20, 20 },		// 216 bits per transform
+		{ 25, 21, 19 },		// 216 bits per transform
+		{ 25, 22, 18 },		// 216 bits per transform
+		{ 25, 23, 17 },		// 216 bits per transform
+		{ 25, 24, 16 },		// 216 bits per transform
+		{ 25, 25, 8 },		// 216 bits per transform
+		{ 9, 25, 25 },		// 219 bits per transform
+		{ 17, 24, 25 },		// 219 bits per transform
+		{ 17, 25, 24 },		// 219 bits per transform
+		{ 18, 23, 25 },		// 219 bits per transform
+		{ 18, 25, 23 },		// 219 bits per transform
+		{ 19, 22, 25 },		// 219 bits per transform
+		{ 19, 25, 22 },		// 219 bits per transform
+		{ 20, 21, 25 },		// 219 bits per transform
+		{ 20, 25, 21 },		// 219 bits per transform
+		{ 21, 20, 25 },		// 219 bits per transform
+		{ 21, 25, 20 },		// 219 bits per transform
+		{ 22, 19, 25 },		// 219 bits per transform
+		{ 22, 25, 19 },		// 219 bits per transform
+		{ 23, 18, 25 },		// 219 bits per transform
+		{ 23, 25, 18 },		// 219 bits per transform
+		{ 24, 17, 25 },		// 219 bits per transform
+		{ 24, 25, 17 },		// 219 bits per transform
+		{ 25, 9, 25 },		// 219 bits per transform
+		{ 25, 17, 24 },		// 219 bits per transform
+		{ 25, 18, 23 },		// 219 bits per transform
+		{ 25, 19, 22 },		// 219 bits per transform
+		{ 25, 20, 21 },		// 219 bits per transform
+		{ 25, 21, 20 },		// 219 bits per transform
+		{ 25, 22, 19 },		// 219 bits per transform
+		{ 25, 23, 18 },		// 219 bits per transform
+		{ 25, 24, 17 },		// 219 bits per transform
+		{ 25, 25, 9 },		// 219 bits per transform
+		{ 10, 25, 25 },		// 222 bits per transform
+		{ 18, 24, 25 },		// 222 bits per transform
+		{ 18, 25, 24 },		// 222 bits per transform
+		{ 19, 23, 25 },		// 222 bits per transform
+		{ 19, 25, 23 },		// 222 bits per transform
+		{ 20, 22, 25 },		// 222 bits per transform
+		{ 20, 25, 22 },		// 222 bits per transform
+		{ 21, 21, 25 },		// 222 bits per transform
+		{ 21, 25, 21 },		// 222 bits per transform
+		{ 22, 20, 25 },		// 222 bits per transform
+		{ 22, 25, 20 },		// 222 bits per transform
+		{ 23, 19, 25 },		// 222 bits per transform
+		{ 23, 25, 19 },		// 222 bits per transform
+		{ 24, 18, 25 },		// 222 bits per transform
+		{ 24, 25, 18 },		// 222 bits per transform
+		{ 25, 10, 25 },		// 222 bits per transform
+		{ 25, 18, 24 },		// 222 bits per transform
+		{ 25, 19, 23 },		// 222 bits per transform
+		{ 25, 20, 22 },		// 222 bits per transform
+		{ 25, 21, 21 },		// 222 bits per transform
+		{ 25, 22, 20 },		// 222 bits per transform
+		{ 25, 23, 19 },		// 222 bits per transform
+		{ 25, 24, 18 },		// 222 bits per transform
+		{ 25, 25, 10 },		// 222 bits per transform
+		{ 11, 25, 25 },		// 225 bits per transform
+		{ 19, 24, 25 },		// 225 bits per transform
+		{ 19, 25, 24 },		// 225 bits per transform
+		{ 20, 23, 25 },		// 225 bits per transform
+		{ 20, 25, 23 },		// 225 bits per transform
+		{ 21, 22, 25 },		// 225 bits per transform
+		{ 21, 25, 22 },		// 225 bits per transform
+		{ 22, 21, 25 },		// 225 bits per transform
+		{ 22, 25, 21 },		// 225 bits per transform
+		{ 23, 20, 25 },		// 225 bits per transform
+		{ 23, 25, 20 },		// 225 bits per transform
+		{ 24, 19, 25 },		// 225 bits per transform
+		{ 24, 25, 19 },		// 225 bits per transform
+		{ 25, 11, 25 },		// 225 bits per transform
+		{ 25, 19, 24 },		// 225 bits per transform
+		{ 25, 20, 23 },		// 225 bits per transform
+		{ 25, 21, 22 },		// 225 bits per transform
+		{ 25, 22, 21 },		// 225 bits per transform
+		{ 25, 23, 20 },		// 225 bits per transform
+		{ 25, 24, 19 },		// 225 bits per transform
+		{ 25, 25, 11 },		// 225 bits per transform
+		{ 12, 25, 25 },		// 228 bits per transform
+		{ 20, 24, 25 },		// 228 bits per transform
+		{ 20, 25, 24 },		// 228 bits per transform
+		{ 21, 23, 25 },		// 228 bits per transform
+		{ 21, 25, 23 },		// 228 bits per transform
+		{ 22, 22, 25 },		// 228 bits per transform
+		{ 22, 25, 22 },		// 228 bits per transform
+		{ 23, 21, 25 },		// 228 bits per transform
+		{ 23, 25, 21 },		// 228 bits per transform
+		{ 24, 20, 25 },		// 228 bits per transform
+		{ 24, 25, 20 },		// 228 bits per transform
+		{ 25, 12, 25 },		// 228 bits per transform
+		{ 25, 20, 24 },		// 228 bits per transform
+		{ 25, 21, 23 },		// 228 bits per transform
+		{ 25, 22, 22 },		// 228 bits per transform
+		{ 25, 23, 21 },		// 228 bits per transform
+		{ 25, 24, 20 },		// 228 bits per transform
+		{ 25, 25, 12 },		// 228 bits per transform
+		{ 13, 25, 25 },		// 231 bits per transform
+		{ 21, 24, 25 },		// 231 bits per transform
+		{ 21, 25, 24 },		// 231 bits per transform
+		{ 22, 23, 25 },		// 231 bits per transform
+		{ 22, 25, 23 },		// 231 bits per transform
+		{ 23, 22, 25 },		// 231 bits per transform
+		{ 23, 25, 22 },		// 231 bits per transform
+		{ 24, 21, 25 },		// 231 bits per transform
+		{ 24, 25, 21 },		// 231 bits per transform
+		{ 25, 13, 25 },		// 231 bits per transform
+		{ 25, 21, 24 },		// 231 bits per transform
+		{ 25, 22, 23 },		// 231 bits per transform
+		{ 25, 23, 22 },		// 231 bits per transform
+		{ 25, 24, 21 },		// 231 bits per transform
+		{ 25, 25, 13 },		// 231 bits per transform
+		{ 14, 25, 25 },		// 234 bits per transform
+		{ 22, 24, 25 },		// 234 bits per transform
+		{ 22, 25, 24 },		// 234 bits per transform
+		{ 23, 23, 25 },		// 234 bits per transform
+		{ 23, 25, 23 },		// 234 bits per transform
+		{ 24, 22, 25 },		// 234 bits per transform
+		{ 24, 25, 22 },		// 234 bits per transform
+		{ 25, 14, 25 },		// 234 bits per transform
+		{ 25, 22, 24 },		// 234 bits per transform
+		{ 25, 23, 23 },		// 234 bits per transform
+		{ 25, 24, 22 },		// 234 bits per transform
+		{ 25, 25, 14 },		// 234 bits per transform
+		{ 15, 25, 25 },		// 237 bits per transform
+		{ 23, 24, 25 },		// 237 bits per transform
+		{ 23, 25, 24 },		// 237 bits per transform
+		{ 24, 23, 25 },		// 237 bits per transform
+		{ 24, 25, 23 },		// 237 bits per transform
+		{ 25, 15, 25 },		// 237 bits per transform
+		{ 25, 23, 24 },		// 237 bits per transform
+		{ 25, 24, 23 },		// 237 bits per transform
+		{ 25, 25, 15 },		// 237 bits per transform
+		{ 16, 25, 25 },		// 240 bits per transform
+		{ 24, 24, 25 },		// 240 bits per transform
+		{ 24, 25, 24 },		// 240 bits per transform
+		{ 25, 16, 25 },		// 240 bits per transform
+		{ 25, 24, 24 },		// 240 bits per transform
+		{ 25, 25, 16 },		// 240 bits per transform
+		{ 17, 25, 25 },		// 243 bits per transform
+		{ 25, 17, 25 },		// 243 bits per transform
+		{ 25, 25, 17 },		// 243 bits per transform
+		{ 18, 25, 25 },		// 246 bits per transform
+		{ 25, 18, 25 },		// 246 bits per transform
+		{ 25, 25, 18 },		// 246 bits per transform
+		{ 19, 25, 25 },		// 249 bits per transform
+		{ 25, 19, 25 },		// 249 bits per transform
+		{ 25, 25, 19 },		// 249 bits per transform
+		{ 20, 25, 25 },		// 252 bits per transform
+		{ 25, 20, 25 },		// 252 bits per transform
+		{ 25, 25, 20 },		// 252 bits per transform
+		{ 21, 25, 25 },		// 255 bits per transform
+		{ 25, 21, 25 },		// 255 bits per transform
+		{ 25, 25, 21 },		// 255 bits per transform
+		{ 22, 25, 25 },		// 258 bits per transform
+		{ 25, 22, 25 },		// 258 bits per transform
+		{ 25, 25, 22 },		// 258 bits per transform
+		{ 23, 25, 25 },		// 261 bits per transform
+		{ 25, 23, 25 },		// 261 bits per transform
+		{ 25, 25, 23 },		// 261 bits per transform
+		{ 24, 25, 25 },		// 264 bits per transform
+		{ 25, 24, 25 },		// 264 bits per transform
+		{ 25, 25, 24 },		// 264 bits per transform
+		{ 25, 25, 25 },		// 288 bits per transform
 	};
 
 #else

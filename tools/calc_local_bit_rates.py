@@ -2,8 +2,8 @@
 
 import sys
 
-# ACL_BIT_RATE: Added 1, 2, 20, and 21.  TODO: 22, 23, and 24 fail regression tests.
-k_bit_rate_num_bits = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 32 ]
+# ACL_BIT_RATE: Added 1, 2, 20, 21, 22, 23, and 24.
+k_bit_rate_num_bits = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 32 ]
 
 k_highest_bit_rate = len(k_bit_rate_num_bits) - 1 # ACL_BIT_RATE: 18
 k_lowest_bit_rate = 1

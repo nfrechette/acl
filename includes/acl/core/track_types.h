@@ -228,8 +228,7 @@ namespace acl
 
 #ifdef ACL_BIT_RATE
 
-	// TODO: 22, 23, and 24 fail regression tests.
-	constexpr uint8_t k_bit_rate_num_bits[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 32 };
+	constexpr uint8_t k_bit_rate_num_bits[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 32 };
 
 #else
 
@@ -244,7 +243,7 @@ namespace acl
 
 #ifdef ACL_BIT_RATE
 
-	static_assert(k_num_bit_rates == 23, "Expecting 23 bit rates");
+	static_assert(k_num_bit_rates == 26, "Expecting 26 bit rates");
 
 #else
 
