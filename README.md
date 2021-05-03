@@ -104,6 +104,9 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/janisozaur"><img src="https://avatars.githubusercontent.com/u/550290?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Michał Janiszewski</b></sub></a><br /><a href="https://github.com/nfrechette/acl/commits?author=janisozaur" title="Code">💻</a> <a href="#tool-janisozaur" title="Tools">🔧</a> <a href="#maintenance-janisozaur" title="Maintenance">🚧</a> <a href="#infra-janisozaur" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
     <td align="center"><a href="http://keybase.io/visualphoenix"><img src="https://avatars.githubusercontent.com/u/394175?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Raymond Barbiero</b></sub></a><br /><a href="#ideas-visualphoenix" title="Ideas, Planning, & Feedback">🤔</a></td>
   </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/ddeadguyy"><img src="https://avatars.githubusercontent.com/u/42090666?v=4?s=100" width="100px;" alt=""/><br /><sub><b>ddeadguyy</b></sub></a><br /><a href="https://github.com/nfrechette/acl/commits?author=ddeadguyy" title="Code">💻</a> <a href="#ideas-ddeadguyy" title="Ideas, Planning, & Feedback">🤔</a></td>
+  </tr>
 </table>
 
 <!-- markdownlint-restore -->
