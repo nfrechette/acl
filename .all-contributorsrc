@@ -77,6 +77,16 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "ddeadguyy",
+      "name": "ddeadguyy",
+      "avatar_url": "https://avatars.githubusercontent.com/u/42090666?v=4",
+      "profile": "https://github.com/ddeadguyy",
+      "contributions": [
+        "code",
+        "ideas"
+      ]
     }
   ],
   "contributorsPerLine": 7,
