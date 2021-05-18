@@ -173,7 +173,16 @@ namespace acl
 
 		const uint32_t* parent_track_indices = metadata_header.get_parent_track_indices(*this);
 		const uint8_t* descriptions = metadata_header.get_track_descriptions(*this);
+		
+#ifdef ACL_BIND_POSE_BINARY
+
+		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * sizeof(float) * 17));		
+			
+#else
+
 		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * sizeof(float) * 5));
+
+#endif
 
 		out_description.output_index = track_index;
 		out_description.parent_index = parent_track_indices[track_index];
@@ -182,6 +191,14 @@ namespace acl
 		out_description.constant_rotation_threshold_angle = description_data[2];
 		out_description.constant_translation_threshold = description_data[3];
 		out_description.constant_scale_threshold = description_data[4];
+
+#ifdef ACL_BIND_POSE_BINARY
+
+		out_description.default_value.rotation = rtm::quat_load(description_data + 5);
+		out_description.default_value.translation = rtm::vector_load(description_data + 9);
+		out_description.default_value.scale = rtm::vector_load(description_data + 13);
+
+#endif
 
 		return true;
 	}

@@ -201,6 +201,12 @@ namespace acl
 			bool has_scale = false;
 			bool are_samples_valid = true;
 			const rtm::vector4f default_scale = get_default_scale(additive_format);
+			
+#ifdef ACL_BIND_POSE
+
+			const bool default_bind_pose = get_default_bind_pose(additive_format);
+
+#endif
 
 			segment_context& segment = out_clip_context.segments[0];
 
@@ -217,6 +223,12 @@ namespace acl
 				bone_stream.bone_index = transform_index;
 				bone_stream.parent_bone_index = desc.parent_index;
 				bone_stream.output_index = desc.output_index;
+				
+#ifdef ACL_BIND_POSE
+
+				bone_stream.default_value = desc.default_value;
+
+#endif
 
 				bone_stream.rotations = rotation_track_stream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, rotation_format8::quatf_full);
 				bone_stream.translations = translation_track_stream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
@@ -253,11 +265,65 @@ namespace acl
 					const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
 
 					bone_stream.is_rotation_constant = num_samples <= 1;
+					
+#ifdef ACL_BIND_POSE
+
+					if (bone_stream.is_rotation_constant)
+					{
+						const rtm::quatf default_bind_rotation_conj = (default_bind_pose) ? rtm::quat_conjugate(desc.default_value.rotation) : rtm::quat_identity();
+						bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(first_rotation, default_bind_rotation_conj)), constant_rotation_threshold_angle);
+					}
+					else
+					{
+						bone_stream.is_rotation_default = false;
+					}
+			
+#else
+					
 					bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(first_rotation, constant_rotation_threshold_angle);
+					
+#endif
+
 					bone_stream.is_translation_constant = num_samples <= 1;
+					
+#ifdef ACL_BIND_POSE
+
+					if (bone_stream.is_translation_constant)
+					{
+						const rtm::vector4f default_bind_translation = (default_bind_pose) ? desc.default_value.translation : rtm::vector_zero();
+						bone_stream.is_translation_default = rtm::vector_all_near_equal3(first_transform.translation, default_bind_translation, constant_translation_threshold);
+					}
+					else
+					{
+						bone_stream.is_translation_default = false;
+					}
+
+#else
+					
 					bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(first_transform.translation, rtm::vector_zero(), constant_translation_threshold);
+					
+#endif
+					
 					bone_stream.is_scale_constant = num_samples <= 1;
+
+#ifdef ACL_BIND_POSE
+
+					if (bone_stream.is_scale_constant)
+					{
+						const rtm::vector4f default_bind_scale = (default_bind_pose) ? desc.default_value.scale : default_scale;
+						bone_stream.is_scale_default = rtm::vector_all_near_equal3(first_transform.scale, default_bind_scale, constant_scale_threshold);
+					}
+					else
+					{
+						bone_stream.is_scale_default = false;
+					}
+
+#else
+
 					bone_stream.is_scale_default = bone_stream.is_scale_constant && rtm::vector_all_near_equal3(first_transform.scale, default_scale, constant_scale_threshold);
+
+#endif
+
 				}
 
 				has_scale |= !bone_stream.is_scale_default;

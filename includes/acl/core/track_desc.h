@@ -28,6 +28,12 @@
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
 
+#ifdef ACL_BIND_POSE
+
+#include <rtm/qvvf.h>
+
+#endif
+
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -73,6 +79,16 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// The track category for this description.
 		static constexpr track_category8 category = track_category8::transformf;
+		
+#ifdef ACL_BIND_POSE
+
+		//////////////////////////////////////////////////////////////////////////
+		// Default tracks are cheaper than static or animated tracks. The game engine 
+		// can apply bind transforms instead of identity transforms if preferred.
+		rtm::qvvf default_value = rtm::qvv_identity();
+		uint32_t padding = 0;
+
+#endif
 
 		//////////////////////////////////////////////////////////////////////////
 		// The track output index. When writing out the compressed data stream, this index

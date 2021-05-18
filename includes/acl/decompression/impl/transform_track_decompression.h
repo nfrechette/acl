@@ -546,6 +546,82 @@ namespace acl
 			}
 		}
 
+#ifdef ACL_BIND_POSE
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class track_writer_type>
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_defaults(
+			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
+			rtm::quatf_arg0 default_rotation, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = rotation_sub_track_types[entry_index].types;
+
+				// Mask out everything but default sub-tracks, this way we can early out when we iterate
+				// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+				// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+				// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+				// Finally, we mask out everything but the second bit for each sub-track
+				// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+				// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+				packed_entry = (~packed_entry - 0x55555555) & 0xAAAAAAAA;
+
+				// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+				const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xFFFFFFFF;
+				packed_entry &= entry_padding_mask;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no default sub-tracks, skip it
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_default_rotation(track_index0))
+							writer.write_rotation(track_index0, default_rotation);
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_default_rotation(track_index1))
+							writer.write_rotation(track_index1, default_rotation);
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_default_rotation(track_index2))
+							writer.write_rotation(track_index2, default_rotation);
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+						if (!track_writer_type::skip_all_rotations() && !writer.skip_default_rotation(track_index3))
+							writer.write_rotation(track_index3, default_rotation);
+					}
+				}
+			}
+		}
+
+#endif
+
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_type, class track_writer_type>
 		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
@@ -779,6 +855,86 @@ namespace acl
 				}
 			}
 		}
+
+#ifdef ACL_BIND_POSE
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class track_writer_type>
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_defaults(
+			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
+			rtm::vector4f_arg0 default_translation, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = translation_sub_track_types[entry_index].types;
+
+				// Mask out everything but default sub-tracks, this way we can early out when we iterate
+				// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+				// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+				// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+				// Finally, we mask out everything but the second bit for each sub-track
+				// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+				// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+				packed_entry = (~packed_entry - 0x55555555) & 0xAAAAAAAA;
+
+				// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+				const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xFFFFFFFF;
+				packed_entry &= entry_padding_mask;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no default sub-tracks, skip it
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_default_translation(track_index0))
+							writer.write_translation(track_index0, default_translation);
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_default_translation(track_index1))
+							writer.write_translation(track_index1, default_translation);
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_default_translation(track_index2))
+							writer.write_translation(track_index2, default_translation);
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+
+						if (!track_writer_type::skip_all_translations() && !writer.skip_default_translation(track_index3))
+							writer.write_translation(track_index3, default_translation);
+					}
+				}
+			}
+		}
+
+#endif
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
@@ -1026,6 +1182,86 @@ namespace acl
 			}
 		}
 
+#ifdef ACL_BIND_POSE
+
+		// Force inline this function, we only use it to keep the code readable
+		template<class track_writer_type>
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_defaults(
+			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
+			rtm::vector4f_arg0 default_scale, track_writer_type& writer)
+		{
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = scale_sub_track_types[entry_index].types;
+
+				// Mask out everything but default sub-tracks, this way we can early out when we iterate
+				// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+				// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+				// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+				// Finally, we mask out everything but the second bit for each sub-track
+				// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+				// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+				packed_entry = (~packed_entry - 0x55555555) & 0xAAAAAAAA;
+
+				// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+				const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xFFFFFFFF;
+				packed_entry &= entry_padding_mask;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no default sub-tracks, skip it
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_default_scale(track_index0))
+							writer.write_scale(track_index0, default_scale);
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_default_scale(track_index1))
+							writer.write_scale(track_index1, default_scale);
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_default_scale(track_index2))
+							writer.write_scale(track_index2, default_scale);
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+
+						if (!track_writer_type::skip_all_scales() && !writer.skip_default_scale(track_index3))
+							writer.write_scale(track_index3, default_scale);
+					}
+				}
+			}
+		}
+
+#endif
+
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
 		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_scale_sub_tracks(
@@ -1222,6 +1458,13 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const uint32_t has_scale = context.has_scale;
 
+#ifdef ACL_BIND_POSE
+
+			const bool has_bind_pose = header.get_default_bind_pose();
+			const bool skip_bind_pose = track_writer_type::skip_all_defaults() && has_bind_pose;
+
+#endif
+
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 			const uint32_t num_padded_sub_tracks = (num_sub_track_entries * k_num_sub_tracks_per_packed_entry) - num_tracks;
@@ -1278,7 +1521,26 @@ namespace acl
 
 			// Unpack our default rotation sub-tracks
 			// Default rotation sub-tracks are uncommon, this shouldn't take much more than 50 cycles
+
+#ifdef ACL_BIND_POSE
+
+			if (!skip_bind_pose)
+			{
+				if (has_bind_pose)
+				{
+					unpack_default_rotation_sub_defaults(rotation_sub_track_types, last_entry_index, padding_mask, default_rotation, writer);
+				}
+				else
+				{
+					unpack_default_rotation_sub_tracks(rotation_sub_track_types, last_entry_index, padding_mask, default_rotation, writer);
+				}
+			}
+
+#else
+
 			unpack_default_rotation_sub_tracks(rotation_sub_track_types, last_entry_index, padding_mask, default_rotation, writer);
+
+#endif
 
 			// Unpack our constant rotation sub-tracks
 			// Constant rotation sub-tracks are very common, this should take at least 200 cycles
@@ -1308,11 +1570,84 @@ namespace acl
 
 			// Unpack our default translation sub-tracks
 			// Default translation sub-tracks are rare, this shouldn't take much more than 50 cycles
+
+#ifdef ACL_BIND_POSE
+
+			if (!skip_bind_pose)
+			{
+				if (has_bind_pose)
+				{
+					unpack_default_translation_sub_defaults(translation_sub_track_types, last_entry_index, padding_mask, default_translation, writer);
+				}
+				else
+				{
+					unpack_default_translation_sub_tracks(translation_sub_track_types, last_entry_index, padding_mask, default_translation, writer);
+				}
+			}
+
+#else
+
 			unpack_default_translation_sub_tracks(translation_sub_track_types, last_entry_index, padding_mask, default_translation, writer);
+
+#endif
 
 			// Unpack our constant translation sub-tracks
 			// Constant translation sub-tracks are very common, this should take at least 200 cycles
 			unpack_constant_translation_sub_tracks(translation_sub_track_types, last_entry_index, constant_track_cache, writer);
+
+#ifdef ACL_BIND_POSE
+
+			if (!skip_bind_pose)
+			{
+				if (has_bind_pose)
+				{
+					if (has_scale)
+					{
+						// Unpack our default scale sub-tracks
+						// Scale sub-tracks are almost always default, this should take at least 200 cycles
+						unpack_default_scale_sub_defaults(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
+
+						// Unpack our constant scale sub-tracks
+						// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
+						unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
+					}
+					else
+					{
+						// No scale present, everything is just the default value
+						// This shouldn't take much more than 50 cycles
+						for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+						{
+							if (!track_writer_type::skip_all_scales() && !writer.skip_default_scale(track_index))
+								writer.write_scale(track_index, default_scale);
+						}
+					}
+				}
+				else
+				{
+					if (has_scale)
+					{
+						// Unpack our default scale sub-tracks
+						// Scale sub-tracks are almost always default, this should take at least 200 cycles
+						unpack_default_scale_sub_tracks(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
+
+						// Unpack our constant scale sub-tracks
+						// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
+						unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
+					}
+					else
+					{
+						// No scale present, everything is just the default value
+						// This shouldn't take much more than 50 cycles
+						for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+						{
+							if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
+								writer.write_scale(track_index, default_scale);
+						}
+					}
+				}
+			}
+
+#else
 
 			if (has_scale)
 			{
@@ -1334,6 +1669,8 @@ namespace acl
 						writer.write_scale(track_index, default_scale);
 				}
 			}
+
+#endif
 
 			{
 				// By now the first few cache lines of our segment data has landed in the L2
@@ -1436,6 +1773,13 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(tracks_header_.get_default_scale()));
 			const uint32_t has_scale = context.has_scale;
 
+#ifdef ACL_BIND_POSE
+
+			const bool has_bind_pose = tracks_header_.get_default_bind_pose();
+			const bool skip_bind_pose = track_writer_type::skip_all_defaults() && has_bind_pose;
+
+#endif
+
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 
@@ -1465,6 +1809,32 @@ namespace acl
 
 			if (combined_sub_track_type == 0)
 			{
+
+#ifdef ACL_BIND_POSE
+
+				if (skip_bind_pose)
+				{
+					return;
+				}
+				else if (has_bind_pose)
+				{
+					if (!writer.skip_default_rotation(track_index))
+					{
+						writer.write_rotation(track_index, default_rotation);
+					}
+					if (!writer.skip_default_translation(track_index))
+					{
+						writer.write_translation(track_index, default_translation);
+					}
+					if (!writer.skip_default_scale(track_index))
+					{
+						writer.write_scale(track_index, default_scale);
+					}
+					return;
+				}
+
+#endif
+
 				// Everything is default
 				writer.write_rotation(track_index, default_rotation);
 				writer.write_translation(track_index, default_translation);
@@ -1590,6 +1960,12 @@ namespace acl
 
 			// Finally reached our desired track, unpack it
 
+#ifdef ACL_BIND_POSE
+
+			if (!(has_bind_pose && (rotation_sub_track_type == 0) && (skip_bind_pose || writer.skip_default_rotation(track_index))))
+
+#endif
+
 			{
 				rtm::quatf rotation;
 				if (rotation_sub_track_type == 0)
@@ -1601,6 +1977,12 @@ namespace acl
 
 				writer.write_rotation(track_index, rotation);
 			}
+
+#ifdef ACL_BIND_POSE
+
+			if (!(has_bind_pose && (translation_sub_track_type == 0) && (skip_bind_pose || writer.skip_default_translation(track_index))))
+
+#endif
 
 			{
 				rtm::vector4f translation;
@@ -1614,6 +1996,11 @@ namespace acl
 				writer.write_translation(track_index, translation);
 			}
 
+#ifdef ACL_BIND_POSE
+
+			if (!(has_bind_pose && (scale_sub_track_type == 0) && (skip_bind_pose || writer.skip_default_scale(track_index))))
+
+#endif
 			{
 				rtm::vector4f scale;
 				if (scale_sub_track_type == 0)

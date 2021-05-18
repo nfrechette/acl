@@ -88,6 +88,24 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Transform track writing
 
+#ifdef ACL_BIND_POSE
+
+		//////////////////////////////////////////////////////////////////////////
+		// This allows the caller of decompress_pose to skip every default channel,
+		// because the caller applies the bind pose before decompression time.
+		// Must be static constexpr!
+		static constexpr bool skip_all_defaults() { return false; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// These allow the caller of decompress_pose to substitute its own bind transforms as defaults
+		// instead of identity transforms.
+		// Must be non-static member functions!
+		bool skip_default_rotation(uint32_t /*track_index*/) { return false; }
+		bool skip_default_translation(uint32_t /*track_index*/) { return false; }
+		bool skip_default_scale(uint32_t /*track_index*/) { return false; }
+
+#endif
+
 		//////////////////////////////////////////////////////////////////////////
 		// These allow the caller of decompress_pose to control which track types they are interested in.
 		// This information allows the codecs to avoid unpacking values that are not needed.

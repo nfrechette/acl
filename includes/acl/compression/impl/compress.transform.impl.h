@@ -296,6 +296,12 @@ namespace acl
 			header->set_has_database(false);
 			header->set_has_metadata(metadata_size != 0);
 
+#ifdef ACL_BIND_POSE
+
+			header->set_default_bind_pose(!is_additive);
+
+#endif
+
 			// Write our transform tracks header
 			transform_tracks_header* transforms_header = safe_ptr_cast<transform_tracks_header>(buffer);
 			buffer += sizeof(transform_tracks_header);

@@ -92,3 +92,11 @@ namespace acl
 #else
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL (void)0
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Allow users to change the definition of "default transform" from "identity transform" to "bind transform".
+//
+//////////////////////////////////////////////////////////////////////////
+#define ACL_BIND_POSE
+// Punting on this, because it would require a version change.  #define ACL_BIND_POSE_BINARY

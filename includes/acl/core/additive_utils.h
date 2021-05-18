@@ -123,6 +123,15 @@ namespace acl
 	{
 		return additive_format == additive_clip_format8::additive1 ? rtm::vector_zero() : rtm::vector_set(1.0F);
 	}
+	
+#ifdef ACL_BIND_POSE
+
+	inline bool get_default_bind_pose(additive_clip_format8 additive_format)
+	{
+		return (additive_format == additive_clip_format8::none);
+	}
+
+#endif
 
 	inline rtm::qvvf RTM_SIMD_CALL transform_add0(rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
 	{
