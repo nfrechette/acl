@@ -568,6 +568,14 @@ namespace acl
 
 		struct sample_context
 		{
+
+#ifdef ACL_BIND_POSE
+
+			explicit sample_context(bool in_use_default_value) : use_default_value(in_use_default_value) {}
+			bool use_default_value;
+
+#endif
+
 			uint32_t track_index;
 
 			uint32_t sample_key;
@@ -610,7 +618,17 @@ namespace acl
 		{
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
+
+#ifdef ACL_BIND_POSE
+
+				rotation = (context.use_default_value)? bone_stream.default_value.rotation: rtm::quat_identity();
+
+#else
+
 				rotation = rtm::quat_identity();
+		
+#endif
+
 			else if (bone_stream.is_rotation_constant)
 				rotation = rtm::quat_normalize(get_rotation_sample(bone_stream, 0));
 			else
@@ -626,7 +644,17 @@ namespace acl
 		{
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
+
+#ifdef ACL_BIND_POSE
+
+				rotation = (context.use_default_value)? bone_stream.default_value.rotation: rtm::quat_identity();
+
+#else
+
 				rotation = rtm::quat_identity();
+
+#endif
+
 			else if (bone_stream.is_rotation_constant)
 			{
 				if (is_rotation_variable)
@@ -652,7 +680,17 @@ namespace acl
 		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, const transform_streams& bone_stream)
 		{
 			if (bone_stream.is_translation_default)
+
+#ifdef ACL_BIND_POSE
+
+				return (context.use_default_value) ? bone_stream.default_value.translation : rtm::vector_zero();
+
+#else
+
 				return rtm::vector_zero();
+
+#endif
+
 			else if (bone_stream.is_translation_constant)
 				return get_translation_sample(bone_stream, 0);
 			else
@@ -662,7 +700,17 @@ namespace acl
 		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, const transform_streams& bone_stream, const transform_streams& raw_bone_stream, bool is_translation_variable, vector_format8 translation_format)
 		{
 			if (bone_stream.is_translation_default)
+
+#ifdef ACL_BIND_POSE
+
+				return (context.use_default_value) ? bone_stream.default_value.translation : rtm::vector_zero();
+
+#else
+
 				return rtm::vector_zero();
+
+#endif
+
 			else if (bone_stream.is_translation_constant)
 				return get_translation_sample(raw_bone_stream, 0, vector_format8::vector3f_full);
 			else if (is_translation_variable)
@@ -674,7 +722,17 @@ namespace acl
 		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_scale(const sample_context& context, const transform_streams& bone_stream, rtm::vector4f_arg0 default_scale)
 		{
 			if (bone_stream.is_scale_default)
+
+#ifdef ACL_BIND_POSE
+
+				return (context.use_default_value) ? bone_stream.default_value.scale : default_scale;
+
+#else
+
 				return default_scale;
+
+#endif
+
 			else if (bone_stream.is_scale_constant)
 				return get_scale_sample(bone_stream, 0);
 			else
@@ -684,7 +742,17 @@ namespace acl
 		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_scale(const sample_context& context, const transform_streams& bone_stream, const transform_streams& raw_bone_stream, bool is_scale_variable, vector_format8 scale_format, rtm::vector4f_arg0 default_scale)
 		{
 			if (bone_stream.is_scale_default)
+
+#ifdef ACL_BIND_POSE
+
+				return (context.use_default_value) ? bone_stream.default_value.scale : default_scale;
+
+#else
+
 				return default_scale;
+
+#endif
+
 			else if (bone_stream.is_scale_constant)
 				return get_scale_sample(raw_bone_stream, 0, vector_format8::vector3f_full);
 			else if (is_scale_variable)
@@ -702,7 +770,16 @@ namespace acl
 			// With uniform sample distributions, we do not interpolate.
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
+#ifdef ACL_BIND_POSE
+
+			acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format));
+
+#else
+
 			acl_impl::sample_context context;
+
+#endif
+
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
 
@@ -714,7 +791,17 @@ namespace acl
 
 				const rtm::quatf rotation = acl_impl::sample_rotation(context, bone_stream);
 				const rtm::vector4f translation = acl_impl::sample_translation(context, bone_stream);
-				const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, default_scale) : default_scale;
+				const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.use_default_value) ? bone_stream.default_value.scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 
 				out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
 			}
@@ -731,7 +818,16 @@ namespace acl
 			// With uniform sample distributions, we do not interpolate.
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
+#ifdef ACL_BIND_POSE
+
+			acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format));
+
+#else
+
 			acl_impl::sample_context context;
+
+#endif
+
 			context.track_index = bone_index;
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
@@ -740,7 +836,17 @@ namespace acl
 
 			const rtm::quatf rotation = acl_impl::sample_rotation(context, bone_stream);
 			const rtm::vector4f translation = acl_impl::sample_translation(context, bone_stream);
-			const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, default_scale) : default_scale;
+			const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.use_default_value) ? bone_stream.default_value.scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 
 			out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
 		}
@@ -756,7 +862,16 @@ namespace acl
 			// With uniform sample distributions, we do not interpolate.
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
+#ifdef ACL_BIND_POSE
+
+			acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format));
+
+#else
+
 			acl_impl::sample_context context;
+
+#endif
+
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
 
@@ -769,7 +884,17 @@ namespace acl
 
 				const rtm::quatf rotation = acl_impl::sample_rotation(context, bone_stream);
 				const rtm::vector4f translation = acl_impl::sample_translation(context, bone_stream);
-				const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, default_scale) : default_scale;
+				const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.use_default_value) ? bone_stream.default_value.scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 
 				out_local_pose[current_bone_index] = rtm::qvv_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;
@@ -789,7 +914,16 @@ namespace acl
 			// With uniform sample distributions, we do not interpolate.
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
+#ifdef ACL_BIND_POSE
+
+			acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format));
+
+#else
+
 			acl_impl::sample_context context;
+
+#endif
+
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
 
@@ -803,7 +937,17 @@ namespace acl
 
 				const rtm::quatf rotation = acl_impl::sample_rotation(context, bone_stream, raw_bone_steam, is_rotation_variable, rotation_format);
 				const rtm::vector4f translation = acl_impl::sample_translation(context, bone_stream, raw_bone_steam, is_translation_variable, translation_format);
-				const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale) : default_scale;
+				const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, raw_bone_steam, is_scale_variable, scale_format, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.use_default_value) ? bone_stream.default_value.scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 
 				out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
 			}
@@ -824,7 +968,16 @@ namespace acl
 			// With uniform sample distributions, we do not interpolate.
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
+#ifdef ACL_BIND_POSE
+
+			acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format));
+
+#else
+
 			acl_impl::sample_context context;
+
+#endif
+
 			context.track_index = bone_index;
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
@@ -835,7 +988,17 @@ namespace acl
 
 			const rtm::quatf rotation = acl_impl::sample_rotation(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 			const rtm::vector4f translation = acl_impl::sample_translation(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-			const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
+			const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.use_default_value) ? bone_stream.default_value.scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 
 			out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
 		}
@@ -855,7 +1018,16 @@ namespace acl
 			// With uniform sample distributions, we do not interpolate.
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
+#ifdef ACL_BIND_POSE
+
+			acl_impl::sample_context context(get_default_bind_pose(segment_context->clip->additive_format));
+
+#else
+
 			acl_impl::sample_context context;
+
+#endif
+
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
 
@@ -870,7 +1042,17 @@ namespace acl
 
 				const rtm::quatf rotation = acl_impl::sample_rotation(context, bone_stream, raw_bone_stream, is_rotation_variable, rotation_format);
 				const rtm::vector4f translation = acl_impl::sample_translation(context, bone_stream, raw_bone_stream, is_translation_variable, translation_format);
-				const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) : default_scale;
+				const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream, raw_bone_stream, is_scale_variable, scale_format, default_scale) :
+
+#ifdef ACL_BIND_POSE
+
+				(context.use_default_value) ? bone_stream.default_value.scale : default_scale;
+
+#else
+
+				default_scale;
+
+#endif
 
 				out_local_pose[current_bone_index] = rtm::qvv_set(rotation, translation, scale);
 				current_bone_index = bone_stream.parent_bone_index;

@@ -249,6 +249,12 @@ namespace acl
 			bool				m_is_translation_variable;
 			bool				m_is_scale_variable;
 			bool				m_has_scale;
+			
+#ifdef ACL_BIND_POSE
+
+			bool				m_default_bind_pose;
+
+#endif
 
 			uint32_t			m_generation_id;
 
@@ -364,6 +370,12 @@ namespace acl
 			const bool has_scale = raw_bone_steams->segment->clip->has_scale;
 			m_has_scale = has_scale;
 			m_default_scale = get_default_scale(bone_streams->segment->clip->additive_format);
+			
+#ifdef ACL_BIND_POSE
+
+			m_default_bind_pose = get_default_bind_pose(bone_streams->segment->clip->additive_format);
+
+#endif
 
 			const uint32_t num_tracks_per_transform = has_scale ? 3 : 2;
 			const uint32_t num_entries_per_transform = num_tracks_per_transform * k_num_bit_rates_cached_per_track;
@@ -642,7 +654,17 @@ namespace acl
 
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
+			
+#ifdef ACL_BIND_POSE
+
+				rotation = (m_default_bind_pose)? bone_stream.default_value.rotation: rtm::quat_identity();
+
+#else		
+			
 				rotation = rtm::quat_identity();
+				
+#endif
+				
 			else if (bone_stream.is_rotation_constant)
 			{
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index_);
@@ -722,7 +744,17 @@ namespace acl
 
 			rtm::vector4f translation;
 			if (bone_stream.is_translation_default)
+
+#ifdef ACL_BIND_POSE
+
+				translation = (m_default_bind_pose) ? bone_stream.default_value.translation : rtm::vector_zero();
+
+#else
+
 				translation = rtm::vector_zero();
+
+#endif
+
 			else if (bone_stream.is_translation_constant)
 			{
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index_);
@@ -795,7 +827,17 @@ namespace acl
 
 			rtm::vector4f scale;
 			if (bone_stream.is_scale_default)
+
+#ifdef ACL_BIND_POSE
+
+				scale = (m_default_bind_pose) ? bone_stream.default_value.scale : m_default_scale;
+
+#else
+
 				scale = m_default_scale;
+
+#endif
+
 			else if (bone_stream.is_scale_constant)
 			{
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index_);
@@ -871,7 +913,16 @@ namespace acl
 
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
+#ifdef ACL_BIND_POSE
+
+			sample_context context(m_default_bind_pose);
+
+#else
+
 			sample_context context;
+
+#endif
+
 			context.track_index = query.m_track_index;
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
@@ -894,7 +945,16 @@ namespace acl
 
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
+#ifdef ACL_BIND_POSE
+
+			sample_context context(m_default_bind_pose);
+
+#else
+
 			sample_context context;
+
+#endif
+
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
 
@@ -927,7 +987,16 @@ namespace acl
 
 			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
 
+#ifdef ACL_BIND_POSE
+
+			sample_context context(m_default_bind_pose);
+
+#else
+
 			sample_context context;
+
+#endif
+
 			context.sample_key = sample_key;
 			context.sample_time = sample_time;
 

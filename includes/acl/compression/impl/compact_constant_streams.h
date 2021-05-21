@@ -90,6 +90,13 @@ namespace acl
 			const uint32_t num_bones = context.num_bones;
 			const uint32_t num_samples = context.num_samples;
 			const rtm::vector4f default_scale = get_default_scale(context.additive_format);
+			
+#ifdef ACL_BIND_POSE
+
+			const bool default_bind_pose = get_default_bind_pose(context.additive_format);
+
+#endif
+			
 			uint32_t num_default_bone_scales = 0;
 
 			// When a stream is constant, we only keep the first sample
@@ -118,7 +125,17 @@ namespace acl
 
 					bone_stream.rotations = std::move(constant_stream);
 					bone_stream.is_rotation_constant = true;
+					
+#ifdef ACL_BIND_POSE
+
+					const rtm::quatf default_bind_rotation_conj = (default_bind_pose) ? rtm::quat_conjugate(desc.default_value.rotation) : rtm::quat_identity();
+					bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(rtm::vector_to_quat(rotation), default_bind_rotation_conj)), constant_rotation_threshold_angle);
+				
+#else
+					
 					bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::vector_to_quat(rotation), constant_rotation_threshold_angle);
+					
+#endif
 
 					bone_range.rotation = track_stream_range::from_min_extent(rotation, rtm::vector_zero());
 				}
@@ -131,7 +148,17 @@ namespace acl
 
 					bone_stream.translations = std::move(constant_stream);
 					bone_stream.is_translation_constant = true;
+					
+#ifdef ACL_BIND_POSE
+
+					const rtm::vector4f default_bind_translation = (default_bind_pose) ? desc.default_value.translation : rtm::vector_zero();
+					bone_stream.is_translation_default = rtm::vector_all_near_equal3(translation, default_bind_translation, constant_translation_threshold);
+
+#else
+
 					bone_stream.is_translation_default = rtm::vector_all_near_equal3(translation, rtm::vector_zero(), constant_translation_threshold);
+
+#endif
 
 					bone_range.translation = track_stream_range::from_min_extent(translation, rtm::vector_zero());
 				}
@@ -144,7 +171,17 @@ namespace acl
 
 					bone_stream.scales = std::move(constant_stream);
 					bone_stream.is_scale_constant = true;
+					
+#ifdef ACL_BIND_POSE
+
+					const rtm::vector4f default_bind_scale = (default_bind_pose) ? desc.default_value.scale : default_scale;
+					bone_stream.is_scale_default = rtm::vector_all_near_equal3(scale, default_bind_scale, constant_scale_threshold);
+
+#else
+
 					bone_stream.is_scale_default = rtm::vector_all_near_equal3(scale, default_scale, constant_scale_threshold);
+					
+#endif
 
 					bone_range.scale = track_stream_range::from_min_extent(scale, rtm::vector_zero());
 

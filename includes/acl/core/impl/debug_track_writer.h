@@ -29,6 +29,12 @@
 #include "acl/core/track_types.h"
 #include "acl/core/track_writer.h"
 
+#ifdef ACL_BIND_POSE
+
+#include "acl/compression/track_array.h"
+
+#endif
+
 #include <rtm/scalarf.h>
 #include <rtm/vector4f.h>
 
@@ -58,6 +64,22 @@ namespace acl
 			{
 				allocator.deallocate(tracks_typed.any, buffer_size);
 			}
+			
+#ifdef ACL_BIND_POSE
+
+			static constexpr bool skip_all_defaults() { return true; }
+
+			void initialize_bind_pose(const track_array& tracks)
+			{
+				ACL_ASSERT(type == track_type8::qvvf, "Unexpected track type access");
+				const uint32_t num_tracks_local = num_tracks;
+				for (uint32_t track_index = 0; track_index < num_tracks_local; ++track_index)
+				{
+					tracks_typed.qvvf[track_index] = track_cast<track_qvvf>(tracks[track_index]).get_description().default_value;
+				}
+			}
+
+#endif
 
 			//////////////////////////////////////////////////////////////////////////
 			// Called by the decoder to write out a value for a specified track index.
