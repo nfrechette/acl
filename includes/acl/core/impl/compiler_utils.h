@@ -100,3 +100,8 @@ namespace acl
 //////////////////////////////////////////////////////////////////////////
 #define ACL_BIND_POSE
 // Punting on this, because it would require a version change.  #define ACL_BIND_POSE_BINARY
+#ifdef ACL_BIND_POSE
+#define IF_ACL_BIND_POSE(...) __VA_ARGS__
+#else
+#define IF_ACL_BIND_POSE(...)
+#endif
