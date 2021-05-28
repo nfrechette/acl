@@ -49,12 +49,34 @@ namespace acl
 			rtm::vector4f max = rtm::vector_set(-1e10F);
 
 			const uint32_t num_samples = stream.get_num_samples();
+
+#ifdef ACL_BIND_POSE
+
+			rtm::vector4d weighted_average = rtm::vector_set(0.0);
+			const rtm::vector4d weight = rtm::vector_set(1.0 / num_samples);
+
+#endif
+			
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				const rtm::vector4f sample = stream.get_raw_sample<rtm::vector4f>(sample_index);
 
 				min = rtm::vector_min(min, sample);
 				max = rtm::vector_max(max, sample);
+
+#ifdef ACL_BIND_POSE
+
+				const rtm::vector4d sample_d = rtm::vector_cast(sample);
+				if (is_vector4 && (rtm::vector_dot(weighted_average, sample_d) < 0.0))
+				{
+					weighted_average = rtm::vector_neg_mul_sub(sample_d, weight, weighted_average);
+				}
+				else
+				{
+					weighted_average = rtm::vector_mul_add(sample_d, weight, weighted_average);
+				}
+#endif
+
 			}
 
 			// Set the 4th component to zero if we don't need it
@@ -62,9 +84,28 @@ namespace acl
 			{
 				min = rtm::vector_set_w(min, 0.0F);
 				max = rtm::vector_set_w(max, 0.0F);
+
+#ifdef ACL_BIND_POSE
+
+				weighted_average = rtm::vector_clamp(weighted_average, rtm::vector_cast(min), rtm::vector_cast(max));
+			}
+			else if (num_samples > 0)
+			{
+				weighted_average = rtm::vector_clamp(weighted_average, rtm::vector_cast(min), rtm::vector_cast(max));
+				if (num_samples > 1)
+				{
+					weighted_average = rtm::quat_to_vector(rtm::quat_normalize(rtm::vector_to_quat(weighted_average)));
+				}
+			}
+			else
+			{
+				weighted_average = rtm::quat_to_vector((rtm::quatd)rtm::quat_identity());
+
+#endif
+
 			}
 
-			return track_stream_range::from_min_max(min, max);
+			return track_stream_range::from_min_max(min, max IF_ACL_BIND_POSE(, rtm::vector_cast(weighted_average)));
 		}
 
 		inline void extract_bone_ranges_impl(const segment_context& segment, transform_range* bone_ranges)
@@ -143,7 +184,7 @@ namespace acl
 				const rtm::mask4f is_extent0_higher_mask = rtm::vector_greater_equal(padded_range_extent0, range_max);
 				const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
 
-				return track_stream_range::from_min_extent(padded_range_min, padded_range_extent);
+				return track_stream_range::from_min_extent(padded_range_min, padded_range_extent IF_ACL_BIND_POSE(, range.get_weighted_average()));
 			};
 
 			for (segment_context& segment : context.segment_iterator())

@@ -279,19 +279,26 @@ namespace acl
 		class track_stream_range
 		{
 		public:
-			static track_stream_range RTM_SIMD_CALL from_min_max(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max)
+			static track_stream_range RTM_SIMD_CALL from_min_max(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max IF_ACL_BIND_POSE(, rtm::vector4f_arg2 weighted_average))
 			{
-				return track_stream_range(min, rtm::vector_sub(max, min));
+				return track_stream_range(min, rtm::vector_sub(max, min) IF_ACL_BIND_POSE(, weighted_average));
 			}
 
-			static track_stream_range RTM_SIMD_CALL from_min_extent(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
+			static track_stream_range RTM_SIMD_CALL from_min_extent(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent IF_ACL_BIND_POSE(, rtm::vector4f_arg2 weighted_average))
 			{
-				return track_stream_range(min, extent);
+				return track_stream_range(min, extent IF_ACL_BIND_POSE(, weighted_average));
 			}
 
 			track_stream_range()
 				: m_min(rtm::vector_zero())
 				, m_extent(rtm::vector_zero())
+
+#ifdef ACL_BIND_POSE
+
+				, m_weighted_average(rtm::vector_zero())
+
+#endif
+
 			{}
 
 			rtm::vector4f RTM_SIMD_CALL get_min() const { return m_min; }
@@ -302,14 +309,34 @@ namespace acl
 
 			bool is_constant(float threshold) const { return rtm::vector_all_less_than(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
 
+#ifdef ACL_BIND_POSE
+
+			rtm::vector4f RTM_SIMD_CALL get_weighted_average() const { return m_weighted_average; }
+
+#endif
+
 		private:
-			track_stream_range(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
+			track_stream_range(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent IF_ACL_BIND_POSE(, rtm::vector4f_arg2 weighted_average))
 				: m_min(min)
 				, m_extent(extent)
+
+#ifdef ACL_BIND_POSE
+
+				, m_weighted_average(weighted_average)
+
+#endif
+
 			{}
 
 			rtm::vector4f	m_min;
 			rtm::vector4f	m_extent;
+
+#ifdef ACL_BIND_POSE
+
+			rtm::vector4f	m_weighted_average;
+
+#endif
+
 		};
 
 		struct transform_range

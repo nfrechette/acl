@@ -41,12 +41,18 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		inline bool is_rotation_track_constant(const rotation_track_stream& rotations, float threshold_angle)
+		inline bool is_rotation_track_constant(const rotation_track_stream& rotations, float threshold_angle IF_ACL_BIND_POSE(, rtm::quatf_arg0 ref_rotation))
 		{
+
+#ifndef ACL_BIND_POSE
+
 			// Calculating the average rotation and comparing every rotation in the track to it
 			// to determine if we are within the threshold seems overkill. We can't use the min/max for the range
 			// either because neither of those represents a valid rotation. Instead we grab
 			// the first rotation, and compare everything else to it.
+
+#endif
+
 			auto sample_to_quat = [](const rotation_track_stream& track, uint32_t sample_index)
 			{
 				const rtm::vector4f rotation = track.get_raw_sample<rtm::vector4f>(sample_index);
@@ -68,10 +74,24 @@ namespace acl
 			if (num_samples <= 1)
 				return true;
 
+#ifndef ACL_BIND_POSE
+
 			const rtm::quatf ref_rotation = sample_to_quat(rotations, 0);
+
+#endif
+
 			const rtm::quatf inv_ref_rotation = rtm::quat_conjugate(ref_rotation);
 
+#ifdef ACL_BIND_POSE
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+
+#else
+
 			for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
+
+#endif
+
 			{
 				const rtm::quatf rotation = sample_to_quat(rotations, sample_index);
 				const rtm::quatf delta = rtm::quat_normalize(rtm::quat_mul(inv_ref_rotation, rotation));
@@ -117,42 +137,74 @@ namespace acl
 				const float constant_translation_threshold = settings.translation_format != vector_format8::vector3f_full ? desc.constant_translation_threshold : 0.0F;
 				const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
 
-				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle))
+				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle IF_ACL_BIND_POSE(, rtm::vector_to_quat(bone_range.rotation.get_weighted_average()))))
 				{
 					rotation_track_stream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
+
+#ifdef ACL_BIND_POSE
+
+					const rtm::vector4f default_bind_rotation = rtm::quat_to_vector((default_bind_pose) ? desc.default_value.rotation : rtm::quat_identity());
+					rtm::vector4f rotation = num_samples != 0 ? bone_range.rotation.get_weighted_average(): default_bind_rotation;
+
+#else
+
 					rtm::vector4f rotation = num_samples != 0 ? bone_stream.rotations.get_raw_sample<rtm::vector4f>(0) : rtm::quat_to_vector((rtm::quatf)rtm::quat_identity());
 					constant_stream.set_raw_sample(0, rotation);
 
 					bone_stream.rotations = std::move(constant_stream);
+
+#endif
+
 					bone_stream.is_rotation_constant = true;
 					
 #ifdef ACL_BIND_POSE
+					
+					bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(rtm::vector_to_quat(rotation), rtm::quat_conjugate(rtm::vector_to_quat(default_bind_rotation)))), constant_rotation_threshold_angle);
+					if (bone_stream.is_rotation_default)
+					{
+						rotation = default_bind_rotation;
+					}
+					constant_stream.set_raw_sample(0, rotation);
+					bone_stream.rotations = std::move(constant_stream);
 
-					const rtm::quatf default_bind_rotation_conj = (default_bind_pose) ? rtm::quat_conjugate(desc.default_value.rotation) : rtm::quat_identity();
-					bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(rtm::vector_to_quat(rotation), default_bind_rotation_conj)), constant_rotation_threshold_angle);
-				
 #else
 					
 					bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::vector_to_quat(rotation), constant_rotation_threshold_angle);
 					
 #endif
 
-					bone_range.rotation = track_stream_range::from_min_extent(rotation, rtm::vector_zero());
+					bone_range.rotation = track_stream_range::from_min_extent(rotation, rtm::vector_zero() IF_ACL_BIND_POSE(, rotation));
 				}
 
 				if (bone_range.translation.is_constant(constant_translation_threshold))
 				{
 					translation_track_stream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
+
+#ifdef ACL_BIND_POSE
+
+					const rtm::vector4f default_bind_translation = (default_bind_pose) ? desc.default_value.translation : rtm::vector_zero();
+					rtm::vector4f translation = num_samples != 0 ? bone_range.translation.get_weighted_average() : default_bind_translation;
+
+#else
+
 					rtm::vector4f translation = num_samples != 0 ? bone_stream.translations.get_raw_sample<rtm::vector4f>(0) : rtm::vector_zero();
 					constant_stream.set_raw_sample(0, translation);
 
 					bone_stream.translations = std::move(constant_stream);
+
+#endif
+					
 					bone_stream.is_translation_constant = true;
 					
 #ifdef ACL_BIND_POSE
 
-					const rtm::vector4f default_bind_translation = (default_bind_pose) ? desc.default_value.translation : rtm::vector_zero();
 					bone_stream.is_translation_default = rtm::vector_all_near_equal3(translation, default_bind_translation, constant_translation_threshold);
+					if (bone_stream.is_translation_default)
+					{
+						translation = default_bind_translation;
+					}
+					constant_stream.set_raw_sample(0, translation);
+					bone_stream.translations = std::move(constant_stream);
 
 #else
 
@@ -160,22 +212,38 @@ namespace acl
 
 #endif
 
-					bone_range.translation = track_stream_range::from_min_extent(translation, rtm::vector_zero());
+					bone_range.translation = track_stream_range::from_min_extent(translation, rtm::vector_zero() IF_ACL_BIND_POSE(, translation));
 				}
 
 				if (bone_range.scale.is_constant(constant_scale_threshold))
 				{
 					scale_track_stream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
+
+#ifdef ACL_BIND_POSE
+
+					const rtm::vector4f default_bind_scale = (default_bind_pose) ? desc.default_value.scale : default_scale;
+					rtm::vector4f scale = (context.has_scale && (num_samples != 0)) ? bone_range.scale.get_weighted_average() : default_bind_scale;
+
+#else
+
 					rtm::vector4f scale = num_samples != 0 ? bone_stream.scales.get_raw_sample<rtm::vector4f>(0) : default_scale;
 					constant_stream.set_raw_sample(0, scale);
 
 					bone_stream.scales = std::move(constant_stream);
+
+#endif
+
 					bone_stream.is_scale_constant = true;
 					
 #ifdef ACL_BIND_POSE
 
-					const rtm::vector4f default_bind_scale = (default_bind_pose) ? desc.default_value.scale : default_scale;
 					bone_stream.is_scale_default = rtm::vector_all_near_equal3(scale, default_bind_scale, constant_scale_threshold);
+					if (bone_stream.is_scale_default)
+					{
+						scale = default_bind_scale;
+					}
+					constant_stream.set_raw_sample(0, scale);
+					bone_stream.scales = std::move(constant_stream);
 
 #else
 
@@ -183,7 +251,7 @@ namespace acl
 					
 #endif
 
-					bone_range.scale = track_stream_range::from_min_extent(scale, rtm::vector_zero());
+					bone_range.scale = track_stream_range::from_min_extent(scale, rtm::vector_zero() IF_ACL_BIND_POSE(, scale));
 
 					num_default_bone_scales += bone_stream.is_scale_default ? 1 : 0;
 				}

@@ -256,7 +256,17 @@ namespace acl
 				}
 
 				{
+
+#ifdef ACL_BIND_POSE
+
+					const rtm::qvvf first_transform = num_samples != 0 ? track[0] : ((default_bind_pose)? desc.default_value: rtm::qvv_identity());
+
+#else
+
 					const rtm::qvvf first_transform = num_samples != 0 ? track[0] : rtm::qvv_identity();
+
+#endif
+
 					const rtm::quatf first_rotation = rtm::quat_normalize(first_transform.rotation);
 
 					// If we request raw data, use a 0.0 threshold for safety
@@ -270,8 +280,12 @@ namespace acl
 
 					if (bone_stream.is_rotation_constant)
 					{
-						const rtm::quatf default_bind_rotation_conj = (default_bind_pose) ? rtm::quat_conjugate(desc.default_value.rotation) : rtm::quat_identity();
-						bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(first_rotation, default_bind_rotation_conj)), constant_rotation_threshold_angle);
+						const rtm::quatf default_bind_rotation = (default_bind_pose) ? desc.default_value.rotation: rtm::quat_identity();
+						bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(first_rotation, rtm::quat_conjugate(default_bind_rotation))), constant_rotation_threshold_angle);
+						if ((num_samples == 1) && bone_stream.is_rotation_default)
+						{
+							bone_stream.rotations.set_raw_sample(0, default_bind_rotation);
+						}
 					}
 					else
 					{
@@ -292,6 +306,10 @@ namespace acl
 					{
 						const rtm::vector4f default_bind_translation = (default_bind_pose) ? desc.default_value.translation : rtm::vector_zero();
 						bone_stream.is_translation_default = rtm::vector_all_near_equal3(first_transform.translation, default_bind_translation, constant_translation_threshold);
+						if ((num_samples == 1) && bone_stream.is_translation_default)
+						{
+							bone_stream.translations.set_raw_sample(0, default_bind_translation);
+						}
 					}
 					else
 					{
@@ -312,6 +330,10 @@ namespace acl
 					{
 						const rtm::vector4f default_bind_scale = (default_bind_pose) ? desc.default_value.scale : default_scale;
 						bone_stream.is_scale_default = rtm::vector_all_near_equal3(first_transform.scale, default_bind_scale, constant_scale_threshold);
+						if ((num_samples == 1) && bone_stream.is_scale_default)
+						{
+							bone_stream.scales.set_raw_sample(0, default_bind_scale);
+						}
 					}
 					else
 					{
