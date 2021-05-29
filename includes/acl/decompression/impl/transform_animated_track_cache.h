@@ -181,11 +181,24 @@ namespace acl
 			__m128 segment_range_extent_yyyy = _mm_cvtepi32_ps(segment_range_extent_yyyy_u32);
 			__m128 segment_range_extent_zzzz = _mm_cvtepi32_ps(segment_range_extent_zzzz_u32);
 
+#ifdef ACL_PRECISION_BOOST
+
+			const __m128 normalization_value = _mm_set_ps1(1.0F / 254.0F);
+			const __m128 half_neg = _mm_set_ps1(-0.5F);
+
+			segment_range_min_xxxx = RTM_VECTOR4F_MULV_ADD(segment_range_min_xxxx, normalization_value, half_neg);
+			segment_range_min_yyyy = RTM_VECTOR4F_MULV_ADD(segment_range_min_yyyy, normalization_value, half_neg);
+			segment_range_min_zzzz = RTM_VECTOR4F_MULV_ADD(segment_range_min_zzzz, normalization_value, half_neg);
+
+#else
+
 			const __m128 normalization_value = _mm_set_ps1(1.0F / 255.0F);
 
 			segment_range_min_xxxx = _mm_mul_ps(segment_range_min_xxxx, normalization_value);
 			segment_range_min_yyyy = _mm_mul_ps(segment_range_min_yyyy, normalization_value);
 			segment_range_min_zzzz = _mm_mul_ps(segment_range_min_zzzz, normalization_value);
+
+#endif
 
 			segment_range_extent_xxxx = _mm_mul_ps(segment_range_extent_xxxx, normalization_value);
 			segment_range_extent_yyyy = _mm_mul_ps(segment_range_extent_yyyy, normalization_value);
@@ -215,11 +228,24 @@ namespace acl
 			float32x4_t segment_range_extent_yyyy = vcvtq_f32_u32(segment_range_extent_yyyy_u32);
 			float32x4_t segment_range_extent_zzzz = vcvtq_f32_u32(segment_range_extent_zzzz_u32);
 
+#ifdef ACL_PRECISION_BOOST
+
+			const float normalization_value = 1.0F / 254.0F;
+			const float32x4_t half_neg = vdupq_n_f32(-0.5F);
+
+			segment_range_min_xxxx = vmlaq_n_f32(half_neg, segment_range_min_xxxx, normalization_value);
+			segment_range_min_yyyy = vmlaq_n_f32(half_neg, segment_range_min_yyyy, normalization_value);
+			segment_range_min_zzzz = vmlaq_n_f32(half_neg, segment_range_min_zzzz, normalization_value);
+
+#else
+
 			const float normalization_value = 1.0F / 255.0F;
 
 			segment_range_min_xxxx = vmulq_n_f32(segment_range_min_xxxx, normalization_value);
 			segment_range_min_yyyy = vmulq_n_f32(segment_range_min_yyyy, normalization_value);
 			segment_range_min_zzzz = vmulq_n_f32(segment_range_min_zzzz, normalization_value);
+
+#endif
 
 			segment_range_extent_xxxx = vmulq_n_f32(segment_range_extent_xxxx, normalization_value);
 			segment_range_extent_yyyy = vmulq_n_f32(segment_range_extent_yyyy, normalization_value);
@@ -233,11 +259,24 @@ namespace acl
 			rtm::vector4f segment_range_extent_yyyy = rtm::vector_set(float(segment_range_data[16]), float(segment_range_data[17]), float(segment_range_data[18]), float(segment_range_data[19]));
 			rtm::vector4f segment_range_extent_zzzz = rtm::vector_set(float(segment_range_data[20]), float(segment_range_data[21]), float(segment_range_data[22]), float(segment_range_data[23]));
 
+#ifdef ACL_PRECISION_BOOST
+
+			const float normalization_value = 1.0F / 254.0F;
+			const rtm::vector4f half_neg = rtm::vector_set(-0.5F);
+
+			segment_range_min_xxxx = rtm::vector_mul_add(segment_range_min_xxxx, normalization_value, half_neg);
+			segment_range_min_yyyy = rtm::vector_mul_add(segment_range_min_yyyy, normalization_value, half_neg);
+			segment_range_min_zzzz = rtm::vector_mul_add(segment_range_min_zzzz, normalization_value, half_neg);
+
+#else
+
 			const float normalization_value = 1.0F / 255.0F;
 
 			segment_range_min_xxxx = rtm::vector_mul(segment_range_min_xxxx, normalization_value);
 			segment_range_min_yyyy = rtm::vector_mul(segment_range_min_yyyy, normalization_value);
 			segment_range_min_zzzz = rtm::vector_mul(segment_range_min_zzzz, normalization_value);
+
+#endif
 
 			segment_range_extent_xxxx = rtm::vector_mul(segment_range_extent_xxxx, normalization_value);
 			segment_range_extent_yyyy = rtm::vector_mul(segment_range_extent_yyyy, normalization_value);
@@ -655,14 +694,44 @@ namespace acl
 						// Convert to floats and normalize
 						__m128i xyz = _mm_setr_epi32(x, y, z, 0);
 						__m128 xyzf = _mm_cvtepi32_ps(xyz);
+
+#ifdef ACL_PRECISION_BOOST
+
+						rotation_as_vec = _mm_mul_ps(_mm_sub_ps(xyzf, _mm_set_ps1(32767.5F)), _mm_set_ps1(1.0F / 65535.0F));
+
+#else
+
 						rotation_as_vec = _mm_mul_ps(xyzf, _mm_set_ps1(1.0F / 65535.0F));
+
+#endif
+
 #elif defined(RTM_NEON_INTRINSICS)
 						uint32x4_t xyz = vcombine_u32(vcreate_u32((uint64_t(y) << 32) | x), vcreate_u32(z));
 						float32x4_t xyzf = vcvtq_f32_u32(xyz);
+
+#ifdef ACL_PRECISION_BOOST
+
+						rotation_as_vec = vmulq_n_f32(vsubq_f32(xyzf, vdupq_n_f32(32767.5F)), 1.0F / 65535.0F);
+
+#else
+
 						rotation_as_vec = vmulq_n_f32(xyzf, 1.0F / 65535.0F);
+
+#endif
+
 #else
 						const rtm::vector4f xyz = rtm::vector_set(float(x), float(y), float(z), 0.0F);
+
+#ifdef ACL_PRECISION_BOOST
+
+						rotation_as_vec = rtm::vector_mul(rtm::vector_sub(xyz, rtm::vector_set(32767.5F)), rtm::vector_set(1.0F / 65535.0F));
+
+#else
+
 						rotation_as_vec = rtm::vector_mul(xyz, 1.0F / 65535.0F);
+
+#endif
+
 #endif
 
 						sample_segment_range_ignore_mask = 0xFF;	// Ignore segment range
@@ -677,7 +746,17 @@ namespace acl
 					}
 					else
 					{
+
+#ifdef ACL_PRECISION_BOOST
+
+						rotation_as_vec = unpack_vector3_snXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+
+#else
+
 						rotation_as_vec = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+
+#endif
+
 						animated_track_data_bit_offset += num_bits_at_bit_rate * 3;
 						sample_segment_range_ignore_mask = 0x00;
 						sample_clip_range_ignore_mask = 0x00;
@@ -835,14 +914,44 @@ namespace acl
 					// Convert to floats and normalize
 					__m128i xyz = _mm_setr_epi32(x, y, z, 0);
 					__m128 xyzf = _mm_cvtepi32_ps(xyz);
+
+#ifdef ACL_PRECISION_BOOST
+
+					rotation_as_vec = _mm_mul_ps(_mm_sub_ps(xyzf, _mm_set_ps1(32767.5F)), _mm_set_ps1(1.0F / 65535.0F));
+
+#else
+
 					rotation_as_vec = _mm_mul_ps(xyzf, _mm_set_ps1(1.0F / 65535.0F));
+
+#endif
+
 #elif defined(RTM_NEON_INTRINSICS)
 					uint32x4_t xyz = vcombine_u32(vcreate_u32((uint64_t(y) << 32) | x), vcreate_u32(z));
 					float32x4_t xyzf = vcvtq_f32_u32(xyz);
+
+#ifdef ACL_PRECISION_BOOST
+
+					rotation_as_vec = vmulq_n_f32(vsubq_f32(xyzf, vdupq_n_f32(32767.5F)), 1.0F / 65535.0F);
+
+#else
+
 					rotation_as_vec = vmulq_n_f32(xyzf, 1.0F / 65535.0F);
+
+#endif
+
 #else
 					const rtm::vector4f xyz = rtm::vector_set(float(x), float(y), float(z), 0.0F);
+
+#ifdef ACL_PRECISION_BOOST
+
+					rotation_as_vec = rtm::vector_mul(rtm::vector_sub(xyz, rtm::vector_set(32767.5F)), rtm::vector_set(1.0F / 65535.0F));
+
+#else
+
 					rotation_as_vec = rtm::vector_mul(xyz, 1.0F / 65535.0F);
+
+#endif
+
 #endif
 
 					segment_range_ignore_mask = 0xFF;	// Ignore segment range
@@ -856,7 +965,17 @@ namespace acl
 				}
 				else
 				{
+
+#ifdef ACL_PRECISION_BOOST
+
+					rotation_as_vec = unpack_vector3_snXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+
+#else
+
 					rotation_as_vec = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+
+#endif
+
 					segment_range_ignore_mask = 0x00;
 					clip_range_ignore_mask = 0x00;
 				}
@@ -908,8 +1027,18 @@ namespace acl
 					rtm::vector4f segment_range_extent = rtm::vector_set(float(extent_x), float(extent_y), float(extent_z), 0.0F);
 #endif
 
+#ifdef ACL_PRECISION_BOOST
+
+					const float normalization_scale = 1.0F / 254.0F;
+					segment_range_min = rtm::vector_mul_add(segment_range_min, normalization_scale, rtm::vector_set(-0.5F));
+
+#else
+
 					const float normalization_scale = 1.0F / 255.0F;
 					segment_range_min = rtm::vector_mul(segment_range_min, normalization_scale);
+
+#endif
+
 					segment_range_extent = rtm::vector_mul(segment_range_extent, normalization_scale);
 
 					rotation_as_vec = rtm::vector_mul_add(rotation_as_vec, segment_range_extent, segment_range_min);
@@ -966,7 +1095,17 @@ namespace acl
 
 					if (num_bits_at_bit_rate == 0)	// Constant bit rate
 					{
+
+#ifdef ACL_PRECISION_BOOST
+
+						sample = unpack_vector3_sn48_unsafe_precise_endpoints(segment_range_data);
+
+#else
+
 						sample = unpack_vector3_u48_unsafe(segment_range_data);
+
+#endif
+
 						segment_range_data += sizeof(uint16_t) * 3;
 						range_ignore_flags = 0x01;	// Skip segment only
 					}
@@ -979,7 +1118,17 @@ namespace acl
 					}
 					else
 					{
+
+#ifdef ACL_PRECISION_BOOST
+
+						sample = unpack_vector3_snXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+
+#else
+
 						sample = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+
+#endif
+
 						animated_track_data_bit_offset += num_bits_at_bit_rate * 3;
 						range_ignore_flags = 0x00;	// Don't skip range reduction
 					}
@@ -1002,10 +1151,22 @@ namespace acl
 						const uint8_t* segment_range_extent_ptr = segment_range_min_ptr + range_entry_size;
 						segment_range_data = segment_range_extent_ptr + range_entry_size;
 
+#ifdef ACL_PRECISION_BOOST
+
+						const rtm::vector4f segment_range_center = unpack_vector3_sn24_unsafe_precise_endpoints_midpoint(segment_range_min_ptr);
+						const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe_precise_endpoints_midpoint(segment_range_extent_ptr);
+
+						sample = rtm::vector_mul_add(sample, segment_range_extent, segment_range_center);
+
+#else
+
 						const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(segment_range_min_ptr);
 						const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(segment_range_extent_ptr);
 
 						sample = rtm::vector_mul_add(sample, segment_range_extent, segment_range_min);
+
+#endif
+
 					}
 
 					if ((range_ignore_flags & 0x02) == 0)
@@ -1104,7 +1265,17 @@ namespace acl
 
 				if (num_bits_at_bit_rate == 0)	// Constant bit rate
 				{
+
+#ifdef ACL_PRECISION_BOOST
+
+					sample = unpack_vector3_sn48_unsafe_precise_endpoints(segment_range_data);
+
+#else
+
 					sample = unpack_vector3_u48_unsafe(segment_range_data);
+
+#endif
+
 					range_ignore_flags = 0x01;	// Skip segment only
 				}
 				else if (num_bits_at_bit_rate == 32)	// Raw bit rate
@@ -1114,7 +1285,17 @@ namespace acl
 				}
 				else
 				{
+
+#ifdef ACL_PRECISION_BOOST
+
+					sample = unpack_vector3_snXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+
+#else
+
 					sample = unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, animated_track_data, animated_track_data_bit_offset);
+
+#endif
+
 					range_ignore_flags = 0x00;	// Don't skip range reduction
 				}
 			}
@@ -1131,10 +1312,23 @@ namespace acl
 				if (decomp_context.has_segments && (range_ignore_flags & 0x01) == 0)
 				{
 					// Apply segment range remapping
+
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f segment_range_center = unpack_vector3_sn24_unsafe_precise_endpoints_midpoint(segment_range_data);
+					const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe_precise_endpoints_midpoint(segment_range_data + 3 * sizeof(uint8_t));
+
+					sample = rtm::vector_mul_add(sample, segment_range_extent, segment_range_center);
+
+#else
+
 					const rtm::vector4f segment_range_min = unpack_vector3_u24_unsafe(segment_range_data);
 					const rtm::vector4f segment_range_extent = unpack_vector3_u24_unsafe(segment_range_data + 3 * sizeof(uint8_t));
 
 					sample = rtm::vector_mul_add(sample, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				if ((range_ignore_flags & 0x02) == 0)

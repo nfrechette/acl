@@ -42,23 +42,64 @@ namespace acl
 		{
 			using namespace rtm;
 
+#ifdef ACL_PRECISION_BOOST
+
+			const vector4f half = rtm::vector_set(0.5F);
+			const vector4f half_neg = rtm::vector_set(-0.5F);
+
+#else
+
 			const vector4f one = rtm::vector_set(1.0F);
 			const vector4f zero = vector_zero();
+
+#endif
 
 			track_vector4f& typed_track = track_cast<track_vector4f>(mut_track);
 
 			const uint32_t num_samples = mut_track.get_num_samples();
 
+#ifdef ACL_PRECISION_BOOST
+
+			const vector4f range_center = range.get_center();
+
+#else
 			const vector4f range_min = range.get_min();
+
+#endif
+
 			const vector4f range_extent = range.get_extent();
 			const mask4f is_range_zero_mask = vector_less_than(range_extent, rtm::vector_set(0.000000001F));
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
+
+#ifdef ACL_PRECISION_BOOST
+
+				// normalized value is between [-0.5 .. 0.5]
+				// value = (normalized value * range extent) + range center
+				// normalized value = (value - range center) / range extent
+
+#else
+
 				// normalized value is between [0.0 .. 1.0]
 				// value = (normalized value * range extent) + range min
 				// normalized value = (value - range min) / range extent
+
+#endif
+
 				const vector4f sample = typed_track[sample_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				vector4f normalized_sample = vector_div(vector_sub(sample, range_center), range_extent);
+
+				// Clamp because the division might be imprecise
+				normalized_sample = rtm::vector_clamp(normalized_sample, half_neg, half);
+				normalized_sample = rtm::vector_select(is_range_zero_mask, half_neg, normalized_sample);
+
+				ACL_ASSERT(vector_all_greater_equal(normalized_sample, half_neg) && vector_all_less_equal(normalized_sample, half), "Invalid normalized value. -0.5 <= [%f, %f, %f, %f] <= 0.5", (float)vector_get_x(normalized_sample), (float)vector_get_y(normalized_sample), (float)vector_get_z(normalized_sample), (float)vector_get_w(normalized_sample));
+
+#else
 
 				vector4f normalized_sample = vector_div(vector_sub(sample, range_min), range_extent);
 
@@ -67,6 +108,8 @@ namespace acl
 				normalized_sample = vector_select(is_range_zero_mask, zero, normalized_sample);
 
 				ACL_ASSERT(vector_all_greater_equal(normalized_sample, zero) && vector_all_less_equal(normalized_sample, one), "Invalid normalized value. 0.0 <= [%f, %f, %f, %f] <= 1.0", (float)vector_get_x(normalized_sample), (float)vector_get_y(normalized_sample), (float)vector_get_z(normalized_sample), (float)vector_get_w(normalized_sample));
+
+#endif
 
 				typed_track[sample_index] = normalized_sample;
 			}
