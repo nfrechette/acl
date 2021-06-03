@@ -100,28 +100,114 @@ namespace acl
 		{
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
+
+#ifdef ACL_PRECISION_BOOST
+
+			const float max_range_value_flt = float((1 << k_segment_range_reduction_num_bits_per_component) - 2);
+
+#else
+
 			const float max_range_value_flt = float((1 << k_segment_range_reduction_num_bits_per_component) - 1);
+
+#endif
+
 			const rtm::vector4f max_range_value = rtm::vector_set(max_range_value_flt);
 			const rtm::vector4f inv_max_range_value = rtm::vector_set(1.0F / max_range_value_flt);
 
+#ifdef ACL_PRECISION_BOOST
+
+			const rtm::vector4f half = rtm::vector_set(0.5F);
+			const rtm::vector4f half_neg = rtm::vector_set(-0.5F);
+			const rtm::vector4f half_range_value = rtm::vector_set(float((1 << (k_segment_range_reduction_num_bits_per_component - 1)) - 1));
+			// Segment ranges are always normalized and live between [-0.5 ... 0.5]
+
+#else
+
 			// Segment ranges are always normalized and live between [0.0 ... 1.0]
+
+#endif
 
 			auto fixup_range = [&](const track_stream_range& range)
 			{
+
+
+#ifdef ACL_PRECISION_BOOST
+
+				// In our compressed format, we store the center value of the track range quantized on 8 bits.
+				// To get the best accuracy, we pick the values closest to the true minimum that is slightly lower, and true maximum that is slightly higher.
+				// This is to ensure that we encompass the lowest and highest values even after quantization.
+				const rtm::vector4f range_min = range.get_min();
+				const rtm::vector4f quantized_min0 = rtm::vector_clamp(rtm::vector_add(rtm::vector_floor(rtm::vector_mul_add(range_min, max_range_value, half)), half_range_value), zero, max_range_value);
+
+#else
+
 				// In our compressed format, we store the minimum value of the track range quantized on 8 bits.
 				// To get the best accuracy, we pick the value closest to the true minimum that is slightly lower.
 				// This is to ensure that we encompass the lowest value even after quantization.
 				const rtm::vector4f range_min = range.get_min();
 				const rtm::vector4f scaled_min = rtm::vector_mul(range_min, max_range_value);
 				const rtm::vector4f quantized_min0 = rtm::vector_clamp(rtm::vector_floor(scaled_min), zero, max_range_value);
+
+#endif
+
 				const rtm::vector4f quantized_min1 = rtm::vector_max(rtm::vector_sub(quantized_min0, one), zero);
+
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f padded_range_min0 = rtm::vector_mul_add(quantized_min0, inv_max_range_value, half_neg);
+
+#else
 
 				const rtm::vector4f padded_range_min0 = rtm::vector_mul(quantized_min0, inv_max_range_value);
 				const rtm::vector4f padded_range_min1 = rtm::vector_mul(quantized_min1, inv_max_range_value);
 
+#endif
+
 				// Check if min0 is below or equal to our original range minimum value, if it is, it is good
 				// enough to use otherwise min1 is guaranteed to be lower.
 				const rtm::mask4f is_min0_lower_mask = rtm::vector_less_equal(padded_range_min0, range_min);
+
+#ifdef ACL_PRECISION_BOOST
+
+				rtm::vector4f quantized_min = rtm::vector_select(is_min0_lower_mask, quantized_min0, quantized_min1);
+
+				const rtm::vector4f range_max = range.get_max();
+				const rtm::vector4f quantized_max0 = rtm::vector_clamp(rtm::vector_add(rtm::vector_floor(rtm::vector_mul_add(range_max, max_range_value, half)), half_range_value), zero, max_range_value);
+				const rtm::vector4f quantized_max1 = rtm::vector_min(rtm::vector_add(quantized_max0, one), max_range_value);
+				const rtm::vector4f padded_range_max0 = rtm::vector_mul_add(quantized_max0, inv_max_range_value, half_neg);
+				const rtm::mask4f is_max0_higher_mask = rtm::vector_greater_equal(padded_range_max0, range_max);
+				rtm::vector4f quantized_max = rtm::vector_select(is_max0_higher_mask, quantized_max0, quantized_max1);
+
+				// Finally, we pad the range further so the midpoint has minimal quantization error.
+				const rtm::vector4f quantized_extent = rtm::vector_sub(quantized_max, quantized_min);
+				union MaskVector
+				{
+					constexpr explicit MaskVector(rtm::mask4f_arg0 mask_arg) : mask(mask_arg) {}
+					rtm::mask4f mask;
+					rtm::vector4f vector;
+				};
+				union VectorMask
+				{
+					constexpr explicit VectorMask(rtm::vector4f_arg0 vector_arg) : vector(vector_arg) {}
+					rtm::vector4f vector;
+					rtm::mask4f mask;
+				};
+				const MaskVector is_odd(rtm::mask_set(
+					(static_cast<int>(rtm::vector_get_x(quantized_extent)) & 1) != 0,
+					(static_cast<int>(rtm::vector_get_y(quantized_extent)) & 1) != 0,
+					(static_cast<int>(rtm::vector_get_z(quantized_extent)) & 1) != 0,
+					(static_cast<int>(rtm::vector_get_w(quantized_extent)) & 1) != 0));
+				const MaskVector prepend(rtm::vector_greater_equal(quantized_min, rtm::vector_sub(max_range_value, quantized_max)));
+				const MaskVector all(rtm::mask_set(true, true, true, true));
+				quantized_min = rtm::vector_select(VectorMask(rtm::vector_and(is_odd.vector, prepend.vector)).mask, rtm::vector_sub(quantized_min, one), quantized_min);
+				quantized_max = rtm::vector_select(VectorMask(rtm::vector_and(is_odd.vector, rtm::vector_xor(prepend.vector, all.vector))).mask, rtm::vector_add(quantized_max, one), quantized_max);
+				ACL_ASSERT(rtm::vector_all_greater_equal(quantized_min, zero), "Min too low.");
+				ACL_ASSERT(rtm::vector_all_greater_equal(quantized_max, quantized_min), "Max too low.");
+				ACL_ASSERT(rtm::vector_all_greater_equal(max_range_value, quantized_max), "Max too high.");
+				return track_stream_range::from_min_max(rtm::vector_mul_add(quantized_min, inv_max_range_value, half_neg), rtm::vector_mul_add(quantized_max, inv_max_range_value, half_neg));
+
+#else
+
 				const rtm::vector4f padded_range_min = rtm::vector_select(is_min0_lower_mask, padded_range_min0, padded_range_min1);
 
 				// The story is different for the extent. We do not store the max, instead we use the extent
@@ -144,6 +230,9 @@ namespace acl
 				const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
 
 				return track_stream_range::from_min_extent(padded_range_min, padded_range_extent);
+
+#endif
+
 			};
 
 			for (segment_context& segment : context.segment_iterator())
@@ -171,20 +260,53 @@ namespace acl
 
 		inline rtm::vector4f RTM_SIMD_CALL normalize_sample(rtm::vector4f_arg0 sample, const track_stream_range& range)
 		{
+
+#ifdef ACL_PRECISION_BOOST
+
+			const rtm::vector4f range_center = range.get_center();
+
+#else
+
 			const rtm::vector4f range_min = range.get_min();
+
+#endif
+
 			const rtm::vector4f range_extent = range.get_extent();
 			const rtm::mask4f is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
+
+#ifdef ACL_PRECISION_BOOST
+
+			rtm::vector4f normalized_sample = rtm::vector_div(rtm::vector_sub(sample, range_center), range_extent);
+			// Clamp because the division might be imprecise
+			const rtm::vector4f half_neg = rtm::vector_set(-0.5F);
+			normalized_sample = rtm::vector_clamp(normalized_sample, half_neg, rtm::vector_set(0.5F));
+			return rtm::vector_select(is_range_zero_mask, half_neg, normalized_sample);
+
+#else
 
 			rtm::vector4f normalized_sample = rtm::vector_div(rtm::vector_sub(sample, range_min), range_extent);
 			// Clamp because the division might be imprecise
 			normalized_sample = rtm::vector_min(normalized_sample, rtm::vector_set(1.0F));
 			return rtm::vector_select(is_range_zero_mask, rtm::vector_zero(), normalized_sample);
+
+#endif
+
 		}
 
 		inline void normalize_rotation_streams(transform_streams* bone_streams, const transform_range* bone_ranges, uint32_t num_bones)
 		{
+
+#ifdef ACL_PRECISION_BOOST
+
+			const rtm::vector4f half = rtm::vector_set(0.5F);
+			const rtm::vector4f half_neg = rtm::vector_set(-0.5F);
+
+#else
+
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
+
+#endif
 
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
@@ -200,30 +322,83 @@ namespace acl
 
 				const uint32_t num_samples = bone_stream.rotations.get_num_samples();
 
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f range_center = bone_range.rotation.get_center();
+
+#else
+
 				const rtm::vector4f range_min = bone_range.rotation.get_min();
+
+#endif
+
 				const rtm::vector4f range_extent = bone_range.rotation.get_extent();
 				const rtm::mask4f is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
+
+#ifdef ACL_PRECISION_BOOST
+
+					// normalized value is between [-0.5 .. 0.5]
+					// value = (normalized value * range extent) + range center
+					// normalized value = (value - range center) / range extent
+
+#else
+
 					// normalized value is between [0.0 .. 1.0]
 					// value = (normalized value * range extent) + range min
 					// normalized value = (value - range min) / range extent
+
+#endif
+
 					const rtm::vector4f rotation = bone_stream.rotations.get_raw_sample<rtm::vector4f>(sample_index);
+
+#ifdef ACL_PRECISION_BOOST
+
+					rtm::vector4f normalized_rotation = rtm::vector_div(rtm::vector_sub(rotation, range_center), range_extent);
+					// Clamp because the division might be imprecise
+					normalized_rotation = rtm::vector_clamp(normalized_rotation, half_neg, half);
+					normalized_rotation = rtm::vector_select(is_range_zero_mask, half_neg, normalized_rotation);
+
+#else
+
 					rtm::vector4f normalized_rotation = rtm::vector_div(rtm::vector_sub(rotation, range_min), range_extent);
 					// Clamp because the division might be imprecise
 					normalized_rotation = rtm::vector_min(normalized_rotation, one);
 					normalized_rotation = rtm::vector_select(is_range_zero_mask, zero, normalized_rotation);
 
+#endif
+
 #if defined(ACL_HAS_ASSERT_CHECKS)
 					switch (bone_stream.rotations.get_rotation_format())
 					{
 					case rotation_format8::quatf_full:
+
+#ifdef ACL_PRECISION_BOOST
+
+						ACL_ASSERT(rtm::vector_all_greater_equal(normalized_rotation, half_neg) && rtm::vector_all_less_equal(normalized_rotation, half), "Invalid normalized rotation. -0.5 <= [%f, %f, %f, %f] <= 0.5", (float)rtm::vector_get_x(normalized_rotation), (float)rtm::vector_get_y(normalized_rotation), (float)rtm::vector_get_z(normalized_rotation), (float)rtm::vector_get_w(normalized_rotation));
+
+#else
+
 						ACL_ASSERT(rtm::vector_all_greater_equal(normalized_rotation, zero) && rtm::vector_all_less_equal(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f, %f] <= 1.0", (float)rtm::vector_get_x(normalized_rotation), (float)rtm::vector_get_y(normalized_rotation), (float)rtm::vector_get_z(normalized_rotation), (float)rtm::vector_get_w(normalized_rotation));
+
+#endif
+
 						break;
 					case rotation_format8::quatf_drop_w_full:
 					case rotation_format8::quatf_drop_w_variable:
+
+#ifdef ACL_PRECISION_BOOST
+
+						ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_rotation, half_neg) && rtm::vector_all_less_equal3(normalized_rotation, half), "Invalid normalized rotation. -0.5 <= [%f, %f, %f] <= 0.5", (float)rtm::vector_get_x(normalized_rotation), (float)rtm::vector_get_y(normalized_rotation), (float)rtm::vector_get_z(normalized_rotation));
+
+#else
+
 						ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_rotation, zero) && rtm::vector_all_less_equal3(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", (float)rtm::vector_get_x(normalized_rotation), (float)rtm::vector_get_y(normalized_rotation), (float)rtm::vector_get_z(normalized_rotation));
+
+#endif
+
 						break;
 					}
 #endif
@@ -235,8 +410,18 @@ namespace acl
 
 		inline void normalize_translation_streams(transform_streams* bone_streams, const transform_range* bone_ranges, uint32_t num_bones)
 		{
+
+#ifdef ACL_PRECISION_BOOST
+
+			const rtm::vector4f half = rtm::vector_set(0.5F);
+			const rtm::vector4f half_neg = rtm::vector_set(-0.5F);
+
+#else
+
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
+
+#endif
 
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
@@ -252,22 +437,57 @@ namespace acl
 
 				const uint32_t num_samples = bone_stream.translations.get_num_samples();
 
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f range_center = bone_range.translation.get_center();
+
+#else
+
 				const rtm::vector4f range_min = bone_range.translation.get_min();
+
+#endif
+
 				const rtm::vector4f range_extent = bone_range.translation.get_extent();
 				const rtm::mask4f is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
+
+#ifdef ACL_PRECISION_BOOST
+
+					// normalized value is between [-0.5 .. 0.5]
+					// value = (normalized value * range extent) + range center
+					// normalized value = (value - range center) / range extent
+
+#else
+
 					// normalized value is between [0.0 .. 1.0]
 					// value = (normalized value * range extent) + range min
 					// normalized value = (value - range min) / range extent
+
+#endif
+
 					const rtm::vector4f translation = bone_stream.translations.get_raw_sample<rtm::vector4f>(sample_index);
+
+#ifdef ACL_PRECISION_BOOST
+
+					rtm::vector4f normalized_translation = rtm::vector_div(rtm::vector_sub(translation, range_center), range_extent);
+					// Clamp because the division might be imprecise
+					normalized_translation = rtm::vector_clamp(normalized_translation, half_neg, half);
+					normalized_translation = rtm::vector_select(is_range_zero_mask, half_neg, normalized_translation);
+
+					ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_translation, half_neg) && rtm::vector_all_less_equal3(normalized_translation, half), "Invalid normalized translation. -0.5 <= [%f, %f, %f] <= 0.5", (float)rtm::vector_get_x(normalized_translation), (float)rtm::vector_get_y(normalized_translation), (float)rtm::vector_get_z(normalized_translation));
+
+#else
+
 					rtm::vector4f normalized_translation = rtm::vector_div(rtm::vector_sub(translation, range_min), range_extent);
 					// Clamp because the division might be imprecise
 					normalized_translation = rtm::vector_min(normalized_translation, one);
 					normalized_translation = rtm::vector_select(is_range_zero_mask, zero, normalized_translation);
 
 					ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_translation, zero) && rtm::vector_all_less_equal3(normalized_translation, one), "Invalid normalized translation. 0.0 <= [%f, %f, %f] <= 1.0", (float)rtm::vector_get_x(normalized_translation), (float)rtm::vector_get_y(normalized_translation), (float)rtm::vector_get_z(normalized_translation));
+
+#endif
 
 					bone_stream.translations.set_raw_sample(sample_index, normalized_translation);
 				}
@@ -276,8 +496,18 @@ namespace acl
 
 		inline void normalize_scale_streams(transform_streams* bone_streams, const transform_range* bone_ranges, uint32_t num_bones)
 		{
+
+#ifdef ACL_PRECISION_BOOST
+
+			const rtm::vector4f half = rtm::vector_set(0.5F);
+			const rtm::vector4f half_neg = rtm::vector_set(-0.5F);
+
+#else
+
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
+
+#endif
 
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
@@ -293,22 +523,57 @@ namespace acl
 
 				const uint32_t num_samples = bone_stream.scales.get_num_samples();
 
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f range_center = bone_range.scale.get_center();
+
+#else
+
 				const rtm::vector4f range_min = bone_range.scale.get_min();
+
+#endif
+
 				const rtm::vector4f range_extent = bone_range.scale.get_extent();
 				const rtm::mask4f is_range_zero_mask = rtm::vector_less_than(range_extent, rtm::vector_set(0.000000001F));
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
+
+#ifdef ACL_PRECISION_BOOST
+
+					// normalized value is between [-0.5 .. 0.5]
+					// value = (normalized value * range extent) + range center
+					// normalized value = (value - range center) / range extent
+
+#else
+
 					// normalized value is between [0.0 .. 1.0]
 					// value = (normalized value * range extent) + range min
 					// normalized value = (value - range min) / range extent
+
+#endif
+
 					const rtm::vector4f scale = bone_stream.scales.get_raw_sample<rtm::vector4f>(sample_index);
+
+#ifdef ACL_PRECISION_BOOST
+
+					rtm::vector4f normalized_scale = rtm::vector_div(rtm::vector_sub(scale, range_center), range_extent);
+					// Clamp because the division might be imprecise
+					normalized_scale = rtm::vector_clamp(normalized_scale, half_neg, half);
+					normalized_scale = rtm::vector_select(is_range_zero_mask, half_neg, normalized_scale);
+
+					ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_scale, half_neg) && rtm::vector_all_less_equal3(normalized_scale, half), "Invalid normalized scale. -0.5 <= [%f, %f, %f] <= 0.5", (float)rtm::vector_get_x(normalized_scale), (float)rtm::vector_get_y(normalized_scale), (float)rtm::vector_get_z(normalized_scale));
+
+#else
+
 					rtm::vector4f normalized_scale = rtm::vector_div(rtm::vector_sub(scale, range_min), range_extent);
 					// Clamp because the division might be imprecise
 					normalized_scale = rtm::vector_min(normalized_scale, one);
 					normalized_scale = rtm::vector_select(is_range_zero_mask, zero, normalized_scale);
 
 					ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_scale, zero) && rtm::vector_all_less_equal3(normalized_scale, one), "Invalid normalized scale. 0.0 <= [%f, %f, %f] <= 1.0", (float)rtm::vector_get_x(normalized_scale), (float)rtm::vector_get_y(normalized_scale), (float)rtm::vector_get_z(normalized_scale));
+
+#endif
 
 					bone_stream.scales.set_raw_sample(sample_index, normalized_scale);
 				}

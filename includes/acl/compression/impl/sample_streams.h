@@ -60,14 +60,34 @@ namespace acl
 				ACL_ASSERT(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
 				{
+
+#ifdef ACL_PRECISION_BOOST
+
+					return unpack_vector3_sn48_unsafe_precise_endpoints(ptr);
+
+#else
+
 					return unpack_vector3_u48_unsafe(ptr);
+
+#endif
+
 				}
 				else if (is_raw_bit_rate(bit_rate))
 					return unpack_vector3_96_unsafe(ptr);
 				else
 				{
 					const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+
+#ifdef ACL_PRECISION_BOOST
+
+					return unpack_vector3_snXX_unsafe(num_bits_at_bit_rate, ptr, 0);
+
+#else
+
 					return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
+
+#endif
+
 				}
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(format));
@@ -84,13 +104,33 @@ namespace acl
 			case vector_format8::vector3f_variable:
 				ACL_ASSERT(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
+
+#ifdef ACL_PRECISION_BOOST
+
+					return unpack_vector3_sn48_unsafe_precise_endpoints(ptr);
+
+#else
+
 					return unpack_vector3_u48_unsafe(ptr);
+
+#endif
+
 				else if (is_raw_bit_rate(bit_rate))
 					return unpack_vector3_96_unsafe(ptr);
 				else
 				{
 					const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+
+#ifdef ACL_PRECISION_BOOST
+
+					return unpack_vector3_snXX_unsafe(num_bits_at_bit_rate, ptr, 0);
+
+#else
+
 					return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
+
+#endif
+
 				}
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
@@ -135,18 +175,42 @@ namespace acl
 				{
 					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f segment_range_center = segment_bone_range.rotation.get_center();
+					const rtm::vector4f segment_range_extent = segment_bone_range.rotation.get_extent();
+
+					packed_rotation = rtm::vector_mul_add(packed_rotation, segment_range_extent, segment_range_center);
+
+#else
+
 					const rtm::vector4f segment_range_min = segment_bone_range.rotation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.rotation.get_extent();
 
 					packed_rotation = rtm::vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f clip_range_center = clip_bone_range.rotation.get_center();
+				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
+
+				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_center);
+
+#else
 
 				const rtm::vector4f clip_range_min = clip_bone_range.rotation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
 
 				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
+
+#endif
+
 			}
 
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
@@ -187,12 +251,30 @@ namespace acl
 				const transform_range& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 				const rtm::vector4f normalized_rotation = normalize_sample(rotation, clip_bone_range.rotation);
 
+#ifdef ACL_PRECISION_BOOST
+
+				packed_rotation = decay_vector3_sn48_precise_endpoints(normalized_rotation);
+
+#else
+
 				packed_rotation = decay_vector3_u48(normalized_rotation);
+
+#endif
+
 			}
 			else if (is_raw_bit_rate(bit_rate))
 				packed_rotation = rotation;
 			else
+
+#ifdef ACL_PRECISION_BOOST
+
+				packed_rotation = decay_vector3_snXX(rotation, num_bits_at_bit_rate);
+
+#else
+
 				packed_rotation = decay_vector3_uXX(rotation, num_bits_at_bit_rate);
+
+#endif
 
 			if (!is_raw_bit_rate(bit_rate))
 			{
@@ -200,18 +282,42 @@ namespace acl
 				{
 					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f segment_range_center = segment_bone_range.rotation.get_center();
+					const rtm::vector4f segment_range_extent = segment_bone_range.rotation.get_extent();
+
+					packed_rotation = rtm::vector_mul_add(packed_rotation, segment_range_extent, segment_range_center);
+
+#else
+
 					const rtm::vector4f segment_range_min = segment_bone_range.rotation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.rotation.get_extent();
 
 					packed_rotation = rtm::vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f clip_range_center = clip_bone_range.rotation.get_center();
+				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
+
+				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_center);
+
+#else
 
 				const rtm::vector4f clip_range_min = clip_bone_range.rotation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
 
 				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
+
+#endif
+
 			}
 
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
@@ -250,18 +356,43 @@ namespace acl
 				{
 					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
+
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f segment_range_center = segment_bone_range.rotation.get_center();
+					const rtm::vector4f segment_range_extent = segment_bone_range.rotation.get_extent();
+
+					packed_rotation = rtm::vector_mul_add(packed_rotation, segment_range_extent, segment_range_center);
+
+#else
+
 					const rtm::vector4f segment_range_min = segment_bone_range.rotation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.rotation.get_extent();
 
 					packed_rotation = rtm::vector_mul_add(packed_rotation, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f clip_range_center = clip_bone_range.rotation.get_center();
+				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
+
+				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_center);
+
+#else
 
 				const rtm::vector4f clip_range_min = clip_bone_range.rotation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.rotation.get_extent();
 
 				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
+
+#endif
+				
 			}
 
 			return acl_impl::rotation_to_quat_32(packed_rotation, format);
@@ -290,18 +421,42 @@ namespace acl
 				{
 					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f segment_range_center = segment_bone_range.translation.get_center();
+					const rtm::vector4f segment_range_extent = segment_bone_range.translation.get_extent();
+
+					packed_translation = rtm::vector_mul_add(packed_translation, segment_range_extent, segment_range_center);
+
+#else
+
 					const rtm::vector4f segment_range_min = segment_bone_range.translation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.translation.get_extent();
 
 					packed_translation = rtm::vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f clip_range_center = clip_bone_range.translation.get_center();
+				const rtm::vector4f clip_range_extent = clip_bone_range.translation.get_extent();
+
+				packed_translation = rtm::vector_mul_add(packed_translation, clip_range_extent, clip_range_center);
+
+#else
 
 				const rtm::vector4f clip_range_min = clip_bone_range.translation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.translation.get_extent();
 
 				packed_translation = rtm::vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
+
+#endif
+
 			}
 
 			return packed_translation;
@@ -336,14 +491,33 @@ namespace acl
 				const transform_range& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 				const rtm::vector4f normalized_translation = normalize_sample(translation, clip_bone_range.translation);
 
+#ifdef ACL_PRECISION_BOOST
+
+				packed_translation = decay_vector3_sn48_precise_endpoints(normalized_translation);
+
+#else
+
 				packed_translation = decay_vector3_u48(normalized_translation);
+
+#endif
+
 			}
 			else if (is_raw_bit_rate(bit_rate))
 				packed_translation = translation;
 			else
 			{
 				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+
+#ifdef ACL_PRECISION_BOOST
+
+				packed_translation = decay_vector3_snXX(translation, num_bits_at_bit_rate);
+
+#else
+
 				packed_translation = decay_vector3_uXX(translation, num_bits_at_bit_rate);
+
+#endif
+
 			}
 
 			if (!is_raw_bit_rate(bit_rate))
@@ -352,18 +526,42 @@ namespace acl
 				{
 					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f segment_range_center = segment_bone_range.translation.get_center();
+					const rtm::vector4f segment_range_extent = segment_bone_range.translation.get_extent();
+
+					packed_translation = rtm::vector_mul_add(packed_translation, segment_range_extent, segment_range_center);
+
+#else
+
 					const rtm::vector4f segment_range_min = segment_bone_range.translation.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.translation.get_extent();
 
 					packed_translation = rtm::vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f clip_range_center = clip_bone_range.translation.get_center();
+				const rtm::vector4f clip_range_extent = clip_bone_range.translation.get_extent();
+
+				packed_translation = rtm::vector_mul_add(packed_translation, clip_range_extent, clip_range_center);
+
+#else
 
 				const rtm::vector4f clip_range_min = clip_bone_range.translation.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.translation.get_extent();
 
 				packed_translation = rtm::vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
+
+#endif
+
 			}
 
 			return packed_translation;
@@ -400,18 +598,43 @@ namespace acl
 				{
 					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
+
+#ifdef ACL_PRECISION_BOOST
+
+					rtm::vector4f segment_range_center = segment_bone_range.translation.get_center();
+					rtm::vector4f segment_range_extent = segment_bone_range.translation.get_extent();
+
+					packed_translation = rtm::vector_mul_add(packed_translation, segment_range_extent, segment_range_center);
+
+#else
+
 					rtm::vector4f segment_range_min = segment_bone_range.translation.get_min();
 					rtm::vector4f segment_range_extent = segment_bone_range.translation.get_extent();
 
 					packed_translation = rtm::vector_mul_add(packed_translation, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				rtm::vector4f clip_range_center = clip_bone_range.translation.get_center();
+				rtm::vector4f clip_range_extent = clip_bone_range.translation.get_extent();
+
+				packed_translation = rtm::vector_mul_add(packed_translation, clip_range_extent, clip_range_center);
+
+#else
 
 				rtm::vector4f clip_range_min = clip_bone_range.translation.get_min();
 				rtm::vector4f clip_range_extent = clip_bone_range.translation.get_extent();
 
 				packed_translation = rtm::vector_mul_add(packed_translation, clip_range_extent, clip_range_min);
+
+#endif
+
 			}
 
 			return packed_translation;
@@ -439,18 +662,42 @@ namespace acl
 				{
 					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f segment_range_center = segment_bone_range.scale.get_center();
+					const rtm::vector4f segment_range_extent = segment_bone_range.scale.get_extent();
+
+					packed_scale = rtm::vector_mul_add(packed_scale, segment_range_extent, segment_range_center);
+
+#else
+
 					const rtm::vector4f segment_range_min = segment_bone_range.scale.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.scale.get_extent();
 
 					packed_scale = rtm::vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f clip_range_center = clip_bone_range.scale.get_center();
+				const rtm::vector4f clip_range_extent = clip_bone_range.scale.get_extent();
+
+				packed_scale = rtm::vector_mul_add(packed_scale, clip_range_extent, clip_range_center);
+
+#else
 
 				const rtm::vector4f clip_range_min = clip_bone_range.scale.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.scale.get_extent();
 
 				packed_scale = rtm::vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
+
+#endif
+
 			}
 
 			return packed_scale;
@@ -485,14 +732,33 @@ namespace acl
 				const transform_range& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
 				const rtm::vector4f normalized_scale = normalize_sample(scale, clip_bone_range.scale);
 
+#ifdef ACL_PRECISION_BOOST
+
+				packed_scale = decay_vector3_sn48_precise_endpoints(normalized_scale);
+
+#else
+
 				packed_scale = decay_vector3_u48(normalized_scale);
+
+#endif
+
 			}
 			else if (is_raw_bit_rate(bit_rate))
 				packed_scale = scale;
 			else
 			{
 				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
+
+#ifdef ACL_PRECISION_BOOST
+
+				packed_scale = decay_vector3_snXX(scale, num_bits_at_bit_rate);
+
+#else
+
 				packed_scale = decay_vector3_uXX(scale, num_bits_at_bit_rate);
+
+#endif
+
 			}
 
 			if (!is_raw_bit_rate(bit_rate))
@@ -501,18 +767,42 @@ namespace acl
 				{
 					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f segment_range_center = segment_bone_range.scale.get_center();
+					const rtm::vector4f segment_range_extent = segment_bone_range.scale.get_extent();
+
+					packed_scale = rtm::vector_mul_add(packed_scale, segment_range_extent, segment_range_center);
+
+#else
+
 					const rtm::vector4f segment_range_min = segment_bone_range.scale.get_min();
 					const rtm::vector4f segment_range_extent = segment_bone_range.scale.get_extent();
 
 					packed_scale = rtm::vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				const rtm::vector4f clip_range_center = clip_bone_range.scale.get_center();
+				const rtm::vector4f clip_range_extent = clip_bone_range.scale.get_extent();
+
+				packed_scale = rtm::vector_mul_add(packed_scale, clip_range_extent, clip_range_center);
+
+#else
 
 				const rtm::vector4f clip_range_min = clip_bone_range.scale.get_min();
 				const rtm::vector4f clip_range_extent = clip_bone_range.scale.get_extent();
 
 				packed_scale = rtm::vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
+
+#endif
+
 			}
 
 			return packed_scale;
@@ -549,18 +839,42 @@ namespace acl
 				{
 					const transform_range& segment_bone_range = segment->ranges[bone_steams.bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					rtm::vector4f segment_range_center = segment_bone_range.scale.get_center();
+					rtm::vector4f segment_range_extent = segment_bone_range.scale.get_extent();
+
+					packed_scale = rtm::vector_mul_add(packed_scale, segment_range_extent, segment_range_center);
+
+#else
+
 					rtm::vector4f segment_range_min = segment_bone_range.scale.get_min();
 					rtm::vector4f segment_range_extent = segment_bone_range.scale.get_extent();
 
 					packed_scale = rtm::vector_mul_add(packed_scale, segment_range_extent, segment_range_min);
+
+#endif
+
 				}
 
 				const transform_range& clip_bone_range = clip->ranges[bone_steams.bone_index];
+
+#ifdef ACL_PRECISION_BOOST
+
+				rtm::vector4f clip_range_center = clip_bone_range.scale.get_center();
+				rtm::vector4f clip_range_extent = clip_bone_range.scale.get_extent();
+
+				packed_scale = rtm::vector_mul_add(packed_scale, clip_range_extent, clip_range_center);
+
+#else
 
 				rtm::vector4f clip_range_min = clip_bone_range.scale.get_min();
 				rtm::vector4f clip_range_extent = clip_bone_range.scale.get_extent();
 
 				packed_scale = rtm::vector_mul_add(packed_scale, clip_range_extent, clip_range_min);
+
+#endif
+
 			}
 
 			return packed_scale;

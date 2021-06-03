@@ -36,6 +36,37 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+
+#ifdef ACL_PRECISION_BOOST
+
+	// We don't support [0.0F, 1.0F].
+	// It's imprecise, and (0.5F, 1.0F) is incapable of representing the error term of 24 bit quantization.
+	// We support [-0.5F, 0.5F] instead.
+	inline uint32_t pack_scalar_signed_normalized(float input, uint32_t num_bits)
+	{
+		ACL_ASSERT(num_bits > 0, "Attempting to pack on too few bits");
+		ACL_ASSERT(num_bits < 25, "Attempting to pack on too many bits");
+		ACL_ASSERT(input >= -0.5F && input <= 0.5F, "Expected signed normalized input value: %f", input);
+		const uint32_t num_values = 1 << num_bits;
+		const float max_value = rtm::scalar_safe_to_float(num_values);
+		const float mid_value = 0.5F * max_value;
+		return std::min(static_cast<uint32_t>(rtm::scalar_floor(input * max_value) + mid_value), num_values - 1);
+	}
+	
+	inline float unpack_scalar_signed_normalized(uint32_t input, uint32_t num_bits)
+	{
+		ACL_ASSERT(num_bits > 0, "Attempting to unpack from too few bits");
+		ACL_ASSERT(num_bits < 25, "Attempting to unpack from too many bits");
+		const uint32_t num_values = 1 << num_bits;
+		ACL_ASSERT(input < num_values, "Input value too large: %ull", input);
+		const float max_value = rtm::scalar_safe_to_float(num_values);
+		const float inv_max_value = 1.0F / max_value;
+		const float mid_value = (0.5F * max_value) - 0.5F;
+		return (input - mid_value) * inv_max_value;
+	}
+
+#else
+
 	inline uint32_t pack_scalar_unsigned(float input, uint32_t num_bits)
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to pack on too many bits");
@@ -63,6 +94,8 @@ namespace acl
 	{
 		return (unpack_scalar_unsigned(input, num_bits) * 2.0F) - 1.0F;
 	}
+
+#endif
 
 	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 8 bytes from it
 	inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_32_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
@@ -107,18 +140,46 @@ namespace acl
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 8 bytes from it
+
+#ifdef ACL_PRECISION_BOOST
+
+	inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_snXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+
+#else
+
 	inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+
+#endif
+
 	{
 		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
 
 		struct PackedTableEntry
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
+
+#ifdef ACL_PRECISION_BOOST
+
+				: max_value(1.0F / float(1 << num_bits_))
+				, mid_value((0.5F * float(1 << num_bits_)) - 0.5F)
+
+#else
+
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+
+#endif
+
 				, mask((1 << num_bits_) - 1)
 			{}
 
 			float max_value;
+
+#ifdef ACL_PRECISION_BOOST
+
+			float mid_value;
+
+#endif
+
 			uint32_t mask;
 		};
 
@@ -137,17 +198,39 @@ namespace acl
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
 
+#ifdef ACL_PRECISION_BOOST
+
+		const __m128 mid_value = _mm_load_ps1(&k_packed_constants[num_bits].mid_value);
+
+#endif
+
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
 		const __m128 value = _mm_cvtsi32_ss(inv_max_value, x32 & mask);
+
+#ifdef ACL_PRECISION_BOOST
+
+		return rtm::scalarf{ _mm_mul_ss(_mm_sub_ss(value, mid_value), inv_max_value) };
+
+#else
+
 		return rtm::scalarf{ _mm_mul_ss(value, inv_max_value) };
+
+#endif
+
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const float inv_max_value = k_packed_constants[num_bits].max_value;
+
+#ifdef ACL_PRECISION_BOOST
+
+		const float mid_value = k_packed_constants[num_bits].mid_value;
+
+#endif
 
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
@@ -156,18 +239,43 @@ namespace acl
 
 		const int32_t value_u32 = x32 & mask;
 		const float value_f32 = static_cast<float>(value_u32);
+
+#ifdef ACL_PRECISION_BOOST
+
+		return (value_f32 - mid_value) * inv_max_value;
+
+#else
+
 		return value_f32 * inv_max_value;
+
+#endif
+
 #else
 		const uint32_t bit_shift = 32 - num_bits;
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const float inv_max_value = k_packed_constants[num_bits].max_value;
+
+#ifdef ACL_PRECISION_BOOST
+
+		const float mid_value = k_packed_constants[num_bits].mid_value;
+
+#endif
 
 		uint32_t byte_offset = bit_offset / 8;
 		uint32_t vector_u32 = unaligned_load<uint32_t>(vector_data + byte_offset);
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
+#ifdef ACL_PRECISION_BOOST
+
+		return rtm::scalar_set((static_cast<float>(x32) - mid_value) * inv_max_value);
+
+#else
+
 		return rtm::scalar_set(static_cast<float>(x32) * inv_max_value);
+
+#endif
+
 #endif
 	}
 }

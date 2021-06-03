@@ -91,6 +91,13 @@ namespace acl
 			const rotation_format8 rotation_format = segment.bone_streams[0].rotations.get_rotation_format();	// The same for every track
 
 			// Each range entry is a min/extent at most sizeof(float4f) each, 32 bytes total max per sub-track, 4 sub-tracks per group
+
+#ifdef ACL_PRECISION_BOOST
+
+			// This is really "range_group_center", but the sheer number of edits aren't worth it.
+
+#endif
+
 			rtm::vector4f range_group_min[4];
 			rtm::vector4f range_group_extent[4];
 
@@ -112,7 +119,16 @@ namespace acl
 				{
 					const transform_range& bone_range = clip.ranges[bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f range_min = bone_range.rotation.get_center();
+
+#else
+
 					const rtm::vector4f range_min = bone_range.rotation.get_min();
+
+#endif
+
 					const rtm::vector4f range_extent = bone_range.rotation.get_extent();
 
 					range_group_min[group_size] = range_min;
@@ -122,7 +138,16 @@ namespace acl
 				{
 					const transform_range& bone_range = clip.ranges[bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f range_min = bone_range.translation.get_center();
+
+#else
+
 					const rtm::vector4f range_min = bone_range.translation.get_min();
+
+#endif
+
 					const rtm::vector4f range_extent = bone_range.translation.get_extent();
 
 					range_group_min[group_size] = range_min;
@@ -132,7 +157,16 @@ namespace acl
 				{
 					const transform_range& bone_range = clip.ranges[bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f range_min = bone_range.scale.get_center();
+
+#else
+
 					const rtm::vector4f range_min = bone_range.scale.get_min();
+
+#endif
+
 					const rtm::vector4f range_extent = bone_range.scale.get_extent();
 
 					range_group_min[group_size] = range_min;
@@ -258,14 +292,33 @@ namespace acl
 					{
 						const transform_range& bone_range = segment.ranges[bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+						const rtm::vector4f range_center = bone_range.rotation.get_center();
+
+#else
+
 						const rtm::vector4f range_min = bone_range.rotation.get_min();
+
+#endif
+
 						const rtm::vector4f range_extent = bone_range.rotation.get_extent();
 
 						// Swizzle into SOA form
 						alignas(16) uint8_t range_min_buffer[16];
 						alignas(16) uint8_t range_extent_buffer[16];
+
+#ifdef ACL_PRECISION_BOOST
+
+						pack_vector3_sn24_unsafe_precise_endpoints_midpoint(range_center, range_min_buffer);
+						pack_vector3_u24_unsafe_precise_endpoints_midpoint(range_extent, range_extent_buffer);
+
+#else
+
 						pack_vector3_u24_unsafe(range_min, range_min_buffer);
 						pack_vector3_u24_unsafe(range_extent, range_extent_buffer);
+
+#endif
 
 						range_data_group[group_size + 0] = range_min_buffer[0];
 						range_data_group[group_size + 4] = range_min_buffer[1];
@@ -288,12 +341,32 @@ namespace acl
 					{
 						const transform_range& bone_range = segment.ranges[bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+						const rtm::vector4f range_center = bone_range.translation.get_center();
+
+#else
+
 						const rtm::vector4f range_min = bone_range.translation.get_min();
+
+#endif
+
 						const rtm::vector4f range_extent = bone_range.translation.get_extent();
 
 						uint8_t* sub_track_range_data = &range_data_group[group_size * 6];
+
+#ifdef ACL_PRECISION_BOOST
+
+						pack_vector3_sn24_unsafe_precise_endpoints_midpoint(range_center, sub_track_range_data);
+						pack_vector3_u24_unsafe_precise_endpoints_midpoint(range_extent, sub_track_range_data + 3);
+
+#else
+
 						pack_vector3_u24_unsafe(range_min, sub_track_range_data);
 						pack_vector3_u24_unsafe(range_extent, sub_track_range_data + 3);
+
+#endif
+
 					}
 				}
 				else
@@ -308,12 +381,32 @@ namespace acl
 					{
 						const transform_range& bone_range = segment.ranges[bone_index];
 
+#ifdef ACL_PRECISION_BOOST
+
+						const rtm::vector4f range_center = bone_range.scale.get_center();
+
+#else
+
 						const rtm::vector4f range_min = bone_range.scale.get_min();
+
+#endif
+
 						const rtm::vector4f range_extent = bone_range.scale.get_extent();
 
 						uint8_t* sub_track_range_data = &range_data_group[group_size * 6];
+
+#ifdef ACL_PRECISION_BOOST
+
+						pack_vector3_sn24_unsafe_precise_endpoints_midpoint(range_center, sub_track_range_data);
+						pack_vector3_u24_unsafe_precise_endpoints_midpoint(range_extent, sub_track_range_data + 3);
+
+#else
+
 						pack_vector3_u24_unsafe(range_min, sub_track_range_data);
 						pack_vector3_u24_unsafe(range_extent, sub_track_range_data + 3);
+
+#endif
+
 					}
 				}
 			};

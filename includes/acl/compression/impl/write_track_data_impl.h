@@ -112,9 +112,29 @@ namespace acl
 				{
 					// Only support scalarf for now
 					ACL_ASSERT(range.category == track_category8::scalarf, "Unsupported category");
+
+#ifdef ACL_PRECISION_BOOST
+
+					const rtm::vector4f range_center = range.range.scalarf.get_center();
+
+#else
+
 					const rtm::vector4f range_min = range.range.scalarf.get_min();
+
+#endif
+
 					const rtm::vector4f range_extent = range.range.scalarf.get_extent();
+
+#ifdef ACL_PRECISION_BOOST
+
+					std::memcpy(output_buffer, &range_center, element_size);
+
+#else
+
 					std::memcpy(output_buffer, &range_min, element_size);
+
+#endif
+
 					std::memcpy(output_buffer + element_size, &range_extent, element_size);
 				}
 

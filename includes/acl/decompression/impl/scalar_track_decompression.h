@@ -191,6 +191,19 @@ namespace acl
 						}
 						else
 						{
+
+#ifdef ACL_PRECISION_BOOST
+
+							value0 = unpack_scalarf_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+							value1 = unpack_scalarf_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
+
+							const rtm::scalarf range_center = rtm::scalar_load(range_values);
+							const rtm::scalarf range_extent = rtm::scalar_load(range_values + 1);
+							value0 = rtm::scalar_mul_add(value0, range_extent, range_center);
+							value1 = rtm::scalar_mul_add(value1, range_extent, range_center);
+
+#else
+
 							value0 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
 							value1 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
@@ -198,6 +211,9 @@ namespace acl
 							const rtm::scalarf range_extent = rtm::scalar_load(range_values + 1);
 							value0 = rtm::scalar_mul_add(value0, range_extent, range_min);
 							value1 = rtm::scalar_mul_add(value1, range_extent, range_min);
+
+#endif
+
 							range_values += 2;
 						}
 
@@ -229,6 +245,19 @@ namespace acl
 						}
 						else
 						{
+
+#ifdef ACL_PRECISION_BOOST
+
+							value0 = unpack_vector2_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+							value1 = unpack_vector2_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
+
+							const rtm::vector4f range_center = rtm::vector_load(range_values);
+							const rtm::vector4f range_extent = rtm::vector_load(range_values + 2);
+							value0 = rtm::vector_mul_add(value0, range_extent, range_center);
+							value1 = rtm::vector_mul_add(value1, range_extent, range_center);
+
+#else
+
 							value0 = unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
 							value1 = unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
@@ -236,6 +265,9 @@ namespace acl
 							const rtm::vector4f range_extent = rtm::vector_load(range_values + 2);
 							value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 							value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+							
+#endif
+
 							range_values += 4;
 						}
 
@@ -267,6 +299,19 @@ namespace acl
 						}
 						else
 						{
+
+#ifdef ACL_PRECISION_BOOST
+
+							value0 = unpack_vector3_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+							value1 = unpack_vector3_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
+
+							const rtm::vector4f range_center = rtm::vector_load(range_values);
+							const rtm::vector4f range_extent = rtm::vector_load(range_values + 3);
+							value0 = rtm::vector_mul_add(value0, range_extent, range_center);
+							value1 = rtm::vector_mul_add(value1, range_extent, range_center);							
+
+#else
+
 							value0 = unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
 							value1 = unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
@@ -274,6 +319,9 @@ namespace acl
 							const rtm::vector4f range_extent = rtm::vector_load(range_values + 3);
 							value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 							value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+							
+#endif
+							
 							range_values += 6;
 						}
 
@@ -305,6 +353,19 @@ namespace acl
 						}
 						else
 						{
+
+#ifdef ACL_PRECISION_BOOST
+
+							value0 = unpack_vector4_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+							value1 = unpack_vector4_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
+
+							const rtm::vector4f range_center = rtm::vector_load(range_values);
+							const rtm::vector4f range_extent = rtm::vector_load(range_values + 4);
+							value0 = rtm::vector_mul_add(value0, range_extent, range_center);
+							value1 = rtm::vector_mul_add(value1, range_extent, range_center);
+
+#else
+
 							value0 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
 							value1 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
@@ -312,6 +373,9 @@ namespace acl
 							const rtm::vector4f range_extent = rtm::vector_load(range_values + 4);
 							value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 							value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+
+#endif
+
 							range_values += 8;
 						}
 
@@ -343,6 +407,19 @@ namespace acl
 						}
 						else
 						{
+
+#ifdef ACL_PRECISION_BOOST
+
+							value0 = unpack_vector4_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
+							value1 = unpack_vector4_snXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
+
+							const rtm::vector4f range_center = rtm::vector_load(range_values);
+							const rtm::vector4f range_extent = rtm::vector_load(range_values + 4);
+							value0 = rtm::vector_mul_add(value0, range_extent, range_center);
+							value1 = rtm::vector_mul_add(value1, range_extent, range_center);
+
+#else
+
 							value0 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
 							value1 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
@@ -350,6 +427,9 @@ namespace acl
 							const rtm::vector4f range_extent = rtm::vector_load(range_values + 4);
 							value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 							value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+
+#endif
+
 							range_values += 8;
 						}
 
@@ -435,6 +515,19 @@ namespace acl
 					}
 					else
 					{
+
+#ifdef ACL_PRECISION_BOOST
+
+						value0 = unpack_scalarf_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						value1 = unpack_scalarf_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
+
+						const rtm::scalarf range_center = rtm::scalar_load(range_values);
+						const rtm::scalarf range_extent = rtm::scalar_load(range_values + num_element_components);
+						value0 = rtm::scalar_mul_add(value0, range_extent, range_center);
+						value1 = rtm::scalar_mul_add(value1, range_extent, range_center);
+
+#else
+
 						value0 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
 
@@ -442,6 +535,9 @@ namespace acl
 						const rtm::scalarf range_extent = rtm::scalar_load(range_values + num_element_components);
 						value0 = rtm::scalar_mul_add(value0, range_extent, range_min);
 						value1 = rtm::scalar_mul_add(value1, range_extent, range_min);
+
+#endif
+
 					}
 
 					value = rtm::scalar_lerp(value0, value1, interpolation_alpha);
@@ -465,6 +561,19 @@ namespace acl
 					}
 					else
 					{
+
+#ifdef ACL_PRECISION_BOOST
+
+						value0 = unpack_vector2_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						value1 = unpack_vector2_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
+
+						const rtm::vector4f range_center = rtm::vector_load(range_values);
+						const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
+						value0 = rtm::vector_mul_add(value0, range_extent, range_center);
+						value1 = rtm::vector_mul_add(value1, range_extent, range_center);
+
+#else
+
 						value0 = unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_vector2_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
 
@@ -472,6 +581,9 @@ namespace acl
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
 						value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+
+#endif
+
 					}
 
 					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
@@ -495,6 +607,19 @@ namespace acl
 					}
 					else
 					{
+
+#ifdef ACL_PRECISION_BOOST
+
+						value0 = unpack_vector3_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						value1 = unpack_vector3_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
+
+						const rtm::vector4f range_center = rtm::vector_load(range_values);
+						const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
+						value0 = rtm::vector_mul_add(value0, range_extent, range_center);
+						value1 = rtm::vector_mul_add(value1, range_extent, range_center);
+
+#else
+
 						value0 = unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_vector3_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
 
@@ -502,6 +627,9 @@ namespace acl
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
 						value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+
+#endif
+
 					}
 
 					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
@@ -525,6 +653,19 @@ namespace acl
 					}
 					else
 					{
+
+#ifdef ACL_PRECISION_BOOST
+
+						value0 = unpack_vector4_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						value1 = unpack_vector4_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
+
+						const rtm::vector4f range_center = rtm::vector_load(range_values);
+						const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
+						value0 = rtm::vector_mul_add(value0, range_extent, range_center);
+						value1 = rtm::vector_mul_add(value1, range_extent, range_center);
+						
+#else
+
 						value0 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
 
@@ -532,6 +673,9 @@ namespace acl
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
 						value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+
+#endif
+
 					}
 
 					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
@@ -555,6 +699,19 @@ namespace acl
 					}
 					else
 					{
+
+#ifdef ACL_PRECISION_BOOST
+
+						value0 = unpack_vector4_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						value1 = unpack_vector4_snXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
+
+						const rtm::vector4f range_center = rtm::vector_load(range_values);
+						const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
+						value0 = rtm::vector_mul_add(value0, range_extent, range_center);
+						value1 = rtm::vector_mul_add(value1, range_extent, range_center);
+
+#else
+
 						value0 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_vector4_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
 
@@ -562,6 +719,9 @@ namespace acl
 						const rtm::vector4f range_extent = rtm::vector_load(range_values + num_element_components);
 						value0 = rtm::vector_mul_add(value0, range_extent, range_min);
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
+
+#endif
+
 					}
 
 					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
