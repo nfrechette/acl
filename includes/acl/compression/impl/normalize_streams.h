@@ -108,7 +108,7 @@ namespace acl
 			return track_stream_range::from_min_max(min, max IF_ACL_BIND_POSE(, rtm::vector_cast(weighted_average)));
 		}
 
-		inline void extract_bone_ranges_impl(const segment_context& segment, transform_range* bone_ranges)
+		inline void extract_bone_ranges_impl(const segment_context& segment, transform_range* bone_ranges IF_ACL_BIND_POSE(,  bool are_rotations_normalized))
 		{
 			const bool has_scale = segment_context_has_scale(segment);
 
@@ -117,7 +117,16 @@ namespace acl
 				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				transform_range& bone_range = bone_ranges[bone_index];
 
+#ifdef ACL_BIND_POSE
+
+				bone_range.rotation = calculate_track_range(bone_stream.rotations, !are_rotations_normalized);
+
+#else
+
 				bone_range.rotation = calculate_track_range(bone_stream.rotations, true);
+
+#endif
+
 				bone_range.translation = calculate_track_range(bone_stream.translations, false);
 
 				if (has_scale)
@@ -134,7 +143,7 @@ namespace acl
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			const segment_context& segment = context.segments[0];
 
-			acl_impl::extract_bone_ranges_impl(segment, context.ranges);
+			acl_impl::extract_bone_ranges_impl(segment, context.ranges IF_ACL_BIND_POSE(, false));
 		}
 
 		inline void extract_segment_bone_ranges(iallocator& allocator, clip_context& context)
@@ -191,7 +200,7 @@ namespace acl
 			{
 				segment.ranges = allocate_type_array<transform_range>(allocator, segment.num_bones);
 
-				acl_impl::extract_bone_ranges_impl(segment, segment.ranges);
+				acl_impl::extract_bone_ranges_impl(segment, segment.ranges IF_ACL_BIND_POSE(, context.are_rotations_normalized));
 
 				for (uint32_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				{
