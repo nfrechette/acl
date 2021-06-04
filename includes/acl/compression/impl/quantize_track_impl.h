@@ -45,6 +45,12 @@ namespace acl
 			rtm::vector4f max_value;
 			rtm::vector4f inv_max_value;
 
+#ifdef ACL_PACKING_PRECISION_BOOST
+
+			rtm::vector4f mid_value;
+
+#endif
+
 			explicit quantization_scales(uint32_t num_bits)
 			{
 				ACL_ASSERT(num_bits > 0, "Cannot decay with 0 bits");
@@ -53,6 +59,13 @@ namespace acl
 				const float max_value_ = rtm::scalar_safe_to_float((1 << num_bits) - 1);
 				max_value = rtm::vector_set(max_value_);
 				inv_max_value = rtm::vector_set(1.0F / max_value_);
+
+#ifdef ACL_PACKING_PRECISION_BOOST
+				
+				mid_value = rtm::vector_set(rtm::scalar_safe_to_float(1 << (num_bits - 1)));
+
+#endif
+
 			}
 		};
 
@@ -63,7 +76,16 @@ namespace acl
 
 			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", (float)vector_get_x(value), (float)vector_get_y(value), (float)vector_get_z(value), (float)vector_get_w(value));
 
+#ifdef ACL_PACKING_PRECISION_BOOST
+
+			const vector4f packed_value = vector_add(vector_floor(vector_mul(vector_sub(value, vector_set(0.5F)), scales.max_value)), scales.mid_value);
+
+#else
+
 			const vector4f packed_value = vector_round_symmetric(vector_mul(value, scales.max_value));
+
+#endif
+
 			const vector4f decayed_value = vector_mul(packed_value, scales.inv_max_value);
 			return decayed_value;
 		}
@@ -75,7 +97,16 @@ namespace acl
 
 			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", (float)vector_get_x(value), (float)vector_get_y(value), (float)vector_get_z(value), (float)vector_get_w(value));
 
+#ifdef ACL_PACKING_PRECISION_BOOST
+
+			return vector_add(vector_floor(vector_mul(vector_sub(value, vector_set(0.5F)), scales.max_value)), scales.mid_value);
+
+#else
+
 			return vector_round_symmetric(vector_mul(value, scales.max_value));
+
+#endif
+
 		}
 
 		inline void quantize_scalarf_track(track_list_context& context, uint32_t track_index)

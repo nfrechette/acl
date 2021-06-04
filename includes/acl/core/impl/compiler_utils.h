@@ -92,3 +92,22 @@ namespace acl
 #else
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL (void)0
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Stock ACL fails strict unit tests.
+//
+//////////////////////////////////////////////////////////////////////////
+#define ACL_UNIT_TEST_STRICT
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+// ACL_UNIT_TEST_STRICT fails without ACL_PACKING_PRECISION_BOOST, because quantizing over [0.0F, 1.0F] is less accurate
+// than [-0.5F, 0.5F].  
+//
+// Always floor after scaling, and before shifting from -halfQ..halfQ to 0..fullQ.  Otherwise, IEEE float addition will
+// round the result before you get a chance to floor it.
+//
+//////////////////////////////////////////////////////////////////////////
+#define ACL_PACKING_PRECISION_BOOST

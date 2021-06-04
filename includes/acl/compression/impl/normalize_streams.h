@@ -104,6 +104,13 @@ namespace acl
 			const rtm::vector4f max_range_value = rtm::vector_set(max_range_value_flt);
 			const rtm::vector4f inv_max_range_value = rtm::vector_set(1.0F / max_range_value_flt);
 
+#ifdef ACL_PACKING_PRECISION_BOOST
+
+			const rtm::vector4f half = rtm::vector_set(0.5F);
+			const rtm::vector4f mid_range_value = rtm::vector_set(float(1 << (k_segment_range_reduction_num_bits_per_component - 1)));
+
+#endif
+
 			// Segment ranges are always normalized and live between [0.0 ... 1.0]
 
 			auto fixup_range = [&](const track_stream_range& range)
@@ -112,8 +119,18 @@ namespace acl
 				// To get the best accuracy, we pick the value closest to the true minimum that is slightly lower.
 				// This is to ensure that we encompass the lowest value even after quantization.
 				const rtm::vector4f range_min = range.get_min();
+
+#ifdef ACL_PACKING_PRECISION_BOOST
+
+				const rtm::vector4f quantized_min0 = rtm::vector_add(rtm::vector_floor(rtm::vector_mul(rtm::vector_sub(range_min, half), max_range_value)), mid_range_value);
+
+#else
+
 				const rtm::vector4f scaled_min = rtm::vector_mul(range_min, max_range_value);
 				const rtm::vector4f quantized_min0 = rtm::vector_clamp(rtm::vector_floor(scaled_min), zero, max_range_value);
+
+#endif
+
 				const rtm::vector4f quantized_min1 = rtm::vector_max(rtm::vector_sub(quantized_min0, one), zero);
 
 				const rtm::vector4f padded_range_min0 = rtm::vector_mul(quantized_min0, inv_max_range_value);
@@ -123,6 +140,28 @@ namespace acl
 				// enough to use otherwise min1 is guaranteed to be lower.
 				const rtm::mask4f is_min0_lower_mask = rtm::vector_less_equal(padded_range_min0, range_min);
 				const rtm::vector4f padded_range_min = rtm::vector_select(is_min0_lower_mask, padded_range_min0, padded_range_min1);
+
+#ifdef ACL_PACKING_PRECISION_BOOST
+
+				// Regardless of how track_stream_range works internally, we do the same with max.
+				// It's less vulnerable to quantization edge cases, will never extend beyond 1.0F, and "is_extent0_higher_mask"
+				// was incorrect anyhow.
+
+				const rtm::vector4f range_max = range.get_max();
+				const rtm::vector4f quantized_max0 = rtm::vector_add(rtm::vector_floor(rtm::vector_mul(rtm::vector_sub(range_max, half), max_range_value)), mid_range_value);
+				const rtm::vector4f quantized_max1 = rtm::vector_min(rtm::vector_add(quantized_max0, one), max_range_value);
+
+				const rtm::vector4f padded_range_max0 = rtm::vector_mul(quantized_max0, inv_max_range_value);
+				const rtm::vector4f padded_range_max1 = rtm::vector_mul(quantized_max1, inv_max_range_value);
+
+				// Check if max0 is above or equal to our original range maximum value, if it is, it is good
+				// enough to use otherwise max1 is guaranteed to be higher.
+				const rtm::mask4f is_max0_higher_mask = rtm::vector_greater_equal(padded_range_max0, range_max);
+				const rtm::vector4f padded_range_max = rtm::vector_select(is_max0_higher_mask, padded_range_max0, padded_range_max1);
+
+				return track_stream_range::from_min_max(padded_range_min, padded_range_max);
+
+#else
 
 				// The story is different for the extent. We do not store the max, instead we use the extent
 				// for performance reasons: a single mul/add is required to reconstruct the original value.
@@ -144,6 +183,9 @@ namespace acl
 				const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
 
 				return track_stream_range::from_min_extent(padded_range_min, padded_range_extent);
+
+#endif
+
 			};
 
 			for (segment_context& segment : context.segment_iterator())

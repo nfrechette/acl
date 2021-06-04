@@ -160,6 +160,8 @@ namespace acl
 #endif
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+
 	inline void RTM_SIMD_CALL pack_vector4_64(rtm::vector4f_arg0 vector, bool is_unsigned, uint8_t* out_vector_data)
 	{
 		uint32_t vector_x = is_unsigned ? pack_scalar_unsigned(rtm::vector_get_x(vector), 16) : pack_scalar_signed(rtm::vector_get_x(vector), 16);
@@ -214,9 +216,41 @@ namespace acl
 		return rtm::vector_set(x, y, z, w);
 	}
 
+#endif
+
 	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
 	inline void RTM_SIMD_CALL pack_vector4_uXX_unsafe(rtm::vector4f_arg0 vector, uint32_t num_bits, uint8_t* out_vector_data)
 	{
+
+#ifdef ACL_PACKING_PRECISION_BOOST
+
+		// It's better to test functions which are used by ACL, than write new functions that are only used by unit tests.
+		// That's easier said than done in this case, so we emulate ACL here instead.
+
+		// /acl/compression/impl/quantize_track_impl.h pack_vector4_uXX
+		ACL_ASSERT(rtm::vector_all_greater_equal(vector, rtm::vector_zero()) && rtm::vector_all_less_equal(vector, rtm::vector_set(1.0F)), "Expected normalized input value: %f, %f, %f, %f", (float)rtm::vector_get_x(vector), (float)rtm::vector_get_y(vector), (float)rtm::vector_get_z(vector), (float)rtm::vector_get_w(vector));
+		
+		const float max_value = float((1 << num_bits) - 1);
+		const float mid_value = float(1 << (num_bits - 1));
+		const rtm::vector4f packed_vector = rtm::vector_add(rtm::vector_floor(rtm::vector_mul(rtm::vector_sub(vector, rtm::vector_set(0.5F)), max_value)), rtm::vector_set(mid_value));
+
+		// /acl/compression/impl/write_track_data_impl.h write_track_animated_values
+		const float* sample_f32 = safe_ptr_cast<const float>(&packed_vector);
+		uint64_t output_bit_offset = 0;
+		for (uint32_t component_index = 0; component_index < 4; ++component_index)
+		{
+			uint32_t value;
+
+			value = safe_static_cast<uint32_t>(sample_f32[component_index]);
+			value = value << (32 - num_bits);
+			value = byte_swap(value);
+
+			memcpy_bits(out_vector_data, output_bit_offset, &value, 0, num_bits);
+			output_bit_offset += num_bits;
+		}
+
+#else
+
 		uint32_t vector_x = pack_scalar_unsigned(rtm::vector_get_x(vector), num_bits);
 		uint32_t vector_y = pack_scalar_unsigned(rtm::vector_get_y(vector), num_bits);
 		uint32_t vector_z = pack_scalar_unsigned(rtm::vector_get_z(vector), num_bits);
@@ -234,6 +268,9 @@ namespace acl
 
 		const uint32_t bit_offset = num_bits * 3;
 		memcpy_bits(out_vector_data, bit_offset, &vector_u32, 0, num_bits);
+
+#endif
+
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
@@ -584,6 +621,8 @@ namespace acl
 		data[2] = safe_static_cast<uint16_t>(vector_z);
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+
 	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
 	inline void RTM_SIMD_CALL pack_vector3_s48_unsafe(rtm::vector4f_arg0 vector, uint8_t* out_vector_data)
 	{
@@ -596,6 +635,8 @@ namespace acl
 		data[1] = safe_static_cast<uint16_t>(vector_y);
 		data[2] = safe_static_cast<uint16_t>(vector_z);
 	}
+
+#endif
 
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_u48_unsafe(const uint8_t* vector_data)
@@ -625,12 +666,16 @@ namespace acl
 #endif
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_s48_unsafe(const uint8_t* vector_data)
 	{
 		const rtm::vector4f unsigned_value = unpack_vector3_u48_unsafe(vector_data);
 		return rtm::vector_neg_mul_sub(unsigned_value, -2.0F, rtm::vector_set(-1.0F));
 	}
+
+#endif
 
 	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_u48(rtm::vector4f_arg0 input)
 	{
@@ -639,10 +684,22 @@ namespace acl
 		const float max_value = float((1 << 16) - 1);
 		const float inv_max_value = 1.0F / max_value;
 
+#ifdef ACL_PACKING_PRECISION_BOOST
+	
+		const float mid_value = float(1 << (16 - 1));
+		const rtm::vector4f packed = rtm::vector_add(rtm::vector_floor(rtm::vector_mul(rtm::vector_sub(input, rtm::vector_set(0.5F)), max_value)), rtm::vector_set(mid_value));
+
+#else
+
 		const rtm::vector4f packed = rtm::vector_round_symmetric(rtm::vector_mul(input, max_value));
+
+#endif
+
 		const rtm::vector4f decayed = rtm::vector_mul(packed, inv_max_value);
 		return decayed;
 	}
+
+#ifndef ACL_PACKING_PRECISION_BOOST
 
 	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_s48(rtm::vector4f_arg0 input)
 	{
@@ -726,6 +783,8 @@ namespace acl
 		return rtm::vector_set(x, y, z);
 	}
 
+#endif
+
 	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
 	inline void RTM_SIMD_CALL pack_vector3_u24_unsafe(rtm::vector4f_arg0 vector, uint8_t* out_vector_data)
 	{
@@ -738,6 +797,8 @@ namespace acl
 		out_vector_data[2] = safe_static_cast<uint8_t>(vector_z);
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+
 	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
 	inline void RTM_SIMD_CALL pack_vector3_s24_unsafe(rtm::vector4f_arg0 vector, uint8_t* out_vector_data)
 	{
@@ -749,6 +810,8 @@ namespace acl
 		out_vector_data[1] = safe_static_cast<uint8_t>(vector_y);
 		out_vector_data[2] = safe_static_cast<uint8_t>(vector_z);
 	}
+
+#endif
 
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_u24_unsafe(const uint8_t* vector_data)
@@ -790,12 +853,16 @@ namespace acl
 #endif
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+	
 	// Assumes the 'vector_data' is padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_s24_unsafe(const uint8_t* vector_data)
 	{
 		const rtm::vector4f unsigned_value = unpack_vector3_u24_unsafe(vector_data);
 		return rtm::vector_neg_mul_sub(unsigned_value, -2.0F, rtm::vector_set(-1.0F));
 	}
+
+#endif
 
 	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
 	inline void RTM_SIMD_CALL pack_vector3_uXX_unsafe(rtm::vector4f_arg0 vector, uint32_t num_bits, uint8_t* out_vector_data)
@@ -812,6 +879,8 @@ namespace acl
 		unaligned_write(vector_u64, out_vector_data);
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+
 	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
 	inline void RTM_SIMD_CALL pack_vector3_sXX_unsafe(rtm::vector4f_arg0 vector, uint32_t num_bits, uint8_t* out_vector_data)
 	{
@@ -827,6 +896,8 @@ namespace acl
 		unaligned_write(vector_u64, out_vector_data);
 	}
 
+#endif
+
 	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_uXX(rtm::vector4f_arg0 input, uint32_t num_bits)
 	{
 		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal3(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(input), (float)rtm::vector_get_y(input), (float)rtm::vector_get_z(input));
@@ -834,10 +905,22 @@ namespace acl
 		const float max_value = rtm::scalar_safe_to_float((1 << num_bits) - 1);
 		const float inv_max_value = 1.0F / max_value;
 
+#ifdef ACL_PACKING_PRECISION_BOOST
+
+		const float mid_value = rtm::scalar_safe_to_float(1 << (num_bits - 1));
+		const rtm::vector4f packed = rtm::vector_add(rtm::vector_floor(rtm::vector_mul(rtm::vector_sub(input, rtm::vector_set(0.5F)), max_value)), rtm::vector_set(mid_value));
+
+#else
+
 		const rtm::vector4f packed = rtm::vector_round_symmetric(rtm::vector_mul(input, max_value));
+
+#endif
+
 		const rtm::vector4f decayed = rtm::vector_mul(packed, inv_max_value);
 		return decayed;
 	}
+
+#ifndef ACL_PACKING_PRECISION_BOOST
 
 	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_sXX(rtm::vector4f_arg0 input, uint32_t num_bits)
 	{
@@ -853,6 +936,8 @@ namespace acl
 		const rtm::vector4f decayed = rtm::vector_mul(packed, inv_max_value);
 		return rtm::vector_neg_mul_sub(decayed, -2.0F, rtm::vector_set(-1.0F));
 	}
+
+#endif
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
@@ -966,6 +1051,8 @@ namespace acl
 #endif
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_sXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
@@ -990,6 +1077,8 @@ namespace acl
 
 		unaligned_write(vector_u64, out_vector_data);
 	}
+
+#endif
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector2_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)

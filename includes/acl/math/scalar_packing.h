@@ -36,6 +36,26 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+
+#ifdef ACL_PACKING_PRECISION_BOOST
+
+	inline uint32_t pack_scalar_signed_normalized(float input, uint32_t num_bits)
+	{
+		ACL_ASSERT(num_bits > 0, "Attempting to pack on too few bits");
+		ACL_ASSERT(num_bits < 25, "Attempting to pack on too many bits");
+		ACL_ASSERT(input >= -0.5F && input <= 0.5F, "Expected signed normalized input value: %f", input);
+		const float max_value = rtm::scalar_safe_to_float((1 << num_bits) - 1);
+		const float mid_value = rtm::scalar_safe_to_float(1 << (num_bits - 1));
+		return static_cast<uint32_t>(rtm::scalar_floor(input * max_value) + mid_value);
+	}
+
+	inline uint32_t pack_scalar_unsigned(float input, uint32_t num_bits)
+	{
+		return pack_scalar_signed_normalized(input - 0.5F, num_bits);
+	}
+
+#else
+
 	inline uint32_t pack_scalar_unsigned(float input, uint32_t num_bits)
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to pack on too many bits");
@@ -43,6 +63,8 @@ namespace acl
 		const uint32_t max_value = (1 << num_bits) - 1;
 		return static_cast<uint32_t>(rtm::scalar_round_symmetric(input * rtm::scalar_safe_to_float(max_value)));
 	}
+
+#endif
 
 	inline float unpack_scalar_unsigned(uint32_t input, uint32_t num_bits)
 	{
@@ -54,6 +76,8 @@ namespace acl
 		return rtm::scalar_safe_to_float(input) * inv_max_value;
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+
 	inline uint32_t pack_scalar_signed(float input, uint32_t num_bits)
 	{
 		return pack_scalar_unsigned((input * 0.5F) + 0.5F, num_bits);
@@ -63,6 +87,8 @@ namespace acl
 	{
 		return (unpack_scalar_unsigned(input, num_bits) * 2.0F) - 1.0F;
 	}
+
+#endif
 
 	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 8 bytes from it
 	inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_32_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
