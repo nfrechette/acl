@@ -256,6 +256,35 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Measures the error between a raw and lossy transform.
 		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const = 0;
+
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+		//////////////////////////////////////////////////////////////////////////
+		// Input arguments for the 'calculate_object_space_distance' function.
+		//////////////////////////////////////////////////////////////////////////
+		struct calculate_object_space_distance_args
+		{
+			//////////////////////////////////////////////////////////////////////////
+			// The first transform used to measure the object space distance.
+			// In the type expected by the error metric.
+			const void* transform0;
+
+			//////////////////////////////////////////////////////////////////////////
+			// The second transform used to measure the object space distance.
+			// In the type expected by the error metric.
+			const void* transform1;
+		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// Measures the distance between object space transforms.
+		virtual rtm::scalarf RTM_SIMD_CALL calculate_object_space_distance(const calculate_object_space_distance_args& args) const = 0;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Measures the distance between object space transforms.
+		virtual rtm::scalarf RTM_SIMD_CALL calculate_object_space_distance_no_scale(const calculate_object_space_distance_args& args) const = 0;
+
+#endif
+
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -360,6 +389,25 @@ namespace acl
 
 			return rtm::scalar_max(vtx0_error, vtx1_error);
 		}
+
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_object_space_distance(const calculate_object_space_distance_args& args) const override
+		{
+			const rtm::qvvf& transform0 = *static_cast<const rtm::qvvf*>(args.transform0);
+			const rtm::qvvf& transform1 = *static_cast<const rtm::qvvf*>(args.transform1);
+			return rtm::vector_distance3(transform0.translation, transform1.translation);
+		}
+
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_object_space_distance_no_scale(const calculate_object_space_distance_args& args) const override
+		{
+			const rtm::qvvf& transform0 = *static_cast<const rtm::qvvf*>(args.transform0);
+			const rtm::qvvf& transform1 = *static_cast<const rtm::qvvf*>(args.transform1);
+			return rtm::vector_distance3(transform0.translation, transform1.translation);
+		}
+
+#endif
+
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -443,6 +491,18 @@ namespace acl
 
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
+
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_object_space_distance(const calculate_object_space_distance_args& args) const override
+		{
+			const rtm::matrix3x4f& transform0 = *static_cast<const rtm::matrix3x4f*>(args.transform0);
+			const rtm::matrix3x4f& transform1 = *static_cast<const rtm::matrix3x4f*>(args.transform1);
+			return rtm::vector_distance3(transform0.w_axis, transform1.w_axis);
+		}
+
+#endif
+
 	};
 
 	//////////////////////////////////////////////////////////////////////////

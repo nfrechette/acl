@@ -355,6 +355,11 @@ namespace acl
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			rtm::vector4f RTM_SIMD_CALL get_weighted_average() const { return m_weighted_average; }
 #endif
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+			bool is_constant() const { return rtm::vector_all_near_equal(m_extent, rtm::vector_zero(), 0.0F); }
+
+#endif
 
 		private:
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)

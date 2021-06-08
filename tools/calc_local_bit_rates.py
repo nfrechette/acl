@@ -2,7 +2,8 @@
 
 import sys
 
-k_bit_rate_num_bits = [ 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 ]
+# ACL_BIT_RATE_EXPANSION: Added 1, 2, 20, 21, 22, and 23.
+k_bit_rate_num_bits = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 32 ]
 
 k_highest_bit_rate = len(k_bit_rate_num_bits) - 1
 k_lowest_bit_rate = 1
