@@ -120,3 +120,32 @@ namespace acl
 // Disabled by default, most clips have no measurable gain but some clips suffer greatly, needs to be investigated, possibly a bug somewhere
 //#define ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS
 
+//////////////////////////////////////////////////////////////////////////
+//
+// Fix that supports testing of sjson_file_type::raw_track_list, instead of only
+// sjson_file_type::raw_clip.
+//
+//////////////////////////////////////////////////////////////////////////
+#define ACL_SJSON_FIX
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Prevent low-magnitude channels from becoming constant when worst-case shell distance and
+// object space distance are exceeded. 
+// Apply error correction after constant and default tracks are processed.
+// Propagate shell distance and object space distance through ancestors before compression.
+//
+//////////////////////////////////////////////////////////////////////////
+#define ACL_COMPRESSION_OPTIMIZED
+#ifdef ACL_COMPRESSION_OPTIMIZED
+#define IF_ACL_COMPRESSION_OPTIMIZED(...) __VA_ARGS__
+#else
+#define IF_ACL_COMPRESSION_OPTIMIZED(...)
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Expand bit rate options, from [3..19] to [1..23].
+//
+//////////////////////////////////////////////////////////////////////////
+#define ACL_BIT_RATE_EXPANSION
