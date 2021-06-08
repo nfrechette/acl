@@ -84,6 +84,8 @@ namespace acl
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
 	track_error calculate_compression_error(iallocator& allocator, const track_array_qvvf& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array_qvvf& additive_base_tracks);
 
+#ifndef ACL_COMPRESSION_OPTIMIZED
+
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between two compressed tracks instances.
 	// Supports scalar tracks only.
@@ -101,6 +103,9 @@ namespace acl
 	// Calculates the worst compression error between two raw track arrays.
 	// Supports scalar and transform tracks.
 	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const itransform_error_metric& error_metric);
+
+#endif
+
 }
 
 #include "acl/compression/impl/track_error.impl.h"

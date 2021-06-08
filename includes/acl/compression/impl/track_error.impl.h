@@ -641,6 +641,8 @@ namespace acl
 		return calculate_transform_track_error(allocator, args);
 	}
 
+#ifndef ACL_COMPRESSION_OPTIMIZED
+
 	template<class decompression_context_type0, class decompression_context_type1, acl_impl::is_decompression_context<decompression_context_type0>, acl_impl::is_decompression_context<decompression_context_type1>>
 	inline track_error calculate_compression_error(iallocator& allocator, decompression_context_type0& context0, decompression_context_type1& context1)
 	{
@@ -808,4 +810,7 @@ namespace acl
 
 		return calculate_transform_track_error(allocator, args);
 	}
+
+#endif
+
 }

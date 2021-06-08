@@ -294,6 +294,12 @@ namespace acl
 			rtm::vector4f RTM_SIMD_CALL get_center() const { return rtm::vector_add(m_min, rtm::vector_mul(m_extent, 0.5F)); }
 			rtm::vector4f RTM_SIMD_CALL get_extent() const { return m_extent; }
 
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+			bool is_constant() const { return rtm::vector_all_near_equal(m_extent, rtm::vector_zero(), 0.0F); }
+
+#endif
+
 			bool is_constant(float threshold) const { return rtm::vector_all_less_than(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
 
 		private:

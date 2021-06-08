@@ -137,6 +137,17 @@ namespace acl
 			transform_metadata* metadata				= nullptr;
 			uint32_t* leaf_transform_chains				= nullptr;
 
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+			struct transform_link
+			{
+				uint32_t parent_transform_index;
+				uint32_t child_transform_index;
+			};
+			transform_link* transform_links				= nullptr;	// 1 per transform, sorted in reverse order, for compact_constant_streams and quantization_context.adjusted_shell_distances.
+
+#endif
+
 			uint32_t num_segments						= 0;
 			uint32_t num_bones							= 0;
 			uint32_t num_samples						= 0;
@@ -206,6 +217,12 @@ namespace acl
 
 			transform_streams* bone_streams = allocate_type_array<transform_streams>(allocator, num_transforms);
 
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+			clip_context::transform_link* transform_links = out_clip_context.transform_links;
+
+#endif
+
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
 				const track_qvvf& track = track_list[transform_index];
@@ -221,6 +238,17 @@ namespace acl
 				bone_stream.rotations = rotation_track_stream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, rotation_format8::quatf_full);
 				bone_stream.translations = translation_track_stream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
 				bone_stream.scales = scale_track_stream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
+
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+				if (transform_links != nullptr)
+				{
+					clip_context::transform_link& transform_link = transform_links[transform_index];
+					transform_link.parent_transform_index = desc.parent_index;
+					transform_link.child_transform_index = transform_index;
+				}
+
+#endif
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
@@ -309,6 +337,34 @@ namespace acl
 				uint32_t num_root_bones = 0;
 #endif
 
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+				if (transform_links != nullptr)
+				{
+					auto sort_predicate = [](const clip_context::transform_link& lhs, const clip_context::transform_link& rhs)
+					{
+						if (lhs.parent_transform_index == rhs.parent_transform_index)
+						{
+							return lhs.child_transform_index > rhs.child_transform_index;
+						}
+						else if (lhs.parent_transform_index == k_invalid_track_index)
+						{
+							return false;
+						}
+						else if (rhs.parent_transform_index == k_invalid_track_index)
+						{
+							return true;
+						}
+						else
+						{
+							return lhs.parent_transform_index > rhs.parent_transform_index;
+						}
+					};
+					std::sort(transform_links, transform_links + num_transforms, sort_predicate);
+				}
+
+#endif
+
 				// Move and validate the input data
 				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 				{
@@ -363,6 +419,15 @@ namespace acl
 				deallocate_type_array(allocator, is_leaf_bitset, bitset_size);
 			}
 
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+			else
+			{
+				ACL_ASSERT(transform_links == nullptr, "transform_links should be NULL!");
+			}
+
+#endif
+
 			return are_samples_valid;
 		}
 
@@ -382,6 +447,16 @@ namespace acl
 
 			bitset_description bone_bitset_desc = bitset_description::make_from_num_bits(context.num_bones);
 			deallocate_type_array(allocator, context.leaf_transform_chains, size_t(context.num_leaf_transforms) * bone_bitset_desc.get_size());
+
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+			if (context.transform_links != nullptr)
+			{
+				deallocate_type_array(allocator, context.transform_links, context.num_bones);
+			}
+
+#endif
+
 		}
 
 		constexpr bool segment_context_has_scale(const segment_context& segment) { return segment.clip->has_scale; }

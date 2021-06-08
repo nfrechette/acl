@@ -116,6 +116,18 @@ namespace acl
 				return error_result("Some samples are not finite");
 
 			clip_context lossy_clip_context;
+
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
+			const uint32_t num_tracks = track_list.get_num_tracks();
+			if (num_tracks > 0)
+			{
+				// When this array is present, initialize_clip_context fills it in.
+				lossy_clip_context.transform_links = allocate_type_array<clip_context::transform_link>(allocator, num_tracks);
+			}
+
+#endif
+
 			initialize_clip_context(allocator, track_list, settings, additive_format, lossy_clip_context);
 
 			const bool is_additive = additive_format != additive_clip_format8::none;
@@ -130,7 +142,7 @@ namespace acl
 			extract_clip_bone_ranges(allocator, lossy_clip_context);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, lossy_clip_context, track_list, settings);
+			compact_constant_streams(allocator, lossy_clip_context, IF_ACL_COMPRESSION_OPTIMIZED(raw_clip_context,) track_list, settings);
 
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
