@@ -52,6 +52,8 @@ namespace acl
 		return rtm::vector_to_quat(unpack_vector4_128(data_ptr));
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+
 	inline void RTM_SIMD_CALL pack_quat_96(rtm::quatf_arg0 rotation, uint8_t* out_rotation_data)
 	{
 		rtm::vector4f rotation_xyz = rtm::quat_to_vector(rtm::quat_ensure_positive_w(rotation));
@@ -88,6 +90,8 @@ namespace acl
 		rtm::vector4f rotation_xyz = unpack_vector3_32(11, 11, 10, false, data_ptr);
 		return rtm::quat_from_positive_w(rotation_xyz);
 	}
+
+#endif
 
 	//////////////////////////////////////////////////////////////////////////
 

@@ -51,6 +51,8 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 		CHECK((float)quat_get_w(quat0) == (float)quat_get_w(quat1));
 	}
 
+#ifndef ACL_PACKING_PRECISION_BOOST
+
 	{
 		UnalignedBuffer tmp0;
 		pack_quat_96(quat0, &tmp0.buffer[0]);
@@ -80,6 +82,8 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 		CHECK(scalar_near_equal((float)quat_get_z(quat0), (float)quat_get_z(quat1), 1.0E-3F));
 		CHECK(scalar_near_equal((float)quat_get_w(quat0), (float)quat_get_w(quat1), 1.0E-3F));
 	}
+
+#endif
 
 	CHECK(get_packed_rotation_size(rotation_format8::quatf_full) == 16);
 	CHECK(get_packed_rotation_size(rotation_format8::quatf_drop_w_full) == 12);
