@@ -87,6 +87,15 @@
         "code",
         "ideas"
       ]
+    },
+    {
+      "login": "intelligide",
+      "name": "Yoann Potinet",
+      "avatar_url": "https://avatars.githubusercontent.com/u/12529837?v=4",
+      "profile": "https://gitlab.com/intelligide",
+      "contributions": [
+        "infra"
+      ]
     }
   ],
   "contributorsPerLine": 7,
