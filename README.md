@@ -5,6 +5,7 @@
 [![Sonar Status](https://sonarcloud.io/api/project_badges/measure?project=nfrechette_acl&metric=alert_status)](https://sonarcloud.io/dashboard?id=nfrechette_acl)
 [![GitHub release](https://img.shields.io/github/release/nfrechette/acl.svg)](https://github.com/nfrechette/acl/releases)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/nfrechette/acl/master/LICENSE)
+[![Conan](https://img.shields.io/badge/on-conan-blue.svg)](https://conan.io/center/nfrechette-acl)
 [![Discord](https://img.shields.io/discord/691048241864769647?label=discord)](https://discord.gg/UERt4bS)
 
 # Animation Compression Library
@@ -65,6 +66,8 @@ The [Unreal Engine](https://www.unrealengine.com/en-US/blog) is supported throug
 This library is **100%** headers as such you just need to include them in your own project to start using it. However, if you wish to run the unit tests, regression tests, to contribute to ACL or use it for research, head on over to the [getting started](./docs/getting_started.md) section in order to setup your environment and make sure to check out the [contributing guidelines](CONTRIBUTING.md).
 
 If you would like to integrate ACL into your own game engine, follow the integration instructions [here](./docs#how-to-integrate-the-library).
+
+You can install `nfrechette-acl` with [Conan](https://conan.io/center/nfrechette-acl).
 
 ## Performance metrics
 
