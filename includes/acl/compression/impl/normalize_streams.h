@@ -52,8 +52,8 @@ namespace acl
 
 #ifdef ACL_BIND_POSE
 
-			rtm::vector4d weighted_average = rtm::vector_set(0.0);
-			const rtm::vector4d weight = rtm::vector_set(1.0 / num_samples);
+			rtm::vector4d weighted_average_d = rtm::vector_set(0.0);
+			const rtm::vector4d weight_d = rtm::vector_set(1.0 / num_samples);
 
 #endif
 			
@@ -67,17 +67,23 @@ namespace acl
 #ifdef ACL_BIND_POSE
 
 				const rtm::vector4d sample_d = rtm::vector_cast(sample);
-				if (is_vector4 && (rtm::vector_dot(weighted_average, sample_d) < 0.0))
+				if (is_vector4 && (rtm::vector_dot(weighted_average_d, sample_d) < 0.0))
 				{
-					weighted_average = rtm::vector_neg_mul_sub(sample_d, weight, weighted_average);
+					weighted_average_d = rtm::vector_neg_mul_sub(sample_d, weight_d, weighted_average_d);
 				}
 				else
 				{
-					weighted_average = rtm::vector_mul_add(sample_d, weight, weighted_average);
+					weighted_average_d = rtm::vector_mul_add(sample_d, weight_d, weighted_average_d);
 				}
-#endif
+			}
+
+			rtm::vector4f weighted_average = rtm::vector_cast(weighted_average_d);
+
+#else
 
 			}
+
+#endif
 
 			// Set the 4th component to zero if we don't need it
 			if (!is_vector4)
@@ -87,25 +93,25 @@ namespace acl
 
 #ifdef ACL_BIND_POSE
 
-				weighted_average = rtm::vector_clamp(weighted_average, rtm::vector_cast(min), rtm::vector_cast(max));
+				weighted_average = rtm::vector_clamp(weighted_average, min, max);
 			}
 			else if (num_samples > 0)
 			{
-				weighted_average = rtm::vector_clamp(weighted_average, rtm::vector_cast(min), rtm::vector_cast(max));
-				if (num_samples > 1)
+				if ((num_samples > 1) && !rtm::vector_all_near_equal(min, max, 0.0F))
 				{
 					weighted_average = rtm::quat_to_vector(rtm::quat_normalize(rtm::vector_to_quat(weighted_average)));
 				}
+				weighted_average = rtm::vector_clamp(weighted_average, min, max);
 			}
 			else
 			{
-				weighted_average = rtm::quat_to_vector((rtm::quatd)rtm::quat_identity());
+				weighted_average = rtm::quat_to_vector((rtm::quatf)rtm::quat_identity());
 
 #endif
 
 			}
 
-			return track_stream_range::from_min_max(min, max IF_ACL_BIND_POSE(, rtm::vector_cast(weighted_average)));
+			return track_stream_range::from_min_max(min, max IF_ACL_BIND_POSE(, weighted_average));
 		}
 
 		inline void extract_bone_ranges_impl(const segment_context& segment, transform_range* bone_ranges IF_ACL_BIND_POSE(,  bool are_rotations_normalized))

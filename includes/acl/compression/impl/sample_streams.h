@@ -346,9 +346,7 @@ namespace acl
 			else
 			{
 				const uint8_t* quantized_ptr;
-				if (is_constant_bit_rate(bit_rate))
-					quantized_ptr = raw_bone_steams.translations.get_raw_sample_ptr(segment->clip_sample_offset);
-				else if (is_raw_bit_rate(bit_rate))
+				if (is_raw_bit_rate(bit_rate))
 					quantized_ptr = raw_bone_steams.translations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
 				else
 					quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
@@ -529,9 +527,7 @@ namespace acl
 			else
 			{
 				const uint8_t* quantized_ptr;
-				if (is_constant_bit_rate(bit_rate))
-					quantized_ptr = raw_bone_steams.scales.get_raw_sample_ptr(segment->clip_sample_offset);
-				else if (is_raw_bit_rate(bit_rate))
+				if (is_raw_bit_rate(bit_rate))
 					quantized_ptr = raw_bone_steams.scales.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
 				else
 					quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
