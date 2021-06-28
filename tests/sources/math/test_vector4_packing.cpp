@@ -158,11 +158,27 @@ TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
 		{
 			uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
+
+#ifdef ACL_BIT_RATE_EXPANSION_OPTIMIZED_UNIT_TEST
+
+			for (uint32_t value = 0; value <= max_value; value += 4)
+			{
+				vec0 = vector_clamp(vector_set(
+					unpack_scalar_unsigned(value, num_bits),
+					unpack_scalar_unsigned(std::min(value + 1, max_value), num_bits),
+					unpack_scalar_unsigned(std::min(value + 2, max_value), num_bits),
+					unpack_scalar_unsigned(std::min(value + 3, max_value), num_bits)), vector_set(0.0F), vector_set(1.0F));
+
+#else
+
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
 				const float value_unsigned = scalar_clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+
+#endif
+
 				pack_vector4_uXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector4_uXX_unsafe(num_bits, &buffer[0], 0);
 				if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
@@ -386,12 +402,27 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 		{
 			uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
+
+#ifdef ACL_BIT_RATE_EXPANSION_OPTIMIZED_UNIT_TEST
+
+			for (uint32_t value = 0; value <= max_value; value += 3)
+			{
+				vec0 = vector_clamp(vector_set(
+					unpack_scalar_unsigned(value, num_bits),
+					unpack_scalar_unsigned(std::min(value + 1, max_value), num_bits),
+					unpack_scalar_unsigned(std::min(value + 2, max_value), num_bits)), vector_set(0.0F), vector_set(1.0F));
+
+#else
+
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
 				const float value_signed = scalar_clamp(unpack_scalar_signed(value, num_bits), -1.0F, 1.0F);
 				const float value_unsigned = scalar_clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+
+#endif
+
 				pack_vector3_uXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector3_uXX_unsafe(num_bits, &buffer[0], 0);
 				if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
@@ -410,7 +441,19 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 					}
 				}
 
+#ifdef ACL_BIT_RATE_EXPANSION_OPTIMIZED_UNIT_TEST
+
+				vec0 = vector_clamp(vector_set(
+					unpack_scalar_signed(value, num_bits),
+					unpack_scalar_signed(std::min(value + 1, max_value), num_bits),
+					unpack_scalar_signed(std::min(value + 2, max_value), num_bits)), vector_set(-1.0F), vector_set(1.0F));
+
+#else
+
 				vec0 = vector_set(value_signed, value_signed, value_signed);
+
+#endif
+
 				pack_vector3_sXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector3_sXX_unsafe(num_bits, &buffer[0], 0);
 				if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
@@ -453,17 +496,45 @@ TEST_CASE("decay_vector3_XX", "[math][vector4][decay]")
 		{
 			uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
+
+
+#ifdef ACL_BIT_RATE_EXPANSION_OPTIMIZED_UNIT_TEST
+
+			for (uint32_t value = 0; value <= max_value; value += 3)
+			{
+				vec0 = vector_clamp(vector_set(
+					unpack_scalar_signed(value, num_bits),
+					unpack_scalar_signed(std::min(value + 1, max_value), num_bits),
+					unpack_scalar_signed(std::min(value + 2, max_value), num_bits)), vector_set(-1.0F), vector_set(1.0F));
+
+#else
+
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
 				const float value_signed = scalar_clamp(unpack_scalar_signed(value, num_bits), -1.0F, 1.0F);
 				const float value_unsigned = scalar_clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
 
 				vec0 = vector_set(value_signed, value_signed, value_signed);
+
+#endif
+
 				vec1 = decay_vector3_sXX(vec0, num_bits);
 				if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 					num_errors++;
 
+#ifdef ACL_BIT_RATE_EXPANSION_OPTIMIZED_UNIT_TEST
+
+				vec0 = vector_clamp(vector_set(
+					unpack_scalar_unsigned(value, num_bits),
+					unpack_scalar_unsigned(std::min(value + 1, max_value), num_bits),
+					unpack_scalar_unsigned(std::min(value + 2, max_value), num_bits)), vector_set(0.0F), vector_set(1.0F));
+
+#else
+
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+
+#endif
+
 				vec1 = decay_vector3_uXX(vec0, num_bits);
 				if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 					num_errors++;
@@ -522,11 +593,26 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 		{
 			uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
+
+#ifdef ACL_BIT_RATE_EXPANSION_OPTIMIZED_UNIT_TEST
+
+			for (uint32_t value = 0; value <= max_value; value += 2)
+			{
+				vec0 = vector_clamp(vector_set(
+					unpack_scalar_unsigned(value, num_bits),
+					unpack_scalar_unsigned(std::min(value + 1, max_value), num_bits),
+					0.0F), vector_set(0.0F), vector_set(1.0F));
+
+#else
+
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
 				const float value_unsigned = scalar_clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
 
 				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+
+#endif
+
 				pack_vector2_uXX_unsafe(vec0, num_bits, &buffer[0]);
 				vec1 = unpack_vector2_uXX_unsafe(num_bits, &buffer[0], 0);
 				if (!vector_all_near_equal2(vec0, vec1, 1.0E-6F))
