@@ -176,6 +176,8 @@ namespace acl
 			std::memset(max_adjusted_shell_distances, 0, num_bones * sizeof(float));
 			if (context.additive_format == additive_clip_format8::none)
 			{
+				// Propagate worst-case shell distance and object space distances, so we can prevent low-magnitude channels from becoming constant when they're exceeded.
+
 				float* adjusted_shell_distances = allocate_type_array<float>(allocator, num_bones);
 				rtm::qvvf* original_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 
@@ -257,7 +259,7 @@ namespace acl
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
-					bone_stream.is_rotation_constant || bone_range.rotation.is_constant() || ((constant_rotation_threshold_angle > 0.0F) &&
+					bone_range.rotation.is_constant() || ((constant_rotation_threshold_angle > 0.0F) &&
 
 #endif
 
@@ -292,7 +294,7 @@ namespace acl
 				
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
-				if (bone_stream.is_translation_constant || bone_range.translation.is_constant() || is_translation_track_constant(bone_range.translation, constant_translation_threshold, desc.precision))
+				if (bone_range.translation.is_constant() || is_translation_track_constant(bone_range.translation, constant_translation_threshold, desc.precision))
 
 #else
 
@@ -322,7 +324,7 @@ namespace acl
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
-				if (bone_stream.is_scale_constant || bone_range.scale.is_constant() || is_scale_track_constant(bone_range.scale, constant_scale_threshold, max_adjusted_shell_distances[bone_index], desc.precision))
+				if (bone_range.scale.is_constant() || is_scale_track_constant(bone_range.scale, constant_scale_threshold, max_adjusted_shell_distances[bone_index], desc.precision))
 
 #else
 
@@ -362,6 +364,13 @@ namespace acl
 			if ((context.additive_format == additive_clip_format8::none) &&
 				(has_constant_bone_rotations || has_constant_bone_translations || (has_scale && has_constant_bone_scales)))
 			{
+				// Apply error correction after constant and default tracks are processed.
+				// We use object space of the original data as ground truth, and only deviate for 2 reasons, and as briefly as possible.
+				//    -Replace an original local value with a new constant value.
+				//    -Correct for the manipulation of an original local value by an ancestor ASAP.
+				// We aren't modifying raw data here. We're modifying the raw channels generated from the raw data.
+				// The raw data is left alone, and is still used at the end of the process to do regression testing.
+
 				struct DirtyState
 				{
 					bool rotation = false;

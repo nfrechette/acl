@@ -122,3 +122,4 @@ namespace acl
 //
 //////////////////////////////////////////////////////////////////////////
 #define ACL_BIT_RATE_EXPANSION
+#define ACL_BIT_RATE_EXPANSION_OPTIMIZED_UNIT_TEST // Debug unit test fails because it's too slow.  Obliterate this when integrating with ACL_UNIT_TEST_STRICT in ACL 2.1.

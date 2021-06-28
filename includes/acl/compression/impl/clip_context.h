@@ -139,12 +139,13 @@ namespace acl
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
+			// Sorted by descending parent_transform_index(k_invalid_track_index last), then descending child_transform_index.
 			struct transform_link
 			{
 				uint32_t parent_transform_index;
 				uint32_t child_transform_index;
 			};
-			transform_link* transform_links				= nullptr;	// 1 per transform, sorted in reverse order, for compact_constant_streams and quantization_context.adjusted_shell_distances.
+			transform_link* transform_links				= nullptr;	// 1 per transform, for compact_constant_streams and quantization_context.adjusted_shell_distances.
 
 #endif
 
@@ -341,6 +342,7 @@ namespace acl
 
 				if (transform_links != nullptr)
 				{
+					// Sorted by descending parent_transform_index(k_invalid_track_index last), then descending child_transform_index.
 					auto sort_predicate = [](const clip_context::transform_link& lhs, const clip_context::transform_link& rhs)
 					{
 						if (lhs.parent_transform_index == rhs.parent_transform_index)
