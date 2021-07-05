@@ -171,18 +171,22 @@ namespace acl
 		if (!metadata_header.parent_track_indices.is_valid())
 			return false;	// Metadata isn't stored
 
+		const compressed_tracks_version16 version = header.version;
 		const uint32_t* parent_track_indices = metadata_header.get_parent_track_indices(*this);
 		const uint8_t* descriptions = metadata_header.get_track_descriptions(*this);
-		
-#ifdef ACL_BIND_POSE_BINARY
 
-		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * sizeof(float) * 17));		
-			
-#else
+		// ACL 2.0 track description has:
+		//    precision, shell_distance,
+		//    constant_rotation_threshold_angle, constant_translation_threshold, constant_scale_threshold
+		uint32_t track_description_size = sizeof(float) * 5;
 
-		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * sizeof(float) * 5));
-
+#ifdef ACL_BIND_POSE
+		// ACL 2.1 adds: default_value
+		if (version >= compressed_tracks_version16::v02_01_99)
+			track_description_size += sizeof(float) * 10;
 #endif
+
+		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * track_description_size));
 
 		out_description.output_index = track_index;
 		out_description.parent_index = parent_track_indices[track_index];
@@ -192,12 +196,17 @@ namespace acl
 		out_description.constant_translation_threshold = description_data[3];
 		out_description.constant_scale_threshold = description_data[4];
 
-#ifdef ACL_BIND_POSE_BINARY
-
-		out_description.default_value.rotation = rtm::quat_load(description_data + 5);
-		out_description.default_value.translation = rtm::vector_load(description_data + 9);
-		out_description.default_value.scale = rtm::vector_load(description_data + 13);
-
+#ifdef ACL_BIND_POSE
+		if (version >= compressed_tracks_version16::v02_01_99)
+		{
+			out_description.default_value.rotation = rtm::quat_load(description_data + 5);
+			out_description.default_value.translation = rtm::vector_load3(description_data + 9);
+			out_description.default_value.scale = rtm::vector_load3(description_data + 12);
+		}
+		else
+		{
+			out_description.default_value = rtm::qvv_identity();
+		}
 #endif
 
 		return true;

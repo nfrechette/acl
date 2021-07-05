@@ -15,7 +15,7 @@ import time
 import zipfile
 
 # The current test/decompression data version in use
-current_test_data = 'test_data_v4' # ACL_BIND_POSE test_data_v5
+current_test_data = 'test_data_v5'
 current_decomp_data = 'decomp_data_v7'
 
 def parse_argv():
@@ -516,7 +516,7 @@ def do_prepare_regression_test_data(test_data_dir, args):
 	regression_clips = []
 	for (dirpath, dirnames, filenames) in os.walk(current_test_data_dir):
 		for filename in filenames:
-			if not filename.endswith('.acl.sjson'): # ACL_BIND_POSE .acl
+			if not filename.endswith('.acl'):
 				continue
 
 			clip_filename = os.path.join(dirpath, filename)
@@ -589,7 +589,7 @@ def do_prepare_decompression_test_data(test_data_dir, args):
 	clips = []
 	for (dirpath, dirnames, filenames) in os.walk(current_data_dir):
 		for filename in filenames:
-			if not filename.endswith('.acl.sjson'): # ACL_BIND_POSE .acl
+			if not filename.endswith('.acl'):
 				continue
 
 			clip_filename = os.path.join(dirpath, filename)
@@ -597,7 +597,7 @@ def do_prepare_decompression_test_data(test_data_dir, args):
 
 	if len(clips) == 0:
 		print('No decompression clips found')
-		sys.exit(1)
+		return
 
 	print('Found {} decompression clips'.format(len(clips)))
 
@@ -666,7 +666,7 @@ def do_regression_tests_cmake(test_data_dir, args):
 	current_test_data_dir = os.path.join(test_data_dir, current_test_data)
 	for (dirpath, dirnames, filenames) in os.walk(current_test_data_dir):
 		for filename in filenames:
-			if not filename.endswith('.acl.sjson'): # ACL_BIND_POSE .acl
+			if not filename.endswith('.acl'):
 				continue
 
 			clip_filename = os.path.join(dirpath, filename)

@@ -66,6 +66,7 @@ namespace acl
 		//v01_03_00 = 5,			// ACL v1.3.0
 		//v01_99_99	= 6,			// ACL v2.0.0-wip
 		v02_00_00	= 7,			// ACL v2.0.0
+		v02_01_99	= 8,			// ACL v2.1.0-wip
 
 		//////////////////////////////////////////////////////////////////////////
 		// First version marker, this is equal to the first version supported: ACL 2.0.0
@@ -75,7 +76,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Always assigned to the latest version supported.
-		latest		= v02_00_00,
+		latest		= v02_01_99,
 	};
 }
 

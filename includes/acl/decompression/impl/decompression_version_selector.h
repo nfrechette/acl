@@ -92,6 +92,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					return decompression_version_selector<compressed_tracks_version16::v02_00_00>::initialize<decompression_settings_type>(context, tracks, database);
 				default:
 					ACL_ASSERT(false, "Unsupported version");
@@ -106,6 +107,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					return decompression_version_selector<compressed_tracks_version16::v02_00_00>::is_dirty(context, tracks);
 				default:
 					ACL_ASSERT(false, "Unsupported version");
@@ -120,6 +122,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					decompression_version_selector<compressed_tracks_version16::v02_00_00>::seek<decompression_settings_type>(context, sample_time, rounding_policy);
 					break;
 				default:
@@ -135,6 +138,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					decompression_version_selector<compressed_tracks_version16::v02_00_00>::decompress_tracks<decompression_settings_type>(context, writer);
 					break;
 				default:
@@ -150,6 +154,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					decompression_version_selector<compressed_tracks_version16::v02_00_00>::decompress_track<decompression_settings_type>(context, track_index, writer);
 					break;
 				default:
