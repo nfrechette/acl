@@ -83,11 +83,21 @@
   <Type Name="acl::compressed_tracks">
     <DisplayString>size={m_buffer_header.size} hash={m_buffer_header.hash}</DisplayString>
     <Expand>
+      <!-- Common -->
       <Item Name="num_tracks">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_tracks</Item>
       <Item Name="num_samples">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_samples</Item>
       <Item Name="sample_rate">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->sample_rate</Item>
       <Item Name="track_type">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type</Item>
       <Item Name="version">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->version</Item>
+      <!-- Transform tracks -->
+      <Item Name="has_scale" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &amp; 1) != 0</Item>
+      <Item Name="default_scale" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 1) &amp; 1</Item>
+      <Item Name="rotation_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::rotation_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 4) &amp; 15)</Item>
+      <Item Name="translation_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::vector_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 3) &amp; 1)</Item>
+      <Item Name="scale_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::vector_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 2) &amp; 1)</Item>
+      <Item Name="has_database" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &amp; (1 &lt;&lt; 8)) != 0</Item>
+      <Item Name="has_metadata" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 31) != 0</Item>
+      <Item Name="header" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(const acl::acl_impl::transform_tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header) + sizeof(acl::acl_impl::tracks_header))</Item>
     </Expand>
   </Type>
 
