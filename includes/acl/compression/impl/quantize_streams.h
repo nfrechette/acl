@@ -348,17 +348,13 @@ namespace acl
 			if (is_constant_bit_rate(bit_rate))
 			{
 
-#ifdef ACL_BIND_POSE
-
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 				const rtm::vector4f normalized_rotation = clip_range.get_weighted_average();
-
 #else
-
 				rtm::vector4f rotation = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index);
 				rotation = convert_rotation(rotation, rotation_format8::quatf_full, rotation_format8::quatf_drop_w_variable);
 
 				const rtm::vector4f normalized_rotation = normalize_sample(rotation, clip_range);
-
 #endif
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
@@ -402,14 +398,10 @@ namespace acl
 			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
 			const rotation_format8 highest_bit_rate = get_highest_variant_precision(rotation_variant8::quat_drop_w);
 
-#ifdef ACL_BIND_POSE
-
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			const track_stream_range& bone_range = context.segment->ranges[bone_index].rotation;
-
 #else
-
 			const track_stream_range& bone_range = context.clip.ranges[bone_index].rotation;
-
 #endif
 
 			// If our format is variable, we keep them fixed at the highest bit rate in the variant
@@ -480,14 +472,11 @@ namespace acl
 			if (is_constant_bit_rate(bit_rate))
 			{
 
-#ifdef ACL_BIND_POSE
-
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 				const rtm::vector4f normalized_translation = clip_range.get_weighted_average();
-
 #else
 				const rtm::vector4f translation = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index);
 				const rtm::vector4f normalized_translation = normalize_sample(translation, clip_range);
-
 #endif
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
@@ -527,14 +516,10 @@ namespace acl
 			if (bone_stream.is_translation_default)
 				return;
 
-#ifdef ACL_BIND_POSE
-
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			const track_stream_range& bone_range = context.segment->ranges[bone_index].translation;
-
 #else
-
 			const track_stream_range& bone_range = context.clip.ranges[bone_index].translation;
-
 #endif
 
 			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
@@ -606,16 +591,11 @@ namespace acl
 
 			if (is_constant_bit_rate(bit_rate))
 			{
-
-#ifdef ACL_BIND_POSE
-
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 				const rtm::vector4f normalized_scale = clip_range.get_weighted_average();
-
 #else
-
 				const rtm::vector4f scale = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index);
 				const rtm::vector4f normalized_scale = normalize_sample(scale, clip_range);
-
 #endif
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
@@ -655,14 +635,10 @@ namespace acl
 			if (bone_stream.is_scale_default)
 				return;
 
-#ifdef ACL_BIND_POSE
-
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			const track_stream_range& bone_range = context.segment->ranges[bone_index].scale;
-
 #else
-
 			const track_stream_range& bone_range = context.clip.ranges[bone_index].scale;
-
 #endif
 
 			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
