@@ -1597,47 +1597,43 @@ namespace acl
 
 #ifdef ACL_BIND_POSE
 
-			if (!skip_bind_pose)
+			if (has_scale)
 			{
-				if (has_bind_pose)
-				{
-					if (has_scale)
-					{
-						// Unpack our default scale sub-tracks
-						// Scale sub-tracks are almost always default, this should take at least 200 cycles
-						unpack_default_scale_sub_defaults(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
+				// Unpack our default scale sub-tracks
+				// Scale sub-tracks are almost always default, this should take at least 200 cycles
 
-						// Unpack our constant scale sub-tracks
-						// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
-						unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
+				if (!skip_bind_pose)
+				{
+					if (has_bind_pose)
+					{
+						unpack_default_scale_sub_defaults(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
 					}
 					else
 					{
-						// No scale present, everything is just the default value
-						// This shouldn't take much more than 50 cycles
+						unpack_default_scale_sub_tracks(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
+					}
+				}
+				
+				// Unpack our constant scale sub-tracks
+				// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
+				unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
+			}
+			else
+			{
+				// No scale present, everything is just the default value
+				if (!skip_bind_pose)
+				{
+					// This shouldn't take much more than 50 cycles
+					if (has_bind_pose)
+					{
 						for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 						{
 							if (!track_writer_type::skip_all_scales() && !writer.skip_default_scale(track_index))
 								writer.write_scale(track_index, default_scale);
 						}
 					}
-				}
-				else
-				{
-					if (has_scale)
-					{
-						// Unpack our default scale sub-tracks
-						// Scale sub-tracks are almost always default, this should take at least 200 cycles
-						unpack_default_scale_sub_tracks(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
-
-						// Unpack our constant scale sub-tracks
-						// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
-						unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
-					}
 					else
 					{
-						// No scale present, everything is just the default value
-						// This shouldn't take much more than 50 cycles
 						for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 						{
 							if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
