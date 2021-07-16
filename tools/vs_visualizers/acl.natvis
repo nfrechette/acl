@@ -52,6 +52,7 @@
       <Item Name="is_ref">m_allocator == nullptr</Item>
       <ArrayItems>
         <Size>m_num_samples</Size>
+        <!-- TODO: Support stride -->
         <ValuePointer Condition="m_type == acl::track_type8::float1f">(float*)m_data</ValuePointer>
         <ValuePointer Condition="m_type == acl::track_type8::float2f">(rtm::float2f*)m_data</ValuePointer>
         <ValuePointer Condition="m_type == acl::track_type8::float3f">(rtm::float3f*)m_data</ValuePointer>
@@ -174,6 +175,24 @@
         <ValueNode Condition="((types >> ((15 - $i) * 2)) &amp; 0x3) == 2">"animated"</ValueNode>
       </IndexListItems>
     </Expand>
+  </Type>
+
+  <Type Name="acl::acl_impl::track_stream">
+    <DisplayString>num_samples={m_num_samples}, type={m_type}</DisplayString>
+    <Expand>
+      <Item Name="num_samples">m_num_samples</Item>
+      <Item Name="sample_rate">m_sample_rate</Item>
+      <Item Name="type">m_type</Item>
+      <Item Name="format">m_format</Item>
+      <ArrayItems>
+        <Size>m_num_samples</Size>
+        <!-- TODO: Support stride -->
+        <ValuePointer Condition="m_type == acl::animation_track_type8::rotation">(rtm::float4f*)m_samples</ValuePointer>
+        <ValuePointer Condition="m_type == acl::animation_track_type8::translation">(rtm::float3f*)m_samples</ValuePointer>
+        <ValuePointer Condition="m_type == acl::animation_track_type8::scale">(rtm::float3f*)m_samples</ValuePointer>
+      </ArrayItems>
+    </Expand>
+
   </Type>
 
 </AutoVisualizer>
