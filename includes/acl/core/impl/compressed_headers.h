@@ -95,18 +95,7 @@ namespace acl
 			// Bit 3: translation format
 			// Bits [4, 8): rotation format (4 bits)
 			// Bit 8: has database?
-
-#ifdef ACL_BIND_POSE
-
-			// Bit 9: has bind pose?
-			// Bits [10, 31): unused (21 bits)
-
-#else
-
 			// Bits [9, 31): unused (22 bits)
-
-#endif
-
 			// Bit 31: has metadata?
 
 			bool get_has_scale() const { return (misc_packed & 1) != 0; }
@@ -121,14 +110,6 @@ namespace acl
 			void set_rotation_format(rotation_format8 format) { misc_packed = (misc_packed & ~(15 << 4)) | (static_cast<uint32_t>(format) << 4); }
 			bool get_has_database() const { return (misc_packed & (1 << 8)) != 0; }
 			void set_has_database(bool has_database) { misc_packed = (misc_packed & ~(1 << 8)) | (static_cast<uint32_t>(has_database) << 8); }
-
-#ifdef ACL_BIND_POSE
-
-			bool get_default_bind_pose() const { return (misc_packed & (1 << 9)) != 0; }
-			void set_default_bind_pose(bool default_bind_pose) { misc_packed = (misc_packed & ~(1 << 9)) | (static_cast<uint32_t>(default_bind_pose) << 9); }
-
-#endif
-
 			bool get_has_metadata() const { return (misc_packed >> 31) != 0; }
 			void set_has_metadata(bool has_metadata) { misc_packed = (misc_packed & ~(1 << 31)) | (static_cast<uint32_t>(has_metadata) << 31); }
 		};
