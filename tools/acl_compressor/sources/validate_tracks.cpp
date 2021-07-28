@@ -100,6 +100,7 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 		{
 			const rtm::qvvf transform0 = track_writer.read_qvv(bone_index);
 
+			// Make sure single track decompression matches
 			context.decompress_track(bone_index, track_writer);
 			const rtm::qvvf transform1 = track_writer.read_qvv(bone_index);
 

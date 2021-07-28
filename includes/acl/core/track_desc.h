@@ -83,8 +83,16 @@ namespace acl
 #ifdef ACL_BIND_POSE
 
 		//////////////////////////////////////////////////////////////////////////
-		// Default tracks are cheaper than static or animated tracks. The game engine 
-		// can apply bind transforms instead of identity transforms if preferred.
+		// Default tracks are cheaper than constant or animated tracks because they are not stored
+		// inside the compressed clip. It is the responsibility of the code that decompresses to ensure
+		// that default sub-tracks are properly handled. By default, we assume that default sub-tracks
+		// are constant and equal to their identity value. If another value is more commonly used by
+		// animation clips getting compressed (e.g. the bind/reference pose), it makes sense to use it
+		// as the default sub-track value. This will reduce the memory footprint but whatever value you
+		// use must be provided during decompression. See track_writer::get_default_rotation_mode() & friends.
+		// Note that if you do not use the identity here, compressed tracks will not contain the required data
+		// to be able to reconstruct the original tracks on their own: the implementation will have to provide
+		// the default sub-track values (whether constant or variable per sub-track).
 		rtm::qvvf default_value = rtm::qvv_identity();
 		uint32_t padding = 0;
 
