@@ -69,11 +69,12 @@ namespace acl
 
 			static constexpr bool skip_all_defaults() { return true; }
 
-			void initialize_bind_pose(const track_array& tracks)
+			//////////////////////////////////////////////////////////////////////////
+			// Initializes the internal buffer with the sub-track default values provided.
+			void initialize_with_defaults(const track_array& tracks)
 			{
 				ACL_ASSERT(type == track_type8::qvvf, "Unexpected track type access");
-				const uint32_t num_tracks_local = num_tracks;
-				for (uint32_t track_index = 0; track_index < num_tracks_local; ++track_index)
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 				{
 					tracks_typed.qvvf[track_index] = track_cast<track_qvvf>(tracks[track_index]).get_description().default_value;
 				}

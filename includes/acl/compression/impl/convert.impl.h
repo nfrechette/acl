@@ -152,7 +152,7 @@ namespace acl
 
 			if(track_type == track_type8::qvvf)
 			{
-				writer.initialize_bind_pose(result);
+				writer.initialize_with_defaults(result);
 			}
 
 #endif
@@ -208,7 +208,7 @@ namespace acl
 
 			if(track_type == track_type8::qvvf)
 			{
-				writer.initialize_bind_pose(result);
+				writer.initialize_with_defaults(result);
 			}
 
 #endif

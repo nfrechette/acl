@@ -492,7 +492,7 @@ namespace acl
 			virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& tracks_writer1) override
 			{
 				(void)track_writer0;
-				tracks_writer1.initialize_bind_pose(raw_tracks_);
+				tracks_writer1.initialize_with_defaults(raw_tracks_);
 			}
 
 #endif
@@ -607,7 +607,7 @@ namespace acl
 			virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& tracks_writer1) override
 			{
 				(void)track_writer0;
-				tracks_writer1.initialize_bind_pose(raw_tracks_);
+				tracks_writer1.initialize_with_defaults(raw_tracks_);
 			}
 
 #endif

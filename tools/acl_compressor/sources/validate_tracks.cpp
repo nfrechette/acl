@@ -76,7 +76,7 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 
 #ifdef ACL_BIND_POSE
 
-	track_writer.initialize_bind_pose(raw_tracks);
+	track_writer.initialize_with_defaults(raw_tracks);
 
 #endif
 
@@ -146,8 +146,8 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 
 	if (track_type == track_type8::qvvf)
 	{
-		lossy_tracks_writer.initialize_bind_pose(raw_tracks);
-		lossy_track_writer.initialize_bind_pose(raw_tracks);
+		lossy_tracks_writer.initialize_with_defaults(raw_tracks);
+		lossy_track_writer.initialize_with_defaults(raw_tracks);
 	}
 
 #endif
@@ -464,7 +464,7 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 
 	if(track_category == track_category8::transformf)
 	{
-		writer.initialize_bind_pose(raw_tracks);
+		writer.initialize_with_defaults(raw_tracks);
 	}
 
 #endif
