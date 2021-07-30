@@ -122,8 +122,6 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Transform track writing
 
-#ifdef ACL_BIND_POSE
-
 		//////////////////////////////////////////////////////////////////////////
 		// If default sub-tracks aren't skipped, a value must be written. Either
 		// they are constant for every sub-track (e.g. identity) or they vary per
@@ -145,16 +143,6 @@ namespace acl
 		rtm::quatf RTM_SIMD_CALL get_variable_default_rotation(uint32_t /*track_index*/) const { return rtm::quat_identity(); }
 		rtm::vector4f RTM_SIMD_CALL get_variable_default_translation(uint32_t /*track_index*/) const { return rtm::vector_zero(); }
 		rtm::vector4f RTM_SIMD_CALL get_variable_default_scale(uint32_t /*track_index*/) const { return rtm::vector_set(1.0F); }
-
-		//////////////////////////////////////////////////////////////////////////
-		// These allow the caller of decompress_pose to substitute its own bind transforms as defaults
-		// instead of identity transforms.
-		// Must be non-static member functions!
-		bool skip_default_rotation(uint32_t /*track_index*/) { return false; }
-		bool skip_default_translation(uint32_t /*track_index*/) { return false; }
-		bool skip_default_scale(uint32_t /*track_index*/) { return false; }
-
-#endif
 
 		//////////////////////////////////////////////////////////////////////////
 		// These allow the caller of decompress_pose to control which track types they are interested in.

@@ -100,12 +100,6 @@ namespace acl
 		{
 			virtual ~ierror_calculation_adapter() = default;
 
-#ifdef ACL_BIND_POSE
-
-			virtual void initialize_bind_pose(debug_track_writer& tracks_writer0, debug_track_writer& tracks_writer1) = 0;
-
-#endif
-
 			// Scalar and transforms, mandatory
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) = 0;
 			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) = 0;
@@ -114,6 +108,7 @@ namespace acl
 			virtual uint32_t get_output_index(uint32_t track_index) { return track_index; }
 
 			// Transforms only, mandatory
+			virtual void initialize_bind_pose(debug_track_writer& tracks_writer0, debug_track_writer& tracks_writer1) { (void)tracks_writer0; (void)tracks_writer1; }
 			virtual uint32_t get_parent_index(uint32_t track_index) { (void)track_index; return k_invalid_track_index; }
 			virtual float get_shell_distance(uint32_t track_index) { (void)track_index; return 0.0F; }
 
@@ -178,12 +173,8 @@ namespace acl
 
 			debug_track_writer tracks_writer0(allocator, track_type, num_tracks);
 			debug_track_writer tracks_writer1(allocator, track_type, num_tracks);
-			
-#ifdef ACL_BIND_POSE
 
 			ACL_ASSERT(track_type != track_type8::qvvf, "Don't use calculate_scalar_track_error on track_type8::qvvf");
-
-#endif
 
 			// Measure our error
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -240,12 +231,8 @@ namespace acl
 
 			debug_track_writer tracks_writer0(allocator, track_type8::qvvf, num_tracks);
 			debug_track_writer tracks_writer1(allocator, track_type8::qvvf, num_tracks);
-			
-#ifdef ACL_BIND_POSE
 
 			args.adapter.initialize_bind_pose(tracks_writer0, tracks_writer1);
-
-#endif
 
 			debug_track_writer tracks_writer1_remapped(allocator, track_type8::qvvf, num_tracks);
 			debug_track_writer tracks_writer_base(allocator, track_type8::qvvf, num_tracks);
@@ -410,17 +397,6 @@ namespace acl
 			{
 			}
 
-#ifdef ACL_BIND_POSE
-
-			virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& track_writer1) override
-			{
-				(void)track_writer0;
-				(void)track_writer1;
-				ACL_ASSERT(false, "Unreachable code.");
-			}
-
-#endif
-
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
 				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
@@ -487,15 +463,11 @@ namespace acl
 			error_calculation_adapter(const error_calculation_adapter&) = delete;
 			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
 
-#ifdef ACL_BIND_POSE
-
 			virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& tracks_writer1) override
 			{
 				(void)track_writer0;
 				tracks_writer1.initialize_with_defaults(raw_tracks_);
 			}
-
-#endif
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
@@ -602,15 +574,11 @@ namespace acl
 			error_calculation_adapter(const error_calculation_adapter&) = delete;
 			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
 
-#ifdef ACL_BIND_POSE
-
 			virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& tracks_writer1) override
 			{
 				(void)track_writer0;
 				tracks_writer1.initialize_with_defaults(raw_tracks_);
 			}
-
-#endif
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
@@ -715,17 +683,6 @@ namespace acl
 			{
 			}
 
-#ifdef ACL_BIND_POSE
-
-			virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& track_writer1) override
-			{
-				(void)track_writer0;
-				(void)track_writer1;
-				ACL_ASSERT(false, "Unreachable code.");
-			}
-
-#endif
-
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
 				context0_.seek(sample_time, rounding_policy);
@@ -783,17 +740,6 @@ namespace acl
 			{
 			}
 
-#ifdef ACL_BIND_POSE
-
-			virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& track_writer1) override
-			{
-				(void)track_writer0;
-				(void)track_writer1;
-				ACL_ASSERT(false, "Unreachable code.");
-			}
-
-#endif
-
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
 				raw_tracks0_.sample_tracks(sample_time, rounding_policy, track_writer);
@@ -837,16 +783,6 @@ namespace acl
 				, raw_tracks1_(raw_tracks1__)
 			{
 			}
-
-#ifdef ACL_BIND_POSE
-
-			virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& track_writer1) override
-			{
-				(void)track_writer0;
-				(void)track_writer1;
-			}
-
-#endif
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{

@@ -179,25 +179,13 @@ namespace acl
 						data[2] = desc.constant_rotation_threshold_angle;
 						data[3] = desc.constant_translation_threshold;
 						data[4] = desc.constant_scale_threshold;
-						
-#ifdef ACL_BIND_POSE
 
 						rtm::quat_store(desc.default_value.rotation, data + 5);
 						rtm::vector_store3(desc.default_value.translation, data + 9);
 						rtm::vector_store3(desc.default_value.scale, data + 12);
-					
 					}
 
 					output_buffer += sizeof(float) * 15;
-					
-#else
-						
-					}
-
-					output_buffer += sizeof(float) * 5;
-					
-#endif
-					
 				}
 			}
 

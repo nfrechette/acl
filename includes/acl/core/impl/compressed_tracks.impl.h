@@ -180,11 +180,9 @@ namespace acl
 		//    constant_rotation_threshold_angle, constant_translation_threshold, constant_scale_threshold
 		uint32_t track_description_size = sizeof(float) * 5;
 
-#ifdef ACL_BIND_POSE
 		// ACL 2.1 adds: default_value
 		if (version >= compressed_tracks_version16::v02_01_99)
 			track_description_size += sizeof(float) * 10;
-#endif
 
 		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * track_description_size));
 
@@ -196,7 +194,6 @@ namespace acl
 		out_description.constant_translation_threshold = description_data[3];
 		out_description.constant_scale_threshold = description_data[4];
 
-#ifdef ACL_BIND_POSE
 		if (version >= compressed_tracks_version16::v02_01_99)
 		{
 			out_description.default_value.rotation = rtm::quat_load(description_data + 5);
@@ -207,7 +204,6 @@ namespace acl
 		{
 			out_description.default_value = rtm::qvv_identity();
 		}
-#endif
 
 		return true;
 	}

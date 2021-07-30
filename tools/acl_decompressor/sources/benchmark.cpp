@@ -226,14 +226,8 @@ static void benchmark_decompression(benchmark::State& state)
 	const uint32_t num_tracks = compressed_tracks.get_num_tracks();
 	acl::acl_impl::debug_track_writer pose_writer(s_allocator, acl::track_type8::qvvf, num_tracks);
 
-#ifdef ACL_BIND_POSE
-
-	if((decompression_function == DecompressionFunction::DecompressPose) || (decompression_function == DecompressionFunction::DecompressBone))
-	{
+	if (decompression_function == DecompressionFunction::DecompressPose || decompression_function == DecompressionFunction::DecompressBone)
 		pose_writer.initialize_bind_pose(raw_tracks);
-	}
-
-#endif
 
 	// Flush the CPU cache
 	memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);

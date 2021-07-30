@@ -24,17 +24,13 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/compression/track_array.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/track_types.h"
 #include "acl/core/track_writer.h"
 
-#ifdef ACL_BIND_POSE
-
-#include "acl/compression/track_array.h"
-
-#endif
-
+#include <rtm/qvvf.h>
 #include <rtm/scalarf.h>
 #include <rtm/vector4f.h>
 
@@ -44,6 +40,22 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	// the debug track writer cannot know if we have normal defaults or custom defaults
+	// it has to assume that they are custom, and skip them, always
+	// it is the responsibility of the caller to prepopulate default tracks
+	// add a new track writer that doesn't skip default tracks? default skipping will be tested by compression and the error metric at the end, for regression testing don't skip
+	// read static default value from the track writer (for rot, trans, scale) when defaults aren't all skipped
+	// static default can easily handle additive1 where default scale is 0
+	// add a track writer version, version 1 is acl 2.0 stock (default scale read from clip header), v2 has the static defaults (default scale read from track writer)
+	// split sub-track skipping for each type: skip_all_default_rotations, etc
+	// if we don't skip default sub-tracks, query if the default value is constant or variable per transform/sub-track type
+	// if constant, read from v1/v2 track writer
+	// if variable, call write_default_rotation instead of write_rotation to let the implementation read whatever value it needs to read
+
+	// this allows us to still support old clips with v1 whether additive or not
+	// we can selectively skip all defaults when prepopulated with the bind pose (with constant/variable sub-tracks overwriting the value)
+	// we can read any value we need to and write it which allows us to populate the bind pose if stored separately when necessary
+
 	namespace acl_impl
 	{
 		//////////////////////////////////////////////////////////////////////////
@@ -68,8 +80,6 @@ namespace acl
 				allocator.deallocate(tracks_typed.any, buffer_size);
 			}
 			
-#ifdef ACL_BIND_POSE
-
 			//////////////////////////////////////////////////////////////////////////
 			// For performance reasons, this writer skips all default sub-tracks.
 			// It is the responsibility of the caller to pre-populate them by calling initialize_with_defaults().
@@ -87,8 +97,6 @@ namespace acl
 					tracks_typed.qvvf[track_index] = track_cast<track_qvvf>(tracks[track_index]).get_description().default_value;
 				}
 			}
-
-#endif
 
 			//////////////////////////////////////////////////////////////////////////
 			// Called by the decoder to write out a value for a specified track index.
@@ -218,16 +226,13 @@ namespace acl
 		{
 			debug_track_writer_constant_defaults(iallocator& allocator_, track_type8 type_, uint32_t num_tracks_)
 				: debug_track_writer(allocator_, type_, num_tracks_)
-#if defined(ACL_BIND_POSE)
 				, default_rotation(rtm::quat_identity())
 				, default_translation(rtm::vector_zero())
 				, default_scale(rtm::vector_set(1.0F))
-#endif
 			{
 				ACL_ASSERT(type_ == track_type8::qvvf, "Only qvvf tracks are supported");
 			}
 
-#if defined(ACL_BIND_POSE)
 			static constexpr default_sub_track_mode get_default_rotation_mode() { return default_sub_track_mode::constant; }
 			static constexpr default_sub_track_mode get_default_translation_mode() { return default_sub_track_mode::constant; }
 			static constexpr default_sub_track_mode get_default_scale_mode() { return default_sub_track_mode::constant; }
@@ -239,7 +244,6 @@ namespace acl
 			rtm::quatf default_rotation;
 			rtm::vector4f default_translation;
 			rtm::vector4f default_scale;
-#endif
 		};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -250,14 +254,11 @@ namespace acl
 		{
 			debug_track_writer_variable_defaults(iallocator& allocator_, track_type8 type_, uint32_t num_tracks_)
 				: debug_track_writer(allocator_, type_, num_tracks_)
-#if defined(ACL_BIND_POSE)
 				, default_sub_tracks(nullptr)
-#endif
 			{
 				ACL_ASSERT(type_ == track_type8::qvvf, "Only qvvf tracks are supported");
 			}
 
-#if defined(ACL_BIND_POSE)
 			static constexpr default_sub_track_mode get_default_rotation_mode() { return default_sub_track_mode::variable; }
 			static constexpr default_sub_track_mode get_default_translation_mode() { return default_sub_track_mode::variable; }
 			static constexpr default_sub_track_mode get_default_scale_mode() { return default_sub_track_mode::variable; }
@@ -267,7 +268,6 @@ namespace acl
 			rtm::vector4f RTM_SIMD_CALL get_variable_default_scale(uint32_t track_index) const { return default_sub_tracks[track_index].scale; }
 
 			const rtm::qvvf* default_sub_tracks;
-#endif
 		};
 	}
 }

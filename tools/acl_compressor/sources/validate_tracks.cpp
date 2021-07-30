@@ -74,8 +74,6 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 
 	debug_track_writer track_writer(allocator, track_type8::qvvf, num_bones);
 
-#ifdef ACL_BIND_POSE
-
 	track_writer.initialize_with_defaults(raw_tracks);
 
 	debug_track_writer_constant_defaults track_writer_constant(allocator, track_type8::qvvf, num_bones);
@@ -84,8 +82,6 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 	// Use the normal debug_track_writer since it skips default sub-tracks, we can use them
 	debug_track_writer_variable_defaults track_writer_variable(allocator, track_type8::qvvf, num_bones);
 	track_writer_variable.default_sub_tracks = track_writer.tracks_typed.qvvf;
-
-#endif
 
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
@@ -166,15 +162,11 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 	debug_track_writer lossy_tracks_writer(allocator, track_type, num_tracks);
 	debug_track_writer lossy_track_writer(allocator, track_type, num_tracks);
 
-#ifdef ACL_BIND_POSE
-
 	if (track_type == track_type8::qvvf)
 	{
 		lossy_tracks_writer.initialize_with_defaults(raw_tracks);
 		lossy_track_writer.initialize_with_defaults(raw_tracks);
 	}
-
-#endif
 
 	const rtm::vector4f zero = rtm::vector_zero();
 
@@ -383,14 +375,9 @@ void validate_metadata(const track_array& raw_tracks, const compressed_tracks& t
 			ACL_ASSERT(raw_desc.constant_translation_threshold == compressed_desc.constant_translation_threshold, "Unexpected constant_translation_threshold");
 			ACL_ASSERT(raw_desc.constant_scale_threshold == compressed_desc.constant_scale_threshold, "Unexpected constant_scale_threshold");
 			
-#ifdef ACL_BIND_POSE
-
 			ACL_ASSERT(rtm::quat_near_equal(raw_desc.default_value.rotation, compressed_desc.default_value.rotation, 0.0F), "Unexpected default_value.rotation");
 			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.translation, compressed_desc.default_value.translation, 0.0F), "Unexpected default_value.translation");
 			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.scale, compressed_desc.default_value.scale, 0.0F), "Unexpected default_value.scale");
-
-#endif
-			
 		}
 	}
 	else
@@ -463,15 +450,9 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 			ACL_ASSERT(raw_desc.constant_rotation_threshold_angle == desc.constant_rotation_threshold_angle, "Unexpected constant_rotation_threshold_angle");
 			ACL_ASSERT(raw_desc.constant_translation_threshold == desc.constant_translation_threshold, "Unexpected constant_translation_threshold");
 			ACL_ASSERT(raw_desc.constant_scale_threshold == desc.constant_scale_threshold, "Unexpected constant_scale_threshold");
-
-#ifdef ACL_BIND_POSE
-
 			ACL_ASSERT(rtm::quat_near_equal(raw_desc.default_value.rotation, desc.default_value.rotation, 0.0F), "Unexpected default_value.rotation");
 			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.translation, desc.default_value.translation, 0.0F), "Unexpected default_value.translation");
 			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.scale, desc.default_value.scale, 0.0F), "Unexpected default_value.scale");
-
-#endif
-
 		}
 	}
 
@@ -484,14 +465,8 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 	const track_type8 track_type = raw_tracks.get_track_type();
 	acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
 
-#ifdef ACL_BIND_POSE
-
 	if(track_category == track_category8::transformf)
-	{
 		writer.initialize_with_defaults(raw_tracks);
-	}
-
-#endif
 
 	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
 	const float sample_rate = raw_tracks.get_sample_rate();

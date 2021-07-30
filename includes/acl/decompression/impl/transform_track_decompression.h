@@ -476,7 +476,6 @@ namespace acl
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			track_writer_type& writer)
 		{
-#ifdef ACL_BIND_POSE
 			constexpr default_sub_track_mode default_mode = track_writer_type::get_default_rotation_mode();
 			static_assert(default_mode != default_sub_track_mode::legacy, "Not supported for rotations");
 			if (default_mode == default_sub_track_mode::skipped)
@@ -484,9 +483,6 @@ namespace acl
 
 			// Grab our constant default rotation if we have one, otherwise init with some value
 			const rtm::quatf default_rotation = default_mode == default_sub_track_mode::constant ? writer.get_constant_default_rotation() : rtm::quat_identity();
-#else
-			const rtm::quatf default_rotation = rtm::quat_identity();
-#endif
 
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
@@ -529,11 +525,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index0))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_rotation(track_index0, writer.get_variable_default_rotation(track_index0));
 							else
-#endif
 								writer.write_rotation(track_index0, default_rotation);
 						}
 					}
@@ -544,11 +538,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index1))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_rotation(track_index1, writer.get_variable_default_rotation(track_index1));
 							else
-#endif
 								writer.write_rotation(track_index1, default_rotation);
 						}
 					}
@@ -559,11 +551,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index2))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_rotation(track_index2, writer.get_variable_default_rotation(track_index2));
 							else
-#endif
 								writer.write_rotation(track_index2, default_rotation);
 						}
 					}
@@ -574,11 +564,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index3))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_rotation(track_index3, writer.get_variable_default_rotation(track_index3));
 							else
-#endif
 								writer.write_rotation(track_index3, default_rotation);
 						}
 					}
@@ -750,7 +738,6 @@ namespace acl
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			track_writer_type& writer)
 		{
-#ifdef ACL_BIND_POSE
 			constexpr default_sub_track_mode default_mode = track_writer_type::get_default_translation_mode();
 			static_assert(default_mode != default_sub_track_mode::legacy, "Not supported for translations");
 			if (default_mode == default_sub_track_mode::skipped)
@@ -758,9 +745,6 @@ namespace acl
 
 			// Grab our constant default translation if we have one, otherwise init with some value
 			const rtm::vector4f default_translation = default_mode == default_sub_track_mode::constant ? writer.get_constant_default_translation() : rtm::vector_zero();
-#else
-			const rtm::vector4f default_translation = rtm::vector_zero();
-#endif
 
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
@@ -803,11 +787,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index0))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_translation(track_index0, writer.get_variable_default_translation(track_index0));
 							else
-#endif
 								writer.write_translation(track_index0, default_translation);
 						}
 					}
@@ -818,11 +800,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index1))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_translation(track_index1, writer.get_variable_default_translation(track_index1));
 							else
-#endif
 								writer.write_translation(track_index1, default_translation);
 						}
 					}
@@ -833,11 +813,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index2))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_translation(track_index2, writer.get_variable_default_translation(track_index2));
 							else
-#endif
 								writer.write_translation(track_index2, default_translation);
 						}
 					}
@@ -848,11 +826,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_translations() && !writer.skip_track_translation(track_index3))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_translation(track_index3, writer.get_variable_default_translation(track_index3));
 							else
-#endif
 								writer.write_translation(track_index3, default_translation);
 						}
 					}
@@ -1036,7 +1012,6 @@ namespace acl
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			rtm::vector4f_arg0 default_scale_, track_writer_type& writer)
 		{
-#ifdef ACL_BIND_POSE
 			constexpr default_sub_track_mode default_mode = track_writer_type::get_default_scale_mode();
 			if (default_mode == default_sub_track_mode::skipped)
 				return;	// Nothing to write
@@ -1049,9 +1024,6 @@ namespace acl
 				default_scale = default_scale_;
 			else
 				default_scale = rtm::vector_zero();
-#else
-			const rtm::vector4f default_scale = rtm::vector_zero();
-#endif
 
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
@@ -1094,11 +1066,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index0))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_scale(track_index0, writer.get_variable_default_scale(track_index0));
 							else
-#endif
 								writer.write_scale(track_index0, default_scale);
 						}
 					}
@@ -1109,11 +1079,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index1))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_scale(track_index1, writer.get_variable_default_scale(track_index1));
 							else
-#endif
 								writer.write_scale(track_index1, default_scale);
 						}
 					}
@@ -1124,11 +1092,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index2))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_scale(track_index2, writer.get_variable_default_scale(track_index2));
 							else
-#endif
 								writer.write_scale(track_index2, default_scale);
 						}
 					}
@@ -1139,11 +1105,9 @@ namespace acl
 
 						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index3))
 						{
-#ifdef ACL_BIND_POSE
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_scale(track_index3, writer.get_variable_default_scale(track_index3));
 							else
-#endif
 								writer.write_scale(track_index3, default_scale);
 						}
 					}
@@ -1449,10 +1413,8 @@ namespace acl
 			}
 			else
 			{
-#ifdef ACL_BIND_POSE
 				constexpr default_sub_track_mode default_scale_mode = track_writer_type::get_default_scale_mode();
 				if (default_scale_mode != default_sub_track_mode::skipped)
-#endif
 				{
 					// Grab our constant default scale if we have one, otherwise init with some value
 					rtm::vector4f scale;
@@ -1574,7 +1536,6 @@ namespace acl
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 
-#ifdef ACL_BIND_POSE
 			constexpr default_sub_track_mode default_rotation_mode = track_writer_type::get_default_rotation_mode();
 			constexpr default_sub_track_mode default_translation_mode = track_writer_type::get_default_translation_mode();
 			constexpr default_sub_track_mode default_scale_mode = track_writer_type::get_default_scale_mode();
@@ -1593,11 +1554,7 @@ namespace acl
 				default_scale = rtm::vector_set(float(tracks_header_.get_default_scale()));
 			else
 				default_scale = rtm::vector_zero();
-#else
-			const rtm::quatf default_rotation = rtm::quat_identity();
-			const rtm::vector4f default_translation = rtm::vector_zero();
-			const rtm::vector4f default_scale = rtm::vector_set(float(tracks_header_.get_default_scale()));
-#endif
+
 			const uint32_t has_scale = context.has_scale;
 
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
@@ -1630,7 +1587,6 @@ namespace acl
 			if (combined_sub_track_type == 0)
 			{
 				// Everything is default
-#ifdef ACL_BIND_POSE
 				if (default_rotation_mode != default_sub_track_mode::skipped)
 				{
 					if (default_rotation_mode == default_sub_track_mode::variable)
@@ -1654,11 +1610,7 @@ namespace acl
 					else
 						writer.write_scale(track_index, default_scale);
 				}
-#else
-				writer.write_rotation(track_index, default_rotation);
-				writer.write_translation(track_index, default_translation);
-				writer.write_scale(track_index, default_scale);
-#endif
+
 				return;
 			}
 
@@ -1782,7 +1734,6 @@ namespace acl
 
 			if (rotation_sub_track_type == 0)
 			{
-#ifdef ACL_BIND_POSE
 				if (default_rotation_mode != default_sub_track_mode::skipped)
 				{
 					if (default_rotation_mode == default_sub_track_mode::variable)
@@ -1790,9 +1741,6 @@ namespace acl
 					else
 						writer.write_rotation(track_index, default_rotation);
 				}
-#else
-				writer.write_rotation(track_index, default_rotation);
-#endif
 			}
 			else
 			{
@@ -1807,7 +1755,6 @@ namespace acl
 
 			if (translation_sub_track_type == 0)
 			{
-#ifdef ACL_BIND_POSE
 				if (default_translation_mode != default_sub_track_mode::skipped)
 				{
 					if (default_translation_mode == default_sub_track_mode::variable)
@@ -1815,9 +1762,6 @@ namespace acl
 					else
 						writer.write_translation(track_index, default_translation);
 				}
-#else
-				writer.write_translation(track_index, default_translation);
-#endif
 			}
 			else
 			{
@@ -1832,7 +1776,6 @@ namespace acl
 
 			if (scale_sub_track_type == 0)
 			{
-#ifdef ACL_BIND_POSE
 				if (default_scale_mode != default_sub_track_mode::skipped)
 				{
 					if (default_scale_mode == default_sub_track_mode::variable)
@@ -1840,9 +1783,6 @@ namespace acl
 					else
 						writer.write_scale(track_index, default_scale);
 				}
-#else
-				writer.write_scale(track_index, default_scale);
-#endif
 			}
 			else
 			{

@@ -35,13 +35,8 @@
 #include "acl/math/vector4_packing.h"
 
 #include <rtm/quatf.h>
-#include <rtm/vector4f.h>
-
-#ifdef ACL_BIND_POSE
-
 #include <rtm/qvvf.h>
-
-#endif
+#include <rtm/vector4f.h>
 
 #include <cstdint>
 
@@ -358,12 +353,7 @@ namespace acl
 
 		struct transform_streams
 		{
-			
-#ifdef ACL_BIND_POSE
-
 			rtm::qvvf default_value					= rtm::qvv_identity();
-
-#endif
 
 			segment_context* segment				= nullptr;
 			uint32_t bone_index						= k_invalid_track_index;
@@ -381,24 +371,14 @@ namespace acl
 			bool is_scale_constant					= false;
 			bool is_scale_default					= false;
 
-#ifdef ACL_BIND_POSE
-
 			uint8_t padding[2];
-
-#endif
 
 			bool is_stripped_from_output() const { return output_index == k_invalid_track_index; }
 
 			transform_streams duplicate() const
 			{
 				transform_streams copy;
-				
-#ifdef ACL_BIND_POSE
-
 				copy.default_value = default_value;
-
-#endif
-				
 				copy.segment = segment;
 				copy.bone_index = bone_index;
 				copy.parent_bone_index = parent_bone_index;
