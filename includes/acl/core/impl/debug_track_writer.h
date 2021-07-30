@@ -46,7 +46,10 @@ namespace acl
 {
 	namespace acl_impl
 	{
-		struct debug_track_writer final : public track_writer
+		//////////////////////////////////////////////////////////////////////////
+		// The debug_track_writer supports every track type and adds runtime type safety.
+		//////////////////////////////////////////////////////////////////////////
+		struct debug_track_writer : public track_writer
 		{
 			debug_track_writer(iallocator& allocator_, track_type8 type_, uint32_t num_tracks_)
 				: allocator(allocator_)
@@ -67,7 +70,12 @@ namespace acl
 			
 #ifdef ACL_BIND_POSE
 
-			static constexpr bool skip_all_defaults() { return true; }
+			//////////////////////////////////////////////////////////////////////////
+			// For performance reasons, this writer skips all default sub-tracks.
+			// It is the responsibility of the caller to pre-populate them by calling initialize_with_defaults().
+			static constexpr default_sub_track_mode get_default_rotation_mode() { return default_sub_track_mode::skipped; }
+			static constexpr default_sub_track_mode get_default_translation_mode() { return default_sub_track_mode::skipped; }
+			static constexpr default_sub_track_mode get_default_scale_mode() { return default_sub_track_mode::skipped; }
 
 			//////////////////////////////////////////////////////////////////////////
 			// Initializes the internal buffer with the sub-track default values provided.
@@ -200,6 +208,66 @@ namespace acl
 			uint32_t num_tracks;
 
 			track_type8 type;
+		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// Same as debug_track_writer but default sub-tracks are constant instead of skipped.
+		// Only supports qvvf tracks.
+		//////////////////////////////////////////////////////////////////////////
+		struct debug_track_writer_constant_defaults final : public debug_track_writer
+		{
+			debug_track_writer_constant_defaults(iallocator& allocator_, track_type8 type_, uint32_t num_tracks_)
+				: debug_track_writer(allocator_, type_, num_tracks_)
+#if defined(ACL_BIND_POSE)
+				, default_rotation(rtm::quat_identity())
+				, default_translation(rtm::vector_zero())
+				, default_scale(rtm::vector_set(1.0F))
+#endif
+			{
+				ACL_ASSERT(type_ == track_type8::qvvf, "Only qvvf tracks are supported");
+			}
+
+#if defined(ACL_BIND_POSE)
+			static constexpr default_sub_track_mode get_default_rotation_mode() { return default_sub_track_mode::constant; }
+			static constexpr default_sub_track_mode get_default_translation_mode() { return default_sub_track_mode::constant; }
+			static constexpr default_sub_track_mode get_default_scale_mode() { return default_sub_track_mode::constant; }
+
+			rtm::quatf RTM_SIMD_CALL get_constant_default_rotation() const { return default_rotation; }
+			rtm::vector4f RTM_SIMD_CALL get_constant_default_translation() const { return default_translation; }
+			rtm::vector4f RTM_SIMD_CALL get_constant_default_scale() const { return default_scale; }
+
+			rtm::quatf default_rotation;
+			rtm::vector4f default_translation;
+			rtm::vector4f default_scale;
+#endif
+		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// Same as debug_track_writer but default sub-tracks are variable instead of skipped.
+		// Only supports qvvf tracks.
+		//////////////////////////////////////////////////////////////////////////
+		struct debug_track_writer_variable_defaults final : public debug_track_writer
+		{
+			debug_track_writer_variable_defaults(iallocator& allocator_, track_type8 type_, uint32_t num_tracks_)
+				: debug_track_writer(allocator_, type_, num_tracks_)
+#if defined(ACL_BIND_POSE)
+				, default_sub_tracks(nullptr)
+#endif
+			{
+				ACL_ASSERT(type_ == track_type8::qvvf, "Only qvvf tracks are supported");
+			}
+
+#if defined(ACL_BIND_POSE)
+			static constexpr default_sub_track_mode get_default_rotation_mode() { return default_sub_track_mode::variable; }
+			static constexpr default_sub_track_mode get_default_translation_mode() { return default_sub_track_mode::variable; }
+			static constexpr default_sub_track_mode get_default_scale_mode() { return default_sub_track_mode::variable; }
+
+			rtm::quatf RTM_SIMD_CALL get_variable_default_rotation(uint32_t track_index) const { return default_sub_tracks[track_index].rotation; }
+			rtm::vector4f RTM_SIMD_CALL get_variable_default_translation(uint32_t track_index) const { return default_sub_tracks[track_index].translation; }
+			rtm::vector4f RTM_SIMD_CALL get_variable_default_scale(uint32_t track_index) const { return default_sub_tracks[track_index].scale; }
+
+			const rtm::qvvf* default_sub_tracks;
+#endif
 		};
 	}
 }

@@ -78,12 +78,21 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 
 	track_writer.initialize_with_defaults(raw_tracks);
 
+	debug_track_writer_constant_defaults track_writer_constant(allocator, track_type8::qvvf, num_bones);
+	// todo handle additive1
+
+	// Use the normal debug_track_writer since it skips default sub-tracks, we can use them
+	debug_track_writer_variable_defaults track_writer_variable(allocator, track_type8::qvvf, num_bones);
+	track_writer_variable.default_sub_tracks = track_writer.tracks_typed.qvvf;
+
 #endif
 
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
 		context.seek(0.0F, sample_rounding_policy::nearest);
 		context.decompress_tracks(track_writer);
+		context.decompress_tracks(track_writer_constant);
+		context.decompress_tracks(track_writer_variable);
 	}
 
 	// Regression test
@@ -94,11 +103,25 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 		// We use the nearest sample to accurately measure the loss that happened, if any
 		context.seek(sample_time, sample_rounding_policy::nearest);
 		context.decompress_tracks(track_writer);
+		context.decompress_tracks(track_writer_constant);
+		context.decompress_tracks(track_writer_variable);
 
 		// Validate decompress_track against decompress_tracks
 		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const rtm::qvvf transform0 = track_writer.read_qvv(bone_index);
+
+			// Make sure constant default sub-tracks match the skipped sub-tracks
+			const rtm::qvvf transform_constant0 = track_writer_constant.read_qvv(bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform_constant0.rotation), quat_error_threshold), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform_constant0.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform_constant0.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+
+			// Make sure variable default sub-tracks match the skipped sub-tracks
+			const rtm::qvvf transform_variable0 = track_writer_variable.read_qvv(bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform_variable0.rotation), quat_error_threshold), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform_variable0.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform_variable0.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
 
 			// Make sure single track decompression matches
 			context.decompress_track(bone_index, track_writer);
