@@ -1454,12 +1454,26 @@ namespace acl
 				if (default_scale_mode != default_sub_track_mode::skipped)
 #endif
 				{
+					// Grab our constant default scale if we have one, otherwise init with some value
+					rtm::vector4f scale;
+					if (default_scale_mode == default_sub_track_mode::constant)
+						scale = writer.get_constant_default_scale();
+					else if (default_scale_mode == default_sub_track_mode::legacy)
+						scale = default_scale;
+					else
+						scale = rtm::vector_zero();
+
 					// No scale present, everything is just the default value
 					// This shouldn't take much more than 50 cycles
 					for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 					{
 						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index))
-							writer.write_scale(track_index, default_scale);
+						{
+							if (default_scale_mode == default_sub_track_mode::variable)
+								writer.write_scale(track_index, writer.get_variable_default_scale(track_index));
+							else
+								writer.write_scale(track_index, scale);
+						}
 					}
 				}
 			}
