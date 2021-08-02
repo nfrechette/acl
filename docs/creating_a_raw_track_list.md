@@ -67,6 +67,8 @@ If the clip you are compressing is an additive clip, you will also need to creat
 
 The library assumes that the raw clip data has already been transformed to be in additive or relative space.
 
+Note that if your additive format does not use a scale of 1.0 as its default value, you will need to provide the desired value to ACL. See [default sub-track handling](default_sub_track_handling.md) for details.
+
 ## Re-ordering or stripping bones
 
 Sometimes it is desirable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `track_desc_transformf` contained in a `track_qvvf`. The default value is the track index. You can use `k_invalid_track_index` to strip the track from the final compressed output.
@@ -82,3 +84,7 @@ If you have access to the morph target deformation information, you can calculat
 `blend weight precision = vertex precision / vertex displacement delta`
 
 See [here](https://nfrechette.github.io/2020/05/04/morph_target_compresion/) for more details.
+
+## Using custom default sub-track values
+
+By default, ACL assumes that sub-tracks have the identity as their default value. This is nice and simple but it is not always optimal. If a character has many animation compressed, it might be better to use its bind pose as the default value instead. See [default sub-track handling](default_sub_track_handling.md) for details.
