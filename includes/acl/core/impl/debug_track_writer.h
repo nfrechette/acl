@@ -216,6 +216,9 @@ namespace acl
 			uint32_t num_tracks;
 
 			track_type8 type;
+
+			// Must pad to a multiple of 16 bytes for derived types
+			uint8_t padding[sizeof(void*) == 4 ? 15 : 3];
 		};
 
 		//////////////////////////////////////////////////////////////////////////
