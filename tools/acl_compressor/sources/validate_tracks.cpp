@@ -74,10 +74,21 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 
 	debug_track_writer track_writer(allocator, track_type8::qvvf, num_bones);
 
+	track_writer.initialize_with_defaults(raw_tracks);
+
+	debug_track_writer_constant_defaults track_writer_constant(allocator, track_type8::qvvf, num_bones);
+	// todo handle additive1
+
+	// Use the normal debug_track_writer since it skips default sub-tracks, we can use them
+	debug_track_writer_variable_defaults track_writer_variable(allocator, track_type8::qvvf, num_bones);
+	track_writer_variable.default_sub_tracks = track_writer.tracks_typed.qvvf;
+
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
 		context.seek(0.0F, sample_rounding_policy::nearest);
 		context.decompress_tracks(track_writer);
+		context.decompress_tracks(track_writer_constant);
+		context.decompress_tracks(track_writer_variable);
 	}
 
 	// Regression test
@@ -88,12 +99,27 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 		// We use the nearest sample to accurately measure the loss that happened, if any
 		context.seek(sample_time, sample_rounding_policy::nearest);
 		context.decompress_tracks(track_writer);
+		context.decompress_tracks(track_writer_constant);
+		context.decompress_tracks(track_writer_variable);
 
 		// Validate decompress_track against decompress_tracks
 		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const rtm::qvvf transform0 = track_writer.read_qvv(bone_index);
 
+			// Make sure constant default sub-tracks match the skipped sub-tracks
+			const rtm::qvvf transform_constant0 = track_writer_constant.read_qvv(bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform_constant0.rotation), quat_error_threshold), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform_constant0.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform_constant0.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+
+			// Make sure variable default sub-tracks match the skipped sub-tracks
+			const rtm::qvvf transform_variable0 = track_writer_variable.read_qvv(bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform_variable0.rotation), quat_error_threshold), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform_variable0.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform_variable0.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+
+			// Make sure single track decompression matches
 			context.decompress_track(bone_index, track_writer);
 			const rtm::qvvf transform1 = track_writer.read_qvv(bone_index);
 
@@ -135,6 +161,12 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 	debug_track_writer raw_track_writer(allocator, track_type, num_tracks);
 	debug_track_writer lossy_tracks_writer(allocator, track_type, num_tracks);
 	debug_track_writer lossy_track_writer(allocator, track_type, num_tracks);
+
+	if (track_type == track_type8::qvvf)
+	{
+		lossy_tracks_writer.initialize_with_defaults(raw_tracks);
+		lossy_track_writer.initialize_with_defaults(raw_tracks);
+	}
 
 	const rtm::vector4f zero = rtm::vector_zero();
 
@@ -342,6 +374,10 @@ void validate_metadata(const track_array& raw_tracks, const compressed_tracks& t
 			ACL_ASSERT(raw_desc.constant_rotation_threshold_angle == compressed_desc.constant_rotation_threshold_angle, "Unexpected constant_rotation_threshold_angle");
 			ACL_ASSERT(raw_desc.constant_translation_threshold == compressed_desc.constant_translation_threshold, "Unexpected constant_translation_threshold");
 			ACL_ASSERT(raw_desc.constant_scale_threshold == compressed_desc.constant_scale_threshold, "Unexpected constant_scale_threshold");
+			
+			ACL_ASSERT(rtm::quat_near_equal(raw_desc.default_value.rotation, compressed_desc.default_value.rotation, 0.0F), "Unexpected default_value.rotation");
+			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.translation, compressed_desc.default_value.translation, 0.0F), "Unexpected default_value.translation");
+			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.scale, compressed_desc.default_value.scale, 0.0F), "Unexpected default_value.scale");
 		}
 	}
 	else
@@ -414,6 +450,9 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 			ACL_ASSERT(raw_desc.constant_rotation_threshold_angle == desc.constant_rotation_threshold_angle, "Unexpected constant_rotation_threshold_angle");
 			ACL_ASSERT(raw_desc.constant_translation_threshold == desc.constant_translation_threshold, "Unexpected constant_translation_threshold");
 			ACL_ASSERT(raw_desc.constant_scale_threshold == desc.constant_scale_threshold, "Unexpected constant_scale_threshold");
+			ACL_ASSERT(rtm::quat_near_equal(raw_desc.default_value.rotation, desc.default_value.rotation, 0.0F), "Unexpected default_value.rotation");
+			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.translation, desc.default_value.translation, 0.0F), "Unexpected default_value.translation");
+			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.scale, desc.default_value.scale, 0.0F), "Unexpected default_value.scale");
 		}
 	}
 
@@ -425,6 +464,9 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 
 	const track_type8 track_type = raw_tracks.get_track_type();
 	acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
+
+	if(track_category == track_category8::transformf)
+		writer.initialize_with_defaults(raw_tracks);
 
 	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
 	const float sample_rate = raw_tracks.get_sample_rate();

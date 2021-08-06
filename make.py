@@ -597,7 +597,7 @@ def do_prepare_decompression_test_data(test_data_dir, args):
 
 	if len(clips) == 0:
 		print('No decompression clips found')
-		sys.exit(1)
+		return
 
 	print('Found {} decompression clips'.format(len(clips)))
 

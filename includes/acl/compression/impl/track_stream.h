@@ -35,6 +35,7 @@
 #include "acl/math/vector4_packing.h"
 
 #include <rtm/quatf.h>
+#include <rtm/qvvf.h>
 #include <rtm/vector4f.h>
 
 #include <cstdint>
@@ -273,19 +274,36 @@ namespace acl
 		class track_stream_range
 		{
 		public:
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+			static track_stream_range RTM_SIMD_CALL from_min_max(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max, rtm::vector4f_arg2 weighted_average)
+			{
+				return track_stream_range(min, rtm::vector_sub(max, min), weighted_average);
+			}
+#else
 			static track_stream_range RTM_SIMD_CALL from_min_max(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max)
 			{
 				return track_stream_range(min, rtm::vector_sub(max, min));
 			}
+#endif
 
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+			static track_stream_range RTM_SIMD_CALL from_min_extent(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent, rtm::vector4f_arg2 weighted_average)
+			{
+				return track_stream_range(min, extent, weighted_average);
+			}
+#else
 			static track_stream_range RTM_SIMD_CALL from_min_extent(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
 			{
 				return track_stream_range(min, extent);
 			}
+#endif
 
 			track_stream_range()
 				: m_min(rtm::vector_zero())
 				, m_extent(rtm::vector_zero())
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				, m_weighted_average(rtm::vector_zero())
+#endif
 			{}
 
 			rtm::vector4f RTM_SIMD_CALL get_min() const { return m_min; }
@@ -296,14 +314,32 @@ namespace acl
 
 			bool is_constant(float threshold) const { return rtm::vector_all_less_than(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
 
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+			rtm::vector4f RTM_SIMD_CALL get_weighted_average() const { return m_weighted_average; }
+#endif
+
 		private:
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+			track_stream_range(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent, rtm::vector4f_arg2 weighted_average)
+#else
 			track_stream_range(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
+#endif
 				: m_min(min)
 				, m_extent(extent)
+
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				, m_weighted_average(weighted_average)
+#endif
+
 			{}
 
 			rtm::vector4f	m_min;
 			rtm::vector4f	m_extent;
+
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+			rtm::vector4f	m_weighted_average;
+#endif
+
 		};
 
 		struct transform_range
@@ -317,6 +353,8 @@ namespace acl
 
 		struct transform_streams
 		{
+			rtm::qvvf default_value					= rtm::qvv_identity();
+
 			segment_context* segment				= nullptr;
 			uint32_t bone_index						= k_invalid_track_index;
 			uint32_t parent_bone_index				= k_invalid_track_index;
@@ -333,11 +371,14 @@ namespace acl
 			bool is_scale_constant					= false;
 			bool is_scale_default					= false;
 
+			uint8_t padding[2];
+
 			bool is_stripped_from_output() const { return output_index == k_invalid_track_index; }
 
 			transform_streams duplicate() const
 			{
 				transform_streams copy;
+				copy.default_value = default_value;
 				copy.segment = segment;
 				copy.bone_index = bone_index;
 				copy.parent_bone_index = parent_bone_index;

@@ -229,9 +229,7 @@ namespace acl
 				static int32_t find_bit_rate_index(const bit_rates_union& bit_rates, uint32_t search_bit_rate);
 			};
 
-			rtm::vector4f		m_default_scale;
-
-			iallocator&			m_allocator;
+			iallocator&					m_allocator;
 			const transform_streams*	m_mutable_bone_streams;
 			const transform_streams*	m_raw_bone_streams;
 
@@ -363,7 +361,6 @@ namespace acl
 
 			const bool has_scale = raw_bone_steams->segment->clip->has_scale;
 			m_has_scale = has_scale;
-			m_default_scale = get_default_scale(bone_streams->segment->clip->additive_format);
 
 			const uint32_t num_tracks_per_transform = has_scale ? 3 : 2;
 			const uint32_t num_entries_per_transform = num_tracks_per_transform * k_num_bit_rates_cached_per_track;
@@ -642,7 +639,7 @@ namespace acl
 
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
-				rotation = rtm::quat_identity();
+				rotation = bone_stream.default_value.rotation;
 			else if (bone_stream.is_rotation_constant)
 			{
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * rotation_cache_index_);
@@ -722,7 +719,7 @@ namespace acl
 
 			rtm::vector4f translation;
 			if (bone_stream.is_translation_default)
-				translation = rtm::vector_zero();
+				translation = bone_stream.default_value.translation;
 			else if (bone_stream.is_translation_constant)
 			{
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * translation_cache_index_);
@@ -795,7 +792,7 @@ namespace acl
 
 			rtm::vector4f scale;
 			if (bone_stream.is_scale_default)
-				scale = m_default_scale;
+				scale = bone_stream.default_value.scale;
 			else if (bone_stream.is_scale_constant)
 			{
 				uint32_t* validity_bitset = m_track_entry_bitsets + (m_bitset_desc.get_size() * scale_cache_index_);

@@ -91,10 +91,6 @@ namespace acl
 		if (!is_valid)
 			return false;
 
-		ACL_ASSERT(database.get_version() == compressed_tracks_version16::v02_00_00, "Unsupported version");
-		if (database.get_version() != compressed_tracks_version16::v02_00_00)
-			return false;
-
 		ACL_ASSERT(database.is_bulk_data_inline(), "Bulk data must be inline when initializing without a streamer");
 		if (!database.is_bulk_data_inline())
 			return false;
@@ -214,10 +210,6 @@ namespace acl
 		const bool is_valid = database.is_valid(false).empty();
 		ACL_ASSERT(is_valid, "Invalid compressed database instance");
 		if (!is_valid)
-			return false;
-
-		ACL_ASSERT(database.get_version() == compressed_tracks_version16::v02_00_00, "Unsupported version");
-		if (database.get_version() != compressed_tracks_version16::v02_00_00)
 			return false;
 
 		ACL_ASSERT(medium_tier_streamer.is_initialized(), "Medium importance tier streamer must be initialized");

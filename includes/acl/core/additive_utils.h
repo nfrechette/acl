@@ -119,11 +119,6 @@ namespace acl
 		return false;
 	}
 
-	inline rtm::vector4f RTM_SIMD_CALL get_default_scale(additive_clip_format8 additive_format)
-	{
-		return additive_format == additive_clip_format8::additive1 ? rtm::vector_zero() : rtm::vector_set(1.0F);
-	}
-
 	inline rtm::qvvf RTM_SIMD_CALL transform_add0(rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);

@@ -606,6 +606,8 @@ namespace acl
 					rtm::qvvf bind_transform_ = rtm::qvv_cast(bind_transform);
 					bind_transform_.rotation = rtm::quat_normalize(bind_transform_.rotation);
 
+					(*tracks)[i].get_description().default_value = bind_transform_;
+
 					(*bind_pose)[i] = bind_transform_;
 				}
 
@@ -859,6 +861,8 @@ namespace acl
 					if (m_parser.try_read("bind_scale", scale, 3, 0.0) && !counting)
 						bind_transform.scale = rtm::vector_cast(rtm::vector_load3(&scale[0]));
 				}
+
+				transform_desc.default_value = bind_transform;
 
 				if (bind_pose != nullptr)
 					(*bind_pose)[i] = bind_transform;

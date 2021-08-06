@@ -92,3 +92,8 @@ namespace acl
 #else
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL (void)0
 #endif
+
+// When enabled, constant sub-tracks will use the weighted average of every sample instead of the first sample
+// Disabled by default, most clips have no measurable gain but some clips suffer greatly, needs to be investigated, possibly a bug somewhere
+//#define ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS
+

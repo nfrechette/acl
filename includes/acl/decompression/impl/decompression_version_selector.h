@@ -74,6 +74,30 @@ namespace acl
 		};
 
 		//////////////////////////////////////////////////////////////////////////
+		// Optimized for ACL 2.1.0
+		//////////////////////////////////////////////////////////////////////////
+		template<>
+		struct decompression_version_selector<compressed_tracks_version16::v02_01_99>
+		{
+			static constexpr bool is_version_supported(compressed_tracks_version16 version) { return version == compressed_tracks_version16::v02_01_99; }
+
+			template<class decompression_settings_type, class context_type, class database_settings_type>
+			RTM_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database); }
+
+			template<class context_type>
+			RTM_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0(context, tracks); }
+
+			template<class decompression_settings_type, class context_type>
+			RTM_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy); }
+
+			template<class decompression_settings_type, class track_writer_type, class context_type>
+			RTM_FORCE_INLINE static void decompress_tracks(context_type& context, track_writer_type& writer) { acl_impl::decompress_tracks_v0<decompression_settings_type>(context, writer); }
+
+			template<class decompression_settings_type, class track_writer_type, class context_type>
+			RTM_FORCE_INLINE static void decompress_track(context_type& context, uint32_t track_index, track_writer_type& writer) { acl_impl::decompress_track_v0<decompression_settings_type>(context, track_index, writer); }
+		};
+
+		//////////////////////////////////////////////////////////////////////////
 		// Not optimized for any particular version.
 		//////////////////////////////////////////////////////////////////////////
 		template<>
@@ -92,6 +116,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					return decompression_version_selector<compressed_tracks_version16::v02_00_00>::initialize<decompression_settings_type>(context, tracks, database);
 				default:
 					ACL_ASSERT(false, "Unsupported version");
@@ -106,6 +131,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					return decompression_version_selector<compressed_tracks_version16::v02_00_00>::is_dirty(context, tracks);
 				default:
 					ACL_ASSERT(false, "Unsupported version");
@@ -120,6 +146,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					decompression_version_selector<compressed_tracks_version16::v02_00_00>::seek<decompression_settings_type>(context, sample_time, rounding_policy);
 					break;
 				default:
@@ -135,6 +162,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					decompression_version_selector<compressed_tracks_version16::v02_00_00>::decompress_tracks<decompression_settings_type>(context, writer);
 					break;
 				default:
@@ -150,6 +178,7 @@ namespace acl
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
 					decompression_version_selector<compressed_tracks_version16::v02_00_00>::decompress_track<decompression_settings_type>(context, track_index, writer);
 					break;
 				default:

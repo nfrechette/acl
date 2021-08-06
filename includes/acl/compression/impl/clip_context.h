@@ -200,7 +200,6 @@ namespace acl
 
 			bool has_scale = false;
 			bool are_samples_valid = true;
-			const rtm::vector4f default_scale = get_default_scale(additive_format);
 
 			segment_context& segment = out_clip_context.segments[0];
 
@@ -217,6 +216,7 @@ namespace acl
 				bone_stream.bone_index = transform_index;
 				bone_stream.parent_bone_index = desc.parent_index;
 				bone_stream.output_index = desc.output_index;
+				bone_stream.default_value = desc.default_value;
 
 				bone_stream.rotations = rotation_track_stream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, rotation_format8::quatf_full);
 				bone_stream.translations = translation_track_stream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
@@ -244,7 +244,7 @@ namespace acl
 				}
 
 				{
-					const rtm::qvvf first_transform = num_samples != 0 ? track[0] : rtm::qvv_identity();
+					const rtm::qvvf& first_transform = num_samples != 0 ? track[0] : desc.default_value;
 					const rtm::quatf first_rotation = rtm::quat_normalize(first_transform.rotation);
 
 					// If we request raw data, use a 0.0 threshold for safety
@@ -253,11 +253,52 @@ namespace acl
 					const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
 
 					bone_stream.is_rotation_constant = num_samples <= 1;
-					bone_stream.is_rotation_default = bone_stream.is_rotation_constant && rtm::quat_near_identity(first_rotation, constant_rotation_threshold_angle);
+
+					if (bone_stream.is_rotation_constant)
+					{
+						const rtm::quatf default_bind_rotation = desc.default_value.rotation;
+						bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(first_rotation, rtm::quat_conjugate(default_bind_rotation))), constant_rotation_threshold_angle);
+						if (num_samples == 1 && bone_stream.is_rotation_default)
+						{
+							bone_stream.rotations.set_raw_sample(0, default_bind_rotation);
+						}
+					}
+					else
+					{
+						bone_stream.is_rotation_default = false;
+					}
+
 					bone_stream.is_translation_constant = num_samples <= 1;
-					bone_stream.is_translation_default = bone_stream.is_translation_constant && rtm::vector_all_near_equal3(first_transform.translation, rtm::vector_zero(), constant_translation_threshold);
+
+					if (bone_stream.is_translation_constant)
+					{
+						const rtm::vector4f default_bind_translation = desc.default_value.translation;
+						bone_stream.is_translation_default = rtm::vector_all_near_equal3(first_transform.translation, default_bind_translation, constant_translation_threshold);
+						if (num_samples == 1 && bone_stream.is_translation_default)
+						{
+							bone_stream.translations.set_raw_sample(0, default_bind_translation);
+						}
+					}
+					else
+					{
+						bone_stream.is_translation_default = false;
+					}
+					
 					bone_stream.is_scale_constant = num_samples <= 1;
-					bone_stream.is_scale_default = bone_stream.is_scale_constant && rtm::vector_all_near_equal3(first_transform.scale, default_scale, constant_scale_threshold);
+
+					if (bone_stream.is_scale_constant)
+					{
+						const rtm::vector4f default_bind_scale = desc.default_value.scale;
+						bone_stream.is_scale_default = rtm::vector_all_near_equal3(first_transform.scale, default_bind_scale, constant_scale_threshold);
+						if (num_samples == 1 && bone_stream.is_scale_default)
+						{
+							bone_stream.scales.set_raw_sample(0, default_bind_scale);
+						}
+					}
+					else
+					{
+						bone_stream.is_scale_default = false;
+					}
 				}
 
 				has_scale |= !bone_stream.is_scale_default;

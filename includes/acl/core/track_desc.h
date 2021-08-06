@@ -28,6 +28,8 @@
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
 
+#include <rtm/qvvf.h>
+
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -73,6 +75,19 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// The track category for this description.
 		static constexpr track_category8 category = track_category8::transformf;
+		
+		//////////////////////////////////////////////////////////////////////////
+		// Default tracks are cheaper than constant or animated tracks because they are not stored
+		// inside the compressed clip. It is the responsibility of the code that decompresses to ensure
+		// that default sub-tracks are properly handled. By default, we assume that default sub-tracks
+		// are constant and equal to their identity value. If another value is more commonly used by
+		// animation clips getting compressed (e.g. the bind/reference pose), it makes sense to use it
+		// as the default sub-track value. This will reduce the memory footprint but whatever value you
+		// use must be provided during decompression. See track_writer::get_default_rotation_mode() & friends.
+		// Note that if you do not use the identity here, compressed tracks will not contain the required data
+		// to be able to reconstruct the original tracks on their own: the implementation will have to provide
+		// the default sub-track values (whether constant or variable per sub-track).
+		rtm::qvvf default_value = rtm::qvv_identity();
 
 		//////////////////////////////////////////////////////////////////////////
 		// The track output index. When writing out the compressed data stream, this index
@@ -122,6 +137,8 @@ namespace acl
 		// as a default.
 		// Defaults to '0.00001'
 		float constant_scale_threshold = 0.00001F;
+
+		uint32_t padding = 0;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether a transform track description is valid or not.

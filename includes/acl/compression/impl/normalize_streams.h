@@ -49,25 +49,77 @@ namespace acl
 			rtm::vector4f max = rtm::vector_set(-1e10F);
 
 			const uint32_t num_samples = stream.get_num_samples();
+
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+			rtm::vector4d weighted_average_d = rtm::vector_set(0.0);
+			const rtm::vector4d weight_d = rtm::vector_set(1.0 / num_samples);
+#endif
+			
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				const rtm::vector4f sample = stream.get_raw_sample<rtm::vector4f>(sample_index);
 
 				min = rtm::vector_min(min, sample);
 				max = rtm::vector_max(max, sample);
+
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				const rtm::vector4d sample_d = rtm::vector_cast(sample);
+				if (is_vector4 && (rtm::vector_dot(weighted_average_d, sample_d) < 0.0))
+				{
+					weighted_average_d = rtm::vector_neg_mul_sub(sample_d, weight_d, weighted_average_d);
+				}
+				else
+				{
+					weighted_average_d = rtm::vector_mul_add(sample_d, weight_d, weighted_average_d);
+				}
 			}
+
+			rtm::vector4f weighted_average = rtm::vector_cast(weighted_average_d);
+#else
+			}
+#endif
 
 			// Set the 4th component to zero if we don't need it
 			if (!is_vector4)
 			{
 				min = rtm::vector_set_w(min, 0.0F);
 				max = rtm::vector_set_w(max, 0.0F);
+
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				weighted_average = rtm::vector_clamp(weighted_average, min, max);
+			}
+			else
+			{
+				// We have a quaternion
+				if (num_samples > 0)
+				{
+					weighted_average = rtm::vector_clamp(weighted_average, min, max);
+
+					// Due to rounding and clamping, our weighted average might not represent a valid quaternion, make sure we do
+					weighted_average = rtm::quat_to_vector(rtm::quat_normalize(rtm::vector_to_quat(weighted_average)));
+				}
+				else
+				{
+					// No samples present, just the identity
+					weighted_average = rtm::quat_to_vector((rtm::quatf)rtm::quat_identity());
+				}
+#endif
 			}
 
+			// TODO: Make sure weighted average has W positive if that's our format
+
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+			return track_stream_range::from_min_max(min, max, weighted_average);
+#else
 			return track_stream_range::from_min_max(min, max);
+#endif
 		}
 
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+		inline void extract_bone_ranges_impl(const segment_context& segment, transform_range* bone_ranges, bool are_rotations_normalized)
+#else
 		inline void extract_bone_ranges_impl(const segment_context& segment, transform_range* bone_ranges)
+#endif
 		{
 			const bool has_scale = segment_context_has_scale(segment);
 
@@ -76,7 +128,12 @@ namespace acl
 				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				transform_range& bone_range = bone_ranges[bone_index];
 
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				bone_range.rotation = calculate_track_range(bone_stream.rotations, !are_rotations_normalized);
+#else
 				bone_range.rotation = calculate_track_range(bone_stream.rotations, true);
+#endif
+
 				bone_range.translation = calculate_track_range(bone_stream.translations, false);
 
 				if (has_scale)
@@ -93,7 +150,11 @@ namespace acl
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			const segment_context& segment = context.segments[0];
 
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+			acl_impl::extract_bone_ranges_impl(segment, context.ranges, false);
+#else
 			acl_impl::extract_bone_ranges_impl(segment, context.ranges);
+#endif
 		}
 
 		inline void extract_segment_bone_ranges(iallocator& allocator, clip_context& context)
@@ -143,14 +204,22 @@ namespace acl
 				const rtm::mask4f is_extent0_higher_mask = rtm::vector_greater_equal(padded_range_extent0, range_max);
 				const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
 
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				return track_stream_range::from_min_extent(padded_range_min, padded_range_extent, range.get_weighted_average());
+#else
 				return track_stream_range::from_min_extent(padded_range_min, padded_range_extent);
+#endif
 			};
 
 			for (segment_context& segment : context.segment_iterator())
 			{
 				segment.ranges = allocate_type_array<transform_range>(allocator, segment.num_bones);
 
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				acl_impl::extract_bone_ranges_impl(segment, segment.ranges, context.are_rotations_normalized);
+#else
 				acl_impl::extract_bone_ranges_impl(segment, segment.ranges);
+#endif
 
 				for (uint32_t bone_index = 0; bone_index < segment.num_bones; ++bone_index)
 				{

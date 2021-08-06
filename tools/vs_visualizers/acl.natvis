@@ -32,26 +32,20 @@
       <Item Name="sample_rate">m_sample_rate</Item>
       <Item Name="stride">m_stride</Item>
       <Item Name="type">m_type</Item>
-      <Item Name="precision" Condition="m_type == acl::track_type8::float1f">m_desc.scalar.precision</Item>
-      <Item Name="precision" Condition="m_type == acl::track_type8::float2f">m_desc.scalar.precision</Item>
-      <Item Name="precision" Condition="m_type == acl::track_type8::float3f">m_desc.scalar.precision</Item>
-      <Item Name="precision" Condition="m_type == acl::track_type8::float4f">m_desc.scalar.precision</Item>
-      <Item Name="precision" Condition="m_type == acl::track_type8::vector4f">m_desc.scalar.precision</Item>
-      <Item Name="precision" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.precision</Item>
-      <Item Name="shell_distance" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.shell_distance</Item>
-      <Item Name="constant_rotation_threshold_angle" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.constant_rotation_threshold_angle</Item>
-      <Item Name="constant_translation_threshold" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.constant_translation_threshold</Item>
-      <Item Name="constant_scale_threshold" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.constant_scale_threshold</Item>
-      <Item Name="output_index" Condition="m_type == acl::track_type8::float1f">m_desc.scalar.output_index</Item>
-      <Item Name="output_index" Condition="m_type == acl::track_type8::float2f">m_desc.scalar.output_index</Item>
-      <Item Name="output_index" Condition="m_type == acl::track_type8::float3f">m_desc.scalar.output_index</Item>
-      <Item Name="output_index" Condition="m_type == acl::track_type8::float4f">m_desc.scalar.output_index</Item>
-      <Item Name="output_index" Condition="m_type == acl::track_type8::vector4f">m_desc.scalar.output_index</Item>
-      <Item Name="output_index" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.output_index</Item>
-      <Item Name="parent_index" Condition="m_type == acl::track_type8::qvvf">m_desc.transform.parent_index</Item>
+      <Item Name="precision" Condition="m_category == acl::track_category8::scalarf">m_desc.scalar.precision</Item>
+      <Item Name="precision" Condition="m_category == acl::track_category8::transformf">m_desc.transform.precision</Item>
+      <Item Name="shell_distance" Condition="m_category == acl::track_category8::transformf">m_desc.transform.shell_distance</Item>
+      <Item Name="constant_rotation_threshold_angle" Condition="m_category == acl::track_category8::transformf">m_desc.transform.constant_rotation_threshold_angle</Item>
+      <Item Name="constant_translation_threshold" Condition="m_category == acl::track_category8::transformf">m_desc.transform.constant_translation_threshold</Item>
+      <Item Name="constant_scale_threshold" Condition="m_category == acl::track_category8::transformf">m_desc.transform.constant_scale_threshold</Item>
+      <Item Name="output_index" Condition="m_category == acl::track_category8::scalarf">m_desc.scalar.output_index</Item>
+      <Item Name="output_index" Condition="m_category == acl::track_category8::transformf">m_desc.transform.output_index</Item>
+      <Item Name="parent_index" Condition="m_category == acl::track_category8::transformf">m_desc.transform.parent_index</Item>
+      <Item Name="default_value" Condition="m_category == acl::track_category8::transformf">m_desc.transform.default_value</Item>
       <Item Name="is_ref">m_allocator == nullptr</Item>
       <ArrayItems>
         <Size>m_num_samples</Size>
+        <!-- TODO: Support stride -->
         <ValuePointer Condition="m_type == acl::track_type8::float1f">(float*)m_data</ValuePointer>
         <ValuePointer Condition="m_type == acl::track_type8::float2f">(rtm::float2f*)m_data</ValuePointer>
         <ValuePointer Condition="m_type == acl::track_type8::float3f">(rtm::float3f*)m_data</ValuePointer>
@@ -83,11 +77,21 @@
   <Type Name="acl::compressed_tracks">
     <DisplayString>size={m_buffer_header.size} hash={m_buffer_header.hash}</DisplayString>
     <Expand>
+      <!-- Common -->
       <Item Name="num_tracks">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_tracks</Item>
       <Item Name="num_samples">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_samples</Item>
       <Item Name="sample_rate">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->sample_rate</Item>
       <Item Name="track_type">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type</Item>
       <Item Name="version">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->version</Item>
+      <!-- Transform tracks -->
+      <Item Name="has_scale" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &amp; 1) != 0</Item>
+      <Item Name="default_scale" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 1) &amp; 1</Item>
+      <Item Name="rotation_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::rotation_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 4) &amp; 15)</Item>
+      <Item Name="translation_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::vector_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 3) &amp; 1)</Item>
+      <Item Name="scale_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::vector_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 2) &amp; 1)</Item>
+      <Item Name="has_database" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &amp; (1 &lt;&lt; 8)) != 0</Item>
+      <Item Name="has_metadata" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 31) != 0</Item>
+      <Item Name="header" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(const acl::acl_impl::transform_tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header) + sizeof(acl::acl_impl::tracks_header))</Item>
     </Expand>
   </Type>
 
@@ -164,6 +168,24 @@
         <ValueNode Condition="((types >> ((15 - $i) * 2)) &amp; 0x3) == 2">"animated"</ValueNode>
       </IndexListItems>
     </Expand>
+  </Type>
+
+  <Type Name="acl::acl_impl::track_stream">
+    <DisplayString>num_samples={m_num_samples}, type={m_type}</DisplayString>
+    <Expand>
+      <Item Name="num_samples">m_num_samples</Item>
+      <Item Name="sample_rate">m_sample_rate</Item>
+      <Item Name="type">m_type</Item>
+      <Item Name="format">m_format</Item>
+      <ArrayItems>
+        <Size>m_num_samples</Size>
+        <!-- TODO: Support stride -->
+        <ValuePointer Condition="m_type == acl::animation_track_type8::rotation">(rtm::float4f*)m_samples</ValuePointer>
+        <ValuePointer Condition="m_type == acl::animation_track_type8::translation">(rtm::float3f*)m_samples</ValuePointer>
+        <ValuePointer Condition="m_type == acl::animation_track_type8::scale">(rtm::float3f*)m_samples</ValuePointer>
+      </ArrayItems>
+    </Expand>
+
   </Type>
 
 </AutoVisualizer>
