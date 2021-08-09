@@ -129,7 +129,7 @@ namespace acl
 			}
 
 			const float sample_rate = raw_clip_context.sample_rate;
-			const float ref_duration = calculate_duration(raw_clip_context.num_samples, sample_rate);
+			const float ref_duration = calculate_finite_duration(raw_clip_context.num_samples, sample_rate);
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
 			apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
