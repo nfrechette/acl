@@ -79,6 +79,22 @@ namespace acl
 		ACL_ASSERT(sample_rate > 0.0F, "Invalid sample rate: %f", sample_rate);
 		return float(num_samples - 1) / sample_rate;
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Calculate a clip duration from its number of samples and sample rate
+	// and returns a finite duration suitable for clamping.
+	//////////////////////////////////////////////////////////////////////////
+	inline float calculate_finite_duration(uint32_t num_samples, float sample_rate)
+	{
+		// No samples means we have no duration and a single sample means we have an indefinite duration (static pose)
+		// Either way, return a duration of 0.0
+		if (num_samples <= 1)
+			return 0.0F;
+
+		// Otherwise we have some duration
+		ACL_ASSERT(sample_rate > 0.0F, "Invalid sample rate: %f", sample_rate);
+		return float(num_samples - 1) / sample_rate;
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
