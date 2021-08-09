@@ -45,4 +45,10 @@ TEST_CASE("misc utils", "[core][utils]")
 	CHECK(calculate_duration(1, 8.0F) == std::numeric_limits<float>::infinity());
 	CHECK(scalar_near_equal(calculate_duration(31, 30.0F), 1.0F, 1.0E-8F));
 	CHECK(scalar_near_equal(calculate_duration(9, 8.0F), 1.0F, 1.0E-8F));
+
+	CHECK(calculate_finite_duration(0, 30.0F) == 0.0F);
+	CHECK(calculate_finite_duration(1, 30.0F) == 0.0F);
+	CHECK(calculate_finite_duration(1, 8.0F) == 0.0F);
+	CHECK(scalar_near_equal(calculate_finite_duration(31, 30.0F), 1.0F, 1.0E-8F));
+	CHECK(scalar_near_equal(calculate_finite_duration(9, 8.0F), 1.0F, 1.0E-8F));
 }

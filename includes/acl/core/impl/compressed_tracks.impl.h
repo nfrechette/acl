@@ -77,6 +77,12 @@ namespace acl
 		return calculate_duration(header.num_samples, header.sample_rate);
 	}
 
+	inline float compressed_tracks::get_finite_duration() const
+	{
+		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+		return calculate_finite_duration(header.num_samples, header.sample_rate);
+	}
+
 	inline float compressed_tracks::get_sample_rate() const { return acl_impl::get_tracks_header(*this).sample_rate; }
 
 	inline bool compressed_tracks::has_database() const { return acl_impl::get_tracks_header(*this).get_has_database(); }
