@@ -163,7 +163,7 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 	}
 }
 
-void RTM_SIMD_CALL validate_scalar_tracks(const track_array& raw_tracks, const acl::acl_impl::debug_track_writer& reference, const acl::acl_impl::debug_track_writer& tracks, const rtm::vector4f_arg0 regression_error_thresholdv, float sample_time)
+void RTM_SIMD_CALL validate_scalar_tracks(const track_array& raw_tracks, const acl::acl_impl::debug_track_writer& reference, const acl::acl_impl::debug_track_writer& tracks, rtm::vector4f_arg0 regression_error_thresholdv, float sample_time)
 {
 	const rtm::vector4f zero = rtm::vector_zero();
 
