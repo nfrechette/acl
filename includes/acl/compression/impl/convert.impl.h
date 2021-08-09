@@ -81,7 +81,7 @@ namespace acl
 		const track_type8 track_type = tracks.get_track_type();
 		const uint32_t num_samples = tracks.get_num_samples_per_track();
 		const float sample_rate = tracks.get_sample_rate();
-		const float duration = tracks.get_duration();
+		const float duration = tracks.get_finite_duration();
 
 		track_array result(allocator, num_tracks);
 		result.set_name(string(allocator, tracks.get_name()));

@@ -83,7 +83,7 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", error.index, error.error, error.sample_time);
 
 	const uint32_t num_bones = raw_tracks.get_num_tracks();
-	const float clip_duration = raw_tracks.get_duration();
+	const float clip_duration = raw_tracks.get_finite_duration();
 	const float sample_rate = raw_tracks.get_sample_rate();
 	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
 
@@ -215,13 +215,13 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 	const float regression_error_thresholdf = static_cast<float>(regression_error_threshold);
 	const rtm::vector4f regression_error_thresholdv = rtm::vector_set(regression_error_thresholdf);
 
-	const float duration = tracks.get_duration();
+	const float duration = tracks.get_finite_duration();
 	const float sample_rate = tracks.get_sample_rate();
 	const uint32_t num_tracks = tracks.get_num_tracks();
 	const uint32_t num_samples = tracks.get_num_samples_per_track();
 	const track_type8 track_type = raw_tracks.get_track_type();
 
-	ACL_ASSERT(rtm::scalar_near_equal(duration, raw_tracks.get_duration(), 1.0E-7F), "Duration mismatch");
+	ACL_ASSERT(rtm::scalar_near_equal(duration, raw_tracks.get_finite_duration(), 1.0E-7F), "Duration mismatch");
 	ACL_ASSERT(sample_rate == raw_tracks.get_sample_rate(), "Sample rate mismatch");
 	ACL_ASSERT(num_tracks <= raw_tracks.get_num_tracks(), "Num tracks mismatch");
 	ACL_ASSERT(num_samples == raw_tracks.get_num_samples_per_track(), "Num samples mismatch");
@@ -478,7 +478,7 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 
 	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
 	const float sample_rate = raw_tracks.get_sample_rate();
-	const float duration = raw_tracks.get_duration();
+	const float duration = raw_tracks.get_finite_duration();
 
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{

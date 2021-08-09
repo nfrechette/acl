@@ -420,7 +420,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks.get_num_samples_per_track();
 		args.num_tracks = raw_tracks.get_num_tracks();
-		args.duration = raw_tracks.get_duration();
+		args.duration = raw_tracks.get_finite_duration();
 		args.sample_rate = raw_tracks.get_sample_rate();
 		args.track_type = raw_tracks.get_track_type();
 
@@ -516,7 +516,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks.get_num_samples_per_track();
 		args.num_tracks = raw_tracks.get_num_tracks();
-		args.duration = raw_tracks.get_duration();
+		args.duration = raw_tracks.get_finite_duration();
 		args.sample_rate = raw_tracks.get_sample_rate();
 		args.track_type = raw_tracks.get_track_type();
 
@@ -633,7 +633,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks.get_num_samples_per_track();
 		args.num_tracks = raw_tracks.get_num_tracks();
-		args.duration = raw_tracks.get_duration();
+		args.duration = raw_tracks.get_finite_duration();
 		args.sample_rate = raw_tracks.get_sample_rate();
 		args.track_type = raw_tracks.get_track_type();
 
@@ -653,7 +653,7 @@ namespace acl
 		if (!additive_base_tracks.is_empty())
 		{
 			args.base_num_samples = additive_base_tracks.get_num_samples_per_track();
-			args.base_duration = additive_base_tracks.get_duration();
+			args.base_duration = additive_base_tracks.get_finite_duration();
 		}
 
 		return calculate_transform_track_error(allocator, args);
@@ -701,7 +701,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = tracks0->get_num_samples_per_track();
 		args.num_tracks = tracks0->get_num_tracks();
-		args.duration = tracks0->get_duration();
+		args.duration = tracks0->get_finite_duration();
 		args.sample_rate = tracks0->get_sample_rate();
 		args.track_type = tracks0->get_track_type();
 
@@ -756,7 +756,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks0.get_num_samples_per_track();
 		args.num_tracks = raw_tracks0.get_num_tracks();
-		args.duration = raw_tracks0.get_duration();
+		args.duration = raw_tracks0.get_finite_duration();
 		args.sample_rate = raw_tracks0.get_sample_rate();
 		args.track_type = raw_tracks0.get_track_type();
 
@@ -812,7 +812,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks0.get_num_samples_per_track();
 		args.num_tracks = raw_tracks0.get_num_tracks();
-		args.duration = raw_tracks0.get_duration();
+		args.duration = raw_tracks0.get_finite_duration();
 		args.sample_rate = raw_tracks0.get_sample_rate();
 		args.track_type = raw_tracks0.get_track_type();
 

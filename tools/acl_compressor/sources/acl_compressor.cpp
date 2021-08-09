@@ -1021,7 +1021,7 @@ static int safe_main_impl(int argc, char* argv[])
 	track_array_qvvf new_transforms(allocator, transform_tracks.get_num_tracks());
 	float new_sample_rate = 19200.0F;
 	uint32_t new_num_samples = calculate_num_samples(transform_tracks.get_duration(), new_sample_rate);
-	float new_duration = calculate_duration(new_num_samples, new_sample_rate);
+	float new_duration = calculate_finite_duration(new_num_samples, new_sample_rate);
 	acl_impl::debug_track_writer dummy_writer(allocator, track_type8::qvvf, transform_tracks.get_num_tracks());
 
 	for (uint32_t track_index = 0; track_index < transform_tracks.get_num_tracks(); ++track_index)
