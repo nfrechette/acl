@@ -106,6 +106,29 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 		context.decompress_tracks(track_writer_variable);
 	}
 
+	if (num_samples != 0)
+	{
+		debug_track_writer track_writer_clamped(allocator, track_type8::qvvf, num_bones);
+		track_writer_clamped.initialize_with_defaults(raw_tracks);
+
+		// Make sure clamping works properly at the start of the clip
+		context.seek(-0.2F, sample_rounding_policy::nearest);
+		context.decompress_tracks(track_writer_clamped);
+
+		validate_transform_tracks(track_writer, track_writer_clamped, quat_error_threshold, vec3_error_threshold);
+
+		// Make sure clamping works properly at the end of the clip
+		const float last_sample_time = rtm::scalar_min(float(num_samples - 1) / sample_rate, clip_duration);
+		context.seek(last_sample_time, sample_rounding_policy::nearest);
+
+		context.decompress_tracks(track_writer);
+
+		context.seek(last_sample_time + 1.0F, sample_rounding_policy::nearest);
+		context.decompress_tracks(track_writer_clamped);
+
+		validate_transform_tracks(track_writer, track_writer_clamped, quat_error_threshold, vec3_error_threshold);
+	}
+
 	// Regression test
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
@@ -238,6 +261,29 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
 		context.seek(0.0F, sample_rounding_policy::nearest);
 		context.decompress_tracks(lossy_tracks_writer);
+	}
+
+	if (num_samples != 0)
+	{
+		debug_track_writer track_writer_clamped(allocator, track_type, num_tracks);
+
+		// Make sure clamping works properly at the start of the clip
+		raw_tracks.sample_tracks(0.0F, sample_rounding_policy::nearest, raw_tracks_writer);
+
+		context.seek(-0.2F, sample_rounding_policy::nearest);
+		context.decompress_tracks(track_writer_clamped);
+
+		validate_scalar_tracks(raw_tracks, raw_tracks_writer, track_writer_clamped, regression_error_thresholdv, -0.2F);
+
+		// Make sure clamping works properly at the end of the clip
+		const float last_sample_time = rtm::scalar_min(float(num_samples - 1) / sample_rate, duration);
+
+		raw_tracks.sample_tracks(last_sample_time, sample_rounding_policy::nearest, raw_tracks_writer);
+
+		context.seek(last_sample_time + 1.0F, sample_rounding_policy::nearest);
+		context.decompress_tracks(track_writer_clamped);
+
+		validate_scalar_tracks(raw_tracks, raw_tracks_writer, track_writer_clamped, regression_error_thresholdv, last_sample_time + 1.0F);
 	}
 
 	// Regression test
