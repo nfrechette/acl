@@ -214,8 +214,6 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 
 	const float regression_error_thresholdf = static_cast<float>(regression_error_threshold);
 	const rtm::vector4f regression_error_thresholdv = rtm::vector_set(regression_error_thresholdf);
-	(void)regression_error_thresholdf;
-	(void)regression_error_thresholdv;
 
 	const float duration = tracks.get_duration();
 	const float sample_rate = tracks.get_sample_rate();
