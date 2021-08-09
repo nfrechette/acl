@@ -236,12 +236,6 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 	debug_track_writer lossy_tracks_writer(allocator, track_type, num_tracks);
 	debug_track_writer lossy_track_writer(allocator, track_type, num_tracks);
 
-	if (track_type == track_type8::qvvf)
-	{
-		lossy_tracks_writer.initialize_with_defaults(raw_tracks);
-		lossy_track_writer.initialize_with_defaults(raw_tracks);
-	}
-
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
 		context.seek(0.0F, sample_rounding_policy::nearest);
