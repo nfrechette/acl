@@ -100,7 +100,11 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the duration for tracks in this array.
-		float get_duration() const { return m_allocator != nullptr && m_num_tracks != 0 ? calculate_duration(uint32_t(m_tracks->get_num_samples()), m_tracks->get_sample_rate()) : 0.0F; }
+		float get_duration() const { return m_allocator != nullptr && m_num_tracks != 0 ? calculate_duration(m_tracks->get_num_samples(), m_tracks->get_sample_rate()) : 0.0F; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the finite duration for tracks in this array.
+		float get_finite_duration() const { return m_allocator != nullptr && m_num_tracks != 0 ? calculate_finite_duration(m_tracks->get_num_samples(), m_tracks->get_sample_rate()) : 0.0F; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track name.
