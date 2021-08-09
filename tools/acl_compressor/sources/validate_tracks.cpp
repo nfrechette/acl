@@ -37,6 +37,21 @@
 using namespace acl;
 
 #if defined(ACL_USE_SJSON) && defined(ACL_HAS_ASSERT_CHECKS)
+void validate_transform_tracks(const acl::acl_impl::debug_track_writer& reference, const acl::acl_impl::debug_track_writer& tracks, float quat_error_threshold, float vec3_error_threshold)
+{
+	const uint32_t num_bones = reference.num_tracks;
+	for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+	{
+		const rtm::qvvf ref_transform = reference.read_qvv(bone_index);
+
+		// Make sure constant default sub-tracks match the skipped sub-tracks
+		const rtm::qvvf transform = tracks.read_qvv(bone_index);
+		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(ref_transform.rotation), rtm::quat_to_vector(transform.rotation), quat_error_threshold), "Failed to sample bone index: %u", bone_index);
+		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+	}
+}
+
 void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
 {
 	using namespace acl_impl;
@@ -102,22 +117,16 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 		context.decompress_tracks(track_writer_constant);
 		context.decompress_tracks(track_writer_variable);
 
+		// Make sure constant default sub-tracks match the skipped sub-tracks
+		validate_transform_tracks(track_writer, track_writer_constant, quat_error_threshold, vec3_error_threshold);
+
+		// Make sure variable default sub-tracks match the skipped sub-tracks
+		validate_transform_tracks(track_writer, track_writer_variable, quat_error_threshold, vec3_error_threshold);
+
 		// Validate decompress_track against decompress_tracks
 		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
 			const rtm::qvvf transform0 = track_writer.read_qvv(bone_index);
-
-			// Make sure constant default sub-tracks match the skipped sub-tracks
-			const rtm::qvvf transform_constant0 = track_writer_constant.read_qvv(bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform_constant0.rotation), quat_error_threshold), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform_constant0.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform_constant0.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
-
-			// Make sure variable default sub-tracks match the skipped sub-tracks
-			const rtm::qvvf transform_variable0 = track_writer_variable.read_qvv(bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform_variable0.rotation), quat_error_threshold), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform_variable0.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform_variable0.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
 
 			// Make sure single track decompression matches
 			context.decompress_track(bone_index, track_writer);
@@ -128,6 +137,71 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform1.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
 			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
 		}
+	}
+}
+
+void RTM_SIMD_CALL validate_scalar_tracks(const track_array& raw_tracks, const acl::acl_impl::debug_track_writer& reference, const acl::acl_impl::debug_track_writer& tracks, const rtm::vector4f_arg0 regression_error_thresholdv, float sample_time)
+{
+	const rtm::vector4f zero = rtm::vector_zero();
+
+	const uint32_t num_tracks = reference.num_tracks;
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track& track_ = raw_tracks[track_index];
+		const uint32_t output_index = track_.get_output_index();
+		if (output_index == k_invalid_track_index)
+			continue;	// Track is being stripped, ignore it
+
+		rtm::vector4f error = zero;
+
+		//switch (track_type)
+		switch (reference.type)
+		{
+		case track_type8::float1f:
+		{
+			const float raw_value = reference.read_float1(track_index);
+			const float lossy_value = tracks.read_float1(output_index);
+			error = rtm::vector_set(rtm::scalar_abs(raw_value - lossy_value));
+			break;
+		}
+		case track_type8::float2f:
+		{
+			const rtm::vector4f raw_value = reference.read_float2(track_index);
+			const rtm::vector4f lossy_value = tracks.read_float2(output_index);
+			error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
+			error = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::c, rtm::mix4::d>(error, zero);
+			break;
+		}
+		case track_type8::float3f:
+		{
+			const rtm::vector4f raw_value = reference.read_float3(track_index);
+			const rtm::vector4f lossy_value = tracks.read_float3(output_index);
+			error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
+			error = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::z, rtm::mix4::d>(error, zero);
+			break;
+		}
+		case track_type8::float4f:
+		{
+			const rtm::vector4f raw_value = reference.read_float4(track_index);
+			const rtm::vector4f lossy_value = tracks.read_float4(output_index);
+			error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
+			break;
+		}
+		case track_type8::vector4f:
+		{
+			const rtm::vector4f raw_value = reference.read_vector4(track_index);
+			const rtm::vector4f lossy_value = tracks.read_vector4(output_index);
+			error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
+			break;
+		}
+		default:
+			ACL_ASSERT(false, "Unsupported track type");
+			break;
+		}
+
+		(void)error;
+		ACL_ASSERT(rtm::vector_is_finite(error), "Returned error is not a finite value");
+		ACL_ASSERT(rtm::vector_all_less_than(error, regression_error_thresholdv), "Error too high for track %u at time %f", track_index, sample_time);
 	}
 }
 
@@ -168,8 +242,6 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 		lossy_track_writer.initialize_with_defaults(raw_tracks);
 	}
 
-	const rtm::vector4f zero = rtm::vector_zero();
-
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
 		context.seek(0.0F, sample_rounding_policy::nearest);
@@ -188,63 +260,7 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 		context.decompress_tracks(lossy_tracks_writer);
 
 		// Validate decompress_tracks
-		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
-		{
-			const track& track_ = raw_tracks[track_index];
-			const uint32_t output_index = track_.get_output_index();
-			if (output_index == k_invalid_track_index)
-				continue;	// Track is being stripped, ignore it
-
-			rtm::vector4f error = zero;
-
-			switch (track_type)
-			{
-			case track_type8::float1f:
-			{
-				const float raw_value = raw_tracks_writer.read_float1(track_index);
-				const float lossy_value = lossy_tracks_writer.read_float1(output_index);
-				error = rtm::vector_set(rtm::scalar_abs(raw_value - lossy_value));
-				break;
-			}
-			case track_type8::float2f:
-			{
-				const rtm::vector4f raw_value = raw_tracks_writer.read_float2(track_index);
-				const rtm::vector4f lossy_value = lossy_tracks_writer.read_float2(output_index);
-				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
-				error = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::c, rtm::mix4::d>(error, zero);
-				break;
-			}
-			case track_type8::float3f:
-			{
-				const rtm::vector4f raw_value = raw_tracks_writer.read_float3(track_index);
-				const rtm::vector4f lossy_value = lossy_tracks_writer.read_float3(output_index);
-				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
-				error = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::z, rtm::mix4::d>(error, zero);
-				break;
-			}
-			case track_type8::float4f:
-			{
-				const rtm::vector4f raw_value = raw_tracks_writer.read_float4(track_index);
-				const rtm::vector4f lossy_value = lossy_tracks_writer.read_float4(output_index);
-				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
-				break;
-			}
-			case track_type8::vector4f:
-			{
-				const rtm::vector4f raw_value = raw_tracks_writer.read_vector4(track_index);
-				const rtm::vector4f lossy_value = lossy_tracks_writer.read_vector4(output_index);
-				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
-				break;
-			}
-			default:
-				ACL_ASSERT(false, "Unsupported track type");
-				break;
-			}
-
-			(void)error;
-			ACL_ASSERT(rtm::vector_is_finite(error), "Returned error is not a finite value");
-			ACL_ASSERT(rtm::vector_all_less_than(error, regression_error_thresholdv), "Error too high for track %u at time %f", track_index, sample_time);
-		}
+		validate_scalar_tracks(raw_tracks, raw_tracks_writer, lossy_tracks_writer, regression_error_thresholdv, sample_time);
 
 		// Validate decompress_track
 		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
