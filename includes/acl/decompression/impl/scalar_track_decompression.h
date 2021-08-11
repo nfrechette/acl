@@ -91,7 +91,7 @@ namespace acl
 
 			context.tracks = &tracks;
 			context.tracks_hash = tracks.get_hash();
-			context.duration = tracks.get_duration();
+			context.duration = tracks.get_finite_duration();
 			context.sample_time = -1.0F;
 			context.interpolation_alpha = 0.0;
 
