@@ -101,7 +101,7 @@ namespace acl
 			context.tracks = &tracks;
 			context.db = reinterpret_cast<const database_context_v0*>(database);	// Context is always the first member and versions should always match
 			context.clip_hash = tracks.get_hash();
-			context.clip_duration = calculate_duration(header.num_samples, header.sample_rate);
+			context.clip_duration = calculate_finite_duration(header.num_samples, header.sample_rate);
 			context.sample_time = -1.0F;
 
 			context.rotation_format = rotation_format;
