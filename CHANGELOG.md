@@ -1,5 +1,9 @@
 # Significant changes per release
 
+## 2.0.1
+
+*  Fix incorrect seek offset when seeking past 0.0 in a single frame clip
+
 ## 2.0.0
 
 *  Unified and cleaned up APIs
