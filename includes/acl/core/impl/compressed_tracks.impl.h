@@ -192,6 +192,8 @@ namespace acl
 
 		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * track_description_size));
 
+		// Because the data has already been compressed, any track output remapping has already happened
+		// which means the output_index is just the track_index
 		out_description.output_index = track_index;
 		out_description.parent_index = parent_track_indices[track_index];
 		out_description.precision = description_data[0];
