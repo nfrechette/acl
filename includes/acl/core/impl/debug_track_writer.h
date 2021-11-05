@@ -89,12 +89,20 @@ namespace acl
 
 			//////////////////////////////////////////////////////////////////////////
 			// Initializes the internal buffer with the sub-track default values provided.
+			// This assumes that the debug_track_writer was allocated with the number of tracks
+			// from the compressed tracks instance used to populate it and that the provided
+			// track_array remaps to it properly with matching output indices.
 			void initialize_with_defaults(const track_array& tracks)
 			{
-				ACL_ASSERT(type == track_type8::qvvf, "Unexpected track type access");
-				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				const track_array_qvvf& tracks_ = track_array_cast<track_array_qvvf>(tracks);
+
+				for (const track_qvvf& track : tracks_)
 				{
-					tracks_typed.qvvf[track_index] = track_cast<track_qvvf>(tracks[track_index]).get_description().default_value;
+					const track_desc_transformf& desc = track.get_description();
+					if (desc.output_index == k_invalid_track_index)
+						continue;	// Stripped, skip it
+
+					tracks_typed.qvvf[desc.output_index] = desc.default_value;
 				}
 			}
 
