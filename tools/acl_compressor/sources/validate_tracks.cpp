@@ -519,7 +519,7 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 	const track_type8 track_type = raw_tracks.get_track_type();
 	acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
 
-	if(track_category == track_category8::transformf)
+	if (track_category == track_category8::transformf)
 		writer.initialize_with_defaults(raw_tracks);
 
 	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
