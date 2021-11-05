@@ -39,16 +39,16 @@ using namespace acl;
 #if defined(ACL_USE_SJSON) && defined(ACL_HAS_ASSERT_CHECKS)
 void validate_transform_tracks(const acl::acl_impl::debug_track_writer& reference, const acl::acl_impl::debug_track_writer& tracks, float quat_error_threshold, float vec3_error_threshold)
 {
-	const uint32_t num_bones = reference.num_tracks;
-	for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+	const uint32_t num_tracks = reference.num_tracks;
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const rtm::qvvf ref_transform = reference.read_qvv(bone_index);
+		const rtm::qvvf ref_transform = reference.read_qvv(track_index);
 
 		// Make sure constant default sub-tracks match the skipped sub-tracks
-		const rtm::qvvf transform = tracks.read_qvv(bone_index);
-		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(ref_transform.rotation), rtm::quat_to_vector(transform.rotation), quat_error_threshold), "Failed to sample bone index: %u", bone_index);
-		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
-		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+		const rtm::qvvf transform = tracks.read_qvv(track_index);
+		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(ref_transform.rotation), rtm::quat_to_vector(transform.rotation), quat_error_threshold), "Failed to sample bone index: %u", track_index);
+		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
+		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
 	}
 }
 
