@@ -82,20 +82,19 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 	ACL_ASSERT(rtm::scalar_is_finite(error.error), "Returned error is not a finite value"); (void)error;
 	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", error.index, error.error, error.sample_time);
 
-	const uint32_t num_bones = raw_tracks.get_num_tracks();
-	const float clip_duration = raw_tracks.get_finite_duration();
-	const float sample_rate = raw_tracks.get_sample_rate();
-	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
+	const uint32_t num_tracks = compressed_tracks_.get_num_tracks();
+	const float clip_duration = compressed_tracks_.get_finite_duration();
+	const float sample_rate = compressed_tracks_.get_sample_rate();
+	const uint32_t num_samples = compressed_tracks_.get_num_samples_per_track();
 
-	debug_track_writer track_writer(allocator, track_type8::qvvf, num_bones);
-
+	debug_track_writer track_writer(allocator, track_type8::qvvf, num_tracks);
 	track_writer.initialize_with_defaults(raw_tracks);
 
-	debug_track_writer_constant_defaults track_writer_constant(allocator, track_type8::qvvf, num_bones);
+	debug_track_writer_constant_defaults track_writer_constant(allocator, track_type8::qvvf, num_tracks);
 	// todo handle additive1
 
 	// Use the normal debug_track_writer since it skips default sub-tracks, we can use them
-	debug_track_writer_variable_defaults track_writer_variable(allocator, track_type8::qvvf, num_bones);
+	debug_track_writer_variable_defaults track_writer_variable(allocator, track_type8::qvvf, num_tracks);
 	track_writer_variable.default_sub_tracks = track_writer.tracks_typed.qvvf;
 
 	{
@@ -108,7 +107,7 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 
 	if (num_samples != 0)
 	{
-		debug_track_writer track_writer_clamped(allocator, track_type8::qvvf, num_bones);
+		debug_track_writer track_writer_clamped(allocator, track_type8::qvvf, num_tracks);
 		track_writer_clamped.initialize_with_defaults(raw_tracks);
 
 		// Make sure clamping works properly at the start of the clip
@@ -147,18 +146,18 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 		validate_transform_tracks(track_writer, track_writer_variable, quat_error_threshold, vec3_error_threshold);
 
 		// Validate decompress_track against decompress_tracks
-		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 		{
-			const rtm::qvvf transform0 = track_writer.read_qvv(bone_index);
+			const rtm::qvvf transform0 = track_writer.read_qvv(track_index);
 
 			// Make sure single track decompression matches
-			context.decompress_track(bone_index, track_writer);
-			const rtm::qvvf transform1 = track_writer.read_qvv(bone_index);
+			context.decompress_track(track_index, track_writer);
+			const rtm::qvvf transform1 = track_writer.read_qvv(track_index);
 
 			// Rotations can differ a bit due to how we normalize during interpolation
-			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform1.rotation), quat_error_threshold), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform1.translation, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, vec3_error_threshold), "Failed to sample bone index: %u", bone_index);
+			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform1.rotation), quat_error_threshold), "Failed to sample bone index: %u", track_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform1.translation, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
 		}
 	}
 }
