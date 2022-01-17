@@ -101,6 +101,11 @@ namespace acl
 		bool has_database() const;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns whether or not every sub-track's default value is trivial (aka the identity).
+		// Non-trivial default values indicate that extra data beyond the clip will be needed at decompression (e.g. bind pose)
+		bool has_trivial_default_values() const;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the track list name if metadata is present, nullptr otherwise.
 		const char* get_name() const;
 

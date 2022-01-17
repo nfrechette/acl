@@ -95,7 +95,8 @@ namespace acl
 			// Bit 3: translation format
 			// Bits [4, 8): rotation format (4 bits)
 			// Bit 8: has database?
-			// Bits [9, 31): unused (22 bits)
+			// Bit 9: has trivial default values? Non-trivial default values indicate that extra data beyond the clip will be needed at decompression (e.g. bind pose)
+			// Bits [10, 31): unused (21 bits)
 			// Bit 31: has metadata?
 
 			bool get_has_scale() const { return (misc_packed & 1) != 0; }
@@ -110,6 +111,8 @@ namespace acl
 			void set_rotation_format(rotation_format8 format) { misc_packed = (misc_packed & ~(15 << 4)) | (static_cast<uint32_t>(format) << 4); }
 			bool get_has_database() const { return (misc_packed & (1 << 8)) != 0; }
 			void set_has_database(bool has_database) { misc_packed = (misc_packed & ~(1 << 8)) | (static_cast<uint32_t>(has_database) << 8); }
+			bool get_has_trivial_default_values() const { return (misc_packed & (1 << 9)) != 0; }
+			void set_has_trivial_default_values(bool has_trivial_default_values) { misc_packed = (misc_packed & ~(1 << 9)) | (static_cast<uint32_t>(has_trivial_default_values) << 9); }
 			bool get_has_metadata() const { return (misc_packed >> 31) != 0; }
 			void set_has_metadata(bool has_metadata) { misc_packed = (misc_packed & ~(1 << 31)) | (static_cast<uint32_t>(has_metadata) << 31); }
 		};
