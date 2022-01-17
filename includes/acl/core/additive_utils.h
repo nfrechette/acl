@@ -41,20 +41,24 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Clip is not additive
+		// Default scale value is 1.0
 		none				= 0,
 
 		//////////////////////////////////////////////////////////////////////////
 		// Clip is in relative space, transform_mul or equivalent is used to combine them.
+		// Default scale value is 1.0
 		// transform = transform_mul(additive_transform, base_transform)
 		relative			= 1,
 
 		//////////////////////////////////////////////////////////////////////////
 		// Clip is in additive space where scale is combined with: base_scale * additive_scale
+		// Default scale value is 1.0
 		// transform = transform_add0(additive_transform, base_transform)
 		additive0			= 2,
 
 		//////////////////////////////////////////////////////////////////////////
 		// Clip is in additive space where scale is combined with: base_scale * (1.0 + additive_scale)
+		// Default scale value is 0.0
 		// transform = transform_add1(additive_transform, base_transform)
 		additive1			= 3,
 	};
