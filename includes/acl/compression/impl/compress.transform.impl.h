@@ -50,12 +50,52 @@
 #include "acl/compression/impl/write_sub_track_types.h"
 #include "acl/compression/impl/write_track_metadata.h"
 
+#include <rtm/quatf.h>
+#include <rtm/vector4f.h>
+
 #include <cstdint>
 
 namespace acl
 {
 	namespace acl_impl
 	{
+		inline bool has_trivial_default_values(const track_array_qvvf& track_list, additive_clip_format8 additive_format, const clip_context& lossy_clip_context)
+		{
+			// Additive clips and regular clips can have zero/one scale and be trivial
+			bool all_scales_zero = true;
+			bool all_scales_one = true;
+
+			const rtm::vector4f zero = rtm::vector_zero();
+			const rtm::vector4f one = rtm::vector_set(1.0F);
+
+			for (const track_qvvf& track : track_list)
+			{
+				const track_desc_transformf& desc = track.get_description();
+
+				if (!rtm::quat_near_identity(desc.default_value.rotation, 0.0F))
+					return false;	// Not the identity
+
+				if (!rtm::vector_all_near_equal3(desc.default_value.translation, zero, 0.0F))
+					return false;	// Not zero
+
+				if (!rtm::vector_all_near_equal3(desc.default_value.scale, zero, 0.0F))
+					all_scales_zero = false;	// Not zero
+				if (!rtm::vector_all_near_equal3(desc.default_value.scale, one, 0.0F))
+					all_scales_one = false;		// Not one
+			}
+
+			if (lossy_clip_context.has_scale)
+			{
+				if (additive_format == additive_clip_format8::additive1 && !all_scales_zero)
+					return false;	// Not zero
+				else if (!all_scales_one)
+					return false;	// Not one
+			}
+
+			// Every default value was trivial
+			return true;
+		}
+
 		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_qvvf& track_list, compression_settings settings,
 			const track_array_qvvf* additive_base_track_list, additive_clip_format8 additive_format,
 			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
@@ -153,6 +193,8 @@ namespace acl
 			}
 
 			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats);
+
+			const bool has_trivial_defaults = has_trivial_default_values(track_list, additive_format, lossy_clip_context);
 
 			uint32_t num_output_bones = 0;
 			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);
@@ -294,6 +336,7 @@ namespace acl
 			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
 			header->set_default_scale(!is_additive || additive_format != additive_clip_format8::additive1 ? 1 : 0);
 			header->set_has_database(false);
+			header->set_has_trivial_default_values(has_trivial_defaults);
 			header->set_has_metadata(metadata_size != 0);
 
 			// Write our transform tracks header
