@@ -15,8 +15,22 @@ on:
       - '**/*.md'
 
 jobs:
+  condition-check:
+    runs-on: ubuntu-18.04
+    outputs:
+      ok: ${{ steps.check-secrets.outputs.ok }}
+    steps:
+      - name: Secret guard
+        id: check-secrets
+        run: |
+          if [ ! -z "${{ secrets.SONAR_TOKEN }}" ]; then
+            echo "::set-output name=ok::true"
+          fi
   sonarcloud:
     runs-on: ubuntu-18.04
+    needs:
+      - condition-check
+    if: ${{ needs.condition-check.outputs.ok == 'true' }}
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
