@@ -1454,21 +1454,15 @@ namespace acl
 			// Copy the remaining bulk data
 			if (tier != quality_tier::medium_importance)
 			{
-				database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);
-
-				const uint32_t bulk_data_size = database.get_bulk_data_size(quality_tier::medium_importance);
-				const uint8_t* bulk_data = database.get_bulk_data(quality_tier::medium_importance);
-				std::memcpy(database_buffer, bulk_data, bulk_data_size);
-				database_buffer += bulk_data_size;
+				const uint8_t* src_bulk_data = database.get_bulk_data(quality_tier::medium_importance);
+				uint8_t* dst_bulk_data = db_header->get_bulk_data_medium();
+				std::memcpy(dst_bulk_data, src_bulk_data, bulk_data_medium_size);
 			}
 			else if (tier != quality_tier::lowest_importance)
 			{
-				database_buffer = align_to(database_buffer, k_database_bulk_data_alignment);
-
-				const uint32_t bulk_data_size = database.get_bulk_data_size(quality_tier::lowest_importance);
-				const uint8_t* bulk_data = database.get_bulk_data(quality_tier::lowest_importance);
-				std::memcpy(database_buffer, bulk_data, bulk_data_size);
-				database_buffer += bulk_data_size;
+				const uint8_t* src_bulk_data = database.get_bulk_data(quality_tier::lowest_importance);
+				uint8_t* dst_bulk_data = db_header->get_bulk_data_low();
+				std::memcpy(dst_bulk_data, src_bulk_data, bulk_data_low_size);
 			}
 		}
 
