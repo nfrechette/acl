@@ -587,6 +587,9 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, threshold), "Database 01 should have the same error");
 	}
 
+	// Measure the tier error when stripping
+	validate_db_stripping(allocator, raw_tracks, additive_base_tracks, error_metric, *db_tracks01[0], *db_tracks01[1], *db01, db01->get_bulk_data(quality_tier::medium_importance), db01->get_bulk_data(quality_tier::lowest_importance));
+
 	// Split the database bulk data out
 	compressed_database* split_db = nullptr;
 	uint8_t* split_db_bulk_data_medium = nullptr;
