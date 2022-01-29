@@ -55,7 +55,8 @@ jobs:
         run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -build
       - name: Running unit tests (release-x64 nosimd)
         run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -unit_test
-  osx:
+
+  osx-10:
     runs-on: macos-10.15
     strategy:
       matrix:
@@ -113,6 +114,48 @@ jobs:
         run: python3 make.py -ci -clean_only
       - name: Building for iOS (release-arm64 nosimd)
         run: python3 make.py -ci -compiler ios -config Release -build -nosimd
+
+  osx-11:
+    runs-on: macos-11
+    strategy:
+      matrix:
+        compiler: [xcode12, xcode13]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Setup ${{ matrix.compiler }} compiler
+        run: ./tools/setup_osx_compiler.sh ${{ matrix.compiler }}
+      - name: Building (debug-x64)
+        run: python3 make.py -ci -compiler osx -config Debug -cpu x64 -build
+      - name: Running unit tests (debug-x64)
+        run: python3 make.py -ci -compiler osx -config Debug -cpu x64 -unit_test
+      - name: Clean
+        run: python3 make.py -ci -clean_only
+      - name: Building (release-x64)
+        run: python3 make.py -ci -compiler osx -config Release -cpu x64 -build
+      - name: Running unit tests (release-x64)
+        run: python3 make.py -ci -compiler osx -config Release -cpu x64 -unit_test
+      - name: Clean
+        run: python3 make.py -ci -clean_only
+      - name: Building (release-x64 nosimd)
+        run: python3 make.py -ci -compiler osx -config Release -cpu x64 -nosimd -build
+      - name: Running unit tests (release-x64 nosimd)
+        run: python3 make.py -ci -compiler osx -config Release -cpu x64 -nosimd -unit_test
+      - name: Clean
+        run: python3 make.py -ci -clean_only
+      - name: Building for iOS (debug-arm64)
+        run: python3 make.py -ci -compiler ios -config Debug -build
+      - name: Clean
+        run: python3 make.py -ci -clean_only
+      - name: Building for iOS (release-arm64)
+        run: python3 make.py -ci -compiler ios -config Release -build
+      - name: Clean
+        run: python3 make.py -ci -clean_only
+      - name: Building for iOS (release-arm64 nosimd)
+        run: python3 make.py -ci -compiler ios -config Release -build -nosimd
+
   emscripten:
     runs-on: ubuntu-18.04
     steps:
