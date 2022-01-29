@@ -1,5 +1,10 @@
 # Significant changes per release
 
+## 2.0.2
+
+*  Fix potential heap corruption when stripping a database that isn't split
+*  Fix database tier bulk data size to include its padding
+
 ## 2.0.1
 
 *  Fix incorrect seek offset when seeking past 0.0 in a single frame clip
