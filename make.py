@@ -44,6 +44,7 @@ def parse_argv():
 	misc.add_argument('-nosjson', dest='use_sjson', action='store_false', help='Compile without SJSON support')
 	misc.add_argument('-num_threads', help='No. to use while compiling and regressing')
 	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
+	misc.add_argument('-ci', action='store_true', help='Whether or not this is a Continuous Integration build')
 	misc.add_argument('-help', action='help', help='Display this usage information')
 
 	num_threads = multiprocessing.cpu_count()
@@ -320,6 +321,11 @@ def do_generate_solution(build_dir, cmake_script_dir, test_data_dir, decomp_data
 
 	if not platform.system() == 'Windows':
 		extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))
+
+	if platform.system() == 'Darwin' and compiler == 'ios' and args.ci:
+		# Disable code signing for CI iOS builds since we just test compilation
+		extra_switches.append('-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO')
+		extra_switches.append('-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO')
 
 	toolchain = get_toolchain(compiler, cmake_script_dir)
 	if toolchain:
