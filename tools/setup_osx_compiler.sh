@@ -10,7 +10,9 @@ if [[ $COMPILER == xcode10 ]]; then
 elif [[ $COMPILER == xcode11 ]]; then
     XCODE_PATH="/Applications/Xcode_11.7.app"
 elif [[ $COMPILER == xcode12 ]]; then
-    XCODE_PATH="/Applications/Xcode_12.3.app"
+    XCODE_PATH="/Applications/Xcode_12.5.1.app"
+elif [[ $COMPILER == xcode13 ]]; then
+    XCODE_PATH="/Applications/Xcode_13.2.1.app"
 fi
 
 # Select our XCode version
