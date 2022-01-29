@@ -58,6 +58,10 @@ def parse_argv():
 
 	args = parser.parse_args()
 
+	is_arm64_cpu = False
+	if platform.machine() == 'arm64' or platform.machine() == 'aarch64':
+		is_arm64_cpu = True
+
 	# Sanitize and validate our options
 	if args.use_avx and not args.use_simd:
 		print('SIMD is disabled; AVX cannot be used')
@@ -114,11 +118,26 @@ def parse_argv():
 			sys.exit(1)
 	else:
 		if not args.cpu:
-			args.cpu = 'x64'
+			if is_arm64_cpu:
+				args.cpu = 'arm64'
+			else:
+				args.cpu = 'x64'
 
 	if args.cpu == 'arm64':
-		if not args.compiler in ['vs2017', 'vs2019', 'ios', 'android']:
-			print('arm64 is only supported with VS2017, VS2019, Android, and iOS')
+		is_arm_supported = False
+
+		# Cross compilation
+		if args.compiler in ['vs2017', 'vs2019', 'ios', 'android']:
+			is_arm_supported = True
+
+		# Native compilation
+		if platform.system() == 'Darwin' and is_arm64_cpu:
+			is_arm_supported = True
+		elif platform.system() == 'Linux' and is_arm64_cpu:
+			is_arm_supported = True
+
+		if not is_arm_supported:
+			print('arm64 is only supported with VS2017, VS2019, OS X (M1 processors), Linux, Android, and iOS')
 			sys.exit(1)
 	elif args.cpu == 'armv7':
 		if not args.compiler == 'android':
