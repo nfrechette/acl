@@ -49,14 +49,12 @@ Much thought was put into designing the library for it to be as flexible and pow
 *  Linux (gcc 5 to 11) x86 and x64
 *  Linux (clang 4 to 14) x86 and x64
 *  OS X (Xcode 10.3) x86 and x64
-*  OS X (Xcode 11.2) x64
+*  OS X (Xcode 11.7, 12.5, 13.2) x64 and ARM64
 *  Android (NDK 21) ARMv7-A and ARM64
-*  iOS (Xcode 10.3, 11.2) ARM64
+*  iOS (Xcode 10.3, 11.7, 12.5, 13.2) ARM64
 *  Emscripten (1.39.11) WASM
 
 The above supported platform list is only what is tested every release but if it compiles, it should run just fine.
-
-Note: *VS2017* and *VS2019* compile with *ARM64* on *AppVeyor* but I have no device to test them with.
 
 The [Unreal Engine](https://www.unrealengine.com/en-US/blog) is supported through a plugin found [here](https://github.com/nfrechette/acl-ue4-plugin).
 
