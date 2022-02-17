@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/error.h"
+#include "acl/core/sample_rounding_policy.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <rtm/scalarf.h>
@@ -36,32 +37,6 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	//////////////////////////////////////////////////////////////////////////
-	// This enum dictates how interpolation samples are calculated based on the sample time.
-	enum class sample_rounding_policy
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// If the sample time lies between two samples, both sample indices
-		// are returned and the interpolation alpha lies in between.
-		none,
-
-		//////////////////////////////////////////////////////////////////////////
-		// If the sample time lies between two samples, both sample indices
-		// are returned and the interpolation will be 0.0.
-		floor,
-
-		//////////////////////////////////////////////////////////////////////////
-		// If the sample time lies between two samples, both sample indices
-		// are returned and the interpolation will be 1.0.
-		ceil,
-
-		//////////////////////////////////////////////////////////////////////////
-		// If the sample time lies between two samples, both sample indices
-		// are returned and the interpolation will be 0.0 or 1.0 depending
-		// on which sample is nearest.
-		nearest,
-	};
-
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the sample indices and the interpolation required to linearly
 	// interpolate when the samples are uniform.
