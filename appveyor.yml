@@ -37,7 +37,7 @@ matrix:
 
 init:
 # Only run latest compiler on push, run everything on pull request
-- ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER -eq 0 -and $env:APPVEYOR_BUILD_WORKER_IMAGE -ne "Visual Studio 2019") {Exit-AppveyorBuild}
+- ps: if (!$env:APPVEYOR_PULL_REQUEST_NUMBER -and $env:APPVEYOR_BUILD_WORKER_IMAGE -ne "Visual Studio 2019") {Exit-AppveyorBuild}
 
 install:
 - cmd: >-
