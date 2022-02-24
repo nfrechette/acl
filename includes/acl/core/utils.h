@@ -51,7 +51,6 @@ namespace acl
 	inline uint32_t calculate_num_samples(float duration, float sample_rate)
 	{
 		ACL_ASSERT(duration >= 0.0F, "Invalid duration: %f", duration);
-		ACL_ASSERT(sample_rate > 0.0F, "Invalid sample rate: %f", sample_rate);
 		if (duration == 0.0F)
 			return 0;	// No duration whatsoever, we have no samples
 
@@ -59,6 +58,8 @@ namespace acl
 			return 1;	// An infinite duration, we have a single sample (static pose)
 
 		// Otherwise we have at least 1 sample
+		ACL_ASSERT(sample_rate > 0.0F, "Invalid sample rate: %f", sample_rate);
+
 		return safe_static_cast<uint32_t>(rtm::scalar_floor((duration * sample_rate) + 0.5F)) + 1;
 	}
 
