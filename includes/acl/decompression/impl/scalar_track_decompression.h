@@ -55,21 +55,22 @@ namespace acl
 	{
 		struct alignas(64) persistent_scalar_decompression_context_v0
 		{
-			// Clip related data							//   offsets
+			// Clip related data									//   offsets
 			// Only member used to detect if we are initialized, must be first
-			const compressed_tracks* tracks;				//   0 |   0
+			const compressed_tracks* tracks;						//   0 |   0
 
-			uint32_t tracks_hash;							//   4 |   8
+			uint32_t tracks_hash;									//   4 |   8
 
-			float duration;									//   8 |  12
+			// Only used when the wrap loop policy isn't supported
+			float duration;											//   8 |  12
 
-															// Seeking related data
-			float interpolation_alpha;						//  12 |  16
-			float sample_time;								//  16 |  20
+			// Seeking related data
+			float interpolation_alpha;								//  12 |  16
+			float sample_time;										//  16 |  20
 
-			uint32_t key_frame_bit_offsets[2];				//  20 |  24	// Variable quantization
+			uint32_t key_frame_bit_offsets[2];						//  20 |  24	// Variable quantization
 
-			uint8_t padding_tail[sizeof(void*) == 4 ? 36 : 32];
+			uint8_t padding_tail[sizeof(void*) == 4 ? 36 : 32];		//  28 |  32
 
 			//////////////////////////////////////////////////////////////////////////
 
@@ -91,7 +92,11 @@ namespace acl
 
 			context.tracks = &tracks;
 			context.tracks_hash = tracks.get_hash();
-			context.duration = tracks.get_finite_duration();
+
+			// If wrapping isn't supported, cache the duration to speed up repeated calls to seek(..)
+			if (!decompression_settings_type::is_wrapping_supported())
+				context.duration = tracks.get_finite_duration(sample_looping_policy::clamp);
+
 			context.sample_time = -1.0F;
 			context.interpolation_alpha = 0.0;
 
@@ -110,24 +115,32 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void seek_v0(persistent_scalar_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy)
+		inline void seek_v0(persistent_scalar_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy)
 		{
+			ACL_ASSERT(looping_policy == sample_looping_policy::clamp || decompression_settings_type::is_wrapping_supported(), "Wrapping must be enabled in the decompression settings");
+
 			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*context.tracks);
 			if (header.num_samples == 0)
 				return;	// Empty track list
 
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			if (decompression_settings_type::clamp_sample_time())
-				sample_time = rtm::scalar_clamp(sample_time, 0.0F, context.duration);
+			{
+				const float duration = decompression_settings_type::is_wrapping_supported() ? context.tracks->get_finite_duration(looping_policy) : context.duration;
+				sample_time = rtm::scalar_clamp(sample_time, 0.0F, duration);
+			}
 
 			if (context.sample_time == sample_time)
 				return;
 
 			context.sample_time = sample_time;
 
+			// If the wrap looping policy isn't supported, use out statically known value
+			const sample_looping_policy looping_policy_ = decompression_settings_type::is_wrapping_supported() ? looping_policy : sample_looping_policy::clamp;
+
 			uint32_t key_frame0;
 			uint32_t key_frame1;
-			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, key_frame0, key_frame1, context.interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, looping_policy_, key_frame0, key_frame1, context.interpolation_alpha);
 
 			const acl_impl::scalar_tracks_header& scalars_header = acl_impl::get_scalar_tracks_header(*context.tracks);
 

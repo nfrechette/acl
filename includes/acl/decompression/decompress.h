@@ -109,8 +109,15 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Seeks within the compressed tracks to a particular point in time with the
+		// desired rounding and looping policies.
+		void seek(float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy);
+
+		//////////////////////////////////////////////////////////////////////////
+		// Seeks within the compressed tracks to a particular point in time with the
 		// desired rounding policy.
-		void seek(float sample_time, sample_rounding_policy rounding_policy);
+		// This uses the clamp looping policy.
+		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
+		void seek(float sample_time, sample_rounding_policy rounding_policy) { seek(sample_time, rounding_policy, sample_looping_policy::clamp); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Decompress every track at the current sample time.

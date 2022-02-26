@@ -103,6 +103,9 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of samples contained within the track.
+		// This does not account for the repeating first sample when the wrap
+		// looping policy is used.
+		// See `sample_looping_policy` for details.
 		uint32_t get_num_samples() const { return m_num_samples; }
 
 		//////////////////////////////////////////////////////////////////////////

@@ -101,7 +101,11 @@ namespace acl
 			context.tracks = &tracks;
 			context.db = reinterpret_cast<const database_context_v0*>(database);	// Context is always the first member and versions should always match
 			context.clip_hash = tracks.get_hash();
-			context.clip_duration = calculate_finite_duration(header.num_samples, header.sample_rate);
+
+			// If wrapping isn't supported, cache the duration to speed up repeated calls to seek(..)
+			if (!decompression_settings_type::is_wrapping_supported())
+				context.clip_duration = calculate_finite_duration(header.num_samples, header.sample_rate);
+
 			context.sample_time = -1.0F;
 
 			context.rotation_format = rotation_format;
@@ -125,15 +129,32 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void seek_v0(persistent_transform_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy)
+		inline void seek_v0(persistent_transform_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy)
 		{
+			ACL_ASSERT(looping_policy == sample_looping_policy::clamp || decompression_settings_type::is_wrapping_supported(), "Wrapping must be enabled in the decompression settings");
+
 			const tracks_header& header = get_tracks_header(*context.tracks);
 			if (header.num_tracks == 0)
 				return;	// Empty track list
 
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			if (decompression_settings_type::clamp_sample_time())
-				sample_time = rtm::scalar_clamp(sample_time, 0.0F, context.clip_duration);
+			{
+				float duration;
+				if (decompression_settings_type::is_wrapping_supported())
+				{
+					// When we wrap, we artificially insert a repeating first sample at the end of non-empty clips
+					uint32_t num_samples = header.num_samples;
+					if (looping_policy == sample_looping_policy::wrap && num_samples != 0)
+						num_samples++;
+
+					duration = calculate_finite_duration(num_samples, header.sample_rate);
+				}
+				else
+					duration = context.clip_duration;
+
+				sample_time = rtm::scalar_clamp(sample_time, 0.0F, duration);
+			}
 
 			if (context.sample_time == sample_time)
 				return;
@@ -152,9 +173,12 @@ namespace acl
 
 			context.sample_time = sample_time;
 
+			// If the wrap looping policy isn't supported, use out statically known value
+			const sample_looping_policy looping_policy_ = decompression_settings_type::is_wrapping_supported() ? looping_policy : sample_looping_policy::clamp;
+
 			uint32_t key_frame0;
 			uint32_t key_frame1;
-			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, key_frame0, key_frame1, context.interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, looping_policy_, key_frame0, key_frame1, context.interpolation_alpha);
 
 			uint32_t segment_key_frame0;
 			uint32_t segment_key_frame1;
@@ -305,7 +329,13 @@ namespace acl
 						// We went too far, use previous segment
 						ACL_ASSERT(segment_index > 0, "Invalid segment index: %u", segment_index);
 						segment_index0 = segment_index - 1;
-						segment_index1 = key_frame1 < segment_start_indices[segment_index] ? segment_index0 : segment_index;
+
+						// If wrapping is enabled and we wrapped, use the first segment
+						if (decompression_settings_type::is_wrapping_supported() && key_frame1 == 0)
+							segment_index1 = 0;
+						else
+							segment_index1 = key_frame1 < segment_start_indices[segment_index] ? segment_index0 : segment_index;
+
 						break;
 					}
 				}

@@ -146,6 +146,8 @@ struct Options
 
 	bool			split_into_database				= false;
 
+	bool			use_wrap_policy					= false;
+
 	bool			stat_detailed_output			= false;
 	bool			stat_exhaustive_output			= false;
 
@@ -193,6 +195,7 @@ static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
 static constexpr const char* k_split_into_database_option = "-db";
+static constexpr const char* k_wrap_option = "-wrap";
 static constexpr const char* k_stat_detailed_output_option = "-stat_detailed";
 static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive";
 
@@ -360,6 +363,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
+		option_length = std::strlen(k_wrap_option);
+		if (std::strncmp(argument, k_wrap_option, option_length) == 0)
+		{
+			options.use_wrap_policy = true;
+			continue;
+		}
+
 		option_length = std::strlen(k_stat_detailed_output_option);
 		if (std::strncmp(argument, k_stat_detailed_output_option, option_length) == 0)
 		{
@@ -394,8 +404,8 @@ static bool parse_options(int argc, char** argv, Options& options)
 #if defined(ACL_USE_SJSON)
 #if defined(ACL_HAS_ASSERT_CHECKS)
 // We extern our regression test functions for simplicity
-extern void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold);
-extern void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold);
+extern void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold, sample_looping_policy looping_policy);
+extern void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold, sample_looping_policy looping_policy);
 extern void validate_metadata(const track_array& raw_tracks, const compressed_tracks& tracks);
 extern void validate_convert(iallocator& allocator, const track_array& raw_tracks);
 extern void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks,
@@ -457,7 +467,9 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		if (options.regression_testing)
 		{
-			validate_accuracy(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, regression_error_threshold);
+			const sample_looping_policy looping_policy = options.use_wrap_policy ? sample_looping_policy::wrap : sample_looping_policy::clamp;
+
+			validate_accuracy(allocator, transform_tracks, additive_base, *settings.error_metric, *compressed_tracks_, regression_error_threshold, looping_policy);
 			validate_metadata(transform_tracks, *compressed_tracks_);
 			validate_convert(allocator, transform_tracks);
 
@@ -573,7 +585,9 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		if (options.regression_testing)
 		{
-			validate_accuracy(allocator, track_list, *compressed_tracks_, regression_error_threshold);
+			const sample_looping_policy looping_policy = options.use_wrap_policy ? sample_looping_policy::wrap : sample_looping_policy::clamp;
+
+			validate_accuracy(allocator, track_list, *compressed_tracks_, regression_error_threshold, looping_policy);
 			validate_metadata(track_list, *compressed_tracks_);
 		}
 #endif
@@ -843,6 +857,10 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	if (parser.try_read("split_into_database", split_into_database, false))
 		options.split_into_database = split_into_database;
 
+	bool use_wrap_policy;
+	if (parser.try_read("use_wrap_policy", use_wrap_policy, false))
+		options.use_wrap_policy = use_wrap_policy;
+
 	compression_database_settings default_database_settings;
 
 	uint32_t database_max_chunk_size;
@@ -1020,7 +1038,7 @@ static int safe_main_impl(int argc, char* argv[])
 #if DEBUG_MEGA_LARGE_CLIP
 	track_array_qvvf new_transforms(allocator, transform_tracks.get_num_tracks());
 	float new_sample_rate = 19200.0F;
-	uint32_t new_num_samples = calculate_num_samples(transform_tracks.get_duration(), new_sample_rate);
+	uint32_t new_num_samples = calculate_num_samples(transform_tracks.get_duration(), new_sample_rate, sample_looping_policy::clamp);
 	float new_duration = calculate_finite_duration(new_num_samples, new_sample_rate);
 	acl_impl::debug_track_writer dummy_writer(allocator, track_type8::qvvf, transform_tracks.get_num_tracks());
 

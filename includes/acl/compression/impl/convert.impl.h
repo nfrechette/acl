@@ -77,11 +77,14 @@ namespace acl
 		if (error.any())
 			return error;
 
+		// Clamp during conversion
+		const sample_looping_policy looping_policy = sample_looping_policy::clamp;
+
 		const uint32_t num_tracks = tracks.get_num_tracks();
 		const track_type8 track_type = tracks.get_track_type();
 		const uint32_t num_samples = tracks.get_num_samples_per_track();
 		const float sample_rate = tracks.get_sample_rate();
-		const float duration = tracks.get_finite_duration();
+		const float duration = tracks.get_finite_duration(looping_policy);
 
 		track_array result(allocator, num_tracks);
 		result.set_name(string(allocator, tracks.get_name()));
@@ -156,7 +159,7 @@ namespace acl
 				const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
 				// Round to nearest to land directly on a sample
-				context.seek(sample_time, sample_rounding_policy::nearest);
+				context.seek(sample_time, sample_rounding_policy::nearest, looping_policy);
 
 				context.decompress_tracks(writer);
 
@@ -206,7 +209,7 @@ namespace acl
 				const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
 				// Round to nearest to land directly on a sample
-				context.seek(sample_time, sample_rounding_policy::nearest);
+				context.seek(sample_time, sample_rounding_policy::nearest, looping_policy);
 
 				context.decompress_tracks(writer);
 

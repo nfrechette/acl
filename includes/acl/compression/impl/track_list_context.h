@@ -254,7 +254,7 @@ namespace acl
 			context.num_output_tracks = 0;
 			context.num_samples = track_list.get_num_samples_per_track();
 			context.sample_rate = track_list.get_sample_rate();
-			context.duration = track_list.get_finite_duration();
+			context.duration = track_list.get_finite_duration(sample_looping_policy::clamp);	// Clamp during compression
 
 			context.track_output_indices = create_output_track_mapping(allocator, track_list, context.num_output_tracks);
 

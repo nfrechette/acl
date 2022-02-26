@@ -71,16 +71,28 @@ namespace acl
 
 	inline track_type8 compressed_tracks::get_track_type() const { return acl_impl::get_tracks_header(*this).track_type; }
 
-	inline float compressed_tracks::get_duration() const
+	inline float compressed_tracks::get_duration(sample_looping_policy looping_policy) const
 	{
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
-		return calculate_duration(header.num_samples, header.sample_rate);
+
+		// When we wrap, we artificially insert a repeating first sample at the end of non-empty clips
+		uint32_t num_samples = header.num_samples;
+		if (looping_policy == sample_looping_policy::wrap && num_samples != 0)
+			num_samples++;
+
+		return calculate_duration(num_samples, header.sample_rate);
 	}
 
-	inline float compressed_tracks::get_finite_duration() const
+	inline float compressed_tracks::get_finite_duration(sample_looping_policy looping_policy) const
 	{
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
-		return calculate_finite_duration(header.num_samples, header.sample_rate);
+
+		// When we wrap, we artificially insert a repeating first sample at the end of non-empty clips
+		uint32_t num_samples = header.num_samples;
+		if (looping_policy == sample_looping_policy::wrap && num_samples != 0)
+			num_samples++;
+
+		return calculate_finite_duration(num_samples, header.sample_rate);
 	}
 
 	inline float compressed_tracks::get_sample_rate() const { return acl_impl::get_tracks_header(*this).sample_rate; }

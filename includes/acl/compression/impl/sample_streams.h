@@ -643,8 +643,13 @@ namespace acl
 			float interpolation_alpha = 0.0F;
 
 			// Our samples are uniform, grab the nearest samples
+			const sample_rounding_policy rounding_policy = sample_rounding_policy::nearest;
+
+			// Never consider our clip as looping when compressing
+			const sample_looping_policy looping_policy = sample_looping_policy::clamp;
+
 			const clip_context* clip = segment.clip;
-			find_linear_interpolation_samples_with_sample_rate(clip->num_samples, clip->sample_rate, sample_time, sample_rounding_policy::nearest, key0, key1, interpolation_alpha);
+			find_linear_interpolation_samples_with_sample_rate(clip->num_samples, clip->sample_rate, sample_time, rounding_policy, looping_policy, key0, key1, interpolation_alpha);
 
 			// Offset for the current segment and clamp
 			key0 = key0 - segment.clip_sample_offset;

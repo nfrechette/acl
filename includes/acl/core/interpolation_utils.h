@@ -25,7 +25,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/core/error.h"
+#include "acl/core/sample_looping_policy.h"
 #include "acl/core/sample_rounding_policy.h"
+#include "acl/core/utils.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <rtm/scalarf.h>
@@ -43,21 +45,63 @@ namespace acl
 	// The returned sample indices are clamped and do not loop.
 	// If the sample rate is available, prefer using find_linear_interpolation_samples_with_sample_rate
 	// instead. It is faster and more accurate.
-	inline void find_linear_interpolation_samples_with_duration(uint32_t num_samples, float duration, float sample_time, sample_rounding_policy rounding_policy,
-		uint32_t& out_sample_index0, uint32_t& out_sample_index1, float& out_interpolation_alpha)
+	// If the wrap looping policy is used:
+	//     - the `num_samples` value must be the actual number of samples
+	//       stored in memory, it must not include the artificially repeating first sample.
+	//     - the duration value must include the repeating first sample
+	inline void find_linear_interpolation_samples_with_duration(
+		uint32_t num_samples,
+		float duration,
+		float sample_time,
+		sample_rounding_policy rounding_policy,
+		sample_looping_policy looping_policy,
+		uint32_t& out_sample_index0,
+		uint32_t& out_sample_index1,
+		float& out_interpolation_alpha)
 	{
 		// Samples are evenly spaced, trivially calculate the indices that we need
-		ACL_ASSERT(duration >= 0.0F, "Invalid duration: %f", duration);
+		ACL_ASSERT(duration >= 0.0F && rtm::scalar_is_finite(duration), "Invalid duration: %f", duration);
 		ACL_ASSERT(sample_time >= 0.0F && sample_time <= duration, "Invalid sample time: 0.0 <= %f <= %f", sample_time, duration);
 		ACL_ASSERT(num_samples > 0, "Invalid num_samples: %u", num_samples);
 
-		const float sample_rate = duration == 0.0F ? 0.0F : (float(num_samples - 1) / duration);
+		const uint32_t last_sample_index = num_samples - 1;
+
+		float sample_rate;
+		if (duration == 0.0F)
+			sample_rate = 0.0F;
+		else if (looping_policy == sample_looping_policy::clamp)
+			sample_rate = float(last_sample_index) / duration;
+		else
+			sample_rate = float(num_samples) / duration;	// Duration includes our repeating first sample
 		ACL_ASSERT(sample_rate >= 0.0F && rtm::scalar_is_finite(sample_rate), "Invalid sample_rate: %f", sample_rate);
 
-		const float sample_index = sample_time * sample_rate;
-		const uint32_t sample_index0 = static_cast<uint32_t>(sample_index);
-		const uint32_t sample_index1 = std::min(sample_index0 + 1, num_samples - 1);
-		ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
+		float sample_index = sample_time * sample_rate;
+
+		uint32_t sample_index0 = static_cast<uint32_t>(sample_index);
+		const uint32_t next_sample_index = sample_index0 + 1;
+
+		uint32_t sample_index1;
+		if (looping_policy == sample_looping_policy::clamp)
+		{
+			sample_index1 = std::min(next_sample_index, last_sample_index);
+			ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
+		}
+		else
+		{
+			if (sample_index0 > last_sample_index)
+			{
+				// We are sampling our repeating first sample with full weight
+				ACL_ASSERT(rtm::scalar_near_equal(sample_time, duration, 0.00001F), "Sampling our repeating first sample with full weight");
+				sample_index = 0.0F;
+				sample_index0 = 0;
+				sample_index1 = 0;
+			}
+			else
+			{
+				sample_index1 = next_sample_index >= num_samples ? 0 : next_sample_index;
+				ACL_ASSERT(sample_index0 < num_samples&& sample_index1 < num_samples, "Invalid sample indices: %u, %u, %u", sample_index0, sample_index1, num_samples);
+			}
+		}
 
 		const float interpolation_alpha = sample_index - float(sample_index0);
 		ACL_ASSERT(interpolation_alpha >= 0.0F && interpolation_alpha <= 1.0F, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
@@ -87,8 +131,34 @@ namespace acl
 	// Calculates the sample indices and the interpolation required to linearly
 	// interpolate when the samples are uniform.
 	// The returned sample indices are clamped and do not loop.
-	inline void find_linear_interpolation_samples_with_sample_rate(uint32_t num_samples, float sample_rate, float sample_time, sample_rounding_policy rounding_policy,
-		uint32_t& out_sample_index0, uint32_t& out_sample_index1, float& out_interpolation_alpha)
+	// If the sample rate is available, prefer using find_linear_interpolation_samples_with_sample_rate
+	// instead. It is faster and more accurate.
+	ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
+	inline void find_linear_interpolation_samples_with_duration(
+		uint32_t num_samples,
+		float duration,
+		float sample_time,
+		sample_rounding_policy rounding_policy,
+		uint32_t& out_sample_index0,
+		uint32_t& out_sample_index1,
+		float& out_interpolation_alpha)
+	{
+		find_linear_interpolation_samples_with_duration(num_samples, duration, sample_time, rounding_policy, sample_looping_policy::clamp, out_sample_index0, out_sample_index1, out_interpolation_alpha);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the sample indices and the interpolation required to linearly
+	// interpolate when the samples are uniform.
+	// The returned sample indices are clamped and do not loop.
+	inline void find_linear_interpolation_samples_with_sample_rate(
+		uint32_t num_samples,
+		float sample_rate,
+		float sample_time,
+		sample_rounding_policy rounding_policy,
+		sample_looping_policy looping_policy,
+		uint32_t& out_sample_index0,
+		uint32_t& out_sample_index1,
+		float& out_interpolation_alpha)
 	{
 		// Samples are evenly spaced, trivially calculate the indices that we need
 		ACL_ASSERT(sample_rate >= 0.0F, "Invalid sample rate: %f", sample_rate);
@@ -100,10 +170,36 @@ namespace acl
 		// This would break the dependency chains, right now the index0 depends on sample_index and interpolation_alpha depends on index0.
 		// Generating index0 is slow, and converting it back to float is slow.
 		// If we keep index0 as a float and floor it as a float, we can calculate index1 at the same time as the interpolation alpha.
-		const float sample_index = sample_time * sample_rate;
-		const uint32_t sample_index0 = static_cast<uint32_t>(sample_index);
-		const uint32_t sample_index1 = std::min(sample_index0 + 1, num_samples - 1);
-		ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
+
+		const uint32_t last_sample_index = num_samples - 1;
+
+		float sample_index = sample_time * sample_rate;
+
+		uint32_t sample_index0 = static_cast<uint32_t>(sample_index);
+		const uint32_t next_sample_index = sample_index0 + 1;
+
+		uint32_t sample_index1;
+		if (looping_policy == sample_looping_policy::clamp)
+		{
+			sample_index1 = std::min(next_sample_index, last_sample_index);
+			ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
+		}
+		else
+		{
+			if (sample_index0 > last_sample_index)
+			{
+				// We are sampling our repeating first sample with full weight
+				ACL_ASSERT(rtm::scalar_near_equal(sample_time, calculate_finite_duration(num_samples + 1, sample_rate), 0.00001F), "Sampling our repeating first sample with full weight");
+				sample_index = 0.0F;
+				sample_index0 = 0;
+				sample_index1 = 0;
+			}
+			else
+			{
+				sample_index1 = next_sample_index >= num_samples ? 0 : next_sample_index;
+				ACL_ASSERT(sample_index0 < num_samples&& sample_index1 < num_samples, "Invalid sample indices: %u, %u, %u", sample_index0, sample_index1, num_samples);
+			}
+		}
 
 		const float interpolation_alpha = sample_index - float(sample_index0);
 		ACL_ASSERT(interpolation_alpha >= 0.0F && interpolation_alpha <= 1.0F, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
@@ -127,6 +223,23 @@ namespace acl
 			out_interpolation_alpha = rtm::scalar_floor(interpolation_alpha + 0.5F);
 			break;
 		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the sample indices and the interpolation required to linearly
+	// interpolate when the samples are uniform.
+	// The returned sample indices are clamped and do not loop.
+	ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
+	inline void find_linear_interpolation_samples_with_sample_rate(
+		uint32_t num_samples,
+		float sample_rate,
+		float sample_time,
+		sample_rounding_policy rounding_policy,
+		uint32_t& out_sample_index0,
+		uint32_t& out_sample_index1,
+		float& out_interpolation_alpha)
+	{
+		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy, sample_looping_policy::clamp, out_sample_index0, out_sample_index1, out_interpolation_alpha);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
