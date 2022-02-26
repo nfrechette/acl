@@ -40,7 +40,7 @@
 using namespace acl;
 
 #if defined(ACL_USE_SJSON) && defined(ACL_HAS_ASSERT_CHECKS)
-struct debug_transform_decompression_settings_with_db : public acl::debug_transform_decompression_settings
+struct debug_transform_decompression_settings_with_db final : public acl::debug_transform_decompression_settings
 {
 	using database_settings_type = acl::debug_database_settings;
 };
