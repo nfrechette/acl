@@ -710,7 +710,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = tracks0->get_num_samples_per_track();
 		args.num_tracks = tracks0->get_num_tracks();
-		args.duration = tracks0->get_finite_duration();
+		args.duration = tracks0->get_finite_duration(sample_looping_policy::clamp);	// Use clamp looping policy since it doesn't matter when measuring the error
 		args.sample_rate = tracks0->get_sample_rate();
 		args.track_type = tracks0->get_track_type();
 
