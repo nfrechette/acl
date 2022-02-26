@@ -111,6 +111,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// The database settings to use when decompressing.
+		// By default, the database isn't supported.
 		using database_settings_type = null_database_settings;
 	};
 
