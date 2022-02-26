@@ -192,7 +192,7 @@ static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
-static constexpr const char* k_split_into_database = "-db";
+static constexpr const char* k_split_into_database_option = "-db";
 static constexpr const char* k_stat_detailed_output_option = "-stat_detailed";
 static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive";
 
@@ -341,8 +341,8 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
-		option_length = std::strlen(k_split_into_database);
-		if (std::strncmp(argument, k_split_into_database, option_length) == 0)
+		option_length = std::strlen(k_split_into_database_option);
+		if (std::strncmp(argument, k_split_into_database_option, option_length) == 0)
 		{
 			options.split_into_database = true;
 			if (argument[option_length] == '=')
