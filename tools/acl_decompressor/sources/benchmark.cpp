@@ -195,7 +195,8 @@ static void benchmark_decompression(benchmark::State& state)
 	if (s_benchmark_state.compressed_tracks != &compressed_tracks)
 		setup_benchmark_state(compressed_tracks);	// We have a new clip, setup everything
 
-	const float duration = compressed_tracks.get_duration();
+	// Use clamp policy as it is the most common
+	const float duration = compressed_tracks.get_finite_duration(acl::sample_looping_policy::clamp);
 
 	constexpr uint32_t k_num_decompression_samples = 100;
 	float sample_times[k_num_decompression_samples];
@@ -244,7 +245,9 @@ static void benchmark_decompression(benchmark::State& state)
 		const float sample_time = sample_times[current_sample_index];
 
 		acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[current_context_index];
-		context.seek(sample_time, acl::sample_rounding_policy::none);
+
+		// Interpolate and clamp as this is the most common scenario
+		context.seek(sample_time, acl::sample_rounding_policy::none, acl::sample_looping_policy::clamp);
 
 		switch (decompression_function)
 		{
