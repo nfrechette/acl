@@ -29,6 +29,7 @@
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
+#include "acl/core/sample_looping_policy.h"
 #include "acl/core/track_desc.h"
 #include "acl/core/track_types.h"
 #include "acl/core/utils.h"
@@ -78,6 +79,9 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the number of samples each track contains.
+		// This does not account for the repeating first sample when the wrap
+		// looping policy is used.
+		// See `sample_looping_policy` for details.
 		uint32_t get_num_samples_per_track() const;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -86,11 +90,47 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the duration of each track.
-		float get_duration() const;
+		// Note that when wrap policy is used, an extra repeating
+		// first sample is artificially inserted at the end of the clip.
+		// This artificial sample maps to the first sample, it only lives once in memory.
+		// This allows us to interpolate from the last sample back to the first
+		// sample when looping and wrapping during playback.
+		// See `sample_looping_policy` for details.
+		float get_duration(sample_looping_policy looping_policy) const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the duration of each track.
+		// Note that when wrap policy is used, an extra repeating
+		// first sample is artificially inserted at the end of the clip.
+		// This artificial sample maps to the first sample, it only lives once in memory.
+		// This allows us to interpolate from the last sample back to the first
+		// sample when looping and wrapping during playback.
+		// See `sample_looping_policy` for details.
+		// This uses the clamp looping policy.
+		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
+		float get_duration() const { return get_duration(sample_looping_policy::clamp); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the finite duration of each track.
-		float get_finite_duration() const;
+		// Note that when wrap policy is used, an extra repeating
+		// first sample is artificially inserted at the end of the clip.
+		// This artificial sample maps to the first sample, it only lives once in memory.
+		// This allows us to interpolate from the last sample back to the first
+		// sample when looping and wrapping during playback.
+		// See `sample_looping_policy` for details.
+		float get_finite_duration(sample_looping_policy looping_policy) const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the finite duration of each track.
+		// Note that when wrap policy is used, an extra repeating
+		// first sample is artificially inserted at the end of the clip.
+		// This artificial sample maps to the first sample, it only lives once in memory.
+		// This allows us to interpolate from the last sample back to the first
+		// sample when looping and wrapping during playback.
+		// See `sample_looping_policy` for details.
+		// This uses the clamp looping policy.
+		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
+		float get_finite_duration() const { return get_finite_duration(sample_looping_policy::clamp); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the sample rate used by each track.

@@ -108,7 +108,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void seek_v0(persistent_universal_decompression_context& context, float sample_time, sample_rounding_policy rounding_policy)
+		inline void seek_v0(persistent_universal_decompression_context& context, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy)
 		{
 			ACL_ASSERT(context.is_initialized(), "Context is not initialized");
 
@@ -120,10 +120,10 @@ namespace acl
 			case track_type8::float3f:
 			case track_type8::float4f:
 			case track_type8::vector4f:
-				seek_v0<decompression_settings_type>(context.scalar, sample_time, rounding_policy);
+				seek_v0<decompression_settings_type>(context.scalar, sample_time, rounding_policy, looping_policy);
 				break;
 			case track_type8::qvvf:
-				seek_v0<decompression_settings_type>(context.transform, sample_time, rounding_policy);
+				seek_v0<decompression_settings_type>(context.transform, sample_time, rounding_policy, looping_policy);
 				break;
 			default:
 				ACL_ASSERT(false, "Invalid track type");

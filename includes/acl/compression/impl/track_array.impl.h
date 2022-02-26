@@ -86,6 +86,32 @@ namespace acl
 		return m_tracks[index];
 	}
 
+	inline float track_array::get_duration(sample_looping_policy looping_policy) const
+	{
+		if (m_allocator == nullptr || m_num_tracks == 0)
+			return 0.0F;
+
+		// When we wrap, we artificially insert a repeating first sample at the end of non-empty clips
+		uint32_t num_samples = m_tracks->get_num_samples();
+		if (looping_policy == sample_looping_policy::wrap && num_samples != 0)
+			num_samples++;
+
+		return calculate_duration(num_samples, m_tracks->get_sample_rate());
+	}
+
+	inline float track_array::get_finite_duration(sample_looping_policy looping_policy) const
+	{
+		if (m_allocator == nullptr || m_num_tracks == 0)
+			return 0.0F;
+
+		// When we wrap, we artificially insert a repeating first sample at the end of non-empty clips
+		uint32_t num_samples = m_tracks->get_num_samples();
+		if (looping_policy == sample_looping_policy::wrap && num_samples != 0)
+			num_samples++;
+
+		return calculate_finite_duration(num_samples, m_tracks->get_sample_rate());
+	}
+
 	inline error_result track_array::is_valid() const
 	{
 		const track_type8 type = get_track_type();
@@ -161,7 +187,7 @@ namespace acl
 	}
 
 	template<class track_writer_type>
-	inline void track_array::sample_tracks(float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const
+	inline void track_array::sample_tracks(float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy, track_writer_type& writer) const
 	{
 		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(is_valid().empty(), "Invalid track array");
@@ -171,13 +197,13 @@ namespace acl
 		const track_type8 track_type = get_track_type();
 
 		// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
-		const float duration = get_finite_duration();
+		const float duration = get_finite_duration(looping_policy);
 		sample_time = rtm::scalar_clamp(sample_time, 0.0F, duration);
 
 		uint32_t key_frame0;
 		uint32_t key_frame1;
 		float interpolation_alpha;
-		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy, key_frame0, key_frame1, interpolation_alpha);
+		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy, looping_policy, key_frame0, key_frame1, interpolation_alpha);
 
 		switch (track_type)
 		{
@@ -258,24 +284,24 @@ namespace acl
 	}
 
 	template<class track_writer_type>
-	inline void track_array::sample_track(uint32_t track_index, float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const
+	inline void track_array::sample_track(uint32_t track_index, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy, track_writer_type& writer) const
 	{
 		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(is_valid().empty(), "Invalid track array");
 		ACL_ASSERT(track_index < m_num_tracks, "Invalid track index");
 
 		const track& track_ = m_tracks[track_index];
-		const uint32_t num_samples = track_.get_num_samples();
-		const float sample_rate = track_.get_sample_rate();
+		const uint32_t num_samples = get_num_samples_per_track();
+		const float sample_rate = get_sample_rate();
 
 		// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
-		const float duration = calculate_finite_duration(num_samples, sample_rate);
+		const float duration = get_finite_duration(looping_policy);
 		sample_time = rtm::scalar_clamp(sample_time, 0.0F, duration);
 
 		uint32_t key_frame0;
 		uint32_t key_frame1;
 		float interpolation_alpha;
-		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy, key_frame0, key_frame1, interpolation_alpha);
+		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy, looping_policy, key_frame0, key_frame1, interpolation_alpha);
 
 		switch (track_.get_type())
 		{

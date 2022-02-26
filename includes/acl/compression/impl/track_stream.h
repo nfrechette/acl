@@ -89,7 +89,6 @@ namespace acl
 			animation_track_type8 get_track_type() const { return m_type; }
 			uint8_t get_bit_rate() const { return m_bit_rate; }
 			bool is_bit_rate_variable() const { return m_bit_rate != k_invalid_bit_rate; }
-			float get_duration() const { return calculate_duration(m_num_samples, m_sample_rate); }
 			float get_finite_duration() const { return calculate_finite_duration(m_num_samples, m_sample_rate); }
 
 			uint32_t get_packed_sample_size() const

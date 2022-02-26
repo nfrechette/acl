@@ -24,9 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
+#include "acl/core/impl/compiler_utils.h"
 
 #include <rtm/scalarf.h>
 
@@ -44,6 +44,9 @@ namespace acl
 	// has a sample at time 0.0 and another at time 1/30s for a duration of 1/30s.
 	// We consider a 0.0 duration as having no samples, an infinite duration as
 	// having 1 sample, and otherwise having at least 1 sample.
+	// This does not account for the repeating first sample when the wrap
+	// looping policy is used.
+	// See `sample_looping_policy` for details.
 	//////////////////////////////////////////////////////////////////////////
 	inline uint32_t calculate_num_samples(float duration, float sample_rate)
 	{
@@ -67,6 +70,9 @@ namespace acl
 	// has a sample at time 0.0 and another at time 1/30s for a duration of 1/30s.
 	// We consider a 0.0 duration as having no samples, an infinite duration as
 	// having 1 sample, and otherwise having at least 1 sample.
+	// This does not account for the repeating first sample when the wrap
+	// looping policy is used.
+	// See `sample_looping_policy` for details.
 	//////////////////////////////////////////////////////////////////////////
 	inline float calculate_duration(uint32_t num_samples, float sample_rate)
 	{
@@ -84,6 +90,9 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculate a clip duration from its number of samples and sample rate
 	// and returns a finite duration suitable for clamping.
+	// This does not account for the repeating first sample when the wrap
+	// looping policy is used.
+	// See `sample_looping_policy` for details.
 	//////////////////////////////////////////////////////////////////////////
 	inline float calculate_finite_duration(uint32_t num_samples, float sample_rate)
 	{

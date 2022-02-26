@@ -58,6 +58,7 @@ namespace acl
 
 			uint32_t clip_hash;									//   8 |  16
 
+			// Only used when the wrap loop policy isn't supported
 			float clip_duration;								//  12 |  20
 
 			rotation_format8 rotation_format;					//  16 |  24

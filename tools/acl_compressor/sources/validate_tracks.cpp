@@ -52,7 +52,15 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 	}
 }
 
-void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold)
+void validate_accuracy(
+	iallocator& allocator,
+	const track_array_qvvf& raw_tracks,
+	const track_array_qvvf& additive_base_tracks,
+	const itransform_error_metric& error_metric,
+	const compressed_tracks& compressed_tracks_,
+	double regression_error_threshold,
+	sample_looping_policy looping_policy
+	)
 {
 	using namespace acl_impl;
 
@@ -73,6 +81,9 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 	const float vec3_error_threshold = 0.0F;
 #endif
 
+	// We use the nearest sample to accurately measure the loss that happened, if any
+	const sample_rounding_policy rounding_policy = sample_rounding_policy::nearest;
+
 	acl::decompression_context<debug_transform_decompression_settings> context;
 
 	const bool initialized = context.initialize(compressed_tracks_);
@@ -83,9 +94,12 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", error.index, error.error, error.sample_time);
 
 	const uint32_t num_tracks = compressed_tracks_.get_num_tracks();
-	const float clip_duration = compressed_tracks_.get_finite_duration();
+	const float clip_duration = compressed_tracks_.get_finite_duration(looping_policy);
 	const float sample_rate = compressed_tracks_.get_sample_rate();
-	const uint32_t num_samples = compressed_tracks_.get_num_samples_per_track();
+
+	// Calculate the number of samples from the duration to account for the repeating
+	// first frame at the end when wrapping is used
+	const uint32_t num_samples = calculate_num_samples(clip_duration, sample_rate);
 
 	debug_track_writer track_writer(allocator, track_type8::qvvf, num_tracks);
 	track_writer.initialize_with_defaults(raw_tracks);
@@ -99,7 +113,7 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
-		context.seek(0.0F, sample_rounding_policy::nearest);
+		context.seek(0.0F, rounding_policy, looping_policy);
 		context.decompress_tracks(track_writer);
 		context.decompress_tracks(track_writer_constant);
 		context.decompress_tracks(track_writer_variable);
@@ -111,18 +125,20 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 		track_writer_clamped.initialize_with_defaults(raw_tracks);
 
 		// Make sure clamping works properly at the start of the clip
-		context.seek(-0.2F, sample_rounding_policy::nearest);
+		context.seek(-0.2F, rounding_policy, looping_policy);
 		context.decompress_tracks(track_writer_clamped);
 
 		validate_transform_tracks(track_writer, track_writer_clamped, quat_error_threshold, vec3_error_threshold);
 
 		// Make sure clamping works properly at the end of the clip
 		const float last_sample_time = rtm::scalar_min(float(num_samples - 1) / sample_rate, clip_duration);
-		context.seek(last_sample_time, sample_rounding_policy::nearest);
+
+		// When using the wrap looping policy, the last sample time will yield the first sample since we completely wrap
+		context.seek(last_sample_time, rounding_policy, looping_policy);
 
 		context.decompress_tracks(track_writer);
 
-		context.seek(last_sample_time + 1.0F, sample_rounding_policy::nearest);
+		context.seek(last_sample_time + 1.0F, rounding_policy, looping_policy);
 		context.decompress_tracks(track_writer_clamped);
 
 		validate_transform_tracks(track_writer, track_writer_clamped, quat_error_threshold, vec3_error_threshold);
@@ -134,7 +150,7 @@ void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks
 		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, clip_duration);
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
-		context.seek(sample_time, sample_rounding_policy::nearest);
+		context.seek(sample_time, rounding_policy, looping_policy);
 		context.decompress_tracks(track_writer);
 		context.decompress_tracks(track_writer_constant);
 		context.decompress_tracks(track_writer_variable);
@@ -227,7 +243,13 @@ void RTM_SIMD_CALL validate_scalar_tracks(const track_array& raw_tracks, const a
 	}
 }
 
-void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold)
+void validate_accuracy(
+	iallocator& allocator,
+	const track_array& raw_tracks,
+	const compressed_tracks& tracks,
+	double regression_error_threshold,
+	sample_looping_policy looping_policy
+	)
 {
 	using namespace acl_impl;
 
@@ -237,16 +259,22 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 	const float regression_error_thresholdf = static_cast<float>(regression_error_threshold);
 	const rtm::vector4f regression_error_thresholdv = rtm::vector_set(regression_error_thresholdf);
 
-	const float duration = tracks.get_finite_duration();
+	// We use the nearest sample to accurately measure the loss that happened, if any
+	const sample_rounding_policy rounding_policy = sample_rounding_policy::nearest;
+
+	const float duration = tracks.get_finite_duration(looping_policy);
 	const float sample_rate = tracks.get_sample_rate();
 	const uint32_t num_tracks = tracks.get_num_tracks();
-	const uint32_t num_samples = tracks.get_num_samples_per_track();
 	const track_type8 track_type = raw_tracks.get_track_type();
 
-	ACL_ASSERT(rtm::scalar_near_equal(duration, raw_tracks.get_finite_duration(), 1.0E-7F), "Duration mismatch");
+	// Calculate the number of samples from the duration to account for the repeating
+	// first frame at the end when wrapping is used
+	const uint32_t num_samples = calculate_num_samples(duration, sample_rate);
+
+	ACL_ASSERT(rtm::scalar_near_equal(duration, raw_tracks.get_finite_duration(looping_policy), 1.0E-7F), "Duration mismatch");
 	ACL_ASSERT(sample_rate == raw_tracks.get_sample_rate(), "Sample rate mismatch");
 	ACL_ASSERT(num_tracks <= raw_tracks.get_num_tracks(), "Num tracks mismatch");
-	ACL_ASSERT(num_samples == raw_tracks.get_num_samples_per_track(), "Num samples mismatch");
+	ACL_ASSERT(duration == raw_tracks.get_finite_duration(looping_policy), "Duration mismatch");
 
 	decompression_context<debug_scalar_decompression_settings> context;
 	context.initialize(tracks);
@@ -258,7 +286,7 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
-		context.seek(0.0F, sample_rounding_policy::nearest);
+		context.seek(0.0F, rounding_policy, looping_policy);
 		context.decompress_tracks(lossy_tracks_writer);
 	}
 
@@ -267,22 +295,22 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 		debug_track_writer track_writer_clamped(allocator, track_type, num_tracks);
 
 		// Make sure clamping works properly at the start of the clip
-		raw_tracks.sample_tracks(0.0F, sample_rounding_policy::nearest, raw_tracks_writer);
+		raw_tracks.sample_tracks(0.0F, rounding_policy, looping_policy, raw_tracks_writer);
 
-		context.seek(-0.2F, sample_rounding_policy::nearest);
+		context.seek(-0.2F, rounding_policy, looping_policy);
 		context.decompress_tracks(track_writer_clamped);
 
 		validate_scalar_tracks(raw_tracks, raw_tracks_writer, track_writer_clamped, regression_error_thresholdv, -0.2F);
 
-		// Make sure clamping works properly at the end of the clip
-		const float last_sample_time = rtm::scalar_min(float(num_samples - 1) / sample_rate, duration);
+		// Make sure clamping works properly at the end of the clip when we clamp
+		const float last_sample_time_clamp = rtm::scalar_min(float(num_samples - 1) / sample_rate, duration);
 
-		raw_tracks.sample_tracks(last_sample_time, sample_rounding_policy::nearest, raw_tracks_writer);
+		raw_tracks.sample_tracks(last_sample_time_clamp, rounding_policy, looping_policy, raw_tracks_writer);
 
-		context.seek(last_sample_time + 1.0F, sample_rounding_policy::nearest);
+		context.seek(last_sample_time_clamp + 1.0F, rounding_policy, looping_policy);
 		context.decompress_tracks(track_writer_clamped);
 
-		validate_scalar_tracks(raw_tracks, raw_tracks_writer, track_writer_clamped, regression_error_thresholdv, last_sample_time + 1.0F);
+		validate_scalar_tracks(raw_tracks, raw_tracks_writer, track_writer_clamped, regression_error_thresholdv, last_sample_time_clamp + 1.0F);
 	}
 
 	// Regression test
@@ -290,10 +318,9 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 	{
 		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
-		// We use the nearest sample to accurately measure the loss that happened, if any
-		raw_tracks.sample_tracks(sample_time, sample_rounding_policy::nearest, raw_tracks_writer);
+		raw_tracks.sample_tracks(sample_time, rounding_policy, looping_policy, raw_tracks_writer);
 
-		context.seek(sample_time, sample_rounding_policy::nearest);
+		context.seek(sample_time, rounding_policy, looping_policy);
 		context.decompress_tracks(lossy_tracks_writer);
 
 		// Validate decompress_tracks
@@ -307,8 +334,7 @@ void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, con
 			if (output_index == k_invalid_track_index)
 				continue;	// Track is being stripped, ignore it
 
-			// We use the nearest sample to accurately measure the loss that happened, if any
-			raw_tracks.sample_track(track_index, sample_time, sample_rounding_policy::nearest, raw_track_writer);
+			raw_tracks.sample_track(track_index, sample_time, rounding_policy, looping_policy, raw_track_writer);
 			context.decompress_track(output_index, lossy_track_writer);
 
 			switch (track_type)
@@ -456,6 +482,12 @@ void validate_metadata(const track_array& raw_tracks, const compressed_tracks& t
 
 static void compare_raw_with_compressed(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& compressed_tracks_)
 {
+	// We use the nearest sample to accurately measure the loss that happened, if any
+	const sample_rounding_policy rounding_policy = sample_rounding_policy::nearest;
+
+	// Use clamp looping policy since it doesn't matter when measuring the error
+	const sample_looping_policy looping_policy = sample_looping_policy::clamp;
+
 	const uint32_t num_tracks = raw_tracks.get_num_tracks();
 
 	uint32_t num_output_tracks = 0;
@@ -523,15 +555,13 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 
 	const uint32_t num_samples = raw_tracks.get_num_samples_per_track();
 	const float sample_rate = raw_tracks.get_sample_rate();
-	const float duration = raw_tracks.get_finite_duration();
+	const float duration = raw_tracks.get_finite_duration(looping_policy);
 
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
 		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
-		// Round to nearest to land directly on a sample
-		context.seek(sample_time, sample_rounding_policy::nearest);
-
+		context.seek(sample_time, rounding_policy, looping_policy);
 		context.decompress_tracks(writer);
 
 		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
