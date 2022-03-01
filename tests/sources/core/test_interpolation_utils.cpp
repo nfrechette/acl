@@ -196,7 +196,7 @@ TEST_CASE("interpolation utils", "[core][utils]")
 
 		CHECK(key0 == 0);
 		CHECK(key1 == 0);
-		CHECK(scalar_near_equal(alpha, 0.0F, error_threshold));
+		CHECK((scalar_near_equal(alpha, 0.0F, error_threshold) || scalar_near_equal(alpha, 1.0F, error_threshold)));
 
 		find_linear_interpolation_samples_with_duration(1, 1.0F / 30.0F, 0.5F / 30.0F, sample_rounding_policy::none, sample_looping_policy::wrap, key0, key1, alpha);
 
@@ -220,7 +220,7 @@ TEST_CASE("interpolation utils", "[core][utils]")
 
 		CHECK(key0 == 0);
 		CHECK(key1 == 0);
-		CHECK(scalar_near_equal(alpha, 0.0F, error_threshold));
+		CHECK((scalar_near_equal(alpha, 0.0F, error_threshold) || scalar_near_equal(alpha, 1.0F, error_threshold)));
 	}
 
 	//////////////////////////////////////////////////////////////////////////
