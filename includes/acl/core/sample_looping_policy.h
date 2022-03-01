@@ -34,6 +34,14 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// The sample time is clamped between [0, clip duration], inclusive.
+		// This is equivalent to the clamp policy and is provided for readability.
+		// Both values are interchangeable.
+		// This should always be used for non-looping playback whether or not the
+		// looping clips should wrap.
+		non_looping = 0,
+
+		//////////////////////////////////////////////////////////////////////////
+		// The sample time is clamped between [0, clip duration], inclusive.
 		// This is the proper way to handle looping clips. This means that clips
 		// that need to loop seamlessly require their last sample to match the first
 		// sample because we never interpolate between the last and first samples
@@ -46,9 +54,7 @@ namespace acl
 		// This makes it possible to extract the total root motion by sampling at
 		// the full duration of the clip and at 0 seconds while subtracting the two.
 		// This is the prior (and recommended) ACL behavior for v2.0 and earlier.
-		// This should always be used for non-looping playback whether or not the
-		// looping clips should wrap.
-		clamp,
+		clamp = 0,
 
 		//////////////////////////////////////////////////////////////////////////
 		// The sample time wraps around the end of the clip meaning that the
@@ -64,7 +70,7 @@ namespace acl
 		// This should only be used in runtimes that require wrapping and only
 		// when sampling a looping clip.
 		// DO NOT USE this for non-looping playback.
-		wrap,
+		wrap = 1,
 	};
 }
 

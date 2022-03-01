@@ -484,9 +484,7 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 {
 	// We use the nearest sample to accurately measure the loss that happened, if any
 	const sample_rounding_policy rounding_policy = sample_rounding_policy::nearest;
-
-	// Use clamp looping policy since it doesn't matter when measuring the error
-	const sample_looping_policy looping_policy = sample_looping_policy::clamp;
+	const sample_looping_policy looping_policy = sample_looping_policy::non_looping;
 
 	const uint32_t num_tracks = raw_tracks.get_num_tracks();
 
