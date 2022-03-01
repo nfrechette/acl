@@ -77,8 +77,7 @@ namespace acl
 		if (error.any())
 			return error;
 
-		// Clamp during conversion
-		const sample_looping_policy looping_policy = sample_looping_policy::clamp;
+		const sample_looping_policy looping_policy = sample_looping_policy::non_looping;
 
 		const uint32_t num_tracks = tracks.get_num_tracks();
 		const track_type8 track_type = tracks.get_track_type();

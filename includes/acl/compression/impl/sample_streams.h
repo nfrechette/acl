@@ -646,7 +646,7 @@ namespace acl
 			const sample_rounding_policy rounding_policy = sample_rounding_policy::nearest;
 
 			// Never consider our clip as looping when compressing
-			const sample_looping_policy looping_policy = sample_looping_policy::clamp;
+			const sample_looping_policy looping_policy = sample_looping_policy::non_looping;
 
 			const clip_context* clip = segment.clip;
 			find_linear_interpolation_samples_with_sample_rate(clip->num_samples, clip->sample_rate, sample_time, rounding_policy, looping_policy, key0, key1, interpolation_alpha);

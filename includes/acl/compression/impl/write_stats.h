@@ -400,7 +400,7 @@ namespace acl
 			writer["compressed_size"] = compressed_size;
 			writer["compression_ratio"] = compression_ratio;
 			writer["compression_time"] = compression_time.get_elapsed_seconds();
-			writer["duration"] = track_list.get_duration(sample_looping_policy::clamp);
+			writer["duration"] = track_list.get_duration(sample_looping_policy::non_looping);
 			writer["num_samples"] = track_list.get_num_samples_per_track();
 			writer["num_bones"] = compressed_clip.get_num_tracks();
 			writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);

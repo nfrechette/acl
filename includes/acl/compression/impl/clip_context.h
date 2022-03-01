@@ -189,7 +189,7 @@ namespace acl
 			out_clip_context.num_bones = num_transforms;
 			out_clip_context.num_samples = num_samples;
 			out_clip_context.sample_rate = sample_rate;
-			out_clip_context.duration = track_list.get_finite_duration(sample_looping_policy::clamp);	// Clamp during compression
+			out_clip_context.duration = track_list.get_finite_duration(sample_looping_policy::non_looping);
 			out_clip_context.are_rotations_normalized = false;
 			out_clip_context.are_translations_normalized = false;
 			out_clip_context.are_scales_normalized = false;
