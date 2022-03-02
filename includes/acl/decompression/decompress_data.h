@@ -711,7 +711,7 @@ namespace acl
 	}
 
 	template <class SettingsType, class DecompressionContextType, class SamplingContextType>
-	inline Quat_32 ACL_SIMD_CALL decompress_and_interpolate_rotation(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
+	inline Quat_32 ACL_SIMD_CALL decompress_and_interpolate_rotation(const SettingsType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, float const interpolation_alpha, SamplingContextType& sampling_context)
 	{
 		static_assert(SamplingContextType::k_num_samples_to_interpolate == 2 || SamplingContextType::k_num_samples_to_interpolate == 4, "Unsupported number of samples");
 
@@ -1031,9 +1031,9 @@ namespace acl
 				}
 
 				if (static_condition<num_key_frames == 4>::test())
-					interpolated_rotation = SamplingContextType::interpolate_rotation(rotation0, rotation1, rotation2, rotation3, decomp_context.interpolation_alpha);
+					interpolated_rotation = SamplingContextType::interpolate_rotation(rotation0, rotation1, rotation2, rotation3, interpolation_alpha);
 				else
-					interpolated_rotation = SamplingContextType::interpolate_rotation(rotation0, rotation1, decomp_context.interpolation_alpha);
+					interpolated_rotation = SamplingContextType::interpolate_rotation(rotation0, rotation1, interpolation_alpha);
 
 				ACL_ASSERT(quat_is_finite(interpolated_rotation), "Rotation is not valid!");
 				ACL_ASSERT(quat_is_normalized(interpolated_rotation), "Rotation is not normalized!");
@@ -1045,7 +1045,7 @@ namespace acl
 	}
 
 	template<class SettingsAdapterType, class DecompressionContextType, class SamplingContextType>
-	inline Vector4_32 ACL_SIMD_CALL decompress_and_interpolate_vector(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, SamplingContextType& sampling_context)
+	inline Vector4_32 ACL_SIMD_CALL decompress_and_interpolate_vector(const SettingsAdapterType& settings, const ClipHeader& header, const DecompressionContextType& decomp_context, float const interpolation_alpha, SamplingContextType& sampling_context)
 	{
 		static_assert(SamplingContextType::k_num_samples_to_interpolate == 2 || SamplingContextType::k_num_samples_to_interpolate == 4, "Unsupported number of samples");
 
@@ -1240,9 +1240,9 @@ namespace acl
 				}
 
 				if (static_condition<num_key_frames == 4>::test())
-					interpolated_vector = SamplingContextType::interpolate_vector4(vector0, vector1, vector2, vector3, decomp_context.interpolation_alpha);
+					interpolated_vector = SamplingContextType::interpolate_vector4(vector0, vector1, vector2, vector3, interpolation_alpha);
 				else
-					interpolated_vector = SamplingContextType::interpolate_vector4(vector0, vector1, decomp_context.interpolation_alpha);
+					interpolated_vector = SamplingContextType::interpolate_vector4(vector0, vector1, interpolation_alpha);
 
 				ACL_ASSERT(vector_is_finite3(interpolated_vector), "Vector is not valid!");
 			}

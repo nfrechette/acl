@@ -62,6 +62,24 @@ namespace acl
 	};
 
 	//////////////////////////////////////////////////////////////////////////
+	// Modify an interpolation alpha value given a sample rounding policy
+	inline float apply_rounding_policy(float const interpolation_alpha, SampleRoundingPolicy const policy)
+	{
+		switch (policy)
+		{
+		default:
+		case SampleRoundingPolicy::None:
+			return interpolation_alpha;
+		case SampleRoundingPolicy::Floor:
+			return 0.0F;
+		case SampleRoundingPolicy::Ceil:
+			return 1.0F;
+		case SampleRoundingPolicy::Nearest:
+			return floor(interpolation_alpha + 0.5F);
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	// Calculates the sample indices and the interpolation required to linearly
 	// interpolate when the samples are uniform.
 	// The returned sample indices are clamped and do not loop.
@@ -88,23 +106,7 @@ namespace acl
 
 		out_sample_index0 = sample_index0;
 		out_sample_index1 = sample_index1;
-
-		switch (rounding_policy)
-		{
-		default:
-		case SampleRoundingPolicy::None:
-			out_interpolation_alpha = interpolation_alpha;
-			break;
-		case SampleRoundingPolicy::Floor:
-			out_interpolation_alpha = 0.0F;
-			break;
-		case SampleRoundingPolicy::Ceil:
-			out_interpolation_alpha = 1.0F;
-			break;
-		case SampleRoundingPolicy::Nearest:
-			out_interpolation_alpha = floor(interpolation_alpha + 0.5F);
-			break;
-		}
+		out_interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy);
 	}
 
 	ACL_DEPRECATED("Use find_linear_interpolation_samples_with_duration instead, to be removed in v2.0")

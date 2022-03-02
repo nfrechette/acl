@@ -29,6 +29,7 @@
 #include "acl/core/error.h"
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/interpolation_mask.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/track_traits.h"
 #include "acl/core/track_types.h"
@@ -125,7 +126,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Initializes the context instance to a particular compressed tracks instance.
-		void initialize(const compressed_tracks& tracks);
+		void initialize(const compressed_tracks& tracks, const interpolation_mask* interpolationMask = nullptr);
 
 		bool is_dirty(const compressed_tracks& tracks);
 
@@ -210,7 +211,7 @@ namespace acl
 	}
 
 	template<class decompression_settings_type>
-	inline void decompression_context<decompression_settings_type>::initialize(const compressed_tracks& tracks)
+	inline void decompression_context<decompression_settings_type>::initialize(const compressed_tracks& tracks, const interpolation_mask* interpolationMask)
 	{
 		ACL_ASSERT(tracks.is_valid(false).empty(), "Compressed tracks are not valid");
 		ACL_ASSERT(tracks.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
@@ -220,6 +221,7 @@ namespace acl
 		m_context.duration = tracks.get_duration();
 		m_context.sample_time = -1.0F;
 		m_context.interpolation_alpha = 0.0;
+		m_context.interp_mask = interpolationMask;
 	}
 
 	template<class decompression_settings_type>
@@ -288,6 +290,13 @@ namespace acl
 			const uint8_t bit_rate = metadata.bit_rate;
 			const uint8_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate);
 
+			float interpolation_alpha = m_context.interpolation_alpha;
+			if (m_context.interp_mask)
+			{
+				SampleRoundingPolicy const rounding_policy = m_context.interp_mask->get(track_index);
+				interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy);
+			}
+
 			if (header.track_type == track_type8::float1f && m_settings.is_track_type_supported(track_type8::float1f))
 			{
 				rtm::scalarf value;
@@ -317,7 +326,7 @@ namespace acl
 						range_values += 2;
 					}
 
-					value = rtm::scalar_lerp(value0, value1, m_context.interpolation_alpha);
+					value = rtm::scalar_lerp(value0, value1, interpolation_alpha);
 
 					const uint32_t num_sample_bits = num_bits_per_component;
 					track_bit_offset0 += num_sample_bits;
@@ -355,7 +364,7 @@ namespace acl
 						range_values += 4;
 					}
 
-					value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
+					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 
 					const uint32_t num_sample_bits = num_bits_per_component * 2;
 					track_bit_offset0 += num_sample_bits;
@@ -393,7 +402,7 @@ namespace acl
 						range_values += 6;
 					}
 
-					value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
+					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 
 					const uint32_t num_sample_bits = num_bits_per_component * 3;
 					track_bit_offset0 += num_sample_bits;
@@ -431,7 +440,7 @@ namespace acl
 						range_values += 8;
 					}
 
-					value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
+					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 
 					const uint32_t num_sample_bits = num_bits_per_component * 4;
 					track_bit_offset0 += num_sample_bits;
@@ -469,7 +478,7 @@ namespace acl
 						range_values += 8;
 					}
 
-					value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
+					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 
 					const uint32_t num_sample_bits = num_bits_per_component * 4;
 					track_bit_offset0 += num_sample_bits;
@@ -491,6 +500,13 @@ namespace acl
 		static_assert(std::is_base_of<track_writer, track_writer_type>::value, "track_writer_type must derive from track_writer");
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
 		ACL_ASSERT(track_index < m_context.tracks->get_num_tracks(), "Invalid track index");
+
+		float interpolation_alpha = m_context.interpolation_alpha;
+		if (m_context.interp_mask)
+		{
+			SampleRoundingPolicy const rounding_policy = m_context.interp_mask->get(track_index);
+			interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy);
+		}
 
 		// Due to the SIMD operations, we sometimes overflow in the SIMD lanes not used.
 		// Disable floating point exceptions to avoid issues.
@@ -551,7 +567,7 @@ namespace acl
 					value1 = rtm::scalar_mul_add(value1, range_extent, range_min);
 				}
 
-				value = rtm::scalar_lerp(value0, value1, m_context.interpolation_alpha);
+				value = rtm::scalar_lerp(value0, value1, interpolation_alpha);
 			}
 
 			writer.write_float1(track_index, value);
@@ -581,7 +597,7 @@ namespace acl
 					value1 = rtm::vector_mul_add(value1, range_extent, range_min);
 				}
 
-				value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
+				value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 			}
 
 			writer.write_float2(track_index, value);
@@ -611,7 +627,7 @@ namespace acl
 					value1 = rtm::vector_mul_add(value1, range_extent, range_min);
 				}
 
-				value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
+				value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 			}
 
 			writer.write_float3(track_index, value);
@@ -641,7 +657,7 @@ namespace acl
 					value1 = rtm::vector_mul_add(value1, range_extent, range_min);
 				}
 
-				value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
+				value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 			}
 
 			writer.write_float4(track_index, value);
@@ -671,7 +687,7 @@ namespace acl
 					value1 = rtm::vector_mul_add(value1, range_extent, range_min);
 				}
 
-				value = rtm::vector_lerp(value0, value1, m_context.interpolation_alpha);
+				value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 			}
 
 			writer.write_vector4(track_index, value);

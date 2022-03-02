@@ -26,6 +26,7 @@
 
 #include "acl/core/compiler_utils.h"
 #include "acl/core/compressed_tracks.h"
+#include "acl/core/interpolation_mask.h"
 
 #include <rtm/scalarf.h>
 #include <rtm/vector4f.h>
@@ -53,7 +54,10 @@ namespace acl
 
 			uint32_t key_frame_bit_offsets[2];				//  20 |  24	// Variable quantization
 
-			uint8_t padding_tail[sizeof(void*) == 4 ? 36 : 32];
+			// Interpolation mask
+			const interpolation_mask* interp_mask;			//  28 |  32
+
+			uint8_t padding_tail[sizeof(void*) == 4 ? 32 : 24];
 
 			//////////////////////////////////////////////////////////////////////////
 

@@ -30,6 +30,7 @@
 #include "acl/core/compressed_clip.h"
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/interpolation_mask.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/utils.h"
@@ -105,7 +106,9 @@ namespace acl
 				float interpolation_alpha;						//  76 | 120
 				float sample_time;								//  80 | 124
 
-				uint8_t padding1[sizeof(void*) == 4 ? 44 : 64];	//  84 | 128	// 64 bit has a full cache line of padding, can't have 0 length array
+				const interpolation_mask* interp_mask;			//  84 | 128
+
+				uint8_t padding1[sizeof(void*) == 4 ? 40 : 56];	//  88 | 136
 
 				//									Total size:	   128 | 192
 			};
@@ -309,7 +312,7 @@ namespace acl
 
 			//////////////////////////////////////////////////////////////////////////
 			// Initializes the context instance to a particular compressed clip
-			void initialize(const CompressedClip& clip);
+			void initialize(const CompressedClip& clip, const interpolation_mask* interpolationMask = nullptr);
 
 			bool is_dirty(const CompressedClip& clip);
 
@@ -389,7 +392,7 @@ namespace acl
 		}
 
 		template<class DecompressionSettingsType>
-		inline void DecompressionContext<DecompressionSettingsType>::initialize(const CompressedClip& clip)
+		inline void DecompressionContext<DecompressionSettingsType>::initialize(const CompressedClip& clip, const interpolation_mask* interpolationMask)
 		{
 			ACL_ASSERT(clip.is_valid(false).empty(), "CompressedClip is not valid");
 			ACL_ASSERT(clip.get_algorithm_type() == AlgorithmType8::UniformlySampled, "Invalid algorithm type [%s], expected [%s]", get_algorithm_name(clip.get_algorithm_type()), get_algorithm_name(AlgorithmType8::UniformlySampled));
@@ -442,6 +445,8 @@ namespace acl
 			const bool is_every_format_variable = is_rotation_format_variable(rotation_format) && is_vector_format_variable(translation_format) && is_vector_format_variable(scale_format);
 			const bool is_any_format_variable = is_rotation_format_variable(rotation_format) || is_vector_format_variable(translation_format) || is_vector_format_variable(scale_format);
 			m_context.has_mixed_packing = !is_every_format_variable && is_any_format_variable;
+
+			m_context.interp_mask = interpolationMask;
 		}
 
 		template<class DecompressionSettingsType>
@@ -579,11 +584,18 @@ namespace acl
 			const uint16_t num_bones = header.num_bones;
 			for (uint16_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
+				float interpolation_alpha = m_context.interpolation_alpha;
+				if (m_context.interp_mask)
+				{
+					SampleRoundingPolicy const rounding_policy = m_context.interp_mask->get(bone_index);
+					interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy);
+				}
+
 				if (writer.skip_all_bone_rotations() || writer.skip_bone_rotation(bone_index))
 					skip_over_rotation(m_settings, header, m_context, sampling_context);
 				else
 				{
-					const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
+					const Quat_32 rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, interpolation_alpha, sampling_context);
 					writer.write_bone_rotation(bone_index, rotation);
 				}
 
@@ -591,7 +603,7 @@ namespace acl
 					skip_over_vector(translation_adapter, header, m_context, sampling_context);
 				else
 				{
-					const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
+					const Vector4_32 translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, interpolation_alpha, sampling_context);
 					writer.write_bone_translation(bone_index, translation);
 				}
 
@@ -602,7 +614,7 @@ namespace acl
 				}
 				else
 				{
-					const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
+					const Vector4_32 scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, interpolation_alpha, sampling_context) : scale_adapter.get_default_value();
 					writer.write_bone_scale(bone_index, scale);
 				}
 			}
@@ -622,6 +634,13 @@ namespace acl
 			fp_environment fp_env;
 			if (m_settings.disable_fp_exeptions())
 				disable_fp_exceptions(fp_env);
+
+			float interpolation_alpha = m_context.interpolation_alpha;
+			if (m_context.interp_mask)
+			{
+				SampleRoundingPolicy const rounding_policy = m_context.interp_mask->get(sample_bone_index);
+				interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy);
+			}
 
 			const ClipHeader& header = get_clip_header(*m_context.clip);
 
@@ -805,12 +824,12 @@ namespace acl
 			}
 
 			if (out_rotation != nullptr)
-				*out_rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, sampling_context);
+				*out_rotation = decompress_and_interpolate_rotation(m_settings, header, m_context, interpolation_alpha, sampling_context);
 			else
 				skip_over_rotation(m_settings, header, m_context, sampling_context);
 
 			if (out_translation != nullptr)
-				*out_translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, sampling_context);
+				*out_translation = decompress_and_interpolate_vector(translation_adapter, header, m_context, interpolation_alpha, sampling_context);
 			else if (out_scale != nullptr && header.has_scale)
 			{
 				// We'll need to read the scale value that follows, skip the translation we don't need
@@ -818,7 +837,7 @@ namespace acl
 			}
 
 			if (out_scale != nullptr)
-				*out_scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, sampling_context) : scale_adapter.get_default_value();
+				*out_scale = header.has_scale ? decompress_and_interpolate_vector(scale_adapter, header, m_context, interpolation_alpha, sampling_context) : scale_adapter.get_default_value();
 			// No need to skip our last scale, we don't care anymore
 
 			if (m_settings.disable_fp_exeptions())
