@@ -19,6 +19,8 @@ Wrapping means that looping clips must interpolate between the first and last sa
 
 This is often used by host runtimes that hope to save a bit of extra memory by not including a largely identical sample but doing so adds complexity and [may not save as much as one might think](https://nfrechette.github.io/2020/08/09/animation_data_numbers/). It is also incorrect for any track that cannot safely interpolate between its last and first sample. For example, it is common for animations to store root motion as an absolute displacement from the start of the clip in the root joint. At a duration of 0 seconds, the root would be at 0 centimeter while at some duration N, the root would be at some distance from the start. Interpolating between the last sample and the first would mean doing so between a large value and a small one that are otherwise not neighboring. Because we artificially introduce a repeating first sample at the end to loop, that sample might have extra information that will be missing as is the case with root motion. This is most commonly mitigated by assuming that the velocity is constant between the second to last and last sample. Extracting the full displacement of the clip also becomes problematic as sampling the clip at its full duration will yield the first sample.
 
+Note that when using the default decompression settings, the wrap policy is not supported and attempting to use it will assert and fail. You can enable this by customizing the decompression settings. See [acl/decompression/decompression_settings.h](../includes/acl/decompression/decompression_settings.h) for details.
+
 **THE WRAP POLICY SHOULD NOT BE USED WITH NON-LOOPING PLAYBACK.**
 
 ## Non-looping policy
