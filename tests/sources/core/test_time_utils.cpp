@@ -24,7 +24,7 @@
 
 #include <catch2/catch.hpp>
 
-#include <acl/core/utils.h>
+#include <acl/core/time_utils.h>
 #include <rtm/scalarf.h>
 
 #include <limits>

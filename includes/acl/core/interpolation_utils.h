@@ -27,7 +27,7 @@
 #include "acl/core/error.h"
 #include "acl/core/sample_looping_policy.h"
 #include "acl/core/sample_rounding_policy.h"
-#include "acl/core/utils.h"
+#include "acl/core/time_utils.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <rtm/scalarf.h>
