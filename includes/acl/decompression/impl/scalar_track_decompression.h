@@ -117,8 +117,6 @@ namespace acl
 		template<class decompression_settings_type>
 		inline void seek_v0(persistent_scalar_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy)
 		{
-			ACL_ASSERT(looping_policy == sample_looping_policy::clamp || decompression_settings_type::is_wrapping_supported(), "Wrapping must be enabled in the decompression settings");
-
 			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*context.tracks);
 			if (header.num_samples == 0)
 				return;	// Empty track list
