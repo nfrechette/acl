@@ -30,9 +30,9 @@
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/sample_looping_policy.h"
+#include "acl/core/time_utils.h"
 #include "acl/core/track_desc.h"
 #include "acl/core/track_types.h"
-#include "acl/core/utils.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/impl/compressed_headers.h"
 

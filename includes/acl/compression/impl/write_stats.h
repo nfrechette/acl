@@ -26,8 +26,8 @@
 
 #if defined(SJSON_CPP_WRITER)
 
+#include "acl/core/time_utils.h"
 #include "acl/core/track_formats.h"
-#include "acl/core/utils.h"
 #include "acl/core/variable_bit_rates.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/transform_error_metrics.h"

@@ -28,9 +28,9 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/sample_looping_policy.h"
 #include "acl/core/sample_rounding_policy.h"
+#include "acl/core/time_utils.h"
 #include "acl/core/track_types.h"
 #include "acl/core/track_writer.h"
-#include "acl/core/utils.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track.h"
 
