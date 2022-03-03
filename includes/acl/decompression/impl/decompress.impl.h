@@ -106,6 +106,7 @@ namespace acl
 	{
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
 		ACL_ASSERT(rtm::scalar_is_finite(sample_time), "Invalid sample time");
+		ACL_ASSERT(looping_policy == sample_looping_policy::clamp || decompression_settings_type::is_wrapping_supported(), "Wrapping must be enabled in the decompression settings");
 
 		if (!m_context.is_initialized())
 			return;	// Context is not initialized
