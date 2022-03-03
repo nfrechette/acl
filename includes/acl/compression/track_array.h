@@ -186,12 +186,14 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Sample all tracks within this array at the specified sample time and
 		// desired rounding policy. Track samples are written out using the `track_writer` provided.
+		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
 		template<class track_writer_type>
 		void sample_tracks(float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy, track_writer_type& writer) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Sample all tracks within this array at the specified sample time and
 		// desired rounding policy. Track samples are written out using the `track_writer` provided.
+		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
 		// This uses the clamp looping policy.
 		template<class track_writer_type>
 		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
@@ -200,12 +202,14 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Sample a single track within this array at the specified sample time and
 		// desired rounding policy. The track sample is written out using the `track_writer` provided.
+		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
 		template<class track_writer_type>
 		void sample_track(uint32_t track_index, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy, track_writer_type& writer) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Sample a single track within this array at the specified sample time and
 		// desired rounding policy. The track sample is written out using the `track_writer` provided.
+		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
 		// This uses the clamp looping policy.
 		template<class track_writer_type>
 		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
