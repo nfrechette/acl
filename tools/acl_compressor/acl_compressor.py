@@ -624,8 +624,8 @@ def run_stat_parsing(options, stat_queue, result_queue):
 						if 'segments' in run_stats and len(run_stats['segments']) > 0:
 							segment_index = 0
 							for segment in run_stats['segments']:
-								if 'animated_frame_size' in segment and options['csv_animated_size']:
-									stats_animated_size.append((run_stats['clip_name'], segment_index, segment['animated_frame_size'], run_stats['num_animated_tracks']))
+								num_animated_tracks = run_stats.get('num_animated_tracks', 0)
+								stats_animated_size.append((run_stats['clip_name'], segment_index, float(segment['animated_frame_size']), num_animated_tracks))
 
 								if 'error_per_frame_and_bone' in segment and len(segment['error_per_frame_and_bone']) > 0:
 									# Convert to array, lower memory footprint and more efficient
@@ -684,6 +684,7 @@ def aggregate_job_stats(agg_job_results, job_results):
 	else:
 		agg_job_results['num_runs'] += job_results['num_runs']
 		agg_job_results['total_compression_time'] += job_results['total_compression_time']
+
 		for key in job_results['agg_run_stats'].keys():
 			if not key in agg_job_results['agg_run_stats']:
 				agg_job_results['agg_run_stats'][key] = job_results['agg_run_stats'][key].copy()
@@ -748,6 +749,7 @@ def aggregate_job_stats(agg_job_results, job_results):
 
 		agg_job_results['bone_error_values'] = numpy.append(agg_job_results['bone_error_values'], job_results['bone_error_values'])
 		agg_job_results['compression_times'] = numpy.append(agg_job_results['compression_times'], job_results['compression_times'])
+		agg_job_results['stats_animated_size'] += job_results['stats_animated_size']
 
 def percentile_rank(values, value):
 	return (values < value).mean() * 100.0
@@ -948,12 +950,13 @@ if __name__ == "__main__":
 	total_compression_time = sum([x['total_compression_time'] for x in agg_run_stats.values()])
 	total_max_error = max([x['max_error'] for x in agg_run_stats.values()])
 	total_ratio = float(total_raw_size) / float(total_compressed_size)
-	tmp = list(chain.from_iterable([x['compressed_size'] for x in agg_run_stats.values()]))
-	compressed_size_p50 = bytes_to_kb(numpy.percentile(tmp, 50.0))
-	compressed_size_p85 = bytes_to_kb(numpy.percentile(tmp, 85.0))
-	compressed_size_p99 = bytes_to_kb(numpy.percentile(tmp, 99.0))
+	clip_compressed_sizes = list(chain.from_iterable([x['compressed_size'] for x in agg_run_stats.values()]))
+	clip_animated_frame_sizes = [x[2] for x in agg_job_results['stats_animated_size']]
+
 	print('Compressed {:.2f} MB, Elapsed {}, Ratio [{:.2f} : 1], Max error [{:.4f}]'.format(bytes_to_mb(total_compressed_size), format_elapsed_time(total_compression_time), total_ratio, total_max_error))
-	print('    50, 85, 99th percentile: {:.2f} KB, {:.2f} KB, {:.2f} KB'.format(compressed_size_p50, compressed_size_p85, compressed_size_p99))
+	print('    Compressed size     50, 85, 99th percentile: {:.2f}, {:.2f}, {:.2f} KB'.format(bytes_to_kb(numpy.percentile(clip_compressed_sizes, 50.0)), bytes_to_kb(numpy.percentile(clip_compressed_sizes, 85.0)), bytes_to_kb(numpy.percentile(clip_compressed_sizes, 99.0))))
+	print('    Animated frame size 50, 85, 99th percentile: {:.2f}, {:.2f}, {:.2f} B'.format(numpy.percentile(clip_animated_frame_sizes, 50.0), numpy.percentile(clip_animated_frame_sizes, 85.0), numpy.percentile(clip_animated_frame_sizes, 99.0)))
+	print('    Compression time    50, 85, 99th percentile: {:.3f}, {:.3f}, {:.3f} seconds'.format(numpy.percentile(agg_job_results['compression_times'], 50.0), numpy.percentile(agg_job_results['compression_times'], 85.0), numpy.percentile(agg_job_results['compression_times'], 99.0)))
 	print()
 
 	total_duration = sum([x['total_duration'] for x in agg_run_stats.values()])
@@ -962,7 +965,6 @@ if __name__ == "__main__":
 	print('Total compression time: {} ({:.3f} seconds)'.format(format_elapsed_time(total_compression_time), total_compression_time))
 	print('Total raw size: {:.2f} MB'.format(bytes_to_mb(total_raw_size)))
 	print('Compression speed: {:.2f} KB/sec'.format(bytes_to_kb(total_raw_size) / total_compression_time))
-	print('Compression time 50, 85, 99th percentile: {:.3f}, {:.3f}, {:.3f} seconds'.format(numpy.percentile(agg_job_results['compression_times'], 50.0), numpy.percentile(agg_job_results['compression_times'], 85.0), numpy.percentile(agg_job_results['compression_times'], 99.0)))
 	if len(agg_job_results['bone_error_values']) > 0:
 		print('Bone error 99th percentile: {:.4f}'.format(numpy.percentile(agg_job_results['bone_error_values'], 99.0)))
 		print('Error threshold percentile rank: {:.2f} (0.01)'.format(percentile_rank(agg_job_results['bone_error_values'], 0.01)))
