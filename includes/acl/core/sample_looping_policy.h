@@ -34,14 +34,6 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// The sample time is clamped between [0, clip duration], inclusive.
-		// This is equivalent to the clamp policy and is provided for readability.
-		// Both values are interchangeable.
-		// This should always be used for non-looping playback whether or not the
-		// looping clips should wrap.
-		non_looping = 0,
-
-		//////////////////////////////////////////////////////////////////////////
-		// The sample time is clamped between [0, clip duration], inclusive.
 		// This is the proper way to handle looping clips. This means that clips
 		// that need to loop seamlessly require their last sample to match the first
 		// sample because we never interpolate between the last and first samples
@@ -71,6 +63,18 @@ namespace acl
 		// when sampling a looping clip.
 		// DO NOT USE this for non-looping playback.
 		wrap = 1,
+
+		//////////////////////////////////////////////////////////////////////////
+		// The sample time is clamped between [0, clip duration], inclusive.
+		// This is equivalent to the clamp policy and is provided for readability.
+		// Both values are interchangeable.
+		// This should always be used for non-looping playback whether or not the
+		// looping clips should wrap.
+		non_looping = clamp,
+
+		//////////////////////////////////////////////////////////////////////////
+		// TODO: Implement, see https://github.com/nfrechette/acl/issues/401
+		//auto_detect = 2,
 	};
 }
 
