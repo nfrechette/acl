@@ -226,7 +226,6 @@ def get_toolchain(compiler, cmake_script_dir):
 
 def set_compiler_env(compiler, args):
 	if platform.system() == 'Linux':
-		os.environ['MAKEFLAGS'] = '-j{}'.format(args.num_threads)
 		if compiler == 'clang4':
 			os.environ['CC'] = 'clang-4.0'
 			os.environ['CXX'] = 'clang++-4.0'
@@ -897,6 +896,9 @@ if __name__ == "__main__":
 
 	regression_data_dir = do_prepare_regression_test_data(test_data_dir, args)
 	decomp_data_dir = do_prepare_decompression_test_data(test_data_dir, args)
+
+	# Make sure 'make' runs with all available cores
+	os.environ['MAKEFLAGS'] = '-j{}'.format(args.num_threads)
 
 	do_generate_solution(build_dir, cmake_script_dir, regression_data_dir, decomp_data_dir, args)
 
