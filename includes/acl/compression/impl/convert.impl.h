@@ -200,7 +200,7 @@ namespace acl
 
 			acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
 
-			if(track_type == track_type8::qvvf)
+			if (track_type == track_type8::qvvf)
 				writer.initialize_with_defaults(result);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
