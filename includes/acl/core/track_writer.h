@@ -63,6 +63,7 @@ namespace acl
 		// This is only for backwards compatibility and will be deprecated/removed for ACL 3.0
 		// To handle additive scale properly, use the correct sub-track mode and
 		// ensure the track_writer returns the correct value
+		// You can query what scale value to use from `compressed_tracks::get_default_scale()`
 		// USED FOR SCALE SUB-TRACKS ONLY
 		//ACL_DEPRECATED("Use 'constant' instead and make sure the track_writer returns the correct value")
 		legacy,
