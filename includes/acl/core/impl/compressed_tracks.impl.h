@@ -101,6 +101,8 @@ namespace acl
 
 	inline bool compressed_tracks::has_trivial_default_values() const { return acl_impl::get_tracks_header(*this).get_has_trivial_default_values(); }
 
+	inline float compressed_tracks::get_default_scale() const { return float(acl_impl::get_tracks_header(*this).get_default_scale()); }
+
 	inline const char* compressed_tracks::get_name() const
 	{
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);

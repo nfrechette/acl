@@ -146,6 +146,11 @@ namespace acl
 		bool has_trivial_default_values() const;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the default scale value used during compression.
+		// Depending on the additive type, this value will either be 0.0 or 1.0.
+		float get_default_scale() const;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the track list name if metadata is present, nullptr otherwise.
 		const char* get_name() const;
 
