@@ -150,8 +150,6 @@ namespace acl
 			bool has_scale								= false;
 			bool has_additive_base						= false;
 
-			additive_clip_format8 additive_format		= additive_clip_format8::none;
-
 			uint32_t num_leaf_transforms				= 0;
 
 			iallocator* allocator						= nullptr;	// Never null if the context is initialized
@@ -194,7 +192,6 @@ namespace acl
 			out_clip_context.are_translations_normalized = false;
 			out_clip_context.are_scales_normalized = false;
 			out_clip_context.has_additive_base = additive_format != additive_clip_format8::none;
-			out_clip_context.additive_format = additive_format;
 			out_clip_context.num_leaf_transforms = 0;
 			out_clip_context.allocator = &allocator;
 
