@@ -142,16 +142,17 @@ namespace acl
 
 		// Decompress and populate our track data
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(tracks);
-		if (header.get_rotation_format() == rotation_format8::quatf_full && header.get_translation_format() == vector_format8::vector3f_full && header.get_scale_format() == vector_format8::vector3f_full)
+		if (track_type == track_type8::qvvf &&
+			header.get_rotation_format() == rotation_format8::quatf_full &&
+			header.get_translation_format() == vector_format8::vector3f_full &&
+			header.get_scale_format() == vector_format8::vector3f_full)
 		{
-			// Our input data uses full precision, retain it
+			// Our input transform data uses full precision, retain it
 			decompression_context<acl_impl::raw_sampling_decompression_settings> context;
 			context.initialize(tracks);
 
 			acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
-
-			if(track_type == track_type8::qvvf)
-				writer.initialize_with_defaults(result);
+			writer.initialize_with_defaults(result);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
