@@ -51,26 +51,26 @@ static constexpr uint32_t k_cpu_cache_size = 8 * 1024 * 1024;	// Assume a 8 MB c
 // bypass the CPU cache and not evict anything.
 static constexpr uint32_t k_flush_buffer_size = k_cpu_cache_size * 4;
 
-// The VMEM Level 1 translation has 512 entries each spanning 1 GB. We'll assume that in the real world
-// there is a reasonable chance that memory touched will live within the same 1 GB region and thus be
-// in some level of the CPU cache.
+// On a modern desktop, 4KB pages are used and the VMEM Level 1 translation has 512 entries each spanning 1 GB.
+// We'll assume that in the real world there is a reasonable chance that memory touched will live within
+// the same 1 GB region and thus be in some level of the CPU cache.
 
 // The VMEM Level 2 translation has 512 entries each spanning 2 MB.
 // This means the cache line we load to find a page offset contains a span of 16 MB within it (a cache
-// line contains 8 entries).
+// line contains 8 entries of 8 bytes each).
 // To ensure we don't touch cache lines that belong to our input buffer as we flush the CPU cache,
 // we add sufficient padding at both ends of the flush buffer. Since we'll access it linearly,
 // the hardware prefetcher might pull in cache lines ahead. We assume it won't pull more than 4 cache
-// lines ahead. This means we need this much padding on each end: 4 * 16 MB = 64 MB
+// lines ahead. We also want to avoid the VMEM table entries being touched and so we pad by 16 MB on either side.
 static constexpr uint32_t k_vmem_padding = 16 * 1024 * 1024;
 static constexpr uint32_t k_padded_flush_buffer_size = k_vmem_padding + k_flush_buffer_size + k_vmem_padding;
 
-// We allocate 100 copies of the compressed clip and align them to reduce the flush cost
-// by flushing only when we loop around. We pad each copy to 16 MB to ensure no VMEM entry sharing in L2.
-// A compressed clip that takes less than 160 MB would end up using 16 MB * 100 = 1.56 GB
+// We allocate 220 copies of the compressed clip and align them to reduce the flush cost
+// by flushing only when we loop around. We pad each copy to 16 MB to ensure no VMEM entry sharing in level 2.
+// A compressed clip that takes 60 MB would end up using round_up_to_multiple_of(60 MB, 16 MB) * 220 = 13.75 GB
 static constexpr uint32_t k_num_copies = 220;
 
-// Align our clip copy buffer to a 2 MB boundary to further reduce VMEM noise
+// Align our clip copy buffer to a 2 MB boundary to reduce VMEM noise
 static constexpr uint32_t k_clip_buffer_alignment = 2 * 1024 * 1024;
 
 //////////////////////////////////////////////////////////////////////////
