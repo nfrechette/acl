@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error.h"
@@ -54,6 +55,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// Decompression context for the uniformly sampled algorithm. The context
 	// allows various decompression actions to be performed on a compressed track list.
@@ -160,6 +163,8 @@ namespace acl
 	{
 		return allocate_type<decompression_context<decompression_settings_type>>(allocator);
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/decompression/impl/decompress.impl.h"

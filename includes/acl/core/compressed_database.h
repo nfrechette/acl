@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/buffer_tag.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/compressed_tracks.h"
@@ -39,6 +40,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	////////////////////////////////////////////////////////////////////////////////
 	// An instance of a compressed database.
 	// The compressed data immediately follows this instance in memory.
@@ -160,6 +163,8 @@ namespace acl
 	compressed_database* make_compressed_database(void* buffer, error_result* out_error_result = nullptr);
 
 	constexpr uint32_t k_database_bulk_data_alignment = alignof(acl_impl::database_chunk_header);
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/core/impl/compressed_database.impl.h"

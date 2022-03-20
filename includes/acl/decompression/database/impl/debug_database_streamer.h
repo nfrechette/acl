@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -36,6 +37,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	////////////////////////////////////////////////////////////////////////////////
 	// Implements a debug streamer where we duplicate the bulk data in memory and use
 	// memcpy to stream in the data. Streamed out data is explicitly set to 0xCD with memset.
@@ -119,6 +122,8 @@ namespace acl
 		static constexpr uint32_t k_max_num_requests = k_num_database_tiers;	// One per database tier
 		streaming_request m_requests[k_max_num_requests];
 	};
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -65,12 +66,16 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 #if defined(ACL_ON_ASSERT_ABORT)
 
+	#include "acl/version.h"
+
 	#include <cstdio>
 	#include <cstdarg>
 	#include <cstdlib>
 
 	namespace acl
 	{
+		ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 		namespace error_impl
 		{
 			inline void on_assert_abort(const char* expression, int line, const char* file, const char* format, ...)
@@ -90,13 +95,17 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 				std::abort();
 			}
 		}
+
+		ACL_IMPL_VERSION_NAMESPACE_END
 	}
 
-	#define ACL_ASSERT(expression, format, ...) do { if (!(expression)) acl::error_impl::on_assert_abort(#expression, __LINE__, __FILE__, (format), ## __VA_ARGS__); } while(0)
+	#define ACL_ASSERT(expression, format, ...) do { if (!(expression)) ACL_IMPL_NAMESPACE::error_impl::on_assert_abort(#expression, __LINE__, __FILE__, (format), ## __VA_ARGS__); } while(0)
 	#define ACL_HAS_ASSERT_CHECKS
 	#define ACL_NO_EXCEPT noexcept
 
 #elif defined(ACL_ON_ASSERT_THROW)
+
+	#include "acl/version.h"
 
 	#include <cstdio>
 	#include <cstdarg>
@@ -105,6 +114,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 	namespace acl
 	{
+		ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 		class runtime_assert final : public std::runtime_error
 		{
 			using std::runtime_error::runtime_error;	// Inherit constructors
@@ -134,9 +145,11 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 					throw runtime_assert("Failed to format assert message!\n");
 			}
 		}
+
+		ACL_IMPL_VERSION_NAMESPACE_END
 	}
 
-	#define ACL_ASSERT(expression, format, ...) do { if (!(expression)) acl::error_impl::on_assert_throw(#expression, __LINE__, __FILE__, (format), ## __VA_ARGS__); } while(0)
+	#define ACL_ASSERT(expression, format, ...) do { if (!(expression)) ACL_IMPL_NAMESPACE::error_impl::on_assert_throw(#expression, __LINE__, __FILE__, (format), ## __VA_ARGS__); } while(0)
 	#define ACL_HAS_ASSERT_CHECKS
 	#define ACL_NO_EXCEPT
 

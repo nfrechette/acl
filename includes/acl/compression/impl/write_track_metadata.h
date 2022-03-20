@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/memory_utils.h"
 #include "acl/core/track_desc.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -37,6 +38,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		inline uint32_t write_track_list_name(const track_array& tracks, char* out_track_list_name)
@@ -213,6 +216,8 @@ namespace acl
 			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
 		}
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

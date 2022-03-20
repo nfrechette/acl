@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/additive_utils.h"
 #include "acl/core/bitset.h"
 #include "acl/core/iallocator.h"
@@ -43,6 +44,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		//////////////////////////////////////////////////////////////////////////
@@ -387,6 +390,8 @@ namespace acl
 		constexpr bool segment_context_has_scale(const segment_context& segment) { return segment.clip->has_scale; }
 		constexpr bool bone_streams_has_scale(const transform_streams& bone_streams) { return segment_context_has_scale(*bone_streams.segment); }
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

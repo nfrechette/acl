@@ -26,6 +26,7 @@
 
 #if defined(SJSON_CPP_PARSER)
 
+#include "acl/version.h"
 #include "acl/io/clip_reader_error.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
@@ -50,6 +51,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// Enum to describe each type of raw content that an SJSON ACL file might contain.
 	enum class sjson_file_type
@@ -1366,6 +1369,8 @@ namespace acl
 			m_error.error = reason;
 		}
 	};
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

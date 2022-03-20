@@ -26,8 +26,12 @@
 
 // Included only once from compressed_database.h
 
+#include "acl/version.h"
+
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		// Hide these implementations, they shouldn't be needed in user-space
@@ -189,4 +193,6 @@ namespace acl
 	{
 		return const_cast<compressed_database*>(acl_impl::make_compressed_database_impl(buffer, out_error_result));
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

@@ -26,10 +26,14 @@
 
 // Included only once from decompress.h
 
+#include "acl/version.h"
+
 #include <type_traits>
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		//////////////////////////////////////////////////////////////////////////
@@ -138,4 +142,6 @@ namespace acl
 
 		version_impl_type::template decompress_track<decompression_settings_type>(m_context, track_index, writer);
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

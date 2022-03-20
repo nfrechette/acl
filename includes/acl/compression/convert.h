@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/compression/track_array.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error_result.h"
@@ -36,6 +37,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// Convert a track array instance into a raw compressed tracks instance.
 	// This is a lossless process.
@@ -47,6 +50,8 @@ namespace acl
 	// This is a lossless process if all the metadata is present.
 	//////////////////////////////////////////////////////////////////////////
 	error_result convert_track_list(iallocator& allocator, const compressed_tracks& tracks, track_array& out_track_list);
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/compression/impl/convert.impl.h"

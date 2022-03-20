@@ -26,6 +26,7 @@
 
 #if defined(SJSON_CPP_WRITER)
 
+#include "acl/version.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -44,6 +45,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		inline const char* format_hex_float(float value, char* buffer, size_t buffer_size)
@@ -367,6 +370,8 @@ namespace acl
 	{
 		return acl_impl::write_track_list(track_list, &settings, acl_filename);
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
