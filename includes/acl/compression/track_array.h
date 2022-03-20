@@ -33,9 +33,6 @@
 #include "acl/core/utils.h"
 #include "acl/compression/track.h"
 
-#include <rtm/scalarf.h>
-#include <rtm/vector4f.h>
-
 #include <cstdint>
 #include <limits>
 #include <type_traits>
