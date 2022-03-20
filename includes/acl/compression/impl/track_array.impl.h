@@ -32,6 +32,10 @@
 #include "acl/core/track_types.h"
 #include "acl/core/track_writer.h"
 
+#include <rtm/quatf.h>
+#include <rtm/scalarf.h>
+#include <rtm/vector4f.h>
+
 #include <cstdint>
 
 namespace acl
