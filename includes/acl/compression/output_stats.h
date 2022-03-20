@@ -28,7 +28,9 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/enum_utils.h"
 
+#if !defined(SJSON_CPP_WRITER)
 namespace sjson { class ObjectWriter; }
+#endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
