@@ -26,6 +26,7 @@
 
 // Included only once from compress.h
 
+#include "acl/version.h"
 #include "acl/core/buffer_tag.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/compressed_tracks_version.h"
@@ -54,6 +55,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_qvvf& track_list, compression_settings settings,
@@ -470,4 +473,6 @@ namespace acl
 			return error_result();
 		}
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

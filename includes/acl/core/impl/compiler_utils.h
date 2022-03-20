@@ -24,6 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
+
 #include <rtm/impl/compiler_utils.h>
 
 #include <type_traits>
@@ -54,6 +56,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// The version of the STL shipped with versions of GCC older than 5.1 are missing a number of type traits and functions,
 	// such as std::is_trivially_default_constructible.
@@ -77,6 +81,8 @@ namespace acl
 		using is_trivially_default_constructible = std::has_trivial_default_constructor<Type>;
 #endif
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 //////////////////////////////////////////////////////////////////////////

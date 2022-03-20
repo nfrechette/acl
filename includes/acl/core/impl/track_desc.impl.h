@@ -25,6 +25,7 @@
 
 // Included only once from track_desc.h
 
+#include "acl/version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/track_types.h"
 
@@ -34,6 +35,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	inline error_result track_desc_scalarf::is_valid() const
 	{
 		if (precision < 0.0F || !rtm::scalar_is_finite(precision))
@@ -61,4 +64,6 @@ namespace acl
 
 		return error_result();
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

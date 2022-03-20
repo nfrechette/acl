@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
@@ -41,6 +42,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// An array of tracks.
 	// Although each track contained within is untyped, each track must have
@@ -266,6 +269,8 @@ namespace acl
 	using track_array_float4f	= track_array_typed<track_type8::float4f>;
 	using track_array_vector4f	= track_array_typed<track_type8::vector4f>;
 	using track_array_qvvf		= track_array_typed<track_type8::qvvf>;
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/compression/impl/track_array.impl.h"

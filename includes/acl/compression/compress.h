@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error_result.h"
@@ -39,6 +40,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// Compresses a track array with uniform sampling.
 	//
@@ -119,6 +122,8 @@ namespace acl
 	//    out_stripped_database:			The new database without the specified quality tier.
 	//////////////////////////////////////////////////////////////////////////
 	error_result strip_database_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database);
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/compression/impl/compress.database.impl.h"

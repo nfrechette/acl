@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/quality_tiers.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -33,6 +34,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		struct database_context_v0;
@@ -170,6 +173,8 @@ namespace acl
 		template<class database_settings_type>
 		friend class database_context;
 	};
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/decompression/database/impl/database_streamer.impl.h"

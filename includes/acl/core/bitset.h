@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/bit_manip_utils.h"
@@ -35,6 +36,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	////////////////////////////////////////////////////////////////////////////////
 	// A bit set description holds the required information to ensure type and memory safety
 	// with the various bit set functions.
@@ -211,6 +214,8 @@ namespace acl
 		for (uint32_t offset = 0; offset < size; ++offset)
 			bitset_result[offset] = and_not(bitset_not_value[offset], bitset_and_value[offset]);
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

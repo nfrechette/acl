@@ -26,10 +26,13 @@
 
 // Included only once from compressed_tracks.h
 
+#include "acl/version.h"
 #include "acl/core/track_desc.h"
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		// Hide these implementations, they shouldn't be needed in user-space
@@ -252,4 +255,6 @@ namespace acl
 	{
 		return const_cast<compressed_tracks*>(acl_impl::make_compressed_tracks_impl(buffer, out_error_result));
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -34,6 +35,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// This structure describes the various settings for floating point scalar tracks.
 	// Used by: float1f, float2f, float3f, float4f, vector4f
@@ -133,6 +136,8 @@ namespace acl
 		//    - The constant scale threshold is positive or zero and finite
 		error_result is_valid() const;
 	};
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/core/impl/track_desc.impl.h"
