@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
@@ -38,6 +39,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// A struct that contains the track index that has the worst error,
 	// its error, and the sample time at which it happens.
@@ -101,6 +104,8 @@ namespace acl
 	// Calculates the worst compression error between two raw track arrays.
 	// Supports scalar and transform tracks.
 	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const itransform_error_metric& error_metric);
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/compression/impl/track_error.impl.h"

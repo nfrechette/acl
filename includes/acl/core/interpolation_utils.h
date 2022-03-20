@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/sample_looping_policy.h"
 #include "acl/core/sample_rounding_policy.h"
@@ -35,6 +36,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the sample indices and the interpolation required to linearly
 	// interpolate when the samples are uniform.
@@ -108,6 +111,8 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Modify an interpolation alpha value given a sample rounding policy
 	float apply_rounding_policy(float interpolation_alpha, sample_rounding_policy policy);
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/core/impl/interpolation_utils.impl.h"

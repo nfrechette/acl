@@ -26,6 +26,7 @@
 
 // Included only once from track_formats.h
 
+#include "acl/version.h"
 #include "acl/core/error.h"
 
 #include <cstdint>
@@ -33,6 +34,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	inline const char* get_rotation_format_name(rotation_format8 format)
 	{
 		switch (format)
@@ -141,4 +144,6 @@ namespace acl
 	{
 		return format == vector_format8::vector3f_full;
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

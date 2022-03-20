@@ -26,6 +26,7 @@
 
 // Included only once from compress.h
 
+#include "acl/version.h"
 #include "acl/core/buffer_tag.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/compressed_tracks_version.h"
@@ -58,6 +59,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		inline bool has_trivial_default_values(const track_array_qvvf& track_list, additive_clip_format8 additive_format, const clip_context& lossy_clip_context)
@@ -519,4 +522,6 @@ namespace acl
 			return error_result();
 		}
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/compression/track_array.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
@@ -40,21 +41,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
-	// the debug track writer cannot know if we have normal defaults or custom defaults
-	// it has to assume that they are custom, and skip them, always
-	// it is the responsibility of the caller to prepopulate default tracks
-	// add a new track writer that doesn't skip default tracks? default skipping will be tested by compression and the error metric at the end, for regression testing don't skip
-	// read static default value from the track writer (for rot, trans, scale) when defaults aren't all skipped
-	// static default can easily handle additive1 where default scale is 0
-	// add a track writer version, version 1 is acl 2.0 stock (default scale read from clip header), v2 has the static defaults (default scale read from track writer)
-	// split sub-track skipping for each type: skip_all_default_rotations, etc
-	// if we don't skip default sub-tracks, query if the default value is constant or variable per transform/sub-track type
-	// if constant, read from v1/v2 track writer
-	// if variable, call write_default_rotation instead of write_rotation to let the implementation read whatever value it needs to read
-
-	// this allows us to still support old clips with v1 whether additive or not
-	// we can selectively skip all defaults when prepopulated with the bind pose (with constant/variable sub-tracks overwriting the value)
-	// we can read any value we need to and write it which allows us to populate the bind pose if stored separately when necessary
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
 	namespace acl_impl
 	{
@@ -297,6 +284,8 @@ namespace acl
 			sample_rounding_policy rounding_policy;
 		};
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

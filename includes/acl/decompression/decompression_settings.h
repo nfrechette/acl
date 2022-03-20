@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
@@ -36,6 +37,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// Deriving from this struct and overriding these constexpr functions
 	// allow you to control which code is stripped for maximum performance.
@@ -192,6 +195,8 @@ namespace acl
 		// Disabled by default since it is an uncommon feature
 		static constexpr bool is_per_track_rounding_supported() { return false; }
 	};
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

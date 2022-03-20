@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
@@ -39,6 +40,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
 	// The rotation format is serialized in the compressed data, if you change a value
 	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
@@ -113,6 +116,8 @@ namespace acl
 	constexpr bool is_vector_format_variable(vector_format8 format);
 
 	constexpr bool is_vector_format_full_precision(vector_format8 format);
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/core/impl/track_formats.impl.h"

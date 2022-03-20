@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/buffer_tag.h"
 #include "acl/core/compressed_tracks_version.h"
@@ -42,6 +43,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	////////////////////////////////////////////////////////////////////////////////
 	// An instance of a compressed tracks.
 	// The compressed data immediately follows this instance in memory.
@@ -202,6 +205,8 @@ namespace acl
 	// along with an optional error result.
 	//////////////////////////////////////////////////////////////////////////
 	compressed_tracks* make_compressed_tracks(void* buffer, error_result* out_error_result = nullptr);
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/core/impl/compressed_tracks.impl.h"

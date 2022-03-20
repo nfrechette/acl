@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
 #include "acl/core/memory_utils.h"
@@ -38,6 +39,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// We only support up to 4294967295 tracks. We reserve 4294967295 for the invalid index
 	constexpr uint32_t k_invalid_track_index = 0xFFFFFFFFU;
@@ -215,6 +218,8 @@ namespace acl
 		ACL_ASSERT(type <= track_type8::qvvf, "Unexpected track type");
 		return type <= track_type8::qvvf ? k_track_type_to_num_elements[static_cast<uint32_t>(type)] : 0;
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
