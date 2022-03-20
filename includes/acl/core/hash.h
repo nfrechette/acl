@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
@@ -34,6 +35,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace hash_impl
 	{
 		////////////////////////////////////////////////////////////////////////////////
@@ -136,6 +139,8 @@ namespace acl
 	// Combines two hashes into a new one.
 	inline uint32_t hash_combine(uint32_t hash_a, uint32_t hash_b) { return (hash_a ^ hash_b) * 16777619U; }
 	inline uint64_t hash_combine(uint64_t hash_a, uint64_t hash_b) { return (hash_a ^ hash_b) * 1099511628211ULL; }
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

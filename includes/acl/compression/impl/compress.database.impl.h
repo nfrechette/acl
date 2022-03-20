@@ -26,6 +26,7 @@
 
 // Included only once from compress.h
 
+#include "acl/version.h"
 #include "acl/core/bitset.h"
 #include "acl/core/compressed_database.h"
 #include "acl/core/error_result.h"
@@ -36,6 +37,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		struct frame_tier_mapping
@@ -1493,4 +1496,6 @@ namespace acl
 
 		return error_result();
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

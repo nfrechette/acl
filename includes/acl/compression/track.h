@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/string.h"
@@ -50,6 +51,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// An untyped track of data. A track is a time series of values sampled
 	// uniformly over time at a specific sample rate. Tracks can either own
@@ -353,6 +356,8 @@ namespace acl
 	using track_float4f			= track_typed<track_type8::float4f>;
 	using track_vector4f		= track_typed<track_type8::vector4f>;
 	using track_qvvf			= track_typed<track_type8::qvvf>;
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/compression/impl/track.impl.h"

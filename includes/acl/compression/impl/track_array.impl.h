@@ -26,6 +26,7 @@
 
 // Included only once from track_array.h
 
+#include "acl/version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/interpolation_utils.h"
@@ -40,6 +41,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	inline track_array::track_array() noexcept
 		: m_allocator(nullptr)
 		, m_tracks(nullptr)
@@ -417,4 +420,6 @@ namespace acl
 
 		return static_cast<const track_array_type*>(track_array_);
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

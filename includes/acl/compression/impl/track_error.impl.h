@@ -26,6 +26,7 @@
 
 // Included only once from track_error.h
 
+#include "acl/version.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
@@ -43,6 +44,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		inline rtm::vector4f RTM_SIMD_CALL get_scalar_track_error(track_type8 track_type, uint32_t raw_track_index, uint32_t lossy_track_index, const debug_track_writer& raw_tracks_writer, const debug_track_writer& lossy_tracks_writer)
@@ -826,4 +829,6 @@ namespace acl
 
 		return calculate_transform_track_error(allocator, args);
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

@@ -26,6 +26,7 @@
 
 // Included only once from convert.h
 
+#include "acl/version.h"
 #include "acl/compression/compress.h"
 #include "acl/compression/track_array.h"
 #include "acl/core/compressed_tracks.h"
@@ -39,6 +40,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		struct raw_sampling_decompression_settings final : public decompression_settings
@@ -245,4 +248,6 @@ namespace acl
 		out_track_list = std::move(result);
 		return error_result();
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

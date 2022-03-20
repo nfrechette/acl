@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/bit_manip_utils.h"
 #include "acl/core/bitset.h"
 #include "acl/core/compressed_tracks.h"
@@ -62,6 +63,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 #if defined(ACL_IMPL_USE_SEEK_PREFETCH)
@@ -1806,6 +1809,8 @@ namespace acl
 		#pragma GCC diagnostic pop
 #endif
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #if defined(RTM_COMPILER_MSVC)

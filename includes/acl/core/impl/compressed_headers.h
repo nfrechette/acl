@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/ptr_offset.h"
@@ -40,6 +41,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	class compressed_tracks;
 
 	namespace acl_impl
@@ -585,6 +588,8 @@ namespace acl
 			const uint8_t*							get_bulk_data_low() const { return bulk_data_offset[1].safe_add_to(this); }
 		};
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/compression/track_array.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
@@ -40,6 +41,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+	
 	// the debug track writer cannot know if we have normal defaults or custom defaults
 	// it has to assume that they are custom, and skip them, always
 	// it is the responsibility of the caller to prepopulate default tracks
@@ -281,6 +284,8 @@ namespace acl
 			const rtm::qvvf* default_sub_tracks;
 		};
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

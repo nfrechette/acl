@@ -26,6 +26,7 @@
 
 // Included only once from track.h
 
+#include "acl/version.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/string.h"
 #include "acl/core/track_desc.h"
@@ -36,6 +37,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	inline track::track() noexcept
 		: m_allocator(nullptr)
 		, m_data(nullptr)
@@ -351,4 +354,6 @@ namespace acl
 
 		return static_cast<const track_type*>(track_);
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
