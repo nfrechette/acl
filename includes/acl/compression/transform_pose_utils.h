@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 
@@ -35,6 +36,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	// Note: It is safe for both pose buffers to alias since the data if sorted parent first
 	inline void local_to_object_space(const uint32_t* parent_indices, const rtm::qvvf* local_pose, uint32_t num_transforms, rtm::qvvf* out_object_pose)
 	{
@@ -69,6 +72,8 @@ namespace acl
 			out_local_pose[bone_index] = rtm::qvv_normalize(rtm::qvv_mul(inv_parent_transform, object_pose[bone_index]));
 		}
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

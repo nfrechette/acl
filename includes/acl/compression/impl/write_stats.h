@@ -26,6 +26,7 @@
 
 #if defined(SJSON_CPP_WRITER)
 
+#include "acl/version.h"
 #include "acl/core/time_utils.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/variable_bit_rates.h"
@@ -43,6 +44,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		inline void write_summary_segment_stats(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, sjson::ObjectWriter& writer)
@@ -551,6 +554,8 @@ namespace acl
 			};
 		}
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

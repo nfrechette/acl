@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error.h"
@@ -40,6 +41,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		//////////////////////////////////////////////////////////////////////////
@@ -210,6 +213,8 @@ namespace acl
 			}
 		};
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

@@ -26,6 +26,7 @@
 
 // Included only once from compression_settings.h
 
+#include "acl/version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/track_formats.h"
@@ -34,6 +35,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	inline uint32_t compression_database_settings::get_hash() const
 	{
 		uint32_t hash_value = 0;
@@ -128,4 +131,6 @@ namespace acl
 		settings.optimize_loops = true;
 		return settings;
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

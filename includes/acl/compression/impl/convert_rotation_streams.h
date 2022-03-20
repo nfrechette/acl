@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
@@ -39,6 +40,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		inline rtm::vector4f RTM_SIMD_CALL convert_rotation(rtm::vector4f_arg0 rotation, rotation_format8 from, rotation_format8 to)
@@ -106,6 +109,8 @@ namespace acl
 				convert_rotation_streams(allocator, segment, rotation_format);
 		}
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
@@ -36,6 +37,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	inline uint32_t pack_scalar_unsigned(float input, uint32_t num_bits)
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to pack on too many bits");
@@ -170,6 +173,8 @@ namespace acl
 		return rtm::scalar_set(static_cast<float>(x32) * inv_max_value);
 #endif
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

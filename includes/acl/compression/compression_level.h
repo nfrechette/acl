@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -34,6 +35,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	////////////////////////////////////////////////////////////////////////////////
 	// compression_level8 represents how aggressively we attempt to reduce the memory
 	// footprint. Higher levels will try more permutations and bit rates. The higher
@@ -122,6 +125,8 @@ namespace acl
 
 		return false;
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

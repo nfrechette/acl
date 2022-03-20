@@ -26,6 +26,7 @@
 
 #if defined(SJSON_CPP_WRITER)
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/scope_profiler.h"
@@ -38,6 +39,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		inline void write_compression_stats(const track_list_context& context, const compressed_tracks& tracks, const scope_profiler& compression_time, output_stats& stats)
@@ -64,6 +67,8 @@ namespace acl
 			writer["looping"] = tracks.get_looping_policy() == sample_looping_policy::wrap;
 		}
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

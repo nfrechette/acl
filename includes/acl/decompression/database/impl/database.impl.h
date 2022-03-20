@@ -26,6 +26,7 @@
 
 // Included only once from database.h
 
+#include "acl/version.h"
 #include "acl/core/bitset.h"
 #include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks_version.h"
@@ -35,6 +36,8 @@
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		inline uint32_t calculate_runtime_data_size(const compressed_database& database)
@@ -567,4 +570,6 @@ namespace acl
 
 		return database_stream_request_result::dispatched;
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }

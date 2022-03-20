@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <rtm/quatf.h>
@@ -42,6 +43,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		template<typename cached_type, uint32_t cache_size, uint32_t num_rounding_modes>
@@ -93,6 +96,8 @@ namespace acl
 		template<uint32_t cache_size, uint32_t num_rounding_modes>
 		using track_cache_vector4f_v0 = track_cache_v0<track_cache_vector4f_trait, cache_size, num_rounding_modes>;
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #if defined(RTM_COMPILER_MSVC)

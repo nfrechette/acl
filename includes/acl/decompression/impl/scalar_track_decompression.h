@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/interpolation_utils.h"
@@ -51,6 +52,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	namespace acl_impl
 	{
 		struct alignas(64) persistent_scalar_decompression_context_v0
@@ -646,6 +649,8 @@ namespace acl
 				restore_fp_exceptions(fp_env);
 		}
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #if defined(RTM_COMPILER_MSVC)

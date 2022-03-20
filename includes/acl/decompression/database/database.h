@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error.h"
@@ -39,6 +40,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// Encapsulates the possible streaming request results.
 	//////////////////////////////////////////////////////////////////////////
@@ -157,6 +160,8 @@ namespace acl
 		// TODO: I'd like to assert here but we use a dummy pointer to init the decompression context which triggers this
 		//static_assert(settings_type::version_supported() != compressed_tracks_version16::none, "database_settings_type must support at least one version");
 	};
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/decompression/database/impl/database.impl.h"

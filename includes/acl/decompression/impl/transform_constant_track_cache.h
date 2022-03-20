@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/impl/track_cache.h"
@@ -62,6 +63,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 #if defined(ACL_IMPL_USE_CONSTANT_PREFETCH)
 #define ACL_IMPL_CONSTANT_PREFETCH(ptr) memory_prefetch(ptr)
 #else
@@ -323,6 +326,8 @@ namespace acl
 			}
 		};
 	}
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #if defined(RTM_COMPILER_MSVC)
