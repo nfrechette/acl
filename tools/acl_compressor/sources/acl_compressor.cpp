@@ -40,6 +40,7 @@
 	namespace sjson { class ArrayWriter; }
 #endif
 
+#include "acl/fwd.h"	// Make sure forward declaration matches
 #include "acl/core/ansi_allocator.h"
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/string.h"
