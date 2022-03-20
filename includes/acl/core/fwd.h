@@ -52,6 +52,7 @@ namespace acl
 
     enum class quality_tier;
     enum class sample_rounding_policy;
+    enum class default_sub_track_mode;
 
     class iallocator;
     class ansi_allocator;
