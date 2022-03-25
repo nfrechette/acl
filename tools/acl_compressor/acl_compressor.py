@@ -166,7 +166,7 @@ def create_csv(options):
 		csv_data['stats_summary_csv_file'] = stats_summary_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_summary_csv_filename))
-		print('Clip Name, Algorithm Name, Raw Size, Compressed Size, Compression Ratio, Compression Time, Clip Duration, Num Animated Tracks, Max Error, Num Transforms, Num Samples Per Track, Quantization Memory Usage', file = stats_summary_csv_file)
+		print('Clip Name,Algorithm Name,Raw Size,Compressed Size,Compression Ratio,Compression Time,Clip Duration,Num Animated Tracks,Max Error,Num Transforms,Num Samples Per Track,Quantization Memory Usage,Is Looping', file = stats_summary_csv_file)
 
 	if options['csv_bit_rate']:
 		stats_bit_rate_csv_filename = os.path.join(stat_dir, 'stats_bit_rate.csv')
@@ -174,7 +174,7 @@ def create_csv(options):
 		csv_data['stats_bit_rate_csv_file'] = stats_bit_rate_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_bit_rate_csv_filename))
-		print('Algorithm Name, 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32', file = stats_bit_rate_csv_file)
+		print('Algorithm Name,0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,32', file = stats_bit_rate_csv_file)
 
 	if options['csv_animated_size']:
 		stats_animated_size_csv_filename = os.path.join(stat_dir, 'stats_animated_size.csv')
@@ -182,7 +182,7 @@ def create_csv(options):
 		csv_data['stats_animated_size_csv_file'] = stats_animated_size_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_animated_size_csv_filename))
-		print('Algorithm Name, Segment Index, Animated Size, Num Animated Tracks', file = stats_animated_size_csv_file)
+		print('Algorithm Name,Segment Index,Animated Size,Num Animated Tracks', file = stats_animated_size_csv_file)
 
 	if options['csv_error']:
 		stats_error_csv_filename = os.path.join(stat_dir, 'stats_error.csv')
@@ -190,7 +190,7 @@ def create_csv(options):
 		csv_data['stats_error_csv_file'] = stats_error_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_error_csv_filename))
-		print('Clip Name, Key Frame, Bone Index, Error', file = stats_error_csv_file)
+		print('Clip Name,Key Frame,Bone Index,Error', file = stats_error_csv_file)
 
 	return csv_data
 
@@ -219,7 +219,7 @@ def append_csv(csv_data, job_data):
 	if 'stats_animated_size_csv_file' in csv_data:
 		size_data = job_data['stats_animated_size']
 		for (name, segment_index, animated_size, num_animated) in size_data:
-			print('{}, {}, {}, {}'.format(name, segment_index, animated_size, num_animated), file = csv_data['stats_animated_size_csv_file'])
+			print('{},{},{},{}'.format(name, segment_index, animated_size, num_animated), file = csv_data['stats_animated_size_csv_file'])
 
 	if 'stats_error_csv_file' in csv_data:
 		error_data = job_data['stats_error_data']
@@ -228,7 +228,7 @@ def append_csv(csv_data, job_data):
 			for frame_errors in data:
 				bone_index = 0
 				for bone_error in frame_errors:
-					print('{}, {}, {}, {}'.format(name, key_frame, bone_index, bone_error), file = csv_data['stats_error_csv_file'])
+					print('{},{},{},{}'.format(name, key_frame, bone_index, bone_error), file = csv_data['stats_error_csv_file'])
 					bone_index += 1
 
 				key_frame += 1
