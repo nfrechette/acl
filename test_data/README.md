@@ -10,7 +10,8 @@ Find the latest test data zip file located on Google Drive and save it into this
 *  **v2** Test data [link](https://drive.google.com/open?id=192CWjNRwlskgdqakNI-k8dv-EefXwxtU)
 *  **v3** Test data [link](https://drive.google.com/file/d/1ZxQp1-q_stN2MIgyQm6v6FP2zg6GmNPk/view?usp=sharing)
 *  **v4** Test data [link](https://drive.google.com/file/d/10TQGU15uk2P3QY2DFxuOj5ilCCUjToxj/view?usp=sharing)
-*  **v5** Test data [link](https://drive.google.com/file/d/1rcvd6Uf4p2enZ4hSrP2WUuwGlUWnE0Gs/view?usp=sharing) (**Latest**)
+*  **v5** Test data [link](https://drive.google.com/file/d/1rcvd6Uf4p2enZ4hSrP2WUuwGlUWnE0Gs/view?usp=sharing)
+*  **v6** Test data [link](https://drive.google.com/file/d/11VU7iOGz8aD98KIbg9dZ0ZQUsYUBjf5B/view?usp=sharing) (**Latest**)
 
 ## Running the tests
 
