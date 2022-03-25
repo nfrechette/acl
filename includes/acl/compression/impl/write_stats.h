@@ -60,7 +60,7 @@ namespace acl
 			segment_size += segment.animated_data_size;						// Animated track data
 
 			writer["segment_size"] = segment_size;
-			writer["animated_frame_size"] = double(segment.animated_data_size) / double(segment.num_samples);
+			writer["animated_frame_size"] = segment.num_samples != 0 ? (double(segment.animated_data_size) / double(segment.num_samples)) : 0.0;
 		}
 
 		inline void write_detailed_segment_stats(const segment_context& segment, sjson::ObjectWriter& writer)
