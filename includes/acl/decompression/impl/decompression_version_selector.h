@@ -153,7 +153,7 @@ namespace acl
 				{
 				case compressed_tracks_version16::v02_00_00:
 				case compressed_tracks_version16::v02_01_99:
-					decompression_version_selector<compressed_tracks_version16::v02_00_00>::set_looping_policy_v0<decompression_settings_type>(context, policy);
+					decompression_version_selector<compressed_tracks_version16::v02_00_00>::set_looping_policy<decompression_settings_type>(context, policy);
 					break;
 				default:
 					ACL_ASSERT(false, "Unsupported version");
