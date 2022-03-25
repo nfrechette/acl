@@ -38,6 +38,90 @@ namespace acl
 {
 	namespace acl_impl
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// This algorithm is simple in nature. Its primary aim is to avoid having
+		// the last segment being partial if multiple segments are present.
+		// The extra samples from the last segment will be redistributed evenly
+		// starting with the first segment.
+		// As such, in order to quickly find which segment contains a particular sample
+		// you can simply divide the number of samples by the number of segments to get
+		// the floored value of number of samples per segment. This guarantees an accurate estimate.
+		// You can then query the segment start index by dividing the desired sample index
+		// with the floored value. If the sample isn't in the current segment, it will live in one of its neighbors.
+		// TODO: Can we provide a tighter guarantee?
+		//
+		// If the number of samples is lesser than or equal to the max number of samples, we have a single
+		// segment (or none). No segmenting is performed.
+		//
+		// This function returns the number of samples per segment, the number of estimated segments
+		// which have might have had samples, and the number of samples used. Use the estimated value to free
+		// the allocated buffer.
+		//////////////////////////////////////////////////////////////////////////
+		inline uint32_t* split_samples_per_segment(iallocator& allocator, uint32_t num_samples, const compression_segmenting_settings& settings, uint32_t& out_num_estimated_segments, uint32_t& out_num_segments)
+		{
+			if (num_samples <= settings.max_num_samples)
+			{
+				out_num_estimated_segments = 0;
+				out_num_segments = 0;
+				return nullptr;
+			}
+
+			// Estimate how many segments we need if each one had the ideal amount
+			const uint32_t num_estimated_segments = (num_samples + settings.ideal_num_samples - 1) / settings.ideal_num_samples;
+
+			// This is the highest number of samples we can contain if each segment has the ideal amount
+			const uint32_t max_num_samples = num_estimated_segments * settings.ideal_num_samples;
+
+			// Allocate our buffer and initialize it with the ideal number of samples per segment
+			uint32_t* num_samples_per_segment = allocate_type_array<uint32_t>(allocator, num_estimated_segments);
+			std::fill(num_samples_per_segment, num_samples_per_segment + num_estimated_segments, settings.ideal_num_samples);
+
+			const uint32_t last_segment_index = num_estimated_segments - 1;
+
+			// Number of segments might change if we re-balance below
+			uint32_t num_segments = num_estimated_segments;
+
+			// Calculate how many samples our last segment actually contains
+			const uint32_t num_last_segment_samples = settings.ideal_num_samples - (max_num_samples - num_samples);
+			ACL_ASSERT(num_last_segment_samples != 0, "Last segment should never be empty");
+
+			// Update our last segment with its true value
+			num_samples_per_segment[last_segment_index] = num_last_segment_samples;
+
+			// How much slack is allowed within a segment if we exceed the ideal number of samples
+			const uint32_t slack_per_segment = settings.max_num_samples - settings.ideal_num_samples;
+
+			// How much slack we have if we exclude the last segment
+			const uint32_t total_slack_present = last_segment_index * slack_per_segment;
+
+			// Check if we need to re-balance the last segment
+			// We'll re-balance the last segment by spreading it over the ones preceding it if enough slack is present.
+			if (total_slack_present >= num_last_segment_samples)
+			{
+				// Enough segments to distribute the leftover samples of the last segment
+				while (num_samples_per_segment[last_segment_index] != 0)
+				{
+					for (uint32_t segment_index = 0; segment_index < last_segment_index; ++segment_index)
+					{
+						if (num_samples_per_segment[last_segment_index] == 0)
+							break;	// No more samples to distribute, we are done
+
+						num_samples_per_segment[segment_index]++;
+						num_samples_per_segment[last_segment_index]--;
+					}
+				}
+
+				// Last segment is no longer needed, we re-balanced its samples into the other segments
+				num_segments--;
+			}
+
+			ACL_ASSERT(num_segments != 1, "Expected a number of segments greater than 1.");
+
+			out_num_estimated_segments = num_estimated_segments;
+			out_num_segments = num_segments;
+			return num_samples_per_segment;
+		}
+
 		inline void segment_streams(iallocator& allocator, clip_context& clip, const compression_segmenting_settings& settings)
 		{
 			ACL_ASSERT(clip.num_segments == 1, "clip_context must have a single segment.");
@@ -46,47 +130,11 @@ namespace acl
 			if (clip.num_samples <= settings.max_num_samples)
 				return;
 
-			//////////////////////////////////////////////////////////////////////////
-			// This algorithm is simple in nature. Its primary aim is to avoid having
-			// the last segment being partial if multiple segments are present.
-			// The extra samples from the last segment will be redistributed evenly
-			// starting with the first segment.
-			// As such, in order to quickly find which segment contains a particular sample
-			// you can simply divide the number of samples by the number of segments to get
-			// the floored value of number of samples per segment. This guarantees an accurate estimate.
-			// You can then query the segment start index by dividing the desired sample index
-			// with the floored value. If the sample isn't in the current segment, it will live in one of its neighbors.
-			// TODO: Can we provide a tighter guarantee?
-			//////////////////////////////////////////////////////////////////////////
-
-			uint32_t num_segments = (clip.num_samples + settings.ideal_num_samples - 1) / settings.ideal_num_samples;
-			const uint32_t max_num_samples = num_segments * settings.ideal_num_samples;
-
-			const uint32_t original_num_segments = num_segments;
-			uint32_t* num_samples_per_segment = allocate_type_array<uint32_t>(allocator, num_segments);
-			std::fill(num_samples_per_segment, num_samples_per_segment + num_segments, settings.ideal_num_samples);
-
-			const uint32_t num_leftover_samples = settings.ideal_num_samples - (max_num_samples - clip.num_samples);
-			if (num_leftover_samples != 0)
-				num_samples_per_segment[num_segments - 1] = num_leftover_samples;
-
-			const uint32_t slack = settings.max_num_samples - settings.ideal_num_samples;
-			if ((num_segments - 1) * slack >= num_leftover_samples)
-			{
-				// Enough segments to distribute the leftover samples of the last segment
-				while (num_samples_per_segment[num_segments - 1] != 0)
-				{
-					for (uint32_t segment_index = 0; segment_index < num_segments - 1 && num_samples_per_segment[num_segments - 1] != 0; ++segment_index)
-					{
-						num_samples_per_segment[segment_index]++;
-						num_samples_per_segment[num_segments - 1]--;
-					}
-				}
-
-				num_segments--;
-			}
-
-			ACL_ASSERT(num_segments != 1, "Expected a number of segments greater than 1.");
+			// We split our samples over multiple segments, but some might be empty at the end after re-balancing
+			uint32_t num_estimated_segments = 0;
+			uint32_t num_segments = 0;
+			uint32_t* num_samples_per_segment = split_samples_per_segment(allocator, clip.num_samples, settings, num_estimated_segments, num_segments);
+			ACL_ASSERT(num_samples_per_segment != nullptr, "Expected at least one segment");
 
 			segment_context* clip_segment = clip.segments;
 			clip.segments = allocate_type_array<segment_context>(allocator, num_segments);
@@ -178,7 +226,7 @@ namespace acl
 				clip_sample_index += num_samples_in_segment;
 			}
 
-			deallocate_type_array(allocator, num_samples_per_segment, original_num_segments);
+			deallocate_type_array(allocator, num_samples_per_segment, num_estimated_segments);
 			destroy_segment_context(allocator, *clip_segment);
 			deallocate_type_array(allocator, clip_segment, 1);
 		}
