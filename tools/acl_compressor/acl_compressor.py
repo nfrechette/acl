@@ -213,8 +213,14 @@ def close_csv(csv_data):
 def append_csv(csv_data, job_data):
 	if 'stats_summary_csv_file' in csv_data:
 		data = job_data['stats_summary_data']
-		for (clip_name, algo_name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, quantization_memory_usage) in data:
-			print('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}'.format(clip_name, algo_name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, quantization_memory_usage), file = csv_data['stats_summary_csv_file'])
+		for (clip_name, algo_name, \
+			raw_size, compressed_size, compression_ratio, compression_time, \
+			duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, \
+			quantization_memory_usage, is_looping) in data:
+			print('{},{},{},{},{},{},{},{},{},{},{},{},{}'.format(clip_name, algo_name, \
+				raw_size, compressed_size, compression_ratio, compression_time, \
+				duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, \
+				quantization_memory_usage, is_looping), file = csv_data['stats_summary_csv_file'])
 
 	if 'stats_animated_size_csv_file' in csv_data:
 		size_data = job_data['stats_animated_size']
@@ -567,6 +573,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 		worst_runs['worst_ratio'] = 100000000.0
 		worst_runs['worst_ratio_entry'] = None
 		num_runs = 0
+		num_looping = 0
 		total_compression_time = 0.0
 		stats_summary_data = []
 		stats_error_data = []
@@ -612,13 +619,20 @@ def run_stat_parsing(options, stat_queue, result_queue):
 						total_compression_time += run_stats['compression_time']
 						compression_times.append(run_stats['compression_time'])
 
+						is_looping = 'looping' in run_stats and run_stats['looping']
+						if is_looping:
+							num_looping += 1
+
 						if options['csv_summary']:
 							#(name, raw_size, compressed_size, compression_ratio, compression_time, duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, quantization_memory_usage)
 							num_transforms = run_stats['num_bones']
 							num_samples_per_track = run_stats['num_samples']
 							num_animated_tracks = run_stats.get('num_animated_tracks', 0)
 							quantization_memory_usage = run_stats.get('track_bit_rate_database_size', 0) + run_stats.get('transform_cache_size', 0)
-							data = (run_stats['clip_name'], run_stats['csv_desc'], run_stats['raw_size'], run_stats['compressed_size'], run_stats['compression_ratio'], run_stats['compression_time'], run_stats['duration'], num_animated_tracks, run_stats['max_error'], num_transforms, num_samples_per_track, quantization_memory_usage)
+							data = (run_stats['clip_name'], run_stats['csv_desc'], \
+								run_stats['raw_size'], run_stats['compressed_size'], run_stats['compression_ratio'], run_stats['compression_time'], \
+								run_stats['duration'], num_animated_tracks, run_stats['max_error'], num_transforms, num_samples_per_track, \
+								quantization_memory_usage, is_looping)
 							stats_summary_data.append(data)
 
 						if 'segments' in run_stats and len(run_stats['segments']) > 0:
@@ -652,6 +666,7 @@ def run_stat_parsing(options, stat_queue, result_queue):
 		results['best_runs'] = best_runs
 		results['worst_runs'] = worst_runs
 		results['num_runs'] = num_runs
+		results['num_looping'] = num_looping
 		results['total_compression_time'] = total_compression_time
 		results['stats_summary_data'] = stats_summary_data
 		results['stats_error_data'] = stats_error_data
@@ -683,6 +698,7 @@ def aggregate_job_stats(agg_job_results, job_results):
 		agg_job_results.update(job_results)
 	else:
 		agg_job_results['num_runs'] += job_results['num_runs']
+		agg_job_results['num_looping'] += job_results['num_looping']
 		agg_job_results['total_compression_time'] += job_results['total_compression_time']
 
 		for key in job_results['agg_run_stats'].keys():
@@ -957,6 +973,7 @@ if __name__ == "__main__":
 	print('    Compressed size     50, 85, 99th percentile: {:.2f}, {:.2f}, {:.2f} KB'.format(bytes_to_kb(numpy.percentile(clip_compressed_sizes, 50.0)), bytes_to_kb(numpy.percentile(clip_compressed_sizes, 85.0)), bytes_to_kb(numpy.percentile(clip_compressed_sizes, 99.0))))
 	print('    Animated frame size 50, 85, 99th percentile: {:.2f}, {:.2f}, {:.2f} B'.format(numpy.percentile(clip_animated_frame_sizes, 50.0), numpy.percentile(clip_animated_frame_sizes, 85.0), numpy.percentile(clip_animated_frame_sizes, 99.0)))
 	print('    Compression time    50, 85, 99th percentile: {:.3f}, {:.3f}, {:.3f} seconds'.format(numpy.percentile(agg_job_results['compression_times'], 50.0), numpy.percentile(agg_job_results['compression_times'], 85.0), numpy.percentile(agg_job_results['compression_times'], 99.0)))
+	print('    Num looping: {}'.format(agg_job_results['num_looping']))
 	print()
 
 	total_duration = sum([x['total_duration'] for x in agg_run_stats.values()])

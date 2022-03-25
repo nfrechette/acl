@@ -253,7 +253,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	CHECK(file_clip.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
 	CHECK(file_clip.track_list.get_sample_rate() == track_list.get_sample_rate());
 	CHECK(file_clip.track_list.get_num_tracks() == track_list.get_num_tracks());
-	CHECK(rtm::scalar_near_equal(file_clip.track_list.get_duration(sample_looping_policy::non_looping), track_list.get_duration(sample_looping_policy::non_looping), 1.0E-8F));
+	CHECK(rtm::scalar_near_equal(file_clip.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
 	CHECK(file_clip.track_list.get_track_type() == track_list.get_track_type());
 	CHECK(file_clip.track_list.get_track_category() == track_list.get_track_category());
 	CHECK(file_clip.track_list.get_name() == track_list.get_name());
@@ -372,7 +372,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
 	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
 	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
-	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(sample_looping_policy::non_looping), track_list.get_duration(sample_looping_policy::non_looping), 1.0E-8F));
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
 	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
 	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
 
@@ -482,7 +482,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
 	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
 	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
-	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(sample_looping_policy::non_looping), track_list.get_duration(sample_looping_policy::non_looping), 1.0E-8F));
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
 	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
 	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
 
@@ -592,7 +592,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
 	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
 	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
-	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(sample_looping_policy::non_looping), track_list.get_duration(sample_looping_policy::non_looping), 1.0E-8F));
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
 	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
 	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
 
@@ -702,7 +702,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
 	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
 	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
-	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(sample_looping_policy::non_looping), track_list.get_duration(sample_looping_policy::non_looping), 1.0E-8F));
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
 	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
 	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
 
@@ -812,7 +812,7 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
 	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
 	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
-	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(sample_looping_policy::non_looping), track_list.get_duration(sample_looping_policy::non_looping), 1.0E-8F));
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
 	CHECK(file_track_list.track_list.get_track_type() == track_list.get_track_type());
 	CHECK(file_track_list.track_list.get_track_category() == track_list.get_track_category());
 

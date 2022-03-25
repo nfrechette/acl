@@ -161,6 +161,13 @@ namespace acl
 		bool enable_database_support = false;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Detects if the last sample matches the first for every sub-track.
+		// If it is the case, it is removed and the wrap looping policy is used
+		// otherwise we use the clamp policy and every sample is retained.
+		// See `sample_looping_policy` for details.
+		bool optimize_loops = false;
+
+		//////////////////////////////////////////////////////////////////////////
 		// These are optional metadata that can be added to compressed clips.
 		compression_metadata_settings metadata;
 

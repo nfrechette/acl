@@ -104,47 +104,15 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the duration for tracks in this array.
-		// Note that when wrap policy is used, an extra repeating
-		// first sample is artificially inserted at the end of the clip.
-		// This artificial sample maps to the first sample, it only lives once in memory.
-		// This allows us to interpolate from the last sample back to the first
-		// sample when looping and wrapping during playback.
+		// Note that the duration depends on the looping policy.
 		// See `sample_looping_policy` for details.
-		float get_duration(sample_looping_policy looping_policy) const;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the duration for tracks in this array.
-		// Note that when wrap policy is used, an extra repeating
-		// first sample is artificially inserted at the end of the clip.
-		// This artificial sample maps to the first sample, it only lives once in memory.
-		// This allows us to interpolate from the last sample back to the first
-		// sample when looping and wrapping during playback.
-		// See `sample_looping_policy` for details.
-		// This uses the clamp looping policy.
-		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
-		float get_duration() const { return get_duration(sample_looping_policy::clamp); }
+		float get_duration() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the finite duration for tracks in this array.
-		// Note that when wrap policy is used, an extra repeating
-		// first sample is artificially inserted at the end of the clip.
-		// This artificial sample maps to the first sample, it only lives once in memory.
-		// This allows us to interpolate from the last sample back to the first
-		// sample when looping and wrapping during playback.
+		// Note that the duration depends on the looping policy.
 		// See `sample_looping_policy` for details.
-		float get_finite_duration(sample_looping_policy looping_policy) const;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the finite duration for tracks in this array.
-		// Note that when wrap policy is used, an extra repeating
-		// first sample is artificially inserted at the end of the clip.
-		// This artificial sample maps to the first sample, it only lives once in memory.
-		// This allows us to interpolate from the last sample back to the first
-		// sample when looping and wrapping during playback.
-		// See `sample_looping_policy` for details.
-		// This uses the clamp looping policy.
-		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
-		float get_finite_duration() const { return get_finite_duration(sample_looping_policy::clamp); }
+		float get_finite_duration() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track name.
@@ -153,6 +121,21 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Sets the track name.
 		void set_name(const string& name) { m_name = name.get_copy(); }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Sets the looping policy.
+		// Note that when wrap policy is used, an extra repeating
+		// first sample is artificially inserted at the end of the clip.
+		// This artificial sample maps to the first sample, it only lives once in memory.
+		// This allows us to interpolate from the last sample back to the first
+		// sample when looping and wrapping during playback.
+		// See `sample_looping_policy` for details.
+		// The `sample_looping_policy::as_compressed` value isn't allowed here.
+		void set_looping_policy(sample_looping_policy policy);
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the looping policy.
+		sample_looping_policy get_looping_policy() const { return m_looping_policy; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track at the specified index.
@@ -188,32 +171,14 @@ namespace acl
 		// desired rounding policy. Track samples are written out using the `track_writer` provided.
 		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
 		template<class track_writer_type>
-		void sample_tracks(float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy, track_writer_type& writer) const;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Sample all tracks within this array at the specified sample time and
-		// desired rounding policy. Track samples are written out using the `track_writer` provided.
-		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
-		// This uses the clamp looping policy.
-		template<class track_writer_type>
-		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
-		void sample_tracks(float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const { sample_tracks(sample_time, rounding_policy, sample_looping_policy::clamp, writer); }
+		void sample_tracks(float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Sample a single track within this array at the specified sample time and
 		// desired rounding policy. The track sample is written out using the `track_writer` provided.
 		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
 		template<class track_writer_type>
-		void sample_track(uint32_t track_index, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy, track_writer_type& writer) const;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Sample a single track within this array at the specified sample time and
-		// desired rounding policy. The track sample is written out using the `track_writer` provided.
-		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
-		// This uses the clamp looping policy.
-		template<class track_writer_type>
-		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
-		void sample_track(uint32_t track_index, float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const { sample_track(track_index, sample_time, rounding_policy, sample_looping_policy::clamp, writer); }
+		void sample_track(uint32_t track_index, float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the raw size for this track array. Note that this differs from the actual
@@ -227,11 +192,12 @@ namespace acl
 		track_array(const track_array&) = delete;
 		track_array& operator=(const track_array&) = delete;
 
-		iallocator*		m_allocator;		// The allocator used to allocate our tracks
-		track*			m_tracks;			// The track list
-		uint32_t		m_num_tracks;		// The number of tracks
+		iallocator*				m_allocator;		// The allocator used to allocate our tracks
+		track*					m_tracks;			// The track list
+		uint32_t				m_num_tracks;		// The number of tracks
+		sample_looping_policy	m_looping_policy;	// The looping policy
 
-		string			m_name;				// An optional name
+		string					m_name;				// An optional name
 	};
 
 	//////////////////////////////////////////////////////////////////////////

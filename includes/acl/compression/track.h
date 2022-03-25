@@ -275,6 +275,17 @@ namespace acl
 		const sample_type& operator[](uint32_t index) const;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns a pointer to the sample data.
+		// Note that if the sample stride is not sizeof(sample_type) then samples
+		// are not contiguous in memory!
+		sample_type* get_data();
+
+		//////////////////////////////////////////////////////////////////////////
+		// Note that if the sample stride is not sizeof(sample_type) then samples
+		// are not contiguous in memory!
+		const sample_type* get_data() const;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the track description.
 		desc_type& get_description();
 

@@ -151,6 +151,7 @@ namespace acl
 				segment.ranges = nullptr;
 				segment.contributing_error = nullptr;
 				segment.num_bones = clip.num_bones;
+				segment.num_samples_allocated = num_samples_in_segment;
 				segment.num_samples = num_samples_in_segment;
 				segment.clip_sample_offset = clip_sample_index;
 				segment.segment_index = segment_index;

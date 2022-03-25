@@ -243,8 +243,8 @@ static void benchmark_decompression(benchmark::State& state)
 
 		acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[current_context_index];
 
-		// Interpolate and clamp as this is the most common scenario
-		context.seek(sample_time, acl::sample_rounding_policy::none, acl::sample_looping_policy::non_looping);
+		// Interpolate as this is the most common scenario
+		context.seek(sample_time, acl::sample_rounding_policy::none);
 
 		switch (decompression_function)
 		{

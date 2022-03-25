@@ -65,6 +65,7 @@ namespace acl
 		ACL_ASSERT(duration >= 0.0F && rtm::scalar_is_finite(duration), "Invalid duration: %f", duration);
 		ACL_ASSERT(sample_time >= 0.0F && sample_time <= duration, "Invalid sample time: 0.0 <= %f <= %f", sample_time, duration);
 		ACL_ASSERT(num_samples > 0, "Invalid num_samples: %u", num_samples);
+		ACL_ASSERT(looping_policy != sample_looping_policy::as_compressed, "As compressed looping policy is not supported");
 
 		const uint32_t last_sample_index = num_samples - 1;
 
@@ -165,6 +166,7 @@ namespace acl
 		// Samples are evenly spaced, trivially calculate the indices that we need
 		ACL_ASSERT(sample_rate >= 0.0F, "Invalid sample rate: %f", sample_rate);
 		ACL_ASSERT(num_samples > 0, "Invalid num_samples: %u", num_samples);
+		ACL_ASSERT(looping_policy != sample_looping_policy::as_compressed, "As compressed looping policy is not supported");
 
 		// TODO: Would it be faster to do the index calculation entirely with floating point?
 		// SSE4 can floor with a single instruction.

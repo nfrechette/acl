@@ -83,6 +83,7 @@ namespace acl
 				*safe_ptr_cast<sample_type>(ptr) = sample;
 			}
 
+			uint32_t get_num_samples_allocated() const { return m_num_samples_allocated; }
 			uint32_t get_num_samples() const { return m_num_samples; }
 			uint32_t get_sample_size() const { return m_sample_size; }
 			float get_sample_rate() const { return m_sample_rate; }
@@ -99,12 +100,33 @@ namespace acl
 					return get_packed_vector_size(m_format.vector);
 			}
 
+			// Used during loop optimization, the last sample is removed since the first one repeats
+			void strip_last_sample()
+			{
+				ACL_ASSERT(m_num_samples_allocated > 1, "Too few samples to strip");
+				if (m_num_samples_allocated <= 1)
+					return;
+
+				m_num_samples = m_num_samples_allocated - 1;
+			}
+
 		protected:
-			track_stream(animation_track_type8 type, track_format8 format) noexcept : m_allocator(nullptr), m_samples(nullptr), m_num_samples(0), m_sample_size(0), m_sample_rate(0.0F), m_type(type), m_format(format), m_bit_rate(0) {}
+			track_stream(animation_track_type8 type, track_format8 format) noexcept
+				: m_allocator(nullptr)
+				, m_samples(nullptr)
+				, m_num_samples_allocated(0)
+				, m_num_samples(0)
+				, m_sample_size(0)
+				, m_sample_rate(0.0F)
+				, m_type(type)
+				, m_format(format)
+				, m_bit_rate(0)
+			{}
 
 			track_stream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, animation_track_type8 type, track_format8 format, uint8_t bit_rate)
 				: m_allocator(&allocator)
 				, m_samples(reinterpret_cast<uint8_t*>(allocator.allocate(sample_size * size_t(num_samples) + k_padding, 16)))
+				, m_num_samples_allocated(num_samples)
 				, m_num_samples(num_samples)
 				, m_sample_size(sample_size)
 				, m_sample_rate(sample_rate)
@@ -117,6 +139,7 @@ namespace acl
 			track_stream(track_stream&& other) noexcept
 				: m_allocator(other.m_allocator)
 				, m_samples(other.m_samples)
+				, m_num_samples_allocated(other.m_num_samples_allocated)
 				, m_num_samples(other.m_num_samples)
 				, m_sample_size(other.m_sample_size)
 				, m_sample_rate(other.m_sample_rate)
@@ -130,7 +153,7 @@ namespace acl
 			~track_stream()
 			{
 				if (m_allocator != nullptr)
-					m_allocator->deallocate(m_samples, m_sample_size * size_t(m_num_samples) + k_padding);
+					m_allocator->deallocate(m_samples, m_sample_size * size_t(m_num_samples_allocated) + k_padding);
 			}
 
 			track_stream& operator=(const track_stream&) = delete;
@@ -138,6 +161,7 @@ namespace acl
 			{
 				std::swap(m_allocator, rhs.m_allocator);
 				std::swap(m_samples, rhs.m_samples);
+				std::swap(m_num_samples_allocated, rhs.m_num_samples_allocated);
 				std::swap(m_num_samples, rhs.m_num_samples);
 				std::swap(m_sample_size, rhs.m_sample_size);
 				std::swap(m_sample_rate, rhs.m_sample_rate);
@@ -154,6 +178,7 @@ namespace acl
 				{
 					copy.m_allocator = m_allocator;
 					copy.m_samples = reinterpret_cast<uint8_t*>(m_allocator->allocate(m_sample_size * size_t(m_num_samples) + k_padding, 16));
+					copy.m_num_samples_allocated = m_num_samples;
 					copy.m_num_samples = m_num_samples;
 					copy.m_sample_size = m_sample_size;
 					copy.m_sample_rate = m_sample_rate;
@@ -169,11 +194,12 @@ namespace acl
 
 			iallocator*				m_allocator;
 			uint8_t*				m_samples;
+			uint32_t				m_num_samples_allocated;
 			uint32_t				m_num_samples;
 			uint32_t				m_sample_size;
 			float					m_sample_rate;
 
-			animation_track_type8		m_type;
+			animation_track_type8	m_type;
 			track_format8			m_format;
 			uint8_t					m_bit_rate;
 			};

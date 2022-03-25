@@ -83,6 +83,7 @@ namespace acl
 			transform_range* ranges							= nullptr;
 			frame_contributing_error* contributing_error	= nullptr;	// Optional if we request it in the compression settings
 
+			uint32_t num_samples_allocated					= 0;
 			uint32_t num_samples							= 0;
 			uint32_t num_bones								= 0;
 
@@ -112,7 +113,7 @@ namespace acl
 		{
 			deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
 			deallocate_type_array(allocator, segment.ranges, segment.num_bones);
-			deallocate_type_array(allocator, segment.contributing_error, segment.num_samples);
+			deallocate_type_array(allocator, segment.contributing_error, segment.num_samples_allocated);
 		}
 	}
 }

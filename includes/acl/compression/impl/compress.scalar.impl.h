@@ -39,6 +39,7 @@
 #include "acl/compression/impl/track_list_context.h"
 #include "acl/compression/impl/constant_track_impl.h"
 #include "acl/compression/impl/normalize_track_impl.h"
+#include "acl/compression/impl/optimize_looping.h"
 #include "acl/compression/impl/quantize_track_impl.h"
 #include "acl/compression/impl/track_range_impl.h"
 #include "acl/compression/impl/write_compression_stats_impl.h"
@@ -63,9 +64,19 @@ namespace acl
 			if (!initialize_context(allocator, track_list, context))
 				return error_result("Some samples are not finite");
 
+			// Wrap instead of clamp if we loop
+			optimize_looping(context, settings);
+
+			// Extract our ranges now, we need it for compacting the constant tracks
 			extract_track_ranges(context);
+
+			// Compact and collapse the constant tracks
 			extract_constant_tracks(context);
+
+			// Normalize our samples into the track wide ranges per track
 			normalize_tracks(context);
+
+			// Find how many bits we need per track and quantize everything
 			quantize_tracks(context);
 
 			// Done transforming our input tracks, time to pack them into their final form
@@ -133,6 +144,7 @@ namespace acl
 			header->num_tracks = context.num_output_tracks;
 			header->num_samples = context.num_output_tracks != 0 ? context.num_samples : 0;
 			header->sample_rate = context.num_output_tracks != 0 ? context.sample_rate : 0.0F;
+			header->set_is_wrap_optimized(context.looping_policy == sample_looping_policy::wrap);
 			header->set_has_metadata(metadata_size != 0);
 
 			// Write our scalar tracks header

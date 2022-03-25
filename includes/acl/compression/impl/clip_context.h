@@ -29,9 +29,11 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/iterator.h"
 #include "acl/core/error.h"
+#include "acl/core/sample_looping_policy.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/compression_settings.h"
+#include "acl/compression/track_array.h"
 #include "acl/compression/impl/segment_context.h"
 
 #include <rtm/quatf.h>
@@ -139,10 +141,13 @@ namespace acl
 
 			uint32_t num_segments						= 0;
 			uint32_t num_bones							= 0;
+			uint32_t num_samples_allocated				= 0;
 			uint32_t num_samples						= 0;
 			float sample_rate							= 0.0F;
 
 			float duration								= 0.0F;
+
+			sample_looping_policy looping_policy		= sample_looping_policy::non_looping;
 
 			bool are_rotations_normalized				= false;
 			bool are_translations_normalized			= false;
@@ -177,6 +182,7 @@ namespace acl
 			const uint32_t num_transforms = track_list.get_num_tracks();
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
 			const float sample_rate = track_list.get_sample_rate();
+			const sample_looping_policy looping_policy = track_list.get_looping_policy();
 
 			// Create a single segment with the whole clip
 			out_clip_context.segments = allocate_type_array<segment_context>(allocator, 1);
@@ -185,9 +191,11 @@ namespace acl
 			out_clip_context.leaf_transform_chains = nullptr;
 			out_clip_context.num_segments = 1;
 			out_clip_context.num_bones = num_transforms;
+			out_clip_context.num_samples_allocated = num_samples;
 			out_clip_context.num_samples = num_samples;
 			out_clip_context.sample_rate = sample_rate;
-			out_clip_context.duration = track_list.get_finite_duration(sample_looping_policy::non_looping);
+			out_clip_context.duration = track_list.get_finite_duration();
+			out_clip_context.looping_policy = looping_policy;
 			out_clip_context.are_rotations_normalized = false;
 			out_clip_context.are_translations_normalized = false;
 			out_clip_context.are_scales_normalized = false;
@@ -315,6 +323,7 @@ namespace acl
 			segment.clip = &out_clip_context;
 			segment.ranges = nullptr;
 			segment.contributing_error = nullptr;
+			segment.num_samples_allocated = num_samples;
 			segment.num_samples = num_samples;
 			segment.num_bones = num_transforms;
 			segment.clip_sample_offset = 0;

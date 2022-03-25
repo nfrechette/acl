@@ -61,6 +61,7 @@ namespace acl
 			writer["duration"] = context.duration;
 			writer["num_samples"] = context.num_samples;
 			writer["num_tracks"] = context.num_tracks;
+			writer["looping"] = tracks.get_looping_policy() == sample_looping_policy::wrap;
 		}
 	}
 }

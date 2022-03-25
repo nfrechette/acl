@@ -80,6 +80,8 @@ namespace acl
 			float sample_rate;
 			float duration;
 
+			sample_looping_policy looping_policy;
+
 			track_list_context()
 				: allocator(nullptr)
 				, reference_list(nullptr)
@@ -93,6 +95,7 @@ namespace acl
 				, num_samples(0)
 				, sample_rate(0.0F)
 				, duration(0.0F)
+				, looping_policy(sample_looping_policy::non_looping)
 			{}
 
 			~track_list_context()
@@ -254,7 +257,8 @@ namespace acl
 			context.num_output_tracks = 0;
 			context.num_samples = track_list.get_num_samples_per_track();
 			context.sample_rate = track_list.get_sample_rate();
-			context.duration = track_list.get_finite_duration(sample_looping_policy::non_looping);
+			context.duration = track_list.get_finite_duration();
+			context.looping_policy = track_list.get_looping_policy();
 
 			context.track_output_indices = create_output_track_mapping(allocator, track_list, context.num_output_tracks);
 

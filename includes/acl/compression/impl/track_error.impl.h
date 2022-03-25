@@ -399,12 +399,12 @@ namespace acl
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				raw_tracks_.sample_tracks(sample_time, rounding_policy, sample_looping_policy::non_looping, track_writer);
+				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
 			}
 
 			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				context_.seek(sample_time, rounding_policy, sample_looping_policy::non_looping);
+				context_.seek(sample_time, rounding_policy);
 				context_.decompress_tracks(track_writer);
 			}
 
@@ -420,7 +420,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks.get_num_samples_per_track();
 		args.num_tracks = raw_tracks.get_num_tracks();
-		args.duration = raw_tracks.get_finite_duration(sample_looping_policy::non_looping);
+		args.duration = raw_tracks.get_finite_duration();
 		args.sample_rate = raw_tracks.get_sample_rate();
 		args.track_type = raw_tracks.get_track_type();
 
@@ -471,12 +471,12 @@ namespace acl
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				raw_tracks_.sample_tracks(sample_time, rounding_policy, sample_looping_policy::non_looping, track_writer);
+				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
 			}
 
 			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				context_.seek(sample_time, rounding_policy, sample_looping_policy::non_looping);
+				context_.seek(sample_time, rounding_policy);
 				context_.decompress_tracks(track_writer);
 			}
 
@@ -516,7 +516,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks.get_num_samples_per_track();
 		args.num_tracks = raw_tracks.get_num_tracks();
-		args.duration = raw_tracks.get_finite_duration(sample_looping_policy::non_looping);
+		args.duration = raw_tracks.get_finite_duration();
 		args.sample_rate = raw_tracks.get_sample_rate();
 		args.track_type = raw_tracks.get_track_type();
 
@@ -582,12 +582,12 @@ namespace acl
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				raw_tracks_.sample_tracks(sample_time, rounding_policy, sample_looping_policy::non_looping, track_writer);
+				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
 			}
 
 			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				context_.seek(sample_time, rounding_policy, sample_looping_policy::non_looping);
+				context_.seek(sample_time, rounding_policy);
 				context_.decompress_tracks(track_writer);
 			}
 
@@ -624,8 +624,7 @@ namespace acl
 			virtual bool has_additive_base() const override { return !additive_base_tracks_.is_empty(); }
 			virtual void sample_tracks_base(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				// Use clamp looping policy since it doesn't matter when measuring the error
-				additive_base_tracks_.sample_tracks(sample_time, rounding_policy, sample_looping_policy::clamp, track_writer);
+				additive_base_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
 			}
 		};
 
@@ -634,7 +633,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks.get_num_samples_per_track();
 		args.num_tracks = raw_tracks.get_num_tracks();
-		args.duration = raw_tracks.get_finite_duration(sample_looping_policy::non_looping);
+		args.duration = raw_tracks.get_finite_duration();
 		args.sample_rate = raw_tracks.get_sample_rate();
 		args.track_type = raw_tracks.get_track_type();
 
@@ -654,7 +653,7 @@ namespace acl
 		if (!additive_base_tracks.is_empty())
 		{
 			args.base_num_samples = additive_base_tracks.get_num_samples_per_track();
-			args.base_duration = additive_base_tracks.get_finite_duration(sample_looping_policy::non_looping);
+			args.base_duration = additive_base_tracks.get_finite_duration();
 		}
 
 		return calculate_transform_track_error(allocator, args);
@@ -686,13 +685,13 @@ namespace acl
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				context0_.seek(sample_time, rounding_policy, sample_looping_policy::non_looping);
+				context0_.seek(sample_time, rounding_policy);
 				context0_.decompress_tracks(track_writer);
 			}
 
 			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				context1_.seek(sample_time, rounding_policy, sample_looping_policy::non_looping);
+				context1_.seek(sample_time, rounding_policy);
 				context1_.decompress_tracks(track_writer);
 			}
 		};
@@ -702,7 +701,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = tracks0->get_num_samples_per_track();
 		args.num_tracks = tracks0->get_num_tracks();
-		args.duration = tracks0->get_finite_duration(sample_looping_policy::non_looping);
+		args.duration = tracks0->get_finite_duration();
 		args.sample_rate = tracks0->get_sample_rate();
 		args.track_type = tracks0->get_track_type();
 
@@ -743,12 +742,12 @@ namespace acl
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				raw_tracks0_.sample_tracks(sample_time, rounding_policy, sample_looping_policy::non_looping, track_writer);
+				raw_tracks0_.sample_tracks(sample_time, rounding_policy, track_writer);
 			}
 
 			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				raw_tracks1_.sample_tracks(sample_time, rounding_policy, sample_looping_policy::non_looping, track_writer);
+				raw_tracks1_.sample_tracks(sample_time, rounding_policy, track_writer);
 			}
 		};
 
@@ -757,7 +756,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks0.get_num_samples_per_track();
 		args.num_tracks = raw_tracks0.get_num_tracks();
-		args.duration = raw_tracks0.get_finite_duration(sample_looping_policy::non_looping);
+		args.duration = raw_tracks0.get_finite_duration();
 		args.sample_rate = raw_tracks0.get_sample_rate();
 		args.track_type = raw_tracks0.get_track_type();
 
@@ -787,12 +786,12 @@ namespace acl
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				raw_tracks0_.sample_tracks(sample_time, rounding_policy, sample_looping_policy::non_looping, track_writer);
+				raw_tracks0_.sample_tracks(sample_time, rounding_policy, track_writer);
 			}
 
 			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
-				raw_tracks1_.sample_tracks(sample_time, rounding_policy, sample_looping_policy::non_looping, track_writer);
+				raw_tracks1_.sample_tracks(sample_time, rounding_policy, track_writer);
 			}
 
 			virtual uint32_t get_parent_index(uint32_t track_index) override
@@ -813,7 +812,7 @@ namespace acl
 		calculate_track_error_args args(adapter);
 		args.num_samples = raw_tracks0.get_num_samples_per_track();
 		args.num_tracks = raw_tracks0.get_num_tracks();
-		args.duration = raw_tracks0.get_finite_duration(sample_looping_policy::non_looping);
+		args.duration = raw_tracks0.get_finite_duration();
 		args.sample_rate = raw_tracks0.get_sample_rate();
 		args.track_type = raw_tracks0.get_track_type();
 
