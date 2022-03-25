@@ -42,6 +42,7 @@
 #include "acl/compression/impl/convert_rotation_streams.h"
 #include "acl/compression/impl/compact_constant_streams.h"
 #include "acl/compression/impl/normalize_streams.h"
+#include "acl/compression/impl/optimize_looping.h"
 #include "acl/compression/impl/quantize_streams.h"
 #include "acl/compression/impl/segment_streams.h"
 #include "acl/compression/impl/write_segment_data.h"
@@ -163,6 +164,9 @@ namespace acl
 			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, additive_base_clip_context))
 				return error_result("Some base samples are not finite");
 
+			// Wrap instead of clamp if we loop
+			optimize_looping(lossy_clip_context, track_list, settings);
+
 			// Convert our rotations if we need to
 			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format);
 
@@ -192,6 +196,7 @@ namespace acl
 				normalize_segment_streams(lossy_clip_context, range_reduction);
 			}
 
+			// Find how many bits we need per sub-track and quantize everything
 			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats);
 
 			const bool has_trivial_defaults = has_trivial_default_values(track_list, additive_format, lossy_clip_context);
@@ -327,8 +332,8 @@ namespace acl
 			header->algorithm_type = algorithm_type8::uniformly_sampled;
 			header->track_type = track_list.get_track_type();
 			header->num_tracks = num_output_bones;
-			header->num_samples = num_output_bones != 0 ? track_list.get_num_samples_per_track() : 0;
-			header->sample_rate = num_output_bones != 0 ? track_list.get_sample_rate() : 0.0F;
+			header->num_samples = num_output_bones != 0 ? lossy_clip_context.num_samples : 0;
+			header->sample_rate = num_output_bones != 0 ? lossy_clip_context.sample_rate : 0.0F;
 			header->set_rotation_format(settings.rotation_format);
 			header->set_translation_format(settings.translation_format);
 			header->set_scale_format(settings.scale_format);
@@ -337,6 +342,7 @@ namespace acl
 			header->set_default_scale(!is_additive || additive_format != additive_clip_format8::additive1 ? 1 : 0);
 			header->set_has_database(false);
 			header->set_has_trivial_default_values(has_trivial_defaults);
+			header->set_is_wrap_optimized(lossy_clip_context.looping_policy == sample_looping_policy::wrap);
 			header->set_has_metadata(metadata_size != 0);
 
 			// Write our transform tracks header

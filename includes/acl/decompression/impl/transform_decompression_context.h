@@ -68,7 +68,9 @@ namespace acl
 			uint8_t has_scale;									//  19 |  27
 			uint8_t has_segments;								//  20 |  28
 
-			uint8_t padding0[22];								//  21 |  29
+			uint8_t looping_policy;								//  21 |  29
+
+			uint8_t padding0[21];								//  22 |  30
 
 			// Seeking related data
 			uint8_t uses_single_segment;						//  43 |  51
@@ -95,6 +97,7 @@ namespace acl
 
 			const compressed_tracks* get_compressed_tracks() const { return tracks; }
 			compressed_tracks_version16 get_version() const { return tracks->get_version(); }
+			sample_looping_policy get_looping_policy() const { return static_cast<sample_looping_policy>(looping_policy); }
 			bool is_initialized() const { return tracks != nullptr; }
 			void reset() { tracks = nullptr; }
 		};

@@ -400,13 +400,14 @@ namespace acl
 			writer["compressed_size"] = compressed_size;
 			writer["compression_ratio"] = compression_ratio;
 			writer["compression_time"] = compression_time.get_elapsed_seconds();
-			writer["duration"] = track_list.get_duration(sample_looping_policy::non_looping);
-			writer["num_samples"] = track_list.get_num_samples_per_track();
+			writer["duration"] = compressed_clip.get_duration();
+			writer["num_samples"] = compressed_clip.get_num_samples_per_track();
 			writer["num_bones"] = compressed_clip.get_num_tracks();
 			writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 			writer["translation_format"] = get_vector_format_name(settings.translation_format);
 			writer["scale_format"] = get_vector_format_name(settings.scale_format);
 			writer["has_scale"] = clip.has_scale;
+			writer["looping"] = compressed_clip.get_looping_policy() == sample_looping_policy::wrap;
 			writer["error_metric"] = settings.error_metric->get_name();
 
 			if (are_all_enum_flags_set(stats.logging, stat_logging::detailed) || are_all_enum_flags_set(stats.logging, stat_logging::exhaustive))

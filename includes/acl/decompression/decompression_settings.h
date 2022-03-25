@@ -112,8 +112,9 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Whether or not to enable support for the wrap looping policy.
 		// When wrapping isn't supported, we will use the clamp policy.
+		// Required when loops are optimized during compression.
 		// See 'sample_looping_policy' for details.
-		// Enabled by default for safety.
+		// Enabled by default.
 		// Must be static constexpr!
 		static constexpr bool is_wrapping_supported() { return true; }
 
@@ -155,11 +156,6 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Only support scalar tracks
 		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::qvvf; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// Disabled by default since it adds overhead and it can lead to unwanted behavior
-		// which makes it less common.
-		static constexpr bool is_wrapping_supported() { return false; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -178,11 +174,6 @@ namespace acl
 		static constexpr bool is_rotation_format_supported(rotation_format8 format) { return format == rotation_format8::quatf_drop_w_variable; }
 		static constexpr bool is_translation_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
 		static constexpr bool is_scale_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// Disabled by default since it adds overhead and it can lead to unwanted behavior
-		// which makes it less common.
-		static constexpr bool is_wrapping_supported() { return false; }
 	};
 }
 

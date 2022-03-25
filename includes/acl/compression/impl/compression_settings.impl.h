@@ -95,6 +95,7 @@ namespace acl
 			hash_value = hash_combine(hash_value, error_metric->get_hash());
 
 		hash_value = hash_combine(hash_value, enable_database_support);
+		hash_value = hash_combine(hash_value, optimize_loops);
 		hash_value = hash_combine(hash_value, metadata.get_hash());
 
 		return hash_value;
@@ -124,6 +125,7 @@ namespace acl
 		settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 		settings.translation_format = vector_format8::vector3f_variable;
 		settings.scale_format = vector_format8::vector3f_variable;
+		settings.optimize_loops = true;
 		return settings;
 	}
 }

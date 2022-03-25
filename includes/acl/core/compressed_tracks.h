@@ -96,19 +96,7 @@ namespace acl
 		// This allows us to interpolate from the last sample back to the first
 		// sample when looping and wrapping during playback.
 		// See `sample_looping_policy` for details.
-		float get_duration(sample_looping_policy looping_policy) const;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the duration of each track.
-		// Note that when wrap policy is used, an extra repeating
-		// first sample is artificially inserted at the end of the clip.
-		// This artificial sample maps to the first sample, it only lives once in memory.
-		// This allows us to interpolate from the last sample back to the first
-		// sample when looping and wrapping during playback.
-		// See `sample_looping_policy` for details.
-		// This uses the clamp looping policy.
-		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
-		float get_duration() const { return get_duration(sample_looping_policy::clamp); }
+		float get_duration(sample_looping_policy looping_policy = sample_looping_policy::as_compressed) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the finite duration of each track.
@@ -118,19 +106,7 @@ namespace acl
 		// This allows us to interpolate from the last sample back to the first
 		// sample when looping and wrapping during playback.
 		// See `sample_looping_policy` for details.
-		float get_finite_duration(sample_looping_policy looping_policy) const;
-
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the finite duration of each track.
-		// Note that when wrap policy is used, an extra repeating
-		// first sample is artificially inserted at the end of the clip.
-		// This artificial sample maps to the first sample, it only lives once in memory.
-		// This allows us to interpolate from the last sample back to the first
-		// sample when looping and wrapping during playback.
-		// See `sample_looping_policy` for details.
-		// This uses the clamp looping policy.
-		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
-		float get_finite_duration() const { return get_finite_duration(sample_looping_policy::clamp); }
+		float get_finite_duration(sample_looping_policy looping_policy = sample_looping_policy::as_compressed) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the sample rate used by each track.
@@ -152,6 +128,10 @@ namespace acl
 		// Depending on the additive type, this value will either be 0.0 or 1.0.
 		// Only supported with qvv transform tracks.
 		float get_default_scale() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the looping policy used during compression.
+		sample_looping_policy get_looping_policy() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track list name if metadata is present, nullptr otherwise.

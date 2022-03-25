@@ -70,12 +70,15 @@ namespace acl
 
 			uint32_t key_frame_bit_offsets[2];						//  20 |  24	// Variable quantization
 
-			uint8_t padding_tail[sizeof(void*) == 4 ? 36 : 32];		//  28 |  32
+			uint8_t looping_policy;									//  28 |  32
+
+			uint8_t padding_tail[sizeof(void*) == 4 ? 35 : 31];		//  29 |  33
 
 			//////////////////////////////////////////////////////////////////////////
 
 			const compressed_tracks* get_compressed_tracks() const { return tracks; }
 			compressed_tracks_version16 get_version() const { return tracks->get_version(); }
+			sample_looping_policy get_looping_policy() const { return static_cast<sample_looping_policy>(looping_policy); }
 			bool is_initialized() const { return tracks != nullptr; }
 			void reset() { tracks = nullptr; }
 		};
@@ -92,13 +95,19 @@ namespace acl
 
 			context.tracks = &tracks;
 			context.tracks_hash = tracks.get_hash();
-
-			// If wrapping isn't supported, cache the duration to speed up repeated calls to seek(..)
-			if (!decompression_settings_type::is_wrapping_supported())
-				context.duration = tracks.get_finite_duration(sample_looping_policy::clamp);
-
 			context.sample_time = -1.0F;
 			context.interpolation_alpha = 0.0;
+
+			if (decompression_settings_type::is_wrapping_supported())
+			{
+				context.duration = tracks.get_finite_duration();
+				context.looping_policy = static_cast<uint8_t>(tracks.get_looping_policy());
+			}
+			else
+			{
+				context.duration = tracks.get_finite_duration(sample_looping_policy::clamp);
+				context.looping_policy = static_cast<uint8_t>(sample_looping_policy::clamp);
+			}
 
 			return true;
 		}
@@ -115,7 +124,25 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void seek_v0(persistent_scalar_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy)
+		inline void set_looping_policy_v0(const persistent_scalar_decompression_context_v0& context, sample_looping_policy policy)
+		{
+			if (!decompression_settings_type::is_wrapping_supported())
+				return;	// Only clamping is supported
+
+			if (policy == sample_looping_policy::as_compressed)
+				policy = context.tracks->get_looping_policy();
+
+			const sample_looping_policy current_policy = static_cast<sample_looping_policy>(context.looping_policy);
+			if (current_policy != policy)
+			{
+				// Policy changed
+				context.duration = context.tracks->get_finite_duration(policy);
+				context.looping_policy = static_cast<uint8_t>(policy);
+			}
+		}
+
+		template<class decompression_settings_type>
+		inline void seek_v0(persistent_scalar_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy)
 		{
 			const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*context.tracks);
 			if (header.num_samples == 0)
@@ -123,18 +150,15 @@ namespace acl
 
 			// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 			if (decompression_settings_type::clamp_sample_time())
-			{
-				const float duration = decompression_settings_type::is_wrapping_supported() ? context.tracks->get_finite_duration(looping_policy) : context.duration;
-				sample_time = rtm::scalar_clamp(sample_time, 0.0F, duration);
-			}
+				sample_time = rtm::scalar_clamp(sample_time, 0.0F, context.duration);
 
 			if (context.sample_time == sample_time)
 				return;
 
 			context.sample_time = sample_time;
 
-			// If the wrap looping policy isn't supported, use out statically known value
-			const sample_looping_policy looping_policy_ = decompression_settings_type::is_wrapping_supported() ? looping_policy : sample_looping_policy::clamp;
+			// If the wrap looping policy isn't supported, use our statically known value
+			const sample_looping_policy looping_policy_ = decompression_settings_type::is_wrapping_supported() ? static_cast<sample_looping_policy>(context.looping_policy) : sample_looping_policy::clamp;
 
 			uint32_t key_frame0;
 			uint32_t key_frame1;

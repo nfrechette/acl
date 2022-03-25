@@ -102,16 +102,29 @@ namespace acl
 	}
 
 	template<class decompression_settings_type>
-	inline void decompression_context<decompression_settings_type>::seek(float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy)
+	inline void decompression_context<decompression_settings_type>::set_looping_policy(sample_looping_policy policy)
+	{
+		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
+		version_impl_type::template set_looping_policy<decompression_settings_type>(m_context, policy);
+	}
+
+	template<class decompression_settings_type>
+	inline sample_looping_policy decompression_context<decompression_settings_type>::get_looping_policy() const
+	{
+		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
+		return m_context.get_looping_policy();
+	}
+
+	template<class decompression_settings_type>
+	inline void decompression_context<decompression_settings_type>::seek(float sample_time, sample_rounding_policy rounding_policy)
 	{
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
 		ACL_ASSERT(rtm::scalar_is_finite(sample_time), "Invalid sample time");
-		ACL_ASSERT(looping_policy == sample_looping_policy::clamp || decompression_settings_type::is_wrapping_supported(), "Wrapping must be enabled in the decompression settings");
 
 		if (!m_context.is_initialized())
 			return;	// Context is not initialized
 
-		version_impl_type::template seek<decompression_settings_type>(m_context, sample_time, rounding_policy, looping_policy);
+		version_impl_type::template seek<decompression_settings_type>(m_context, sample_time, rounding_policy);
 	}
 
 	template<class decompression_settings_type>

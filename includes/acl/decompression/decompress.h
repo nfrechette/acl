@@ -108,18 +108,22 @@ namespace acl
 		bool is_dirty(const compressed_tracks& tracks) const;
 
 		//////////////////////////////////////////////////////////////////////////
-		// Seeks within the compressed tracks to a particular point in time with the
-		// desired rounding and looping policies.
-		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
-		void seek(float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy);
+		// Sets the looping policy.
+		// Should only be used when the host runtime requires overriding the default behavior.
+		// By default, `sample_looping_policy::as_compressed` is used which uses `clamp` if
+		// loops were not optimized.
+		void set_looping_policy(sample_looping_policy policy);
+
+		//////////////////////////////////////////////////////////////////////////
+		// Gets the current looping policy.
+		// If wrapping is not disabled, this is the policy from the compressed data by default.
+		sample_looping_policy get_looping_policy() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Seeks within the compressed tracks to a particular point in time with the
 		// desired rounding policy.
 		// The sample_time value must be within [0, clip duration] inclusive otherwise it will be clamped.
-		// This uses the clamp looping policy.
-		ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
-		void seek(float sample_time, sample_rounding_policy rounding_policy) { seek(sample_time, rounding_policy, sample_looping_policy::clamp); }
+		void seek(float sample_time, sample_rounding_policy rounding_policy);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Decompress every track at the current sample time.

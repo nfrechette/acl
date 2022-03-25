@@ -75,6 +75,16 @@ namespace acl
 	{
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
 
+		if (looping_policy == sample_looping_policy::as_compressed)
+		{
+			if (header.version <= compressed_tracks_version16::v02_00_00)
+				looping_policy = sample_looping_policy::clamp;	// Older versions used clamp
+			else if (header.get_is_wrap_optimized())
+				looping_policy = sample_looping_policy::wrap;
+			else
+				looping_policy = sample_looping_policy::clamp;
+		}
+
 		// When we wrap, we artificially insert a repeating first sample at the end of non-empty clips
 		uint32_t num_samples = header.num_samples;
 		if (looping_policy == sample_looping_policy::wrap && num_samples != 0)
@@ -86,6 +96,16 @@ namespace acl
 	inline float compressed_tracks::get_finite_duration(sample_looping_policy looping_policy) const
 	{
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+
+		if (looping_policy == sample_looping_policy::as_compressed)
+		{
+			if (header.version <= compressed_tracks_version16::v02_00_00)
+				looping_policy = sample_looping_policy::clamp;	// Older versions used clamp
+			else if (header.get_is_wrap_optimized())
+				looping_policy = sample_looping_policy::wrap;
+			else
+				looping_policy = sample_looping_policy::clamp;
+		}
 
 		// When we wrap, we artificially insert a repeating first sample at the end of non-empty clips
 		uint32_t num_samples = header.num_samples;
@@ -102,6 +122,15 @@ namespace acl
 	inline bool compressed_tracks::has_trivial_default_values() const { return acl_impl::get_tracks_header(*this).get_has_trivial_default_values(); }
 
 	inline float compressed_tracks::get_default_scale() const { return float(acl_impl::get_tracks_header(*this).get_default_scale()); }
+
+	inline sample_looping_policy compressed_tracks::get_looping_policy() const
+	{
+		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(*this);
+		if (header.version <= compressed_tracks_version16::v02_00_00)
+			return sample_looping_policy::clamp;	// Older versions used clamp
+
+		return header.get_is_wrap_optimized() ? sample_looping_policy::wrap : sample_looping_policy::clamp;
+	}
 
 	inline const char* compressed_tracks::get_name() const
 	{

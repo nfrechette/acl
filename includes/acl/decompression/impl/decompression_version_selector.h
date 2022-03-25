@@ -64,7 +64,10 @@ namespace acl
 			RTM_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0(context, tracks); }
 
 			template<class decompression_settings_type, class context_type>
-			RTM_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy, looping_policy); }
+			RTM_FORCE_INLINE static void set_looping_policy(const context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
+
+			template<class decompression_settings_type, class context_type>
+			RTM_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy); }
 
 			template<class decompression_settings_type, class track_writer_type, class context_type>
 			RTM_FORCE_INLINE static void decompress_tracks(context_type& context, track_writer_type& writer) { acl_impl::decompress_tracks_v0<decompression_settings_type>(context, writer); }
@@ -88,7 +91,10 @@ namespace acl
 			RTM_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0(context, tracks); }
 
 			template<class decompression_settings_type, class context_type>
-			RTM_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy, looping_policy); }
+			RTM_FORCE_INLINE static void set_looping_policy(const context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
+
+			template<class decompression_settings_type, class context_type>
+			RTM_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy); }
 
 			template<class decompression_settings_type, class track_writer_type, class context_type>
 			RTM_FORCE_INLINE static void decompress_tracks(context_type& context, track_writer_type& writer) { acl_impl::decompress_tracks_v0<decompression_settings_type>(context, writer); }
@@ -140,14 +146,30 @@ namespace acl
 			}
 
 			template<class decompression_settings_type, class context_type>
-			static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy)
+			static void set_looping_policy(const context_type& context, sample_looping_policy policy)
 			{
 				const compressed_tracks_version16 version = context.get_version();
 				switch (version)
 				{
 				case compressed_tracks_version16::v02_00_00:
 				case compressed_tracks_version16::v02_01_99:
-					decompression_version_selector<compressed_tracks_version16::v02_00_00>::seek<decompression_settings_type>(context, sample_time, rounding_policy, looping_policy);
+					decompression_version_selector<compressed_tracks_version16::v02_00_00>::set_looping_policy_v0<decompression_settings_type>(context, policy);
+					break;
+				default:
+					ACL_ASSERT(false, "Unsupported version");
+					break;
+				}
+			}
+
+			template<class decompression_settings_type, class context_type>
+			static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy)
+			{
+				const compressed_tracks_version16 version = context.get_version();
+				switch (version)
+				{
+				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
+					decompression_version_selector<compressed_tracks_version16::v02_00_00>::seek<decompression_settings_type>(context, sample_time, rounding_policy);
 					break;
 				default:
 					ACL_ASSERT(false, "Unsupported version");

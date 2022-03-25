@@ -86,7 +86,8 @@ namespace acl
 
 			// Scalar tracks use it like this (listed from LSB):
 			// Bits [0, 31): unused (31 bits)
-			// Bit [31, 32): has metadata?
+			// Bit 30: is wrap optimized? See sample_looping_policy for details.
+			// Bit 31: has metadata?
 
 			// Transform tracks use it like this (listed from LSB):
 			// Bit 0: has scale?
@@ -96,7 +97,8 @@ namespace acl
 			// Bits [4, 8): rotation format (4 bits)
 			// Bit 8: has database?
 			// Bit 9: has trivial default values? Non-trivial default values indicate that extra data beyond the clip will be needed at decompression (e.g. bind pose)
-			// Bits [10, 31): unused (21 bits)
+			// Bits [10, 30): unused (20 bits)
+			// Bit 30: is wrap optimized? See sample_looping_policy for details.
 			// Bit 31: has metadata?
 
 			// Transform only
@@ -116,6 +118,8 @@ namespace acl
 			void set_has_trivial_default_values(bool has_trivial_default_values) { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 9)) | (static_cast<uint32_t>(has_trivial_default_values) << 9); }
 
 			// Common
+			bool get_is_wrap_optimized() const { return (misc_packed & (1 << 30)) != 0; }
+			void set_is_wrap_optimized(bool is_wrap_optimized) { misc_packed = (misc_packed & ~(1 << 30)) | (static_cast<uint32_t>(is_wrap_optimized) << 30); }
 			bool get_has_metadata() const { return (misc_packed >> 31) != 0; }
 			void set_has_metadata(bool has_metadata) { misc_packed = (misc_packed & ~(1 << 31)) | (static_cast<uint32_t>(has_metadata) << 31); }
 		};
