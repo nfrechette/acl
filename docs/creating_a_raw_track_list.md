@@ -61,6 +61,8 @@ raw_track_list[0] = std::move(raw_track0);
 
 Once your raw track list has been populated with data, it is ready for [compression](compressing_raw_tracks.md). The data contained within the `track_array` will be read-only.
 
+You can override the looping policy by calling `raw_track_list.set_looping_policy(policy);`. This is only necessary if you perform your own loop optimization before compressing with ACL. See [how to handle looping playback](handling_looping_playback.md) for details.
+
 ## Additive animation clips
 
 If the clip you are compressing is an additive clip, you will also need to create an instance for the base clip. Once you have both clip instances, you can compress them together with `compress_track_list(..)`. This will allow you to specify the clip instance that represents the base clip as well as the [format](additive_clips.md) used by the additive clip.
