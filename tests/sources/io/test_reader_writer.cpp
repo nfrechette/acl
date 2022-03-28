@@ -24,10 +24,6 @@
 
 #include <catch2/catch.hpp>
 
-// Enable allocation tracking
-#define ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS
-#define ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS
-
 #if defined(ACL_USE_SJSON)
 	#include <sjson/parser.h>
 	#include <sjson/writer.h>
