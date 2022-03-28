@@ -134,7 +134,7 @@ namespace acl
 		}
 
 		template<class decompression_settings_type>
-		inline void set_looping_policy_v0(const persistent_transform_decompression_context_v0& context, sample_looping_policy policy)
+		inline void set_looping_policy_v0(persistent_transform_decompression_context_v0& context, sample_looping_policy policy)
 		{
 			if (!decompression_settings_type::is_wrapping_supported())
 				return;	// Only clamping is supported
