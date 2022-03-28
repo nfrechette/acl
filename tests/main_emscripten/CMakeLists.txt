@@ -24,7 +24,12 @@ add_definitions(-DACL_ON_ASSERT_THROW)
 add_definitions(-DRTM_ON_ASSERT_THROW)
 add_definitions(-DSJSON_CPP_ON_ASSERT_THROW)
 
+# Enable sjson-cpp usage to test IO
 add_definitions(-DACL_USE_SJSON)
+
+# Enable ANSI heap debug checks
+add_definitions(-DACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
+add_definitions(-DACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)		# Enable all warnings
 target_compile_options(${PROJECT_NAME} PRIVATE -Wshadow)			# Enable shadowing warnings
