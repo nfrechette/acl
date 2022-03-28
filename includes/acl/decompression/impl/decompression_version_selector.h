@@ -64,7 +64,7 @@ namespace acl
 			RTM_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0(context, tracks); }
 
 			template<class decompression_settings_type, class context_type>
-			RTM_FORCE_INLINE static void set_looping_policy(const context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
+			RTM_FORCE_INLINE static void set_looping_policy(context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
 
 			template<class decompression_settings_type, class context_type>
 			RTM_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy); }
@@ -91,7 +91,7 @@ namespace acl
 			RTM_FORCE_INLINE static bool is_dirty(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_dirty_v0(context, tracks); }
 
 			template<class decompression_settings_type, class context_type>
-			RTM_FORCE_INLINE static void set_looping_policy(const context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
+			RTM_FORCE_INLINE static void set_looping_policy(context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
 
 			template<class decompression_settings_type, class context_type>
 			RTM_FORCE_INLINE static void seek(context_type& context, float sample_time, sample_rounding_policy rounding_policy) { acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy); }
@@ -146,7 +146,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_type, class context_type>
-			static void set_looping_policy(const context_type& context, sample_looping_policy policy)
+			static void set_looping_policy(context_type& context, sample_looping_policy policy)
 			{
 				const compressed_tracks_version16 version = context.get_version();
 				switch (version)
