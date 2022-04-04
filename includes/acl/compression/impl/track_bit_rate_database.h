@@ -27,7 +27,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/track_formats.h"
-#include "acl/core/variable_bit_rates.h"
+#include "acl/core/impl/variable_bit_rates.h"
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/track_stream.h"
 

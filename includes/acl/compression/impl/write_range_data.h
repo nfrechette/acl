@@ -31,7 +31,7 @@
 #include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
-#include "acl/core/variable_bit_rates.h"
+#include "acl/core/impl/variable_bit_rates.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/impl/animated_track_utils.h"

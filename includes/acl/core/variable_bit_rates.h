@@ -34,25 +34,37 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 namespace acl
 {
 	// Bit rate 0 is reserved for tracks that are constant in a segment
+	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_bit_rate_num_bits[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 };
 
+	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_invalid_bit_rate = 0xFF;
+
+	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_lowest_bit_rate = 1;
-	constexpr uint8_t k_highest_bit_rate = sizeof(k_bit_rate_num_bits) - 1;
-	constexpr uint32_t k_num_bit_rates = sizeof(k_bit_rate_num_bits);
 
-	static_assert(k_num_bit_rates == 19, "Expecting 19 bit rates");
+	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
+	constexpr uint8_t k_highest_bit_rate = 18;
 
+	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
+	constexpr uint32_t k_num_bit_rates = 19;
+
+	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	inline uint32_t get_num_bits_at_bit_rate(uint32_t bit_rate)
 	{
-		ACL_ASSERT(bit_rate <= k_highest_bit_rate, "Invalid bit rate: %u", bit_rate);
-		return k_bit_rate_num_bits[bit_rate];
+		ACL_ASSERT(bit_rate <= 18, "Invalid bit rate: %u", bit_rate);
+		constexpr uint8_t bit_rate_num_bits[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 };
+		return bit_rate_num_bits[bit_rate];
 	}
 
 	// Track is constant, our constant sample is stored in the range information
+	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr bool is_constant_bit_rate(uint32_t bit_rate) { return bit_rate == 0; }
-	constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == k_highest_bit_rate; }
 
+	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
+	constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == 18; }
+
+	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	struct BoneBitRate
 	{
 		uint8_t rotation;
