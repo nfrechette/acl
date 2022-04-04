@@ -40,7 +40,11 @@
 	namespace sjson { class ArrayWriter; }
 #endif
 
+#if defined(RTM_COMPILER_MSVC) && RTM_COMPILER_MSVC > RTM_COMPILER_MSVC_2015
+// VS2015 internal state appears to get corrupted when some forward declarations are made
 #include "acl/fwd.h"	// Make sure forward declaration matches
+#endif
+
 #include "acl/core/ansi_allocator.h"
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/string.h"
