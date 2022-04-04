@@ -7,7 +7,7 @@ There are typically two ways to handle looping playback:
 
 ACL supports both approaches and will pick the optimal one during compression (tunable in the compression settings). This is controlled through the usage of the `sample_looping_policy` enum found in its [header](../includes/acl/core/sample_looping_policy.h). It is best to let ACL handle this and to not override this value.
 
-See also [this blog post](todo) for details.
+See also [this blog post](https://nfrechette.github.io/2022/04/03/anim_compression_looping/) for details.
 
 ## Clamp policy
 
