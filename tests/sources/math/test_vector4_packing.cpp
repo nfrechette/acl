@@ -24,7 +24,7 @@
 
 #include <catch2/catch.hpp>
 
-#include <acl/core/variable_bit_rates.h>
+#include <acl/core/impl/variable_bit_rates.h>
 #include <acl/math/vector4_packing.h>
 
 #include <rtm/scalarf.h>
@@ -154,9 +154,9 @@ TEST_CASE("pack_vector4_XX", "[math][vector4][packing]")
 		if (!vector_all_near_equal(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
-		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
+		for (uint8_t bit_rate = 1; bit_rate < acl_impl::k_highest_bit_rate; ++bit_rate)
 		{
-			uint32_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
@@ -382,9 +382,9 @@ TEST_CASE("pack_vector3_XX", "[math][vector4][packing]")
 		if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
-		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
+		for (uint8_t bit_rate = 1; bit_rate < acl_impl::k_highest_bit_rate; ++bit_rate)
 		{
-			uint32_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
@@ -449,9 +449,9 @@ TEST_CASE("decay_vector3_XX", "[math][vector4][decay]")
 		if (!vector_all_near_equal3(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
-		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
+		for (uint8_t bit_rate = 1; bit_rate < acl_impl::k_highest_bit_rate; ++bit_rate)
 		{
-			uint32_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
@@ -518,9 +518,9 @@ TEST_CASE("pack_vector2_XX", "[math][vector4][packing]")
 		if (!vector_all_near_equal2(vec0, vec1, 1.0E-6F))
 			num_errors++;
 
-		for (uint8_t bit_rate = 1; bit_rate < k_highest_bit_rate; ++bit_rate)
+		for (uint8_t bit_rate = 1; bit_rate < acl_impl::k_highest_bit_rate; ++bit_rate)
 		{
-			uint32_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+			uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
 			uint32_t max_value = (1 << num_bits) - 1;
 			for (uint32_t value = 0; value <= max_value; ++value)
 			{
