@@ -5,7 +5,7 @@ This library uses a simple system to handle asserts. Asserts are fatal and must 
 A total of 4 behaviors are supported:
 
 *  We can print to `stderr` and `abort`
-*  We can `throw` and exception
+*  We can `throw` an exception
 *  We can call a custom function
 *  Do nothing and strip the check at compile time (**default behavior**)
 
