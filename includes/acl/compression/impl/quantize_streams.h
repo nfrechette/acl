@@ -116,7 +116,7 @@ namespace acl
 			uint8_t* lossy_object_pose;				// 1 per transform
 			size_t metric_transform_size;
 
-			BoneBitRate* bit_rate_per_bone;			// 1 per transform
+			transform_bit_rates* bit_rate_per_bone;			// 1 per transform
 			uint32_t* parent_transform_indices;		// 1 per transform
 			uint32_t* self_transform_indices;		// 1 per transform
 
@@ -170,7 +170,7 @@ namespace acl
 				base_object_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
 				local_transforms_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones, 64) : nullptr;
 				lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones, 64);
-				bit_rate_per_bone = allocate_type_array<BoneBitRate>(allocator, num_bones);
+				bit_rate_per_bone = allocate_type_array<transform_bit_rates>(allocator, num_bones);
 				parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 				self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 				chain_bone_indices = allocate_type_array<uint32_t>(allocator, num_bones);
@@ -842,7 +842,7 @@ namespace acl
 				// 0: if the segment track is normalized, it can be constant within the segment
 				// 1: if the segment track isn't normalized, it starts at the lowest bit rate
 				// 255: if the track is constant/default for the whole clip
-				const BoneBitRate bone_bit_rates = context.bit_rate_per_bone[bone_index];
+				const transform_bit_rates bone_bit_rates = context.bit_rate_per_bone[bone_index];
 
 				if (bone_bit_rates.rotation == k_invalid_bit_rate && bone_bit_rates.translation == k_invalid_bit_rate && bone_bit_rates.scale == k_invalid_bit_rate)
 				{
@@ -852,7 +852,7 @@ namespace acl
 					continue;	// Every track bit rate is constant/default, nothing else to do
 				}
 
-				BoneBitRate best_bit_rates = bone_bit_rates;
+				transform_bit_rates best_bit_rates = bone_bit_rates;
 				float best_error = 1.0E10F;
 				uint32_t prev_transform_size = ~0U;
 				bool is_error_good_enough = false;
@@ -1001,12 +1001,12 @@ namespace acl
 			return bit_rate >= k_highest_bit_rate ? bit_rate : std::min<uint32_t>(bit_rate + increment, k_highest_bit_rate);
 		}
 
-		inline float increase_bone_bit_rate(quantization_context& context, uint32_t bone_index, uint32_t num_increments, float old_error, BoneBitRate& out_best_bit_rates)
+		inline float increase_bone_bit_rate(quantization_context& context, uint32_t bone_index, uint32_t num_increments, float old_error, transform_bit_rates& out_best_bit_rates)
 		{
-			const BoneBitRate bone_bit_rates = context.bit_rate_per_bone[bone_index];
+			const transform_bit_rates bone_bit_rates = context.bit_rate_per_bone[bone_index];
 			const uint32_t num_scale_increments = context.has_scale ? num_increments : 0;
 
-			BoneBitRate best_bit_rates = bone_bit_rates;
+			transform_bit_rates best_bit_rates = bone_bit_rates;
 			float best_error = old_error;
 
 			for (uint32_t rotation_increment = 0; rotation_increment <= num_increments; ++rotation_increment)
@@ -1029,7 +1029,7 @@ namespace acl
 								continue;
 						}
 
-						context.bit_rate_per_bone[bone_index] = BoneBitRate{ (uint8_t)rotation_bit_rate, (uint8_t)translation_bit_rate, (uint8_t)scale_bit_rate };
+						context.bit_rate_per_bone[bone_index] = transform_bit_rates{ (uint8_t)rotation_bit_rate, (uint8_t)translation_bit_rate, (uint8_t)scale_bit_rate };
 						const float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_error_too_high);
 
 						if (error < best_error)
@@ -1056,7 +1056,7 @@ namespace acl
 			return best_error;
 		}
 
-		inline float calculate_bone_permutation_error(quantization_context& context, BoneBitRate* permutation_bit_rates, uint8_t* bone_chain_permutation, uint32_t bone_index, BoneBitRate* best_bit_rates, float old_error)
+		inline float calculate_bone_permutation_error(quantization_context& context, transform_bit_rates* permutation_bit_rates, uint8_t* bone_chain_permutation, uint32_t bone_index, transform_bit_rates* best_bit_rates, float old_error)
 		{
 			const float error_threshold = context.error_threshold;
 			float best_error = old_error;
@@ -1064,7 +1064,7 @@ namespace acl
 			do
 			{
 				// Copy our current bit rates to the permutation rates
-				std::memcpy(permutation_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * context.num_bones);
+				std::memcpy(permutation_bit_rates, context.bit_rate_per_bone, sizeof(transform_bit_rates) * context.num_bones);
 
 				bool is_permutation_valid = false;
 				const uint32_t num_bones_in_chain = context.num_bones_in_chain;
@@ -1074,7 +1074,7 @@ namespace acl
 					{
 						// Increase bit rate
 						const uint32_t chain_bone_index = context.chain_bone_indices[chain_link_index];
-						BoneBitRate chain_bone_best_bit_rates;
+						transform_bit_rates chain_bone_best_bit_rates;
 						increase_bone_bit_rate(context, chain_bone_index, bone_chain_permutation[chain_link_index], old_error, chain_bone_best_bit_rates);
 						is_permutation_valid |= chain_bone_best_bit_rates.rotation != permutation_bit_rates[chain_bone_index].rotation;
 						is_permutation_valid |= chain_bone_best_bit_rates.translation != permutation_bit_rates[chain_bone_index].translation;
@@ -1094,7 +1094,7 @@ namespace acl
 				if (permutation_error < best_error)
 				{
 					best_error = permutation_error;
-					std::memcpy(best_bit_rates, permutation_bit_rates, sizeof(BoneBitRate) * context.num_bones);
+					std::memcpy(best_bit_rates, permutation_bit_rates, sizeof(transform_bit_rates) * context.num_bones);
 
 					if (permutation_error < error_threshold)
 						break;
@@ -1115,7 +1115,7 @@ namespace acl
 			return num_bones_in_chain;
 		}
 
-		inline void initialize_bone_bit_rates(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, BoneBitRate* out_bit_rate_per_bone)
+		inline void initialize_bone_bit_rates(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, transform_bit_rates* out_bit_rate_per_bone)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -1124,7 +1124,7 @@ namespace acl
 			const uint32_t num_bones = segment.num_bones;
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
-				BoneBitRate& bone_bit_rate = out_bit_rate_per_bone[bone_index];
+				transform_bit_rates& bone_bit_rate = out_bit_rate_per_bone[bone_index];
 
 				const bool rotation_supports_constant_tracks = segment.are_rotations_normalized;
 				if (is_rotation_variable && !segment.bone_streams[bone_index].is_rotation_constant)
@@ -1156,7 +1156,7 @@ namespace acl
 
 			for (uint32_t bone_index = 0; bone_index < context.num_bones; ++bone_index)
 			{
-				const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[bone_index];
+				const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[bone_index];
 
 				if (is_rotation_variable)
 					quantize_variable_rotation_stream(context, bone_index, bone_bit_rate.rotation);
@@ -1232,10 +1232,10 @@ namespace acl
 			//		[bone 0] + 0 [bone 1] + 0 [bone 2] + 3 (9)
 
 			uint8_t* bone_chain_permutation = allocate_type_array<uint8_t>(context.allocator, context.num_bones);
-			BoneBitRate* permutation_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
-			BoneBitRate* best_permutation_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
-			BoneBitRate* best_bit_rates = allocate_type_array<BoneBitRate>(context.allocator, context.num_bones);
-			std::memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(BoneBitRate) * context.num_bones);
+			transform_bit_rates* permutation_bit_rates = allocate_type_array<transform_bit_rates>(context.allocator, context.num_bones);
+			transform_bit_rates* best_permutation_bit_rates = allocate_type_array<transform_bit_rates>(context.allocator, context.num_bones);
+			transform_bit_rates* best_bit_rates = allocate_type_array<transform_bit_rates>(context.allocator, context.num_bones);
+			std::memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(transform_bit_rates) * context.num_bones);
 
 			const uint32_t num_bones = context.num_bones;
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -1268,7 +1268,7 @@ namespace acl
 					if (error < best_error)
 					{
 						best_error = error;
-						std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * num_bones);
+						std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(transform_bit_rates) * num_bones);
 
 						if (error < error_threshold)
 							break;
@@ -1283,7 +1283,7 @@ namespace acl
 						if (error < best_error)
 						{
 							best_error = error;
-							std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * num_bones);
+							std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(transform_bit_rates) * num_bones);
 
 							if (error < error_threshold)
 								break;
@@ -1298,7 +1298,7 @@ namespace acl
 							if (error < best_error)
 							{
 								best_error = error;
-								std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * num_bones);
+								std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(transform_bit_rates) * num_bones);
 
 								if (error < error_threshold)
 									break;
@@ -1315,7 +1315,7 @@ namespace acl
 						if (error < best_error)
 						{
 							best_error = error;
-							std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * num_bones);
+							std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(transform_bit_rates) * num_bones);
 
 							if (error < error_threshold)
 								break;
@@ -1330,7 +1330,7 @@ namespace acl
 							if (error < best_error)
 							{
 								best_error = error;
-								std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * num_bones);
+								std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(transform_bit_rates) * num_bones);
 
 								if (error < error_threshold)
 									break;
@@ -1346,7 +1346,7 @@ namespace acl
 								if (error < best_error)
 								{
 									best_error = error;
-									std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(BoneBitRate) * num_bones);
+									std::memcpy(best_bit_rates, best_permutation_bit_rates, sizeof(transform_bit_rates) * num_bones);
 
 									if (error < error_threshold)
 										break;
@@ -1368,8 +1368,8 @@ namespace acl
 
 						for (uint32_t i = 0; i < context.num_bones; ++i)
 						{
-							const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[i];
-							const BoneBitRate& best_bone_bit_rate = best_bit_rates[i];
+							const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[i];
+							const transform_bit_rates& best_bone_bit_rate = best_bit_rates[i];
 							bool rotation_differs = bone_bit_rate.rotation != best_bone_bit_rate.rotation;
 							bool translation_differs = bone_bit_rate.translation != best_bone_bit_rate.translation;
 							bool scale_differs = bone_bit_rate.scale != best_bone_bit_rate.scale;
@@ -1378,7 +1378,7 @@ namespace acl
 						}
 #endif
 
-						std::memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(BoneBitRate) * num_bones);
+						std::memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(transform_bit_rates) * num_bones);
 					}
 				}
 
@@ -1391,8 +1391,8 @@ namespace acl
 
 					for (uint32_t i = 0; i < context.num_bones; ++i)
 					{
-						const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[i];
-						const BoneBitRate& best_bone_bit_rate = best_bit_rates[i];
+						const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[i];
+						const transform_bit_rates& best_bone_bit_rate = best_bit_rates[i];
 						bool rotation_differs = bone_bit_rate.rotation != best_bone_bit_rate.rotation;
 						bool translation_differs = bone_bit_rate.translation != best_bone_bit_rate.translation;
 						bool scale_differs = bone_bit_rate.scale != best_bone_bit_rate.scale;
@@ -1401,7 +1401,7 @@ namespace acl
 					}
 #endif
 
-					std::memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(BoneBitRate) * num_bones);
+					std::memcpy(context.bit_rate_per_bone, best_bit_rates, sizeof(transform_bit_rates) * num_bones);
 				}
 
 				// Our error remains too high, this should be rare.
@@ -1419,15 +1419,15 @@ namespace acl
 						// that yield the smallest error BUT increasing the bit rate does NOT always means
 						// that the error will reduce and improve. It could get worse in which case we'll do nothing.
 
-						BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
+						transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
 
 						// Copy original values
-						BoneBitRate best_bone_bit_rate = bone_bit_rate;
+						transform_bit_rates best_bone_bit_rate = bone_bit_rate;
 						float best_bit_rate_error = error;
 
 						while (error >= error_threshold)
 						{
-							static_assert(offsetof(BoneBitRate, rotation) == 0 && offsetof(BoneBitRate, scale) == sizeof(BoneBitRate) - 1, "Invalid BoneBitRate offsets");
+							static_assert(offsetof(transform_bit_rates, rotation) == 0 && offsetof(transform_bit_rates, scale) == sizeof(transform_bit_rates) - 1, "Invalid BoneBitRate offsets");
 							uint8_t& smallest_bit_rate = *std::min_element<uint8_t*>(&bone_bit_rate.rotation, &bone_bit_rate.scale + 1);
 
 							if (smallest_bit_rate >= k_highest_bit_rate)
@@ -1494,7 +1494,7 @@ namespace acl
 					for (int32_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)
 					{
 						const uint32_t chain_bone_index = context.chain_bone_indices[chain_link_index];
-						BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
+						transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
 						bone_bit_rate.rotation = std::max<uint8_t>(bone_bit_rate.rotation, k_highest_bit_rate);
 						bone_bit_rate.translation = std::max<uint8_t>(bone_bit_rate.translation, k_highest_bit_rate);
 						bone_bit_rate.scale = std::max<uint8_t>(bone_bit_rate.scale, k_highest_bit_rate);
@@ -1518,7 +1518,7 @@ namespace acl
 				context.num_bones_in_chain = num_bones_in_chain;
 
 				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
-				const BoneBitRate& bone_bit_rate = context.bit_rate_per_bone[bone_index];
+				const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[bone_index];
 				printf("%u: %u | %u | %u => %f %s\n", bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error, error >= error_threshold ? "!" : "");
 			}
 #endif

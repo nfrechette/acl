@@ -633,7 +633,7 @@ namespace acl
 			uint32_t sample_key;
 			float sample_time;
 
-			BoneBitRate bit_rates;
+			transform_bit_rates bit_rates;
 		};
 
 		inline uint32_t get_uniform_sample_key(const segment_context& segment, float sample_time)
@@ -838,7 +838,7 @@ namespace acl
 			}
 		}
 
-		inline void sample_streams(const transform_streams* bone_streams, const transform_streams* raw_bone_steams, uint32_t num_bones, float sample_time, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
+		inline void sample_streams(const transform_streams* bone_streams, const transform_streams* raw_bone_steams, uint32_t num_bones, float sample_time, const transform_bit_rates* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -870,7 +870,7 @@ namespace acl
 			}
 		}
 
-		inline void sample_stream(const transform_streams* bone_streams, const transform_streams* raw_bone_steams, uint32_t num_bones, float sample_time, uint32_t bone_index, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
+		inline void sample_stream(const transform_streams* bone_streams, const transform_streams* raw_bone_steams, uint32_t num_bones, float sample_time, uint32_t bone_index, const transform_bit_rates* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
 		{
 			(void)num_bones;
 
@@ -900,7 +900,7 @@ namespace acl
 			out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
 		}
 
-		inline void sample_streams_hierarchical(const transform_streams* bone_streams, const transform_streams* raw_bone_steams, uint32_t num_bones, float sample_time, uint32_t bone_index, const BoneBitRate* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
+		inline void sample_streams_hierarchical(const transform_streams* bone_streams, const transform_streams* raw_bone_steams, uint32_t num_bones, float sample_time, uint32_t bone_index, const transform_bit_rates* bit_rates, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, rtm::qvvf* out_local_pose)
 		{
 			(void)num_bones;
 

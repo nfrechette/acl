@@ -66,7 +66,7 @@ namespace acl
 			}
 
 			void bind(track_bit_rate_database& database);
-			void build(uint32_t track_index, const BoneBitRate* bit_rates, const transform_streams* bone_streams);
+			void build(uint32_t track_index, const transform_bit_rates* bit_rates, const transform_streams* bone_streams);
 
 		private:
 			hierarchical_track_query(const hierarchical_track_query&) = delete;
@@ -82,7 +82,7 @@ namespace acl
 			iallocator&						m_allocator;
 			track_bit_rate_database*		m_database;
 			uint32_t						m_track_index;
-			const BoneBitRate*				m_bit_rates;
+			const transform_bit_rates*				m_bit_rates;
 			transform_indices*				m_indices;
 			uint32_t						m_num_transforms;
 
@@ -102,10 +102,10 @@ namespace acl
 			{}
 
 			inline uint32_t get_track_index() const { return m_track_index; }
-			inline const BoneBitRate& get_bit_rates() const { return m_bit_rates; }
+			inline const transform_bit_rates& get_bit_rates() const { return m_bit_rates; }
 
 			void bind(track_bit_rate_database& database);
-			void build(uint32_t track_index, const BoneBitRate& bit_rates);
+			void build(uint32_t track_index, const transform_bit_rates& bit_rates);
 
 		private:
 			single_track_query(const single_track_query&) = delete;
@@ -113,7 +113,7 @@ namespace acl
 
 			track_bit_rate_database*		m_database;
 			uint32_t						m_track_index;
-			BoneBitRate						m_bit_rates;
+			transform_bit_rates						m_bit_rates;
 
 			uint32_t						m_rotation_cache_index;
 			uint32_t						m_translation_cache_index;
@@ -139,7 +139,7 @@ namespace acl
 			}
 
 			void bind(track_bit_rate_database& database);
-			void build(const BoneBitRate* bit_rates);
+			void build(const transform_bit_rates* bit_rates);
 
 		private:
 			every_track_query(const every_track_query&) = delete;
@@ -154,7 +154,7 @@ namespace acl
 
 			iallocator&						m_allocator;
 			track_bit_rate_database*		m_database;
-			const BoneBitRate*				m_bit_rates;
+			const transform_bit_rates*				m_bit_rates;
 			transform_indices*				m_indices;
 			uint32_t						m_num_transforms;
 
@@ -168,7 +168,7 @@ namespace acl
 			uint8_t bit_rates[4];
 
 			bit_rates_union() : value(0xFFFFFFFFU) {}
-			explicit bit_rates_union(const BoneBitRate& input) : bit_rates{ input.rotation, input.translation, input.scale, 0 } {}
+			explicit bit_rates_union(const transform_bit_rates& input) : bit_rates{ input.rotation, input.translation, input.scale, 0 } {}
 
 			inline bool operator==(bit_rates_union other) const { return value == other.value; }
 			inline bool operator!=(bit_rates_union other) const { return value != other.value; }
@@ -196,7 +196,7 @@ namespace acl
 			track_bit_rate_database(const track_bit_rate_database&) = delete;
 			track_bit_rate_database& operator=(const track_bit_rate_database&) = delete;
 
-			void find_cache_entries(uint32_t track_index, const BoneBitRate& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index);
+			void find_cache_entries(uint32_t track_index, const transform_bit_rates& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index);
 
 			RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, uint32_t rotation_cache_index);
 			RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL sample_translation(const sample_context& context, uint32_t translation_cache_index);
@@ -278,7 +278,7 @@ namespace acl
 			m_num_transforms = database.m_num_transforms;
 		}
 
-		inline void hierarchical_track_query::build(uint32_t track_index, const BoneBitRate* bit_rates, const transform_streams* bone_streams)
+		inline void hierarchical_track_query::build(uint32_t track_index, const transform_bit_rates* bit_rates, const transform_streams* bone_streams)
 		{
 			ACL_ASSERT(m_database != nullptr, "Query not bound to a database");
 			ACL_ASSERT(track_index < m_num_transforms, "Invalid track index");
@@ -289,7 +289,7 @@ namespace acl
 			uint32_t current_track_index = track_index;
 			while (current_track_index != k_invalid_track_index)
 			{
-				const BoneBitRate& current_bit_rates = bit_rates[current_track_index];
+				const transform_bit_rates& current_bit_rates = bit_rates[current_track_index];
 				transform_indices& indices = m_indices[current_track_index];
 
 				m_database->find_cache_entries(current_track_index, current_bit_rates, indices.rotation_cache_index, indices.translation_cache_index, indices.scale_cache_index);
@@ -305,7 +305,7 @@ namespace acl
 			m_database = &database;
 		}
 
-		inline void single_track_query::build(uint32_t track_index, const BoneBitRate& bit_rates)
+		inline void single_track_query::build(uint32_t track_index, const transform_bit_rates& bit_rates)
 		{
 			ACL_ASSERT(m_database != nullptr, "Query not bound to a database");
 
@@ -324,7 +324,7 @@ namespace acl
 			m_num_transforms = database.m_num_transforms;
 		}
 
-		inline void every_track_query::build(const BoneBitRate* bit_rates)
+		inline void every_track_query::build(const transform_bit_rates* bit_rates)
 		{
 			ACL_ASSERT(m_database != nullptr, "Query not bound to a database");
 
@@ -332,7 +332,7 @@ namespace acl
 
 			for (uint32_t transform_index = 0; transform_index < m_num_transforms; ++transform_index)
 			{
-				const BoneBitRate& current_bit_rates = bit_rates[transform_index];
+				const transform_bit_rates& current_bit_rates = bit_rates[transform_index];
 				transform_indices& indices = m_indices[transform_index];
 
 				m_database->find_cache_entries(transform_index, current_bit_rates, indices.rotation_cache_index, indices.translation_cache_index, indices.scale_cache_index);
@@ -422,7 +422,7 @@ namespace acl
 #endif
 		}
 
-		inline void track_bit_rate_database::find_cache_entries(uint32_t track_index, const BoneBitRate& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index)
+		inline void track_bit_rate_database::find_cache_entries(uint32_t track_index, const transform_bit_rates& bit_rates, uint32_t& out_rotation_cache_index, uint32_t& out_translation_cache_index, uint32_t& out_scale_cache_index)
 		{
 			// Memory layout:
 			//    track 0
