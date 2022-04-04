@@ -55,7 +55,7 @@ namespace acl
 		constexpr bool is_constant_bit_rate(uint32_t bit_rate) { return bit_rate == 0; }
 		constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == k_highest_bit_rate; }
 
-		struct BoneBitRate
+		struct transform_bit_rates
 		{
 			uint8_t rotation;
 			uint8_t translation;
