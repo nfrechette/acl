@@ -24,6 +24,8 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <rtm/impl/detect_compiler.h>
+
 ////////////////////////////////////////////////////////////////////////////////
 // Macros to detect the ACL version
 ////////////////////////////////////////////////////////////////////////////////
@@ -37,29 +39,48 @@
 // within the same executable/library, the symbols have to be unique per version.
 // We achieve this by using a versioned namespace that we optionally inline.
 // To disable namespace inlining, define ACL_NO_INLINE_NAMESPACE before including
-// any ACL header.
+// any ACL header. To disable the versioned namespace altogether,
+// define ACL_NO_VERSION_NAMESPACE before including any ACL header.
 ////////////////////////////////////////////////////////////////////////////////
+
+#if !defined(ACL_NO_VERSION_NAMESPACE)
+	#if defined(RTM_COMPILER_MSVC) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
+		// VS2015 struggles with type resolution when inline namespaces are used
+		// For that reason, we disable it explicitly
+		#define ACL_NO_VERSION_NAMESPACE
+	#endif
+#endif
 
 // Name of the namespace, e.g. v20
 #define ACL_IMPL_VERSION_NAMESPACE_NAME v ## ACL_VERSION_MAJOR ## ACL_VERSION_MINOR
 
-#if defined(ACL_NO_INLINE_NAMESPACE)
-    // Namespace won't be inlined, its usage will have to be qualified with the
-    // full version everywhere
-    #define ACL_IMPL_NAMESPACE acl::ACL_IMPL_VERSION_NAMESPACE_NAME
+#if defined(ACL_NO_VERSION_NAMESPACE)
+	// Namespace is inlined, its usage does not need to be qualified with the
+	// full version everywhere
+	#define ACL_IMPL_NAMESPACE acl
 
-    #define ACL_IMPL_VERSION_NAMESPACE_BEGIN \
-        namespace ACL_IMPL_VERSION_NAMESPACE_NAME \
-        {
+	#define ACL_IMPL_VERSION_NAMESPACE_BEGIN
+	#define ACL_IMPL_VERSION_NAMESPACE_END
+#elif defined(ACL_NO_INLINE_NAMESPACE)
+	// Namespace won't be inlined, its usage will have to be qualified with the
+	// full version everywhere
+	#define ACL_IMPL_NAMESPACE acl::ACL_IMPL_VERSION_NAMESPACE_NAME
+
+	#define ACL_IMPL_VERSION_NAMESPACE_BEGIN \
+		namespace ACL_IMPL_VERSION_NAMESPACE_NAME \
+		{
+
+	#define ACL_IMPL_VERSION_NAMESPACE_END \
+		}
 #else
-    // Namespace is inlined, its usage does not need to be qualified with the
-    // full version everywhere
-    #define ACL_IMPL_NAMESPACE acl
+	// Namespace is inlined, its usage does not need to be qualified with the
+	// full version everywhere
+	#define ACL_IMPL_NAMESPACE acl
 
-    #define ACL_IMPL_VERSION_NAMESPACE_BEGIN \
-        inline namespace ACL_IMPL_VERSION_NAMESPACE_NAME \
-        {
+	#define ACL_IMPL_VERSION_NAMESPACE_BEGIN \
+		inline namespace ACL_IMPL_VERSION_NAMESPACE_NAME \
+		{
+
+	#define ACL_IMPL_VERSION_NAMESPACE_END \
+		}
 #endif
-
-#define ACL_IMPL_VERSION_NAMESPACE_END \
-    }
