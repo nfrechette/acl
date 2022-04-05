@@ -104,6 +104,10 @@ namespace acl
 	// interpolate when the samples are uniform.
 	// This function does not support looping.
 	float find_linear_interpolation_alpha(float sample_index, uint32_t sample_index0, uint32_t sample_index1, sample_rounding_policy rounding_policy);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Modify an interpolation alpha value given a sample rounding policy
+	float apply_rounding_policy(float interpolation_alpha, sample_rounding_policy policy);
 }
 
 #include "acl/core/impl/interpolation_utils.impl.h"
