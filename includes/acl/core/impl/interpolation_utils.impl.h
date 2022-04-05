@@ -111,23 +111,7 @@ namespace acl
 
 		out_sample_index0 = sample_index0;
 		out_sample_index1 = sample_index1;
-
-		switch (rounding_policy)
-		{
-		default:
-		case sample_rounding_policy::none:
-			out_interpolation_alpha = interpolation_alpha;
-			break;
-		case sample_rounding_policy::floor:
-			out_interpolation_alpha = 0.0F;
-			break;
-		case sample_rounding_policy::ceil:
-			out_interpolation_alpha = 1.0F;
-			break;
-		case sample_rounding_policy::nearest:
-			out_interpolation_alpha = rtm::scalar_floor(interpolation_alpha + 0.5F);
-			break;
-		}
+		out_interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -210,23 +194,7 @@ namespace acl
 
 		out_sample_index0 = sample_index0;
 		out_sample_index1 = sample_index1;
-
-		switch (rounding_policy)
-		{
-		default:
-		case sample_rounding_policy::none:
-			out_interpolation_alpha = interpolation_alpha;
-			break;
-		case sample_rounding_policy::floor:
-			out_interpolation_alpha = 0.0F;
-			break;
-		case sample_rounding_policy::ceil:
-			out_interpolation_alpha = 1.0F;
-			break;
-		case sample_rounding_policy::nearest:
-			out_interpolation_alpha = rtm::scalar_floor(interpolation_alpha + 0.5F);
-			break;
-		}
+		out_interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -270,6 +238,22 @@ namespace acl
 			return interpolation_alpha;
 		else // sample_rounding_policy::nearest
 			return rtm::scalar_floor(interpolation_alpha + 0.5F);
+	}
+
+	inline float apply_rounding_policy(float interpolation_alpha, sample_rounding_policy policy)
+	{
+		switch (policy)
+		{
+		default:
+		case sample_rounding_policy::none:
+			return interpolation_alpha;
+		case sample_rounding_policy::floor:
+			return 0.0F;
+		case sample_rounding_policy::ceil:
+			return 1.0F;
+		case sample_rounding_policy::nearest:
+			return rtm::scalar_floor(interpolation_alpha + 0.5F);
+		}
 	}
 }
 

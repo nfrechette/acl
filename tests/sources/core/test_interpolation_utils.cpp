@@ -358,4 +358,16 @@ TEST_CASE("interpolation utils", "[core][utils]")
 	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::nearest), 1.0F, error_threshold));
 	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::nearest), 1.0F, error_threshold));
 	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::nearest), 0.0F, error_threshold));
+
+	//////////////////////////////////////////////////////////////////////////
+
+	CHECK(scalar_near_equal(apply_rounding_policy(0.2F, sample_rounding_policy::none), 0.2F, error_threshold));
+	CHECK(apply_rounding_policy(0.2F, sample_rounding_policy::floor) == 0.0F);
+	CHECK(apply_rounding_policy(0.2F, sample_rounding_policy::ceil) == 1.0F);
+	CHECK(apply_rounding_policy(0.2F, sample_rounding_policy::nearest) == 0.0F);
+
+	CHECK(scalar_near_equal(apply_rounding_policy(0.8F, sample_rounding_policy::none), 0.8F, error_threshold));
+	CHECK(apply_rounding_policy(0.8F, sample_rounding_policy::floor) == 0.0F);
+	CHECK(apply_rounding_policy(0.8F, sample_rounding_policy::ceil) == 1.0F);
+	CHECK(apply_rounding_policy(0.8F, sample_rounding_policy::nearest) == 1.0F);
 }
