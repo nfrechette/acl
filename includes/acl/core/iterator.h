@@ -57,6 +57,18 @@ namespace acl
 
 	template <class item_type>
 	using const_iterator = acl_impl::iterator_impl<item_type, true>;
+
+	template <class item_type, size_t num_items>
+	iterator<item_type> make_iterator(item_type (&items)[num_items])
+	{
+		return iterator<item_type>(items, num_items);
+	}
+
+	template <class item_type, size_t num_items>
+	const_iterator<item_type> make_iterator(item_type const (&items)[num_items])
+	{
+		return const_iterator<item_type>(items, num_items);
+	}
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
