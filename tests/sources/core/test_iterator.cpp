@@ -57,4 +57,11 @@ TEST_CASE("iterator", "[core][iterator]")
 		CHECK(i.begin() == items + 0);
 		CHECK(i.end() == items + num_items);
 	}
+
+	SECTION("make_iterator matches")
+	{
+		auto j = make_iterator(items);
+		CHECK(i.begin() == j.begin());
+		CHECK(i.end() == j.end());
+	}
 }
