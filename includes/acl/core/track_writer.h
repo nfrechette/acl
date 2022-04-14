@@ -78,6 +78,17 @@ namespace acl
 	struct track_writer
 	{
 		//////////////////////////////////////////////////////////////////////////
+		// Common track writing
+
+		//////////////////////////////////////////////////////////////////////////
+		// This allows the host runtime to control which rounding policy to use per track.
+		// To enable this, make sure that the 'decompression_settings' supports this feature
+		// and provide 'sample_rounding_policy::per_track' to the seek function.
+		// This function cannot return the 'per_track' value. We do so here to force an
+		// assert at runtime if the caller attempts to use it but does not override this.
+		constexpr sample_rounding_policy get_rounding_policy(uint32_t /*track_index*/) const { return sample_rounding_policy::per_track; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Scalar track writing
 
 		//////////////////////////////////////////////////////////////////////////
@@ -146,7 +157,7 @@ namespace acl
 		rtm::vector4f RTM_SIMD_CALL get_variable_default_scale(uint32_t /*track_index*/) const { return rtm::vector_set(1.0F); }
 
 		//////////////////////////////////////////////////////////////////////////
-		// These allow the caller of decompress_pose to control which track types they are interested in.
+		// These allow host runtimes to control which track types they are interested in.
 		// This information allows the codecs to avoid unpacking values that are not needed.
 		// Must be static constexpr!
 		static constexpr bool skip_all_rotations() { return false; }
@@ -154,7 +165,7 @@ namespace acl
 		static constexpr bool skip_all_scales() { return false; }
 
 		//////////////////////////////////////////////////////////////////////////
-		// These allow the caller of decompress_pose to control which tracks they are interested in.
+		// These allow host runtimes to control which tracks they are interested in.
 		// This information allows the codecs to avoid unpacking values that are not needed.
 		// Must be non-static member functions!
 		constexpr bool skip_track_rotation(uint32_t /*track_index*/) const { return false; }

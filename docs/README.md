@@ -12,6 +12,7 @@ ACL aims to support a few core algorithms that are well suited for production us
 *  [Compressing tracks](compressing_raw_tracks.md)
 *  [Decompressing tracks](decompressing_a_track_list.md)
 *  [Handling looping playback](handling_looping_playback.md)
+*  [Handling per track rounding](handling_per_track_rounding.md)
 *  [Database and streaming support](database_support.md)
 *  [Other considerations](misc_integration_details.md)
 *  [Migrating from an earlier ACL version](migrating.md)

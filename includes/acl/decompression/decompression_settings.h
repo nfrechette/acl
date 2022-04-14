@@ -119,6 +119,15 @@ namespace acl
 		static constexpr bool is_wrapping_supported() { return true; }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Whether or not to enable 'sample_rounding_policy::per_track' support.
+		// If support is disabled and that value is provided to the seek(..) function,
+		// the runtime will assert.
+		// See 'sample_rounding_policy' for details.
+		// Enabled by default.
+		// Must be static constexpr!
+		static constexpr bool is_per_track_rounding_supported() { return true; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// The database settings to use when decompressing.
 		// By default, the database isn't supported.
 		using database_settings_type = null_database_settings;
@@ -156,6 +165,10 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Only support scalar tracks
 		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::qvvf; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Disabled by default since it is an uncommon feature
+		static constexpr bool is_per_track_rounding_supported() { return false; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -174,6 +187,10 @@ namespace acl
 		static constexpr bool is_rotation_format_supported(rotation_format8 format) { return format == rotation_format8::quatf_drop_w_variable; }
 		static constexpr bool is_translation_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
 		static constexpr bool is_scale_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Disabled by default since it is an uncommon feature
+		static constexpr bool is_per_track_rounding_supported() { return false; }
 	};
 }
 

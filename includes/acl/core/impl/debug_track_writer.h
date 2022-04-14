@@ -280,6 +280,22 @@ namespace acl
 
 			const rtm::qvvf* default_sub_tracks;
 		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// Same as debug_track_writer but the rounding policy is supported per track.
+		//////////////////////////////////////////////////////////////////////////
+		struct debug_track_writer_per_track_rounding final : public debug_track_writer
+		{
+			debug_track_writer_per_track_rounding(iallocator& allocator_, track_type8 type_, uint32_t num_tracks_)
+				: debug_track_writer(allocator_, type_, num_tracks_)
+				, rounding_policy(sample_rounding_policy::per_track)
+			{
+			}
+
+			constexpr sample_rounding_policy get_rounding_policy(uint32_t /*track_index*/) const { return rounding_policy; }
+
+			sample_rounding_policy rounding_policy;
+		};
 	}
 }
 

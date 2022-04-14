@@ -162,7 +162,7 @@ namespace acl
 			if (decompression_settings_type::clamp_sample_time())
 				sample_time = rtm::scalar_clamp(sample_time, 0.0F, context.clip_duration);
 
-			if (context.sample_time == sample_time)
+			if (context.sample_time == sample_time && context.get_rounding_policy() == rounding_policy)
 				return;
 
 			const transform_tracks_header& transform_header = get_transform_tracks_header(*context.tracks);
@@ -185,6 +185,8 @@ namespace acl
 			uint32_t key_frame0;
 			uint32_t key_frame1;
 			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, looping_policy_, key_frame0, key_frame1, context.interpolation_alpha);
+
+			context.rounding_policy = static_cast<uint8_t>(rounding_policy);
 
 			uint32_t segment_key_frame0;
 			uint32_t segment_key_frame1;
@@ -694,6 +696,8 @@ namespace acl
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
 		{
+			const sample_rounding_policy rounding_policy = context.get_rounding_policy();
+
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
 				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
@@ -724,7 +728,19 @@ namespace acl
 					if ((packed_group & 0x80000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::quatf& rotation = animated_track_cache.consume_rotation();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index0) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::quatf& rotation = animated_track_cache.consume_rotation(rounding_policy_);
 
 						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
@@ -736,7 +752,19 @@ namespace acl
 					if ((packed_group & 0x20000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::quatf& rotation = animated_track_cache.consume_rotation();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index1) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::quatf& rotation = animated_track_cache.consume_rotation(rounding_policy_);
 
 						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
@@ -748,7 +776,19 @@ namespace acl
 					if ((packed_group & 0x08000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::quatf& rotation = animated_track_cache.consume_rotation();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index2) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::quatf& rotation = animated_track_cache.consume_rotation(rounding_policy_);
 
 						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
@@ -760,7 +800,19 @@ namespace acl
 					if ((packed_group & 0x02000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::quatf& rotation = animated_track_cache.consume_rotation();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index3) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::quatf& rotation = animated_track_cache.consume_rotation(rounding_policy_);
 
 						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
@@ -966,12 +1018,14 @@ namespace acl
 		}
 
 		// Force inline this function, we only use it to keep the code readable
-		template<class translation_adapter, class track_writer_type>
+		template<class decompression_settings_adapter_type, class track_writer_type>
 		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
 		{
+			const sample_rounding_policy rounding_policy = context.get_rounding_policy();
+
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
 				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
@@ -997,12 +1051,24 @@ namespace acl
 						continue;	// This group contains no animated sub-tracks, skip it
 
 					// Unpack our next 4 tracks
-					animated_track_cache.unpack_translation_group<translation_adapter>(context);
+					animated_track_cache.unpack_translation_group<decompression_settings_adapter_type>(context);
 
 					if ((packed_group & 0x80000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::vector4f& translation = animated_track_cache.consume_translation();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index0) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::vector4f& translation = animated_track_cache.consume_translation(rounding_policy_);
 
 						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
 
@@ -1013,7 +1079,19 @@ namespace acl
 					if ((packed_group & 0x20000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::vector4f& translation = animated_track_cache.consume_translation();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index1) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::vector4f& translation = animated_track_cache.consume_translation(rounding_policy_);
 
 						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
 
@@ -1024,7 +1102,19 @@ namespace acl
 					if ((packed_group & 0x08000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::vector4f& translation = animated_track_cache.consume_translation();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index2) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::vector4f& translation = animated_track_cache.consume_translation(rounding_policy_);
 
 						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
 
@@ -1035,7 +1125,19 @@ namespace acl
 					if ((packed_group & 0x02000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::vector4f& translation = animated_track_cache.consume_translation();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index3) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::vector4f& translation = animated_track_cache.consume_translation(rounding_policy_);
 
 						ACL_ASSERT(rtm::vector_is_finite3(translation), "Translation is not valid!");
 
@@ -1245,12 +1347,14 @@ namespace acl
 		}
 
 		// Force inline this function, we only use it to keep the code readable
-		template<class scale_adapter, class track_writer_type>
+		template<class decompression_settings_adapter_type, class track_writer_type>
 		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
 		{
+			const sample_rounding_policy rounding_policy = context.get_rounding_policy();
+
 			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
 			{
 				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
@@ -1276,12 +1380,24 @@ namespace acl
 						continue;	// This group contains no animated sub-tracks, skip it
 
 					// Unpack our next 4 tracks
-					animated_track_cache.unpack_scale_group<scale_adapter>(context);
+					animated_track_cache.unpack_scale_group<decompression_settings_adapter_type>(context);
 
 					if ((packed_group & 0x80000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::vector4f& scale = animated_track_cache.consume_scale();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index0) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::vector4f& scale = animated_track_cache.consume_scale(rounding_policy_);
 
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
@@ -1292,7 +1408,19 @@ namespace acl
 					if ((packed_group & 0x20000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::vector4f& scale = animated_track_cache.consume_scale();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index1) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::vector4f& scale = animated_track_cache.consume_scale(rounding_policy_);
 
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
@@ -1303,7 +1431,19 @@ namespace acl
 					if ((packed_group & 0x08000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::vector4f& scale = animated_track_cache.consume_scale();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index2) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::vector4f& scale = animated_track_cache.consume_scale(rounding_policy_);
 
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
@@ -1314,7 +1454,19 @@ namespace acl
 					if ((packed_group & 0x02000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::vector4f& scale = animated_track_cache.consume_scale();
+
+						// We need the true rounding policy to be statically known when per track rounding is not supported
+						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
+						// and rounding has already been performed for us.
+						const sample_rounding_policy rounding_policy_ =
+							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
+							rounding_policy == sample_rounding_policy::per_track ?
+							writer.get_rounding_policy(track_index3) :
+							sample_rounding_policy::none;
+
+						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+						const rtm::vector4f& scale = animated_track_cache.consume_scale(rounding_policy_);
 
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
@@ -1772,6 +1924,16 @@ namespace acl
 
 			// Finally reached our desired track, unpack it
 
+			float interpolation_alpha = context.interpolation_alpha;
+			if (decompression_settings_type::is_per_track_rounding_supported())
+			{
+				const sample_rounding_policy rounding_policy = context.get_rounding_policy();
+				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
+				interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy_);
+			}
+
 			if (rotation_sub_track_type == 0)
 			{
 				if (default_rotation_mode != default_sub_track_mode::skipped)
@@ -1788,7 +1950,7 @@ namespace acl
 				if (rotation_sub_track_type & 1)
 					rotation = constant_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 				else
-					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
+					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index, interpolation_alpha);
 
 				writer.write_rotation(track_index, rotation);
 			}
@@ -1809,7 +1971,7 @@ namespace acl
 				if (translation_sub_track_type & 1)
 					translation = constant_track_cache.unpack_translation_within_group(translation_group_sample_index);
 				else
-					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index);
+					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index, interpolation_alpha);
 
 				writer.write_translation(track_index, translation);
 			}
@@ -1830,7 +1992,7 @@ namespace acl
 				if (scale_sub_track_type & 1)
 					scale = constant_track_cache.unpack_scale_within_group(scale_group_sample_index);
 				else
-					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index);
+					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index, interpolation_alpha);
 
 				writer.write_scale(track_index, scale);
 			}

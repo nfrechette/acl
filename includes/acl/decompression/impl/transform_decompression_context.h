@@ -70,9 +70,10 @@ namespace acl
 
 			uint8_t looping_policy;								//  21 |  29
 
-			uint8_t padding0[21];								//  22 |  30
+			uint8_t padding0[20];								//  22 |  30
 
 			// Seeking related data
+			uint8_t rounding_policy;							//  42 |  50
 			uint8_t uses_single_segment;						//  43 |  51
 
 			float sample_time;									//  44 |  52
@@ -89,6 +90,7 @@ namespace acl
 
 			float interpolation_alpha;							//  88 | 120
 
+			// Can't have a 0 byte array, add a whole cache line as padding
 			uint8_t padding1[sizeof(void*) == 4 ? 36 : 4];		//  92 | 124
 
 			//										Total size:	   128 | 128
@@ -98,6 +100,7 @@ namespace acl
 			const compressed_tracks* get_compressed_tracks() const { return tracks; }
 			compressed_tracks_version16 get_version() const { return tracks->get_version(); }
 			sample_looping_policy get_looping_policy() const { return static_cast<sample_looping_policy>(looping_policy); }
+			sample_rounding_policy get_rounding_policy() const { return static_cast<sample_rounding_policy>(rounding_policy); }
 			bool is_initialized() const { return tracks != nullptr; }
 			void reset() { tracks = nullptr; }
 		};
@@ -114,6 +117,7 @@ namespace acl
 			static constexpr range_reduction_flags8 get_range_reduction_flag() { return range_reduction_flags8::translations; }
 			static constexpr vector_format8 get_vector_format(const persistent_transform_decompression_context_v0& context) { return context.translation_format; }
 			static constexpr bool is_vector_format_supported(vector_format8 format) { return decompression_settings_type::is_translation_format_supported(format); }
+			static constexpr bool is_per_track_rounding_supported() { return decompression_settings_type::is_per_track_rounding_supported(); }
 		};
 
 		template<class decompression_settings_type>
@@ -123,6 +127,7 @@ namespace acl
 			static constexpr range_reduction_flags8 get_range_reduction_flag() { return range_reduction_flags8::scales; }
 			static constexpr vector_format8 get_vector_format(const persistent_transform_decompression_context_v0& context) { return context.scale_format; }
 			static constexpr bool is_vector_format_supported(vector_format8 format) { return decompression_settings_type::is_scale_format_supported(format); }
+			static constexpr bool is_per_track_rounding_supported() { return decompression_settings_type::is_per_track_rounding_supported(); }
 		};
 
 		// Returns the statically known number of rotation formats supported by the decompression settings

@@ -110,6 +110,9 @@ void validate_accuracy(
 	debug_track_writer_variable_defaults track_writer_variable(allocator, track_type8::qvvf, num_tracks);
 	track_writer_variable.default_sub_tracks = track_writer.tracks_typed.qvvf;
 
+	debug_track_writer_per_track_rounding track_writer_per_track_rounding(allocator, track_type8::qvvf, num_tracks);
+	track_writer_per_track_rounding.initialize_with_defaults(raw_tracks);
+
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
 		context.seek(0.0F, rounding_policy);
@@ -118,6 +121,7 @@ void validate_accuracy(
 		context.decompress_tracks(track_writer_variable);
 	}
 
+	// Basic sanity checks
 	if (num_samples != 0)
 	{
 		debug_track_writer track_writer_clamped(allocator, track_type8::qvvf, num_tracks);
@@ -141,6 +145,25 @@ void validate_accuracy(
 		context.decompress_tracks(track_writer_clamped);
 
 		validate_transform_tracks(track_writer, track_writer_clamped, quat_error_threshold, vec3_error_threshold);
+
+		// Test a few samples with all rounding modes per track
+		const float sample_times[] = { 0.0F, duration * 0.2F, duration * 0.5F, duration * 0.75F, duration };
+		const sample_rounding_policy rounding_policies[] = { sample_rounding_policy::none, sample_rounding_policy::floor, sample_rounding_policy::ceil, sample_rounding_policy::nearest };
+
+		for (float sample_time : make_iterator(sample_times))
+		{
+			for (sample_rounding_policy policy : make_iterator(rounding_policies))
+			{
+				context.seek(sample_time, policy);
+				context.decompress_tracks(track_writer);
+
+				track_writer_per_track_rounding.rounding_policy = policy;
+				context.seek(sample_time, sample_rounding_policy::per_track);
+				context.decompress_tracks(track_writer_per_track_rounding);
+
+				validate_transform_tracks(track_writer, track_writer_per_track_rounding, quat_error_threshold, vec3_error_threshold);
+			}
+		}
 	}
 
 	// Regression test
@@ -282,12 +305,15 @@ void validate_accuracy(
 	debug_track_writer lossy_tracks_writer(allocator, track_type, num_tracks);
 	debug_track_writer lossy_track_writer(allocator, track_type, num_tracks);
 
+	debug_track_writer_per_track_rounding track_writer_per_track_rounding(allocator, track_type, num_tracks);
+
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
 		context.seek(0.0F, rounding_policy);
 		context.decompress_tracks(lossy_tracks_writer);
 	}
 
+	// Basic sanity checks
 	if (num_samples != 0)
 	{
 		debug_track_writer track_writer_clamped(allocator, track_type, num_tracks);
@@ -309,6 +335,25 @@ void validate_accuracy(
 		context.decompress_tracks(track_writer_clamped);
 
 		validate_scalar_tracks(raw_tracks, raw_tracks_writer, track_writer_clamped, regression_error_thresholdv, last_sample_time_clamp + 1.0F);
+
+		// Test a few samples with all rounding modes per track
+		const float sample_times[] = { 0.0F, duration * 0.2F, duration * 0.5F, duration * 0.75F, duration };
+		const sample_rounding_policy rounding_policies[] = { sample_rounding_policy::none, sample_rounding_policy::floor, sample_rounding_policy::ceil, sample_rounding_policy::nearest };
+
+		for (float sample_time : make_iterator(sample_times))
+		{
+			for (sample_rounding_policy policy : make_iterator(rounding_policies))
+			{
+				context.seek(sample_time, policy);
+				context.decompress_tracks(lossy_tracks_writer);
+
+				track_writer_per_track_rounding.rounding_policy = policy;
+				context.seek(sample_time, sample_rounding_policy::per_track);
+				context.decompress_tracks(track_writer_per_track_rounding);
+
+				validate_scalar_tracks(raw_tracks, lossy_tracks_writer, track_writer_per_track_rounding, regression_error_thresholdv, sample_time);
+			}
+		}
 	}
 
 	// Regression test

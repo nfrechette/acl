@@ -80,7 +80,7 @@ namespace acl
 			// CMU has 64.41%, Paragon has 47.69%, and Fortnite has 62.84%.
 			// Following these numbers, it is common for clips to have at least 10 constant rotation samples to unpack.
 
-			track_cache_quatf_v0<32> rotations;
+			track_cache_quatf_v0<32, 1> rotations;
 
 			// Points to our packed sub-track data
 			const uint8_t*	constant_data_rotations;
@@ -126,7 +126,7 @@ namespace acl
 				rotations.cache_write_index += num_to_unpack;
 
 				const uint8_t* constant_track_data = constant_data_rotations;
-				rtm::quatf* cache_ptr = &rotations.cached_samples[cache_write_index];
+				rtm::quatf* cache_ptr = &rotations.cached_samples[0][cache_write_index];
 
 				if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 				{
@@ -188,7 +188,7 @@ namespace acl
 				num_to_unpack = std::min<uint32_t>(num_left_to_unpack, 16);
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
-					const rtm::quatf rotation = rotations.cached_samples[cache_write_index + unpack_index];
+					const rtm::quatf rotation = rotations.cached_samples[0][cache_write_index + unpack_index];
 
 					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
 					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
@@ -257,7 +257,7 @@ namespace acl
 			{
 				ACL_ASSERT(rotations.cache_read_index < rotations.cache_write_index, "Attempting to consume a constant sample that isn't cached");
 				const uint32_t cache_read_index = rotations.cache_read_index++;
-				return rotations.cached_samples[cache_read_index % 32];
+				return rotations.cached_samples[0][cache_read_index % 32];
 			}
 
 			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_translation_groups(uint32_t num_groups_to_skip)

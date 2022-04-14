@@ -215,7 +215,22 @@ namespace acl
 		uint32_t key_frame0;
 		uint32_t key_frame1;
 		float interpolation_alpha;
-		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy, m_looping_policy, key_frame0, key_frame1, interpolation_alpha);
+
+		// Allow per track usage, keeps the code simpler to maintain
+		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, sample_rounding_policy::per_track, m_looping_policy, key_frame0, key_frame1, interpolation_alpha);
+
+		const float no_rounding_alpha = apply_rounding_policy(interpolation_alpha, sample_rounding_policy::none);
+
+		const float interpolation_alpha_per_policy[k_num_sample_rounding_policies] =
+		{
+			no_rounding_alpha,	// none
+			apply_rounding_policy(interpolation_alpha, sample_rounding_policy::floor),
+			apply_rounding_policy(interpolation_alpha, sample_rounding_policy::ceil),
+			apply_rounding_policy(interpolation_alpha, sample_rounding_policy::nearest),
+
+			// We'll assert if we attempt to use this, but in case they are skipped/disabled, we interpolate
+			no_rounding_alpha,	// per_track
+		};
 
 		switch (track_type)
 		{
@@ -224,9 +239,13 @@ namespace acl
 			{
 				const track_float1f& track__ = track_cast<track_float1f>(m_tracks[track_index]);
 
+				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
 				const rtm::scalarf value0 = rtm::scalar_load(&track__[key_frame0]);
 				const rtm::scalarf value1 = rtm::scalar_load(&track__[key_frame1]);
-				const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(interpolation_alpha));
+				const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(alpha));
 				writer.write_float1(track_index, value);
 			}
 			break;
@@ -235,9 +254,13 @@ namespace acl
 			{
 				const track_float2f& track__ = track_cast<track_float2f>(m_tracks[track_index]);
 
+				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
 				const rtm::vector4f value0 = rtm::vector_load2(&track__[key_frame0]);
 				const rtm::vector4f value1 = rtm::vector_load2(&track__[key_frame1]);
-				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
 				writer.write_float2(track_index, value);
 			}
 			break;
@@ -246,9 +269,13 @@ namespace acl
 			{
 				const track_float3f& track__ = track_cast<track_float3f>(m_tracks[track_index]);
 
+				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
 				const rtm::vector4f value0 = rtm::vector_load3(&track__[key_frame0]);
 				const rtm::vector4f value1 = rtm::vector_load3(&track__[key_frame1]);
-				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
 				writer.write_float3(track_index, value);
 			}
 			break;
@@ -257,9 +284,13 @@ namespace acl
 			{
 				const track_float4f& track__ = track_cast<track_float4f>(m_tracks[track_index]);
 
+				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
 				const rtm::vector4f value0 = rtm::vector_load(&track__[key_frame0]);
 				const rtm::vector4f value1 = rtm::vector_load(&track__[key_frame1]);
-				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
 				writer.write_float4(track_index, value);
 			}
 			break;
@@ -268,9 +299,13 @@ namespace acl
 			{
 				const track_vector4f& track__ = track_cast<track_vector4f>(m_tracks[track_index]);
 
+				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
 				const rtm::vector4f value0 = track__[key_frame0];
 				const rtm::vector4f value1 = track__[key_frame1];
-				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
 				writer.write_vector4(track_index, value);
 			}
 			break;
@@ -279,11 +314,15 @@ namespace acl
 			{
 				const track_qvvf& track__ = track_cast<track_qvvf>(m_tracks[track_index]);
 
+				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
 				const rtm::qvvf& value0 = track__[key_frame0];
 				const rtm::qvvf& value1 = track__[key_frame1];
-				const rtm::quatf rotation = rtm::quat_lerp(value0.rotation, value1.rotation, interpolation_alpha);
-				const rtm::vector4f translation = rtm::vector_lerp(value0.translation, value1.translation, interpolation_alpha);
-				const rtm::vector4f scale = rtm::vector_lerp(value0.scale, value1.scale, interpolation_alpha);
+				const rtm::quatf rotation = rtm::quat_lerp(value0.rotation, value1.rotation, alpha);
+				const rtm::vector4f translation = rtm::vector_lerp(value0.translation, value1.translation, alpha);
+				const rtm::vector4f scale = rtm::vector_lerp(value0.scale, value1.scale, alpha);
 				writer.write_rotation(track_index, rotation);
 				writer.write_translation(track_index, translation);
 				writer.write_scale(track_index, scale);
@@ -310,10 +349,13 @@ namespace acl
 		const float duration = get_finite_duration();
 		sample_time = rtm::scalar_clamp(sample_time, 0.0F, duration);
 
+		const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+		ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+
 		uint32_t key_frame0;
 		uint32_t key_frame1;
 		float interpolation_alpha;
-		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy, m_looping_policy, key_frame0, key_frame1, interpolation_alpha);
+		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy_, m_looping_policy, key_frame0, key_frame1, interpolation_alpha);
 
 		switch (track_.get_type())
 		{
