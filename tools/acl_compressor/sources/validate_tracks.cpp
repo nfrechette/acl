@@ -93,12 +93,12 @@ void validate_accuracy(
 	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", error.index, error.error, error.sample_time);
 
 	const uint32_t num_tracks = compressed_tracks_.get_num_tracks();
-	const float clip_duration = compressed_tracks_.get_finite_duration();
+	const float duration = compressed_tracks_.get_finite_duration();
 	const float sample_rate = compressed_tracks_.get_sample_rate();
 
 	// Calculate the number of samples from the duration to account for the repeating
 	// first frame at the end when wrapping is used
-	const uint32_t num_samples = calculate_num_samples(clip_duration, sample_rate);
+	const uint32_t num_samples = calculate_num_samples(duration, sample_rate);
 
 	debug_track_writer track_writer(allocator, track_type8::qvvf, num_tracks);
 	track_writer.initialize_with_defaults(raw_tracks);
@@ -130,7 +130,7 @@ void validate_accuracy(
 		validate_transform_tracks(track_writer, track_writer_clamped, quat_error_threshold, vec3_error_threshold);
 
 		// Make sure clamping works properly at the end of the clip
-		const float last_sample_time = rtm::scalar_min(float(num_samples - 1) / sample_rate, clip_duration);
+		const float last_sample_time = rtm::scalar_min(float(num_samples - 1) / sample_rate, duration);
 
 		// When using the wrap looping policy, the last sample time will yield the first sample since we completely wrap
 		context.seek(last_sample_time, rounding_policy);
@@ -146,7 +146,7 @@ void validate_accuracy(
 	// Regression test
 	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 	{
-		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, clip_duration);
+		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
 		// We use the nearest sample to accurately measure the loss that happened, if any
 		context.seek(sample_time, rounding_policy);
