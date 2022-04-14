@@ -46,7 +46,7 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 
 		// Make sure constant default sub-tracks match the skipped sub-tracks
 		const rtm::qvvf transform = tracks.read_qvv(track_index);
-		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(ref_transform.rotation), rtm::quat_to_vector(transform.rotation), quat_error_threshold), "Failed to sample bone index: %u", track_index);
+		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(rtm::quat_ensure_positive_w(ref_transform.rotation)), rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform.rotation)), quat_error_threshold), "Failed to sample bone index: %u", track_index);
 		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
 		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
 	}
