@@ -229,7 +229,9 @@ namespace acl
 					key_frame1 = count_leading_zeros(candidate_indices1);
 
 					// Calculate our new interpolation alpha
-					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, key_frame0, key_frame1, rounding_policy);
+					// We used the rounding policy above to snap to the correct key frame earlier but we might need to interpolate now
+					// if key frames have been removed
+					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, key_frame0, key_frame1, sample_rounding_policy::none);
 
 					// Find where our data lives (clip or database tier X)
 					sample_indices0 = segment_tier0_header0->sample_indices;
@@ -375,7 +377,9 @@ namespace acl
 					const uint32_t clip_key_frame1 = segment_start_indices[segment_index1] + segment_key_frame1;
 
 					// Calculate our new interpolation alpha
-					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, clip_key_frame0, clip_key_frame1, rounding_policy);
+					// We used the rounding policy above to snap to the correct key frame earlier but we might need to interpolate now
+					// if key frames have been removed
+					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, clip_key_frame0, clip_key_frame1, sample_rounding_policy::none);
 
 					// Find where our data lives (clip or database tier X)
 					sample_indices0 = segment_tier0_header0->sample_indices;
