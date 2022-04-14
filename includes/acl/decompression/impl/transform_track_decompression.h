@@ -510,6 +510,9 @@ namespace acl
 
 		// TODO: Merge the per track format and segment range info into a single buffer? Less to prefetch and used together
 		// TODO: Remove segment data alignment, no longer required?
+		// TODO: sample_rounding_policy ends up being signed extended on x64 from a 32 bit value into 64 bit (edx -> rax)
+		//       I tried using uint32_t and uint64_t as its underlying type but code generation remained the same
+		//       Would using a raw uint32_t below instead of the typed enum help avoid the extra instruction?
 
 
 		// Force inline this function, we only use it to keep the code readable
