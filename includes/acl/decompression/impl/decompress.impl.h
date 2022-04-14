@@ -120,6 +120,7 @@ namespace acl
 	{
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
 		ACL_ASSERT(rtm::scalar_is_finite(sample_time), "Invalid sample time");
+		ACL_ASSERT(rounding_policy != sample_rounding_policy::per_track || decompression_settings_type::is_per_track_rounding_supported(), "Per track rounding must be enabled");
 
 		if (!m_context.is_initialized())
 			return;	// Context is not initialized

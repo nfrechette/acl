@@ -234,7 +234,9 @@ namespace acl
 		const float interpolation_alpha = (sample_index - float(sample_index0)) / float(sample_index1 - sample_index0);
 		ACL_ASSERT(interpolation_alpha >= 0.0F && interpolation_alpha <= 1.0F, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
 
-		if (rounding_policy == sample_rounding_policy::none)
+		// If we don't round, we'll interpolate and we need the alpha value unchanged
+		// If we require the value per track, we might need the alpha value unchanged as well, rounding is handled later
+		if (rounding_policy == sample_rounding_policy::none || rounding_policy == sample_rounding_policy::per_track)
 			return interpolation_alpha;
 		else // sample_rounding_policy::nearest
 			return rtm::scalar_floor(interpolation_alpha + 0.5F);
@@ -246,6 +248,9 @@ namespace acl
 		{
 		default:
 		case sample_rounding_policy::none:
+		case sample_rounding_policy::per_track:
+			// If we don't round, we'll interpolate and we need the alpha value unchanged
+			// If we require the value per track, we might need the alpha value unchanged as well, rounding is handled later
 			return interpolation_alpha;
 		case sample_rounding_policy::floor:
 			return 0.0F;
