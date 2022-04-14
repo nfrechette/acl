@@ -40,11 +40,6 @@
 using namespace acl;
 
 #if defined(ACL_USE_SJSON) && defined(ACL_HAS_ASSERT_CHECKS)
-struct debug_transform_decompression_settings_with_db final : public acl::debug_transform_decompression_settings
-{
-	using database_settings_type = acl::debug_database_settings;
-};
-
 static void stream_in_database_tier(database_context<debug_database_settings>& context, const debug_database_streamer& streamer, const compressed_database& db, quality_tier tier)
 {
 	const uint32_t num_chunks = db.get_num_chunks(tier);

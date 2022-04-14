@@ -392,16 +392,6 @@ static bool parse_options(int argc, char** argv, Options& options)
 }
 
 #if defined(ACL_USE_SJSON)
-#if defined(ACL_HAS_ASSERT_CHECKS)
-// We extern our regression test functions for simplicity
-extern void validate_accuracy(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric, const compressed_tracks& compressed_tracks_, double regression_error_threshold);
-extern void validate_accuracy(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, double regression_error_threshold);
-extern void validate_metadata(const track_array& raw_tracks, const compressed_tracks& tracks);
-extern void validate_convert(iallocator& allocator, const track_array& raw_tracks);
-extern void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks,
-	const compression_database_settings& settings, const itransform_error_metric& error_metric,
-	const compressed_tracks& compressed_tracks0, const compressed_tracks& compressed_tracks1);
-#endif
 
 static void try_algorithm(const Options& options, iallocator& allocator, const track_array_qvvf& transform_tracks,
 	const track_array_qvvf& additive_base, additive_clip_format8 additive_format,
