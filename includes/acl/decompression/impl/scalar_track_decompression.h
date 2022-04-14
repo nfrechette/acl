@@ -96,7 +96,6 @@ namespace acl
 			context.tracks = &tracks;
 			context.tracks_hash = tracks.get_hash();
 			context.sample_time = -1.0F;
-			context.interpolation_alpha = 0.0;
 
 			if (decompression_settings_type::is_wrapping_supported())
 			{
