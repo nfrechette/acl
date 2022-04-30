@@ -96,6 +96,16 @@
       "contributions": [
         "infra"
       ]
+    },
+    {
+      "login": "jbrd-pg",
+      "name": "James Bird",
+      "avatar_url": "https://avatars.githubusercontent.com/u/100773491?v=4",
+      "profile": "https://github.com/jbrd-pg",
+      "contributions": [
+        "ideas",
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
