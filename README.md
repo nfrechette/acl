@@ -108,6 +108,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://github.com/ddeadguyy"><img src="https://avatars.githubusercontent.com/u/42090666?v=4?s=100" width="100px;" alt=""/><br /><sub><b>ddeadguyy</b></sub></a><br /><a href="https://github.com/nfrechette/acl/commits?author=ddeadguyy" title="Code">💻</a> <a href="#ideas-ddeadguyy" title="Ideas, Planning, & Feedback">🤔</a></td>
     <td align="center"><a href="https://gitlab.com/intelligide"><img src="https://avatars.githubusercontent.com/u/12529837?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Yoann Potinet</b></sub></a><br /><a href="#infra-intelligide" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+    <td align="center"><a href="https://github.com/jbrd-pg"><img src="https://avatars.githubusercontent.com/u/100773491?v=4?s=100" width="100px;" alt=""/><br /><sub><b>James Bird</b></sub></a><br /><a href="#ideas-jbrd-pg" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/nfrechette/acl/commits?author=jbrd-pg" title="Code">💻</a></td>
   </tr>
 </table>
 
