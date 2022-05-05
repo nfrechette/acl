@@ -1,5 +1,13 @@
 # Significant changes per release
 
+## 2.0.3
+
+*  Update sjson-cpp to v0.8.2
+*  Update rtm to v2.1.3
+*  Add versioned namespace to allow multiple versions to coexist within a binary
+*  Fix database sampling interpolation when using a rounding mode other than `none`
+*  Other minor fixes
+
 ## 2.0.2
 
 *  Fix potential heap corruption when stripping a database that isn't split
