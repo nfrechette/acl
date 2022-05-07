@@ -24,10 +24,17 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
+#include "acl/core/impl/compiler_utils.h"
+
+#include <cstdint>
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// This enum dictates how looping is handled.
 	enum class sample_looping_policy
@@ -74,6 +81,8 @@ namespace acl
 		// Can only be used with compressed data is involved.
 		as_compressed = 2,
 	};
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP

@@ -24,10 +24,17 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
+#include "acl/core/impl/compiler_utils.h"
+
+#include <cstdint>
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// This enum dictates how interpolation samples are calculated based on the sample time.
 	// DO NOT CHANGE THESE VALUES AS THEY ARE USED TO INDEX INTO FIXED SIZED BUFFERS THAT MAY NOT
@@ -102,6 +109,8 @@ namespace acl
 
 	// The number of sample rounding policies
 	constexpr size_t k_num_sample_rounding_policies = 5;
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 ACL_IMPL_FILE_PRAGMA_POP
