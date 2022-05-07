@@ -1,5 +1,9 @@
 # Significant changes per release
 
+## 2.0.4
+
+*  Disable versioned namespace by default to avoid breaking ABI in patch release
+
 ## 2.0.3
 
 *  Update sjson-cpp to v0.8.2
