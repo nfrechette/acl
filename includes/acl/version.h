@@ -54,7 +54,11 @@
 // Name of the namespace, e.g. v20
 #define ACL_IMPL_VERSION_NAMESPACE_NAME v ## ACL_VERSION_MAJOR ## ACL_VERSION_MINOR
 
-#if defined(ACL_NO_VERSION_NAMESPACE)
+// Because this is being introduced in a patch release, as caution, it is disabled
+// by default. It does break ABI if host runtimes forward declare types but that
+// is something they shouldn't do with a 3rd party library. Now, we offer forward
+// declaration headers to help prepare the migration in the next minor release.
+#if defined(ACL_NO_VERSION_NAMESPACE) || !defined(ACL_ENABLE_VERSION_NAMESPACE)
 	// Namespace is inlined, its usage does not need to be qualified with the
 	// full version everywhere
 	#define ACL_IMPL_NAMESPACE acl
