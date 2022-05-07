@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
@@ -32,6 +33,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
 {
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
+
 	//////////////////////////////////////////////////////////////////////////
 	// Calculate the number of samples present from a duration and sample rate.
 	// Conceptually, a clip with 1 sample at any sample rate has a single static
@@ -66,6 +69,8 @@ namespace acl
 	// See `sample_looping_policy` for details.
 	//////////////////////////////////////////////////////////////////////////
 	float calculate_finite_duration(uint32_t num_samples, float sample_rate);
+
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/core/impl/time_utils.impl.h"
