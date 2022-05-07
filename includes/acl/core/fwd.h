@@ -37,75 +37,75 @@
 
 namespace acl
 {
-    ACL_IMPL_VERSION_NAMESPACE_BEGIN
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-    enum class additive_clip_format8 : uint8_t;
-    enum class algorithm_type8 : uint8_t;
-    enum class buffer_tag32 : uint32_t;
-    enum class compressed_tracks_version16 : uint16_t;
-    enum class range_reduction_flags8 : uint8_t;
-    enum class rotation_format8 : uint8_t;
-    enum class vector_format8 : uint8_t;
-    union track_format8;
-    enum class animation_track_type8 : uint8_t;
-    enum class rotation_variant8 : uint8_t;
+	enum class additive_clip_format8 : uint8_t;
+	enum class algorithm_type8 : uint8_t;
+	enum class buffer_tag32 : uint32_t;
+	enum class compressed_tracks_version16 : uint16_t;
+	enum class range_reduction_flags8 : uint8_t;
+	enum class rotation_format8 : uint8_t;
+	enum class vector_format8 : uint8_t;
+	union track_format8;
+	enum class animation_track_type8 : uint8_t;
+	enum class rotation_variant8 : uint8_t;
 
-    enum class quality_tier;
-    enum class sample_rounding_policy;
+	enum class quality_tier;
+	enum class sample_rounding_policy;
 
-    class iallocator;
-    class ansi_allocator;
+	class iallocator;
+	class ansi_allocator;
 
-    class bitset_description;
-    struct bitset_index_ref;
+	class bitset_description;
+	struct bitset_index_ref;
 
-    class compressed_database;
-    class compressed_tracks;
+	class compressed_database;
+	class compressed_tracks;
 
-    class error_result;
-    class runtime_assert;
+	class error_result;
+	class runtime_assert;
 
-    struct fp_environment;
-    class scope_enable_fp_exceptions;
-    class scope_disable_fp_exceptions;
+	struct fp_environment;
+	class scope_enable_fp_exceptions;
+	class scope_disable_fp_exceptions;
 
-    namespace hash_impl
+	namespace hash_impl
 	{
-        template <typename ResultType, ResultType OffsetBasis, ResultType Prime>
+		template <typename ResultType, ResultType OffsetBasis, ResultType Prime>
 		class fnv1a_impl;
-    }
+	}
 
-    using fnv1a_32 = hash_impl::fnv1a_impl<uint32_t, 2166136261U, 16777619U>;
+	using fnv1a_32 = hash_impl::fnv1a_impl<uint32_t, 2166136261U, 16777619U>;
 	using fnv1a_64 = hash_impl::fnv1a_impl<uint64_t, 14695981039346656037ULL, 1099511628211ULL>;
 
-    namespace acl_impl
+	namespace acl_impl
 	{
 		template <class item_type, bool is_const>
 		class iterator_impl;
-    }
+	}
 
-    template <class item_type>
+	template <class item_type>
 	using iterator = acl_impl::iterator_impl<item_type, false>;
 
 	template <class item_type>
 	using const_iterator = acl_impl::iterator_impl<item_type, true>;
 
-    struct invalid_ptr_offset;
-    template<typename data_type, typename offset_type> class ptr_offset;
-    template<typename data_type> using ptr_offset16 = ptr_offset<data_type, uint16_t>;
+	struct invalid_ptr_offset;
+	template<typename data_type, typename offset_type> class ptr_offset;
+	template<typename data_type> using ptr_offset16 = ptr_offset<data_type, uint16_t>;
 	template<typename data_type> using ptr_offset32 = ptr_offset<data_type, uint32_t>;
 
-    class scope_profiler;
+	class scope_profiler;
 
-    class string;
+	class string;
 
-    struct track_writer;
-    struct track_desc_scalarf;
-    struct track_desc_transformf;
+	struct track_writer;
+	struct track_desc_scalarf;
+	struct track_desc_transformf;
 
-    template<typename allocated_type> class deleter;
+	template<typename allocated_type> class deleter;
 
-    struct BoneBitRate; // TODO: Should be in impl namespace in ACL 3.0
+	struct BoneBitRate; // TODO: Should be in impl namespace in ACL 3.0
 
-    ACL_IMPL_VERSION_NAMESPACE_END
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
