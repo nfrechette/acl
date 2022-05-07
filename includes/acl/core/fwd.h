@@ -51,6 +51,7 @@ namespace acl
 	enum class rotation_variant8 : uint8_t;
 
 	enum class quality_tier;
+	enum class sample_looping_policy;
 	enum class sample_rounding_policy;
 
 	class iallocator;
@@ -99,6 +100,7 @@ namespace acl
 
 	class string;
 
+	enum class default_sub_track_mode;
 	struct track_writer;
 	struct track_desc_scalarf;
 	struct track_desc_transformf;
