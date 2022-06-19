@@ -516,10 +516,12 @@ namespace acl
 		// Force inline this function, we only use it to keep the code readable
 		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
 		{
-			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx, xxxx);
-			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy, yyyy);
-			const rtm::vector4f zzzz_squared = rtm::vector_mul(zzzz, zzzz);
-			const rtm::vector4f wwww_squared = rtm::vector_sub(rtm::vector_sub(rtm::vector_sub(rtm::vector_set(1.0F), xxxx_squared), yyyy_squared), zzzz_squared);
+			// 1.0 - (x * x)
+			rtm::vector4f result = rtm::vector_neg_mul_sub(xxxx, xxxx, rtm::vector_set(1.0F));
+			// result - (y * y)
+			result = rtm::vector_neg_mul_sub(yyyy, yyyy, result);
+			// result - (z * z)
+			const rtm::vector4f wwww_squared = rtm::vector_neg_mul_sub(zzzz, zzzz, result);
 
 			// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
 			// to ensure the resulting quaternion is always normalized with a positive W component
