@@ -27,6 +27,7 @@
 #include "acl/version.h"
 
 #include <rtm/impl/compiler_utils.h>
+#include <rtm/impl/detect_arch.h>
 
 #include <type_traits>
 
@@ -41,14 +42,31 @@
 // compilation flags used. However, in some cases, certain options must be forced.
 // To do this, every header is wrapped in two macros to push and pop the necessary
 // pragmas.
+//
+// Options we use:
+//    - Disable fast math, it can hurt precision for little to no performance gain due to the high level of hand tuned optimizations.
 //////////////////////////////////////////////////////////////////////////
 #if defined(RTM_COMPILER_MSVC)
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
-		/* Disable fast math, it can hurt precision for little to no performance gain due to the high level of hand tuned optimizations. */ \
 		__pragma(float_control(precise, on, push))
 
 	#define ACL_IMPL_FILE_PRAGMA_POP \
 		__pragma(float_control(pop))
+#elif defined(RTM_COMPILER_CLANG) && !defined(RTM_ARCH_ARM64)
+	// For some reason, clang doesn't appear to support disabling fast-math through pragmas on Arm64
+	// See: https://github.com/llvm/llvm-project/issues/55392
+	#define ACL_IMPL_FILE_PRAGMA_PUSH \
+		_Pragma("float_control(precise, on, push)")
+
+	#define ACL_IMPL_FILE_PRAGMA_POP \
+		_Pragma("float_control(pop)")
+#elif defined(RTM_COMPILER_GCC)
+	#define ACL_IMPL_FILE_PRAGMA_PUSH \
+		_Pragma("GCC push_options") \
+		_Pragma("GCC optimize (\"no-fast-math\")")
+
+	#define ACL_IMPL_FILE_PRAGMA_POP \
+		_Pragma("GCC pop_options")
 #else
 	#define ACL_IMPL_FILE_PRAGMA_PUSH
 	#define ACL_IMPL_FILE_PRAGMA_POP
