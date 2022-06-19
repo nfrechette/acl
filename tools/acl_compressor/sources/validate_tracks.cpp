@@ -43,12 +43,11 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
 		const rtm::qvvf ref_transform = reference.read_qvv(track_index);
-
-		// Make sure constant default sub-tracks match the skipped sub-tracks
 		const rtm::qvvf transform = tracks.read_qvv(track_index);
-		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(rtm::quat_ensure_positive_w(ref_transform.rotation)), rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform.rotation)), quat_error_threshold), "Failed to sample bone index: %u", track_index);
-		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
-		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
+
+		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(rtm::quat_ensure_positive_w(ref_transform.rotation)), rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform.rotation)), quat_error_threshold), "Failed to sample rotation with decompress_tracks for bone index: %u", track_index);
+		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold), "Failed to sample translation with decompress_tracks for bone index: %u", track_index);
+		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold), "Failed to sample scale with decompress_tracks for bone index: %u", track_index);
 	}
 }
 
@@ -193,9 +192,23 @@ void validate_accuracy(
 			const rtm::qvvf transform1 = track_writer.read_qvv(track_index);
 
 			// Rotations can differ a bit due to how we normalize during interpolation
-			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform1.rotation), quat_error_threshold), "Failed to sample bone index: %u", track_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform1.translation, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
-			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, vec3_error_threshold), "Failed to sample bone index: %u", track_index);
+			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform1.rotation), quat_error_threshold),
+				"Failed to sample rotation with decompress_track for bone index %u at sample index %u. Expected [%.5f, %.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f, %.5f].",
+				track_index, sample_index,
+				(float)rtm::quat_get_x(transform0.rotation), (float)rtm::quat_get_y(transform0.rotation), (float)rtm::quat_get_z(transform0.rotation), (float)rtm::quat_get_w(transform0.rotation),
+				(float)rtm::quat_get_x(transform1.rotation), (float)rtm::quat_get_y(transform1.rotation), (float)rtm::quat_get_z(transform1.rotation), (float)rtm::quat_get_w(transform1.rotation));
+
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.translation, transform1.translation, vec3_error_threshold),
+				"Failed to sample translation with decompress_track for bone index %u at sample index %u. Expected [%.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f].",
+				track_index, sample_index,
+				(float)rtm::vector_get_x(transform0.translation), (float)rtm::vector_get_y(transform0.translation), (float)rtm::vector_get_z(transform0.translation),
+				(float)rtm::vector_get_x(transform1.translation), (float)rtm::vector_get_y(transform1.translation), (float)rtm::vector_get_z(transform1.translation));
+
+			ACL_ASSERT(rtm::vector_all_near_equal3(transform0.scale, transform1.scale, vec3_error_threshold),
+				"Failed to sample scale with decompress_track for bone index %u at sample index %u. Expected [%.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f].",
+				track_index, sample_index,
+				(float)rtm::vector_get_x(transform0.scale), (float)rtm::vector_get_y(transform0.scale), (float)rtm::vector_get_z(transform0.scale),
+				(float)rtm::vector_get_x(transform1.scale), (float)rtm::vector_get_y(transform1.scale), (float)rtm::vector_get_z(transform1.scale));
 		}
 	}
 }
