@@ -33,7 +33,7 @@ def parse_argv():
 	actions.add_argument('-convert', help='Input/Output directory to convert')
 
 	target = parser.add_argument_group(title='Target')
-	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2019-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
+	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2019-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11', 'clang12', 'clang13', 'clang14', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'gcc11', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
 	target.add_argument('-config', choices=['Debug', 'Release'], type=str.capitalize)
 	target.add_argument('-cpu', choices=['x86', 'x64', 'armv7', 'arm64', 'wasm'], help='Defaults to the host system\'s architecture')
 
@@ -250,6 +250,15 @@ def set_compiler_env(compiler, args):
 		elif compiler == 'clang11':
 			os.environ['CC'] = 'clang-11'
 			os.environ['CXX'] = 'clang++-11'
+		elif compiler == 'clang12':
+			os.environ['CC'] = 'clang-12'
+			os.environ['CXX'] = 'clang++-12'
+		elif compiler == 'clang13':
+			os.environ['CC'] = 'clang-13'
+			os.environ['CXX'] = 'clang++-13'
+		elif compiler == 'clang14':
+			os.environ['CC'] = 'clang-14'
+			os.environ['CXX'] = 'clang++-14'
 		elif compiler == 'gcc5':
 			os.environ['CC'] = 'gcc-5'
 			os.environ['CXX'] = 'g++-5'
@@ -268,6 +277,9 @@ def set_compiler_env(compiler, args):
 		elif compiler == 'gcc10':
 			os.environ['CC'] = 'gcc-10'
 			os.environ['CXX'] = 'g++-10'
+		elif compiler == 'gcc11':
+			os.environ['CC'] = 'gcc-11'
+			os.environ['CXX'] = 'g++-11'
 		elif compiler == 'emscripten':
 			# Nothing to do for Emscripten
 			return
