@@ -83,7 +83,7 @@ namespace acl
 #if defined(ACL_USE_POPCOUNT)
 		return (uint8_t)_mm_popcnt_u32(value);
 #elif defined(RTM_NEON_INTRINSICS)
-		return (uint8_t)vget_lane_u64(vcnt_u8(vcreate_u8(value)), 0);
+		return (uint8_t)vget_lane_u8(vcnt_u8(vcreate_u8(value)), 0);
 #else
 		value = value - ((value >> 1) & 0x55);
 		value = (value & 0x33) + ((value >> 2) & 0x33);
@@ -98,7 +98,7 @@ namespace acl
 #if defined(ACL_USE_POPCOUNT)
 		return (uint16_t)_mm_popcnt_u32(value);
 #elif defined(RTM_NEON_INTRINSICS)
-		return (uint16_t)vget_lane_u64(vpaddl_u8(vcnt_u8(vcreate_u8(value))), 0);
+		return (uint16_t)vget_lane_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value))), 0);
 #else
 		value = value - ((value >> 1) & 0x5555);
 		value = (value & 0x3333) + ((value >> 2) & 0x3333);
@@ -113,7 +113,7 @@ namespace acl
 #if defined(ACL_USE_POPCOUNT)
 		return _mm_popcnt_u32(value);
 #elif defined(RTM_NEON_INTRINSICS)
-		return (uint32_t)vget_lane_u64(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value)))), 0);
+		return (uint32_t)vget_lane_u32(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value)))), 0);
 #else
 		value = value - ((value >> 1) & 0x55555555);
 		value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
