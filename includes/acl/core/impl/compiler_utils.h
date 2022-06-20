@@ -27,7 +27,6 @@
 #include "acl/version.h"
 
 #include <rtm/impl/compiler_utils.h>
-#include <rtm/impl/detect_arch.h>
 
 #include <type_traits>
 
@@ -52,8 +51,8 @@
 
 	#define ACL_IMPL_FILE_PRAGMA_POP \
 		__pragma(float_control(pop))
-#elif defined(RTM_COMPILER_CLANG) && !defined(RTM_ARCH_ARM64)
-	// For some reason, clang doesn't appear to support disabling fast-math through pragmas on Arm64
+#elif defined(RTM_COMPILER_CLANG) && 0
+	// For some reason, clang doesn't appear to support disabling fast-math through pragmas
 	// See: https://github.com/llvm/llvm-project/issues/55392
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
 		_Pragma("float_control(precise, on, push)")
