@@ -39,7 +39,7 @@ jobs:
       - name: Build with wrapper
         uses: docker://ghcr.io/nfrechette/toolchain-amd64-linux-sonarcloud:v2
         with:
-          args: '/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw_output python3 make.py -compiler clang5 -config Release -cpu x64 -build'
+          args: '/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw_output python3 make.py -compiler clang14 -config Release -cpu x64 -build'
       - name: Run Sonar Scanner and upload to Sonarcloud
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
