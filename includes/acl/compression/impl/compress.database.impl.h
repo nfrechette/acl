@@ -444,7 +444,7 @@ namespace acl
 			return sample_indices;
 		}
 
-		inline void write_segment_headers(const database_tier_mapping& tier_mapping, uint32_t tracks_index, const transform_tracks_header& input_transforms_header, const segment_header* headers, uint32_t segment_data_base_offset, segment_tier0_header* out_headers)
+		inline void rewrite_segment_headers(const database_tier_mapping& tier_mapping, uint32_t tracks_index, const transform_tracks_header& input_transforms_header, const segment_header* headers, uint32_t segment_data_base_offset, segment_tier0_header* out_headers)
 		{
 			const bitset_description desc = bitset_description::make_from_num_bits<32>();
 
@@ -486,7 +486,7 @@ namespace acl
 			}
 		}
 
-		inline void write_segment_data(const database_tier_mapping& tier_mapping, uint32_t tracks_index,
+		inline void rewrite_segment_data(const database_tier_mapping& tier_mapping, uint32_t tracks_index,
 			const transform_tracks_header& input_transforms_header, const segment_header* input_headers,
 			transform_tracks_header& output_transforms_header, const segment_tier0_header* output_headers)
 		{
@@ -699,7 +699,7 @@ namespace acl
 
 				// Write our new segment headers
 				const uint32_t segment_data_base_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
-				write_segment_headers(tier_mapping, list_index, input_transforms_header, input_segment_headers, segment_data_base_offset, transforms_header->get_segment_tier0_headers());
+				rewrite_segment_headers(tier_mapping, list_index, input_transforms_header, input_segment_headers, segment_data_base_offset, transforms_header->get_segment_tier0_headers());
 
 				// Copy our sub-track types, they do not change
 				std::memcpy(transforms_header->get_sub_track_types(), input_transforms_header.get_sub_track_types(), packed_sub_track_buffer_size);
@@ -711,7 +711,7 @@ namespace acl
 				std::memcpy(transforms_header->get_clip_range_data(), input_transforms_header.get_clip_range_data(), clip_range_data_size);
 
 				// Write our new segment data
-				write_segment_data(tier_mapping, list_index, input_transforms_header, input_segment_headers, *transforms_header, transforms_header->get_segment_tier0_headers());
+				rewrite_segment_data(tier_mapping, list_index, input_transforms_header, input_segment_headers, *transforms_header, transforms_header->get_segment_tier0_headers());
 
 				if (metadata_size != 0)
 				{
@@ -857,7 +857,7 @@ namespace acl
 		}
 
 		// Returns the number of bytes written
-		inline uint32_t write_segment_data(const frame_tier_mapping* frames, uint32_t num_frames, uint8_t* out_segment_data)
+		inline uint32_t write_tier_segment_data(const frame_tier_mapping* frames, uint32_t num_frames, uint8_t* out_segment_data)
 		{
 			uint64_t num_bits_written = 0;
 
@@ -1091,7 +1091,7 @@ namespace acl
 						segment_chunk_header.samples_offset = chunk_data_offset + chunk_header_size + segment_chunk_header.samples_offset;
 
 						uint8_t* animated_data = segment_chunk_header.samples_offset.add_to(bulk_data);
-						const uint32_t size = write_segment_data(segment_frames, num_segment_frames, animated_data);
+						const uint32_t size = write_tier_segment_data(segment_frames, num_segment_frames, animated_data);
 						ACL_ASSERT(size == segment_data_size, "Unexpected segment data size"); (void)size; (void)segment_data_size;
 
 						chunk_segment_index++;
