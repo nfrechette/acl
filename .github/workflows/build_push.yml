@@ -10,33 +10,47 @@ on:
 
 jobs:
   linux:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        compiler: [gcc10, clang11]
+        compiler: [gcc11, clang14]
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
-      - name: Setup ${{ matrix.compiler }} compiler
-        run: ./tools/setup_linux_compiler.sh ${{ matrix.compiler }}
       - name: Building (release-x86)
-        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -build
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -build'
       - name: Running unit tests (release-x86)
-        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -unit_test
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -unit_test'
       - name: Clean
-        run: python3 make.py -ci -clean_only
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
       - name: Building (release-x64)
-        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -build
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -build'
       - name: Running unit tests (release-x64)
-        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -unit_test
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -unit_test'
       - name: Clean
-        run: python3 make.py -ci -clean_only
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
       - name: Building (release-x64 nosimd)
-        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -build
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -build'
       - name: Running unit tests (release-x64 nosimd)
-        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -unit_test
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -unit_test'
 
   osx-11:
     runs-on: macos-11
@@ -70,31 +84,17 @@ jobs:
         run: python3 make.py -ci -compiler ios -config Release -build -nosimd
 
   emscripten:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
-      - name: Cache emsdk
-        uses: actions/cache@v1
-        id: 'emsdk'
-        with:
-          path: 'emsdk-cache'
-          key: ${{ runner.os }}-emsdk-1.39.11
-      - name: Setup emsdk
-        uses: mymindstorm/setup-emsdk@v7
-        with:
-          version: 1.39.11
-          no-cache: true
-          actions-cache-folder: 'emsdk-cache'
-      - name: Cache emsdk build artifacts
-        uses: actions/cache@v1
-        id: 'emsdk-build-artifacts'
-        with:
-          path: '~/.emscripten_cache'
-          key: ${{ runner.os }}-emsdk-build-artifacts-1.39.11
       - name: Build (release)
-        run: python3 make.py -ci -compiler emscripten -config release -build
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-linux-emscripten:v1
+        with:
+          args: 'python3 make.py -ci -compiler emscripten -config release -build'
       - name: Unit tests (release)
-        run: python3 make.py -ci -compiler emscripten -config release -unit_test
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-linux-emscripten:v1
+        with:
+          args: 'python3 make.py -ci -compiler emscripten -config release -unit_test'
