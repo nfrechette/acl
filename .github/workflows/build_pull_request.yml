@@ -75,6 +75,18 @@ jobs:
         uses: docker://ghcr.io/nfrechette/toolchain-amd64-xenial:v1
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -unit_test'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-xenial:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-xenial:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -build'
+      - name: Running unit tests (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-xenial:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -unit_test'
 
   linux-bionic:
     runs-on: ubuntu-latest
@@ -142,6 +154,18 @@ jobs:
         uses: docker://ghcr.io/nfrechette/toolchain-amd64-bionic:v1
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -unit_test'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-bionic:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-bionic:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -build'
+      - name: Running unit tests (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-bionic:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -unit_test'
 
   linux-focal:
     runs-on: ubuntu-latest
@@ -209,6 +233,18 @@ jobs:
         uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -unit_test'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -build'
+      - name: Running unit tests (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -unit_test'
 
   osx-10:
     runs-on: macos-10.15
