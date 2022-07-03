@@ -88,12 +88,6 @@ jobs:
         run: python3 make.py -ci -compiler osx -config Release -cpu x64 -nosimd -unit_test
       - name: Clean
         run: python3 make.py -ci -clean_only
-      - name: Building (release-x64 AVX)
-        run: python3 make.py -ci -compiler osx -config Release -cpu x64 -avx -build
-      - name: Running unit tests (release-x64 AVX)
-        run: python3 make.py -ci -compiler osx -config Release -cpu x64 -avx -unit_test
-      - name: Clean
-        run: python3 make.py -ci -clean_only
       - name: Building for iOS (release-arm64)
         run: python3 make.py -ci -compiler ios -config Release -build
       - name: Clean
