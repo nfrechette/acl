@@ -51,8 +51,12 @@
 	#endif
 #endif
 
-// Name of the namespace, e.g. v20
-#define ACL_IMPL_VERSION_NAMESPACE_NAME v ## ACL_VERSION_MAJOR ## ACL_VERSION_MINOR
+// Force macro expansion to concatenate namespace identifier
+#define ACL_IMPL_VERSION_CONCAT_IMPL(prefix, major, minor, patch) prefix ## major ## minor ## patch
+#define ACL_IMPL_VERSION_CONCAT(prefix, major, minor, patch) ACL_IMPL_VERSION_CONCAT_IMPL(prefix, major, minor, patch)
+
+// Name of the namespace, e.g. v205
+#define ACL_IMPL_VERSION_NAMESPACE_NAME ACL_IMPL_VERSION_CONCAT(v, ACL_VERSION_MAJOR, ACL_VERSION_MINOR, ACL_VERSION_PATCH)
 
 // Because this is being introduced in a patch release, as caution, it is disabled
 // by default. It does break ABI if host runtimes forward declare types but that
