@@ -32,7 +32,7 @@
 
 #define ACL_VERSION_MAJOR 2
 #define ACL_VERSION_MINOR 0
-#define ACL_VERSION_PATCH 5
+#define ACL_VERSION_PATCH 6
 
 ////////////////////////////////////////////////////////////////////////////////
 // In order to allow multiple versions of this library to coexist side by side
