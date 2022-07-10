@@ -1,4 +1,4 @@
-version: 2.0.5.{build}
+version: 2.0.6.{build}
 
 environment:
   PYTHON: "C:\\Python36-x64\\python.exe"
