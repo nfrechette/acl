@@ -1,5 +1,11 @@
 # Significant changes per release
 
+## 2.0.6
+
+*  Force macro expansion in version namespace identifier
+*  Update to RTM v2.1.5
+*  Update sjson-cpp to v0.8.3
+
 ## 2.0.5
 
 *  Add support for clang 12, 13, and 14
