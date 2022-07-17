@@ -128,9 +128,9 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the default scale value used during compression.
-		// Depending on the additive type, this value will either be 0.0 or 1.0.
+		// Depending on the additive type, this value will either be 0 or 1.
 		// Only supported with qvv transform tracks.
-		float get_default_scale() const;
+		int32_t get_default_scale() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the looping policy used during compression.
