@@ -87,9 +87,13 @@ namespace acl
 		// This allows the host runtime to control which rounding policy to use per track.
 		// To enable this, make sure that the 'decompression_settings' supports this feature
 		// and provide 'sample_rounding_policy::per_track' to the seek function.
-		// This function cannot return the 'per_track' value. We do so here to force an
-		// assert at runtime if the caller attempts to use it but does not override this.
-		constexpr sample_rounding_policy get_rounding_policy(uint32_t /*track_index*/) const { return sample_rounding_policy::per_track; }
+		// This function is called when the decompression settings enable the feature.
+		// If per track rounding isn't used, this function must return the seek policy
+		// provided as an argument (the one passed to the seek(..) function).
+		// If per track rounding is specified when seeking, this function must return a
+		// valid per track value.
+		// This function cannot return the 'per_track' value. Doing so will assert at runtime.
+		constexpr sample_rounding_policy get_rounding_policy(sample_rounding_policy seek_policy, uint32_t /*track_index*/) const { return seek_policy; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Scalar track writing

@@ -246,7 +246,7 @@ namespace acl
 			{
 				const track_float1f& track__ = track_cast<track_float1f>(m_tracks[track_index]);
 
-				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
 
@@ -261,7 +261,7 @@ namespace acl
 			{
 				const track_float2f& track__ = track_cast<track_float2f>(m_tracks[track_index]);
 
-				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
 
@@ -276,7 +276,7 @@ namespace acl
 			{
 				const track_float3f& track__ = track_cast<track_float3f>(m_tracks[track_index]);
 
-				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
 
@@ -291,7 +291,7 @@ namespace acl
 			{
 				const track_float4f& track__ = track_cast<track_float4f>(m_tracks[track_index]);
 
-				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
 
@@ -306,7 +306,7 @@ namespace acl
 			{
 				const track_vector4f& track__ = track_cast<track_vector4f>(m_tracks[track_index]);
 
-				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
 
@@ -321,7 +321,7 @@ namespace acl
 			{
 				const track_qvvf& track__ = track_cast<track_qvvf>(m_tracks[track_index]);
 
-				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
 
@@ -356,7 +356,7 @@ namespace acl
 		const float duration = get_finite_duration();
 		sample_time = rtm::scalar_clamp(sample_time, 0.0F, duration);
 
-		const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+		const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 		ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 
 		uint32_t key_frame0;

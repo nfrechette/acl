@@ -739,9 +739,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index0) :
+							decompression_settings_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index0) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -763,9 +762,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index1) :
+							decompression_settings_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index1) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -787,9 +785,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index2) :
+							decompression_settings_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index2) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -811,9 +808,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index3) :
+							decompression_settings_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index3) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -1067,9 +1063,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index0) :
+							decompression_settings_adapter_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index0) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -1090,9 +1085,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index1) :
+							decompression_settings_adapter_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index1) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -1113,9 +1107,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index2) :
+							decompression_settings_adapter_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index2) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -1136,9 +1129,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index3) :
+							decompression_settings_adapter_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index3) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -1396,9 +1388,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index0) :
+							decompression_settings_adapter_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index0) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -1419,9 +1410,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index1) :
+							decompression_settings_adapter_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index1) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -1442,9 +1432,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index2) :
+							decompression_settings_adapter_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index2) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -1465,9 +1454,8 @@ namespace acl
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
 						// and rounding has already been performed for us.
 						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_adapter_type::is_per_track_rounding_supported() &&
-							rounding_policy == sample_rounding_policy::per_track ?
-							writer.get_rounding_policy(track_index3) :
+							decompression_settings_adapter_type::is_per_track_rounding_supported() ?
+							writer.get_rounding_policy(rounding_policy, track_index3) :
 							sample_rounding_policy::none;
 
 						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -1934,7 +1922,7 @@ namespace acl
 			if (decompression_settings_type::is_per_track_rounding_supported())
 			{
 				const sample_rounding_policy rounding_policy = context.get_rounding_policy();
-				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 
 				interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy_);

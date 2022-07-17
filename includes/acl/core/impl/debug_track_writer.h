@@ -279,7 +279,7 @@ namespace acl
 			{
 			}
 
-			sample_rounding_policy get_rounding_policy(uint32_t /*track_index*/) const { return rounding_policy; }
+			sample_rounding_policy get_rounding_policy(sample_rounding_policy /*seek_policy*/, uint32_t /*track_index*/) const { return rounding_policy; }
 
 			sample_rounding_policy rounding_policy;
 		};
