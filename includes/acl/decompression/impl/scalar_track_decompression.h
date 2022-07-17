@@ -232,7 +232,7 @@ namespace acl
 				rtm::scalarf alpha = interpolation_alpha;
 				if (decompression_settings_type::is_per_track_rounding_supported())
 				{
-					const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 
 					alpha = rtm::scalar_set(interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)]);
@@ -461,7 +461,7 @@ namespace acl
 			if (decompression_settings_type::is_per_track_rounding_supported())
 			{
 				const sample_rounding_policy rounding_policy = static_cast<sample_rounding_policy>(context.rounding_policy);
-				const sample_rounding_policy rounding_policy_ = rounding_policy == sample_rounding_policy::per_track ? writer.get_rounding_policy(track_index) : rounding_policy;
+				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 				
 				interpolation_alpha = rtm::scalar_set(apply_rounding_policy(context.interpolation_alpha, rounding_policy_));
