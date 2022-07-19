@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"
 #include "acl/core/time_utils.h"
@@ -34,6 +34,8 @@
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/track_error.h"
 #include "acl/compression/impl/clip_context.h"
+
+#include <sjson/writer.h>
 
 #include <chrono>
 #include <cstdint>
@@ -560,4 +562,4 @@ namespace acl
 
 ACL_IMPL_FILE_PRAGMA_POP
 
-#endif	// #if defined(SJSON_CPP_WRITER)
+#endif	// #if defined(ACL_USE_SJSON)

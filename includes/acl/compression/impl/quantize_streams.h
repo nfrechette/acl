@@ -45,6 +45,10 @@
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
 
+#if defined(ACL_USE_SJSON)
+#include <sjson/writer.h>
+#endif
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -1813,7 +1817,7 @@ namespace acl
 				quantize_all_streams(context);
 			}
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 			if (are_all_enum_flags_set(out_stats.logging, stat_logging::detailed))
 			{
 				sjson::ObjectWriter& writer = *out_stats.writer;

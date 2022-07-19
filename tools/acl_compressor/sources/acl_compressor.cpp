@@ -430,7 +430,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		ACL_ASSERT(result.empty(), result.c_str());
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 		if (logging != stat_logging::none)
 		{
 			// Disable floating point exceptions since decompression assumes it
@@ -510,7 +510,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 	};
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 	if (runs_writer != nullptr)
 		runs_writer->push([&](sjson::ObjectWriter& writer) { try_algorithm_impl(&writer); });
 	else
@@ -548,7 +548,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		ACL_ASSERT(result.empty(), result.c_str()); (void)result;
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 		if (logging != stat_logging::none && stats_writer != nullptr)
 		{
 			// Disable floating point exceptions since decompression assumes it
@@ -590,7 +590,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 	};
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 	if (runs_writer != nullptr)
 		runs_writer->push([&](sjson::ObjectWriter& writer) { try_algorithm_impl(&writer); });
 	else
@@ -1160,7 +1160,7 @@ static int safe_main_impl(int argc, char* argv[])
 		}
 	};
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 	if (options.do_output_stats)
 	{
 		sjson::FileStreamWriter stream_writer(options.output_stats_file);

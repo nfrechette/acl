@@ -28,8 +28,8 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/enum_utils.h"
 
-#if !defined(SJSON_CPP_WRITER)
-namespace sjson { class ObjectWriter; }
+#if defined(ACL_USE_SJSON)
+#include <sjson/writer.h>
 #endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -51,7 +51,10 @@ namespace acl
 	struct output_stats
 	{
 		stat_logging			logging = stat_logging::none;
+
+#if defined(ACL_USE_SJSON)
 		sjson::ObjectWriter*	writer = nullptr;
+#endif
 	};
 
 	ACL_IMPL_VERSION_NAMESPACE_END

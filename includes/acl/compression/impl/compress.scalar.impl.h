@@ -47,6 +47,10 @@
 #include "acl/compression/impl/write_track_data_impl.h"
 #include "acl/compression/impl/write_track_metadata.h"
 
+#if defined(ACL_USE_SJSON)
+#include <sjson/writer.h>
+#endif
+
 #include <cstdint>
 
 namespace acl
@@ -59,7 +63,7 @@ namespace acl
 		{
 			(void)out_stats;
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 			scope_profiler compression_time;
 #endif
 
@@ -251,7 +255,7 @@ namespace acl
 			}
 #endif
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 			compression_time.stop();
 
 			if (out_stats.logging != stat_logging::none)

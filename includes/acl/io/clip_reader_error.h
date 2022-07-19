@@ -24,10 +24,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#if defined(SJSON_CPP_PARSER)
+#if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
+
+#include <sjson/parser_error.h>
 
 #include <cstdint>
 
@@ -91,4 +93,4 @@ namespace acl
 
 ACL_IMPL_FILE_PRAGMA_POP
 
-#endif	// #if defined(SJSON_CPP_PARSER)
+#endif	// #if defined(ACL_USE_SJSON)
