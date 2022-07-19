@@ -56,7 +56,7 @@ namespace acl
 
 	namespace acl_impl
 	{
-		struct alignas(64) persistent_scalar_decompression_context_v0
+		struct persistent_scalar_decompression_context_v0
 		{
 			// Clip related data									//   offsets
 			// Only member used to detect if we are initialized, must be first

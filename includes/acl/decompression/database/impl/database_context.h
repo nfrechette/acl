@@ -42,7 +42,7 @@ namespace acl
 		// TODO: If we need to make the context smaller, we can use offsets for the bitsets instead of pointers
 		// from the clip_segment_headers base pointer. The bitsets also follow linearly in memory, we could store only
 		// one offset for the base, and index with the tier * desc.size
-		struct alignas(64) database_context_v0
+		struct database_context_v0
 		{
 			//														//   offsets
 			// Only member used to detect if we are initialized, must be first
@@ -64,9 +64,9 @@ namespace acl
 
 			iallocator* allocator;									//  40 |  72
 
-			uint8_t padding1[sizeof(void*) == 4 ? 84 : 40];			//  44 |  88
+			uint8_t padding1[sizeof(void*) == 4 ? 20 : 40];			//  44 |  88
 
-			//											Total size:	   128 | 128
+			//											Total size:	    64 | 128
 
 			//////////////////////////////////////////////////////////////////////////
 
@@ -76,7 +76,7 @@ namespace acl
 			void reset() { db = nullptr; }
 		};
 
-		static_assert(sizeof(database_context_v0) == 128, "Unexpected size");
+		static_assert((sizeof(database_context_v0) % 64) == 0, "Unexpected size");
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

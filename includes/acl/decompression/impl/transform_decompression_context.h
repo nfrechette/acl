@@ -50,7 +50,7 @@ namespace acl
 
 	namespace acl_impl
 	{
-		struct alignas(64) persistent_transform_decompression_context_v0
+		struct persistent_transform_decompression_context_v0
 		{
 			// Clip related data								//   offsets
 			// Only member used to detect if we are initialized, must be first
@@ -93,7 +93,6 @@ namespace acl
 
 			float interpolation_alpha;							//  88 | 120
 
-			// Can't have a 0 byte array, add a whole cache line as padding
 			uint8_t padding1[sizeof(void*) == 4 ? 36 : 4];		//  92 | 124
 
 			//										Total size:	   128 | 128
