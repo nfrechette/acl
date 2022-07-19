@@ -12,3 +12,6 @@ This define prevents the usage of intrinsics unless explicitly requested by the 
 
 This enables the usage of the `POPCNT` intrinsics [when available](https://en.wikipedia.org/wiki/Bit_Manipulation_Instruction_Sets) on x86/x64 CPUs. It is currently not possible to determine at compile time when it is supported. For example *Haswell* CPUs have support for AVX2 but not `POPCNT`. The macro is automatically enabled on *Xbox One* but not yet on *PlayStation 4* (even though it is supported, contributions welcome).
 
+### ACL_USE_SJSON
+
+ACL uses `sjson-cpp` to output stats as well as to read/write ASCII human readable clips. Enable this define to use these features and make sure `sjson-cpp/includes` is in the include path.

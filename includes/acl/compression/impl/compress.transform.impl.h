@@ -55,6 +55,10 @@
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
 
+#if defined(ACL_USE_SJSON)
+#include <sjson/writer.h>
+#endif
+
 #include <cstdint>
 
 namespace acl
@@ -108,7 +112,7 @@ namespace acl
 			if (result.any())
 				return result;
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 			scope_profiler compression_time;
 #endif
 
@@ -507,7 +511,7 @@ namespace acl
 			(void)buffer_start;
 #endif
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 			compression_time.stop();
 
 			if (out_stats.logging != stat_logging::none)

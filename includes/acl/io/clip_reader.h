@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#if defined(SJSON_CPP_PARSER)
+#if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"
 #include "acl/io/clip_reader_error.h"
@@ -44,6 +44,8 @@
 #include <rtm/vector4f.h>
 #include <rtm/qvvd.h>
 #include <rtm/qvvf.h>
+
+#include <sjson/parser.h>
 
 #include <cstdint>
 
@@ -1379,4 +1381,4 @@ namespace acl
 
 ACL_IMPL_FILE_PRAGMA_POP
 
-#endif	// #if defined(SJSON_CPP_PARSER)
+#endif	// #if defined(ACL_USE_SJSON)

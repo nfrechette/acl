@@ -24,7 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#if defined(SJSON_CPP_WRITER)
+#if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"
 #include "acl/compression/compression_settings.h"
@@ -36,6 +36,8 @@
 
 #include <rtm/quatd.h>
 #include <rtm/vector4d.h>
+
+#include <sjson/writer.h>
 
 #include <cstdint>
 #include <cinttypes>
@@ -395,4 +397,4 @@ namespace acl
 
 ACL_IMPL_FILE_PRAGMA_POP
 
-#endif	// #if defined(SJSON_CPP_WRITER)
+#endif	// #if defined(ACL_USE_SJSON)
