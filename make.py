@@ -208,7 +208,14 @@ def get_architecture(compiler, cpu):
 		if compiler == 'vs2017':
 			if cpu == 'arm64':
 				return 'ARM64'
-		elif compiler.startswith('vs20'):
+
+		is_modern_vs = False
+		if compiler == 'vs2019' or compiler == 'vs2019-clang':
+			is_modern_vs = True
+		elif compiler == 'vs2022' or compiler == 'vs2022-clang':
+			is_modern_vs = True
+
+		if is_modern_vs:
 			if cpu == 'x86':
 				return 'Win32'
 			else:
