@@ -41,6 +41,7 @@ def parse_argv():
 	misc.add_argument('-avx', dest='use_avx', action='store_true', help='Compile using AVX instructions on Windows, OS X, and Linux')
 	misc.add_argument('-pop', dest='use_popcnt', action='store_true', help='Compile using the POPCNT instruction')
 	misc.add_argument('-nosimd', dest='use_simd', action='store_false', help='Compile without SIMD instructions')
+	misc.add_argument('-simd', dest='use_simd', action='store_true', help='Compile with default SIMD instructions')
 	misc.add_argument('-nosjson', dest='use_sjson', action='store_false', help='Compile without SJSON support')
 	misc.add_argument('-num_threads', help='No. to use while compiling and regressing')
 	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
