@@ -372,3 +372,53 @@ jobs:
         uses: docker://ghcr.io/nfrechette/toolchain-amd64-linux-emscripten:v1
         with:
           args: 'python3 make.py -ci -compiler emscripten -config release -unit_test'
+
+  vs2019:
+    runs-on: windows-2019
+    strategy:
+      matrix:
+        compiler: [vs2019, vs2019-clang]
+        build_config: [debug, release]
+        cpu: [x86, x64, arm64]
+        simd: [-simd, -nosimd, -avx]
+        exclude:
+          # Don't run arm64 with clang
+          - compiler: vs2019-clang
+            cpu: arm64
+          # Don't run AVX with arm64
+          - cpu: arm64
+            simd: -avx
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Building (${{ matrix.build_config }}-${{ matrix.cpu }})
+        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -build ${{ matrix.simd }}
+      - name: Running unit tests (${{ matrix.build_config }}-${{ matrix.cpu }})
+        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -unit_test ${{ matrix.simd }}
+
+  vs2022:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        compiler: [vs2022, vs2022-clang]
+        build_config: [debug, release]
+        cpu: [x86, x64, arm64]
+        simd: [-simd, -nosimd, -avx]
+        exclude:
+          # Don't run arm64 with clang
+          - compiler: vs2022-clang
+            cpu: arm64
+          # Don't run AVX with arm64
+          - cpu: arm64
+            simd: -avx
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Building (${{ matrix.build_config }}-${{ matrix.cpu }})
+        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -build ${{ matrix.simd }}
+      - name: Running unit tests (${{ matrix.build_config }}-${{ matrix.cpu }})
+        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -unit_test ${{ matrix.simd }}
