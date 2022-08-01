@@ -1,0 +1,27 @@
+name: benchmark
+
+on:
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - docs/**
+      - '**/*.md'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Building (release-x64)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+        with:
+          args: 'python3 make.py -ci -compiler clang14 -config Release -cpu x64 -bench -build'
+      # Can't run benchmark just yet because clips haven't been packaged in a zip file we can download
+      #- name: Running benchmark (release-x64)
+      #  uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
+      #  with:
+      #    args: 'python3 make.py -ci -compiler clang14 -config Release -cpu x64 -bench -run_bench'
