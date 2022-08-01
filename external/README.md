@@ -14,7 +14,7 @@
 
 ### Google Benchmark
 
-[Google Benchmark v1.5.1](https://github.com/google/benchmark/releases/tag/v1.5.1) (Apache License 2.0) is used to benchmark various functions. You will only need it if you run the benchmarks and it is included as-is without modifications.
+[Google Benchmark v1.6.1](https://github.com/google/benchmark/releases/tag/v1.6.1) (Apache License 2.0) is used to benchmark various functions. You will only need it if you run the benchmarks and it is included as-is without modifications.
 
 ### sjson-cpp
 
