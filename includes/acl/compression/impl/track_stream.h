@@ -400,7 +400,7 @@ namespace acl
 			bool is_scale_constant					= false;
 			bool is_scale_default					= false;
 
-			uint8_t padding[2];
+			uint8_t padding[2]						= {};
 
 			bool is_stripped_from_output() const { return output_index == k_invalid_track_index; }
 

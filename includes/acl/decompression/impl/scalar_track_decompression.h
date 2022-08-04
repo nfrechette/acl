@@ -199,7 +199,7 @@ namespace acl
 
 			const sample_rounding_policy rounding_policy = static_cast<sample_rounding_policy>(context.rounding_policy);
 
-			float interpolation_alpha_per_policy[k_num_sample_rounding_policies];
+			float interpolation_alpha_per_policy[k_num_sample_rounding_policies] = {};
 			if (decompression_settings_type::is_per_track_rounding_supported())
 			{
 				const float alpha = context.interpolation_alpha;
