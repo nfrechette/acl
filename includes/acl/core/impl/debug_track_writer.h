@@ -56,6 +56,7 @@ namespace acl
 				, buffer_size(0)
 				, num_tracks(num_tracks_)
 				, type(type_)
+				, padding()
 			{
 				// Large enough to accommodate the largest type
 				buffer_size = sizeof(rtm::qvvf) * num_tracks_;
