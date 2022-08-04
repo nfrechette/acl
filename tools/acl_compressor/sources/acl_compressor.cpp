@@ -173,7 +173,7 @@ struct Options
 		if (output_stats_filename != nullptr)
 		{
 #ifdef _WIN32
-			char path[64 * 1024] = { 0 };
+			char path[1 * 1024] = { 0 };
 			snprintf(path, get_array_size(path), "\\\\?\\%s", output_stats_filename);
 			fopen_s(&file, path, "w");
 #else
@@ -486,7 +486,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		if (options.output_bin_filename != nullptr)
 		{
 #ifdef _WIN32
-			char output_bin_filename[64 * 1024] = { 0 };
+			char output_bin_filename[1 * 1024] = { 0 };
 			snprintf(output_bin_filename, get_array_size(output_bin_filename), "\\\\?\\%s", options.output_bin_filename);
 #else
 			const char* output_bin_filename = options.output_bin_filename;
@@ -576,7 +576,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		if (options.output_bin_filename != nullptr)
 		{
 #ifdef _WIN32
-			char output_bin_filename[64 * 1024] = { 0 };
+			char output_bin_filename[1 * 1024] = { 0 };
 			snprintf(output_bin_filename, get_array_size(output_bin_filename), "\\\\?\\%s", options.output_bin_filename);
 #else
 			const char* output_bin_filename = options.output_bin_filename;
@@ -604,7 +604,7 @@ static bool read_file(iallocator& allocator, const char* input_filename, char*& 
 	std::FILE* file = nullptr;
 
 #ifdef _WIN32
-	char path[64 * 1024] = { 0 };
+	char path[1 * 1024] = { 0 };
 	snprintf(path, get_array_size(path), "\\\\?\\%s", input_filename);
 	fopen_s(&file, path, "rb");
 #else
