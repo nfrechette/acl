@@ -238,7 +238,7 @@ namespace acl
 		if (version >= compressed_tracks_version16::v02_01_99)
 			track_description_size += sizeof(float) * 10;
 
-		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * track_description_size));
+		const float* description_data = reinterpret_cast<const float*>(descriptions + (size_t(track_index) * track_description_size));
 
 		// Because the data has already been compressed, any track output remapping has already happened
 		// which means the output_index is just the track_index
