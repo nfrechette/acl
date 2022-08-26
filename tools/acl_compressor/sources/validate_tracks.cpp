@@ -37,7 +37,8 @@
 using namespace acl;
 
 #if defined(ACL_USE_SJSON) && defined(ACL_HAS_ASSERT_CHECKS)
-void validate_transform_tracks(const acl::acl_impl::debug_track_writer& reference, const acl::acl_impl::debug_track_writer& tracks, float sample_time, float quat_error_threshold, float vec3_error_threshold)
+template<class debug_track_writer_t>
+void validate_transform_tracks(const acl::acl_impl::debug_track_writer& reference, const debug_track_writer_t& tracks, float sample_time, float quat_error_threshold, float vec3_error_threshold)
 {
 	const uint32_t num_tracks = reference.num_tracks;
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
@@ -45,19 +46,34 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 		const rtm::qvvf ref_transform = reference.read_qvv(track_index);
 		const rtm::qvvf transform = tracks.read_qvv(track_index);
 
-		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(ref_transform.rotation), rtm::quat_to_vector(transform.rotation), quat_error_threshold),
+		// If our default sub-track mode is skipped or variable, our lossy transform should equal the ref transform
+		// But if the constant mode is used, we must check that as well
+
+		bool is_rotation_matching = rtm::vector_all_near_equal(rtm::quat_to_vector(ref_transform.rotation), rtm::quat_to_vector(transform.rotation), quat_error_threshold);
+		if (!is_rotation_matching && debug_track_writer_t::get_default_rotation_mode() == default_sub_track_mode::constant)
+			is_rotation_matching = rtm::vector_all_near_equal(rtm::quat_to_vector(tracks.get_constant_default_rotation()), rtm::quat_to_vector(transform.rotation), quat_error_threshold);
+
+		bool is_translation_matching = rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold);
+		if (!is_translation_matching && debug_track_writer_t::get_default_translation_mode() == default_sub_track_mode::constant)
+			is_translation_matching = rtm::vector_all_near_equal3(tracks.get_constant_default_translation(), transform.translation, vec3_error_threshold);
+
+		bool is_scale_matching = rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold);
+		if (!is_scale_matching && debug_track_writer_t::get_default_scale_mode() == default_sub_track_mode::constant)
+			is_scale_matching = rtm::vector_all_near_equal3(tracks.get_constant_default_scale(), transform.scale, vec3_error_threshold);
+
+		ACL_ASSERT(is_rotation_matching,
 			"Failed to sample rotation with decompress_tracks for bone index %u at sample time %.2f. Expected [%.5f, %.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f, %.5f].",
 			track_index, sample_time,
 			(float)rtm::quat_get_x(ref_transform.rotation), (float)rtm::quat_get_y(ref_transform.rotation), (float)rtm::quat_get_z(ref_transform.rotation), (float)rtm::quat_get_w(ref_transform.rotation),
 			(float)rtm::quat_get_x(transform.rotation), (float)rtm::quat_get_y(transform.rotation), (float)rtm::quat_get_z(transform.rotation), (float)rtm::quat_get_w(transform.rotation));
 
-		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold),
+		ACL_ASSERT(is_translation_matching,
 			"Failed to sample translation with decompress_tracks for bone index %u at sample time %.2f. Expected [%.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f].",
 			track_index, sample_time,
 			(float)rtm::vector_get_x(ref_transform.translation), (float)rtm::vector_get_y(ref_transform.translation), (float)rtm::vector_get_z(ref_transform.translation),
 			(float)rtm::vector_get_x(transform.translation), (float)rtm::vector_get_y(transform.translation), (float)rtm::vector_get_z(transform.translation));
 
-		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold),
+		ACL_ASSERT(is_scale_matching,
 			"Failed to sample scale with decompress_tracks for bone index %u at sample time %.2f. Expected [%.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f].",
 			track_index, sample_time,
 			(float)rtm::vector_get_x(ref_transform.scale), (float)rtm::vector_get_y(ref_transform.scale), (float)rtm::vector_get_z(ref_transform.scale),
