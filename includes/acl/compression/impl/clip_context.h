@@ -266,10 +266,6 @@ namespace acl
 					{
 						const rtm::quatf default_bind_rotation = desc.default_value.rotation;
 						bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(first_rotation, rtm::quat_conjugate(default_bind_rotation))), constant_rotation_threshold_angle);
-						if (num_samples == 1 && bone_stream.is_rotation_default)
-						{
-							bone_stream.rotations.set_raw_sample(0, default_bind_rotation);
-						}
 					}
 					else
 					{
@@ -282,10 +278,6 @@ namespace acl
 					{
 						const rtm::vector4f default_bind_translation = desc.default_value.translation;
 						bone_stream.is_translation_default = rtm::vector_all_near_equal3(first_transform.translation, default_bind_translation, constant_translation_threshold);
-						if (num_samples == 1 && bone_stream.is_translation_default)
-						{
-							bone_stream.translations.set_raw_sample(0, default_bind_translation);
-						}
 					}
 					else
 					{
@@ -298,10 +290,6 @@ namespace acl
 					{
 						const rtm::vector4f default_bind_scale = desc.default_value.scale;
 						bone_stream.is_scale_default = rtm::vector_all_near_equal3(first_transform.scale, default_bind_scale, constant_scale_threshold);
-						if (num_samples == 1 && bone_stream.is_scale_default)
-						{
-							bone_stream.scales.set_raw_sample(0, default_bind_scale);
-						}
 					}
 					else
 					{
