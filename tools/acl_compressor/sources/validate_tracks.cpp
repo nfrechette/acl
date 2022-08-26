@@ -37,7 +37,7 @@
 using namespace acl;
 
 #if defined(ACL_USE_SJSON) && defined(ACL_HAS_ASSERT_CHECKS)
-void validate_transform_tracks(const acl::acl_impl::debug_track_writer& reference, const acl::acl_impl::debug_track_writer& tracks, float quat_error_threshold, float vec3_error_threshold)
+void validate_transform_tracks(const acl::acl_impl::debug_track_writer& reference, const acl::acl_impl::debug_track_writer& tracks, float sample_time, float quat_error_threshold, float vec3_error_threshold)
 {
 	const uint32_t num_tracks = reference.num_tracks;
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
@@ -45,9 +45,23 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 		const rtm::qvvf ref_transform = reference.read_qvv(track_index);
 		const rtm::qvvf transform = tracks.read_qvv(track_index);
 
-		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(rtm::quat_ensure_positive_w(ref_transform.rotation)), rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform.rotation)), quat_error_threshold), "Failed to sample rotation with decompress_tracks for bone index: %u", track_index);
-		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold), "Failed to sample translation with decompress_tracks for bone index: %u", track_index);
-		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold), "Failed to sample scale with decompress_tracks for bone index: %u", track_index);
+		ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(ref_transform.rotation), rtm::quat_to_vector(transform.rotation), quat_error_threshold),
+			"Failed to sample rotation with decompress_tracks for bone index %u at sample time %.2f. Expected [%.5f, %.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f, %.5f].",
+			track_index, sample_time,
+			(float)rtm::quat_get_x(ref_transform.rotation), (float)rtm::quat_get_y(ref_transform.rotation), (float)rtm::quat_get_z(ref_transform.rotation), (float)rtm::quat_get_w(ref_transform.rotation),
+			(float)rtm::quat_get_x(transform.rotation), (float)rtm::quat_get_y(transform.rotation), (float)rtm::quat_get_z(transform.rotation), (float)rtm::quat_get_w(transform.rotation));
+
+		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold),
+			"Failed to sample translation with decompress_tracks for bone index %u at sample time %.2f. Expected [%.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f].",
+			track_index, sample_time,
+			(float)rtm::vector_get_x(ref_transform.translation), (float)rtm::vector_get_y(ref_transform.translation), (float)rtm::vector_get_z(ref_transform.translation),
+			(float)rtm::vector_get_x(transform.translation), (float)rtm::vector_get_y(transform.translation), (float)rtm::vector_get_z(transform.translation));
+
+		ACL_ASSERT(rtm::vector_all_near_equal3(ref_transform.scale, transform.scale, vec3_error_threshold),
+			"Failed to sample scale with decompress_tracks for bone index %u at sample time %.2f. Expected [%.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f].",
+			track_index, sample_time,
+			(float)rtm::vector_get_x(ref_transform.scale), (float)rtm::vector_get_y(ref_transform.scale), (float)rtm::vector_get_z(ref_transform.scale),
+			(float)rtm::vector_get_x(transform.scale), (float)rtm::vector_get_y(transform.scale), (float)rtm::vector_get_z(transform.scale));
 	}
 }
 
@@ -130,7 +144,7 @@ void validate_accuracy(
 		context.seek(-0.2F, rounding_policy);
 		context.decompress_tracks(track_writer_clamped);
 
-		validate_transform_tracks(track_writer, track_writer_clamped, quat_error_threshold, vec3_error_threshold);
+		validate_transform_tracks(track_writer, track_writer_clamped, 0.0F, quat_error_threshold, vec3_error_threshold);
 
 		// Make sure clamping works properly at the end of the clip
 		const float last_sample_time = rtm::scalar_min(float(num_samples - 1) / sample_rate, duration);
@@ -143,7 +157,7 @@ void validate_accuracy(
 		context.seek(last_sample_time + 1.0F, rounding_policy);
 		context.decompress_tracks(track_writer_clamped);
 
-		validate_transform_tracks(track_writer, track_writer_clamped, quat_error_threshold, vec3_error_threshold);
+		validate_transform_tracks(track_writer, track_writer_clamped, last_sample_time, quat_error_threshold, vec3_error_threshold);
 
 		// Test a few samples with all rounding modes per track
 		const float sample_times[] = { 0.0F, duration * 0.2F, duration * 0.5F, duration * 0.75F, duration };
@@ -160,7 +174,7 @@ void validate_accuracy(
 				context.seek(sample_time, sample_rounding_policy::per_track);
 				context.decompress_tracks(track_writer_per_track_rounding);
 
-				validate_transform_tracks(track_writer, track_writer_per_track_rounding, quat_error_threshold, vec3_error_threshold);
+				validate_transform_tracks(track_writer, track_writer_per_track_rounding, sample_time, quat_error_threshold, vec3_error_threshold);
 			}
 		}
 	}
@@ -177,10 +191,10 @@ void validate_accuracy(
 		context.decompress_tracks(track_writer_variable);
 
 		// Make sure constant default sub-tracks match the skipped sub-tracks
-		validate_transform_tracks(track_writer, track_writer_constant, quat_error_threshold, vec3_error_threshold);
+		validate_transform_tracks(track_writer, track_writer_constant, sample_time, quat_error_threshold, vec3_error_threshold);
 
 		// Make sure variable default sub-tracks match the skipped sub-tracks
-		validate_transform_tracks(track_writer, track_writer_variable, quat_error_threshold, vec3_error_threshold);
+		validate_transform_tracks(track_writer, track_writer_variable, sample_time, quat_error_threshold, vec3_error_threshold);
 
 		// Validate decompress_track against decompress_tracks
 		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
