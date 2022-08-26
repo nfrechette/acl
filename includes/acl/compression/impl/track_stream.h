@@ -34,6 +34,7 @@
 #include "acl/core/impl/variable_bit_rates.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
+#include "acl/math/vector4f.h"	// TODO: remove once vector_all_equal has migrated to RTM
 
 #include <rtm/quatf.h>
 #include <rtm/qvvf.h>
@@ -342,7 +343,15 @@ namespace acl
 			rtm::vector4f RTM_SIMD_CALL get_center() const { return rtm::vector_mul_add(m_extent, 0.5F, m_min); }
 			rtm::vector4f RTM_SIMD_CALL get_extent() const { return m_extent; }
 
-			bool is_constant(float threshold) const { return rtm::vector_all_less_equal(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
+			bool is_constant(float threshold) const
+			{
+				// If our error threshold is zero we want to test if we are binary exact
+				// This is used by raw clips, we must preserve the original values
+				if (threshold == 0.0F)
+					return vector_all_equal(m_min, m_max);
+				else
+					return rtm::vector_all_less_equal(m_extent, rtm::vector_set(threshold));
+			}
 
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			rtm::vector4f RTM_SIMD_CALL get_weighted_average() const { return m_weighted_average; }
