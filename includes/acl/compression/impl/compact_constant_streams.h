@@ -30,6 +30,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/math/vector4f.h"	// TODO: remove once vector_all_equal has migrated to RTM
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -85,6 +86,10 @@ namespace acl
 
 			const rtm::quatf inv_ref_rotation = rtm::quat_conjugate(ref_rotation);
 
+			// If our error threshold is zero we want to test if we are binary exact
+			// This is used by raw clips, we must preserve the original values
+			const bool is_threshold_zero = threshold_angle == 0.0F;
+
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 #else
@@ -93,9 +98,18 @@ namespace acl
 
 			{
 				const rtm::quatf rotation = sample_to_quat(rotations, sample_index);
-				const rtm::quatf delta = rtm::quat_normalize(rtm::quat_mul(inv_ref_rotation, rotation));
-				if (!rtm::quat_near_identity(delta, threshold_angle))
-					return false;
+
+				if (is_threshold_zero)
+				{
+					if (!vector_all_equal(rtm::quat_to_vector(rotation), rtm::quat_to_vector(ref_rotation)))
+						return false;
+				}
+				else
+				{
+					const rtm::quatf delta = rtm::quat_normalize(rtm::quat_mul(inv_ref_rotation, rotation));
+					if (!rtm::quat_near_identity(delta, threshold_angle))
+						return false;
+				}
 			}
 
 			return true;
@@ -130,7 +144,7 @@ namespace acl
 				const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
 
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle rtm::vector_to_quat(bone_range.rotation.get_weighted_average())))
+				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle, rtm::vector_to_quat(bone_range.rotation.get_weighted_average())))
 #else
 				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle))
 #endif
@@ -146,7 +160,14 @@ namespace acl
 #endif
 
 					bone_stream.is_rotation_constant = true;
-					bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(rtm::vector_to_quat(rotation), rtm::quat_conjugate(rtm::vector_to_quat(default_bind_rotation)))), constant_rotation_threshold_angle);
+
+					// If our error threshold is zero we want to test if we are binary exact
+					// This is used by raw clips, we must preserve the original values
+					if (constant_rotation_threshold_angle == 0.0F)
+						bone_stream.is_rotation_default = vector_all_equal(rotation, default_bind_rotation);
+					else
+						bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(rtm::vector_to_quat(rotation), rtm::quat_conjugate(rtm::vector_to_quat(default_bind_rotation)))), constant_rotation_threshold_angle);
+
 					if (bone_stream.is_rotation_default)
 						rotation = default_bind_rotation;
 
@@ -173,7 +194,14 @@ namespace acl
 #endif
 					
 					bone_stream.is_translation_constant = true;
-					bone_stream.is_translation_default = rtm::vector_all_near_equal3(translation, default_bind_translation, constant_translation_threshold);
+
+					// If our error threshold is zero we want to test if we are binary exact
+					// This is used by raw clips, we must preserve the original values
+					if (constant_translation_threshold == 0.0F)
+						bone_stream.is_translation_default = vector_all_equal3(translation, default_bind_translation);
+					else
+						bone_stream.is_translation_default = rtm::vector_all_near_equal3(translation, default_bind_translation, constant_translation_threshold);
+
 					if (bone_stream.is_translation_default)
 						translation = default_bind_translation;
 
@@ -200,7 +228,14 @@ namespace acl
 #endif
 
 					bone_stream.is_scale_constant = true;
-					bone_stream.is_scale_default = rtm::vector_all_near_equal3(scale, default_bind_scale, constant_scale_threshold);
+
+					// If our error threshold is zero we want to test if we are binary exact
+					// This is used by raw clips, we must preserve the original values
+					if (constant_scale_threshold == 0.0F)
+						bone_stream.is_scale_default = vector_all_equal3(scale, default_bind_scale);
+					else
+						bone_stream.is_scale_default = rtm::vector_all_near_equal3(scale, default_bind_scale, constant_scale_threshold);
+
 					if (bone_stream.is_scale_default)
 						scale = default_bind_scale;
 
