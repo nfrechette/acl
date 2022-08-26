@@ -338,7 +338,7 @@ namespace acl
 			rtm::vector4f RTM_SIMD_CALL get_min() const { return m_min; }
 			rtm::vector4f RTM_SIMD_CALL get_max() const { return rtm::vector_add(m_min, m_extent); }
 
-			rtm::vector4f RTM_SIMD_CALL get_center() const { return rtm::vector_add(m_min, rtm::vector_mul(m_extent, 0.5F)); }
+			rtm::vector4f RTM_SIMD_CALL get_center() const { return rtm::vector_mul_add(m_extent, 0.5F, m_min); }
 			rtm::vector4f RTM_SIMD_CALL get_extent() const { return m_extent; }
 
 			bool is_constant(float threshold) const { return rtm::vector_all_less_equal(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
