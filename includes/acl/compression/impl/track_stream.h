@@ -341,7 +341,7 @@ namespace acl
 			rtm::vector4f RTM_SIMD_CALL get_center() const { return rtm::vector_add(m_min, rtm::vector_mul(m_extent, 0.5F)); }
 			rtm::vector4f RTM_SIMD_CALL get_extent() const { return m_extent; }
 
-			bool is_constant(float threshold) const { return rtm::vector_all_less_than(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
+			bool is_constant(float threshold) const { return rtm::vector_all_less_equal(rtm::vector_abs(m_extent), rtm::vector_set(threshold)); }
 
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			rtm::vector4f RTM_SIMD_CALL get_weighted_average() const { return m_weighted_average; }
