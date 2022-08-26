@@ -29,6 +29,7 @@
 #include "acl/version.h"
 #include "acl/core/error_result.h"
 #include "acl/core/track_types.h"
+#include "acl/math/qvvf.h"	// TODO: remove once qvv_is_finite has migrated to RTM
 
 #include <rtm/scalarf.h>
 
@@ -62,6 +63,12 @@ namespace acl
 
 		if (constant_scale_threshold < 0.0F || !rtm::scalar_is_finite(constant_scale_threshold))
 			return error_result("Invalid constant_scale_threshold");
+
+		if (!acl_impl::qvv_is_finite(default_value))
+			return error_result("Invalid default_value must be finite");
+
+		if (!rtm::quat_is_normalized(default_value.rotation))
+			return error_result("Description default_value rotation is not normalized");
 
 		return error_result();
 	}
