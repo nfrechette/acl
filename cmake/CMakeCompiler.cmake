@@ -54,6 +54,10 @@ macro(setup_default_compiler_flags _project_name)
 			if(USE_POPCNT_INSTRUCTIONS)
 				target_compile_options(${_project_name} PRIVATE "-mpopcnt")
 			endif()
+		else()
+			if(NOT USE_SIMD_INSTRUCTIONS)
+				add_definitions(-DRTM_NO_INTRINSICS)
+			endif()
 		endif()
 
 		target_compile_options(${_project_name} PRIVATE -Wall -Wextra)		# Enable all warnings
