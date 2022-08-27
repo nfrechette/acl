@@ -281,7 +281,7 @@ namespace acl
 						// If our error threshold is zero we want to test if we are binary exact
 						// This is used by raw clips, we must preserve the original values
 						if (constant_rotation_threshold_angle == 0.0F)
-							bone_stream.is_rotation_default = vector_all_equal(rtm::quat_to_vector(first_rotation), rtm::quat_to_vector(default_bind_rotation));
+							bone_stream.is_rotation_default = rtm::quat_are_equal(first_rotation, default_bind_rotation);
 						else
 							bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(first_rotation, rtm::quat_conjugate(default_bind_rotation))), constant_rotation_threshold_angle);
 					}
@@ -299,7 +299,7 @@ namespace acl
 						// If our error threshold is zero we want to test if we are binary exact
 						// This is used by raw clips, we must preserve the original values
 						if (constant_translation_threshold == 0.0F)
-							bone_stream.is_translation_default = vector_all_equal3(first_transform.translation, default_bind_translation);
+							bone_stream.is_translation_default = rtm::vector_all_equal3(first_transform.translation, default_bind_translation);
 						else
 							bone_stream.is_translation_default = rtm::vector_all_near_equal3(first_transform.translation, default_bind_translation, constant_translation_threshold);
 					}
@@ -317,7 +317,7 @@ namespace acl
 						// If our error threshold is zero we want to test if we are binary exact
 						// This is used by raw clips, we must preserve the original values
 						if (constant_scale_threshold == 0.0F)
-							bone_stream.is_scale_default = vector_all_equal3(first_transform.scale, default_bind_scale);
+							bone_stream.is_scale_default = rtm::vector_all_equal3(first_transform.scale, default_bind_scale);
 						else
 							bone_stream.is_scale_default = rtm::vector_all_near_equal3(first_transform.scale, default_bind_scale, constant_scale_threshold);
 					}

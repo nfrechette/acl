@@ -34,7 +34,6 @@
 #include "acl/core/impl/variable_bit_rates.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
-#include "acl/math/vector4f.h"	// TODO: remove once vector_all_equal has migrated to RTM
 
 #include <rtm/quatf.h>
 #include <rtm/qvvf.h>
@@ -348,7 +347,7 @@ namespace acl
 				// If our error threshold is zero we want to test if we are binary exact
 				// This is used by raw clips, we must preserve the original values
 				if (threshold == 0.0F)
-					return vector_all_equal(m_min, m_max);
+					return rtm::vector_all_equal(m_min, m_max);
 				else
 					return rtm::vector_all_less_equal(m_extent, rtm::vector_set(threshold));
 			}

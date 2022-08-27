@@ -41,11 +41,6 @@ namespace acl
 	// Temporary put here until they are included in RTM
 	namespace acl_impl
 	{
-		// TODO: Add to RTM
-		RTM_DISABLE_SECURITY_COOKIE_CHECK inline bool RTM_SIMD_CALL qvv_is_finite(rtm::qvvf_arg0 input) RTM_NO_EXCEPT
-		{
-			return rtm::quat_is_finite(input.rotation) && rtm::vector_is_finite3(input.translation) && rtm::vector_is_finite3(input.scale);
-		}
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
