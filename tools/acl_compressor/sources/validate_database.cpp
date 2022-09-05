@@ -136,20 +136,20 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 
 	// Nothing is streamed in yet, we have low quality
 	const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-	ACL_ASSERT(low_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Low quality tier split error should be higher or equal to high quality tier inline");
+	ACL_ASSERT(low_quality_tier_error0.error + threshold >= high_quality_tier_error_ref.error, "Low quality tier split error should be higher or equal to high quality tier inline");
 	const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-	ACL_ASSERT(low_quality_tier_error1.error >= high_quality_tier_error_ref.error, "Low quality tier split error should be higher or equal to high quality tier inline");
+	ACL_ASSERT(low_quality_tier_error1.error + threshold >= high_quality_tier_error_ref.error, "Low quality tier split error should be higher or equal to high quality tier inline");
 
 	// Stream in our medium importance tier
 	stream_in_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
 	const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
-	ACL_ASSERT(medium_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Medium quality tier split error should be higher or equal to high quality tier inline");
+	ACL_ASSERT(medium_quality_tier_error0.error + threshold >= high_quality_tier_error_ref.error, "Medium quality tier split error should be higher or equal to high quality tier inline");
 	const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
-	ACL_ASSERT(medium_quality_tier_error1.error >= high_quality_tier_error_ref.error, "Medium quality tier split error should be higher or equal to high quality tier inline");
+	ACL_ASSERT(medium_quality_tier_error1.error + threshold >= high_quality_tier_error_ref.error, "Medium quality tier split error should be higher or equal to high quality tier inline");
 
-	ACL_ASSERT(low_quality_tier_error0.error >= medium_quality_tier_error0.error, "Low quality tier split error should be higher or equal to medium quality tier split error");
-	ACL_ASSERT(low_quality_tier_error1.error >= medium_quality_tier_error1.error, "Low quality tier split error should be higher or equal to medium quality tier split error");
+	ACL_ASSERT(low_quality_tier_error0.error + threshold >= medium_quality_tier_error0.error, "Low quality tier split error should be higher or equal to medium quality tier split error");
+	ACL_ASSERT(low_quality_tier_error1.error + threshold >= medium_quality_tier_error1.error, "Low quality tier split error should be higher or equal to medium quality tier split error");
 
 	// Stream in our low importance tier, restoring the full high quality
 	stream_in_database_tier(db_context, db_low_streamer, db, quality_tier::lowest_importance);
