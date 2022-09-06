@@ -521,15 +521,6 @@ namespace acl
 			return result;
 		}
 
-		// If the input data is already normalized, leave it as-is to retain the original value intact
-		static rtm::quatf RTM_SIMD_CALL quat_normalize_safe(rtm::quatf_arg0 rotation)
-		{
-			if (rtm::quat_is_normalized(rotation))
-				return rotation;
-			else
-				return rtm::quat_normalize(rotation);
-		}
-
 		bool process_each_bone(track_array_qvvf* tracks, track_qvvf* bind_pose, uint32_t& num_bones)
 		{
 			bool counting = tracks == nullptr;
@@ -618,7 +609,7 @@ namespace acl
 					(*tracks)[i].set_name(convert_string(name));
 
 					rtm::qvvf bind_transform_ = rtm::qvv_cast(bind_transform);
-					bind_transform_.rotation = quat_normalize_safe(bind_transform_.rotation);
+					bind_transform_.rotation = rtm::quat_normalize_deterministic(bind_transform_.rotation);
 
 					(*tracks)[i].get_description().default_value = bind_transform_;
 
@@ -865,7 +856,7 @@ namespace acl
 				{
 					double rotation[4] = { 0.0, 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_rotation", rotation, 4, 0.0) && !counting)
-						bind_transform.rotation = quat_normalize_safe(rtm::quat_cast(rtm::quat_load(&rotation[0])));
+						bind_transform.rotation = rtm::quat_normalize_deterministic(rtm::quat_cast(rtm::quat_load(&rotation[0])));
 
 					double translation[3] = { 0.0, 0.0, 0.0 };
 					if (m_parser.try_read("bind_translation", translation, 3, 0.0) && !counting)
@@ -1291,7 +1282,7 @@ namespace acl
 				if (!m_parser.array_ends())
 					return false;
 
-				track[i].rotation = quat_normalize_safe(rtm::quat_cast(rotation));
+				track[i].rotation = rtm::quat_normalize_deterministic(rtm::quat_cast(rotation));
 			}
 
 			return true;
