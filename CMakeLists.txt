@@ -46,7 +46,8 @@ create_source_groups("${ACL_INCLUDE_FILES}" ${PROJECT_SOURCE_DIR})
 
 file(GLOB ACL_ROOT_FILES LIST_DIRECTORIES false
 	${PROJECT_SOURCE_DIR}/*.md
-	${PROJECT_SOURCE_DIR}/*.py)
+	${PROJECT_SOURCE_DIR}/*.py
+	${PROJECT_SOURCE_DIR}/.gitignore)
 
 # Add every natvis file
 file(GLOB_RECURSE NATVIS_FILES LIST_DIRECTORIES false
