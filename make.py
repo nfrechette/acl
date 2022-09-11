@@ -12,10 +12,14 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 import zipfile
 
-# The current test/decompression data version in use
-current_test_data = 'test_data_v6'
+# The current test data version in use
+REGRESSION_TEST_DATA_SOURCE_URL = 'https://github.com/nfrechette/acl-test-data/releases/download/v1.0.0/'
+CURRENT_REGRESSION_TEST_DATA_FILENAME = 'acl_regression_tests_v1.zip'
+
+# The current decompression data version in use
 current_decomp_data = 'decomp_data_v7'
 
 def parse_argv():
@@ -298,7 +302,7 @@ def set_compiler_env(compiler, args):
 			print('See help with: python make.py -help')
 			sys.exit(1)
 
-def do_generate_solution(build_dir, cmake_script_dir, test_data_dir, decomp_data_dir, args):
+def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, decomp_data_dir, args):
 	compiler = args.compiler
 	cpu = args.cpu
 	config = args.config
@@ -340,8 +344,8 @@ def do_generate_solution(build_dir, cmake_script_dir, test_data_dir, decomp_data
 	if toolchain:
 		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE={}'.format(toolchain))
 
-	if test_data_dir:
-		extra_switches.append('-DTEST_DATA_DIR:STRING="{}"'.format(test_data_dir))
+	if regression_test_data_dir:
+		extra_switches.append('-DTEST_DATA_DIR:STRING="{}"'.format(regression_test_data_dir))
 
 	if decomp_data_dir:
 		extra_switches.append('-DDECOMP_DATA_DIR:STRING="{}"'.format(decomp_data_dir))
@@ -543,24 +547,38 @@ def print_progress(iteration, total, prefix='', suffix='', decimals = 1, bar_len
 def do_prepare_regression_test_data(test_data_dir, args):
 	print('Preparing regression test data ...')
 
-	current_test_data_zip = os.path.join(test_data_dir, '{}.zip'.format(current_test_data))
+	regression_test_data_dir = os.path.join(test_data_dir, 'regression_test_data')
+	current_test_data_zip = os.path.join(test_data_dir, CURRENT_REGRESSION_TEST_DATA_FILENAME)
 
 	# Validate that our regression test data is present
 	if not os.path.exists(current_test_data_zip):
 		print('Regression test data not found: {}'.format(current_test_data_zip))
-		return
+
+		# Delete any stale data we might have
+		if os.path.exists(regression_test_data_dir):
+			shutil.rmtree(regression_test_data_dir)
+
+		# Attempt to download it from GitHub
+		source_url = REGRESSION_TEST_DATA_SOURCE_URL + CURRENT_REGRESSION_TEST_DATA_FILENAME
+		print('Downloading regression test data from: ' + source_url)
+
+		try:
+			filename, headers = urllib.request.urlretrieve(source_url, CURRENT_REGRESSION_TEST_DATA_FILENAME)
+			shutil.copyfile(filename, current_test_data_zip)
+		except:
+			print('Failed to download regression tests')
+			return None
 
 	# If it hasn't been decompressed yet, do so now
-	current_test_data_dir = os.path.join(test_data_dir, current_test_data)
-	needs_decompression = not os.path.exists(current_test_data_dir)
+	needs_decompression = not os.path.exists(regression_test_data_dir)
 	if needs_decompression:
 		print('Decompressing {} ...'.format(current_test_data_zip))
 		with zipfile.ZipFile(current_test_data_zip, 'r') as zip_ref:
-			zip_ref.extractall(test_data_dir)
+			zip_ref.extractall(regression_test_data_dir)
 
 	# Grab all the test clips
 	regression_clips = []
-	for (dirpath, dirnames, filenames) in os.walk(current_test_data_dir):
+	for (dirpath, dirnames, filenames) in os.walk(regression_test_data_dir):
 		for filename in filenames:
 			if not filename.endswith('.acl'):
 				continue
@@ -599,7 +617,7 @@ def do_prepare_regression_test_data(test_data_dir, args):
 	regression_clips.sort(key=lambda entry: entry[1], reverse=True)
 
 	# Write our metadata file
-	with open(os.path.join(current_test_data_dir, 'metadata.sjson'), 'w') as metadata_file:
+	with open(os.path.join(regression_test_data_dir, 'metadata.sjson'), 'w') as metadata_file:
 		print('configs = [', file = metadata_file)
 		for config_filename, _ in test_configs:
 			print('\t"{}"'.format(os.path.relpath(config_filename, test_config_dir)), file = metadata_file)
@@ -607,11 +625,11 @@ def do_prepare_regression_test_data(test_data_dir, args):
 		print('', file = metadata_file)
 		print('clips = [', file = metadata_file)
 		for clip_filename, _ in regression_clips:
-			print('\t"{}"'.format(os.path.relpath(clip_filename, current_test_data_dir)), file = metadata_file)
+			print('\t"{}"'.format(os.path.relpath(clip_filename, regression_test_data_dir)), file = metadata_file)
 		print(']', file = metadata_file)
 		print('', file = metadata_file)
 
-	return current_test_data_dir
+	return regression_test_data_dir
 
 def do_prepare_decompression_test_data(test_data_dir, args):
 	print('Preparing decompression test data ...')
@@ -687,7 +705,7 @@ def do_regression_tests_android(build_dir, args):
 	# Restore working directory
 	os.chdir(build_dir)
 
-def do_regression_tests_cmake(test_data_dir, args):
+def do_regression_tests_cmake(test_data_dir, regression_test_data_dir, args):
 	if sys.version_info < (3, 4):
 		print('Python 3.4 or higher needed to run regression tests')
 		sys.exit(1)
@@ -709,8 +727,7 @@ def do_regression_tests_cmake(test_data_dir, args):
 
 	# Grab all the test clips
 	regression_clips = []
-	current_test_data_dir = os.path.join(test_data_dir, current_test_data)
-	for (dirpath, dirnames, filenames) in os.walk(current_test_data_dir):
+	for (dirpath, dirnames, filenames) in os.walk(regression_test_data_dir):
 		for filename in filenames:
 			if not filename.endswith('.acl'):
 				continue
@@ -811,13 +828,13 @@ def do_regression_tests_cmake(test_data_dir, args):
 		if regression_testing_failed:
 			sys.exit(1)
 
-def do_regression_tests(build_dir, test_data_dir, args):
+def do_regression_tests(build_dir, test_data_dir, regression_test_data_dir, args):
 	print('Running regression tests ...')
 
 	if args.compiler == 'android':
 		do_regression_tests_android(build_dir, args)
 	else:
-		do_regression_tests_cmake(test_data_dir, args)
+		do_regression_tests_cmake(test_data_dir, regression_test_data_dir, args)
 
 def do_run_bench_android(build_dir, args):
 	# Switch our working directory to where we built everything
@@ -916,13 +933,13 @@ if __name__ == "__main__":
 		print('Using compiler: {}'.format(args.compiler))
 	print('Using {} threads'.format(args.num_threads))
 
-	regression_data_dir = do_prepare_regression_test_data(test_data_dir, args)
+	regression_test_data_dir = do_prepare_regression_test_data(test_data_dir, args)
 	decomp_data_dir = do_prepare_decompression_test_data(test_data_dir, args)
 
 	# Make sure 'make' runs with all available cores
 	os.environ['MAKEFLAGS'] = '-j{}'.format(args.num_threads)
 
-	do_generate_solution(build_dir, cmake_script_dir, regression_data_dir, decomp_data_dir, args)
+	do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, decomp_data_dir, args)
 
 	if args.build:
 		do_build(args)
@@ -933,8 +950,8 @@ if __name__ == "__main__":
 	if args.unit_test:
 		do_tests(build_dir, args)
 
-	if args.regression_test and not args.compiler == 'ios':
-		do_regression_tests(build_dir, test_data_dir, args)
+	if args.regression_test and regression_test_data_dir and not args.compiler == 'ios':
+		do_regression_tests(build_dir, test_data_dir, regression_test_data_dir, args)
 
 	if args.run_bench:
 		do_run_bench(build_dir, test_data_dir, args)
