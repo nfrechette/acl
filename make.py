@@ -933,6 +933,7 @@ if __name__ == "__main__":
 		print('Using compiler: {}'.format(args.compiler))
 	print('Using {} threads'.format(args.num_threads))
 
+	# We always prepare this since for Android/iOS the data is included as part of the executable
 	regression_test_data_dir = do_prepare_regression_test_data(test_data_dir, args)
 	decomp_data_dir = do_prepare_decompression_test_data(test_data_dir, args)
 
