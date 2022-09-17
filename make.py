@@ -809,14 +809,16 @@ def do_regression_tests_cmake(test_data_dir, regression_test_data_dir, args):
 			thread.daemon = True
 			thread.start()
 
-		print_progress(0, len(regression_clips), 'Testing clips:', '{} / {}'.format(0, len(regression_clips)))
+		if not args.ci:
+			print_progress(0, len(regression_clips), 'Testing clips:', '{} / {}'.format(0, len(regression_clips)))
 		try:
 			while True:
 				for thread in threads:
 					thread.join(1.0)
 
-				num_processed = completed_queue.qsize()
-				print_progress(num_processed, len(regression_clips), 'Testing clips:', '{} / {}'.format(num_processed, len(regression_clips)))
+				if not args.ci:
+					num_processed = completed_queue.qsize()
+					print_progress(num_processed, len(regression_clips), 'Testing clips:', '{} / {}'.format(num_processed, len(regression_clips)))
 
 				all_threads_done = True
 				for thread in threads:
