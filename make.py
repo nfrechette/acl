@@ -22,6 +22,12 @@ CURRENT_REGRESSION_TEST_DATA_FILENAME = 'acl_regression_tests_v1.zip'
 # The current decompression data version in use
 current_decomp_data = 'decomp_data_v7'
 
+def is_host_cpu_arm64():
+	is_arm64_cpu = False
+	if platform.machine() == 'arm64' or platform.machine() == 'aarch64':
+		is_arm64_cpu = True
+	return is_arm64_cpu
+
 def parse_argv():
 	parser = argparse.ArgumentParser(add_help=False)
 
@@ -64,9 +70,7 @@ def parse_argv():
 
 	args = parser.parse_args()
 
-	is_arm64_cpu = False
-	if platform.machine() == 'arm64' or platform.machine() == 'aarch64':
-		is_arm64_cpu = True
+	is_arm64_cpu = is_host_cpu_arm64()
 
 	# Sanitize and validate our options
 	if args.use_avx and not args.use_simd:
@@ -937,6 +941,15 @@ if __name__ == "__main__":
 		print('Using compiler: {}'.format(args.compiler))
 	print('Using {} threads'.format(args.num_threads))
 
+	# Check if we are cross-compiling
+	is_cross_compiling = False
+	if args.compiler == 'ios' or args.compiler == 'android':
+		is_cross_compiling = True
+	elif args.cpu == 'x86' or args.cpu == 'x64':
+		is_cross_compiling = is_host_cpu_arm64()
+	elif args.cpu == 'armv7' or args.cpu == 'arm64':
+		is_cross_compiling = not is_host_cpu_arm64()
+
 	# We always prepare this since for Android/iOS the data is included as part of the executable
 	regression_test_data_dir = do_prepare_regression_test_data(test_data_dir, args)
 	decomp_data_dir = do_prepare_decompression_test_data(test_data_dir, args)
@@ -949,19 +962,19 @@ if __name__ == "__main__":
 	if args.build:
 		do_build(args)
 
-	if args.convert:
+	if args.convert and not is_cross_compiling:
 		do_convert(test_data_dir, args)
 
-	if args.unit_test:
+	if args.unit_test and (not is_cross_compiling or args.compiler == 'android'):
 		do_tests(build_dir, args)
 
-	if args.regression_test and regression_test_data_dir and not args.compiler == 'ios':
+	if args.regression_test and regression_test_data_dir and (not is_cross_compiling or args.compiler == 'android'):
 		do_regression_tests(build_dir, test_data_dir, regression_test_data_dir, args)
 
-	if args.run_bench:
+	if args.run_bench and (not is_cross_compiling or args.compiler == 'android'):
 		do_run_bench(build_dir, test_data_dir, args)
 
-	if args.pull_bench:
+	if args.pull_bench and (not is_cross_compiling or args.compiler == 'android'):
 		do_pull_bench_android(build_dir)
 
 	sys.exit(0)
