@@ -104,6 +104,10 @@ def parse_argv():
 			print('Unit tests cannot run from the command line on iOS')
 			sys.exit(1)
 
+		if args.regression_test:
+			print('Regression tests cannot run from the command line on iOS')
+			sys.exit(1)
+
 		if not args.cpu in ['arm64']:
 			print('{} cpu architecture not in supported list [arm64] for iOS'.format(args.cpu))
 			sys.exit(1)
