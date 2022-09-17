@@ -49,7 +49,7 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 		// If our default sub-track mode is skipped or variable, our lossy transform should equal the ref transform
 		// But if the constant mode is used, we must check that as well
 
-		bool is_rotation_matching = rtm::vector_all_near_equal(rtm::quat_to_vector(ref_transform.rotation), rtm::quat_to_vector(transform.rotation), quat_error_threshold);
+		bool is_rotation_matching = rtm::vector_all_near_equal(rtm::quat_to_vector(rtm::quat_ensure_positive_w(ref_transform.rotation)), rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform.rotation)), quat_error_threshold);
 		if (!is_rotation_matching && debug_track_writer_t::get_default_rotation_mode() == default_sub_track_mode::constant)
 			is_rotation_matching = rtm::vector_all_near_equal(rtm::quat_to_vector(tracks.get_constant_default_rotation()), rtm::quat_to_vector(transform.rotation), quat_error_threshold);
 
@@ -222,7 +222,7 @@ void validate_accuracy(
 			const rtm::qvvf transform1 = track_writer.read_qvv(track_index);
 
 			// Rotations can differ a bit due to how we normalize during interpolation
-			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(transform0.rotation), rtm::quat_to_vector(transform1.rotation), quat_error_threshold),
+			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform0.rotation)), rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform1.rotation)), quat_error_threshold),
 				"Failed to sample rotation with decompress_track for bone index %u at sample index %u. Expected [%.5f, %.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f, %.5f].",
 				track_index, sample_index,
 				(float)rtm::quat_get_x(transform0.rotation), (float)rtm::quat_get_y(transform0.rotation), (float)rtm::quat_get_z(transform0.rotation), (float)rtm::quat_get_w(transform0.rotation),
@@ -539,7 +539,7 @@ void validate_metadata(const track_array& raw_tracks, const compressed_tracks& t
 			ACL_ASSERT(raw_desc.constant_rotation_threshold_angle == compressed_desc.constant_rotation_threshold_angle, "Unexpected constant_rotation_threshold_angle");
 			ACL_ASSERT(raw_desc.constant_translation_threshold == compressed_desc.constant_translation_threshold, "Unexpected constant_translation_threshold");
 			ACL_ASSERT(raw_desc.constant_scale_threshold == compressed_desc.constant_scale_threshold, "Unexpected constant_scale_threshold");
-			
+
 			ACL_ASSERT(rtm::quat_near_equal(raw_desc.default_value.rotation, compressed_desc.default_value.rotation, 0.0F), "Unexpected default_value.rotation");
 			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.translation, compressed_desc.default_value.translation, 0.0F), "Unexpected default_value.translation");
 			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.scale, compressed_desc.default_value.scale, 0.0F), "Unexpected default_value.scale");
