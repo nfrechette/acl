@@ -160,4 +160,5 @@ jobs:
       - name: Running unit tests (${{ matrix.build_config }}-${{ matrix.cpu }})
         run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -unit_test ${{ matrix.simd }}
       - name: Running regression tests (${{ matrix.build_config }}-${{ matrix.cpu }})
+        if: ${{ matrix.build_config == 'release' }}
         run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -regression_test ${{ matrix.simd }}
