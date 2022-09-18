@@ -37,6 +37,13 @@
 using namespace acl;
 
 #if defined(ACL_USE_SJSON) && defined(ACL_HAS_ASSERT_CHECKS)
+static bool RTM_SIMD_CALL are_rotations_equal(rtm::quatf_arg0 lhs, rtm::quatf_arg1 rhs, float threshold) RTM_NO_EXCEPT
+{
+	// Rotations are equal regardless of which half of the hyper-sphere they live on
+	const rtm::quatf neg_lhs = rtm::quat_neg(lhs);
+	return rtm::quat_near_equal(lhs, rhs, threshold) || rtm::quat_near_equal(neg_lhs, rhs, threshold);
+}
+
 template<class debug_track_writer_t>
 void validate_transform_tracks(const acl::acl_impl::debug_track_writer& reference, const debug_track_writer_t& tracks, float sample_time, float quat_error_threshold, float vec3_error_threshold)
 {
@@ -49,9 +56,9 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 		// If our default sub-track mode is skipped or variable, our lossy transform should equal the ref transform
 		// But if the constant mode is used, we must check that as well
 
-		bool is_rotation_matching = rtm::vector_all_near_equal(rtm::quat_to_vector(rtm::quat_ensure_positive_w(ref_transform.rotation)), rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform.rotation)), quat_error_threshold);
+		bool is_rotation_matching = are_rotations_equal(ref_transform.rotation, transform.rotation, quat_error_threshold);
 		if (!is_rotation_matching && debug_track_writer_t::get_default_rotation_mode() == default_sub_track_mode::constant)
-			is_rotation_matching = rtm::vector_all_near_equal(rtm::quat_to_vector(tracks.get_constant_default_rotation()), rtm::quat_to_vector(transform.rotation), quat_error_threshold);
+			is_rotation_matching = rtm::quat_near_equal(tracks.get_constant_default_rotation(), transform.rotation, quat_error_threshold);
 
 		bool is_translation_matching = rtm::vector_all_near_equal3(ref_transform.translation, transform.translation, vec3_error_threshold);
 		if (!is_translation_matching && debug_track_writer_t::get_default_translation_mode() == default_sub_track_mode::constant)
@@ -222,7 +229,7 @@ void validate_accuracy(
 			const rtm::qvvf transform1 = track_writer.read_qvv(track_index);
 
 			// Rotations can differ a bit due to how we normalize during interpolation
-			ACL_ASSERT(rtm::vector_all_near_equal(rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform0.rotation)), rtm::quat_to_vector(rtm::quat_ensure_positive_w(transform1.rotation)), quat_error_threshold),
+			ACL_ASSERT(are_rotations_equal(transform0.rotation, transform1.rotation, quat_error_threshold),
 				"Failed to sample rotation with decompress_track for bone index %u at sample index %u. Expected [%.5f, %.5f, %.5f, %.5f], got [%.5f, %.5f, %.5f, %.5f].",
 				track_index, sample_index,
 				(float)rtm::quat_get_x(transform0.rotation), (float)rtm::quat_get_y(transform0.rotation), (float)rtm::quat_get_z(transform0.rotation), (float)rtm::quat_get_w(transform0.rotation),
