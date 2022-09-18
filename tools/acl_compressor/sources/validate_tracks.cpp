@@ -345,7 +345,6 @@ void validate_accuracy(
 	ACL_ASSERT(rtm::scalar_near_equal(duration, raw_tracks.get_finite_duration(), 1.0E-7F), "Duration mismatch");
 	ACL_ASSERT(sample_rate == raw_tracks.get_sample_rate(), "Sample rate mismatch");
 	ACL_ASSERT(num_tracks <= raw_tracks.get_num_tracks(), "Num tracks mismatch");
-	ACL_ASSERT(duration == raw_tracks.get_finite_duration(), "Duration mismatch");
 
 	decompression_context<debug_scalar_decompression_settings> context;
 	context.initialize(tracks);
