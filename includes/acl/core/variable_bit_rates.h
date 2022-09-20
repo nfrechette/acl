@@ -37,6 +37,7 @@ namespace acl
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
 #ifdef ACL_BIT_RATE_EXPANSION
+	// Bit rate 0 is reserved for tracks that are constant in a segment
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_bit_rate_num_bits[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 32 };
 
@@ -64,7 +65,6 @@ namespace acl
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_highest_bit_rate = 18;
 
-	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	static_assert(get_array_size(k_bit_rate_num_bits) == 19, "Expecting 19 bit rates");
 
 #endif
