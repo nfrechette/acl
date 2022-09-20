@@ -206,7 +206,7 @@ namespace acl
 			const clip_context::transform_link* transform_links = context.transform_links;
 			float* max_adjusted_shell_distances = allocate_type_array<float>(allocator, num_bones);
 			std::memset(max_adjusted_shell_distances, 0, num_bones * sizeof(float));
-			if (context.additive_format == additive_clip_format8::none)
+			if (!context.has_additive_base)
 			{
 				// Propagate worst-case shell distance and object space distances, so we can prevent low-magnitude channels from becoming constant when they're exceeded.
 
@@ -457,7 +457,7 @@ namespace acl
 
 			deallocate_type_array(allocator, max_adjusted_shell_distances, num_bones);
 			const bool has_scale = context.has_scale;
-			if ((context.additive_format == additive_clip_format8::none) &&
+			if (!context.has_additive_base &&
 				(has_constant_bone_rotations || has_constant_bone_translations || (has_scale && has_constant_bone_scales)))
 			{
 				// Apply error correction after constant and default tracks are processed.
