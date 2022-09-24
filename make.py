@@ -673,6 +673,9 @@ def do_prepare_decompression_test_data(test_data_dir, args):
 
 	print('Found {} decompression clips'.format(len(clips)))
 
+	# Sort clips by name for determinism
+	clips.sort()
+
 	# Write our metadata file
 	with open(os.path.join(current_data_dir, 'metadata.sjson'), 'w') as metadata_file:
 		print('clip_dir = "{}"'.format(current_data_dir), file = metadata_file)
