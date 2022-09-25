@@ -35,6 +35,13 @@
 	#include <malloc.h>
 #endif
 
+// This sets a predictable pattern on freshly allocated memory (0xCDCD..) and sets
+// another pattern on freed memory (0xFEFE..).
+// This helps tracking down uninitialized memory usage and use after free.
+#if defined(ACL_HAS_ASSERT_CHECKS) && !defined(ACL_NO_ALLOCATOR_SANITIZING) && !defined(ACL_ALLOCATOR_SANITIZE_ALLOCATIONS)
+	#define ACL_ALLOCATOR_SANITIZE_ALLOCATIONS
+#endif
+
 // This tracks the number of allocations and deallocations to make sure they agree.
 // This is a rudimentary check on double frees and memory leaks.
 #if defined(ACL_HAS_ASSERT_CHECKS) && !defined(ACL_NO_ALLOCATOR_TRACKING) && !defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
@@ -44,6 +51,10 @@
 // This is used for debugging memory leaks, double frees, etc.
 // It should never be enabled in production!
 //#define ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS
+
+#if defined(ACL_ALLOCATOR_SANITIZE_ALLOCATIONS)
+	#include <cstring>
+#endif
 
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 	#include <atomic>
@@ -140,6 +151,10 @@ namespace acl
 			ptr = aligned_alloc(alignment, aligned_size);
 #endif
 
+#if defined(ACL_ALLOCATOR_SANITIZE_ALLOCATIONS)
+			std::memset(ptr, 0xCD, size);
+#endif
+
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
 			m_debug_allocations.insert({ {ptr, AllocationEntry{ptr, size}} });
 #endif
@@ -152,7 +167,11 @@ namespace acl
 			if (ptr == nullptr)
 				return;
 
+#if defined(ACL_ALLOCATOR_SANITIZE_ALLOCATIONS)
+			std::memset(ptr, 0xFE, size);
+#else
 			(void)size;
+#endif
 
 #if defined(_WIN32)
 			_aligned_free(ptr);
