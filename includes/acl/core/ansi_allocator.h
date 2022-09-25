@@ -35,6 +35,8 @@
 	#include <malloc.h>
 #endif
 
+// This tracks the number of allocations and deallocations to make sure they agree.
+// This is a rudimentary check on double frees and memory leaks.
 #if defined(ACL_HAS_ASSERT_CHECKS) && !defined(ACL_NO_ALLOCATOR_TRACKING) && !defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 	#define ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS
 #endif
