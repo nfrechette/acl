@@ -1003,13 +1003,13 @@ static int safe_main_impl(int argc, char* argv[])
 		if (!read_acl_sjson_file(allocator, options, sjson_type, sjson_clip, sjson_track_list))
 			return -1;
 
-#ifdef ACL_SJSON_FIX
+		use_external_config = sjson_track_list.has_settings;
+		settings = sjson_track_list.settings;
 
-		if (!sjson_track_list.track_list.is_empty() && sjson_track_list.track_list.get_track_type() == track_type8::qvvf)
+		if (sjson_type == sjson_file_type::raw_track_list && sjson_track_list.track_list.get_track_type() == track_type8::qvvf)
 		{
-			transform_tracks = std::move(*reinterpret_cast<track_array_qvvf*>(&sjson_track_list.track_list));
-			use_external_config = sjson_track_list.has_settings;
-			settings = sjson_track_list.settings;
+			// Re-interpret things as a raw clip
+			transform_tracks = std::move(track_array_cast<track_array_qvvf>(sjson_track_list.track_list));
 			sjson_type = sjson_file_type::raw_clip;
 		}
 		else
@@ -1018,23 +1018,8 @@ static int safe_main_impl(int argc, char* argv[])
 			base_clip = std::move(sjson_clip.additive_base_track_list);
 			additive_format = sjson_clip.additive_format;
 			bind_pose = std::move(sjson_clip.bind_pose);
-			use_external_config = sjson_clip.has_settings;
-			settings = sjson_clip.settings;
 			scalar_tracks = std::move(sjson_track_list.track_list);
 		}
-
-#else
-
-		transform_tracks = std::move(sjson_clip.track_list);
-		base_clip = std::move(sjson_clip.additive_base_track_list);
-		additive_format = sjson_clip.additive_format;
-		bind_pose = std::move(sjson_clip.bind_pose);
-		use_external_config = sjson_clip.has_settings;
-		settings = sjson_clip.settings;
-		scalar_tracks = std::move(sjson_track_list.track_list);
-
-#endif
-
 	}
 
 #if DEBUG_MEGA_LARGE_CLIP
