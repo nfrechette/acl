@@ -223,11 +223,19 @@ namespace acl
 
 			const track_type8 track_type = header.track_type;
 
+			const compressed_tracks_version16 version = context.get_version();
+			const uint8_t* num_bits_at_bit_rate = version == compressed_tracks_version16::v02_00_00 ? k_bit_rate_num_bits_v0 : k_bit_rate_num_bits;
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
+			const uint32_t max_bit_rate = version == compressed_tracks_version16::v02_00_00 ? sizeof(k_bit_rate_num_bits_v0) : sizeof(k_bit_rate_num_bits);
+#endif
+
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
 				const acl_impl::track_metadata& metadata = per_track_metadata[track_index];
-				const uint8_t bit_rate = metadata.bit_rate;
-				const uint32_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate);
+				const uint32_t bit_rate = metadata.bit_rate;
+				ACL_ASSERT(bit_rate < max_bit_rate, "Invalid bit rate: %u", bit_rate);
+				const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 
 				rtm::scalarf alpha = interpolation_alpha;
 				if (decompression_settings_type::is_per_track_rounding_supported())
@@ -467,6 +475,13 @@ namespace acl
 				interpolation_alpha = rtm::scalar_set(apply_rounding_policy(context.interpolation_alpha, rounding_policy_));
 			}
 
+			const compressed_tracks_version16 version = context.get_version();
+			const uint8_t* num_bits_at_bit_rate = version == compressed_tracks_version16::v02_00_00 ? k_bit_rate_num_bits_v0 : k_bit_rate_num_bits;
+
+#if defined(ACL_HAS_ASSERT_CHECKS)
+			const uint32_t max_bit_rate = version == compressed_tracks_version16::v02_00_00 ? sizeof(k_bit_rate_num_bits_v0) : sizeof(k_bit_rate_num_bits);
+#endif
+
 			const float* constant_values = scalars_header.get_track_constant_values();
 			const float* range_values = scalars_header.get_track_range_values();
 
@@ -478,8 +493,9 @@ namespace acl
 			for (uint32_t scan_track_index = 0; scan_track_index < track_index; ++scan_track_index)
 			{
 				const acl_impl::track_metadata& metadata = per_track_metadata[scan_track_index];
-				const uint8_t bit_rate = metadata.bit_rate;
-				const uint32_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate);
+				const uint32_t bit_rate = metadata.bit_rate;
+				ACL_ASSERT(bit_rate < max_bit_rate, "Invalid bit rate: %u", bit_rate);
+				const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 				track_bit_offset += num_bits_per_component * num_element_components;
 
 				if (num_bits_per_component == 0)	// Constant bit rate
@@ -489,8 +505,9 @@ namespace acl
 			}
 
 			const acl_impl::track_metadata& metadata = per_track_metadata[track_index];
-			const uint8_t bit_rate = metadata.bit_rate;
-			const uint32_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate);
+			const uint32_t bit_rate = metadata.bit_rate;
+			ACL_ASSERT(bit_rate < max_bit_rate, "Invalid bit rate: %u", bit_rate);
+			const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 
 			const uint8_t* animated_values = scalars_header.get_track_animated_values();
 

@@ -38,24 +38,19 @@ namespace acl
 
 	namespace acl_impl
 	{
-#ifdef ACL_BIT_RATE_EXPANSION
-		// Bit rate 0 is reserved for tracks that are constant in a segment
-		constexpr uint8_t k_bit_rate_num_bits[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 32 };
-#else
-		// Bit rate 0 is reserved for tracks that are constant in a segment
-		constexpr uint8_t k_bit_rate_num_bits[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 };
-#endif
+		// Used by ACL 2.0 and earlier
+		constexpr uint8_t k_bit_rate_num_bits_v0[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 };
 
+		// Used by ACL 2.1 and later
+		constexpr uint8_t k_bit_rate_num_bits[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 32 };
+
+		// Bit rate 0 is reserved for tracks that are constant in a segment
 		constexpr uint8_t k_invalid_bit_rate = 0xFF;
 		constexpr uint8_t k_lowest_bit_rate = 1;
 		constexpr uint8_t k_highest_bit_rate = sizeof(k_bit_rate_num_bits) - 1;
 		constexpr uint32_t k_num_bit_rates = sizeof(k_bit_rate_num_bits);
 
-#ifdef ACL_BIT_RATE_EXPANSION
 		static_assert(k_num_bit_rates == 25, "Expecting 25 bit rates");
-#else
-		static_assert(k_num_bit_rates == 19, "Expecting 19 bit rates");
-#endif
 
 		inline uint32_t get_num_bits_at_bit_rate(uint32_t bit_rate)
 		{
