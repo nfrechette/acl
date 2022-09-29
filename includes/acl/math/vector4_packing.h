@@ -225,10 +225,9 @@ namespace acl
 		uint32_t vector_z = pack_scalar_unsigned(rtm::vector_get_z(vector), num_bits);
 		uint32_t vector_w = pack_scalar_unsigned(rtm::vector_get_w(vector), num_bits);
 
-#ifdef ACL_BIT_RATE_EXPANSION
-
-		if (64 < num_bits * 3)
+		if (num_bits * 3 >= 64)
 		{
+			// First 3 components don't fit in 64 bits, write [xy] first, and partial [zw] after
 			uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
 			vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
 			vector_u64 = byte_swap(vector_u64);
@@ -240,39 +239,29 @@ namespace acl
 			vector_u64 = byte_swap(vector_u64);
 
 			memcpy_bits(out_vector_data, num_bits * 2, &vector_u64, 0, num_bits * 2);
-
-			return;
 		}
+		else
+		{
+			// Write out [xyz] first, they fit in 64 bits for sure and write out partial [w] after
+			uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
+			vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
+			vector_u64 |= static_cast<uint64_t>(vector_z) << (64 - num_bits * 3);
+			vector_u64 = byte_swap(vector_u64);
 
-#endif
+			unaligned_write(vector_u64, out_vector_data);
 
-		uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
-		vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
-		vector_u64 |= static_cast<uint64_t>(vector_z) << (64 - num_bits * 3);
-		vector_u64 = byte_swap(vector_u64);
+			uint32_t vector_u32 = vector_w << (32 - num_bits);
+			vector_u32 = byte_swap(vector_u32);
 
-		unaligned_write(vector_u64, out_vector_data);
-
-		uint32_t vector_u32 = vector_w << (32 - num_bits);
-		vector_u32 = byte_swap(vector_u32);
-
-		const uint32_t bit_offset = num_bits * 3;
-		memcpy_bits(out_vector_data, bit_offset, &vector_u32, 0, num_bits);
+			const uint32_t bit_offset = num_bits * 3;
+			memcpy_bits(out_vector_data, bit_offset, &vector_u32, 0, num_bits);
+		}
 	}
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");
-
-#else
-
-		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
-
-#endif
 
 		struct PackedTableEntry
 		{
@@ -285,31 +274,14 @@ namespace acl
 			uint32_t mask;
 		};
 
-		// TODO: We technically don't need the first 3 entries, which could save a few bytes
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 		alignas(64) static constexpr PackedTableEntry k_packed_constants[24] =
-
-#else
-
-		alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
-
-#endif
-
 		{
 			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
 			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
 			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
 			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
 			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 			PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23),
-
-#endif
-
 		};
 
 #if defined(RTM_SSE2_INTRINSICS)
@@ -854,10 +826,9 @@ namespace acl
 		uint32_t vector_y = pack_scalar_unsigned(rtm::vector_get_y(vector), num_bits);
 		uint32_t vector_z = pack_scalar_unsigned(rtm::vector_get_z(vector), num_bits);
 
-#ifdef ACL_BIT_RATE_EXPANSION
-
-		if (64 < num_bits * 3)
+		if (num_bits * 3 >= 64)
 		{
+			// All 3 components don't fit in 64 bits, write [xy] first, and partial [z] after
 			uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
 			vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
 			vector_u64 = byte_swap(vector_u64);
@@ -868,18 +839,17 @@ namespace acl
 			vector_u32 = byte_swap(vector_u32);
 
 			memcpy_bits(out_vector_data, num_bits * 2, &vector_u32, 0, num_bits);
-
-			return;
 		}
+		else
+		{
+			// All 3 components fit in 64 bits
+			uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
+			vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
+			vector_u64 |= static_cast<uint64_t>(vector_z) << (64 - num_bits * 3);
+			vector_u64 = byte_swap(vector_u64);
 
-#endif
-
-		uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
-		vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
-		vector_u64 |= static_cast<uint64_t>(vector_z) << (64 - num_bits * 3);
-		vector_u64 = byte_swap(vector_u64);
-
-		unaligned_write(vector_u64, out_vector_data);
+			unaligned_write(vector_u64, out_vector_data);
+		}
 	}
 
 	// Packs data in big-endian order and assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
@@ -889,10 +859,9 @@ namespace acl
 		uint32_t vector_y = pack_scalar_signed(rtm::vector_get_y(vector), num_bits);
 		uint32_t vector_z = pack_scalar_signed(rtm::vector_get_z(vector), num_bits);
 
-#ifdef ACL_BIT_RATE_EXPANSION
-
-		if (64 < num_bits * 3)
+		if (num_bits * 3 >= 64)
 		{
+			// All 3 components don't fit in 64 bits, write [xy] first, and partial [z] after
 			uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
 			vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
 			vector_u64 = byte_swap(vector_u64);
@@ -903,18 +872,17 @@ namespace acl
 			vector_u32 = byte_swap(vector_u32);
 
 			memcpy_bits(out_vector_data, num_bits * 2, &vector_u32, 0, num_bits);
-
-			return;
 		}
+		else
+		{
+			// All 3 components fit in 64 bits
+			uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
+			vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
+			vector_u64 |= static_cast<uint64_t>(vector_z) << (64 - num_bits * 3);
+			vector_u64 = byte_swap(vector_u64);
 
-#endif
-
-		uint64_t vector_u64 = static_cast<uint64_t>(vector_x) << (64 - num_bits * 1);
-		vector_u64 |= static_cast<uint64_t>(vector_y) << (64 - num_bits * 2);
-		vector_u64 |= static_cast<uint64_t>(vector_z) << (64 - num_bits * 3);
-		vector_u64 = byte_swap(vector_u64);
-
-		unaligned_write(vector_u64, out_vector_data);
+			unaligned_write(vector_u64, out_vector_data);
+		}
 	}
 
 	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_uXX(rtm::vector4f_arg0 input, uint32_t num_bits)
@@ -947,16 +915,7 @@ namespace acl
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");
-
-#else
-
-		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
-
-#endif
 
 		struct PackedTableEntry
 		{
@@ -969,31 +928,14 @@ namespace acl
 			uint32_t mask;
 		};
 
-		// TODO: We technically don't need the first 3 entries, which could save a few bytes
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 		alignas(64) static constexpr PackedTableEntry k_packed_constants[24] =
-
-#else
-
-		alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
-
-#endif
-
 		{
 			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
 			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
 			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
 			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
 			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 			PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23),
-
-#endif
-
 		};
 
 #if defined(RTM_SSE2_INTRINSICS)
@@ -1085,13 +1027,6 @@ namespace acl
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_sXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
-
-#ifndef ACL_BIT_RATE_EXPANSION
-
-		ACL_ASSERT(num_bits * 3 <= 64, "Attempting to read too many bits");
-
-#endif
-
 		const rtm::vector4f unsigned_value = unpack_vector3_uXX_unsafe(num_bits, vector_data, bit_offset);
 		return rtm::vector_neg_mul_sub(unsigned_value, -2.0F, rtm::vector_set(-1.0F));
 	}
@@ -1115,16 +1050,7 @@ namespace acl
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector2_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");
-
-#else
-
-		ACL_ASSERT(num_bits <= 19, "This function does not support reading more than 19 bits per component");
-
-#endif
 
 		struct PackedTableEntry
 		{
@@ -1137,31 +1063,14 @@ namespace acl
 			uint32_t mask;
 		};
 
-		// TODO: We technically don't need the first 3 entries, which could save a few bytes
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 		alignas(64) static constexpr PackedTableEntry k_packed_constants[24] =
-
-#else
-
-		alignas(64) static constexpr PackedTableEntry k_packed_constants[20] =
-
-#endif
-
 		{
 			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
 			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
 			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
 			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
 			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 			PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23),
-
-#endif
-
 		};
 
 #if defined(RTM_SSE2_INTRINSICS)
