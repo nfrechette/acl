@@ -36,17 +36,9 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-#ifdef ACL_BIT_RATE_EXPANSION
 	// Bit rate 0 is reserved for tracks that are constant in a segment
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_bit_rate_num_bits[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 32 };
-
-#else
-	// Bit rate 0 is reserved for tracks that are constant in a segment
-	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
-	constexpr uint8_t k_bit_rate_num_bits[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 };
-
-#endif
 
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_invalid_bit_rate = 0xFF;
@@ -54,31 +46,16 @@ namespace acl
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_lowest_bit_rate = 1;
 
-#ifdef ACL_BIT_RATE_EXPANSION
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_highest_bit_rate = 24;
 
 	static_assert(get_array_size(k_bit_rate_num_bits) == 25, "Expecting 25 bit rates");
 
-#else
-
-	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
-	constexpr uint8_t k_highest_bit_rate = 18;
-
-	static_assert(get_array_size(k_bit_rate_num_bits) == 19, "Expecting 19 bit rates");
-
-#endif
-
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	inline uint32_t get_num_bits_at_bit_rate(uint32_t bit_rate)
 	{
-#ifdef ACL_BIT_RATE_EXPANSION
 		ACL_ASSERT(bit_rate <= 24, "Invalid bit rate: %u", bit_rate);
 		constexpr uint8_t bit_rate_num_bits[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 32 };
-#else
-		ACL_ASSERT(bit_rate <= 18, "Invalid bit rate: %u", bit_rate);
-		constexpr uint8_t bit_rate_num_bits[] = { 0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 32 };
-#endif
 		return bit_rate_num_bits[bit_rate];
 	}
 
@@ -86,13 +63,8 @@ namespace acl
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr bool is_constant_bit_rate(uint32_t bit_rate) { return bit_rate == 0; }
 
-#ifdef ACL_BIT_RATE_EXPANSION
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == 24; }
-#else
-	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
-	constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == 18; }
-#endif
 
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	struct BoneBitRate
