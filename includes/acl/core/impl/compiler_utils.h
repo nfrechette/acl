@@ -122,14 +122,6 @@ namespace acl
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Fix that supports testing of sjson_file_type::raw_track_list, instead of only
-// sjson_file_type::raw_clip.
-//
-//////////////////////////////////////////////////////////////////////////
-#define ACL_SJSON_FIX
-
-//////////////////////////////////////////////////////////////////////////
-//
 // Prevent low-magnitude channels from becoming constant when worst-case shell distance and
 // object space distance are exceeded. 
 // Apply error correction after constant and default tracks are processed.
