@@ -241,7 +241,7 @@ namespace acl
 				if (track_type == track_type8::float1f && decompression_settings_type::is_track_type_supported(track_type8::float1f))
 				{
 					rtm::scalarf value;
-					if (is_constant_bit_rate(bit_rate))
+					if (num_bits_per_component == 0)	// Constant bit rate
 					{
 						value = rtm::scalar_load(constant_values);
 						constant_values += 1;
@@ -250,7 +250,7 @@ namespace acl
 					{
 						rtm::scalarf value0;
 						rtm::scalarf value1;
-						if (is_raw_bit_rate(bit_rate))
+						if (num_bits_per_component == 32)	// Raw bit rate
 						{
 							value0 = unpack_scalarf_32_unsafe(animated_values, track_bit_offset0);
 							value1 = unpack_scalarf_32_unsafe(animated_values, track_bit_offset1);
@@ -279,7 +279,7 @@ namespace acl
 				else if (track_type == track_type8::float2f && decompression_settings_type::is_track_type_supported(track_type8::float2f))
 				{
 					rtm::vector4f value;
-					if (is_constant_bit_rate(bit_rate))
+					if (num_bits_per_component == 0)	// Constant bit rate
 					{
 						value = rtm::vector_load(constant_values);
 						constant_values += 2;
@@ -288,7 +288,7 @@ namespace acl
 					{
 						rtm::vector4f value0;
 						rtm::vector4f value1;
-						if (is_raw_bit_rate(bit_rate))
+						if (num_bits_per_component == 32)	// Raw bit rate
 						{
 							value0 = unpack_vector2_64_unsafe(animated_values, track_bit_offset0);
 							value1 = unpack_vector2_64_unsafe(animated_values, track_bit_offset1);
@@ -317,7 +317,7 @@ namespace acl
 				else if (track_type == track_type8::float3f && decompression_settings_type::is_track_type_supported(track_type8::float3f))
 				{
 					rtm::vector4f value;
-					if (is_constant_bit_rate(bit_rate))
+					if (num_bits_per_component == 0)	// Constant bit rate
 					{
 						value = rtm::vector_load(constant_values);
 						constant_values += 3;
@@ -326,7 +326,7 @@ namespace acl
 					{
 						rtm::vector4f value0;
 						rtm::vector4f value1;
-						if (is_raw_bit_rate(bit_rate))
+						if (num_bits_per_component == 32)	// Raw bit rate
 						{
 							value0 = unpack_vector3_96_unsafe(animated_values, track_bit_offset0);
 							value1 = unpack_vector3_96_unsafe(animated_values, track_bit_offset1);
@@ -355,7 +355,7 @@ namespace acl
 				else if (track_type == track_type8::float4f && decompression_settings_type::is_track_type_supported(track_type8::float4f))
 				{
 					rtm::vector4f value;
-					if (is_constant_bit_rate(bit_rate))
+					if (num_bits_per_component == 0)	// Constant bit rate
 					{
 						value = rtm::vector_load(constant_values);
 						constant_values += 4;
@@ -364,7 +364,7 @@ namespace acl
 					{
 						rtm::vector4f value0;
 						rtm::vector4f value1;
-						if (is_raw_bit_rate(bit_rate))
+						if (num_bits_per_component == 32)	// Raw bit rate
 						{
 							value0 = unpack_vector4_128_unsafe(animated_values, track_bit_offset0);
 							value1 = unpack_vector4_128_unsafe(animated_values, track_bit_offset1);
@@ -393,7 +393,7 @@ namespace acl
 				else if (track_type == track_type8::vector4f && decompression_settings_type::is_track_type_supported(track_type8::vector4f))
 				{
 					rtm::vector4f value;
-					if (is_constant_bit_rate(bit_rate))
+					if (num_bits_per_component == 0)	// Constant bit rate
 					{
 						value = rtm::vector_load(constant_values);
 						constant_values += 4;
@@ -402,7 +402,7 @@ namespace acl
 					{
 						rtm::vector4f value0;
 						rtm::vector4f value1;
-						if (is_raw_bit_rate(bit_rate))
+						if (num_bits_per_component == 32)	// Raw bit rate
 						{
 							value0 = unpack_vector4_128_unsafe(animated_values, track_bit_offset0);
 							value1 = unpack_vector4_128_unsafe(animated_values, track_bit_offset1);
@@ -482,9 +482,9 @@ namespace acl
 				const uint32_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate);
 				track_bit_offset += num_bits_per_component * num_element_components;
 
-				if (is_constant_bit_rate(bit_rate))
+				if (num_bits_per_component == 0)	// Constant bit rate
 					constant_values += num_element_components;
-				else if (!is_raw_bit_rate(bit_rate))
+				else if (num_bits_per_component < 32)	// Not raw bit rate
 					range_values += num_element_components * 2;
 			}
 
@@ -497,13 +497,13 @@ namespace acl
 			if (track_type == track_type8::float1f && decompression_settings_type::is_track_type_supported(track_type8::float1f))
 			{
 				rtm::scalarf value;
-				if (is_constant_bit_rate(bit_rate))
+				if (num_bits_per_component == 0)	// Constant bit rate
 					value = rtm::scalar_load(constant_values);
 				else
 				{
 					rtm::scalarf value0;
 					rtm::scalarf value1;
-					if (is_raw_bit_rate(bit_rate))
+					if (num_bits_per_component == 32)	// Raw bit rate
 					{
 						value0 = unpack_scalarf_32_unsafe(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_scalarf_32_unsafe(animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
@@ -527,13 +527,13 @@ namespace acl
 			else if (track_type == track_type8::float2f && decompression_settings_type::is_track_type_supported(track_type8::float2f))
 			{
 				rtm::vector4f value;
-				if (is_constant_bit_rate(bit_rate))
+				if (num_bits_per_component == 0)	// Constant bit rate
 					value = rtm::vector_load(constant_values);
 				else
 				{
 					rtm::vector4f value0;
 					rtm::vector4f value1;
-					if (is_raw_bit_rate(bit_rate))
+					if (num_bits_per_component == 32)	// Raw bit rate
 					{
 						value0 = unpack_vector2_64_unsafe(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_vector2_64_unsafe(animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
@@ -557,13 +557,13 @@ namespace acl
 			else if (track_type == track_type8::float3f && decompression_settings_type::is_track_type_supported(track_type8::float3f))
 			{
 				rtm::vector4f value;
-				if (is_constant_bit_rate(bit_rate))
+				if (num_bits_per_component == 0)	// Constant bit rate
 					value = rtm::vector_load(constant_values);
 				else
 				{
 					rtm::vector4f value0;
 					rtm::vector4f value1;
-					if (is_raw_bit_rate(bit_rate))
+					if (num_bits_per_component == 32)	// Raw bit rate
 					{
 						value0 = unpack_vector3_96_unsafe(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_vector3_96_unsafe(animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
@@ -587,13 +587,13 @@ namespace acl
 			else if (track_type == track_type8::float4f && decompression_settings_type::is_track_type_supported(track_type8::float4f))
 			{
 				rtm::vector4f value;
-				if (is_constant_bit_rate(bit_rate))
+				if (num_bits_per_component == 0)	// Constant bit rate
 					value = rtm::vector_load(constant_values);
 				else
 				{
 					rtm::vector4f value0;
 					rtm::vector4f value1;
-					if (is_raw_bit_rate(bit_rate))
+					if (num_bits_per_component == 32)	// Raw bit rate
 					{
 						value0 = unpack_vector4_128_unsafe(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_vector4_128_unsafe(animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
@@ -617,13 +617,13 @@ namespace acl
 			else if (track_type == track_type8::vector4f && decompression_settings_type::is_track_type_supported(track_type8::vector4f))
 			{
 				rtm::vector4f value;
-				if (is_constant_bit_rate(bit_rate))
+				if (num_bits_per_component == 0)	// Constant bit rate
 					value = rtm::vector_load(constant_values);
 				else
 				{
 					rtm::vector4f value0;
 					rtm::vector4f value1;
-					if (is_raw_bit_rate(bit_rate))
+					if (num_bits_per_component == 32)	// Raw bit rate
 					{
 						value0 = unpack_vector4_128_unsafe(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_vector4_128_unsafe(animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
