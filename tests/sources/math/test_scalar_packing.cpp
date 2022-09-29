@@ -31,13 +31,16 @@
 using namespace acl;
 using namespace rtm;
 
-struct UnalignedBuffer
+namespace
 {
-	uint32_t padding0;
-	uint16_t padding1;
-	uint8_t buffer[250];
-};
-static_assert((offsetof(UnalignedBuffer, buffer) % 2) == 0, "Minimum packing alignment is 2");
+	struct UnalignedBuffer
+	{
+		uint32_t padding0;
+		uint16_t padding1;
+		uint8_t buffer[250];
+	};
+	static_assert((offsetof(UnalignedBuffer, buffer) % 2) == 0, "Minimum packing alignment is 2");
+}
 
 TEST_CASE("scalar packing math", "[math][scalar][packing]")
 {
@@ -111,47 +114,52 @@ TEST_CASE("unpack_scalarf_96_unsafe", "[math][scalar][packing]")
 	}
 }
 
-TEST_CASE("unpack_scalarf_uXX_unsafe", "[math][scalar][packing]")
+static uint32_t test_unpack_scalarf_uXX_unsafe(uint32_t start_bit_rate, uint32_t end_bit_rate)
 {
+	const uint32_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
+
+	UnalignedBuffer tmp0;
+	alignas(16) uint8_t buffer[64];
+
+	uint32_t num_errors = 0;
+
+	for (uint32_t bit_rate = start_bit_rate; bit_rate < end_bit_rate; ++bit_rate)
 	{
-		UnalignedBuffer tmp0;
-		alignas(16) uint8_t buffer[64];
-
-		uint32_t num_errors = 0;
-		vector4f vec0 = vector_set(unpack_scalar_unsigned(0, 16), unpack_scalar_unsigned(12355, 16), unpack_scalar_unsigned(43222, 16), unpack_scalar_unsigned(54432, 16));
-		pack_vector2_uXX_unsafe(vec0, 16, &buffer[0]);
-		scalarf scalar1 = unpack_scalarf_uXX_unsafe(16, &buffer[0], 0);
-		if (!scalar_near_equal(vector_get_x(vec0), scalar_cast(scalar1), 1.0E-6F))
-			num_errors++;
-
-		for (uint8_t bit_rate = 1; bit_rate < acl_impl::k_highest_bit_rate; ++bit_rate)
+		uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
+		uint32_t max_value = (1 << num_bits) - 1;
+		for (uint32_t value = 0; value <= max_value; ++value)
 		{
-			uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
-			uint32_t max_value = (1 << num_bits) - 1;
-			for (uint32_t value = 0; value <= max_value; ++value)
-			{
-				const float value_unsigned = scalar_clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
+			const float value_unsigned = scalar_clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);
 
-				vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
-				pack_vector2_uXX_unsafe(vec0, num_bits, &buffer[0]);
-				scalar1 = unpack_scalarf_uXX_unsafe(num_bits, &buffer[0], 0);
+			vector4f vec0 = vector_set(value_unsigned, value_unsigned, value_unsigned);
+			pack_vector2_uXX_unsafe(vec0, num_bits, &buffer[0]);
+			scalarf scalar1 = unpack_scalarf_uXX_unsafe(num_bits, &buffer[0], 0);
+			if (!scalar_near_equal(vector_get_x(vec0), scalar_cast(scalar1), 1.0E-6F))
+				num_errors++;
+
+			for (size_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
+			{
+				const uint32_t offset = offsets[offset_idx];
+
+				memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, size_t(num_bits) * 4);
+				scalar1 = unpack_scalarf_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
 				if (!scalar_near_equal(vector_get_x(vec0), scalar_cast(scalar1), 1.0E-6F))
 					num_errors++;
-
-				{
-					const uint8_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
-					for (uint8_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
-					{
-						const uint8_t offset = offsets[offset_idx];
-
-						memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, size_t(num_bits) * 4);
-						scalar1 = unpack_scalarf_uXX_unsafe(num_bits, &tmp0.buffer[0], offset);
-						if (!scalar_near_equal(vector_get_x(vec0), scalar_cast(scalar1), 1.0E-6F))
-							num_errors++;
-					}
-				}
 			}
 		}
-		CHECK(num_errors == 0);
 	}
+
+	return num_errors;
+}
+
+TEST_CASE("unpack_scalarf_uXX_unsafe part0", "[math][scalar][packing]")
+{
+	uint32_t num_errors = test_unpack_scalarf_uXX_unsafe(1, acl_impl::k_highest_bit_rate - 1);
+	CHECK(num_errors == 0);
+}
+
+TEST_CASE("unpack_scalarf_uXX_unsafe part1", "[math][scalar][packing]")
+{
+	uint32_t num_errors = test_unpack_scalarf_uXX_unsafe(acl_impl::k_highest_bit_rate - 1, acl_impl::k_highest_bit_rate);
+	CHECK(num_errors == 0);
 }
