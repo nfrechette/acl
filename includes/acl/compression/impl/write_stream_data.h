@@ -334,19 +334,8 @@ namespace acl
 				}
 				else
 				{
-
-#ifdef ACL_BIT_RATE_EXPANSION
-
 					const uint64_t* raw_sample_u64 = safe_ptr_cast<const uint64_t>(raw_sample_ptr);
 					memcpy_bits(animated_track_data_begin, out_bit_offset, raw_sample_u64, 0, num_bits_at_bit_rate);
-
-#else
-
-					const uint64_t raw_sample_u64 = *safe_ptr_cast<const uint64_t>(raw_sample_ptr);
-					memcpy_bits(animated_track_data_begin, out_bit_offset, &raw_sample_u64, 0, num_bits_at_bit_rate);
-
-#endif
-
 				}
 
 				out_bit_offset += num_bits_at_bit_rate;
