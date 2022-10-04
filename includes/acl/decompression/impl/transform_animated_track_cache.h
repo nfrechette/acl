@@ -1443,6 +1443,10 @@ namespace acl
 #else
 					scratch0_wwww = quat_from_positive_w4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
 
+					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+					// isn't very accurate on small inputs, we need to normalize
+					quat_normalize4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww);
+
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
 					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 					{
@@ -1459,6 +1463,10 @@ namespace acl
 #endif
 
 					scratch1_wwww = quat_from_positive_w4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+
+					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+					// isn't very accurate on small inputs, we need to normalize
+					quat_normalize4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww);
 
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
 					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
@@ -1754,6 +1762,10 @@ namespace acl
 					// If we don't interpolate, just pick the sample we need, it is already normalized after reconstructing
 					// the W component or it was raw to begin with
 					result = interpolation_alpha <= 0.0F ? sample0 : sample1;
+
+					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+					// isn't very accurate on small inputs, we need to normalize
+					result = rtm::quat_normalize(result);
 				}
 
 				return result;
