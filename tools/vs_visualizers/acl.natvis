@@ -164,11 +164,12 @@
   </Type>
 
   <Type Name="acl::acl_impl::track_stream">
-    <DisplayString>num_samples={m_num_samples}, type={m_type}</DisplayString>
+    <DisplayString>num_samples={m_num_samples}, bit_rate={m_bit_rate}, type={m_type}</DisplayString>
     <Expand>
       <Item Name="num_samples">m_num_samples</Item>
       <Item Name="sample_rate">m_sample_rate</Item>
       <Item Name="type">m_type</Item>
+      <Item Name="bit_rate">m_bit_rate</Item>
       <Item Name="format">m_format</Item>
       <ArrayItems>
         <Size>m_num_samples</Size>
