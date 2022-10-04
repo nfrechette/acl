@@ -2,14 +2,6 @@
 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-  <Type Name="__m128">
-    <DisplayString>({m128_f32[0]}, {m128_f32[1]}, {m128_f32[2]}, {m128_f32[3]})</DisplayString>
-  </Type>
-
-  <Type Name="__m128i">
-    <DisplayString>({m128i_u32[0]}, {m128i_u32[1]}, {m128i_u32[2]}, {m128i_u32[3]})</DisplayString>
-  </Type>
-
   <Type Name="acl::string">
     <DisplayString>{m_c_str,s8}</DisplayString>
   </Type>
