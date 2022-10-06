@@ -1819,7 +1819,7 @@ namespace acl
 				rtm::vector4f* cache_ptr_floor = &translations.cached_samples[static_cast<int>(sample_rounding_policy::floor)][cache_write_index];
 				rtm::vector4f* cache_ptr_ceil = &translations.cached_samples[static_cast<int>(sample_rounding_policy::ceil)][cache_write_index];
 				rtm::vector4f* cache_ptr_nearest = &translations.cached_samples[static_cast<int>(sample_rounding_policy::nearest)][cache_write_index];
-				
+
 				for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 				{
 					const rtm::vector4f sample0 = scratch0[unpack_index];
