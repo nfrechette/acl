@@ -159,15 +159,19 @@ namespace acl
 						// The last group contains no padding so we have to make to align our reads properly
 						const uint32_t load_size = unpack_count * sizeof(float);
 
-						const rtm::vector4f xxxx = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 0));
-						const rtm::vector4f yyyy = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 1));
-						const rtm::vector4f zzzz = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 2));
+						rtm::vector4f xxxx = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 0));
+						rtm::vector4f yyyy = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 1));
+						rtm::vector4f zzzz = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 2));
 
 						// Update our read ptr
 						constant_track_data += load_size * 3;
 
 						rtm::vector4f wwww = quat_from_positive_w4(xxxx, yyyy, zzzz);
 
+						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+						// isn't very accurate on small inputs, we need to normalize
+						if (decompression_settings_type::normalize_rotations())
+							quat_normalize4(xxxx, yyyy, zzzz, wwww);
 
 						rtm::vector4f sample0;
 						rtm::vector4f sample1;
@@ -246,6 +250,11 @@ namespace acl
 					const float z = constant_track_data[group_size * 2];
 					const rtm::vector4f sample_v = rtm::vector_set(x, y, z, 0.0F);
 					sample = rtm::quat_from_positive_w(sample_v);
+
+					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+					// isn't very accurate on small inputs, we need to normalize
+					if (decompression_settings_type::normalize_rotations())
+						sample = rtm::quat_normalize(sample);
 				}
 
 				ACL_ASSERT(rtm::quat_is_finite(sample), "Sample is not valid!");
