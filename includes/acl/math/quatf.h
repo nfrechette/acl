@@ -128,6 +128,99 @@ namespace acl
 #endif
 	}
 
+	namespace acl_impl
+	{
+		// About 31 cycles with AVX on Skylake
+		// Force inline this function, we only use it to keep the code readable
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
+		{
+			// 1.0 - (x * x)
+			rtm::vector4f result = rtm::vector_neg_mul_sub(xxxx, xxxx, rtm::vector_set(1.0F));
+			// result - (y * y)
+			result = rtm::vector_neg_mul_sub(yyyy, yyyy, result);
+			// result - (z * z)
+			const rtm::vector4f wwww_squared = rtm::vector_neg_mul_sub(zzzz, zzzz, result);
+
+			// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
+			// to ensure the resulting quaternion is always normalized with a positive W component
+			return rtm::vector_sqrt(rtm::vector_abs(wwww_squared));
+		}
+
+#if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
+		// Force inline this function, we only use it to keep the code readable
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK __m256 RTM_SIMD_CALL quat_from_positive_w_avx8(__m256 xxxx0_xxxx1, __m256 yyyy0_yyyy1, __m256 zzzz0_zzzz1)
+		{
+			const __m256 one_v = _mm256_set1_ps(1.0F);
+
+			const __m256 xxxx0_xxxx1_squared = _mm256_mul_ps(xxxx0_xxxx1, xxxx0_xxxx1);
+			const __m256 yyyy0_yyyy1_squared = _mm256_mul_ps(yyyy0_yyyy1, yyyy0_yyyy1);
+			const __m256 zzzz0_zzzz1_squared = _mm256_mul_ps(zzzz0_zzzz1, zzzz0_zzzz1);
+
+			const __m256 wwww0_wwww1_squared = _mm256_sub_ps(_mm256_sub_ps(_mm256_sub_ps(one_v, xxxx0_xxxx1_squared), yyyy0_yyyy1_squared), zzzz0_zzzz1_squared);
+
+			const __m256i abs_mask = _mm256_set1_epi32(0x7FFFFFFFULL);
+			const __m256 wwww0_wwww1_squared_abs = _mm256_and_ps(wwww0_wwww1_squared, _mm256_castsi256_ps(abs_mask));
+
+			return _mm256_sqrt_ps(wwww0_wwww1_squared_abs);
+		}
+#endif
+
+		// About 28 cycles with AVX on Skylake
+		// Force inline this function, we only use it to keep the code readable
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_lerp_no_normalization4(
+			rtm::vector4f_arg0 xxxx0, rtm::vector4f_arg1 yyyy0, rtm::vector4f_arg2 zzzz0, rtm::vector4f_arg3 wwww0,
+			rtm::vector4f_arg4 xxxx1, rtm::vector4f_arg5 yyyy1, rtm::vector4f_arg6 zzzz1, rtm::vector4f_arg7 wwww1,
+			rtm::vector4f_argn interpolation_alpha,
+			rtm::vector4f& interp_xxxx, rtm::vector4f& interp_yyyy, rtm::vector4f& interp_zzzz, rtm::vector4f& interp_wwww)
+		{
+			// Calculate the vector4 dot product: dot(start, end)
+			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx0, xxxx1);
+			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy0, yyyy1);
+			const rtm::vector4f zzzz_squared = rtm::vector_mul(zzzz0, zzzz1);
+			const rtm::vector4f wwww_squared = rtm::vector_mul(wwww0, wwww1);
+
+			const rtm::vector4f dot4 = rtm::vector_add(rtm::vector_add(rtm::vector_add(xxxx_squared, yyyy_squared), zzzz_squared), wwww_squared);
+
+			// Calculate the bias, if the dot product is positive or zero, there is no bias
+			// but if it is negative, we want to flip the 'end' rotation XYZW components
+			const rtm::vector4f neg_zero = rtm::vector_set(-0.0F);
+			const rtm::vector4f bias = rtm::vector_and(dot4, neg_zero);
+
+			// Apply our bias to the 'end'
+			const rtm::vector4f xxxx1_with_bias = rtm::vector_xor(xxxx1, bias);
+			const rtm::vector4f yyyy1_with_bias = rtm::vector_xor(yyyy1, bias);
+			const rtm::vector4f zzzz1_with_bias = rtm::vector_xor(zzzz1, bias);
+			const rtm::vector4f wwww1_with_bias = rtm::vector_xor(wwww1, bias);
+
+			// Lerp the rotation after applying the bias
+			// ((1.0 - alpha) * start) + (alpha * (end ^ bias)) == (start - alpha * start) + (alpha * (end ^ bias))
+			interp_xxxx = rtm::vector_mul_add(xxxx1_with_bias, interpolation_alpha, rtm::vector_neg_mul_sub(xxxx0, interpolation_alpha, xxxx0));
+			interp_yyyy = rtm::vector_mul_add(yyyy1_with_bias, interpolation_alpha, rtm::vector_neg_mul_sub(yyyy0, interpolation_alpha, yyyy0));
+			interp_zzzz = rtm::vector_mul_add(zzzz1_with_bias, interpolation_alpha, rtm::vector_neg_mul_sub(zzzz0, interpolation_alpha, zzzz0));
+			interp_wwww = rtm::vector_mul_add(wwww1_with_bias, interpolation_alpha, rtm::vector_neg_mul_sub(wwww0, interpolation_alpha, wwww0));
+		}
+
+		// About 9 cycles with AVX on Skylake
+		// Force inline this function, we only use it to keep the code readable
+		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_normalize4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
+		{
+			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx, xxxx);
+			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy, yyyy);
+			const rtm::vector4f zzzz_squared = rtm::vector_mul(zzzz, zzzz);
+			const rtm::vector4f wwww_squared = rtm::vector_mul(wwww, wwww);
+
+			const rtm::vector4f dot4 = rtm::vector_add(rtm::vector_add(rtm::vector_add(xxxx_squared, yyyy_squared), zzzz_squared), wwww_squared);
+
+			const rtm::vector4f len4 = rtm::vector_sqrt(dot4);
+			const rtm::vector4f inv_len4 = rtm::vector_div(rtm::vector_set(1.0F), len4);
+
+			xxxx = rtm::vector_mul(xxxx, inv_len4);
+			yyyy = rtm::vector_mul(yyyy, inv_len4);
+			zzzz = rtm::vector_mul(zzzz, inv_len4);
+			wwww = rtm::vector_mul(wwww, inv_len4);
+		}
+	}
+
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
