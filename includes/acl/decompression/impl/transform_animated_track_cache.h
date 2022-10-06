@@ -1348,6 +1348,8 @@ namespace acl
 				rotations.cache_write_index += num_to_unpack;
 
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
+				const float interpolation_alpha = decomp_context.interpolation_alpha;
+				const bool should_interpolate = should_interpolate_samples<decompression_settings_type>(rotation_format, interpolation_alpha);
 
 				segment_animated_scratch_v0 segment_scratch;
 
@@ -1443,10 +1445,6 @@ namespace acl
 #else
 					scratch0_wwww = quat_from_positive_w4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
 
-					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
-					// isn't very accurate on small inputs, we need to normalize
-					quat_normalize4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww);
-
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
 					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 					{
@@ -1464,10 +1462,6 @@ namespace acl
 
 					scratch1_wwww = quat_from_positive_w4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 
-					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
-					// isn't very accurate on small inputs, we need to normalize
-					quat_normalize4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww);
-
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
 					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 					{
@@ -1480,11 +1474,23 @@ namespace acl
 					}
 #endif
 #endif
+
+					if (decompression_settings_type::normalize_rotations())
+					{
+						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+						// isn't very accurate on small inputs, we need to normalize
+						// If we support per track rounding, we need to normalize as we might not interpolate
+						// Otherwise, if we don't interpolate we also need to normalize
+						if (decompression_settings_type::is_per_track_rounding_supported() || !should_interpolate)
+						{
+							quat_normalize4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww);
+							quat_normalize4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww);
+						}
+					}
 				}
 
 				// Interpolate linearly and store our rotations in SOA
 				{
-					const float interpolation_alpha = decomp_context.interpolation_alpha;
 					const rtm::vector4f interpolation_alpha_v = rtm::vector_set(interpolation_alpha);
 
 					if (decompression_settings_type::is_per_track_rounding_supported())
@@ -1610,7 +1616,6 @@ namespace acl
 						rtm::vector4f interp_zzzz;
 						rtm::vector4f interp_wwww;
 
-						const bool should_interpolate = should_interpolate_samples<decompression_settings_type>(rotation_format, interpolation_alpha);
 						if (should_interpolate)
 						{
 							// Interpolate our quaternions without normalizing just yet
@@ -1760,9 +1765,15 @@ namespace acl
 					// the W component or it was raw to begin with
 					result = interpolation_alpha <= 0.0F ? sample0 : sample1;
 
-					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
-					// isn't very accurate on small inputs, we need to normalize
-					result = rtm::quat_normalize(result);
+					if (decompression_settings_type::normalize_rotations())
+					{
+						if (rotation_format != rotation_format8::quatf_full || !decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
+						{
+							// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+							// isn't very accurate on small inputs, we need to normalize
+							result = rtm::quat_normalize(result);
+						}
+					}
 				}
 
 				return result;
