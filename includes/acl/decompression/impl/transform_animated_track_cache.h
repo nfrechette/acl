@@ -1628,7 +1628,7 @@ namespace acl
 						{
 							// If we don't interpolate, just pick the sample we need, it is already normalized after reconstructing
 							// the W component or it was raw to begin with
-							const rtm::mask4f use_sample0 = rtm::vector_less_equal(rtm::vector_set(interpolation_alpha), rtm::vector_zero());
+							const rtm::mask4f use_sample0 = rtm::vector_less_equal(interpolation_alpha_v, rtm::vector_zero());
 
 							interp_xxxx = rtm::vector_select(use_sample0, scratch0_xxxx, scratch1_xxxx);
 							interp_yyyy = rtm::vector_select(use_sample0, scratch0_yyyy, scratch1_yyyy);
