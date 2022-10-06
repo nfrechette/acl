@@ -1568,8 +1568,7 @@ namespace acl
 
 							// Due to the interpolation, the result might not be anywhere near normalized!
 							// Make sure to normalize afterwards if we need to
-							constexpr bool normalize_rotations = decompression_settings_type::normalize_rotations();
-							if (normalize_rotations)
+							if (decompression_settings_type::normalize_rotations())
 								quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
@@ -1622,8 +1621,7 @@ namespace acl
 
 							// Due to the interpolation, the result might not be anywhere near normalized!
 							// Make sure to normalize afterwards if we need to
-							constexpr bool normalize_rotations = decompression_settings_type::normalize_rotations();
-							if (normalize_rotations)
+							if (decompression_settings_type::normalize_rotations())
 								quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 						}
 						else
@@ -1751,8 +1749,7 @@ namespace acl
 				{
 					// Due to the interpolation, the result might not be anywhere near normalized!
 					// Make sure to normalize afterwards before using
-					constexpr bool normalize_rotations = decompression_settings_type::normalize_rotations();
-					if (normalize_rotations)
+					if (decompression_settings_type::normalize_rotations())
 						result = rtm::quat_lerp(sample0, sample1, interpolation_alpha);
 					else
 						result = quat_lerp_no_normalization(sample0, sample1, interpolation_alpha);
