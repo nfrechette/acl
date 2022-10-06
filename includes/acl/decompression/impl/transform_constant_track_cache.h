@@ -30,6 +30,7 @@
 #include "acl/decompression/impl/track_cache.h"
 #include "acl/decompression/impl/transform_decompression_context.h"
 #include "acl/math/quat_packing.h"
+#include "acl/math/quatf.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -165,12 +166,8 @@ namespace acl
 						// Update our read ptr
 						constant_track_data += load_size * 3;
 
-						// quat_from_positive_w_soa
-						const rtm::vector4f wwww_squared = rtm::vector_sub(rtm::vector_sub(rtm::vector_sub(rtm::vector_set(1.0F), rtm::vector_mul(xxxx, xxxx)), rtm::vector_mul(yyyy, yyyy)), rtm::vector_mul(zzzz, zzzz));
+						rtm::vector4f wwww = quat_from_positive_w4(xxxx, yyyy, zzzz);
 
-						// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
-						// to ensure the resulting quaternion is always normalized with a positive W component
-						const rtm::vector4f wwww = rtm::vector_sqrt(rtm::vector_abs(wwww_squared));
 
 						rtm::vector4f sample0;
 						rtm::vector4f sample1;
