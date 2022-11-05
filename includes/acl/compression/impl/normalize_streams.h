@@ -48,10 +48,16 @@ namespace acl
 	{
 		inline track_stream_range calculate_track_range(const track_stream& stream, bool is_vector4)
 		{
+			const uint32_t num_samples = stream.get_num_samples();
+			if (num_samples == 0)
+#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				return track_stream_range::from_min_max(rtm::vector_zero(), rtm::vector_zero(), rtm::vector_zero());
+#else
+				return track_stream_range::from_min_max(rtm::vector_zero(), rtm::vector_zero());
+#endif
+
 			rtm::vector4f min = rtm::vector_set(1e10F);
 			rtm::vector4f max = rtm::vector_set(-1e10F);
-
-			const uint32_t num_samples = stream.get_num_samples();
 
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			rtm::vector4d weighted_average_d = rtm::vector_set(0.0);
