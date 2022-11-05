@@ -68,7 +68,9 @@ namespace acl
 					return rtm::vector_to_quat(rotation);
 				case rotation_format8::quatf_drop_w_full:
 				case rotation_format8::quatf_drop_w_variable:
-					return rtm::quat_from_positive_w(rotation);
+					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+					// isn't very accurate on small inputs, we need to normalize
+					return rtm::quat_normalize(rtm::quat_from_positive_w(rotation));
 				default:
 					ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(track.get_rotation_format()));
 					return rtm::vector_to_quat(rotation);
