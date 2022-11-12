@@ -170,7 +170,7 @@ namespace acl
 
 						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 						// isn't very accurate on small inputs, we need to normalize
-						if (decompression_settings_type::normalize_rotations())
+						if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
 							quat_normalize4(xxxx, yyyy, zzzz, wwww);
 
 						rtm::vector4f sample0;
@@ -253,7 +253,7 @@ namespace acl
 
 					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 					// isn't very accurate on small inputs, we need to normalize
-					if (decompression_settings_type::normalize_rotations())
+					if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
 						sample = rtm::quat_normalize(sample);
 				}
 

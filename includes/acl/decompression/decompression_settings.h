@@ -39,6 +39,28 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
+	/// <summary>
+	/// Describes when rotations should be normalized during decompression.
+	/// When lossy rotations are unpacked, the quaternions are typically very close to having
+	/// a length of 1.0 but this can deviate due to square root precision.
+	/// When strict normalization is required, make sure to always normalize.
+	/// Rotations can also drift considerably following linear interpolation and
+	/// as such it is recommended to always normalize lerp outputs.
+	/// Normalization should only be disabled if the caller handles it outside ACL
+	/// explicitly.
+	/// </summary>
+	enum class rotation_normalization_policy_t
+	{
+		// Never normalize rotations
+		never		= 0,
+
+		// Only normalize following linear interpolation (recommended default value)
+		lerp_only	= 1,
+
+		// Always normalize rotations
+		always		= 2,
+	};
+
 	//////////////////////////////////////////////////////////////////////////
 	// Deriving from this struct and overriding these constexpr functions
 	// allow you to control which code is stripped for maximum performance.
@@ -100,7 +122,14 @@ namespace acl
 		// runtimes will normalize in a separate step and do not need the explicit normalization.
 		// Enabled by default for safety.
 		// Must be static constexpr!
+		//ACL_DEPRECATED("Override get_rotation_normalization_policy instead; to be removed in v3.0")
 		static constexpr bool normalize_rotations() { return true; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// The rotation normalization policy controls when rotations are normalized by ACL.
+		// By default, we always normalize to ensure safe output no matter what.
+		// Must be static constexpr!
+		static constexpr rotation_normalization_policy_t get_rotation_normalization_policy() { return rotation_normalization_policy_t::always; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Whether safety checks are performed when we initialize our context.
@@ -190,6 +219,12 @@ namespace acl
 		static constexpr bool is_rotation_format_supported(rotation_format8 format) { return format == rotation_format8::quatf_drop_w_variable; }
 		static constexpr bool is_translation_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
 		static constexpr bool is_scale_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// By default, we only normalize following linear interpolation as this is the biggest
+		// source of deviation. Non interpolated values will typically be normalized for all
+		// intents and purposes. If safety is required, override this value.
+		static constexpr rotation_normalization_policy_t get_rotation_normalization_policy() { return rotation_normalization_policy_t::lerp_only; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Disabled by default since it is an uncommon feature
