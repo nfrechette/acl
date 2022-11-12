@@ -47,7 +47,7 @@ namespace acl
 		struct raw_sampling_decompression_settings final : public decompression_settings
 		{
 			// Disable normalization. This is only safe if we know the input data is already normalized!
-			static constexpr bool normalize_rotations() { return false; }
+			static constexpr rotation_normalization_policy_t get_rotation_normalization_policy() { return rotation_normalization_policy_t::never; }
 
 			// Only support raw formats. This ensures we don't interpolate when we can avoid it to maintain the original
 			// accuracy and it strips the code we don't need for faster decompression.

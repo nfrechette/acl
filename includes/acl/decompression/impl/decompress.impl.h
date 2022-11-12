@@ -51,6 +51,9 @@ namespace acl
 		: m_context()
 	{
 		m_context.reset();
+
+		// Deprecation checks
+		static_assert(decompression_settings_type::normalize_rotations(), "Override get_rotation_normalization_policy instead; to be removed in v3.0");
 	}
 
 	template<class decompression_settings_type>

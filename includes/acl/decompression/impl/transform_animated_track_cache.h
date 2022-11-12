@@ -1385,7 +1385,7 @@ namespace acl
 #endif
 #endif
 
-					if (decompression_settings_type::normalize_rotations())
+					if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
 					{
 						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 						// isn't very accurate on small inputs, we need to normalize
@@ -1484,7 +1484,7 @@ namespace acl
 
 							// Due to the interpolation, the result might not be anywhere near normalized!
 							// Make sure to normalize afterwards if we need to
-							if (decompression_settings_type::normalize_rotations())
+							if (decompression_settings_type::get_rotation_normalization_policy() >= rotation_normalization_policy_t::lerp_only)
 								quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
@@ -1536,7 +1536,7 @@ namespace acl
 
 							// Due to the interpolation, the result might not be anywhere near normalized!
 							// Make sure to normalize afterwards if we need to
-							if (decompression_settings_type::normalize_rotations())
+							if (decompression_settings_type::get_rotation_normalization_policy() >= rotation_normalization_policy_t::lerp_only)
 								quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 						}
 						else
@@ -1664,7 +1664,7 @@ namespace acl
 				{
 					// Due to the interpolation, the result might not be anywhere near normalized!
 					// Make sure to normalize afterwards before using
-					if (decompression_settings_type::normalize_rotations())
+					if (decompression_settings_type::get_rotation_normalization_policy() >= rotation_normalization_policy_t::lerp_only)
 						result = rtm::quat_lerp(sample0, sample1, interpolation_alpha);
 					else
 						result = quat_lerp_no_normalization(sample0, sample1, interpolation_alpha);
@@ -1675,7 +1675,7 @@ namespace acl
 					// the W component or it was raw to begin with
 					result = interpolation_alpha <= 0.0F ? sample0 : sample1;
 
-					if (decompression_settings_type::normalize_rotations())
+					if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
 					{
 						if (rotation_format != rotation_format8::quatf_full || !decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 						{
