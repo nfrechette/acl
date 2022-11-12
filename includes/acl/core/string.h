@@ -142,7 +142,7 @@ namespace acl
 
 		const char* c_str() const noexcept { return m_c_str != nullptr ? m_c_str : ""; }
 		size_t size() const noexcept { return m_c_str != nullptr ? std::strlen(m_c_str) : 0; }
-		bool empty() const noexcept { return m_c_str != nullptr ? (std::strlen(m_c_str) == 0) : true; }
+		bool empty() const noexcept { return m_c_str != nullptr ? (m_c_str[0] == '\0') : true; }
 
 	private:
 		iallocator* m_allocator;
