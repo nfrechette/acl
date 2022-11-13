@@ -106,6 +106,15 @@
         "ideas",
         "code"
       ]
+    },
+    {
+      "login": "GermanAizek",
+      "name": "Herman Semenov",
+      "avatar_url": "https://avatars.githubusercontent.com/u/21138600?v=4",
+      "profile": "https://github.com/GermanAizek",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
@@ -113,5 +122,6 @@
   "projectOwner": "nfrechette",
   "repoType": "github",
   "repoHost": "https://github.com",
-  "skipCi": true
+  "skipCi": true,
+  "commitConvention": "angular"
 }
