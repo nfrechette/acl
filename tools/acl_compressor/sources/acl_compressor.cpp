@@ -386,7 +386,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 #if defined(__ANDROID__)
 	if (options.input_buffer == nullptr || options.input_buffer_size == 0)
 #else
-	if (options.input_filename == nullptr || std::strlen(options.input_filename) == 0)
+	if (options.input_filename == nullptr || options.input_filename[0] == '\0')
 #endif
 	{
 		printf("An input file is required.\n");
@@ -1046,7 +1046,7 @@ static int safe_main_impl(int argc, char* argv[])
 #if defined(__ANDROID__)
 	if (options.config_buffer != nullptr && options.config_buffer_size != 0)
 #else
-	if (options.config_filename != nullptr && std::strlen(options.config_filename) != 0)
+	if (options.config_filename != nullptr && options.config_filename[0] != '\0')
 #endif
 	{
 		// Override whatever the ACL SJSON file might have contained
