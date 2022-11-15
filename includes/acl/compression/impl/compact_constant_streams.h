@@ -196,7 +196,6 @@ namespace acl
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
-			ACL_ASSERT(raw_clip_context.num_samples == num_samples, "Raw sample mismatch!");
 			ACL_ASSERT(raw_clip_context.num_segments == 1, "Raw context must contain a single segment!");
 			segment_context& raw_segment = raw_clip_context.segments[0];
 			bool has_constant_bone_rotations = false;
@@ -341,7 +340,6 @@ namespace acl
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
 					has_constant_bone_rotations = true;
-					ACL_ASSERT(raw_segment.bone_streams[bone_index].rotations.get_num_samples() == num_samples, "Raw rotation sample mismatch!");
 
 #endif
 				}
@@ -392,7 +390,6 @@ namespace acl
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
 					has_constant_bone_translations = true;
-					ACL_ASSERT(raw_segment.bone_streams[bone_index].translations.get_num_samples() == num_samples, "Raw translation sample mismatch!");
 
 #endif
 				}
@@ -444,7 +441,6 @@ namespace acl
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
 					has_constant_bone_scales = true;
-					ACL_ASSERT(raw_segment.bone_streams[bone_index].scales.get_num_samples() == num_samples, "Raw scale sample mismatch!");
 
 #endif
 
