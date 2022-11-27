@@ -118,6 +118,7 @@ namespace acl
 
 				if (is_threshold_zero)
 				{
+					// We care about quaternions being absolutely exact, not just equivalent on the hypersphere
 					if (!rtm::quat_are_equal(rotation, ref_rotation))
 						return false;
 				}
