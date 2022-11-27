@@ -171,7 +171,7 @@ namespace acl
 			if (num_tracks > 0)
 			{
 				// When this array is present, initialize_clip_context fills it in.
-				lossy_clip_context.transform_links = allocate_type_array<clip_context::transform_link>(allocator, num_tracks);
+				lossy_clip_context.transform_links = allocate_type_array<transform_link_t>(allocator, num_tracks);
 			}
 
 #endif
