@@ -202,7 +202,7 @@ namespace acl
 			bool has_constant_bone_translations = false;
 			bool has_constant_bone_scales = false;
 
-			const clip_context::transform_link* transform_links = context.transform_links;
+			const transform_link_t* transform_links = context.transform_links;
 			float* max_adjusted_shell_distances = allocate_type_array<float>(allocator, num_bones);
 			std::memset(max_adjusted_shell_distances, 0, num_bones * sizeof(float));
 			if (!context.has_additive_base)
@@ -240,8 +240,8 @@ namespace acl
 					for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 					{
 						// Propagate adjusted_shell_distance into ancestors.
-						const clip_context::transform_link& cur_link = transform_links[bone_index];
-						const uint32_t cur_child = cur_link.child_transform_index;
+						const transform_link_t& cur_link = transform_links[bone_index];
+						const uint32_t cur_child = cur_link.transform_index;
 						const uint32_t cur_parent = cur_link.parent_transform_index;
 						if (cur_parent != k_invalid_track_index)
 						{

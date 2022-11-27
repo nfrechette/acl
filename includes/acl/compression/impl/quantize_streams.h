@@ -237,7 +237,7 @@ namespace acl
 				ACL_ASSERT(num_frames <= clip.segments->num_samples, "Segment has too many samples!");
 				const auto calculate_object_space_distance_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_object_space_distance : &itransform_error_metric::calculate_object_space_distance_no_scale);
 				itransform_error_metric::calculate_object_space_distance_args calculate_object_space_distance_args;
-				const clip_context::transform_link* transform_links = clip.transform_links;
+				const transform_link_t* transform_links = clip.transform_links;
 
 #endif
 
@@ -327,11 +327,11 @@ namespace acl
 					for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
 					{
 						// Propagate adjusted_shell_distance into ancestors.
-						const clip_context::transform_link& cur_link = transform_links[transform_index];
+						const transform_link_t& cur_link = transform_links[transform_index];
 						const uint32_t cur_parent = cur_link.parent_transform_index;
 						if (cur_parent != k_invalid_track_index)
 						{
-							const uint32_t cur_child = cur_link.child_transform_index;
+							const uint32_t cur_child = cur_link.transform_index;
 							calculate_object_space_distance_args.transform0 = sample_raw_object_transforms + cur_parent * metric_transform_size;
 							calculate_object_space_distance_args.transform1 = sample_raw_object_transforms + cur_child * metric_transform_size;
 							const float link_distance = rtm::scalar_cast(calculate_object_space_distance_impl(error_metric_, calculate_object_space_distance_args));

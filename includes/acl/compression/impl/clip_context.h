@@ -135,6 +135,16 @@ namespace acl
 			float shell_distance						= 0.0F;
 		};
 
+		// A transform link is used to track chain ordering by keeping track of two indices: a transform index, and its parent's transform index
+		struct transform_link_t
+		{
+			// Index of the transform as the end of the link
+			uint32_t transform_index;
+
+			// Index of the parent transform at the start of the link
+			uint32_t parent_transform_index;
+		};
+
 		struct clip_context
 		{
 			segment_context* segments					= nullptr;
@@ -145,12 +155,8 @@ namespace acl
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
 			// Sorted by descending parent_transform_index(k_invalid_track_index last), then descending child_transform_index.
-			struct transform_link
-			{
-				uint32_t parent_transform_index;
-				uint32_t child_transform_index;
-			};
-			transform_link* transform_links				= nullptr;	// 1 per transform, for compact_constant_streams and quantization_context.adjusted_shell_distances.
+			
+			transform_link_t* transform_links				= nullptr;	// 1 per transform, for compact_constant_streams and quantization_context.adjusted_shell_distances.
 
 #endif
 
@@ -227,7 +233,7 @@ namespace acl
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
-			clip_context::transform_link* transform_links = out_clip_context.transform_links;
+			transform_link_t* transform_links = out_clip_context.transform_links;
 
 #endif
 
@@ -252,9 +258,9 @@ namespace acl
 
 				if (transform_links != nullptr)
 				{
-					clip_context::transform_link& transform_link = transform_links[transform_index];
+					transform_link_t& transform_link = transform_links[transform_index];
 					transform_link.parent_transform_index = desc.parent_index;
-					transform_link.child_transform_index = transform_index;
+					transform_link.transform_index = transform_index;
 				}
 
 #endif
@@ -411,11 +417,11 @@ namespace acl
 				if (transform_links != nullptr)
 				{
 					// Sorted by descending parent_transform_index(k_invalid_track_index last), then descending child_transform_index.
-					auto sort_predicate = [](const clip_context::transform_link& lhs, const clip_context::transform_link& rhs)
+					auto sort_predicate = [](const transform_link_t& lhs, const transform_link_t& rhs)
 					{
 						if (lhs.parent_transform_index == rhs.parent_transform_index)
 						{
-							return lhs.child_transform_index > rhs.child_transform_index;
+							return lhs.transform_index > rhs.transform_index;
 						}
 						else if (lhs.parent_transform_index == k_invalid_track_index)
 						{
