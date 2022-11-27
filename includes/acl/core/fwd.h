@@ -82,14 +82,22 @@ namespace acl
 	namespace acl_impl
 	{
 		template <class item_type, bool is_const>
-		class iterator_impl;
+		class array_iterator_impl;
 	}
 
+	//ACL_DEPRECATED("Renamed to array_iterator, to be removed in v3.0")
 	template <class item_type>
-	using iterator = acl_impl::iterator_impl<item_type, false>;
+	using iterator = acl_impl::array_iterator_impl<item_type, false>;
 
 	template <class item_type>
-	using const_iterator = acl_impl::iterator_impl<item_type, true>;
+	using array_iterator = acl_impl::array_iterator_impl<item_type, false>;
+
+	//ACL_DEPRECATED("Renamed to const_array_iterator, to be removed in v3.0")
+	template <class item_type>
+	using const_iterator = acl_impl::array_iterator_impl<item_type, true>;
+
+	template <class item_type>
+	using const_array_iterator = acl_impl::array_iterator_impl<item_type, true>;
 
 	struct invalid_ptr_offset;
 	template<typename data_type, typename offset_type> class ptr_offset;
