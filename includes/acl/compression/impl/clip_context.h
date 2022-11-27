@@ -164,9 +164,11 @@ namespace acl
 			transform_range* ranges						= nullptr;
 
 			// List of metadata for each transform (num_bones present)
+			// TODO: Same for raw/lossy/additive clip context, can we share?
 			transform_metadata* metadata				= nullptr;
 
 			// List of bit sets for each leaf transform to track transform chains (num_leaf_transforms present)
+			// TODO: Same for raw/lossy/additive clip context, can we share?
 			uint32_t* leaf_transform_chains				= nullptr;
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
@@ -179,6 +181,7 @@ namespace acl
 
 			uint32_t num_segments						= 0;
 			uint32_t num_bones							= 0;
+			uint32_t num_bones							= 0;	// TODO: Rename num_transforms
 			uint32_t num_samples_allocated				= 0;
 			uint32_t num_samples						= 0;
 			float sample_rate							= 0.0F;
