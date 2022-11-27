@@ -127,11 +127,19 @@ namespace acl
 			uint32_t			m_bone_index;
 		};
 
+		// Metadata per transform
 		struct transform_metadata
 		{
+			// The transform chain this transform belongs to (points into leaf_transform_chains in owner context)
 			const uint32_t* transform_chain				= nullptr;
+
+			// Parent transform index of this transform, invalid if at the root
 			uint32_t parent_index						= k_invalid_track_index;
+
+			// The precision value from the track description for this transform
 			float precision								= 0.0F;
+
+			// The local space shell distance from the track description for this transform
 			float shell_distance						= 0.0F;
 		};
 
@@ -145,11 +153,20 @@ namespace acl
 			uint32_t parent_transform_index;
 		};
 
+		// Represents the working space for a clip (raw or lossy)
 		struct clip_context
 		{
+			// List of segments contained (num_segments present)
+			// Raw contexts only have a single segment
 			segment_context* segments					= nullptr;
+
+			// List of clip wide range information for each transform (num_bones present)
 			transform_range* ranges						= nullptr;
+
+			// List of metadata for each transform (num_bones present)
 			transform_metadata* metadata				= nullptr;
+
+			// List of bit sets for each leaf transform to track transform chains (num_leaf_transforms present)
 			uint32_t* leaf_transform_chains				= nullptr;
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
