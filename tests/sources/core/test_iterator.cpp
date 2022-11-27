@@ -101,3 +101,74 @@ TEST_CASE("array_iterator", "[core][iterator]")
 		CHECK(ci.end() == cj.end());
 	}
 }
+
+TEST_CASE("array_reverse_iterator", "[core][iterator]")
+{
+	SECTION("mutable returns correct type")
+	{
+		constexpr size_t num_items = 3;
+		uint32_t items[num_items] = { 0, 1, 2 };
+
+		auto i = array_reverse_iterator<uint32_t>(items, num_items);
+
+		CHECK(std::is_same<uint32_t*, decltype(&*i.begin())>::value);
+		CHECK(std::is_same<uint32_t*, decltype(&*i.end())>::value);
+	}
+
+	SECTION("const returns correct type")
+	{
+		constexpr size_t num_items = 3;
+		const uint32_t items[num_items] = { 0, 1, 2 };
+
+		auto ci = const_array_reverse_iterator<uint32_t>(items, num_items);
+
+		CHECK(std::is_same<const uint32_t*, decltype(&*ci.begin())>::value);
+		CHECK(std::is_same<const uint32_t*, decltype(&*ci.end())>::value);
+	}
+
+	SECTION("bounds are correct")
+	{
+		constexpr size_t num_items = 3;
+		uint32_t items[num_items] = { 0, 1, 2 };
+
+		auto i = array_reverse_iterator<uint32_t>(items, num_items);
+
+		CHECK(&*i.begin() == items + num_items - 1);
+		CHECK(&*i.end() == items - 1);
+	}
+
+	SECTION("const bounds are correct")
+	{
+		constexpr size_t num_items = 3;
+		const uint32_t items[num_items] = { 0, 1, 2 };
+
+		auto ci = const_array_reverse_iterator<uint32_t>(items, num_items);
+
+		CHECK(&*ci.begin() == items + num_items - 1);
+		CHECK(&*ci.end() == items - 1);
+	}
+
+	SECTION("make_reverse_iterator matches")
+	{
+		constexpr size_t num_items = 3;
+		uint32_t items[num_items] = { 0, 1, 2 };
+
+		auto i = array_reverse_iterator<uint32_t>(items, num_items);
+		auto j = make_reverse_iterator(items);
+
+		CHECK(i.begin() == j.begin());
+		CHECK(i.end() == j.end());
+	}
+
+	SECTION("make_reverse_iterator const matches")
+	{
+		constexpr size_t num_items = 3;
+		const uint32_t items[num_items] = { 0, 1, 2 };
+
+		auto ci = const_array_reverse_iterator<uint32_t>(items, num_items);
+		auto cj = make_reverse_iterator(items);
+
+		CHECK(ci.begin() == cj.begin());
+		CHECK(ci.end() == cj.end());
+	}
+}
