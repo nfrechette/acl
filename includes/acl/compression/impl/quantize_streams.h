@@ -237,7 +237,6 @@ namespace acl
 				ACL_ASSERT(num_frames <= clip.segments->num_samples, "Segment has too many samples!");
 				const auto calculate_object_space_distance_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_object_space_distance : &itransform_error_metric::calculate_object_space_distance_no_scale);
 				itransform_error_metric::calculate_object_space_distance_args calculate_object_space_distance_args;
-				const transform_link_t* transform_links = clip.transform_links;
 
 #endif
 
@@ -324,19 +323,23 @@ namespace acl
 						// Initialize adjusted_shell_distance.
 						adjusted_shell_distances_[transform_index * num_frames] = metadata[transform_index].shell_distance;
 					}
-					for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
+
+					// Propagate adjusted_shell_distance into ancestors.
+					// Iterate over our transforms starting at the leaves since we propagate the information
+					// towards the parents
+					for (const uint32_t transform_index : make_reverse_iterator(clip.sorted_transforms_parent_first, num_bones))
 					{
-						// Propagate adjusted_shell_distance into ancestors.
-						const transform_link_t& cur_link = transform_links[transform_index];
-						const uint32_t cur_parent = cur_link.parent_transform_index;
-						if (cur_parent != k_invalid_track_index)
+						const uint32_t parent_index = metadata[transform_index].parent_index;
+
+						if (parent_index != k_invalid_track_index)
 						{
-							const uint32_t cur_child = cur_link.transform_index;
-							calculate_object_space_distance_args.transform0 = sample_raw_object_transforms + cur_parent * metric_transform_size;
-							calculate_object_space_distance_args.transform1 = sample_raw_object_transforms + cur_child * metric_transform_size;
+							calculate_object_space_distance_args.transform0 = sample_raw_object_transforms + (parent_index * metric_transform_size);
+							calculate_object_space_distance_args.transform1 = sample_raw_object_transforms + (transform_index * metric_transform_size);
+
 							const float link_distance = rtm::scalar_cast(calculate_object_space_distance_impl(error_metric_, calculate_object_space_distance_args));
-							float& adjusted_parent_shell_distance = adjusted_shell_distances_[cur_parent * num_frames];
-							adjusted_parent_shell_distance = std::max(adjusted_parent_shell_distance, link_distance + adjusted_shell_distances_[cur_child * num_frames]);
+
+							float& adjusted_parent_shell_distance = adjusted_shell_distances_[parent_index * num_frames];
+							adjusted_parent_shell_distance = std::max(adjusted_parent_shell_distance, link_distance + adjusted_shell_distances_[transform_index * num_frames]);
 						}
 					}
 

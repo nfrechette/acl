@@ -143,16 +143,6 @@ namespace acl
 			float shell_distance						= 0.0F;
 		};
 
-		// A transform link is used to track chain ordering by keeping track of two indices: a transform index, and its parent's transform index
-		struct transform_link_t
-		{
-			// Index of the transform as the end of the link
-			uint32_t transform_index;
-
-			// Index of the parent transform at the start of the link
-			uint32_t parent_transform_index;
-		};
-
 		// Represents the working space for a clip (raw or lossy)
 		struct clip_context
 		{
@@ -171,16 +161,11 @@ namespace acl
 			// TODO: Same for raw/lossy/additive clip context, can we share?
 			uint32_t* leaf_transform_chains				= nullptr;
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-			// Sorted by descending parent_transform_index(k_invalid_track_index last), then descending child_transform_index.
-			
-			transform_link_t* transform_links				= nullptr;	// 1 per transform, for compact_constant_streams and quantization_context.adjusted_shell_distances.
-
-#endif
+			// List of transform indices sorted by parent first then sibling transforms are sorted by their transform index (num_bones present)
+			// TODO: Same for raw/lossy/additive clip context, can we share?
+			uint32_t* sorted_transforms_parent_first	= nullptr;
 
 			uint32_t num_segments						= 0;
-			uint32_t num_bones							= 0;
 			uint32_t num_bones							= 0;	// TODO: Rename num_transforms
 			uint32_t num_samples_allocated				= 0;
 			uint32_t num_samples						= 0;
@@ -230,6 +215,7 @@ namespace acl
 			out_clip_context.ranges = nullptr;
 			out_clip_context.metadata = allocate_type_array<transform_metadata>(allocator, num_transforms);
 			out_clip_context.leaf_transform_chains = nullptr;
+			out_clip_context.sorted_transforms_parent_first = allocate_type_array<uint32_t>(allocator, num_transforms);
 			out_clip_context.num_segments = 1;
 			out_clip_context.num_bones = num_transforms;
 			out_clip_context.num_samples_allocated = num_samples;
@@ -251,12 +237,6 @@ namespace acl
 
 			transform_streams* bone_streams = allocate_type_array<transform_streams>(allocator, num_transforms);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-			transform_link_t* transform_links = out_clip_context.transform_links;
-
-#endif
-
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
 				const track_qvvf& track = track_list[transform_index];
@@ -273,17 +253,6 @@ namespace acl
 				bone_stream.rotations = rotation_track_stream(allocator, num_samples, sizeof(rtm::quatf), sample_rate, rotation_format8::quatf_full);
 				bone_stream.translations = translation_track_stream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
 				bone_stream.scales = scale_track_stream(allocator, num_samples, sizeof(rtm::vector4f), sample_rate, vector_format8::vector3f_full);
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				if (transform_links != nullptr)
-				{
-					transform_link_t& transform_link = transform_links[transform_index];
-					transform_link.parent_transform_index = desc.parent_index;
-					transform_link.transform_index = transform_index;
-				}
-
-#endif
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
@@ -389,6 +358,8 @@ namespace acl
 				metadata.parent_index = desc.parent_index;
 				metadata.precision = desc.precision;
 				metadata.shell_distance = desc.shell_distance;
+
+				out_clip_context.sorted_transforms_parent_first[transform_index] = transform_index;
 			}
 
 			out_clip_context.has_scale = has_scale;
@@ -430,35 +401,6 @@ namespace acl
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 				uint32_t num_root_bones = 0;
-#endif
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				if (transform_links != nullptr)
-				{
-					// Sorted by descending parent_transform_index(k_invalid_track_index last), then descending child_transform_index.
-					auto sort_predicate = [](const transform_link_t& lhs, const transform_link_t& rhs)
-					{
-						if (lhs.parent_transform_index == rhs.parent_transform_index)
-						{
-							return lhs.transform_index > rhs.transform_index;
-						}
-						else if (lhs.parent_transform_index == k_invalid_track_index)
-						{
-							return false;
-						}
-						else if (rhs.parent_transform_index == k_invalid_track_index)
-						{
-							return true;
-						}
-						else
-						{
-							return lhs.parent_transform_index > rhs.parent_transform_index;
-						}
-					};
-					std::sort(transform_links, transform_links + num_transforms, sort_predicate);
-				}
-
 #endif
 
 				// Move and validate the input data
@@ -513,16 +455,26 @@ namespace acl
 				ACL_ASSERT(num_root_bones > 0, "No root bone found. The root bones must have a parent index = 0xFFFF");
 				ACL_ASSERT(leaf_index == num_leaf_transforms, "Invalid number of leaf bone found");
 				deallocate_type_array(allocator, is_leaf_bitset, bitset_size);
+
+				// We sort our transform indices by parent first
+				// If two transforms have the same parent index, we sort them by their transform index
+				auto sort_predicate = [&out_clip_context](const uint32_t& lhs_transform_index, const uint32_t& rhs_transform_index)
+				{
+					const uint32_t lhs_parent_index = out_clip_context.metadata[lhs_transform_index].parent_index;
+					const uint32_t rhs_parent_index = out_clip_context.metadata[rhs_transform_index].parent_index;
+
+					// If the transforms don't have the same parent, sort by the parent index
+					// We add 1 to parent indices to cause the invalid index to wrap around to 0
+					// since parents come first, they'll have the lowest value
+					if (lhs_parent_index != rhs_parent_index)
+						return (lhs_parent_index + 1) < (rhs_parent_index + 1);
+
+					// Both transforms have the same parent, sort by their index
+					return lhs_transform_index < rhs_transform_index;
+				};
+
+				std::sort(out_clip_context.sorted_transforms_parent_first, out_clip_context.sorted_transforms_parent_first + num_transforms, sort_predicate);
 			}
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-			else
-			{
-				ACL_ASSERT(transform_links == nullptr, "transform_links should be NULL!");
-			}
-
-#endif
 
 			return are_samples_valid;
 		}
@@ -544,15 +496,7 @@ namespace acl
 			bitset_description bone_bitset_desc = bitset_description::make_from_num_bits(context.num_bones);
 			deallocate_type_array(allocator, context.leaf_transform_chains, size_t(context.num_leaf_transforms) * bone_bitset_desc.get_size());
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-			if (context.transform_links != nullptr)
-			{
-				deallocate_type_array(allocator, context.transform_links, context.num_bones);
-			}
-
-#endif
-
+			deallocate_type_array(allocator, context.sorted_transforms_parent_first, context.num_bones);
 		}
 
 		constexpr bool segment_context_has_scale(const segment_context& segment) { return segment.clip->has_scale; }
