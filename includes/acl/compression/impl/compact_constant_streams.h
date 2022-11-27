@@ -290,20 +290,11 @@ namespace acl
 				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle, rtm::vector_to_quat(bone_range.rotation.get_weighted_average())))
 #else
 				if (
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-					bone_range.rotation.is_constant() || ((constant_rotation_threshold_angle > 0.0F) &&
-
-#endif
-
-					is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle IF_ACL_COMPRESSION_OPTIMIZED(, max_adjusted_shell_distances[bone_index], desc.precision)))
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
+					// If range.min equals range.max, we have a single unique sample repeating
+					bone_range.rotation.is_constant(0.0F) ||
+					// Otherwise check every sample to make sure we fall within the desired tolerance
+					is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle IF_ACL_COMPRESSION_OPTIMIZED(, max_adjusted_shell_distances[bone_index], desc.precision))
 					)
-
-#endif
 #endif
 				{
 					rotation_track_stream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
@@ -347,7 +338,12 @@ namespace acl
 				
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
-				if (bone_range.translation.is_constant() || is_translation_track_constant(bone_range.translation, constant_translation_threshold, desc.precision))
+				if (
+					// If range.min equals range.max, we have a single unique sample repeating
+					bone_range.translation.is_constant(0.0F) ||
+					// Otherwise check every sample to make sure we fall within the desired tolerance
+					is_translation_track_constant(bone_range.translation, constant_translation_threshold, desc.precision)
+					)
 
 #else
 
@@ -396,7 +392,11 @@ namespace acl
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
-				if (bone_range.scale.is_constant() || is_scale_track_constant(bone_range.scale, constant_scale_threshold, max_adjusted_shell_distances[bone_index], desc.precision))
+				if (
+					// If range.min equals range.max, we have a single unique sample repeating
+					bone_range.scale.is_constant(0.0F) ||
+					// Otherwise check every sample to make sure we fall within the desired tolerance
+					is_scale_track_constant(bone_range.scale, constant_scale_threshold, max_adjusted_shell_distances[bone_index], desc.precision))
 
 #else
 
