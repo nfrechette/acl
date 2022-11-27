@@ -203,7 +203,6 @@ namespace acl
 			bool has_constant_bone_translations = false;
 			bool has_constant_bone_scales = false;
 
-			const transform_link_t* transform_links = context.transform_links;
 			float* max_adjusted_shell_distances = allocate_type_array<float>(allocator, num_bones);
 			std::memset(max_adjusted_shell_distances, 0, num_bones * sizeof(float));
 			if (!context.has_additive_base)
@@ -238,20 +237,22 @@ namespace acl
 						adjusted_shell_distances[bone_index] = context.metadata[bone_index].shell_distance;
 					}
 
-					for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+					// Iterate over our transforms starting at the leaves since we propagate the information
+					// towards the parents
+					for (const uint32_t transform_index : make_reverse_iterator(context.sorted_transforms_parent_first, num_bones))
 					{
-						// Propagate adjusted_shell_distance into ancestors.
-						const transform_link_t& cur_link = transform_links[bone_index];
-						const uint32_t cur_child = cur_link.transform_index;
-						const uint32_t cur_parent = cur_link.parent_transform_index;
-						if (cur_parent != k_invalid_track_index)
+						const uint32_t parent_index = context.metadata[transform_index].parent_index;
+
+						if (parent_index != k_invalid_track_index)
 						{
-							const float link_distance = rtm::scalar_cast(rtm::vector_distance3(original_object_pose[cur_parent].translation, original_object_pose[cur_child].translation));
-							float& adjusted_parent_shell_distance = adjusted_shell_distances[cur_parent];
-							adjusted_parent_shell_distance = std::max(adjusted_parent_shell_distance, link_distance + adjusted_shell_distances[cur_child]);
+							const float link_distance = rtm::scalar_cast(rtm::vector_distance3(original_object_pose[parent_index].translation, original_object_pose[transform_index].translation));
+
+							float& adjusted_parent_shell_distance = adjusted_shell_distances[parent_index];
+							adjusted_parent_shell_distance = std::max(adjusted_parent_shell_distance, link_distance + adjusted_shell_distances[transform_index]);
 						}
-						float& max_adjusted_shell_distance = max_adjusted_shell_distances[cur_child];
-						max_adjusted_shell_distance = std::max(max_adjusted_shell_distance, adjusted_shell_distances[cur_child]);
+
+						float& max_adjusted_shell_distance = max_adjusted_shell_distances[transform_index];
+						max_adjusted_shell_distance = std::max(max_adjusted_shell_distance, adjusted_shell_distances[transform_index]);
 					}
 				}
 
