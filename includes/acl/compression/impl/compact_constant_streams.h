@@ -185,6 +185,115 @@ namespace acl
 
 #endif
 
+		// Rigid shell information per transform
+		struct rigid_shell_metadata_t
+		{
+			// Dominant local space shell distance (from transform tip) and precision
+			float shell_distance;
+			float precision;
+
+			// Parent space shell distance (from transform root)
+			float parent_shell_distance;
+		};
+
+#ifdef ACL_COMPRESSION_OPTIMIZED
+		inline rigid_shell_metadata_t* compute_shell_distances(iallocator& allocator, const clip_context& lossy_clip_context, const clip_context& raw_clip_context)
+		{
+			if (lossy_clip_context.has_additive_base)
+				return nullptr;
+
+			const uint32_t num_transforms = raw_clip_context.num_bones;
+			if (num_transforms == 0)
+				return nullptr;
+
+			const uint32_t num_samples = raw_clip_context.num_samples;
+			if (num_samples == 0)
+				return nullptr;
+
+			const segment_context& raw_segment = raw_clip_context.segments[0];
+			const rtm::vector4f one = rtm::vector_set(1.0F);
+			const bool has_scale = lossy_clip_context.has_scale;
+
+			rigid_shell_metadata_t* shell_metadata = allocate_type_array<rigid_shell_metadata_t>(allocator, num_transforms);
+
+			// Initialize everything
+			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+			{
+				const transform_metadata& metadata = raw_clip_context.metadata[transform_index];
+
+				shell_metadata[transform_index].shell_distance = metadata.shell_distance;
+				shell_metadata[transform_index].precision = metadata.precision;
+				shell_metadata[transform_index].parent_shell_distance = 0.0F;
+			}
+
+			// Iterate from leaf transforms towards their root, we want to bubble up our shell distance
+			for (const uint32_t transform_index : make_reverse_iterator(raw_clip_context.sorted_transforms_parent_first, num_transforms))
+			{
+				const transform_streams& raw_bone_stream = raw_segment.bone_streams[transform_index];
+
+				rigid_shell_metadata_t& shell = shell_metadata[transform_index];
+
+				// Use the accumulated shell distance so far to see how far it deforms with our local transform
+				const rtm::vector4f vtx0 = rtm::vector_set(shell.shell_distance, 0.0F, 0.0F);
+				const rtm::vector4f vtx1 = rtm::vector_set(0.0F, shell.shell_distance, 0.0F);
+				const rtm::vector4f vtx2 = rtm::vector_set(0.0F, 0.0F, shell.shell_distance);
+
+				// Calculate the shell distance in parent space
+				rtm::scalarf parent_shell_distance = rtm::scalar_set(0.0F);
+				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+				{
+					const rtm::vector4f raw_rotation = raw_bone_stream.rotations.get_raw_sample<rtm::quatf>(sample_index);
+					const rtm::vector4f raw_translation = raw_bone_stream.translations.get_raw_sample<rtm::vector4f>(sample_index);
+					const rtm::vector4f raw_scale = has_scale ? raw_bone_stream.scales.get_raw_sample<rtm::vector4f>(sample_index) : one;
+
+					const rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
+
+					const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_transform);
+					const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3(vtx1, raw_transform);
+					const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3(vtx2, raw_transform);
+
+					const rtm::scalarf vtx0_distance = rtm::vector_length3(raw_vtx0);
+					const rtm::scalarf vtx1_distance = rtm::vector_length3(raw_vtx1);
+					const rtm::scalarf vtx2_distance = rtm::vector_length3(raw_vtx2);
+
+					const rtm::scalarf transform_length = rtm::scalar_max(rtm::scalar_max(vtx0_distance, vtx1_distance), vtx2_distance);
+					parent_shell_distance = rtm::scalar_max(parent_shell_distance, transform_length);
+				}
+
+				shell.parent_shell_distance = rtm::scalar_cast(parent_shell_distance);
+
+				const transform_metadata& metadata = raw_clip_context.metadata[transform_index];
+
+				// Add precision since we want to make sure to encompass the maximum amount of error allowed
+				// Add it only for non-dominant transforms to account for the error they introduce
+				// Dominant transforms will use their own precision
+				// If our shell distance has changed, we are non-dominant since a dominant child updated it
+				if (shell.shell_distance != metadata.shell_distance)
+					shell.parent_shell_distance += metadata.precision;
+
+				if (metadata.parent_index != k_invalid_track_index)
+				{
+					// We have a parent, propagate our shell distance if we are a dominant transform
+					// We are a dominant transform if our shell distance in parent space is larger
+					// than our parent's shell distance in local space. Otherwise, if we are smaller
+					// or equal, it means that the full range of motion of our transform fits within
+					// the parent's shell distance.
+
+					rigid_shell_metadata_t& parent_shell = shell_metadata[metadata.parent_index];
+
+					if (shell.parent_shell_distance > parent_shell.shell_distance)
+					{
+						// We are the new dominant transform, use our shell distance and precision
+						parent_shell.shell_distance = shell.parent_shell_distance;
+						parent_shell.precision = shell.precision;
+					}
+				}
+			}
+
+			return shell_metadata;
+		}
+#endif
+
 		inline void compact_constant_streams(iallocator& allocator, clip_context& context, IF_ACL_COMPRESSION_OPTIMIZED(const clip_context& raw_clip_context, ) const track_array_qvvf& track_list, const compression_settings& settings)
 		{
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
@@ -197,68 +306,11 @@ namespace acl
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
-			ACL_ASSERT(raw_clip_context.num_segments == 1, "Raw context must contain a single segment!");
-			segment_context& raw_segment = raw_clip_context.segments[0];
 			bool has_constant_bone_rotations = false;
 			bool has_constant_bone_translations = false;
 			bool has_constant_bone_scales = false;
 
-			float* max_adjusted_shell_distances = allocate_type_array<float>(allocator, num_bones);
-			std::memset(max_adjusted_shell_distances, 0, num_bones * sizeof(float));
-			if (!context.has_additive_base)
-			{
-				// Propagate worst-case shell distance and object space distances, so we can prevent low-magnitude channels from becoming constant when they're exceeded.
-
-				float* adjusted_shell_distances = allocate_type_array<float>(allocator, num_bones);
-				rtm::qvvf* original_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-
-				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-				{
-					for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
-					{
-						rtm::qvvf& original_object_transform = original_object_pose[bone_index];
-						const transform_streams& raw_bone_stream = raw_segment.bone_streams[bone_index];
-						const track_desc_transformf& desc = track_list[bone_index].get_description();
-						const uint32_t parent_bone_index = desc.parent_index;
-						const rtm::qvvf original_local_transform = rtm::qvv_set(
-							raw_bone_stream.rotations.get_raw_sample<rtm::quatf>(sample_index),
-							raw_bone_stream.translations.get_raw_sample<rtm::vector4f>(sample_index),
-							raw_bone_stream.scales.get_raw_sample<rtm::vector4f>(sample_index));
-						if (parent_bone_index == k_invalid_track_index)
-						{
-							original_object_transform = original_local_transform;	// Just copy the root as-is, it has no parent and thus local and object space transforms are equal
-						}
-						else
-						{
-							original_object_transform = rtm::qvv_normalize(rtm::qvv_mul(original_local_transform, original_object_pose[parent_bone_index]));
-						}
-
-						// Initialize adjusted_shell_distance.
-						adjusted_shell_distances[bone_index] = context.metadata[bone_index].shell_distance;
-					}
-
-					// Iterate over our transforms starting at the leaves since we propagate the information
-					// towards the parents
-					for (const uint32_t transform_index : make_reverse_iterator(context.sorted_transforms_parent_first, num_bones))
-					{
-						const uint32_t parent_index = context.metadata[transform_index].parent_index;
-
-						if (parent_index != k_invalid_track_index)
-						{
-							const float link_distance = rtm::scalar_cast(rtm::vector_distance3(original_object_pose[parent_index].translation, original_object_pose[transform_index].translation));
-
-							float& adjusted_parent_shell_distance = adjusted_shell_distances[parent_index];
-							adjusted_parent_shell_distance = std::max(adjusted_parent_shell_distance, link_distance + adjusted_shell_distances[transform_index]);
-						}
-
-						float& max_adjusted_shell_distance = max_adjusted_shell_distances[transform_index];
-						max_adjusted_shell_distance = std::max(max_adjusted_shell_distance, adjusted_shell_distances[transform_index]);
-					}
-				}
-
-				deallocate_type_array(allocator, original_object_pose, num_bones);
-				deallocate_type_array(allocator, adjusted_shell_distances, num_bones);
-			}
+			rigid_shell_metadata_t* shell_metadata = compute_shell_distances(allocator, context, raw_clip_context);
 
 #endif
 
@@ -270,12 +322,12 @@ namespace acl
 				transform_streams& bone_stream = segment.bone_streams[bone_index];
 				transform_range& bone_range = context.ranges[bone_index];
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
 				ACL_ASSERT(bone_stream.rotations.get_num_samples() == num_samples, "Rotation sample mismatch!");
 				ACL_ASSERT(bone_stream.translations.get_num_samples() == num_samples, "Translation sample mismatch!");
 				ACL_ASSERT(bone_stream.scales.get_num_samples() == num_samples, "Scale sample mismatch!");
 
+#ifdef ACL_COMPRESSION_OPTIMIZED
+				const float dominant_shell_distance = shell_metadata[bone_index].shell_distance;
 #endif
 
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
@@ -295,7 +347,7 @@ namespace acl
 					// If range.min equals range.max, we have a single unique sample repeating
 					bone_range.rotation.is_constant(0.0F) ||
 					// Otherwise check every sample to make sure we fall within the desired tolerance
-					is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle IF_ACL_COMPRESSION_OPTIMIZED(, max_adjusted_shell_distances[bone_index], desc.precision))
+					is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle IF_ACL_COMPRESSION_OPTIMIZED(, dominant_shell_distance, desc.precision))
 					)
 #endif
 				{
@@ -398,7 +450,7 @@ namespace acl
 					// If range.min equals range.max, we have a single unique sample repeating
 					bone_range.scale.is_constant(0.0F) ||
 					// Otherwise check every sample to make sure we fall within the desired tolerance
-					is_scale_track_constant(bone_range.scale, constant_scale_threshold, max_adjusted_shell_distances[bone_index], desc.precision))
+					is_scale_track_constant(bone_range.scale, constant_scale_threshold, dominant_shell_distance, desc.precision))
 
 #else
 
@@ -452,8 +504,11 @@ namespace acl
 			context.has_scale = num_default_bone_scales != num_bones;
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
+			deallocate_type_array(allocator, shell_metadata, num_bones);
+#endif
 
-			deallocate_type_array(allocator, max_adjusted_shell_distances, num_bones);
+#ifdef ACL_COMPRESSION_OPTIMIZED
+
 			const bool has_scale = context.has_scale;
 			if (!context.has_additive_base &&
 				(has_constant_bone_rotations || has_constant_bone_translations || (has_scale && has_constant_bone_scales)))
@@ -464,6 +519,8 @@ namespace acl
 				//    -Correct for the manipulation of an original local value by an ancestor ASAP.
 				// We aren't modifying raw data here. We're modifying the raw channels generated from the raw data.
 				// The raw data is left alone, and is still used at the end of the process to do regression testing.
+
+				segment_context& raw_segment = raw_clip_context.segments[0];
 
 				struct DirtyState
 				{
