@@ -303,37 +303,20 @@ namespace acl
 		class track_stream_range
 		{
 		public:
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-			static track_stream_range RTM_SIMD_CALL from_min_max(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max, rtm::vector4f_arg2 weighted_average)
-			{
-				return track_stream_range(min, max, rtm::vector_sub(max, min), weighted_average);
-			}
-#else
 			static track_stream_range RTM_SIMD_CALL from_min_max(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max)
 			{
 				return track_stream_range(min, max, rtm::vector_sub(max, min));
 			}
-#endif
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-			static track_stream_range RTM_SIMD_CALL from_min_extent(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent, rtm::vector4f_arg2 weighted_average)
-			{
-				return track_stream_range(min, rtm::vector_add(min, extent), extent, weighted_average);
-			}
-#else
 			static track_stream_range RTM_SIMD_CALL from_min_extent(rtm::vector4f_arg0 min, rtm::vector4f_arg1 extent)
 			{
 				return track_stream_range(min, rtm::vector_add(min, extent), extent);
 			}
-#endif
 
 			track_stream_range()
 				: m_min(rtm::vector_zero())
 				, m_max(rtm::vector_zero())
 				, m_extent(rtm::vector_zero())
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-				, m_weighted_average(rtm::vector_zero())
-#endif
 			{}
 
 			rtm::vector4f RTM_SIMD_CALL get_min() const { return m_min; }
@@ -352,23 +335,11 @@ namespace acl
 					return rtm::vector_all_less_equal(m_extent, rtm::vector_set(threshold));
 			}
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-			rtm::vector4f RTM_SIMD_CALL get_weighted_average() const { return m_weighted_average; }
-#endif
-
 		private:
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-			track_stream_range(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max, rtm::vector4f_arg2 extent, rtm::vector4f_arg3 weighted_average)
-#else
 			track_stream_range(rtm::vector4f_arg0 min, rtm::vector4f_arg1 max, rtm::vector4f_arg2 extent)
-#endif
 				: m_min(min)
 				, m_max(max)
 				, m_extent(extent)
-
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-				, m_weighted_average(weighted_average)
-#endif
 			{
 				ACL_ASSERT(rtm::vector_all_greater_equal(max, min), "Max must be greater or equal to min");
 				ACL_ASSERT(rtm::vector_all_greater_equal(extent, rtm::vector_zero()) && rtm::vector_is_finite(extent), "Extent must be positive and finite");
@@ -377,11 +348,6 @@ namespace acl
 			rtm::vector4f	m_min;
 			rtm::vector4f	m_max;
 			rtm::vector4f	m_extent;
-
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-			rtm::vector4f	m_weighted_average;
-#endif
-
 		};
 
 		struct transform_range

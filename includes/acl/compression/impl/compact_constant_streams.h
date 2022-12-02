@@ -50,19 +50,12 @@ namespace acl
 
 	namespace acl_impl
 	{
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-		inline bool is_rotation_track_constant(const rotation_track_stream& rotations, float threshold_angle, rtm::quatf_arg0 ref_rotation)
-#else
 		inline bool is_rotation_track_constant(const rotation_track_stream& rotations, float threshold_angle IF_ACL_COMPRESSION_OPTIMIZED(, float max_adjusted_shell_distance, float precision))
-#endif
 		{
-
-#if !defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			// Calculating the average rotation and comparing every rotation in the track to it
 			// to determine if we are within the threshold seems overkill. We can't use the min/max for the range
 			// either because neither of those represents a valid rotation. Instead we grab
 			// the first rotation, and compare everything else to it.
-#endif
 
 			auto sample_to_quat = [](const rotation_track_stream& track, uint32_t sample_index)
 			{
@@ -87,9 +80,7 @@ namespace acl
 			if (num_samples <= 1)
 				return true;
 
-#if !defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
 			const rtm::quatf ref_rotation = sample_to_quat(rotations, 0);
-#endif
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
@@ -107,12 +98,7 @@ namespace acl
 			// This is used by raw clips, we must preserve the original values
 			const bool is_threshold_zero = threshold_angle == 0.0F;
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-#else
 			for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
-#endif
-
 			{
 				const rtm::quatf rotation = sample_to_quat(rotations, sample_index);
 
@@ -340,26 +326,18 @@ namespace acl
 				const float constant_translation_threshold = settings.translation_format != vector_format8::vector3f_full ? desc.constant_translation_threshold : 0.0F;
 				const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-				if (is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle, rtm::vector_to_quat(bone_range.rotation.get_weighted_average())))
-#else
 				if (
 					// If range.min equals range.max, we have a single unique sample repeating
 					bone_range.rotation.is_constant(0.0F) ||
 					// Otherwise check every sample to make sure we fall within the desired tolerance
 					is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle IF_ACL_COMPRESSION_OPTIMIZED(, dominant_shell_distance, desc.precision))
 					)
-#endif
 				{
 					rotation_track_stream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
 
 					const rtm::vector4f default_bind_rotation = rtm::quat_to_vector(desc.default_value.rotation);
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-					rtm::vector4f rotation = num_samples != 0 ? bone_range.rotation.get_weighted_average() : default_bind_rotation;
-#else
 					rtm::vector4f rotation = num_samples != 0 ? bone_stream.rotations.get_raw_sample<rtm::vector4f>(0) : default_bind_rotation;
-#endif
 
 					bone_stream.is_rotation_constant = true;
 
@@ -376,11 +354,7 @@ namespace acl
 					constant_stream.set_raw_sample(0, rotation);
 					bone_stream.rotations = std::move(constant_stream);
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-					bone_range.rotation = track_stream_range::from_min_extent(rotation, rtm::vector_zero(), rotation);
-#else
 					bone_range.rotation = track_stream_range::from_min_extent(rotation, rtm::vector_zero());
-#endif
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
@@ -410,11 +384,7 @@ namespace acl
 
 					const rtm::vector4f default_bind_translation = desc.default_value.translation;
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-					rtm::vector4f translation = num_samples != 0 ? bone_range.translation.get_weighted_average() : default_bind_translation;
-#else
 					rtm::vector4f translation = num_samples != 0 ? bone_stream.translations.get_raw_sample<rtm::vector4f>(0) : default_bind_translation;
-#endif
 
 					bone_stream.is_translation_constant = true;
 
@@ -431,11 +401,7 @@ namespace acl
 					constant_stream.set_raw_sample(0, translation);
 					bone_stream.translations = std::move(constant_stream);
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-					bone_range.translation = track_stream_range::from_min_extent(translation, rtm::vector_zero(), translation);
-#else
 					bone_range.translation = track_stream_range::from_min_extent(translation, rtm::vector_zero());
-#endif
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
@@ -463,11 +429,7 @@ namespace acl
 
 					const rtm::vector4f default_bind_scale = desc.default_value.scale;
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-					rtm::vector4f scale = (context.has_scale && (num_samples != 0)) ? bone_range.scale.get_weighted_average() : default_bind_scale;
-#else
 					rtm::vector4f scale = (context.has_scale && num_samples != 0) ? bone_stream.scales.get_raw_sample<rtm::vector4f>(0) : default_bind_scale;
-#endif
 
 					bone_stream.is_scale_constant = true;
 
@@ -484,11 +446,7 @@ namespace acl
 					constant_stream.set_raw_sample(0, scale);
 					bone_stream.scales = std::move(constant_stream);
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-					bone_range.scale = track_stream_range::from_min_extent(scale, rtm::vector_zero(), scale);
-#else
 					bone_range.scale = track_stream_range::from_min_extent(scale, rtm::vector_zero());
-#endif
 
 					num_default_bone_scales += bone_stream.is_scale_default ? 1 : 0;
 
