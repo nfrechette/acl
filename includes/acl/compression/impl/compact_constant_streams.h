@@ -57,30 +57,11 @@ namespace acl
 			// either because neither of those represents a valid rotation. Instead we grab
 			// the first rotation, and compare everything else to it.
 
-			auto sample_to_quat = [](const rotation_track_stream& track, uint32_t sample_index)
-			{
-				const rtm::vector4f rotation = track.get_raw_sample<rtm::vector4f>(sample_index);
-
-				switch (track.get_rotation_format())
-				{
-				case rotation_format8::quatf_full:
-					return rtm::vector_to_quat(rotation);
-				case rotation_format8::quatf_drop_w_full:
-				case rotation_format8::quatf_drop_w_variable:
-					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
-					// isn't very accurate on small inputs, we need to normalize
-					return rtm::quat_normalize(rtm::quat_from_positive_w(rotation));
-				default:
-					ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(track.get_rotation_format()));
-					return rtm::vector_to_quat(rotation);
-				}
-			};
-
 			const uint32_t num_samples = rotations.get_num_samples();
 			if (num_samples <= 1)
 				return true;
 
-			const rtm::quatf ref_rotation = sample_to_quat(rotations, 0);
+			const rtm::quatf ref_rotation = rotations.get_sample(0);
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
@@ -100,7 +81,7 @@ namespace acl
 
 			for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
 			{
-				const rtm::quatf rotation = sample_to_quat(rotations, sample_index);
+				const rtm::quatf rotation = rotations.get_sample(sample_index);
 
 				if (is_threshold_zero)
 				{
@@ -228,9 +209,9 @@ namespace acl
 				rtm::scalarf parent_shell_distance = rtm::scalar_set(0.0F);
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const rtm::vector4f raw_rotation = raw_bone_stream.rotations.get_raw_sample<rtm::quatf>(sample_index);
-					const rtm::vector4f raw_translation = raw_bone_stream.translations.get_raw_sample<rtm::vector4f>(sample_index);
-					const rtm::vector4f raw_scale = has_scale ? raw_bone_stream.scales.get_raw_sample<rtm::vector4f>(sample_index) : one;
+					const rtm::vector4f raw_rotation = raw_bone_stream.rotations.get_sample(sample_index);
+					const rtm::vector4f raw_translation = raw_bone_stream.translations.get_sample(sample_index);
+					const rtm::vector4f raw_scale = has_scale ? raw_bone_stream.scales.get_sample(sample_index) : one;
 
 					const rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
 
