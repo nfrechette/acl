@@ -209,7 +209,7 @@ namespace acl
 				rtm::scalarf parent_shell_distance = rtm::scalar_set(0.0F);
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const rtm::vector4f raw_rotation = raw_bone_stream.rotations.get_sample(sample_index);
+					const rtm::quatf raw_rotation = raw_bone_stream.rotations.get_sample(sample_index);
 					const rtm::vector4f raw_translation = raw_bone_stream.translations.get_sample(sample_index);
 					const rtm::vector4f raw_scale = has_scale ? raw_bone_stream.scales.get_sample(sample_index) : one;
 
