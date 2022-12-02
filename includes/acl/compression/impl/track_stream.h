@@ -235,6 +235,25 @@ namespace acl
 			}
 
 			rotation_format8 get_rotation_format() const { return m_format.rotation; }
+
+			rtm::quatf RTM_SIMD_CALL get_sample(uint32_t sample_index) const
+			{
+				const rtm::vector4f rotation = get_raw_sample<rtm::vector4f>(sample_index);
+
+				switch (m_format.rotation)
+				{
+				case rotation_format8::quatf_full:
+					return rtm::vector_to_quat(rotation);
+				case rotation_format8::quatf_drop_w_full:
+				case rotation_format8::quatf_drop_w_variable:
+					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+					// isn't very accurate on small inputs, we need to normalize
+					return rtm::quat_normalize(rtm::quat_from_positive_w(rotation));
+				default:
+					ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(m_format.rotation));
+					return rtm::vector_to_quat(rotation);
+				}
+			};
 		};
 
 		class translation_track_stream final : public track_stream
@@ -265,6 +284,11 @@ namespace acl
 			}
 
 			vector_format8 get_vector_format() const { return m_format.vector; }
+
+			rtm::vector4f RTM_SIMD_CALL get_sample(uint32_t sample_index) const
+			{
+				return get_raw_sample<rtm::vector4f>(sample_index);
+			}
 		};
 
 		class scale_track_stream final : public track_stream
@@ -295,6 +319,11 @@ namespace acl
 			}
 
 			vector_format8 get_vector_format() const { return m_format.vector; }
+
+			rtm::vector4f RTM_SIMD_CALL get_sample(uint32_t sample_index) const
+			{
+				return get_raw_sample<rtm::vector4f>(sample_index);
+			}
 		};
 
 		// For a rotation track, the extent only tells us if the track is constant or not
