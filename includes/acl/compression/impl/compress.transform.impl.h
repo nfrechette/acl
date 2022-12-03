@@ -181,7 +181,7 @@ namespace acl
 			extract_clip_bone_ranges(allocator, lossy_clip_context);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, lossy_clip_context, IF_ACL_COMPRESSION_OPTIMIZED(raw_clip_context,) track_list, settings);
+			compact_constant_streams(allocator, lossy_clip_context, raw_clip_context, track_list, settings);
 
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
