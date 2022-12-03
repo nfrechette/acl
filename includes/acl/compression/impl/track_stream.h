@@ -254,6 +254,11 @@ namespace acl
 					return rtm::vector_to_quat(rotation);
 				}
 			};
+
+			rtm::quatf RTM_SIMD_CALL get_sample_clamped(uint32_t sample_index) const
+			{
+				return get_sample(std::min(sample_index, m_num_samples - 1));
+			}
 		};
 
 		class translation_track_stream final : public track_stream
@@ -289,6 +294,11 @@ namespace acl
 			{
 				return get_raw_sample<rtm::vector4f>(sample_index);
 			}
+
+			rtm::vector4f RTM_SIMD_CALL get_sample_clamped(uint32_t sample_index) const
+			{
+				return get_sample(std::min(sample_index, m_num_samples - 1));
+			}
 		};
 
 		class scale_track_stream final : public track_stream
@@ -323,6 +333,11 @@ namespace acl
 			rtm::vector4f RTM_SIMD_CALL get_sample(uint32_t sample_index) const
 			{
 				return get_raw_sample<rtm::vector4f>(sample_index);
+			}
+
+			rtm::vector4f RTM_SIMD_CALL get_sample_clamped(uint32_t sample_index) const
+			{
+				return get_sample(std::min(sample_index, m_num_samples - 1));
 			}
 		};
 
