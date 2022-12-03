@@ -155,12 +155,14 @@ namespace acl
 		// Rigid shell information per transform
 		struct rigid_shell_metadata_t
 		{
-			// Dominant local space shell distance (from transform tip) and precision
-			float shell_distance;
-			float precision;
+			// Dominant local space shell distance (from transform tip)
+			float local_shell_distance;
 
 			// Parent space shell distance (from transform root)
 			float parent_shell_distance;
+
+			// Precision required on the surface of the rigid shell
+			float precision;
 		};
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
@@ -188,7 +190,7 @@ namespace acl
 			{
 				const transform_metadata& metadata = raw_clip_context.metadata[transform_index];
 
-				shell_metadata[transform_index].shell_distance = metadata.shell_distance;
+				shell_metadata[transform_index].local_shell_distance = metadata.shell_distance;
 				shell_metadata[transform_index].precision = metadata.precision;
 				shell_metadata[transform_index].parent_shell_distance = 0.0F;
 			}
@@ -201,9 +203,9 @@ namespace acl
 				rigid_shell_metadata_t& shell = shell_metadata[transform_index];
 
 				// Use the accumulated shell distance so far to see how far it deforms with our local transform
-				const rtm::vector4f vtx0 = rtm::vector_set(shell.shell_distance, 0.0F, 0.0F);
-				const rtm::vector4f vtx1 = rtm::vector_set(0.0F, shell.shell_distance, 0.0F);
-				const rtm::vector4f vtx2 = rtm::vector_set(0.0F, 0.0F, shell.shell_distance);
+				const rtm::vector4f vtx0 = rtm::vector_set(shell.local_shell_distance, 0.0F, 0.0F);
+				const rtm::vector4f vtx1 = rtm::vector_set(0.0F, shell.local_shell_distance, 0.0F);
+				const rtm::vector4f vtx2 = rtm::vector_set(0.0F, 0.0F, shell.local_shell_distance);
 
 				// Calculate the shell distance in parent space
 				rtm::scalarf parent_shell_distance = rtm::scalar_set(0.0F);
@@ -235,7 +237,7 @@ namespace acl
 				// Add it only for non-dominant transforms to account for the error they introduce
 				// Dominant transforms will use their own precision
 				// If our shell distance has changed, we are non-dominant since a dominant child updated it
-				if (shell.shell_distance != metadata.shell_distance)
+				if (shell.local_shell_distance != metadata.shell_distance)
 					shell.parent_shell_distance += metadata.precision;
 
 				if (metadata.parent_index != k_invalid_track_index)
@@ -248,10 +250,10 @@ namespace acl
 
 					rigid_shell_metadata_t& parent_shell = shell_metadata[metadata.parent_index];
 
-					if (shell.parent_shell_distance > parent_shell.shell_distance)
+					if (shell.parent_shell_distance > parent_shell.local_shell_distance)
 					{
 						// We are the new dominant transform, use our shell distance and precision
-						parent_shell.shell_distance = shell.parent_shell_distance;
+						parent_shell.local_shell_distance = shell.parent_shell_distance;
 						parent_shell.precision = shell.precision;
 					}
 				}
