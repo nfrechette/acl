@@ -30,6 +30,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/transform_error_metrics.h"
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
@@ -50,108 +51,6 @@ namespace acl
 
 	namespace acl_impl
 	{
-		inline bool is_rotation_track_constant(const rotation_track_stream& rotations, float threshold_angle IF_ACL_COMPRESSION_OPTIMIZED(, float max_adjusted_shell_distance, float precision))
-		{
-			// Calculating the average rotation and comparing every rotation in the track to it
-			// to determine if we are within the threshold seems overkill. We can't use the min/max for the range
-			// either because neither of those represents a valid rotation. Instead we grab
-			// the first rotation, and compare everything else to it.
-
-			const uint32_t num_samples = rotations.get_num_samples();
-			if (num_samples <= 1)
-				return true;
-
-			const rtm::quatf ref_rotation = rotations.get_sample(0);
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-			const rtm::vector4f shell_point_x = rtm::vector_set(max_adjusted_shell_distance, 0.0F, 0.0F, 0.0F);
-			const rtm::vector4f shell_point_y = rtm::vector_set(0.0F, max_adjusted_shell_distance, 0.0F, 0.0F);
-
-			const rtm::vector4f ref_vtx0 = rtm::quat_mul_vector3(shell_point_x, ref_rotation);
-			const rtm::vector4f ref_vtx1 = rtm::quat_mul_vector3(shell_point_y, ref_rotation);
-
-#endif
-
-			const rtm::quatf inv_ref_rotation = rtm::quat_conjugate(ref_rotation);
-
-			// If our error threshold is zero we want to test if we are binary exact
-			// This is used by raw clips, we must preserve the original values
-			const bool is_threshold_zero = threshold_angle == 0.0F;
-
-			for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
-			{
-				const rtm::quatf rotation = rotations.get_sample(sample_index);
-
-				if (is_threshold_zero)
-				{
-					// We care about quaternions being absolutely exact, not just equivalent on the hypersphere
-					if (!rtm::quat_are_equal(rotation, ref_rotation))
-						return false;
-				}
-				else
-				{
-					const rtm::quatf delta = rtm::quat_normalize(rtm::quat_mul(inv_ref_rotation, rotation));
-					if (!rtm::quat_near_identity(delta, threshold_angle))
-						return false;
-				}
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				if (max_adjusted_shell_distance == 0.0F)
-				{
-					continue;
-				}
-
-				const rtm::vector4f vtx0 = rtm::quat_mul_vector3(shell_point_x, rotation);
-				const rtm::vector4f vtx1 = rtm::quat_mul_vector3(shell_point_y, rotation);
-
-				const rtm::scalarf vtx0_error = rtm::vector_distance3(ref_vtx0, vtx0);
-				const rtm::scalarf vtx1_error = rtm::vector_distance3(ref_vtx1, vtx1);
-
-				if (rtm::scalar_cast(rtm::scalar_max(vtx0_error, vtx1_error)) > precision)
-				{
-					return false;
-				}
-
-#endif
-			}
-
-			return true;
-		}
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-		inline bool is_translation_track_constant(const track_stream_range& translation, float threshold, float precision)
-		{
-			if (!translation.is_constant(threshold))
-			{
-				return false;
-			}
-
-			const float error = rtm::scalar_cast(rtm::vector_length3(translation.get_extent()));
-			return (error <= precision);
-		}
-
-		inline bool is_scale_track_constant(const track_stream_range& scale, float threshold, float max_adjusted_shell_distance, float precision)
-		{
-			if (!scale.is_constant(threshold))
-			{
-				return false;
-			}
-
-			if (max_adjusted_shell_distance == 0.0F)
-			{
-				return true;
-			}
-
-			const rtm::vector4f vtx_error = rtm::vector_mul(scale.get_extent(), max_adjusted_shell_distance);
-			const float error = rtm::scalar_cast(rtm::vector_get_max_component(vtx_error));
-			return (error <= precision);
-		}
-
-#endif
-
 		// Rigid shell information per transform
 		struct rigid_shell_metadata_t
 		{
@@ -165,7 +64,6 @@ namespace acl
 			float precision;
 		};
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
 		// We use the raw data to compute the rigid shell since rotations might have been converted already
 		// We compute the largest value over the whole clip per transform
 		// TODO: We could compute a single value per sample and per transform as well but its unclear if this would provide an advantage
@@ -264,9 +162,251 @@ namespace acl
 
 			return shell_metadata;
 		}
-#endif
 
-		inline void compact_constant_streams(iallocator& allocator, clip_context& context, IF_ACL_COMPRESSION_OPTIMIZED(const clip_context& raw_clip_context, ) const track_array_qvvf& track_list, const compression_settings& settings)
+		// To detect if a sub-track is constant, we grab the first sample as our reference.
+		// We then measure the object space error using the qvv error metric and our
+		// dominant shell distance. If the error remains within our dominant precision
+		// then the sub-track is constant. We perform the same test using the default
+		// sub-track value to determine if it is a default sub-track.
+
+		inline bool RTM_SIMD_CALL are_rotations_constant(const transform_streams& raw_transform_stream, rtm::quatf_arg0 reference, const rigid_shell_metadata_t& shell)
+		{
+			const uint32_t num_samples = raw_transform_stream.rotations.get_num_samples();
+
+			qvvf_transform_error_metric::calculate_error_args error_metric_args;
+			error_metric_args.construct_sphere_shell(shell.local_shell_distance);
+
+			const qvvf_transform_error_metric error_metric;
+
+			const rtm::scalarf precision = rtm::scalar_set(shell.precision);
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				const rtm::quatf raw_rotation = raw_transform_stream.rotations.get_sample_clamped(sample_index);
+				const rtm::vector4f raw_translation = raw_transform_stream.translations.get_sample_clamped(sample_index);
+				const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
+
+				const rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
+				const rtm::qvvf lossy_transform = rtm::qvv_set(reference, raw_translation, raw_scale);
+
+				error_metric_args.transform0 = &raw_transform;
+				error_metric_args.transform1 = &lossy_transform;
+
+				const rtm::scalarf vtx_error = error_metric.calculate_error(error_metric_args);
+
+				// If our error exceeds the desired precision, we are not constant
+				if (rtm::scalar_greater_than(vtx_error, precision))
+					return false;
+			}
+
+			// All samples were tested against the reference value and the error remained within tolerance
+			return true;
+		}
+
+		inline bool are_rotations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const rigid_shell_metadata_t* shell_metadata, uint32_t transform_index)
+		{
+			if (lossy_clip_context.num_samples == 0)
+				return true;	// We are constant if we have no samples
+
+			// When we are using full precision, we are only constant if range.min == range.max, meaning
+			// we have a single unique and repeating sample
+			// We want to test if we are binary exact
+			// This is used by raw clips, we must preserve the original values
+			if (settings.rotation_format == rotation_format8::quatf_full)
+				return lossy_clip_context.ranges[transform_index].rotation.is_constant(0.0F);
+
+			const segment_context& segment = lossy_clip_context.segments[0];
+			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
+
+			// Otherwise check every sample to make sure we fall within the desired tolerance
+			return are_rotations_constant(raw_transform_stream, raw_transform_stream.rotations.get_sample(0), shell_metadata[transform_index]);
+		}
+
+		inline bool are_rotations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const rigid_shell_metadata_t* shell_metadata, const track_desc_transformf& desc, uint32_t transform_index)
+		{
+			if (lossy_clip_context.num_samples == 0)
+				return true;	// We are default if we have no samples
+
+			const rtm::vector4f default_bind_rotation = rtm::quat_to_vector(desc.default_value.rotation);
+
+			const segment_context& segment = lossy_clip_context.segments[0];
+			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
+
+			// When we are using full precision, we are only default if (sample 0 == default value), meaning
+			// we have a single unique and repeating default sample
+			// We want to test if we are binary exact
+			// This is used by raw clips, we must preserve the original values
+			if (settings.rotation_format == rotation_format8::quatf_full)
+			{
+				const rtm::vector4f rotation = raw_transform_stream.rotations.get_raw_sample<rtm::vector4f>(0);
+				return rtm::vector_all_equal(rotation, default_bind_rotation);
+			}
+
+			// Otherwise check every sample to make sure we fall within the desired tolerance
+			return are_rotations_constant(raw_transform_stream, default_bind_rotation, shell_metadata[transform_index]);
+		}
+
+		inline bool RTM_SIMD_CALL are_translations_constant(const transform_streams& raw_transform_stream, rtm::vector4f_arg0 reference, const rigid_shell_metadata_t& shell)
+		{
+			const uint32_t num_samples = raw_transform_stream.translations.get_num_samples();
+
+			qvvf_transform_error_metric::calculate_error_args error_metric_args;
+			error_metric_args.construct_sphere_shell(shell.local_shell_distance);
+
+			const qvvf_transform_error_metric error_metric;
+
+			const rtm::scalarf precision = rtm::scalar_set(shell.precision);
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				const rtm::quatf raw_rotation = raw_transform_stream.rotations.get_sample_clamped(sample_index);
+				const rtm::vector4f raw_translation = raw_transform_stream.translations.get_sample_clamped(sample_index);
+				const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
+
+				const rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
+				const rtm::qvvf lossy_transform = rtm::qvv_set(raw_rotation, reference, raw_scale);
+
+				error_metric_args.transform0 = &raw_transform;
+				error_metric_args.transform1 = &lossy_transform;
+
+				const rtm::scalarf vtx_error = error_metric.calculate_error(error_metric_args);
+
+				// If our error exceeds the desired precision, we are not constant
+				if (rtm::scalar_greater_than(vtx_error, precision))
+					return false;
+			}
+
+			// All samples were tested against the reference value and the error remained within tolerance
+			return true;
+		}
+
+		inline bool are_translations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const rigid_shell_metadata_t* shell_metadata, uint32_t transform_index)
+		{
+			if (lossy_clip_context.num_samples == 0)
+				return true;	// We are constant if we have no samples
+
+			// When we are using full precision, we are only constant if range.min == range.max, meaning
+			// we have a single unique and repeating sample
+			// We want to test if we are binary exact
+			// This is used by raw clips, we must preserve the original values
+			if (settings.translation_format == vector_format8::vector3f_full)
+				return lossy_clip_context.ranges[transform_index].translation.is_constant(0.0F);
+
+			const segment_context& segment = lossy_clip_context.segments[0];
+			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
+
+			// Otherwise check every sample to make sure we fall within the desired tolerance
+			return are_translations_constant(raw_transform_stream, raw_transform_stream.translations.get_sample(0), shell_metadata[transform_index]);
+		}
+
+		inline bool are_translations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const rigid_shell_metadata_t* shell_metadata, const track_desc_transformf& desc, uint32_t transform_index)
+		{
+			if (lossy_clip_context.num_samples == 0)
+				return true;	// We are default if we have no samples
+
+			const rtm::vector4f default_bind_translation = desc.default_value.translation;
+
+			const segment_context& segment = lossy_clip_context.segments[0];
+			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
+
+			// When we are using full precision, we are only default if (sample 0 == default value), meaning
+			// we have a single unique and repeating default sample
+			// We want to test if we are binary exact
+			// This is used by raw clips, we must preserve the original values
+			if (settings.translation_format == vector_format8::vector3f_full)
+			{
+				const rtm::vector4f translation = raw_transform_stream.translations.get_raw_sample<rtm::vector4f>(0);
+				return rtm::vector_all_equal(translation, default_bind_translation);
+			}
+
+			// Otherwise check every sample to make sure we fall within the desired tolerance
+			return are_translations_constant(raw_transform_stream, default_bind_translation, shell_metadata[transform_index]);
+		}
+
+		inline bool RTM_SIMD_CALL are_scales_constant(const transform_streams& raw_transform_stream, rtm::vector4f_arg0 reference, const rigid_shell_metadata_t& shell)
+		{
+			const uint32_t num_samples = raw_transform_stream.scales.get_num_samples();
+
+			qvvf_transform_error_metric::calculate_error_args error_metric_args;
+			error_metric_args.construct_sphere_shell(shell.local_shell_distance);
+
+			const qvvf_transform_error_metric error_metric;
+
+			const rtm::scalarf precision = rtm::scalar_set(shell.precision);
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				const rtm::quatf raw_rotation = raw_transform_stream.rotations.get_sample_clamped(sample_index);
+				const rtm::vector4f raw_translation = raw_transform_stream.translations.get_sample_clamped(sample_index);
+				const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
+
+				const rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
+				const rtm::qvvf lossy_transform = rtm::qvv_set(raw_rotation, raw_translation, reference);
+
+				error_metric_args.transform0 = &raw_transform;
+				error_metric_args.transform1 = &lossy_transform;
+
+				const rtm::scalarf vtx_error = error_metric.calculate_error(error_metric_args);
+
+				// If our error exceeds the desired precision, we are not constant
+				if (rtm::scalar_greater_than(vtx_error, precision))
+					return false;
+			}
+
+			// All samples were tested against the reference value and the error remained within tolerance
+			return true;
+		}
+
+		inline bool are_scales_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const rigid_shell_metadata_t* shell_metadata, uint32_t transform_index)
+		{
+			if (lossy_clip_context.num_samples == 0)
+				return true;	// We are constant if we have no samples
+
+			if (!lossy_clip_context.has_scale)
+				return true;	// We are constant if we have no scale
+
+			// When we are using full precision, we are only constant if range.min == range.max, meaning
+			// we have a single unique and repeating sample
+			// We want to test if we are binary exact
+			// This is used by raw clips, we must preserve the original values
+			if (settings.scale_format == vector_format8::vector3f_full)
+				return lossy_clip_context.ranges[transform_index].scale.is_constant(0.0F);
+
+			const segment_context& segment = lossy_clip_context.segments[0];
+			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
+
+			// Otherwise check every sample to make sure we fall within the desired tolerance
+			return are_scales_constant(raw_transform_stream, raw_transform_stream.scales.get_sample(0), shell_metadata[transform_index]);
+		}
+
+		inline bool are_scales_default(const compression_settings& settings, const clip_context& lossy_clip_context, const rigid_shell_metadata_t* shell_metadata, const track_desc_transformf& desc, uint32_t transform_index)
+		{
+			if (lossy_clip_context.num_samples == 0)
+				return true;	// We are default if we have no samples
+
+			if (!lossy_clip_context.has_scale)
+				return true;	// We are default if we have no scale
+
+			const rtm::vector4f default_bind_scale = desc.default_value.scale;
+
+			const segment_context& segment = lossy_clip_context.segments[0];
+			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
+
+			// When we are using full precision, we are only default if (sample 0 == default value), meaning
+			// we have a single unique and repeating default sample
+			// We want to test if we are binary exact
+			// This is used by raw clips, we must preserve the original values
+			if (settings.scale_format == vector_format8::vector3f_full)
+			{
+				const rtm::vector4f scale = raw_transform_stream.scales.get_raw_sample<rtm::vector4f>(0);
+				return rtm::vector_all_equal(scale, default_bind_scale);
+			}
+
+			// Otherwise check every sample to make sure we fall within the desired tolerance
+			return are_scales_constant(raw_transform_stream, default_bind_scale, shell_metadata[transform_index]);
+		}
+
+		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const clip_context& raw_clip_context, const track_array_qvvf& track_list, const compression_settings& settings)
 		{
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			segment_context& segment = context.segments[0];
@@ -277,14 +417,12 @@ namespace acl
 			uint32_t num_default_bone_scales = 0;
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
-
 			bool has_constant_bone_rotations = false;
 			bool has_constant_bone_translations = false;
 			bool has_constant_bone_scales = false;
+#endif
 
 			rigid_shell_metadata_t* shell_metadata = compute_shell_distances(allocator, context, raw_clip_context);
-
-#endif
 
 			// When a stream is constant, we only keep the first sample
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
@@ -298,26 +436,12 @@ namespace acl
 				ACL_ASSERT(bone_stream.translations.get_num_samples() == num_samples, "Translation sample mismatch!");
 				ACL_ASSERT(bone_stream.scales.get_num_samples() == num_samples, "Scale sample mismatch!");
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-				const float dominant_shell_distance = shell_metadata[bone_index].shell_distance;
-#endif
-
 				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 				ACL_ASSERT(bone_stream.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", bone_stream.rotations.get_sample_size(), sizeof(rtm::vector4f));
 				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
 				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
 
-				// If we request raw data, use a 0.0 threshold for safety
-				const float constant_rotation_threshold_angle = settings.rotation_format != rotation_format8::quatf_full ? desc.constant_rotation_threshold_angle : 0.0F;
-				const float constant_translation_threshold = settings.translation_format != vector_format8::vector3f_full ? desc.constant_translation_threshold : 0.0F;
-				const float constant_scale_threshold = settings.scale_format != vector_format8::vector3f_full ? desc.constant_scale_threshold : 0.0F;
-
-				if (
-					// If range.min equals range.max, we have a single unique sample repeating
-					bone_range.rotation.is_constant(0.0F) ||
-					// Otherwise check every sample to make sure we fall within the desired tolerance
-					is_rotation_track_constant(bone_stream.rotations, constant_rotation_threshold_angle IF_ACL_COMPRESSION_OPTIMIZED(, dominant_shell_distance, desc.precision))
-					)
+				if (are_rotations_constant(settings, context, shell_metadata, bone_index))
 				{
 					rotation_track_stream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
 
@@ -327,15 +451,11 @@ namespace acl
 
 					bone_stream.is_rotation_constant = true;
 
-					// If our error threshold is zero we want to test if we are binary exact
-					// This is used by raw clips, we must preserve the original values
-					if (constant_rotation_threshold_angle == 0.0F)
-						bone_stream.is_rotation_default = rtm::vector_all_equal(rotation, default_bind_rotation);
-					else
-						bone_stream.is_rotation_default = rtm::quat_near_identity(rtm::quat_normalize(rtm::quat_mul(rtm::vector_to_quat(rotation), rtm::quat_conjugate(rtm::vector_to_quat(default_bind_rotation)))), constant_rotation_threshold_angle);
-
-					if (bone_stream.is_rotation_default)
+					if (are_rotations_default(settings, context, shell_metadata, desc, bone_index))
+					{
+						bone_stream.is_rotation_default = true;
 						rotation = default_bind_rotation;
+					}
 
 					constant_stream.set_raw_sample(0, rotation);
 					bone_stream.rotations = std::move(constant_stream);
@@ -343,28 +463,11 @@ namespace acl
 					bone_range.rotation = track_stream_range::from_min_extent(rotation, rtm::vector_zero());
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
-
 					has_constant_bone_rotations = true;
-
 #endif
 				}
 
-				
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				if (
-					// If range.min equals range.max, we have a single unique sample repeating
-					bone_range.translation.is_constant(0.0F) ||
-					// Otherwise check every sample to make sure we fall within the desired tolerance
-					is_translation_track_constant(bone_range.translation, constant_translation_threshold, desc.precision)
-					)
-
-#else
-
-				if (bone_range.translation.is_constant(constant_translation_threshold))
-
-#endif
-
+				if (are_translations_constant(settings, context, shell_metadata, bone_index))
 				{
 					translation_track_stream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
 
@@ -374,15 +477,11 @@ namespace acl
 
 					bone_stream.is_translation_constant = true;
 
-					// If our error threshold is zero we want to test if we are binary exact
-					// This is used by raw clips, we must preserve the original values
-					if (constant_translation_threshold == 0.0F)
-						bone_stream.is_translation_default = rtm::vector_all_equal3(translation, default_bind_translation);
-					else
-						bone_stream.is_translation_default = rtm::vector_all_near_equal3(translation, default_bind_translation, constant_translation_threshold);
-
-					if (bone_stream.is_translation_default)
+					if (are_translations_default(settings, context, shell_metadata, desc, bone_index))
+					{
+						bone_stream.is_translation_default = true;
 						translation = default_bind_translation;
+					}
 
 					constant_stream.set_raw_sample(0, translation);
 					bone_stream.translations = std::move(constant_stream);
@@ -390,26 +489,11 @@ namespace acl
 					bone_range.translation = track_stream_range::from_min_extent(translation, rtm::vector_zero());
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
-
 					has_constant_bone_translations = true;
-
 #endif
 				}
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				if (
-					// If range.min equals range.max, we have a single unique sample repeating
-					bone_range.scale.is_constant(0.0F) ||
-					// Otherwise check every sample to make sure we fall within the desired tolerance
-					is_scale_track_constant(bone_range.scale, constant_scale_threshold, dominant_shell_distance, desc.precision))
-
-#else
-
-				if(bone_range.scale.is_constant(constant_scale_threshold))
-
-#endif
-
+				if (are_scales_constant(settings, context, shell_metadata, bone_index))
 				{
 					scale_track_stream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
 
@@ -419,15 +503,11 @@ namespace acl
 
 					bone_stream.is_scale_constant = true;
 
-					// If our error threshold is zero we want to test if we are binary exact
-					// This is used by raw clips, we must preserve the original values
-					if (constant_scale_threshold == 0.0F)
-						bone_stream.is_scale_default = rtm::vector_all_equal3(scale, default_bind_scale);
-					else
-						bone_stream.is_scale_default = rtm::vector_all_near_equal3(scale, default_bind_scale, constant_scale_threshold);
-
-					if (bone_stream.is_scale_default)
+					if (are_scales_default(settings, context, shell_metadata, desc, bone_index))
+					{
+						bone_stream.is_scale_default = true;
 						scale = default_bind_scale;
+					}
 
 					constant_stream.set_raw_sample(0, scale);
 					bone_stream.scales = std::move(constant_stream);
@@ -437,19 +517,14 @@ namespace acl
 					num_default_bone_scales += bone_stream.is_scale_default ? 1 : 0;
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
-
 					has_constant_bone_scales = true;
-
 #endif
-
 				}
 			}
 
 			context.has_scale = num_default_bone_scales != num_bones;
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
 			deallocate_type_array(allocator, shell_metadata, num_bones);
-#endif
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
