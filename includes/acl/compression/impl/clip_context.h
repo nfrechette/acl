@@ -143,6 +143,19 @@ namespace acl
 			float shell_distance						= 0.0F;
 		};
 
+		// Rigid shell information per transform
+		struct rigid_shell_metadata_t
+		{
+			// Dominant local space shell distance (from transform tip)
+			float local_shell_distance;
+
+			// Parent space shell distance (from transform root)
+			float parent_shell_distance;
+
+			// Precision required on the surface of the rigid shell
+			float precision;
+		};
+
 		// Represents the working space for a clip (raw or lossy)
 		struct clip_context
 		{
@@ -164,6 +177,11 @@ namespace acl
 			// List of transform indices sorted by parent first then sibling transforms are sorted by their transform index (num_bones present)
 			// TODO: Same for raw/lossy/additive clip context, can we share?
 			uint32_t* sorted_transforms_parent_first	= nullptr;
+
+			// List of shell metadata for each transform (num_bones present)
+			// Data is aggregate of whole clip
+			// Shared between all clip contexts, not owned
+			const rigid_shell_metadata_t* clip_shell_metadata	= nullptr;
 
 			uint32_t num_segments						= 0;
 			uint32_t num_bones							= 0;	// TODO: Rename num_transforms
@@ -217,6 +235,7 @@ namespace acl
 			out_clip_context.metadata = allocate_type_array<transform_metadata>(allocator, num_transforms);
 			out_clip_context.leaf_transform_chains = nullptr;
 			out_clip_context.sorted_transforms_parent_first = allocate_type_array<uint32_t>(allocator, num_transforms);
+			out_clip_context.clip_shell_metadata = nullptr;
 			out_clip_context.num_segments = 1;
 			out_clip_context.num_bones = num_transforms;
 			out_clip_context.num_samples_allocated = num_samples;

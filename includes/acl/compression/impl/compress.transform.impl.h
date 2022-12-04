@@ -171,6 +171,15 @@ namespace acl
 			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, additive_base_clip_context))
 				return error_result("Some base samples are not finite");
 
+			// Topology dependent data, not specific to clip context
+			const uint32_t num_input_transforms = raw_clip_context.num_bones;
+			rigid_shell_metadata_t* clip_shell_metadata = compute_clip_shell_distances(allocator, raw_clip_context, additive_base_clip_context);
+
+			raw_clip_context.clip_shell_metadata = clip_shell_metadata;
+			lossy_clip_context.clip_shell_metadata = clip_shell_metadata;
+			if (is_additive)
+				additive_base_clip_context.clip_shell_metadata = clip_shell_metadata;
+
 			// Wrap instead of clamp if we loop
 			optimize_looping(lossy_clip_context, track_list, settings);
 
@@ -181,7 +190,7 @@ namespace acl
 			extract_clip_bone_ranges(allocator, lossy_clip_context);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, lossy_clip_context, raw_clip_context, additive_base_clip_context, track_list, settings);
+			compact_constant_streams(allocator, lossy_clip_context, raw_clip_context, track_list, settings);
 
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
@@ -519,6 +528,7 @@ namespace acl
 #endif
 
 			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);
+			deallocate_type_array(allocator, clip_shell_metadata, num_input_transforms);
 			destroy_clip_context(lossy_clip_context);
 			destroy_clip_context(raw_clip_context);
 			destroy_clip_context(additive_base_clip_context);
