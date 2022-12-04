@@ -27,9 +27,6 @@
       <Item Name="precision" Condition="m_category == acl::track_category8::scalarf">m_desc.scalar.precision</Item>
       <Item Name="precision" Condition="m_category == acl::track_category8::transformf">m_desc.transform.precision</Item>
       <Item Name="shell_distance" Condition="m_category == acl::track_category8::transformf">m_desc.transform.shell_distance</Item>
-      <Item Name="constant_rotation_threshold_angle" Condition="m_category == acl::track_category8::transformf">m_desc.transform.constant_rotation_threshold_angle</Item>
-      <Item Name="constant_translation_threshold" Condition="m_category == acl::track_category8::transformf">m_desc.transform.constant_translation_threshold</Item>
-      <Item Name="constant_scale_threshold" Condition="m_category == acl::track_category8::transformf">m_desc.transform.constant_scale_threshold</Item>
       <Item Name="output_index" Condition="m_category == acl::track_category8::scalarf">m_desc.scalar.output_index</Item>
       <Item Name="output_index" Condition="m_category == acl::track_category8::transformf">m_desc.transform.output_index</Item>
       <Item Name="parent_index" Condition="m_category == acl::track_category8::transformf">m_desc.transform.parent_index</Item>

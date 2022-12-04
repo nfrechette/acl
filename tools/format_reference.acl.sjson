@@ -9,8 +9,8 @@
 // The ACL file format version
 // version = 1		// Initial version
 // version = 2		// Introduced clip compression settings
-//version = 3		// Introduced additive clip related data
-//version = 4		// Introduced track list related data
+// version = 3		// Introduced additive clip related data
+// version = 4		// Introduced track list related data
 version = 5			// Renamed enums for 2.0 and other related changes
 
 // BEGIN CLIP RELATED DATA
@@ -83,18 +83,22 @@ settings =
 
 	// Threshold angle value to use when detecting if a rotation track is constant
 	// Defaults to '0.00284714461' radians
+	// DEPRECATED, NO LONGER USED OR NECESSARY
 	constant_rotation_threshold_angle = 0.00284714461
 
 	// Threshold value to use when detecting if a translation track is constant
 	// Defaults to '0.001' centimeters
+	// DEPRECATED, NO LONGER USED OR NECESSARY
 	constant_translation_threshold = 0.001
 
 	// Threshold value to use when detecting if a scale track is constant
 	// Defaults to '0.00001'
+	// DEPRECATED, NO LONGER USED OR NECESSARY
 	constant_scale_threshold = 0.00001
 
 	// The error threshold used when optimizing the bit rate
 	// Defaults to '0.01' centimeters
+	// DEPRECATED, NO LONGER USED OR NECESSARY
 	error_threshold = 0.01
 }
 
@@ -237,14 +241,17 @@ tracks =
 
 		// The constant rotation detection threshold
 		// Transforms only
+		// DEPRECATED, NO LONGER USED OR NECESSARY
 		constant_rotation_threshold_angle = 0.1
 
 		// The constant translation detection threshold
 		// Transforms only
+		// DEPRECATED, NO LONGER USED OR NECESSARY
 		constant_translation_threshold = 0.1
 
 		// The constant scale detection threshold
 		// Transforms only
+		// DEPRECATED, NO LONGER USED OR NECESSARY
 		constant_scale_threshold = 0.1
 
 		// Bind pose transform information. All three are optional
