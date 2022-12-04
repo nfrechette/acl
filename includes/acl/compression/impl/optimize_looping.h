@@ -46,7 +46,7 @@ namespace acl
 
 	namespace acl_impl
 	{
-		inline void optimize_looping(clip_context& context, const track_array_qvvf& track_list, const compression_settings& settings)
+		inline void optimize_looping(clip_context& context, const compression_settings& settings)
 		{
 			if (!settings.optimize_loops)
 				return;	// We don't want to optimize loops, nothing to do
@@ -77,38 +77,41 @@ namespace acl
 			segment_context& segment = context.segments[0];
 			const uint32_t last_sample_index = segment.num_samples - 1;
 
+			qvvf_transform_error_metric::calculate_error_args error_metric_args;
+			const qvvf_transform_error_metric error_metric;
+
 			const uint32_t num_transforms = segment.num_bones;
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const track_desc_transformf& desc = track_list[transform_index].get_description();
+				const rigid_shell_metadata_t& shell = context.clip_shell_metadata[transform_index];
 
-				const rtm::quatf first_rotation = segment.bone_streams[transform_index].rotations.get_raw_sample<rtm::quatf>(0);
-				const rtm::quatf inv_first_rotation = rtm::quat_conjugate(first_rotation);
-				const rtm::quatf last_rotation = segment.bone_streams[transform_index].rotations.get_raw_sample<rtm::quatf>(last_sample_index);
-				const rtm::quatf delta_rotation = rtm::quat_normalize(rtm::quat_mul(inv_first_rotation, last_rotation));
-				if (!rtm::quat_near_identity(delta_rotation, desc.constant_rotation_threshold_angle))
+				error_metric_args.construct_sphere_shell(shell.local_shell_distance);
+
+				const rtm::scalarf precision = rtm::scalar_set(shell.precision);
+
+				const transform_streams& lossy_transform_stream = segment.bone_streams[transform_index];
+
+				const rtm::quatf first_rotation = lossy_transform_stream.rotations.get_sample_clamped(0);
+				const rtm::vector4f first_translation = lossy_transform_stream.translations.get_sample_clamped(0);
+				const rtm::vector4f first_scale = lossy_transform_stream.scales.get_sample_clamped(0);
+
+				const rtm::quatf last_rotation = lossy_transform_stream.rotations.get_sample_clamped(last_sample_index);
+				const rtm::vector4f last_translation = lossy_transform_stream.translations.get_sample_clamped(last_sample_index);
+				const rtm::vector4f last_scale = lossy_transform_stream.scales.get_sample_clamped(last_sample_index);
+
+				const rtm::qvvf first_transform = rtm::qvv_set(first_rotation, first_translation, first_scale);
+				const rtm::qvvf last_transform = rtm::qvv_set(last_rotation, last_translation, last_scale);
+
+				error_metric_args.transform0 = &first_transform;
+				error_metric_args.transform1 = &last_transform;
+
+				const rtm::scalarf vtx_error = error_metric.calculate_error(error_metric_args);
+
+				// If our error exceeds the desired precision, we are not wrapping
+				if (rtm::scalar_greater_than(vtx_error, precision))
 				{
 					is_wrapping = false;
 					break;
-				}
-
-				const rtm::vector4f first_translation = segment.bone_streams[transform_index].translations.get_raw_sample<rtm::vector4f>(0);
-				const rtm::vector4f last_translation = segment.bone_streams[transform_index].translations.get_raw_sample<rtm::vector4f>(last_sample_index);
-				if (!rtm::vector_all_near_equal3(first_translation, last_translation, desc.constant_translation_threshold))
-				{
-					is_wrapping = false;
-					break;
-				}
-
-				if (context.has_scale)
-				{
-					const rtm::vector4f first_scale = segment.bone_streams[transform_index].scales.get_raw_sample<rtm::vector4f>(0);
-					const rtm::vector4f last_scale = segment.bone_streams[transform_index].scales.get_raw_sample<rtm::vector4f>(last_sample_index);
-					if (!rtm::vector_all_near_equal3(first_scale, last_scale, desc.constant_scale_threshold))
-					{
-						is_wrapping = false;
-						break;
-					}
 				}
 			}
 

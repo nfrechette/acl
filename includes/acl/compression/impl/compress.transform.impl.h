@@ -181,7 +181,7 @@ namespace acl
 				additive_base_clip_context.clip_shell_metadata = clip_shell_metadata;
 
 			// Wrap instead of clamp if we loop
-			optimize_looping(lossy_clip_context, track_list, settings);
+			optimize_looping(lossy_clip_context, settings);
 
 			// Convert our rotations if we need to
 			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format);
