@@ -158,9 +158,6 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	desc1.precision = 0.001F;
 	desc1.parent_index = 0;
 	desc1.shell_distance = 0.1241F;
-	desc1.constant_rotation_threshold_angle = 21.0F;
-	desc1.constant_translation_threshold = 0.11F;
-	desc1.constant_scale_threshold = 12.0F;
 	track_qvvf track1 = track_qvvf::make_reserve(desc1, allocator, num_samples, 32.0F);
 	track1[0].rotation = rtm::quat_from_euler(1.1F, 1.5F, 1.7F);
 	track1[0].translation = rtm::vector_set(0.0221F, 10.6F, 22.3F);
@@ -263,9 +260,6 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 		CHECK(file_track.get_description().parent_index == ref_track.get_description().parent_index);
 		CHECK(rtm::scalar_near_equal(file_track.get_description().precision, ref_track.get_description().precision, 0.0F));
 		CHECK(rtm::scalar_near_equal(file_track.get_description().shell_distance, ref_track.get_description().shell_distance, 0.0F));
-		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_rotation_threshold_angle, ref_track.get_description().constant_rotation_threshold_angle, 0.0F));
-		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_translation_threshold, ref_track.get_description().constant_translation_threshold, 0.0F));
-		CHECK(rtm::scalar_near_equal(file_track.get_description().constant_scale_threshold, ref_track.get_description().constant_scale_threshold, 0.0F));
 		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
 		CHECK(file_track.get_output_index() == ref_track.get_output_index());
 		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());

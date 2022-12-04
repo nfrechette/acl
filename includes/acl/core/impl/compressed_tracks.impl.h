@@ -238,6 +238,10 @@ namespace acl
 		if (version >= compressed_tracks_version16::v02_01_99)
 			track_description_size += sizeof(float) * 10;
 
+		// ACL 2.1 removes: constant thresholds
+		if (version >= compressed_tracks_version16::v02_01_99_1)
+			track_description_size -= sizeof(float) * 3;
+
 		const float* description_data = reinterpret_cast<const float*>(descriptions + (size_t(track_index) * track_description_size));
 
 		// Because the data has already been compressed, any track output remapping has already happened
@@ -246,15 +250,17 @@ namespace acl
 		out_description.parent_index = parent_track_indices[track_index];
 		out_description.precision = description_data[0];
 		out_description.shell_distance = description_data[1];
-		out_description.constant_rotation_threshold_angle = description_data[2];
-		out_description.constant_translation_threshold = description_data[3];
-		out_description.constant_scale_threshold = description_data[4];
 
+		// ACL 2.1 adds: default_value
 		if (version >= compressed_tracks_version16::v02_01_99)
 		{
-			out_description.default_value.rotation = rtm::quat_load(description_data + 5);
-			out_description.default_value.translation = rtm::vector_load3(description_data + 9);
-			out_description.default_value.scale = rtm::vector_load3(description_data + 12);
+			// ACL 2.1 removes: constant thresholds
+			if (version < compressed_tracks_version16::v02_01_99_1)
+				description_data += 3;
+
+			out_description.default_value.rotation = rtm::quat_load(description_data + 2);
+			out_description.default_value.translation = rtm::vector_load3(description_data + 6);
+			out_description.default_value.scale = rtm::vector_load3(description_data + 9);
 		}
 		else
 		{

@@ -179,16 +179,13 @@ namespace acl
 						float* data = reinterpret_cast<float*>(output_buffer);
 						data[0] = desc.precision;
 						data[1] = desc.shell_distance;
-						data[2] = desc.constant_rotation_threshold_angle;
-						data[3] = desc.constant_translation_threshold;
-						data[4] = desc.constant_scale_threshold;
 
-						rtm::quat_store(desc.default_value.rotation, data + 5);
-						rtm::vector_store3(desc.default_value.translation, data + 9);
-						rtm::vector_store3(desc.default_value.scale, data + 12);
+						rtm::quat_store(desc.default_value.rotation, data + 2);
+						rtm::vector_store3(desc.default_value.translation, data + 6);
+						rtm::vector_store3(desc.default_value.scale, data + 9);
 					}
 
-					output_buffer += sizeof(float) * 15;
+					output_buffer += sizeof(float) * 12;
 				}
 			}
 

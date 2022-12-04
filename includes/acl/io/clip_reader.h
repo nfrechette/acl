@@ -187,9 +187,6 @@ namespace acl
 		float m_additive_base_sample_rate				= 0.0F;
 
 		bool m_has_settings								= false;
-		float m_constant_rotation_threshold_angle		= 0.0F;
-		float m_constant_translation_threshold			= 0.0F;
-		float m_constant_scale_threshold				= 0.0F;
 		float m_error_threshold							= 0.0F;
 
 		sjson::StringView* m_bone_names					= nullptr;
@@ -420,9 +417,6 @@ namespace acl
 				if (!get_vector_format(scale_format.c_str(), out_settings->scale_format))
 					goto invalid_value_error;
 
-				m_constant_rotation_threshold_angle = float(constant_rotation_threshold_angle);
-				m_constant_translation_threshold = float(constant_translation_threshold);
-				m_constant_scale_threshold = float(constant_scale_threshold);
 				m_error_threshold = float(error_threshold);
 			}
 
@@ -597,12 +591,7 @@ namespace acl
 					desc.shell_distance = vertex_distance;
 
 					if (m_has_settings)
-					{
 						desc.precision = m_error_threshold;
-						desc.constant_rotation_threshold_angle = m_constant_rotation_threshold_angle;
-						desc.constant_translation_threshold = m_constant_translation_threshold;
-						desc.constant_scale_threshold = m_constant_scale_threshold;
-					}
 
 					// Create a dummy track for now to hold our arguments
 					(*tracks)[i] = track_qvvf::make_ref(desc, nullptr, 0, 30.0F);
@@ -816,9 +805,11 @@ namespace acl
 				m_parser.try_read("parent_index", transform_desc.parent_index, k_invalid_track_index);
 
 				transform_desc.shell_distance = read_optional_float("shell_distance", transform_desc.shell_distance);
-				transform_desc.constant_rotation_threshold_angle = read_optional_float("constant_rotation_threshold_angle", transform_desc.constant_rotation_threshold_angle);
-				transform_desc.constant_translation_threshold = read_optional_float("constant_translation_threshold", transform_desc.constant_translation_threshold);
-				transform_desc.constant_scale_threshold = read_optional_float("constant_scale_threshold", transform_desc.constant_scale_threshold);
+
+				// Deprecated, no longer used
+				read_optional_float("constant_rotation_threshold_angle", -1.0F);
+				read_optional_float("constant_translation_threshold", -1.0F);
+				read_optional_float("constant_scale_threshold", -1.0F);
 
 				scalar_desc.output_index = output_index;
 				transform_desc.output_index = output_index;

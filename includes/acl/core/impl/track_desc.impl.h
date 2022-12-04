@@ -55,15 +55,6 @@ namespace acl
 		if (shell_distance < 0.0F || !rtm::scalar_is_finite(shell_distance))
 			return error_result("Invalid shell_distance");
 
-		if (constant_rotation_threshold_angle < 0.0F || !rtm::scalar_is_finite(constant_rotation_threshold_angle))
-			return error_result("Invalid constant_rotation_threshold_angle");
-
-		if (constant_translation_threshold < 0.0F || !rtm::scalar_is_finite(constant_translation_threshold))
-			return error_result("Invalid constant_translation_threshold");
-
-		if (constant_scale_threshold < 0.0F || !rtm::scalar_is_finite(constant_scale_threshold))
-			return error_result("Invalid constant_scale_threshold");
-
 		if (!rtm::qvv_is_finite(default_value))
 			return error_result("Invalid default_value must be finite");
 

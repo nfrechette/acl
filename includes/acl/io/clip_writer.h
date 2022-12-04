@@ -121,9 +121,6 @@ namespace acl
 			writer["output_index"] = desc.output_index;
 			writer["parent_index"] = desc.parent_index;
 			writer["shell_distance"] = format_hex_float(desc.shell_distance, buffer, sizeof(buffer));
-			writer["constant_rotation_threshold_angle"] = format_hex_float(desc.constant_rotation_threshold_angle, buffer, sizeof(buffer));
-			writer["constant_translation_threshold"] = format_hex_float(desc.constant_translation_threshold, buffer, sizeof(buffer));
-			writer["constant_scale_threshold"] = format_hex_float(desc.constant_scale_threshold, buffer, sizeof(buffer));
 			writer["bind_rotation"] = [&](sjson::ArrayWriter& rotation_writer)
 			{
 				rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_x(desc.default_value.rotation), buffer, sizeof(buffer)));
