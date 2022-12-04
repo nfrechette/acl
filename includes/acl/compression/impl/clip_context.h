@@ -174,6 +174,7 @@ namespace acl
 			float duration								= 0.0F;
 
 			sample_looping_policy looping_policy		= sample_looping_policy::non_looping;
+			additive_clip_format8 additive_format		= additive_clip_format8::none;
 
 			bool are_rotations_normalized				= false;
 			bool are_translations_normalized			= false;
@@ -223,6 +224,7 @@ namespace acl
 			out_clip_context.sample_rate = sample_rate;
 			out_clip_context.duration = track_list.get_finite_duration();
 			out_clip_context.looping_policy = looping_policy;
+			out_clip_context.additive_format = additive_format;
 			out_clip_context.are_rotations_normalized = false;
 			out_clip_context.are_translations_normalized = false;
 			out_clip_context.are_scales_normalized = false;
