@@ -298,7 +298,7 @@ namespace acl
 		// By default, constant sub-tracks will retain the first sample.
 		// A constant sub-track is a default sub-track if its unique sample can be replaced by the default value
 		// without exceed our error threshold.
-		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const track_array_qvvf& track_list, const compression_settings& settings)
+		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const clip_context& raw_clip_context, const track_array_qvvf& track_list, const compression_settings& settings)
 		{
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			segment_context& segment = context.segments[0];
@@ -314,7 +314,7 @@ namespace acl
 			bool has_constant_bone_scales = false;
 #endif
 
-			rigid_shell_metadata_t* shell_metadata = compute_clip_shell_distances(allocator, raw_clip_context, additive_base_clip_context);
+			const rigid_shell_metadata_t* shell_metadata = raw_clip_context.clip_shell_metadata;
 
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
@@ -414,8 +414,6 @@ namespace acl
 			}
 
 			context.has_scale = num_default_bone_scales != num_transforms;
-
-			deallocate_type_array(allocator, shell_metadata, num_transforms);
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
