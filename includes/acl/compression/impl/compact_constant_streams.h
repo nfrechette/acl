@@ -81,8 +81,6 @@ namespace acl
 				return nullptr;
 
 			const segment_context& raw_segment = raw_clip_context.segments[0];
-			const rtm::vector4f one = rtm::vector_set(1.0F);
-			const bool has_scale = lossy_clip_context.has_scale;
 
 			rigid_shell_metadata_t* shell_metadata = allocate_type_array<rigid_shell_metadata_t>(allocator, num_transforms);
 
@@ -114,7 +112,7 @@ namespace acl
 				{
 					const rtm::quatf raw_rotation = raw_bone_stream.rotations.get_sample(sample_index);
 					const rtm::vector4f raw_translation = raw_bone_stream.translations.get_sample(sample_index);
-					const rtm::vector4f raw_scale = has_scale ? raw_bone_stream.scales.get_sample(sample_index) : one;
+					const rtm::vector4f raw_scale = raw_bone_stream.scales.get_sample(sample_index);
 
 					const rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
 
