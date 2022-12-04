@@ -438,7 +438,7 @@ namespace acl
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			segment_context& segment = context.segments[0];
 
-			const uint32_t num_bones = context.num_bones;
+			const uint32_t num_transforms = context.num_bones;
 			const uint32_t num_samples = context.num_samples;
 
 			uint32_t num_default_bone_scales = 0;
@@ -451,12 +451,12 @@ namespace acl
 
 			rigid_shell_metadata_t* shell_metadata = compute_clip_shell_distances(allocator, raw_clip_context, additive_base_clip_context);
 
-			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const track_desc_transformf& desc = track_list[bone_index].get_description();
+				const track_desc_transformf& desc = track_list[transform_index].get_description();
 
-				transform_streams& bone_stream = segment.bone_streams[bone_index];
-				transform_range& bone_range = context.ranges[bone_index];
+				transform_streams& bone_stream = segment.bone_streams[transform_index];
+				transform_range& bone_range = context.ranges[transform_index];
 
 				ACL_ASSERT(bone_stream.rotations.get_num_samples() == num_samples, "Rotation sample mismatch!");
 				ACL_ASSERT(bone_stream.translations.get_num_samples() == num_samples, "Translation sample mismatch!");
@@ -467,7 +467,7 @@ namespace acl
 				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
 				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
 
-				if (are_rotations_constant(settings, context, shell_metadata, bone_index))
+				if (are_rotations_constant(settings, context, shell_metadata, transform_index))
 				{
 					rotation_track_stream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
 
@@ -477,7 +477,7 @@ namespace acl
 
 					bone_stream.is_rotation_constant = true;
 
-					if (are_rotations_default(settings, context, shell_metadata, desc, bone_index))
+					if (are_rotations_default(settings, context, shell_metadata, desc, transform_index))
 					{
 						bone_stream.is_rotation_default = true;
 						rotation = default_bind_rotation;
@@ -493,7 +493,7 @@ namespace acl
 #endif
 				}
 
-				if (are_translations_constant(settings, context, shell_metadata, bone_index))
+				if (are_translations_constant(settings, context, shell_metadata, transform_index))
 				{
 					translation_track_stream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
 
@@ -503,7 +503,7 @@ namespace acl
 
 					bone_stream.is_translation_constant = true;
 
-					if (are_translations_default(settings, context, shell_metadata, desc, bone_index))
+					if (are_translations_default(settings, context, shell_metadata, desc, transform_index))
 					{
 						bone_stream.is_translation_default = true;
 						translation = default_bind_translation;
@@ -519,7 +519,7 @@ namespace acl
 #endif
 				}
 
-				if (are_scales_constant(settings, context, shell_metadata, bone_index))
+				if (are_scales_constant(settings, context, shell_metadata, transform_index))
 				{
 					scale_track_stream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
 
@@ -529,7 +529,7 @@ namespace acl
 
 					bone_stream.is_scale_constant = true;
 
-					if (are_scales_default(settings, context, shell_metadata, desc, bone_index))
+					if (are_scales_default(settings, context, shell_metadata, desc, transform_index))
 					{
 						bone_stream.is_scale_default = true;
 						scale = default_bind_scale;
@@ -548,9 +548,9 @@ namespace acl
 				}
 			}
 
-			context.has_scale = num_default_bone_scales != num_bones;
+			context.has_scale = num_default_bone_scales != num_transforms;
 
-			deallocate_type_array(allocator, shell_metadata, num_bones);
+			deallocate_type_array(allocator, shell_metadata, num_transforms);
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
@@ -574,12 +574,12 @@ namespace acl
 					bool scale = false;
 				};
 				DirtyState any_constant_changed;
-				DirtyState* dirty_states = allocate_type_array<DirtyState>(allocator, num_bones);
-				rtm::qvvf* original_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-				rtm::qvvf* adjusted_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+				DirtyState* dirty_states = allocate_type_array<DirtyState>(allocator, num_transforms);
+				rtm::qvvf* original_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
+				rtm::qvvf* adjusted_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+					for (uint32_t bone_index = 0; bone_index < num_transforms; ++bone_index)
 					{
 						rtm::qvvf& original_object_transform = original_object_pose[bone_index];
 
@@ -718,9 +718,9 @@ namespace acl
 						}
 					}
 				}
-				deallocate_type_array(allocator, adjusted_object_pose, num_bones);
-				deallocate_type_array(allocator, original_object_pose, num_bones);
-				deallocate_type_array(allocator, dirty_states, num_bones);
+				deallocate_type_array(allocator, adjusted_object_pose, num_transforms);
+				deallocate_type_array(allocator, original_object_pose, num_transforms);
+				deallocate_type_array(allocator, dirty_states, num_transforms);
 
 				// We need to do these again, to account for error correction.
 				if(any_constant_changed.rotation)
@@ -729,7 +729,7 @@ namespace acl
 				}
 				if (any_constant_changed.rotation || any_constant_changed.translation || any_constant_changed.scale)
 				{
-					deallocate_type_array(allocator, context.ranges, num_bones);
+					deallocate_type_array(allocator, context.ranges, num_transforms);
 					extract_clip_bone_ranges(allocator, context);
 				}
 			}
