@@ -30,6 +30,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/transform_error_metrics.h"
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
@@ -67,20 +68,18 @@ namespace acl
 		// We use the raw data to compute the rigid shell since rotations might have been converted already
 		// We compute the largest value over the whole clip per transform
 		// TODO: We could compute a single value per sample and per transform as well but its unclear if this would provide an advantage
-		inline rigid_shell_metadata_t* compute_clip_shell_distances(iallocator& allocator, const clip_context& raw_clip_context)
+		inline rigid_shell_metadata_t* compute_clip_shell_distances(iallocator& allocator, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context)
 		{
-			if (raw_clip_context.has_additive_base)
-				return nullptr;
-
 			const uint32_t num_transforms = raw_clip_context.num_bones;
 			if (num_transforms == 0)
-				return nullptr;
+				return nullptr;	// No transforms present, no shell distances
 
 			const uint32_t num_samples = raw_clip_context.num_samples;
 			if (num_samples == 0)
-				return nullptr;
+				return nullptr;	// No samples present, no shell distances
 
 			const segment_context& raw_segment = raw_clip_context.segments[0];
+			const bool has_additive_base = raw_clip_context.has_additive_base;
 
 			rigid_shell_metadata_t* shell_metadata = allocate_type_array<rigid_shell_metadata_t>(allocator, num_transforms);
 
@@ -114,7 +113,31 @@ namespace acl
 					const rtm::vector4f raw_translation = raw_bone_stream.translations.get_sample(sample_index);
 					const rtm::vector4f raw_scale = raw_bone_stream.scales.get_sample(sample_index);
 
-					const rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
+					rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
+
+					if (has_additive_base)
+					{
+						// If we are additive, we must apply our local transform on the base to figure out
+						// the true shell distance
+						const segment_context& base_segment = additive_base_clip_context.segments[0];
+						const transform_streams& base_bone_stream = base_segment.bone_streams[transform_index];
+
+						// The sample time is calculated from the full clip duration to be consistent with decompression
+						const float sample_time = rtm::scalar_min(float(sample_index) / raw_clip_context.sample_rate, raw_clip_context.duration);
+
+						const float normalized_sample_time = base_segment.num_samples > 1 ? (sample_time / raw_clip_context.duration) : 0.0F;
+						const float additive_sample_time = base_segment.num_samples > 1 ? (normalized_sample_time * additive_base_clip_context.duration) : 0.0F;
+
+						// With uniform sample distributions, we do not interpolate.
+						const uint32_t base_sample_index = get_uniform_sample_key(base_segment, additive_sample_time);
+
+						const rtm::quatf base_rotation = base_bone_stream.rotations.get_sample(base_sample_index);
+						const rtm::vector4f base_translation = base_bone_stream.translations.get_sample(base_sample_index);
+						const rtm::vector4f base_scale = base_bone_stream.scales.get_sample(base_sample_index);
+
+						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
+						raw_transform = apply_additive_to_base(raw_clip_context.additive_format, base_transform, raw_transform);
+					}
 
 					const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_transform);
 					const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3(vtx1, raw_transform);
@@ -404,7 +427,7 @@ namespace acl
 			return are_scales_constant(raw_transform_stream, default_bind_scale, shell_metadata[transform_index]);
 		}
 
-		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const clip_context& raw_clip_context, const track_array_qvvf& track_list, const compression_settings& settings)
+		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const track_array_qvvf& track_list, const compression_settings& settings)
 		{
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			segment_context& segment = context.segments[0];
@@ -420,7 +443,7 @@ namespace acl
 			bool has_constant_bone_scales = false;
 #endif
 
-			rigid_shell_metadata_t* shell_metadata = compute_clip_shell_distances(allocator, raw_clip_context);
+			rigid_shell_metadata_t* shell_metadata = compute_clip_shell_distances(allocator, raw_clip_context, additive_base_clip_context);
 
 			// When a stream is constant, we only keep the first sample
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
