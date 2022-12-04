@@ -67,7 +67,7 @@ namespace acl
 		// We use the raw data to compute the rigid shell since rotations might have been converted already
 		// We compute the largest value over the whole clip per transform
 		// TODO: We could compute a single value per sample and per transform as well but its unclear if this would provide an advantage
-		inline rigid_shell_metadata_t* compute_shell_distances(iallocator& allocator, const clip_context& lossy_clip_context, const clip_context& raw_clip_context)
+		inline rigid_shell_metadata_t* compute_clip_shell_distances(iallocator& allocator, const clip_context& lossy_clip_context, const clip_context& raw_clip_context)
 		{
 			if (lossy_clip_context.has_additive_base)
 				return nullptr;
@@ -422,7 +422,7 @@ namespace acl
 			bool has_constant_bone_scales = false;
 #endif
 
-			rigid_shell_metadata_t* shell_metadata = compute_shell_distances(allocator, context, raw_clip_context);
+			rigid_shell_metadata_t* shell_metadata = compute_clip_shell_distances(allocator, context, raw_clip_context);
 
 			// When a stream is constant, we only keep the first sample
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
