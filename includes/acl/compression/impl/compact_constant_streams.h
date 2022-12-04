@@ -427,6 +427,12 @@ namespace acl
 			return are_scales_constant(raw_transform_stream, default_bind_scale, shell_metadata[transform_index]);
 		}
 
+		// Compacts constant sub-tracks
+		// A sub-track is constant if every sample can be replaced by a single unique sample without exceeding
+		// our error threshold.
+		// By default, constant sub-tracks will retain the first sample.
+		// A constant sub-track is a default sub-track if its unique sample can be replaced by the default value
+		// without exceed our error threshold.
 		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const track_array_qvvf& track_list, const compression_settings& settings)
 		{
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
@@ -445,7 +451,6 @@ namespace acl
 
 			rigid_shell_metadata_t* shell_metadata = compute_clip_shell_distances(allocator, raw_clip_context, additive_base_clip_context);
 
-			// When a stream is constant, we only keep the first sample
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				const track_desc_transformf& desc = track_list[bone_index].get_description();
