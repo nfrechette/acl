@@ -42,7 +42,8 @@ namespace acl
 
 	namespace acl_impl
 	{
-		// We use the raw data to compute the rigid shell since rotations might have been converted already
+		// We use the raw data to compute the rigid shell
+		// For each transform, its rigid shell is formed by the dominant joint (itself or a child)
 		// We compute the largest value over the whole clip per transform
 		// TODO: We could compute a single value per sample and per transform as well but its unclear if this would provide an advantage
 		inline rigid_shell_metadata_t* compute_clip_shell_distances(iallocator& allocator, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context)
