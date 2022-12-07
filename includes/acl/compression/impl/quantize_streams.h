@@ -39,6 +39,7 @@
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/normalize_streams.h"
 #include "acl/compression/impl/convert_rotation_streams.h"
+#include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/compression_settings.h"
 
@@ -95,7 +96,6 @@ namespace acl
 			uint32_t segment_sample_start_index;
 			float sample_rate;
 			float clip_duration;
-			float error_threshold;					// Error threshold of the current bone being optimized
 			bool has_scale;
 			bool has_additive_base;
 			bool needs_conversion;
@@ -107,11 +107,7 @@ namespace acl
 
 			const transform_streams* raw_bone_streams;
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-			float* adjusted_shell_distances;		// 1 per transform per sample in segment
-
-#endif
+			rigid_shell_metadata_t* shell_metadata_per_transform;	// 1 per transform
 
 			rtm::qvvf* additive_local_pose;			// 1 per transform
 			rtm::qvvf* raw_local_pose;				// 1 per transform
@@ -155,7 +151,6 @@ namespace acl
 				, segment_sample_start_index(~0U)
 				, sample_rate(clip_.sample_rate)
 				, clip_duration(clip_.duration)
-				, error_threshold(0.0F)
 				, has_scale(clip_.has_scale)
 				, has_additive_base(clip_.has_additive_base)
 				, rotation_format(settings_.rotation_format)
@@ -174,6 +169,7 @@ namespace acl
 				const size_t metric_transform_size_ = settings_.error_metric->get_transform_size(clip_.has_scale);
 				metric_transform_size = metric_transform_size_;
 
+				shell_metadata_per_transform = allocate_type_array<rigid_shell_metadata_t>(allocator, num_bones);
 				additive_local_pose = clip_.has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones) : nullptr;
 				raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
@@ -188,12 +184,6 @@ namespace acl
 				self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 				chain_bone_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				adjusted_shell_distances = allocate_type_array<float>(allocator, num_bones * clip_.segments->num_samples);
-
-#endif
-
 				for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
 				{
 					const transform_metadata& metadata_ = clip_.metadata[transform_index];
@@ -204,6 +194,7 @@ namespace acl
 
 			~quantization_context()
 			{
+				deallocate_type_array(allocator, shell_metadata_per_transform, num_bones);
 				deallocate_type_array(allocator, additive_local_pose, num_bones);
 				deallocate_type_array(allocator, raw_local_pose, num_bones);
 				deallocate_type_array(allocator, lossy_local_pose, num_bones);
@@ -219,32 +210,18 @@ namespace acl
 				deallocate_type_array(allocator, parent_transform_indices, num_bones);
 				deallocate_type_array(allocator, self_transform_indices, num_bones);
 				deallocate_type_array(allocator, chain_bone_indices, num_bones);
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				deallocate_type_array(allocator, adjusted_shell_distances, num_bones * clip.segments->num_samples);
-				
-#endif
-
 			}
 
 			void set_segment(segment_context& segment_)
 			{
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				const uint32_t num_frames = segment_.num_samples;
-				ACL_ASSERT(num_frames <= clip.segments->num_samples, "Segment has too many samples!");
-				const auto calculate_object_space_distance_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_object_space_distance : &itransform_error_metric::calculate_object_space_distance_no_scale);
-				itransform_error_metric::calculate_object_space_distance_args calculate_object_space_distance_args;
-
-#endif
-
 				segment = &segment_;
 				bone_streams = segment_.bone_streams;
 				num_samples = segment_.num_samples;
 				segment_sample_start_index = segment_.clip_sample_offset;
 				bit_rate_database.set_segment(segment_.bone_streams, segment_.num_bones, segment_.num_samples);
+
+				// Update our shell distances
+				compute_segment_shell_distances(segment_, additive_base_clip, shell_metadata_per_transform);
 
 				// Cache every raw local/object transforms and the base local transforms since they never change
 				const itransform_error_metric* error_metric_ = error_metric;
@@ -314,37 +291,6 @@ namespace acl
 
 					uint8_t* sample_raw_object_transforms = raw_object_transforms + (sample_index * sample_transform_size);
 					local_to_object_space_impl(error_metric_, local_to_object_space_args_raw, sample_raw_object_transforms);
-
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-					float* adjusted_shell_distances_ = adjusted_shell_distances + sample_index;
-					for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
-					{
-						// Initialize adjusted_shell_distance.
-						adjusted_shell_distances_[transform_index * num_frames] = metadata[transform_index].shell_distance;
-					}
-
-					// Propagate adjusted_shell_distance into ancestors.
-					// Iterate over our transforms starting at the leaves since we propagate the information
-					// towards the parents
-					for (const uint32_t transform_index : make_reverse_iterator(clip.sorted_transforms_parent_first, num_bones))
-					{
-						const uint32_t parent_index = metadata[transform_index].parent_index;
-
-						if (parent_index != k_invalid_track_index)
-						{
-							calculate_object_space_distance_args.transform0 = sample_raw_object_transforms + (parent_index * metric_transform_size);
-							calculate_object_space_distance_args.transform1 = sample_raw_object_transforms + (transform_index * metric_transform_size);
-
-							const float link_distance = rtm::scalar_cast(calculate_object_space_distance_impl(error_metric_, calculate_object_space_distance_args));
-
-							float& adjusted_parent_shell_distance = adjusted_shell_distances_[parent_index * num_frames];
-							adjusted_parent_shell_distance = std::max(adjusted_parent_shell_distance, link_distance + adjusted_shell_distances_[transform_index * num_frames]);
-						}
-					}
-
-#endif
-
 				}
 			}
 
@@ -725,17 +671,10 @@ namespace acl
 			const bool needs_conversion = context.needs_conversion;
 			const bool has_additive_base = context.has_additive_base;
 
-#ifndef ACL_COMPRESSION_OPTIMIZED
-
-			const transform_metadata& target_bone = context.metadata[target_bone_index];
-
-#endif
-
 			const uint32_t num_transforms = context.num_bones;
 			const size_t sample_transform_size = context.metric_transform_size * context.num_bones;
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
-			const rtm::scalarf error_threshold = rtm::scalar_set(context.error_threshold);
 
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
@@ -758,15 +697,8 @@ namespace acl
 			calculate_error_args.transform0 = nullptr;
 			calculate_error_args.transform1 = needs_conversion ? (const void*)(context.local_transforms_converted + (context.metric_transform_size * target_bone_index)) : (const void*)(context.lossy_local_pose + target_bone_index);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-			const float* adjusted_shell_distances = context.adjusted_shell_distances + (target_bone_index * context.num_samples);
-
-#else
-
-			calculate_error_args.construct_sphere_shell(target_bone.shell_distance);
-
-#endif
+			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
+			const rtm::scalarf error_threshold = rtm::scalar_set(transform_shell.precision);
 
 			const uint8_t* raw_transform = context.raw_local_transforms + (target_bone_index * context.metric_transform_size);
 			const uint8_t* base_transforms = context.base_local_transforms;
@@ -795,12 +727,7 @@ namespace acl
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				calculate_error_args.construct_sphere_shell(adjusted_shell_distances[sample_index]);
-
-#endif
-
+				calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
@@ -828,16 +755,9 @@ namespace acl
 			const bool needs_conversion = context.needs_conversion;
 			const bool has_additive_base = context.has_additive_base;
 
-#ifndef ACL_COMPRESSION_OPTIMIZED
-
-			const transform_metadata& target_bone = context.metadata[target_bone_index];
-
-#endif
-
 			const size_t sample_transform_size = context.metric_transform_size * context.num_bones;
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
-			const rtm::scalarf error_threshold = rtm::scalar_set(context.error_threshold);
 
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
@@ -868,15 +788,8 @@ namespace acl
 			calculate_error_args.transform0 = nullptr;
 			calculate_error_args.transform1 = context.lossy_object_pose + (target_bone_index * context.metric_transform_size);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-			const float* adjusted_shell_distances = context.adjusted_shell_distances + (target_bone_index * context.num_samples);
-
-#else
-
-			calculate_error_args.construct_sphere_shell(target_bone.shell_distance);
-
-#endif
+			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
+			const rtm::scalarf error_threshold = rtm::scalar_set(transform_shell.precision);
 
 			const uint8_t* raw_transform = context.raw_object_transforms + (target_bone_index * context.metric_transform_size);
 			const uint8_t* base_transforms = context.base_local_transforms;
@@ -907,12 +820,7 @@ namespace acl
 
 				local_to_object_space_impl(error_metric, local_to_object_space_args_lossy, context.lossy_object_pose);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-				calculate_error_args.construct_sphere_shell(adjusted_shell_distances[sample_index]);
-
-#endif
-
+				calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
@@ -944,8 +852,7 @@ namespace acl
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				// Update our error threshold
-				const float error_threshold = context.metadata[bone_index].precision;
-				context.error_threshold = error_threshold;
+				const float error_threshold = context.shell_metadata_per_transform[bone_index].precision;
 
 				// Bit rates at this point are one of three value:
 				// 0: if the segment track is normalized, it can be constant within the segment
@@ -1167,7 +1074,7 @@ namespace acl
 
 		inline float calculate_bone_permutation_error(quantization_context& context, transform_bit_rates* permutation_bit_rates, uint8_t* bone_chain_permutation, uint32_t bone_index, transform_bit_rates* best_bit_rates, float old_error)
 		{
-			const float error_threshold = context.error_threshold;
+			const float error_threshold = context.shell_metadata_per_transform[bone_index].precision;
 			float best_error = old_error;
 
 			do
@@ -1350,8 +1257,7 @@ namespace acl
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				// Update our context with the new bone data
-				const float error_threshold = context.metadata[bone_index].precision;
-				context.error_threshold = error_threshold;
+				const float error_threshold = context.shell_metadata_per_transform[bone_index].precision;
 
 				const uint32_t num_bones_in_chain = calculate_bone_chain_indices(context.clip, bone_index, context.chain_bone_indices);
 				context.num_bones_in_chain = num_bones_in_chain;
@@ -1620,8 +1526,7 @@ namespace acl
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				// Update our context with the new bone data
-				const float error_threshold = context.metadata[bone_index].precision;
-				context.error_threshold = error_threshold;
+				const float error_threshold = context.shell_metadata_per_transform[bone_index].precision;
 
 				const uint32_t num_bones_in_chain = calculate_bone_chain_indices(context.clip, bone_index, context.chain_bone_indices);
 				context.num_bones_in_chain = num_bones_in_chain;
@@ -1816,34 +1721,14 @@ namespace acl
 						// Calculate our error
 						const uint8_t* raw_frame_transform = raw_transform + (interp_frame_index * sample_transform_size);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-						const float* adjusted_shell_distances = context.adjusted_shell_distances + interp_frame_index;
-
-#endif
-
 						for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 						{
-
-#ifndef ACL_COMPRESSION_OPTIMIZED
-
-							const transform_metadata& target_bone = context.metadata[bone_index];
-
-#endif
-
 							itransform_error_metric::calculate_error_args calculate_error_args;
 							calculate_error_args.transform0 = raw_frame_transform + (bone_index * context.metric_transform_size);
 							calculate_error_args.transform1 = context.lossy_object_pose + (bone_index * context.metric_transform_size);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-
-							calculate_error_args.construct_sphere_shell(adjusted_shell_distances[bone_index * num_frames]);
-
-#else
-
-							calculate_error_args.construct_sphere_shell(target_bone.shell_distance);
-
-#endif
+							const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[bone_index];
+							calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
 
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 							// VS2015 fails to generate the right x86 assembly, branch instead
