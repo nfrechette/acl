@@ -86,9 +86,9 @@ namespace acl
 				rtm::scalarf parent_shell_distance = rtm::scalar_set(0.0F);
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const rtm::quatf raw_rotation = raw_bone_stream.rotations.get_sample(sample_index);
-					const rtm::vector4f raw_translation = raw_bone_stream.translations.get_sample(sample_index);
-					const rtm::vector4f raw_scale = raw_bone_stream.scales.get_sample(sample_index);
+					const rtm::quatf raw_rotation = raw_bone_stream.rotations.get_sample_clamped(sample_index);
+					const rtm::vector4f raw_translation = raw_bone_stream.translations.get_sample_clamped(sample_index);
+					const rtm::vector4f raw_scale = raw_bone_stream.scales.get_sample_clamped(sample_index);
 
 					rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
 
@@ -108,9 +108,9 @@ namespace acl
 						// With uniform sample distributions, we do not interpolate.
 						const uint32_t base_sample_index = get_uniform_sample_key(base_segment, additive_sample_time);
 
-						const rtm::quatf base_rotation = base_bone_stream.rotations.get_sample(base_sample_index);
-						const rtm::vector4f base_translation = base_bone_stream.translations.get_sample(base_sample_index);
-						const rtm::vector4f base_scale = base_bone_stream.scales.get_sample(base_sample_index);
+						const rtm::quatf base_rotation = base_bone_stream.rotations.get_sample_clamped(base_sample_index);
+						const rtm::vector4f base_translation = base_bone_stream.translations.get_sample_clamped(base_sample_index);
+						const rtm::vector4f base_scale = base_bone_stream.scales.get_sample_clamped(base_sample_index);
 
 						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
 						raw_transform = apply_additive_to_base(raw_clip_context.additive_format, base_transform, raw_transform);
@@ -203,9 +203,9 @@ namespace acl
 				rtm::scalarf parent_shell_distance = rtm::scalar_set(0.0F);
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const rtm::quatf raw_rotation = segment_bone_stream.rotations.get_sample(sample_index);
-					const rtm::vector4f raw_translation = segment_bone_stream.translations.get_sample(sample_index);
-					const rtm::vector4f raw_scale = segment_bone_stream.scales.get_sample(sample_index);
+					const rtm::quatf raw_rotation = segment_bone_stream.rotations.get_sample_clamped(sample_index);
+					const rtm::vector4f raw_translation = segment_bone_stream.translations.get_sample_clamped(sample_index);
+					const rtm::vector4f raw_scale = segment_bone_stream.scales.get_sample_clamped(sample_index);
 
 					rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
 
@@ -225,9 +225,9 @@ namespace acl
 						// With uniform sample distributions, we do not interpolate.
 						const uint32_t base_sample_index = get_uniform_sample_key(base_segment, additive_sample_time);
 
-						const rtm::quatf base_rotation = base_bone_stream.rotations.get_sample(base_sample_index);
-						const rtm::vector4f base_translation = base_bone_stream.translations.get_sample(base_sample_index);
-						const rtm::vector4f base_scale = base_bone_stream.scales.get_sample(base_sample_index);
+						const rtm::quatf base_rotation = base_bone_stream.rotations.get_sample_clamped(base_sample_index);
+						const rtm::vector4f base_translation = base_bone_stream.translations.get_sample_clamped(base_sample_index);
+						const rtm::vector4f base_scale = base_bone_stream.scales.get_sample_clamped(base_sample_index);
 
 						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
 						raw_transform = apply_additive_to_base(owner_clip_context.additive_format, base_transform, raw_transform);
