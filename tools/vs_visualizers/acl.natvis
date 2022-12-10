@@ -172,8 +172,8 @@
         <Size>m_num_samples</Size>
         <!-- TODO: Support stride -->
         <ValuePointer Condition="m_type == acl::animation_track_type8::rotation">(rtm::float4f*)m_samples</ValuePointer>
-        <ValuePointer Condition="m_type == acl::animation_track_type8::translation">(rtm::float3f*)m_samples</ValuePointer>
-        <ValuePointer Condition="m_type == acl::animation_track_type8::scale">(rtm::float3f*)m_samples</ValuePointer>
+        <ValuePointer Condition="m_type == acl::animation_track_type8::translation">(rtm::float4f*)m_samples</ValuePointer>
+        <ValuePointer Condition="m_type == acl::animation_track_type8::scale">(rtm::float4f*)m_samples</ValuePointer>
       </ArrayItems>
     </Expand>
 
