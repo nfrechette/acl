@@ -659,6 +659,8 @@ def run_stat_parsing(options, stat_queue, result_queue):
 					result_queue.put(('progress', stat_filename))
 				except sjson.ParseException:
 					print('Failed to parse SJSON file: {}'.format(stat_filename.replace('\\\\?\\', '')))
+				except TypeError:
+					print('Failed to process SJSON file: {}'.format(stat_filename.replace('\\\\?\\', '')))
 
 		# Done
 		results = {}
