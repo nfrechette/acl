@@ -316,6 +316,7 @@ namespace acl
 
 			const rigid_shell_metadata_t* shell_metadata = raw_clip_context.clip_shell_metadata;
 
+			// Iterate in any order, doesn't matter
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
 				const track_desc_transformf& desc = track_list[transform_index].get_description();
