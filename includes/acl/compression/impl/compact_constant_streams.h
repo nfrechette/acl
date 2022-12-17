@@ -298,13 +298,24 @@ namespace acl
 		// By default, constant sub-tracks will retain the first sample.
 		// A constant sub-track is a default sub-track if its unique sample can be replaced by the default value
 		// without exceed our error threshold.
-		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const clip_context& raw_clip_context, const track_array_qvvf& track_list, const compression_settings& settings)
+		inline void compact_constant_streams(iallocator& allocator, clip_context& context, clip_context& raw_clip_context, const track_array_qvvf& track_list, const compression_settings& settings)
 		{
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
+			ACL_ASSERT(raw_clip_context.num_segments == 1, "context must contain a single segment!");
+
 			segment_context& segment = context.segments[0];
+
+			// We also update the raw data to match in case the values differ.
+			// This ensures that algorithms can reach the raw data when attempting to optimize towards it.
+			// This modifies the raw data copy, not the original data that lives in the raw track_array.
+			// As such, it is used internally when optimizing but not once compression is done to measure
+			// the final error. This can lead to a small divergence where ACL sees a better error than
+			// a user might but in practice this is generally not observable.
+			segment_context& raw_segment = raw_clip_context.segments[0];
 
 			const uint32_t num_transforms = context.num_bones;
 			const uint32_t num_samples = context.num_samples;
+			const uint32_t raw_num_samples = raw_clip_context.num_samples;
 
 			uint32_t num_default_bone_scales = 0;
 
@@ -322,6 +333,8 @@ namespace acl
 				const track_desc_transformf& desc = track_list[transform_index].get_description();
 
 				transform_streams& bone_stream = segment.bone_streams[transform_index];
+				transform_streams& raw_bone_stream = raw_segment.bone_streams[transform_index];
+
 				transform_range& bone_range = context.ranges[transform_index];
 
 				ACL_ASSERT(bone_stream.rotations.get_num_samples() == num_samples, "Rotation sample mismatch!");
@@ -354,6 +367,10 @@ namespace acl
 
 					bone_range.rotation = track_stream_range::from_min_extent(rotation, rtm::vector_zero());
 
+					// We also update the raw data to match in case the values differ
+					for (uint32_t sample_index = 0; sample_index < raw_num_samples; ++sample_index)
+						raw_bone_stream.rotations.set_raw_sample(sample_index, rotation);
+
 #ifdef ACL_COMPRESSION_OPTIMIZED
 					has_constant_bone_rotations = true;
 #endif
@@ -379,6 +396,10 @@ namespace acl
 					bone_stream.translations = std::move(constant_stream);
 
 					bone_range.translation = track_stream_range::from_min_extent(translation, rtm::vector_zero());
+
+					// We also update the raw data to match in case the values differ
+					for (uint32_t sample_index = 0; sample_index < raw_num_samples; ++sample_index)
+						raw_bone_stream.translations.set_raw_sample(sample_index, translation);
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 					has_constant_bone_translations = true;
@@ -407,6 +428,10 @@ namespace acl
 					bone_range.scale = track_stream_range::from_min_extent(scale, rtm::vector_zero());
 
 					num_default_bone_scales += bone_stream.is_scale_default ? 1 : 0;
+
+					// We also update the raw data to match in case the values differ
+					for (uint32_t sample_index = 0; sample_index < raw_num_samples; ++sample_index)
+						raw_bone_stream.scales.set_raw_sample(sample_index, scale);
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 					has_constant_bone_scales = true;
