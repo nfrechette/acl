@@ -439,13 +439,19 @@ namespace acl
 				}
 			}
 
-			context.has_scale = num_default_bone_scales != num_transforms;
+			const bool has_scale = num_default_bone_scales != num_transforms;
+			context.has_scale = has_scale;
 
 #ifdef ACL_COMPRESSION_OPTIMIZED
 
-			const bool has_scale = context.has_scale;
-			if (!context.has_additive_base &&
-				(has_constant_bone_rotations || has_constant_bone_translations || (has_scale && has_constant_bone_scales)))
+			// Only perform error compensation if our format isn't raw
+			const bool is_raw = settings.rotation_format == rotation_format8::quatf_full || settings.translation_format == vector_format8::vector3f_full || settings.scale_format == vector_format8::vector3f_full;
+
+			// Only perform error compensation if we are lossy due to constant sub-tracks
+			// In practice, even if we have no constant sub-tracks, we could be lossy if our rotations drop W
+			const bool is_lossy = has_constant_bone_rotations || has_constant_bone_translations || (has_scale && has_constant_bone_scales);
+
+			if (!context.has_additive_base && !is_raw && is_lossy)
 			{
 				// Apply error correction after constant and default tracks are processed.
 				// We use object space of the original data as ground truth, and only deviate for 2 reasons, and as briefly as possible.
