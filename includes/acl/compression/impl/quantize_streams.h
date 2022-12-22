@@ -54,8 +54,14 @@
 #include <cstdint>
 #include <functional>
 
-// 0 = no debug info, 1 = basic info, 2 = verbose
-#define ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION		0
+#define ACL_IMPL_DEBUG_LEVEL_NONE					0
+#define ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY			1
+#define ACL_IMPL_DEBUG_LEVEL_BASIC_INFO				2
+#define ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO			3
+
+// Dumps details of quantization optimization process
+// Use debug levels above to control debug output
+#define ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION		ACL_IMPL_DEBUG_LEVEL_NONE
 
 // 0 = no debug into, 1 = basic info
 #define ACL_IMPL_DEBUG_CONTRIBUTING_ERROR			0
@@ -862,7 +868,7 @@ namespace acl
 
 				if (bone_bit_rates.rotation == k_invalid_bit_rate && bone_bit_rates.translation == k_invalid_bit_rate && bone_bit_rates.scale == k_invalid_bit_rate)
 				{
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
 					printf("%u: Best bit rates: %u | %u | %u\n", bone_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale);
 #endif
 					continue;	// Every track bit rate is constant/default, nothing else to do
@@ -933,7 +939,7 @@ namespace acl
 
 						const float error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
 
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION > 1
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO
 						printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, scale_bit_rate, transform_size, error);
 #endif
 
@@ -991,7 +997,7 @@ namespace acl
 
 						const float error = calculate_max_error_at_bit_rate_local(context, bone_index, error_scan_stop_condition::until_error_too_high);
 
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION > 1
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO
 						printf("%u: %u | %u | %u (%u) = %f\n", bone_index, rotation_bit_rate, translation_bit_rate, k_invalid_bit_rate, transform_size, error);
 #endif
 
@@ -1004,7 +1010,7 @@ namespace acl
 					}
 				}
 
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
 				printf("%u: Best bit rates: %u | %u | %u\n", bone_index, best_bit_rates.rotation, best_bit_rates.translation, best_bit_rates.scale);
 #endif
 
@@ -1376,7 +1382,7 @@ namespace acl
 					error = best_error;
 					if (error < original_error)
 					{
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
 						std::swap(context.bit_rate_per_bone, best_bit_rates);
 						float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 						std::swap(context.bit_rate_per_bone, best_bit_rates);
@@ -1399,7 +1405,7 @@ namespace acl
 
 				if (error < initial_error)
 				{
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
 					std::swap(context.bit_rate_per_bone, best_bit_rates);
 					float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 					std::swap(context.bit_rate_per_bone, best_bit_rates);
@@ -1468,7 +1474,7 @@ namespace acl
 								best_bone_bit_rate = bone_bit_rate;
 								best_bit_rate_error = error;
 
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
 								printf("%u: => %u %u %u (%f)\n", chain_bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error);
 								for (uint32_t i = chain_link_index + 1; i < num_bones_in_chain; ++i)
 								{
@@ -1521,7 +1527,7 @@ namespace acl
 				}
 			}
 
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
 			printf("Variable quantization optimization results:\n");
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
@@ -1785,7 +1791,7 @@ namespace acl
 
 			for (segment_context& segment : clip.segment_iterator())
 			{
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
 				printf("Quantizing segment %u...\n", segment.segment_index);
 #endif
 
