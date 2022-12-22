@@ -454,8 +454,6 @@ namespace acl
 				// We aren't modifying raw data here. We're modifying the raw channels generated from the raw data.
 				// The raw data is left alone, and is still used at the end of the process to do regression testing.
 
-				segment_context& raw_segment = raw_clip_context.segments[0];
-
 				struct DirtyState
 				{
 					bool rotation = false;
