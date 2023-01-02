@@ -205,7 +205,7 @@ namespace acl
 			animation_track_type8	m_type;
 			track_format8			m_format;
 			uint8_t					m_bit_rate;
-			};
+		};
 
 		class rotation_track_stream final : public track_stream
 		{
