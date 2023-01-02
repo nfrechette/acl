@@ -652,6 +652,8 @@ namespace acl
 				return get_scale_sample(bone_stream, context.sample_key);
 		}
 
+		// Samples all transforms at a point in time
+		// Transforms can be raw or quantized
 		inline void sample_streams(const transform_streams* bone_streams, uint32_t num_bones, float sample_time, rtm::qvvf* out_local_pose)
 		{
 			const segment_context* segment_context = bone_streams->segment;
