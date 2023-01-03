@@ -164,40 +164,27 @@ namespace acl
 			const clip_context* clip = segment->clip;
 			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 
-			rtm::vector4f rotation;
-			if (is_constant_bit_rate(bit_rate))
-			{
-				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate);
-				rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
-			}
-			else if (is_raw_bit_rate(bit_rate))
-			{
-				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate);
-				rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
-			}
-			else
-			{
-				const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
-				rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0);
-			}
-
 			// Pack and unpack at our desired bit rate
-			const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 			rtm::vector4f packed_rotation;
 
 			if (is_constant_bit_rate(bit_rate))
 			{
-				const transform_range& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
-				const rtm::vector4f normalized_rotation = normalize_sample(rotation, clip_bone_range.rotation);
-
-				packed_rotation = decay_vector3_u48(normalized_rotation);
+				packed_rotation = decay_vector3_u48(bone_steams.constant_rotation);
 			}
 			else if (is_raw_bit_rate(bit_rate))
-				packed_rotation = rotation;
+			{
+				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
+				const rtm::vector4f rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate);
+				packed_rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
+			}
 			else
+			{
+				const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
+				const rtm::vector4f rotation = acl_impl::load_rotation_sample(quantized_ptr, format, 0);
+
+				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 				packed_rotation = decay_vector3_uXX(rotation, num_bits_at_bit_rate);
+			}
 
 			if (!is_raw_bit_rate(bit_rate))
 			{
@@ -315,20 +302,10 @@ namespace acl
 		// Gets a translation sample at the specified bit rate
 		inline rtm::vector4f RTM_SIMD_CALL get_translation_sample(const transform_streams& bone_steams, const transform_streams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 		{
+			ACL_ASSERT(bone_steams.translations.get_vector_format() == vector_format8::vector3f_full, "Expected floating point vector format");
+
 			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
-			const vector_format8 format = bone_steams.translations.get_vector_format();
-
-			const uint8_t* quantized_ptr;
-			if (is_constant_bit_rate(bit_rate))
-				quantized_ptr = raw_bone_steams.translations.get_raw_sample_ptr(segment->clip_sample_offset);
-			else if (is_raw_bit_rate(bit_rate))
-				quantized_ptr = raw_bone_steams.translations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
-			else
-				quantized_ptr = bone_steams.translations.get_raw_sample_ptr(sample_index);
-
-			const rtm::vector4f translation = acl_impl::load_vector_sample(quantized_ptr, format, 0);
-
 			ACL_ASSERT(clip->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
 
 			// Pack and unpack at our desired bit rate
@@ -337,16 +314,16 @@ namespace acl
 			if (is_constant_bit_rate(bit_rate))
 			{
 				ACL_ASSERT(segment->are_translations_normalized, "Translations must be normalized to support variable bit rates.");
-
-				const transform_range& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
-				const rtm::vector4f normalized_translation = normalize_sample(translation, clip_bone_range.translation);
-
-				packed_translation = decay_vector3_u48(normalized_translation);
+				packed_translation = decay_vector3_u48(bone_steams.constant_translation);
 			}
 			else if (is_raw_bit_rate(bit_rate))
-				packed_translation = translation;
+			{
+				packed_translation = raw_bone_steams.translations.get_sample(segment->clip_sample_offset + sample_index);
+			}
 			else
 			{
+				const rtm::vector4f translation = bone_steams.translations.get_sample(sample_index);
+
 				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 				packed_translation = decay_vector3_uXX(translation, num_bits_at_bit_rate);
 			}
@@ -464,20 +441,10 @@ namespace acl
 		// Gets a scale sample at the specified bit rate
 		inline rtm::vector4f RTM_SIMD_CALL get_scale_sample(const transform_streams& bone_steams, const transform_streams& raw_bone_steams, uint32_t sample_index, uint8_t bit_rate)
 		{
+			ACL_ASSERT(bone_steams.scales.get_vector_format() == vector_format8::vector3f_full, "Expected floating point vector format");
+
 			const segment_context* segment = bone_steams.segment;
 			const clip_context* clip = segment->clip;
-			const vector_format8 format = bone_steams.scales.get_vector_format();
-
-			const uint8_t* quantized_ptr;
-			if (is_constant_bit_rate(bit_rate))
-				quantized_ptr = raw_bone_steams.scales.get_raw_sample_ptr(segment->clip_sample_offset);
-			else if (is_raw_bit_rate(bit_rate))
-				quantized_ptr = raw_bone_steams.scales.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
-			else
-				quantized_ptr = bone_steams.scales.get_raw_sample_ptr(sample_index);
-
-			const rtm::vector4f scale = acl_impl::load_vector_sample(quantized_ptr, format, 0);
-
 			ACL_ASSERT(clip->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
 
 			// Pack and unpack at our desired bit rate
@@ -485,17 +452,17 @@ namespace acl
 
 			if (is_constant_bit_rate(bit_rate))
 			{
-				ACL_ASSERT(segment->are_scales_normalized, "Translations must be normalized to support variable bit rates.");
-
-				const transform_range& clip_bone_range = segment->clip->ranges[bone_steams.bone_index];
-				const rtm::vector4f normalized_scale = normalize_sample(scale, clip_bone_range.scale);
-
-				packed_scale = decay_vector3_u48(normalized_scale);
+				ACL_ASSERT(segment->are_scales_normalized, "Scales must be normalized to support variable bit rates.");
+				packed_scale = decay_vector3_u48(bone_steams.constant_scale);
 			}
 			else if (is_raw_bit_rate(bit_rate))
-				packed_scale = scale;
+			{
+				packed_scale = raw_bone_steams.scales.get_sample(segment->clip_sample_offset + sample_index);
+			}
 			else
 			{
+				const rtm::vector4f scale = bone_steams.scales.get_sample(sample_index);
+
 				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 				packed_scale = decay_vector3_uXX(scale, num_bits_at_bit_rate);
 			}

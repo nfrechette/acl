@@ -225,6 +225,11 @@ namespace acl
 					segment_bone_stream.is_translation_default = clip_bone_stream.is_translation_default;
 					segment_bone_stream.is_scale_constant = clip_bone_stream.is_scale_constant;
 					segment_bone_stream.is_scale_default = clip_bone_stream.is_scale_default;
+
+					// Extract our potential segment constant values now before we normalize over the segment
+					segment_bone_stream.constant_rotation = segment_bone_stream.rotations.get_raw_sample<rtm::vector4f>(0);
+					segment_bone_stream.constant_translation = segment_bone_stream.translations.get_raw_sample<rtm::vector4f>(0);
+					segment_bone_stream.constant_scale = segment_bone_stream.scales.get_raw_sample<rtm::vector4f>(0);
 				}
 
 				clip_sample_index += num_samples_in_segment;

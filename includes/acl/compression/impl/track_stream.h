@@ -407,6 +407,13 @@ namespace acl
 		{
 			rtm::qvvf default_value					= rtm::qvv_identity();
 
+			// Sample 0 before we normalize over the segment.
+			// This is used when a sub-track is constant over the segment.
+			// These values are normalized over the clip (but not over the segment).
+			rtm::vector4f constant_rotation			= rtm::vector_zero();
+			rtm::vector4f constant_translation		= rtm::vector_zero();
+			rtm::vector4f constant_scale			= rtm::vector_zero();
+
 			segment_context* segment				= nullptr;
 			uint32_t bone_index						= k_invalid_track_index;
 			uint32_t parent_bone_index				= k_invalid_track_index;
@@ -431,6 +438,9 @@ namespace acl
 			{
 				transform_streams copy;
 				copy.default_value = default_value;
+				copy.constant_rotation = constant_rotation;
+				copy.constant_translation = constant_translation;
+				copy.constant_scale = constant_scale;
 				copy.segment = segment;
 				copy.bone_index = bone_index;
 				copy.parent_bone_index = parent_bone_index;
