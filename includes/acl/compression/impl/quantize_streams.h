@@ -354,26 +354,26 @@ namespace acl
 			quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, rotation_format, bone_stream.rotations);
 		}
 
-		inline void quantize_variable_rotation_stream(quantization_context& context, const rotation_track_stream& raw_clip_stream, const rotation_track_stream& raw_segment_stream, const track_stream_range& clip_range, uint8_t bit_rate, rotation_track_stream& out_quantized_stream)
+		inline void quantize_variable_rotation_stream(quantization_context& context, const transform_streams& raw_track, const transform_streams& lossy_track, uint8_t bit_rate, rotation_track_stream& out_quantized_stream)
 		{
-			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
+			const rotation_track_stream& raw_rotations = raw_track.rotations;
+			const rotation_track_stream& lossy_rotations = lossy_track.rotations;
 
-			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
+			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
+			ACL_ASSERT(lossy_rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", lossy_rotations.get_sample_size(), sizeof(rtm::vector4f));
+
+			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : lossy_rotations.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
-			const float sample_rate = raw_segment_stream.get_sample_rate();
+			const float sample_rate = lossy_rotations.get_sample_rate();
 			rotation_track_stream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, rotation_format8::quatf_drop_w_variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
 			{
-
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				const track_stream_range& bone_range = context.segment->ranges[lossy_track.bone_index].rotation;
 				const rtm::vector4f normalized_rotation = clip_range.get_weighted_average();
 #else
-				rtm::vector4f rotation = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index);
-				rotation = convert_rotation(rotation, rotation_format8::quatf_full, rotation_format8::quatf_drop_w_variable);
-
-				const rtm::vector4f normalized_rotation = normalize_sample(rotation, clip_range);
+				const rtm::vector4f normalized_rotation = lossy_track.constant_rotation;
 #endif
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
@@ -389,13 +389,13 @@ namespace acl
 
 					if (is_raw_bit_rate(bit_rate))
 					{
-						rtm::vector4f rotation = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index + sample_index);
+						rtm::vector4f rotation = raw_rotations.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index + sample_index);
 						rotation = convert_rotation(rotation, rotation_format8::quatf_full, rotation_format8::quatf_drop_w_variable);
 						pack_vector3_96(rotation, quantized_ptr);
 					}
 					else
 					{
-						const rtm::quatf rotation = raw_segment_stream.get_raw_sample<rtm::quatf>(sample_index);
+						const rtm::quatf rotation = lossy_rotations.get_raw_sample<rtm::quatf>(sample_index);
 						pack_vector3_uXX_unsafe(rtm::quat_to_vector(rotation), num_bits_at_bit_rate, quantized_ptr);
 					}
 				}
@@ -408,26 +408,20 @@ namespace acl
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			transform_streams& bone_stream = context.bone_streams[bone_index];
+			transform_streams& lossy_track = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
-			if (bone_stream.is_rotation_default)
+			if (lossy_track.is_rotation_default)
 				return;
 
-			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
+			const transform_streams& raw_track = context.raw_bone_streams[bone_index];
 			const rotation_format8 highest_bit_rate = get_highest_variant_precision(rotation_variant8::quat_drop_w);
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-			const track_stream_range& bone_range = context.segment->ranges[bone_index].rotation;
-#else
-			const track_stream_range& bone_range = context.clip.ranges[bone_index].rotation;
-#endif
-
 			// If our format is variable, we keep them fixed at the highest bit rate in the variant
-			if (bone_stream.is_rotation_constant)
-				quantize_fixed_rotation_stream(context.allocator, bone_stream.rotations, highest_bit_rate, bone_stream.rotations);
+			if (lossy_track.is_rotation_constant)
+				quantize_fixed_rotation_stream(context.allocator, lossy_track.rotations, highest_bit_rate, lossy_track.rotations);
 			else
-				quantize_variable_rotation_stream(context, raw_bone_stream.rotations, bone_stream.rotations, bone_range, bit_rate, bone_stream.rotations);
+				quantize_variable_rotation_stream(context, raw_track, lossy_track, bit_rate, lossy_track.rotations);
 		}
 
 		inline void quantize_fixed_translation_stream(iallocator& allocator, const translation_track_stream& raw_stream, vector_format8 translation_format, translation_track_stream& out_quantized_stream)
@@ -477,25 +471,27 @@ namespace acl
 			quantize_fixed_translation_stream(context.allocator, bone_stream.translations, format, bone_stream.translations);
 		}
 
-		inline void quantize_variable_translation_stream(quantization_context& context, const translation_track_stream& raw_clip_stream, const translation_track_stream& raw_segment_stream, const track_stream_range& clip_range, uint8_t bit_rate, translation_track_stream& out_quantized_stream)
+		inline void quantize_variable_translation_stream(quantization_context& context, const transform_streams& raw_track, const transform_streams& lossy_track, uint8_t bit_rate, translation_track_stream& out_quantized_stream)
 		{
-			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(raw_segment_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: %s", get_vector_format_name(raw_segment_stream.get_vector_format()));
+			const translation_track_stream& raw_translations = raw_track.translations;
+			const translation_track_stream& lossy_translations = lossy_track.translations;
 
-			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
+			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
+			ACL_ASSERT(lossy_translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", lossy_translations.get_sample_size(), sizeof(rtm::vector4f));
+			ACL_ASSERT(lossy_translations.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: %s", get_vector_format_name(lossy_translations.get_vector_format()));
+
+			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : lossy_translations.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
-			const float sample_rate = raw_segment_stream.get_sample_rate();
+			const float sample_rate = lossy_translations.get_sample_rate();
 			translation_track_stream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, vector_format8::vector3f_variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
 			{
-
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				const track_stream_range& bone_range = context.segment->ranges[lossy_track.bone_index].translation;
 				const rtm::vector4f normalized_translation = clip_range.get_weighted_average();
 #else
-				const rtm::vector4f translation = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index);
-				const rtm::vector4f normalized_translation = normalize_sample(translation, clip_range);
+				const rtm::vector4f normalized_translation = lossy_track.constant_translation;
 #endif
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
@@ -511,12 +507,12 @@ namespace acl
 
 					if (is_raw_bit_rate(bit_rate))
 					{
-						const rtm::vector4f translation = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index + sample_index);
+						const rtm::vector4f translation = raw_translations.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index + sample_index);
 						pack_vector3_96(translation, quantized_ptr);
 					}
 					else
 					{
-						const rtm::vector4f translation = raw_segment_stream.get_raw_sample<rtm::vector4f>(sample_index);
+						const rtm::vector4f translation = lossy_translations.get_raw_sample<rtm::vector4f>(sample_index);
 						pack_vector3_uXX_unsafe(translation, num_bits_at_bit_rate, quantized_ptr);
 					}
 				}
@@ -529,25 +525,19 @@ namespace acl
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			transform_streams& bone_stream = context.bone_streams[bone_index];
+			transform_streams& lossy_track = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
-			if (bone_stream.is_translation_default)
+			if (lossy_track.is_translation_default)
 				return;
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-			const track_stream_range& bone_range = context.segment->ranges[bone_index].translation;
-#else
-			const track_stream_range& bone_range = context.clip.ranges[bone_index].translation;
-#endif
-
-			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
+			const transform_streams& raw_track = context.raw_bone_streams[bone_index];
 
 			// Constant translation tracks store the remaining sample with full precision
-			if (bone_stream.is_translation_constant)
-				quantize_fixed_translation_stream(context.allocator, bone_stream.translations, vector_format8::vector3f_full, bone_stream.translations);
+			if (lossy_track.is_translation_constant)
+				quantize_fixed_translation_stream(context.allocator, lossy_track.translations, vector_format8::vector3f_full, lossy_track.translations);
 			else
-				quantize_variable_translation_stream(context, raw_bone_stream.translations, bone_stream.translations, bone_range, bit_rate, bone_stream.translations);
+				quantize_variable_translation_stream(context, raw_track, lossy_track, bit_rate, lossy_track.translations);
 		}
 
 		inline void quantize_fixed_scale_stream(iallocator& allocator, const scale_track_stream& raw_stream, vector_format8 scale_format, scale_track_stream& out_quantized_stream)
@@ -597,24 +587,27 @@ namespace acl
 			quantize_fixed_scale_stream(context.allocator, bone_stream.scales, format, bone_stream.scales);
 		}
 
-		inline void quantize_variable_scale_stream(quantization_context& context, const scale_track_stream& raw_clip_stream, const scale_track_stream& raw_segment_stream, const track_stream_range& clip_range, uint8_t bit_rate, scale_track_stream& out_quantized_stream)
+		inline void quantize_variable_scale_stream(quantization_context& context, const transform_streams& raw_track, const transform_streams& lossy_track, uint8_t bit_rate, scale_track_stream& out_quantized_stream)
 		{
-			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
-			ACL_ASSERT(raw_segment_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", raw_segment_stream.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(raw_segment_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: %s", get_vector_format_name(raw_segment_stream.get_vector_format()));
+			const scale_track_stream& raw_scales = raw_track.scales;
+			const scale_track_stream& lossy_scales = lossy_track.scales;
 
-			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : raw_segment_stream.get_num_samples();
+			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
+			ACL_ASSERT(lossy_scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", lossy_scales.get_sample_size(), sizeof(rtm::vector4f));
+			ACL_ASSERT(lossy_scales.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: %s", get_vector_format_name(lossy_scales.get_vector_format()));
+
+			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : lossy_scales.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
-			const float sample_rate = raw_segment_stream.get_sample_rate();
+			const float sample_rate = lossy_scales.get_sample_rate();
 			scale_track_stream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, vector_format8::vector3f_variable, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
 			{
 #if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
+				const track_stream_range& bone_range = context.segment->ranges[lossy_track.bone_index].scale;
 				const rtm::vector4f normalized_scale = clip_range.get_weighted_average();
 #else
-				const rtm::vector4f scale = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index);
-				const rtm::vector4f normalized_scale = normalize_sample(scale, clip_range);
+				const rtm::vector4f normalized_scale = lossy_track.constant_scale;
 #endif
 
 				uint8_t* quantized_ptr = quantized_stream.get_raw_sample_ptr(0);
@@ -630,12 +623,12 @@ namespace acl
 
 					if (is_raw_bit_rate(bit_rate))
 					{
-						const rtm::vector4f scale = raw_clip_stream.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index + sample_index);
+						const rtm::vector4f scale = raw_scales.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index + sample_index);
 						pack_vector3_96(scale, quantized_ptr);
 					}
 					else
 					{
-						const rtm::vector4f scale = raw_segment_stream.get_raw_sample<rtm::vector4f>(sample_index);
+						const rtm::vector4f scale = lossy_scales.get_raw_sample<rtm::vector4f>(sample_index);
 						pack_vector3_uXX_unsafe(scale, num_bits_at_bit_rate, quantized_ptr);
 					}
 				}
@@ -648,25 +641,19 @@ namespace acl
 		{
 			ACL_ASSERT(bone_index < context.num_bones, "Invalid bone index: %u", bone_index);
 
-			transform_streams& bone_stream = context.bone_streams[bone_index];
+			transform_streams& lossy_track = context.bone_streams[bone_index];
 
 			// Default tracks aren't quantized
-			if (bone_stream.is_scale_default)
+			if (lossy_track.is_scale_default)
 				return;
 
-#if defined(ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS)
-			const track_stream_range& bone_range = context.segment->ranges[bone_index].scale;
-#else
-			const track_stream_range& bone_range = context.clip.ranges[bone_index].scale;
-#endif
-
-			const transform_streams& raw_bone_stream = context.raw_bone_streams[bone_index];
+			const transform_streams& raw_track = context.raw_bone_streams[bone_index];
 
 			// Constant scale tracks store the remaining sample with full precision
-			if (bone_stream.is_scale_constant)
-				quantize_fixed_scale_stream(context.allocator, bone_stream.scales, vector_format8::vector3f_full, bone_stream.scales);
+			if (lossy_track.is_scale_constant)
+				quantize_fixed_scale_stream(context.allocator, lossy_track.scales, vector_format8::vector3f_full, lossy_track.scales);
 			else
-				quantize_variable_scale_stream(context, raw_bone_stream.scales, bone_stream.scales, bone_range, bit_rate, bone_stream.scales);
+				quantize_variable_scale_stream(context, raw_track, lossy_track, bit_rate, lossy_track.scales);
 		}
 
 		enum class error_scan_stop_condition { until_error_too_high, until_end_of_segment };
