@@ -17,13 +17,13 @@ ACLTrack = namedtuple('ACLTrack', 'name rotations translations scales')
 ACL_FILE_FORMAT_VERSION = 1
 
 def print_animation_stacks(scene):
-	for i in range(scene.GetSrcObjectCount(FbxAnimStack.ClassId)):
-		print('  "' + scene.GetSrcObject(FbxAnimStack.ClassId, i).GetName() + '"')
+	for i in range(scene.GetSrcObjectCount(FbxCriteria.ObjectType(FbxAnimStack.ClassId))):
+		print('  "' + scene.GetSrcObject(FbxCriteria.ObjectType(FbxAnimStack.ClassId), i).GetName() + '"')
 
 def get_animation_stack(scene, anim_stack_name):
-	num_stacks = scene.GetSrcObjectCount(FbxAnimStack.ClassId)
+	num_stacks = scene.GetSrcObjectCount(FbxCriteria.ObjectType(FbxAnimStack.ClassId))
 	if num_stacks == 1:
-		anim_stack = scene.GetSrcObject(FbxAnimStack.ClassId, 0)
+		anim_stack = scene.GetSrcObject(FbxCriteria.ObjectType(FbxAnimStack.ClassId), 0)
 		if len(anim_stack_name) > 0 and anim_stack_name != anim_stack.GetName():
 			print('There is one animation stack, but it\'s called "' + anim_stack.GetName() + '".  Consider omitting the -stack option.')
 			sys.exit(1)
@@ -34,8 +34,8 @@ def get_animation_stack(scene, anim_stack_name):
 			sys.exit(1)
 
 		found = False
-		for i in range(scene.GetSrcObjectCount(FbxAnimStack.ClassId)):
-			anim_stack = scene.GetSrcObject(FbxAnimStack.ClassId, i)
+		for i in range(scene.GetSrcObjectCount(FbxCriteria.ObjectType(FbxAnimStack.ClassId))):
+			anim_stack = scene.GetSrcObject(FbxCriteria.ObjectType(FbxAnimStack.ClassId), i)
 			if anim_stack.GetName() == anim_stack_name:
 				found = True
 				break
