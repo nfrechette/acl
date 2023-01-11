@@ -120,18 +120,3 @@ namespace acl
 // Disabled by default, most clips have no measurable gain but some clips suffer greatly, needs to be investigated, possibly a bug somewhere
 // Note: Code has been removed in the pull request that closes: https://github.com/nfrechette/acl/issues/353
 //#define ACL_IMPL_ENABLE_WEIGHTED_AVERAGE_CONSTANT_SUB_TRACKS
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Prevent low-magnitude channels from becoming constant when worst-case shell distance and
-// object space distance are exceeded. 
-// Apply error correction after constant and default tracks are processed.
-// Propagate shell distance and object space distance through ancestors before compression.
-//
-//////////////////////////////////////////////////////////////////////////
-#define ACL_COMPRESSION_OPTIMIZED
-#ifdef ACL_COMPRESSION_OPTIMIZED
-#define IF_ACL_COMPRESSION_OPTIMIZED(...) __VA_ARGS__
-#else
-#define IF_ACL_COMPRESSION_OPTIMIZED(...)
-#endif
