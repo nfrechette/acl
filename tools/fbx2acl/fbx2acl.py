@@ -221,7 +221,7 @@ def is_track_default(track, default_value, error_threshold = 0.000001):
 	# Everything is equal, we are a default track
 	return True
 
-def parse_tracks(scene, anim_stack, clip, bones, nodes, start_time):
+def parse_tracks(scene, anim_stack, clip, bones, nodes, start_time, strip_default_tracks):
 	tracks = []
 
 	scene.SetCurrentAnimationStack(anim_stack)
@@ -261,14 +261,15 @@ def parse_tracks(scene, anim_stack, clip, bones, nodes, start_time):
 			scales.append(scale)
 
 		# Clear track if it is constant and default
-		if is_track_default(rotations, default_rotation):
-			rotations = []
+		if strip_default_tracks:
+			if is_track_default(rotations, default_rotation):
+				rotations = []
 
-		if is_track_default(translations, default_translation):
-			translations = []
+			if is_track_default(translations, default_translation):
+				translations = []
 
-		if is_track_default(scales, default_scale):
-			scales = []
+			if is_track_default(scales, default_scale):
+				scales = []
 
 		track = ACLTrack(bone['name'], rotations, translations, scales)
 		tracks.append(track)
@@ -356,6 +357,7 @@ def parse_argv():
 	options['end'] = None
 	options['acl'] = ""
 	options['zip'] = False
+	options['strip_default_tracks'] = False
 
 	for i in range(1, len(sys.argv)):
 		value = sys.argv[i]
@@ -378,10 +380,13 @@ def parse_argv():
 
 		if value == '-zip':
 			options['zip'] = True
+			
+		if value == '-strip_default_tracks':
+			options['strip_default_tracks'] = True
 
 	return options
 
-def convert_file(fbx_filename, anim_stack_name, start_time, end_time, acl_filename, zip):
+def convert_file(fbx_filename, anim_stack_name, start_time, end_time, acl_filename, zip, strip_default_tracks):
 	# Prepare the FBX SDK.
 	sdk_manager, scene = InitializeSdkObjects()
 
@@ -402,7 +407,7 @@ def convert_file(fbx_filename, anim_stack_name, start_time, end_time, acl_filena
 		clip = parse_clip(scene, anim_stack, window_duration)
 		nodes = parse_hierarchy(scene)
 		bones = parse_bind_pose(scene, nodes)
-		tracks = parse_tracks(scene, anim_stack, clip, bones, nodes, start_time)
+		tracks = parse_tracks(scene, anim_stack, clip, bones, nodes, start_time, strip_default_tracks)
 
 		# If we don't provide an ACL filename, we'll write to STDOUT
 		# If we provide an ACL filename but not '-zip', we'll output the raw file
@@ -453,7 +458,7 @@ if __name__ == "__main__":
 
 	fbx_filename = options['fbx']
 	if len(fbx_filename) == 0:
-		print('Usage: python fbx2acl -fbx=<FBX file name> [-stack=<animation stack name>] [-start=<time>] [-end=<time>] [-acl=<ACL file name>] [-zip]')
+		print('Usage: python fbx2acl -fbx=<FBX file name> [-stack=<animation stack name>] [-start=<time>] [-end=<time>] [-acl=<ACL file name>] [-zip] [-strip_default_tracks]')
 		sys.exit(1)
 
 	anim_stack_name = options['stack']
@@ -461,6 +466,7 @@ if __name__ == "__main__":
 	end_time = options['end']
 	acl_filename = options['acl']
 	zip = options['zip']
+	strip_default_tracks = options['strip_default_tracks']
 
 	if not os.path.exists(fbx_filename):
 		print('FBX input not found: {}'.format(fbx_filename))
@@ -491,7 +497,7 @@ if __name__ == "__main__":
 				if not os.path.exists(acl_dirname):
 					os.makedirs(acl_dirname)
 
-				result = convert_file(fbx_filename, anim_stack_name, start_time, end_time, acl_filename, zip)
+				result = convert_file(fbx_filename, anim_stack_name, start_time, end_time, acl_filename, zip, strip_default_tracks)
 				if not result:
 					sys.exit(1)
 
