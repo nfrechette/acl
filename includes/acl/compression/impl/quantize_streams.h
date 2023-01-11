@@ -1246,8 +1246,10 @@ namespace acl
 			transform_bit_rates* best_bit_rates = allocate_type_array<transform_bit_rates>(context.allocator, context.num_bones);
 			std::memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(transform_bit_rates) * context.num_bones);
 
+			// Iterate from the root transforms first
+			// I attempted to iterate from leaves first and the memory footprint was severely worse
 			const uint32_t num_bones = context.num_bones;
-			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+			for (const uint32_t bone_index : make_iterator(context.raw_clip.sorted_transforms_parent_first, num_bones))
 			{
 				// Update our context with the new bone data
 				const float error_threshold = context.shell_metadata_per_transform[bone_index].precision;
