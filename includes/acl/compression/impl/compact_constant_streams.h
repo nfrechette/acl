@@ -33,13 +33,25 @@
 #include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/transform_error_metrics.h"
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
-#include "acl/compression/impl/normalize_streams.h"
-#endif
-
 #include <rtm/qvvf.h>
 
 #include <cstdint>
+
+//////////////////////////////////////////////////////////////////////////
+// Apply error correction after constant and default tracks are processed.
+// Notes:
+//     - original code was adapted and cleaned up a bit, but largely as contributed
+//     - zero scale isn't properly handled and needs to be guarded against
+//     - regression testing over large data sets shows that it is sometimes a win, sometimes not
+//     - overall, it seems to be a net loss over the memory footprint and quality does not
+//       measurably improve to justify the loss
+//     - I tried various tweaks and failed to make the code a consistent win, see https://github.com/nfrechette/acl/issues/353
+
+//#define ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
+
+#ifdef ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
+#include "acl/compression/impl/normalize_streams.h"
+#endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -319,7 +331,7 @@ namespace acl
 
 			uint32_t num_default_bone_scales = 0;
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
+#ifdef ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
 			bool has_constant_bone_rotations = false;
 			bool has_constant_bone_translations = false;
 			bool has_constant_bone_scales = false;
@@ -371,7 +383,7 @@ namespace acl
 					for (uint32_t sample_index = 0; sample_index < raw_num_samples; ++sample_index)
 						raw_bone_stream.rotations.set_raw_sample(sample_index, rotation);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
+#ifdef ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
 					has_constant_bone_rotations = true;
 #endif
 				}
@@ -401,7 +413,7 @@ namespace acl
 					for (uint32_t sample_index = 0; sample_index < raw_num_samples; ++sample_index)
 						raw_bone_stream.translations.set_raw_sample(sample_index, translation);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
+#ifdef ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
 					has_constant_bone_translations = true;
 #endif
 				}
@@ -433,7 +445,7 @@ namespace acl
 					for (uint32_t sample_index = 0; sample_index < raw_num_samples; ++sample_index)
 						raw_bone_stream.scales.set_raw_sample(sample_index, scale);
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
+#ifdef ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
 					has_constant_bone_scales = true;
 #endif
 				}
@@ -442,7 +454,7 @@ namespace acl
 			const bool has_scale = num_default_bone_scales != num_transforms;
 			context.has_scale = has_scale;
 
-#ifdef ACL_COMPRESSION_OPTIMIZED
+#ifdef ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
 
 			// Only perform error compensation if our format isn't raw
 			const bool is_raw = settings.rotation_format == rotation_format8::quatf_full || settings.translation_format == vector_format8::vector3f_full || settings.scale_format == vector_format8::vector3f_full;
@@ -460,19 +472,22 @@ namespace acl
 				// We aren't modifying raw data here. We're modifying the raw channels generated from the raw data.
 				// The raw data is left alone, and is still used at the end of the process to do regression testing.
 
-				struct DirtyState
+				struct dirty_state_t
 				{
 					bool rotation = false;
 					bool translation = false;
 					bool scale = false;
 				};
-				DirtyState any_constant_changed;
-				DirtyState* dirty_states = allocate_type_array<DirtyState>(allocator, num_transforms);
+
+				dirty_state_t any_constant_changed;
+				dirty_state_t* dirty_states = allocate_type_array<dirty_state_t>(allocator, num_transforms);
 				rtm::qvvf* original_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
 				rtm::qvvf* adjusted_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
+
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					for (uint32_t bone_index = 0; bone_index < num_transforms; ++bone_index)
+					// Iterate over parent transforms first
+					for (uint32_t bone_index : make_iterator(context.sorted_transforms_parent_first, num_transforms))
 					{
 						rtm::qvvf& original_object_transform = original_object_pose[bone_index];
 
@@ -486,25 +501,21 @@ namespace acl
 							raw_bone_stream.rotations.get_raw_sample<rtm::quatf>(sample_index),
 							raw_bone_stream.translations.get_raw_sample<rtm::vector4f>(sample_index),
 							raw_bone_stream.scales.get_raw_sample<rtm::vector4f>(sample_index));
+
 						if (parent_bone_index == k_invalid_track_index)
-						{
 							original_object_transform = original_local_transform;	// Just copy the root as-is, it has no parent and thus local and object space transforms are equal
-						}
 						else if (!has_scale)
-						{
 							original_object_transform = rtm::qvv_normalize(rtm::qvv_mul_no_scale(original_local_transform, original_object_pose[parent_bone_index]));
-						}
 						else
-						{
 							original_object_transform = rtm::qvv_normalize(rtm::qvv_mul(original_local_transform, original_object_pose[parent_bone_index]));
-						}
 
 						rtm::qvvf adjusted_local_transform = original_local_transform;
 
-						DirtyState& constant_changed = dirty_states[bone_index];
+						dirty_state_t& constant_changed = dirty_states[bone_index];
 						constant_changed.rotation = false;
 						constant_changed.translation = false;
 						constant_changed.scale = false;
+
 						if (bone_stream.is_rotation_constant)
 						{
 							const rtm::quatf constant_rotation = rtm::vector_to_quat(bone_range.rotation.get_min());
@@ -518,6 +529,7 @@ namespace acl
 							ACL_ASSERT(bone_stream.rotations.get_num_samples() == 1, "Constant rotation stream mismatch!");
 							ACL_ASSERT(rtm::vector_all_near_equal(bone_stream.rotations.get_raw_sample<rtm::vector4f>(0), rtm::quat_to_vector(constant_rotation), 0.0F), "Constant rotation mismatch!");
 						}
+
 						if (bone_stream.is_translation_constant)
 						{
 							const rtm::vector4f constant_translation = bone_range.translation.get_min();
@@ -531,6 +543,7 @@ namespace acl
 							ACL_ASSERT(bone_stream.translations.get_num_samples() == 1, "Constant translation stream mismatch!");
 							ACL_ASSERT(rtm::vector_all_near_equal3(bone_stream.translations.get_raw_sample<rtm::vector4f>(0), constant_translation, 0.0F), "Constant translation mismatch!");
 						}
+
 						if (has_scale && bone_stream.is_scale_constant)
 						{
 							const rtm::vector4f constant_scale = bone_range.scale.get_min();
@@ -552,21 +565,15 @@ namespace acl
 						}
 						else
 						{
-							const DirtyState& parent_constant_changed = dirty_states[parent_bone_index];
+							const dirty_state_t& parent_constant_changed = dirty_states[parent_bone_index];
 							const rtm::qvvf& parent_adjusted_object_transform = adjusted_object_pose[parent_bone_index];
 
 							if (bone_stream.is_rotation_constant && !constant_changed.rotation)
-							{
 								constant_changed.rotation = parent_constant_changed.rotation;
-							}
 							if (bone_stream.is_translation_constant && !constant_changed.translation)
-							{
 								constant_changed.translation = parent_constant_changed.translation;
-							}
 							if (has_scale && bone_stream.is_scale_constant && !constant_changed.scale)
-							{
 								constant_changed.scale = parent_constant_changed.scale;
-							}
 
 							// Compensate for the constant changes in your ancestors.
 							if (!bone_stream.is_rotation_constant && parent_constant_changed.rotation)
@@ -576,6 +583,7 @@ namespace acl
 								raw_bone_stream.rotations.set_raw_sample(sample_index, adjusted_local_transform.rotation);
 								bone_stream.rotations.set_raw_sample(sample_index, adjusted_local_transform.rotation);
 							}
+
 							if (has_scale)
 							{
 								if (!bone_stream.is_translation_constant && (parent_constant_changed.rotation || parent_constant_changed.translation || parent_constant_changed.scale))
@@ -587,6 +595,7 @@ namespace acl
 									raw_bone_stream.translations.set_raw_sample(sample_index, adjusted_local_transform.translation);
 									bone_stream.translations.set_raw_sample(sample_index, adjusted_local_transform.translation);
 								}
+
 								if (!bone_stream.is_scale_constant && parent_constant_changed.scale)
 								{
 									ACL_ASSERT(any_constant_changed.scale, "No scales have changed!");
@@ -594,6 +603,7 @@ namespace acl
 									raw_bone_stream.scales.set_raw_sample(sample_index, adjusted_local_transform.scale);
 									bone_stream.scales.set_raw_sample(sample_index, adjusted_local_transform.scale);
 								}
+
 								adjusted_object_transform = rtm::qvv_normalize(rtm::qvv_mul(adjusted_local_transform, parent_adjusted_object_transform));
 							}
 							else
@@ -606,6 +616,7 @@ namespace acl
 									raw_bone_stream.translations.set_raw_sample(sample_index, adjusted_local_transform.translation);
 									bone_stream.translations.set_raw_sample(sample_index, adjusted_local_transform.translation);
 								}
+
 								adjusted_object_transform = rtm::qvv_normalize(rtm::qvv_mul_no_scale(adjusted_local_transform, parent_adjusted_object_transform));
 							}
 						}
@@ -620,15 +631,14 @@ namespace acl
 				{
 					convert_rotation_streams(allocator, context, settings.rotation_format);
 				}
+
 				if (any_constant_changed.rotation || any_constant_changed.translation || any_constant_changed.scale)
 				{
 					deallocate_type_array(allocator, context.ranges, num_transforms);
 					extract_clip_bone_ranges(allocator, context);
 				}
 			}
-
 #endif
-
 		}
 	}
 
