@@ -71,6 +71,12 @@ namespace acl
 		error_result is_valid() const;
 	};
 
+	// Disable warning for implicit constructor using deprecated members
+#if defined(RTM_COMPILER_CLANG)
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	//////////////////////////////////////////////////////////////////////////
 	// This structure describes the various settings for transform tracks.
 	// Used by: quatf, qvvf
@@ -157,6 +163,10 @@ namespace acl
 		//    - The constant scale threshold is positive or zero and finite
 		error_result is_valid() const;
 	};
+
+#if defined(RTM_COMPILER_CLANG)
+	#pragma clang diagnostic pop
+#endif
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
