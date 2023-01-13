@@ -126,6 +126,12 @@ TEST_CASE("array_reverse_iterator", "[core][iterator]")
 		CHECK(std::is_same<const uint32_t*, decltype(&*ci.end())>::value);
 	}
 
+	// Suppress warning about array bounds check around 'items - 1' since we don't read from that value, it is a false positive
+#if defined(RTM_COMPILER_GCC)
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 	SECTION("bounds are correct")
 	{
 		constexpr size_t num_items = 3;
@@ -147,6 +153,10 @@ TEST_CASE("array_reverse_iterator", "[core][iterator]")
 		CHECK(&*ci.begin() == items + num_items - 1);
 		CHECK(&*ci.end() == items - 1);
 	}
+
+#if defined(RTM_COMPILER_GCC)
+	#pragma GCC diagnostic pop
+#endif
 
 	SECTION("make_reverse_iterator matches")
 	{
