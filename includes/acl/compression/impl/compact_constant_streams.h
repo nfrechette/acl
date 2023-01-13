@@ -125,7 +125,7 @@ namespace acl
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are default if we have no samples
 
-			const rtm::vector4f default_bind_rotation = rtm::quat_to_vector(desc.default_value.rotation);
+			const rtm::quatf default_bind_rotation = desc.default_value.rotation;
 
 			const segment_context& segment = lossy_clip_context.segments[0];
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
@@ -137,7 +137,7 @@ namespace acl
 			if (settings.rotation_format == rotation_format8::quatf_full)
 			{
 				const rtm::vector4f rotation = raw_transform_stream.rotations.get_raw_sample<rtm::vector4f>(0);
-				return rtm::vector_all_equal(rotation, default_bind_rotation);
+				return rtm::vector_all_equal(rotation, rtm::quat_to_vector(default_bind_rotation));
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
