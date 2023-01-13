@@ -75,6 +75,9 @@ namespace acl
 #if defined(RTM_COMPILER_CLANG)
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(RTM_COMPILER_GCC)
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
 	//////////////////////////////////////////////////////////////////////////
@@ -166,6 +169,8 @@ namespace acl
 
 #if defined(RTM_COMPILER_CLANG)
 	#pragma clang diagnostic pop
+#elif defined(RTM_COMPILER_GCC)
+	#pragma GCC diagnostic pop
 #endif
 
 	ACL_IMPL_VERSION_NAMESPACE_END
