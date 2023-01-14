@@ -120,6 +120,7 @@ namespace acl
 			static constexpr vector_format8 get_vector_format(const persistent_transform_decompression_context_v0& context) { return context.translation_format; }
 			static constexpr bool is_vector_format_supported(vector_format8 format) { return decompression_settings_type::is_translation_format_supported(format); }
 			static constexpr bool is_per_track_rounding_supported() { return decompression_settings_type::is_per_track_rounding_supported(); }
+			static constexpr compressed_tracks_version16 version_supported() { return decompression_settings_type::version_supported(); }
 		};
 
 		template<class decompression_settings_type>
@@ -130,6 +131,7 @@ namespace acl
 			static constexpr vector_format8 get_vector_format(const persistent_transform_decompression_context_v0& context) { return context.scale_format; }
 			static constexpr bool is_vector_format_supported(vector_format8 format) { return decompression_settings_type::is_scale_format_supported(format); }
 			static constexpr bool is_per_track_rounding_supported() { return decompression_settings_type::is_per_track_rounding_supported(); }
+			static constexpr compressed_tracks_version16 version_supported() { return decompression_settings_type::version_supported(); }
 		};
 
 		// Returns the statically known number of rotation formats supported by the decompression settings
@@ -188,6 +190,12 @@ namespace acl
 				// If our format is raw, only interpolate if our alpha isn't <= 0.0 or >= 1.0
 				// otherwise we always interpolate
 				: format == rotation_format8::quatf_full ? (interpolation_alpha > 0.0F && interpolation_alpha < 1.0F) : true;
+		}
+
+		template<class decompression_settings_type>
+		constexpr compressed_tracks_version16 get_version(compressed_tracks_version16 version)
+		{
+			return decompression_settings_type::version_supported() == compressed_tracks_version16::any ? version : decompression_settings_type::version_supported();
 		}
 	}
 
