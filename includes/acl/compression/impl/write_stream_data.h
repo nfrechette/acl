@@ -478,12 +478,29 @@ namespace acl
 			auto group_entry_action = [&segment, &format_per_track_group](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 			{
 				const transform_streams& bone_stream = segment.bone_streams[bone_index];
+
+				uint32_t bit_rate;
 				if (group_type == animation_track_type8::rotation)
-					format_per_track_group[group_size] = (uint8_t)get_num_bits_at_bit_rate(bone_stream.rotations.get_bit_rate());
+					bit_rate = bone_stream.rotations.get_bit_rate();
 				else if (group_type == animation_track_type8::translation)
-					format_per_track_group[group_size] = (uint8_t)get_num_bits_at_bit_rate(bone_stream.translations.get_bit_rate());
+					bit_rate = bone_stream.translations.get_bit_rate();
 				else
-					format_per_track_group[group_size] = (uint8_t)get_num_bits_at_bit_rate(bone_stream.scales.get_bit_rate());
+					bit_rate = bone_stream.scales.get_bit_rate();
+
+				const uint32_t num_bits = get_num_bits_at_bit_rate(bit_rate);
+				ACL_ASSERT(num_bits <= 32, "Expected 32 bits or less");
+
+				// We only have 25 bit rates and the largest number of bits is 32 (highest bit rate).
+				// This would require 6 bits to store in the per sub-track metadata but it would leave
+				// most of the entries unused.
+				// Instead, we store the number of bits on 5 bits which has a max value of 31.
+				// To do so, we remap 32 to 31 since that value is unused.
+				// This leaves 3 unused bits in our per sub-track metadata.
+				// These will later be needed:
+				//    - 1 bit to dictate if rotations contain 3 or 4 components (to allow mixing full quats in with packed quats)
+				//    - 2 bits to dictate which rotation component is dropped (to allow the largest component to be dropped over our segment)
+
+				format_per_track_group[group_size] = (bit_rate == k_highest_bit_rate) ? 31 : (uint8_t)num_bits;
 			};
 
 			auto group_flush_action = [&format_per_track_data, format_per_track_data_end, &format_per_track_group](animation_track_type8 group_type, uint32_t group_size)

@@ -517,6 +517,10 @@ namespace acl
 			uint32_t num_to_unpack, segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
+			const compressed_tracks_version16 version = get_version<decompression_settings_type>(decomp_context.get_version());
+
+			// See write_format_per_track_data(..) for details
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
 
 			uint32_t segment_range_ignore_mask = 0;
 			uint32_t clip_range_ignore_mask = 0;
@@ -582,7 +586,7 @@ namespace acl
 						sample_segment_range_ignore_mask = 0xFF;	// Ignore segment range
 						sample_clip_range_ignore_mask = 0x00;
 					}
-					else if (num_bits_at_bit_rate == 32)			// Raw bit rate
+					else if (num_bits_at_bit_rate == num_raw_bit_rate_bits)	// Raw bit rate
 					{
 						rotation_as_vec = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
 						animated_track_data_bit_offset += 96;
@@ -688,6 +692,10 @@ namespace acl
 			const clip_animated_sampling_context_v0& clip_sampling_context, const segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
+			const compressed_tracks_version16 version = get_version<decompression_settings_type>(decomp_context.get_version());
+
+			// See write_format_per_track_data(..) for details
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
 
 			uint32_t segment_range_ignore_mask = 0;
 			uint32_t clip_range_ignore_mask = 0;
@@ -707,13 +715,23 @@ namespace acl
 				{
 				default:
 				case 3:
-					skip_size += format_per_track_data[2];
+				{
+					// TODO: Can we do an alternate more efficient implementation? We want to increment by one if num bits == 31
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[2];
+					skip_size += (num_bits_at_bit_rate == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate;
+				}
 					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
 				case 2:
-					skip_size += format_per_track_data[1];
+				{
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[1];
+					skip_size += (num_bits_at_bit_rate == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate;
+				}
 					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
 				case 1:
-					skip_size += format_per_track_data[0];
+				{
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[0];
+					skip_size += (num_bits_at_bit_rate == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate;
+				}
 					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
 				case 0:
 					// Nothing to skip
@@ -762,7 +780,7 @@ namespace acl
 					segment_range_ignore_mask = 0xFF;	// Ignore segment range
 					clip_range_ignore_mask = 0x00;
 				}
-				else if (num_bits_at_bit_rate == 32)	// Raw bit rate
+				else if (num_bits_at_bit_rate == num_raw_bit_rate_bits)	// Raw bit rate
 				{
 					rotation_as_vec = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
 					segment_range_ignore_mask = 0xFF;	// Ignore segment range
@@ -856,6 +874,10 @@ namespace acl
 			const clip_animated_sampling_context_v0& clip_sampling_context, segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
+			const compressed_tracks_version16 version = get_version<decompression_settings_adapter_type>(decomp_context.get_version());
+
+			// See write_format_per_track_data(..) for details
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
 
 			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
 			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
@@ -884,7 +906,7 @@ namespace acl
 						segment_range_data += sizeof(uint16_t) * 3;
 						range_ignore_flags = 0x01;	// Skip segment only
 					}
-					else if (num_bits_at_bit_rate == 32)	// Raw bit rate
+					else if (num_bits_at_bit_rate == num_raw_bit_rate_bits)	// Raw bit rate
 					{
 						sample = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
 						animated_track_data_bit_offset += 96;
@@ -973,6 +995,10 @@ namespace acl
 			const clip_animated_sampling_context_v0& clip_sampling_context, const segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
+			const compressed_tracks_version16 version = get_version<decompression_settings_adapter_type>(decomp_context.get_version());
+
+			// See write_format_per_track_data(..) for details
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
 
 			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
 			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
@@ -996,13 +1022,23 @@ namespace acl
 				{
 				default:
 				case 3:
-					skip_size += format_per_track_data[2];
+				{
+					// TODO: Can we do an alternate more efficient implementation? We want to increment by one if num bits == 31
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[2];
+					skip_size += (num_bits_at_bit_rate == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate;
+				}
 					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
 				case 2:
-					skip_size += format_per_track_data[1];
+				{
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[1];
+					skip_size += (num_bits_at_bit_rate == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate;
+				}
 					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
 				case 1:
-					skip_size += format_per_track_data[0];
+				{
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[0];
+					skip_size += (num_bits_at_bit_rate == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate;
+				}
 					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
 				case 0:
 					// Nothing to skip
@@ -1021,7 +1057,7 @@ namespace acl
 					sample = unpack_vector3_u48_unsafe(segment_range_data);
 					range_ignore_flags = 0x01;	// Skip segment only
 				}
-				else if (num_bits_at_bit_rate == 32)	// Raw bit rate
+				else if (num_bits_at_bit_rate == num_raw_bit_rate_bits)	// Raw bit rate
 				{
 					sample = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
 					range_ignore_flags = 0x03;	// Skip clip and segment
@@ -1066,13 +1102,21 @@ namespace acl
 		}
 
 		// Force inline this function, we only use it to keep the code readable
+		template<class decompression_settings_adapter_type>
 		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void count_animated_group_bit_size(
+			const persistent_transform_decompression_context_v0& decomp_context,
 			const uint8_t* format_per_track_data0, const uint8_t* format_per_track_data1, uint32_t num_groups_to_skip,
 			uint32_t& out_group_bit_size_per_component0, uint32_t& out_group_bit_size_per_component1)
 		{
+			const compressed_tracks_version16 version = get_version<decompression_settings_adapter_type>(decomp_context.get_version());
+
+			// See write_format_per_track_data(..) for details
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
+
 			// TODO: Do the same with NEON
 #if defined(RTM_AVX_INTRINSICS)
-			__m128i zero = _mm_setzero_si128();
+			const __m128i zero = _mm_setzero_si128();
+			const __m128i num_raw_bit_rate_bits_v = _mm_set1_epi32(num_raw_bit_rate_bits);
 			__m128i group_bit_size_per_component0_v = zero;
 			__m128i group_bit_size_per_component1_v = zero;
 
@@ -1083,8 +1127,27 @@ namespace acl
 				const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + group_offset));
 				const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + group_offset));
 
-				group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero));
-				group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero));
+				// Unpack from uint8_t to uint32_t
+				__m128i group_bit_size_per_component0_u32 = _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero);
+				__m128i group_bit_size_per_component1_u32 = _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero);
+
+				if (version >= compressed_tracks_version16::v02_01_99_1)
+				{
+					// If the number of bits is 31, we are the raw bit rate and we need to add 1 (we'll add 31 below, and 1 more for a total of 32 bits)
+					// If the number of bits is 31, our mask's value will be 0xFFFFFFFF which is -1, otherwise it is 0x00000000
+					const __m128i is_raw_num_bits0 = _mm_cmpeq_epi32(group_bit_size_per_component0_u32, num_raw_bit_rate_bits_v);
+					const __m128i is_raw_num_bits1 = _mm_cmpeq_epi32(group_bit_size_per_component1_u32, num_raw_bit_rate_bits_v);
+
+					// We subtract the mask value directly, it is either -1 or 0
+					group_bit_size_per_component0_u32 = _mm_sub_epi32(group_bit_size_per_component0_u32, is_raw_num_bits0);
+					group_bit_size_per_component1_u32 = _mm_sub_epi32(group_bit_size_per_component1_u32, is_raw_num_bits1);
+				}
+				else
+					(void)num_raw_bit_rate_bits_v;
+
+				// Add how many bits per component we have
+				group_bit_size_per_component0_v = _mm_add_epi32(group_bit_size_per_component0_v, group_bit_size_per_component0_u32);
+				group_bit_size_per_component1_v = _mm_add_epi32(group_bit_size_per_component1_v, group_bit_size_per_component1_u32);
 			}
 
 			// Now we sum horizontally
@@ -1099,17 +1162,28 @@ namespace acl
 
 			for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
 			{
-				group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 0];
-				group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 0];
+				// TODO: Can we do an alternate more efficient implementation? We want to increment by one if num bits == 31
 
-				group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 1];
-				group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 1];
+				const uint32_t num_bits_at_bit_rate_0_0 = format_per_track_data0[(group_index * 4) + 0];
+				const uint32_t num_bits_at_bit_rate_1_0 = format_per_track_data1[(group_index * 4) + 0];
+				const uint32_t num_bits_at_bit_rate_0_1 = format_per_track_data0[(group_index * 4) + 1];
+				const uint32_t num_bits_at_bit_rate_1_1 = format_per_track_data1[(group_index * 4) + 1];
+				const uint32_t num_bits_at_bit_rate_0_2 = format_per_track_data0[(group_index * 4) + 2];
+				const uint32_t num_bits_at_bit_rate_1_2 = format_per_track_data1[(group_index * 4) + 2];
+				const uint32_t num_bits_at_bit_rate_0_3 = format_per_track_data0[(group_index * 4) + 3];
+				const uint32_t num_bits_at_bit_rate_1_3 = format_per_track_data1[(group_index * 4) + 3];
 
-				group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 2];
-				group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 2];
+				group_bit_size_per_component0 += (num_bits_at_bit_rate_0_0 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_0_0;
+				group_bit_size_per_component1 += (num_bits_at_bit_rate_1_0 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_1_0;
 
-				group_bit_size_per_component0 += format_per_track_data0[(group_index * 4) + 3];
-				group_bit_size_per_component1 += format_per_track_data1[(group_index * 4) + 3];
+				group_bit_size_per_component0 += (num_bits_at_bit_rate_0_1 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_0_1;
+				group_bit_size_per_component1 += (num_bits_at_bit_rate_1_1 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_1_1;
+
+				group_bit_size_per_component0 += (num_bits_at_bit_rate_0_2 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_0_2;
+				group_bit_size_per_component1 += (num_bits_at_bit_rate_1_2 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_1_2;
+
+				group_bit_size_per_component0 += (num_bits_at_bit_rate_0_3 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_0_3;
+				group_bit_size_per_component1 += (num_bits_at_bit_rate_1_3 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_1_3;
 			}
 
 			out_group_bit_size_per_component0 = group_bit_size_per_component0;
@@ -1603,7 +1677,7 @@ namespace acl
 
 					uint32_t group_bit_size_per_component0;
 					uint32_t group_bit_size_per_component1;
-					count_animated_group_bit_size(format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
+					count_animated_group_bit_size<decompression_settings_type>(decomp_context, format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
 					const uint32_t format_per_track_data_skip_size = num_groups_to_skip * 4;
 					const uint32_t segment_range_data_skip_size = num_groups_to_skip * 6 * 4;
@@ -1777,7 +1851,7 @@ namespace acl
 
 					uint32_t group_bit_size_per_component0;
 					uint32_t group_bit_size_per_component1;
-					count_animated_group_bit_size(format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
+					count_animated_group_bit_size<decompression_settings_adapter_type>(decomp_context, format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
 					const uint32_t format_per_track_data_skip_size = num_groups_to_skip * 4;
 					const uint32_t segment_range_data_skip_size = num_groups_to_skip * 6 * 4;
@@ -1899,7 +1973,7 @@ namespace acl
 
 					uint32_t group_bit_size_per_component0;
 					uint32_t group_bit_size_per_component1;
-					count_animated_group_bit_size(format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
+					count_animated_group_bit_size<decompression_settings_adapter_type>(decomp_context, format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
 					const uint32_t format_per_track_data_skip_size = num_groups_to_skip * 4;
 					const uint32_t segment_range_data_skip_size = num_groups_to_skip * 6 * 4;
