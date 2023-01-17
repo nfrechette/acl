@@ -238,7 +238,7 @@ namespace acl
 			vector_u64 |= static_cast<uint64_t>(vector_w) << (64 - num_bits * 2);
 			vector_u64 = byte_swap(vector_u64);
 
-			memcpy_bits(out_vector_data, num_bits * 2, &vector_u64, 0, num_bits * 2);
+			memcpy_bits(out_vector_data, uint64_t(num_bits) * 2, &vector_u64, 0, uint64_t(num_bits) * 2);
 		}
 		else
 		{
@@ -838,7 +838,7 @@ namespace acl
 			uint32_t vector_u32 = vector_z << (32 - num_bits);
 			vector_u32 = byte_swap(vector_u32);
 
-			memcpy_bits(out_vector_data, num_bits * 2, &vector_u32, 0, num_bits);
+			memcpy_bits(out_vector_data, uint64_t(num_bits) * 2, &vector_u32, 0, num_bits);
 		}
 		else
 		{
@@ -871,7 +871,7 @@ namespace acl
 			uint32_t vector_u32 = vector_z << (32 - num_bits);
 			vector_u32 = byte_swap(vector_u32);
 
-			memcpy_bits(out_vector_data, num_bits * 2, &vector_u32, 0, num_bits);
+			memcpy_bits(out_vector_data, uint64_t(num_bits) * 2, &vector_u32, 0, num_bits);
 		}
 		else
 		{
