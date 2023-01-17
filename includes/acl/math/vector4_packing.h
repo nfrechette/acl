@@ -835,7 +835,7 @@ namespace acl
 
 			unaligned_write(vector_u64, out_vector_data);
 
-			uint32_t vector_u32 = static_cast<uint32_t>(vector_z) << (32 - num_bits);
+			uint32_t vector_u32 = vector_z << (32 - num_bits);
 			vector_u32 = byte_swap(vector_u32);
 
 			memcpy_bits(out_vector_data, num_bits * 2, &vector_u32, 0, num_bits);
@@ -868,7 +868,7 @@ namespace acl
 
 			unaligned_write(vector_u64, out_vector_data);
 
-			uint32_t vector_u32 = static_cast<uint32_t>(vector_z) << (32 - num_bits);
+			uint32_t vector_u32 = vector_z << (32 - num_bits);
 			vector_u32 = byte_swap(vector_u32);
 
 			memcpy_bits(out_vector_data, num_bits * 2, &vector_u32, 0, num_bits);
