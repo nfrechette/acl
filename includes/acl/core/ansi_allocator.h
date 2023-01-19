@@ -152,11 +152,13 @@ namespace acl
 #endif
 
 #if defined(ACL_ALLOCATOR_SANITIZE_ALLOCATIONS)
-			std::memset(ptr, 0xCD, size);
+			if (ptr != nullptr)
+				std::memset(ptr, 0xCD, size);
 #endif
 
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
-			m_debug_allocations.insert({ {ptr, AllocationEntry{ptr, size}} });
+			if (ptr != nullptr)
+				m_debug_allocations.insert({ {ptr, AllocationEntry{ptr, size}} });
 #endif
 
 			return ptr;
