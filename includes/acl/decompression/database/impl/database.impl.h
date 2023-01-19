@@ -295,7 +295,7 @@ namespace acl
 		ACL_ASSERT(!is_streaming(quality_tier::lowest_importance), "Behavior is undefined if context is reset while streaming is in progress");
 
 		const uint32_t runtime_data_size = acl_impl::calculate_runtime_data_size(*m_context.db);
-		deallocate_type_array(*m_context.allocator, m_context.loaded_chunks[0], runtime_data_size);
+		deallocate_type_array(*m_context.allocator, reinterpret_cast<uint8_t*>(m_context.loaded_chunks[0]), runtime_data_size);
 
 		// Just reset the DB pointer, this will mark us as no longer initialized indicating everything is stale
 		m_context.db = nullptr;
