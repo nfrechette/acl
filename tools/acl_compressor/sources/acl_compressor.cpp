@@ -977,7 +977,7 @@ static int safe_main_impl(int argc, char* argv[])
 			if (result.any())
 			{
 				printf("Failed to convert input binary track list\n");
-				deallocate_type_array(allocator, bin_tracks, bin_tracks->get_size());
+				deallocate_type_array(allocator, reinterpret_cast<char*>(bin_tracks), bin_tracks->get_size());
 				return -1;
 			}
 
@@ -989,14 +989,14 @@ static int safe_main_impl(int argc, char* argv[])
 			if (result.any())
 			{
 				printf("Failed to convert input binary track list\n");
-				deallocate_type_array(allocator, bin_tracks, bin_tracks->get_size());
+				deallocate_type_array(allocator, reinterpret_cast<char*>(bin_tracks), bin_tracks->get_size());
 				return -1;
 			}
 
 			sjson_type = sjson_file_type::raw_track_list;
 		}
 
-		deallocate_type_array(allocator, bin_tracks, bin_tracks->get_size());
+		deallocate_type_array(allocator, reinterpret_cast<char*>(bin_tracks), bin_tracks->get_size());
 	}
 	else
 	{
