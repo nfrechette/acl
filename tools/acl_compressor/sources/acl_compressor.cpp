@@ -880,8 +880,11 @@ static itransform_error_metric* create_additive_error_metric(iallocator& allocat
 	}
 }
 
-static void create_additive_base_clip(const Options& options, track_array_qvvf& clip, const track_qvvf& bind_pose, track_array_qvvf& out_base_clip, additive_clip_format8& out_additive_format)
+static void create_additive_base_clip(const Options& options, track_array_qvvf& clip, track_array_qvvf& out_base_clip, additive_clip_format8& out_additive_format)
 {
+	// Disable floating point exceptions since conversion requires it
+	scope_disable_fp_exceptions fp_off;
+
 	// Convert the animation clip to be relative to the bind pose
 	const uint32_t num_bones = clip.get_num_tracks();
 	const uint32_t num_samples = clip.get_num_samples_per_track();
@@ -901,11 +904,14 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 
 	for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 	{
-		// Get the bind transform and make sure it has no scale
-		rtm::qvvf bind_transform = bind_pose[bone_index];
-		bind_transform.scale = rtm::vector_set(1.0F);
-
 		track_qvvf& track = clip[bone_index];
+
+		const rtm::qvvf bind_transform = track.get_description().default_value;
+
+		// Reset our default value to the additive identity
+		track.get_description().default_value = rtm::qvv_identity();
+		if (options.is_bind_pose_additive1)
+			track.get_description().default_value.scale = rtm::vector_set(0.0F);
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
@@ -948,7 +954,6 @@ static int safe_main_impl(int argc, char* argv[])
 	track_array_qvvf transform_tracks;
 	track_array_qvvf base_clip;
 	additive_clip_format8 additive_format = additive_clip_format8::none;
-	track_qvvf bind_pose;
 	track_array scalar_tracks;
 
 #if defined(__ANDROID__)
@@ -1017,7 +1022,6 @@ static int safe_main_impl(int argc, char* argv[])
 			transform_tracks = std::move(sjson_clip.track_list);
 			base_clip = std::move(sjson_clip.additive_base_track_list);
 			additive_format = sjson_clip.additive_format;
-			bind_pose = std::move(sjson_clip.bind_pose);
 			scalar_tracks = std::move(sjson_track_list.track_list);
 		}
 	}
@@ -1071,11 +1075,10 @@ static int safe_main_impl(int argc, char* argv[])
 
 	if (sjson_type == sjson_file_type::raw_clip)
 	{
-		// Grab whatever clip we might have read from the sjson file and cast the const away so we can manage the memory
-		if (base_clip.is_empty() && !bind_pose.is_empty())
+		if (base_clip.is_empty())
 		{
 			if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
-				create_additive_base_clip(options, transform_tracks, bind_pose, base_clip, additive_format);
+				create_additive_base_clip(options, transform_tracks, base_clip, additive_format);
 		}
 
 		// First try to create an additive error metric
