@@ -407,7 +407,8 @@ namespace acl
 					constant_stream.set_raw_sample(0, translation);
 					bone_stream.translations = std::move(constant_stream);
 
-					bone_range.translation = track_stream_range::from_min_extent(translation, rtm::vector_zero());
+					// Zero out W, could be garbage
+					bone_range.translation = track_stream_range::from_min_extent(rtm::vector_set_w(translation, 0.0F), rtm::vector_zero());
 
 					// We also update the raw data to match in case the values differ
 					for (uint32_t sample_index = 0; sample_index < raw_num_samples; ++sample_index)
@@ -437,7 +438,8 @@ namespace acl
 					constant_stream.set_raw_sample(0, scale);
 					bone_stream.scales = std::move(constant_stream);
 
-					bone_range.scale = track_stream_range::from_min_extent(scale, rtm::vector_zero());
+					// Zero out W, could be garbage
+					bone_range.scale = track_stream_range::from_min_extent(rtm::vector_set_w(scale, 0.0F), rtm::vector_zero());
 
 					num_default_bone_scales += bone_stream.is_scale_default ? 1 : 0;
 
