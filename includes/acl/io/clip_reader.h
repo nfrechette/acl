@@ -73,6 +73,7 @@ namespace acl
 		track_array_qvvf additive_base_track_list;
 		additive_clip_format8 additive_format = additive_clip_format8::none;
 
+		ACL_DEPRECATED("No longer used, see track description, to be removed in v3.0")
 		track_qvvf bind_pose;
 
 		bool has_settings = false;
@@ -85,6 +86,7 @@ namespace acl
 	{
 		track_array track_list;
 
+		ACL_DEPRECATED("No longer used, see track description, to be removed in v3.0")
 		track_qvvf bind_pose;
 
 		bool has_settings = false;
@@ -136,7 +138,7 @@ namespace acl
 			if (!read_settings(&out_data.has_settings, &out_data.settings))
 				return false;
 
-			if (!create_skeleton(out_data.track_list, out_data.bind_pose))
+			if (!create_skeleton(out_data.track_list))
 				return false;
 
 			if (!read_tracks(out_data.track_list, out_data.additive_base_track_list))
@@ -160,7 +162,7 @@ namespace acl
 			if (!read_settings(&out_data.has_settings, &out_data.settings))
 				return false;
 
-			if (!create_track_list(out_data.track_list, out_data.bind_pose))
+			if (!create_track_list(out_data.track_list))
 				return false;
 
 			return nothing_follows();
@@ -433,12 +435,12 @@ namespace acl
 			return false;
 		}
 
-		bool create_skeleton(track_array_qvvf& track_list, track_qvvf& bind_pose)
+		bool create_skeleton(track_array_qvvf& track_list)
 		{
 			sjson::ParserState before_bones = m_parser.save_state();
 
 			uint32_t num_bones;
-			if (!process_each_bone(nullptr, nullptr, num_bones))
+			if (!process_each_bone(nullptr, num_bones))
 				return false;
 
 			m_parser.restore_state(before_bones);
@@ -448,12 +450,10 @@ namespace acl
 
 			track_list = track_array_qvvf(m_allocator, num_bones);
 			track_list.set_name(convert_string(m_clip_name));
-			bind_pose = track_qvvf::make_reserve(track_desc_transformf{}, m_allocator, num_bones, 30.0F);	// 1 sample per track
-			bind_pose.set_name(string(m_allocator, "bind pose"));
 
 			const uint32_t num_allocated_bones = num_bones;
 
-			if (!process_each_bone(&track_list, &bind_pose, num_bones))
+			if (!process_each_bone(&track_list, num_bones))
 				return false;
 
 			(void)num_allocated_bones;
@@ -515,7 +515,7 @@ namespace acl
 			return result;
 		}
 
-		bool process_each_bone(track_array_qvvf* tracks, track_qvvf* bind_pose, uint32_t& num_bones)
+		bool process_each_bone(track_array_qvvf* tracks, uint32_t& num_bones)
 		{
 			bool counting = tracks == nullptr;
 			num_bones = 0;
@@ -601,8 +601,6 @@ namespace acl
 					bind_transform_.rotation = rtm::quat_normalize_deterministic(bind_transform_.rotation);
 
 					(*tracks)[i].get_description().default_value = bind_transform_;
-
-					(*bind_pose)[i] = bind_transform_;
 				}
 
 				if (!m_parser.object_ends())
@@ -744,7 +742,7 @@ namespace acl
 			return true;
 		}
 
-		bool process_track_list(track* tracks, track_qvvf* bind_pose, uint32_t& num_tracks)
+		bool process_track_list(track* tracks, uint32_t& num_tracks)
 		{
 			const bool counting = tracks == nullptr;
 			track dummy;
@@ -859,9 +857,6 @@ namespace acl
 				}
 
 				transform_desc.default_value = bind_transform;
-
-				if (bind_pose != nullptr)
-					(*bind_pose)[i] = bind_transform;
 
 				if (!m_parser.array_begins("data"))
 					goto error;
@@ -1076,22 +1071,20 @@ namespace acl
 			return false;
 		}
 
-		bool create_track_list(track_array& track_list, track_qvvf& bind_pose)
+		bool create_track_list(track_array& track_list)
 		{
 			const sjson::ParserState before_tracks = m_parser.save_state();
 
 			uint32_t num_tracks;
-			if (!process_track_list(nullptr, nullptr, num_tracks))
+			if (!process_track_list(nullptr, num_tracks))
 				return false;
 
 			m_parser.restore_state(before_tracks);
 
 			track_list = track_array(m_allocator, num_tracks);
 			track_list.set_name(convert_string(m_clip_name));
-			bind_pose = track_qvvf::make_reserve(track_desc_transformf{}, m_allocator, num_tracks, 30.0F);	// 1 sample per track
-			bind_pose.set_name(string(m_allocator, "bind pose"));
 
-			if (!process_track_list(track_list.begin(), &bind_pose, num_tracks))
+			if (!process_track_list(track_list.begin(), num_tracks))
 				return false;
 
 			ACL_ASSERT(num_tracks == track_list.get_num_tracks(), "Number of tracks read mismatch");
