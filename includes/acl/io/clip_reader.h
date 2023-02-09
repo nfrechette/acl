@@ -64,6 +64,15 @@ namespace acl
 		raw_track_list,
 	};
 
+	// Disable warning for implicit constructor using deprecated members
+#if defined(RTM_COMPILER_CLANG)
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(RTM_COMPILER_GCC)
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	//////////////////////////////////////////////////////////////////////////
 	// Raw transform tracks
 	struct sjson_raw_clip
@@ -92,6 +101,12 @@ namespace acl
 		bool has_settings = false;
 		compression_settings settings;
 	};
+
+#if defined(RTM_COMPILER_CLANG)
+	#pragma clang diagnostic pop
+#elif defined(RTM_COMPILER_GCC)
+	#pragma GCC diagnostic pop
+#endif
 
 	//////////////////////////////////////////////////////////////////////////
 	// An SJSON ACL file reader.
