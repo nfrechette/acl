@@ -127,6 +127,12 @@ static void get_temporary_filename(char* filename, uint32_t filename_size, const
 }
 #endif
 
+// Disable warning for implicit constructor using deprecated members in sjson_raw_clip and sjson_raw_track_list
+#if defined(RTM_COMPILER_MSVC_2015)
+	#pragma warning(push)
+	#pragma warning(disable : 4996)
+#endif
+
 TEST_CASE("sjson_clip_reader_writer", "[io]")
 {
 	// Only test the reader/writer on non-mobile platforms
@@ -278,6 +284,10 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	}
 #endif
 }
+
+#if defined(RTM_COMPILER_MSVC_2015)
+	#pragma warning(pop)
+#endif
 
 TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 {
