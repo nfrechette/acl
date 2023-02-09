@@ -65,6 +65,7 @@ namespace acl
 	};
 
 	// Disable warning for implicit constructor using deprecated members
+	// Also remove warning suppression added for RTM_COMPILER_MSVC_2015 in acl_compressor.cpp and test_reader_writer.cpp
 #if defined(RTM_COMPILER_CLANG)
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"

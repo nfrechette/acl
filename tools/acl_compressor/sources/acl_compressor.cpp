@@ -942,6 +942,12 @@ static compression_settings make_settings(rotation_format8 rotation_format, vect
 }
 #endif	// defined(ACL_USE_SJSON)
 
+// Disable warning for implicit constructor using deprecated members in sjson_raw_clip and sjson_raw_track_list
+#if defined(RTM_COMPILER_MSVC_2015)
+	#pragma warning(push)
+	#pragma warning(disable : 4996)
+#endif
+
 static int safe_main_impl(int argc, char* argv[])
 {
 	Options options;
@@ -1190,6 +1196,10 @@ static int safe_main_impl(int argc, char* argv[])
 
 	return 0;
 }
+
+#if defined(RTM_COMPILER_MSVC_2015)
+	#pragma warning(pop)
+#endif
 
 #ifdef _WIN32
 static LONG WINAPI unhandled_exception_filter(EXCEPTION_POINTERS *info)
