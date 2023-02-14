@@ -57,6 +57,12 @@ namespace acl
 	}
 
 	template<class decompression_settings_type>
+	inline decompression_context<decompression_settings_type>::~decompression_context()
+	{
+		reset();
+	}
+
+	template<class decompression_settings_type>
 	inline bool decompression_context<decompression_settings_type>::initialize(const compressed_tracks& tracks)
 	{
 		constexpr bool skip_safety_checks = decompression_settings_type::skip_initialize_safety_checks();

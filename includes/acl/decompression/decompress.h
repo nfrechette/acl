@@ -89,6 +89,10 @@ namespace acl
 		decompression_context();
 
 		//////////////////////////////////////////////////////////////////////////
+		// Destructs a context instance.
+		~decompression_context();
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the compressed tracks bound to this context instance.
 		const compressed_tracks* get_compressed_tracks() const { return m_context.get_compressed_tracks(); }
 
