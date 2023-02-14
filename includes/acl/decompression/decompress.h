@@ -107,6 +107,11 @@ namespace acl
 		bool is_initialized() const { return m_context.is_initialized(); }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Resets the context instance to its default constructed state. If the context was
+		// currently bound to a compressed tracks instance (and database), it will no longer be bound to anything.
+		void reset();
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to the specified compressed tracks instance, false otherwise.
 		bool is_dirty(const compressed_tracks& tracks) const;
 
