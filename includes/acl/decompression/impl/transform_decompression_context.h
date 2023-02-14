@@ -113,6 +113,7 @@ namespace acl
 		};
 
 		static_assert(sizeof(persistent_transform_decompression_context_v0) == 128, "Unexpected size");
+		static_assert(offsetof(persistent_transform_decompression_context_v0, tracks) == 0, "tracks pointer needs to be the first member");
 
 		// We use adapters to wrap the decompression_settings
 		// This allows us to re-use the code for skipping and decompressing Vector3 samples
