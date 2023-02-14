@@ -133,6 +133,14 @@ namespace acl
 			return true;
 		}
 
+		inline bool is_bound_to_v0(const persistent_scalar_decompression_context_v0& context, const compressed_database& database)
+		{
+			// Database decompression is not supported for scalar tracks
+			(void)context;
+			(void)database;
+			return false;
+		}
+
 		template<class decompression_settings_type>
 		inline void set_looping_policy_v0(persistent_scalar_decompression_context_v0& context, sample_looping_policy policy)
 		{

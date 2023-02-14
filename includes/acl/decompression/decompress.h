@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error.h"
@@ -123,6 +124,10 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to the specified compressed tracks instance, false otherwise.
 		bool is_bound_to(const compressed_tracks& tracks) const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if this context instance is bound to the specified database instance, false otherwise.
+		bool is_bound_to(const compressed_database& database) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Sets the looping policy.

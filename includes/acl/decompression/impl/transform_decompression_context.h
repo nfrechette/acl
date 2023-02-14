@@ -59,22 +59,23 @@ namespace acl
 			// Database context, optional
 			const database_context_v0* db;						//   4 |   8
 
-			// Cached hash of the bound compressed track instance
+			// Cached hashes of the bound compressed track and database instances
 			uint32_t tracks_hash;								//   8 |  16
+			uint32_t db_hash;									//  12 |  20
 
 			// Only used when the wrap loop policy isn't supported
-			float clip_duration;								//  12 |  20
+			float clip_duration;								//  16 |  24
 
-			rotation_format8 rotation_format;					//  16 |  24
-			vector_format8 translation_format;					//  17 |  25
-			vector_format8 scale_format;						//  18 |  26
+			rotation_format8 rotation_format;					//  20 |  28
+			vector_format8 translation_format;					//  21 |  29
+			vector_format8 scale_format;						//  22 |  30
 
-			uint8_t has_scale;									//  19 |  27
-			uint8_t has_segments;								//  20 |  28
+			uint8_t has_scale;									//  23 |  31
+			uint8_t has_segments;								//  24 |  32
 
-			uint8_t looping_policy;								//  21 |  29
+			uint8_t looping_policy;								//  25 |  33
 
-			uint8_t padding0[20];								//  22 |  30
+			uint8_t padding0[16];								//  26 |  34
 
 			// Seeking related data
 			uint8_t rounding_policy;							//  42 |  50

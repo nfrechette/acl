@@ -66,6 +66,9 @@ namespace acl
 			template<class context_type>
 			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_bound_to_v0(context, tracks); }
 
+			template<class context_type>
+			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_database& database) { return acl_impl::is_bound_to_v0(context, database); }
+
 			template<class decompression_settings_type, class context_type>
 			RTM_FORCE_INLINE static void set_looping_policy(context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
 
@@ -93,6 +96,9 @@ namespace acl
 			template<class context_type>
 			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_bound_to_v0(context, tracks); }
 
+			template<class context_type>
+			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_database& database) { return acl_impl::is_bound_to_v0(context, database); }
+
 			template<class decompression_settings_type, class context_type>
 			RTM_FORCE_INLINE static void set_looping_policy(context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
 
@@ -116,6 +122,9 @@ namespace acl
 
 			template<class context_type>
 			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_bound_to_v0(context, tracks); }
+
+			template<class context_type>
+			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_database& database) { return acl_impl::is_bound_to_v0(context, database); }
 
 			template<class decompression_settings_type, class context_type>
 			RTM_FORCE_INLINE static void set_looping_policy(context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
@@ -168,6 +177,22 @@ namespace acl
 				case compressed_tracks_version16::v02_01_99:
 				case compressed_tracks_version16::v02_01_99_1:
 					return acl_impl::is_bound_to_v0(context, tracks);
+				default:
+					ACL_ASSERT(false, "Unsupported version");
+					return false;
+				}
+			}
+
+			template<class context_type>
+			static bool is_bound_to(const context_type& context, const compressed_database& database)
+			{
+				const compressed_tracks_version16 version = context.get_version();
+				switch (version)
+				{
+				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
+				case compressed_tracks_version16::v02_01_99_1:
+					return acl_impl::is_bound_to_v0(context, database);
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					return false;
