@@ -131,6 +131,11 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	initialized = initialized && context0.initialize(tracks0, db_context);
 	initialized = initialized && context1.initialize(tracks1, db_context);
 	ACL_ASSERT(initialized, "Failed to initialize decompression context");
+
+	bool is_bound = context0.is_bound_to(tracks0);
+	is_bound = is_bound && context1.is_bound_to(tracks1);
+	ACL_ASSERT(is_bound, "Failed to bind decompression context");
+
 	ACL_ASSERT(!db_context.is_streamed_in(quality_tier::medium_importance) || db.get_num_chunks(quality_tier::medium_importance) == 0, "Tier shouldn't be streamed in yet");
 	ACL_ASSERT(!db_context.is_streamed_in(quality_tier::lowest_importance) || db.get_num_chunks(quality_tier::lowest_importance) == 0, "Tier shouldn't be streamed in yet");
 
@@ -236,6 +241,10 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		initialized = initialized && context1.initialize(tracks1, db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
+		bool is_bound = context0.is_bound_to(tracks0);
+		is_bound = is_bound && context1.is_bound_to(tracks1);
+		ACL_ASSERT(is_bound, "Failed to bind decompression context");
+
 		// Nothing is streamed in yet, we have low quality
 		low_quality_tier_error_ref0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
 		low_quality_tier_error_ref1 = calculate_compression_error(allocator, raw_tracks, context1, error_metric, additive_base_tracks);
@@ -329,6 +338,10 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		initialized = initialized && context1.initialize(tracks1, db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
+		bool is_bound = context0.is_bound_to(tracks0);
+		is_bound = is_bound && context1.is_bound_to(tracks1);
+		ACL_ASSERT(is_bound, "Failed to bind decompression context");
+
 		// Nothing is streamed in yet, we have low quality
 		{
 			const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
@@ -390,6 +403,10 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		initialized = initialized && context0.initialize(tracks0, db_context);
 		initialized = initialized && context1.initialize(tracks1, db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
+
+		bool is_bound = context0.is_bound_to(tracks0);
+		is_bound = is_bound && context1.is_bound_to(tracks1);
+		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		// Nothing is streamed in yet, we have low quality
 		{
@@ -537,6 +554,9 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		const bool initialized = context.initialize(compressed_tracks0);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
+		const bool is_bound = context.is_bound_to(compressed_tracks0);
+		ACL_ASSERT(is_bound, "Failed to bind decompression context");
+
 		high_quality_tier_error_ref = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 	}
 
@@ -549,6 +569,9 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		initialized = initialized && context.initialize(*db_tracks0[0], db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
+		const bool is_bound = context.is_bound_to(*db_tracks0[0]);
+		ACL_ASSERT(is_bound, "Failed to bind decompression context");
+
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, threshold), "Database 0 should have the same error");
 	}
@@ -560,6 +583,9 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		bool initialized = db_context.initialize(allocator, *db1);
 		initialized = initialized && context.initialize(*db_tracks1[0], db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
+
+		const bool is_bound = context.is_bound_to(*db_tracks1[0]);
+		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, threshold), "Database 1 should have the same error");
@@ -574,6 +600,10 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		initialized = initialized && context0.initialize(*db_tracks01[0], db_context);
 		initialized = initialized && context1.initialize(*db_tracks01[1], db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
+
+		bool is_bound = context0.is_bound_to(*db_tracks01[0]);
+		is_bound = is_bound && context1.is_bound_to(*db_tracks01[1]);
+		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);
 		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, threshold), "Database 01 should have the same error");

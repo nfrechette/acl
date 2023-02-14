@@ -124,6 +124,9 @@ void validate_accuracy(
 	const bool initialized = context.initialize(compressed_tracks_);
 	ACL_ASSERT(initialized, "Failed to initialize decompression context"); (void)initialized;
 
+	const bool is_bound_to_tracks = context.is_bound_to(compressed_tracks_);
+	ACL_ASSERT(is_bound_to_tracks, "Failed to bind to correct compressed tracks instance"); (void)is_bound_to_tracks;
+
 	const track_error error = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 	ACL_ASSERT(rtm::scalar_is_finite(error.error), "Returned error is not a finite value"); (void)error;
 	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", error.index, error.error, error.sample_time);
@@ -347,7 +350,12 @@ void validate_accuracy(
 	ACL_ASSERT(num_tracks <= raw_tracks.get_num_tracks(), "Num tracks mismatch");
 
 	decompression_context<debug_scalar_decompression_settings> context;
-	context.initialize(tracks);
+
+	const bool initialized = context.initialize(tracks);
+	ACL_ASSERT(initialized, "Failed to initialize decompression context"); (void)initialized;
+
+	const bool is_bound_to_tracks = context.is_bound_to(tracks);
+	ACL_ASSERT(is_bound_to_tracks, "Failed to bind to correct compressed tracks instance"); (void)is_bound_to_tracks;
 
 	debug_track_writer raw_tracks_writer(allocator, track_type, num_tracks);
 	debug_track_writer raw_track_writer(allocator, track_type, num_tracks);
@@ -628,7 +636,12 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 	scope_disable_fp_exceptions fp_off;
 
 	acl::decompression_context<acl_impl::raw_sampling_decompression_settings> context;
-	context.initialize(compressed_tracks_);
+
+	const bool initialized = context.initialize(compressed_tracks_);
+	ACL_ASSERT(initialized, "Failed to initialize decompression context"); (void)initialized;
+
+	const bool is_bound_to_tracks = context.is_bound_to(compressed_tracks_);
+	ACL_ASSERT(is_bound_to_tracks, "Failed to bind to correct compressed tracks instance"); (void)is_bound_to_tracks;
 
 	const track_type8 track_type = raw_tracks.get_track_type();
 	acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
