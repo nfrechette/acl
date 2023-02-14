@@ -64,7 +64,10 @@ namespace acl
 
 			iallocator* allocator;									//  40 |  72
 
-			uint8_t padding1[sizeof(void*) == 4 ? 20 : 40];			//  44 |  88
+			// Cached hash of the bound database instance
+			uint32_t db_hash;										//  44 |  88
+
+			uint8_t padding1[sizeof(void*) == 4 ? 16 : 36];			//  48 |  92
 
 			//											Total size:	    64 | 128
 
