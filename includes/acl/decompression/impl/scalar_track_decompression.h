@@ -62,6 +62,7 @@ namespace acl
 			// Only member used to detect if we are initialized, must be first
 			const compressed_tracks* tracks;						//   0 |   0
 
+			// Cached hash of the bound compressed track instance
 			uint32_t tracks_hash;									//   4 |   8
 
 			// Only used when the wrap loop policy isn't supported
