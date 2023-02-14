@@ -101,9 +101,13 @@ namespace acl
 			ACL_ASSERT(translation_format == packed_translation_format, "Statically compiled translation format (%s) differs from the compressed translation format (%s)!", get_vector_format_name(translation_format), get_vector_format_name(packed_translation_format));
 			ACL_ASSERT(scale_format == packed_scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(packed_scale_format));
 
+			// Context is always the first member and versions should always match
+			const database_context_v0* db = reinterpret_cast<const database_context_v0*>(database);
+
 			context.tracks = &tracks;
-			context.db = reinterpret_cast<const database_context_v0*>(database);	// Context is always the first member and versions should always match
+			context.db = db;
 			context.tracks_hash = tracks.get_hash();
+			context.db_hash = db != nullptr ? db->db_hash : 0;
 			context.sample_time = -1.0F;
 			context.rotation_format = rotation_format;
 			context.translation_format = translation_format;
@@ -131,6 +135,21 @@ namespace acl
 				return false;	// Different pointer, no guarantees
 
 			if (context.tracks_hash != tracks.get_hash())
+				return false;	// Different hash
+
+			// Must be bound to it!
+			return true;
+		}
+
+		inline bool is_bound_to_v0(const persistent_transform_decompression_context_v0& context, const compressed_database& database)
+		{
+			if (context.db == nullptr)
+				return false;	// Not bound to any database
+
+			if (context.db->db != &database)
+				return false;	// Different pointer, no guarantees
+
+			if (context.db_hash != database.get_hash())
 				return false;	// Different hash
 
 			// Must be bound to it!

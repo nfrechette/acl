@@ -132,8 +132,11 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	initialized = initialized && context1.initialize(tracks1, db_context);
 	ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
-	bool is_bound = context0.is_bound_to(tracks0);
+	bool is_bound = db_context.is_bound_to(db);
+	is_bound = is_bound && context0.is_bound_to(tracks0);
+	is_bound = is_bound && context0.is_bound_to(db);
 	is_bound = is_bound && context1.is_bound_to(tracks1);
+	is_bound = is_bound && context1.is_bound_to(db);
 	ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 	ACL_ASSERT(!db_context.is_streamed_in(quality_tier::medium_importance) || db.get_num_chunks(quality_tier::medium_importance) == 0, "Tier shouldn't be streamed in yet");
@@ -241,8 +244,11 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		initialized = initialized && context1.initialize(tracks1, db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
-		bool is_bound = context0.is_bound_to(tracks0);
+		bool is_bound = db_context.is_bound_to(db);
+		is_bound = is_bound && context0.is_bound_to(tracks0);
+		is_bound = is_bound && context0.is_bound_to(db);
 		is_bound = is_bound && context1.is_bound_to(tracks1);
+		is_bound = is_bound && context1.is_bound_to(db);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		// Nothing is streamed in yet, we have low quality
@@ -281,6 +287,13 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		initialized = initialized && context0.initialize(tracks0, db_context);
 		initialized = initialized && context1.initialize(tracks1, db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
+
+		bool is_bound = db_context.is_bound_to(*db_no_medium);
+		is_bound = is_bound && context0.is_bound_to(tracks0);
+		is_bound = is_bound && context0.is_bound_to(*db_no_medium);
+		is_bound = is_bound && context1.is_bound_to(tracks1);
+		is_bound = is_bound && context1.is_bound_to(*db_no_medium);
+		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		// Nothing is streamed in yet, we have low quality
 		{
@@ -338,8 +351,11 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		initialized = initialized && context1.initialize(tracks1, db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
-		bool is_bound = context0.is_bound_to(tracks0);
+		bool is_bound = db_context.is_bound_to(*db_no_low);
+		is_bound = is_bound && context0.is_bound_to(tracks0);
+		is_bound = is_bound && context0.is_bound_to(*db_no_low);
 		is_bound = is_bound && context1.is_bound_to(tracks1);
+		is_bound = is_bound && context1.is_bound_to(*db_no_low);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		// Nothing is streamed in yet, we have low quality
@@ -404,8 +420,11 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		initialized = initialized && context1.initialize(tracks1, db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
-		bool is_bound = context0.is_bound_to(tracks0);
+		bool is_bound = db_context.is_bound_to(*db_neither0);
+		is_bound = is_bound && context0.is_bound_to(tracks0);
+		is_bound = is_bound && context0.is_bound_to(*db_neither0);
 		is_bound = is_bound && context1.is_bound_to(tracks1);
+		is_bound = is_bound && context1.is_bound_to(*db_neither0);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		// Nothing is streamed in yet, we have low quality
@@ -569,7 +588,9 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		initialized = initialized && context.initialize(*db_tracks0[0], db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
-		const bool is_bound = context.is_bound_to(*db_tracks0[0]);
+		bool is_bound = db_context.is_bound_to(*db0);
+		is_bound = is_bound && context.is_bound_to(*db_tracks0[0]);
+		is_bound = is_bound && context.is_bound_to(*db0);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
@@ -584,7 +605,9 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		initialized = initialized && context.initialize(*db_tracks1[0], db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
-		const bool is_bound = context.is_bound_to(*db_tracks1[0]);
+		bool is_bound = db_context.is_bound_to(*db1);
+		is_bound = is_bound && context.is_bound_to(*db_tracks1[0]);
+		is_bound = is_bound && context.is_bound_to(*db1);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
@@ -601,8 +624,11 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		initialized = initialized && context1.initialize(*db_tracks01[1], db_context);
 		ACL_ASSERT(initialized, "Failed to initialize decompression context");
 
-		bool is_bound = context0.is_bound_to(*db_tracks01[0]);
+		bool is_bound = db_context.is_bound_to(*db01);
+		is_bound = is_bound && context0.is_bound_to(*db_tracks01[0]);
+		is_bound = is_bound && context0.is_bound_to(*db01);
 		is_bound = is_bound && context1.is_bound_to(*db_tracks01[1]);
+		is_bound = is_bound && context1.is_bound_to(*db01);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context0, error_metric, additive_base_tracks);

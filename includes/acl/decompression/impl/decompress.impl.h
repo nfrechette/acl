@@ -128,6 +128,15 @@ namespace acl
 	}
 
 	template<class decompression_settings_type>
+	inline bool decompression_context<decompression_settings_type>::is_bound_to(const compressed_database& database) const
+	{
+		if (!m_context.is_initialized())
+			return false;	// Not bound to anything when not initialized
+
+		return version_impl_type::template is_bound_to(m_context, database);
+	}
+
+	template<class decompression_settings_type>
 	inline void decompression_context<decompression_settings_type>::set_looping_policy(sample_looping_policy policy)
 	{
 		ACL_ASSERT(m_context.is_initialized(), "Context is not initialized");
