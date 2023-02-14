@@ -103,6 +103,12 @@ namespace acl
 	}
 
 	template<class decompression_settings_type>
+	inline void decompression_context<decompression_settings_type>::reset()
+	{
+		m_context.reset();
+	}
+
+	template<class decompression_settings_type>
 	inline bool decompression_context<decompression_settings_type>::is_dirty(const compressed_tracks& tracks) const
 	{
 		return version_impl_type::template is_dirty(m_context, tracks);
