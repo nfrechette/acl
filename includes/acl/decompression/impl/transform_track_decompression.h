@@ -103,7 +103,7 @@ namespace acl
 
 			context.tracks = &tracks;
 			context.db = reinterpret_cast<const database_context_v0*>(database);	// Context is always the first member and versions should always match
-			context.clip_hash = tracks.get_hash();
+			context.tracks_hash = tracks.get_hash();
 			context.sample_time = -1.0F;
 			context.rotation_format = rotation_format;
 			context.translation_format = translation_format;
@@ -130,7 +130,7 @@ namespace acl
 			if (context.tracks != &tracks)
 				return false;	// Different pointer, no guarantees
 
-			if (context.clip_hash != tracks.get_hash())
+			if (context.tracks_hash != tracks.get_hash())
 				return false;	// Different hash
 
 			// Must be bound to it!
