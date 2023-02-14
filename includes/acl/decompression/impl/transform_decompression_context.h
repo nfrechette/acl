@@ -59,7 +59,8 @@ namespace acl
 			// Database context, optional
 			const database_context_v0* db;						//   4 |   8
 
-			uint32_t clip_hash;									//   8 |  16
+			// Cached hash of the bound compressed track instance
+			uint32_t tracks_hash;								//   8 |  16
 
 			// Only used when the wrap loop policy isn't supported
 			float clip_duration;								//  12 |  20
