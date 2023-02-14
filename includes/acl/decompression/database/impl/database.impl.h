@@ -103,6 +103,7 @@ namespace acl
 			return false;
 
 		m_context.db = &database;
+		m_context.db_hash = database.get_hash();
 		m_context.allocator = &allocator;
 		m_context.bulk_data[0] = database.get_bulk_data(quality_tier::medium_importance);
 		m_context.bulk_data[1] = database.get_bulk_data(quality_tier::lowest_importance);
@@ -228,6 +229,7 @@ namespace acl
 			return false;
 
 		m_context.db = &database;
+		m_context.db_hash = database.get_hash();
 		m_context.allocator = &allocator;
 		m_context.bulk_data[0] = m_context.bulk_data[1] = nullptr;	// Will be set during the first stream in request
 		m_context.streamers[0] = &medium_tier_streamer;
@@ -299,6 +301,19 @@ namespace acl
 
 		// Just reset the DB pointer, this will mark us as no longer initialized indicating everything is stale
 		m_context.db = nullptr;
+	}
+
+	template<class database_settings_type>
+	inline bool database_context<database_settings_type>::is_bound_to(const compressed_database& database) const
+	{
+		if (m_context.db != &database)
+			return false;	// Different pointer, no guarantees
+
+		if (m_context.db_hash != database.get_hash())
+			return false;	// Different hash
+
+		// Must be bound to it!
+		return true;
 	}
 
 	template<class database_settings_type>

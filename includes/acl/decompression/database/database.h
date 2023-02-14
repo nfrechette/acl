@@ -125,6 +125,10 @@ namespace acl
 		void reset();
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns true if this context instance is bound to the specified database instance, false otherwise.
+		bool is_bound_to(const compressed_database& database) const;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns whether the database bound contains the provided compressed tracks instance data.
 		bool contains(const compressed_tracks& tracks) const;
 
