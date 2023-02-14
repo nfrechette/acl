@@ -77,6 +77,7 @@ namespace acl
 		};
 
 		static_assert((sizeof(database_context_v0) % 64) == 0, "Unexpected size");
+		static_assert(offsetof(database_context_v0, db) == 0, "db pointer needs to be the first member, see initialize_v0");
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

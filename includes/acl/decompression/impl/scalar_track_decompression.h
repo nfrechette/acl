@@ -93,6 +93,7 @@ namespace acl
 		};
 
 		static_assert(sizeof(persistent_scalar_decompression_context_v0) == 64, "Unexpected size");
+		static_assert(offsetof(persistent_scalar_decompression_context_v0, tracks) == 0, "tracks pointer needs to be the first member");
 
 		template<class decompression_settings_type, class database_settings_type>
 		inline bool initialize_v0(persistent_scalar_decompression_context_v0& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
