@@ -83,7 +83,11 @@ namespace acl
 				}
 			}
 			bool is_initialized() const { return scalar.is_initialized(); }
-			void reset() { scalar.tracks = nullptr; }
+			void reset()
+			{
+				// Just reset the tracks pointer, this will mark us as no longer initialized indicating everything is stale
+				scalar.tracks = nullptr;
+			}
 		};
 
 		template<class decompression_settings_type, class database_settings_type>
