@@ -125,15 +125,16 @@ namespace acl
 			return true;
 		}
 
-		inline bool is_dirty_v0(const persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks)
+		inline bool is_bound_to_v0(const persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
 			if (context.tracks != &tracks)
-				return true;
+				return false;	// Different pointer, no guarantees
 
 			if (context.clip_hash != tracks.get_hash())
-				return true;
+				return false;	// Different hash
 
-			return false;
+			// Must be bound to it!
+			return true;
 		}
 
 		template<class decompression_settings_type>

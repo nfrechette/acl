@@ -117,7 +117,14 @@ namespace acl
 	template<class decompression_settings_type>
 	inline bool decompression_context<decompression_settings_type>::is_dirty(const compressed_tracks& tracks) const
 	{
-		return version_impl_type::template is_dirty(m_context, tracks);
+		// We are dirty if we aren't bound to it
+		return !version_impl_type::template is_bound_to(m_context, tracks);
+	}
+
+	template<class decompression_settings_type>
+	inline bool decompression_context<decompression_settings_type>::is_bound_to(const compressed_tracks& tracks) const
+	{
+		return version_impl_type::template is_bound_to(m_context, tracks);
 	}
 
 	template<class decompression_settings_type>
