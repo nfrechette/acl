@@ -104,7 +104,11 @@ namespace acl
 			sample_looping_policy get_looping_policy() const { return static_cast<sample_looping_policy>(looping_policy); }
 			sample_rounding_policy get_rounding_policy() const { return static_cast<sample_rounding_policy>(rounding_policy); }
 			bool is_initialized() const { return tracks != nullptr; }
-			void reset() { tracks = nullptr; }
+			void reset()
+			{
+				// Just reset the tracks pointer, this will mark us as no longer initialized indicating everything is stale
+				tracks = nullptr;
+			}
 		};
 
 		static_assert(sizeof(persistent_transform_decompression_context_v0) == 128, "Unexpected size");
