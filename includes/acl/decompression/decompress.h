@@ -117,7 +117,12 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to the specified compressed tracks instance, false otherwise.
+		ACL_DEPRECATED("Renamed to is_bound_to, to be removed in v3.0")
 		bool is_dirty(const compressed_tracks& tracks) const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if this context instance is bound to the specified compressed tracks instance, false otherwise.
+		bool is_bound_to(const compressed_tracks& tracks) const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Sets the looping policy.
