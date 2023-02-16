@@ -181,7 +181,7 @@ namespace acl
 				additive_base_clip_context.clip_shell_metadata = clip_shell_metadata;
 
 			// Wrap instead of clamp if we loop
-			optimize_looping(lossy_clip_context, settings);
+			optimize_looping(lossy_clip_context, additive_base_clip_context, settings);
 
 			// Convert our rotations if we need to
 			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format);
@@ -190,7 +190,7 @@ namespace acl
 			extract_clip_bone_ranges(allocator, lossy_clip_context);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, lossy_clip_context, raw_clip_context, track_list, settings);
+			compact_constant_streams(allocator, lossy_clip_context, raw_clip_context, additive_base_clip_context, track_list, settings);
 
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
