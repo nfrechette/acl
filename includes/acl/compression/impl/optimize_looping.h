@@ -46,7 +46,7 @@ namespace acl
 
 	namespace acl_impl
 	{
-		inline void optimize_looping(clip_context& context, const compression_settings& settings)
+		inline void optimize_looping(clip_context& context, const clip_context& additive_base_clip_context, const compression_settings& settings)
 		{
 			if (!settings.optimize_loops)
 				return;	// We don't want to optimize loops, nothing to do
@@ -76,6 +76,7 @@ namespace acl
 
 			segment_context& segment = context.segments[0];
 			const uint32_t last_sample_index = segment.num_samples - 1;
+			const bool has_additive_base = context.has_additive_base;
 
 			qvvf_transform_error_metric::calculate_error_args error_metric_args;
 			const qvvf_transform_error_metric error_metric;
@@ -99,8 +100,30 @@ namespace acl
 				const rtm::vector4f last_translation = lossy_transform_stream.translations.get_sample_clamped(last_sample_index);
 				const rtm::vector4f last_scale = lossy_transform_stream.scales.get_sample_clamped(last_sample_index);
 
-				const rtm::qvvf first_transform = rtm::qvv_set(first_rotation, first_translation, first_scale);
-				const rtm::qvvf last_transform = rtm::qvv_set(last_rotation, last_translation, last_scale);
+				rtm::qvvf first_transform = rtm::qvv_set(first_rotation, first_translation, first_scale);
+				rtm::qvvf last_transform = rtm::qvv_set(last_rotation, last_translation, last_scale);
+
+				if (has_additive_base)
+				{
+					const segment_context& additive_base_segment = additive_base_clip_context.segments[0];
+					const transform_streams& additive_base_bone_stream = additive_base_segment.bone_streams[transform_index];
+
+					const uint32_t base_last_sample_index = additive_base_segment.num_samples - 1;
+
+					const rtm::quatf base_first_rotation = additive_base_bone_stream.rotations.get_sample_clamped(0);
+					const rtm::vector4f base_first_translation = additive_base_bone_stream.translations.get_sample_clamped(0);
+					const rtm::vector4f base_first_scale = additive_base_bone_stream.scales.get_sample_clamped(0);
+
+					const rtm::quatf base_last_rotation = additive_base_bone_stream.rotations.get_sample_clamped(base_last_sample_index);
+					const rtm::vector4f base_last_translation = additive_base_bone_stream.translations.get_sample_clamped(base_last_sample_index);
+					const rtm::vector4f base_last_scale = additive_base_bone_stream.scales.get_sample_clamped(base_last_sample_index);
+
+					const rtm::qvvf base_first_transform = rtm::qvv_set(base_first_rotation, base_first_translation, base_first_scale);
+					const rtm::qvvf base_last_transform = rtm::qvv_set(base_last_rotation, base_last_translation, base_last_scale);
+
+					first_transform = apply_additive_to_base(context.additive_format, base_first_transform, first_transform);
+					last_transform = apply_additive_to_base(context.additive_format, base_last_transform, last_transform);
+				}
 
 				error_metric_args.transform0 = &first_transform;
 				error_metric_args.transform1 = &last_transform;
