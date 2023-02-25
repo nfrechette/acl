@@ -125,6 +125,21 @@ namespace acl
 		void reset();
 
 		//////////////////////////////////////////////////////////////////////////
+		// If the bound compressed database instance has relocated elsewhere in memory, this function
+		// rebinds the context to it, avoiding the need to re-initialize it entirely.
+		// Returns whether rebinding was successful or not.
+		bool relocated(const compressed_database& database);
+
+		//////////////////////////////////////////////////////////////////////////
+		// If the bound compressed database instance has relocated elsewhere in memory, this function
+		// rebinds the context to it, avoiding the need to re-initialize it entirely.
+		// This can also be called if the streamers relocated, it will cause them to be rebound as well.
+		// Assumes that the streamers have retained the same bulk data state as well. If it is
+		// not the case, reset and re-initialize the context.
+		// Returns whether rebinding was successful or not.
+		bool relocated(const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer);
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to the specified database instance, false otherwise.
 		bool is_bound_to(const compressed_database& database) const;
 

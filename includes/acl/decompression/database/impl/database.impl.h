@@ -304,6 +304,53 @@ namespace acl
 	}
 
 	template<class database_settings_type>
+	inline bool database_context<database_settings_type>::relocated(const compressed_database& database)
+	{
+		if (!m_context.is_initialized())
+			return false;	// Not initialized, cannot be relocated
+
+		const bool is_valid = database.is_valid(false).empty();
+		ACL_ASSERT(is_valid, "Invalid compressed database instance");
+		if (!is_valid)
+			return false;
+
+		if (m_context.db_hash != database.get_hash())
+			return false;	// Hash is different, this instance did not relocate, it is different
+
+		// The instances are identical and might have relocated, update our metadata
+		m_context.db = &database;
+		m_context.bulk_data[0] = database.get_bulk_data(quality_tier::medium_importance);
+		m_context.bulk_data[1] = database.get_bulk_data(quality_tier::lowest_importance);
+
+		return true;
+	}
+
+	template<class database_settings_type>
+	inline bool database_context<database_settings_type>::relocated(const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer)
+	{
+		if (!m_context.is_initialized())
+			return false;	// Not initialized, cannot be relocated
+
+		const bool is_valid = database.is_valid(false).empty();
+		ACL_ASSERT(is_valid, "Invalid compressed database instance");
+		if (!is_valid)
+			return false;
+
+		if (m_context.db_hash != database.get_hash())
+			return false;	// Hash is different, this instance did not relocate, it is different
+
+		// The instances are identical and might have relocated, update our metadata
+		m_context.db = &database;
+		m_context.streamers[0] = &medium_tier_streamer;
+		m_context.streamers[1] = &low_tier_streamer;
+
+		medium_tier_streamer.bind(m_context);
+		low_tier_streamer.bind(m_context);
+
+		return true;
+	}
+
+	template<class database_settings_type>
 	inline bool database_context<database_settings_type>::is_bound_to(const compressed_database& database) const
 	{
 		if (m_context.db != &database)
