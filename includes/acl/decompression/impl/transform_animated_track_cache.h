@@ -1223,10 +1223,11 @@ namespace acl
 			template<class decompression_settings_type, class decompression_settings_translation_adapter_type>
 			void RTM_DISABLE_SECURITY_COOKIE_CHECK initialize(const persistent_transform_decompression_context_v0& decomp_context)
 			{
-				const transform_tracks_header& transform_header = get_transform_tracks_header(*decomp_context.tracks);
+				const compressed_tracks* tracks = decomp_context.tracks;
+				const transform_tracks_header& transform_header = get_transform_tracks_header(*tracks);
 
-				const segment_header* segment0 = decomp_context.segment_offsets[0].add_to(decomp_context.tracks);
-				const segment_header* segment1 = decomp_context.segment_offsets[1].add_to(decomp_context.tracks);
+				const segment_header* segment0 = decomp_context.segment_offsets[0].add_to(tracks);
+				const segment_header* segment1 = decomp_context.segment_offsets[1].add_to(tracks);
 
 				const uint8_t* animated_track_data0 = decomp_context.animated_track_data[0];
 				const uint8_t* animated_track_data1 = decomp_context.animated_track_data[1];

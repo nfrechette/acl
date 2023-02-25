@@ -162,14 +162,16 @@ namespace acl
 			if (!decompression_settings_type::is_wrapping_supported())
 				return;	// Only clamping is supported
 
+			const compressed_tracks* tracks = context.tracks;
+
 			if (policy == sample_looping_policy::as_compressed)
-				policy = context.tracks->get_looping_policy();
+				policy = tracks->get_looping_policy();
 
 			const sample_looping_policy current_policy = static_cast<sample_looping_policy>(context.looping_policy);
 			if (current_policy != policy)
 			{
 				// Policy changed
-				context.clip_duration = context.tracks->get_finite_duration(policy);
+				context.clip_duration = tracks->get_finite_duration(policy);
 				context.looping_policy = static_cast<uint8_t>(policy);
 			}
 		}
@@ -177,7 +179,8 @@ namespace acl
 		template<class decompression_settings_type>
 		inline void seek_v0(persistent_transform_decompression_context_v0& context, float sample_time, sample_rounding_policy rounding_policy)
 		{
-			const tracks_header& header = get_tracks_header(*context.tracks);
+			const compressed_tracks* tracks = context.tracks;
+			const tracks_header& header = get_tracks_header(*tracks);
 			if (header.num_tracks == 0)
 				return;	// Empty track list
 
@@ -188,7 +191,7 @@ namespace acl
 			if (context.sample_time == sample_time && context.get_rounding_policy() == rounding_policy)
 				return;
 
-			const transform_tracks_header& transform_header = get_transform_tracks_header(*context.tracks);
+			const transform_tracks_header& transform_header = get_transform_tracks_header(*tracks);
 
 			// Prefetch our sub-track types, we'll need them soon when we start decompressing
 			// Most clips will have their sub-track types fit into 1 or 2 cache lines, we'll prefetch 2
@@ -227,9 +230,9 @@ namespace acl
 			const uint32_t num_segments = transform_header.num_segments;
 
 			constexpr bool is_database_supported = is_database_supported_impl<decompression_settings_type>();
-			ACL_ASSERT(is_database_supported || !context.tracks->has_database(), "Cannot have a database when it isn't supported");
+			ACL_ASSERT(is_database_supported || !tracks->has_database(), "Cannot have a database when it isn't supported");
 
-			const bool has_database = is_database_supported && context.tracks->has_database();
+			const bool has_database = is_database_supported && tracks->has_database();
 			const database_context_v0* db = context.db;
 
 			if (num_segments == 1)
@@ -526,8 +529,8 @@ namespace acl
 			context.key_frame_bit_offsets[0] = segment_key_frame0 * segment_header0->animated_pose_bit_size;
 			context.key_frame_bit_offsets[1] = segment_key_frame1 * segment_header1->animated_pose_bit_size;
 
-			context.segment_offsets[0] = ptr_offset32<segment_header>(context.tracks, segment_header0);
-			context.segment_offsets[1] = ptr_offset32<segment_header>(context.tracks, segment_header1);
+			context.segment_offsets[0] = ptr_offset32<segment_header>(tracks, segment_header0);
+			context.segment_offsets[1] = ptr_offset32<segment_header>(tracks, segment_header1);
 		}
 
 
@@ -1494,7 +1497,8 @@ namespace acl
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_tracks_v0(const persistent_transform_decompression_context_v0& context, track_writer_type& writer)
 		{
-			const tracks_header& header = get_tracks_header(*context.tracks);
+			const compressed_tracks* tracks = context.tracks;
+			const tracks_header& header = get_tracks_header(*tracks);
 			const uint32_t num_tracks = header.num_tracks;
 			if (num_tracks == 0)
 				return;	// Empty track list
@@ -1515,7 +1519,7 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const uint32_t has_scale = context.has_scale;
 
-			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
+			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 			const uint32_t num_padded_sub_tracks = (num_sub_track_entries * k_num_sub_tracks_per_packed_entry) - num_tracks;
 			const uint32_t last_entry_index = num_sub_track_entries - 1;
@@ -1720,7 +1724,8 @@ namespace acl
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_track_v0(const persistent_transform_decompression_context_v0& context, uint32_t track_index, track_writer_type& writer)
 		{
-			const tracks_header& tracks_header_ = get_tracks_header(*context.tracks);
+			const compressed_tracks* tracks = context.tracks;
+			const tracks_header& tracks_header_ = get_tracks_header(*tracks);
 			const uint32_t num_tracks = tracks_header_.num_tracks;
 			if (num_tracks == 0)
 				return;	// Empty track list
@@ -1763,7 +1768,7 @@ namespace acl
 
 			const uint32_t has_scale = context.has_scale;
 
-			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*context.tracks).get_sub_track_types();
+			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 
 			const packed_sub_track_types* rotation_sub_track_types = sub_track_types;
