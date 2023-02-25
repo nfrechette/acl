@@ -128,6 +128,9 @@ namespace acl
 			if (context.tracks_hash != tracks.get_hash())
 				return false;	// Hash is different, this instance did not relocate, it is different
 
+			if (database != nullptr)
+				return false;	// Database decompression is not supported for scalar tracks
+
 			// The instances are identical and might have relocated, update our metadata
 			context.tracks = &tracks;
 
