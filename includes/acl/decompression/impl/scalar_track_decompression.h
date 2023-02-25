@@ -122,6 +122,21 @@ namespace acl
 			return true;
 		}
 
+		template<class decompression_settings_type, class database_settings_type>
+		inline bool relocated_v0(persistent_scalar_decompression_context_v0& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
+		{
+			if (context.tracks_hash != tracks.get_hash())
+				return false;	// Hash is different, this instance did not relocate, it is different
+
+			// The instances are identical and might have relocated, update our metadata
+			context.tracks = &tracks;
+
+			// Reset the sample time to force seek() to be called again.
+			context.sample_time = -1.0F;
+
+			return true;
+		}
+
 		inline bool is_bound_to_v0(const persistent_scalar_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
 			if (context.tracks != &tracks)
