@@ -655,6 +655,9 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(!context0.relocated(*db_tracks1[0]), "Wrong tracks instance, cannot relocate");
 		ACL_ASSERT(!context0.relocated(*db_tracks0[0], db_context1), "Wrong DB instance, cannot relocate");
 		ACL_ASSERT(context0.relocated(*db_tracks0[0], db_context0), "Relocation should succeed");
+
+		ACL_ASSERT(!db_context0.relocated(*db1), "Wrong DB instance, cannot relocate");
+		ACL_ASSERT(db_context0.relocated(*db0), "Relocation should succeed");
 	}
 
 	// Measure the tier error when stripping
