@@ -117,6 +117,18 @@ namespace acl
 		void reset();
 
 		//////////////////////////////////////////////////////////////////////////
+		// If the bound compressed tracks instance has relocated elsewhere in memory, this function
+		// rebinds the context to it, avoiding the need to re-initialize it entirely.
+		// Returns whether rebinding was successful or not.
+		bool relocated(const compressed_tracks& tracks);
+
+		//////////////////////////////////////////////////////////////////////////
+		// If the bound compressed tracks and database instances have relocated elsewhere in memory, this function
+		// rebinds the context to them, avoiding the need to re-initialize it entirely.
+		// Returns whether rebinding was successful or not.
+		bool relocated(const compressed_tracks& tracks, const database_context<db_settings_type>& database);
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns true if this context instance is bound to the specified compressed tracks instance, false otherwise.
 		ACL_DEPRECATED("Renamed to is_bound_to, to be removed in v3.0")
 		bool is_dirty(const compressed_tracks& tracks) const;

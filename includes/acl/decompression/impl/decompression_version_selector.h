@@ -63,6 +63,9 @@ namespace acl
 			template<class decompression_settings_type, class context_type, class database_settings_type>
 			RTM_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database); }
 
+			template<class decompression_settings_type, class context_type, class database_settings_type>
+			RTM_FORCE_INLINE static bool relocated(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::relocated_v0<decompression_settings_type>(context, tracks, database); }
+
 			template<class context_type>
 			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_bound_to_v0(context, tracks); }
 
@@ -93,6 +96,9 @@ namespace acl
 			template<class decompression_settings_type, class context_type, class database_settings_type>
 			RTM_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database); }
 
+			template<class decompression_settings_type, class context_type, class database_settings_type>
+			RTM_FORCE_INLINE static bool relocated(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::relocated_v0<decompression_settings_type>(context, tracks, database); }
+
 			template<class context_type>
 			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_bound_to_v0(context, tracks); }
 
@@ -119,6 +125,9 @@ namespace acl
 
 			template<class decompression_settings_type, class context_type, class database_settings_type>
 			RTM_FORCE_INLINE static bool initialize(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database); }
+
+			template<class decompression_settings_type, class context_type, class database_settings_type>
+			RTM_FORCE_INLINE static bool relocated(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::relocated_v0<decompression_settings_type>(context, tracks, database); }
 
 			template<class context_type>
 			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_bound_to_v0(context, tracks); }
@@ -161,6 +170,22 @@ namespace acl
 				case compressed_tracks_version16::v02_01_99:
 				case compressed_tracks_version16::v02_01_99_1:
 					return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database);
+				default:
+					ACL_ASSERT(false, "Unsupported version");
+					return false;
+				}
+			}
+
+			template<class decompression_settings_type, class context_type, class database_settings_type>
+			RTM_FORCE_INLINE static bool relocated(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
+			{
+				const compressed_tracks_version16 version = tracks.get_version();
+				switch (version)
+				{
+				case compressed_tracks_version16::v02_00_00:
+				case compressed_tracks_version16::v02_01_99:
+				case compressed_tracks_version16::v02_01_99_1:
+					return acl_impl::relocated_v0<decompression_settings_type>(context, tracks, database);
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					return false;

@@ -638,6 +638,25 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, threshold), "Database 01 should have the same error");
 	}
 
+	{
+		// Validate relocation
+		acl::decompression_context<debug_transform_decompression_settings_with_db> context0;
+		acl::decompression_context<debug_transform_decompression_settings_with_db> context1;
+		acl::database_context<acl::debug_database_settings> db_context0;
+		acl::database_context<acl::debug_database_settings> db_context1;
+
+		bool initialized = db_context0.initialize(allocator, *db0);
+		initialized = initialized && db_context1.initialize(allocator, *db1);
+		initialized = initialized && context0.initialize(*db_tracks0[0], db_context0);
+		initialized = initialized && context1.initialize(*db_tracks1[0], db_context1);
+		ACL_ASSERT(initialized, "Failed to initialize decompression context");
+
+		ACL_ASSERT(!context0.relocated(*db_tracks0[0]), "Missing DB, cannot relocate");
+		ACL_ASSERT(!context0.relocated(*db_tracks1[0]), "Wrong tracks instance, cannot relocate");
+		ACL_ASSERT(!context0.relocated(*db_tracks0[0], db_context1), "Wrong DB instance, cannot relocate");
+		ACL_ASSERT(context0.relocated(*db_tracks0[0], db_context0), "Relocation should succeed");
+	}
+
 	// Measure the tier error when stripping
 	validate_db_stripping(allocator, raw_tracks, additive_base_tracks, error_metric, *db_tracks01[0], *db_tracks01[1], *db01, db01->get_bulk_data(quality_tier::medium_importance), db01->get_bulk_data(quality_tier::lowest_importance));
 

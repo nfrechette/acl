@@ -110,6 +110,26 @@ namespace acl
 			}
 		}
 
+		template<class decompression_settings_type, class database_settings_type>
+		inline bool relocated_v0(persistent_universal_decompression_context& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
+		{
+			const track_type8 track_type = tracks.get_track_type();
+			switch (track_type)
+			{
+			case track_type8::float1f:
+			case track_type8::float2f:
+			case track_type8::float3f:
+			case track_type8::float4f:
+			case track_type8::vector4f:
+				return relocated_v0<decompression_settings_type>(context.scalar, tracks, database);
+			case track_type8::qvvf:
+				return relocated_v0<decompression_settings_type>(context.transform, tracks, database);
+			default:
+				ACL_ASSERT(false, "Invalid track type");
+				return false;
+			}
+		}
+
 		inline bool is_bound_to_v0(const persistent_universal_decompression_context& context, const compressed_tracks& tracks)
 		{
 			if (!context.is_initialized())
