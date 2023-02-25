@@ -83,14 +83,14 @@ namespace acl
 
 			float sample_time;									//  44 |  52
 
-			// Offsets relative to the 'tracks' pointer
+			// Offsets in bytes relative to the 'tracks' pointer
 			ptr_offset32<segment_header> segment_offsets[2];	//  48 |  56
 
 			const uint8_t* format_per_track_data[2];			//  56 |  64
 			const uint8_t* segment_range_data[2];				//  64 |  80
 			const uint8_t* animated_track_data[2];				//  72 |  96
 
-			// Offsets relative to the 'animated_track_data' pointers
+			// Offsets in bits relative to the 'animated_track_data' pointers
 			uint32_t key_frame_bit_offsets[2];					//  80 | 112
 
 			float interpolation_alpha;							//  88 | 120
