@@ -733,6 +733,9 @@ namespace acl
 					apply_additive_to_base_args_lossy.base_transforms = base_transforms;
 					base_transforms += sample_transform_size;
 
+					// TODO: Is this accurate if we have conversion? Our input is in the converted array for base/local
+					//       and we write to the local qvvf buffer? The calculate error below will read from the converted array
+					//       if we are converted.
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
 
@@ -830,6 +833,9 @@ namespace acl
 					apply_additive_to_base_args_lossy.base_transforms = base_transforms;
 					base_transforms += sample_transform_size;
 
+					// TODO: Is this accurate if we have conversion? Our input is in the converted array for base/local
+					//       and we write to the local qvvf buffer? The calculate error below will read from the converted array
+					//       if we are converted.
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
 
