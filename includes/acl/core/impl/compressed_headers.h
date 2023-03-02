@@ -209,24 +209,6 @@ namespace acl
 			uint32_t						sample_indices;
 		};
 
-		//////////////////////////////////////////////////////////////////////////
-		// A packed structure with metadata for animated groups.
-		//////////////////////////////////////////////////////////////////////////
-		struct animated_group_metadata
-		{
-			// Bits [0, 14): the group size
-			// Bits [14, 16): the group type
-			uint16_t						metadata;
-
-			bool							is_valid() const { return metadata != 0xFFFF; }
-
-			animation_track_type8			get_type() const { return static_cast<animation_track_type8>(metadata >> 6); }
-			void							set_type(animation_track_type8 type) { metadata = (metadata & ~(3 << 6)) | static_cast<uint16_t>(type) << 6; }
-
-			uint32_t						get_size() const { return static_cast<uint32_t>(metadata) & ((1 << 14) - 1); }
-			void							set_size(uint32_t size) { ACL_ASSERT(size < (1 << 14), "Group size too large"); metadata = (metadata & ~((1 << 14) - 1)) | static_cast<uint16_t>(size); }
-		};
-
 		struct database_runtime_clip_header;	// Forward declare
 
 		// Header for database related metadata in 'compressed_tracks'
