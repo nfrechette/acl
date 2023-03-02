@@ -87,8 +87,8 @@ namespace acl
 			uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
 			uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
 
-			const size_t converted_transforms_size = error_metric.get_transform_size(context.has_scale) * 2;
-			ACL_ASSERT(converted_transforms_size <= sizeof(local_transforms_converted), "Transform size is too large");
+			const size_t metric_transform_size = error_metric.get_transform_size(context.has_scale);
+			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_local;
 			convert_transforms_args_local.dirty_transform_indices = &dirty_transform_indices[0];
@@ -110,8 +110,8 @@ namespace acl
 			apply_additive_to_base_args.num_transforms = 2;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
-			calculate_error_args.transform0 = &local_transforms_converted[0];
-			calculate_error_args.transform1 = &local_transforms_converted[1];
+			calculate_error_args.transform0 = &local_transforms_converted[metric_transform_size * 0];
+			calculate_error_args.transform1 = &local_transforms_converted[metric_transform_size * 1];
 
 			const uint32_t num_transforms = segment.num_bones;
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
@@ -138,7 +138,7 @@ namespace acl
 				if (needs_conversion)
 					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[0]);
 				else
-					std::memcpy(&local_transforms_converted[0], &local_transforms[0], converted_transforms_size);
+					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
 
 				if (has_additive_base)
 				{
@@ -161,7 +161,7 @@ namespace acl
 					if (needs_conversion)
 						error_metric.convert_transforms(convert_transforms_args_base, &base_transforms_converted[0]);
 					else
-						std::memcpy(&base_transforms_converted[0], &base_transforms[0], converted_transforms_size);
+						std::memcpy(&base_transforms_converted[0], &base_transforms[0], metric_transform_size * 2);
 
 					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms_converted[0]);
 				}
