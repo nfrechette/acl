@@ -67,7 +67,7 @@ namespace acl
 		// then the sub-track is constant. We perform the same test using the default
 		// sub-track value to determine if it is a default sub-track.
 
-		inline bool RTM_SIMD_CALL are_rotations_constant(const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, rtm::quatf_arg0 reference, uint32_t transform_index)
+		inline bool RTM_SIMD_CALL are_samples_constant(const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, rtm::vector4f_arg0 reference, uint32_t transform_index, animation_track_type8 sub_track_type)
 		{
 			const bool has_additive_base = lossy_clip_context.has_additive_base;
 
@@ -92,7 +92,22 @@ namespace acl
 				const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
 
 				rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
-				rtm::qvvf lossy_transform = rtm::qvv_set(reference, raw_translation, raw_scale);
+				rtm::qvvf lossy_transform = raw_transform;	// Copy the raw transform
+
+				// Fix up our lossy transform with the reference value
+				switch (sub_track_type)
+				{
+				case animation_track_type8::rotation:
+				default:
+					lossy_transform.rotation = rtm::vector_to_quat(reference);
+					break;
+				case animation_track_type8::translation:
+					lossy_transform.translation = reference;
+					break;
+				case animation_track_type8::scale:
+					lossy_transform.scale = reference;
+					break;
+				}
 
 				if (has_additive_base)
 				{
@@ -148,7 +163,7 @@ namespace acl
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_rotations_constant(lossy_clip_context, additive_base_clip_context, raw_transform_stream.rotations.get_sample(0), transform_index);
+			return are_samples_constant(lossy_clip_context, additive_base_clip_context, rtm::quat_to_vector(raw_transform_stream.rotations.get_sample(0)), transform_index, animation_track_type8::rotation);
 		}
 
 		inline bool are_rotations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, const track_desc_transformf& desc, uint32_t transform_index)
@@ -156,7 +171,7 @@ namespace acl
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are default if we have no samples
 
-			const rtm::quatf default_bind_rotation = desc.default_value.rotation;
+			const rtm::vector4f default_bind_rotation = rtm::quat_to_vector(desc.default_value.rotation);
 
 			// When we are using full precision, we are only default if (sample 0 == default value), meaning
 			// we have a single unique and repeating default sample
@@ -168,76 +183,11 @@ namespace acl
 				const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 				const rtm::vector4f rotation = raw_transform_stream.rotations.get_raw_sample<rtm::vector4f>(0);
-				return rtm::vector_all_equal(rotation, rtm::quat_to_vector(default_bind_rotation));
+				return rtm::vector_all_equal(rotation, default_bind_rotation);
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_rotations_constant(lossy_clip_context, additive_base_clip_context, default_bind_rotation, transform_index);
-		}
-
-		inline bool RTM_SIMD_CALL are_translations_constant(const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, rtm::vector4f_arg0 reference, uint32_t transform_index)
-		{
-			const bool has_additive_base = lossy_clip_context.has_additive_base;
-
-			const segment_context& lossy_segment = lossy_clip_context.segments[0];
-			const transform_streams& raw_transform_stream = lossy_segment.bone_streams[transform_index];
-
-			const rigid_shell_metadata_t& shell = lossy_clip_context.clip_shell_metadata[transform_index];
-
-			const uint32_t num_samples = lossy_clip_context.num_samples;
-
-			qvvf_transform_error_metric::calculate_error_args error_metric_args;
-			error_metric_args.construct_sphere_shell(shell.local_shell_distance);
-
-			const qvvf_transform_error_metric error_metric;
-
-			const rtm::scalarf precision = rtm::scalar_set(shell.precision);
-
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-			{
-				const rtm::quatf raw_rotation = raw_transform_stream.rotations.get_sample_clamped(sample_index);
-				const rtm::vector4f raw_translation = raw_transform_stream.translations.get_sample_clamped(sample_index);
-				const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
-
-				rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
-				rtm::qvvf lossy_transform = rtm::qvv_set(raw_rotation, reference, raw_scale);
-
-				if (has_additive_base)
-				{
-					const segment_context& additive_base_segment = additive_base_clip_context.segments[0];
-					const transform_streams& additive_base_bone_stream = additive_base_segment.bone_streams[transform_index];
-
-					// The sample time is calculated from the full clip duration to be consistent with decompression
-					const float sample_time = rtm::scalar_min(float(sample_index) / lossy_clip_context.sample_rate, lossy_clip_context.duration);
-
-					const float normalized_sample_time = additive_base_segment.num_samples > 1 ? (sample_time / lossy_clip_context.duration) : 0.0F;
-					const float additive_sample_time = additive_base_segment.num_samples > 1 ? (normalized_sample_time * additive_base_clip_context.duration) : 0.0F;
-
-					// With uniform sample distributions, we do not interpolate.
-					const uint32_t base_sample_index = get_uniform_sample_key(additive_base_segment, additive_sample_time);
-
-					const rtm::quatf base_rotation = additive_base_bone_stream.rotations.get_sample_clamped(base_sample_index);
-					const rtm::vector4f base_translation = additive_base_bone_stream.translations.get_sample_clamped(base_sample_index);
-					const rtm::vector4f base_scale = additive_base_bone_stream.scales.get_sample_clamped(base_sample_index);
-
-					const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
-
-					raw_transform = apply_additive_to_base(lossy_clip_context.additive_format, base_transform, raw_transform);
-					lossy_transform = apply_additive_to_base(lossy_clip_context.additive_format, base_transform, lossy_transform);
-				}
-
-				error_metric_args.transform0 = &raw_transform;
-				error_metric_args.transform1 = &lossy_transform;
-
-				const rtm::scalarf vtx_error = error_metric.calculate_error(error_metric_args);
-
-				// If our error exceeds the desired precision, we are not constant
-				if (rtm::scalar_greater_than(vtx_error, precision))
-					return false;
-			}
-
-			// All samples were tested against the reference value and the error remained within tolerance
-			return true;
+			return are_samples_constant(lossy_clip_context, additive_base_clip_context, default_bind_rotation, transform_index, animation_track_type8::rotation);
 		}
 
 		inline bool are_translations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, uint32_t transform_index)
@@ -256,7 +206,7 @@ namespace acl
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_translations_constant(lossy_clip_context, additive_base_clip_context, raw_transform_stream.translations.get_sample(0), transform_index);
+			return are_samples_constant(lossy_clip_context, additive_base_clip_context, raw_transform_stream.translations.get_sample(0), transform_index, animation_track_type8::translation);
 		}
 
 		inline bool are_translations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, const track_desc_transformf& desc, uint32_t transform_index)
@@ -280,72 +230,7 @@ namespace acl
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_translations_constant(lossy_clip_context, additive_base_clip_context, default_bind_translation, transform_index);
-		}
-
-		inline bool RTM_SIMD_CALL are_scales_constant(const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, rtm::vector4f_arg0 reference, uint32_t transform_index)
-		{
-			const bool has_additive_base = lossy_clip_context.has_additive_base;
-
-			const segment_context& lossy_segment = lossy_clip_context.segments[0];
-			const transform_streams& raw_transform_stream = lossy_segment.bone_streams[transform_index];
-
-			const rigid_shell_metadata_t& shell = lossy_clip_context.clip_shell_metadata[transform_index];
-
-			const uint32_t num_samples = lossy_clip_context.num_samples;
-
-			qvvf_transform_error_metric::calculate_error_args error_metric_args;
-			error_metric_args.construct_sphere_shell(shell.local_shell_distance);
-
-			const qvvf_transform_error_metric error_metric;
-
-			const rtm::scalarf precision = rtm::scalar_set(shell.precision);
-
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-			{
-				const rtm::quatf raw_rotation = raw_transform_stream.rotations.get_sample_clamped(sample_index);
-				const rtm::vector4f raw_translation = raw_transform_stream.translations.get_sample_clamped(sample_index);
-				const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
-
-				rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
-				rtm::qvvf lossy_transform = rtm::qvv_set(raw_rotation, raw_translation, reference);
-
-				if (has_additive_base)
-				{
-					const segment_context& additive_base_segment = additive_base_clip_context.segments[0];
-					const transform_streams& additive_base_bone_stream = additive_base_segment.bone_streams[transform_index];
-
-					// The sample time is calculated from the full clip duration to be consistent with decompression
-					const float sample_time = rtm::scalar_min(float(sample_index) / lossy_clip_context.sample_rate, lossy_clip_context.duration);
-
-					const float normalized_sample_time = additive_base_segment.num_samples > 1 ? (sample_time / lossy_clip_context.duration) : 0.0F;
-					const float additive_sample_time = additive_base_segment.num_samples > 1 ? (normalized_sample_time * additive_base_clip_context.duration) : 0.0F;
-
-					// With uniform sample distributions, we do not interpolate.
-					const uint32_t base_sample_index = get_uniform_sample_key(additive_base_segment, additive_sample_time);
-
-					const rtm::quatf base_rotation = additive_base_bone_stream.rotations.get_sample_clamped(base_sample_index);
-					const rtm::vector4f base_translation = additive_base_bone_stream.translations.get_sample_clamped(base_sample_index);
-					const rtm::vector4f base_scale = additive_base_bone_stream.scales.get_sample_clamped(base_sample_index);
-
-					const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
-
-					raw_transform = apply_additive_to_base(lossy_clip_context.additive_format, base_transform, raw_transform);
-					lossy_transform = apply_additive_to_base(lossy_clip_context.additive_format, base_transform, lossy_transform);
-				}
-
-				error_metric_args.transform0 = &raw_transform;
-				error_metric_args.transform1 = &lossy_transform;
-
-				const rtm::scalarf vtx_error = error_metric.calculate_error(error_metric_args);
-
-				// If our error exceeds the desired precision, we are not constant
-				if (rtm::scalar_greater_than(vtx_error, precision))
-					return false;
-			}
-
-			// All samples were tested against the reference value and the error remained within tolerance
-			return true;
+			return are_samples_constant(lossy_clip_context, additive_base_clip_context, default_bind_translation, transform_index, animation_track_type8::translation);
 		}
 
 		inline bool are_scales_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, uint32_t transform_index)
@@ -367,7 +252,7 @@ namespace acl
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_scales_constant(lossy_clip_context, additive_base_clip_context, raw_transform_stream.scales.get_sample(0), transform_index);
+			return are_samples_constant(lossy_clip_context, additive_base_clip_context, raw_transform_stream.scales.get_sample(0), transform_index, animation_track_type8::scale);
 		}
 
 		inline bool are_scales_default(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, const track_desc_transformf& desc, uint32_t transform_index)
@@ -394,7 +279,7 @@ namespace acl
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_scales_constant(lossy_clip_context, additive_base_clip_context, default_bind_scale, transform_index);
+			return are_samples_constant(lossy_clip_context, additive_base_clip_context, default_bind_scale, transform_index, animation_track_type8::scale);
 		}
 
 		// Compacts constant sub-tracks
