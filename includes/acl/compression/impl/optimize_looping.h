@@ -74,19 +74,51 @@ namespace acl
 			// remove the last sample and wrap instead of clamping
 			bool is_wrapping = true;
 
+			const itransform_error_metric& error_metric = *settings.error_metric;
+
 			segment_context& segment = context.segments[0];
 			const uint32_t last_sample_index = segment.num_samples - 1;
 			const bool has_additive_base = context.has_additive_base;
+			const bool needs_conversion = error_metric.needs_conversion(context.has_scale);
 
-			qvvf_transform_error_metric::calculate_error_args error_metric_args;
-			const qvvf_transform_error_metric error_metric;
+			const uint32_t dirty_transform_indices[2] = { 0, 1 };
+			rtm::qvvf local_transforms[2];
+			rtm::qvvf base_transforms[2];
+			uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
+			uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
+
+			const size_t converted_transforms_size = error_metric.get_transform_size(context.has_scale) * 2;
+			ACL_ASSERT(converted_transforms_size <= sizeof(local_transforms_converted), "Transform size is too large");
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_local;
+			convert_transforms_args_local.dirty_transform_indices = &dirty_transform_indices[0];
+			convert_transforms_args_local.num_dirty_transforms = 2;
+			convert_transforms_args_local.transforms = &local_transforms[0];
+			convert_transforms_args_local.num_transforms = 2;
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_base;
+			convert_transforms_args_base.dirty_transform_indices = &dirty_transform_indices[0];
+			convert_transforms_args_base.num_dirty_transforms = 2;
+			convert_transforms_args_base.transforms = &base_transforms[0];
+			convert_transforms_args_base.num_transforms = 2;
+
+			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
+			apply_additive_to_base_args.dirty_transform_indices = &dirty_transform_indices[0];
+			apply_additive_to_base_args.num_dirty_transforms = 2;
+			apply_additive_to_base_args.base_transforms = needs_conversion ? (const void*)&base_transforms_converted[0] : (const void*)&base_transforms[0];
+			apply_additive_to_base_args.local_transforms = needs_conversion ? (const void*)&local_transforms_converted[0] : (const void*)&local_transforms[0];
+			apply_additive_to_base_args.num_transforms = 2;
+
+			itransform_error_metric::calculate_error_args calculate_error_args;
+			calculate_error_args.transform0 = &local_transforms_converted[0];
+			calculate_error_args.transform1 = &local_transforms_converted[1];
 
 			const uint32_t num_transforms = segment.num_bones;
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
 				const rigid_shell_metadata_t& shell = context.clip_shell_metadata[transform_index];
 
-				error_metric_args.construct_sphere_shell(shell.local_shell_distance);
+				calculate_error_args.construct_sphere_shell(shell.local_shell_distance);
 
 				const rtm::scalarf precision = rtm::scalar_set(shell.precision);
 
@@ -100,8 +132,13 @@ namespace acl
 				const rtm::vector4f last_translation = lossy_transform_stream.translations.get_sample_clamped(last_sample_index);
 				const rtm::vector4f last_scale = lossy_transform_stream.scales.get_sample_clamped(last_sample_index);
 
-				rtm::qvvf first_transform = rtm::qvv_set(first_rotation, first_translation, first_scale);
-				rtm::qvvf last_transform = rtm::qvv_set(last_rotation, last_translation, last_scale);
+				local_transforms[0] = rtm::qvv_set(first_rotation, first_translation, first_scale);
+				local_transforms[1] = rtm::qvv_set(last_rotation, last_translation, last_scale);
+
+				if (needs_conversion)
+					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[0]);
+				else
+					std::memcpy(&local_transforms_converted[0], &local_transforms[0], converted_transforms_size);
 
 				if (has_additive_base)
 				{
@@ -118,17 +155,18 @@ namespace acl
 					const rtm::vector4f base_last_translation = additive_base_bone_stream.translations.get_sample_clamped(base_last_sample_index);
 					const rtm::vector4f base_last_scale = additive_base_bone_stream.scales.get_sample_clamped(base_last_sample_index);
 
-					const rtm::qvvf base_first_transform = rtm::qvv_set(base_first_rotation, base_first_translation, base_first_scale);
-					const rtm::qvvf base_last_transform = rtm::qvv_set(base_last_rotation, base_last_translation, base_last_scale);
+					base_transforms[0] = rtm::qvv_set(base_first_rotation, base_first_translation, base_first_scale);
+					base_transforms[1] = rtm::qvv_set(base_last_rotation, base_last_translation, base_last_scale);
 
-					first_transform = apply_additive_to_base(context.additive_format, base_first_transform, first_transform);
-					last_transform = apply_additive_to_base(context.additive_format, base_last_transform, last_transform);
+					if (needs_conversion)
+						error_metric.convert_transforms(convert_transforms_args_base, &base_transforms_converted[0]);
+					else
+						std::memcpy(&base_transforms_converted[0], &base_transforms[0], converted_transforms_size);
+
+					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms_converted[0]);
 				}
 
-				error_metric_args.transform0 = &first_transform;
-				error_metric_args.transform1 = &last_transform;
-
-				const rtm::scalarf vtx_error = error_metric.calculate_error(error_metric_args);
+				const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
 
 				// If our error exceeds the desired precision, we are not wrapping
 				if (rtm::scalar_greater_than(vtx_error, precision))
