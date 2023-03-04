@@ -84,8 +84,8 @@ namespace acl
 			const uint32_t dirty_transform_indices[2] = { 0, 1 };
 			rtm::qvvf local_transforms[2];
 			rtm::qvvf base_transforms[2];
-			uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
-			uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
+			alignas(16) uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
+			alignas(16) uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
 
 			const size_t metric_transform_size = error_metric.get_transform_size(lossy_clip_context.has_scale);
 			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
